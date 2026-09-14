@@ -224,6 +224,12 @@ body {
 .ege-note--ok { background: var(--fb-tint-sage); }
 .ege-note--error { background: var(--fb-tint-clay); }
 
+/* One-column page for the standalone forms. */
+.ege-narrow {
+  max-width: 520px;
+  padding-block: 44px;
+}
+
 /* --- misc --------------------------------------------------------------- */
 
 .ege-section-gap { margin-top: 34px; }
