@@ -1,26 +1,124 @@
-# GRIDIRON DB — CSS UI kit
+# EGE Football — Career Simulation
 
-Sharp-bordered football-database interface on a grass field ground, built on the
-Organic design system tokens.
+A football career simulation that follows six players from their junior year of
+high school through to the NFL Draft. The site is part record book (schedules,
+results, box scores) and part game (each player logs in to their own portal and
+spends offseason workouts to raise their overalls).
 
-## Files
+Status: **spec only.** Nothing below is built yet. This README is the source of
+truth for what gets built and in what order.
 
-- `style.css` — the kit: tokens, reset, layout, panels, nav, buttons, tags,
-  inputs, segmented tabs, filter chips, data table, pagination, stat tiles,
-  meters, alerts, hero, photo placeholder, scoreboard, modal, utilities.
-- `organic-styles.css` — the Organic design-system stylesheet (tokens it builds on).
+---
 
-## Use
+## The Six Players
 
-```html
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:wght@400;600;800&display=swap">
-<link rel="stylesheet" href="organic-styles.css">
-<link rel="stylesheet" href="football-db.css">
-```
+| Player | School | Position | Notes |
+| --- | --- | --- | --- |
+| Andrew Parr | TBD | TBD | |
+| Cooper Clark | Carlsbad High School | TBD | |
+| Paxon Hatch | Bloomington High School | TE | Only confirmed position |
+| Isaac Vitel | TBD | TBD | |
+| Sam Stogsdill | Normal Community High School | TBD | |
+| Jaykeb Stewart | TBD | TBD | |
 
-## Theming
+Everything marked TBD is genuinely unknown right now and should stay TBD in code
+and data until it is confirmed — no placeholder guesses that later read as facts.
 
-Override in your own `:root` — everything reads from these:
+Headshots already in the repo under `headshot/`, keyed by last name:
+`parr.png`, `clark.png`, `hatch.png`, `vitel.png`, `stogsdill.png`,
+`stewart.png`.
+
+---
+
+## Timeline
+
+The simulation starts at **junior year of high school** and runs forward season
+by season, ending at the **2023 NFL Draft**, where all six are drafted.
+
+> Open question to settle before any season data is authored: the junior-year
+> start and a 2023 draft don't line up on a normal calendar (a high school
+> junior is 4–5 years out from a draft). Either the junior season is earlier
+> than it looks, or the draft year moves. Pick one and write the season years
+> into this README before building the schedule data.
+
+---
+
+## Site Structure
+
+### Homepage — player select
+
+- The landing page is a six-way player picker: one card per player with their
+  headshot, name, school, and position (or TBD).
+- Selecting a card routes to that player's page.
+
+### Player page — `/#{name}`
+
+Routed by player name, e.g. `#andrew-parr`, `#paxon-hatch`. Each player page
+holds:
+
+- **Header** — headshot, name, school, position, class year, current overall.
+- **Schedule** — every scheduled game for the season: week, date, opponent,
+  home/away, result (W/L and score) once played, or upcoming if not.
+- **Record** — running wins and losses.
+- **Game log** — per-game stats for that player, with the stat lines driven by
+  their position (see below).
+- **Season totals** — the game log aggregated.
+
+### Position-driven stat lines
+
+A player's position decides which stat columns their game log shows. Stat sets
+to define per position group:
+
+- **QB** — completions/attempts, passing yards, passing TD, INT, rushing
+  yards/TD.
+- **RB** — carries, rushing yards, rushing TD, receptions, receiving yards.
+- **WR / TE** — targets, receptions, receiving yards, receiving TD (Paxon Hatch
+  is TE, so this is the first one needed).
+- **OL** — snaps, pancakes, sacks allowed.
+- **DL / LB** — tackles, TFL, sacks, forced fumbles.
+- **DB** — tackles, pass deflections, INT, INT return yards.
+- **K / P** — FG made/attempted, longest, punts, punt average.
+
+Only the TE set is required for the first build. The rest get filled in as
+positions are confirmed.
+
+---
+
+## Player Portal (login)
+
+Each of the six gets an account and a private portal.
+
+- **Login** — one account per player; a player only edits their own profile.
+- **Overalls** — a rating per attribute (speed, strength, catching, route
+  running, awareness, etc. — final attribute list TBD) plus a single overall.
+- **Offseason workouts** — the progression mechanic. Between seasons a player
+  spends workouts as boosts to raise specific attributes. Workouts are a limited
+  resource, so choices have a cost.
+- **Interactive layer** — beyond workouts, the portal is meant to be something a
+  player actually plays with between games. Scope TBD; workouts come first.
+
+The read-only side of the site (schedules, records, stats) stays public — no
+login needed to browse.
+
+---
+
+## Existing Assets
+
+Already in the repo and intended to be used as-is:
+
+- `style.css` — GRIDIRON DB UI kit: tokens, layout, panels, nav, buttons, tags,
+  inputs, tabs, filter chips, data tables, pagination, stat tiles, meters,
+  alerts, hero, photo placeholder, scoreboard, modal, utilities.
+- `organic-styles.css` — the Organic design-system stylesheet `style.css` builds
+  on.
+- `headshot/` — the six player headshots.
+
+Conventions the kit expects: state is a class (`.is-active`, `.is-selected`,
+`.is-sorted`, `.is-on`), and every border is square — the reset forces
+`border-radius: 0` globally, with the football brand mark as the only round
+shape.
+
+Theme hooks, overridden in your own `:root`:
 
 ```css
 :root {
@@ -31,8 +129,33 @@ Override in your own `:root` — everything reads from these:
 }
 ```
 
-## Conventions
+---
 
-State is a class, never a separate component: `.is-active`, `.is-selected`,
-`.is-sorted`, `.is-on`. Every border is square — the reset enforces
-`border-radius: 0` globally; the only round shape is the football brand mark.
+## Build Order
+
+One thing at a time, in this order:
+
+1. **This README** — the spec. ✅
+2. **Player data file** — the six players, schools, positions (TBD where
+   unknown), headshot paths. One source of truth everything else reads.
+3. **Homepage** — six-card player select, wired to the data file.
+4. **Player page shell** — `#{name}` routing, header, empty schedule/record/game
+   log sections.
+5. **Schedule data + display** — real junior-year schedules per school, rendered
+   with results and running record.
+6. **Stat lines** — TE game log for Paxon Hatch first, other position sets as
+   positions are confirmed.
+7. **Login + portal** — accounts, attributes, overalls.
+8. **Offseason workouts** — the boost mechanic.
+9. **Extra interactive layer** — scope defined once the above is working.
+
+---
+
+## Open Questions
+
+- Season years, and how the junior-year start reaches a 2023 draft.
+- Positions for Parr, Clark, Vitel, Stogsdill, Stewart.
+- Schools for Parr, Vitel, Stewart.
+- Full attribute list behind a player's overall.
+- Where data lives (flat JSON in the repo vs. a backend) — this decides whether
+  the portal's saved changes can persist.
