@@ -27,7 +27,6 @@
       <div class="fb-nav__links">
         <a class="fb-navlink is-active" href="#">Players</a>
       </div>
-      <!-- Supabase auth mounts here. See js/app.js -> openLogin(). -->
       <button class="fb-btn fb-btn--inverse" id="loginBtn" type="button">Log In</button>
     </div>
   </nav>
@@ -73,7 +72,7 @@
             <div class="ege-detail__col">
               <span class="fb-eyebrow" id="playerSchool"></span>
               <h2 class="ege-detail__name" id="playerName"></h2>
-              <div class="fb-row--wrap" id="playerTags"></div>
+              <div class="fb-row fb-row--wrap" id="playerTags"></div>
 
               <dl class="ege-detail__list" style="margin-top: 18px;">
                 <dt>Season</dt><dd id="playerSeason"></dd>
@@ -92,33 +91,57 @@
       </div>
     </section>
 
-    <p class="ege-foot">
-      EGE Football &middot; spec and build order in
-      <a href="https://github.com/stogz/egefootball#readme">README.md</a>
-    </p>
-
   </div><!-- /fb-wrap -->
 </div><!-- /fb-shell -->
 
-<!-- ===== login placeholder modal ====================================== -->
+<!-- ===== player portal login ========================================== -->
 <div class="fb-backdrop" id="loginModal" hidden>
   <div class="fb-modal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
     <div class="fb-modal__head">
       <span class="fb-modal__title" id="loginTitle">Player Portal</span>
       <button class="fb-modal__close" type="button" data-close-login aria-label="Close">&times;</button>
     </div>
-    <div class="fb-modal__body">
-      <p style="margin: 0; font-size: 14px; line-height: 1.5;">
-        Login is not wired up yet. Supabase auth drops in here — each player
-        signs in to their own portal to spend offseason workouts on their
-        overalls.
+
+    <!-- signed out -->
+    <form class="fb-modal__body" id="loginForm">
+      <label class="ege-field">
+        <span class="fb-eyebrow">Player</span>
+        <select class="fb-select" id="loginPlayer"></select>
+      </label>
+
+      <label class="ege-field">
+        <span class="fb-eyebrow">Password</span>
+        <input class="fb-input" id="loginPassword" type="password"
+               autocomplete="current-password" minlength="8" required>
+        <span class="fb-meta" id="loginHint">
+          First time? The password you enter becomes your password.
+        </span>
+      </label>
+
+      <p class="ege-note" id="loginMessage" role="alert" hidden></p>
+
+      <button class="fb-btn fb-btn--primary fb-btn--block" id="loginSubmit" type="submit">
+        Continue
+      </button>
+    </form>
+
+    <!-- signed in -->
+    <div class="fb-modal__body" id="loginSignedIn" hidden>
+      <p style="margin: 0; font-size: 15px;">
+        Signed in as <strong id="signedInName"></strong>.
       </p>
-      <button class="fb-btn" type="button" data-close-login>Close</button>
+      <p class="fb-meta" style="margin: 0;">
+        Offseason workouts and overalls land here — see the build order in the README.
+      </p>
+      <button class="fb-btn fb-btn--block" id="logoutBtn" type="button">Log Out</button>
     </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/supabase-config.js"></script>
 <script src="data/players.js"></script>
+<script src="js/auth.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

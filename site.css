@@ -4,6 +4,54 @@
    style.css and organic-styles.css are not modified.
    ========================================================================== */
 
+/* --- theme -------------------------------------------------------------- */
+
+/* The kit ships a muted olive/clay palette. These overrides sit about halfway
+   between that and a fully saturated one: a grass green rather than olive
+   drab, a warm orange accent, and soft lime and gold tints. Every pairing
+   below clears WCAG AA at small text — dark ink sits on the light fills,
+   never light-on-light. */
+:root {
+  --fb-ink: #1d2416;                /* deeper, so borders read as lines */
+  --fb-accent: #e56e28;             /* warm orange — CTAs, panel strips */
+  --fb-accent-hover: #fa9859;
+  --fb-accent-deep: #a64412;        /* accent as text on cream: 5.55:1 */
+
+  --fb-cream: #fbf4e6;              /* panel ground */
+  --fb-surface: #f6e6cd;
+  --fb-sand: #e7dac5;
+
+  --fb-grass: #41713c;              /* field green */
+  --fb-line: rgba(255, 255, 255, .28);
+
+  --fb-tint-sage: #e4f5c1;          /* soft lime */
+  --fb-tint-sage-2: #cce68e;
+  --fb-tint-clay: #ffdfcc;          /* coral */
+  --fb-tint-clay-2: #ffc09a;
+  --fb-tint-wash: #fff3ea;
+
+  --fb-muted: #60584a;
+  --fb-muted-2: #807664;
+
+  --fb-gold: #f0b82a;               /* new: season / year chips */
+}
+
+/* --- page ground --------------------------------------------------------- */
+
+/* The body's background propagates to the canvas, but its positioning area is
+   the body box. On a short page the body is smaller than the viewport, so the
+   field pattern tiles a second time below the content and leaves a visible
+   seam. Guaranteeing the body fills the viewport keeps it a single tile. */
+.fb-shell { min-height: 100vh; }
+
+/* The field: yard lines, mown stripes, and a soft light sweep. */
+body {
+  background-image:
+    repeating-linear-gradient(90deg, var(--fb-line) 0 3px, transparent 3px 160px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, .055) 0 80px, rgba(0, 0, 0, .06) 80px 160px),
+    radial-gradient(ellipse at 22% 0%, rgba(255, 255, 255, .13), transparent 62%);
+}
+
 /* --- nav ---------------------------------------------------------------- */
 
 /* The kit's nav row does not wrap, so the log-in button runs off a phone
@@ -57,8 +105,7 @@
   position: relative;
   aspect-ratio: 4 / 3;
   border-bottom: var(--fb-border) solid var(--fb-ink);
-  background:
-    linear-gradient(var(--fb-tint-sage), var(--fb-tint-sage-2));
+  background: linear-gradient(165deg, var(--fb-tint-sage) 35%, var(--fb-tint-sage-2));
   overflow: hidden;
 }
 .ege-card__photo img {
@@ -106,6 +153,9 @@
 }
 .ege-card:hover .ege-card__go { color: var(--fb-accent); }
 
+/* Season chip — the kit has no gold tag. */
+.fb-tag--gold { background: var(--fb-gold); }
+
 /* --- player detail (placeholder until the real page is built) ----------- */
 
 .ege-detail__top {
@@ -119,7 +169,7 @@
   flex: none;
   aspect-ratio: 4 / 3;
   border: var(--fb-border) solid var(--fb-ink);
-  background: linear-gradient(var(--fb-tint-sage), var(--fb-tint-sage-2));
+  background: linear-gradient(165deg, var(--fb-tint-sage) 35%, var(--fb-tint-sage-2));
   overflow: hidden;
 }
 .ege-detail__photo img {
@@ -153,16 +203,26 @@
 }
 .ege-detail__list dd { margin: 0; font-weight: 600; }
 
-/* --- footer ------------------------------------------------------------- */
+/* --- login form --------------------------------------------------------- */
 
-.ege-foot {
-  margin-top: 34px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #e6eddb;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, .45);
+.ege-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
-.ege-foot a { color: var(--fb-tint-clay-2); }
+.ege-field .fb-input,
+.ege-field .fb-select { width: 100%; }
+
+.ege-note {
+  margin: 0;
+  padding: 10px 12px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.ege-note--ok { background: var(--fb-tint-sage); }
+.ege-note--error { background: var(--fb-tint-clay); }
 
 /* --- misc --------------------------------------------------------------- */
 

@@ -108,6 +108,10 @@ positions are confirmed.
 Each of the six gets an account and a private portal.
 
 - **Login** — one account per player; a player only edits their own profile.
+  Built on Supabase auth against a hardcoded list of six emails — nobody
+  outside that list can hold an account. A player's first sign-in sets their
+  password; after that it can only be used, never re-set. Sam Stogsdill's
+  email is in; the other five are TBD.
 - **Overalls** — a rating per attribute (speed, strength, catching, route
   running, awareness, etc. — final attribute list TBD) plus a single overall.
 - **Offseason workouts** — the progression mechanic. Between seasons a player
@@ -128,11 +132,35 @@ Built so far:
 - `index.html` — the homepage: player select, plus a placeholder player view.
 - `js/app.js` — renders the six cards and routes `#{slug}` to a player view.
 - `data/players.js` — the six players and the season ladder. Source of truth.
-- `site.css` — page components the kit doesn't cover (player card, roster grid).
+- `js/auth.js` — Supabase auth: sign in, first-time password, session state.
+- `js/supabase-config.js` — your Supabase URL and anon key. Blank by default.
+- `site.css` — the theme (palette overriding the kit's tokens) plus the page
+  components the kit doesn't cover (player card, roster grid, login form).
 
-No build step and no dependencies: open `index.html` in a browser, or serve the
+No build step and no bundler: open `index.html` in a browser, or serve the
 folder with anything static. Data files are plain `<script>` globals rather than
-ES modules so the site also works straight off the filesystem.
+ES modules so the site also works straight off the filesystem. The only external
+dependency is supabase-js, loaded from a CDN.
+
+### Connecting Supabase
+
+1. In your Supabase project, open **Settings → API** and copy the **Project
+   URL** and the **anon / publishable** key.
+2. Paste both into `js/supabase-config.js`. The anon key is meant for browser
+   code and is safe to commit. The **service_role** key is not — it bypasses
+   every security rule and must never appear in this repo.
+3. Under **Authentication → Providers → Email**, turn **Confirm email** off.
+   With it on, Supabase emails a confirmation link before a new password takes
+   effect, which is friction the six don't need. Login handles both settings,
+   but off is the smoother path.
+
+Until those two values are filled in, the site runs normally and the portal
+reports that login isn't configured yet.
+
+**Worth knowing:** a first sign-in is what sets the password, so whoever gets
+there first claims the account. With six known players that's usually fine, but
+say the word and this can move to emailed magic links instead, where only the
+inbox owner can ever get in.
 
 ### Kit and assets
 
@@ -182,8 +210,9 @@ One thing at a time, in this order:
    same shape once 2018 is working.
 6. **Stat lines** — TE game log for Paxon Hatch first, other position sets as
    positions are confirmed.
-7. **Login + portal** — Supabase auth, accounts, attributes, overalls. The
-   nav's Log In button is the mount point (`openLogin()` in `js/app.js`).
+7. **Login + portal** — Supabase auth, accounts, attributes, overalls.
+   *Login is in: allowlisted emails, one-time password, session in the nav.
+   The portal behind it — attributes and overalls — is not.*
 8. **Offseason workouts** — the boost mechanic.
 9. **Extra interactive layer** — scope defined once the above is working.
 
@@ -197,5 +226,6 @@ One thing at a time, in this order:
 - Positions for Parr, Clark, Vitel, Stogsdill, Stewart.
 - Schools for Parr, Vitel, Stewart.
 - Full attribute list behind a player's overall.
+- Sign-in emails for the other five players.
 - Whether workout and overall changes persist per browser (`localStorage`) or in
   Supabase. Read-only season data stays in the `data/*.js` files either way.

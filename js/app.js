@@ -48,13 +48,13 @@
     body.appendChild(el('h3', 'ege-card__name', player.name));
     body.appendChild(el('p', 'ege-card__school', player.school || 'School ' + TBD));
 
-    var tags = el('div', 'fb-row--wrap');
+    var tags = el('div', 'fb-row fb-row--wrap');
     if (player.position) {
       tags.appendChild(el('span', 'fb-tag fb-tag--ink', player.position));
     } else {
       tags.appendChild(el('span', 'fb-tag fb-tag--outline', 'POS ' + TBD));
     }
-    tags.appendChild(el('span', 'fb-tag fb-tag--sage', EGE.currentSeason));
+    tags.appendChild(el('span', 'fb-tag fb-tag--gold', EGE.currentSeason));
     body.appendChild(tags);
 
     body.appendChild(el('span', 'ege-card__go', 'View player →'));
@@ -91,7 +91,7 @@
     } else {
       tags.appendChild(el('span', 'fb-tag fb-tag--outline', 'POS ' + TBD));
     }
-    tags.appendChild(el('span', 'fb-tag fb-tag--clay', 'Junior Year'));
+    tags.appendChild(el('span', 'fb-tag fb-tag--gold', 'Junior Year'));
 
     document.title = player.name + ' — EGE Football';
   }
@@ -114,10 +114,77 @@
     window.scrollTo(0, 0);
   }
 
-  /* --- login placeholder ------------------------------------------------ */
+  /* --- login ------------------------------------------------------------ */
 
-  function openLogin() { loginModal.hidden = false; }
+  var loginForm     = document.getElementById('loginForm');
+  var loginSignedIn = document.getElementById('loginSignedIn');
+  var loginPlayer   = document.getElementById('loginPlayer');
+  var loginPassword = document.getElementById('loginPassword');
+  var loginSubmit   = document.getElementById('loginSubmit');
+  var loginMessage  = document.getElementById('loginMessage');
+  var loginHint     = document.getElementById('loginHint');
+
+  function fillPlayerSelect() {
+    EGE.players.forEach(function (player) {
+      var opt = el('option', null, player.name + (player.email ? '' : ' \u2014 no account yet'));
+      opt.value = player.slug;
+      opt.disabled = !player.email;
+      loginPlayer.appendChild(opt);
+    });
+    var first = EGE.playersWithAccounts()[0];
+    if (first) { loginPlayer.value = first.slug; }
+  }
+
+  function say(message, isError) {
+    loginMessage.textContent = message;
+    loginMessage.hidden = !message;
+    loginMessage.className = 'ege-note' + (isError ? ' ege-note--error' : ' ege-note--ok');
+  }
+
+  function openLogin() {
+    say('', false);
+    if (!EGE.auth.available()) {
+      say(EGE.auth.unavailableReason(), true);
+      loginSubmit.disabled = true;
+      loginHint.hidden = true;
+    }
+    loginModal.hidden = false;
+    if (!loginForm.hidden) { loginPassword.focus(); }
+  }
   function closeLogin() { loginModal.hidden = true; }
+
+  loginForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var player = EGE.playerBySlug(loginPlayer.value);
+    if (!player || !player.email) { say('That player has no account yet.', true); return; }
+
+    loginSubmit.disabled = true;
+    say('Checking\u2026', false);
+
+    EGE.auth.submitPassword(player.email, loginPassword.value).then(function (res) {
+      loginSubmit.disabled = false;
+      say(res.message, !res.ok);
+      if (res.ok) { loginPassword.value = ''; }
+    });
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', function () {
+    EGE.auth.signOut();
+  });
+
+  /* Nav button and modal follow the session. */
+  EGE.auth.onChange(function (player) {
+    if (player) {
+      loginBtn.textContent = player.first;
+      loginForm.hidden = true;
+      loginSignedIn.hidden = false;
+      document.getElementById('signedInName').textContent = player.name;
+    } else {
+      loginBtn.textContent = 'Log In';
+      loginForm.hidden = false;
+      loginSignedIn.hidden = true;
+    }
+  });
 
   loginBtn.addEventListener('click', openLogin);
   loginModal.addEventListener('click', function (e) {
@@ -130,6 +197,8 @@
   /* --- go --------------------------------------------------------------- */
 
   renderRoster();
+  fillPlayerSelect();
   route();
+  EGE.auth.init();
   window.addEventListener('hashchange', route);
 })();
