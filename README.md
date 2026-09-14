@@ -1,8 +1,8 @@
 # EGE Football — Career Simulation
 
-A football career simulation that follows six players across six seasons — 2019
-junior year of high school through their college careers to the NFL Draft. The
-site is part record book (schedules, results, box scores) and part game (each
+A football career simulation that follows six players across six seasons — 2018
+junior year of high school through their college careers to the 2023 NFL Draft.
+The site is part record book (schedules, results, box scores) and part game (each
 player logs in to their own portal and spends offseason workouts to raise their
 overalls).
 
@@ -38,23 +38,22 @@ data is authored per season below.
 
 | Season | Level | Class |
 | --- | --- | --- |
-| 2019 | High school varsity | Junior year |
-| 2020 | High school varsity | Senior year |
-| 2021 | College football | Freshman year |
-| 2022 | College football | Sophomore year |
-| 2023 | College football | Junior year |
-| 2024 | College football | Senior year *(optional)* |
+| 2018 | High school varsity | Junior year |
+| 2019 | High school varsity | Senior year |
+| 2020 | College football | Freshman year |
+| 2021 | College football | Sophomore year |
+| 2022 | College football | Junior year |
+| 2023 | College football | Senior year *(optional)* |
 
-The simulation opens on the **2019 junior-year high school season** — that is
-what gets built first. High school graduation is spring 2021, after the 2020
+The simulation opens on the **2018 junior-year high school season** — that is
+what gets built first. High school graduation is spring 2020, after the 2019
 senior season.
 
-**NFL Draft.** The draft lands the spring after a player's final college season,
-so declaring after the 2023 junior season means the **2024 NFL Draft**, and
-playing the optional 2024 senior season pushes it to the **2025 NFL Draft**. The
-original pitch said 2023; a 2023 draft would fall before the 2023 college
-season is even played, so the ladder above supersedes it. Whether all six
-declare after their junior year or play the optional senior season is still open.
+**NFL Draft.** All six are drafted in the **2023 NFL Draft**, held the spring
+after the 2022 junior college season. Three seasons removed from a spring 2020
+high school graduation makes them draft-eligible, so declaring after junior year
+is the canonical path. The optional 2023 senior college season is the branch a
+player takes instead of declaring; it pushes that player to the 2024 draft.
 
 ---
 
@@ -73,7 +72,7 @@ holds:
 
 - **Header** — headshot, name, school, position, class year, current overall.
 - **Season selector** — switches between the seasons on the ladder above. The
-  2019 junior-year high school season is the default and the only one with data
+  2018 junior-year high school season is the default and the only one with data
   at first; later seasons appear as they are authored.
 - **Schedule** — every scheduled game in the selected season: week, date,
   opponent, home/away, result (W/L and score) once played, or upcoming if not.
@@ -160,9 +159,9 @@ One thing at a time, in this order:
 3. **Homepage** — six-card player select, wired to the data file.
 4. **Player page shell** — `#{name}` routing, header, empty schedule/record/game
    log sections.
-5. **Schedule data + display** — 2019 junior-year high school schedules per
+5. **Schedule data + display** — 2018 junior-year high school schedules per
    school, rendered with results and running record. Later seasons follow the
-   same shape once 2019 is working.
+   same shape once 2018 is working.
 6. **Stat lines** — TE game log for Paxon Hatch first, other position sets as
    positions are confirmed.
 7. **Login + portal** — accounts, attributes, overalls.
@@ -173,9 +172,9 @@ One thing at a time, in this order:
 
 ## Open Questions
 
-- Draft year: do all six declare after the 2023 junior season (2024 draft), or
-  play the optional 2024 senior season (2025 draft)?
-- College programs for all six — the ladder needs them from the 2021 season on.
+- Does any of the six play the optional 2023 senior college season instead of
+  declaring for the 2023 draft?
+- College programs for all six — the ladder needs them from the 2020 season on.
 - Positions for Parr, Clark, Vitel, Stogsdill, Stewart.
 - Schools for Parr, Vitel, Stewart.
 - Full attribute list behind a player's overall.
