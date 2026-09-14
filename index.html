@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EGE Football — Player Select</title>
+<meta name="description" content="Career simulation following six players from the 2018 junior year of high school to the 2023 NFL Draft.">
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%2320261a'/><ellipse cx='16' cy='16' rx='11' ry='7' fill='%23c67139'/><path d='M9 16h14' stroke='%23f5ead8' stroke-width='2'/></svg>">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="organic-styles.css">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<div class="fb-shell">
+
+  <!-- ===== nav ========================================================= -->
+  <nav class="fb-nav">
+    <div class="fb-wrap fb-nav__inner">
+      <a class="fb-brand" href="#">
+        <span class="fb-brand__mark"></span>
+        <span class="fb-brand__word">EGE <em>FOOTBALL</em></span>
+      </a>
+      <div class="fb-nav__links">
+        <a class="fb-navlink is-active" href="#">Players</a>
+      </div>
+      <!-- Supabase auth mounts here. See js/app.js -> openLogin(). -->
+      <button class="fb-btn fb-btn--inverse" id="loginBtn" type="button">Log In</button>
+    </div>
+  </nav>
+
+  <div class="fb-wrap">
+
+    <!-- ===== home: player select ====================================== -->
+    <section id="view-home">
+
+      <header class="fb-hero" style="padding: 44px 0 30px;">
+        <div class="fb-hero__col">
+          <span class="fb-kicker">2018 &middot; Junior Year &middot; High School Varsity</span>
+          <h1 class="fb-hero__title" style="margin: 14px 0 12px;">Pick a Player</h1>
+          <p class="fb-hero__lede">
+            Six players, six seasons — 2018 junior year of high school through
+            their college careers to the 2023 NFL Draft. Choose one to open
+            their schedule, record, and game log.
+          </p>
+        </div>
+      </header>
+
+      <div class="ege-roster" id="roster">
+        <!-- cards rendered from data/players.js -->
+      </div>
+
+    </section>
+
+    <!-- ===== player detail ============================================ -->
+    <section id="view-player" hidden>
+      <div style="padding: 30px 0 22px;">
+        <a class="fb-btn fb-btn--inverse" href="#">&larr; All Players</a>
+      </div>
+
+      <div class="fb-panel ege-detail">
+        <div class="fb-panel__strip">
+          <span class="fb-eyebrow" style="color: var(--fb-ink);" id="playerStripLabel"></span>
+        </div>
+        <div class="fb-panel__body">
+          <div class="ege-detail__top">
+            <div class="ege-detail__photo">
+              <img id="playerPhoto" src="" alt="">
+            </div>
+            <div class="ege-detail__col">
+              <span class="fb-eyebrow" id="playerSchool"></span>
+              <h2 class="ege-detail__name" id="playerName"></h2>
+              <div class="fb-row--wrap" id="playerTags"></div>
+
+              <dl class="ege-detail__list" style="margin-top: 18px;">
+                <dt>Season</dt><dd id="playerSeason"></dd>
+                <dt>Position</dt><dd id="playerPosition"></dd>
+                <dt>School</dt><dd id="playerSchoolRow"></dd>
+                <dt>Record</dt><dd>&mdash;</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+        <div class="fb-panel__foot">
+          <span class="fb-meta">
+            Schedule, record, and game log land next — see the build order in the README.
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <p class="ege-foot">
+      EGE Football &middot; spec and build order in
+      <a href="https://github.com/stogz/egefootball#readme">README.md</a>
+    </p>
+
+  </div><!-- /fb-wrap -->
+</div><!-- /fb-shell -->
+
+<!-- ===== login placeholder modal ====================================== -->
+<div class="fb-backdrop" id="loginModal" hidden>
+  <div class="fb-modal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+    <div class="fb-modal__head">
+      <span class="fb-modal__title" id="loginTitle">Player Portal</span>
+      <button class="fb-modal__close" type="button" data-close-login aria-label="Close">&times;</button>
+    </div>
+    <div class="fb-modal__body">
+      <p style="margin: 0; font-size: 14px; line-height: 1.5;">
+        Login is not wired up yet. Supabase auth drops in here — each player
+        signs in to their own portal to spend offseason workouts on their
+        overalls.
+      </p>
+      <button class="fb-btn" type="button" data-close-login>Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="data/players.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

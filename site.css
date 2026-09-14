@@ -1,0 +1,170 @@
+/* ==========================================================================
+   EGE Football — page styles
+   Components the GRIDIRON DB kit does not cover. Built on the kit's tokens;
+   style.css and organic-styles.css are not modified.
+   ========================================================================== */
+
+/* --- nav ---------------------------------------------------------------- */
+
+/* The kit's nav row does not wrap, so the log-in button runs off a phone
+   screen. Let it wrap and give the row some breathing room when it does. */
+.fb-nav__inner {
+  flex-wrap: wrap;
+  gap: 14px 20px;
+  height: auto;
+  min-height: 68px;
+  padding-block: 10px;
+}
+.fb-nav__links { flex: 1 1 auto; }
+
+/* --- player select grid ------------------------------------------------- */
+
+/* Capped at three across so the six sit in an even 3 + 3, rather than the
+   4 + 2 that auto-fit gives on a wide screen. */
+.ege-roster {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 26px;
+}
+@media (min-width: 620px)  { .ege-roster { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .ege-roster { grid-template-columns: repeat(3, 1fr); } }
+
+/* --- player card -------------------------------------------------------- */
+
+.ege-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--fb-cream);
+  border: var(--fb-border) solid var(--fb-ink);
+  box-shadow: var(--fb-shadow) var(--fb-shadow) 0 rgba(0, 0, 0, .35);
+  color: var(--fb-ink);
+  text-decoration: none;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.ege-card:hover,
+.ege-card:focus-visible {
+  color: var(--fb-ink);
+  transform: translate(-2px, -2px);
+  box-shadow: calc(var(--fb-shadow) + 3px) calc(var(--fb-shadow) + 3px) 0 rgba(0, 0, 0, .4);
+}
+.ege-card:active {
+  transform: translate(2px, 2px);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, .35);
+}
+
+/* Headshots are cutouts on a transparent ground, so the card supplies one. */
+.ege-card__photo {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-bottom: var(--fb-border) solid var(--fb-ink);
+  background:
+    linear-gradient(var(--fb-tint-sage), var(--fb-tint-sage-2));
+  overflow: hidden;
+}
+.ege-card__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 18%;
+  display: block;
+}
+.ege-card__jersey {
+  position: absolute;
+  top: 0; left: 0;
+  background: var(--fb-ink);
+  color: var(--fb-cream);
+  font-family: var(--fb-font-display);
+  font-size: 18px;
+  padding: 4px 10px 5px;
+}
+.ege-card__body {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  flex: 1;
+}
+.ege-card__name {
+  font-family: var(--fb-font-display);
+  font-size: 24px;
+  line-height: 1.05;
+}
+.ege-card__school {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fb-muted);
+  min-height: 2.6em;
+}
+.ege-card__go {
+  margin-top: auto;
+  padding-top: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--fb-accent-deep);
+}
+.ege-card:hover .ege-card__go { color: var(--fb-accent); }
+
+/* --- player detail (placeholder until the real page is built) ----------- */
+
+.ege-detail__top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+  align-items: flex-start;
+}
+.ege-detail__photo {
+  width: 210px;
+  flex: none;
+  aspect-ratio: 4 / 3;
+  border: var(--fb-border) solid var(--fb-ink);
+  background: linear-gradient(var(--fb-tint-sage), var(--fb-tint-sage-2));
+  overflow: hidden;
+}
+.ege-detail__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 18%;
+  display: block;
+}
+.ege-detail__col { flex: 1 1 320px; min-width: 0; }
+.ege-detail__name {
+  font-family: var(--fb-font-display);
+  font-size: clamp(30px, 5vw, 44px);
+  line-height: 1.05;
+  margin: 6px 0 10px;
+}
+.ege-detail__list {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 18px;
+  font-size: 14px;
+}
+.ege-detail__list dt {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-muted);
+  align-self: center;
+}
+.ege-detail__list dd { margin: 0; font-weight: 600; }
+
+/* --- footer ------------------------------------------------------------- */
+
+.ege-foot {
+  margin-top: 34px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e6eddb;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .45);
+}
+.ege-foot a { color: var(--fb-tint-clay-2); }
+
+/* --- misc --------------------------------------------------------------- */
+
+.ege-section-gap { margin-top: 34px; }
+[hidden] { display: none !important; }
