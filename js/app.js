@@ -48,13 +48,13 @@
     body.appendChild(el('h3', 'ege-card__name', player.name));
     body.appendChild(el('p', 'ege-card__school', player.school || 'School ' + TBD));
 
-    var tags = el('div', 'fb-row--wrap');
+    var tags = el('div', 'fb-row fb-row--wrap');
     if (player.position) {
       tags.appendChild(el('span', 'fb-tag fb-tag--ink', player.position));
     } else {
       tags.appendChild(el('span', 'fb-tag fb-tag--outline', 'POS ' + TBD));
     }
-    tags.appendChild(el('span', 'fb-tag fb-tag--sage', EGE.currentSeason));
+    tags.appendChild(el('span', 'fb-tag fb-tag--gold', EGE.currentSeason));
     body.appendChild(tags);
 
     body.appendChild(el('span', 'ege-card__go', 'View player →'));
@@ -91,7 +91,7 @@
     } else {
       tags.appendChild(el('span', 'fb-tag fb-tag--outline', 'POS ' + TBD));
     }
-    tags.appendChild(el('span', 'fb-tag fb-tag--clay', 'Junior Year'));
+    tags.appendChild(el('span', 'fb-tag fb-tag--gold', 'Junior Year'));
 
     document.title = player.name + ' — EGE Football';
   }

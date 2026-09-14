@@ -128,7 +128,8 @@ Built so far:
 - `index.html` — the homepage: player select, plus a placeholder player view.
 - `js/app.js` — renders the six cards and routes `#{slug}` to a player view.
 - `data/players.js` — the six players and the season ladder. Source of truth.
-- `site.css` — page components the kit doesn't cover (player card, roster grid).
+- `site.css` — the theme (bright palette overriding the kit's tokens) plus the
+  page components the kit doesn't cover (player card, roster grid).
 
 No build step and no dependencies: open `index.html` in a browser, or serve the
 folder with anything static. Data files are plain `<script>` globals rather than

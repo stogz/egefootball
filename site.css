@@ -4,6 +4,53 @@
    style.css and organic-styles.css are not modified.
    ========================================================================== */
 
+/* --- theme -------------------------------------------------------------- */
+
+/* The kit ships a muted olive/clay palette. These overrides push it brighter:
+   a real grass green instead of olive drab, a hot orange accent, and lime and
+   gold tints for the tags. Every pairing below clears WCAG AA at small text —
+   dark ink sits on the bright fills, never light-on-light. */
+:root {
+  --fb-ink: #1a2113;                /* deeper, so borders read as lines */
+  --fb-accent: #ff6b1a;             /* hot orange — CTAs, panel strips */
+  --fb-accent-hover: #ff9147;
+  --fb-accent-deep: #c0400a;        /* accent as text on cream: 5.07:1 */
+
+  --fb-cream: #fffaf0;              /* panel ground, brighter than the kit's */
+  --fb-surface: #ffedd3;
+  --fb-sand: #f2e2c6;
+
+  --fb-grass: #2f7d3a;              /* field green */
+  --fb-line: rgba(255, 255, 255, .34);
+
+  --fb-tint-sage: #e6fbb8;          /* lime */
+  --fb-tint-sage-2: #cdf06a;
+  --fb-tint-clay: #ffddc7;          /* coral */
+  --fb-tint-clay-2: #ffb98f;
+  --fb-tint-wash: #fff4e9;
+
+  --fb-muted: #5d5445;
+  --fb-muted-2: #7d735f;
+
+  --fb-gold: #ffcf3d;               /* new: season / year chips */
+}
+
+/* --- page ground --------------------------------------------------------- */
+
+/* The body's background propagates to the canvas, but its positioning area is
+   the body box. On a short page the body is smaller than the viewport, so the
+   field pattern tiles a second time below the content and leaves a visible
+   seam. Guaranteeing the body fills the viewport keeps it a single tile. */
+.fb-shell { min-height: 100vh; }
+
+/* A brighter field: crisper yard lines and a wider light sweep. */
+body {
+  background-image:
+    repeating-linear-gradient(90deg, var(--fb-line) 0 3px, transparent 3px 160px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, .07) 0 80px, rgba(0, 0, 0, .06) 80px 160px),
+    radial-gradient(ellipse at 22% 0%, rgba(255, 255, 255, .18), transparent 62%);
+}
+
 /* --- nav ---------------------------------------------------------------- */
 
 /* The kit's nav row does not wrap, so the log-in button runs off a phone
@@ -57,8 +104,7 @@
   position: relative;
   aspect-ratio: 4 / 3;
   border-bottom: var(--fb-border) solid var(--fb-ink);
-  background:
-    linear-gradient(var(--fb-tint-sage), var(--fb-tint-sage-2));
+  background: linear-gradient(165deg, var(--fb-tint-sage) 35%, var(--fb-tint-sage-2));
   overflow: hidden;
 }
 .ege-card__photo img {
@@ -106,6 +152,9 @@
 }
 .ege-card:hover .ege-card__go { color: var(--fb-accent); }
 
+/* Season chip — the kit has no gold tag. */
+.fb-tag--gold { background: var(--fb-gold); }
+
 /* --- player detail (placeholder until the real page is built) ----------- */
 
 .ege-detail__top {
@@ -119,7 +168,7 @@
   flex: none;
   aspect-ratio: 4 / 3;
   border: var(--fb-border) solid var(--fb-ink);
-  background: linear-gradient(var(--fb-tint-sage), var(--fb-tint-sage-2));
+  background: linear-gradient(165deg, var(--fb-tint-sage) 35%, var(--fb-tint-sage-2));
   overflow: hidden;
 }
 .ege-detail__photo img {
@@ -152,17 +201,6 @@
   align-self: center;
 }
 .ege-detail__list dd { margin: 0; font-weight: 600; }
-
-/* --- footer ------------------------------------------------------------- */
-
-.ege-foot {
-  margin-top: 34px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #e6eddb;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, .45);
-}
-.ege-foot a { color: var(--fb-tint-clay-2); }
 
 /* --- misc --------------------------------------------------------------- */
 
