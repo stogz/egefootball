@@ -5,12 +5,10 @@ Organic design system tokens.
 
 ## Files
 
-- `football-db.css` — the kit: tokens, reset, layout, panels, nav, buttons, tags,
+- `style.css` — the kit: tokens, reset, layout, panels, nav, buttons, tags,
   inputs, segmented tabs, filter chips, data table, pagination, stat tiles,
   meters, alerts, hero, photo placeholder, scoreboard, modal, utilities.
 - `organic-styles.css` — the Organic design-system stylesheet (tokens it builds on).
-- `index.html` — a working demo using only those classes (live search, row select,
-  chips, tabs, toggle, modal in ~50 lines of vanilla JS).
 
 ## Use
 
