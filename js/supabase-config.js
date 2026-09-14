@@ -13,6 +13,6 @@
 window.EGE = window.EGE || {};
 
 EGE.supabaseConfig = {
-  url: '',      // e.g. https://abcdefghijklm.supabase.co
-  anonKey: ''   // the "anon public" / publishable key
+  url: 'https://tubxbdxoplffgpcjbrau.supabase.co',      // e.g. https://abcdefghijklm.supabase.co
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1YnhiZHhvcGxmZmdwY2picmF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk0MTkxODgsImV4cCI6MjEwNDk5NTE4OH0.GxVuccay0lpz8DouseY06GC34t1KVdX18qYJswL0FrA'   // the "anon public" / publishable key
 };
