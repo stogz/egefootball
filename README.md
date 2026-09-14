@@ -112,6 +112,10 @@ Each of the six gets an account and a private portal.
   outside that list can hold an account. A player's first sign-in sets their
   password; after that it can only be used, never re-set. Sam Stogsdill's
   email is in; the other five are TBD.
+- **Changing a password** — from the portal panel when signed in, or from the
+  login panel when locked out. Either emails a one-time link to
+  `reset-password.html`, which is the only way a password gets replaced. The
+  link expires, and the page says so plainly when it has.
 - **Overalls** — a rating per attribute (speed, strength, catching, route
   running, awareness, etc. — final attribute list TBD) plus a single overall.
 - **Offseason workouts** — the progression mechanic. Between seasons a player
@@ -132,7 +136,10 @@ Built so far:
 - `index.html` — the homepage: player select, plus a placeholder player view.
 - `js/app.js` — renders the six cards and routes `#{slug}` to a player view.
 - `data/players.js` — the six players and the season ladder. Source of truth.
-- `js/auth.js` — Supabase auth: sign in, first-time password, session state.
+- `js/auth.js` — Supabase auth: sign in, first-time password, password reset,
+  session state.
+- `reset-password.html` + `js/reset-password.js` — where the emailed reset link
+  lands. Sets a new password, then sends the player back to the homepage.
 - `js/supabase-config.js` — your Supabase URL and anon key. Blank by default.
 - `site.css` — the theme (palette overriding the kit's tokens) plus the page
   components the kit doesn't cover (player card, roster grid, login form).
@@ -149,10 +156,10 @@ dependency is supabase-js, loaded from a CDN.
 2. Paste both into `js/supabase-config.js`. The anon key is meant for browser
    code and is safe to commit. The **service_role** key is not — it bypasses
    every security rule and must never appear in this repo.
-3. Under **Authentication → Providers → Email**, turn **Confirm email** off.
-   With it on, Supabase emails a confirmation link before a new password takes
-   effect, which is friction the six don't need. Login handles both settings,
-   but off is the smoother path.
+3. Under **Authentication → URL Configuration**, add
+   `https://egefootball.vercel.app/reset-password.html` to **Redirect URLs**,
+   or password-reset links will bounce. Add your local address there too if
+   you test resets while developing.
 
 Until those two values are filled in, the site runs normally and the portal
 reports that login isn't configured yet.
@@ -211,8 +218,9 @@ One thing at a time, in this order:
 6. **Stat lines** — TE game log for Paxon Hatch first, other position sets as
    positions are confirmed.
 7. **Login + portal** — Supabase auth, accounts, attributes, overalls.
-   *Login is in: allowlisted emails, one-time password, session in the nav.
-   The portal behind it — attributes and overalls — is not.*
+   *Login is in: allowlisted emails, one-time password, password reset by
+   email, session in the nav. The portal behind it — attributes and overalls
+   — is not.*
 8. **Offseason workouts** — the boost mechanic.
 9. **Extra interactive layer** — scope defined once the above is working.
 

@@ -130,6 +130,78 @@ EGE.auth = (function () {
       });
   }
 
+  /* --- password reset by email ------------------------------------------ */
+
+  function resetRedirectUrl() {
+    var base = (EGE.supabaseConfig && EGE.supabaseConfig.siteUrl) || window.location.origin;
+    return base.replace(/\/+$/, '') + '/reset-password.html';
+  }
+
+  /* Emails a one-time link to reset-password.html. Supabase does not say
+     whether the address has an account, so neither do we. */
+  function sendPasswordReset(email) {
+    var c = getClient();
+    if (!c) { return Promise.resolve({ ok: false, message: unavailableReason() }); }
+
+    return c.auth.resetPasswordForEmail(email, { redirectTo: resetRedirectUrl() })
+      .then(function (res) {
+        if (res.error) { return { ok: false, message: res.error.message }; }
+        return { ok: true, message: 'Reset link sent to ' + email + '. Check your inbox.' };
+      });
+  }
+
+  /* Anything the link itself reports — an expired or already-used token
+     comes back as an error in the URL rather than as a failed call. */
+  function errorFromUrl() {
+    var hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    var query = new URLSearchParams(window.location.search);
+    var described = hash.get('error_description') || query.get('error_description');
+    return described ? described.replace(/\+/g, ' ') : null;
+  }
+
+  /* Run on reset-password.html: turns the emailed link into a session that
+     is allowed to set a new password. supabase-js reads tokens out of the
+     URL on its own; a PKCE-style link carries a code to exchange instead. */
+  function initRecovery() {
+    var c = getClient();
+    if (!c) { return Promise.resolve({ ok: false, message: unavailableReason() }); }
+
+    var urlError = errorFromUrl();
+    if (urlError) { return Promise.resolve({ ok: false, message: urlError }); }
+
+    return c.auth.getSession().then(function (res) {
+      var found = res.data && res.data.session;
+      if (found) { session = found; return { ok: true }; }
+
+      var code = new URLSearchParams(window.location.search).get('code');
+      if (!code) {
+        return {
+          ok: false,
+          message: 'This link is invalid or has expired. Request a new one from the Log In panel.'
+        };
+      }
+      return c.auth.exchangeCodeForSession(code).then(function (exchanged) {
+        if (exchanged.error) { return { ok: false, message: exchanged.error.message }; }
+        session = exchanged.data.session;
+        return { ok: true };
+      });
+    });
+  }
+
+  /* Sets the password of whoever the current session belongs to. */
+  function updatePassword(password) {
+    var c = getClient();
+    if (!c) { return Promise.resolve({ ok: false, message: unavailableReason() }); }
+    if (!password || password.length < 8) {
+      return Promise.resolve({ ok: false, message: 'Use at least 8 characters.' });
+    }
+
+    return c.auth.updateUser({ password: password }).then(function (res) {
+      if (res.error) { return { ok: false, message: res.error.message }; }
+      return { ok: true, message: 'Password changed. You can sign in with it now.' };
+    });
+  }
+
   function signOut() {
     var c = getClient();
     if (!c) { return Promise.resolve(); }
@@ -141,6 +213,9 @@ EGE.auth = (function () {
     available: available,
     unavailableReason: unavailableReason,
     submitPassword: submitPassword,
+    sendPasswordReset: sendPasswordReset,
+    initRecovery: initRecovery,
+    updatePassword: updatePassword,
     signOut: signOut,
     currentPlayer: currentPlayer,
     onChange: onChange

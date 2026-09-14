@@ -146,6 +146,7 @@
     if (!EGE.auth.available()) {
       say(EGE.auth.unavailableReason(), true);
       loginSubmit.disabled = true;
+      document.getElementById('forgotBtn').disabled = true;
       loginHint.hidden = true;
     }
     loginModal.hidden = false;
@@ -168,7 +169,34 @@
     });
   });
 
+  /* Both entry points do the same thing: email a one-time link to
+     reset-password.html. One is for a player who is locked out, the other
+     for one who is signed in and wants a different password. */
+  function emailResetLink(player, report) {
+    if (!player || !player.email) { report('That player has no account yet.', true); return; }
+    report('Sending\u2026', false);
+    EGE.auth.sendPasswordReset(player.email).then(function (res) {
+      report(res.message, !res.ok);
+    });
+  }
+
+  document.getElementById('forgotBtn').addEventListener('click', function () {
+    emailResetLink(EGE.playerBySlug(loginPlayer.value), say);
+  });
+
+  var accountMessage = document.getElementById('accountMessage');
+  function sayAccount(text, isError) {
+    accountMessage.textContent = text;
+    accountMessage.hidden = !text;
+    accountMessage.className = 'ege-note' + (isError ? ' ege-note--error' : ' ege-note--ok');
+  }
+
+  document.getElementById('changePasswordBtn').addEventListener('click', function () {
+    emailResetLink(EGE.auth.currentPlayer(), sayAccount);
+  });
+
   document.getElementById('logoutBtn').addEventListener('click', function () {
+    sayAccount('', false);
     EGE.auth.signOut();
   });
 
