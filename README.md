@@ -6,8 +6,9 @@ The site is part record book (schedules, results, box scores) and part game (eac
 player logs in to their own portal and spends offseason workouts to raise their
 overalls).
 
-Status: **spec only.** Nothing below is built yet. This README is the source of
-truth for what gets built and in what order.
+Status: **in progress.** The homepage player select is built; schedules, stats,
+and the portal are not. This README is the source of truth for what gets built
+and in what order.
 
 ---
 
@@ -120,9 +121,23 @@ login needed to browse.
 
 ---
 
-## Existing Assets
+## Files
 
-Already in the repo and intended to be used as-is:
+Built so far:
+
+- `index.html` — the homepage: player select, plus a placeholder player view.
+- `js/app.js` — renders the six cards and routes `#{slug}` to a player view.
+- `data/players.js` — the six players and the season ladder. Source of truth.
+- `site.css` — page components the kit doesn't cover (player card, roster grid).
+
+No build step and no dependencies: open `index.html` in a browser, or serve the
+folder with anything static. Data files are plain `<script>` globals rather than
+ES modules so the site also works straight off the filesystem.
+
+### Kit and assets
+
+Already in the repo and used as-is — `style.css` and `organic-styles.css` are
+not modified; page-specific styles go in `site.css`:
 
 - `style.css` — GRIDIRON DB UI kit: tokens, layout, panels, nav, buttons, tags,
   inputs, tabs, filter chips, data tables, pagination, stat tiles, meters,
@@ -155,16 +170,20 @@ One thing at a time, in this order:
 
 1. **This README** — the spec. ✅
 2. **Player data file** — the six players, schools, positions (TBD where
-   unknown), headshot paths. One source of truth everything else reads.
-3. **Homepage** — six-card player select, wired to the data file.
+   unknown), headshot paths. One source of truth everything else reads. ✅
+   `data/players.js`
+3. **Homepage** — six-card player select, wired to the data file. ✅
+   `index.html`
 4. **Player page shell** — `#{name}` routing, header, empty schedule/record/game
-   log sections.
+   log sections. *Routing and the header are in; the schedule, record, and game
+   log sections are not.*
 5. **Schedule data + display** — 2018 junior-year high school schedules per
    school, rendered with results and running record. Later seasons follow the
    same shape once 2018 is working.
 6. **Stat lines** — TE game log for Paxon Hatch first, other position sets as
    positions are confirmed.
-7. **Login + portal** — accounts, attributes, overalls.
+7. **Login + portal** — Supabase auth, accounts, attributes, overalls. The
+   nav's Log In button is the mount point (`openLogin()` in `js/app.js`).
 8. **Offseason workouts** — the boost mechanic.
 9. **Extra interactive layer** — scope defined once the above is working.
 
@@ -178,5 +197,5 @@ One thing at a time, in this order:
 - Positions for Parr, Clark, Vitel, Stogsdill, Stewart.
 - Schools for Parr, Vitel, Stewart.
 - Full attribute list behind a player's overall.
-- Where data lives (flat JSON in the repo vs. a backend) — this decides whether
-  the portal's saved changes can persist.
+- Whether workout and overall changes persist per browser (`localStorage`) or in
+  Supabase. Read-only season data stays in the `data/*.js` files either way.
