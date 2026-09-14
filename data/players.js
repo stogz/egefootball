@@ -7,6 +7,10 @@
 
    TBD is written as null, never as a placeholder value. If it is not
    confirmed, it stays null and the UI renders "TBD".
+
+   `email` is the address that player signs in with. Only the six listed
+   here can hold an account; a null email means their portal is not open
+   yet. These are sign-in identifiers, not contact details.
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -34,6 +38,7 @@ EGE.players = [
     school: null,             // TBD
     position: null,           // TBD
     jersey: null,             // TBD
+    email: null,          // TBD
     headshot: 'headshot/parr.png'
   },
   {
@@ -44,6 +49,7 @@ EGE.players = [
     school: 'Carlsbad High School',
     position: null,           // TBD
     jersey: null,             // TBD
+    email: null,          // TBD
     headshot: 'headshot/clark.png'
   },
   {
@@ -54,6 +60,7 @@ EGE.players = [
     school: 'Bloomington High School',
     position: 'TE',           // the one confirmed position
     jersey: null,             // TBD
+    email: null,          // TBD
     headshot: 'headshot/hatch.png'
   },
   {
@@ -64,6 +71,7 @@ EGE.players = [
     school: null,             // TBD
     position: null,           // TBD
     jersey: null,             // TBD
+    email: null,          // TBD
     headshot: 'headshot/vitel.png'
   },
   {
@@ -74,6 +82,7 @@ EGE.players = [
     school: 'Normal Community High School',
     position: null,           // TBD
     jersey: null,             // TBD
+    email: 'stogzfam@gmail.com',
     headshot: 'headshot/stogsdill.png'
   },
   {
@@ -84,9 +93,15 @@ EGE.players = [
     school: null,             // TBD
     position: null,           // TBD
     jersey: null,             // TBD
+    email: null,          // TBD
     headshot: 'headshot/stewart.png'
   }
 ];
+
+/* The accounts allowed to sign in. */
+EGE.playersWithAccounts = function () {
+  return EGE.players.filter(function (p) { return Boolean(p.email); });
+};
 
 /* Look a player up by the slug used in the URL hash, e.g. #paxon-hatch. */
 EGE.playerBySlug = function (slug) {

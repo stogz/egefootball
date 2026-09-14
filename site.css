@@ -6,33 +6,34 @@
 
 /* --- theme -------------------------------------------------------------- */
 
-/* The kit ships a muted olive/clay palette. These overrides push it brighter:
-   a real grass green instead of olive drab, a hot orange accent, and lime and
-   gold tints for the tags. Every pairing below clears WCAG AA at small text —
-   dark ink sits on the bright fills, never light-on-light. */
+/* The kit ships a muted olive/clay palette. These overrides sit about halfway
+   between that and a fully saturated one: a grass green rather than olive
+   drab, a warm orange accent, and soft lime and gold tints. Every pairing
+   below clears WCAG AA at small text — dark ink sits on the light fills,
+   never light-on-light. */
 :root {
-  --fb-ink: #1a2113;                /* deeper, so borders read as lines */
-  --fb-accent: #ff6b1a;             /* hot orange — CTAs, panel strips */
-  --fb-accent-hover: #ff9147;
-  --fb-accent-deep: #c0400a;        /* accent as text on cream: 5.07:1 */
+  --fb-ink: #1d2416;                /* deeper, so borders read as lines */
+  --fb-accent: #e56e28;             /* warm orange — CTAs, panel strips */
+  --fb-accent-hover: #fa9859;
+  --fb-accent-deep: #a64412;        /* accent as text on cream: 5.55:1 */
 
-  --fb-cream: #fffaf0;              /* panel ground, brighter than the kit's */
-  --fb-surface: #ffedd3;
-  --fb-sand: #f2e2c6;
+  --fb-cream: #fbf4e6;              /* panel ground */
+  --fb-surface: #f6e6cd;
+  --fb-sand: #e7dac5;
 
-  --fb-grass: #2f7d3a;              /* field green */
-  --fb-line: rgba(255, 255, 255, .34);
+  --fb-grass: #41713c;              /* field green */
+  --fb-line: rgba(255, 255, 255, .28);
 
-  --fb-tint-sage: #e6fbb8;          /* lime */
-  --fb-tint-sage-2: #cdf06a;
-  --fb-tint-clay: #ffddc7;          /* coral */
-  --fb-tint-clay-2: #ffb98f;
-  --fb-tint-wash: #fff4e9;
+  --fb-tint-sage: #e4f5c1;          /* soft lime */
+  --fb-tint-sage-2: #cce68e;
+  --fb-tint-clay: #ffdfcc;          /* coral */
+  --fb-tint-clay-2: #ffc09a;
+  --fb-tint-wash: #fff3ea;
 
-  --fb-muted: #5d5445;
-  --fb-muted-2: #7d735f;
+  --fb-muted: #60584a;
+  --fb-muted-2: #807664;
 
-  --fb-gold: #ffcf3d;               /* new: season / year chips */
+  --fb-gold: #f0b82a;               /* new: season / year chips */
 }
 
 /* --- page ground --------------------------------------------------------- */
@@ -43,12 +44,12 @@
    seam. Guaranteeing the body fills the viewport keeps it a single tile. */
 .fb-shell { min-height: 100vh; }
 
-/* A brighter field: crisper yard lines and a wider light sweep. */
+/* The field: yard lines, mown stripes, and a soft light sweep. */
 body {
   background-image:
     repeating-linear-gradient(90deg, var(--fb-line) 0 3px, transparent 3px 160px),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, .07) 0 80px, rgba(0, 0, 0, .06) 80px 160px),
-    radial-gradient(ellipse at 22% 0%, rgba(255, 255, 255, .18), transparent 62%);
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, .055) 0 80px, rgba(0, 0, 0, .06) 80px 160px),
+    radial-gradient(ellipse at 22% 0%, rgba(255, 255, 255, .13), transparent 62%);
 }
 
 /* --- nav ---------------------------------------------------------------- */
@@ -201,6 +202,27 @@ body {
   align-self: center;
 }
 .ege-detail__list dd { margin: 0; font-weight: 600; }
+
+/* --- login form --------------------------------------------------------- */
+
+.ege-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ege-field .fb-input,
+.ege-field .fb-select { width: 100%; }
+
+.ege-note {
+  margin: 0;
+  padding: 10px 12px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.ege-note--ok { background: var(--fb-tint-sage); }
+.ege-note--error { background: var(--fb-tint-clay); }
 
 /* --- misc --------------------------------------------------------------- */
 
