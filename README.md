@@ -1,9 +1,10 @@
 # EGE Football — Career Simulation
 
-A football career simulation that follows six players from their junior year of
-high school through to the NFL Draft. The site is part record book (schedules,
-results, box scores) and part game (each player logs in to their own portal and
-spends offseason workouts to raise their overalls).
+A football career simulation that follows six players across six seasons — 2019
+junior year of high school through their college careers to the NFL Draft. The
+site is part record book (schedules, results, box scores) and part game (each
+player logs in to their own portal and spends offseason workouts to raise their
+overalls).
 
 Status: **spec only.** Nothing below is built yet. This README is the source of
 truth for what gets built and in what order.
@@ -32,14 +33,28 @@ Headshots already in the repo under `headshot/`, keyed by last name:
 
 ## Timeline
 
-The simulation starts at **junior year of high school** and runs forward season
-by season, ending at the **2023 NFL Draft**, where all six are drafted.
+Six seasons, one per simulated year. This ladder is official — schedule and stat
+data is authored per season below.
 
-> Open question to settle before any season data is authored: the junior-year
-> start and a 2023 draft don't line up on a normal calendar (a high school
-> junior is 4–5 years out from a draft). Either the junior season is earlier
-> than it looks, or the draft year moves. Pick one and write the season years
-> into this README before building the schedule data.
+| Season | Level | Class |
+| --- | --- | --- |
+| 2019 | High school varsity | Junior year |
+| 2020 | High school varsity | Senior year |
+| 2021 | College football | Freshman year |
+| 2022 | College football | Sophomore year |
+| 2023 | College football | Junior year |
+| 2024 | College football | Senior year *(optional)* |
+
+The simulation opens on the **2019 junior-year high school season** — that is
+what gets built first. High school graduation is spring 2021, after the 2020
+senior season.
+
+**NFL Draft.** The draft lands the spring after a player's final college season,
+so declaring after the 2023 junior season means the **2024 NFL Draft**, and
+playing the optional 2024 senior season pushes it to the **2025 NFL Draft**. The
+original pitch said 2023; a 2023 draft would fall before the 2023 college
+season is even played, so the ladder above supersedes it. Whether all six
+declare after their junior year or play the optional senior season is still open.
 
 ---
 
@@ -57,12 +72,16 @@ Routed by player name, e.g. `#andrew-parr`, `#paxon-hatch`. Each player page
 holds:
 
 - **Header** — headshot, name, school, position, class year, current overall.
-- **Schedule** — every scheduled game for the season: week, date, opponent,
-  home/away, result (W/L and score) once played, or upcoming if not.
-- **Record** — running wins and losses.
+- **Season selector** — switches between the seasons on the ladder above. The
+  2019 junior-year high school season is the default and the only one with data
+  at first; later seasons appear as they are authored.
+- **Schedule** — every scheduled game in the selected season: week, date,
+  opponent, home/away, result (W/L and score) once played, or upcoming if not.
+- **Record** — running wins and losses for the selected season.
 - **Game log** — per-game stats for that player, with the stat lines driven by
   their position (see below).
-- **Season totals** — the game log aggregated.
+- **Season totals** — the game log aggregated for the selected season, plus
+  career totals across every season played.
 
 ### Position-driven stat lines
 
@@ -141,8 +160,9 @@ One thing at a time, in this order:
 3. **Homepage** — six-card player select, wired to the data file.
 4. **Player page shell** — `#{name}` routing, header, empty schedule/record/game
    log sections.
-5. **Schedule data + display** — real junior-year schedules per school, rendered
-   with results and running record.
+5. **Schedule data + display** — 2019 junior-year high school schedules per
+   school, rendered with results and running record. Later seasons follow the
+   same shape once 2019 is working.
 6. **Stat lines** — TE game log for Paxon Hatch first, other position sets as
    positions are confirmed.
 7. **Login + portal** — accounts, attributes, overalls.
@@ -153,7 +173,9 @@ One thing at a time, in this order:
 
 ## Open Questions
 
-- Season years, and how the junior-year start reaches a 2023 draft.
+- Draft year: do all six declare after the 2023 junior season (2024 draft), or
+  play the optional 2024 senior season (2025 draft)?
+- College programs for all six — the ladder needs them from the 2021 season on.
 - Positions for Parr, Clark, Vitel, Stogsdill, Stewart.
 - Schools for Parr, Vitel, Stewart.
 - Full attribute list behind a player's overall.
