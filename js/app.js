@@ -1,6 +1,7 @@
 /* ==========================================================================
    EGE Football — homepage
-   Renders the six player cards and routes #{slug} to a player view.
+   Renders the six player cards, routes #{slug} to a player view, and runs
+   the player portal.
    Plain script, no build step, no modules — works from file:// and http.
    ========================================================================== */
 
@@ -9,11 +10,11 @@
 
   var TBD = 'TBD';
 
-  var roster      = document.getElementById('roster');
-  var viewHome    = document.getElementById('view-home');
-  var viewPlayer  = document.getElementById('view-player');
-  var loginBtn    = document.getElementById('loginBtn');
-  var loginModal  = document.getElementById('loginModal');
+  var roster     = document.getElementById('roster');
+  var viewHome   = document.getElementById('view-home');
+  var viewPlayer = document.getElementById('view-player');
+  var loginBtn   = document.getElementById('loginBtn');
+  var loginModal = document.getElementById('loginModal');
 
   /* --- helpers ---------------------------------------------------------- */
 
@@ -29,9 +30,29 @@
     return s ? s.year + ' · ' + s.class + ' · ' + s.level : String(year);
   }
 
+  /* School name with its mark beside it, or a plain TBD while unknown. */
+  function schoolLine(player, className) {
+    var team = EGE.teamFor(player);
+    var line = el('div', 'ege-school' + (className ? ' ' + className : ''));
+
+    if (!team) {
+      line.appendChild(el('span', 'ege-school__name', 'School ' + TBD));
+      return line;
+    }
+
+    var logo = el('img', 'ege-school__logo');
+    logo.src = team.logo;
+    logo.alt = '';            /* decorative: the name is right beside it */
+    logo.loading = 'lazy';
+    line.appendChild(logo);
+    line.appendChild(el('span', 'ege-school__name', team.school));
+    return line;
+  }
+
   /* --- player cards ----------------------------------------------------- */
 
   function buildCard(player) {
+    var team = EGE.teamFor(player);
     var card = el('a', 'ege-card');
     card.href = '#' + player.slug;
 
@@ -46,7 +67,8 @@
 
     var body = el('div', 'ege-card__body');
     body.appendChild(el('h3', 'ege-card__name', player.name));
-    body.appendChild(el('p', 'ege-card__school', player.school || 'School ' + TBD));
+    body.appendChild(schoolLine(player));
+    body.appendChild(el('p', 'ege-card__league', team ? team.league : ''));
 
     var tags = el('div', 'fb-row fb-row--wrap');
     if (player.position) {
@@ -72,17 +94,23 @@
   /* --- player view ------------------------------------------------------ */
 
   function renderPlayer(player) {
+    var team = EGE.teamFor(player);
+
     document.getElementById('playerStripLabel').textContent = seasonLabel(EGE.currentSeason);
 
     var photo = document.getElementById('playerPhoto');
     photo.src = player.headshot;
     photo.alt = player.name;
 
-    document.getElementById('playerSchool').textContent = player.school || 'School ' + TBD;
+    var school = document.getElementById('playerSchool');
+    school.innerHTML = '';
+    school.appendChild(schoolLine(player, 'ege-school--lg'));
+
     document.getElementById('playerName').textContent = player.name;
     document.getElementById('playerSeason').textContent = seasonLabel(EGE.currentSeason);
     document.getElementById('playerPosition').textContent = player.position || TBD;
-    document.getElementById('playerSchoolRow').textContent = player.school || TBD;
+    document.getElementById('playerSchoolRow').textContent = team ? team.school : TBD;
+    document.getElementById('playerLeague').textContent = team ? team.league : TBD;
 
     var tags = document.getElementById('playerTags');
     tags.innerHTML = '';
@@ -93,7 +121,7 @@
     }
     tags.appendChild(el('span', 'fb-tag fb-tag--gold', 'Junior Year'));
 
-    document.title = player.name + ' — EGE Football';
+    document.title = player.name;
   }
 
   /* --- routing ---------------------------------------------------------- */
@@ -109,24 +137,47 @@
     } else {
       viewHome.hidden = false;
       viewPlayer.hidden = true;
-      document.title = 'EGE Football — Player Select';
+      document.title = 'EGE Football';
     }
     window.scrollTo(0, 0);
   }
 
-  /* --- login ------------------------------------------------------------ */
+  /* --- portal: shared bits ---------------------------------------------- */
 
-  var loginForm     = document.getElementById('loginForm');
-  var loginSignedIn = document.getElementById('loginSignedIn');
-  var loginPlayer   = document.getElementById('loginPlayer');
-  var loginPassword = document.getElementById('loginPassword');
-  var loginSubmit   = document.getElementById('loginSubmit');
-  var loginMessage  = document.getElementById('loginMessage');
-  var loginHint     = document.getElementById('loginHint');
+  var panelAuth     = document.getElementById('panelAuth');
+  var panelPin      = document.getElementById('panelPin');
+  var panelSignedIn = document.getElementById('panelSignedIn');
+
+  var loginPlayer = document.getElementById('loginPlayer');
+  var authForm    = document.getElementById('authForm');
+  var authSubmit  = document.getElementById('authSubmit');
+  var authTabs    = document.getElementById('authTabs');
+
+  /* Writes into one of the modal's message slots. */
+  function reporter(id) {
+    var node = document.getElementById(id);
+    return function (text, isError) {
+      node.textContent = text || '';
+      node.hidden = !text;
+      node.className = 'ege-note' + (isError ? ' ege-note--error' : ' ege-note--ok');
+    };
+  }
+
+  var sayAuth = reporter('authMessage');
+  var sayPin  = reporter('pinMessage');
+  var sayNew  = reporter('newPasswordMessage');
+
+  function showPanel(panel) {
+    panelAuth.hidden     = panel !== panelAuth;
+    panelPin.hidden      = panel !== panelPin;
+    panelSignedIn.hidden = panel !== panelSignedIn;
+  }
+
+  function selectedPlayer() { return EGE.playerBySlug(loginPlayer.value); }
 
   function fillPlayerSelect() {
     EGE.players.forEach(function (player) {
-      var opt = el('option', null, player.name + (player.email ? '' : ' \u2014 no account yet'));
+      var opt = el('option', null, player.name + (player.email ? '' : ' — no account yet'));
       opt.value = player.slug;
       opt.disabled = !player.email;
       loginPlayer.appendChild(opt);
@@ -135,84 +186,194 @@
     if (first) { loginPlayer.value = first.slug; }
   }
 
-  function say(message, isError) {
-    loginMessage.textContent = message;
-    loginMessage.hidden = !message;
-    loginMessage.className = 'ege-note' + (isError ? ' ege-note--error' : ' ege-note--ok');
+  /* --- portal: show/hide password --------------------------------------- */
+
+  /* One handler for every eye button; each names the field it reveals. */
+  document.addEventListener('click', function (e) {
+    var eye = e.target.closest ? e.target.closest('.ege-eye') : null;
+    if (!eye) { return; }
+
+    var field = document.getElementById(eye.getAttribute('data-reveals'));
+    var reveal = field.type === 'password';
+
+    field.type = reveal ? 'text' : 'password';
+    eye.setAttribute('aria-pressed', String(reveal));
+    eye.setAttribute('aria-label', reveal ? 'Hide password' : 'Show password');
+  });
+
+  /* --- portal: sign in / first password --------------------------------- */
+
+  var mode = 'signin';
+  var confirmField = document.getElementById('confirmField');
+  var authPassword = document.getElementById('authPassword');
+  var authConfirm  = document.getElementById('authConfirm');
+
+  function setMode(next) {
+    mode = next;
+    var creating = mode === 'create';
+
+    Array.prototype.forEach.call(authTabs.children, function (tab) {
+      var on = tab.getAttribute('data-mode') === mode;
+      tab.classList.toggle('is-active', on);
+      tab.setAttribute('aria-selected', String(on));
+    });
+
+    confirmField.hidden = !creating;
+    authConfirm.required = creating;
+    authPassword.autocomplete = creating ? 'new-password' : 'current-password';
+    document.getElementById('passwordLabel').textContent =
+      creating ? 'Choose a password' : 'Password';
+    authSubmit.textContent = creating ? 'Create Password' : 'Sign In';
+    sayAuth('', false);
   }
 
-  function openLogin() {
-    say('', false);
-    if (!EGE.auth.available()) {
-      say(EGE.auth.unavailableReason(), true);
-      loginSubmit.disabled = true;
-      document.getElementById('forgotBtn').disabled = true;
-      loginHint.hidden = true;
-    }
-    loginModal.hidden = false;
-    if (!loginForm.hidden) { loginPassword.focus(); }
-  }
-  function closeLogin() { loginModal.hidden = true; }
+  authTabs.addEventListener('click', function (e) {
+    var tab = e.target.closest('.fb-seg__opt');
+    if (tab) { setMode(tab.getAttribute('data-mode')); }
+  });
 
-  loginForm.addEventListener('submit', function (e) {
+  authForm.addEventListener('submit', function (e) {
     e.preventDefault();
-    var player = EGE.playerBySlug(loginPlayer.value);
-    if (!player || !player.email) { say('That player has no account yet.', true); return; }
+    var player = selectedPlayer();
+    if (!player || !player.email) { sayAuth('That player has no account yet.', true); return; }
 
-    loginSubmit.disabled = true;
-    say('Checking\u2026', false);
+    authSubmit.disabled = true;
+    sayAuth('Checking…', false);
 
-    EGE.auth.submitPassword(player.email, loginPassword.value).then(function (res) {
-      loginSubmit.disabled = false;
-      say(res.message, !res.ok);
-      if (res.ok) { loginPassword.value = ''; }
+    var work = mode === 'create'
+      ? EGE.auth.createPassword(player.email, authPassword.value, authConfirm.value)
+      : EGE.auth.signIn(player.email, authPassword.value);
+
+    work.then(function (res) {
+      authSubmit.disabled = false;
+      sayAuth(res.message, !res.ok);
+      if (res.ok) { authPassword.value = ''; authConfirm.value = ''; }
     });
   });
 
-  /* Both entry points do the same thing: email a one-time link to
-     reset-password.html. One is for a player who is locked out, the other
-     for one who is signed in and wants a different password. */
-  function emailResetLink(player, report) {
-    if (!player || !player.email) { report('That player has no account yet.', true); return; }
-    report('Sending\u2026', false);
-    EGE.auth.sendPasswordReset(player.email).then(function (res) {
+  /* --- portal: forgotten password --------------------------------------- */
+
+  var pinForm         = document.getElementById('pinForm');
+  var pinCode         = document.getElementById('pinCode');
+  var pinSubmit       = document.getElementById('pinSubmit');
+  var newPasswordForm = document.getElementById('newPasswordForm');
+
+  function requestPin(player, report) {
+    report('Sending…', false);
+    return EGE.auth.sendPin(player.email).then(function (res) {
       report(res.message, !res.ok);
+      return res;
     });
   }
 
   document.getElementById('forgotBtn').addEventListener('click', function () {
-    emailResetLink(EGE.playerBySlug(loginPlayer.value), say);
+    var player = selectedPlayer();
+    if (!player || !player.email) { sayAuth('That player has no account yet.', true); return; }
+
+    document.getElementById('pinWho').textContent =
+      'Changing the password for ' + player.name + ' (' + player.email + ').';
+    pinCode.value = '';
+    sayNew('', false);
+    newPasswordForm.hidden = true;
+    pinForm.hidden = false;
+    showPanel(panelPin);
+    requestPin(player, sayPin).then(function () { pinCode.focus(); });
   });
 
-  var accountMessage = document.getElementById('accountMessage');
-  function sayAccount(text, isError) {
-    accountMessage.textContent = text;
-    accountMessage.hidden = !text;
-    accountMessage.className = 'ege-note' + (isError ? ' ege-note--error' : ' ege-note--ok');
-  }
-
-  document.getElementById('changePasswordBtn').addEventListener('click', function () {
-    emailResetLink(EGE.auth.currentPlayer(), sayAccount);
+  document.getElementById('pinResend').addEventListener('click', function () {
+    requestPin(selectedPlayer(), sayPin);
   });
+
+  pinForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var player = selectedPlayer();
+
+    pinSubmit.disabled = true;
+    sayPin('Checking…', false);
+
+    EGE.auth.verifyPin(player.email, pinCode.value).then(function (res) {
+      pinSubmit.disabled = false;
+      if (!res.ok) { sayPin(res.message, true); return; }
+      sayPin('', false);
+      pinForm.hidden = true;
+      newPasswordForm.hidden = false;
+      document.getElementById('newPassword').focus();
+    });
+  });
+
+  newPasswordForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var submit = document.getElementById('newPasswordSubmit');
+    var next = document.getElementById('newPassword').value;
+    var again = document.getElementById('newPasswordConfirm').value;
+
+    submit.disabled = true;
+    sayNew('Saving…', false);
+
+    EGE.auth.updatePassword(next, again).then(function (res) {
+      submit.disabled = false;
+      sayNew(res.message, !res.ok);
+      if (res.ok) {
+        document.getElementById('newPassword').value = '';
+        document.getElementById('newPasswordConfirm').value = '';
+      }
+    });
+  });
+
+  document.getElementById('pinBack').addEventListener('click', function () {
+    showPanel(panelAuth);
+  });
+
+  /* --- portal: session -------------------------------------------------- */
 
   document.getElementById('logoutBtn').addEventListener('click', function () {
-    sayAccount('', false);
     EGE.auth.signOut();
   });
 
-  /* Nav button and modal follow the session. */
+  function showSignedOutNav() {
+    loginBtn.className = 'fb-btn fb-btn--inverse';
+    loginBtn.textContent = 'Log In';
+    loginBtn.removeAttribute('title');
+    loginBtn.setAttribute('aria-label', 'Open the player portal');
+  }
+
+  function showSignedInNav(player) {
+    loginBtn.className = 'ege-avatarbtn';
+    loginBtn.innerHTML = '';
+    var img = el('img', 'ege-avatar');
+    img.src = player.headshot;
+    img.alt = '';
+    loginBtn.appendChild(img);
+    loginBtn.title = player.name;
+    loginBtn.setAttribute('aria-label', 'Open ' + player.name + '’s portal');
+  }
+
   EGE.auth.onChange(function (player) {
     if (player) {
-      loginBtn.textContent = player.first;
-      loginForm.hidden = true;
-      loginSignedIn.hidden = false;
+      showSignedInNav(player);
       document.getElementById('signedInName').textContent = player.name;
+      var photo = document.getElementById('signedInPhoto');
+      photo.src = player.headshot;
+      photo.alt = player.name;
+      showPanel(panelSignedIn);
     } else {
-      loginBtn.textContent = 'Log In';
-      loginForm.hidden = false;
-      loginSignedIn.hidden = true;
+      showSignedOutNav();
+      showPanel(panelAuth);
     }
   });
+
+  /* --- portal: open and close ------------------------------------------- */
+
+  function openLogin() {
+    if (!EGE.auth.available()) {
+      sayAuth(EGE.auth.unavailableReason(), true);
+      authSubmit.disabled = true;
+      document.getElementById('forgotBtn').disabled = true;
+    }
+    loginModal.hidden = false;
+    if (!panelAuth.hidden) { authPassword.focus(); }
+  }
+  function closeLogin() { loginModal.hidden = true; }
 
   loginBtn.addEventListener('click', openLogin);
   loginModal.addEventListener('click', function (e) {
@@ -226,6 +387,7 @@
 
   renderRoster();
   fillPlayerSelect();
+  setMode('signin');
   route();
   EGE.auth.init();
   window.addEventListener('hashchange', route);

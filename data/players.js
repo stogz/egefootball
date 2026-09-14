@@ -15,8 +15,8 @@
 
 window.EGE = window.EGE || {};
 
-/* The season ladder. See README — 2018 junior year of high school through
-   the 2023 NFL Draft. */
+/* The season ladder. See the project spec — 2018 junior year of high school
+   through the 2023 NFL Draft. */
 EGE.seasons = [
   { year: 2018, level: 'High school varsity', class: 'Junior year' },
   { year: 2019, level: 'High school varsity', class: 'Senior year' },
@@ -29,16 +29,35 @@ EGE.seasons = [
 /* The season the site opens on. */
 EGE.currentSeason = 2018;
 
+/* Schools, their leagues, and their marks. */
+EGE.teams = {
+  carlsbad: {
+    school: 'Carlsbad High School',
+    league: 'Avocado League',
+    logo: 'icon/carlsbad.png'
+  },
+  bloomington: {
+    school: 'Bloomington High School',
+    league: 'Big Twelve',
+    logo: 'icon/bloomington.png'
+  },
+  normal: {
+    school: 'Normal Community High School',
+    league: 'Big Twelve',
+    logo: 'icon/normal.png'
+  }
+};
+
 EGE.players = [
   {
     slug: 'andrew-parr',
     name: 'Andrew Parr',
     first: 'Andrew',
     last: 'Parr',
-    school: null,             // TBD
+    team: null,               // TBD
     position: null,           // TBD
     jersey: null,             // TBD
-    email: null,          // TBD
+    email: null,              // TBD
     headshot: 'headshot/parr.png'
   },
   {
@@ -46,10 +65,10 @@ EGE.players = [
     name: 'Cooper Clark',
     first: 'Cooper',
     last: 'Clark',
-    school: 'Carlsbad High School',
+    team: 'carlsbad',
     position: null,           // TBD
     jersey: null,             // TBD
-    email: null,          // TBD
+    email: null,              // TBD
     headshot: 'headshot/clark.png'
   },
   {
@@ -57,10 +76,10 @@ EGE.players = [
     name: 'Paxon Hatch',
     first: 'Paxon',
     last: 'Hatch',
-    school: 'Bloomington High School',
+    team: 'bloomington',
     position: 'TE',           // the one confirmed position
     jersey: null,             // TBD
-    email: null,          // TBD
+    email: null,              // TBD
     headshot: 'headshot/hatch.png'
   },
   {
@@ -68,10 +87,10 @@ EGE.players = [
     name: 'Isaac Vitel',
     first: 'Isaac',
     last: 'Vitel',
-    school: null,             // TBD
+    team: null,               // TBD
     position: null,           // TBD
     jersey: null,             // TBD
-    email: null,          // TBD
+    email: null,              // TBD
     headshot: 'headshot/vitel.png'
   },
   {
@@ -79,7 +98,7 @@ EGE.players = [
     name: 'Sam Stogsdill',
     first: 'Sam',
     last: 'Stogsdill',
-    school: 'Normal Community High School',
+    team: 'normal',
     position: null,           // TBD
     jersey: null,             // TBD
     email: 'stogzfam@gmail.com',
@@ -90,13 +109,18 @@ EGE.players = [
     name: 'Jaykeb Stewart',
     first: 'Jaykeb',
     last: 'Stewart',
-    school: null,             // TBD
+    team: null,               // TBD
     position: null,           // TBD
     jersey: null,             // TBD
-    email: null,          // TBD
+    email: null,              // TBD
     headshot: 'headshot/stewart.png'
   }
 ];
+
+/* The team a player suits up for, or null while their school is unknown. */
+EGE.teamFor = function (player) {
+  return (player && player.team && EGE.teams[player.team]) || null;
+};
 
 /* The accounts allowed to sign in. */
 EGE.playersWithAccounts = function () {
