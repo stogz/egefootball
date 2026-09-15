@@ -8,6 +8,9 @@
    TBD is written as null, never as a placeholder value. If it is not
    confirmed, it stays null and the UI renders "TBD".
 
+   `credits` is the shop balance. Everyone starts on nothing and earns it
+   an offseason at a time.
+
    `email` is the address that player signs in with. Only the six listed
    here can hold an account; a null email means their portal is not open
    yet. These are sign-in identifiers, not contact details.
@@ -48,8 +51,13 @@ EGE.teams = {
   },
   naples: {
     school: 'Naples High School',
-    league: null,             // TBD
-    logo: null                // no mark in icon/ yet
+    league: '6A District 12',
+    logo: 'icon/naples.png'
+  },
+  wakeForest: {
+    school: 'Wake Forest High School',
+    league: 'Northern 4A',
+    logo: 'icon/wake.png'
   }
 };
 
@@ -59,10 +67,11 @@ EGE.players = [
     name: 'Andrew Parr',
     first: 'Andrew',
     last: 'Parr',
-    team: null,               // TBD
-    position: null,           // TBD
+    team: 'wakeForest',
+    position: 'TE',
     jersey: null,             // TBD
     email: null,              // TBD
+    credits: 0,
     headshot: 'headshot/parr.png'
   },
   {
@@ -71,9 +80,10 @@ EGE.players = [
     first: 'Cooper',
     last: 'Clark',
     team: 'carlsbad',
-    position: null,           // TBD
+    position: 'RB',
     jersey: null,             // TBD
     email: 'cooperclrk@gmail.com',
+    credits: 0,
     headshot: 'headshot/clark.png'
   },
   {
@@ -85,6 +95,7 @@ EGE.players = [
     position: 'TE',
     jersey: null,             // TBD
     email: 'paxonhatch@gmail.com',
+    credits: 0,
     headshot: 'headshot/hatch.png'
   },
   {
@@ -93,9 +104,10 @@ EGE.players = [
     first: 'Isaac',
     last: 'Vitel',
     team: null,               // TBD
-    position: null,           // TBD
+    position: 'QB',
     jersey: null,             // TBD
     email: null,              // TBD
+    credits: 0,
     headshot: 'headshot/vitel.png'
   },
   {
@@ -104,9 +116,10 @@ EGE.players = [
     first: 'Sam',
     last: 'Stogsdill',
     team: 'normal',
-    position: null,           // TBD
+    position: 'RB',
     jersey: null,             // TBD
     email: 'stogzfam@gmail.com',
+    credits: 0,
     headshot: 'headshot/stogsdill.png'
   },
   {
@@ -118,6 +131,7 @@ EGE.players = [
     position: 'QB',
     jersey: null,             // TBD
     email: null,              // TBD
+    credits: 0,
     headshot: 'headshot/stewart.png'
   }
 ];

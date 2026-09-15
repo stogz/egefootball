@@ -58,3 +58,107 @@ create policy "players update their own row"
 --   update public.player_accounts set password_set = false
 --   where email = 'someone@example.com';
 -- ---------------------------------------------------------------------------
+
+-- ===========================================================================
+-- Credits and inventory
+--
+-- One credit balance per player, and one row per thing they have bought.
+-- A player sees and changes only their own; an admin sees and changes
+-- everyone's.
+-- ===========================================================================
+
+create table if not exists public.admins (
+  email text primary key
+);
+
+insert into public.admins (email) values ('stogzfam@gmail.com')
+  on conflict (email) do nothing;
+
+alter table public.admins enable row level security;
+
+drop policy if exists "admins are readable" on public.admins;
+create policy "admins are readable" on public.admins for select using (true);
+-- No write policy at all: the admin list is changed here in SQL, never from
+-- the browser.
+
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.admins
+    where email = auth.jwt() ->> 'email'
+  );
+$$;
+
+-- --- credits ---------------------------------------------------------------
+
+create table if not exists public.player_credits (
+  email      text primary key,
+  credits    integer     not null default 0,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.player_credits enable row level security;
+
+drop policy if exists "credits readable by owner or admin" on public.player_credits;
+create policy "credits readable by owner or admin"
+  on public.player_credits for select to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin());
+
+drop policy if exists "credits inserted by owner or admin" on public.player_credits;
+create policy "credits inserted by owner or admin"
+  on public.player_credits for insert to authenticated
+  with check (email = auth.jwt() ->> 'email' or public.is_admin());
+
+drop policy if exists "credits updated by owner or admin" on public.player_credits;
+create policy "credits updated by owner or admin"
+  on public.player_credits for update to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin())
+  with check (email = auth.jwt() ->> 'email' or public.is_admin());
+
+-- --- inventory -------------------------------------------------------------
+
+create table if not exists public.player_inventory (
+  id           uuid primary key default gen_random_uuid(),
+  email        text        not null,
+  item_key     text        not null,
+  item_name    text        not null,
+  target       text,                      -- which attribute a stat booster raises
+  credits      integer     not null default 0,
+  consumable   boolean     not null default false,
+  active       boolean     not null default true,
+  purchased_at timestamptz not null default now()
+);
+
+create index if not exists player_inventory_email_idx
+  on public.player_inventory (email, purchased_at desc);
+
+alter table public.player_inventory enable row level security;
+
+drop policy if exists "inventory readable by owner or admin" on public.player_inventory;
+create policy "inventory readable by owner or admin"
+  on public.player_inventory for select to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin());
+
+drop policy if exists "inventory inserted by owner or admin" on public.player_inventory;
+create policy "inventory inserted by owner or admin"
+  on public.player_inventory for insert to authenticated
+  with check (email = auth.jwt() ->> 'email' or public.is_admin());
+
+drop policy if exists "inventory updated by owner or admin" on public.player_inventory;
+create policy "inventory updated by owner or admin"
+  on public.player_inventory for update to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin())
+  with check (email = auth.jwt() ->> 'email' or public.is_admin());
+
+drop policy if exists "inventory deleted by owner or admin" on public.player_inventory;
+create policy "inventory deleted by owner or admin"
+  on public.player_inventory for delete to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin());
+
+-- A used performance booster is deleted rather than kept: the inventory is
+-- what a player still has, not a receipt book.

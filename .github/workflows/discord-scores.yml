@@ -1,0 +1,61 @@
+name: Discord scores
+
+# Posts one week of the regular season per run, four times a day.
+#
+# Cron is UTC and does not follow daylight saving, so this fires at the UTC
+# equivalents of 07:00 / 12:00 / 16:00 / 20:00 America/Chicago under BOTH
+# CST and CDT. The script checks the real Chicago hour and exits quietly on
+# the runs that belong to the other offset, so the posts always land at the
+# intended local times.
+
+on:
+  schedule:
+    - cron: '0 1,2,12,13,17,18,21,22 * * *'
+  workflow_dispatch:
+    inputs:
+      week:
+        description: 'Post a specific week (blank = the next one)'
+        required: false
+      dry_run:
+        description: 'Build the post and print it without sending'
+        type: boolean
+        default: false
+
+concurrency:
+  group: discord-scores
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Post the next week
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://egefootball.vercel.app' }}
+        run: |
+          node bot/post-week.js \
+            ${{ inputs.week && format('--week {0} --force', inputs.week) || '' }} \
+            ${{ inputs.dry_run && '--dry-run --force' || '' }}
+
+      - name: Remember how far the season has got
+        if: ${{ !inputs.dry_run }}
+        run: |
+          if git diff --quiet -- bot/state.json; then
+            echo "Nothing posted, so nothing to record."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bot/state.json
+          git commit -m "Record the week the scores bot posted"
+          git push

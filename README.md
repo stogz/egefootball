@@ -16,20 +16,21 @@ and in what order.
 
 | Player | School | League | Position |
 | --- | --- | --- | --- |
-| Andrew Parr | TBD | TBD | TBD |
-| Cooper Clark | Carlsbad High School | Avocado League | TBD |
+| Andrew Parr | Wake Forest High School | Northern 4A | TE |
+| Cooper Clark | Carlsbad High School | Avocado League | RB |
 | Paxon Hatch | Bloomington High School | Big Twelve | TE |
-| Isaac Vitel | TBD | TBD | TBD |
-| Sam Stogsdill | Normal Community High School | Big Twelve | TBD |
-| Jaykeb Stewart | Naples High School | TBD | QB |
+| Isaac Vitel | TBD | TBD | QB |
+| Sam Stogsdill | Normal Community High School | Big Twelve | RB |
+| Jaykeb Stewart | Naples High School | 6A District 12 | QB |
 
 Everything marked TBD is genuinely unknown right now and should stay TBD in code
 and data until it is confirmed — no placeholder guesses that later read as facts.
 
 Headshots live in `headshot/`, keyed by last name: `parr.png`, `clark.png`,
 `hatch.png`, `vitel.png`, `stogsdill.png`, `stewart.png`. School marks live in
-`icon/`, keyed by school: `carlsbad.png`, `bloomington.png`, `normal.png`.
-Naples has no mark yet, and its school line renders without one.
+`icon/`, keyed by school: `carlsbad.png`, `bloomington.png`, `normal.png`,
+`naples.png`, `wake.png`. A team without a mark renders its school line
+without it.
 
 ---
 
@@ -77,7 +78,8 @@ holds:
   2018 junior-year high school season is the default and the only one with data
   at first; later seasons appear as they are authored.
 - **Schedule** — every scheduled game in the selected season: week, date,
-  opponent, home/away, result (W/L and score) once played, or upcoming if not.
+  kickoff, opponent with home/away and a mark for conference games, and the
+  result once it has been played.
 - **Record** — running wins and losses for the selected season.
 - **Game log** — per-game stats for that player, with the stat lines driven by
   their position (see below).
@@ -101,6 +103,180 @@ to define per position group:
 
 Only the TE set is required for the first build. The rest get filled in as
 positions are confirmed.
+
+---
+
+## Ratings
+
+Every player carries the same 32 attributes, in four groups: General,
+Passing, Receiving, Ball Carrier. Tight ends carry a fifth, Blocking, since
+they are the only position here whose overall should turn on it — the group
+is simply absent for everyone else, and their pages don't show it. A group
+scores as the plain average of the attributes inside it.
+
+**A player's page shows only the groups their position is judged on**, under
+the names that position uses: a quarterback gets General, Passing and
+Carrying; a back gets General, Receiving and Carrying; a tight end gets
+General, Catching, Blocking and Carrying. The groups left off the page still
+count toward the overall — they just aren't worth a column. `EGE.positionGroups`
+decides what is shown, separately from `EGE.positionWeights`, which decides
+what counts.
+
+**The overall is those group scores weighted by position.** A quarterback's
+overall leans on passing, a back's on ball carrying — but nothing is ever
+worth zero, so a quarterback who can carry the ball still rates above one who
+can't, just not by much. Weights live in `EGE.positionWeights` and are
+normalised when the overall is worked out, so a group can be nudged without
+rebalancing the others. A group left out of a position's weights is left out
+of that position's overall entirely, which is how blocking counts for a tight
+end and for nobody else. Only QB, RB, WR and TE are weighted, since those are
+the positions these groups describe; anything else falls back to `DEFAULT`,
+which counts every group fairly evenly.
+
+The same attributes score very differently by position, which is the point:
+
+| Isaac Vitel's ratings, scored as | Overall |
+| --- | --- |
+| QB | 48 |
+| RB | 37 |
+| WR | 32 |
+| TBD | 40 |
+
+**The values in the file are placeholders.** They put every player near 50
+overall, in this order:
+
+| Player | Position | Overall |
+| --- | --- | --- |
+| Jaykeb Stewart | QB | 55 |
+| Cooper Clark | RB | 53 |
+| Andrew Parr | TE | 51 |
+| Sam Stogsdill | RB | 50 |
+| Isaac Vitel | QB | 48 |
+| Paxon Hatch | TE | 46 |
+
+Replace them with real numbers as they are decided; nothing else has to
+change.
+
+---
+
+## Discord scores bot
+
+`bot/post-week.js` posts one week of the regular season to a Discord webhook,
+four times a day, walking the season out slowly:
+
+```
+## Week 3
+{one embed per player who actually played}
+```
+
+Each embed carries the player as its author — name, headshot, and a link to
+their page on the site — their school's mark as the thumbnail, and the school
+and league in the footer. What sits between depends on whether the game has
+been played:
+
+- **A fixture** shows the matchup, the kickoff, home or away, and whether it
+  is a conference game. Gold spine.
+- **A final** shows the result and score in the title, the player's stat line
+  in fields, and the record through that week in the footer. Green for a win,
+  clay for a loss.
+
+Nothing has been played yet, so every embed is currently a fixture. A game
+gains a `result` and `stats` in `data/schedule.js` and the same post starts
+reporting it.
+
+When our own schools meet — Bloomington at Normal Community in week 3 — the
+opponent's mark rides in the footer icon, which is as close to both crests as
+one embed allows. Other opponents have no mark in the repo, so the footer
+simply goes without.
+
+A player on a bye, one with no game that week, and one with no schedule at
+all are left out of the post rather than shown empty.
+
+**It reads the site's own data.** `bot/site-data.js` runs `data/players.js`,
+`data/ratings.js` and `data/schedule.js` in a sandbox, so the bot and the
+website are never two copies of the roster — change a school or a score in
+`data/` and both follow.
+
+### Running it
+
+```
+node bot/post-week.js --dry-run            # build the next post, print it
+node bot/post-week.js --week 4 --dry-run   # build one specific week
+node bot/post-week.js --force              # post now, ignoring the clock
+```
+
+`DISCORD_WEBHOOK_URL` is required to actually post; `SITE_URL` defaults to
+the Vercel domain and decides where the images and player links point.
+
+### The schedule it posts on
+
+`.github/workflows/discord-scores.yml` runs it four times a day at **07:00,
+12:00, 16:00 and 20:00 America/Chicago**. GitHub's cron is UTC and ignores
+daylight saving, so the workflow fires at the UTC equivalents of both CST and
+CDT, and the script checks the real Chicago hour and exits quietly on the
+runs belonging to the other offset. The posting times hold all year without
+being edited twice a season.
+
+Progress lives in `bot/state.json`, which the workflow commits after each
+post, so a run that fails posts the same week again next time rather than
+skipping it. Weeks where nobody played are stepped over.
+
+**Setup:** add a channel webhook URL as the repository secret
+`DISCORD_WEBHOOK_URL` (Server Settings → Integrations → Webhooks in Discord,
+then Settings → Secrets and variables → Actions on GitHub). Until that exists
+the workflow will run and fail loudly rather than post anywhere.
+
+---
+
+## The Shop
+
+A tab next to Players, at `#shop`, **visible only to a signed-in player**.
+Signed out, the tab isn't there and the page says to sign in. Signed in, the
+nav carries the player's credit balance beside their headshot. Everyone starts
+on 0 and earns from there. The catalogue lives in `data/shop.js`.
+
+**Credits** are 60 every offseason, whatever a player is paid, plus what the
+season earns by contract size and honours. That table sits at the bottom of
+the page as a collapsible panel rather than taking up the top of it. Anything
+unspent carries into the next offseason.
+
+**Your Inventory** heads the page: what this player owns, what is in effect,
+and the balance. Buying deducts credits and drops the item in. A performance
+booster is held unused until it is used, and using it deletes it — the
+inventory is what a player still has, not a receipt book. Everything else
+carries an in-effect switch that can be turned off and on. A stat booster
+records which attribute it was bought for.
+
+On sale:
+
+- **Performance boosters** — 2.5x (70), 2.0x (45), 1.5x (25). Regular season
+  only, one use per purchase.
+- **Stat boosters** — +1 (15), +2 (35), +3 (60), spent on any one of 24
+  attributes across passing, receiving, carrying and blocking.
+- **Offseason training** — strength or cardio at 45, each trading something
+  away, or overall at 35 for a smaller gain with no cost.
+- **QB Connection** (30), **Hyperbaric Chamber** (50, then 65, then 85, then
+  20 more each time, NFL only), **Intel** (20, high school and college only).
+
+Each stat booster names the attribute in `data/ratings.js` it applies to, so
+buying one has somewhere to land once spending is built. Block Power is the
+one exception: the ratings carry run block power and pass block power
+separately, and which one it raises is still open.
+
+**Sam is the admin.** He sees every account's balance and everything each one
+owns, can set any balance, grant any item without charging for it, and remove
+anything. Admins are rows in the `admins` table, so the list is changed in SQL
+rather than from the browser.
+
+Balances and inventories live in Supabase — `player_credits` and
+`player_inventory` in `supabase/schema.sql` — and the policies there do the
+real enforcing: a player reads and writes only their own rows, an admin reads
+and writes everyone's. The browser code is the shape of the UI, not the
+security boundary.
+
+> Buying reads the balance, checks it and writes it back in sequence rather
+> than in one locked transaction. With six players and one shop the worst case
+> is a double spend from two tabs at once, which the admin can put right.
 
 ---
 
@@ -132,6 +308,8 @@ Each of the six gets an account and a private portal.
   resource, so choices have a cost.
 - **Interactive layer** — beyond workouts, the portal is meant to be something a
   player actually plays with between games. Scope TBD; workouts come first.
+- **Credits and inventory** — 60 an offseason plus what a season earns, spent
+  in the shop, with what was bought kept per account. Every player starts on 0.
 
 The read-only side of the site (schedules, records, stats) stays public — no
 login needed to browse.
@@ -146,11 +324,20 @@ Built so far:
 - `js/app.js` — renders the six cards and routes `#{slug}` to a player view.
 - `data/players.js` — the six players and the season ladder. Source of truth.
 - `js/auth.js` — Supabase auth: sign in, the one-time password, session state.
+- `js/wallet.js` — credits and inventory: balances, buying, using, and the
+  admin's reach across every account.
+- `data/ratings.js` — the attribute list, the per-position weights, every
+  player's ratings, and the maths that turns them into an overall.
+- `data/schedule.js` — the regular season: every player's fixtures, and
+  results and stat lines once games are played.
+- `bot/` — the Discord scores bot (see below).
 - `supabase/schema.sql` — the `player_accounts` table and its policies. Run it
   once in the Supabase SQL editor.
 - `js/supabase-config.js` — your Supabase URL and anon key. Blank by default.
+- `data/shop.js` — the shop catalogue: allowance bands, credit earnings, and
+  everything on sale.
 - `site.css` — the theme (palette overriding the kit's tokens) plus the page
-  components the kit doesn't cover (player card, roster grid, login form).
+  components the kit doesn't cover (player card, roster grid, shop, login).
 
 No build step and no bundler: open `index.html` in a browser, or serve the
 folder with anything static. Data files are plain `<script>` globals rather than
@@ -165,11 +352,11 @@ dependency is supabase-js, loaded from a CDN.
    code and is safe to commit. The **service_role** key is not — it bypasses
    every security rule and must never appear in this repo.
 3. Run `supabase/schema.sql` in the Supabase SQL editor. It creates
-   `player_accounts`, the one-row-per-email table that records whether an
-   account has a password yet, along with the policies that let anyone read it
-   but only the owning player write their own row. Without it the portal still
-   works — it just can't tell which form a player needs, so it shows sign-in
-   with a link across to setting a first password.
+   `player_accounts` (whether an account has a password yet), `player_credits`,
+   `player_inventory` and `admins`, with the policies that keep each player to
+   their own rows and let an admin reach every row. Without it the portal still
+   signs people in — it just can't tell which form a player needs, and the shop
+   has nothing to read or write.
 
 Until those two values are filled in, the site runs normally and the portal
 reports that login isn't configured yet.
@@ -225,9 +412,13 @@ One thing at a time, in this order:
    log sections are not.*
 5. **Schedule data + display** — 2018 junior-year high school schedules per
    school, rendered with results and running record. Later seasons follow the
-   same shape once 2018 is working.
+   same shape once 2018 is working. ✅ The fixtures are in
+   `data/schedule.js`, the player page renders them, and the Discord bot
+   posts them. Results fill the table's last column as games are played.
 6. **Stat lines** — TE game log for Paxon Hatch first, other position sets as
-   positions are confirmed.
+   positions are confirmed. *The shape is in place — a game carries a `stats`
+   object once played, and the bot renders it per position — but no game has
+   been played yet.*
 7. **Login + portal** — Supabase auth, accounts, attributes, overalls.
    *Login is in: allowlisted emails, a password set once, and the signed-in
    player's headshot in the nav. The portal behind it — attributes and
@@ -242,10 +433,15 @@ One thing at a time, in this order:
 - Does any of the six play the optional 2023 senior college season instead of
   declaring for the 2023 draft?
 - College programs for all six — the ladder needs them from the 2020 season on.
-- Positions for Parr, Clark, Vitel, Stogsdill.
-- Schools for Parr and Vitel.
-- The league Naples High School plays in, and a mark for `icon/naples.png`.
-- Full attribute list behind a player's overall.
+- A school for Vitel — with no school he has no schedule, so the bot never
+  posts him.
+- Results and stat lines, once games are played. The fixtures are real; every
+  game is still waiting on a `result`.
+- Real rating numbers, in place of the generated placeholders.
 - Sign-in emails for Parr, Vitel, and Stewart.
+- Whether the 60 an offseason is the earnings table's "Regular" row or sits on
+  top of it. The shop currently treats them as the same 60.
+- Which attribute Block Power raises: run block power, pass block power, or
+  both.
 - Whether workout and overall changes persist per browser (`localStorage`) or in
   Supabase. Read-only season data stays in the `data/*.js` files either way.

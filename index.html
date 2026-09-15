@@ -25,8 +25,14 @@
         <span class="fb-brand__word">EGE <em>FOOTBALL</em></span>
       </a>
       <div class="fb-nav__links">
-        <a class="fb-navlink is-active" href="#">Players</a>
+        <a class="fb-navlink is-active" href="#" id="navPlayers">Players</a>
+        <a class="fb-navlink" href="#shop" id="navShop" hidden>Shop</a>
       </div>
+
+      <span class="ege-credits" id="navCredits" hidden>
+        <span class="ege-credits__value" id="navCreditsValue">0</span>
+        <span class="ege-credits__unit">cr</span>
+      </span>
       <button class="fb-btn fb-btn--inverse" id="loginBtn" type="button">Log In</button>
     </div>
   </nav>
@@ -54,6 +60,88 @@
 
     </section>
 
+    <!-- ===== shop ===================================================== -->
+    <section id="view-shop" hidden>
+
+      <header class="fb-hero" style="padding: 44px 0 30px;">
+        <div class="fb-hero__col">
+          <span class="fb-kicker">Offseason</span>
+          <h1 class="fb-hero__title" style="margin: 14px 0 12px;">Shop</h1>
+          <p class="fb-hero__lede">
+            Every offseason you get credits to spend on your player. Anything
+            you don't spend carries into the next one.
+          </p>
+        </div>
+      </header>
+
+      <div class="fb-panel" id="shopLocked" hidden>
+        <div class="fb-panel__strip">
+          <span class="fb-eyebrow" style="color: var(--fb-ink);">Players only</span>
+        </div>
+        <div class="fb-panel__body fb-stack">
+          <p style="margin: 0; font-size: 15px;">
+            The shop is part of your portal. Sign in to see what your credits buy.
+          </p>
+          <button class="fb-btn fb-btn--primary" id="shopLoginBtn" type="button">Log In</button>
+        </div>
+      </div>
+
+      <div id="shopContent">
+
+      <p class="ege-note" id="shopMessage" role="alert" hidden></p>
+
+      <!-- what this player owns -->
+      <div class="fb-panel" id="inventoryPanel">
+        <div class="fb-panel__head">
+          <h3 style="font-size: 21px;">Your Inventory</h3>
+          <div class="ege-ovr ege-ovr--head">
+            <span class="ege-ovr__label">Credits</span>
+            <span class="ege-ovr__value" id="shopBalance">0</span>
+          </div>
+        </div>
+        <div class="fb-panel__body">
+          <div class="ege-items" id="inventoryItems"></div>
+          <p class="fb-meta" id="inventoryEmpty" hidden>
+            Nothing bought yet. Everything below is waiting.
+          </p>
+        </div>
+      </div>
+
+      <!-- admin: everyone's credits and everything they own -->
+      <div class="fb-panel ege-section-gap" id="adminPanel" hidden>
+        <div class="fb-panel__head">
+          <h3 style="font-size: 21px;">Admin</h3>
+          <span class="fb-meta">Every account's credits and inventory</span>
+        </div>
+        <div class="fb-panel__body fb-stack fb-stack--lg" id="adminAccounts"></div>
+        <div class="fb-panel__foot">
+          <span class="fb-meta" id="adminMessage">Changes save straight away.</span>
+        </div>
+      </div>
+
+      <div id="shopSections"></div>
+
+      <!-- how credits are earned, out of the way until wanted -->
+      <details class="fb-panel ege-section-gap ege-details" id="earningsDetails">
+        <summary class="fb-panel__head ege-details__summary">
+          <h3 style="font-size: 21px;">Earning Credits</h3>
+          <span class="fb-meta">60 every offseason, plus what the season earns</span>
+        </summary>
+        <div class="fb-tablewrap">
+          <table class="fb-table ege-earnings">
+            <thead><tr><th>Season</th><th class="num">Credits</th></tr></thead>
+            <tbody id="shopEarnings"></tbody>
+          </table>
+        </div>
+        <div class="fb-panel__foot">
+          <span class="fb-meta">Unspent credits come back with you next season.</span>
+        </div>
+      </details>
+
+      </div><!-- /shopContent -->
+
+    </section>
+
     <!-- ===== player detail ============================================ -->
     <section id="view-player" hidden>
       <div style="padding: 30px 0 22px;">
@@ -74,18 +162,66 @@
               <h2 class="ege-detail__name" id="playerName"></h2>
               <div class="fb-row fb-row--wrap" id="playerTags"></div>
 
+              <div class="ege-ovr" id="playerOverall" hidden>
+                <span class="ege-ovr__label">Overall</span>
+                <span class="ege-ovr__value" id="playerOverallValue"></span>
+              </div>
+
               <dl class="ege-detail__list" style="margin-top: 18px;">
                 <dt>Season</dt><dd id="playerSeason"></dd>
                 <dt>Position</dt><dd id="playerPosition"></dd>
                 <dt>School</dt><dd id="playerSchoolRow"></dd>
                 <dt>League</dt><dd id="playerLeague"></dd>
-                <dt>Record</dt><dd>&mdash;</dd>
+                <dt>Record</dt><dd id="playerRecord"></dd>
               </dl>
             </div>
           </div>
         </div>
         <div class="fb-panel__foot">
-          <span class="fb-meta">Schedule, record, and game log land next.</span>
+          <span class="fb-meta">Per-game stats land here once games are played.</span>
+        </div>
+      </div>
+
+      <div class="fb-panel ege-section-gap" id="schedulePanel" hidden>
+        <div class="fb-panel__head">
+          <h3 style="font-size: 21px;">Schedule</h3>
+          <span class="fb-meta" id="scheduleNote"></span>
+        </div>
+
+        <div class="fb-tablewrap" id="scheduleTableWrap">
+          <table class="fb-table ege-schedule">
+            <thead>
+              <tr>
+                <th>Wk</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Opponent</th>
+                <th class="num">Result</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+
+        <div class="fb-panel__body" id="scheduleEmpty" hidden>
+          <p class="ege-note" style="margin: 0;">No schedule yet — this player has no school.</p>
+        </div>
+
+        <div class="fb-panel__foot">
+          <span class="fb-meta" id="scheduleLegend"></span>
+        </div>
+      </div>
+
+      <div class="fb-panel ege-section-gap" id="ratingsPanel" hidden>
+        <div class="fb-panel__head">
+          <h3 style="font-size: 21px;">Ratings</h3>
+          <div class="ege-ovr ege-ovr--head">
+            <span class="ege-ovr__label">Overall</span>
+            <span class="ege-ovr__value" id="ratingsOverall"></span>
+          </div>
+        </div>
+        <div class="fb-panel__body">
+          <div class="ege-groups" id="ratingsGroups"></div>
         </div>
       </div>
     </section>
@@ -167,7 +303,11 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="js/supabase-config.js"></script>
 <script src="data/players.js"></script>
+<script src="data/ratings.js"></script>
+<script src="data/schedule.js"></script>
+<script src="data/shop.js"></script>
 <script src="js/auth.js"></script>
+<script src="js/wallet.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

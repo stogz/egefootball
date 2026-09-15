@@ -12,6 +12,7 @@
 
   var roster     = document.getElementById('roster');
   var viewHome   = document.getElementById('view-home');
+  var viewShop   = document.getElementById('view-shop');
   var viewPlayer = document.getElementById('view-player');
   var loginBtn   = document.getElementById('loginBtn');
   var loginModal = document.getElementById('loginModal');
@@ -80,6 +81,11 @@
       tags.appendChild(el('span', 'fb-tag fb-tag--outline', 'POS ' + TBD));
     }
     tags.appendChild(el('span', 'fb-tag fb-tag--gold', EGE.currentSeason));
+
+    var overall = EGE.overallFor(player);
+    if (overall !== null) {
+      tags.appendChild(el('span', 'fb-tag fb-tag--num fb-tag--sage', 'OVR ' + overall));
+    }
     body.appendChild(tags);
 
     body.appendChild(el('span', 'ege-card__go', 'View player →'));
@@ -115,6 +121,10 @@
     document.getElementById('playerSchoolRow').textContent = team ? team.school : TBD;
     document.getElementById('playerLeague').textContent = (team && team.league) || TBD;
 
+    var record = EGE.recordFor(player);
+    var played = EGE.gamesPlayed(player).length;
+    document.getElementById('playerRecord').textContent = played ? record.text : '\u2014';
+
     var tags = document.getElementById('playerTags');
     tags.innerHTML = '';
     if (player.position) {
@@ -124,22 +134,474 @@
     }
     tags.appendChild(el('span', 'fb-tag fb-tag--gold', 'Junior Year'));
 
-    document.title = player.name;
+    var overall = EGE.overallFor(player);
+    var overallBox = document.getElementById('playerOverall');
+    overallBox.hidden = overall === null;
+    document.getElementById('playerOverallValue').textContent = overall === null ? '' : overall;
+
+    renderSchedule(player);
+    renderRatings(player);
+  }
+
+  /* --- schedule --------------------------------------------------------- */
+
+  var WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  /* Dates are plain calendar days — read them as such so a time zone can
+     never shift a Saturday game onto the Friday. */
+  function gameDate(game) {
+    var parts = String(game.date).split('-');
+    var when = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
+    return WEEKDAYS[when.getUTCDay()] + ' ' + MONTHS[when.getUTCMonth()] + ' ' + when.getUTCDate();
+  }
+
+  function scheduleRow(game) {
+    var row = el('tr');
+
+    row.appendChild(el('td', 'ege-schedule__week', game.week));
+    row.appendChild(el('td', null, gameDate(game)));
+    row.appendChild(el('td', 'ege-schedule__time', game.kickoff || '\u2014'));
+
+    var opponent = el('td', 'ege-schedule__opponent');
+    opponent.appendChild(el('span', 'ege-schedule__side', game.home ? 'vs' : 'at'));
+    opponent.appendChild(el('span', 'fb-name', game.opponent));
+    if (game.conference) {
+      var mark = el('abbr', 'ege-schedule__conf', '*');
+      mark.title = 'Conference game';
+      opponent.appendChild(mark);
+    }
+    row.appendChild(opponent);
+
+    var result = el('td', 'num');
+    if (EGE.isFinal(game)) {
+      var won = game.result.teamScore > game.result.opponentScore;
+      result.appendChild(el('span', 'fb-tag fb-tag--num ' + (won ? 'fb-tag--sage' : 'fb-tag--clay'),
+        (won ? 'W ' : 'L ') + game.result.teamScore + '\u2013' + game.result.opponentScore));
+    } else {
+      result.appendChild(el('span', 'ege-schedule__pending', '\u2014'));
+    }
+    row.appendChild(result);
+
+    return row;
+  }
+
+  function renderSchedule(player) {
+    var panel = document.getElementById('schedulePanel');
+    var body = document.getElementById('scheduleBody');
+    var games = EGE.gamesFor(player);
+
+    body.innerHTML = '';
+    panel.hidden = false;
+    document.getElementById('scheduleTableWrap').hidden = !games.length;
+    document.getElementById('scheduleEmpty').hidden = Boolean(games.length);
+
+    if (!games.length) {
+      document.getElementById('scheduleNote').textContent = EGE.currentSeason;
+      document.getElementById('scheduleLegend').textContent = '';
+      return;
+    }
+
+    games.forEach(function (game) { body.appendChild(scheduleRow(game)); });
+
+    var played = EGE.gamesPlayed(player).length;
+    document.getElementById('scheduleNote').textContent = played
+      ? EGE.currentSeason + ' \u00b7 ' + games.length + ' games \u00b7 ' + EGE.recordFor(player).text
+      : EGE.currentSeason + ' \u00b7 ' + games.length + ' games \u00b7 none played yet';
+
+    var conference = games.filter(function (game) { return game.conference; }).length;
+    document.getElementById('scheduleLegend').textContent = conference
+      ? '* conference game (' + conference + ' of ' + games.length + ')'
+      : '';
+  }
+
+  /* --- ratings ---------------------------------------------------------- */
+
+  var ratingsPanel = document.getElementById('ratingsPanel');
+
+  function buildGroup(group) {
+    var box = el('div', 'ege-group');
+
+    var head = el('div', 'ege-group__head');
+    head.appendChild(el('span', 'ege-group__label', group.label));
+    head.appendChild(el('span', 'ege-group__score', group.rating));
+    box.appendChild(head);
+
+    group.attributes.forEach(function (attr) {
+      var row = el('div', 'ege-attr');
+      row.appendChild(el('span', 'ege-attr__label', attr.label));
+
+      var meter = el('div', 'fb-meter');
+      var fill = el('div', 'fb-meter__fill' + (attr.value >= 80 ? '' : ' fb-meter__fill--alt'));
+      fill.style.width = Math.max(0, Math.min(100, attr.value)) + '%';
+      meter.appendChild(fill);
+      row.appendChild(meter);
+
+      row.appendChild(el('span', 'ege-attr__value', attr.value));
+      box.appendChild(row);
+    });
+
+    return box;
+  }
+
+  function renderRatings(player) {
+    var ratings = EGE.ratingsFor(player);
+    var holder = document.getElementById('ratingsGroups');
+    holder.innerHTML = '';
+
+    if (!ratings) { ratingsPanel.hidden = true; return; }
+
+    document.getElementById('ratingsOverall').textContent =
+      ratings.overall === null ? '—' : ratings.overall;
+
+    ratings.groups.forEach(function (group) { holder.appendChild(buildGroup(group)); });
+    ratingsPanel.hidden = false;
+  }
+
+  /* --- shop ------------------------------------------------------------- */
+
+  var sayShop = reporter('shopMessage');
+  var shopState = { player: null, credits: 0, inventory: [], built: false };
+
+  function creditTag(credits) {
+    return el('span', 'fb-tag fb-tag--num fb-tag--gold', credits + ' cr');
+  }
+
+  function targetLabel(key) {
+    var found = EGE.boosterTargets().filter(function (t) { return t.key === key || t.label === key; })[0];
+    return found ? found.label : key;
+  }
+
+  /* --- the catalogue ----------------------------------------------------- */
+
+  function buildShopItem(item) {
+    var card = el('div', 'ege-item');
+
+    var head = el('div', 'ege-item__head');
+    head.appendChild(el('h4', 'ege-item__name', item.name));
+    head.appendChild(creditTag(item.credits));
+    card.appendChild(head);
+
+    if (item.note) { card.appendChild(el('span', 'fb-tag fb-tag--outline', item.note)); }
+    if (item.description) { card.appendChild(el('p', 'ege-item__text', item.description)); }
+
+    /* A stat booster has to know what it is raising before it can be bought. */
+    var picker = null;
+    if (item.needsTarget) {
+      picker = el('select', 'fb-select ege-item__target');
+      EGE.boosterTargets().forEach(function (target) {
+        var opt = el('option', null, target.group + ' \u00b7 ' + target.label);
+        opt.value = target.label;
+        picker.appendChild(opt);
+      });
+      card.appendChild(picker);
+    }
+
+    var buy = el('button', 'fb-btn fb-btn--primary fb-btn--block', 'Buy');
+    buy.type = 'button';
+    buy.addEventListener('click', function () {
+      buy.disabled = true;
+      sayShop('Buying\u2026', false);
+      EGE.wallet.buy(shopState.player.email, item, picker ? picker.value : null)
+        .then(function (res) {
+          buy.disabled = false;
+          sayShop(res.message, !res.ok);
+          if (res.ok) { refreshShop(); }
+        });
+    });
+    card.appendChild(buy);
+
+    return card;
+  }
+
+  function buildShopSection(section) {
+    var panel = el('div', 'fb-panel ege-section-gap');
+
+    var head = el('div', 'fb-panel__head');
+    head.appendChild(el('h3', null, section.title));
+    panel.appendChild(head);
+
+    var body = el('div', 'fb-panel__body fb-stack fb-stack--lg');
+    if (section.blurb) { body.appendChild(el('p', 'ege-item__text', section.blurb)); }
+
+    var grid = el('div', 'ege-items');
+    section.items.forEach(function (item) { grid.appendChild(buildShopItem(item)); });
+    body.appendChild(grid);
+
+    if (section.targets) { body.appendChild(buildTargets(section.targets)); }
+
+    panel.appendChild(body);
+    return panel;
+  }
+
+  /* The attributes a stat booster can be spent on, grouped the way the shop
+     lists them. */
+  function buildTargets(targets) {
+    var wrap = el('div', 'ege-targets');
+    targets.forEach(function (group) {
+      var box = el('div', 'ege-targets__group');
+      box.appendChild(el('span', 'fb-eyebrow', group.label));
+      var list = el('div', 'fb-row fb-row--wrap');
+      group.attributes.forEach(function (attr) {
+        list.appendChild(el('span', 'fb-tag', attr.label));
+      });
+      box.appendChild(list);
+      wrap.appendChild(box);
+    });
+    return wrap;
+  }
+
+  /* --- the inventory ----------------------------------------------------- */
+
+  function inventoryCard(row, options) {
+    var card = el('div', 'ege-item' + (row.active ? ' ege-item--active' : ''));
+
+    var head = el('div', 'ege-item__head');
+    head.appendChild(el('h4', 'ege-item__name', row.item_name));
+    head.appendChild(el('span', 'fb-tag fb-tag--num ' + (row.active ? 'fb-tag--sage' : 'fb-tag--outline'),
+      row.active ? 'In effect' : (row.consumable ? 'Unused' : 'Off')));
+    card.appendChild(head);
+
+    if (row.target) {
+      card.appendChild(el('p', 'ege-item__text', 'Applied to ' + targetLabel(row.target) + '.'));
+    }
+
+    var actions = el('div', 'fb-row fb-row--wrap');
+
+    if (row.consumable) {
+      var use = el('button', 'fb-btn fb-btn--primary', 'Use');
+      use.type = 'button';
+      use.title = 'Using it spends it';
+      use.addEventListener('click', function () {
+        use.disabled = true;
+        EGE.wallet.useItem(row).then(function (res) {
+          options.report(res.message, !res.ok);
+          options.refresh();
+        });
+      });
+      actions.appendChild(use);
+    } else {
+      var toggle = el('button', 'fb-btn', row.active ? 'Turn off' : 'Turn on');
+      toggle.type = 'button';
+      toggle.addEventListener('click', function () {
+        toggle.disabled = true;
+        EGE.wallet.setActive(row, !row.active).then(function (res) {
+          options.report(res.message, !res.ok);
+          options.refresh();
+        });
+      });
+      actions.appendChild(toggle);
+    }
+
+    if (options.admin) {
+      var remove = el('button', 'fb-btn fb-btn--ghost', 'Remove');
+      remove.type = 'button';
+      remove.addEventListener('click', function () {
+        remove.disabled = true;
+        EGE.wallet.removeItem(row).then(function (res) {
+          options.report(res.message, !res.ok);
+          options.refresh();
+        });
+      });
+      actions.appendChild(remove);
+    }
+
+    card.appendChild(actions);
+    return card;
+  }
+
+  function renderInventory() {
+    var holder = document.getElementById('inventoryItems');
+    holder.innerHTML = '';
+
+    document.getElementById('shopBalance').textContent = shopState.credits;
+    document.getElementById('inventoryEmpty').hidden = shopState.inventory.length > 0;
+
+    shopState.inventory.forEach(function (row) {
+      holder.appendChild(inventoryCard(row, {
+        admin: false,
+        report: sayShop,
+        refresh: refreshShop
+      }));
+    });
+  }
+
+  /* --- admin ------------------------------------------------------------- */
+
+  var sayAdmin = reporter('adminMessage');
+
+  function adminAccount(player, credits, rows) {
+    var box = el('div', 'ege-account');
+
+    var head = el('div', 'ege-account__head');
+    var who = el('div', 'ege-who');
+    var photo = el('img', 'ege-avatar ege-avatar--sm');
+    photo.src = player.headshot;
+    photo.alt = '';
+    who.appendChild(photo);
+    who.appendChild(el('span', 'ege-account__name', player.name));
+    head.appendChild(who);
+
+    var editor = el('div', 'fb-row');
+    var input = el('input', 'fb-input ege-account__credits');
+    input.type = 'number';
+    input.min = '0';
+    input.value = credits;
+    input.setAttribute('aria-label', 'Credits for ' + player.name);
+    editor.appendChild(input);
+
+    var save = el('button', 'fb-btn fb-btn--primary', 'Save');
+    save.type = 'button';
+    save.addEventListener('click', function () {
+      save.disabled = true;
+      EGE.wallet.setCredits(player.email, input.value).then(function (res) {
+        save.disabled = false;
+        sayAdmin(res.ok ? player.first + ' now has ' + res.credits + ' credits.' : res.message, !res.ok);
+        refreshShop();
+      });
+    });
+    editor.appendChild(save);
+    head.appendChild(editor);
+    box.appendChild(head);
+
+    /* Hand something over without charging for it. */
+    var granter = el('div', 'fb-row fb-row--wrap');
+    var pick = el('select', 'fb-select');
+    EGE.shopItems().forEach(function (entry) {
+      var opt = el('option', null, entry.item.name);
+      opt.value = entry.item.key;
+      pick.appendChild(opt);
+    });
+    granter.appendChild(pick);
+
+    var give = el('button', 'fb-btn', 'Grant');
+    give.type = 'button';
+    give.addEventListener('click', function () {
+      give.disabled = true;
+      EGE.wallet.grant(player.email, EGE.shopItem(pick.value)).then(function (res) {
+        give.disabled = false;
+        sayAdmin(res.message, !res.ok);
+        refreshShop();
+      });
+    });
+    granter.appendChild(give);
+    box.appendChild(granter);
+
+    if (!rows.length) {
+      box.appendChild(el('p', 'fb-meta', 'Nothing bought.'));
+    } else {
+      var grid = el('div', 'ege-items');
+      rows.forEach(function (row) {
+        grid.appendChild(inventoryCard(row, { admin: true, report: sayAdmin, refresh: refreshShop }));
+      });
+      box.appendChild(grid);
+    }
+
+    return box;
+  }
+
+  function renderAdmin() {
+    var panel = document.getElementById('adminPanel');
+    panel.hidden = !EGE.wallet.admin();
+    if (panel.hidden) { return Promise.resolve(); }
+
+    return Promise.all([EGE.wallet.allCredits(), EGE.wallet.allInventory()])
+      .then(function (both) {
+        var credits = both[0];
+        var inventory = both[1];
+        var holder = document.getElementById('adminAccounts');
+        holder.innerHTML = '';
+
+        EGE.playersWithAccounts().forEach(function (player) {
+          var row = credits.filter(function (c) { return c.email === player.email; })[0];
+          var owned = inventory.filter(function (i) { return i.email === player.email; });
+          holder.appendChild(adminAccount(player, row ? row.credits : EGE.shop.startingCredits, owned));
+        });
+      });
+  }
+
+  /* --- loading ----------------------------------------------------------- */
+
+  function refreshShop() {
+    var player = shopState.player;
+    if (!player) { return Promise.resolve(); }
+
+    return Promise.all([
+      EGE.wallet.creditsFor(player.email),
+      EGE.wallet.inventoryFor(player.email)
+    ]).then(function (both) {
+      shopState.credits = both[0] === null ? EGE.shop.startingCredits : both[0];
+      shopState.inventory = both[1];
+      renderInventory();
+      updateNavCredits(shopState.credits);
+      return renderAdmin();
+    });
+  }
+
+  function buildCatalogue() {
+    if (shopState.built) { return; }
+    shopState.built = true;
+
+    var earnings = document.getElementById('shopEarnings');
+    EGE.shop.earnings.forEach(function (row) {
+      var tr = el('tr');
+      tr.appendChild(el('td', null, row.label));
+      var credits = el('td', 'num');
+      credits.appendChild(el('strong', null, '+' + row.credits));
+      tr.appendChild(credits);
+      earnings.appendChild(tr);
+    });
+
+    var sections = document.getElementById('shopSections');
+    EGE.shop.sections.forEach(function (section) {
+      sections.appendChild(buildShopSection(section));
+    });
+  }
+
+  function renderShop() {
+    var player = EGE.auth.currentPlayer();
+    shopState.player = player;
+
+    document.getElementById('shopLocked').hidden = Boolean(player);
+    document.getElementById('shopContent').hidden = !player;
+    if (!player) { return; }
+
+    sayShop('', false);
+    buildCatalogue();
+    refreshShop();
   }
 
   /* --- routing ---------------------------------------------------------- */
 
-  function route() {
-    var slug = window.location.hash.replace(/^#/, '');
-    var player = slug ? EGE.playerBySlug(slug) : null;
+  function setNav(active) {
+    document.getElementById('navPlayers').classList.toggle('is-active', active === 'players');
+    document.getElementById('navShop').classList.toggle('is-active', active === 'shop');
+  }
 
-    if (player) {
+  function show(view) {
+    viewHome.hidden   = view !== viewHome;
+    viewShop.hidden   = view !== viewShop;
+    viewPlayer.hidden = view !== viewPlayer;
+  }
+
+  function route() {
+    var hash = window.location.hash.replace(/^#/, '');
+    var player = hash ? EGE.playerBySlug(hash) : null;
+
+    if (hash === 'shop') {
+      renderShop();
+      show(viewShop);
+      setNav('shop');
+      document.title = 'Shop \u2014 EGE Football';
+    } else if (player) {
       renderPlayer(player);
-      viewHome.hidden = true;
-      viewPlayer.hidden = false;
+      show(viewPlayer);
+      setNav('players');
+      document.title = player.name;
     } else {
-      viewHome.hidden = false;
-      viewPlayer.hidden = true;
+      show(viewHome);
+      setNav('players');
       document.title = 'EGE Football';
     }
     window.scrollTo(0, 0);
@@ -302,11 +764,17 @@
     EGE.auth.signOut();
   });
 
+  document.getElementById('shopLoginBtn').addEventListener('click', function () {
+    openLogin();
+  });
+
   function showSignedOutNav() {
     loginBtn.className = 'fb-btn fb-btn--inverse';
     loginBtn.textContent = 'Log In';
     loginBtn.removeAttribute('title');
     loginBtn.setAttribute('aria-label', 'Open the player portal');
+    document.getElementById('navShop').hidden = true;
+    document.getElementById('navCredits').hidden = true;
   }
 
   function showSignedInNav(player) {
@@ -318,10 +786,25 @@
     loginBtn.appendChild(img);
     loginBtn.title = player.name;
     loginBtn.setAttribute('aria-label', 'Open ' + player.name + '’s portal');
+
+    document.getElementById('navShop').hidden = false;
+
+    document.getElementById('navCredits').hidden = false;
+    updateNavCredits(null);
+    EGE.wallet.creditsFor(player.email).then(updateNavCredits);
+  }
+
+  /* The nav shows what is really in the account, once Supabase answers. */
+  function updateNavCredits(credits) {
+    var box = document.getElementById('navCredits');
+    var shown = credits === null || credits === undefined ? EGE.shop.startingCredits : credits;
+    document.getElementById('navCreditsValue').textContent = shown;
+    box.title = shown + ' credits to spend in the shop';
   }
 
   EGE.auth.onChange(function (player) {
     if (player) {
+      EGE.wallet.refreshAdmin(player.email).then(function () { route(); });
       showSignedInNav(player);
       document.getElementById('signedInName').textContent = player.name;
       var photo = document.getElementById('signedInPhoto');
@@ -333,6 +816,7 @@
       showPanel(panelAuth);
       loadAccount();
     }
+    route();          /* the shop appears and disappears with the session */
   });
 
   /* --- portal: open and close ------------------------------------------- */
