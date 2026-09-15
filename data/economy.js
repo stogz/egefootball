@@ -113,6 +113,75 @@ EGE.economy = (function () {
     return Math.max(0, Math.min(wanted, MAX_RATING - value));
   }
 
+  /* --- credits earned in season ------------------------------------------ */
+
+  /* What a touchdown is worth, by position. A quarterback throws for more of
+     them than a back runs for, so his are worth less each — the season adds
+     up to something similar either way.
+
+     A receiver is paid as a back is: the quarterback is the position singled
+     out here, not the backfield. */
+  var TD_CREDITS = { QB: 5, RB: 10, TE: 10, WR: 10, DEFAULT: 5 };
+
+  /* The stat keys a touchdown can arrive under. A quarterback who runs one in
+     is paid at his own rate, not a back's. */
+  var TD_KEYS = ['passingTd', 'rushingTd', 'receivingTd'];
+
+  function tdRateFor(position) {
+    var rate = TD_CREDITS[position];
+    return typeof rate === 'number' ? rate : TD_CREDITS.DEFAULT;
+  }
+
+  function touchdownsIn(stats) {
+    if (!stats) { return 0; }
+    return TD_KEYS.reduce(function (sum, key) {
+      return sum + (typeof stats[key] === 'number' ? stats[key] : 0);
+    }, 0);
+  }
+
+  function touchdownCredits(player, stats) {
+    return touchdownsIn(stats) * tdRateFor(player && player.position);
+  }
+
+  /* Every credit a player is owed for a season, worked out from the season
+     data rather than from anything stored: post a result with two touchdowns
+     in it and the back who scored them is owed twenty more credits than he
+     was a moment ago.
+
+     Each award carries a key that is stable for what earned it, which is what
+     makes paying them safe to repeat — the same week's touchdowns can only
+     ever be paid once. js/wallet.js does the paying. */
+  function awardsEarned(player, season) {
+    var year = season || EGE.currentSeason;
+    var out = [];
+    if (!player) { return out; }
+
+    /* The flat allowance, paid on the way into a season. There is no
+       allowance for the first one: everybody starts on nothing, and earns
+       the first 60 by getting through a season. */
+    var first = (EGE.seasons && EGE.seasons[0]) ? EGE.seasons[0].year : year;
+    if (year > first) {
+      out.push({
+        key: 'offseason-' + year,
+        credits: EGE.shop.offseasonCredits,
+        note: 'Offseason allowance for ' + year
+      });
+    }
+
+    EGE.gamesPlayed(player, year).forEach(function (game) {
+      var tds = touchdownsIn(game.stats);
+      if (!tds) { return; }
+      out.push({
+        key: 'td-w' + game.week,
+        credits: tds * tdRateFor(player.position),
+        note: tds + (tds === 1 ? ' touchdown' : ' touchdowns') +
+              ' in week ' + game.week + ' v ' + game.opponent
+      });
+    });
+
+    return out;
+  }
+
   return {
     UPGRADE_BASE: UPGRADE_BASE,
     MAX_RATING: MAX_RATING,
@@ -123,6 +192,11 @@ EGE.economy = (function () {
     bulkCost: bulkCost,
     pointsAvailable: pointsAvailable,
     gainPerPoint: gainPerPoint,
-    upgradePlan: upgradePlan
+    upgradePlan: upgradePlan,
+    TD_CREDITS: TD_CREDITS,
+    tdRateFor: tdRateFor,
+    touchdownsIn: touchdownsIn,
+    touchdownCredits: touchdownCredits,
+    awardsEarned: awardsEarned
   };
 })();

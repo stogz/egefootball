@@ -41,9 +41,9 @@ EGE.shop = {
       blurb: 'Regular season games only, one use per purchase. Save one for a ' +
              'hard opponent, or spend it proving a point against a rival.',
       items: [
-        { key: 'boost-2-5', name: '2.5x Booster', credits: 40, tag: '2.5x', consumable: true },
-        { key: 'boost-2-0', name: '2.0x Booster', credits: 25, tag: '2.0x', consumable: true },
-        { key: 'boost-1-5', name: '1.5x Booster', credits: 15, tag: '1.5x', consumable: true }
+        { key: 'boost-2-5', name: '2.5x Booster', credits: 40, tag: '2.5x', multiplier: 2.5, consumable: true },
+        { key: 'boost-2-0', name: '2.0x Booster', credits: 25, tag: '2.0x', multiplier: 2.0, consumable: true },
+        { key: 'boost-1-5', name: '1.5x Booster', credits: 15, tag: '1.5x', multiplier: 1.5, consumable: true }
       ]
     },
 
@@ -173,6 +173,13 @@ EGE.itemAvailable = function (item, season) {
     return { ok: false, reason: 'NFL only — nobody has played an NFL season yet.' };
   }
   return { ok: false, reason: 'Not available at this level.' };
+};
+
+/* What a performance booster multiplies a game by. Null for everything that
+   is not one. */
+EGE.multiplierFor = function (itemKey) {
+  var item = EGE.shopItem(itemKey);
+  return item && typeof item.multiplier === 'number' ? item.multiplier : null;
 };
 
 /* Every purchasable thing, flattened, so an inventory row can name what it

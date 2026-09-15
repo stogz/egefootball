@@ -37,8 +37,8 @@ EGE.tierFor = function (season) {
   return found ? found.tier : null;
 };
 
-/* The season the site opens on. */
-EGE.currentSeason = 2018;
+/* Which season is live is not here: it changes every year, and the admin
+   portal rewrites the file that holds it. See data/season.js. */
 
 /* Schools, their leagues, and their marks. */
 EGE.teams = {

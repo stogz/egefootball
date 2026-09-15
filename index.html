@@ -27,6 +27,7 @@
       <div class="fb-nav__links">
         <a class="fb-navlink is-active" href="#" id="navPlayers">Players</a>
         <a class="fb-navlink" href="#shop" id="navShop" hidden>Shop</a>
+        <a class="fb-navlink" href="#admin" id="navAdmin" hidden>Admin</a>
       </div>
 
       <span class="ege-credits" id="navCredits" hidden>
@@ -108,18 +109,6 @@
         </div>
       </div>
 
-      <!-- admin: everyone's credits and everything they own -->
-      <div class="fb-panel ege-section-gap" id="adminPanel" hidden>
-        <div class="fb-panel__head">
-          <h3 style="font-size: 21px;">Admin</h3>
-          <span class="fb-meta">Every account's credits and inventory</span>
-        </div>
-        <div class="fb-panel__body fb-stack fb-stack--lg" id="adminAccounts"></div>
-        <div class="fb-panel__foot">
-          <span class="fb-meta" id="adminMessage">Changes save straight away.</span>
-        </div>
-      </div>
-
       <div id="shopSections"></div>
 
       <!-- how credits are earned, out of the way until wanted -->
@@ -140,6 +129,208 @@
       </details>
 
       </div><!-- /shopContent -->
+
+    </section>
+
+    <!-- ===== admin ==================================================== -->
+    <section id="view-admin" hidden>
+
+      <header class="fb-hero" style="padding: 44px 0 30px;">
+        <div class="fb-hero__col">
+          <span class="fb-kicker">Commissioner</span>
+          <h1 class="fb-hero__title" style="margin: 14px 0 12px;">Admin</h1>
+          <p class="fb-hero__lede">
+            Every account's credits and inventory, the credits the season has
+            paid out so far, and the files that put a finished season into the
+            repository for good.
+          </p>
+        </div>
+      </header>
+
+      <div class="fb-panel" id="adminLocked" hidden>
+        <div class="fb-panel__strip">
+          <span class="fb-eyebrow" style="color: var(--fb-ink);">Not for you</span>
+        </div>
+        <div class="fb-panel__body fb-stack">
+          <p style="margin: 0; font-size: 15px;" id="adminLockedNote">
+            This page is the commissioner's. Nothing here is yours to change.
+          </p>
+          <a class="fb-btn fb-btn--primary" href="#">All Players</a>
+        </div>
+      </div>
+
+      <div id="adminContent" hidden>
+
+      <p class="ege-note" id="adminMessage" role="alert" hidden></p>
+
+      <!-- the end of a season, in the order it has to happen -->
+      <div class="fb-panel" id="seasonPanel">
+        <div class="fb-panel__head">
+          <h3 style="font-size: 21px;">End of Season</h3>
+          <span class="fb-meta" id="seasonPanelNote"></span>
+        </div>
+        <div class="fb-panel__body fb-stack fb-stack--lg">
+
+          <p class="fb-meta" style="margin: 0;">
+            Four steps, in this order. Nothing is cleared until the file that
+            replaces it is in the repository, so a step out of order costs
+            nobody their season.
+          </p>
+
+          <ol class="ege-steps" id="seasonSteps">
+
+            <li class="ege-step" id="stepLock">
+              <div class="ege-step__head">
+                <span class="ege-step__num">1</span>
+                <div>
+                  <h4 class="ege-step__title">Lock the ratings</h4>
+                  <p class="ege-step__blurb">
+                    Downloads <code>data/ratings.js</code> with every rating
+                    point and every workout bought this season folded into the
+                    base numbers. Commit it, and the improvements are part of
+                    the site rather than part of a database.
+                  </p>
+                </div>
+              </div>
+              <div class="ege-step__body">
+                <div class="fb-tablewrap">
+                  <table class="fb-table ege-locktable">
+                    <thead>
+                      <tr>
+                        <th>Player</th>
+                        <th>Attributes moved</th>
+                        <th>Points</th>
+                        <th>Overall</th>
+                      </tr>
+                    </thead>
+                    <tbody id="lockPreview"></tbody>
+                  </table>
+                </div>
+                <div class="fb-row fb-row--wrap">
+                  <button class="fb-btn fb-btn--primary" id="lockRatings" type="button">
+                    Download ratings.js
+                  </button>
+                </div>
+              </div>
+            </li>
+
+            <li class="ege-step" id="stepLog">
+              <div class="ege-step__head">
+                <span class="ege-step__num">2</span>
+                <div>
+                  <h4 class="ege-step__title">Log the season</h4>
+                  <p class="ege-step__blurb">
+                    Downloads <code>data/logs/season-<span id="logYear"></span>.js</code>:
+                    the stats posted in every game, which booster was riding on
+                    which game, and every credit earned and spent. Commit it
+                    next to the ratings.
+                  </p>
+                </div>
+              </div>
+              <div class="ege-step__body">
+                <div class="fb-row fb-row--wrap">
+                  <button class="fb-btn fb-btn--primary" id="logSeason" type="button">
+                    Download the season log
+                  </button>
+                </div>
+              </div>
+            </li>
+
+            <li class="ege-step" id="stepClear">
+              <div class="ege-step__head">
+                <span class="ege-step__num">3</span>
+                <div>
+                  <h4 class="ege-step__title">Clear the shop rows</h4>
+                  <p class="ege-step__blurb">
+                    Wipes everybody's rating points and offseason workouts,
+                    which the ratings file now carries instead. Performance
+                    boosters nobody has used stay where they are, and Intel
+                    lapses on its own. Do this only once both files above are
+                    committed and live.
+                  </p>
+                </div>
+              </div>
+              <div class="ege-step__body fb-stack">
+                <p class="ege-note ege-note--warn" id="clearWarning"></p>
+                <label class="ege-field">
+                  <span class="fb-eyebrow">Type CLEAR to confirm</span>
+                  <input class="fb-input" id="clearConfirm" type="text"
+                         autocomplete="off" spellcheck="false" placeholder="CLEAR">
+                </label>
+                <div class="fb-row fb-row--wrap">
+                  <button class="fb-btn fb-btn--primary" id="clearRows" type="button" disabled>
+                    Clear rating points and training
+                  </button>
+                </div>
+              </div>
+            </li>
+
+            <li class="ege-step" id="stepRoll">
+              <div class="ege-step__head">
+                <span class="ege-step__num">4</span>
+                <div>
+                  <h4 class="ege-step__title">Roll the season over</h4>
+                  <p class="ege-step__blurb">
+                    Downloads <code>data/season.js</code> pointing at the next
+                    season. Commit it and everybody is paid their offseason
+                    allowance the next time they open the site.
+                  </p>
+                </div>
+              </div>
+              <div class="ege-step__body">
+                <div class="fb-row fb-row--wrap">
+                  <button class="fb-btn" id="rollSeason" type="button">
+                    Download season.js
+                  </button>
+                </div>
+              </div>
+            </li>
+
+          </ol>
+        </div>
+      </div>
+
+      <!-- what the season has paid out so far -->
+      <div class="fb-panel ege-section-gap" id="awardsPanel">
+        <div class="fb-panel__head">
+          <h3 style="font-size: 21px;">Credits Earned</h3>
+          <span class="fb-meta" id="awardsNote"></span>
+        </div>
+        <div class="fb-panel__body">
+          <div class="fb-tablewrap">
+            <table class="fb-table ege-awards">
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th>Touchdowns</th>
+                  <th>From touchdowns</th>
+                  <th>Allowance</th>
+                  <th>By hand</th>
+                  <th>Earned</th>
+                </tr>
+              </thead>
+              <tbody id="awardsBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="fb-panel__foot">
+          <span class="fb-meta" id="awardsFoot"></span>
+        </div>
+      </div>
+
+      <!-- every account -->
+      <div class="fb-panel ege-section-gap" id="adminPanel">
+        <div class="fb-panel__head">
+          <h3 style="font-size: 21px;">Accounts</h3>
+          <span class="fb-meta">Credits, awards and everything bought</span>
+        </div>
+        <div class="fb-panel__body fb-stack fb-stack--lg" id="adminAccounts"></div>
+        <div class="fb-panel__foot">
+          <span class="fb-meta">Changes save straight away.</span>
+        </div>
+      </div>
+
+      </div><!-- /adminContent -->
 
     </section>
 
@@ -305,12 +496,14 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="js/supabase-config.js"></script>
 <script src="data/players.js"></script>
+<script src="data/season.js"></script>
 <script src="data/ratings.js"></script>
 <script src="data/schedule.js"></script>
 <script src="data/shop.js"></script>
 <script src="data/economy.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/wallet.js"></script>
+<script src="js/exports.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

@@ -411,10 +411,11 @@ bought for.
 A quarterback's **QB Connection** reads **Back Field Connection** — he is
 learning his backs and receivers, not himself.
 
-**Sam is the admin.** He sees every account's balance and everything each one
-owns, can set any balance, grant any item without charging for it, and remove
-anything. Admins are rows in the `admins` table, so the list is changed in SQL
-rather than from the browser.
+**Sam is the admin**, and his tools are on their own page — see
+[The Admin Portal](#the-admin-portal). Nothing admin sits on the shop page:
+the shop is what a player buys with, and that is all it is. Admins are rows in
+the `admins` table, so the list is changed in SQL rather than from the
+browser.
 
 Balances and inventories live in Supabase — `player_credits` and
 `player_inventory` in `supabase/schema.sql` — and the policies there do the
@@ -430,6 +431,98 @@ so nobody else can work out which games scouts will be at.
 > Buying reads the balance, checks it and writes it back in sequence rather
 > than in one locked transaction. With six players and one shop the worst case
 > is a double spend from two tabs at once, which the admin can put right.
+
+### Credits earn themselves
+
+Nobody hands credits out by hand for a good game. A touchdown is worth credits
+the moment the result goes into `data/schedule.js`:
+
+| Position | A touchdown is worth |
+| --- | --- |
+| RB | 10 |
+| TE | 10 |
+| WR | 10 |
+| QB | 5 |
+
+A quarterback throws for more of them than a back runs for, so his are worth
+less each and the season comes out somewhere similar either way. Every
+touchdown counts at the player's own rate, however it was scored — a
+quarterback who runs one in is paid 5, not 10.
+
+On top of that, every season after the first pays the flat **60** offseason
+allowance on the way into it. The first season pays nothing: everybody starts
+on zero and earns the first 60 by getting through a season.
+
+**How it stays right.** What a player is owed is worked out from the schedule
+every time they open the site, and each award carries a key for what earned it
+— `td-w4`, `offseason-2019`. Those keys are unique per player per season in
+`credit_awards`, and `pay_credit_awards()` inserts the new ones and moves the
+balance **in one transaction**, so paying on every page load is both safe and
+the whole point. Post a result with two touchdowns in it and the back who
+scored them is twenty credits better off the next time he looks. Reload all
+day and he is still twenty credits better off.
+
+A player with no sign-in yet still scores: the admin page shows what they are
+owed as *waiting*, and it lands in full the first time they log in.
+
+> The credits come from the browser, because what a touchdown is worth is
+> worked out from `data/schedule.js` and Postgres has no copy of it. A player
+> could already set their own balance directly — buying things needs that — so
+> this is not a new hole, but the easy half of it is closed: for anyone who is
+> not an admin, an award has to look like one of the two kinds the site issues
+> and cannot be worth more than either honestly could be.
+
+---
+
+## The Admin Portal
+
+`#admin`, a tab that only appears for an admin, and a page that refuses anyone
+else. It holds everything Sam used to do from the shop page, plus the two
+things that end a season.
+
+**Accounts** — every balance and everything each player owns. Set a balance,
+hand an item over without charging for it, remove anything, or pay an award off
+the earnings table. An award goes through the same ledger the touchdowns do, so
+the season log has a line for it rather than a balance that moved for no
+recorded reason.
+
+**Credits Earned** — what the season has paid out so far, by player: touchdowns
+scored, what they were worth, the allowance, anything paid by hand.
+
+**End of Season** — four steps, in this order, because the order is the only
+thing keeping anybody's season safe:
+
+1. **Lock the ratings.** Downloads a `data/ratings.js` with every rating point
+   and every offseason workout bought that season folded into the base
+   numbers. Only the numbers change: every comment, weight and helper in the
+   file survives, because the file is read and its ratings block spliced
+   rather than rebuilt. A player nobody spent anything on comes out byte for
+   byte as they went in, so the diff is only the players who actually moved.
+   Commit it, and the improvements are part of the site rather than part of a
+   database.
+2. **Log the season.** Downloads `data/logs/season-{year}.js`: every game with
+   the stats posted in it and the booster that was riding on it, every credit
+   earned, and everything bought. A record, not a source — nothing on the site
+   reads it. It is there so a season cleared out of Supabase is still on the
+   record afterwards.
+3. **Clear the shop rows.** Wipes everybody's rating points and offseason
+   workouts, which the ratings file now carries instead. Unused performance
+   boosters stay, and Intel lapses on its own. Two locks on this one: the
+   ratings file has to have been downloaded in the same sitting, and the word
+   CLEAR has to be typed. Everything it deletes is recoverable only from that
+   file.
+4. **Roll the season over.** Downloads a `data/season.js` pointing at the next
+   season, with the one just finished added to `lockedSeasons` so it can never
+   be locked twice. Commit it and everybody is paid their allowance on their
+   next visit.
+
+Building a file and clearing the rows it replaces are deliberately separate
+actions, in that order, with the commit in between. The portal will not let
+step 3 run before step 1, and says so rather than doing it.
+
+Steps 1, 2 and 4 read `data/ratings.js` and `data/season.js` back over HTTP, so
+they need the site served rather than opened off a disk. Both refuse with a
+message rather than handing over half a file.
 
 ---
 
@@ -485,13 +578,22 @@ Built so far:
   results and stat lines once games are played.
 - `bot/` — the Discord scores bot (see below).
 - `supabase/schema.sql` — every table and policy: accounts, credits,
-  inventory, admins, and the stickers stuck on games. Run it in the Supabase
-  SQL editor; it is safe to run again.
+  inventory, admins, the stickers stuck on games, and the credit awards a
+  season pays out. Run it in the Supabase SQL editor; it is safe to run
+  again, and it must be re-run after pulling a change that adds a table.
 - `js/supabase-config.js` — your Supabase URL and anon key. Blank by default.
 - `data/shop.js` — the shop catalogue: credit earnings and everything on sale.
 - `data/economy.js` — every number about credits in one place: what a rating
-  point costs, how much overall a point is worth, and the tuning behind both.
-  Nothing else in the site invents a price.
+  point costs, how much overall a point is worth, what a touchdown pays, and
+  the tuning behind all of it. Nothing else in the site invents a price.
+- `data/season.js` — which season is live, and which seasons have had their
+  ratings locked. Small on purpose: the admin portal rewrites this whole file
+  when a season is rolled over.
+- `js/exports.js` — builds the three files a finished season leaves behind:
+  the locked ratings, the season log, and the season pointer. Reads Supabase,
+  writes nothing.
+- `data/logs/` — a season log per season, written by the admin portal. Empty
+  until a season has been played out.
 - `site.css` — the theme (palette overriding the kit's tokens) plus the page
   components the kit doesn't cover (player card, roster grid, shop, login).
 
@@ -579,8 +681,12 @@ One thing at a time, in this order:
    *Login is in: allowlisted emails, a password set once, and the signed-in
    player's headshot in the nav. The portal behind it — attributes and
    overalls — is not.*
-8. **Offseason workouts** — the boost mechanic.
-9. **Extra interactive layer** — scope defined once the above is working.
+8. **Offseason workouts** — the boost mechanic. ✅ The shop, rating points,
+   training, boosters and the sticker layer are all in.
+9. **Season automation** — credits that earn themselves as results are posted,
+   and a season that can be ended, locked into the repository and rolled over
+   from the admin portal. ✅ `js/exports.js`, `data/season.js`, `#admin`.
+10. **Extra interactive layer** — scope defined once the above is working.
 
 ---
 

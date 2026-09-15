@@ -17,6 +17,7 @@ EGE.wallet = (function () {
   var INVENTORY = 'player_inventory';
   var ADMINS = 'admins';
   var GAME_BOOSTERS = 'game_boosters';
+  var AWARDS = 'credit_awards';
 
   var isAdmin = false;
 
@@ -315,7 +316,7 @@ EGE.wallet = (function () {
 
         return write.then(function (res) {
           if (res.error) { return { ok: false, message: res.error.message }; }
-          return setCredits(email, balance - attribute.cost).then(function (spent) {
+          return setCredits(email, balance - price).then(function (spent) {
             if (!spent.ok) { return spent; }
             return {
               ok: true,
@@ -326,6 +327,111 @@ EGE.wallet = (function () {
           });
         });
       });
+    });
+  }
+
+  /* --- credits earned ---------------------------------------------------- */
+
+  /* What a player has been paid this season, newest first. */
+  function awardsFor(email, season) {
+    var c = client();
+    if (!c || !email) { return Promise.resolve([]); }
+
+    return c.from(AWARDS).select('*')
+      .eq('email', email).eq('season', season || EGE.currentSeason)
+      .order('awarded_at', { ascending: false })
+      .then(function (res) { return res.error ? [] : (res.data || []); })
+      .catch(function () { return []; });
+  }
+
+  /* Every award for a season, across every account. An admin's policies are
+     what make this return more than one player's worth. */
+  function allAwards(season) {
+    var c = client();
+    if (!c) { return Promise.resolve([]); }
+
+    var query = c.from(AWARDS).select('*');
+    if (season) { query = query.eq('season', season); }
+
+    return query.order('awarded_at', { ascending: false })
+      .then(function (res) { return res.error ? [] : (res.data || []); })
+      .catch(function () { return []; });
+  }
+
+  /* Pays whatever the season data says this player is owed and has not had
+     yet: the offseason allowance on the way into a season, and the credits
+     for each touchdown as the results are posted.
+
+     Nothing is worked out here — data/economy.js decides what is owed, and
+     Postgres decides what is new, in one transaction, so calling this on
+     every page load is both safe and the whole point. A result committed
+     with two touchdowns in it turns into twenty credits the next time the
+     player opens the site. */
+  function syncAwards(player, season) {
+    var c = client();
+    if (!c || !player || !player.email) { return Promise.resolve({ paid: 0 }); }
+
+    var year = season || EGE.currentSeason;
+    var owed = EGE.economy.awardsEarned(player, year);
+    if (!owed.length) { return Promise.resolve({ paid: 0 }); }
+
+    return c.rpc('pay_credit_awards', {
+      p_email: player.email,
+      p_season: year,
+      p_awards: owed
+    }).then(function (res) {
+      if (res.error) { return { paid: 0, message: res.error.message }; }
+      return { paid: Number(res.data) || 0 };
+    }).catch(function () { return { paid: 0 }; });
+  }
+
+  /* Hands out credits an admin has decided on — a good season, a Pro Bowl,
+     whatever the earnings table calls it. Logged like any other award, so it
+     shows up in the season log rather than as a balance that changed for no
+     recorded reason. */
+  function awardCredits(email, credits, note) {
+    var c = client();
+    if (!c) { return fail(offline()); }
+
+    var amount = Math.round(Number(credits) || 0);
+    if (amount <= 0) { return fail('An award has to be worth something.'); }
+
+    /* Unique per account per season, and an admin may well hand out two of
+       the same size in one season, so the clock breaks the tie. */
+    var key = 'manual-' + Date.now().toString(36);
+
+    return c.rpc('pay_credit_awards', {
+      p_email: email,
+      p_season: EGE.currentSeason,
+      p_awards: [{ key: key, credits: amount, note: note || 'Awarded by an admin' }]
+    }).then(function (res) {
+      if (res.error) { return { ok: false, message: res.error.message }; }
+      var paid = Number(res.data) || 0;
+      if (!paid) { return { ok: false, message: 'Nothing was paid \u2014 try again.' }; }
+      return { ok: true, credits: paid, message: paid + ' credits awarded.' };
+    });
+  }
+
+  /* --- the end of a season ----------------------------------------------- */
+
+  /* Rating points and training are what the season lock folds into
+     data/ratings.js, so once that file is in the repository these rows are
+     saying it twice. Everything else stays: an unused performance booster is
+     still unused next season, and Intel lapses on its own.
+
+     Admin only in practice \u2014 the delete policy allows a player their own
+     rows, which is no more than the inventory already lets them do. */
+  function clearLockedRows(email) {
+    var c = client();
+    if (!c) { return fail(offline()); }
+
+    var query = c.from(INVENTORY).delete()
+      .or('item_key.eq.upgrade,item_key.like.train-%');
+    if (email) { query = query.eq('email', email); }
+
+    return query.then(function (res) {
+      if (res.error) { return { ok: false, message: res.error.message }; }
+      return { ok: true, message: 'Rating points and training cleared.' };
     });
   }
 
@@ -552,6 +658,11 @@ EGE.wallet = (function () {
     removeItem: removeItem,
     decrement: decrement,
     quantityOf: quantityOf,
-    grant: grant
+    grant: grant,
+    awardsFor: awardsFor,
+    allAwards: allAwards,
+    syncAwards: syncAwards,
+    awardCredits: awardCredits,
+    clearLockedRows: clearLockedRows
   };
 })();
