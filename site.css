@@ -417,6 +417,27 @@ body {
   background: var(--fb-tint-sage);
 }
 
+/* One row for the boosters, since dozens get bought. */
+.ege-booster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px;
+}
+.ege-booster .ege-field { flex: 1 1 260px; }
+.ege-booster__buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.ege-booster__buttons .fb-btn { font-variant-numeric: tabular-nums; }
+.ege-booster .ege-item__text { flex: 1 1 100%; margin: 0; }
+
+.ege-applied {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 12px 14px;
+  border: var(--fb-border-thin) dashed var(--fb-ink);
+  background: var(--fb-tint-wash);
+}
+
 /* --- schedule table ----------------------------------------------------- */
 
 /* The kit's table rows are built for picking one; these are just a list. */

@@ -167,3 +167,20 @@ create policy "inventory deleted by owner or admin"
 -- can lapse when that season ends.
 alter table public.player_inventory
   add column if not exists season integer;
+
+-- What a purchase did to the player's ratings, as { attribute: delta }. A
+-- training row keeps the roll it made, so it is never re-rolled.
+alter table public.player_inventory
+  add column if not exists effects jsonb not null default '{}'::jsonb;
+
+-- Purchases are public, because a boosted overall has to show on a player's
+-- card for everyone. Intel is the exception: only its owner and an admin see
+-- which games scouts will be at.
+drop policy if exists "inventory readable by owner or admin" on public.player_inventory;
+create policy "inventory readable to all but intel"
+  on public.player_inventory for select
+  using (
+    item_key <> 'intel'
+    or email = auth.jwt() ->> 'email'
+    or public.is_admin()
+  );

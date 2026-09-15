@@ -50,58 +50,17 @@ EGE.shop = {
     {
       key: 'stat-boosters',
       title: 'Stat Boosters',
-      blurb: 'Applied to any one of the attributes below.',
+      blurb: 'Raise one attribute. Only the attributes your position is judged ' +
+             'on can be bought, and every one you buy makes the next of that ' +
+             'size dearer.',
+      compact: true,
       items: [
-        { key: 'stat-1', name: '+1 Booster', credits: 15, tag: '+1', needsTarget: true },
-        { key: 'stat-2', name: '+2 Booster', credits: 35, tag: '+2', needsTarget: true },
-        { key: 'stat-3', name: '+3 Booster', credits: 60, tag: '+3', needsTarget: true }
-      ],
-      /* Which attributes a stat booster can be spent on. */
-      targets: [
-        {
-          label: 'Passing',
-          attributes: [
-            { label: 'Throw Power',          key: 'throwPower' },
-            { label: 'Throw Under Pressure', key: 'throwUnderPressure' },
-            { label: 'Throw Accuracy Short', key: 'throwAccuracyShort' },
-            { label: 'Throw Accuracy Mid',   key: 'throwAccuracyMid' },
-            { label: 'Throw Accuracy Deep',  key: 'throwAccuracyDeep' },
-            { label: 'Throw on the Run',     key: 'throwOnTheRun' },
-            { label: 'Play Action',          key: 'playAction' },
-            { label: 'Break Sack',           key: 'breakSack' }
-          ]
-        },
-        {
-          label: 'Receiving',
-          attributes: [
-            { label: 'Catching',             key: 'catching' },
-            { label: 'Catching in Traffic',  key: 'catchInTraffic' },
-            { label: 'Route Running Short',  key: 'routeRunningShort' },
-            { label: 'Route Running Medium', key: 'routeRunningMedium' },
-            { label: 'Route Running Deep',   key: 'routeRunningDeep' },
-            { label: 'Release',              key: 'release' }
-          ]
-        },
-        {
-          label: 'Carrying',
-          attributes: [
-            { label: 'Carrying',            key: 'carrying' },
-            { label: 'Break Tackle',        key: 'breakTackle' },
-            { label: 'Trucking',            key: 'trucking' },
-            { label: 'Change of Direction', key: 'changeOfDirection' },
-            { label: 'Stiff Arm',           key: 'stiffArm' },
-            { label: 'Spin Move',           key: 'spinMove' },
-            { label: 'Juke Move',           key: 'jukeMove' }
-          ]
-        },
-        {
-          label: 'Blocking',
-          attributes: [
-            { label: 'Block Power', key: null },   /* run and pass block power */
-            { label: 'Run Block',   key: 'runBlock' },
-            { label: 'Pass Block',  key: 'passBlock' }
-          ]
-        }
+        { key: 'stat-1', name: '+1 Booster', credits: 10, tag: '+1',
+          boost: 1, needsTarget: true, priceCurve: 'step', priceStep: 5 },
+        { key: 'stat-2', name: '+2 Booster', credits: 15, tag: '+2',
+          boost: 2, needsTarget: true, priceCurve: 'step', priceStep: 10 },
+        { key: 'stat-4', name: '+4 Booster', credits: 20, tag: '+4',
+          boost: 4, needsTarget: true, priceCurve: 'log' }
       ]
     },
 
@@ -114,22 +73,37 @@ EGE.shop = {
           key: 'train-strength',
           name: 'Offseason Strength Training',
           credits: 45,
-          description: 'Strength, power and weight, built with frequent lifting and a ' +
-                       'strict weight-gaining diet. Can cost speed, agility and stamina.'
+          effects: { strength: 4 },
+          risks: [
+            { attribute: 'agility', amount: -2, chance: 0.5 },
+            { attribute: 'stamina', amount: -2, chance: 0.5 },
+            { attribute: 'speed',   amount: -2, chance: 0.5 }
+          ],
+          description: 'Strength +4. Agility, stamina and speed each risk -2, ' +
+                       'rolled when you buy it.'
         },
         {
           key: 'train-cardio',
           name: 'Offseason Cardio Training',
           credits: 45,
-          description: 'Speed, stamina and agility, built with frequent conditioning ' +
-                       'aimed at losing weight. Can cost strength, power and weight.'
+          effects: { speed: 2, acceleration: 2, agility: 2, stamina: 2 },
+          risks: [
+            { attribute: 'strength', amount: -2, chance: 0.5 }
+          ],
+          description: 'Speed, acceleration, agility and stamina +2 each. ' +
+                       'Strength risks -2, rolled when you buy it.'
         },
         {
           key: 'train-overall',
           name: 'Overall Offseason Training',
           credits: 35,
-          description: 'Speed, strength, stamina and agility together, but only a little ' +
-                       'of each. No side effects, and no jump as big as training one thing.'
+          effects: {
+            speed: 1, acceleration: 1, strength: 1,
+            agility: 1, jumping: 1, stamina: 1
+          },
+          description: 'Speed, acceleration, strength, agility, jumping and ' +
+                       'stamina +1 each. Nothing to lose, and no jump as big ' +
+                       'as training one thing.'
         }
       ]
     },
@@ -141,10 +115,12 @@ EGE.shop = {
         {
           key: 'qb-connection',
           name: 'QB Connection',
+          nameByPosition: { QB: 'Back Field Connection' },
           credits: 30,
           description: 'The whole offseason spent with your quarterback, learning his ' +
-                       'routes and calls. Chemistry resets if he is injured, traded or ' +
-                       'otherwise leaves. Better chemistry can mean more targets.'
+                       'routes and calls — or, for a quarterback, with the backs and ' +
+                       'receivers behind him. Chemistry resets if they are injured, ' +
+                       'traded or otherwise leave. Better chemistry can mean more targets.'
         },
         {
           key: 'hyperbaric',
@@ -172,6 +148,30 @@ EGE.shop = {
       ]
     }
   ]
+};
+
+/* What an item is called for this player: a quarterback's connection is with
+   his back field rather than with himself. */
+EGE.itemName = function (item, player) {
+  if (!item) { return ''; }
+  var byPosition = item.nameByPosition || {};
+  return (player && byPosition[player.position]) || item.name;
+};
+
+/* Stat boosters get dearer the more of that size a player has already bought.
+   'step' climbs by a fixed amount each time; 'log' climbs fast at first and
+   then flattens out. Everything else has one price. */
+EGE.priceFor = function (item, ownedCount) {
+  if (!item) { return 0; }
+  var owned = Math.max(0, ownedCount || 0);
+
+  if (item.priceCurve === 'step') {
+    return item.credits + (item.priceStep || 5) * owned;
+  }
+  if (item.priceCurve === 'log') {
+    return Math.round(item.credits * (1 + Math.log(owned + 1)));
+  }
+  return item.credits;
 };
 
 /* Whether an item can be bought in a given season, and why not when it
@@ -205,15 +205,5 @@ EGE.shopItem = function (key) {
   return found ? found.item : null;
 };
 
-/* The attributes a stat booster may be spent on, flattened for a picker. */
-EGE.boosterTargets = function () {
-  var section = EGE.shop.sections.filter(function (s) { return s.key === 'stat-boosters'; })[0];
-  if (!section) { return []; }
-  var out = [];
-  section.targets.forEach(function (group) {
-    group.attributes.forEach(function (attr) {
-      out.push({ label: attr.label, key: attr.key, group: group.label });
-    });
-  });
-  return out;
-};
+/* The attributes a stat booster may be spent on — see EGE.boostableFor in
+   data/ratings.js, which reads them off the player's own ratings page. */

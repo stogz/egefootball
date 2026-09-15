@@ -106,12 +106,70 @@ EGE.wallet = (function () {
       .catch(function () { return []; });
   }
 
+  /* --- what a purchase does to the ratings -------------------------------- */
+
+  /* Training rolls its downside once, when it is bought, and the result is
+     stored: nobody gets to re-roll by reloading the page. */
+  function rollEffects(item) {
+    var effects = {};
+    Object.keys(item.effects || {}).forEach(function (key) {
+      effects[key] = item.effects[key];
+    });
+
+    if (item.needsTarget) { return effects; }
+
+    (item.risks || []).forEach(function (risk) {
+      if (Math.random() < risk.chance) {
+        effects[risk.attribute] = (effects[risk.attribute] || 0) + risk.amount;
+      }
+    });
+    return effects;
+  }
+
+  function effectsForTarget(item, target) {
+    var effects = {};
+    if (item.needsTarget && target) { effects[target] = item.boost || 1; }
+    return effects;
+  }
+
+  /* How many of this item a player already owns, which is what makes the
+     next one dearer. */
+  function ownedCount(rows, key) {
+    return (rows || []).filter(function (row) { return row.item_key === key; }).length;
+  }
+
+  /* Everything bought, everywhere, summed per attribute per account, so a
+     boosted overall shows on every page. Intel rows are invisible to anyone
+     but their owner, and carry no effects anyway. */
+  function loadBoosts() {
+    var c = client();
+    if (!c) { return Promise.resolve({}); }
+
+    return c.from(INVENTORY).select('email, effects, active, season')
+      .then(function (res) {
+        var boosts = {};
+        if (res.error) { EGE.appliedBoosts = boosts; return boosts; }
+
+        (res.data || []).forEach(function (row) {
+          if (!row.active || lapsed(row) || !row.effects) { return; }
+          var forEmail = boosts[row.email] || (boosts[row.email] = {});
+          Object.keys(row.effects).forEach(function (attr) {
+            forEmail[attr] = (forEmail[attr] || 0) + row.effects[attr];
+          });
+        });
+
+        EGE.appliedBoosts = boosts;
+        return boosts;
+      })
+      .catch(function () { EGE.appliedBoosts = {}; return {}; });
+  }
+
   /* --- buying ------------------------------------------------------------ */
 
   /* Six players and one shop, so the balance is read, checked and written
      in sequence rather than locked. The worst case is a double spend from
      two tabs at once, which an admin can put right. */
-  function buy(email, item, target) {
+  function buy(email, item, target, player) {
     var c = client();
     if (!c) { return fail(offline()); }
     if (!item) { return fail('That item is not in the shop.'); }
@@ -121,26 +179,38 @@ EGE.wallet = (function () {
     var allowed = EGE.itemAvailable(item, EGE.currentSeason);
     if (!allowed.ok) { return fail(allowed.reason); }
 
-    return creditsFor(email).then(function (balance) {
+    return Promise.all([creditsFor(email), inventoryFor(email)]).then(function (both) {
+      var balance = both[0];
+      var owned = both[1];
       if (balance === null) { return { ok: false, message: offline() }; }
-      if (balance < item.credits) {
-        return { ok: false, message: 'Not enough credits — that costs ' + item.credits + ', you have ' + balance + '.' };
+
+      var price = EGE.priceFor(item, ownedCount(owned, item.key));
+      if (balance < price) {
+        return { ok: false, message: 'Not enough credits — that costs ' + price + ', you have ' + balance + '.' };
       }
+
+      var effects = item.needsTarget ? effectsForTarget(item, target) : rollEffects(item);
 
       return c.from(INVENTORY).insert({
         email: email,
         item_key: item.key,
-        item_name: item.name,
+        item_name: EGE.itemName(item, player),
         target: target || null,
-        credits: item.credits,
+        credits: price,
+        effects: effects,
         consumable: Boolean(item.consumable),
         season: item.seasonBound ? EGE.currentSeason : null,
         active: !item.consumable      /* a booster is in effect only once used */
       }).then(function (res) {
         if (res.error) { return { ok: false, message: res.error.message }; }
-        return setCredits(email, balance - item.credits).then(function (spent) {
+        return setCredits(email, balance - price).then(function (spent) {
           if (!spent.ok) { return spent; }
-          return { ok: true, message: 'Bought ' + item.name + '.', credits: spent.credits };
+          return {
+            ok: true,
+            effects: effects,
+            message: 'Bought ' + EGE.itemName(item, player) + ' for ' + price + ' credits.',
+            credits: spent.credits
+          };
         });
       });
     });
@@ -194,6 +264,7 @@ EGE.wallet = (function () {
       item_key: item.key,
       item_name: item.name,
       target: target || null,
+      effects: item.needsTarget ? effectsForTarget(item, target) : rollEffects(item),
       credits: 0,
       consumable: Boolean(item.consumable),
       season: item.seasonBound ? EGE.currentSeason : null,
@@ -217,6 +288,8 @@ EGE.wallet = (function () {
   }
 
   return {
+    loadBoosts: loadBoosts,
+    ownedCount: ownedCount,
     lapsed: lapsed,
     hasIntel: hasIntel,
     refreshAdmin: refreshAdmin,

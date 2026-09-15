@@ -143,6 +143,10 @@ The same attributes score very differently by position, which is the point:
 | WR | 32 |
 | TBD | 40 |
 
+Anything bought in the shop lands on top of these: `EGE.valuesFor` adds the
+boosts to the base numbers before any group or overall is worked out, so a
+purchase moves the rating the moment it is made.
+
 **The values in the file are placeholders.** They put every player near 50
 overall, in this order:
 
@@ -252,10 +256,12 @@ On sale:
 
 - **Performance boosters** — 2.5x (70), 2.0x (45), 1.5x (25). Regular season
   only, one use per purchase.
-- **Stat boosters** — +1 (15), +2 (35), +3 (60), spent on any one of 24
-  attributes across passing, receiving, carrying and blocking.
-- **Offseason training** — strength or cardio at 45, each trading something
-  away, or overall at 35 for a smaller gain with no cost.
+- **Stat boosters** — +1, +2 and +4, and the only thing in the shop that gets
+  dearer the more you buy. They raise the attribute you pick and that shows up
+  in the overall straight away.
+- **Offseason training** — strength or cardio at 45, each with a downside
+  rolled when you buy it, or overall at 35 for a smaller gain with nothing to
+  lose.
 - **QB Connection** (30), **Hyperbaric Chamber** (50, then 65, then 85, then
   20 more each time), **Intel** (20).
 
@@ -278,6 +284,44 @@ buying one has somewhere to land once spending is built. Block Power is the
 one exception: the ratings carry run block power and pass block power
 separately, and which one it raises is still open.
 
+### Stat boosters
+
+They are bought over and over, so they get one row rather than a card each:
+pick an attribute, then a size. **Only the attributes that player's position is
+judged on** can be bought — the same list their ratings page shows, so nobody
+buys route running for a quarterback.
+
+Prices climb per player, per size:
+
+| Booster | Price | After that |
+| --- | --- | --- |
+| +1 | 10 | +5 each time (10, 15, 20, 25…) |
+| +2 | 15 | +10 each time (15, 25, 35, 45…) |
+| +4 | 20 | logarithmic — steep, then flattening (20, 34, 42, 48, 52…) |
+
+The inventory counts them rather than listing them, and sums what everything
+adds up to: *Strength +5, Break Tackle +3, Agility −1*.
+
+### Training
+
+| Item | Effect | Risk |
+| --- | --- | --- |
+| Overall Offseason Training | Speed, acceleration, strength, agility, jumping, stamina +1 | none |
+| Offseason Cardio Training | Speed, acceleration, agility, stamina +2 | strength −2 |
+| Offseason Strength Training | Strength +4 | agility, stamina, speed −2 each |
+
+Risks are rolled once, when the item is bought, and the result is stored on
+the row. Reloading the page never re-rolls it.
+
+### Everything carries over
+
+Training, stat boosters and unused performance boosters all stay season to
+season. Intel is the only thing that lapses, at the end of the season it was
+bought for.
+
+A quarterback's **QB Connection** reads **Back Field Connection** — he is
+learning his backs and receivers, not himself.
+
 **Sam is the admin.** He sees every account's balance and everything each one
 owns, can set any balance, grant any item without charging for it, and remove
 anything. Admins are rows in the `admins` table, so the list is changed in SQL
@@ -285,9 +329,14 @@ rather than from the browser.
 
 Balances and inventories live in Supabase — `player_credits` and
 `player_inventory` in `supabase/schema.sql` — and the policies there do the
-real enforcing: a player reads and writes only their own rows, an admin reads
-and writes everyone's. The browser code is the shape of the UI, not the
-security boundary.
+real enforcing: a player writes only their own rows, an admin writes
+everyone's. The browser code is the shape of the UI, not the security
+boundary.
+
+Purchases are **readable by everyone**, because a boosted overall has to show
+on a player's card wherever it appears. Intel is the exception, in the policy
+as well as the interface: only its owner and an admin can read an Intel row,
+so nobody else can work out which games scouts will be at.
 
 > Buying reads the balance, checks it and writes it back in sequence rather
 > than in one locked transaction. With six players and one shop the worst case

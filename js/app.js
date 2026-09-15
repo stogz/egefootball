@@ -294,7 +294,9 @@
   }
 
   function targetLabel(key) {
-    var found = EGE.boosterTargets().filter(function (t) { return t.key === key || t.label === key; })[0];
+    var found = EGE.ratingGroups
+      .reduce(function (all, group) { return all.concat(group.attributes); }, [])
+      .filter(function (attr) { return attr.key === key; })[0];
     return found ? found.label : key;
   }
 
@@ -304,25 +306,14 @@
     var card = el('div', 'ege-item');
 
     var head = el('div', 'ege-item__head');
-    head.appendChild(el('h4', 'ege-item__name', item.name));
+    head.appendChild(el('h4', 'ege-item__name', EGE.itemName(item, shopState.player)));
     head.appendChild(creditTag(item.credits));
     card.appendChild(head);
 
     if (item.note) { card.appendChild(el('span', 'fb-tag fb-tag--outline', item.note)); }
     if (item.description) { card.appendChild(el('p', 'ege-item__text', item.description)); }
 
-    /* A stat booster has to know what it is raising before it can be bought. */
     var picker = null;
-    if (item.needsTarget) {
-      picker = el('select', 'fb-select ege-item__target');
-      EGE.boosterTargets().forEach(function (target) {
-        var opt = el('option', null, target.group + ' \u00b7 ' + target.label);
-        opt.value = target.label;
-        picker.appendChild(opt);
-      });
-      card.appendChild(picker);
-    }
-
     var allowed = EGE.itemAvailable(item, EGE.currentSeason);
     if (!allowed.ok) {
       card.classList.add('ege-item--locked');
@@ -337,7 +328,7 @@
     buy.addEventListener('click', function () {
       buy.disabled = true;
       sayShop('Buying\u2026', false);
-      EGE.wallet.buy(shopState.player.email, item, picker ? picker.value : null)
+      EGE.wallet.buy(shopState.player.email, item, null, shopState.player)
         .then(function (res) {
           buy.disabled = false;
           sayShop(res.message, !res.ok);
@@ -359,31 +350,83 @@
     var body = el('div', 'fb-panel__body fb-stack fb-stack--lg');
     if (section.blurb) { body.appendChild(el('p', 'ege-item__text', section.blurb)); }
 
-    var grid = el('div', 'ege-items');
-    section.items.forEach(function (item) { grid.appendChild(buildShopItem(item)); });
-    body.appendChild(grid);
-
-    if (section.targets) { body.appendChild(buildTargets(section.targets)); }
+    if (section.compact) {
+      body.appendChild(buildBoosterCounter(section));
+    } else {
+      var grid = el('div', 'ege-items');
+      section.items.forEach(function (item) { grid.appendChild(buildShopItem(item)); });
+      body.appendChild(grid);
+    }
 
     panel.appendChild(body);
     return panel;
   }
 
-  /* The attributes a stat booster can be spent on, grouped the way the shop
-     lists them. */
-  function buildTargets(targets) {
-    var wrap = el('div', 'ege-targets');
-    targets.forEach(function (group) {
-      var box = el('div', 'ege-targets__group');
-      box.appendChild(el('span', 'fb-eyebrow', group.label));
-      var list = el('div', 'fb-row fb-row--wrap');
-      group.attributes.forEach(function (attr) {
-        list.appendChild(el('span', 'fb-tag', attr.label));
+  /* Stat boosters are bought over and over, so they get one row rather than a
+     card each: pick the attribute, then the size. Prices climb per player, so
+     the buttons are relabelled every time the inventory changes. */
+  var boosterUi = null;
+
+  function buildBoosterCounter(section) {
+    var wrap = el('div', 'ege-booster');
+
+    var field = el('label', 'ege-field');
+    field.appendChild(el('span', 'fb-eyebrow', 'Attribute'));
+    var picker = el('select', 'fb-select');
+    field.appendChild(picker);
+    wrap.appendChild(field);
+
+    var buttons = el('div', 'ege-booster__buttons');
+    var tiers = section.items.map(function (item) {
+      var button = el('button', 'fb-btn fb-btn--primary');
+      button.type = 'button';
+      button.addEventListener('click', function () {
+        button.disabled = true;
+        sayShop('Buying\u2026', false);
+        EGE.wallet.buy(shopState.player.email, item, picker.value, shopState.player)
+          .then(function (res) {
+            sayShop(res.message, !res.ok);
+            refreshShop();
+          });
       });
-      box.appendChild(list);
-      wrap.appendChild(box);
+      buttons.appendChild(button);
+      return { item: item, button: button };
     });
+    wrap.appendChild(buttons);
+
+    var note = el('p', 'ege-item__text');
+    wrap.appendChild(note);
+
+    boosterUi = { picker: picker, tiers: tiers, note: note };
+    refreshBoosterCounter();
     return wrap;
+  }
+
+  /* Repopulate the attribute list and reprice the buttons for whoever is
+     signed in now. */
+  function refreshBoosterCounter() {
+    if (!boosterUi || !shopState.player) { return; }
+
+    var chosen = boosterUi.picker.value;
+    boosterUi.picker.innerHTML = '';
+    EGE.boostableFor(shopState.player).forEach(function (attr) {
+      var opt = el('option', null, attr.group + ' \u00b7 ' + attr.label);
+      opt.value = attr.key;
+      boosterUi.picker.appendChild(opt);
+    });
+    if (chosen) { boosterUi.picker.value = chosen; }
+
+    boosterUi.tiers.forEach(function (tier) {
+      var owned = EGE.wallet.ownedCount(shopState.inventory, tier.item.key);
+      var price = EGE.priceFor(tier.item, owned);
+      tier.button.textContent = tier.item.tag + '  \u00b7  ' + price + ' cr';
+      tier.button.disabled = shopState.credits < price;
+      tier.button.title = owned + ' bought so far';
+    });
+
+    boosterUi.note.textContent =
+      'Only the attributes ' + shopState.player.first + '\u2019s position is judged on. ' +
+      'Each booster you buy makes the next of that size dearer.';
   }
 
   /* --- the inventory ----------------------------------------------------- */
@@ -409,6 +452,10 @@
 
     if (row.target) {
       card.appendChild(el('p', 'ege-item__text', 'Applied to ' + targetLabel(row.target) + '.'));
+    } else if (row.effects && Object.keys(row.effects).length) {
+      card.appendChild(el('p', 'ege-item__text', Object.keys(row.effects).map(function (attr) {
+        return targetLabel(attr) + ' ' + (row.effects[attr] > 0 ? '+' : '') + row.effects[attr];
+      }).join(', ')));
     }
 
     var actions = el('div', 'fb-row fb-row--wrap');
@@ -455,14 +502,70 @@
     return card;
   }
 
+  /* Everything a player's purchases add up to, attribute by attribute. */
+  function boostSummary(rows) {
+    var totals = {};
+    rows.forEach(function (row) {
+      if (!row.active || EGE.wallet.lapsed(row) || !row.effects) { return; }
+      Object.keys(row.effects).forEach(function (attr) {
+        totals[attr] = (totals[attr] || 0) + row.effects[attr];
+      });
+    });
+    return totals;
+  }
+
+  function buildBoostSummary(totals) {
+    var keys = Object.keys(totals).filter(function (key) { return totals[key] !== 0; });
+    if (!keys.length) { return null; }
+
+    keys.sort(function (a, b) { return totals[b] - totals[a]; });
+
+    var box = el('div', 'ege-applied');
+    box.appendChild(el('span', 'fb-eyebrow', 'Applied to your ratings'));
+
+    var list = el('div', 'fb-row fb-row--wrap');
+    keys.forEach(function (key) {
+      var up = totals[key] > 0;
+      list.appendChild(el('span', 'fb-tag fb-tag--num ' + (up ? 'fb-tag--sage' : 'fb-tag--clay'),
+        targetLabel(key) + ' ' + (up ? '+' : '') + totals[key]));
+    });
+    box.appendChild(list);
+    return box;
+  }
+
   function renderInventory() {
     var holder = document.getElementById('inventoryItems');
+    var applied = document.getElementById('inventoryApplied');
     holder.innerHTML = '';
+    applied.innerHTML = '';
 
     document.getElementById('shopBalance').textContent = shopState.credits;
     document.getElementById('inventoryEmpty').hidden = shopState.inventory.length > 0;
 
+    var summary = buildBoostSummary(boostSummary(shopState.inventory));
+    if (summary) { applied.appendChild(summary); }
+
+    /* Stat boosters are counted, not listed: there will be dozens. */
+    var boosters = {};
     shopState.inventory.forEach(function (row) {
+      if (!row.target) { return; }
+      var key = row.item_key;
+      boosters[key] = (boosters[key] || 0) + 1;
+    });
+
+    Object.keys(boosters).forEach(function (key) {
+      var item = EGE.shopItem(key);
+      var card = el('div', 'ege-item ege-item--active');
+      var head = el('div', 'ege-item__head');
+      head.appendChild(el('h4', 'ege-item__name', item ? item.name : key));
+      head.appendChild(el('span', 'fb-tag fb-tag--num fb-tag--sage', '\u00d7' + boosters[key]));
+      card.appendChild(head);
+      card.appendChild(el('p', 'ege-item__text', 'Already applied to your ratings.'));
+      holder.appendChild(card);
+    });
+
+    shopState.inventory.forEach(function (row) {
+      if (row.target) { return; }
       holder.appendChild(inventoryCard(row, {
         admin: false,
         report: sayShop,
@@ -573,11 +676,14 @@
 
     return Promise.all([
       EGE.wallet.creditsFor(player.email),
-      EGE.wallet.inventoryFor(player.email)
-    ]).then(function (both) {
-      shopState.credits = both[0] === null ? EGE.shop.startingCredits : both[0];
-      shopState.inventory = both[1];
+      EGE.wallet.inventoryFor(player.email),
+      EGE.wallet.loadBoosts()
+    ]).then(function (all) {
+      shopState.credits = all[0] === null ? EGE.shop.startingCredits : all[0];
+      shopState.inventory = all[1];
       renderInventory();
+      refreshBoosterCounter();
+      redrawRatings();
       refreshScoutMarks();
       updateNavCredits(shopState.credits);
       return renderAdmin();
@@ -615,6 +721,17 @@
     sayShop('', false);
     buildCatalogue();
     refreshShop();
+  }
+
+  /* Boosts land after a page may already have been drawn — the roster's
+     overalls and the open player page both need redrawing. */
+  function redrawRatings() {
+    roster.innerHTML = '';
+    renderRoster();
+
+    var hash = window.location.hash.replace(/^#/, '');
+    var player = hash ? EGE.playerBySlug(hash) : null;
+    if (player) { renderPlayer(player); }
   }
 
   /* The inventory arrives after a page may already have been drawn, so redraw
