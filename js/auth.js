@@ -190,6 +190,9 @@ EGE.auth = (function () {
   }
 
   return {
+    /* The shop needs the same client, rather than a second one holding a
+       second copy of the session. */
+    supabaseClient: getClient,
     init: init,
     available: available,
     unavailableReason: unavailableReason,

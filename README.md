@@ -235,9 +235,17 @@ Signed out, the tab isn't there and the page says to sign in. Signed in, the
 nav carries the player's credit balance beside their headshot. Everyone starts
 on 0 and earns from there. The catalogue lives in `data/shop.js`.
 
-**Allowance** is 60 credits every offseason, whatever a player is paid.
-**Earnings** add to it by contract size and by how the season went, 10 up to
-75. Anything unspent carries into the next offseason.
+**Credits** are 60 every offseason, whatever a player is paid, plus what the
+season earns by contract size and honours. That table sits at the bottom of
+the page as a collapsible panel rather than taking up the top of it. Anything
+unspent carries into the next offseason.
+
+**Your Inventory** heads the page: what this player owns, what is in effect,
+and the balance. Buying deducts credits and drops the item in. A performance
+booster is held unused until it is used, and using it deletes it — the
+inventory is what a player still has, not a receipt book. Everything else
+carries an in-effect switch that can be turned off and on. A stat booster
+records which attribute it was bought for.
 
 On sale:
 
@@ -255,9 +263,20 @@ buying one has somewhere to land once spending is built. Block Power is the
 one exception: the ratings carry run block power and pass block power
 separately, and which one it raises is still open.
 
-> Buying is not wired up yet — the shop is the catalogue. Balances live in
-> `data/players.js` at 0 apiece, so spending them needs somewhere to write
-> back to.
+**Sam is the admin.** He sees every account's balance and everything each one
+owns, can set any balance, grant any item without charging for it, and remove
+anything. Admins are rows in the `admins` table, so the list is changed in SQL
+rather than from the browser.
+
+Balances and inventories live in Supabase — `player_credits` and
+`player_inventory` in `supabase/schema.sql` — and the policies there do the
+real enforcing: a player reads and writes only their own rows, an admin reads
+and writes everyone's. The browser code is the shape of the UI, not the
+security boundary.
+
+> Buying reads the balance, checks it and writes it back in sequence rather
+> than in one locked transaction. With six players and one shop the worst case
+> is a double spend from two tabs at once, which the admin can put right.
 
 ---
 
@@ -289,9 +308,8 @@ Each of the six gets an account and a private portal.
   resource, so choices have a cost.
 - **Interactive layer** — beyond workouts, the portal is meant to be something a
   player actually plays with between games. Scope TBD; workouts come first.
-- **Credits** — 60 an offseason plus what a season earns, spent in the shop.
-  Every player starts on 0. The balance shows in the nav but has nowhere to be
-  written back to until the portal holds one.
+- **Credits and inventory** — 60 an offseason plus what a season earns, spent
+  in the shop, with what was bought kept per account. Every player starts on 0.
 
 The read-only side of the site (schedules, records, stats) stays public — no
 login needed to browse.
@@ -306,6 +324,8 @@ Built so far:
 - `js/app.js` — renders the six cards and routes `#{slug}` to a player view.
 - `data/players.js` — the six players and the season ladder. Source of truth.
 - `js/auth.js` — Supabase auth: sign in, the one-time password, session state.
+- `js/wallet.js` — credits and inventory: balances, buying, using, and the
+  admin's reach across every account.
 - `data/ratings.js` — the attribute list, the per-position weights, every
   player's ratings, and the maths that turns them into an overall.
 - `data/schedule.js` — the regular season: every player's fixtures, and
@@ -332,11 +352,11 @@ dependency is supabase-js, loaded from a CDN.
    code and is safe to commit. The **service_role** key is not — it bypasses
    every security rule and must never appear in this repo.
 3. Run `supabase/schema.sql` in the Supabase SQL editor. It creates
-   `player_accounts`, the one-row-per-email table that records whether an
-   account has a password yet, along with the policies that let anyone read it
-   but only the owning player write their own row. Without it the portal still
-   works — it just can't tell which form a player needs, so it shows sign-in
-   with a link across to setting a first password.
+   `player_accounts` (whether an account has a password yet), `player_credits`,
+   `player_inventory` and `admins`, with the policies that keep each player to
+   their own rows and let an admin reach every row. Without it the portal still
+   signs people in — it just can't tell which form a player needs, and the shop
+   has nothing to read or write.
 
 Until those two values are filled in, the site runs normally and the portal
 reports that login isn't configured yet.

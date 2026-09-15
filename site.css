@@ -361,6 +361,55 @@ body {
 }
 .ege-targets__group { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; }
 
+/* --- shop: owned items and admin ---------------------------------------- */
+
+.ege-item--active { border-color: var(--fb-accent); box-shadow: 3px 3px 0 var(--fb-tint-clay); }
+.ege-item__target { width: 100%; }
+.ege-item .fb-btn { margin-top: auto; }
+
+/* A panel that opens and closes. The kit's head doubles as the summary. */
+.ege-details { padding: 0; }
+.ege-details__summary {
+  cursor: pointer;
+  list-style: none;
+  margin: 0;
+}
+.ege-details__summary::-webkit-details-marker { display: none; }
+.ege-details__summary::after {
+  content: '+';
+  font-family: var(--fb-font-display);
+  font-size: 22px;
+  line-height: 1;
+  color: var(--fb-accent-deep);
+}
+.ege-details[open] .ege-details__summary::after { content: '\2013'; }
+.ege-details:not([open]) .ege-details__summary { border-bottom: 0; }
+
+.ege-account {
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--fb-tint-wash);
+}
+.ege-account__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ege-account__name { font-family: var(--fb-font-display); font-size: 20px; }
+.ege-account__credits { width: 96px; }
+.ege-avatar--sm {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-tint-sage);
+}
+
 /* --- schedule table ----------------------------------------------------- */
 
 /* The kit's table rows are built for picking one; these are just a list. */

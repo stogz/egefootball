@@ -13,14 +13,12 @@ window.EGE = window.EGE || {};
 
 EGE.shop = {
 
-  /* What every player gets each offseason, whatever they are paid. This is
-     the "Regular" row of the earnings table below, not an extra 60 on top. */
-  allowance: [
-    { label: 'Every offseason', credits: 60 }
-  ],
-
   /* What a player has to start with, before an offseason has been played. */
   startingCredits: 0,
+
+  /* What every player gets each offseason, whatever they are paid. The same
+     60 as the earnings table's "Regular" row, not an extra 60 on top. */
+  offseasonCredits: 60,
 
   /* Credits earned on top. Unspent credits carry into the next season. */
   earnings: [
@@ -43,9 +41,9 @@ EGE.shop = {
       blurb: 'Regular season games only, one use per purchase. Save one for a ' +
              'hard opponent, or spend it proving a point against a rival.',
       items: [
-        { name: '2.5x Booster', credits: 70, tag: '2.5x' },
-        { name: '2.0x Booster', credits: 45, tag: '2.0x' },
-        { name: '1.5x Booster', credits: 25, tag: '1.5x' }
+        { key: 'boost-2-5', name: '2.5x Booster', credits: 70, tag: '2.5x', consumable: true },
+        { key: 'boost-2-0', name: '2.0x Booster', credits: 45, tag: '2.0x', consumable: true },
+        { key: 'boost-1-5', name: '1.5x Booster', credits: 25, tag: '1.5x', consumable: true }
       ]
     },
 
@@ -54,9 +52,9 @@ EGE.shop = {
       title: 'Stat Boosters',
       blurb: 'Applied to any one of the attributes below.',
       items: [
-        { name: '+1 Booster', credits: 15, tag: '+1' },
-        { name: '+2 Booster', credits: 35, tag: '+2' },
-        { name: '+3 Booster', credits: 60, tag: '+3' }
+        { key: 'stat-1', name: '+1 Booster', credits: 15, tag: '+1', needsTarget: true },
+        { key: 'stat-2', name: '+2 Booster', credits: 35, tag: '+2', needsTarget: true },
+        { key: 'stat-3', name: '+3 Booster', credits: 60, tag: '+3', needsTarget: true }
       ],
       /* Which attributes a stat booster can be spent on. */
       targets: [
@@ -113,18 +111,21 @@ EGE.shop = {
       blurb: 'Where the whole offseason goes. Each one trades something away.',
       items: [
         {
+          key: 'train-strength',
           name: 'Offseason Strength Training',
           credits: 45,
           description: 'Strength, power and weight, built with frequent lifting and a ' +
                        'strict weight-gaining diet. Can cost speed, agility and stamina.'
         },
         {
+          key: 'train-cardio',
           name: 'Offseason Cardio Training',
           credits: 45,
           description: 'Speed, stamina and agility, built with frequent conditioning ' +
                        'aimed at losing weight. Can cost strength, power and weight.'
         },
         {
+          key: 'train-overall',
           name: 'Overall Offseason Training',
           credits: 35,
           description: 'Speed, strength, stamina and agility together, but only a little ' +
@@ -138,6 +139,7 @@ EGE.shop = {
       title: 'Everything Else',
       items: [
         {
+          key: 'qb-connection',
           name: 'QB Connection',
           credits: 30,
           description: 'The whole offseason spent with your quarterback, learning his ' +
@@ -145,6 +147,7 @@ EGE.shop = {
                        'otherwise leaves. Better chemistry can mean more targets.'
         },
         {
+          key: 'hyperbaric',
           name: 'Hyperbaric Chamber',
           credits: 50,
           creditsLadder: [50, 65, 85],
@@ -155,6 +158,7 @@ EGE.shop = {
                        '50, then 65, then 85, and 20 more each time after that.'
         },
         {
+          key: 'intel',
           name: 'Intel',
           credits: 20,
           note: 'High school and college only',
@@ -165,4 +169,34 @@ EGE.shop = {
       ]
     }
   ]
+};
+
+/* Every purchasable thing, flattened, so an inventory row can name what it
+   was bought from. */
+EGE.shopItems = function () {
+  var items = [];
+  EGE.shop.sections.forEach(function (section) {
+    section.items.forEach(function (item) {
+      items.push({ section: section.key, item: item });
+    });
+  });
+  return items;
+};
+
+EGE.shopItem = function (key) {
+  var found = EGE.shopItems().filter(function (entry) { return entry.item.key === key; })[0];
+  return found ? found.item : null;
+};
+
+/* The attributes a stat booster may be spent on, flattened for a picker. */
+EGE.boosterTargets = function () {
+  var section = EGE.shop.sections.filter(function (s) { return s.key === 'stat-boosters'; })[0];
+  if (!section) { return []; }
+  var out = [];
+  section.targets.forEach(function (group) {
+    group.attributes.forEach(function (attr) {
+      out.push({ label: attr.label, key: attr.key, group: group.label });
+    });
+  });
+  return out;
 };

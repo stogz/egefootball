@@ -87,30 +87,57 @@
       </div>
 
       <div id="shopContent">
-      <div class="ege-shop-top">
-        <div class="fb-panel">
-          <div class="fb-panel__head"><h3 style="font-size: 21px;">Offseason Allowance</h3></div>
-          <div class="fb-panel__body">
-            <div class="fb-row fb-row--wrap" id="shopAllowance"></div>
-            <p class="fb-meta" style="margin: 12px 0 0;" id="shopBalanceNote"></p>
+
+      <p class="ege-note" id="shopMessage" role="alert" hidden></p>
+
+      <!-- what this player owns -->
+      <div class="fb-panel" id="inventoryPanel">
+        <div class="fb-panel__head">
+          <h3 style="font-size: 21px;">Your Inventory</h3>
+          <div class="ege-ovr ege-ovr--head">
+            <span class="ege-ovr__label">Credits</span>
+            <span class="ege-ovr__value" id="shopBalance">0</span>
           </div>
         </div>
+        <div class="fb-panel__body">
+          <div class="ege-items" id="inventoryItems"></div>
+          <p class="fb-meta" id="inventoryEmpty" hidden>
+            Nothing bought yet. Everything below is waiting.
+          </p>
+        </div>
+      </div>
 
-        <div class="fb-panel">
-          <div class="fb-panel__head"><h3 style="font-size: 21px;">Earning Credits</h3></div>
-          <div class="fb-tablewrap">
-            <table class="fb-table ege-earnings">
-              <thead><tr><th>Season</th><th class="num">Credits</th></tr></thead>
-              <tbody id="shopEarnings"></tbody>
-            </table>
-          </div>
-          <div class="fb-panel__foot">
-            <span class="fb-meta">Unspent credits come back with you next season.</span>
-          </div>
+      <!-- admin: everyone's credits and everything they own -->
+      <div class="fb-panel ege-section-gap" id="adminPanel" hidden>
+        <div class="fb-panel__head">
+          <h3 style="font-size: 21px;">Admin</h3>
+          <span class="fb-meta">Every account's credits and inventory</span>
+        </div>
+        <div class="fb-panel__body fb-stack fb-stack--lg" id="adminAccounts"></div>
+        <div class="fb-panel__foot">
+          <span class="fb-meta" id="adminMessage">Changes save straight away.</span>
         </div>
       </div>
 
       <div id="shopSections"></div>
+
+      <!-- how credits are earned, out of the way until wanted -->
+      <details class="fb-panel ege-section-gap ege-details" id="earningsDetails">
+        <summary class="fb-panel__head ege-details__summary">
+          <h3 style="font-size: 21px;">Earning Credits</h3>
+          <span class="fb-meta">60 every offseason, plus what the season earns</span>
+        </summary>
+        <div class="fb-tablewrap">
+          <table class="fb-table ege-earnings">
+            <thead><tr><th>Season</th><th class="num">Credits</th></tr></thead>
+            <tbody id="shopEarnings"></tbody>
+          </table>
+        </div>
+        <div class="fb-panel__foot">
+          <span class="fb-meta">Unspent credits come back with you next season.</span>
+        </div>
+      </details>
+
       </div><!-- /shopContent -->
 
     </section>
@@ -280,6 +307,7 @@
 <script src="data/schedule.js"></script>
 <script src="data/shop.js"></script>
 <script src="js/auth.js"></script>
+<script src="js/wallet.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

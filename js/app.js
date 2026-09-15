@@ -261,15 +261,19 @@
 
   /* --- shop ------------------------------------------------------------- */
 
-  /* Everyone starts on nothing; a balance will come from the portal once it
-     has somewhere to keep one. */
-  function creditsFor(player) {
-    return typeof player.credits === 'number' ? player.credits : EGE.shop.startingCredits;
-  }
+  var sayShop = reporter('shopMessage');
+  var shopState = { player: null, credits: 0, inventory: [], built: false };
 
   function creditTag(credits) {
     return el('span', 'fb-tag fb-tag--num fb-tag--gold', credits + ' cr');
   }
+
+  function targetLabel(key) {
+    var found = EGE.boosterTargets().filter(function (t) { return t.key === key || t.label === key; })[0];
+    return found ? found.label : key;
+  }
+
+  /* --- the catalogue ----------------------------------------------------- */
 
   function buildShopItem(item) {
     var card = el('div', 'ege-item');
@@ -281,24 +285,34 @@
 
     if (item.note) { card.appendChild(el('span', 'fb-tag fb-tag--outline', item.note)); }
     if (item.description) { card.appendChild(el('p', 'ege-item__text', item.description)); }
-    return card;
-  }
 
-  /* The attributes a stat booster can be spent on, grouped the way the shop
-     lists them. */
-  function buildTargets(targets) {
-    var wrap = el('div', 'ege-targets');
-    targets.forEach(function (group) {
-      var box = el('div', 'ege-targets__group');
-      box.appendChild(el('span', 'fb-eyebrow', group.label));
-      var list = el('div', 'fb-row fb-row--wrap');
-      group.attributes.forEach(function (attr) {
-        list.appendChild(el('span', 'fb-tag', attr.label));
+    /* A stat booster has to know what it is raising before it can be bought. */
+    var picker = null;
+    if (item.needsTarget) {
+      picker = el('select', 'fb-select ege-item__target');
+      EGE.boosterTargets().forEach(function (target) {
+        var opt = el('option', null, target.group + ' \u00b7 ' + target.label);
+        opt.value = target.label;
+        picker.appendChild(opt);
       });
-      box.appendChild(list);
-      wrap.appendChild(box);
+      card.appendChild(picker);
+    }
+
+    var buy = el('button', 'fb-btn fb-btn--primary fb-btn--block', 'Buy');
+    buy.type = 'button';
+    buy.addEventListener('click', function () {
+      buy.disabled = true;
+      sayShop('Buying\u2026', false);
+      EGE.wallet.buy(shopState.player.email, item, picker ? picker.value : null)
+        .then(function (res) {
+          buy.disabled = false;
+          sayShop(res.message, !res.ok);
+          if (res.ok) { refreshShop(); }
+        });
     });
-    return wrap;
+    card.appendChild(buy);
+
+    return card;
   }
 
   function buildShopSection(section) {
@@ -321,25 +335,213 @@
     return panel;
   }
 
-  function renderShop() {
-    var player = EGE.auth.currentPlayer();
-
-    document.getElementById('shopLocked').hidden = Boolean(player);
-    document.getElementById('shopContent').hidden = !player;
-    if (!player) { return; }
-
-    document.getElementById('shopBalanceNote').textContent =
-      player.first + ' has ' + creditsFor(player) + ' credits to spend.';
-
-    var allowance = document.getElementById('shopAllowance');
-    if (allowance.childNodes.length) { return; }      /* the catalogue is built once */
-
-    EGE.shop.allowance.forEach(function (band) {
-      var tile = el('div', 'fb-tile');
-      tile.appendChild(el('span', 'fb-tile__label', band.label));
-      tile.appendChild(el('span', 'fb-tile__value', band.credits));
-      allowance.appendChild(tile);
+  /* The attributes a stat booster can be spent on, grouped the way the shop
+     lists them. */
+  function buildTargets(targets) {
+    var wrap = el('div', 'ege-targets');
+    targets.forEach(function (group) {
+      var box = el('div', 'ege-targets__group');
+      box.appendChild(el('span', 'fb-eyebrow', group.label));
+      var list = el('div', 'fb-row fb-row--wrap');
+      group.attributes.forEach(function (attr) {
+        list.appendChild(el('span', 'fb-tag', attr.label));
+      });
+      box.appendChild(list);
+      wrap.appendChild(box);
     });
+    return wrap;
+  }
+
+  /* --- the inventory ----------------------------------------------------- */
+
+  function inventoryCard(row, options) {
+    var card = el('div', 'ege-item' + (row.active ? ' ege-item--active' : ''));
+
+    var head = el('div', 'ege-item__head');
+    head.appendChild(el('h4', 'ege-item__name', row.item_name));
+    head.appendChild(el('span', 'fb-tag fb-tag--num ' + (row.active ? 'fb-tag--sage' : 'fb-tag--outline'),
+      row.active ? 'In effect' : (row.consumable ? 'Unused' : 'Off')));
+    card.appendChild(head);
+
+    if (row.target) {
+      card.appendChild(el('p', 'ege-item__text', 'Applied to ' + targetLabel(row.target) + '.'));
+    }
+
+    var actions = el('div', 'fb-row fb-row--wrap');
+
+    if (row.consumable) {
+      var use = el('button', 'fb-btn fb-btn--primary', 'Use');
+      use.type = 'button';
+      use.title = 'Using it spends it';
+      use.addEventListener('click', function () {
+        use.disabled = true;
+        EGE.wallet.useItem(row).then(function (res) {
+          options.report(res.message, !res.ok);
+          options.refresh();
+        });
+      });
+      actions.appendChild(use);
+    } else {
+      var toggle = el('button', 'fb-btn', row.active ? 'Turn off' : 'Turn on');
+      toggle.type = 'button';
+      toggle.addEventListener('click', function () {
+        toggle.disabled = true;
+        EGE.wallet.setActive(row, !row.active).then(function (res) {
+          options.report(res.message, !res.ok);
+          options.refresh();
+        });
+      });
+      actions.appendChild(toggle);
+    }
+
+    if (options.admin) {
+      var remove = el('button', 'fb-btn fb-btn--ghost', 'Remove');
+      remove.type = 'button';
+      remove.addEventListener('click', function () {
+        remove.disabled = true;
+        EGE.wallet.removeItem(row).then(function (res) {
+          options.report(res.message, !res.ok);
+          options.refresh();
+        });
+      });
+      actions.appendChild(remove);
+    }
+
+    card.appendChild(actions);
+    return card;
+  }
+
+  function renderInventory() {
+    var holder = document.getElementById('inventoryItems');
+    holder.innerHTML = '';
+
+    document.getElementById('shopBalance').textContent = shopState.credits;
+    document.getElementById('inventoryEmpty').hidden = shopState.inventory.length > 0;
+
+    shopState.inventory.forEach(function (row) {
+      holder.appendChild(inventoryCard(row, {
+        admin: false,
+        report: sayShop,
+        refresh: refreshShop
+      }));
+    });
+  }
+
+  /* --- admin ------------------------------------------------------------- */
+
+  var sayAdmin = reporter('adminMessage');
+
+  function adminAccount(player, credits, rows) {
+    var box = el('div', 'ege-account');
+
+    var head = el('div', 'ege-account__head');
+    var who = el('div', 'ege-who');
+    var photo = el('img', 'ege-avatar ege-avatar--sm');
+    photo.src = player.headshot;
+    photo.alt = '';
+    who.appendChild(photo);
+    who.appendChild(el('span', 'ege-account__name', player.name));
+    head.appendChild(who);
+
+    var editor = el('div', 'fb-row');
+    var input = el('input', 'fb-input ege-account__credits');
+    input.type = 'number';
+    input.min = '0';
+    input.value = credits;
+    input.setAttribute('aria-label', 'Credits for ' + player.name);
+    editor.appendChild(input);
+
+    var save = el('button', 'fb-btn fb-btn--primary', 'Save');
+    save.type = 'button';
+    save.addEventListener('click', function () {
+      save.disabled = true;
+      EGE.wallet.setCredits(player.email, input.value).then(function (res) {
+        save.disabled = false;
+        sayAdmin(res.ok ? player.first + ' now has ' + res.credits + ' credits.' : res.message, !res.ok);
+        refreshShop();
+      });
+    });
+    editor.appendChild(save);
+    head.appendChild(editor);
+    box.appendChild(head);
+
+    /* Hand something over without charging for it. */
+    var granter = el('div', 'fb-row fb-row--wrap');
+    var pick = el('select', 'fb-select');
+    EGE.shopItems().forEach(function (entry) {
+      var opt = el('option', null, entry.item.name);
+      opt.value = entry.item.key;
+      pick.appendChild(opt);
+    });
+    granter.appendChild(pick);
+
+    var give = el('button', 'fb-btn', 'Grant');
+    give.type = 'button';
+    give.addEventListener('click', function () {
+      give.disabled = true;
+      EGE.wallet.grant(player.email, EGE.shopItem(pick.value)).then(function (res) {
+        give.disabled = false;
+        sayAdmin(res.message, !res.ok);
+        refreshShop();
+      });
+    });
+    granter.appendChild(give);
+    box.appendChild(granter);
+
+    if (!rows.length) {
+      box.appendChild(el('p', 'fb-meta', 'Nothing bought.'));
+    } else {
+      var grid = el('div', 'ege-items');
+      rows.forEach(function (row) {
+        grid.appendChild(inventoryCard(row, { admin: true, report: sayAdmin, refresh: refreshShop }));
+      });
+      box.appendChild(grid);
+    }
+
+    return box;
+  }
+
+  function renderAdmin() {
+    var panel = document.getElementById('adminPanel');
+    panel.hidden = !EGE.wallet.admin();
+    if (panel.hidden) { return Promise.resolve(); }
+
+    return Promise.all([EGE.wallet.allCredits(), EGE.wallet.allInventory()])
+      .then(function (both) {
+        var credits = both[0];
+        var inventory = both[1];
+        var holder = document.getElementById('adminAccounts');
+        holder.innerHTML = '';
+
+        EGE.playersWithAccounts().forEach(function (player) {
+          var row = credits.filter(function (c) { return c.email === player.email; })[0];
+          var owned = inventory.filter(function (i) { return i.email === player.email; });
+          holder.appendChild(adminAccount(player, row ? row.credits : EGE.shop.startingCredits, owned));
+        });
+      });
+  }
+
+  /* --- loading ----------------------------------------------------------- */
+
+  function refreshShop() {
+    var player = shopState.player;
+    if (!player) { return Promise.resolve(); }
+
+    return Promise.all([
+      EGE.wallet.creditsFor(player.email),
+      EGE.wallet.inventoryFor(player.email)
+    ]).then(function (both) {
+      shopState.credits = both[0] === null ? EGE.shop.startingCredits : both[0];
+      shopState.inventory = both[1];
+      renderInventory();
+      updateNavCredits(shopState.credits);
+      return renderAdmin();
+    });
+  }
+
+  function buildCatalogue() {
+    if (shopState.built) { return; }
+    shopState.built = true;
 
     var earnings = document.getElementById('shopEarnings');
     EGE.shop.earnings.forEach(function (row) {
@@ -355,6 +557,19 @@
     EGE.shop.sections.forEach(function (section) {
       sections.appendChild(buildShopSection(section));
     });
+  }
+
+  function renderShop() {
+    var player = EGE.auth.currentPlayer();
+    shopState.player = player;
+
+    document.getElementById('shopLocked').hidden = Boolean(player);
+    document.getElementById('shopContent').hidden = !player;
+    if (!player) { return; }
+
+    sayShop('', false);
+    buildCatalogue();
+    refreshShop();
   }
 
   /* --- routing ---------------------------------------------------------- */
@@ -574,14 +789,22 @@
 
     document.getElementById('navShop').hidden = false;
 
-    var credits = document.getElementById('navCredits');
-    credits.hidden = false;
-    credits.title = creditsFor(player) + ' credits to spend in the shop';
-    document.getElementById('navCreditsValue').textContent = creditsFor(player);
+    document.getElementById('navCredits').hidden = false;
+    updateNavCredits(null);
+    EGE.wallet.creditsFor(player.email).then(updateNavCredits);
+  }
+
+  /* The nav shows what is really in the account, once Supabase answers. */
+  function updateNavCredits(credits) {
+    var box = document.getElementById('navCredits');
+    var shown = credits === null || credits === undefined ? EGE.shop.startingCredits : credits;
+    document.getElementById('navCreditsValue').textContent = shown;
+    box.title = shown + ' credits to spend in the shop';
   }
 
   EGE.auth.onChange(function (player) {
     if (player) {
+      EGE.wallet.refreshAdmin(player.email).then(function () { route(); });
       showSignedInNav(player);
       document.getElementById('signedInName').textContent = player.name;
       var photo = document.getElementById('signedInPhoto');
