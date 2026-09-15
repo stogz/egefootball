@@ -54,7 +54,7 @@ EGE.teams = {
   wakeForest: {
     school: 'Wake Forest High School',
     league: 'Northern 4A',
-    logo: null                // no mark in icon/ yet
+    logo: 'icon/wake.png'
   }
 };
 

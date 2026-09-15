@@ -29,8 +29,8 @@ and data until it is confirmed — no placeholder guesses that later read as fac
 Headshots live in `headshot/`, keyed by last name: `parr.png`, `clark.png`,
 `hatch.png`, `vitel.png`, `stogsdill.png`, `stewart.png`. School marks live in
 `icon/`, keyed by school: `carlsbad.png`, `bloomington.png`, `normal.png`,
-`naples.png`. Wake Forest has no mark yet; a team without one renders its
-school line without it.
+`naples.png`, `wake.png`. A team without a mark renders its school line
+without it.
 
 ---
 
@@ -150,6 +150,61 @@ change.
 
 ---
 
+## Discord scores bot
+
+`bot/post-week.js` posts one week of the regular season to a Discord webhook,
+four times a day, walking the season out slowly:
+
+```
+## Week 3
+{one embed per player who actually played}
+```
+
+Each embed carries the player as its author — name, headshot, and a link to
+their page on the site — the result and final score as the title, their stat
+line for that game in fields, their school's mark as the thumbnail, and the
+school, league and running record in the footer. Win and loss colour the
+embed's spine green or clay.
+
+A player on a bye, one who didn't play, or one with no schedule at all is
+left out of the post rather than shown empty.
+
+**It reads the site's own data.** `bot/site-data.js` runs `data/players.js`,
+`data/ratings.js` and `data/schedule.js` in a sandbox, so the bot and the
+website are never two copies of the roster — change a school or a score in
+`data/` and both follow.
+
+### Running it
+
+```
+node bot/post-week.js --dry-run            # build the next post, print it
+node bot/post-week.js --week 4 --dry-run   # build one specific week
+node bot/post-week.js --force              # post now, ignoring the clock
+```
+
+`DISCORD_WEBHOOK_URL` is required to actually post; `SITE_URL` defaults to
+the Vercel domain and decides where the images and player links point.
+
+### The schedule it posts on
+
+`.github/workflows/discord-scores.yml` runs it four times a day at **07:00,
+12:00, 16:00 and 20:00 America/Chicago**. GitHub's cron is UTC and ignores
+daylight saving, so the workflow fires at the UTC equivalents of both CST and
+CDT, and the script checks the real Chicago hour and exits quietly on the
+runs belonging to the other offset. The posting times hold all year without
+being edited twice a season.
+
+Progress lives in `bot/state.json`, which the workflow commits after each
+post, so a run that fails posts the same week again next time rather than
+skipping it. Weeks where nobody played are stepped over.
+
+**Setup:** add a channel webhook URL as the repository secret
+`DISCORD_WEBHOOK_URL` (Server Settings → Integrations → Webhooks in Discord,
+then Settings → Secrets and variables → Actions on GitHub). Until that exists
+the workflow will run and fail loudly rather than post anywhere.
+
+---
+
 ## Player Portal (login)
 
 Each of the six gets an account and a private portal.
@@ -194,6 +249,9 @@ Built so far:
 - `js/auth.js` — Supabase auth: sign in, the one-time password, session state.
 - `data/ratings.js` — the attribute list, the per-position weights, every
   player's ratings, and the maths that turns them into an overall.
+- `data/schedule.js` — the regular season: every player's games, results and
+  stat lines, with byes marked so they can be skipped.
+- `bot/` — the Discord scores bot (see below).
 - `supabase/schema.sql` — the `player_accounts` table and its policies. Run it
   once in the Supabase SQL editor.
 - `js/supabase-config.js` — your Supabase URL and anon key. Blank by default.
@@ -273,9 +331,12 @@ One thing at a time, in this order:
    log sections are not.*
 5. **Schedule data + display** — 2018 junior-year high school schedules per
    school, rendered with results and running record. Later seasons follow the
-   same shape once 2018 is working.
+   same shape once 2018 is working. *The data is in `data/schedule.js` and the
+   record shows on the player page; the schedule itself is not rendered yet.*
 6. **Stat lines** — TE game log for Paxon Hatch first, other position sets as
-   positions are confirmed.
+   positions are confirmed. *Per-game stats exist in `data/schedule.js` and
+   the Discord bot posts them; the game log on the player page does not
+   render them yet.*
 7. **Login + portal** — Supabase auth, accounts, attributes, overalls.
    *Login is in: allowlisted emails, a password set once, and the signed-in
    player's headshot in the nav. The portal behind it — attributes and
@@ -290,7 +351,9 @@ One thing at a time, in this order:
 - Does any of the six play the optional 2023 senior college season instead of
   declaring for the 2023 draft?
 - College programs for all six — the ladder needs them from the 2020 season on.
-- A school for Vitel, and a mark for Wake Forest.
+- A school for Vitel — with no school he has no schedule, so the bot never
+  posts him.
+- Real opponents, scores and stat lines, in place of the generated schedule.
 - Real rating numbers, in place of the generated placeholders.
 - Sign-in emails for Parr, Vitel, and Stewart.
 - Whether workout and overall changes persist per browser (`localStorage`) or in

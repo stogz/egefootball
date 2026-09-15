@@ -120,6 +120,10 @@
     document.getElementById('playerSchoolRow').textContent = team ? team.school : TBD;
     document.getElementById('playerLeague').textContent = (team && team.league) || TBD;
 
+    var record = EGE.recordFor(player);
+    var played = EGE.gamesPlayed(player).length;
+    document.getElementById('playerRecord').textContent = played ? record.text : '\u2014';
+
     var tags = document.getElementById('playerTags');
     tags.innerHTML = '';
     if (player.position) {
