@@ -350,8 +350,8 @@
     var body = el('div', 'fb-panel__body fb-stack fb-stack--lg');
     if (section.blurb) { body.appendChild(el('p', 'ege-item__text', section.blurb)); }
 
-    if (section.compact) {
-      body.appendChild(buildBoosterCounter(section));
+    if (section.upgrades) {
+      body.appendChild(buildUpgrades());
     } else {
       var grid = el('div', 'ege-items');
       section.items.forEach(function (item) { grid.appendChild(buildShopItem(item)); });
@@ -362,71 +362,89 @@
     return panel;
   }
 
-  /* Stat boosters are bought over and over, so they get one row rather than a
-     card each: pick the attribute, then the size. Prices climb per player, so
-     the buttons are relabelled every time the inventory changes. */
-  var boosterUi = null;
+  /* Rating points get a table: every attribute this position is judged on,
+     what it is at, and what the next point costs. Buying redraws it, because
+     the next point always costs a little more. */
+  var upgradesBody = null;
 
-  function buildBoosterCounter(section) {
-    var wrap = el('div', 'ege-booster');
+  function upgradeRow(row) {
+    var tr = el('tr');
 
-    var field = el('label', 'ege-field');
-    field.appendChild(el('span', 'fb-eyebrow', 'Attribute'));
-    var picker = el('select', 'fb-select');
-    field.appendChild(picker);
-    wrap.appendChild(field);
+    tr.appendChild(el('td', 'ege-upgrade__group', row.group));
+    tr.appendChild(el('td', null, row.label));
 
-    var buttons = el('div', 'ege-booster__buttons');
-    var tiers = section.items.map(function (item) {
-      var button = el('button', 'fb-btn fb-btn--primary');
-      button.type = 'button';
-      button.addEventListener('click', function () {
-        button.disabled = true;
+    var value = el('td', 'num');
+    value.appendChild(el('strong', null, row.value));
+    if (row.base !== row.value) {
+      var moved = row.value - row.base;
+      value.appendChild(el('span', 'ege-upgrade__moved', ' ' + (moved > 0 ? '+' : '') + moved));
+    }
+    tr.appendChild(value);
+
+    var meter = el('td');
+    var bar = el('div', 'fb-meter');
+    var fill = el('div', 'fb-meter__fill' + (row.value >= 80 ? '' : ' fb-meter__fill--alt'));
+    fill.style.width = Math.max(0, Math.min(100, row.value)) + '%';
+    bar.appendChild(fill);
+    meter.appendChild(bar);
+    tr.appendChild(meter);
+
+    var per = el('td', 'num');
+    per.appendChild(el('span', 'ege-upgrade__per', row.pointsPerOverall || '\u2014'));
+    tr.appendChild(per);
+
+    var action = el('td', 'num');
+    if (row.cost === null) {
+      action.appendChild(el('span', 'fb-tag fb-tag--outline', 'Maxed'));
+    } else {
+      var buy = el('button', 'fb-btn fb-btn--primary ege-upgrade__buy');
+      buy.type = 'button';
+      buy.textContent = '+1  \u00b7  ' + row.cost + ' cr';
+      buy.disabled = shopState.credits < row.cost;
+      buy.title = row.label + ' ' + row.value + ' \u2192 ' + (row.value + 1);
+      buy.addEventListener('click', function () {
+        buy.disabled = true;
         sayShop('Buying\u2026', false);
-        EGE.wallet.buy(shopState.player.email, item, picker.value, shopState.player)
+        EGE.wallet.buyUpgrade(shopState.player.email, shopState.player, row.key)
           .then(function (res) {
             sayShop(res.message, !res.ok);
             refreshShop();
           });
       });
-      buttons.appendChild(button);
-      return { item: item, button: button };
-    });
-    wrap.appendChild(buttons);
+      action.appendChild(buy);
+    }
+    tr.appendChild(action);
 
-    var note = el('p', 'ege-item__text');
-    wrap.appendChild(note);
+    return tr;
+  }
 
-    boosterUi = { picker: picker, tiers: tiers, note: note };
-    refreshBoosterCounter();
+  function buildUpgrades() {
+    var wrap = el('div', 'fb-tablewrap');
+    var table = el('table', 'fb-table ege-upgrades');
+
+    var head = el('thead');
+    var headRow = el('tr');
+    ['Group', 'Attribute', 'Rating', '', 'Points per +1 OVR', 'Next point']
+      .forEach(function (label, i) {
+        headRow.appendChild(el('th', i >= 2 ? 'num' : null, label));
+      });
+    head.appendChild(headRow);
+    table.appendChild(head);
+
+    upgradesBody = el('tbody');
+    table.appendChild(upgradesBody);
+    wrap.appendChild(table);
+
+    refreshUpgrades();
     return wrap;
   }
 
-  /* Repopulate the attribute list and reprice the buttons for whoever is
-     signed in now. */
-  function refreshBoosterCounter() {
-    if (!boosterUi || !shopState.player) { return; }
-
-    var chosen = boosterUi.picker.value;
-    boosterUi.picker.innerHTML = '';
-    EGE.boostableFor(shopState.player).forEach(function (attr) {
-      var opt = el('option', null, attr.group + ' \u00b7 ' + attr.label);
-      opt.value = attr.key;
-      boosterUi.picker.appendChild(opt);
+  function refreshUpgrades() {
+    if (!upgradesBody || !shopState.player) { return; }
+    upgradesBody.innerHTML = '';
+    EGE.economy.upgradePlan(shopState.player).forEach(function (row) {
+      upgradesBody.appendChild(upgradeRow(row));
     });
-    if (chosen) { boosterUi.picker.value = chosen; }
-
-    boosterUi.tiers.forEach(function (tier) {
-      var owned = EGE.wallet.ownedCount(shopState.inventory, tier.item.key);
-      var price = EGE.priceFor(tier.item, owned);
-      tier.button.textContent = tier.item.tag + '  \u00b7  ' + price + ' cr';
-      tier.button.disabled = shopState.credits < price;
-      tier.button.title = owned + ' bought so far';
-    });
-
-    boosterUi.note.textContent =
-      'Only the attributes ' + shopState.player.first + '\u2019s position is judged on. ' +
-      'Each booster you buy makes the next of that size dearer.';
   }
 
   /* --- the inventory ----------------------------------------------------- */
@@ -545,27 +563,22 @@
     var summary = buildBoostSummary(boostSummary(shopState.inventory));
     if (summary) { applied.appendChild(summary); }
 
-    /* Stat boosters are counted, not listed: there will be dozens. */
-    var boosters = {};
-    shopState.inventory.forEach(function (row) {
-      if (!row.target) { return; }
-      var key = row.item_key;
-      boosters[key] = (boosters[key] || 0) + 1;
-    });
-
-    Object.keys(boosters).forEach(function (key) {
-      var item = EGE.shopItem(key);
+    /* Points are summed above, not listed: there will be hundreds. */
+    var points = shopState.inventory.filter(function (row) { return row.item_key === 'upgrade'; });
+    if (points.length) {
+      var spent = points.reduce(function (sum, row) { return sum + (row.credits || 0); }, 0);
       var card = el('div', 'ege-item ege-item--active');
       var head = el('div', 'ege-item__head');
-      head.appendChild(el('h4', 'ege-item__name', item ? item.name : key));
-      head.appendChild(el('span', 'fb-tag fb-tag--num fb-tag--sage', '\u00d7' + boosters[key]));
+      head.appendChild(el('h4', 'ege-item__name', 'Rating Points'));
+      head.appendChild(el('span', 'fb-tag fb-tag--num fb-tag--sage', '\u00d7' + points.length));
       card.appendChild(head);
-      card.appendChild(el('p', 'ege-item__text', 'Already applied to your ratings.'));
+      card.appendChild(el('p', 'ege-item__text',
+        spent + ' credits spent on points so far, all of it in your ratings.'));
       holder.appendChild(card);
-    });
+    }
 
     shopState.inventory.forEach(function (row) {
-      if (row.target) { return; }
+      if (row.item_key === 'upgrade') { return; }
       holder.appendChild(inventoryCard(row, {
         admin: false,
         report: sayShop,
@@ -682,7 +695,7 @@
       shopState.credits = all[0] === null ? EGE.shop.startingCredits : all[0];
       shopState.inventory = all[1];
       renderInventory();
-      refreshBoosterCounter();
+      refreshUpgrades();
       redrawRatings();
       refreshScoutMarks();
       updateNavCredits(shopState.credits);

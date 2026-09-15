@@ -254,16 +254,16 @@ records which attribute it was bought for.
 
 On sale:
 
-- **Performance boosters** — 2.5x (70), 2.0x (45), 1.5x (25). Regular season
+- **Performance boosters** — 2.5x (40), 2.0x (25), 1.5x (15). Regular season
   only, one use per purchase.
-- **Stat boosters** — +1, +2 and +4, and the only thing in the shop that gets
-  dearer the more you buy. They raise the attribute you pick and that shows up
-  in the overall straight away.
-- **Offseason training** — strength or cardio at 45, each with a downside
-  rolled when you buy it, or overall at 35 for a smaller gain with nothing to
-  lose.
-- **QB Connection** (30), **Hyperbaric Chamber** (50, then 65, then 85, then
-  20 more each time), **Intel** (20).
+- **Rating points** — bought straight into an attribute, priced by how close
+  that attribute already is to 99. Cheap early, dear late.
+- **Offseason training** — strength (20) or cardio (25), each with a downside
+  rolled when you buy it, or overall (20) for a smaller gain with nothing to
+  lose. A flat price for a fixed set of points: poor value early, very good
+  value once single points have got expensive.
+- **QB Connection** (20), **Hyperbaric Chamber** (35, then 45, then 60, then
+  15 more each time), **Intel** (15).
 
 **Some things can't be bought yet.** An item can name the levels it belongs
 to, and the shop greys it out everywhere else with the reason on the card —
@@ -284,23 +284,45 @@ buying one has somewhere to land once spending is built. Block Power is the
 one exception: the ratings carry run block power and pass block power
 separately, and which one it raises is still open.
 
-### Stat boosters
+### Rating points
 
-They are bought over and over, so they get one row rather than a card each:
-pick an attribute, then a size. **Only the attributes that player's position is
-judged on** can be bought — the same list their ratings page shows, so nobody
-buys route running for a quarterback.
+The shop's main business. A player buys points straight into the attributes
+their position is judged on, and **a point costs more the closer that
+attribute is to 99**:
 
-Prices climb per player, per size:
+```
+cost = 40 / (99 - rating + 1)
+```
 
-| Booster | Price | After that |
+| Rating | 50 | 60 | 70 | 80 | 85 | 90 | 93 | 95 | 97 | 98 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Next point | 1 | 1 | 2 | 2 | 3 | 4 | 6 | 8 | 14 | 20 |
+
+A credit or two while a player is young and unformed, twenty-odd once they
+are nearly maxed. That is what slows development down by the time they reach
+the NFL, without ever capping it.
+
+The table shows every attribute the position uses, what it is at, how many
+points of it are worth one overall, and what the next one costs — **ordered
+by what a credit actually buys**, so the top of the table is the right answer
+and nobody has to work out the weighting themselves.
+
+**Tuning.** `UPGRADE_BASE` in `data/economy.js` is set so an offseason moves a
+player about four overall. Spending a 90-credit offseason from the top of the
+table:
+
+| Player | Position | Gain |
 | --- | --- | --- |
-| +1 | 10 | +5 each time (10, 15, 20, 25…) |
-| +2 | 15 | +10 each time (15, 25, 35, 45…) |
-| +4 | 20 | logarithmic — steep, then flattening (20, 34, 42, 48, 52…) |
+| Andrew Parr | TE | +3 |
+| Cooper Clark | RB | +4 |
+| Paxon Hatch | TE | +4 |
+| Isaac Vitel | QB | +5 |
+| Sam Stogsdill | RB | +5 |
+| Jaykeb Stewart | QB | +4 |
+| | | **+4.17 average** |
 
-The inventory counts them rather than listing them, and sums what everything
-adds up to: *Strength +5, Break Tackle +3, Agility −1*.
+Season after season it flattens on its own, which is the point — Sam at 90
+credits a year goes 50 → 55 → 58 → 60 → 63 → 66 → 68 → 70 → 72.
 
 ### Training
 
@@ -398,8 +420,10 @@ Built so far:
 - `supabase/schema.sql` — the `player_accounts` table and its policies. Run it
   once in the Supabase SQL editor.
 - `js/supabase-config.js` — your Supabase URL and anon key. Blank by default.
-- `data/shop.js` — the shop catalogue: allowance bands, credit earnings, and
-  everything on sale.
+- `data/shop.js` — the shop catalogue: credit earnings and everything on sale.
+- `data/economy.js` — every number about credits in one place: what a rating
+  point costs, how much overall a point is worth, and the tuning behind both.
+  Nothing else in the site invents a price.
 - `site.css` — the theme (palette overriding the kit's tokens) plus the page
   components the kit doesn't cover (player card, roster grid, shop, login).
 

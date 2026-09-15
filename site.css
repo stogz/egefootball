@@ -417,17 +417,26 @@ body {
   background: var(--fb-tint-sage);
 }
 
-/* One row for the boosters, since dozens get bought. */
-.ege-booster {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 14px;
+/* The rating points table: one row per attribute this position is judged on. */
+.ege-upgrades tbody tr { cursor: default; }
+.ege-upgrades td { vertical-align: middle; }
+.ege-upgrades .fb-meter { width: 120px; }
+.ege-upgrade__group {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-muted-2);
+  white-space: nowrap;
 }
-.ege-booster .ege-field { flex: 1 1 260px; }
-.ege-booster__buttons { display: flex; flex-wrap: wrap; gap: 8px; }
-.ege-booster__buttons .fb-btn { font-variant-numeric: tabular-nums; }
-.ege-booster .ege-item__text { flex: 1 1 100%; margin: 0; }
+.ege-upgrade__moved { font-weight: 800; color: var(--fb-accent-deep); }
+.ege-upgrade__per { font-weight: 800; color: var(--fb-muted); font-variant-numeric: tabular-nums; }
+.ege-upgrade__buy {
+  padding: 7px 12px;
+  font-size: 11px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
 
 .ege-applied {
   display: flex;

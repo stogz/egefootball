@@ -152,9 +152,16 @@ EGE.wallet = (function () {
 
         (res.data || []).forEach(function (row) {
           if (!row.active || lapsed(row) || !row.effects) { return; }
-          var forEmail = boosts[row.email] || (boosts[row.email] = {});
+
+          /* Rows are owned by an email; ratings are keyed by player. */
+          var player = EGE.players.filter(function (p) {
+            return p.email && row.email && p.email.toLowerCase() === row.email.toLowerCase();
+          })[0];
+          if (!player) { return; }
+
+          var forPlayer = boosts[player.slug] || (boosts[player.slug] = {});
           Object.keys(row.effects).forEach(function (attr) {
-            forEmail[attr] = (forEmail[attr] || 0) + row.effects[attr];
+            forPlayer[attr] = (forPlayer[attr] || 0) + row.effects[attr];
           });
         });
 
@@ -179,12 +186,10 @@ EGE.wallet = (function () {
     var allowed = EGE.itemAvailable(item, EGE.currentSeason);
     if (!allowed.ok) { return fail(allowed.reason); }
 
-    return Promise.all([creditsFor(email), inventoryFor(email)]).then(function (both) {
-      var balance = both[0];
-      var owned = both[1];
+    return creditsFor(email).then(function (balance) {
       if (balance === null) { return { ok: false, message: offline() }; }
 
-      var price = EGE.priceFor(item, ownedCount(owned, item.key));
+      var price = EGE.priceFor(item);
       if (balance < price) {
         return { ok: false, message: 'Not enough credits — that costs ' + price + ', you have ' + balance + '.' };
       }
@@ -209,6 +214,59 @@ EGE.wallet = (function () {
             ok: true,
             effects: effects,
             message: 'Bought ' + EGE.itemName(item, player) + ' for ' + price + ' credits.',
+            credits: spent.credits
+          };
+        });
+      });
+    });
+  }
+
+  /* Buys one point on one attribute. The price comes from what the attribute
+     is at right now, so it is worked out here rather than trusted from the
+     page that asked. */
+  function buyUpgrade(email, player, attributeKey) {
+    var c = client();
+    if (!c) { return fail(offline()); }
+
+    var attribute = EGE.economy.upgradePlan(player).filter(function (row) {
+      return row.key === attributeKey;
+    })[0];
+
+    if (!attribute) { return fail('That attribute is not one this position is judged on.'); }
+    if (attribute.cost === null) {
+      return fail(attribute.label + ' is already at ' + EGE.economy.MAX_RATING + '.');
+    }
+
+    return creditsFor(email).then(function (balance) {
+      if (balance === null) { return { ok: false, message: offline() }; }
+      if (balance < attribute.cost) {
+        return {
+          ok: false,
+          message: 'Not enough credits — that point costs ' + attribute.cost + ', you have ' + balance + '.'
+        };
+      }
+
+      var effects = {};
+      effects[attributeKey] = 1;
+
+      return c.from(INVENTORY).insert({
+        email: email,
+        item_key: 'upgrade',
+        item_name: attribute.label,
+        target: attributeKey,
+        credits: attribute.cost,
+        effects: effects,
+        consumable: false,
+        season: null,
+        active: true
+      }).then(function (res) {
+        if (res.error) { return { ok: false, message: res.error.message }; }
+        return setCredits(email, balance - attribute.cost).then(function (spent) {
+          if (!spent.ok) { return spent; }
+          return {
+            ok: true,
+            message: attribute.label + ' ' + attribute.value + ' \u2192 ' + (attribute.value + 1) +
+                     ' for ' + attribute.cost + ' credits.',
             credits: spent.credits
           };
         });
@@ -300,6 +358,7 @@ EGE.wallet = (function () {
     allInventory: allInventory,
     allCredits: allCredits,
     buy: buy,
+    buyUpgrade: buyUpgrade,
     useItem: useItem,
     setActive: setActive,
     removeItem: removeItem,

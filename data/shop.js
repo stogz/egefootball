@@ -41,38 +41,33 @@ EGE.shop = {
       blurb: 'Regular season games only, one use per purchase. Save one for a ' +
              'hard opponent, or spend it proving a point against a rival.',
       items: [
-        { key: 'boost-2-5', name: '2.5x Booster', credits: 70, tag: '2.5x', consumable: true },
-        { key: 'boost-2-0', name: '2.0x Booster', credits: 45, tag: '2.0x', consumable: true },
-        { key: 'boost-1-5', name: '1.5x Booster', credits: 25, tag: '1.5x', consumable: true }
+        { key: 'boost-2-5', name: '2.5x Booster', credits: 40, tag: '2.5x', consumable: true },
+        { key: 'boost-2-0', name: '2.0x Booster', credits: 25, tag: '2.0x', consumable: true },
+        { key: 'boost-1-5', name: '1.5x Booster', credits: 15, tag: '1.5x', consumable: true }
       ]
     },
 
     {
-      key: 'stat-boosters',
-      title: 'Stat Boosters',
-      blurb: 'Raise one attribute. Only the attributes your position is judged ' +
-             'on can be bought, and every one you buy makes the next of that ' +
-             'size dearer.',
-      compact: true,
-      items: [
-        { key: 'stat-1', name: '+1 Booster', credits: 10, tag: '+1',
-          boost: 1, needsTarget: true, priceCurve: 'step', priceStep: 5 },
-        { key: 'stat-2', name: '+2 Booster', credits: 15, tag: '+2',
-          boost: 2, needsTarget: true, priceCurve: 'step', priceStep: 10 },
-        { key: 'stat-4', name: '+4 Booster', credits: 20, tag: '+4',
-          boost: 4, needsTarget: true, priceCurve: 'log' }
-      ]
+      key: 'upgrades',
+      title: 'Rating Points',
+      blurb: 'Buy points straight into the attributes your position is judged ' +
+             'on. A point costs more the closer that attribute is to 99, so ' +
+             'early ones are a credit or two and late ones are not.',
+      upgrades: true,
+      items: []
     },
 
     {
       key: 'training',
       title: 'Offseason Training',
-      blurb: 'Where the whole offseason goes. Each one trades something away.',
+      blurb: 'Where the whole offseason goes. A flat price for a fixed set of ' +
+             'points, which is poor value early and very good value later, ' +
+             'once single points have got expensive.',
       items: [
         {
           key: 'train-strength',
           name: 'Offseason Strength Training',
-          credits: 45,
+          credits: 20,
           effects: { strength: 4 },
           risks: [
             { attribute: 'agility', amount: -2, chance: 0.5 },
@@ -85,7 +80,7 @@ EGE.shop = {
         {
           key: 'train-cardio',
           name: 'Offseason Cardio Training',
-          credits: 45,
+          credits: 25,
           effects: { speed: 2, acceleration: 2, agility: 2, stamina: 2 },
           risks: [
             { attribute: 'strength', amount: -2, chance: 0.5 }
@@ -96,7 +91,7 @@ EGE.shop = {
         {
           key: 'train-overall',
           name: 'Overall Offseason Training',
-          credits: 35,
+          credits: 20,
           effects: {
             speed: 1, acceleration: 1, strength: 1,
             agility: 1, jumping: 1, stamina: 1
@@ -116,7 +111,7 @@ EGE.shop = {
           key: 'qb-connection',
           name: 'QB Connection',
           nameByPosition: { QB: 'Back Field Connection' },
-          credits: 30,
+          credits: 20,
           description: 'The whole offseason spent with your quarterback, learning his ' +
                        'routes and calls — or, for a quarterback, with the backs and ' +
                        'receivers behind him. Chemistry resets if they are injured, ' +
@@ -125,19 +120,19 @@ EGE.shop = {
         {
           key: 'hyperbaric',
           name: 'Hyperbaric Chamber',
-          credits: 50,
-          creditsLadder: [50, 65, 85],
-          creditsStep: 20,
+          credits: 35,
+          creditsLadder: [35, 45, 60],
+          creditsStep: 15,
           note: 'NFL only',
           tiers: ['nfl'],
           description: 'Lowers your injury chance, and bought often enough it extends ' +
                        'your career. Only available after your first NFL season. ' +
-                       '50, then 65, then 85, and 20 more each time after that.'
+                       '35, then 45, then 60, and 15 more each time after that.'
         },
         {
           key: 'intel',
           name: 'Intel',
-          credits: 20,
+          credits: 15,
           note: 'High school and college only',
           tiers: ['highSchool', 'college'],
           seasonBound: true,          /* good for the season it is bought in */
@@ -158,20 +153,10 @@ EGE.itemName = function (item, player) {
   return (player && byPosition[player.position]) || item.name;
 };
 
-/* Stat boosters get dearer the more of that size a player has already bought.
-   'step' climbs by a fixed amount each time; 'log' climbs fast at first and
-   then flattens out. Everything else has one price. */
-EGE.priceFor = function (item, ownedCount) {
-  if (!item) { return 0; }
-  var owned = Math.max(0, ownedCount || 0);
-
-  if (item.priceCurve === 'step') {
-    return item.credits + (item.priceStep || 5) * owned;
-  }
-  if (item.priceCurve === 'log') {
-    return Math.round(item.credits * (1 + Math.log(owned + 1)));
-  }
-  return item.credits;
+/* Catalogue items have one flat price. Rating points are the only thing that
+   scales, and their price lives in data/economy.js. */
+EGE.priceFor = function (item) {
+  return item ? item.credits : 0;
 };
 
 /* Whether an item can be bought in a given season, and why not when it

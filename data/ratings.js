@@ -253,13 +253,14 @@ function egeGroupByKey(key) {
 }
 
 /* What the shop has done to a player's ratings, summed per attribute and
-   keyed by the email that owns them. Filled in by js/wallet.js; empty until
-   it has loaded, and empty forever if Supabase is not reachable. */
+   keyed by player slug — not by email, so a player whose sign-in address is
+   still TBD can carry boosts too. Filled in by js/wallet.js; empty until it
+   has loaded, and empty forever if Supabase is not reachable. */
 EGE.appliedBoosts = {};
 
 EGE.boostsFor = function (player) {
-  if (!player || !player.email) { return {}; }
-  return EGE.appliedBoosts[player.email] || {};
+  if (!player) { return {}; }
+  return EGE.appliedBoosts[player.slug] || {};
 };
 
 /* Base ratings with everything bought folded in. Nothing leaves 1-99. */
