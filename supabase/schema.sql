@@ -308,3 +308,132 @@ create policy "game boosters removed by owner or admin"
   using (email = auth.jwt() ->> 'email' or public.is_admin());
 
 notify pgrst, 'reload schema';
+
+-- ===========================================================================
+-- Credit awards
+--
+-- The ledger of every credit handed out rather than spent: the flat offseason
+-- allowance, touchdowns as they are posted, and anything an admin adds by
+-- hand off the earnings table.
+--
+-- `award_key` is what earned it, and it is unique per player per season, so
+-- paying an award twice is impossible however many times the browser asks.
+-- That is what lets any page top a balance up on load without keeping track
+-- of whether it already has.
+-- ===========================================================================
+
+create table if not exists public.credit_awards (
+  id         uuid primary key default gen_random_uuid(),
+  email      text        not null,
+  season     integer     not null,
+  award_key  text        not null,
+  credits    integer     not null,
+  note       text,
+  awarded_at timestamptz not null default now(),
+  unique (email, season, award_key)
+);
+
+create index if not exists credit_awards_email_idx
+  on public.credit_awards (email, season);
+
+alter table public.credit_awards enable row level security;
+
+-- Readable by the player it belongs to and by an admin. What a player has
+-- earned is their own business; the season log an admin exports needs all of
+-- it.
+drop policy if exists "awards readable by owner or admin" on public.credit_awards;
+create policy "awards readable by owner or admin"
+  on public.credit_awards for select to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin());
+
+-- No insert, update or delete policy: awards are only ever written through
+-- pay_credit_awards() below, which is the only thing that can also move the
+-- balance in the same breath.
+
+-- ---------------------------------------------------------------------------
+-- Paying them
+--
+-- Inserting the award and adding the credits have to happen together or not
+-- at all: crediting first and dying would pay twice on the next load, and
+-- inserting first and dying would never pay at all. One function, one
+-- transaction, and the unique index decides what is new.
+--
+-- What it returns is what it actually paid, which is 0 on every call after
+-- the first for the same awards.
+--
+-- On trust: the credits come from the browser, because what a touchdown is
+-- worth is worked out from the schedule in data/schedule.js, and Postgres has
+-- no copy of it. A player could already set their own balance directly — the
+-- update policy on player_credits allows it, because buying things needs it —
+-- so this is not a new hole. It is still worth closing the easy half of it:
+-- for anyone who is not an admin, an award has to look like one of the two
+-- kinds the site issues, and cannot be worth more than the biggest either
+-- kind could honestly be. An admin's awards are whatever they type, which is
+-- the point of them.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.pay_credit_awards(
+  p_email  text,
+  p_season integer,
+  p_awards jsonb            -- [{ "key": "...", "credits": 10, "note": "..." }, ...]
+) returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_caller text := auth.jwt() ->> 'email';
+  v_admin  boolean := public.is_admin();
+  v_paid   integer := 0;
+begin
+  if v_caller is null then
+    raise exception 'sign in first';
+  end if;
+  if lower(v_caller) <> lower(p_email) and not v_admin then
+    raise exception 'that is not your account';
+  end if;
+  if p_awards is null or jsonb_typeof(p_awards) <> 'array' then
+    return 0;
+  end if;
+
+  with incoming as (
+    select
+      a ->> 'key'                             as award_key,
+      coalesce((a ->> 'credits')::integer, 0) as credits,
+      a ->> 'note'                            as note
+    from jsonb_array_elements(p_awards) as a
+  ),
+  allowed as (
+    select * from incoming
+    where credits > 0
+      and award_key is not null
+      and (
+        v_admin
+        or (award_key ~ '^offseason-[0-9]{4}$' and credits <= 60)
+        or (award_key ~ '^td-w[0-9]{1,2}$'     and credits <= 60)
+      )
+  ),
+  inserted as (
+    insert into public.credit_awards (email, season, award_key, credits, note)
+    select p_email, p_season, award_key, credits, note from allowed
+    on conflict (email, season, award_key) do nothing
+    returning credits
+  )
+  select coalesce(sum(credits), 0) into v_paid from inserted;
+
+  if v_paid > 0 then
+    insert into public.player_credits as pc (email, credits, updated_at)
+    values (p_email, v_paid, now())
+    on conflict (email) do update
+      set credits = pc.credits + v_paid,
+          updated_at = now();
+  end if;
+
+  return v_paid;
+end;
+$$;
+
+revoke all on function public.pay_credit_awards(text, integer, jsonb) from public;
+grant execute on function public.pay_credit_awards(text, integer, jsonb) to authenticated;
+
+notify pgrst, 'reload schema';

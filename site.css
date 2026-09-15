@@ -937,6 +937,10 @@ body {
 }
 .ege-note--ok { background: var(--fb-tint-sage); }
 .ege-note--error { background: var(--fb-tint-clay); }
+.ege-note--warn {
+  background: var(--fb-tint-clay-2);
+  border-width: var(--fb-border);
+}
 
 /* Password field with a reveal toggle sitting inside its right edge. */
 .ege-pw { position: relative; display: block; }
@@ -970,3 +974,99 @@ body {
 
 .ege-section-gap { margin-top: 34px; }
 [hidden] { display: none !important; }
+
+/* ==========================================================================
+   The admin portal
+   The end-of-season steps read as a numbered list, because the order they
+   happen in is the only thing keeping anybody's season safe.
+   ========================================================================== */
+
+.ege-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ege-step {
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-tint-wash);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* A step that has been done this sitting. It says what has happened, not what
+   is allowed next: the buttons decide that. */
+.ege-step--done { background: var(--fb-tint-sage); }
+
+.ege-step__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.ege-step__num {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-paper);
+  font-family: var(--fb-font-display);
+  font-size: 17px;
+  line-height: 1;
+}
+/* Done: the number gives way to a tick in the same box. */
+.ege-step--done .ege-step__num { color: transparent; position: relative; }
+.ege-step--done .ege-step__num::after {
+  content: '\2713';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--fb-ink);
+  font-size: 17px;
+}
+
+.ege-step__title {
+  font-family: var(--fb-font-display);
+  font-size: 19px;
+  margin: 0 0 4px;
+}
+
+.ege-step__blurb {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.ege-step__blurb code {
+  font-size: 12px;
+  padding: 1px 4px;
+  background: var(--fb-paper);
+  border: var(--fb-border-thin) solid var(--fb-ink);
+}
+
+.ege-step__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Both admin tables are numbers in narrow columns with one name column. */
+.ege-locktable th:not(:first-child),
+.ege-locktable td:not(:first-child),
+.ege-awards th:not(:first-child),
+.ege-awards td:not(:first-child) {
+  text-align: right;
+  white-space: nowrap;
+}
+.ege-awards .fb-meta { display: block; font-size: 11px; }
+/* A player with no sign-in yet: their touchdowns count, but there is no
+   account for the credits to land in until there is. */
+.ege-awards__row--noaccount td { opacity: .72; }

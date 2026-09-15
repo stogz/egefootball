@@ -112,7 +112,14 @@ EGE.positionWeights = {
   DEFAULT: { general: 34, passing: 20, receiving: 22, ballCarrier: 24, blocking: 14 }
 };
 
-/* Placeholder attribute values, keyed by player slug. */
+/* Placeholder attribute values, keyed by player slug.
+
+   Everything between the two markers below is rewritten wholesale when a
+   season is locked from the admin portal: the numbers there become whatever
+   the players had bought their way up to, and the shop rows behind them are
+   cleared. Nothing else in this file is touched, so leave the markers alone
+   and edit inside them freely. */
+/* ege:ratings:start */
 EGE.ratings = {
   'jaykeb-stewart': {
     /* General */
@@ -219,6 +226,7 @@ EGE.ratings = {
     leadBlock: 42,
   },
 };
+/* ege:ratings:end */
 
 /* Which group scores a position's page shows, and what to call them there.
    A quarterback's receiving still counts toward his overall — it just isn't

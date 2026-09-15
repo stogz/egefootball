@@ -1,0 +1,35 @@
+/* ==========================================================================
+   EGE Football — which season is live
+   Small on purpose: the admin portal regenerates this whole file when a
+   season is rolled over, so it holds the season pointer and nothing else.
+   The season ladder itself — which years are high school, which are college
+   — lives in data/players.js and is not touched by a rollover.
+
+   `currentSeason` is the season the site opens on. Everything that reads a
+   season without being told one reads this.
+
+   `lockedSeasons` are the seasons whose ratings have already been folded
+   into data/ratings.js. Once a season is in this list the numbers in that
+   file include everything bought during it, so it must never be locked
+   twice — the portal refuses to.
+   ========================================================================== */
+
+window.EGE = window.EGE || {};
+
+EGE.currentSeason = 2018;
+
+EGE.lockedSeasons = [];
+
+/* Whether a season's ratings have been hardcoded already. */
+EGE.seasonLocked = function (season) {
+  return (EGE.lockedSeasons || []).indexOf(season || EGE.currentSeason) !== -1;
+};
+
+/* The season after this one on the ladder, or null at the end of it. */
+EGE.nextSeason = function (season) {
+  var year = season || EGE.currentSeason;
+  var years = (EGE.seasons || []).map(function (s) { return s.year; }).sort();
+  var at = years.indexOf(year);
+  if (at === -1 || at === years.length - 1) { return null; }
+  return years[at + 1];
+};

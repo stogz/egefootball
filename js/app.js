@@ -14,6 +14,7 @@
   var viewHome   = document.getElementById('view-home');
   var viewShop   = document.getElementById('view-shop');
   var viewPlayer = document.getElementById('view-player');
+  var viewAdmin  = document.getElementById('view-admin');
   var loginBtn   = document.getElementById('loginBtn');
   var loginModal = document.getElementById('loginModal');
 
@@ -801,8 +802,13 @@
   /* --- admin ------------------------------------------------------------- */
 
   var sayAdmin = reporter('adminMessage');
+  var adminState = { credits: [], inventory: [], awards: [], ratingsDownloaded: false };
 
-  function adminAccount(player, credits, rows) {
+  function isAdmin() { return EGE.wallet.admin(); }
+
+  /* One account: what it holds, what it has been paid, and the two things an
+     admin does to it by hand — set a balance, or hand something over. */
+  function adminAccount(player, credits, rows, awards) {
     var box = el('div', 'ege-account');
 
     var head = el('div', 'ege-account__head');
@@ -829,16 +835,42 @@
       EGE.wallet.setCredits(player.email, input.value).then(function (res) {
         save.disabled = false;
         sayAdmin(res.ok ? player.first + ' now has ' + res.credits + ' credits.' : res.message, !res.ok);
-        refreshShop();
+        refreshAdminView();
       });
     });
     editor.appendChild(save);
     head.appendChild(editor);
     box.appendChild(head);
 
+    /* An award off the earnings table. It goes through the same ledger the
+       touchdowns do, so the season log has a line for it rather than a
+       balance that moved for no recorded reason. */
+    var awarder = el('div', 'fb-row fb-row--wrap');
+    var reason = el('select', 'fb-select ege-account__award');
+    EGE.shop.earnings.forEach(function (row) {
+      var opt = el('option', null, row.label + '  +' + row.credits);
+      opt.value = row.credits + '|' + row.label;
+      reason.appendChild(opt);
+    });
+    awarder.appendChild(reason);
+
+    var pay = el('button', 'fb-btn', 'Award');
+    pay.type = 'button';
+    pay.addEventListener('click', function () {
+      var parts = reason.value.split('|');
+      pay.disabled = true;
+      EGE.wallet.awardCredits(player.email, parts[0], parts[1]).then(function (res) {
+        pay.disabled = false;
+        sayAdmin(res.ok ? player.first + ': ' + res.message : res.message, !res.ok);
+        refreshAdminView();
+      });
+    });
+    awarder.appendChild(pay);
+    box.appendChild(awarder);
+
     /* Hand something over without charging for it. */
     var granter = el('div', 'fb-row fb-row--wrap');
-    var pick = el('select', 'fb-select');
+    var pick = el('select', 'fb-select ege-account__grant');
     EGE.shopItems().forEach(function (entry) {
       var opt = el('option', null, entry.item.name);
       opt.value = entry.item.key;
@@ -853,18 +885,25 @@
       EGE.wallet.grant(player.email, EGE.shopItem(pick.value)).then(function (res) {
         give.disabled = false;
         sayAdmin(res.message, !res.ok);
-        refreshShop();
+        refreshAdminView();
       });
     });
     granter.appendChild(give);
     box.appendChild(granter);
+
+    var earned = awards.reduce(function (sum, row) { return sum + row.credits; }, 0);
+    if (earned) {
+      box.appendChild(el('p', 'fb-meta',
+        'Earned ' + earned + ' credits this season, over ' + awards.length +
+        (awards.length === 1 ? ' award.' : ' awards.')));
+    }
 
     if (!rows.length) {
       box.appendChild(el('p', 'fb-meta', 'Nothing bought.'));
     } else {
       var grid = el('div', 'ege-items');
       rows.forEach(function (row) {
-        grid.appendChild(inventoryCard(row, { admin: true, report: sayAdmin, refresh: refreshShop }));
+        grid.appendChild(inventoryCard(row, { admin: true, report: sayAdmin, refresh: refreshAdminView }));
       });
       box.appendChild(grid);
     }
@@ -872,24 +911,263 @@
     return box;
   }
 
-  function renderAdmin() {
-    var panel = document.getElementById('adminPanel');
-    panel.hidden = !EGE.wallet.admin();
-    if (panel.hidden) { return Promise.resolve(); }
+  function renderAccounts() {
+    var holder = document.getElementById('adminAccounts');
+    holder.innerHTML = '';
 
-    return Promise.all([EGE.wallet.allCredits(), EGE.wallet.allInventory()])
-      .then(function (both) {
-        var credits = both[0];
-        var inventory = both[1];
-        var holder = document.getElementById('adminAccounts');
-        holder.innerHTML = '';
-
-        EGE.playersWithAccounts().forEach(function (player) {
-          var row = credits.filter(function (c) { return c.email === player.email; })[0];
-          var owned = inventory.filter(function (i) { return i.email === player.email; });
-          holder.appendChild(adminAccount(player, row ? row.credits : EGE.shop.startingCredits, owned));
-        });
+    EGE.playersWithAccounts().forEach(function (player) {
+      var row = adminState.credits.filter(function (c) { return c.email === player.email; })[0];
+      var owned = adminState.inventory.filter(function (i) { return i.email === player.email; });
+      var paid = adminState.awards.filter(function (a) {
+        return player.email && a.email &&
+               a.email.toLowerCase() === player.email.toLowerCase();
       });
+      holder.appendChild(adminAccount(player, row ? row.credits : EGE.shop.startingCredits,
+                                     owned, paid));
+    });
+  }
+
+  /* --- what the season has paid out --------------------------------------- */
+
+  function awardKind(row) {
+    if (/^td-w/.test(row.award_key)) { return 'td'; }
+    if (/^offseason-/.test(row.award_key)) { return 'offseason'; }
+    return 'manual';
+  }
+
+  function renderAwards() {
+    var body = document.getElementById('awardsBody');
+    body.innerHTML = '';
+
+    var totals = { all: 0, touchdowns: 0, waiting: 0 };
+
+    /* All six, not only the ones who can be paid. A player with no sign-in
+       still scores touchdowns, and they are worth counting: the credits wait
+       for them and land in full the first time they log in. */
+    EGE.players.forEach(function (player) {
+      var paid = adminState.awards.filter(function (a) {
+        return player.email && a.email &&
+               a.email.toLowerCase() === player.email.toLowerCase();
+      });
+
+      var sums = { td: 0, offseason: 0, manual: 0 };
+      paid.forEach(function (row) { sums[awardKind(row)] += row.credits; });
+
+      /* Counted from the schedule rather than from the ledger, so it is right
+         for a week nobody has been paid for yet. */
+      var touchdowns = EGE.gamesPlayed(player, EGE.currentSeason).reduce(function (sum, game) {
+        return sum + EGE.economy.touchdownsIn(game.stats);
+      }, 0);
+
+      var all = sums.td + sums.offseason + sums.manual;
+      var owed = touchdowns * EGE.economy.tdRateFor(player.position);
+      totals.all += all;
+      totals.touchdowns += touchdowns;
+      if (!player.email) { totals.waiting += owed; }
+
+      var tr = el('tr');
+      if (!player.email) { tr.className = 'ege-awards__row--noaccount'; }
+
+      var name = el('td');
+      name.appendChild(el('strong', null, player.name));
+      name.appendChild(el('span', 'fb-meta', player.email
+        ? player.position + '  ·  ' + EGE.economy.tdRateFor(player.position) + ' a TD'
+        : player.position + '  ·  no sign-in yet'));
+      tr.appendChild(name);
+      tr.appendChild(el('td', 'num', String(touchdowns)));
+
+      if (player.email) {
+        [sums.td, sums.offseason, sums.manual].forEach(function (value) {
+          tr.appendChild(el('td', 'num', String(value)));
+        });
+        var total = el('td', 'num');
+        total.appendChild(el('strong', null, String(all)));
+        tr.appendChild(total);
+      } else {
+        /* Nothing can be paid into an account that does not exist yet. What
+           the touchdowns are worth shows as waiting, not as earned. */
+        tr.appendChild(el('td', 'num', owed ? owed + ' waiting' : '—'));
+        tr.appendChild(el('td', 'num', '—'));
+        tr.appendChild(el('td', 'num', '—'));
+        tr.appendChild(el('td', 'num', '—'));
+      }
+      body.appendChild(tr);
+    });
+
+    document.getElementById('awardsNote').textContent =
+      'The ' + EGE.currentSeason + ' season so far';
+    document.getElementById('awardsFoot').textContent = totals.touchdowns
+      ? totals.touchdowns + ' touchdowns, ' + totals.all + ' credits paid out' +
+        (totals.waiting
+          ? ', and ' + totals.waiting + ' waiting on an account to be paid into.'
+          : '.')
+      : 'No touchdowns posted yet. Credits appear here as results go in — ' +
+        EGE.economy.TD_CREDITS.RB + ' a touchdown for a back or a tight end, ' +
+        EGE.economy.TD_CREDITS.QB + ' for a quarterback.';
+  }
+
+  /* --- the end of a season ------------------------------------------------ */
+
+  function renderLockPreview() {
+    var body = document.getElementById('lockPreview');
+    body.innerHTML = '';
+
+    var moved = 0;
+    EGE.exports.ratingsDiff(EGE.currentSeason).forEach(function (row) {
+      moved += row.attributes;
+      var tr = el('tr');
+      var name = el('td');
+      name.appendChild(el('strong', null, row.player.name));
+      tr.appendChild(name);
+      tr.appendChild(el('td', 'num', String(row.attributes)));
+      tr.appendChild(el('td', 'num', row.points ? '+' + row.points : '0'));
+      tr.appendChild(el('td', 'num', row.overall === null ? TBD : String(row.overall)));
+      body.appendChild(tr);
+    });
+
+    var locked = EGE.seasonLocked(EGE.currentSeason);
+    document.getElementById('seasonPanelNote').textContent = locked
+      ? EGE.currentSeason + ' is already locked'
+      : 'The ' + EGE.currentSeason + ' season';
+
+    document.getElementById('logYear').textContent = EGE.currentSeason;
+
+    document.getElementById('clearWarning').textContent = moved
+      ? 'This clears ' + moved + ' attribute' + (moved === 1 ? '' : 's') +
+        ' worth of points and training across every account. There is no undo ' +
+        'here — if the ratings file above is not committed and live, those ' +
+        'improvements are gone.'
+      : 'Nobody has bought any points or training this season, so there is ' +
+        'nothing to clear.';
+  }
+
+  function step(id, done) {
+    document.getElementById(id).classList.toggle('ege-step--done', Boolean(done));
+  }
+
+  function wireSeasonPanel() {
+    var lock = document.getElementById('lockRatings');
+    var log = document.getElementById('logSeason');
+    var clear = document.getElementById('clearRows');
+    var confirm = document.getElementById('clearConfirm');
+    var roll = document.getElementById('rollSeason');
+
+    lock.addEventListener('click', function () {
+      if (EGE.seasonLocked(EGE.currentSeason)) {
+        sayAdmin(EGE.currentSeason + ' is already locked — its purchases are in ' +
+                 'data/ratings.js already. Locking it twice would count them twice.', true);
+        return;
+      }
+      lock.disabled = true;
+      EGE.exports.ratingsFile(EGE.currentSeason).then(function (text) {
+        EGE.exports.download('ratings.js', text);
+        adminState.ratingsDownloaded = true;
+        step('stepLock', true);
+        clear.disabled = confirm.value.trim().toUpperCase() !== 'CLEAR';
+        sayAdmin('ratings.js downloaded. Put it in data/ and commit it before ' +
+                 'clearing anything.', false);
+      }).catch(function (error) {
+        sayAdmin(error.message, true);
+      }).then(function () { lock.disabled = false; });
+    });
+
+    log.addEventListener('click', function () {
+      log.disabled = true;
+      EGE.exports.seasonLogFile(EGE.currentSeason).then(function (text) {
+        EGE.exports.download('season-' + EGE.currentSeason + '.js', text);
+        step('stepLog', true);
+        sayAdmin('season-' + EGE.currentSeason + '.js downloaded. It belongs in ' +
+                 'data/logs/.', false);
+      }).catch(function (error) {
+        sayAdmin('Could not build the log: ' + error.message, true);
+      }).then(function () { log.disabled = false; });
+    });
+
+    /* Two locks on the clear: the ratings file has to have been built in this
+       sitting, and the word has to be typed. Everything it deletes is only
+       recoverable from that file. */
+    confirm.addEventListener('input', function () {
+      clear.disabled = confirm.value.trim().toUpperCase() !== 'CLEAR';
+    });
+
+    clear.addEventListener('click', function () {
+      if (!adminState.ratingsDownloaded) {
+        sayAdmin('Download the ratings file first — step 1. Clearing without it ' +
+                 'loses everything anybody bought this season.', true);
+        return;
+      }
+      clear.disabled = true;
+      EGE.wallet.clearLockedRows().then(function (res) {
+        confirm.value = '';
+        sayAdmin(res.ok
+          ? 'Rating points and training cleared. Everybody keeps their unused ' +
+            'boosters. Roll the season over when you are ready.'
+          : res.message, !res.ok);
+        if (res.ok) { step('stepClear', true); }
+        return refreshAdminView();
+      });
+    });
+
+    roll.addEventListener('click', function () {
+      var next = EGE.nextSeason(EGE.currentSeason);
+      if (!next) {
+        sayAdmin('There is no season after ' + EGE.currentSeason +
+                 ' on the ladder — it ends at the draft.', true);
+        return;
+      }
+
+      var locked = (EGE.lockedSeasons || []).slice();
+      if (locked.indexOf(EGE.currentSeason) === -1) { locked.push(EGE.currentSeason); }
+
+      roll.disabled = true;
+      EGE.exports.seasonFileSource(next, locked.sort()).then(function (text) {
+        EGE.exports.download('season.js', text);
+        step('stepRoll', true);
+        sayAdmin('season.js downloaded, pointing at ' + next + '. Commit it with ' +
+                 'the other two and everybody is paid their allowance on their ' +
+                 'next visit.', false);
+      }).catch(function (error) {
+        sayAdmin(error.message, true);
+      }).then(function () { roll.disabled = false; });
+    });
+  }
+
+  /* --- drawing the page --------------------------------------------------- */
+
+  var adminBuilt = false;
+
+  function refreshAdminView() {
+    if (!isAdmin()) { return Promise.resolve(); }
+
+    return Promise.all([
+      EGE.wallet.allCredits(),
+      EGE.wallet.allInventory(),
+      EGE.wallet.allAwards(EGE.currentSeason),
+      EGE.wallet.loadBoosts()
+    ]).then(function (all) {
+      adminState.credits = all[0];
+      adminState.inventory = all[1];
+      adminState.awards = all[2];
+      renderAccounts();
+      renderAwards();
+      renderLockPreview();
+    });
+  }
+
+  function renderAdminView() {
+    var admin = isAdmin();
+    document.getElementById('adminLocked').hidden = admin;
+    document.getElementById('adminContent').hidden = !admin;
+
+    document.getElementById('adminLockedNote').textContent = EGE.auth.currentPlayer()
+      ? 'This page is the commissioner’s. Nothing here is yours to change.'
+      : 'This page is the commissioner’s, and you are not signed in.';
+
+    if (!admin) { return Promise.resolve(); }
+
+    if (!adminBuilt) { adminBuilt = true; wireSeasonPanel(); }
+    sayAdmin('', false);
+    return refreshAdminView();
   }
 
   /* --- loading ----------------------------------------------------------- */
@@ -911,7 +1189,6 @@
       redrawRatings();
       refreshScoutMarks();
       updateNavCredits(shopState.credits);
-      return renderAdmin();
     });
   }
 
@@ -972,12 +1249,14 @@
   function setNav(active) {
     document.getElementById('navPlayers').classList.toggle('is-active', active === 'players');
     document.getElementById('navShop').classList.toggle('is-active', active === 'shop');
+    document.getElementById('navAdmin').classList.toggle('is-active', active === 'admin');
   }
 
   function show(view) {
     viewHome.hidden   = view !== viewHome;
     viewShop.hidden   = view !== viewShop;
     viewPlayer.hidden = view !== viewPlayer;
+    viewAdmin.hidden  = view !== viewAdmin;
   }
 
   function route() {
@@ -989,6 +1268,11 @@
       show(viewShop);
       setNav('shop');
       document.title = 'Shop \u2014 EGE Football';
+    } else if (hash === 'admin') {
+      renderAdminView();
+      show(viewAdmin);
+      setNav('admin');
+      document.title = 'Admin \u2014 EGE Football';
     } else if (player) {
       renderPlayer(player);
       show(viewPlayer);
@@ -1169,6 +1453,7 @@
     loginBtn.removeAttribute('title');
     loginBtn.setAttribute('aria-label', 'Open the player portal');
     document.getElementById('navShop').hidden = true;
+    document.getElementById('navAdmin').hidden = true;
     document.getElementById('navCredits').hidden = true;
   }
 
@@ -1203,7 +1488,20 @@
          needs the inventory too, to know whether to show the scouts. */
       shopState.player = player;
       EGE.wallet.refreshAdmin(player.email)
-        .then(refreshShop)
+        .then(function (admin) {
+          document.getElementById('navAdmin').hidden = !admin;
+          /* Anything the season owes this player is paid on the way in, so a
+             result posted since their last visit is already credits by the
+             time they reach the shop. */
+          return EGE.wallet.syncAwards(player, EGE.currentSeason);
+        })
+        .then(function (paid) {
+          if (paid && paid.paid) {
+            sayShop('The season paid you ' + paid.paid + ' credits since you were ' +
+                    'last here.', false);
+          }
+          return refreshShop();
+        })
         .then(route);
       showSignedInNav(player);
       document.getElementById('signedInName').textContent = player.name;
