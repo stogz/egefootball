@@ -97,15 +97,25 @@ EGE.economy = (function () {
     });
   }
 
-  /* Buying several at once is priced off the next single point rather than
-     off each step: +2 costs double, +4 costs quadruple. It saves a little at
-     the steep end of the curve, which is the point of offering it. */
+  /* Buying several at once is every point priced where it lands, added up —
+     not the first one's price times four.
+
+     The difference shows at a threshold. A point at 64 costs 1 and a point at
+     65 costs 2, so a +4 from 64 is 1 + 2 + 2 + 2, not 4. Pricing the run off
+     the first point would sell the three dearer ones at the cheap rate, which
+     is a discount for buying at exactly the wrong moment. */
   var BULK_SIZES = [1, 2, 4];
 
   function bulkCost(value, points) {
-    var single = upgradeCost(value);
-    if (single === null) { return null; }
-    return single * points;
+    if (upgradeCost(value) === null) { return null; }
+
+    var total = 0;
+    for (var i = 0; i < points; i += 1) {
+      var step = upgradeCost(value + i);
+      if (step === null) { break; }      /* 99 is as far as it goes */
+      total += step;
+    }
+    return total;
   }
 
   /* How far a run of points can actually go before hitting 99. */

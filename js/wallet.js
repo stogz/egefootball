@@ -18,6 +18,7 @@ EGE.wallet = (function () {
   var ADMINS = 'admins';
   var GAME_BOOSTERS = 'game_boosters';
   var AWARDS = 'credit_awards';
+  var PUBLISHED = 'published_weeks';
 
   var isAdmin = false;
 
@@ -111,21 +112,44 @@ EGE.wallet = (function () {
   /* --- what a purchase does to the ratings -------------------------------- */
 
   /* Training rolls its downside once, when it is bought, and the result is
-     stored: nobody gets to re-roll by reloading the page. */
+     stored: nobody gets to re-roll by reloading the page.
+
+     One twelve-sided die for the whole purchase. On a 1, 2 or 3 the downside
+     lands, all of it; on 4 and up, none of it. Rolling each risk separately
+     is what made three coin flips add up to a debuff nearly every time. */
   function rollEffects(item) {
     var effects = {};
     Object.keys(item.effects || {}).forEach(function (key) {
       effects[key] = item.effects[key];
     });
 
-    if (item.needsTarget) { return effects; }
+    if (item.needsTarget || !(item.risks || []).length) { return effects; }
 
-    (item.risks || []).forEach(function (risk) {
-      if (Math.random() < risk.chance) {
+    /* The roll is worth telling the player about, but it is not an attribute,
+       so it is handed back beside the effects rather than stored among them —
+       a `__roll` key in there would turn up in his boost summary as a rating
+       he had bought. */
+    var roll = 1 + Math.floor(Math.random() * EGE.shop.riskDie);
+    lastRoll = roll;
+
+    if (roll <= EGE.shop.riskFailsOn) {
+      item.risks.forEach(function (risk) {
         effects[risk.attribute] = (effects[risk.attribute] || 0) + risk.amount;
-      }
-    });
+      });
+    }
     return effects;
+  }
+
+  /* What the last training die came up, for the message that follows it. */
+  var lastRoll = null;
+
+  function rollMessage(item) {
+    if (!(item.risks || []).length || lastRoll === null) { return ''; }
+    var bad = lastRoll <= EGE.shop.riskFailsOn;
+    var said = ' Rolled a ' + lastRoll + ' on a d' + EGE.shop.riskDie + ' \u2014 ' +
+               (bad ? 'the downside landed.' : 'no downside.');
+    lastRoll = null;
+    return said;
   }
 
   function effectsForTarget(item, target) {
@@ -226,7 +250,8 @@ EGE.wallet = (function () {
             return {
               ok: true,
               effects: effects,
-              message: 'Bought ' + EGE.itemName(item, player) + ' for ' + price + ' credits.',
+              message: 'Bought ' + EGE.itemName(item, player) + ' for ' + price +
+                       ' credits.' + rollMessage(item),
               credits: spent.credits
             };
           });
@@ -410,6 +435,192 @@ EGE.wallet = (function () {
       if (!paid) { return { ok: false, message: 'Nothing was paid \u2014 try again.' }; }
       return { ok: true, credits: paid, message: paid + ' credits awarded.' };
     });
+  }
+
+  /* --- weeks that are out -------------------------------------------------- */
+
+  /* Which weeks the admin has published, as { season: [week, ...] }. Read by
+     everyone, signed in or not: it is what decides whether a visitor sees a
+     score at all.
+
+     Until this has loaded the site shows fixtures, never results, so a page
+     that cannot reach Supabase is behind rather than wrong. */
+  function loadPublishedWeeks() {
+    var c = client();
+    if (!c) { EGE.publishedWeeks = {}; return Promise.resolve({}); }
+
+    return c.from(PUBLISHED).select('season, week, posted_at')
+      .then(function (res) {
+        var bySeason = {};
+        if (res.error) { EGE.publishedWeeks = bySeason; return bySeason; }
+
+        (res.data || []).forEach(function (row) {
+          var weeks = bySeason[row.season] || (bySeason[row.season] = []);
+          weeks.push(row.week);
+        });
+        Object.keys(bySeason).forEach(function (season) {
+          bySeason[season].sort(function (a, b) { return a - b; });
+        });
+
+        EGE.publishedWeeks = bySeason;
+        return bySeason;
+      })
+      .catch(function () { EGE.publishedWeeks = {}; return {}; });
+  }
+
+  /* Every published week with when it went out and whether Discord has had
+     it, newest first. The admin page's list. */
+  function publishedRows(season) {
+    var c = client();
+    if (!c) { return Promise.resolve([]); }
+
+    var query = c.from(PUBLISHED).select('*');
+    if (season) { query = query.eq('season', season); }
+
+    return query.order('week', { ascending: false })
+      .then(function (res) { return res.error ? [] : (res.data || []); })
+      .catch(function () { return []; });
+  }
+
+  /* Puts a week out. Everything else follows from the row landing: the
+     schedule shows the score, the game log fills in, the record moves, and
+     the touchdown credits become owed. */
+  function publishWeek(season, week) {
+    var c = client();
+    if (!c) { return fail(offline()); }
+
+    return c.from(PUBLISHED)
+      .upsert({ season: season, week: week, published_at: new Date().toISOString() },
+              { onConflict: 'season,week' })
+      .then(function (res) {
+        if (res.error) { return { ok: false, message: res.error.message }; }
+        return loadPublishedWeeks().then(function () {
+          return { ok: true, message: 'Week ' + week + ' is out.' };
+        });
+      });
+  }
+
+  /* Takes it back. Testing this means publishing and unpublishing the same
+     week over and over, so it is one call and no confirmation.
+
+     Credits already paid for it stay paid — an award is a ledger entry, not
+     a view of the schedule. Publishing it again pays nothing twice. */
+  function unpublishWeek(season, week) {
+    var c = client();
+    if (!c) { return fail(offline()); }
+
+    return c.from(PUBLISHED).delete().eq('season', season).eq('week', week)
+      .then(function (res) {
+        if (res.error) { return { ok: false, message: res.error.message }; }
+        return loadPublishedWeeks().then(function () {
+          return { ok: true, message: 'Week ' + week + ' pulled back.' };
+        });
+      });
+  }
+
+  function markPosted(season, week) {
+    var c = client();
+    if (!c) { return Promise.resolve({ ok: false }); }
+
+    return c.from(PUBLISHED).update({ posted_at: new Date().toISOString() })
+      .eq('season', season).eq('week', week)
+      .then(function (res) { return { ok: !res.error }; })
+      .catch(function () { return { ok: false }; });
+  }
+
+  /* Sends a built week to Discord.
+
+     Straight to the webhook when one is set in js/discord-config.js, which is
+     the whole setup: no function to deploy and the message lands on the click.
+     The URL is public in that case, which is a decision taken there.
+
+     Failing that, the edge function, which keeps the URL as a Supabase secret.
+
+     Whichever it is, the week is already published by the time this runs — a
+     post that does not land is a message missing from a channel, not a week
+     missing from the site, and the scheduled bot picks it up if it is set up. */
+  function postWeekToDiscord(payload) {
+    var url = (EGE.discordConfig || {}).webhookUrl;
+    if (url) { return postToWebhook(url, payload); }
+
+    var c = client();
+    if (!c) { return fail(offline()); }
+
+    return c.functions.invoke('post-week', { body: payload })
+      .then(function (res) {
+        if (res.error) {
+          return {
+            ok: false,
+            message: 'the post-week function said no (' +
+                     (res.error.message || 'no reason given') + ')'
+          };
+        }
+        return { ok: true };
+      })
+      .catch(function (error) {
+        return { ok: false, message: error.message };
+      });
+  }
+
+  /* Discord's own endpoint, from the browser.
+
+     There is deliberately no falling back to the edge function when this
+     fails. A request that reached Discord but whose reply the browser could
+     not read looks identical to one that never arrived, and trying the other
+     route would post the week twice. Better to say so and let the admin look
+     at the channel — Post again is one click. */
+  function postToWebhook(url, payload) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function (response) {
+      if (response.ok) { return { ok: true }; }
+      return response.text().then(function (body) {
+        return {
+          ok: false,
+          message: 'Discord replied ' + response.status +
+                   (body ? ': ' + body.slice(0, 200) : '')
+        };
+      });
+    }).catch(function (error) {
+      return {
+        ok: false,
+        message: 'the webhook could not be reached (' + error.message + '). ' +
+                 'Check the channel before posting again \u2014 it may have landed anyway.'
+      };
+    });
+  }
+
+  /* --- clearing out the boosters -------------------------------------------- */
+
+  /* A sticker on a game that has been published is written into
+     stats/{year}.js, and that is where it lives from then on. This drops the
+     rows behind those weeks, so the table only ever carries the games still
+     to come and a season's worth of stickers does not pile up.
+
+     Only published weeks, so a sticker on a fixture nobody has played is
+     never taken off a player. */
+  function clearPublishedBoosters(season) {
+    var c = client();
+    if (!c) { return fail(offline()); }
+
+    var weeks = (EGE.publishedWeeks[season] || []).slice();
+    if (!weeks.length) {
+      return Promise.resolve({ ok: false, message: 'No published weeks to clear.' });
+    }
+
+    return c.from(GAME_BOOSTERS).delete().eq('season', season).in('week', weeks)
+      .then(function (res) {
+        if (res.error) { return { ok: false, message: res.error.message }; }
+        return loadGameBoosters(season).then(function () {
+          return {
+            ok: true,
+            message: 'Cleared the stickers on ' + weeks.length +
+                     (weeks.length === 1 ? ' published week.' : ' published weeks.')
+          };
+        });
+      });
   }
 
   /* --- the end of a season ----------------------------------------------- */
@@ -663,6 +874,13 @@ EGE.wallet = (function () {
     allAwards: allAwards,
     syncAwards: syncAwards,
     awardCredits: awardCredits,
-    clearLockedRows: clearLockedRows
+    clearLockedRows: clearLockedRows,
+    loadPublishedWeeks: loadPublishedWeeks,
+    publishedRows: publishedRows,
+    publishWeek: publishWeek,
+    unpublishWeek: unpublishWeek,
+    markPosted: markPosted,
+    postWeekToDiscord: postWeekToDiscord,
+    clearPublishedBoosters: clearPublishedBoosters
   };
 })();

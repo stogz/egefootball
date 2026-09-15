@@ -437,3 +437,62 @@ revoke all on function public.pay_credit_awards(text, integer, jsonb) from publi
 grant execute on function public.pay_credit_awards(text, integer, jsonb) to authenticated;
 
 notify pgrst, 'reload schema';
+
+-- ===========================================================================
+-- Published weeks
+--
+-- A season file can hold every result of the year and the site will still
+-- show none of them. A week becomes real when a row lands here.
+--
+-- This is deliberately not in the repository. The numbers are, but whether
+-- they are out is a switch the admin throws from the admin page, so a week
+-- can be held back while a booster somebody used after the file was written
+-- is put right — and so a week can be pulled back again while testing.
+-- ===========================================================================
+
+create table if not exists public.published_weeks (
+  season       integer     not null,
+  week         integer     not null,
+  published_at timestamptz not null default now(),
+  posted_at    timestamptz,               -- when Discord got it, if it has
+  primary key (season, week)
+);
+
+alter table public.published_weeks enable row level security;
+
+-- Everyone reads it, signed in or not: it is what decides whether a visitor
+-- sees a score at all, and the site is public.
+drop policy if exists "published weeks are readable" on public.published_weeks;
+create policy "published weeks are readable"
+  on public.published_weeks for select
+  using (true);
+
+drop policy if exists "published weeks written by an admin" on public.published_weeks;
+create policy "published weeks written by an admin"
+  on public.published_weeks for insert to authenticated
+  with check (public.is_admin());
+
+drop policy if exists "published weeks updated by an admin" on public.published_weeks;
+create policy "published weeks updated by an admin"
+  on public.published_weeks for update to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+
+-- Pulling a week back is an admin's, and is meant to be easy: testing this
+-- means publishing and unpublishing the same week over and over.
+drop policy if exists "published weeks removed by an admin" on public.published_weeks;
+create policy "published weeks removed by an admin"
+  on public.published_weeks for delete to authenticated
+  using (public.is_admin());
+
+-- ---------------------------------------------------------------------------
+-- Boosters, and why game_boosters stays small
+--
+-- A sticker a player puts on a game still lands in game_boosters, because
+-- that is a live thing a player does to a fixture that has not been played.
+-- Once the week is published the admin writes the booster into stats/{year}.js
+-- and that is where it lives for good — so the row can go, and the table
+-- never carries more than the weeks still to come. The admin page clears them
+-- a season at a time.
+-- ---------------------------------------------------------------------------
+
+notify pgrst, 'reload schema';
