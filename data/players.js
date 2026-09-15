@@ -60,7 +60,7 @@ EGE.players = [
     first: 'Andrew',
     last: 'Parr',
     team: null,               // TBD
-    position: 'RB',
+    position: 'TE',
     jersey: null,             // TBD
     email: null,              // TBD
     headshot: 'headshot/parr.png'
@@ -71,7 +71,7 @@ EGE.players = [
     first: 'Cooper',
     last: 'Clark',
     team: 'carlsbad',
-    position: 'WR',
+    position: 'RB',
     jersey: null,             // TBD
     email: 'cooperclrk@gmail.com',
     headshot: 'headshot/clark.png'

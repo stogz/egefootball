@@ -16,8 +16,8 @@ and in what order.
 
 | Player | School | League | Position |
 | --- | --- | --- | --- |
-| Andrew Parr | TBD | TBD | RB |
-| Cooper Clark | Carlsbad High School | Avocado League | WR |
+| Andrew Parr | TBD | TBD | TE |
+| Cooper Clark | Carlsbad High School | Avocado League | RB |
 | Paxon Hatch | Bloomington High School | Big Twelve | TE |
 | Isaac Vitel | TBD | TBD | QB |
 | Sam Stogsdill | Normal Community High School | Big Twelve | RB |
@@ -106,30 +106,42 @@ positions are confirmed.
 
 ## Ratings
 
-Every player carries the same 53 attributes, in seven groups: General,
-Passing, Receiving, Ball Carrier, Defense, Blocking, Kicking. A group scores
-as the plain average of the attributes inside it.
+Every player carries the same 32 attributes, in four groups: General,
+Passing, Receiving, Ball Carrier. A group scores as the plain average of the
+attributes inside it.
 
 **The overall is those group scores weighted by position.** A quarterback's
-overall leans on passing, a back's on ball carrying, a receiver's on
-receiving — but nothing is ever worth zero, so a quarterback who can block
-still rates above one who can't, just not by much. Weights live in
-`EGE.positionWeights` and are normalised when the overall is worked out, so a
-group can be nudged without rebalancing the others. Positions with no weights
-of their own fall back to `DEFAULT`, which counts everything fairly evenly.
+overall leans on passing, a back's on ball carrying — but nothing is ever
+worth zero, so a quarterback who can carry the ball still rates above one who
+can't, just not by much. Weights live in `EGE.positionWeights` and are
+normalised when the overall is worked out, so a group can be nudged without
+rebalancing the others. Only QB, RB, WR and TE are weighted, since those are
+the positions these four groups describe; anything else falls back to
+`DEFAULT`, which counts every group fairly evenly.
 
 The same attributes score very differently by position, which is the point:
 
 | Isaac Vitel's ratings, scored as | Overall |
 | --- | --- |
-| QB | 78 |
-| RB | 60 |
-| WR | 51 |
-| OL | 40 |
+| QB | 48 |
+| RB | 37 |
+| WR | 32 |
+| TBD | 40 |
 
-**The values in the file are placeholders** — randomly generated inside bands
-that suit each position, so the weighting can be seen working. Replace them
-with real numbers as they are decided; nothing else has to change.
+**The values in the file are placeholders.** They put every player near 50
+overall, in this order:
+
+| Player | Position | Overall |
+| --- | --- | --- |
+| Jaykeb Stewart | QB | 55 |
+| Cooper Clark | RB | 53 |
+| Andrew Parr | TE | 51 |
+| Sam Stogsdill | RB | 50 |
+| Isaac Vitel | QB | 48 |
+| Paxon Hatch | TE | 46 |
+
+Replace them with real numbers as they are decided; nothing else has to
+change.
 
 ---
 
