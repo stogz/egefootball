@@ -37,7 +37,7 @@ EGE.stats[2018] = {
     'andrew-parr': [
       { week:  1, date: '2018-08-18', kickoff: '7:00pm',
         opponent: 'Millbrook', home: true, conference: false,
-        result: { teamScore: 28, opponentScore: 3 }, booster: null,
+        result: { teamScore: 42, opponentScore: 10 }, booster: null,
         stats: {
           receptions: 5, receivingYards: 52, receivingYac: 6,
           receivingTd: 0, receivingLong: 13, targets: 9, carries: 0,
@@ -127,7 +127,7 @@ EGE.stats[2018] = {
         } },
       { week: 12, date: '2018-11-03', kickoff: '7:00pm',
         opponent: 'Heritage', home: true, conference: true, scouts: true,
-        result: { teamScore: 42, opponentScore: 3 }, booster: 'boost-2-0',
+        result: { teamScore: 42, opponentScore: 3 }, booster: null,
         stats: {
           receptions: 9, receivingYards: 107, receivingYac: 14,
           receivingTd: 1, receivingLong: 17, targets: 9, carries: 0,
@@ -203,7 +203,7 @@ EGE.stats[2018] = {
         } },
       { week: 10, date: '2018-10-20', kickoff: '7:00pm',
         opponent: 'Torrey Pines', home: true, conference: true, scouts: true,
-        result: { teamScore: 41, opponentScore: 21 }, booster: 'boost-2-5',
+        result: { teamScore: 41, opponentScore: 21 }, booster: null,
         stats: {
           carries: 19, rushingYards: 159, rushingTd: 2, rushingLong: 37,
           receptions: 2, receivingYards: 43, receivingYac: 20,
@@ -243,7 +243,7 @@ EGE.stats[2018] = {
         } },
       { week:  3, date: '2018-09-01', kickoff: '7:00pm',
         opponent: 'Normal Community', home: false, conference: true, scouts: true,
-        result: { teamScore: 10, opponentScore: 13 }, booster: 'boost-1-5',
+        result: { teamScore: 10, opponentScore: 13 }, booster: null,
         stats: {
           receptions: 4, receivingYards: 45, receivingYac: 15,
           receivingTd: 1, receivingLong: 17, targets: 8, carries: 0,
@@ -331,7 +331,7 @@ EGE.stats[2018] = {
         } },
       { week:  3, date: '2018-09-01', kickoff: '7:00pm',
         opponent: 'Bloomington', home: true, conference: true, scouts: true,
-        result: { teamScore: 13, opponentScore: 10 }, booster: 'boost-2-0',
+        result: { teamScore: 13, opponentScore: 10 }, booster: null,
         stats: {
           carries: 14, rushingYards: 86, rushingTd: 0, rushingLong: 26,
           receptions: 1, receivingYards: 12, receivingYac: 0,
@@ -443,7 +443,7 @@ EGE.stats[2018] = {
         } },
       { week:  9, date: '2018-10-13', kickoff: '7:00pm',
         opponent: 'Golden Gate', home: false, conference: true,
-        result: { teamScore: 17, opponentScore: 31 }, booster: 'boost-1-5',
+        result: { teamScore: 17, opponentScore: 31 }, booster: null,
         stats: {
           completions: 12, attempts: 22, passingYards: 187,
           passingYac: 43, passingTd: 2, interceptions: 0, carries: 2,
