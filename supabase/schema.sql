@@ -184,3 +184,48 @@ create policy "inventory readable to all but intel"
     or email = auth.jwt() ->> 'email'
     or public.is_admin()
   );
+
+-- Repeat purchases of the same thing are one row with a quantity, not a row
+-- each: a player buying eighty rating points should leave a handful of rows,
+-- not eighty. Training stays one row per purchase, because each carries its
+-- own roll.
+alter table public.player_inventory
+  add column if not exists quantity integer not null default 1;
+
+-- Anything bought before this existed is one row per purchase. Fold those
+-- together first, or the unique index below will refuse to build.
+with stacked as (
+  select
+    min(id::text)::uuid as keep_id,
+    email, item_key, coalesce(target, '') as target_key,
+    sum(quantity)  as total_quantity,
+    sum(credits)   as total_credits
+  from public.player_inventory
+  where item_key = 'upgrade' or consumable
+  group by email, item_key, coalesce(target, '')
+  having count(*) > 1
+)
+update public.player_inventory inv
+set quantity = stacked.total_quantity,
+    credits  = stacked.total_credits,
+    effects  = case
+                 when inv.item_key = 'upgrade' and inv.target is not null
+                 then jsonb_build_object(inv.target, stacked.total_quantity)
+                 else inv.effects
+               end
+from stacked
+where inv.id = stacked.keep_id;
+
+delete from public.player_inventory inv
+using (
+  select id, row_number() over (
+    partition by email, item_key, coalesce(target, '') order by purchased_at
+  ) as seq
+  from public.player_inventory
+  where item_key = 'upgrade' or consumable
+) dupes
+where inv.id = dupes.id and dupes.seq > 1;
+
+create unique index if not exists player_inventory_stacked_idx
+  on public.player_inventory (email, item_key, coalesce(target, ''))
+  where item_key = 'upgrade' or consumable;

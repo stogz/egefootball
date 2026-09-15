@@ -196,29 +196,53 @@ EGE.wallet = (function () {
 
       var effects = item.needsTarget ? effectsForTarget(item, target) : rollEffects(item);
 
-      return c.from(INVENTORY).insert({
-        email: email,
-        item_key: item.key,
-        item_name: EGE.itemName(item, player),
-        target: target || null,
-        credits: price,
-        effects: effects,
-        consumable: Boolean(item.consumable),
-        season: item.seasonBound ? EGE.currentSeason : null,
-        active: !item.consumable      /* a booster is in effect only once used */
-      }).then(function (res) {
-        if (res.error) { return { ok: false, message: res.error.message }; }
-        return setCredits(email, balance - price).then(function (spent) {
-          if (!spent.ok) { return spent; }
-          return {
-            ok: true,
-            effects: effects,
-            message: 'Bought ' + EGE.itemName(item, player) + ' for ' + price + ' credits.',
-            credits: spent.credits
-          };
+      return inventoryFor(email).then(function (rows) {
+        var existing = item.consumable ? stackedRow(rows, item.key, null) : null;
+
+        var write = existing
+          ? c.from(INVENTORY).update({
+              quantity: quantityOf(existing) + 1,
+              credits: (existing.credits || 0) + price
+            }).eq('id', existing.id)
+          : c.from(INVENTORY).insert({
+              email: email,
+              item_key: item.key,
+              item_name: EGE.itemName(item, player),
+              target: target || null,
+              quantity: 1,
+              credits: price,
+              effects: effects,
+              consumable: Boolean(item.consumable),
+              season: item.seasonBound ? EGE.currentSeason : null,
+              active: !item.consumable   /* a booster is in effect only once used */
+            });
+
+        return write.then(function (res) {
+          if (res.error) { return { ok: false, message: res.error.message }; }
+          return setCredits(email, balance - price).then(function (spent) {
+            if (!spent.ok) { return spent; }
+            return {
+              ok: true,
+              effects: effects,
+              message: 'Bought ' + EGE.itemName(item, player) + ' for ' + price + ' credits.',
+              credits: spent.credits
+            };
+          });
         });
       });
     });
+  }
+
+  /* Things bought over and over stack onto one row: rating points and
+     performance boosters both keep a quantity rather than a row apiece. */
+  function stackedRow(rows, itemKey, target) {
+    return (rows || []).filter(function (row) {
+      return row.item_key === itemKey && (row.target || null) === (target || null);
+    })[0] || null;
+  }
+
+  function quantityOf(row) {
+    return typeof row.quantity === 'number' ? row.quantity : 1;
   }
 
   /* Buys one point on one attribute. The price comes from what the attribute
@@ -246,29 +270,42 @@ EGE.wallet = (function () {
         };
       }
 
-      var effects = {};
-      effects[attributeKey] = 1;
+      return inventoryFor(email).then(function (rows) {
+        var existing = stackedRow(rows, 'upgrade', attributeKey);
+        var points = existing ? quantityOf(existing) + 1 : 1;
+        var effects = {};
+        effects[attributeKey] = points;
 
-      return c.from(INVENTORY).insert({
-        email: email,
-        item_key: 'upgrade',
-        item_name: attribute.label,
-        target: attributeKey,
-        credits: attribute.cost,
-        effects: effects,
-        consumable: false,
-        season: null,
-        active: true
-      }).then(function (res) {
-        if (res.error) { return { ok: false, message: res.error.message }; }
-        return setCredits(email, balance - attribute.cost).then(function (spent) {
-          if (!spent.ok) { return spent; }
-          return {
-            ok: true,
-            message: attribute.label + ' ' + attribute.value + ' \u2192 ' + (attribute.value + 1) +
-                     ' for ' + attribute.cost + ' credits.',
-            credits: spent.credits
-          };
+        var write = existing
+          ? c.from(INVENTORY).update({
+              quantity: points,
+              effects: effects,
+              credits: (existing.credits || 0) + attribute.cost
+            }).eq('id', existing.id)
+          : c.from(INVENTORY).insert({
+              email: email,
+              item_key: 'upgrade',
+              item_name: attribute.label,
+              target: attributeKey,
+              quantity: 1,
+              credits: attribute.cost,
+              effects: effects,
+              consumable: false,
+              season: null,
+              active: true
+            });
+
+        return write.then(function (res) {
+          if (res.error) { return { ok: false, message: res.error.message }; }
+          return setCredits(email, balance - attribute.cost).then(function (spent) {
+            if (!spent.ok) { return spent; }
+            return {
+              ok: true,
+              message: attribute.label + ' ' + attribute.value + ' \u2192 ' + (attribute.value + 1) +
+                       ' for ' + attribute.cost + ' credits.',
+              credits: spent.credits
+            };
+          });
         });
       });
     });
@@ -276,16 +313,25 @@ EGE.wallet = (function () {
 
   /* --- using and toggling ------------------------------------------------ */
 
-  /* A performance booster is spent the moment it is used, so the row goes:
-     the inventory is what a player still has. */
+  /* A performance booster is spent the moment it is used: one comes off the
+     pile, and the row goes when the last one does. The inventory is what a
+     player still has, not a receipt book. */
   function useItem(row) {
     var c = client();
     if (!c) { return fail(offline()); }
     if (!row.consumable) { return fail('That one is not used up.'); }
 
-    return c.from(INVENTORY).delete().eq('id', row.id).then(function (res) {
+    var left = quantityOf(row) - 1;
+    var write = left > 0
+      ? c.from(INVENTORY).update({ quantity: left }).eq('id', row.id)
+      : c.from(INVENTORY).delete().eq('id', row.id);
+
+    return write.then(function (res) {
       if (res.error) { return { ok: false, message: res.error.message }; }
-      return { ok: true, message: row.item_name + ' used.' };
+      return {
+        ok: true,
+        message: row.item_name + ' used' + (left > 0 ? ' \u2014 ' + left + ' left.' : '.')
+      };
     });
   }
 
@@ -309,6 +355,26 @@ EGE.wallet = (function () {
     return c.from(INVENTORY).delete().eq('id', row.id).then(function (res) {
       if (res.error) { return { ok: false, message: res.error.message }; }
       return { ok: true, message: row.item_name + ' removed.' };
+    });
+  }
+
+  /* Takes one off a stack, keeping the row until it empties. */
+  function decrement(row) {
+    var c = client();
+    if (!c) { return fail(offline()); }
+
+    var left = quantityOf(row) - 1;
+    if (left <= 0) { return removeItem(row); }
+
+    var patch = { quantity: left };
+    if (row.item_key === 'upgrade' && row.target) {
+      patch.effects = {};
+      patch.effects[row.target] = left;
+    }
+
+    return c.from(INVENTORY).update(patch).eq('id', row.id).then(function (res) {
+      if (res.error) { return { ok: false, message: res.error.message }; }
+      return { ok: true, message: row.item_name + ' down to ' + left + '.' };
     });
   }
 
@@ -362,6 +428,8 @@ EGE.wallet = (function () {
     useItem: useItem,
     setActive: setActive,
     removeItem: removeItem,
+    decrement: decrement,
+    quantityOf: quantityOf,
     grant: grant
   };
 })();

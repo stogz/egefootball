@@ -452,12 +452,20 @@
   function inventoryCard(row, options) {
     var lapsed = EGE.wallet.lapsed(row);
     var live = row.active && !lapsed;
+    var quantity = EGE.wallet.quantityOf(row);
+    var isUpgrade = row.item_key === 'upgrade';
     var card = el('div', 'ege-item' + (live ? ' ege-item--active' : '') +
       (lapsed ? ' ege-item--locked' : ''));
 
-    var state = lapsed ? 'Expired' : (row.active ? 'In effect' : (row.consumable ? 'Unused' : 'Off'));
+    /* Points read as what they are: Catching +5. Everything else keeps its
+       name and carries a count when there is more than one. */
+    var state = isUpgrade
+      ? '+' + quantity
+      : (lapsed ? 'Expired' : (row.active ? 'In effect' : (row.consumable ? 'Unused' : 'Off')));
+
     var head = el('div', 'ege-item__head');
-    head.appendChild(el('h4', 'ege-item__name', row.item_name));
+    head.appendChild(el('h4', 'ege-item__name',
+      row.item_name + (!isUpgrade && quantity > 1 ? ' \u00d7' + quantity : '')));
     head.appendChild(el('span', 'fb-tag fb-tag--num ' +
       (live ? 'fb-tag--sage' : (lapsed ? 'fb-tag--clay' : 'fb-tag--outline')), state));
     card.appendChild(head);
@@ -468,8 +476,9 @@
         : 'Good for the ' + row.season + ' season only.'));
     }
 
-    if (row.target) {
-      card.appendChild(el('p', 'ege-item__text', 'Applied to ' + targetLabel(row.target) + '.'));
+    if (isUpgrade) {
+      card.appendChild(el('p', 'ege-item__text',
+        (row.credits || 0) + ' credits spent, all of it in the rating.'));
     } else if (row.effects && Object.keys(row.effects).length) {
       card.appendChild(el('p', 'ege-item__text', Object.keys(row.effects).map(function (attr) {
         return targetLabel(attr) + ' ' + (row.effects[attr] > 0 ? '+' : '') + row.effects[attr];
@@ -478,7 +487,21 @@
 
     var actions = el('div', 'fb-row fb-row--wrap');
 
-    if (row.consumable) {
+    if (isUpgrade) {
+      if (options.admin) {
+        var minus = el('button', 'fb-btn', '\u22121');
+        minus.type = 'button';
+        minus.title = 'Take one point back';
+        minus.addEventListener('click', function () {
+          minus.disabled = true;
+          EGE.wallet.decrement(row).then(function (res) {
+            options.report(res.message, !res.ok);
+            options.refresh();
+          });
+        });
+        actions.appendChild(minus);
+      }
+    } else if (row.consumable) {
       var use = el('button', 'fb-btn fb-btn--primary', 'Use');
       use.type = 'button';
       use.title = 'Using it spends it';
@@ -563,22 +586,7 @@
     var summary = buildBoostSummary(boostSummary(shopState.inventory));
     if (summary) { applied.appendChild(summary); }
 
-    /* Points are summed above, not listed: there will be hundreds. */
-    var points = shopState.inventory.filter(function (row) { return row.item_key === 'upgrade'; });
-    if (points.length) {
-      var spent = points.reduce(function (sum, row) { return sum + (row.credits || 0); }, 0);
-      var card = el('div', 'ege-item ege-item--active');
-      var head = el('div', 'ege-item__head');
-      head.appendChild(el('h4', 'ege-item__name', 'Rating Points'));
-      head.appendChild(el('span', 'fb-tag fb-tag--num fb-tag--sage', '\u00d7' + points.length));
-      card.appendChild(head);
-      card.appendChild(el('p', 'ege-item__text',
-        spent + ' credits spent on points so far, all of it in your ratings.'));
-      holder.appendChild(card);
-    }
-
     shopState.inventory.forEach(function (row) {
-      if (row.item_key === 'upgrade') { return; }
       holder.appendChild(inventoryCard(row, {
         admin: false,
         report: sayShop,

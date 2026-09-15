@@ -246,7 +246,12 @@ the page as a collapsible panel rather than taking up the top of it. Anything
 unspent carries into the next offseason.
 
 **Your Inventory** heads the page: what this player owns, what is in effect,
-and the balance. Buying deducts credits and drops the item in. A performance
+and the balance. Anything bought repeatedly is one row with a quantity rather
+than a row per purchase — points read as *Catching +5*, boosters as *1.5x
+Booster ×3* — in the inventory, in the admin panel, and in the database. Using
+a booster takes one off the pile; the row goes when the last one does.
+Training is the exception and stays one row per purchase, since each carries
+its own roll. Buying deducts credits and drops the item in. A performance
 booster is held unused until it is used, and using it deletes it — the
 inventory is what a player still has, not a receipt book. Everything else
 carries an in-effect switch that can be turned off and on. A stat booster
@@ -301,6 +306,9 @@ cost = 40 / (99 - rating + 1)
 A credit or two while a player is young and unformed, twenty-odd once they
 are nearly maxed. That is what slows development down by the time they reach
 the NFL, without ever capping it.
+
+Points on the same attribute stack onto one row, so eighty points across a
+career leave a handful of rows rather than eighty.
 
 The table shows every attribute the position uses, what it is at, how many
 points of it are worth one overall, and what the next one costs — **ordered
