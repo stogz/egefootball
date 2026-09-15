@@ -118,6 +118,82 @@ EGE.discordPost = (function () {
 
   function code(text) { return '`' + text + '`'; }
 
+  /* --- the whole line, in a block -------------------------------------------- */
+
+  /* Every typed number as `5 REC, 52 REYDS, ...`, wrapped so it reads as a
+     couple of lines rather than one long one. 42 characters is what fits a
+     Discord code block without wrapping again on a phone. */
+  var LINE_WIDTH = 42;
+
+  function statBlock(player, stats) {
+    var pairs = EGE.statline.fieldsFor(player.position, stats).map(function (field) {
+      return field.value + ' ' + field.label;
+    });
+
+    var lines = [];
+    var line = '';
+    pairs.forEach(function (pair) {
+      var next = line ? line + ', ' + pair : pair;
+      if (line && next.length > LINE_WIDTH) { lines.push(line); line = pair; } else { line = next; }
+    });
+    if (line) { lines.push(line); }
+
+    return '```\n' + lines.join('\n') + '\n```';
+  }
+
+  /* --- the three that matter ------------------------------------------------- */
+
+  /* `5/9, 52YDS` — what he did with what he was given. Nothing to report
+     collapses to a nought rather than spelling out three zeroes. */
+  function outOf(made, given, yards) {
+    if (!given) { return '0'; }
+    return made + '/' + given + ', ' + yards + 'YDS';
+  }
+
+  /* `14 CAR, 76YDS`. Carrying has no attempts to fall short of, so it says
+     how many rather than how many of how many. */
+  function runs(carries, yards) {
+    if (!carries) { return '0'; }
+    return carries + ' CAR, ' + yards + 'YDS';
+  }
+
+  function touchdowns(player, stats) {
+    return String(EGE.economy.touchdownsIn(stats));
+  }
+
+  /* The headline three, in the order each position is read in: what he did
+     most of first, and what he did least of last. */
+  var SUMMARY = {
+    QB: [
+      { label: 'Touchdowns/Interceptions',
+        text: function (p, s) { return touchdowns(p, s) + '/' + (s.interceptions || 0); } },
+      { label: 'Passing',
+        text: function (p, s) { return outOf(s.completions, s.attempts, s.passingYards); } },
+      { label: 'Rushing',
+        text: function (p, s) { return runs(s.carries, s.rushingYards); } }
+    ],
+    RB: [
+      { label: 'Touchdowns', text: touchdowns },
+      { label: 'Rushing',
+        text: function (p, s) { return runs(s.carries, s.rushingYards); } },
+      { label: 'Receiving',
+        text: function (p, s) { return outOf(s.receptions, s.targets, s.receivingYards); } }
+    ],
+    TE: [
+      { label: 'Touchdowns', text: touchdowns },
+      { label: 'Receiving',
+        text: function (p, s) { return outOf(s.receptions, s.targets, s.receivingYards); } },
+      { label: 'Rushing',
+        text: function (p, s) { return runs(s.carries, s.rushingYards); } }
+    ]
+  };
+
+  SUMMARY.WR = SUMMARY.TE;
+
+  function summaryFor(player) {
+    return SUMMARY[player.position] || SUMMARY.TE;
+  }
+
   /* --- one game -------------------------------------------------------------- */
 
   function buildEmbed(player, game, options) {
@@ -153,8 +229,9 @@ EGE.discordPost = (function () {
 
     /* The headline, and the one link in the embed: his own page. It is the
        description rather than the title because a title renders as flat text
-       — the score would lose its box. */
-    embed.description = played
+       — the score would lose its box, and a code block could not go under
+       it at all. */
+    var headline = played
       ? '[' + (won ? 'W' : 'L') + ' ' +
         code(game.result.teamScore + '-' + game.result.opponentScore) + ' ' +
         matchup + '](' + playerUrl(siteUrl, player) + ')'
@@ -163,25 +240,33 @@ EGE.discordPost = (function () {
     if (played && game.stats) {
       var stats = EGE.statline.complete(player.position, game.stats);
 
-      /* A field each, in the order his position's line reads. The averages
-         and the totals are not here: they follow from these. */
-      EGE.statline.fieldsFor(player.position, stats).forEach(function (field) {
-        embed.fields.push({ name: field.label, value: code(field.value), inline: true });
+      embed.description = headline + '\n' + statBlock(player, stats);
+
+      /* Three summaries under the block. The number is the field's name and
+         the heading is its value, because Discord draws a name above its
+         value and the number is what should be read first. */
+      summaryFor(player).forEach(function (part) {
+        embed.fields.push({
+          name: part.text(player, stats),
+          value: part.label,
+          inline: true
+        });
       });
 
       var credits = EGE.economy.touchdownCredits(player, stats);
       if (credits) {
-        embed.fields.push({ name: 'Credits', value: code('+' + credits), inline: true });
+        embed.fields.push({ name: '+' + credits, value: 'Credits', inline: true });
       }
-    } else if (!played) {
-      embed.fields.push({ name: 'Kickoff', value: code(kickoffLabel(game)), inline: true });
-      embed.fields.push({ name: 'Where', value: code(game.home ? 'Home' : 'Away'), inline: true });
+    } else {
+      embed.description = headline;
+      embed.fields.push({ name: kickoffLabel(game), value: 'Kickoff', inline: true });
+      embed.fields.push({ name: game.home ? 'Home' : 'Away', value: 'Where', inline: true });
       if (game.conference) {
-        embed.fields.push({ name: 'Conference', value: code('Yes'), inline: true });
+        embed.fields.push({ name: 'Yes', value: 'Conference', inline: true });
       }
     }
 
-    embed.footer = { text: player.name };
+    embed.footer = { text: 'EGE Football Simulation' };
 
     /* Rendered in whoever is reading's own time zone, which is the whole
        point of sending an instant rather than a printed time. */

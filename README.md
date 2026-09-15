@@ -187,22 +187,39 @@ An embed reads top to bottom as:
 | | |
 | --- | --- |
 | **Author** | the school, with its mark. Not a link — there is nothing on the site to send anybody to for a school |
-| **Headline** | `W `28-3` vs. Millbrook`, and the one link in the embed: the player's own page. The score is in backticks, so it sits in a box |
+| **Headline** | ``W `28-3` vs. Millbrook``, and the one link in the embed: the player's own page. The score is in backticks, so it sits in a box |
+| **Block** | the whole stat line as `5 REC, 52 REYDS, 6 YAC, …`, wrapped at 42 characters so it reads as a couple of lines and does not wrap again on a phone |
+| **Fields** | three summaries, the number above its heading |
 | **Thumbnail** | the player's headshot. The post is about him, not his school |
-| **Fields** | one per stat, three to a row, each value in backticks |
-| **Footer** | the player's name |
+| **Footer** | EGE Football Simulation |
 | **Timestamp** | when the game actually kicked off |
 | **Spine** | green for a win, clay for a loss, gold for a game not yet played |
 
-The headline is the embed's *description* rather than its title, because a
-title renders as flat text and the score would lose its box.
+The headline and the block are the embed's *description* rather than its
+title, because a title renders as flat text — the score would lose its box and
+a code block could not go under it at all.
 
-The fields are the **typed** stats — the ones in `stats/{year}.js`. The
+The block carries the **typed** stats — the ones in `stats/{year}.js`. The
 averages, the totals and the passer rating are left out, because they follow
-from the numbers beside them rather than standing alongside them. For a tight
-end that is REC, REYDS, YAC, RETD, LNG, TGT, CAR, RUYDS, RUTD, LNG, FL; for a
-quarterback, C and ATT as separate fields, then PYDS, PYAC, PTD, INT and the
-rest. Credits earned come last when the game paid any.
+from the numbers beside them rather than standing alongside them.
+
+The three summaries are the headline numbers for that position, most of what
+he does first:
+
+| | | | |
+| --- | --- | --- | --- |
+| **QB** | Touchdowns/Interceptions | Passing | Rushing |
+| **RB** | Touchdowns | Rushing | Receiving |
+| **TE**, **WR** | Touchdowns | Receiving | Rushing |
+
+Passing and receiving read as what he did with what he was given —
+`9/18, 118YDS`, `5/9, 52YDS`. Carrying has no attempts to fall short of, so it
+says how many rather than how many of how many: `19 CAR, 159YDS`. Nothing to
+report collapses to a nought rather than spelling out three zeroes. Credits
+earned come last when the game paid any.
+
+The number is the field's name and the heading is its value, because Discord
+draws a name above its value and the number is what should be read first.
 
 A game that has not been played shows the matchup, the kickoff, home or away,
 and whether it is a conference game instead.
