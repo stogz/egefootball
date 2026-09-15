@@ -133,6 +133,37 @@ EGE.statline = (function () {
     return LINES[position] || LINES.WR;
   }
 
+  /* Where one column covers two numbers, what each of them is called on its
+     own — C/ATT is one column but two things to type, and two fields in a
+     Discord post. */
+  var KEY_LABELS = { completions: 'C', attempts: 'ATT' };
+
+  /* What to call a single raw number. Falls back to the label of whichever
+     column carries it, which is why both longs come out as LNG. */
+  function labelFor(position, key) {
+    if (KEY_LABELS[key]) { return KEY_LABELS[key]; }
+
+    var column = lineFor(position).filter(function (c) {
+      return c.key === key || (c.edits || []).indexOf(key) !== -1;
+    })[0];
+    return column ? column.label : key;
+  }
+
+  /* The typed numbers as label-and-value pairs, in the order the line reads.
+     What the season editor asks for, and what a Discord post carries a field
+     apiece of — the averages and totals are left out of both, because they
+     follow from these rather than standing beside them. */
+  function fieldsFor(position, stats) {
+    var line = stats || {};
+    return keysFor(position).map(function (key) {
+      return {
+        key: key,
+        label: labelFor(position, key),
+        value: show(line[key])
+      };
+    });
+  }
+
   /* The raw numbers a position's line is typed from — everything the editor
      has to ask for, with the worked-out columns left out. */
   function keysFor(position) {
@@ -205,6 +236,8 @@ EGE.statline = (function () {
   return {
     lineFor: lineFor,
     keysFor: keysFor,
+    labelFor: labelFor,
+    fieldsFor: fieldsFor,
     complete: complete,
     totalLine: totalLine,
     passerRating: passerRating,

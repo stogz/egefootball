@@ -178,30 +178,107 @@ change.
 four times a day, walking the season out slowly:
 
 ```
-## Week 3
-{one embed per player who actually played}
+## Week Three
+{one embed per player with a game that week}
 ```
 
-Each embed carries the player as its author — name, headshot, and a link to
-their page on the site — their school's mark as the thumbnail, and the school
-and league in the footer. What sits between depends on whether the game has
-been played:
+An embed reads top to bottom as:
 
-- **A fixture** shows the matchup, the kickoff, home or away, and whether it
-  is a conference game. Gold spine.
-- **A final** shows the result and score in the title, the player's stat line
-  in fields, and the record through that week in the footer. Green for a win,
-  clay for a loss.
+| | |
+| --- | --- |
+| **Author** | the school, with its mark. Not a link — there is nothing on the site to send anybody to for a school |
+| **Headline** | ``W `28-3` vs. Millbrook``, and the one link in the embed: the player's own page. The score is in backticks, so it sits in a box |
+| **Block** | the whole stat line as a three-line grid, four numbers to a line, columns aligned |
+| **Fields** | three summaries, the number above its heading |
+| **Thumbnail** | the player's headshot. The post is about him, not his school |
+| **Footer** | EGE Football Simulation |
+| **Timestamp** | when the game actually kicked off |
+| **Spine** | green for a win, clay for a loss, gold for a game not yet played |
 
-Nothing has been played yet, so every embed is currently a fixture. A game
-gains a `result` and `stats` in `stats/{year}.js`, and once the week is
-published the same post starts
-reporting it.
+The headline and the block are the embed's *description* rather than its
+title, because a title renders as flat text — the score would lose its box and
+a code block could not go under it at all.
 
-When our own schools meet — Bloomington at Normal Community in week 3 — the
-opponent's mark rides in the footer icon, which is as close to both crests as
-one embed allows. Other opponents have no mark in the repo, so the footer
-simply goes without.
+The block carries the **typed** stats — the ones in `stats/{year}.js`. The
+averages, the totals and the passer rating are left out, because they follow
+from the numbers beside them rather than standing alongside them.
+
+The three summaries are the headline numbers for that position, most of what
+he does first:
+
+| | | | |
+| --- | --- | --- | --- |
+| **QB** | Touchdowns/INT | Passing | Rushing |
+| **RB** | Touchdowns | Rushing | Receiving |
+| **TE**, **WR** | Touchdowns | Receiving | Rushing |
+
+Passing and receiving read as what he did with what he was given — `9/18, 118`
+and `5/9, 52` are the same shape. Carrying has no attempts to fall short of,
+so it says how many rather than how many of how many: `19 CAR, 159`. Nothing
+to report collapses to a nought rather than spelling out zeroes.
+
+The number is the field's name and the heading is its value, because Discord
+draws a name above its value and the number is what should be read first.
+
+A game that has not been played keeps the same shape: the kickoff, home or
+away, and whether it is a conference game fill the three block lines, and the
+three summaries show dashes.
+
+### Every embed is the same height
+
+A week of posts should read as a column, not a staircase, so the layout is
+fixed rather than following the numbers:
+
+- **The block is always three lines.** Four numbers to a line does it: a
+  quarterback's twelve fill three rows exactly, and everybody else's eleven
+  leave one gap on the last row. Wrapping by character width — the obvious
+  way — gave two lines for one player and three for the next.
+- **There are always exactly three fields.** A fourth wraps onto a second row
+  and makes that embed taller than the one above it, which is why credits
+  earned are no longer among them.
+- **Nothing in a field is wide enough to wrap.** A field column is about 95
+  pixels on a phone. `Touchdowns/Interceptions` measures 150, so the heading
+  is `Touchdowns/INT`; `12/18, 187YDS` measures 95 exactly and
+  `24 CAR, 287YDS` measures 110, so the yards go without a `YDS` suffix that
+  the heading underneath was saying for them anyway. The widest either gets
+  now is 81.
+
+Checked by rendering all 47 games of the season, plus a fixture, at desktop
+and phone width: every one comes out the same height.
+
+### And the same width
+
+Discord sizes an embed to its widest content, so a quiet game came out
+narrower than a busy one and the right-hand edge moved from post to post. Two
+things hold it still:
+
+- **Every block line is padded to 39 characters.** Inside a code block
+  ordinary spaces are kept rather than collapsed, and the font is monospaced,
+  so 39 characters is always the same number of pixels whatever is in them.
+  39 is what the format can produce at its widest — every number three digits
+  — and it is under the 41 or so a phone will take without wrapping.
+- **A transparent spacer image, `icon/spacer.png`.** Discord scales an embed
+  image down to the embed's maximum width, so one deliberately wider than any
+  embed pins it to that maximum. It is 1600×2 and entirely transparent, 92
+  bytes, and under a pixel tall once scaled.
+
+There is no invisible *character* that does this job. A zero-width space is
+zero wide by definition, and a braille blank — the usual suggestion — is a
+character in a proportional font, so a run of them is only ever approximately
+as wide as the next run. An image is measured.
+
+### The kickoff timestamp
+
+A Discord timestamp is an instant, and it renders in whoever is reading's own
+time zone. A 7:00pm kickoff is not an instant until you know where it was, and
+a Carlsbad game and a Wake Forest game both listed at 7:00pm are three hours
+apart — so every school carries a `zone` in `data/players.js`.
+
+Working out the instant is two steps: read the naive time as if it were UTC,
+ask what that instant looks like on the school's clock, and take the gap back
+off. Daylight saving comes out right because the zone answers for the day in
+question rather than for today. A game with no kickoff time, or a player with
+no school yet, simply goes without a timestamp.
 
 A player on a bye, one with no game that week, and one with no schedule at
 all are left out of the post rather than shown empty.

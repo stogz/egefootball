@@ -243,7 +243,7 @@ EGE.stats[2018] = {
         } },
       { week:  3, date: '2018-09-01', kickoff: '7:00pm',
         opponent: 'Normal Community', home: false, conference: true, scouts: true,
-        result: { teamScore: 10, opponentScore: 10 }, booster: 'boost-1-5',
+        result: { teamScore: 10, opponentScore: 13 }, booster: 'boost-1-5',
         stats: {
           receptions: 4, receivingYards: 45, receivingYac: 15,
           receivingTd: 1, receivingLong: 17, targets: 8, carries: 0,
@@ -331,7 +331,7 @@ EGE.stats[2018] = {
         } },
       { week:  3, date: '2018-09-01', kickoff: '7:00pm',
         opponent: 'Bloomington', home: true, conference: true, scouts: true,
-        result: { teamScore: 10, opponentScore: 10 }, booster: 'boost-2-0',
+        result: { teamScore: 13, opponentScore: 10 }, booster: 'boost-2-0',
         stats: {
           carries: 14, rushingYards: 86, rushingTd: 0, rushingLong: 26,
           receptions: 1, receivingYards: 12, receivingYac: 0,
