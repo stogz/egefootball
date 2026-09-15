@@ -338,10 +338,14 @@
       return slot;
     }
 
-    /* A booster goes on a game that has not been played. A week the admin is
-       holding back has still been played in the file, so the sticker drawer
-       closes when the result is written rather than when it goes out. */
-    if (mine && !played && !EGE.hasResult(game)) {
+    /* A booster goes on any game that has not been published yet.
+
+       Not "any game with no result in it" — the season is written up front,
+       so every game has a result from day one and that would mean nobody
+       could ever use a booster. Holding a week back is exactly the window in
+       which a player puts a sticker on it and the admin writes it into the
+       file before putting the week out. */
+    if (mine && !played) {
       var add = el('button', 'ege-slot__add', '+');
       add.type = 'button';
       add.title = 'Put a booster on this game';
