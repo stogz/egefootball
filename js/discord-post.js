@@ -155,7 +155,7 @@ EGE.discordPost = (function () {
       return row.map(function (cell, column) {
         return padStart(cell.value, valueWidth[column]) + ' ' +
                padEnd(cell.label, labelWidth[column]);
-      }).join('  ').replace(/\s+$/, '');
+      }).join('  ');
     });
   }
 
@@ -171,11 +171,33 @@ EGE.discordPost = (function () {
     return out;
   }
 
-  /* Always three lines, so a short line never shortens the embed. */
+  /* How wide the block is, in characters — and so how wide the embed is.
+
+     Discord sizes an embed to its widest content, so a quiet game came out
+     narrower than a busy one and the right-hand edge moved from post to post.
+     Padding every line to the same length fixes it in place.
+
+     No invisible character is needed for this, and the one people reach for
+     would not work anyway: a zero-width space is, as the name says, zero
+     wide. Inside a code block ordinary spaces are kept rather than collapsed,
+     and the font is monospaced, so 39 characters is always the same number of
+     pixels whatever is in them.
+
+     39 is what the format can produce at its widest — every number three
+     digits, which is a tight team of tight ends short of a stat line anybody
+     will post. Wider would be wasted, and wide enough to wrap on a phone,
+     where the block has about 41 characters to play with. */
+  var BLOCK_WIDTH = 39;
+
+  /* Always three lines of always the same length, so neither the height nor
+     the width of an embed depends on what happened in the game. */
   function asBlock(lines) {
     var out = lines.slice(0, 3);
     while (out.length < 3) { out.push(''); }
-    return '```\n' + out.join('\n') + '\n```';
+
+    return '```\n' + out.map(function (line) {
+      return padEnd(line, BLOCK_WIDTH);
+    }).join('\n') + '\n```';
   }
 
   function statBlock(player, stats) {
@@ -326,6 +348,21 @@ EGE.discordPost = (function () {
         inline: true
       });
     });
+
+    /* Pins the embed to its full width, so the right-hand edge lands in the
+       same place on every post rather than shrinking to fit a quiet game.
+
+       There is no invisible *character* that will do this. A zero-width space
+       is zero wide by definition, and a braille blank — the usual suggestion —
+       is a character in a proportional font, so a run of them is only ever
+       approximately as wide as the next run. An image is measured: Discord
+       scales an embed image down to the embed's maximum width, so one that is
+       deliberately wider than any embed pins it there exactly.
+
+       It is 1600x2 and entirely transparent — 92 bytes, and under a pixel tall
+       once it has been scaled down, which is why the height does not move
+       either. */
+    embed.image = { url: asset(siteUrl, 'icon/spacer.png') };
 
     embed.footer = { text: 'EGE Football Simulation' };
 

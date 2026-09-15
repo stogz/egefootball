@@ -246,6 +246,27 @@ fixed rather than following the numbers:
 Checked by rendering all 47 games of the season, plus a fixture, at desktop
 and phone width: every one comes out the same height.
 
+### And the same width
+
+Discord sizes an embed to its widest content, so a quiet game came out
+narrower than a busy one and the right-hand edge moved from post to post. Two
+things hold it still:
+
+- **Every block line is padded to 39 characters.** Inside a code block
+  ordinary spaces are kept rather than collapsed, and the font is monospaced,
+  so 39 characters is always the same number of pixels whatever is in them.
+  39 is what the format can produce at its widest — every number three digits
+  — and it is under the 41 or so a phone will take without wrapping.
+- **A transparent spacer image, `icon/spacer.png`.** Discord scales an embed
+  image down to the embed's maximum width, so one deliberately wider than any
+  embed pins it to that maximum. It is 1600×2 and entirely transparent, 92
+  bytes, and under a pixel tall once scaled.
+
+There is no invisible *character* that does this job. A zero-width space is
+zero wide by definition, and a braille blank — the usual suggestion — is a
+character in a proportional font, so a run of them is only ever approximately
+as wide as the next run. An image is measured.
+
 ### The kickoff timestamp
 
 A Discord timestamp is an instant, and it renders in whoever is reading's own
