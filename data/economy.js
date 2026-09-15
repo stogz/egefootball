@@ -23,8 +23,13 @@ window.EGE = window.EGE || {};
 EGE.economy = (function () {
   'use strict';
 
-  var UPGRADE_BASE = 40;
+  var UPGRADE_BASE = 36;
   var MAX_RATING = 99;
+
+  /* Groups credits cannot buy into. The general attributes — speed, strength,
+     stamina and the rest — move only through offseason training, which is
+     what makes training worth a slot in the shop at all. */
+  var TRAINING_ONLY_GROUPS = ['general'];
 
   /* What the tuning assumes a player has to spend in an offseason: the flat
      60, plus a season that went reasonably well. */
@@ -67,7 +72,9 @@ EGE.economy = (function () {
     var values = EGE.valuesFor(player);
     if (!values) { return []; }
 
-    return EGE.boostableFor(player).map(function (attr) {
+    return EGE.boostableFor(player).filter(function (attr) {
+      return TRAINING_ONLY_GROUPS.indexOf(attr.groupKey) === -1;
+    }).map(function (attr) {
       var value = values[attr.key];
       var gain = gainPerPoint(player, attr.key);
       var cost = upgradeCost(value);
@@ -109,6 +116,7 @@ EGE.economy = (function () {
   return {
     UPGRADE_BASE: UPGRADE_BASE,
     MAX_RATING: MAX_RATING,
+    TRAINING_ONLY_GROUPS: TRAINING_ONLY_GROUPS,
     TYPICAL_BUDGET: TYPICAL_BUDGET,
     BULK_SIZES: BULK_SIZES,
     upgradeCost: upgradeCost,

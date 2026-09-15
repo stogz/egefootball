@@ -304,12 +304,17 @@ their position is judged on, and **a point costs more the closer that
 attribute is to 99**:
 
 ```
-cost = 40 / (99 - rating + 1)
+cost = 36 / (99 - rating + 1)
 ```
 
-| Rating | 50 | 60 | 70 | 80 | 85 | 90 | 93 | 95 | 97 | 98 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Next point | 1 | 1 | 2 | 2 | 3 | 4 | 6 | 8 | 14 | 20 |
+| Rating | 50 | 60 | 70 | 80 | 85 | 90 | 95 | 97 | 98 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Next point | 1 | 1 | 2 | 2 | 3 | 4 | 8 | 12 | 18 |
+
+**The general attributes are not for sale.** Speed, strength, stamina,
+awareness and the rest move only through offseason training, which is what
+keeps training worth a slot in the shop. A quarterback is left with passing
+and carrying to buy into; a tight end with catching, blocking and carrying.
 
 A credit or two while a player is young and unformed, twenty-odd once they
 are nearly maxed. That is what slows development down by the time they reach
@@ -329,21 +334,22 @@ steep end of the curve, where four separate points would each cost more than
 the last; it is there to save clicking.
 
 **Tuning.** `UPGRADE_BASE` in `data/economy.js` is set so an offseason moves a
-player about four overall. Spending a 90-credit offseason from the top of the
-table:
+player about four overall. A 90-credit offseason, 20 of it on Overall
+Training and the rest taken from the top of the table:
 
 | Player | Position | Gain |
 | --- | --- | --- |
 | Andrew Parr | TE | +3 |
-| Cooper Clark | RB | +4 |
+| Cooper Clark | RB | +3 |
 | Paxon Hatch | TE | +4 |
-| Isaac Vitel | QB | +5 |
-| Sam Stogsdill | RB | +5 |
+| Isaac Vitel | QB | +6 |
+| Sam Stogsdill | RB | +4 |
 | Jaykeb Stewart | QB | +4 |
-| | | **+4.17 average** |
+| | | **+4.00 average** |
 
-Season after season it flattens on its own, which is the point — Sam at 90
-credits a year goes 50 → 55 → 58 → 60 → 63 → 66 → 68 → 70 → 72.
+Skipping training and putting all 90 into points comes out at +4.67, so the
+two ways of spending an offseason are worth roughly the same. Season after
+season it flattens on its own, which is the point.
 
 ### Training
 

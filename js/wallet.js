@@ -257,7 +257,15 @@ EGE.wallet = (function () {
       return row.key === attributeKey;
     })[0];
 
-    if (!attribute) { return fail('That attribute is not one this position is judged on.'); }
+    if (!attribute) {
+      var known = EGE.boostableFor(player).filter(function (row) {
+        return row.key === attributeKey;
+      })[0];
+      if (known && EGE.economy.TRAINING_ONLY_GROUPS.indexOf(known.groupKey) !== -1) {
+        return fail(known.label + ' moves through offseason training, not credits.');
+      }
+      return fail('That attribute is not one this position is judged on.');
+    }
     if (attribute.cost === null) {
       return fail(attribute.label + ' is already at ' + EGE.economy.MAX_RATING + '.');
     }

@@ -295,15 +295,16 @@ EGE.groupRating = function (player, groupKey) {
   return counted ? Math.round(total / counted) : null;
 };
 
-/* Which attributes a stat booster may be spent on for this player: exactly
-   the ones their page shows, so nobody buys route running for a lineman. */
+/* Every attribute this player's position is judged on, under the labels their
+   page uses. What of it can be bought is the economy's business, not this
+   file's — see TRAINING_ONLY_GROUPS in data/economy.js. */
 EGE.boostableFor = function (player) {
   var out = [];
   EGE.shownGroupsFor(player && player.position).forEach(function (shown) {
     var group = egeGroupByKey(shown.key);
     if (!group) { return; }
     group.attributes.forEach(function (attr) {
-      out.push({ key: attr.key, label: attr.label, group: shown.label });
+      out.push({ key: attr.key, label: attr.label, group: shown.label, groupKey: shown.key });
     });
   });
   return out;
