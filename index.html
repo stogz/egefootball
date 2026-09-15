@@ -163,8 +163,99 @@
 
       <p class="ege-note" id="adminMessage" role="alert" hidden></p>
 
+      <!-- rolling a week and publishing it -->
+      <div class="fb-panel" id="weekPanel">
+        <div class="fb-panel__head">
+          <h3 style="font-size: 21px;">Play a Week</h3>
+          <span class="fb-meta" id="weekNote"></span>
+        </div>
+        <div class="fb-panel__body fb-stack fb-stack--lg">
+
+          <p class="fb-meta" style="margin: 0;">
+            Rolls every game in a week out of what the players are, who they
+            are playing, and what they had riding on it. Roll it as often as
+            you like — nothing is real until it is published, and publishing
+            hands you a file to commit.
+          </p>
+
+          <div class="fb-row fb-row--wrap ege-weekbar">
+            <label class="ege-field ege-field--inline">
+              <span class="fb-eyebrow">Week</span>
+              <select class="fb-select" id="weekPick"></select>
+            </label>
+            <button class="fb-btn fb-btn--primary" id="rollWeek" type="button">Roll the week</button>
+            <button class="fb-btn" id="rollAgain" type="button" disabled>Roll it again</button>
+            <span class="fb-meta" id="weekState"></span>
+          </div>
+
+          <div class="fb-tablewrap" id="weekPreviewWrap" hidden>
+            <table class="fb-table ege-weekline">
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th>Matchup</th>
+                  <th>Result</th>
+                  <th>Line</th>
+                  <th>Again</th>
+                </tr>
+              </thead>
+              <tbody id="weekPreview"></tbody>
+            </table>
+          </div>
+
+          <p class="ege-note ege-note--warn" id="weekWarning" hidden></p>
+
+          <div class="fb-row fb-row--wrap">
+            <button class="fb-btn fb-btn--primary" id="publishWeek" type="button" disabled>
+              Publish the week
+            </button>
+            <span class="fb-meta" id="publishNote"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- what the season has paid out so far -->
+      <div class="fb-panel ege-section-gap" id="awardsPanel">
+        <div class="fb-panel__head">
+          <h3 style="font-size: 21px;">Credits Earned</h3>
+          <span class="fb-meta" id="awardsNote"></span>
+        </div>
+        <div class="fb-panel__body">
+          <div class="fb-tablewrap">
+            <table class="fb-table ege-awards">
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th>Touchdowns</th>
+                  <th>From touchdowns</th>
+                  <th>Allowance</th>
+                  <th>By hand</th>
+                  <th>Earned</th>
+                </tr>
+              </thead>
+              <tbody id="awardsBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="fb-panel__foot">
+          <span class="fb-meta" id="awardsFoot"></span>
+        </div>
+      </div>
+
+      <!-- every account -->
+      <div class="fb-panel ege-section-gap" id="adminPanel">
+        <div class="fb-panel__head">
+          <h3 style="font-size: 21px;">Accounts</h3>
+          <span class="fb-meta">Credits, awards and everything bought</span>
+        </div>
+        <div class="fb-panel__body fb-stack fb-stack--lg" id="adminAccounts"></div>
+        <div class="fb-panel__foot">
+          <span class="fb-meta">Changes save straight away.</span>
+        </div>
+      </div>
+
       <!-- the end of a season, in the order it has to happen -->
-      <div class="fb-panel" id="seasonPanel">
+      <div class="fb-panel ege-section-gap" id="seasonPanel">
         <div class="fb-panel__head">
           <h3 style="font-size: 21px;">End of Season</h3>
           <span class="fb-meta" id="seasonPanelNote"></span>
@@ -290,46 +381,6 @@
         </div>
       </div>
 
-      <!-- what the season has paid out so far -->
-      <div class="fb-panel ege-section-gap" id="awardsPanel">
-        <div class="fb-panel__head">
-          <h3 style="font-size: 21px;">Credits Earned</h3>
-          <span class="fb-meta" id="awardsNote"></span>
-        </div>
-        <div class="fb-panel__body">
-          <div class="fb-tablewrap">
-            <table class="fb-table ege-awards">
-              <thead>
-                <tr>
-                  <th>Player</th>
-                  <th>Touchdowns</th>
-                  <th>From touchdowns</th>
-                  <th>Allowance</th>
-                  <th>By hand</th>
-                  <th>Earned</th>
-                </tr>
-              </thead>
-              <tbody id="awardsBody"></tbody>
-            </table>
-          </div>
-        </div>
-        <div class="fb-panel__foot">
-          <span class="fb-meta" id="awardsFoot"></span>
-        </div>
-      </div>
-
-      <!-- every account -->
-      <div class="fb-panel ege-section-gap" id="adminPanel">
-        <div class="fb-panel__head">
-          <h3 style="font-size: 21px;">Accounts</h3>
-          <span class="fb-meta">Credits, awards and everything bought</span>
-        </div>
-        <div class="fb-panel__body fb-stack fb-stack--lg" id="adminAccounts"></div>
-        <div class="fb-panel__foot">
-          <span class="fb-meta">Changes save straight away.</span>
-        </div>
-      </div>
-
       </div><!-- /adminContent -->
 
     </section>
@@ -402,6 +453,28 @@
 
         <div class="fb-panel__foot">
           <span class="fb-meta" id="scheduleLegend"></span>
+        </div>
+      </div>
+
+      <!-- every game played, under this position's stat line -->
+      <div class="fb-panel ege-section-gap" id="gameLogPanel" hidden>
+        <div class="fb-panel__head">
+          <h3 style="font-size: 21px;">Game Log</h3>
+          <span class="fb-meta" id="gameLogNote"></span>
+        </div>
+        <div class="fb-tablewrap">
+          <table class="fb-table ege-gamelog">
+            <thead>
+              <tr id="gameLogHead"></tr>
+            </thead>
+            <tbody id="gameLogBody"></tbody>
+            <tfoot>
+              <tr id="gameLogTotals"></tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="fb-panel__foot">
+          <span class="fb-meta" id="gameLogLegend"></span>
         </div>
       </div>
 
@@ -499,8 +572,10 @@
 <script src="data/season.js"></script>
 <script src="data/ratings.js"></script>
 <script src="data/schedule.js"></script>
+<script src="data/results.js"></script>
 <script src="data/shop.js"></script>
 <script src="data/economy.js"></script>
+<script src="data/statgen.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/wallet.js"></script>
 <script src="js/exports.js"></script>

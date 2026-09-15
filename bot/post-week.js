@@ -62,24 +62,69 @@ function isPostingHour(now) {
 /* --- where we are in the season ------------------------------------------- */
 
 function readState() {
+  let state;
   try {
-    return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
   } catch (err) {
-    return { season: null, lastPostedWeek: 0, lastPostedAt: null };
+    state = { season: null };
   }
+
+  /* A week gets posted twice now — the fixtures before it is played and the
+     results once they are published — so the two are tracked separately.
+     State written before that change only knew one number; everything up to
+     it counts as previewed. */
+  if (!Array.isArray(state.previewed)) {
+    const upTo = Number(state.lastPostedWeek) || 0;
+    state.previewed = [];
+    for (let week = 1; week <= upTo; week += 1) { state.previewed.push(week); }
+  }
+  if (!Array.isArray(state.published)) { state.published = []; }
+
+  return state;
 }
 
 function writeState(state) {
   fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2) + '\n');
 }
 
-/* The next week that actually has games. Weeks where nobody played — every
-   player on a bye — are stepped over rather than posted empty. */
-function nextWeekWithGames(EGE, after, season) {
+function done(list, week) { return list.indexOf(week) !== -1; }
+
+function hasGames(EGE, week, season) {
+  return Boolean(buildWeekPost(EGE, week, { season: season, siteUrl: DEFAULT_SITE }));
+}
+
+/* Whether a week has results in data/results.js yet. */
+function isPlayed(EGE, week, season) {
+  return EGE.players.some(function (player) {
+    const game = EGE.gameInWeek(player, week, season);
+    return game && EGE.isFinal(game);
+  });
+}
+
+/* What to post next, if anything.
+
+   Results come first: a week that has just been published is the news, and
+   waiting on the fixtures for a later week would bury it. Failing that, the
+   next week nobody has seen the fixtures for.
+
+   A week that was played before its fixtures ever went out — a season caught
+   up on in one go — is posted once, as results. */
+function nextPost(EGE, state, season) {
   const last = EGE.lastWeek(season);
-  for (let week = after + 1; week <= last; week += 1) {
-    if (buildWeekPost(EGE, week, { season: season, siteUrl: DEFAULT_SITE })) { return week; }
+
+  for (let week = 1; week <= last; week += 1) {
+    if (!hasGames(EGE, week, season)) { continue; }
+    if (isPlayed(EGE, week, season) && !done(state.published, week)) {
+      return { week: week, kind: 'results' };
+    }
   }
+
+  for (let week = 1; week <= last; week += 1) {
+    if (!hasGames(EGE, week, season)) { continue; }
+    if (done(state.previewed, week) || isPlayed(EGE, week, season)) { continue; }
+    return { week: week, kind: 'preview' };
+  }
+
   return null;
 }
 
@@ -108,7 +153,8 @@ async function main() {
 
   if (state.season !== season) {
     state.season = season;
-    state.lastPostedWeek = 0;
+    state.previewed = [];
+    state.published = [];
   }
 
   if (!args.force && args.week === null && !isPostingHour()) {
@@ -116,14 +162,19 @@ async function main() {
     return;
   }
 
-  const week = args.week !== null ? args.week : nextWeekWithGames(EGE, state.lastPostedWeek, season);
+  const next = args.week !== null
+    ? { week: args.week, kind: isPlayed(EGE, args.week, season) ? 'results' : 'preview' }
+    : nextPost(EGE, state, season);
 
-  if (week === null) {
+  if (next === null) {
     console.log('The ' + season + ' regular season has been posted in full.');
     return;
   }
 
-  const payload = buildWeekPost(EGE, week, { season: season, siteUrl: siteUrl });
+  const week = next.week;
+  const payload = buildWeekPost(EGE, week, {
+    season: season, siteUrl: siteUrl, kind: next.kind
+  });
   if (!payload) {
     console.log('Week ' + week + ' has no games. Nothing to post.');
     return;
@@ -131,7 +182,8 @@ async function main() {
 
   if (args.dryRun) {
     console.log(JSON.stringify(payload, null, 2));
-    console.log('\n[dry run] week ' + week + ', ' + payload.embeds.length + ' embed(s), nothing sent.');
+    console.log('\n[dry run] week ' + week + ' (' + next.kind + '), ' +
+                payload.embeds.length + ' embed(s), nothing sent.');
     return;
   }
 
@@ -143,10 +195,12 @@ async function main() {
   }
 
   await postToDiscord(webhookUrl, payload);
-  console.log('Posted week ' + week + ' (' + payload.embeds.length + ' game(s)).');
+  console.log('Posted week ' + week + ' ' + next.kind + ' (' +
+              payload.embeds.length + ' game(s)).');
 
   if (args.week === null) {
-    state.lastPostedWeek = week;
+    const list = next.kind === 'results' ? state.published : state.previewed;
+    if (!done(list, week)) { list.push(week); }
     state.lastPostedAt = new Date().toISOString();
     writeState(state);
   }

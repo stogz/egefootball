@@ -299,6 +299,90 @@ EGE.exports = (function () {
     });
   }
 
+  /* --- the week's results -------------------------------------------------- */
+
+  var RESULTS_FILE = 'data/results.js';
+  var R_START = '/* ege:results:start */';
+  var R_END = '/* ege:results:end */';
+
+  /* Everything published so far, plus the week just rolled. Each week is
+     added rather than replacing what came before, so the file grows a week at
+     a time and the diff for a Friday is that Friday.
+
+     `rolled` is what EGE.statgen.playWeek handed back. */
+  function resultsSource(season, week, rolled) {
+    var published = {};
+
+    /* What is already in data/results.js, deep enough to copy safely. */
+    Object.keys(EGE.results || {}).forEach(function (year) {
+      published[year] = {};
+      Object.keys(EGE.results[year]).forEach(function (slug) {
+        published[year][slug] = {};
+        Object.keys(EGE.results[year][slug]).forEach(function (at) {
+          published[year][slug][at] = EGE.results[year][slug][at];
+        });
+      });
+    });
+
+    var forSeason = published[season] || (published[season] = {});
+
+    rolled.forEach(function (entry) {
+      var forPlayer = forSeason[entry.player.slug] || (forSeason[entry.player.slug] = {});
+      forPlayer[week] = {
+        result: entry.outcome.result,
+        stats: entry.outcome.stats,
+        booster: entry.booster || null,
+        seed: entry.outcome.seed,
+        publishedOn: today()
+      };
+    });
+
+    var lines = [
+      R_START,
+      '/* Weeks published so far. Each one was rolled in the admin portal and',
+      '   carries the seed it came from, so the same numbers can always be',
+      '   worked out again. Last published ' + today() + '. */',
+      'EGE.results = ' + jsonBlock(published, '') + ';',
+      R_END
+    ];
+    return lines.join('\n');
+  }
+
+  /* The current file with the new week spliced in. Same handling as the
+     ratings lock: read the real file, replace what sits between the markers,
+     and refuse rather than hand over something that would not load. */
+  function resultsFile(season, week, rolled) {
+    return fetch(RESULTS_FILE, { cache: 'no-store' }).then(function (res) {
+      if (!res.ok) { throw new Error('HTTP ' + res.status); }
+      return res.text();
+    }).then(function (source) {
+      var from = source.indexOf(R_START);
+      var to = source.indexOf(R_END);
+      if (from === -1 || to === -1 || to < from) {
+        throw new Error('The markers in ' + RESULTS_FILE + ' are missing.');
+      }
+
+      var out = source.slice(0, from) + resultsSource(season, week, rolled) +
+                source.slice(to + R_END.length);
+
+      /* It has to load, and it has to still carry the week just rolled. */
+      /* eslint-disable no-new-func */
+      new Function('window', out.replace(/EGE\.applyResults\(\);\s*$/, ''));
+      /* eslint-enable no-new-func */
+
+      rolled.forEach(function (entry) {
+        if (out.indexOf('"' + entry.player.slug + '"') === -1) {
+          throw new Error(entry.player.name + ' went missing from the file.');
+        }
+      });
+
+      return out;
+    }).catch(function (error) {
+      throw new Error('Could not rebuild ' + RESULTS_FILE + ': ' + error.message +
+                      '. This needs the site open over http, not from a file.');
+    });
+  }
+
   /* --- the season pointer ------------------------------------------------- */
 
   function seasonFileSource(current, locked) {
@@ -342,6 +426,8 @@ EGE.exports = (function () {
   }
 
   return {
+    resultsFile: resultsFile,
+    resultsSource: resultsSource,
     ratingsFile: ratingsFile,
     ratingsSource: ratingsSource,
     ratingsDiff: ratingsDiff,

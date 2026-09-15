@@ -12,7 +12,14 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const DATA_FILES = ['players.js', 'ratings.js', 'schedule.js'];
+/* The same files the page loads, in the same order. results.js lays the
+   published results over the fixtures, and economy.js and shop.js are what
+   statgen.js leans on, so the bot reads a stat line exactly as the site
+   does. */
+const DATA_FILES = [
+  'players.js', 'season.js', 'ratings.js', 'schedule.js', 'results.js',
+  'shop.js', 'economy.js', 'statgen.js'
+];
 
 function loadSiteData() {
   const sandbox = {};

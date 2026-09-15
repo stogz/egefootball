@@ -474,6 +474,98 @@ owed as *waiting*, and it lands in full the first time they log in.
 
 ---
 
+## Playing a Week
+
+Nobody types a stat line in. The admin portal rolls the week out of what the
+players are, and publishing it writes a file for the repository.
+
+### What moves a stat line
+
+| | |
+| --- | --- |
+| **The matchup** | his overall against the opponent's strength |
+| **Form** | a roll, so a good player can still have a bad Friday |
+| **The booster** | a 2.5x sticker is worth about 2.5x the production |
+| **The venue** | a little at home, a little against him away |
+
+A game is **played out rather than summarised**: every carry, every target
+and every drop-back gets its own number, and the line is what those numbers
+add up to. That is what keeps a line honest with itself — a back cannot have
+a 60-yard long in a 40-yard game, because the long *is* the biggest carry in
+the list that made 40. The averages are worked out from the two numbers
+beside them, never rolled.
+
+**Opponent strength** is on the same 1–99 scale the players are. A game can
+carry its own `strength` in `data/schedule.js` and that always wins; put a
+real number on a real opponent and the model stops guessing. Without one, the
+strength is derived from the opponent's name — arbitrary, but it never moves,
+so Torrey Pines is the same side in March as it was in August. Conference
+opponents get a few points on top.
+
+**Two of them play each other** — Paxon at Bloomington and Sam at Normal
+Community, week 3 — and when they do, one scoreboard serves both: each keeps
+the points his own night produced and takes the other's as the points
+against.
+
+Everything runs off a seeded generator keyed to the season, the week and the
+player, so **the same seed always gives the same game**. Each published result
+carries the seed it came from, which is what makes a roll reviewable rather
+than magic.
+
+### The stat lines
+
+The columns each position is read in, defined once in `data/statgen.js` and
+used by the player page's game log, the admin preview and the Discord post —
+so there is never a version of a quarterback's line that disagrees with
+another version of it.
+
+**Quarterback** — C/ATT, PYDS, PAVG *(PYDS/C)*, PYAC, PTD, INT, RTG, CAR,
+RUYDS, RUAVG, RUTD, LNG, SACK, FL
+
+**Running back** — YDS, TD, CAR, RUYDS, RUAVG, RUTD, LNG, REC, REYDS, REAVG,
+YAC, RETD, LNG, TGT, FL
+
+**Wide receiver and tight end** — YDS, TD, REC, REYDS, REAVG, YAC, RETD, LNG,
+TGT, CAR, RUYDS, RUAVG, RUTD, LNG, FL
+
+A season totals up the way each column is meant to: summed down the column, a
+long is the longest, and a passer rating is worked out again from the
+season's numbers. Averaging a column of averages is how a stat page ends up
+lying.
+
+### Rolling and publishing
+
+On the admin page: pick a week, **Roll the week**, and read the five lines it
+gives back. Roll the whole week again, or roll one player whose game does not
+look right — a head-to-head takes its rival with it, because one scoreboard
+has to serve both. Nothing is real until **Publish the week**, which hands
+over a `data/results.js` carrying every week published so far, not just this
+one, so a Friday's diff is that Friday.
+
+Commit it and three things happen on their own:
+
+- the **schedule table** and the **game log** show the week
+- the **touchdown credits** land the next time each player opens the site
+- the **Discord bot** posts the results on its next scheduled run
+
+`data/results.js` is laid over `data/schedule.js` when it loads, so everything
+that already reads a game picks the results up without knowing the file
+exists. The fixtures stay hand-written and untouched.
+
+### What the bot posts, and when
+
+A week goes out **twice**: the fixtures when it comes round, and the results
+once they are published — `## Week 4` and then `## Week 4 — Results`. The bot
+tracks the two separately, so publishing a week that was already previewed
+still gets posted. A week played before its fixtures ever went out is posted
+once, as results.
+
+Each embed carries the headline in Discord's three columns and the full stat
+line underneath as an aligned block, so nothing is lost and it still reads on
+a phone.
+
+---
+
 ## The Admin Portal
 
 `#admin`, a tab that only appears for an admin, and a page that refuses anyone
@@ -589,9 +681,14 @@ Built so far:
 - `data/season.js` — which season is live, and which seasons have had their
   ratings locked. Small on purpose: the admin portal rewrites this whole file
   when a season is rolled over.
-- `js/exports.js` — builds the three files a finished season leaves behind:
-  the locked ratings, the season log, and the season pointer. Reads Supabase,
-  writes nothing.
+- `data/statgen.js` — the stat generator: what a stat line is, and the model
+  that plays a fixture out into one. Seeded, so a roll can always be run
+  again.
+- `data/results.js` — every week published so far, laid over the fixtures
+  when it loads. Written by the admin portal, a week at a time.
+- `js/exports.js` — builds the files a season leaves behind:
+  a published week, the locked ratings, the season log, and the season
+  pointer. Reads Supabase, writes nothing.
 - `data/logs/` — a season log per season, written by the admin portal. Empty
   until a season has been played out.
 - `site.css` — the theme (palette overriding the kit's tokens) plus the page
@@ -673,10 +770,10 @@ One thing at a time, in this order:
    same shape once 2018 is working. ✅ The fixtures are in
    `data/schedule.js`, the player page renders them, and the Discord bot
    posts them. Results fill the table's last column as games are played.
-6. **Stat lines** — TE game log for Paxon Hatch first, other position sets as
-   positions are confirmed. *The shape is in place — a game carries a `stats`
-   object once played, and the bot renders it per position — but no game has
-   been played yet.*
+6. **Stat lines** — a full game log per position. ✅ The columns are in
+   `data/statgen.js`, the player page renders them with season totals, and
+   the bot posts the same line. Weeks are rolled and published from the admin
+   page — see [Playing a Week](#playing-a-week).
 7. **Login + portal** — Supabase auth, accounts, attributes, overalls.
    *Login is in: allowlisted emails, a password set once, and the signed-in
    player's headshot in the nav. The portal behind it — attributes and
@@ -686,7 +783,10 @@ One thing at a time, in this order:
 9. **Season automation** — credits that earn themselves as results are posted,
    and a season that can be ended, locked into the repository and rolled over
    from the admin portal. ✅ `js/exports.js`, `data/season.js`, `#admin`.
-10. **Extra interactive layer** — scope defined once the above is working.
+10. **Playing the season** — a week rolled from the ratings, the matchup and
+    the boosters, published to the repository, and posted to Discord. ✅
+    `data/statgen.js`, `data/results.js`.
+11. **Extra interactive layer** — scope defined once the above is working.
 
 ---
 

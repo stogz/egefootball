@@ -176,6 +176,38 @@ EGE.scoutedGames = function (player, season) {
   return EGE.gamesFor(player, season).filter(function (game) { return game.scouts; });
 };
 
+/* Lays the published results over the fixtures. data/results.js calls this
+   when it loads, and everything downstream — the table, the record, the game
+   log, the credits a touchdown earns, the Discord bot — reads a game that now
+   has a `result` and a `stats` on it, exactly as if it had been typed in here.
+
+   Safe to call twice: it writes the same thing over the top. A result for a
+   week nobody has a fixture in is ignored rather than invented. */
+EGE.applyResults = function () {
+  var published = EGE.results || {};
+
+  Object.keys(published).forEach(function (season) {
+    var bySlug = published[season] || {};
+
+    Object.keys(bySlug).forEach(function (slug) {
+      var player = EGE.playerBySlug(slug);
+      if (!player) { return; }
+
+      var weeks = bySlug[slug] || {};
+      Object.keys(weeks).forEach(function (week) {
+        var game = EGE.gameInWeek(player, Number(week), Number(season));
+        if (!game) { return; }
+
+        var entry = weeks[week];
+        game.result = entry.result;
+        game.stats = entry.stats;
+        if (entry.booster) { game.booster = entry.booster; }
+        if (entry.seed) { game.seed = entry.seed; }
+      });
+    });
+  });
+};
+
 EGE.recordFor = function (player, season) {
   var wins = 0;
   var losses = 0;

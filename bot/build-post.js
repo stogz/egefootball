@@ -50,35 +50,59 @@ function opponentTeam(EGE, name) {
   return key ? EGE.teams[key] : null;
 }
 
-/* The stat line a position is judged on. */
-function statFields(player, stats) {
-  if (!stats) { return []; }
+/* The stat line a position is judged on.
+
+   Discord gives us three columns, so the whole log would be a wall. The
+   headline goes in three fields, and the full line — the same columns the
+   player page carries, from data/statgen.js — goes underneath as one block,
+   so nothing is lost and it is still readable on a phone. */
+function summaryFields(player, stats) {
   const fields = [];
   const add = function (name, value) { fields.push({ name: name, value: String(value), inline: true }); };
 
   if (player.position === 'QB') {
     add('Passing', stats.completions + '/' + stats.attempts + ', ' + stats.passingYards + ' yds');
     add('TD / INT', stats.passingTd + ' / ' + stats.interceptions);
-    if (stats.rushingYards) {
-      add('Rushing', stats.rushingYards + ' yds' + (stats.rushingTd ? ', ' + stats.rushingTd + ' TD' : ''));
-    }
+    add('Rating', stats.rating === null ? '\u2014' : stats.rating);
     return fields;
   }
 
   if (player.position === 'RB') {
     add('Rushing', stats.carries + ' car, ' + stats.rushingYards + ' yds');
-    add('Rush TD', stats.rushingTd);
-    if (stats.receptions) {
-      add('Receiving', stats.receptions + ' rec, ' + stats.receivingYards + ' yds');
-    }
+    add('Receiving', stats.receptions + ' rec, ' + stats.receivingYards + ' yds');
+    add('Touchdowns', stats.totalTd);
     return fields;
   }
 
   /* TE and WR */
-  add('Receiving', stats.receptions + ' rec, ' + stats.receivingYards + ' yds');
-  if (typeof stats.targets === 'number') { add('Targets', stats.targets); }
-  add('Rec TD', stats.receivingTd);
+  add('Receiving', stats.receptions + '/' + stats.targets + ', ' + stats.receivingYards + ' yds');
+  add('Yards After Catch', stats.receivingYac);
+  add('Touchdowns', stats.totalTd);
   return fields;
+}
+
+/* The full line, as two rows of a code block so the columns stay lined up in
+   Discord's proportional font. */
+function fullLine(EGE, player, stats) {
+  const columns = EGE.statgen.lineFor(player.position);
+  const heads = [];
+  const values = [];
+
+  columns.forEach(function (column) {
+    const value = column.text(stats);
+    const width = Math.max(column.label.length, value.length);
+    heads.push(column.label.padStart(width));
+    values.push(value.padStart(width));
+  });
+
+  return '```\n' + heads.join(' ') + '\n' + values.join(' ') + '\n```';
+}
+
+function statFields(EGE, player, stats) {
+  if (!stats) { return []; }
+  return summaryFields(player, stats).concat([
+    { name: '\u200b', value: fullLine(EGE, player, stats), inline: false }
+  ]);
 }
 
 /* Record through the given week, so the embed says where the season stands.
@@ -119,7 +143,7 @@ function buildEmbed(EGE, player, game, options) {
   };
 
   if (played) {
-    embed.fields = statFields(player, game.stats);
+    embed.fields = statFields(EGE, player, game.stats);
   } else {
     embed.fields.push({ name: 'Kickoff', value: kickoffLabel(game), inline: true });
     embed.fields.push({ name: 'Where', value: game.home ? 'Home' : 'Away', inline: true });
@@ -156,8 +180,13 @@ function buildWeekPost(EGE, week, options) {
   const playing = gamesInWeek(EGE, week, options.season);
   if (!playing.length) { return null; }
 
+  /* Fixtures once, results once, and the heading says which. */
+  const heading = options.kind === 'results'
+    ? '## Week ' + week + ' \u2014 Results'
+    : '## Week ' + week;
+
   return {
-    content: '## Week ' + week,
+    content: heading,
     embeds: playing.map(function (entry) {
       return buildEmbed(EGE, entry.player, entry.game, options);
     }),

@@ -1070,3 +1070,53 @@ body {
 /* A player with no sign-in yet: their touchdowns count, but there is no
    account for the credits to land in until there is. */
 .ege-awards__row--noaccount td { opacity: .72; }
+
+/* The game log: a lot of narrow number columns, so it scrolls sideways on a
+   phone rather than squeezing the numbers into each other. */
+.ege-gamelog th,
+.ege-gamelog td { white-space: nowrap; }
+
+.ege-gamelog th[title] { cursor: help; }
+
+.ege-gamelog__opponent { min-width: 150px; }
+
+.ege-gamelog tfoot td {
+  border-top: var(--fb-border) solid var(--fb-ink);
+  background: var(--fb-tint-sage);
+}
+
+/* The multiplier that was riding on a game, beside the opponent. */
+.ege-gamelog__boost {
+  margin-left: 7px;
+  padding: 1px 5px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-tint-gold, var(--fb-tint-clay));
+  font-size: 11px;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: help;
+}
+
+/* Rolling a week: a label and its control side by side, and a preview whose
+   stat line is allowed to be the widest thing in the row. */
+.ege-field--inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.ege-weekbar { align-items: center; gap: 12px; }
+
+.ege-weekline__line {
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 220px;
+}
+.ege-weekline td .fb-meta { display: block; font-size: 11px; }
+.ege-weekline th:last-child,
+.ege-weekline td:last-child { text-align: right; }
+
+.fb-btn--sm {
+  padding: 5px 11px;
+  font-size: 12px;
+}
