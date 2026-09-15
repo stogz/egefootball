@@ -231,12 +231,14 @@ CDT, and the script checks the real Chicago hour and exits quietly on the
 runs belonging to the other offset. The posting times hold all year without
 being edited twice a season.
 
-The bot is a **backstop**. Publishing a week from the admin page posts it
-there and then; these runs catch anything that did not go out — the edge
-function was not deployed, Discord was down, the click half-landed. Each run
-asks Supabase which weeks are published but unposted, sends them oldest first,
-and marks them, so nothing is posted twice and nothing is written back to this
-repository.
+The bot is a **backstop, and entirely optional**. Publishing from the admin
+page posts the week there and then; these runs catch anything that did not go
+out — Discord was down, the click half-landed. Each run asks Supabase which
+weeks are published but unposted, sends them oldest first, and marks them, so
+nothing is posted twice and nothing is written back to this repository.
+
+With a webhook in `js/discord-config.js` there is not much left for it to do.
+Set it up if you want the safety net; skip it and publishing still posts.
 
 **Setup:** three repository secrets under Settings → Secrets and variables →
 Actions:
@@ -570,23 +572,42 @@ entry, not a view of the schedule, so publishing again pays nothing twice.
 
 ### How the Discord post gets sent
 
-The site is static and public, so it cannot keep a secret: a webhook URL in
-browser code is a webhook anybody who views source can post to. The URL lives
-in a Supabase edge function instead, and the browser hands it a built payload.
-The function checks the caller is an admin against the same `admins` table the
-rest of the site trusts.
+Two ways, and publishing uses whichever is available.
+
+**The webhook in `js/discord-config.js`.** Paste the channel webhook URL in
+and the browser posts straight to it. That is the whole setup — nothing to
+deploy, and the message lands on the click.
+
+```js
+EGE.discordConfig = {
+  webhookUrl: 'https://discord.com/api/webhooks/...'
+};
+```
+
+Anything committed is public, so anyone who views source can read that URL and
+anyone with it can post to that channel as the bot. It grants nothing else —
+not the server, not the members, not anything said in it — and a bad message
+can be deleted. For a channel a few friends read, that is a fair trade for not
+running anything. Rotate it by deleting the webhook in Discord and making a
+new one.
+
+**The edge function**, if you would rather not publish it. Leave the config
+blank and the browser hands `supabase/functions/post-week` a payload instead;
+the URL stays a Supabase secret, and the function checks the caller is an
+admin against the same `admins` table the rest of the site trusts.
 
 ```
 supabase secrets set DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/...'
 supabase functions deploy post-week
 ```
 
-If it is not deployed nothing breaks. The week still goes out, and the
-scheduled bot posts it on its next run — it asks Supabase which weeks are
-published but unposted, sends them, and marks them. That is the bot's whole
-job now: a backstop, four times a day. It needs `SUPABASE_URL` and
-`SUPABASE_SERVICE_ROLE_KEY` in the repository's Actions secrets. That key is
-server-side and never goes near the browser.
+Either way the week is published before the post is attempted, so a message
+that does not land is a message missing from a channel, not a week missing
+from the site. **Post again** retries just the message.
+
+A failed direct post never falls back to the function: a request that reached
+Discord but whose reply the browser could not read looks exactly like one that
+never arrived, and trying the other route would post the week twice.
 
 ### The season editor
 
@@ -756,8 +777,10 @@ Built so far:
 - `supabase/schema.sql` — every table and policy: accounts, credits,
   inventory, admins, the stickers stuck on games, the credit awards a season
   pays out, and which weeks are published.
-- `supabase/functions/post-week/` — the edge function that holds the Discord
-  webhook URL, so the browser never has to. Run it in the Supabase SQL editor; it is safe to run
+- `js/discord-config.js` — the channel webhook URL, if you are happy for it to
+  be public. Blank by default.
+- `supabase/functions/post-week/` — the other way: an edge function that holds
+  the webhook URL, so the browser never has to. Run it in the Supabase SQL editor; it is safe to run
   again, and it must be re-run after pulling a change that adds a table.
 - `js/supabase-config.js` — your Supabase URL and anon key. Blank by default.
 - `data/shop.js` — the shop catalogue: credit earnings and everything on sale.

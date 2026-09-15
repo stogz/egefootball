@@ -528,26 +528,68 @@ EGE.wallet = (function () {
       .catch(function () { return { ok: false }; });
   }
 
-  /* Hands a built Discord payload to the edge function that holds the webhook
-     URL. The browser never sees it — a static site cannot keep a secret, and
-     a leaked webhook is a channel anybody can post to.
+  /* Sends a built week to Discord.
 
-     If the function is not deployed this fails politely and the week stays
-     published: the scheduled bot picks it up on its next run either way. */
+     Straight to the webhook when one is set in js/discord-config.js, which is
+     the whole setup: no function to deploy and the message lands on the click.
+     The URL is public in that case, which is a decision taken there.
+
+     Failing that, the edge function, which keeps the URL as a Supabase secret.
+
+     Whichever it is, the week is already published by the time this runs — a
+     post that does not land is a message missing from a channel, not a week
+     missing from the site, and the scheduled bot picks it up if it is set up. */
   function postWeekToDiscord(payload) {
+    var url = (EGE.discordConfig || {}).webhookUrl;
+    if (url) { return postToWebhook(url, payload); }
+
     var c = client();
     if (!c) { return fail(offline()); }
 
     return c.functions.invoke('post-week', { body: payload })
       .then(function (res) {
         if (res.error) {
-          return { ok: false, message: 'Discord: ' + (res.error.message || 'the post-week function said no') };
+          return {
+            ok: false,
+            message: 'the post-week function said no (' +
+                     (res.error.message || 'no reason given') + ')'
+          };
         }
         return { ok: true };
       })
       .catch(function (error) {
-        return { ok: false, message: 'Discord: ' + error.message };
+        return { ok: false, message: error.message };
       });
+  }
+
+  /* Discord's own endpoint, from the browser.
+
+     There is deliberately no falling back to the edge function when this
+     fails. A request that reached Discord but whose reply the browser could
+     not read looks identical to one that never arrived, and trying the other
+     route would post the week twice. Better to say so and let the admin look
+     at the channel — Post again is one click. */
+  function postToWebhook(url, payload) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function (response) {
+      if (response.ok) { return { ok: true }; }
+      return response.text().then(function (body) {
+        return {
+          ok: false,
+          message: 'Discord replied ' + response.status +
+                   (body ? ': ' + body.slice(0, 200) : '')
+        };
+      });
+    }).catch(function (error) {
+      return {
+        ok: false,
+        message: 'the webhook could not be reached (' + error.message + '). ' +
+                 'Check the channel before posting again \u2014 it may have landed anyway.'
+      };
+    });
   }
 
   /* --- clearing out the boosters -------------------------------------------- */

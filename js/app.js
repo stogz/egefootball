@@ -1412,8 +1412,8 @@
       if (!res.ok) {
         return {
           ok: false,
-          message: 'Discord did not take it (' + res.message + '). The week is ' +
-                   'still out, and the scheduled bot will post it.'
+          message: 'Discord did not take it \u2014 ' + res.message +
+                   ' The week is still out; Post again retries just the message.'
         };
       }
       return EGE.wallet.markPosted(season, week).then(function () {
