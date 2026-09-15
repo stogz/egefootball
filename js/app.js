@@ -40,11 +40,14 @@
       return line;
     }
 
-    var logo = el('img', 'ege-school__logo');
-    logo.src = team.logo;
-    logo.alt = '';            /* decorative: the name is right beside it */
-    logo.loading = 'lazy';
-    line.appendChild(logo);
+    /* Not every school has a mark in icon/ yet. */
+    if (team.logo) {
+      var logo = el('img', 'ege-school__logo');
+      logo.src = team.logo;
+      logo.alt = '';          /* decorative: the name is right beside it */
+      logo.loading = 'lazy';
+      line.appendChild(logo);
+    }
     line.appendChild(el('span', 'ege-school__name', team.school));
     return line;
   }
@@ -68,7 +71,7 @@
     var body = el('div', 'ege-card__body');
     body.appendChild(el('h3', 'ege-card__name', player.name));
     body.appendChild(schoolLine(player));
-    body.appendChild(el('p', 'ege-card__league', team ? team.league : ''));
+    body.appendChild(el('p', 'ege-card__league', team ? (team.league || 'League ' + TBD) : ''));
 
     var tags = el('div', 'fb-row fb-row--wrap');
     if (player.position) {
@@ -110,7 +113,7 @@
     document.getElementById('playerSeason').textContent = seasonLabel(EGE.currentSeason);
     document.getElementById('playerPosition').textContent = player.position || TBD;
     document.getElementById('playerSchoolRow').textContent = team ? team.school : TBD;
-    document.getElementById('playerLeague').textContent = team ? team.league : TBD;
+    document.getElementById('playerLeague').textContent = (team && team.league) || TBD;
 
     var tags = document.getElementById('playerTags');
     tags.innerHTML = '';
@@ -145,13 +148,16 @@
   /* --- portal: shared bits ---------------------------------------------- */
 
   var panelAuth     = document.getElementById('panelAuth');
-  var panelPin      = document.getElementById('panelPin');
   var panelSignedIn = document.getElementById('panelSignedIn');
 
-  var loginPlayer = document.getElementById('loginPlayer');
-  var authForm    = document.getElementById('authForm');
-  var authSubmit  = document.getElementById('authSubmit');
-  var authTabs    = document.getElementById('authTabs');
+  var loginPlayer  = document.getElementById('loginPlayer');
+  var authForm     = document.getElementById('authForm');
+  var authSubmit   = document.getElementById('authSubmit');
+  var authLead     = document.getElementById('authLead');
+  var authPassword = document.getElementById('authPassword');
+  var authConfirm  = document.getElementById('authConfirm');
+  var confirmField = document.getElementById('confirmField');
+  var modeSwitch   = document.getElementById('modeSwitch');
 
   /* Writes into one of the modal's message slots. */
   function reporter(id) {
@@ -164,12 +170,9 @@
   }
 
   var sayAuth = reporter('authMessage');
-  var sayPin  = reporter('pinMessage');
-  var sayNew  = reporter('newPasswordMessage');
 
   function showPanel(panel) {
     panelAuth.hidden     = panel !== panelAuth;
-    panelPin.hidden      = panel !== panelPin;
     panelSignedIn.hidden = panel !== panelSignedIn;
   }
 
@@ -177,7 +180,7 @@
 
   function fillPlayerSelect() {
     EGE.players.forEach(function (player) {
-      var opt = el('option', null, player.name + (player.email ? '' : ' — no account yet'));
+      var opt = el('option', null, player.name + (player.email ? '' : ' \u2014 no account yet'));
       opt.value = player.slug;
       opt.disabled = !player.email;
       loginPlayer.appendChild(opt);
@@ -201,35 +204,70 @@
     eye.setAttribute('aria-label', reveal ? 'Hide password' : 'Show password');
   });
 
-  /* --- portal: sign in / first password --------------------------------- */
+  /* --- portal: one password, set once ----------------------------------- */
 
   var mode = 'signin';
-  var confirmField = document.getElementById('confirmField');
-  var authPassword = document.getElementById('authPassword');
-  var authConfirm  = document.getElementById('authConfirm');
 
-  function setMode(next) {
+  function setMode(next, lead) {
     mode = next;
     var creating = mode === 'create';
-
-    Array.prototype.forEach.call(authTabs.children, function (tab) {
-      var on = tab.getAttribute('data-mode') === mode;
-      tab.classList.toggle('is-active', on);
-      tab.setAttribute('aria-selected', String(on));
-    });
 
     confirmField.hidden = !creating;
     authConfirm.required = creating;
     authPassword.autocomplete = creating ? 'new-password' : 'current-password';
     document.getElementById('passwordLabel').textContent =
       creating ? 'Choose a password' : 'Password';
-    authSubmit.textContent = creating ? 'Create Password' : 'Sign In';
-    sayAuth('', false);
+    authSubmit.textContent = creating ? 'Set Password' : 'Sign In';
+    authLead.textContent = lead || '';
+    authLead.hidden = !lead;
   }
 
-  authTabs.addEventListener('click', function (e) {
-    var tab = e.target.closest('.fb-seg__opt');
-    if (tab) { setMode(tab.getAttribute('data-mode')); }
+  /* The portal asks the account table which form this player needs, so
+     nobody has to know whether they have signed in before. */
+  function loadAccount() {
+    var player = selectedPlayer();
+    sayAuth('', false);
+    authPassword.value = '';
+    authConfirm.value = '';
+    modeSwitch.hidden = true;
+
+    if (!player || !player.email) {
+      authForm.hidden = true;
+      authLead.hidden = false;
+      authLead.textContent = 'That player has no account yet.';
+      return Promise.resolve();
+    }
+
+    authForm.hidden = true;
+    authLead.hidden = false;
+    authLead.textContent = 'Checking this account\u2026';
+
+    return EGE.auth.accountState(player.email).then(function (state) {
+      authForm.hidden = false;
+
+      if (state === 'set') {
+        setMode('signin', 'Welcome back, ' + player.first + '.');
+      } else if (state === 'unset') {
+        setMode('create', player.first + ' has no password yet. Pick one now.');
+      } else {
+        /* Cannot tell — offer sign-in and a way across. */
+        setMode('signin', 'Sign in, or set a password if this is your first time.');
+        modeSwitch.hidden = false;
+      }
+    });
+  }
+
+  loginPlayer.addEventListener('change', loadAccount);
+
+  modeSwitch.addEventListener('click', function () {
+    var player = selectedPlayer();
+    if (mode === 'create') {
+      setMode('signin', 'Sign in, or set a password if this is your first time.');
+      modeSwitch.textContent = 'First time? Set your password';
+    } else {
+      setMode('create', 'Setting the first password for ' + player.first + '.');
+      modeSwitch.textContent = 'Already have a password? Sign in';
+    }
   });
 
   authForm.addEventListener('submit', function (e) {
@@ -238,7 +276,7 @@
     if (!player || !player.email) { sayAuth('That player has no account yet.', true); return; }
 
     authSubmit.disabled = true;
-    sayAuth('Checking…', false);
+    sayAuth('Checking\u2026', false);
 
     var work = mode === 'create'
       ? EGE.auth.createPassword(player.email, authPassword.value, authConfirm.value)
@@ -247,81 +285,15 @@
     work.then(function (res) {
       authSubmit.disabled = false;
       sayAuth(res.message, !res.ok);
+
+      /* The table said there was no password but Supabase disagrees, so
+         put the player on the form that can actually work. */
+      if (res.taken) {
+        setMode('signin', 'Welcome back, ' + player.first + '.');
+        modeSwitch.hidden = true;
+      }
       if (res.ok) { authPassword.value = ''; authConfirm.value = ''; }
     });
-  });
-
-  /* --- portal: forgotten password --------------------------------------- */
-
-  var pinForm         = document.getElementById('pinForm');
-  var pinCode         = document.getElementById('pinCode');
-  var pinSubmit       = document.getElementById('pinSubmit');
-  var newPasswordForm = document.getElementById('newPasswordForm');
-
-  function requestPin(player, report) {
-    report('Sending…', false);
-    return EGE.auth.sendPin(player.email).then(function (res) {
-      report(res.message, !res.ok);
-      return res;
-    });
-  }
-
-  document.getElementById('forgotBtn').addEventListener('click', function () {
-    var player = selectedPlayer();
-    if (!player || !player.email) { sayAuth('That player has no account yet.', true); return; }
-
-    document.getElementById('pinWho').textContent =
-      'Changing the password for ' + player.name + ' (' + player.email + ').';
-    pinCode.value = '';
-    sayNew('', false);
-    newPasswordForm.hidden = true;
-    pinForm.hidden = false;
-    showPanel(panelPin);
-    requestPin(player, sayPin).then(function () { pinCode.focus(); });
-  });
-
-  document.getElementById('pinResend').addEventListener('click', function () {
-    requestPin(selectedPlayer(), sayPin);
-  });
-
-  pinForm.addEventListener('submit', function (e) {
-    e.preventDefault();
-    var player = selectedPlayer();
-
-    pinSubmit.disabled = true;
-    sayPin('Checking…', false);
-
-    EGE.auth.verifyPin(player.email, pinCode.value).then(function (res) {
-      pinSubmit.disabled = false;
-      if (!res.ok) { sayPin(res.message, true); return; }
-      sayPin('', false);
-      pinForm.hidden = true;
-      newPasswordForm.hidden = false;
-      document.getElementById('newPassword').focus();
-    });
-  });
-
-  newPasswordForm.addEventListener('submit', function (e) {
-    e.preventDefault();
-    var submit = document.getElementById('newPasswordSubmit');
-    var next = document.getElementById('newPassword').value;
-    var again = document.getElementById('newPasswordConfirm').value;
-
-    submit.disabled = true;
-    sayNew('Saving…', false);
-
-    EGE.auth.updatePassword(next, again).then(function (res) {
-      submit.disabled = false;
-      sayNew(res.message, !res.ok);
-      if (res.ok) {
-        document.getElementById('newPassword').value = '';
-        document.getElementById('newPasswordConfirm').value = '';
-      }
-    });
-  });
-
-  document.getElementById('pinBack').addEventListener('click', function () {
-    showPanel(panelAuth);
   });
 
   /* --- portal: session -------------------------------------------------- */
@@ -359,6 +331,7 @@
     } else {
       showSignedOutNav();
       showPanel(panelAuth);
+      loadAccount();
     }
   });
 
@@ -366,12 +339,13 @@
 
   function openLogin() {
     if (!EGE.auth.available()) {
+      authForm.hidden = false;
+      authLead.hidden = true;
       sayAuth(EGE.auth.unavailableReason(), true);
       authSubmit.disabled = true;
-      document.getElementById('forgotBtn').disabled = true;
     }
     loginModal.hidden = false;
-    if (!panelAuth.hidden) { authPassword.focus(); }
+    if (!panelAuth.hidden && !authForm.hidden) { authPassword.focus(); }
   }
   function closeLogin() { loginModal.hidden = true; }
 
@@ -387,7 +361,6 @@
 
   renderRoster();
   fillPlayerSelect();
-  setMode('signin');
   route();
   EGE.auth.init();
   window.addEventListener('hashchange', route);

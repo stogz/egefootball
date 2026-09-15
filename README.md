@@ -21,7 +21,7 @@ and in what order.
 | Paxon Hatch | Bloomington High School | Big Twelve | TE |
 | Isaac Vitel | TBD | TBD | TBD |
 | Sam Stogsdill | Normal Community High School | Big Twelve | TBD |
-| Jaykeb Stewart | TBD | TBD | TBD |
+| Jaykeb Stewart | Naples High School | TBD | QB |
 
 Everything marked TBD is genuinely unknown right now and should stay TBD in code
 and data until it is confirmed — no placeholder guesses that later read as facts.
@@ -29,6 +29,7 @@ and data until it is confirmed — no placeholder guesses that later read as fac
 Headshots live in `headshot/`, keyed by last name: `parr.png`, `clark.png`,
 `hatch.png`, `vitel.png`, `stogsdill.png`, `stewart.png`. School marks live in
 `icon/`, keyed by school: `carlsbad.png`, `bloomington.png`, `normal.png`.
+Naples has no mark yet, and its school line renders without one.
 
 ---
 
@@ -111,12 +112,17 @@ Each of the six gets an account and a private portal.
   Built on Supabase auth against a hardcoded list of six emails — nobody
   outside that list can hold an account. Sam Stogsdill's email is in; the
   other five are TBD.
-- **First password** — a player picks themselves out of the list, chooses a
-  password, and types it twice so a typo can't lock them out. A player who
-  already has a password is turned away here.
-- **Forgotten password** — the portal emails a six-digit PIN. Typing it back
-  into the site unlocks a new password, entered twice. That is the only way a
-  password gets replaced.
+- **One password, set once** — a player picks themselves out of the list. If
+  their account has no password yet the portal asks for one twice; if it has
+  one, the portal just asks them to sign in. Which form appears is looked up,
+  not chosen by the player.
+- **No password changes from the site, and no email at all** — no confirmation
+  mail, no reset mail, nothing that costs anything to send. A player who
+  forgets goes to an admin.
+- **Admin password changes** — done in the Supabase dashboard under
+  **Authentication → Users**, where any user can be given a new password. To
+  put a player back on the first-time form afterwards, set their row in
+  `player_accounts` back to `password_set = false`.
 - **Show password** — every password field has an eye toggle, so what's being
   typed can be checked before it's submitted.
 - **Overalls** — a rating per attribute (speed, strength, catching, route
@@ -139,8 +145,9 @@ Built so far:
 - `index.html` — the homepage: player select, plus a placeholder player view.
 - `js/app.js` — renders the six cards and routes `#{slug}` to a player view.
 - `data/players.js` — the six players and the season ladder. Source of truth.
-- `js/auth.js` — Supabase auth: sign in, first password, PIN reset, session
-  state.
+- `js/auth.js` — Supabase auth: sign in, the one-time password, session state.
+- `supabase/schema.sql` — the `player_accounts` table and its policies. Run it
+  once in the Supabase SQL editor.
 - `js/supabase-config.js` — your Supabase URL and anon key. Blank by default.
 - `site.css` — the theme (palette overriding the kit's tokens) plus the page
   components the kit doesn't cover (player card, roster grid, login form).
@@ -157,19 +164,21 @@ dependency is supabase-js, loaded from a CDN.
 2. Paste both into `js/supabase-config.js`. The anon key is meant for browser
    code and is safe to commit. The **service_role** key is not — it bypasses
    every security rule and must never appear in this repo.
-3. Under **Authentication → Emails → Magic Link**, make sure the template
-   includes `{{ .Token }}`. Supabase sends a six-digit code instead of a link
-   when that variable is in the template, and the code is what the portal asks
-   for. A template with only `{{ .ConfirmationURL }}` will mail a link the
-   portal has no way to accept.
+3. Run `supabase/schema.sql` in the Supabase SQL editor. It creates
+   `player_accounts`, the one-row-per-email table that records whether an
+   account has a password yet, along with the policies that let anyone read it
+   but only the owning player write their own row. Without it the portal still
+   works — it just can't tell which form a player needs, so it shows sign-in
+   with a link across to setting a first password.
 
 Until those two values are filled in, the site runs normally and the portal
 reports that login isn't configured yet.
 
 **Worth knowing:** setting the first password doesn't prove who is setting it,
-so whoever gets there first claims the account. With six known players that's
-usually fine. Once a password exists the PIN closes the gap, since replacing it
-requires the inbox.
+so whoever gets to an unclaimed account first claims it. With six known players
+that's usually fine, and once a password is set nothing on the site can change
+it — but it does mean each player should claim their own account before the
+site is shared around.
 
 ### Kit and assets
 
@@ -220,9 +229,9 @@ One thing at a time, in this order:
 6. **Stat lines** — TE game log for Paxon Hatch first, other position sets as
    positions are confirmed.
 7. **Login + portal** — Supabase auth, accounts, attributes, overalls.
-   *Login is in: allowlisted emails, a first password, PIN reset, and the
-   signed-in player's headshot in the nav. The portal behind it — attributes
-   and overalls — is not.*
+   *Login is in: allowlisted emails, a password set once, and the signed-in
+   player's headshot in the nav. The portal behind it — attributes and
+   overalls — is not.*
 8. **Offseason workouts** — the boost mechanic.
 9. **Extra interactive layer** — scope defined once the above is working.
 
@@ -233,9 +242,10 @@ One thing at a time, in this order:
 - Does any of the six play the optional 2023 senior college season instead of
   declaring for the 2023 draft?
 - College programs for all six — the ladder needs them from the 2020 season on.
-- Positions for Parr, Clark, Vitel, Stogsdill, Stewart.
-- Schools for Parr, Vitel, Stewart.
+- Positions for Parr, Clark, Vitel, Stogsdill.
+- Schools for Parr and Vitel.
+- The league Naples High School plays in, and a mark for `icon/naples.png`.
 - Full attribute list behind a player's overall.
-- Sign-in emails for the other five players.
+- Sign-in emails for Parr, Vitel, and Stewart.
 - Whether workout and overall changes persist per browser (`localStorage`) or in
   Supabase. Read-only season data stays in the `data/*.js` files either way.

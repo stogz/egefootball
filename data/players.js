@@ -45,6 +45,11 @@ EGE.teams = {
     school: 'Normal Community High School',
     league: 'Big Twelve',
     logo: 'icon/normal.png'
+  },
+  naples: {
+    school: 'Naples High School',
+    league: null,             // TBD
+    logo: null                // no mark in icon/ yet
   }
 };
 
@@ -68,7 +73,7 @@ EGE.players = [
     team: 'carlsbad',
     position: null,           // TBD
     jersey: null,             // TBD
-    email: null,              // TBD
+    email: 'cooperclrk@gmail.com',
     headshot: 'headshot/clark.png'
   },
   {
@@ -77,9 +82,9 @@ EGE.players = [
     first: 'Paxon',
     last: 'Hatch',
     team: 'bloomington',
-    position: 'TE',           // the one confirmed position
+    position: 'TE',
     jersey: null,             // TBD
-    email: null,              // TBD
+    email: 'paxonhatch@gmail.com',
     headshot: 'headshot/hatch.png'
   },
   {
@@ -109,8 +114,8 @@ EGE.players = [
     name: 'Jaykeb Stewart',
     first: 'Jaykeb',
     last: 'Stewart',
-    team: null,               // TBD
-    position: null,           // TBD
+    team: 'naples',
+    position: 'QB',
     jersey: null,             // TBD
     email: null,              // TBD
     headshot: 'headshot/stewart.png'
