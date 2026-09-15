@@ -177,14 +177,19 @@
     'boost-1-5': { modifier: 'silver', label: '1.5x' }
   };
 
-  /* A stable, scattered-looking tilt: the same game always gets the same
-     angle, but no two in a column look placed by a machine. */
-  function tiltFor(seed) {
-    var hash = 0;
+  /* A scatter that is random per sticker but settled once it is placed: the
+     row's own id is the seed, so the angle survives every redraw and no two
+     stickers land the same way. */
+  function scatter(seed) {
+    var hash = 2166136261;
     String(seed).split('').forEach(function (ch) {
-      hash = (hash * 31 + ch.charCodeAt(0)) % 997;
+      hash ^= ch.charCodeAt(0);
+      hash = (hash * 16777619) >>> 0;
     });
-    return (hash % 27) - 13;      /* -13deg .. +13deg */
+    return {
+      tilt: ((hash % 33) - 16),                  /* -16deg .. +16deg */
+      nudge: (((hash >>> 8) % 13) - 6)           /* -6px .. +6px  */
+    };
   }
 
   function stickerEl(itemKey, size, seed) {
@@ -193,9 +198,7 @@
 
     var sticker = el('span', 'ege-sticker ege-sticker--' + look.modifier);
     sticker.style.setProperty('--sticker-size', (size || 40) + 'px');
-    sticker.style.setProperty('--tilt', tiltFor(seed == null ? itemKey : seed) + 'deg');
-
-    sticker.appendChild(el('span', 'ege-sticker__back'));
+    sticker.style.setProperty('--tilt', scatter(seed == null ? itemKey : seed).tilt + 'deg');
 
     var face = el('span', 'ege-sticker__face');
     face.appendChild(el('span', 'ege-sticker__text', look.label));
@@ -234,13 +237,15 @@
         ? stuck.item_name + ' \u2014 click to peel it off'
         : stuck.item_name + ' \u2014 the game has been played, it stays put';
       /* Bigger than the row on purpose, sitting over it, and nudged a few
-         pixels off centre so a column of them looks stuck on by hand. */
-      var seed = player.slug + '-' + game.week;
+         pixels up or down so it overlaps the row above or below. */
+      var seed = stuck.id || (player.slug + '-' + game.week);
+      var placing = scatter(seed);
       var sticker = stickerEl(stuck.item_key, 62, seed);
       applied.style.setProperty('--sticker-size', '62px');
-      applied.style.setProperty('--nudge', (tiltFor(seed + 'y') / 4).toFixed(1) + 'px');
+      applied.style.setProperty('--nudge', placing.nudge + 'px');
       applied.appendChild(sticker);
       if (peelable) {
+        sticker.appendChild(el('span', 'ege-sticker__x', '\u00d7'));
         applied.addEventListener('click', function () {
           applied.disabled = true;
           EGE.wallet.peelBooster(player.email, stuck).then(function (res) {

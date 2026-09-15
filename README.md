@@ -360,13 +360,11 @@ Booster column. Clicking it slides a drawer up from the bottom of the screen
 holding the stickers you own, each with a count. Click one and it goes on that
 game and comes out of your inventory.
 
-Hovering a sticker you can still move **peels it**: it hinges up on its right
-edge, leans towards you, throws a shadow on the row and shows its paper
-underside along the lifted edge. Click to take it off and put it back in the
-drawer. The perspective sits on the parent rather than in the transform, which
-is what makes it read as paper coming away rather than a flat thing scaling.
+Hovering a sticker you can still move lifts it and draws a red cross over it;
+click to take it off and put it back in the drawer. The cross lives inside the
+sticker, so it carries the same tilt and scale rather than chasing them.
 
-**Once the game has been played the sticker is stuck for good**: no peel, and
+**Once the game has been played the sticker is stuck for good**: no cross, and
 no + on a game that already has a result.
 
 **Stickers are private.** Only the player who stuck one on — and Sam, as
@@ -374,13 +372,18 @@ admin — can see what is riding on which game. That is in the policy on
 `game_boosters`, not just the interface, because the anon key can query the
 table directly.
 
-Each sticker is two die-cut layers, a white backing with the foil face inset
-inside it, both clipped to the same sunburst. A plain border would be cut away
-by the clip-path, which is what made the first pass look chewed at the edges;
-each face also paints a solid ground under its moving gradients so nothing can
-flash through bare. They sit bigger than their row and overhang it, each
-tilted a few degrees off true by a hash of the player and week, so a column of
-them looks stuck on by hand rather than laid out by a machine.
+Each sticker is two die-cut layers, a backing in the same ink as the printed
+number with the foil face inset inside it, both clipped to the same sunburst.
+A plain border would be cut away by the clip-path, which is what made the
+first pass look chewed at the edges; each face also paints a solid ground
+under its moving gradients so nothing can flash through bare.
+
+They sit bigger than their row and hang over the edge of it, top and bottom.
+Angle and vertical nudge both come from a hash of the sticker's own row id, so
+every sticker lands differently and keeps that placement through every redraw
+— scattered, but never jittering. Nothing in the slot is in the row's flow, so
+a row carrying a sticker measures exactly the same as one without: 51px either
+way.
 
 The three designs scale off a single `--sticker-size`, so the same sunburst
 renders at 62px on a schedule row and 76px in the drawer without a second copy

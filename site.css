@@ -480,6 +480,8 @@ body {
     0% 50%, 16% 40%, 4% 29%, 18% 26%, 12% 12%, 26% 18%, 29% 4%, 42% 12%
   );
 
+  --sticker-ink: #201e1d;
+
   width: var(--sticker-size);
   height: var(--sticker-size);
   flex: none;
@@ -487,7 +489,8 @@ body {
   display: inline-grid;
   place-items: center;
 
-  background: #fff;
+  /* The die-cut edge is the same ink as the number printed on it. */
+  background: var(--sticker-ink);
   clip-path: var(--cut);
   filter: drop-shadow(2px 3px 3px rgba(0, 0, 0, .45));
   transform: rotate(var(--tilt));
@@ -514,7 +517,7 @@ body {
   font-family: var(--fb-font-display);
   font-size: calc(var(--sticker-size) * 0.27);
   line-height: 1;
-  color: #201e1d;
+  color: var(--sticker-ink);
   text-shadow: 0 1px 0 rgba(255, 255, 255, .35);
 }
 
@@ -602,21 +605,23 @@ body {
 
 /* --- a sticker on a game ------------------------------------------------- */
 
-/* The slot keeps a normal size and the sticker is positioned out of the
-   flow inside it, so a sticker bigger than the row overhangs it instead of
-   making every row taller. */
+/* The slot is only as tall as a line of text. Everything in it is positioned
+   out of the flow, so neither a sticker nor the plus can change a row's
+   height — rows in the booster column measure the same as rows without one. */
 .ege-slot {
   position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
+  display: block;
   width: 46px;
-  height: 30px;
+  height: 19px;
 }
 
 .ege-slot__add {
-  width: 30px;
-  height: 30px;
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  margin-top: -14px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   cursor: pointer;
   font-size: 17px;
@@ -635,8 +640,10 @@ body {
 .ege-slot__applied {
   position: absolute;
   right: 0;
+  /* Centred on the row, then nudged a few pixels so it sits over the edge
+     above or below rather than neatly inside. */
   top: 50%;
-  margin-top: calc(var(--nudge, 0px) - 50%);
+  margin-top: calc(var(--nudge, 0px) - (var(--sticker-size, 54px) / 2));
   display: grid;
   place-items: center;
   background: none;
@@ -663,42 +670,36 @@ body {
 .ege-slot__applied--peelable:hover::after,
 .ege-slot__applied--peelable:focus-visible::after { opacity: 1; }
 
-/* Peeling: the sticker hinges up on its right edge and leans towards you,
-   so the left side lifts clear of the row and its underside comes into view.
-   The perspective lives on the parent, which is what makes it read as paper
-   coming off rather than a flat thing being scaled. */
+/* Hovering one you can still move lifts it a little and crosses it out. The
+   cross lives inside the sticker, so it carries the same tilt and scale
+   rather than chasing them. */
 .ege-slot__applied--peelable:hover .ege-sticker,
 .ege-slot__applied--peelable:focus-visible .ege-sticker {
-  transform-origin: 88% 62%;
-  transform:
-    rotate(var(--tilt))
-    translate(-16%, -22%)
-    rotateY(-52deg)
-    rotateX(14deg)
-    rotateZ(-12deg)
-    scale(2.1);
-  filter: drop-shadow(-5px 9px 7px rgba(0, 0, 0, .5));
+  transform: rotate(var(--tilt)) scale(1.5);
+  filter: drop-shadow(3px 6px 7px rgba(0, 0, 0, .5));
   z-index: 6;
 }
 .ege-slot__applied--peelable:hover,
 .ege-slot__applied--peelable:focus-visible { z-index: 6; }
 
-/* The paper underside, showing along the lifted edge. */
-.ege-sticker__back {
+.ege-sticker__x {
   position: absolute;
   inset: 0;
-  z-index: -1;
-  clip-path: var(--cut);
-  background: linear-gradient(100deg, #b4aa9c 0%, #e8e1d6 35%, #cfc7bb 70%, #a79c8c 100%);
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  font-family: var(--fb-font-display);
+  font-size: calc(var(--sticker-size) * 0.66);
+  line-height: 1;
+  color: #b3160f;
+  text-shadow: 0 0 6px rgba(255, 255, 255, .95);
   opacity: 0;
-  transform: translateX(6%);
-  transition: opacity .28s ease, transform .28s ease;
+  transition: opacity .16s ease;
+  pointer-events: none;
 }
-.ege-slot__applied--peelable:hover .ege-sticker__back,
-.ege-slot__applied--peelable:focus-visible .ege-sticker__back {
-  opacity: 1;
-  transform: translateX(11%) scaleX(1.04);
-}
+.ege-slot__applied--peelable:hover .ege-sticker__x,
+.ege-slot__applied--peelable:focus-visible .ege-sticker__x { opacity: 1; }
+
 /* --- the sticker drawer -------------------------------------------------- */
 
 .ege-drawer {
