@@ -49,7 +49,7 @@ EGE.teams = {
   naples: {
     school: 'Naples High School',
     league: null,             // TBD
-    logo: null                // no mark in icon/ yet
+    logo: 'icon/naples.png'
   }
 };
 
@@ -60,7 +60,7 @@ EGE.players = [
     first: 'Andrew',
     last: 'Parr',
     team: null,               // TBD
-    position: null,           // TBD
+    position: 'RB',
     jersey: null,             // TBD
     email: null,              // TBD
     headshot: 'headshot/parr.png'
@@ -71,7 +71,7 @@ EGE.players = [
     first: 'Cooper',
     last: 'Clark',
     team: 'carlsbad',
-    position: null,           // TBD
+    position: 'WR',
     jersey: null,             // TBD
     email: 'cooperclrk@gmail.com',
     headshot: 'headshot/clark.png'
@@ -93,7 +93,7 @@ EGE.players = [
     first: 'Isaac',
     last: 'Vitel',
     team: null,               // TBD
-    position: null,           // TBD
+    position: 'QB',
     jersey: null,             // TBD
     email: null,              // TBD
     headshot: 'headshot/vitel.png'
@@ -104,7 +104,7 @@ EGE.players = [
     first: 'Sam',
     last: 'Stogsdill',
     team: 'normal',
-    position: null,           // TBD
+    position: 'RB',
     jersey: null,             // TBD
     email: 'stogzfam@gmail.com',
     headshot: 'headshot/stogsdill.png'

@@ -80,6 +80,11 @@
       tags.appendChild(el('span', 'fb-tag fb-tag--outline', 'POS ' + TBD));
     }
     tags.appendChild(el('span', 'fb-tag fb-tag--gold', EGE.currentSeason));
+
+    var overall = EGE.overallFor(player);
+    if (overall !== null) {
+      tags.appendChild(el('span', 'fb-tag fb-tag--num fb-tag--sage', 'OVR ' + overall));
+    }
     body.appendChild(tags);
 
     body.appendChild(el('span', 'ege-card__go', 'View player →'));
@@ -124,7 +129,68 @@
     }
     tags.appendChild(el('span', 'fb-tag fb-tag--gold', 'Junior Year'));
 
+    var overall = EGE.overallFor(player);
+    var overallBox = document.getElementById('playerOverall');
+    overallBox.hidden = overall === null;
+    document.getElementById('playerOverallValue').textContent = overall === null ? '' : overall;
+
+    renderRatings(player);
+
     document.title = player.name;
+  }
+
+  /* --- ratings ---------------------------------------------------------- */
+
+  var ratingsPanel = document.getElementById('ratingsPanel');
+
+  /* Which groups a position leans on, for the note above the breakdown. */
+  function heaviestGroups(ratings) {
+    return ratings.groups
+      .slice()
+      .sort(function (a, b) { return b.weight - a.weight; })
+      .slice(0, 2)
+      .map(function (g) { return g.label.toLowerCase(); });
+  }
+
+  function buildGroup(group) {
+    var box = el('div', 'ege-group');
+
+    var head = el('div', 'ege-group__head');
+    head.appendChild(el('span', 'ege-group__label', group.label));
+    head.appendChild(el('span', 'ege-group__score', group.rating));
+    box.appendChild(head);
+
+    group.attributes.forEach(function (attr) {
+      var row = el('div', 'ege-attr');
+      row.appendChild(el('span', 'ege-attr__label', attr.label));
+
+      var meter = el('div', 'fb-meter');
+      var fill = el('div', 'fb-meter__fill' + (attr.value >= 80 ? '' : ' fb-meter__fill--alt'));
+      fill.style.width = Math.max(0, Math.min(100, attr.value)) + '%';
+      meter.appendChild(fill);
+      row.appendChild(meter);
+
+      row.appendChild(el('span', 'ege-attr__value', attr.value));
+      box.appendChild(row);
+    });
+
+    return box;
+  }
+
+  function renderRatings(player) {
+    var ratings = EGE.ratingsFor(player);
+    var holder = document.getElementById('ratingsGroups');
+    holder.innerHTML = '';
+
+    if (!ratings) { ratingsPanel.hidden = true; return; }
+
+    var leans = heaviestGroups(ratings);
+    document.getElementById('ratingsNote').textContent = player.position
+      ? 'Overall weighted for a ' + player.position + ' — mostly ' + leans.join(' and ') + '.'
+      : 'Position TBD, so every group counts about the same.';
+
+    ratings.groups.forEach(function (group) { holder.appendChild(buildGroup(group)); });
+    ratingsPanel.hidden = false;
   }
 
   /* --- routing ---------------------------------------------------------- */

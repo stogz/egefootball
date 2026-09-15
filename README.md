@@ -16,11 +16,11 @@ and in what order.
 
 | Player | School | League | Position |
 | --- | --- | --- | --- |
-| Andrew Parr | TBD | TBD | TBD |
-| Cooper Clark | Carlsbad High School | Avocado League | TBD |
+| Andrew Parr | TBD | TBD | RB |
+| Cooper Clark | Carlsbad High School | Avocado League | WR |
 | Paxon Hatch | Bloomington High School | Big Twelve | TE |
-| Isaac Vitel | TBD | TBD | TBD |
-| Sam Stogsdill | Normal Community High School | Big Twelve | TBD |
+| Isaac Vitel | TBD | TBD | QB |
+| Sam Stogsdill | Normal Community High School | Big Twelve | RB |
 | Jaykeb Stewart | Naples High School | TBD | QB |
 
 Everything marked TBD is genuinely unknown right now and should stay TBD in code
@@ -28,8 +28,8 @@ and data until it is confirmed — no placeholder guesses that later read as fac
 
 Headshots live in `headshot/`, keyed by last name: `parr.png`, `clark.png`,
 `hatch.png`, `vitel.png`, `stogsdill.png`, `stewart.png`. School marks live in
-`icon/`, keyed by school: `carlsbad.png`, `bloomington.png`, `normal.png`.
-Naples has no mark yet, and its school line renders without one.
+`icon/`, keyed by school: `carlsbad.png`, `bloomington.png`, `normal.png`,
+`naples.png`. A team with no mark renders its school line without one.
 
 ---
 
@@ -104,6 +104,35 @@ positions are confirmed.
 
 ---
 
+## Ratings
+
+Every player carries the same 53 attributes, in seven groups: General,
+Passing, Receiving, Ball Carrier, Defense, Blocking, Kicking. A group scores
+as the plain average of the attributes inside it.
+
+**The overall is those group scores weighted by position.** A quarterback's
+overall leans on passing, a back's on ball carrying, a receiver's on
+receiving — but nothing is ever worth zero, so a quarterback who can block
+still rates above one who can't, just not by much. Weights live in
+`EGE.positionWeights` and are normalised when the overall is worked out, so a
+group can be nudged without rebalancing the others. Positions with no weights
+of their own fall back to `DEFAULT`, which counts everything fairly evenly.
+
+The same attributes score very differently by position, which is the point:
+
+| Isaac Vitel's ratings, scored as | Overall |
+| --- | --- |
+| QB | 78 |
+| RB | 60 |
+| WR | 51 |
+| OL | 40 |
+
+**The values in the file are placeholders** — randomly generated inside bands
+that suit each position, so the weighting can be seen working. Replace them
+with real numbers as they are decided; nothing else has to change.
+
+---
+
 ## Player Portal (login)
 
 Each of the six gets an account and a private portal.
@@ -146,6 +175,8 @@ Built so far:
 - `js/app.js` — renders the six cards and routes `#{slug}` to a player view.
 - `data/players.js` — the six players and the season ladder. Source of truth.
 - `js/auth.js` — Supabase auth: sign in, the one-time password, session state.
+- `data/ratings.js` — the attribute list, the per-position weights, every
+  player's ratings, and the maths that turns them into an overall.
 - `supabase/schema.sql` — the `player_accounts` table and its policies. Run it
   once in the Supabase SQL editor.
 - `js/supabase-config.js` — your Supabase URL and anon key. Blank by default.
@@ -242,10 +273,9 @@ One thing at a time, in this order:
 - Does any of the six play the optional 2023 senior college season instead of
   declaring for the 2023 draft?
 - College programs for all six — the ladder needs them from the 2020 season on.
-- Positions for Parr, Clark, Vitel, Stogsdill.
 - Schools for Parr and Vitel.
-- The league Naples High School plays in, and a mark for `icon/naples.png`.
-- Full attribute list behind a player's overall.
+- Real rating numbers, in place of the generated placeholders.
+- The league Naples High School plays in.
 - Sign-in emails for Parr, Vitel, and Stewart.
 - Whether workout and overall changes persist per browser (`localStorage`) or in
   Supabase. Read-only season data stays in the `data/*.js` files either way.

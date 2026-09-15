@@ -74,6 +74,11 @@
               <h2 class="ege-detail__name" id="playerName"></h2>
               <div class="fb-row fb-row--wrap" id="playerTags"></div>
 
+              <div class="ege-ovr" id="playerOverall" hidden>
+                <span class="ege-ovr__label">Overall</span>
+                <span class="ege-ovr__value" id="playerOverallValue"></span>
+              </div>
+
               <dl class="ege-detail__list" style="margin-top: 18px;">
                 <dt>Season</dt><dd id="playerSeason"></dd>
                 <dt>Position</dt><dd id="playerPosition"></dd>
@@ -86,6 +91,16 @@
         </div>
         <div class="fb-panel__foot">
           <span class="fb-meta">Schedule, record, and game log land next.</span>
+        </div>
+      </div>
+
+      <div class="fb-panel ege-section-gap" id="ratingsPanel" hidden>
+        <div class="fb-panel__head">
+          <h3 style="font-size: 21px;">Ratings</h3>
+          <span class="fb-meta" id="ratingsNote"></span>
+        </div>
+        <div class="fb-panel__body">
+          <div class="ege-groups" id="ratingsGroups"></div>
         </div>
       </div>
     </section>
@@ -167,6 +182,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="js/supabase-config.js"></script>
 <script src="data/players.js"></script>
+<script src="data/ratings.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/app.js"></script>
 </body>
