@@ -221,15 +221,6 @@
 
   var ratingsPanel = document.getElementById('ratingsPanel');
 
-  /* Which groups a position leans on, for the note above the breakdown. */
-  function heaviestGroups(ratings) {
-    return ratings.groups
-      .slice()
-      .sort(function (a, b) { return b.weight - a.weight; })
-      .slice(0, 2)
-      .map(function (g) { return g.label.toLowerCase(); });
-  }
-
   function buildGroup(group) {
     var box = el('div', 'ege-group');
 
@@ -262,10 +253,8 @@
 
     if (!ratings) { ratingsPanel.hidden = true; return; }
 
-    var leans = heaviestGroups(ratings);
-    document.getElementById('ratingsNote').textContent = player.position
-      ? 'Overall weighted for a ' + player.position + ' — mostly ' + leans.join(' and ') + '.'
-      : 'Position TBD, so every group counts about the same.';
+    document.getElementById('ratingsOverall').textContent =
+      ratings.overall === null ? '—' : ratings.overall;
 
     ratings.groups.forEach(function (group) { holder.appendChild(buildGroup(group)); });
     ratingsPanel.hidden = false;

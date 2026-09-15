@@ -334,6 +334,10 @@ body {
   line-height: 1;
 }
 
+/* Sitting in a panel head rather than under a name. */
+.ege-ovr--head { margin-top: 0; padding: 6px 12px; }
+.ege-ovr--head .ege-ovr__value { font-size: 24px; }
+
 .ege-groups {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 272px), 1fr));

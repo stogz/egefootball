@@ -114,6 +114,14 @@ they are the only position here whose overall should turn on it — the group
 is simply absent for everyone else, and their pages don't show it. A group
 scores as the plain average of the attributes inside it.
 
+**A player's page shows only the groups their position is judged on**, under
+the names that position uses: a quarterback gets General, Passing and
+Carrying; a back gets General, Receiving and Carrying; a tight end gets
+General, Catching, Blocking and Carrying. The groups left off the page still
+count toward the overall — they just aren't worth a column. `EGE.positionGroups`
+decides what is shown, separately from `EGE.positionWeights`, which decides
+what counts.
+
 **The overall is those group scores weighted by position.** A quarterback's
 overall leans on passing, a back's on ball carrying — but nothing is ever
 worth zero, so a quarterback who can carry the ball still rates above one who

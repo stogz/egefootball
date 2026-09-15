@@ -218,6 +218,34 @@ EGE.ratings = {
   },
 };
 
+/* Which group scores a position's page shows, and what to call them there.
+   A quarterback's receiving still counts toward his overall — it just isn't
+   worth a line on the page. Anything not listed here shows every group. */
+EGE.positionGroups = {
+  QB: [
+    { key: 'general',     label: 'General' },
+    { key: 'passing',     label: 'Passing' },
+    { key: 'ballCarrier', label: 'Carrying' }
+  ],
+  RB: [
+    { key: 'general',     label: 'General' },
+    { key: 'receiving',   label: 'Receiving' },
+    { key: 'ballCarrier', label: 'Carrying' }
+  ],
+  TE: [
+    { key: 'general',     label: 'General' },
+    { key: 'receiving',   label: 'Catching' },
+    { key: 'blocking',    label: 'Blocking' },
+    { key: 'ballCarrier', label: 'Carrying' }
+  ]
+};
+
+EGE.shownGroupsFor = function (position) {
+  return EGE.positionGroups[position] || EGE.ratingGroups.map(function (group) {
+    return { key: group.key, label: group.label };
+  });
+};
+
 /* --- working the numbers out ---------------------------------------------- */
 
 function egeGroupByKey(key) {
@@ -260,27 +288,27 @@ EGE.overallFor = function (player) {
   return totalWeight ? Math.round(weighted / totalWeight) : null;
 };
 
-/* Everything a ratings panel needs, in display order. Groups this player has
-   no numbers for — blocking, for anyone who is not a tight end — are left
-   out rather than rendered empty. */
+/* Everything a ratings panel needs, in display order: the groups this
+   position is judged on, under the labels it uses for them. Groups the
+   player has no numbers for are dropped rather than rendered empty. */
 EGE.ratingsFor = function (player) {
   if (!player || !EGE.ratings[player.slug]) { return null; }
   var values = EGE.ratings[player.slug];
-  var weights = EGE.weightsFor(player.position);
 
   return {
     overall: EGE.overallFor(player),
     position: player.position || null,
-    groups: EGE.ratingGroups.map(function (group) {
+    groups: EGE.shownGroupsFor(player.position).map(function (shown) {
+      var group = egeGroupByKey(shown.key);
+      if (!group) { return null; }
       return {
         key: group.key,
-        label: group.label,
+        label: shown.label,
         rating: EGE.groupRating(player.slug, group.key),
-        weight: weights[group.key] || 0,
         attributes: group.attributes.map(function (attr) {
           return { key: attr.key, label: attr.label, value: values[attr.key] };
         })
       };
-    }).filter(function (group) { return group.rating !== null; })
+    }).filter(function (group) { return group && group.rating !== null; })
   };
 };
