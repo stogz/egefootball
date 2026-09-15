@@ -178,30 +178,47 @@ change.
 four times a day, walking the season out slowly:
 
 ```
-## Week 3
-{one embed per player who actually played}
+## Week Three
+{one embed per player with a game that week}
 ```
 
-Each embed carries the player as its author — name, headshot, and a link to
-their page on the site — their school's mark as the thumbnail, and the school
-and league in the footer. What sits between depends on whether the game has
-been played:
+An embed reads top to bottom as:
 
-- **A fixture** shows the matchup, the kickoff, home or away, and whether it
-  is a conference game. Gold spine.
-- **A final** shows the result and score in the title, the player's stat line
-  in fields, and the record through that week in the footer. Green for a win,
-  clay for a loss.
+| | |
+| --- | --- |
+| **Author** | the school, with its mark. Not a link — there is nothing on the site to send anybody to for a school |
+| **Headline** | `W `28-3` vs. Millbrook`, and the one link in the embed: the player's own page. The score is in backticks, so it sits in a box |
+| **Thumbnail** | the player's headshot. The post is about him, not his school |
+| **Fields** | one per stat, three to a row, each value in backticks |
+| **Footer** | the player's name |
+| **Timestamp** | when the game actually kicked off |
+| **Spine** | green for a win, clay for a loss, gold for a game not yet played |
 
-Nothing has been played yet, so every embed is currently a fixture. A game
-gains a `result` and `stats` in `stats/{year}.js`, and once the week is
-published the same post starts
-reporting it.
+The headline is the embed's *description* rather than its title, because a
+title renders as flat text and the score would lose its box.
 
-When our own schools meet — Bloomington at Normal Community in week 3 — the
-opponent's mark rides in the footer icon, which is as close to both crests as
-one embed allows. Other opponents have no mark in the repo, so the footer
-simply goes without.
+The fields are the **typed** stats — the ones in `stats/{year}.js`. The
+averages, the totals and the passer rating are left out, because they follow
+from the numbers beside them rather than standing alongside them. For a tight
+end that is REC, REYDS, YAC, RETD, LNG, TGT, CAR, RUYDS, RUTD, LNG, FL; for a
+quarterback, C and ATT as separate fields, then PYDS, PYAC, PTD, INT and the
+rest. Credits earned come last when the game paid any.
+
+A game that has not been played shows the matchup, the kickoff, home or away,
+and whether it is a conference game instead.
+
+### The kickoff timestamp
+
+A Discord timestamp is an instant, and it renders in whoever is reading's own
+time zone. A 7:00pm kickoff is not an instant until you know where it was, and
+a Carlsbad game and a Wake Forest game both listed at 7:00pm are three hours
+apart — so every school carries a `zone` in `data/players.js`.
+
+Working out the instant is two steps: read the naive time as if it were UTC,
+ask what that instant looks like on the school's clock, and take the gap back
+off. Daylight saving comes out right because the zone answers for the day in
+question rather than for today. A game with no kickoff time, or a player with
+no school yet, simply goes without a timestamp.
 
 A player on a bye, one with no game that week, and one with no schedule at
 all are left out of the post rather than shown empty.

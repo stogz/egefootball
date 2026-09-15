@@ -30,6 +30,12 @@ EGE.discordPost = (function () {
   var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+  /* --- when the game kicked off -------------------------------------------- */
+
+  var WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
   /* Dates are plain calendar days, so read them as such rather than letting
      the runtime's time zone move them. */
   function kickoffLabel(game) {
@@ -38,6 +44,68 @@ EGE.discordPost = (function () {
     var day = WEEKDAYS[when.getUTCDay()] + ' ' + MONTHS[when.getUTCMonth()] + ' ' + when.getUTCDate();
     return game.kickoff ? day + ', ' + game.kickoff : day;
   }
+
+  /* '7:30pm' -> { hour: 19, minute: 30 }. Anything it cannot read comes back
+     null rather than guessing at midnight. */
+  function clockOf(kickoff) {
+    var read = /^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i.exec(String(kickoff || '').trim());
+    if (!read) { return null; }
+
+    var hour = Number(read[1]);
+    var minute = Number(read[2] || 0);
+    var half = (read[3] || '').toLowerCase();
+
+    if (half === 'pm' && hour !== 12) { hour += 12; }
+    if (half === 'am' && hour === 12) { hour = 0; }
+    if (hour > 23 || minute > 59) { return null; }
+
+    return { hour: hour, minute: minute };
+  }
+
+  /* What a given instant reads as on a given zone's clock. */
+  function clockIn(instant, zone) {
+    var parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    }).formatToParts(new Date(instant)).reduce(function (out, part) {
+      out[part.type] = part.value;
+      return out;
+    }, {});
+
+    return Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day),
+                    Number(parts.hour) % 24, Number(parts.minute), Number(parts.second));
+  }
+
+  /* The moment a 7:00pm kickoff actually happened, as an ISO string Discord
+     can render in whoever is reading's own time.
+
+     Wall-clock time in a named zone is not something Date can be told
+     directly, so: read the naive time as if it were UTC, ask what that
+     instant looks like on the school's clock, and the gap between the two is
+     the offset to take back off. Daylight saving comes out right because the
+     zone answers for the day in question, not for today. */
+  function kickoffInstant(game, team) {
+    var zone = team && team.zone;
+    var clock = clockOf(game.kickoff);
+    var parts = String(game.date).split('-').map(Number);
+    if (!zone || !clock || parts.length !== 3) { return null; }
+
+    var naive = Date.UTC(parts[0], parts[1] - 1, parts[2], clock.hour, clock.minute);
+    var offset = clockIn(naive, zone) - naive;
+    return new Date(naive - offset).toISOString();
+  }
+
+  /* --- naming the week ------------------------------------------------------ */
+
+  var WORDS = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven',
+               'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen',
+               'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen', 'Twenty'];
+
+  function weekWord(week) {
+    return WORDS[week] || String(week);
+  }
+
+  /* --- the pieces of an embed ------------------------------------------------ */
 
   /* Absolute URLs — Discord will not load anything relative. */
   function asset(siteUrl, path) {
@@ -48,89 +116,14 @@ EGE.discordPost = (function () {
     return siteUrl.replace(/\/+$/, '') + '/#' + player.slug;
   }
 
-  /* Opponents are mostly schools we hold nothing for, but a few of them are
-     each other — Bloomington and Normal Community share a league — so look
-     the name up and use the mark when there is one. */
-  function opponentTeam(name) {
-    var wanted = String(name).toLowerCase();
-    var key = Object.keys(EGE.teams).filter(function (id) {
-      var school = EGE.teams[id].school.toLowerCase();
-      return school === wanted || school.indexOf(wanted + ' ') === 0;
-    })[0];
-    return key ? EGE.teams[key] : null;
-  }
+  function code(text) { return '`' + text + '`'; }
 
-  /* The headline, in the three columns Discord gives us. */
-  function summaryFields(player, stats) {
-    var fields = [];
-    var add = function (name, value) {
-      fields.push({ name: name, value: String(value), inline: true });
-    };
-
-    if (player.position === 'QB') {
-      add('Passing', stats.completions + '/' + stats.attempts + ', ' + stats.passingYards + ' yds');
-      add('TD / INT', stats.passingTd + ' / ' + stats.interceptions);
-      add('Rating', stats.rating === null ? '—' : stats.rating);
-      return fields;
-    }
-
-    if (player.position === 'RB') {
-      add('Rushing', stats.carries + ' car, ' + stats.rushingYards + ' yds');
-      add('Receiving', stats.receptions + ' rec, ' + stats.receivingYards + ' yds');
-      add('Touchdowns', stats.totalTd);
-      return fields;
-    }
-
-    add('Receiving', stats.receptions + '/' + stats.targets + ', ' + stats.receivingYards + ' yds');
-    add('Yards After Catch', stats.receivingYac);
-    add('Touchdowns', stats.totalTd);
-    return fields;
-  }
-
-  /* The full line underneath, as a code block so the columns stay lined up in
-     Discord's proportional font. */
-  function fullLine(player, stats) {
-    var heads = [];
-    var values = [];
-
-    EGE.statline.lineFor(player.position).forEach(function (column) {
-      var value = column.text(stats);
-      var width = Math.max(column.label.length, value.length);
-      heads.push(pad(column.label, width));
-      values.push(pad(value, width));
-    });
-
-    return '```\n' + heads.join(' ') + '\n' + values.join(' ') + '\n```';
-  }
-
-  /* padStart, written out: the bot runs on whatever Node the runner has and
-     the browser is whatever the players open it in. */
-  function pad(text, width) {
-    var out = String(text);
-    while (out.length < width) { out = ' ' + out; }
-    return out;
-  }
-
-  /* Record through the given week, so the embed says where the season stands.
-     Nothing rather than a meaningless 0-0 before anything has been played. */
-  function recordThrough(player, week, season) {
-    var wins = 0;
-    var losses = 0;
-    var counted = 0;
-
-    EGE.gamesPlayed(player, season).forEach(function (game) {
-      if (game.week > week) { return; }
-      counted += 1;
-      if (game.result.teamScore > game.result.opponentScore) { wins += 1; } else { losses += 1; }
-    });
-    return counted ? wins + '-' + losses : null;
-  }
+  /* --- one game -------------------------------------------------------------- */
 
   function buildEmbed(player, game, options) {
     var siteUrl = options.siteUrl || SITE;
     var season = options.season || EGE.currentSeason;
     var team = EGE.teamFor(player);
-    var opponent = opponentTeam(game.opponent);
 
     /* The admin publishes and posts in one click, so the week may not have
        been marked published yet when this is built. `played` is told, not
@@ -139,54 +132,61 @@ EGE.discordPost = (function () {
     played = played && EGE.hasResult(game);
 
     var won = played && game.result.teamScore > game.result.opponentScore;
-    var matchup = (game.home ? 'vs ' : 'at ') + game.opponent;
+    var matchup = (game.home ? 'vs. ' : 'at ') + game.opponent;
 
     var embed = {
       color: played ? (won ? COLOR_WIN : COLOR_LOSS) : COLOR_UPCOMING,
+
+      /* The school, with its mark, and deliberately not a link: there is
+         nothing on the site to send anybody to for a school. */
       author: {
-        name: player.name,
-        url: playerUrl(siteUrl, player),
-        icon_url: asset(siteUrl, player.headshot)
+        name: team ? team.school : 'School TBD'
       },
-      title: played
-        ? (won ? 'W ' : 'L ') + game.result.teamScore + '–' +
-          game.result.opponentScore + ' ' + matchup
-        : matchup,
-      url: playerUrl(siteUrl, player),
+
+      /* The player's face, not the school crest — the post is about him. */
+      thumbnail: { url: asset(siteUrl, player.headshot) },
+
       fields: []
     };
 
+    if (team && team.logo) { embed.author.icon_url = asset(siteUrl, team.logo); }
+
+    /* The headline, and the one link in the embed: his own page. It is the
+       description rather than the title because a title renders as flat text
+       — the score would lose its box. */
+    embed.description = played
+      ? '[' + (won ? 'W' : 'L') + ' ' +
+        code(game.result.teamScore + '-' + game.result.opponentScore) + ' ' +
+        matchup + '](' + playerUrl(siteUrl, player) + ')'
+      : '[' + matchup + '](' + playerUrl(siteUrl, player) + ')';
+
     if (played && game.stats) {
       var stats = EGE.statline.complete(player.position, game.stats);
-      embed.fields = summaryFields(player, stats).concat([
-        { name: '​', value: fullLine(player, stats), inline: false }
-      ]);
+
+      /* A field each, in the order his position's line reads. The averages
+         and the totals are not here: they follow from these. */
+      EGE.statline.fieldsFor(player.position, stats).forEach(function (field) {
+        embed.fields.push({ name: field.label, value: code(field.value), inline: true });
+      });
 
       var credits = EGE.economy.touchdownCredits(player, stats);
       if (credits) {
-        embed.fields.push({
-          name: 'Credits earned', value: '+' + credits, inline: true
-        });
+        embed.fields.push({ name: 'Credits', value: code('+' + credits), inline: true });
       }
     } else if (!played) {
-      embed.fields.push({ name: 'Kickoff', value: kickoffLabel(game), inline: true });
-      embed.fields.push({ name: 'Where', value: game.home ? 'Home' : 'Away', inline: true });
+      embed.fields.push({ name: 'Kickoff', value: code(kickoffLabel(game)), inline: true });
+      embed.fields.push({ name: 'Where', value: code(game.home ? 'Home' : 'Away'), inline: true });
       if (game.conference) {
-        embed.fields.push({ name: 'Conference', value: 'Yes', inline: true });
+        embed.fields.push({ name: 'Conference', value: code('Yes'), inline: true });
       }
     }
 
-    /* The player's own mark leads; the opponent's sits in the footer when we
-       have one, which is as close to both crests as an embed allows. */
-    if (team && team.logo) { embed.thumbnail = { url: asset(siteUrl, team.logo) }; }
+    embed.footer = { text: player.name };
 
-    var footer = [team ? team.school : 'School TBD'];
-    if (team && team.league) { footer.push(team.league); }
-    var record = recordThrough(player, game.week, season);
-    footer.push(record ? season + ' · ' + record : String(season));
-
-    embed.footer = { text: footer.join(' · ') };
-    if (opponent && opponent.logo) { embed.footer.icon_url = asset(siteUrl, opponent.logo); }
+    /* Rendered in whoever is reading's own time zone, which is the whole
+       point of sending an instant rather than a printed time. */
+    var kickedOff = kickoffInstant(game, team);
+    if (kickedOff) { embed.timestamp = kickedOff; }
 
     return embed;
   }
@@ -202,14 +202,8 @@ EGE.discordPost = (function () {
     var playing = EGE.gamesInWeek(week, season);
     if (!playing.length) { return null; }
 
-    var results = playing.some(function (entry) {
-      return settings.played === undefined ? EGE.isFinal(entry.game) : settings.played;
-    }) && playing.some(function (entry) { return EGE.hasResult(entry.game); });
-
-    var heading = results ? '## Week ' + week + ' — Results' : '## Week ' + week;
-
     return {
-      content: heading + '\n' + siteUrl.replace(/\/+$/, ''),
+      content: '## Week ' + weekWord(week),
       embeds: playing.map(function (entry) {
         return buildEmbed(entry.player, entry.game, {
           season: season, siteUrl: siteUrl, played: settings.played

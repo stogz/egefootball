@@ -1552,10 +1552,7 @@
 
     var grid = el('div', 'ege-statgrid');
     EGE.statline.keysFor(player.position).forEach(function (key) {
-      var column = EGE.statline.lineFor(player.position).filter(function (c) {
-        return c.key === key || (c.edits || []).indexOf(key) !== -1;
-      })[0];
-      var label = column && (column.edits || []).length > 1 ? key : (column ? column.label : key);
+      var label = EGE.statline.labelFor(player.position, key);
 
       grid.appendChild(numberField(label, held.stats ? held.stats[key] : null, function (value) {
         held.stats = held.stats || {};

@@ -40,32 +40,43 @@ EGE.tierFor = function (season) {
 /* Which season is live is not here: it changes every year, and the admin
    portal rewrites the file that holds it. See data/season.js. */
 
-/* Schools, their leagues, and their marks. */
+/* Schools, their leagues, their marks, and the clock they play on.
+
+   `zone` is what turns a 7:00pm kickoff into a real moment. A Carlsbad game
+   and a Wake Forest game both listed at 7:00pm are three hours apart, and a
+   Discord timestamp is an instant — without this it would show everyone the
+   wrong hour for four of the five schools. The zones are read off where the
+   schools are, and they follow daylight saving on their own. */
 EGE.teams = {
   carlsbad: {
     school: 'Carlsbad High School',
     league: 'Avocado League',
-    logo: 'icon/carlsbad.png'
+    logo: 'icon/carlsbad.png',
+    zone: 'America/Los_Angeles'
   },
   bloomington: {
     school: 'Bloomington High School',
     league: 'Big Twelve',
-    logo: 'icon/bloomington.png'
+    logo: 'icon/bloomington.png',
+    zone: 'America/Chicago'
   },
   normal: {
     school: 'Normal Community High School',
     league: 'Big Twelve',
-    logo: 'icon/normal.png'
+    logo: 'icon/normal.png',
+    zone: 'America/Chicago'
   },
   naples: {
     school: 'Naples High School',
     league: '6A District 12',
-    logo: 'icon/naples.png'
+    logo: 'icon/naples.png',
+    zone: 'America/New_York'
   },
   wakeForest: {
     school: 'Wake Forest High School',
     league: 'Northern 4A',
-    logo: 'icon/wake.png'
+    logo: 'icon/wake.png',
+    zone: 'America/New_York'
   }
 };
 
