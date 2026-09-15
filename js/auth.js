@@ -1,8 +1,8 @@
 /* ==========================================================================
    EGE Football — auth
-   Six known players, six hardcoded emails. A player signs in with their
-   email and a password they set themselves the first time; once that
-   password exists it cannot be set again, only used.
+   Six known players, six hardcoded emails. A player sets their own password
+   the first time, then signs in with it. A forgotten password is replaced by
+   emailing a six-digit PIN and typing it back into the site.
 
    Depends on: supabase-js (loaded from CDN in index.html) and
    js/supabase-config.js.
@@ -12,6 +12,8 @@ window.EGE = window.EGE || {};
 
 EGE.auth = (function () {
   'use strict';
+
+  var MIN_PASSWORD = 8;
 
   var client = null;
   var listeners = [];
@@ -28,10 +30,10 @@ EGE.auth = (function () {
     return configured() && Boolean(window.supabase && window.supabase.createClient);
   }
 
-  /* Why login is unavailable, in words a human can act on. */
+  /* Why the portal is unavailable, in words a human can act on. */
   function unavailableReason() {
     if (!configured()) {
-      return 'Login is not configured yet — add your Supabase URL and anon key to js/supabase-config.js.';
+      return 'The portal is not configured yet — add your Supabase URL and anon key to js/supabase-config.js.';
     }
     if (!window.supabase || !window.supabase.createClient) {
       return 'The Supabase library did not load. Check your connection and refresh.';
@@ -53,6 +55,8 @@ EGE.auth = (function () {
     }
     return client;
   }
+
+  function fail(message) { return Promise.resolve({ ok: false, message: message }); }
 
   /* --- who is signed in ------------------------------------------------- */
 
@@ -84,7 +88,25 @@ EGE.auth = (function () {
     });
   }
 
-  /* --- sign in / first-time password ------------------------------------ */
+  /* --- signing in ------------------------------------------------------- */
+
+  function signIn(email, password) {
+    var c = getClient();
+    if (!c) { return fail(unavailableReason()); }
+
+    return c.auth.signInWithPassword({ email: email, password: password })
+      .then(function (res) {
+        if (res.error) {
+          return {
+            ok: false,
+            message: 'That password is not right. If you have never set one, use First Time.'
+          };
+        }
+        return { ok: true, message: 'Signed in.' };
+      });
+  }
+
+  /* --- first password --------------------------------------------------- */
 
   /* Supabase hides whether an email is already registered when email
      confirmation is on: signUp returns a user with an empty identities
@@ -97,108 +119,87 @@ EGE.auth = (function () {
     return Boolean(user && user.identities && user.identities.length === 0);
   }
 
-  /* One password field does both jobs: sign in if the account exists, set
-     the password if it does not. An account that already has a password
-     can never have another one set — that path only ever signs in. */
-  function submitPassword(email, password) {
+  /* Sets a password for an account that has never had one. An account that
+     already has a password is turned away here — changing one goes through
+     the PIN instead. */
+  function createPassword(email, password, confirmation) {
     var c = getClient();
-    if (!c) { return Promise.resolve({ ok: false, message: unavailableReason() }); }
-    if (!password || password.length < 8) {
-      return Promise.resolve({ ok: false, message: 'Use at least 8 characters.' });
+    if (!c) { return fail(unavailableReason()); }
+    if (!password || password.length < MIN_PASSWORD) {
+      return fail('Use at least ' + MIN_PASSWORD + ' characters.');
+    }
+    if (password !== confirmation) {
+      return fail('Those two passwords do not match.');
     }
 
-    return c.auth.signInWithPassword({ email: email, password: password })
-      .then(function (res) {
-        if (!res.error) { return { ok: true, message: 'Signed in.', created: false }; }
-
-        /* No account yet, or the wrong password — signUp tells us which. */
-        return c.auth.signUp({ email: email, password: password }).then(function (signUp) {
-          if (alreadyRegistered(signUp)) {
-            return { ok: false, message: 'Incorrect password. Your password is already set.' };
-          }
-          if (signUp.error) {
-            return { ok: false, message: signUp.error.message };
-          }
-          if (!signUp.data.session) {
-            return {
-              ok: false,
-              message: 'Password saved. Confirm the link Supabase emailed you, then sign in.'
-            };
-          }
-          return { ok: true, message: 'Password set. You are signed in.', created: true };
-        });
-      });
-  }
-
-  /* --- password reset by email ------------------------------------------ */
-
-  function resetRedirectUrl() {
-    var base = (EGE.supabaseConfig && EGE.supabaseConfig.siteUrl) || window.location.origin;
-    return base.replace(/\/+$/, '') + '/reset-password.html';
-  }
-
-  /* Emails a one-time link to reset-password.html. Supabase does not say
-     whether the address has an account, so neither do we. */
-  function sendPasswordReset(email) {
-    var c = getClient();
-    if (!c) { return Promise.resolve({ ok: false, message: unavailableReason() }); }
-
-    return c.auth.resetPasswordForEmail(email, { redirectTo: resetRedirectUrl() })
-      .then(function (res) {
-        if (res.error) { return { ok: false, message: res.error.message }; }
-        return { ok: true, message: 'Reset link sent to ' + email + '. Check your inbox.' };
-      });
-  }
-
-  /* Anything the link itself reports — an expired or already-used token
-     comes back as an error in the URL rather than as a failed call. */
-  function errorFromUrl() {
-    var hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    var query = new URLSearchParams(window.location.search);
-    var described = hash.get('error_description') || query.get('error_description');
-    return described ? described.replace(/\+/g, ' ') : null;
-  }
-
-  /* Run on reset-password.html: turns the emailed link into a session that
-     is allowed to set a new password. supabase-js reads tokens out of the
-     URL on its own; a PKCE-style link carries a code to exchange instead. */
-  function initRecovery() {
-    var c = getClient();
-    if (!c) { return Promise.resolve({ ok: false, message: unavailableReason() }); }
-
-    var urlError = errorFromUrl();
-    if (urlError) { return Promise.resolve({ ok: false, message: urlError }); }
-
-    return c.auth.getSession().then(function (res) {
-      var found = res.data && res.data.session;
-      if (found) { session = found; return { ok: true }; }
-
-      var code = new URLSearchParams(window.location.search).get('code');
-      if (!code) {
+    return c.auth.signUp({ email: email, password: password }).then(function (res) {
+      if (alreadyRegistered(res)) {
         return {
           ok: false,
-          message: 'This link is invalid or has expired. Request a new one from the Log In panel.'
+          message: 'This player already has a password. Sign in, or use Forgot Password.'
         };
       }
-      return c.auth.exchangeCodeForSession(code).then(function (exchanged) {
-        if (exchanged.error) { return { ok: false, message: exchanged.error.message }; }
-        session = exchanged.data.session;
-        return { ok: true };
-      });
+      if (res.error) { return { ok: false, message: res.error.message }; }
+      if (!res.data.session) {
+        return { ok: false, message: 'Password saved. Confirm the email Supabase sent you, then sign in.' };
+      }
+      return { ok: true, message: 'Password set. You are signed in.' };
     });
   }
 
-  /* Sets the password of whoever the current session belongs to. */
-  function updatePassword(password) {
+  /* --- forgotten password: PIN by email --------------------------------- */
+
+  /* Emails a six-digit code. Supabase sends the code rather than a link when
+     the Magic Link email template includes {{ .Token }}. */
+  function sendPin(email) {
     var c = getClient();
-    if (!c) { return Promise.resolve({ ok: false, message: unavailableReason() }); }
-    if (!password || password.length < 8) {
-      return Promise.resolve({ ok: false, message: 'Use at least 8 characters.' });
+    if (!c) { return fail(unavailableReason()); }
+
+    return c.auth.signInWithOtp({ email: email, options: { shouldCreateUser: false } })
+      .then(function (res) {
+        if (res.error) {
+          if (/signups not allowed|not found/i.test(res.error.message || '')) {
+            return { ok: false, message: 'No account yet for that player — set a first password instead.' };
+          }
+          return { ok: false, message: res.error.message };
+        }
+        return { ok: true, message: 'PIN sent to ' + email + '. It expires shortly.' };
+      });
+  }
+
+  /* Trading the PIN for a session is what authorises the new password. */
+  function verifyPin(email, pin) {
+    var c = getClient();
+    if (!c) { return fail(unavailableReason()); }
+    if (!/^\d{6}$/.test((pin || '').trim())) {
+      return fail('The PIN is six digits.');
+    }
+
+    return c.auth.verifyOtp({ email: email, token: pin.trim(), type: 'email' })
+      .then(function (res) {
+        if (res.error) {
+          return { ok: false, message: 'That PIN is wrong or has expired. Send a new one.' };
+        }
+        session = res.data.session;
+        return { ok: true, message: 'PIN accepted.' };
+      });
+  }
+
+  /* Sets the password of whoever the current session belongs to — only
+     reachable straight after a PIN has been accepted. */
+  function updatePassword(password, confirmation) {
+    var c = getClient();
+    if (!c) { return fail(unavailableReason()); }
+    if (!password || password.length < MIN_PASSWORD) {
+      return fail('Use at least ' + MIN_PASSWORD + ' characters.');
+    }
+    if (password !== confirmation) {
+      return fail('Those two passwords do not match.');
     }
 
     return c.auth.updateUser({ password: password }).then(function (res) {
       if (res.error) { return { ok: false, message: res.error.message }; }
-      return { ok: true, message: 'Password changed. You can sign in with it now.' };
+      return { ok: true, message: 'Password changed. You are signed in.' };
     });
   }
 
@@ -212,12 +213,14 @@ EGE.auth = (function () {
     init: init,
     available: available,
     unavailableReason: unavailableReason,
-    submitPassword: submitPassword,
-    sendPasswordReset: sendPasswordReset,
-    initRecovery: initRecovery,
+    signIn: signIn,
+    createPassword: createPassword,
+    sendPin: sendPin,
+    verifyPin: verifyPin,
     updatePassword: updatePassword,
     signOut: signOut,
     currentPlayer: currentPlayer,
-    onChange: onChange
+    onChange: onChange,
+    MIN_PASSWORD: MIN_PASSWORD
   };
 })();

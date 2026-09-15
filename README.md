@@ -14,21 +14,21 @@ and in what order.
 
 ## The Six Players
 
-| Player | School | Position | Notes |
+| Player | School | League | Position |
 | --- | --- | --- | --- |
-| Andrew Parr | TBD | TBD | |
-| Cooper Clark | Carlsbad High School | TBD | |
-| Paxon Hatch | Bloomington High School | TE | Only confirmed position |
-| Isaac Vitel | TBD | TBD | |
-| Sam Stogsdill | Normal Community High School | TBD | |
-| Jaykeb Stewart | TBD | TBD | |
+| Andrew Parr | TBD | TBD | TBD |
+| Cooper Clark | Carlsbad High School | Avocado League | TBD |
+| Paxon Hatch | Bloomington High School | Big Twelve | TE |
+| Isaac Vitel | TBD | TBD | TBD |
+| Sam Stogsdill | Normal Community High School | Big Twelve | TBD |
+| Jaykeb Stewart | TBD | TBD | TBD |
 
 Everything marked TBD is genuinely unknown right now and should stay TBD in code
 and data until it is confirmed — no placeholder guesses that later read as facts.
 
-Headshots already in the repo under `headshot/`, keyed by last name:
-`parr.png`, `clark.png`, `hatch.png`, `vitel.png`, `stogsdill.png`,
-`stewart.png`.
+Headshots live in `headshot/`, keyed by last name: `parr.png`, `clark.png`,
+`hatch.png`, `vitel.png`, `stogsdill.png`, `stewart.png`. School marks live in
+`icon/`, keyed by school: `carlsbad.png`, `bloomington.png`, `normal.png`.
 
 ---
 
@@ -109,13 +109,16 @@ Each of the six gets an account and a private portal.
 
 - **Login** — one account per player; a player only edits their own profile.
   Built on Supabase auth against a hardcoded list of six emails — nobody
-  outside that list can hold an account. A player's first sign-in sets their
-  password; after that it can only be used, never re-set. Sam Stogsdill's
-  email is in; the other five are TBD.
-- **Changing a password** — from the portal panel when signed in, or from the
-  login panel when locked out. Either emails a one-time link to
-  `reset-password.html`, which is the only way a password gets replaced. The
-  link expires, and the page says so plainly when it has.
+  outside that list can hold an account. Sam Stogsdill's email is in; the
+  other five are TBD.
+- **First password** — a player picks themselves out of the list, chooses a
+  password, and types it twice so a typo can't lock them out. A player who
+  already has a password is turned away here.
+- **Forgotten password** — the portal emails a six-digit PIN. Typing it back
+  into the site unlocks a new password, entered twice. That is the only way a
+  password gets replaced.
+- **Show password** — every password field has an eye toggle, so what's being
+  typed can be checked before it's submitted.
 - **Overalls** — a rating per attribute (speed, strength, catching, route
   running, awareness, etc. — final attribute list TBD) plus a single overall.
 - **Offseason workouts** — the progression mechanic. Between seasons a player
@@ -136,10 +139,8 @@ Built so far:
 - `index.html` — the homepage: player select, plus a placeholder player view.
 - `js/app.js` — renders the six cards and routes `#{slug}` to a player view.
 - `data/players.js` — the six players and the season ladder. Source of truth.
-- `js/auth.js` — Supabase auth: sign in, first-time password, password reset,
-  session state.
-- `reset-password.html` + `js/reset-password.js` — where the emailed reset link
-  lands. Sets a new password, then sends the player back to the homepage.
+- `js/auth.js` — Supabase auth: sign in, first password, PIN reset, session
+  state.
 - `js/supabase-config.js` — your Supabase URL and anon key. Blank by default.
 - `site.css` — the theme (palette overriding the kit's tokens) plus the page
   components the kit doesn't cover (player card, roster grid, login form).
@@ -156,18 +157,19 @@ dependency is supabase-js, loaded from a CDN.
 2. Paste both into `js/supabase-config.js`. The anon key is meant for browser
    code and is safe to commit. The **service_role** key is not — it bypasses
    every security rule and must never appear in this repo.
-3. Under **Authentication → URL Configuration**, add
-   `https://egefootball.vercel.app/reset-password.html` to **Redirect URLs**,
-   or password-reset links will bounce. Add your local address there too if
-   you test resets while developing.
+3. Under **Authentication → Emails → Magic Link**, make sure the template
+   includes `{{ .Token }}`. Supabase sends a six-digit code instead of a link
+   when that variable is in the template, and the code is what the portal asks
+   for. A template with only `{{ .ConfirmationURL }}` will mail a link the
+   portal has no way to accept.
 
 Until those two values are filled in, the site runs normally and the portal
 reports that login isn't configured yet.
 
-**Worth knowing:** a first sign-in is what sets the password, so whoever gets
-there first claims the account. With six known players that's usually fine, but
-say the word and this can move to emailed magic links instead, where only the
-inbox owner can ever get in.
+**Worth knowing:** setting the first password doesn't prove who is setting it,
+so whoever gets there first claims the account. With six known players that's
+usually fine. Once a password exists the PIN closes the gap, since replacing it
+requires the inbox.
 
 ### Kit and assets
 
@@ -218,9 +220,9 @@ One thing at a time, in this order:
 6. **Stat lines** — TE game log for Paxon Hatch first, other position sets as
    positions are confirmed.
 7. **Login + portal** — Supabase auth, accounts, attributes, overalls.
-   *Login is in: allowlisted emails, one-time password, password reset by
-   email, session in the nav. The portal behind it — attributes and overalls
-   — is not.*
+   *Login is in: allowlisted emails, a first password, PIN reset, and the
+   signed-in player's headshot in the nav. The portal behind it — attributes
+   and overalls — is not.*
 8. **Offseason workouts** — the boost mechanic.
 9. **Extra interactive layer** — scope defined once the above is working.
 
