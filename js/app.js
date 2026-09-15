@@ -167,6 +167,161 @@
   }
 
   var showScouts = false;
+  var schedulePlayer = null;
+
+  /* --- booster stickers --------------------------------------------------- */
+
+  var STICKER_LOOK = {
+    'boost-2-5': { modifier: 'holo',   label: '2.5x' },
+    'boost-2-0': { modifier: 'gold',   label: '2.0x' },
+    'boost-1-5': { modifier: 'silver', label: '1.5x' }
+  };
+
+  function stickerEl(itemKey, size) {
+    var look = STICKER_LOOK[itemKey];
+    if (!look) { return null; }
+
+    var sticker = el('span', 'ege-sticker ege-sticker--' + look.modifier);
+    sticker.style.setProperty('--sticker-size', (size || 40) + 'px');
+    sticker.appendChild(el('span', 'ege-sticker__text', look.label));
+    return sticker;
+  }
+
+  function stickerOn(player, week) {
+    var byWeek = (EGE.gameBoosters || {})[player.slug] || {};
+    return byWeek[week] || null;
+  }
+
+  /* The slot at the end of a schedule row: a sticker if one is stuck there,
+     a plus if this is your own unplayed game, and nothing otherwise. */
+  function stickerSlot(player, game) {
+    var slot = el('span', 'ege-slot');
+    var mine = isMe(player);
+    var played = EGE.isFinal(game);
+    var stuck = stickerOn(player, game.week);
+
+    if (stuck) {
+      var peelable = mine && !played;
+      var applied = el('button', 'ege-slot__applied ' +
+        (peelable ? 'ege-slot__applied--peelable' : 'ege-slot__applied--stuck'));
+      applied.type = 'button';
+      applied.disabled = !peelable;
+      applied.title = peelable
+        ? stuck.item_name + ' \u2014 click to peel it off'
+        : stuck.item_name + ' \u2014 the game has been played, it stays put';
+      var sticker = stickerEl(stuck.item_key, 34);
+      applied.appendChild(sticker);
+      if (peelable) {
+        /* The cross lives inside the sticker so it is carried by the same
+           scale and rotation rather than chasing them. */
+        sticker.appendChild(el('span', 'ege-sticker__x', '\u00d7'));
+        applied.addEventListener('click', function () {
+          applied.disabled = true;
+          EGE.wallet.peelBooster(player.email, stuck).then(function (res) {
+            announce(res.message, !res.ok);
+            refreshShop();
+          });
+        });
+      }
+      slot.appendChild(applied);
+      return slot;
+    }
+
+    if (mine && !played) {
+      var add = el('button', 'ege-slot__add', '+');
+      add.type = 'button';
+      add.title = 'Put a booster on this game';
+      add.setAttribute('aria-label', 'Put a booster on week ' + game.week);
+      add.addEventListener('click', function () { openDrawer(player, game); });
+      slot.appendChild(add);
+    }
+
+    return slot;
+  }
+
+  function isMe(player) {
+    var signedIn = EGE.auth.currentPlayer();
+    return Boolean(signedIn && player && signedIn.slug === player.slug);
+  }
+
+  /* --- the drawer --------------------------------------------------------- */
+
+  var drawer = null;
+  var drawerFor = null;
+
+  function announce(message, isError) {
+    sayShop(message, isError);
+    if (drawer) { renderDrawer(); }
+  }
+
+  function closeDrawer() {
+    drawerFor = null;
+    if (drawer) { drawer.remove(); drawer = null; }
+  }
+
+  function openDrawer(player, game) {
+    drawerFor = { player: player, game: game };
+    renderDrawer();
+  }
+
+  function renderDrawer() {
+    if (!drawerFor) { return; }
+    if (drawer) { drawer.remove(); }
+
+    var game = drawerFor.game;
+    var player = drawerFor.player;
+
+    drawer = el('div', 'ege-drawer');
+    var inner = el('div', 'ege-drawer__inner');
+
+    var title = el('div', 'ege-drawer__title');
+    title.appendChild(el('small', null, 'Week ' + game.week + ' \u00b7 ' +
+      (game.home ? 'vs ' : 'at ') + game.opponent));
+    title.appendChild(document.createTextNode('Your Booster Stickers'));
+    inner.appendChild(title);
+
+    var owned = shopState.inventory.filter(function (row) {
+      return row.consumable && STICKER_LOOK[row.item_key];
+    });
+
+    if (!owned.length) {
+      inner.appendChild(el('span', 'ege-drawer__empty',
+        'No boosters in the drawer. They are in the shop.'));
+    } else {
+      var strip = el('div', 'ege-drawer__stickers');
+      owned.forEach(function (row) {
+        var pick = el('button', 'ege-pick');
+        pick.type = 'button';
+        pick.title = 'Stick ' + row.item_name + ' on week ' + game.week;
+        pick.appendChild(stickerEl(row.item_key, 76));
+        pick.appendChild(el('span', 'ege-pick__count', '\u00d7' + EGE.wallet.quantityOf(row)));
+        pick.addEventListener('click', function () {
+          pick.disabled = true;
+          EGE.wallet.applyBooster(player.email, EGE.shopItem(row.item_key),
+                                  EGE.currentSeason, game.week)
+            .then(function (res) {
+              sayShop(res.message, !res.ok);
+              if (res.ok) { closeDrawer(); }
+              refreshShop();
+            });
+        });
+        strip.appendChild(pick);
+      });
+      inner.appendChild(strip);
+    }
+
+    var close = el('button', 'fb-btn fb-btn--inverse', 'Close');
+    close.type = 'button';
+    close.addEventListener('click', closeDrawer);
+    inner.appendChild(close);
+
+    drawer.appendChild(inner);
+    document.body.appendChild(drawer);
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && drawer) { closeDrawer(); }
+  });
 
   function scheduleRow(game) {
     var row = el('tr');
@@ -196,6 +351,10 @@
     }
     row.appendChild(result);
 
+    var slot = el('td', 'num ege-schedule__slot');
+    if (schedulePlayer) { slot.appendChild(stickerSlot(schedulePlayer, game)); }
+    row.appendChild(slot);
+
     return row;
   }
 
@@ -205,6 +364,7 @@
     var games = EGE.gamesFor(player);
 
     showScouts = canSeeScouts(player);
+    schedulePlayer = player;
 
     body.innerHTML = '';
     panel.hidden = false;
@@ -709,7 +869,8 @@
     return Promise.all([
       EGE.wallet.creditsFor(player.email),
       EGE.wallet.inventoryFor(player.email),
-      EGE.wallet.loadBoosts()
+      EGE.wallet.loadBoosts(),
+      EGE.wallet.loadGameBoosters(EGE.currentSeason)
     ]).then(function (all) {
       shopState.credits = all[0] === null ? EGE.shop.startingCredits : all[0];
       shopState.inventory = all[1];

@@ -262,3 +262,45 @@ create unique index if not exists player_inventory_stacked_idx
 -- makes sure. Without it the site reports that it "could not find the 'quantity'
 -- column of 'player_inventory' in the schema cache".
 notify pgrst, 'reload schema';
+
+-- ===========================================================================
+-- Boosters stuck on games
+--
+-- One row per sticker on a game. Applying one takes it off the inventory
+-- stack; peeling it off puts it back. Once the game has been played the
+-- sticker stays where it is.
+-- ===========================================================================
+
+create table if not exists public.game_boosters (
+  id         uuid primary key default gen_random_uuid(),
+  email      text        not null,
+  season     integer     not null,
+  week       integer     not null,
+  item_key   text        not null,
+  item_name  text        not null,
+  applied_at timestamptz not null default now(),
+  unique (email, season, week)          -- one sticker per game
+);
+
+create index if not exists game_boosters_email_idx
+  on public.game_boosters (email, season, week);
+
+alter table public.game_boosters enable row level security;
+
+-- Anyone can see what is stuck on a game: a booster is a boast, not a secret.
+drop policy if exists "game boosters are readable" on public.game_boosters;
+create policy "game boosters are readable"
+  on public.game_boosters for select
+  using (true);
+
+drop policy if exists "game boosters placed by owner or admin" on public.game_boosters;
+create policy "game boosters placed by owner or admin"
+  on public.game_boosters for insert to authenticated
+  with check (email = auth.jwt() ->> 'email' or public.is_admin());
+
+drop policy if exists "game boosters removed by owner or admin" on public.game_boosters;
+create policy "game boosters removed by owner or admin"
+  on public.game_boosters for delete to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin());
+
+notify pgrst, 'reload schema';

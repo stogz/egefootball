@@ -268,7 +268,8 @@ records which attribute it was bought for.
 On sale:
 
 - **Performance boosters** — 2.5x (40), 2.0x (25), 1.5x (15). Regular season
-  only, one use per purchase.
+  only, one use per purchase. They are stickers: holographic, gold and silver
+  sunbursts you stick on a game.
 - **Rating points** — bought straight into an attribute, priced by how close
   that attribute already is to 99. Cheap early, dear late.
 - **Offseason training** — strength (20) or cardio (25), each with a downside
@@ -350,6 +351,30 @@ Training and the rest taken from the top of the table:
 Skipping training and putting all 90 into points comes out at +4.67, so the
 two ways of spending an offseason are worth roughly the same. Season after
 season it flattens on its own, which is the point.
+
+### Booster stickers
+
+A booster is not used from a list — it is **stuck on a game**. Signed in and
+looking at your own schedule, every unplayed game grows a dashed **+** in the
+Booster column. Clicking it slides a drawer up from the bottom of the screen
+holding the stickers you own, each with a count. Click one and it goes on that
+game and comes out of your inventory.
+
+Hovering a sticker you can still move **lifts it off the page and draws a red
+cross through it** — click to peel it off and put it back in the drawer. The
+cross lives inside the sticker so it rides the same scale and tilt rather than
+chasing them, and the sticker grows inward from its right edge so the table
+never clips it.
+
+**Once the game has been played the sticker is stuck for good**: no cross, no
+peeling, and no + on a game that already has a result. Other people see your
+stickers on your schedule but get no + and no cross — a booster is a boast,
+not a secret, and `game_boosters` is readable by everyone and writable only by
+its owner.
+
+The three designs scale off a single `--sticker-size`, so the same sunburst
+renders at 34px in a schedule row and 76px in the drawer without a second
+copy of the CSS.
 
 ### Training
 
@@ -444,8 +469,9 @@ Built so far:
 - `data/schedule.js` — the regular season: every player's fixtures, and
   results and stat lines once games are played.
 - `bot/` — the Discord scores bot (see below).
-- `supabase/schema.sql` — the `player_accounts` table and its policies. Run it
-  once in the Supabase SQL editor.
+- `supabase/schema.sql` — every table and policy: accounts, credits,
+  inventory, admins, and the stickers stuck on games. Run it in the Supabase
+  SQL editor; it is safe to run again.
 - `js/supabase-config.js` — your Supabase URL and anon key. Blank by default.
 - `data/shop.js` — the shop catalogue: credit earnings and everything on sale.
 - `data/economy.js` — every number about credits in one place: what a rating

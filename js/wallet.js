@@ -16,6 +16,7 @@ EGE.wallet = (function () {
   var CREDITS = 'player_credits';
   var INVENTORY = 'player_inventory';
   var ADMINS = 'admins';
+  var GAME_BOOSTERS = 'game_boosters';
 
   var isAdmin = false;
 
@@ -328,6 +329,107 @@ EGE.wallet = (function () {
     });
   }
 
+  /* --- boosters stuck on games ------------------------------------------- */
+
+  /* Every sticker on every game, keyed by player slug and then by week, so a
+     schedule can draw them without asking per row. */
+  function loadGameBoosters(season) {
+    var c = client();
+    if (!c) { EGE.gameBoosters = {}; return Promise.resolve({}); }
+
+    return c.from(GAME_BOOSTERS).select('*').eq('season', season || EGE.currentSeason)
+      .then(function (res) {
+        var byPlayer = {};
+        if (res.error) { EGE.gameBoosters = byPlayer; return byPlayer; }
+
+        (res.data || []).forEach(function (row) {
+          var player = EGE.players.filter(function (p) {
+            return p.email && row.email && p.email.toLowerCase() === row.email.toLowerCase();
+          })[0];
+          if (!player) { return; }
+          var weeks = byPlayer[player.slug] || (byPlayer[player.slug] = {});
+          weeks[row.week] = row;
+        });
+
+        EGE.gameBoosters = byPlayer;
+        return byPlayer;
+      })
+      .catch(function () { EGE.gameBoosters = {}; return {}; });
+  }
+
+  /* Sticks one on a game: the sticker leaves the inventory, because it is on
+     the schedule now rather than in a drawer. */
+  function applyBooster(email, item, season, week) {
+    var c = client();
+    if (!c) { return fail(offline()); }
+
+    return inventoryFor(email).then(function (rows) {
+      var owned = stackedRow(rows, item.key, null);
+      if (!owned || quantityOf(owned) < 1) { return { ok: false, message: 'You do not own one of those.' }; }
+
+      return c.from(GAME_BOOSTERS).insert({
+        email: email,
+        season: season,
+        week: week,
+        item_key: item.key,
+        item_name: item.name
+      }).then(function (res) {
+        if (res.error) {
+          return {
+            ok: false,
+            message: /duplicate|unique/i.test(res.error.message || '')
+              ? 'That game already has a sticker on it.'
+              : res.error.message
+          };
+        }
+
+        var left = quantityOf(owned) - 1;
+        var write = left > 0
+          ? c.from(INVENTORY).update({ quantity: left }).eq('id', owned.id)
+          : c.from(INVENTORY).delete().eq('id', owned.id);
+
+        return write.then(function () {
+          return { ok: true, message: item.name + ' stuck on week ' + week + '.' };
+        });
+      });
+    });
+  }
+
+  /* Peels one off and puts it back in the drawer. */
+  function peelBooster(email, sticker) {
+    var c = client();
+    if (!c) { return fail(offline()); }
+
+    var item = EGE.shopItem(sticker.item_key);
+    if (!item) { return fail('That sticker is not in the shop any more.'); }
+
+    return c.from(GAME_BOOSTERS).delete().eq('id', sticker.id).then(function (res) {
+      if (res.error) { return { ok: false, message: res.error.message }; }
+
+      return inventoryFor(email).then(function (rows) {
+        var owned = stackedRow(rows, item.key, null);
+        var write = owned
+          ? c.from(INVENTORY).update({ quantity: quantityOf(owned) + 1 }).eq('id', owned.id)
+          : c.from(INVENTORY).insert({
+              email: email,
+              item_key: item.key,
+              item_name: item.name,
+              target: null,
+              quantity: 1,
+              credits: 0,
+              effects: {},
+              consumable: true,
+              season: null,
+              active: false
+            });
+
+        return write.then(function () {
+          return { ok: true, message: item.name + ' back in your inventory.' };
+        });
+      });
+    });
+  }
+
   /* --- using and toggling ------------------------------------------------ */
 
   /* A performance booster is spent the moment it is used: one comes off the
@@ -442,6 +544,9 @@ EGE.wallet = (function () {
     allCredits: allCredits,
     buy: buy,
     buyUpgrade: buyUpgrade,
+    loadGameBoosters: loadGameBoosters,
+    applyBooster: applyBooster,
+    peelBooster: peelBooster,
     useItem: useItem,
     setActive: setActive,
     removeItem: removeItem,
