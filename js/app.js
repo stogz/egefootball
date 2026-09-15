@@ -138,9 +138,83 @@
     overallBox.hidden = overall === null;
     document.getElementById('playerOverallValue').textContent = overall === null ? '' : overall;
 
+    renderSchedule(player);
     renderRatings(player);
 
     document.title = player.name;
+  }
+
+  /* --- schedule --------------------------------------------------------- */
+
+  var WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  /* Dates are plain calendar days — read them as such so a time zone can
+     never shift a Saturday game onto the Friday. */
+  function gameDate(game) {
+    var parts = String(game.date).split('-');
+    var when = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
+    return WEEKDAYS[when.getUTCDay()] + ' ' + MONTHS[when.getUTCMonth()] + ' ' + when.getUTCDate();
+  }
+
+  function scheduleRow(game) {
+    var row = el('tr');
+
+    row.appendChild(el('td', 'ege-schedule__week', game.week));
+    row.appendChild(el('td', null, gameDate(game)));
+    row.appendChild(el('td', 'ege-schedule__time', game.kickoff || '\u2014'));
+
+    var opponent = el('td', 'ege-schedule__opponent');
+    opponent.appendChild(el('span', 'ege-schedule__side', game.home ? 'vs' : 'at'));
+    opponent.appendChild(el('span', 'fb-name', game.opponent));
+    if (game.conference) {
+      var mark = el('abbr', 'ege-schedule__conf', '*');
+      mark.title = 'Conference game';
+      opponent.appendChild(mark);
+    }
+    row.appendChild(opponent);
+
+    var result = el('td', 'num');
+    if (EGE.isFinal(game)) {
+      var won = game.result.teamScore > game.result.opponentScore;
+      result.appendChild(el('span', 'fb-tag fb-tag--num ' + (won ? 'fb-tag--sage' : 'fb-tag--clay'),
+        (won ? 'W ' : 'L ') + game.result.teamScore + '\u2013' + game.result.opponentScore));
+    } else {
+      result.appendChild(el('span', 'ege-schedule__pending', '\u2014'));
+    }
+    row.appendChild(result);
+
+    return row;
+  }
+
+  function renderSchedule(player) {
+    var panel = document.getElementById('schedulePanel');
+    var body = document.getElementById('scheduleBody');
+    var games = EGE.gamesFor(player);
+
+    body.innerHTML = '';
+    panel.hidden = false;
+    document.getElementById('scheduleTableWrap').hidden = !games.length;
+    document.getElementById('scheduleEmpty').hidden = Boolean(games.length);
+
+    if (!games.length) {
+      document.getElementById('scheduleNote').textContent = EGE.currentSeason;
+      document.getElementById('scheduleLegend').textContent = '';
+      return;
+    }
+
+    games.forEach(function (game) { body.appendChild(scheduleRow(game)); });
+
+    var played = EGE.gamesPlayed(player).length;
+    document.getElementById('scheduleNote').textContent = played
+      ? EGE.currentSeason + ' \u00b7 ' + games.length + ' games \u00b7 ' + EGE.recordFor(player).text
+      : EGE.currentSeason + ' \u00b7 ' + games.length + ' games \u00b7 none played yet';
+
+    var conference = games.filter(function (game) { return game.conference; }).length;
+    document.getElementById('scheduleLegend').textContent = conference
+      ? '* conference game (' + conference + ' of ' + games.length + ')'
+      : '';
   }
 
   /* --- ratings ---------------------------------------------------------- */

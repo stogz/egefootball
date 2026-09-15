@@ -279,6 +279,37 @@ body {
   font-size: 22px;
 }
 
+/* --- schedule table ----------------------------------------------------- */
+
+/* The kit's table rows are built for picking one; these are just a list. */
+.ege-schedule tbody tr { cursor: default; }
+.ege-schedule tbody tr:hover { background: var(--fb-tint-wash); }
+
+.ege-schedule__week {
+  font-family: var(--fb-font-display);
+  font-size: 17px;
+  width: 1%;
+  white-space: nowrap;
+}
+.ege-schedule__time,
+.ege-schedule__pending { color: var(--fb-muted); }
+.ege-schedule__opponent { white-space: nowrap; }
+.ege-schedule__side {
+  display: inline-block;
+  width: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--fb-muted-2);
+}
+.ege-schedule__conf {
+  margin-left: 4px;
+  color: var(--fb-accent-deep);
+  font-weight: 800;
+  text-decoration: none;
+  cursor: help;
+}
+
 /* --- ratings ------------------------------------------------------------ */
 
 .ege-ovr {

@@ -90,7 +90,37 @@
           </div>
         </div>
         <div class="fb-panel__foot">
-          <span class="fb-meta">Schedule, record, and game log land next.</span>
+          <span class="fb-meta">Per-game stats land here once games are played.</span>
+        </div>
+      </div>
+
+      <div class="fb-panel ege-section-gap" id="schedulePanel" hidden>
+        <div class="fb-panel__head">
+          <h3 style="font-size: 21px;">Schedule</h3>
+          <span class="fb-meta" id="scheduleNote"></span>
+        </div>
+
+        <div class="fb-tablewrap" id="scheduleTableWrap">
+          <table class="fb-table ege-schedule">
+            <thead>
+              <tr>
+                <th>Wk</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Opponent</th>
+                <th class="num">Result</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+
+        <div class="fb-panel__body" id="scheduleEmpty" hidden>
+          <p class="ege-note" style="margin: 0;">No schedule yet — this player has no school.</p>
+        </div>
+
+        <div class="fb-panel__foot">
+          <span class="fb-meta" id="scheduleLegend"></span>
         </div>
       </div>
 

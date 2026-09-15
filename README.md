@@ -78,7 +78,8 @@ holds:
   2018 junior-year high school season is the default and the only one with data
   at first; later seasons appear as they are authored.
 - **Schedule** — every scheduled game in the selected season: week, date,
-  opponent, home/away, result (W/L and score) once played, or upcoming if not.
+  kickoff, opponent with home/away and a mark for conference games, and the
+  result once it has been played.
 - **Record** — running wins and losses for the selected season.
 - **Game log** — per-game stats for that player, with the stat lines driven by
   their position (see below).
@@ -345,9 +346,9 @@ One thing at a time, in this order:
    log sections are not.*
 5. **Schedule data + display** — 2018 junior-year high school schedules per
    school, rendered with results and running record. Later seasons follow the
-   same shape once 2018 is working. *The real fixtures are in
-   `data/schedule.js` and the Discord bot posts them; the schedule is not
-   rendered on the player page yet.*
+   same shape once 2018 is working. ✅ The fixtures are in
+   `data/schedule.js`, the player page renders them, and the Discord bot
+   posts them. Results fill the table's last column as games are played.
 6. **Stat lines** — TE game log for Paxon Hatch first, other position sets as
    positions are confirmed. *The shape is in place — a game carries a `stats`
    object once played, and the bot renders it per position — but no game has
