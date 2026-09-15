@@ -245,6 +245,7 @@
       applied.style.setProperty('--nudge', placing.nudge + 'px');
       applied.appendChild(sticker);
       if (peelable) {
+        sticker.appendChild(el('span', 'ege-sticker__hatch'));
         sticker.appendChild(el('span', 'ege-sticker__x', '\u00d7'));
         applied.addEventListener('click', function () {
           applied.disabled = true;

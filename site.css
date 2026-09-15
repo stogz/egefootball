@@ -617,7 +617,8 @@ body {
 
 .ege-slot__add {
   position: absolute;
-  right: 4px;
+  left: 50%;
+  margin-left: -14px;
   top: 50%;
   margin-top: -14px;
   width: 28px;
@@ -639,7 +640,10 @@ body {
 
 .ege-slot__applied {
   position: absolute;
-  right: 0;
+  /* Centred on the same point the plus uses, so a column of stickers lines
+     up with the column of empty slots. */
+  left: 50%;
+  margin-left: calc(var(--sticker-size, 54px) / -2);
   /* Centred on the row, then nudged a few pixels so it sits over the edge
      above or below rather than neatly inside. */
   top: 50%;
@@ -670,17 +674,33 @@ body {
 .ege-slot__applied--peelable:hover::after,
 .ege-slot__applied--peelable:focus-visible::after { opacity: 1; }
 
-/* Hovering one you can still move lifts it a little and crosses it out. The
-   cross lives inside the sticker, so it carries the same tilt and scale
-   rather than chasing them. */
+/* Hovering one you can still move fades it back, rules it through with
+   slanted lines and crosses it out — it stays exactly where it is and
+   exactly the size it is. */
+.ege-sticker { transition: transform .28s cubic-bezier(.2, .8, .3, 1), opacity .16s ease; }
+
 .ege-slot__applied--peelable:hover .ege-sticker,
-.ege-slot__applied--peelable:focus-visible .ege-sticker {
-  transform: rotate(var(--tilt)) scale(1.5);
-  filter: drop-shadow(3px 6px 7px rgba(0, 0, 0, .5));
-  z-index: 6;
-}
+.ege-slot__applied--peelable:focus-visible .ege-sticker { opacity: .62; }
 .ege-slot__applied--peelable:hover,
 .ege-slot__applied--peelable:focus-visible { z-index: 6; }
+
+/* The slanted rules, cut to the same sunburst so they stop at the edge. */
+.ege-sticker__hatch {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  clip-path: var(--cut);
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--sticker-ink) 0 2px,
+    transparent 2px 11px
+  );
+  opacity: 0;
+  transition: opacity .16s ease;
+  pointer-events: none;
+}
+.ege-slot__applied--peelable:hover .ege-sticker__hatch,
+.ege-slot__applied--peelable:focus-visible .ege-sticker__hatch { opacity: .5; }
 
 .ege-sticker__x {
   position: absolute;
@@ -691,8 +711,7 @@ body {
   font-family: var(--fb-font-display);
   font-size: calc(var(--sticker-size) * 0.66);
   line-height: 1;
-  color: #b3160f;
-  text-shadow: 0 0 6px rgba(255, 255, 255, .95);
+  color: var(--sticker-ink);
   opacity: 0;
   transition: opacity .16s ease;
   pointer-events: none;

@@ -360,9 +360,10 @@ Booster column. Clicking it slides a drawer up from the bottom of the screen
 holding the stickers you own, each with a count. Click one and it goes on that
 game and comes out of your inventory.
 
-Hovering a sticker you can still move lifts it and draws a red cross over it;
-click to take it off and put it back in the drawer. The cross lives inside the
-sticker, so it carries the same tilt and scale rather than chasing them.
+Hovering a sticker you can still move fades it back, rules slanted lines
+across it and draws a cross over it, all in the same ink as its edge — it
+stays exactly where it is and exactly the size it is. Click to take it off and
+put it back in the drawer.
 
 **Once the game has been played the sticker is stuck for good**: no cross, and
 no + on a game that already has a result.
@@ -378,7 +379,8 @@ A plain border would be cut away by the clip-path, which is what made the
 first pass look chewed at the edges; each face also paints a solid ground
 under its moving gradients so nothing can flash through bare.
 
-They sit bigger than their row and hang over the edge of it, top and bottom.
+They sit bigger than their row and hang over the edge of it, top and bottom,
+centred on the same point the empty slots use so the column stays a column.
 Angle and vertical nudge both come from a hash of the sticker's own row id, so
 every sticker lands differently and keeps that placement through every redraw
 — scattered, but never jittering. Nothing in the slot is in the row's flow, so
