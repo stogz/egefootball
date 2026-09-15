@@ -12,6 +12,7 @@
 
   var roster     = document.getElementById('roster');
   var viewHome   = document.getElementById('view-home');
+  var viewShop   = document.getElementById('view-shop');
   var viewPlayer = document.getElementById('view-player');
   var loginBtn   = document.getElementById('loginBtn');
   var loginModal = document.getElementById('loginModal');
@@ -140,8 +141,6 @@
 
     renderSchedule(player);
     renderRatings(player);
-
-    document.title = player.name;
   }
 
   /* --- schedule --------------------------------------------------------- */
@@ -260,19 +259,119 @@
     ratingsPanel.hidden = false;
   }
 
+  /* --- shop ------------------------------------------------------------- */
+
+  function creditTag(credits) {
+    return el('span', 'fb-tag fb-tag--num fb-tag--gold', credits + ' cr');
+  }
+
+  function buildShopItem(item) {
+    var card = el('div', 'ege-item');
+
+    var head = el('div', 'ege-item__head');
+    head.appendChild(el('h4', 'ege-item__name', item.name));
+    head.appendChild(creditTag(item.credits));
+    card.appendChild(head);
+
+    if (item.note) { card.appendChild(el('span', 'fb-tag fb-tag--outline', item.note)); }
+    if (item.description) { card.appendChild(el('p', 'ege-item__text', item.description)); }
+    return card;
+  }
+
+  /* The attributes a stat booster can be spent on, grouped the way the shop
+     lists them. */
+  function buildTargets(targets) {
+    var wrap = el('div', 'ege-targets');
+    targets.forEach(function (group) {
+      var box = el('div', 'ege-targets__group');
+      box.appendChild(el('span', 'fb-eyebrow', group.label));
+      var list = el('div', 'fb-row fb-row--wrap');
+      group.attributes.forEach(function (attr) {
+        list.appendChild(el('span', 'fb-tag', attr.label));
+      });
+      box.appendChild(list);
+      wrap.appendChild(box);
+    });
+    return wrap;
+  }
+
+  function buildShopSection(section) {
+    var panel = el('div', 'fb-panel ege-section-gap');
+
+    var head = el('div', 'fb-panel__head');
+    head.appendChild(el('h3', null, section.title));
+    panel.appendChild(head);
+
+    var body = el('div', 'fb-panel__body fb-stack fb-stack--lg');
+    if (section.blurb) { body.appendChild(el('p', 'ege-item__text', section.blurb)); }
+
+    var grid = el('div', 'ege-items');
+    section.items.forEach(function (item) { grid.appendChild(buildShopItem(item)); });
+    body.appendChild(grid);
+
+    if (section.targets) { body.appendChild(buildTargets(section.targets)); }
+
+    panel.appendChild(body);
+    return panel;
+  }
+
+  function renderShop() {
+    var allowance = document.getElementById('shopAllowance');
+    if (allowance.childNodes.length) { return; }      /* built once */
+
+    EGE.shop.allowance.forEach(function (band) {
+      var tile = el('div', 'fb-tile');
+      tile.appendChild(el('span', 'fb-tile__label', band.label));
+      tile.appendChild(el('span', 'fb-tile__value', band.credits));
+      allowance.appendChild(tile);
+    });
+
+    var earnings = document.getElementById('shopEarnings');
+    EGE.shop.earnings.forEach(function (row) {
+      var tr = el('tr');
+      tr.appendChild(el('td', null, row.label));
+      var credits = el('td', 'num');
+      credits.appendChild(el('strong', null, '+' + row.credits));
+      tr.appendChild(credits);
+      earnings.appendChild(tr);
+    });
+
+    var sections = document.getElementById('shopSections');
+    EGE.shop.sections.forEach(function (section) {
+      sections.appendChild(buildShopSection(section));
+    });
+  }
+
   /* --- routing ---------------------------------------------------------- */
 
-  function route() {
-    var slug = window.location.hash.replace(/^#/, '');
-    var player = slug ? EGE.playerBySlug(slug) : null;
+  function setNav(active) {
+    document.getElementById('navPlayers').classList.toggle('is-active', active === 'players');
+    document.getElementById('navShop').classList.toggle('is-active', active === 'shop');
+  }
 
-    if (player) {
+  function show(view) {
+    viewHome.hidden   = view !== viewHome;
+    viewShop.hidden   = view !== viewShop;
+    viewPlayer.hidden = view !== viewPlayer;
+  }
+
+  function route() {
+    var hash = window.location.hash.replace(/^#/, '');
+    var player = hash ? EGE.playerBySlug(hash) : null;
+
+    if (hash === 'shop') {
+      renderShop();
+      show(viewShop);
+      setNav('shop');
+      document.title = 'Shop \u2014 EGE Football';
+    } else if (player) {
       renderPlayer(player);
-      viewHome.hidden = true;
-      viewPlayer.hidden = false;
+      show(viewPlayer);
+      setNav('players');
+      document.title = player.name;
     } else {
-      viewHome.hidden = false;
-      viewPlayer.hidden = true;
+      show(viewHome);
+      setNav('players');
       document.title = 'EGE Football';
     }
     window.scrollTo(0, 0);

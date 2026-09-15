@@ -228,6 +228,38 @@ the workflow will run and fail loudly rather than post anywhere.
 
 ---
 
+## The Shop
+
+A tab next to Players, at `#shop`. Everything a player can spend an offseason's
+credits on, and everything that earns them. The catalogue lives in
+`data/shop.js`.
+
+**Allowance** is 100 credits an offseason, 200 over $5m AAV, 300 over $10m —
+the higher band replaces the lower one rather than stacking. **Earnings** add
+to it: 60 for a regular season, 10 to 70 by contract size, and 15 to 75 for
+how the season went. Anything unspent carries into the next offseason.
+
+On sale:
+
+- **Performance boosters** — 2.5x (70), 2.0x (45), 1.5x (25). Regular season
+  only, one use per purchase.
+- **Stat boosters** — +1 (15), +2 (35), +3 (60), spent on any one of 24
+  attributes across passing, receiving, carrying and blocking.
+- **Offseason training** — strength or cardio at 45, each trading something
+  away, or overall at 35 for a smaller gain with no cost.
+- **QB Connection** (30), **Hyperbaric Chamber** (50, then 65, then 85, then
+  20 more each time, NFL only), **Intel** (20).
+
+Each stat booster names the attribute in `data/ratings.js` it applies to, so
+buying one has somewhere to land once spending is built. Block Power is the
+one exception: the ratings carry run block power and pass block power
+separately, and which one it raises is still open.
+
+> Buying is not wired up yet — the shop is the catalogue, and spending needs
+> the portal to hold a credit balance per player.
+
+---
+
 ## Player Portal (login)
 
 Each of the six gets an account and a private portal.
@@ -256,6 +288,8 @@ Each of the six gets an account and a private portal.
   resource, so choices have a cost.
 - **Interactive layer** — beyond workouts, the portal is meant to be something a
   player actually plays with between games. Scope TBD; workouts come first.
+- **Credits** — the shop lists what they buy and what earns them. The balance
+  itself has nowhere to live until the portal holds one.
 
 The read-only side of the site (schedules, records, stats) stays public — no
 login needed to browse.
@@ -278,8 +312,10 @@ Built so far:
 - `supabase/schema.sql` — the `player_accounts` table and its policies. Run it
   once in the Supabase SQL editor.
 - `js/supabase-config.js` — your Supabase URL and anon key. Blank by default.
+- `data/shop.js` — the shop catalogue: allowance bands, credit earnings, and
+  everything on sale.
 - `site.css` — the theme (palette overriding the kit's tokens) plus the page
-  components the kit doesn't cover (player card, roster grid, login form).
+  components the kit doesn't cover (player card, roster grid, shop, login).
 
 No build step and no bundler: open `index.html` in a browser, or serve the
 folder with anything static. Data files are plain `<script>` globals rather than
@@ -381,5 +417,10 @@ One thing at a time, in this order:
   game is still waiting on a `result`.
 - Real rating numbers, in place of the generated placeholders.
 - Sign-in emails for Parr, Vitel, and Stewart.
+- How the 100/200/300 offseason allowance and the credit earnings table fit
+  together — whether the allowance is the base that earnings add to, or the
+  earnings table replaces it.
+- Which attribute Block Power raises: run block power, pass block power, or
+  both.
 - Whether workout and overall changes persist per browser (`localStorage`) or in
   Supabase. Read-only season data stays in the `data/*.js` files either way.
