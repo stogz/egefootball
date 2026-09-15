@@ -176,7 +176,12 @@ alter table public.player_inventory
 -- Purchases are public, because a boosted overall has to show on a player's
 -- card for everyone. Intel is the exception: only its owner and an admin see
 -- which games scouts will be at.
+-- Drop both names: the old one this replaces, and its own, so re-running the
+-- file never fails on a policy that is already there. A failure here rolls the
+-- whole script back in the Supabase editor, which is how a new column can go
+-- missing after what looked like a successful run.
 drop policy if exists "inventory readable by owner or admin" on public.player_inventory;
+drop policy if exists "inventory readable to all but intel" on public.player_inventory;
 create policy "inventory readable to all but intel"
   on public.player_inventory for select
   using (
@@ -194,32 +199,54 @@ alter table public.player_inventory
 
 -- Anything bought before this existed is one row per purchase. Fold those
 -- together first, or the unique index below will refuse to build.
-with stacked as (
+--
+-- The keeper is chosen once, in `ranked`, and both the update and the delete
+-- read that same choice. Picking it twice by two different rules would write
+-- the totals onto one row and keep the other.
+with ranked as (
   select
-    min(id::text)::uuid as keep_id,
-    email, item_key, coalesce(target, '') as target_key,
-    sum(quantity)  as total_quantity,
-    sum(credits)   as total_credits
+    id, email, item_key, target,
+    coalesce(target, '') as target_key,
+    quantity, credits,
+    row_number() over (
+      partition by email, item_key, coalesce(target, '')
+      order by purchased_at, id
+    ) as seq
   from public.player_inventory
   where item_key = 'upgrade' or consumable
-  group by email, item_key, coalesce(target, '')
-  having count(*) > 1
+),
+totals as (
+  select email, item_key, target_key,
+         sum(quantity) as total_quantity,
+         sum(credits)  as total_credits
+  from ranked
+  group by email, item_key, target_key
+),
+keepers as (
+  select ranked.id, totals.total_quantity, totals.total_credits
+  from ranked
+  join totals
+    on totals.email = ranked.email
+   and totals.item_key = ranked.item_key
+   and totals.target_key = ranked.target_key
+  where ranked.seq = 1
 )
 update public.player_inventory inv
-set quantity = stacked.total_quantity,
-    credits  = stacked.total_credits,
+set quantity = keepers.total_quantity,
+    credits  = keepers.total_credits,
     effects  = case
                  when inv.item_key = 'upgrade' and inv.target is not null
-                 then jsonb_build_object(inv.target, stacked.total_quantity)
+                 then jsonb_build_object(inv.target, keepers.total_quantity)
                  else inv.effects
                end
-from stacked
-where inv.id = stacked.keep_id;
+from keepers
+where inv.id = keepers.id;
 
 delete from public.player_inventory inv
 using (
   select id, row_number() over (
-    partition by email, item_key, coalesce(target, '') order by purchased_at
+    partition by email, item_key, coalesce(target, '')
+    order by purchased_at, id
   ) as seq
   from public.player_inventory
   where item_key = 'upgrade' or consumable
@@ -229,3 +256,9 @@ where inv.id = dupes.id and dupes.seq > 1;
 create unique index if not exists player_inventory_stacked_idx
   on public.player_inventory (email, item_key, coalesce(target, ''))
   where item_key = 'upgrade' or consumable;
+
+-- PostgREST keeps its own picture of the schema, and a new column is invisible
+-- to the API until that is refreshed. Supabase usually does it on its own; this
+-- makes sure. Without it the site reports that it "could not find the 'quantity'
+-- column of 'player_inventory' in the schema cache".
+notify pgrst, 'reload schema';
