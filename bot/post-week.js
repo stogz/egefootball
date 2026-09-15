@@ -2,35 +2,41 @@
 /* ==========================================================================
    EGE Football — Discord scores bot
 
-   Posts one week of the regular season per run, in order, to a Discord
-   webhook. Four runs a day walk the season out slowly.
+   A backstop, not the main event. The admin publishes a week from the admin
+   page and that same click posts it to Discord through the post-week edge
+   function. This catches anything that did not go out: the function was not
+   deployed, Discord was down, the click half-landed.
+
+   Every run it asks Supabase which weeks are published but not yet posted,
+   posts them oldest first, and marks them. A week that already went out is
+   never posted twice, because `posted_at` is what it checks, not a file in
+   this repository.
+
+     node bot/post-week.js                 post anything owed, if it is time
+     node bot/post-week.js --force         ignore the clock
+     node bot/post-week.js --week 4        post one week, published or not
+     node bot/post-week.js --dry-run       print the payload, post nothing
 
    Posting windows are 07:00, 12:00, 16:00 and 20:00 America/Chicago. The
    schedule that triggers this runs at the UTC equivalents of both CST and
    CDT, and this script checks the actual Chicago hour before posting, so
    daylight saving never shifts the times.
 
-     node bot/post-week.js                 post the next week, if it is time
-     node bot/post-week.js --force         ignore the clock
-     node bot/post-week.js --week 4        post a specific week
-     node bot/post-week.js --dry-run       print the payload, post nothing
-
    Environment:
-     DISCORD_WEBHOOK_URL   required unless --dry-run
-     SITE_URL              default https://egefootball.vercel.app
+     DISCORD_WEBHOOK_URL        required unless --dry-run
+     SUPABASE_URL               required: which weeks are out lives there
+     SUPABASE_SERVICE_ROLE_KEY  required: reading and marking them needs it.
+                                A server-side key. It belongs in the repo's
+                                Actions secrets and nowhere near the browser.
+     SITE_URL                   default http://egefootball.vercel.app
    ========================================================================== */
 
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
-
 const { loadSiteData } = require('./site-data');
-const { buildWeekPost } = require('./build-post');
 
-const STATE_FILE = path.join(__dirname, 'state.json');
 const POST_HOURS = [7, 12, 16, 20];          /* America/Chicago */
-const DEFAULT_SITE = 'https://egefootball.vercel.app';
+const DEFAULT_SITE = 'http://egefootball.vercel.app';
 
 /* --- arguments ------------------------------------------------------------ */
 
@@ -59,73 +65,52 @@ function isPostingHour(now) {
   return POST_HOURS.indexOf(chicagoHour(now)) !== -1;
 }
 
-/* --- where we are in the season ------------------------------------------- */
+/* --- what is owed --------------------------------------------------------- */
 
-function readState() {
-  let state;
-  try {
-    state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
-  } catch (err) {
-    state = { season: null };
+function supabase(pathAndQuery, options) {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are needed to ' +
+                    'see which weeks are published.');
   }
 
-  /* A week gets posted twice now — the fixtures before it is played and the
-     results once they are published — so the two are tracked separately.
-     State written before that change only knew one number; everything up to
-     it counts as previewed. */
-  if (!Array.isArray(state.previewed)) {
-    const upTo = Number(state.lastPostedWeek) || 0;
-    state.previewed = [];
-    for (let week = 1; week <= upTo; week += 1) { state.previewed.push(week); }
-  }
-  if (!Array.isArray(state.published)) { state.published = []; }
-
-  return state;
-}
-
-function writeState(state) {
-  fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2) + '\n');
-}
-
-function done(list, week) { return list.indexOf(week) !== -1; }
-
-function hasGames(EGE, week, season) {
-  return Boolean(buildWeekPost(EGE, week, { season: season, siteUrl: DEFAULT_SITE }));
-}
-
-/* Whether a week has results in data/results.js yet. */
-function isPlayed(EGE, week, season) {
-  return EGE.players.some(function (player) {
-    const game = EGE.gameInWeek(player, week, season);
-    return game && EGE.isFinal(game);
+  const settings = options || {};
+  return fetch(url.replace(/\/+$/, '') + '/rest/v1/' + pathAndQuery, {
+    method: settings.method || 'GET',
+    headers: Object.assign({
+      apikey: key,
+      Authorization: 'Bearer ' + key,
+      'Content-Type': 'application/json'
+    }, settings.headers || {}),
+    body: settings.body ? JSON.stringify(settings.body) : undefined
+  }).then(function (response) {
+    if (!response.ok) {
+      return response.text().then(function (text) {
+        throw new Error('Supabase replied ' + response.status + ': ' + text.slice(0, 300));
+      });
+    }
+    return response.status === 204 ? null : response.json();
   });
 }
 
-/* What to post next, if anything.
+/* Every published week, whether it has been posted or not.
 
-   Results come first: a week that has just been published is the news, and
-   waiting on the fixtures for a later week would bury it. Failing that, the
-   next week nobody has seen the fixtures for.
+   The bot needs all of them, not just the ones it owes: a record through
+   week 4 counts the weeks before it, and EGE.isFinal answers no for a week
+   the site has not been told about. */
+function allPublished(season) {
+  return supabase('published_weeks?select=season,week,posted_at' +
+                  (season ? '&season=eq.' + season : '') +
+                  '&order=season.asc,week.asc');
+}
 
-   A week that was played before its fixtures ever went out — a season caught
-   up on in one go — is posted once, as results. */
-function nextPost(EGE, state, season) {
-  const last = EGE.lastWeek(season);
-
-  for (let week = 1; week <= last; week += 1) {
-    if (!hasGames(EGE, week, season)) { continue; }
-    if (isPlayed(EGE, week, season) && !done(state.published, week)) {
-      return { week: week, kind: 'results' };
-    }
-  }
-
-  for (let week = 1; week <= last; week += 1) {
-    if (!hasGames(EGE, week, season)) { continue; }
-    if (done(state.previewed, week) || isPlayed(EGE, week, season)) { continue; }
-    return { week: week, kind: 'preview' };
-  }
-
-  return null;
+function markPosted(season, week) {
+  return supabase('published_weeks?season=eq.' + season + '&week=eq.' + week, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=minimal' },
+    body: { posted_at: new Date().toISOString() }
+  });
 }
 
 /* --- posting -------------------------------------------------------------- */
@@ -147,66 +132,78 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   const EGE = loadSiteData();
 
-  const season = args.season || EGE.currentSeason;
   const siteUrl = process.env.SITE_URL || DEFAULT_SITE;
-  const state = readState();
-
-  if (state.season !== season) {
-    state.season = season;
-    state.previewed = [];
-    state.published = [];
-  }
 
   if (!args.force && args.week === null && !isPostingHour()) {
     console.log('Not a posting hour in Chicago (' + chicagoHour() + ':00). Nothing to do.');
     return;
   }
 
-  const next = args.week !== null
-    ? { week: args.week, kind: isPlayed(EGE, args.week, season) ? 'results' : 'preview' }
-    : nextPost(EGE, state, season);
-
-  if (next === null) {
-    console.log('The ' + season + ' regular season has been posted in full.');
-    return;
+  /* --week posts one, whatever Supabase thinks, which is how a week is put
+     into a test channel without publishing it. It still asks for the rest, so
+     the records in the footers are right, and carries on without them if
+     Supabase is not configured. */
+  let published = [];
+  try {
+    published = await allPublished(args.season);
+  } catch (err) {
+    if (args.week === null) { throw err; }
+    console.log('(no Supabase: ' + err.message + ')');
   }
 
-  const week = next.week;
-  const payload = buildWeekPost(EGE, week, {
-    season: season, siteUrl: siteUrl, kind: next.kind
+  /* Tell the site data which weeks are out, the same way the browser does. */
+  EGE.publishedWeeks = {};
+  published.forEach(function (row) {
+    const weeks = EGE.publishedWeeks[row.season] || (EGE.publishedWeeks[row.season] = []);
+    weeks.push(row.week);
   });
-  if (!payload) {
-    console.log('Week ' + week + ' has no games. Nothing to post.');
-    return;
-  }
 
-  if (args.dryRun) {
-    console.log(JSON.stringify(payload, null, 2));
-    console.log('\n[dry run] week ' + week + ' (' + next.kind + '), ' +
-                payload.embeds.length + ' embed(s), nothing sent.');
+  const owed = args.week !== null
+    ? [{ season: args.season || EGE.currentSeason, week: args.week }]
+    : published.filter(function (row) { return !row.posted_at; });
+
+  if (!owed.length) {
+    console.log('Every published week has been posted. Nothing to do.');
     return;
   }
 
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
-  if (!webhookUrl) {
+  if (!webhookUrl && !args.dryRun) {
     console.error('DISCORD_WEBHOOK_URL is not set. Use --dry-run to build the post without sending it.');
     process.exitCode = 1;
     return;
   }
 
-  await postToDiscord(webhookUrl, payload);
-  console.log('Posted week ' + week + ' ' + next.kind + ' (' +
-              payload.embeds.length + ' game(s)).');
+  for (const entry of owed) {
+    const payload = EGE.discordPost.buildWeekPost(entry.week, {
+      season: entry.season,
+      siteUrl: siteUrl,
+      /* Anything owed is a week the admin has already put out. */
+      played: true
+    });
 
-  if (args.week === null) {
-    const list = next.kind === 'results' ? state.published : state.previewed;
-    if (!done(list, week)) { list.push(week); }
-    state.lastPostedAt = new Date().toISOString();
-    writeState(state);
+    if (!payload) {
+      console.log('Week ' + entry.week + ' has no games. Nothing to post.');
+      if (args.week === null) { await markPosted(entry.season, entry.week); }
+      continue;
+    }
+
+    if (args.dryRun) {
+      console.log(JSON.stringify(payload, null, 2));
+      console.log('\n[dry run] ' + entry.season + ' week ' + entry.week + ', ' +
+                  payload.embeds.length + ' embed(s), nothing sent.');
+      continue;
+    }
+
+    await postToDiscord(webhookUrl, payload);
+    console.log('Posted ' + entry.season + ' week ' + entry.week +
+                ' (' + payload.embeds.length + ' game(s)).');
+
+    if (args.week === null) { await markPosted(entry.season, entry.week); }
   }
 }
 
 main().catch(function (err) {
-  console.error(err.message);
+  console.error(err.message || err);
   process.exitCode = 1;
 });

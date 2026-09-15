@@ -174,7 +174,7 @@ EGE.exports = (function () {
 
   /* One player's season: every game with what was posted in it and what was
      riding on it, every credit in, and everything bought. */
-  function playerLog(player, season, inventory, awards, stickers) {
+  function playerLog(player, season, inventory, awards) {
     var mine = inventory.filter(function (row) {
       return player.email && row.email &&
              row.email.toLowerCase() === player.email.toLowerCase();
@@ -183,8 +183,6 @@ EGE.exports = (function () {
       return player.email && row.email &&
              row.email.toLowerCase() === player.email.toLowerCase();
     });
-    var weeks = stickers[player.slug] || {};
-
     return {
       name: player.name,
       position: player.position,
@@ -199,7 +197,7 @@ EGE.exports = (function () {
       },
 
       games: EGE.gamesFor(player, season).map(function (game) {
-        var sticker = weeks[game.week] || null;
+        var booster = EGE.boosterOn(player, game);
         return {
           week: game.week,
           date: game.date,
@@ -207,13 +205,13 @@ EGE.exports = (function () {
           home: game.home,
           conference: Boolean(game.conference),
           scouts: Boolean(game.scouts),
+          published: EGE.isPublished(season, game.week),
           result: game.result || null,
           stats: game.stats || null,
-          booster: sticker ? {
-            key: sticker.item_key,
-            name: sticker.item_name,
-            multiplier: EGE.multiplierFor(sticker.item_key),
-            appliedAt: sticker.applied_at
+          booster: booster ? {
+            key: booster.key,
+            name: booster.name,
+            multiplier: booster.multiplier
           } : null,
           touchdowns: EGE.economy.touchdownsIn(game.stats),
           creditsEarned: EGE.economy.touchdownCredits(player, game.stats)
@@ -251,7 +249,7 @@ EGE.exports = (function () {
     return overall;
   }
 
-  function seasonLogSource(season, inventory, awards, stickers) {
+  function seasonLogSource(season, inventory, awards) {
     var log = {
       season: season,
       level: (EGE.seasons.filter(function (s) { return s.year === season; })[0] || {}).level || null,
@@ -262,7 +260,7 @@ EGE.exports = (function () {
     /* All six, including anyone who had no schedule that season. An empty
        entry is part of the record too — it says they played nothing. */
     EGE.players.forEach(function (player) {
-      log.players[player.slug] = playerLog(player, season, inventory, awards, stickers);
+      log.players[player.slug] = playerLog(player, season, inventory, awards);
     });
 
     return [
@@ -295,92 +293,177 @@ EGE.exports = (function () {
       EGE.wallet.allAwards(year),
       EGE.wallet.loadGameBoosters(year)
     ]).then(function (all) {
-      return seasonLogSource(year, all[0], all[1], all[2] || {});
+      return seasonLogSource(year, all[0], all[1]);
     });
   }
 
-  /* --- the week's results -------------------------------------------------- */
+  /* --- the season file ------------------------------------------------------ */
 
-  var RESULTS_FILE = 'data/results.js';
-  var R_START = '/* ege:results:start */';
-  var R_END = '/* ege:results:end */';
+  /* Writes stats/{year}.js back out: the same fixtures it went in with, and
+     whatever the editor has changed on top.
 
-  /* Everything published so far, plus the week just rolled. Each week is
-     added rather than replacing what came before, so the file grows a week at
-     a time and the diff for a Friday is that Friday.
+     The whole file is regenerated rather than spliced, because unlike
+     data/ratings.js it is data all the way down — there is no hand-written
+     helper in it to preserve. What it keeps is the shape: a comment per
+     player, one line per game, and the numbers in the order a reader expects.
 
-     `rolled` is what EGE.statgen.playWeek handed back. */
-  function resultsSource(season, week, rolled) {
-    var published = {};
+     The worked-out numbers — averages, totals, a passer rating — are filled
+     in here from the ones that were typed, so a file written by the editor
+     and a file typed by hand come out the same. */
+  function seasonFile(season, edits) {
+    var forSeason = EGE.stats[season];
+    if (!forSeason) { throw new Error('There is no ' + season + ' season file.'); }
 
-    /* What is already in data/results.js, deep enough to copy safely. */
-    Object.keys(EGE.results || {}).forEach(function (year) {
-      published[year] = {};
-      Object.keys(EGE.results[year]).forEach(function (slug) {
-        published[year][slug] = {};
-        Object.keys(EGE.results[year][slug]).forEach(function (at) {
-          published[year][slug][at] = EGE.results[year][slug][at];
-        });
-      });
-    });
+    /* Every week that was opened in the editor, not only the one on screen. */
+    var changed = (edits && edits.season === season) ? (edits.weeks || {}) : {};
 
-    var forSeason = published[season] || (published[season] = {});
+    var lines = seasonHeader(season);
+    lines.push('window.EGE = window.EGE || {};');
+    lines.push('EGE.stats = EGE.stats || {};');
+    lines.push('');
+    lines.push('EGE.stats[' + season + '] = {');
+    lines.push('  season: ' + season + ',');
+    lines.push('  level: ' + quote(forSeason.level || '') + ',');
+    lines.push('');
+    lines.push('  games: {');
 
-    rolled.forEach(function (entry) {
-      var forPlayer = forSeason[entry.player.slug] || (forSeason[entry.player.slug] = {});
-      forPlayer[week] = {
-        result: entry.outcome.result,
-        stats: entry.outcome.stats,
-        booster: entry.booster || null,
-        seed: entry.outcome.seed,
-        publishedOn: today()
-      };
-    });
+    EGE.players.forEach(function (player) {
+      var games = forSeason.games[player.slug] || [];
+      var team = EGE.teamFor(player);
+      lines.push('');
 
-    var lines = [
-      R_START,
-      '/* Weeks published so far. Each one was rolled in the admin portal and',
-      '   carries the seed it came from, so the same numbers can always be',
-      '   worked out again. Last published ' + today() + '. */',
-      'EGE.results = ' + jsonBlock(published, '') + ';',
-      R_END
-    ];
-    return lines.join('\n');
-  }
-
-  /* The current file with the new week spliced in. Same handling as the
-     ratings lock: read the real file, replace what sits between the markers,
-     and refuse rather than hand over something that would not load. */
-  function resultsFile(season, week, rolled) {
-    return fetch(RESULTS_FILE, { cache: 'no-store' }).then(function (res) {
-      if (!res.ok) { throw new Error('HTTP ' + res.status); }
-      return res.text();
-    }).then(function (source) {
-      var from = source.indexOf(R_START);
-      var to = source.indexOf(R_END);
-      if (from === -1 || to === -1 || to < from) {
-        throw new Error('The markers in ' + RESULTS_FILE + ' are missing.');
+      if (!games.length) {
+        lines.push('    /* ' + player.name + ' — no school yet, so no fixtures. */');
+        lines.push('    ' + quote(player.slug) + ': [],');
+        return;
       }
 
-      var out = source.slice(0, from) + resultsSource(season, week, rolled) +
-                source.slice(to + R_END.length);
+      lines.push('    /* ' + player.name + ' — ' + (team ? team.school : 'school TBD') + ' */');
+      lines.push('    ' + quote(player.slug) + ': [');
 
-      /* It has to load, and it has to still carry the week just rolled. */
-      /* eslint-disable no-new-func */
-      new Function('window', out.replace(/EGE\.applyResults\(\);\s*$/, ''));
-      /* eslint-enable no-new-func */
-
-      rolled.forEach(function (entry) {
-        if (out.indexOf('"' + entry.player.slug + '"') === -1) {
-          throw new Error(entry.player.name + ' went missing from the file.');
-        }
+      games.forEach(function (game) {
+        /* A week the editor has open is taken from there; every other week is
+           written back exactly as it was read. */
+        var edited = (changed[game.week] || {})[player.slug] || null;
+        gameLines(player, game, edited).forEach(function (line) { lines.push(line); });
       });
 
-      return out;
-    }).catch(function (error) {
-      throw new Error('Could not rebuild ' + RESULTS_FILE + ': ' + error.message +
-                      '. This needs the site open over http, not from a file.');
+      lines.push('    ],');
     });
+
+    lines.push('  }');
+    lines.push('};');
+    lines.push('');
+
+    var out = lines.join('\n');
+
+    /* Never hand over a file that would not load, or one that has lost a
+       player on the way through. */
+    /* eslint-disable no-new-func */
+    new Function('window', out);
+    /* eslint-enable no-new-func */
+    EGE.players.forEach(function (player) {
+      if (out.indexOf(quote(player.slug)) === -1) {
+        throw new Error(player.name + ' went missing from the file.');
+      }
+    });
+
+    return Promise.resolve(out);
+  }
+
+  function quote(text) {
+    return String(text).indexOf("'") === -1
+      ? "'" + text + "'"
+      : JSON.stringify(text);
+  }
+
+  function pad(number) {
+    return String(number).length < 2 ? ' ' + number : String(number);
+  }
+
+  /* One game, as the two or three lines the file writes it on. */
+  function gameLines(player, game, edited) {
+    var result = edited ? edited.result : game.result;
+    var booster = edited ? edited.booster : game.booster;
+    var typed = edited ? edited.stats : game.stats;
+
+    /* A score is only a score with both halves of it. */
+    var scored = result &&
+      typeof result.teamScore === 'number' &&
+      typeof result.opponentScore === 'number';
+
+    var stats = scored ? EGE.statline.complete(player.position, typed) : null;
+
+    var flags = ['home: ' + (game.home ? 'true' : 'false'),
+                 'conference: ' + (game.conference ? 'true' : 'false')];
+    if (game.scouts) { flags.push('scouts: true'); }
+
+    var out = [
+      '      { week: ' + pad(game.week) + ', date: ' + quote(game.date) +
+        ', kickoff: ' + quote(game.kickoff) + ',',
+      '        opponent: ' + quote(game.opponent) + ', ' + flags.join(', ') + ','
+    ];
+
+    var resultText = scored
+      ? '{ teamScore: ' + result.teamScore + ', opponentScore: ' + result.opponentScore + ' }'
+      : 'null';
+    var boosterText = booster ? quote(booster) : 'null';
+
+    if (!stats) {
+      out.push('        result: ' + resultText + ', booster: ' + boosterText + ', stats: null },');
+      return out;
+    }
+
+    out.push('        result: ' + resultText + ', booster: ' + boosterText + ',');
+    out.push('        stats: {');
+    statLines(player, stats).forEach(function (line) { out.push(line); });
+    out.push('        } },');
+    return out;
+  }
+
+  /* The stat line, wrapped so it reads as a line rather than a column. */
+  function statLines(player, stats) {
+    var pairs = Object.keys(stats).filter(function (key) {
+      return stats[key] !== null && stats[key] !== undefined;
+    }).map(function (key) {
+      return key + ': ' + stats[key] + ',';
+    });
+
+    /* The last one loses its comma, which is the only thing that would look
+       hand-written if it were wrong. */
+    if (pairs.length) { pairs[pairs.length - 1] = pairs[pairs.length - 1].replace(/,$/, ''); }
+    return wrapPairs(pairs, '          ');
+  }
+
+  function seasonHeader(season) {
+    return [
+      '/* ==========================================================================',
+      '   EGE Football — the ' + season + ' season',
+      '   The whole season in one file: who each of them plays, when, and what they',
+      '   did in it. One of these per season, and nothing else holds a fixture or a',
+      '   stat line — the schedule lives here too, because a game and what happened',
+      '   in it are the same thing.',
+      '',
+      '   Filling it in',
+      '   -------------',
+      '   `result` and `stats` are null until a game has been played. Put the numbers',
+      '   in by hand, or use the season editor on the admin page, which writes this',
+      '   file back out for you.',
+      '',
+      '   `booster` is the performance booster that was riding on the game, as its',
+      "   shop key — 'boost-2-5', 'boost-2-0', 'boost-1-5' — or null. Once a week",
+      '   is published this is where a booster lives for good, so the row behind it',
+      '   can be cleared out of Supabase.',
+      '',
+      '   Nothing here shows on the site until the admin publishes that week. The',
+      '   numbers can sit in the repository for as long as it takes.',
+      '',
+      '   `conference: true` marks the games listed with an asterisk, and',
+      '   `scouts: true` marks a game scouts will be at — what Intel buys is the',
+      '   right to see it.',
+      '   ========================================================================== */',
+      ''
+    ];
   }
 
   /* --- the season pointer ------------------------------------------------- */
@@ -426,8 +509,7 @@ EGE.exports = (function () {
   }
 
   return {
-    resultsFile: resultsFile,
-    resultsSource: resultsSource,
+    seasonFile: seasonFile,
     ratingsFile: ratingsFile,
     ratingsSource: ratingsSource,
     ratingsDiff: ratingsDiff,

@@ -1107,16 +1107,125 @@ body {
 
 .ege-weekbar { align-items: center; gap: 12px; }
 
-.ege-weekline__line {
-  font-size: 12px;
-  font-weight: 700;
-  min-width: 220px;
-}
-.ege-weekline td .fb-meta { display: block; font-size: 11px; }
-.ege-weekline th:last-child,
-.ege-weekline td:last-child { text-align: right; }
+/* The week list: which weeks are out, and the button that puts one there. */
+.ege-weeks th:not(:first-child),
+.ege-weeks td:not(:first-child) { text-align: right; }
+.ege-weeks td:last-child { white-space: nowrap; }
+.ege-weeks td:last-child .fb-btn + .fb-btn { margin-left: 6px; }
+.ege-weeks__row--out td { background: var(--fb-tint-sage); }
+.ege-weeks__short { color: var(--fb-accent-deep); }
 
 .fb-btn--sm {
   padding: 5px 11px;
   font-size: 12px;
 }
+
+/* ==========================================================================
+   Seasons, stat lines and what a game paid
+   ========================================================================== */
+
+/* The season switcher sits in the schedule's head, small enough to stay out
+   of the way when there is only one season to switch between. */
+.ege-seasonbar { align-items: center; gap: 12px; }
+.fb-select--sm {
+  padding: 5px 26px 5px 9px;
+  font-size: 12px;
+  background-position: right 8px center;
+}
+
+/* How far the shop has carried an overall, beside the number itself. */
+.ege-ovr__climb {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 7px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-tint-sage);
+  /* The overall sits in a dark box, so the badge has to say what colour its
+     own text is rather than inherit the light one and vanish. */
+  color: var(--fb-ink);
+  font-family: var(--fb-font-display);
+  font-size: 13px;
+  line-height: 1.3;
+  vertical-align: middle;
+  cursor: help;
+}
+.ege-ovr__climb--down { background: var(--fb-tint-clay); }
+
+/* A played week opens to show its stat line. The week number is the handle. */
+.ege-schedule__open {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-style: dotted;
+}
+.ege-schedule__open::after {
+  content: '\25be';
+  margin-left: 5px;
+  font-size: 10px;
+  display: inline-block;
+}
+.ege-schedule__row--open .ege-schedule__open::after { transform: rotate(180deg); }
+
+.ege-statrow > td { padding: 0; }
+.ege-statrow__box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  padding: 12px 14px;
+  border-top: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-tint-wash);
+}
+.ege-statrow__stat {
+  display: flex;
+  flex-direction: column;
+  min-width: 52px;
+}
+.ege-statrow__label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  cursor: help;
+}
+.ege-statrow__value {
+  font-family: var(--fb-font-display);
+  font-size: 16px;
+}
+.ege-statrow__note { flex-basis: 100%; margin: 4px 0 0; }
+
+/* What a game paid, on the row it was earned. */
+.ege-schedule__credits { white-space: nowrap; }
+.ege-schedule__paid {
+  padding: 2px 7px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-tint-gold, var(--fb-tint-sage));
+  font-size: 12px;
+  font-weight: 800;
+  cursor: help;
+}
+
+/* The season editor: a lot of small number fields in a tidy grid. */
+.ege-statgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 10px;
+}
+.ege-statfield {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ege-statfield__label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.ege-statfield__input { width: 100%; }
+
+.ege-item__where { display: block; font-size: 11px; line-height: 1.4; }

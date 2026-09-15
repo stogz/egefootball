@@ -163,53 +163,84 @@
 
       <p class="ege-note" id="adminMessage" role="alert" hidden></p>
 
-      <!-- rolling a week and publishing it -->
+      <!-- putting a week out -->
       <div class="fb-panel" id="weekPanel">
         <div class="fb-panel__head">
-          <h3 style="font-size: 21px;">Play a Week</h3>
+          <h3 style="font-size: 21px;">Weeks</h3>
           <span class="fb-meta" id="weekNote"></span>
         </div>
         <div class="fb-panel__body fb-stack fb-stack--lg">
 
           <p class="fb-meta" style="margin: 0;">
-            Rolls every game in a week out of what the players are, who they
-            are playing, and what they had riding on it. Roll it as often as
-            you like — nothing is real until it is published, and publishing
-            hands you a file to commit.
+            The season file holds every result of the year, and nobody sees any
+            of it until you put a week out. Publishing shows the scores and the
+            stat lines, moves the records, pays the touchdown credits and posts
+            the week to Discord — one button. Pulling a week back is one click
+            too, as often as you like.
+          </p>
+
+          <div class="fb-row fb-row--wrap ege-weekbar">
+            <label class="ege-field ege-field--inline">
+              <span class="fb-eyebrow">Season</span>
+              <select class="fb-select" id="weekSeason"></select>
+            </label>
+            <span class="fb-meta" id="weekSummary"></span>
+          </div>
+
+          <div class="fb-tablewrap">
+            <table class="fb-table ege-weeks">
+              <thead>
+                <tr>
+                  <th>Week</th>
+                  <th>Games</th>
+                  <th>Filled in</th>
+                  <th>Discord</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="weekRows"></tbody>
+            </table>
+          </div>
+
+          <p class="fb-meta" style="margin: 0;" id="discordNote"></p>
+        </div>
+      </div>
+
+      <!-- editing the season file -->
+      <div class="fb-panel ege-section-gap" id="editorPanel">
+        <div class="fb-panel__head">
+          <h3 style="font-size: 21px;">Season File</h3>
+          <span class="fb-meta" id="editorNote"></span>
+        </div>
+        <div class="fb-panel__body fb-stack fb-stack--lg">
+
+          <p class="fb-meta" style="margin: 0;">
+            Every game in a week, as it stands in
+            <code id="editorFile">stats/2018.js</code>. Change a score, a stat
+            or the booster that was on a game, then download the file and
+            commit it. Nothing here touches what is published — a week already
+            out keeps showing the old numbers until the file is live.
           </p>
 
           <div class="fb-row fb-row--wrap ege-weekbar">
             <label class="ege-field ege-field--inline">
               <span class="fb-eyebrow">Week</span>
-              <select class="fb-select" id="weekPick"></select>
+              <select class="fb-select" id="editorWeek"></select>
             </label>
-            <button class="fb-btn fb-btn--primary" id="rollWeek" type="button">Roll the week</button>
-            <button class="fb-btn" id="rollAgain" type="button" disabled>Roll it again</button>
-            <span class="fb-meta" id="weekState"></span>
+            <button class="fb-btn" id="pullBoosters" type="button">
+              Pull in the stickers players applied
+            </button>
+            <span class="fb-meta" id="editorState"></span>
           </div>
 
-          <div class="fb-tablewrap" id="weekPreviewWrap" hidden>
-            <table class="fb-table ege-weekline">
-              <thead>
-                <tr>
-                  <th>Player</th>
-                  <th>Matchup</th>
-                  <th>Result</th>
-                  <th>Line</th>
-                  <th>Again</th>
-                </tr>
-              </thead>
-              <tbody id="weekPreview"></tbody>
-            </table>
-          </div>
-
-          <p class="ege-note ege-note--warn" id="weekWarning" hidden></p>
+          <div id="editorGames" class="fb-stack fb-stack--lg"></div>
 
           <div class="fb-row fb-row--wrap">
-            <button class="fb-btn fb-btn--primary" id="publishWeek" type="button" disabled>
-              Publish the week
+            <button class="fb-btn fb-btn--primary" id="downloadSeason" type="button">
+              Download the season file
             </button>
-            <span class="fb-meta" id="publishNote"></span>
+            <span class="fb-meta" id="downloadNote"></span>
           </div>
         </div>
       </div>
@@ -408,6 +439,7 @@
               <div class="ege-ovr" id="playerOverall" hidden>
                 <span class="ege-ovr__label">Overall</span>
                 <span class="ege-ovr__value" id="playerOverallValue"></span>
+                <span class="ege-ovr__climb" id="playerOverallClimb" hidden></span>
               </div>
 
               <dl class="ege-detail__list" style="margin-top: 18px;">
@@ -421,14 +453,20 @@
           </div>
         </div>
         <div class="fb-panel__foot">
-          <span class="fb-meta">Per-game stats land here once games are played.</span>
+          <span class="fb-meta" id="playerFootNote"></span>
         </div>
       </div>
 
       <div class="fb-panel ege-section-gap" id="schedulePanel" hidden>
         <div class="fb-panel__head">
           <h3 style="font-size: 21px;">Schedule</h3>
-          <span class="fb-meta" id="scheduleNote"></span>
+          <div class="fb-row fb-row--wrap ege-seasonbar">
+            <label class="ege-field ege-field--inline">
+              <span class="fb-eyebrow">Season</span>
+              <select class="fb-select fb-select--sm" id="playerSeasonPick"></select>
+            </label>
+            <span class="fb-meta" id="scheduleNote"></span>
+          </div>
         </div>
 
         <div class="fb-tablewrap" id="scheduleTableWrap">
@@ -440,6 +478,7 @@
                 <th>Time</th>
                 <th>Opponent</th>
                 <th class="num">Result</th>
+                <th class="num">Credits</th>
                 <th class="num">Booster</th>
               </tr>
             </thead>
@@ -571,13 +610,16 @@
 <script src="data/players.js"></script>
 <script src="data/season.js"></script>
 <script src="data/ratings.js"></script>
-<script src="data/schedule.js"></script>
-<script src="data/results.js"></script>
 <script src="data/shop.js"></script>
 <script src="data/economy.js"></script>
-<script src="data/statgen.js"></script>
+<script src="data/statline.js"></script>
+
+<!-- One file per season. Add the next one here when it starts. -->
+<script src="stats/2018.js"></script>
+<script src="data/games.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/wallet.js"></script>
+<script src="js/discord-post.js"></script>
 <script src="js/exports.js"></script>
 <script src="js/app.js"></script>
 </body>

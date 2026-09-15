@@ -1,12 +1,18 @@
 name: Discord scores
 
-# Posts one week of the regular season per run, four times a day.
+# A backstop. The admin publishes a week from the admin page and that click
+# posts it; this catches anything that did not go out — the edge function was
+# not deployed, Discord was down, the click half-landed.
+#
+# Which weeks are out, and which have been posted, lives in Supabase, so
+# nothing is written back to this repository and the job needs no write
+# access.
 #
 # Cron is UTC and does not follow daylight saving, so this fires at the UTC
-# equivalents of 07:00 / 12:00 / 16:00 / 20:00 America/Chicago under BOTH
-# CST and CDT. The script checks the real Chicago hour and exits quietly on
-# the runs that belong to the other offset, so the posts always land at the
-# intended local times.
+# equivalents of 07:00 / 12:00 / 16:00 / 20:00 America/Chicago under BOTH CST
+# and CDT. The script checks the real Chicago hour and exits quietly on the
+# runs that belong to the other offset, so posts land at the intended local
+# times.
 
 on:
   schedule:
@@ -14,7 +20,7 @@ on:
   workflow_dispatch:
     inputs:
       week:
-        description: 'Post a specific week (blank = the next one)'
+        description: 'Post a specific week (blank = anything published but unposted)'
         required: false
       dry_run:
         description: 'Build the post and print it without sending'
@@ -26,7 +32,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   post:
@@ -38,24 +44,15 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Post the next week
+      - name: Post anything still owed
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          SITE_URL: ${{ vars.SITE_URL || 'https://egefootball.vercel.app' }}
+          # Server-side key. It reads which weeks are published and marks them
+          # posted, and it never goes anywhere near the browser.
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SITE_URL: ${{ vars.SITE_URL || 'http://egefootball.vercel.app' }}
         run: |
           node bot/post-week.js \
             ${{ inputs.week && format('--week {0} --force', inputs.week) || '' }} \
             ${{ inputs.dry_run && '--dry-run --force' || '' }}
-
-      - name: Remember how far the season has got
-        if: ${{ !inputs.dry_run }}
-        run: |
-          if git diff --quiet -- bot/state.json; then
-            echo "Nothing posted, so nothing to record."
-            exit 0
-          fi
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add bot/state.json
-          git commit -m "Record the week the scores bot posted"
-          git push

@@ -34,6 +34,12 @@ EGE.shop = {
     { label: 'MVP / OPOY / DPOY',       credits: 75 }
   ],
 
+  /* Training rolls one twelve-sided die, and the downside lands on a 1, 2 or
+     3 — a quarter of the time, not most of it. Rolling each risk separately
+     is what made three separate coin flips add up to "always". */
+  riskDie: 12,
+  riskFailsOn: 3,
+
   sections: [
     {
       key: 'boosters',
@@ -72,12 +78,13 @@ EGE.shop = {
           credits: 20,
           effects: { strength: 4 },
           risks: [
-            { attribute: 'agility', amount: -2, chance: 0.5 },
-            { attribute: 'stamina', amount: -2, chance: 0.5 },
-            { attribute: 'speed',   amount: -2, chance: 0.5 }
+            { attribute: 'agility', amount: -2 },
+            { attribute: 'stamina', amount: -2 },
+            { attribute: 'speed',   amount: -2 }
           ],
-          description: 'Strength +4. Agility, stamina and speed each risk -2, ' +
-                       'rolled when you buy it.'
+          description: 'Strength +4. One roll of a twelve-sided die when you ' +
+                       'buy it: on a 1, 2 or 3 it costs you 2 agility, 2 ' +
+                       'stamina and 2 speed. Three times out of four, nothing.'
         },
         {
           key: 'train-cardio',
@@ -85,10 +92,12 @@ EGE.shop = {
           credits: 25,
           effects: { speed: 2, acceleration: 2, agility: 2, stamina: 2 },
           risks: [
-            { attribute: 'strength', amount: -2, chance: 0.5 }
+            { attribute: 'strength', amount: -2 }
           ],
-          description: 'Speed, acceleration, agility and stamina +2 each. ' +
-                       'Strength risks -2, rolled when you buy it.'
+          description: 'Speed, acceleration, agility and stamina +2 each. One ' +
+                       'roll of a twelve-sided die when you buy it: on a 1, 2 ' +
+                       'or 3 it costs you 2 strength. Three times out of four, ' +
+                       'nothing.'
         },
         {
           key: 'train-overall',

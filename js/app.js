@@ -103,10 +103,12 @@
 
   /* --- player view ------------------------------------------------------ */
 
-  function renderPlayer(player) {
+  function renderPlayer(player, keepSeason) {
     var team = EGE.teamFor(player);
+    if (!keepSeason) { viewSeason = null; }
+    var season = shownSeason();
 
-    document.getElementById('playerStripLabel').textContent = seasonLabel(EGE.currentSeason);
+    document.getElementById('playerStripLabel').textContent = seasonLabel(season);
 
     var photo = document.getElementById('playerPhoto');
     photo.src = player.headshot;
@@ -117,13 +119,13 @@
     school.appendChild(schoolLine(player, 'ege-school--lg'));
 
     document.getElementById('playerName').textContent = player.name;
-    document.getElementById('playerSeason').textContent = seasonLabel(EGE.currentSeason);
+    document.getElementById('playerSeason').textContent = seasonLabel(season);
     document.getElementById('playerPosition').textContent = player.position || TBD;
     document.getElementById('playerSchoolRow').textContent = team ? team.school : TBD;
     document.getElementById('playerLeague').textContent = (team && team.league) || TBD;
 
-    var record = EGE.recordFor(player);
-    var played = EGE.gamesPlayed(player).length;
+    var record = EGE.recordFor(player, season);
+    var played = EGE.gamesPlayed(player, season).length;
     document.getElementById('playerRecord').textContent = played ? record.text : '\u2014';
 
     var tags = document.getElementById('playerTags');
@@ -133,16 +135,75 @@
     } else {
       tags.appendChild(el('span', 'fb-tag fb-tag--outline', 'POS ' + TBD));
     }
-    tags.appendChild(el('span', 'fb-tag fb-tag--gold', 'Junior Year'));
+    var year = (EGE.seasons.filter(function (s) { return s.year === season; })[0] || {});
+    if (year.class) { tags.appendChild(el('span', 'fb-tag fb-tag--gold', year.class)); }
 
     var overall = EGE.overallFor(player);
     var overallBox = document.getElementById('playerOverall');
     overallBox.hidden = overall === null;
     document.getElementById('playerOverallValue').textContent = overall === null ? '' : overall;
+    renderOverallClimb(player, overall);
 
+    /* The line under the box says where the season is up to, which is a more
+       useful thing than a promise that stats are coming. */
+    var games = EGE.gamesFor(player, season);
+    var done = EGE.gamesPlayed(player, season).length;
+    document.getElementById('playerFootNote').textContent = !games.length
+      ? 'No schedule for ' + season + ' yet.'
+      : (done
+          ? done + ' of ' + games.length + ' games played. Click a week on the ' +
+            'schedule for the stat line.'
+          : 'None of the ' + games.length + ' games have been posted yet.');
+
+    fillPlayerSeasons(player);
     renderSchedule(player);
     renderGameLog(player);
     renderRatings(player);
+  }
+
+  /* How far the shop has carried him. The base numbers in data/ratings.js are
+     where the season started; the difference is what he has bought since, and
+     it goes beside the overall as an arrow rather than as another panel
+     nobody scrolls to. */
+  function renderOverallClimb(player, overall) {
+    var climb = document.getElementById('playerOverallClimb');
+    var boosts = EGE.boostsFor(player);
+
+    if (overall === null || !Object.keys(boosts).length) {
+      climb.hidden = true;
+      return;
+    }
+
+    var was = EGE.exports.baseOverall(player);
+    var moved = overall - was;
+
+    climb.hidden = !moved;
+    if (!moved) { return; }
+
+    climb.textContent = (moved > 0 ? '\u25b2 +' : '\u25bc ') + moved;
+    climb.className = 'ege-ovr__climb' + (moved > 0 ? '' : ' ege-ovr__climb--down');
+    climb.title = 'Started the season at ' + was + '. ' +
+      (moved > 0 ? 'Up ' + moved : 'Down ' + Math.abs(moved)) + ' from the shop.';
+  }
+
+  /* The seasons this player has a schedule for. One of them and the picker
+     stays out of the way. */
+  function fillPlayerSeasons(player) {
+    var pick = document.getElementById('playerSeasonPick');
+    var seasons = EGE.seasonsPlayed().filter(function (year) {
+      return EGE.gamesFor(player, year).length;
+    });
+
+    pick.innerHTML = '';
+    seasons.forEach(function (year) {
+      var option = el('option', null, String(year));
+      option.value = year;
+      pick.appendChild(option);
+    });
+
+    var showing = seasons.indexOf(shownSeason()) === -1 ? seasons[seasons.length - 1] : shownSeason();
+    if (showing) { pick.value = showing; viewSeason = showing; }
+    pick.hidden = seasons.length < 2;
   }
 
   /* --- schedule --------------------------------------------------------- */
@@ -170,6 +231,15 @@
 
   var showScouts = false;
   var schedulePlayer = null;
+
+  /* Which season the player page is showing. It follows the live season until
+     somebody picks another one, and resets when a different player is opened
+     so nobody lands on a year that player never had. */
+  var viewSeason = null;
+
+  function shownSeason() {
+    return viewSeason || EGE.currentSeason;
+  }
 
   /* --- booster stickers --------------------------------------------------- */
 
@@ -215,22 +285,29 @@
     return isMe(player) || EGE.wallet.admin();
   }
 
-  function stickerOn(player, week) {
-    if (!canSeeStickers(player)) { return null; }
-    var byWeek = (EGE.gameBoosters || {})[player.slug] || {};
-    return byWeek[week] || null;
-  }
-
   /* The slot at the end of a schedule row: a sticker if one is stuck there,
      a plus if this is your own unplayed game, and nothing otherwise. */
   function stickerSlot(player, game) {
     var slot = el('span', 'ege-slot');
     var mine = isMe(player);
     var played = EGE.isFinal(game);
-    var stuck = stickerOn(player, game.week);
+
+    /* A booster written into the season file is the record of a game already
+       played. It shows, and it never comes off. Anything still in Supabase is
+       a sticker on a fixture, and its owner can still change his mind.
+
+       Either way it is private: what somebody has riding on a game is his own
+       business and an admin's, whether it came from the file or the table. */
+    var booster = canSeeStickers(player) ? EGE.boosterOn(player, game) : null;
+    var stuck = booster ? {
+      id: booster.id || (player.slug + '-' + game.week),
+      item_key: booster.key,
+      item_name: booster.name,
+      hardcoded: booster.hardcoded
+    } : null;
 
     if (stuck) {
-      var peelable = mine && !played;
+      var peelable = mine && !played && !stuck.hardcoded;
       var applied = el('button', 'ege-slot__applied ' +
         (peelable ? 'ege-slot__applied--peelable' : 'ege-slot__applied--stuck'));
       applied.type = 'button';
@@ -240,7 +317,7 @@
         : stuck.item_name + ' \u2014 the game has been played, it stays put';
       /* Bigger than the row on purpose, sitting over it, and nudged a few
          pixels up or down so it overlaps the row above or below. */
-      var seed = stuck.id || (player.slug + '-' + game.week);
+      var seed = stuck.id;
       var placing = scatter(seed);
       var sticker = stickerEl(stuck.item_key, 62, seed);
       applied.style.setProperty('--sticker-size', '62px');
@@ -261,7 +338,10 @@
       return slot;
     }
 
-    if (mine && !played) {
+    /* A booster goes on a game that has not been played. A week the admin is
+       holding back has still been played in the file, so the sticker drawer
+       closes when the result is written rather than when it goes out. */
+    if (mine && !played && !EGE.hasResult(game)) {
       var add = el('button', 'ege-slot__add', '+');
       add.type = 'button';
       add.title = 'Put a booster on this game';
@@ -359,10 +439,24 @@
 
   function scheduleRow(game) {
     var row = el('tr');
+    var played = EGE.isFinal(game);
 
-    row.appendChild(el('td', 'ege-schedule__week', game.week));
+    var week = el('td', 'ege-schedule__week');
+    /* A played game opens to show what he did in it. */
+    if (played) {
+      var toggle = el('button', 'ege-schedule__open', String(game.week));
+      toggle.type = 'button';
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.title = 'Show the stat line for week ' + game.week;
+      week.appendChild(toggle);
+      row.dataset.week = game.week;
+    } else {
+      week.textContent = game.week;
+    }
+    row.appendChild(week);
+
     row.appendChild(el('td', null, gameDate(game)));
-    row.appendChild(el('td', 'ege-schedule__time', game.kickoff || '\u2014'));
+    row.appendChild(el('td', 'ege-schedule__time', game.kickoff || '—'));
 
     var opponent = el('td', 'ege-schedule__opponent');
     opponent.appendChild(el('span', 'ege-schedule__side', game.home ? 'vs' : 'at'));
@@ -376,14 +470,27 @@
     row.appendChild(opponent);
 
     var result = el('td', 'num');
-    if (EGE.isFinal(game)) {
+    if (played) {
       var won = game.result.teamScore > game.result.opponentScore;
       result.appendChild(el('span', 'fb-tag fb-tag--num ' + (won ? 'fb-tag--sage' : 'fb-tag--clay'),
-        (won ? 'W ' : 'L ') + game.result.teamScore + '\u2013' + game.result.opponentScore));
+        (won ? 'W ' : 'L ') + game.result.teamScore + '–' + game.result.opponentScore));
     } else {
-      result.appendChild(el('span', 'ege-schedule__pending', '\u2014'));
+      result.appendChild(el('span', 'ege-schedule__pending', '—'));
     }
     row.appendChild(result);
+
+    /* What the game paid. Only his own, and an admin's — a balance is nobody
+       else's business. */
+    var credits = el('td', 'num ege-schedule__credits');
+    var earned = schedulePlayer ? EGE.creditsFromGame(schedulePlayer, game) : 0;
+    if (earned && canSeeStickers(schedulePlayer)) {
+      var tag = el('span', 'ege-schedule__paid', '+' + earned);
+      tag.title = earned + ' credits for the touchdowns in this game';
+      credits.appendChild(tag);
+    } else {
+      credits.appendChild(el('span', 'ege-schedule__pending', '—'));
+    }
+    row.appendChild(credits);
 
     var slot = el('td', 'num ege-schedule__slot');
     if (schedulePlayer) { slot.appendChild(stickerSlot(schedulePlayer, game)); }
@@ -392,10 +499,50 @@
     return row;
   }
 
+  /* The row that drops open under a played game: that game's line under the
+     columns his position is read in. */
+  function statRow(player, game) {
+    var row = el('tr', 'ege-statrow');
+    row.hidden = true;
+    row.dataset.forWeek = game.week;
+
+    var cell = el('td');
+    cell.colSpan = 6;
+
+    var stats = EGE.statline.complete(player.position, game.stats);
+    var box = el('div', 'ege-statrow__box');
+
+    if (!game.stats) {
+      box.appendChild(el('p', 'fb-meta', 'No stat line for this one.'));
+    } else {
+      EGE.statline.lineFor(player.position).forEach(function (column) {
+        var item = el('div', 'ege-statrow__stat');
+        var label = el('span', 'ege-statrow__label', column.label);
+        label.title = column.title;
+        item.appendChild(label);
+        item.appendChild(el('span', 'ege-statrow__value', column.text(stats)));
+        box.appendChild(item);
+      });
+    }
+
+    var booster = EGE.boosterOn(player, game);
+    if (booster && canSeeStickers(player)) {
+      var note = el('p', 'fb-meta ege-statrow__note',
+        booster.name + ' was on this game' +
+        (booster.multiplier ? ' — ' + booster.multiplier + 'x' : '') + '.');
+      box.appendChild(note);
+    }
+
+    cell.appendChild(box);
+    row.appendChild(cell);
+    return row;
+  }
+
   function renderSchedule(player) {
     var panel = document.getElementById('schedulePanel');
     var body = document.getElementById('scheduleBody');
-    var games = EGE.gamesFor(player);
+    var season = shownSeason();
+    var games = EGE.gamesFor(player, season);
 
     showScouts = canSeeScouts(player);
     schedulePlayer = player;
@@ -406,40 +553,63 @@
     document.getElementById('scheduleEmpty').hidden = Boolean(games.length);
 
     if (!games.length) {
-      document.getElementById('scheduleNote').textContent = EGE.currentSeason;
+      document.getElementById('scheduleNote').textContent = season;
       document.getElementById('scheduleLegend').textContent = '';
       return;
     }
 
-    games.forEach(function (game) { body.appendChild(scheduleRow(game)); });
+    games.forEach(function (game) {
+      body.appendChild(scheduleRow(game));
+      if (EGE.isFinal(game)) { body.appendChild(statRow(player, game)); }
+    });
 
-    var played = EGE.gamesPlayed(player).length;
+    var played = EGE.gamesPlayed(player, season).length;
     document.getElementById('scheduleNote').textContent = played
-      ? EGE.currentSeason + ' \u00b7 ' + games.length + ' games \u00b7 ' + EGE.recordFor(player).text
-      : EGE.currentSeason + ' \u00b7 ' + games.length + ' games \u00b7 none played yet';
+      ? season + ' · ' + games.length + ' games · ' + EGE.recordFor(player, season).text
+      : season + ' · ' + games.length + ' games · none played yet';
 
     var conference = games.filter(function (game) { return game.conference; }).length;
     var legend = conference ? '* conference game (' + conference + ' of ' + games.length + ')' : '';
     if (showScouts) {
-      var scouted = EGE.scoutedGames(player).length;
-      legend += (legend ? ' \u00b7 ' : '') + 'Intel: scouts at ' + scouted + ' games this season';
+      var scouted = EGE.scoutedGames(player, season).length;
+      legend += (legend ? ' · ' : '') + 'Intel: scouts at ' + scouted + ' games this season';
+    }
+    if (played) {
+      legend += (legend ? ' · ' : '') + 'Click a week to see the stat line';
     }
     document.getElementById('scheduleLegend').textContent = legend;
   }
 
+  /* One listener on the table rather than one per row, so rows can be redrawn
+     without leaving handlers behind. */
+  document.getElementById('scheduleBody').addEventListener('click', function (event) {
+    var button = event.target.closest('.ege-schedule__open');
+    if (!button) { return; }
+
+    var row = button.closest('tr');
+    var stats = row.nextElementSibling;
+    if (!stats || !stats.classList.contains('ege-statrow')) { return; }
+
+    var open = stats.hidden;
+    stats.hidden = !open;
+    button.setAttribute('aria-expanded', open ? 'true' : 'false');
+    row.classList.toggle('ege-schedule__row--open', open);
+  });
+
   /* --- the game log ------------------------------------------------------- */
 
   /* Every game played, under the columns this position is read in. The
-     columns come from data/statgen.js, so this table and the Discord post
+     columns come from data/statline.js, so this table and the Discord post
      are never two different opinions about what a stat line is. */
   function renderGameLog(player) {
     var panel = document.getElementById('gameLogPanel');
-    var played = EGE.gamesPlayed(player, EGE.currentSeason);
+    var season = shownSeason();
+    var played = EGE.gamesPlayed(player, season);
 
     panel.hidden = !played.length;
     if (!played.length) { return; }
 
-    var columns = EGE.statgen.lineFor(player.position);
+    var columns = EGE.statline.lineFor(player.position);
     var head = document.getElementById('gameLogHead');
     var body = document.getElementById('gameLogBody');
     var foot = document.getElementById('gameLogTotals');
@@ -468,10 +638,11 @@
 
       /* A booster is the player's own business, and an admin's. It shows here
          under the same rule the stickers on the schedule follow. */
-      if (game.booster && canSeeStickers(player)) {
+      var booster = EGE.boosterOn(player, game);
+      if (booster && canSeeStickers(player)) {
         boosted += 1;
-        var mark = el('abbr', 'ege-gamelog__boost', game.booster.multiplier + 'x');
-        mark.title = game.booster.name + ' was on this game';
+        var mark = el('abbr', 'ege-gamelog__boost', booster.multiplier + 'x');
+        mark.title = booster.name + ' was on this game';
         opponent.appendChild(mark);
       }
       row.appendChild(opponent);
@@ -482,8 +653,9 @@
         (won ? 'W ' : 'L ') + game.result.teamScore + '–' + game.result.opponentScore));
       row.appendChild(result);
 
+      var stats = EGE.statline.complete(player.position, game.stats) || {};
       columns.forEach(function (column) {
-        row.appendChild(el('td', 'num', column.text(game.stats || {})));
+        row.appendChild(el('td', 'num', column.text(stats)));
       });
       body.appendChild(row);
     });
@@ -491,8 +663,8 @@
     /* The totals row works each column out the way that column adds up: a
        long is the longest, and a rating is worked out again from the season's
        numbers rather than averaged across games. */
-    var totals = EGE.statgen.totalLine(player.position, played.map(function (game) {
-      return game.stats;
+    var totals = EGE.statline.totalLine(player.position, played.map(function (game) {
+      return EGE.statline.complete(player.position, game.stats);
     }));
 
     var label = el('td', null, 'Season');
@@ -500,11 +672,11 @@
     foot.appendChild(label);
     columns.forEach(function (column) {
       var cell = el('td', 'num');
-      cell.appendChild(el('strong', null, EGE.statgen.show(totals.columns[column.key])));
+      cell.appendChild(el('strong', null, EGE.statline.show(totals.columns[column.key])));
       foot.appendChild(cell);
     });
 
-    var record = EGE.recordFor(player, EGE.currentSeason);
+    var record = EGE.recordFor(player, season);
     document.getElementById('gameLogNote').textContent =
       played.length + (played.length === 1 ? ' game' : ' games') + ' · ' + record.text;
 
@@ -512,6 +684,11 @@
       ? 'A multiplier beside an opponent is a booster that was on that game — only you and an admin see it.'
       : 'Hover a column heading for what it stands for.';
   }
+
+  document.getElementById('playerSeasonPick').addEventListener('change', function (event) {
+    viewSeason = Number(event.target.value);
+    if (schedulePlayer) { renderPlayer(schedulePlayer, true); }
+  });
 
   /* --- ratings ---------------------------------------------------------- */
 
@@ -793,17 +970,12 @@
         actions.appendChild(minus);
       }
     } else if (row.consumable) {
-      var use = el('button', 'fb-btn fb-btn--primary', 'Use');
-      use.type = 'button';
-      use.title = 'Using it spends it';
-      use.addEventListener('click', function () {
-        use.disabled = true;
-        EGE.wallet.useItem(row).then(function (res) {
-          options.report(res.message, !res.ok);
-          options.refresh();
-        });
-      });
-      actions.appendChild(use);
+      /* A booster is used by putting it on a game, which happens on the
+         player's own schedule. Spending one from here never said which game
+         it was for, so it does not belong here at all. */
+      var where = el('span', 'fb-meta ege-item__where',
+        'Use it on your player page \u2014 the + beside a game on your schedule.');
+      actions.appendChild(where);
     } else if (!lapsed) {
       var toggle = el('button', 'fb-btn', row.active ? 'Turn off' : 'Turn on');
       toggle.type = 'button';
@@ -1093,197 +1265,409 @@
         EGE.economy.TD_CREDITS.QB + ' for a quarterback.';
   }
 
-  /* --- playing a week ------------------------------------------------------ */
+  /* --- putting a week out --------------------------------------------------- */
 
-  var weekState = { week: null, rolled: null, nonces: {} };
+  var weekState = { season: null, published: [] };
 
-  /* Which weeks a season actually has games in, and whether each has been
-     played already. */
-  function weeksWithGames(season) {
-    var last = EGE.lastWeek(season);
-    var weeks = [];
-
-    for (var week = 1; week <= last; week += 1) {
-      var games = EGE.players.map(function (player) {
-        return EGE.gameInWeek(player, week, season);
-      }).filter(Boolean);
-      if (!games.length) { continue; }
-
-      weeks.push({
-        week: week,
-        games: games.length,
-        played: games.filter(EGE.isFinal).length
-      });
-    }
-    return weeks;
+  function adminSeason() {
+    return weekState.season || EGE.currentSeason;
   }
 
-  function fillWeekPicker() {
-    var pick = document.getElementById('weekPick');
-    var weeks = weeksWithGames(EGE.currentSeason);
-    pick.innerHTML = '';
-
-    weeks.forEach(function (entry) {
-      var label = 'Week ' + entry.week + '  ·  ' + entry.games +
-        (entry.games === 1 ? ' game' : ' games') +
-        (entry.played ? '  ·  played' : '');
-      var option = el('option', null, label);
-      option.value = entry.week;
-      pick.appendChild(option);
+  function fillSeasonPicker(select, chosen) {
+    var seasons = EGE.seasonsPlayed();
+    select.innerHTML = '';
+    seasons.forEach(function (year) {
+      var option = el('option', null, String(year));
+      option.value = year;
+      select.appendChild(option);
     });
-
-    /* Land on the first week nobody has played yet — the one he is here for. */
-    var next = weeks.filter(function (entry) { return entry.played < entry.games; })[0];
-    if (next) { pick.value = next.week; }
-
-    document.getElementById('weekNote').textContent = weeks.length
-      ? weeks.filter(function (e) { return e.played === e.games; }).length +
-        ' of ' + weeks.length + ' weeks played'
-      : 'No fixtures this season yet';
-
-    return weeks;
+    select.value = seasons.indexOf(chosen) === -1 ? (seasons[seasons.length - 1] || '') : chosen;
+    return Number(select.value) || EGE.currentSeason;
   }
 
-  /* A short human line for one rolled game, in the position's own terms. */
-  function weekLineFor(player, stats) {
-    return EGE.statgen.lineFor(player.position).slice(0, 4).map(function (column) {
-      return column.label + ' ' + column.text(stats);
-    }).join('  ·  ');
-  }
-
-  function renderWeekPreview() {
-    var body = document.getElementById('weekPreview');
-    var wrap = document.getElementById('weekPreviewWrap');
+  /* One row per week: how many games it holds, how many have numbers in the
+     file, whether Discord has had it, and the button that puts it out. */
+  function renderWeeks() {
+    var season = adminSeason();
+    var body = document.getElementById('weekRows');
     body.innerHTML = '';
 
-    var rolled = weekState.rolled;
-    wrap.hidden = !rolled || !rolled.length;
-    document.getElementById('publishWeek').disabled = !rolled || !rolled.length;
-    document.getElementById('rollAgain').disabled = !rolled || !rolled.length;
-    if (!rolled || !rolled.length) { return; }
+    var weeks = EGE.weeksIn(season);
+    var out = 0;
+    var ready = 0;
 
-    rolled.forEach(function (entry) {
-      var row = el('tr');
+    weeks.forEach(function (week) {
+      var games = EGE.gamesInWeek(week, season);
+      var filled = games.filter(function (entry) { return EGE.hasResult(entry.game); }).length;
+      var published = EGE.isPublished(season, week);
+      var row = weekState.published.filter(function (r) {
+        return r.season === season && r.week === week;
+      })[0];
 
-      var who = el('td');
-      who.appendChild(el('strong', null, entry.player.name));
-      who.appendChild(el('span', 'fb-meta', entry.player.position +
-        '  ·  ovr ' + entry.outcome.inputs.overall));
-      row.appendChild(who);
+      if (published) { out += 1; }
+      if (!published && filled === games.length && filled) { ready += 1; }
 
-      var matchup = el('td');
-      matchup.appendChild(el('span', 'ege-schedule__side', entry.game.home ? 'vs' : 'at'));
-      matchup.appendChild(el('span', 'fb-name', entry.game.opponent));
-      matchup.appendChild(el('span', 'fb-meta',
-        'strength ' + entry.outcome.inputs.opponentStrength +
-        (entry.booster ? '  ·  ' + entry.booster.multiplier + 'x booster' : '')));
-      row.appendChild(matchup);
+      var tr = el('tr');
+      if (published) { tr.className = 'ege-weeks__row--out'; }
 
-      var won = entry.outcome.result.teamScore > entry.outcome.result.opponentScore;
-      var result = el('td', 'num');
-      result.appendChild(el('span', 'fb-tag fb-tag--num ' + (won ? 'fb-tag--sage' : 'fb-tag--clay'),
-        (won ? 'W ' : 'L ') + entry.outcome.result.teamScore + '–' +
-        entry.outcome.result.opponentScore));
-      row.appendChild(result);
+      tr.appendChild(el('td', 'ege-schedule__week', String(week)));
+      tr.appendChild(el('td', 'num', String(games.length)));
 
-      row.appendChild(el('td', 'ege-weekline__line', weekLineFor(entry.player, entry.outcome.stats)));
+      var count = el('td', 'num', filled + ' of ' + games.length);
+      if (filled < games.length) { count.className = 'num ege-weeks__short'; }
+      tr.appendChild(count);
 
-      /* One player at a time, for when five games look right and one does
-         not. A head-to-head takes its rival with it, because one scoreboard
-         has to serve both of them. */
-      var again = el('td', 'num');
-      var button = el('button', 'fb-btn fb-btn--sm', 'Roll');
-      button.type = 'button';
-      button.title = 'Roll ' + entry.player.first + '’s game again';
-      button.addEventListener('click', function () {
-        weekState.nonces[entry.player.slug] = (weekState.nonces[entry.player.slug] || 0) + 1;
-        rollWeek(weekState.week, true);
+      tr.appendChild(el('td', 'num', row && row.posted_at ? 'sent' : (published ? 'not yet' : '—')));
+
+      var status = el('td');
+      status.appendChild(el('span', 'fb-tag ' + (published ? 'fb-tag--sage' : 'fb-tag--clay'),
+        published ? 'Out' : 'Held'));
+      tr.appendChild(status);
+
+      var action = el('td', 'num');
+      if (published) {
+        var pull = el('button', 'fb-btn fb-btn--sm', 'Pull back');
+        pull.type = 'button';
+        pull.addEventListener('click', function () {
+          pull.disabled = true;
+          EGE.wallet.unpublishWeek(season, week).then(function (res) {
+            sayAdmin(res.message, !res.ok);
+            return refreshAdminView();
+          }).then(function () { redrawEverything(); });
+        });
+        action.appendChild(pull);
+
+        var again = el('button', 'fb-btn fb-btn--sm', 'Post again');
+        again.type = 'button';
+        again.title = 'Send the Discord message again without changing anything';
+        again.addEventListener('click', function () {
+          again.disabled = true;
+          sendWeekToDiscord(season, week).then(function (res) {
+            again.disabled = false;
+            sayAdmin(res.message, !res.ok);
+            return refreshAdminView();
+          });
+        });
+        action.appendChild(again);
+      } else {
+        var publish = el('button', 'fb-btn fb-btn--sm fb-btn--primary', 'Publish');
+        publish.type = 'button';
+        publish.disabled = !filled;
+        publish.title = filled
+          ? 'Show week ' + week + ' and post it to Discord'
+          : 'Nothing is filled in for week ' + week + ' yet';
+        publish.addEventListener('click', function () {
+          publish.disabled = true;
+          publishWeek(season, week).then(function () { publish.disabled = false; });
+        });
+        action.appendChild(publish);
+      }
+      tr.appendChild(action);
+
+      body.appendChild(tr);
+    });
+
+    document.getElementById('weekNote').textContent = season + ' season';
+    document.getElementById('weekSummary').textContent =
+      out + ' of ' + weeks.length + ' weeks out' +
+      (ready ? ', ' + ready + ' ready to go' : '');
+  }
+
+  /* Publishing, and the Discord post, on the one click.
+
+     The week goes out first. If Discord will not take it the week still
+     stands — the scheduled bot posts anything published it has not sent, so
+     a failure here is a delay rather than a hole. */
+  function publishWeek(season, week) {
+    return EGE.wallet.publishWeek(season, week).then(function (res) {
+      if (!res.ok) { sayAdmin(res.message, true); return; }
+
+      return sendWeekToDiscord(season, week).then(function (posted) {
+        var paid = payTheWeek(season);
+        sayAdmin('Week ' + week + ' is out. ' + posted.message, !posted.ok);
+        return paid;
       });
-      again.appendChild(button);
-      row.appendChild(again);
-
-      body.appendChild(row);
+    }).then(function () {
+      return refreshAdminView();
+    }).then(function () {
+      redrawEverything();
     });
   }
 
-  function rollWeek(week, keepNonces) {
-    if (!keepNonces) { weekState.nonces = {}; }
-    weekState.week = week;
+  function sendWeekToDiscord(season, week) {
+    var payload = EGE.discordPost.buildWeekPost(week, {
+      season: season,
+      siteUrl: EGE.discordPost.SITE,
+      played: true
+    });
+    if (!payload) {
+      return Promise.resolve({ ok: false, message: 'Week ' + week + ' has no games to post.' });
+    }
 
-    /* Boosters are read fresh: a sticker put on this morning counts. */
-    return EGE.wallet.loadGameBoosters(EGE.currentSeason).then(function (boosters) {
-      weekState.rolled = EGE.statgen.playWeek(week, {
-        season: EGE.currentSeason,
-        nonces: weekState.nonces,
-        boosters: boosters
+    return EGE.wallet.postWeekToDiscord(payload).then(function (res) {
+      if (!res.ok) {
+        return {
+          ok: false,
+          message: 'Discord did not take it (' + res.message + '). The week is ' +
+                   'still out, and the scheduled bot will post it.'
+        };
+      }
+      return EGE.wallet.markPosted(season, week).then(function () {
+        return { ok: true, message: 'Posted to Discord.' };
+      });
+    });
+  }
+
+  /* Everyone's touchdown credits for the season, now that a week has landed.
+     Paying is keyed on what earned it, so a week published twice pays once. */
+  function payTheWeek(season) {
+    return Promise.all(EGE.playersWithAccounts().map(function (player) {
+      return EGE.wallet.syncAwards(player, season);
+    })).then(function (paid) {
+      return paid.reduce(function (sum, one) { return sum + (one.paid || 0); }, 0);
+    });
+  }
+
+  /* --- the season file ------------------------------------------------------ */
+
+  /* Every week edited this sitting, as week -> slug -> { result, booster,
+     stats }, held here until the file is written.
+
+     All of them, not just the one on screen: editing week 2, flipping to
+     week 4 and coming back has to still have week 2's numbers in it, and the
+     download has to carry every week that was touched. */
+  var editState = { season: null, week: null, weeks: {} };
+
+  function editsFor(week) {
+    return editState.weeks[week] || (editState.weeks[week] = {});
+  }
+
+  function weeksEdited() {
+    return Object.keys(editState.weeks).filter(function (week) {
+      return Object.keys(editState.weeks[week]).length;
+    }).map(Number).sort(function (a, b) { return a - b; });
+  }
+
+  function fillEditorWeeks() {
+    var select = document.getElementById('editorWeek');
+    var season = adminSeason();
+    var weeks = EGE.weeksIn(season);
+    select.innerHTML = '';
+
+    weeks.forEach(function (week) {
+      var games = EGE.gamesInWeek(week, season);
+      var filled = games.filter(function (entry) { return EGE.hasResult(entry.game); }).length;
+      var option = el('option', null, 'Week ' + week + '  ·  ' + filled + ' of ' +
+                      games.length + ' filled in');
+      option.value = week;
+      select.appendChild(option);
+    });
+
+    /* Open on the first week that still needs numbers. */
+    var next = weeks.filter(function (week) {
+      return EGE.gamesInWeek(week, season).some(function (entry) {
+        return !EGE.hasResult(entry.game);
+      });
+    })[0];
+    select.value = next || weeks[0] || '';
+
+    document.getElementById('editorFile').textContent = 'stats/' + season + '.js';
+    document.getElementById('editorNote').textContent = 'stats/' + season + '.js';
+    return Number(select.value) || weeks[0];
+  }
+
+  function numberField(label, value, onChange) {
+    var field = el('label', 'ege-statfield');
+    field.appendChild(el('span', 'ege-statfield__label', label));
+    var input = el('input', 'fb-input ege-statfield__input');
+    input.type = 'number';
+    input.value = value === null || value === undefined ? '' : value;
+    input.addEventListener('input', function () {
+      onChange(input.value === '' ? null : Number(input.value));
+    });
+    field.appendChild(input);
+    return field;
+  }
+
+  /* One game's card in the editor: the score, the booster, and every number
+     that position's line is typed from. The averages and totals are not here
+     — they follow from these and are worked out when the file is written. */
+  function editorCard(entry, held) {
+    var player = entry.player;
+    var game = entry.game;
+
+    /* It borrows the account box's look, but it is not an account — the class
+       says which one it is so nothing counts them together. */
+    var box = el('div', 'ege-account ege-editcard');
+
+    var head = el('div', 'ege-account__head');
+    var who = el('div', 'ege-who');
+    var photo = el('img', 'ege-avatar ege-avatar--sm');
+    photo.src = player.headshot;
+    photo.alt = '';
+    who.appendChild(photo);
+    var name = el('div');
+    name.appendChild(el('span', 'ege-account__name', player.name));
+    name.appendChild(el('span', 'fb-meta', player.position + '  ·  ' +
+      (game.home ? 'vs ' : 'at ') + game.opponent + '  ·  ' + game.date));
+    who.appendChild(name);
+    head.appendChild(who);
+
+    var score = el('div', 'fb-row');
+    score.appendChild(numberField('Us', held.result ? held.result.teamScore : null, function (value) {
+      held.result = held.result || { teamScore: null, opponentScore: null };
+      held.result.teamScore = value;
+    }));
+    score.appendChild(numberField('Them', held.result ? held.result.opponentScore : null, function (value) {
+      held.result = held.result || { teamScore: null, opponentScore: null };
+      held.result.opponentScore = value;
+    }));
+    head.appendChild(score);
+    box.appendChild(head);
+
+    /* The booster that was on the game, written into the file for good. */
+    var boosterRow = el('div', 'fb-row fb-row--wrap');
+    boosterRow.appendChild(el('span', 'fb-eyebrow', 'Booster'));
+    var pick = el('select', 'fb-select');
+    var none = el('option', null, 'None');
+    none.value = '';
+    pick.appendChild(none);
+    EGE.shop.sections.filter(function (section) {
+      return section.key === 'boosters';
+    })[0].items.forEach(function (item) {
+      var option = el('option', null, item.name);
+      option.value = item.key;
+      pick.appendChild(option);
+    });
+    pick.value = held.booster || '';
+    pick.addEventListener('change', function () {
+      held.booster = pick.value || null;
+    });
+    boosterRow.appendChild(pick);
+    box.appendChild(boosterRow);
+
+    var grid = el('div', 'ege-statgrid');
+    EGE.statline.keysFor(player.position).forEach(function (key) {
+      var column = EGE.statline.lineFor(player.position).filter(function (c) {
+        return c.key === key || (c.edits || []).indexOf(key) !== -1;
+      })[0];
+      var label = column && (column.edits || []).length > 1 ? key : (column ? column.label : key);
+
+      grid.appendChild(numberField(label, held.stats ? held.stats[key] : null, function (value) {
+        held.stats = held.stats || {};
+        held.stats[key] = value;
+      }));
+    });
+    box.appendChild(grid);
+
+    return box;
+  }
+
+  function renderEditor() {
+    var season = adminSeason();
+    var week = Number(document.getElementById('editorWeek').value);
+    var holder = document.getElementById('editorGames');
+    holder.innerHTML = '';
+
+    var games = EGE.gamesInWeek(week, season);
+
+    /* Start from what the file says, copied so editing it changes nothing
+       until the file is downloaded and committed. */
+    /* A different season means everything held here belongs to the last one. */
+    if (editState.season !== season) {
+      editState = { season: season, week: week, weeks: {} };
+    }
+    editState.week = week;
+
+    /* A week is copied out of the file the first time it is opened, and kept
+       after that, so coming back to it finds the numbers as they were left. */
+    var held = editsFor(week);
+    games.forEach(function (entry) {
+      if (held[entry.player.slug]) { return; }
+      held[entry.player.slug] = {
+        result: entry.game.result ? {
+          teamScore: entry.game.result.teamScore,
+          opponentScore: entry.game.result.opponentScore
+        } : null,
+        booster: entry.game.booster || null,
+        stats: entry.game.stats ? Object.assign({}, entry.game.stats) : null
+      };
+    });
+
+    if (!games.length) {
+      holder.appendChild(el('p', 'fb-meta', 'Nobody plays in week ' + week + '.'));
+      return;
+    }
+
+    games.forEach(function (entry) {
+      holder.appendChild(editorCard(entry, held[entry.player.slug]));
+    });
+
+    var touched = weeksEdited();
+    document.getElementById('editorState').textContent =
+      games.length + (games.length === 1 ? ' game' : ' games') + ' in week ' + week +
+      (EGE.isPublished(season, week) ? ' · already out' : '') +
+      (touched.length > 1 ? ' · ' + touched.length + ' weeks open' : '');
+  }
+
+  /* Takes whatever stickers players have put on this week in Supabase and
+     writes them into the week being edited, so they can be committed and the
+     rows behind them cleared. */
+  function pullInBoosters() {
+    var season = adminSeason();
+    var week = editState.week;
+
+    return EGE.wallet.loadGameBoosters(season).then(function (boosters) {
+      var held = editsFor(week);
+      var found = 0;
+      Object.keys(held).forEach(function (slug) {
+        var stuck = (boosters[slug] || {})[week];
+        if (!stuck) { return; }
+        held[slug].booster = stuck.item_key;
+        found += 1;
       });
 
-      var already = weekState.rolled.filter(function (entry) {
-        return EGE.isFinal(entry.game);
-      }).length;
-
-      var warning = document.getElementById('weekWarning');
-      warning.hidden = !already;
-      if (already) {
-        warning.textContent = 'Week ' + week + ' has already been played — ' + already +
-          ' of these ' + weekState.rolled.length + ' games already has a result in ' +
-          'data/results.js. Publishing will write over ' +
-          (already === 1 ? 'it' : 'them') + '.';
-      }
-
-      document.getElementById('weekState').textContent =
-        'Week ' + week + ' rolled — ' + weekState.rolled.length +
-        (weekState.rolled.length === 1 ? ' game' : ' games') + '.';
-
-      renderWeekPreview();
+      renderEditor();
+      sayAdmin(found
+        ? 'Pulled in ' + found + (found === 1 ? ' sticker' : ' stickers') +
+          ' from week ' + week + '. Download the file and commit it, then the ' +
+          'rows behind them can go.'
+        : 'Nobody has a sticker on week ' + week + '.', false);
     });
   }
 
   function wireWeekPanel() {
-    var pick = document.getElementById('weekPick');
-    var roll = document.getElementById('rollWeek');
-    var again = document.getElementById('rollAgain');
-    var publish = document.getElementById('publishWeek');
+    var seasonPick = document.getElementById('weekSeason');
+    var editorWeek = document.getElementById('editorWeek');
 
-    pick.addEventListener('change', function () {
-      weekState.rolled = null;
-      weekState.nonces = {};
-      document.getElementById('weekState').textContent = '';
-      document.getElementById('weekWarning').hidden = true;
-      renderWeekPreview();
+    seasonPick.addEventListener('change', function () {
+      weekState.season = Number(seasonPick.value);
+      editState = { season: null, week: null, weeks: {} };
+      renderWeeks();
+      fillEditorWeeks();
+      renderEditor();
     });
 
-    roll.addEventListener('click', function () {
-      roll.disabled = true;
-      rollWeek(Number(pick.value), false).then(function () { roll.disabled = false; });
+    editorWeek.addEventListener('change', renderEditor);
+
+    document.getElementById('pullBoosters').addEventListener('click', function () {
+      pullInBoosters();
     });
 
-    /* A fresh roll of every game in the week, not a repeat of the last one. */
-    again.addEventListener('click', function () {
-      var bumped = {};
-      (weekState.rolled || []).forEach(function (entry) {
-        bumped[entry.player.slug] = (weekState.nonces[entry.player.slug] || 0) + 1;
-      });
-      weekState.nonces = bumped;
-      again.disabled = true;
-      rollWeek(weekState.week, true).then(function () { again.disabled = false; });
-    });
+    document.getElementById('downloadSeason').addEventListener('click', function () {
+      var button = document.getElementById('downloadSeason');
+      button.disabled = true;
 
-    publish.addEventListener('click', function () {
-      if (!weekState.rolled || !weekState.rolled.length) { return; }
-      publish.disabled = true;
-
-      EGE.exports.resultsFile(EGE.currentSeason, weekState.week, weekState.rolled)
+      EGE.exports.seasonFile(adminSeason(), editState)
         .then(function (text) {
-          EGE.exports.download('results.js', text);
-          document.getElementById('publishNote').textContent =
-            'Week ' + weekState.week + ' is in the file.';
-          sayAdmin('results.js downloaded. Put it in data/ and commit it — the ' +
-                   'site shows the stats as soon as it is live, and the bot posts ' +
-                   'week ' + weekState.week + ' on its next run.', false);
+          EGE.exports.download(adminSeason() + '.js', text);
+          document.getElementById('downloadNote').textContent =
+            'Downloaded. It belongs in stats/.';
+          sayAdmin('stats/' + adminSeason() + '.js downloaded. Commit it and the ' +
+                   'numbers are live — for the weeks you have published.', false);
         })
         .catch(function (error) { sayAdmin(error.message, true); })
-        .then(function () { publish.disabled = false; });
+        .then(function () { button.disabled = false; });
     });
   }
 
@@ -1424,15 +1808,18 @@
       EGE.wallet.allCredits(),
       EGE.wallet.allInventory(),
       EGE.wallet.allAwards(EGE.currentSeason),
-      EGE.wallet.loadBoosts()
+      EGE.wallet.loadBoosts(),
+      EGE.wallet.loadPublishedWeeks(),
+      EGE.wallet.publishedRows()
     ]).then(function (all) {
       adminState.credits = all[0];
       adminState.inventory = all[1];
       adminState.awards = all[2];
+      weekState.published = all[5];
       renderAccounts();
       renderAwards();
       renderLockPreview();
-      fillWeekPicker();
+      renderWeeks();
     });
   }
 
@@ -1447,9 +1834,24 @@
 
     if (!admin) { return Promise.resolve(); }
 
-    if (!adminBuilt) { adminBuilt = true; wireSeasonPanel(); wireWeekPanel(); }
+    if (!adminBuilt) {
+      adminBuilt = true;
+      weekState.season = fillSeasonPicker(document.getElementById('weekSeason'),
+                                          EGE.currentSeason);
+      wireSeasonPanel();
+      wireWeekPanel();
+    }
     sayAdmin('', false);
-    return refreshAdminView();
+
+    var note = document.getElementById('discordNote');
+    note.textContent = 'Publishing posts to Discord through the post-week function. ' +
+      'If it is not deployed the week still goes out, and the scheduled bot ' +
+      'posts it on its next run.';
+
+    return refreshAdminView().then(function () {
+      fillEditorWeeks();
+      renderEditor();
+    });
   }
 
   /* --- loading ----------------------------------------------------------- */
@@ -1507,6 +1909,21 @@
     refreshShop();
   }
 
+  /* A week going out or coming back changes the roster, whatever player page
+     is open, and the editor's idea of what is filled in. */
+  function redrawEverything() {
+    redrawRatings();
+    fillEditorWeeks();
+    renderEditor();
+    updateNavCreditsFromServer();
+  }
+
+  function updateNavCreditsFromServer() {
+    var player = EGE.auth.currentPlayer();
+    if (!player) { return; }
+    EGE.wallet.creditsFor(player.email).then(updateNavCredits);
+  }
+
   /* Boosts land after a page may already have been drawn — the roster's
      overalls and the open player page both need redrawing. */
   function redrawRatings() {
@@ -1515,7 +1932,7 @@
 
     var hash = window.location.hash.replace(/^#/, '');
     var player = hash ? EGE.playerBySlug(hash) : null;
-    if (player) { renderPlayer(player); }
+    if (player) { renderPlayer(player, true); }
   }
 
   /* The inventory arrives after a page may already have been drawn, so redraw
@@ -1767,12 +2184,20 @@
     box.title = shown + ' credits to spend in the shop';
   }
 
+  /* Which weeks are out is what decides whether a visitor sees a score at
+     all, so it loads before the first draw and for everybody — signed in or
+     not, player or passer-by. */
+  EGE.wallet.loadPublishedWeeks().then(function () {
+    redrawRatings();
+  });
+
   EGE.auth.onChange(function (player) {
     if (player) {
       /* The wallet loads on sign-in, not on reaching the shop: a player page
          needs the inventory too, to know whether to show the scouts. */
       shopState.player = player;
-      EGE.wallet.refreshAdmin(player.email)
+      EGE.wallet.loadPublishedWeeks()
+        .then(function () { return EGE.wallet.refreshAdmin(player.email); })
         .then(function (admin) {
           document.getElementById('navAdmin').hidden = !admin;
           /* Anything the season owes this player is paid on the way in, so a

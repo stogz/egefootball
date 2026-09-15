@@ -194,7 +194,8 @@ been played:
   clay for a loss.
 
 Nothing has been played yet, so every embed is currently a fixture. A game
-gains a `result` and `stats` in `data/schedule.js` and the same post starts
+gains a `result` and `stats` in `stats/{year}.js`, and once the week is
+published the same post starts
 reporting it.
 
 When our own schools meet — Bloomington at Normal Community in week 3 — the
@@ -206,7 +207,7 @@ A player on a bye, one with no game that week, and one with no schedule at
 all are left out of the post rather than shown empty.
 
 **It reads the site's own data.** `bot/site-data.js` runs `data/players.js`,
-`data/ratings.js` and `data/schedule.js` in a sandbox, so the bot and the
+`data/ratings.js` and `stats/{year}.js` in a sandbox, so the bot and the
 website are never two copies of the roster — change a school or a score in
 `data/` and both follow.
 
@@ -230,14 +231,24 @@ CDT, and the script checks the real Chicago hour and exits quietly on the
 runs belonging to the other offset. The posting times hold all year without
 being edited twice a season.
 
-Progress lives in `bot/state.json`, which the workflow commits after each
-post, so a run that fails posts the same week again next time rather than
-skipping it. Weeks where nobody played are stepped over.
+The bot is a **backstop**. Publishing a week from the admin page posts it
+there and then; these runs catch anything that did not go out — the edge
+function was not deployed, Discord was down, the click half-landed. Each run
+asks Supabase which weeks are published but unposted, sends them oldest first,
+and marks them, so nothing is posted twice and nothing is written back to this
+repository.
 
-**Setup:** add a channel webhook URL as the repository secret
-`DISCORD_WEBHOOK_URL` (Server Settings → Integrations → Webhooks in Discord,
-then Settings → Secrets and variables → Actions on GitHub). Until that exists
-the workflow will run and fail loudly rather than post anywhere.
+**Setup:** three repository secrets under Settings → Secrets and variables →
+Actions:
+
+| Secret | What it is |
+| --- | --- |
+| `DISCORD_WEBHOOK_URL` | the channel webhook (Server Settings → Integrations → Webhooks) |
+| `SUPABASE_URL` | your project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Settings → API. Server-side only — it never goes near the browser |
+
+Until those exist the workflow runs and fails loudly rather than posting
+anywhere.
 
 ---
 
@@ -290,7 +301,7 @@ While it is live, silhouettes appear beside the scouted games on that player's
 own schedule — hover one and it says SCOUTS IN ATTENDANCE — and the legend
 counts them. Once the season turns over the row reads *Expired*, the
 silhouettes go, and it can't be switched back on. Which games scouts attend is
-in `data/schedule.js` all along as `scouts: true`; Intel buys the right to see
+in `stats/{year}.js` all along as `scouts: true`; Intel buys the right to see
 it, and only on your own page.
 
 Each stat booster names the attribute in `data/ratings.js` it applies to, so
@@ -299,6 +310,12 @@ one exception: the ratings carry run block power and pass block power
 separately, and which one it raises is still open.
 
 ### Rating points
+
+Buying several at once is **every point priced where it lands, added up** —
+not the first one's price times four. A point at 64 costs 1 and a point at 65
+costs 2, so a +4 from 64 is 1 + 2 + 2 + 2 = 7, not 4. Pricing the run off the
+first point would sell the three dearer ones at the cheap rate, which is a
+discount for buying at exactly the wrong moment.
 
 The shop's main business. A player buys points straight into the attributes
 their position is judged on, and **a point costs more the closer that
@@ -393,6 +410,11 @@ of the CSS.
 
 ### Training
 
+Training rolls **one twelve-sided die** when you buy it. On a 1, 2 or 3 the
+downside lands, all of it; on 4 and up, none of it — a quarter of the time,
+not most of it. Rolling each risk separately is what made three coin flips add
+up to a debuff nearly every time (87.5%, as it turned out).
+
 | Item | Effect | Risk |
 | --- | --- | --- |
 | Overall Offseason Training | Speed, acceleration, strength, agility, jumping, stamina +1 | none |
@@ -404,9 +426,15 @@ the row. Reloading the page never re-rolls it.
 
 ### Everything carries over
 
-Training, stat boosters and unused performance boosters all stay season to
-season. Intel is the only thing that lapses, at the end of the season it was
-bought for.
+Unused performance boosters and unspent credits carry into the next season —
+nobody loses what they paid for. Rating points and offseason training do not
+carry as *rows*, because at the end of a season they are folded into
+`data/ratings.js` and become the player's actual numbers. Intel lapses at the
+end of the season it was bought for.
+
+A performance booster is **used on the player page**, by putting it on a game
+from your own schedule. There is no Use button in the shop: spending one there
+never said which game it was for.
 
 A quarterback's **QB Connection** reads **Back Field Connection** — he is
 learning his backs and receivers, not himself.
@@ -435,7 +463,7 @@ so nobody else can work out which games scouts will be at.
 ### Credits earn themselves
 
 Nobody hands credits out by hand for a good game. A touchdown is worth credits
-the moment the result goes into `data/schedule.js`:
+the moment the week is published:
 
 | Position | A touchdown is worth |
 | --- | --- |
@@ -466,7 +494,7 @@ A player with no sign-in yet still scores: the admin page shows what they are
 owed as *waiting*, and it lands in full the first time they log in.
 
 > The credits come from the browser, because what a touchdown is worth is
-> worked out from `data/schedule.js` and Postgres has no copy of it. A player
+> worked out from `stats/{year}.js` and Postgres has no copy of it. A player
 > could already set their own balance directly — buying things needs that — so
 > this is not a new hole, but the easy half of it is closed: for anyone who is
 > not an admin, an award has to look like one of the two kinds the site issues
@@ -474,50 +502,114 @@ owed as *waiting*, and it lands in full the first time they log in.
 
 ---
 
-## Playing a Week
+## Seasons, and putting a week out
 
-Nobody types a stat line in. The admin portal rolls the week out of what the
-players are, and publishing it writes a file for the repository.
+### One file per season
 
-### What moves a stat line
+```
+stats/
+  2018.js
+  2019.js
+  2020.js
+```
 
-| | |
-| --- | --- |
-| **The matchup** | his overall against the opponent's strength |
-| **Form** | a roll, so a good player can still have a bad Friday |
-| **The booster** | a 2.5x sticker is worth about 2.5x the production |
-| **The venue** | a little at home, a little against him away |
+Each holds the whole season — who each of them plays, when, and what they did
+in it. There is no separate schedule file: a game and what happened in it are
+the same thing, so they live on the same line.
 
-A game is **played out rather than summarised**: every carry, every target
-and every drop-back gets its own number, and the line is what those numbers
-add up to. That is what keeps a line honest with itself — a back cannot have
-a 60-yard long in a 40-yard game, because the long *is* the biggest carry in
-the list that made 40. The averages are worked out from the two numbers
-beside them, never rolled.
+```js
+{ week:  2, date: '2018-08-25', kickoff: '7:00pm',
+  opponent: 'Del Norte', home: true, conference: false, scouts: true,
+  result: { teamScore: 28, opponentScore: 14 },
+  booster: 'boost-2-5',
+  stats: { carries: 18, rushingYards: 132, rushingTd: 2, ... } },
+```
 
-**Opponent strength** is on the same 1–99 scale the players are. A game can
-carry its own `strength` in `data/schedule.js` and that always wins; put a
-real number on a real opponent and the model stops guessing. Without one, the
-strength is derived from the opponent's name — arbitrary, but it never moves,
-so Torrey Pines is the same side in March as it was in August. Conference
-opponents get a few points on top.
+`result` and `stats` are null until a game has been played. Nothing generates
+them — the numbers come from wherever you generate them and are typed in, by
+hand or through the season editor. `booster` is the performance booster that
+was riding on the game, and once a week is out that is where it lives for
+good, so the row behind it can be cleared out of Supabase.
 
-**Two of them play each other** — Paxon at Bloomington and Sam at Normal
-Community, week 3 — and when they do, one scoreboard serves both: each keeps
-the points his own night produced and takes the other's as the points
-against.
+A new season is a new file and one more `<script>` tag in `index.html`. The
+bot finds them on its own.
 
-Everything runs off a seeded generator keyed to the season, the week and the
-player, so **the same seed always gives the same game**. Each published result
-carries the seed it came from, which is what makes a roll reviewable rather
-than magic.
+### Nothing is out until you say so
+
+A season file can hold every result of the year and the site will still show
+none of them. A week becomes real when you publish it, which is a row in
+Supabase rather than anything in the repository. So the numbers can sit in git
+for as long as it takes, and a booster somebody used after the file was
+written can still be put right first.
+
+`EGE.isFinal` is what everything reads, and it answers no until the week is
+published — which keeps the schedule, the record, the game log, the touchdown
+credits and the Discord bot from ever getting ahead of you. The season editor
+reads `EGE.hasResult` instead, because it has to show you what has not gone
+out yet.
+
+### Publishing
+
+**Weeks**, on the admin page, is a row per week: how many games it holds, how
+many have numbers in the file, whether Discord has had it, and a button.
+
+**Publish** does all of it on the one click:
+
+- the scores and stat lines appear on the player pages
+- the records move
+- everybody is paid their touchdown credits, and the credits show on the
+  schedule row that earned them
+- the week goes to Discord, with a link back to the site
+
+**Pull back** takes a week off the site again, one click, no confirmation,
+as often as you like — testing this means publishing and unpublishing the
+same week over and over. Credits already paid stay paid: an award is a ledger
+entry, not a view of the schedule, so publishing again pays nothing twice.
+
+**Post again** re-sends the Discord message without changing anything.
+
+### How the Discord post gets sent
+
+The site is static and public, so it cannot keep a secret: a webhook URL in
+browser code is a webhook anybody who views source can post to. The URL lives
+in a Supabase edge function instead, and the browser hands it a built payload.
+The function checks the caller is an admin against the same `admins` table the
+rest of the site trusts.
+
+```
+supabase secrets set DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/...'
+supabase functions deploy post-week
+```
+
+If it is not deployed nothing breaks. The week still goes out, and the
+scheduled bot posts it on its next run — it asks Supabase which weeks are
+published but unposted, sends them, and marks them. That is the bot's whole
+job now: a backstop, four times a day. It needs `SUPABASE_URL` and
+`SUPABASE_SERVICE_ROLE_KEY` in the repository's Actions secrets. That key is
+server-side and never goes near the browser.
+
+### The season editor
+
+**Season File**, under the week list, is every game in a week as the file has
+it: the score, the booster, and every number that position's line is typed
+from. The averages, the totals and the passer rating are not there — they
+follow from the rest and are worked out when the file is written, so a line
+can never disagree with itself.
+
+Edit as many weeks as you like; they are all held until you download. **Pull
+in the stickers players applied** takes whatever is on that week in Supabase
+and writes it into the file, so it can be committed and the rows behind it
+cleared.
+
+Downloading writes `stats/{year}.js` back out — the same fixtures, your
+changes on top, every other week exactly as it was read. Commit it and the
+numbers are live, for the weeks you have published.
 
 ### The stat lines
 
-The columns each position is read in, defined once in `data/statgen.js` and
-used by the player page's game log, the admin preview and the Discord post —
-so there is never a version of a quarterback's line that disagrees with
-another version of it.
+Defined once in `data/statline.js` and read by the player page, the season
+editor and the Discord post, so there is never a version of a quarterback's
+line that disagrees with another version of it.
 
 **Quarterback** — C/ATT, PYDS, PAVG *(PYDS/C)*, PYAC, PTD, INT, RTG, CAR,
 RUYDS, RUAVG, RUTD, LNG, SACK, FL
@@ -529,40 +621,20 @@ YAC, RETD, LNG, TGT, FL
 TGT, CAR, RUYDS, RUAVG, RUTD, LNG, FL
 
 A season totals up the way each column is meant to: summed down the column, a
-long is the longest, and a passer rating is worked out again from the
-season's numbers. Averaging a column of averages is how a stat page ends up
-lying.
+long is the longest, and a passer rating is worked out again from the season's
+numbers. Averaging a column of averages is how a stat page ends up lying.
 
-### Rolling and publishing
+### On the player page
 
-On the admin page: pick a week, **Roll the week**, and read the five lines it
-gives back. Roll the whole week again, or roll one player whose game does not
-look right — a head-to-head takes its rival with it, because one scoreboard
-has to serve both. Nothing is real until **Publish the week**, which hands
-over a `data/results.js` carrying every week published so far, not just this
-one, so a Friday's diff is that Friday.
+A **season switcher** in the schedule head, once there is more than one season
+to switch between. Every past season keeps its schedule, its stat lines, its
+record and the boosters that were on its games.
 
-Commit it and three things happen on their own:
+Every published week **opens** to show that game's line under the columns the
+position is read in. The week number is the handle.
 
-- the **schedule table** and the **game log** show the week
-- the **touchdown credits** land the next time each player opens the site
-- the **Discord bot** posts the results on its next scheduled run
-
-`data/results.js` is laid over `data/schedule.js` when it loads, so everything
-that already reads a game picks the results up without knowing the file
-exists. The fixtures stay hand-written and untouched.
-
-### What the bot posts, and when
-
-A week goes out **twice**: the fixtures when it comes round, and the results
-once they are published — `## Week 4` and then `## Week 4 — Results`. The bot
-tracks the two separately, so publishing a week that was already previewed
-still gets posted. A week played before its fixtures ever went out is posted
-once, as results.
-
-Each embed carries the headline in Discord's three columns and the full stat
-line underneath as an aligned block, so nothing is lost and it still reads on
-a phone.
+A **credits marker** on the row says what the game paid — visible to the
+player and to an admin, nobody else, the same rule the boosters follow.
 
 ---
 
@@ -618,6 +690,19 @@ message rather than handing over half a file.
 
 ---
 
+## The overall, and where it came from
+
+The numbers in `data/ratings.js` are where a season started. What a player has
+bought since shows beside his overall on his own page as an arrow — **▲ +3** —
+with the number he started at in the tooltip.
+
+At the end of a season the admin locks the ratings: everything bought is
+folded into the base numbers, the file is committed, and the rows behind it
+are cleared. Credits and unused performance boosters carry over; rating points
+and Intel do not, because they have become the ratings themselves.
+
+---
+
 ## Player Portal (login)
 
 Each of the six gets an account and a private portal.
@@ -666,12 +751,13 @@ Built so far:
   admin's reach across every account.
 - `data/ratings.js` — the attribute list, the per-position weights, every
   player's ratings, and the maths that turns them into an overall.
-- `data/schedule.js` — the regular season: every player's fixtures, and
-  results and stat lines once games are played.
+
 - `bot/` — the Discord scores bot (see below).
 - `supabase/schema.sql` — every table and policy: accounts, credits,
-  inventory, admins, the stickers stuck on games, and the credit awards a
-  season pays out. Run it in the Supabase SQL editor; it is safe to run
+  inventory, admins, the stickers stuck on games, the credit awards a season
+  pays out, and which weeks are published.
+- `supabase/functions/post-week/` — the edge function that holds the Discord
+  webhook URL, so the browser never has to. Run it in the Supabase SQL editor; it is safe to run
   again, and it must be re-run after pulling a change that adds a table.
 - `js/supabase-config.js` — your Supabase URL and anon key. Blank by default.
 - `data/shop.js` — the shop catalogue: credit earnings and everything on sale.
@@ -681,11 +767,15 @@ Built so far:
 - `data/season.js` — which season is live, and which seasons have had their
   ratings locked. Small on purpose: the admin portal rewrites this whole file
   when a season is rolled over.
-- `data/statgen.js` — the stat generator: what a stat line is, and the model
-  that plays a fixture out into one. Seeded, so a roll can always be run
-  again.
-- `data/results.js` — every week published so far, laid over the fixtures
-  when it loads. Written by the admin portal, a week at a time.
+- `stats/{year}.js` — one per season: every fixture, and the score, stat line
+  and booster for each once it has been played. Nothing else holds a schedule.
+- `data/games.js` — how everything else gets at those games, and the one place
+  that decides what "played" means.
+- `data/statline.js` — what a stat line is: the columns each position is read
+  in, and how a season of them adds up.
+- `js/discord-post.js` — one week as a Discord message. Loaded by the browser
+  so the publish button can build it, and by the bot so a scheduled run builds
+  exactly the same thing.
 - `js/exports.js` — builds the files a season leaves behind:
   a published week, the locked ratings, the season log, and the season
   pointer. Reads Supabase, writes nothing.
@@ -768,10 +858,10 @@ One thing at a time, in this order:
 5. **Schedule data + display** — 2018 junior-year high school schedules per
    school, rendered with results and running record. Later seasons follow the
    same shape once 2018 is working. ✅ The fixtures are in
-   `data/schedule.js`, the player page renders them, and the Discord bot
+   `stats/{year}.js`, the player page renders them, and the Discord bot
    posts them. Results fill the table's last column as games are played.
 6. **Stat lines** — a full game log per position. ✅ The columns are in
-   `data/statgen.js`, the player page renders them with season totals, and
+   `data/statline.js`, the player page renders them with season totals, and
    the bot posts the same line. Weeks are rolled and published from the admin
    page — see [Playing a Week](#playing-a-week).
 7. **Login + portal** — Supabase auth, accounts, attributes, overalls.
@@ -783,9 +873,9 @@ One thing at a time, in this order:
 9. **Season automation** — credits that earn themselves as results are posted,
    and a season that can be ended, locked into the repository and rolled over
    from the admin portal. ✅ `js/exports.js`, `data/season.js`, `#admin`.
-10. **Playing the season** — a week rolled from the ratings, the matchup and
-    the boosters, published to the repository, and posted to Discord. ✅
-    `data/statgen.js`, `data/results.js`.
+10. **Playing the season** — a hardcoded file per season, published a week at
+    a time from the admin page, with the Discord post on the same click. ✅
+    `stats/{year}.js`, `data/games.js`, `js/discord-post.js`.
 11. **Extra interactive layer** — scope defined once the above is working.
 
 ---
