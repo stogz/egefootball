@@ -1,16 +1,20 @@
 /* ==========================================================================
-   EGE Football — schedules and results
-   The regular season, one entry per player per week. A week a player did not
-   play — a bye, or a game they missed — is `{ week, bye: true }`, and
-   anything reading this file should skip it rather than render a blank.
+   EGE Football — schedules
+   The regular season, one entry per game. Weeks run Thursday to Wednesday
+   from 16 August 2018, so a midweek game belongs to the week that has just
+   finished rather than the one about to start.
 
-   Stat keys follow the player's position: a quarterback carries completions
-   and passing yards, a back carries carries and rushing yards, a tight end
-   carries receptions and receiving yards.
+   A week a player has no entry for is a week they do not play — a bye, an
+   open date, a season that started later than someone else's. Anything
+   reading this file should skip that player for that week rather than
+   render a blank.
 
-   Placeholders, like the ratings: opponents, scores and stat lines are
-   generated. Isaac Vitel has no schedule at all yet because his school is
-   still TBD, which is the same thing as having no games to post.
+   `conference: true` marks the games listed with an asterisk.
+
+   No results yet: this is the schedule as it stands before the season. A
+   game gains a `result: { teamScore, opponentScore }` and a `stats` object
+   once it has been played, and everything reading this file already handles
+   both states.
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -19,321 +23,110 @@ window.EGE = window.EGE || {};
 EGE.schedule = {
   2018: {
     'andrew-parr': [
-      {
-        week: 1, date: '2018-08-08', opponent: 'Heritage', home: true,
-        teamScore: 16, opponentScore: 39,
-        stats: { receptions: 7, targets: 7, receivingYards: 79,
-          receivingTd: 0 }
-      },
-      {
-        week: 2, date: '2018-08-15', opponent: 'Millbrook', home: true,
-        teamScore: 10, opponentScore: 8,
-        stats: { receptions: 6, targets: 7, receivingYards: 40,
-          receivingTd: 1 }
-      },
-      {
-        week: 3, date: '2018-08-22', opponent: 'Rolesville', home: true,
-        teamScore: 31, opponentScore: 20,
-        stats: { receptions: 1, targets: 2, receivingYards: 15,
-          receivingTd: 1 }
-      },
-      {
-        week: 4, date: '2018-09-01', opponent: 'Leesville Road', home: false,
-        teamScore: 20, opponentScore: 9,
-        stats: { receptions: 7, targets: 8, receivingYards: 74,
-          receivingTd: 0 }
-      },
-      {
-        week: 5, date: '2018-09-08', opponent: 'Green Hope', home: true,
-        teamScore: 37, opponentScore: 24,
-        stats: { receptions: 3, targets: 5, receivingYards: 21,
-          receivingTd: 2 }
-      },
-      { week: 6, bye: true },
-      {
-        week: 7, date: '2018-09-22', opponent: 'Cardinal Gibbons', home: false,
-        teamScore: 11, opponentScore: 16,
-        stats: { receptions: 3, targets: 6, receivingYards: 51,
-          receivingTd: 2 }
-      },
-      {
-        week: 8, date: '2018-09-01', opponent: 'Broughton', home: true,
-        teamScore: 43, opponentScore: 40,
-        stats: { receptions: 6, targets: 9, receivingYards: 97,
-          receivingTd: 1 }
-      },
-      {
-        week: 9, date: '2018-10-08', opponent: 'Sanderson', home: false,
-        teamScore: 35, opponentScore: 41,
-        stats: { receptions: 7, targets: 7, receivingYards: 81,
-          receivingTd: 1 }
-      },
-      {
-        week: 10, date: '2018-10-15', opponent: 'Knightdale', home: false,
-        teamScore: 39, opponentScore: 25,
-        stats: { receptions: 2, targets: 5, receivingYards: 21,
-          receivingTd: 0 }
-      },
-      {
-        week: 11, date: '2018-10-22', opponent: 'Wakefield', home: true,
-        teamScore: 12, opponentScore: 31,
-        stats: { receptions: 7, targets: 8, receivingYards: 102,
-          receivingTd: 1 }
-      },
+      { week:  1, date: '2018-08-18', kickoff: '7:00pm',
+        opponent: 'Millbrook', home: true, conference: false },
+      { week:  2, date: '2018-08-25', kickoff: '7:30pm',
+        opponent: 'Richmond Senior', home: false, conference: false },
+      { week:  3, date: '2018-09-04', kickoff: '6:00pm',
+        opponent: 'Middle Creek', home: true, conference: false },
+      { week:  4, date: '2018-09-08', kickoff: '7:00pm',
+        opponent: 'Leesville Road', home: false, conference: false },
+      { week:  5, date: '2018-09-15', kickoff: '7:00pm',
+        opponent: 'Southern Nash', home: false, conference: false },
+      { week:  6, date: '2018-09-22', kickoff: '7:00pm',
+        opponent: 'Franklinton', home: true, conference: false },
+      { week:  8, date: '2018-10-06', kickoff: '7:00pm',
+        opponent: 'Knightdale', home: true, conference: true },
+      { week:  9, date: '2018-10-13', kickoff: '7:00pm',
+        opponent: 'Corinth Holders', home: false, conference: true },
+      { week: 10, date: '2018-10-20', kickoff: '7:00pm',
+        opponent: 'Rolesville', home: true, conference: true },
+      { week: 11, date: '2018-10-27', kickoff: '7:00pm',
+        opponent: 'Wakefield', home: false, conference: true },
+      { week: 12, date: '2018-11-03', kickoff: '7:00pm',
+        opponent: 'Heritage', home: true, conference: true },
     ],
     'cooper-clark': [
-      {
-        week: 1, date: '2018-08-08', opponent: 'La Costa Canyon', home: true,
-        teamScore: 32, opponentScore: 14,
-        stats: { carries: 19, rushingYards: 42, rushingTd: 0, receptions: 3,
-          receivingYards: 36 }
-      },
-      {
-        week: 2, date: '2018-08-15', opponent: 'Torrey Pines', home: false,
-        teamScore: 42, opponentScore: 20,
-        stats: { carries: 15, rushingYards: 40, rushingTd: 1, receptions: 1,
-          receivingYards: 48 }
-      },
-      {
-        week: 3, date: '2018-08-22', opponent: 'San Marcos', home: true,
-        teamScore: 45, opponentScore: 16,
-        stats: { carries: 18, rushingYards: 143, rushingTd: 3, receptions: 0,
-          receivingYards: 3 }
-      },
-      { week: 4, bye: true },
-      {
-        week: 5, date: '2018-09-08', opponent: 'Vista', home: true,
-        teamScore: 43, opponentScore: 41,
-        stats: { carries: 20, rushingYards: 56, rushingTd: 2, receptions: 3,
-          receivingYards: 32 }
-      },
-      {
-        week: 6, date: '2018-09-15', opponent: 'Oceanside', home: false,
-        teamScore: 26, opponentScore: 39,
-        stats: { carries: 9, rushingYards: 61, rushingTd: 0, receptions: 1,
-          receivingYards: 57 }
-      },
-      {
-        week: 7, date: '2018-09-22', opponent: 'El Camino', home: false,
-        teamScore: 7, opponentScore: 25,
-        stats: { carries: 19, rushingYards: 113, rushingTd: 3, receptions: 3,
-          receivingYards: 45 }
-      },
-      {
-        week: 8, date: '2018-09-01', opponent: 'Rancho Buena Vista', home: true,
-        teamScore: 25, opponentScore: 17,
-        stats: { carries: 10, rushingYards: 69, rushingTd: 1, receptions: 4,
-          receivingYards: 49 }
-      },
-      {
-        week: 9, date: '2018-10-08', opponent: 'Mission Hills', home: true,
-        teamScore: 24, opponentScore: 6,
-        stats: { carries: 20, rushingYards: 131, rushingTd: 1, receptions: 2,
-          receivingYards: 15 }
-      },
-      {
-        week: 10, date: '2018-10-15', opponent: 'Poway', home: false,
-        teamScore: 45, opponentScore: 28,
-        stats: { carries: 17, rushingYards: 61, rushingTd: 3, receptions: 2,
-          receivingYards: 29 }
-      },
-      {
-        week: 11, date: '2018-10-22', opponent: 'Escondido', home: false,
-        teamScore: 38, opponentScore: 30,
-        stats: { carries: 13, rushingYards: 83, rushingTd: 2, receptions: 5,
-          receivingYards: 11 }
-      },
+      { week:  2, date: '2018-08-25', kickoff: '7:00pm',
+        opponent: 'Del Norte', home: true, conference: false },
+      { week:  3, date: '2018-09-01', kickoff: '7:00pm',
+        opponent: 'St. Augustine', home: false, conference: false },
+      { week:  4, date: '2018-09-08', kickoff: '7:00pm',
+        opponent: 'Sweetwater', home: false, conference: false },
+      { week:  5, date: '2018-09-15', kickoff: '7:00pm',
+        opponent: 'Mission Hills', home: true, conference: true },
+      { week:  6, date: '2018-09-22', kickoff: '7:00pm',
+        opponent: 'La Costa Canyon', home: false, conference: true },
+      { week:  8, date: '2018-10-06', kickoff: '7:00pm',
+        opponent: 'Oceanside', home: false, conference: true },
+      { week:  9, date: '2018-10-13', kickoff: '7:00pm',
+        opponent: 'San Marcos', home: true, conference: true },
+      { week: 10, date: '2018-10-20', kickoff: '7:00pm',
+        opponent: 'Torrey Pines', home: true, conference: true },
+      { week: 11, date: '2018-10-27', kickoff: '7:00pm',
+        opponent: 'El Camino', home: false, conference: true },
+      { week: 12, date: '2018-11-03', kickoff: '7:00pm',
+        opponent: 'Vista', home: true, conference: false },
     ],
     'paxon-hatch': [
-      {
-        week: 1, date: '2018-08-08', opponent: 'Normal West', home: true,
-        teamScore: 18, opponentScore: 15,
-        stats: { receptions: 4, targets: 6, receivingYards: 51,
-          receivingTd: 1 }
-      },
-      {
-        week: 2, date: '2018-08-15', opponent: 'Peoria Notre Dame', home: false,
-        teamScore: 40, opponentScore: 20,
-        stats: { receptions: 4, targets: 7, receivingYards: 22,
-          receivingTd: 1 }
-      },
-      {
-        week: 3, date: '2018-08-22', opponent: 'Danville', home: false,
-        teamScore: 15, opponentScore: 23,
-        stats: { receptions: 5, targets: 8, receivingYards: 35,
-          receivingTd: 0 }
-      },
-      {
-        week: 4, date: '2018-09-01', opponent: 'Champaign Central', home: true,
-        teamScore: 7, opponentScore: 32,
-        stats: { receptions: 3, targets: 7, receivingYards: 17,
-          receivingTd: 2 }
-      },
-      {
-        week: 5, date: '2018-09-08', opponent: 'Urbana', home: false,
-        teamScore: 41, opponentScore: 7,
-        stats: { receptions: 3, targets: 7, receivingYards: 20,
-          receivingTd: 2 }
-      },
-      {
-        week: 6, date: '2018-09-15', opponent: 'Mattoon', home: false,
-        teamScore: 41, opponentScore: 21,
-        stats: { receptions: 7, targets: 11, receivingYards: 73,
-          receivingTd: 1 }
-      },
-      { week: 7, bye: true },
-      {
-        week: 8, date: '2018-09-01', opponent: 'Charleston', home: true,
-        teamScore: 23, opponentScore: 18,
-        stats: { receptions: 2, targets: 3, receivingYards: 21,
-          receivingTd: 0 }
-      },
-      {
-        week: 9, date: '2018-10-08', opponent: 'Lincoln', home: false,
-        teamScore: 32, opponentScore: 21,
-        stats: { receptions: 2, targets: 4, receivingYards: 22,
-          receivingTd: 2 }
-      },
-      {
-        week: 10, date: '2018-10-15', opponent: 'Springfield', home: false,
-        teamScore: 41, opponentScore: 8,
-        stats: { receptions: 9, targets: 9, receivingYards: 162,
-          receivingTd: 1 }
-      },
-      {
-        week: 11, date: '2018-10-22', opponent: 'Decatur MacArthur', home: false,
-        teamScore: 17, opponentScore: 13,
-        stats: { receptions: 3, targets: 4, receivingYards: 49,
-          receivingTd: 0 }
-      },
+      { week:  2, date: '2018-08-25', kickoff: '7:00pm',
+        opponent: 'Manual', home: true, conference: true },
+      { week:  3, date: '2018-09-01', kickoff: '7:00pm',
+        opponent: 'Normal Community', home: false, conference: true },
+      { week:  4, date: '2018-09-08', kickoff: '7:00pm',
+        opponent: 'Champaign Central', home: true, conference: true },
+      { week:  5, date: '2018-09-15', kickoff: '7:00pm',
+        opponent: 'Kankakee', home: true, conference: false },
+      { week:  6, date: '2018-09-22', kickoff: '7:30pm',
+        opponent: 'Peoria', home: false, conference: true },
+      { week:  7, date: '2018-09-29', kickoff: '7:00pm',
+        opponent: 'Normal West', home: true, conference: true },
+      { week:  8, date: '2018-10-06', kickoff: '7:00pm',
+        opponent: 'Richwoods', home: false, conference: true },
+      { week:  9, date: '2018-10-13', kickoff: '7:00pm',
+        opponent: 'Urbana', home: true, conference: true },
+      { week: 10, date: '2018-10-20', kickoff: '7:00pm',
+        opponent: 'Danville', home: false, conference: true },
     ],
-    'isaac-vitel': [
-    ],
+    /* No school yet, so no schedule yet. */
+    'isaac-vitel': [],
     'sam-stogsdill': [
-      {
-        week: 1, date: '2018-08-08', opponent: 'Bloomington', home: false,
-        teamScore: 31, opponentScore: 16,
-        stats: { carries: 9, rushingYards: 23, rushingTd: 2, receptions: 2,
-          receivingYards: 50 }
-      },
-      {
-        week: 2, date: '2018-08-15', opponent: 'Normal West', home: false,
-        teamScore: 13, opponentScore: 22,
-        stats: { carries: 20, rushingYards: 107, rushingTd: 2, receptions: 0,
-          receivingYards: 11 }
-      },
-      {
-        week: 3, date: '2018-08-22', opponent: 'Peoria', home: true,
-        teamScore: 8, opponentScore: 13,
-        stats: { carries: 25, rushingYards: 178, rushingTd: 3, receptions: 4,
-          receivingYards: 6 }
-      },
-      {
-        week: 4, date: '2018-09-01', opponent: 'Dunlap', home: true,
-        teamScore: 34, opponentScore: 41,
-        stats: { carries: 20, rushingYards: 149, rushingTd: 3, receptions: 5,
-          receivingYards: 11 }
-      },
-      { week: 5, bye: true },
-      {
-        week: 6, date: '2018-09-15', opponent: 'Morton', home: true,
-        teamScore: 9, opponentScore: 40,
-        stats: { carries: 20, rushingYards: 140, rushingTd: 1, receptions: 4,
-          receivingYards: 37 }
-      },
-      {
-        week: 7, date: '2018-09-22', opponent: 'Pekin', home: false,
-        teamScore: 35, opponentScore: 19,
-        stats: { carries: 17, rushingYards: 86, rushingTd: 3, receptions: 2,
-          receivingYards: 51 }
-      },
-      {
-        week: 8, date: '2018-09-01', opponent: 'Washington', home: false,
-        teamScore: 19, opponentScore: 42,
-        stats: { carries: 25, rushingYards: 150, rushingTd: 1, receptions: 5,
-          receivingYards: 27 }
-      },
-      {
-        week: 9, date: '2018-10-08', opponent: 'Metamora', home: true,
-        teamScore: 41, opponentScore: 42,
-        stats: { carries: 17, rushingYards: 55, rushingTd: 3, receptions: 0,
-          receivingYards: 38 }
-      },
-      {
-        week: 10, date: '2018-10-15', opponent: 'Canton', home: false,
-        teamScore: 14, opponentScore: 11,
-        stats: { carries: 12, rushingYards: 80, rushingTd: 3, receptions: 1,
-          receivingYards: 25 }
-      },
-      {
-        week: 11, date: '2018-10-22', opponent: 'Limestone', home: false,
-        teamScore: 28, opponentScore: 15,
-        stats: { carries: 26, rushingYards: 190, rushingTd: 0, receptions: 1,
-          receivingYards: 3 }
-      },
+      { week:  2, date: '2018-08-25', kickoff: '7:00pm',
+        opponent: 'Urbana', home: false, conference: true },
+      { week:  3, date: '2018-09-01', kickoff: '7:00pm',
+        opponent: 'Bloomington', home: true, conference: true },
+      { week:  4, date: '2018-09-08', kickoff: '7:00pm',
+        opponent: 'Peoria Notre Dame', home: false, conference: true },
+      { week:  5, date: '2018-09-15', kickoff: '7:00pm',
+        opponent: 'Normal West', home: false, conference: true },
+      { week:  6, date: '2018-09-22', kickoff: '7:00pm',
+        opponent: 'Richwoods', home: true, conference: true },
+      { week:  7, date: '2018-09-29', kickoff: '7:00pm',
+        opponent: 'Bradley-Bourbonnais', home: true, conference: false },
+      { week:  8, date: '2018-10-06', kickoff: '7:00pm',
+        opponent: 'Centennial', home: true, conference: true },
+      { week:  9, date: '2018-10-13', kickoff: '7:00pm',
+        opponent: 'Danville', home: true, conference: true },
+      { week: 10, date: '2018-10-20', kickoff: '7:00pm',
+        opponent: 'Champaign Central', home: false, conference: true },
     ],
     'jaykeb-stewart': [
-      {
-        week: 1, date: '2018-08-08', opponent: 'Golden Gate', home: true,
-        teamScore: 43, opponentScore: 26,
-        stats: { completions: 12, attempts: 28, passingYards: 228,
-          passingTd: 3, interceptions: 0, rushingYards: 18, rushingTd: 1 }
-      },
-      {
-        week: 2, date: '2018-08-15', opponent: 'Palmetto Ridge', home: false,
-        teamScore: 33, opponentScore: 27,
-        stats: { completions: 12, attempts: 25, passingYards: 262,
-          passingTd: 2, interceptions: 2, rushingYards: 41, rushingTd: 0 }
-      },
-      { week: 3, bye: true },
-      {
-        week: 4, date: '2018-09-01', opponent: 'Gulf Coast', home: false,
-        teamScore: 29, opponentScore: 16,
-        stats: { completions: 23, attempts: 32, passingYards: 206,
-          passingTd: 0, interceptions: 1, rushingYards: 1, rushingTd: 0 }
-      },
-      {
-        week: 5, date: '2018-09-08', opponent: 'Barron Collier', home: true,
-        teamScore: 24, opponentScore: 10,
-        stats: { completions: 15, attempts: 20, passingYards: 164,
-          passingTd: 0, interceptions: 0, rushingYards: 34, rushingTd: 1 }
-      },
-      {
-        week: 6, date: '2018-09-15', opponent: 'Lely', home: false,
-        teamScore: 41, opponentScore: 32,
-        stats: { completions: 13, attempts: 26, passingYards: 212,
-          passingTd: 2, interceptions: 1, rushingYards: 41, rushingTd: 0 }
-      },
-      {
-        week: 7, date: '2018-09-22', opponent: 'Immokalee', home: false,
-        teamScore: 41, opponentScore: 15,
-        stats: { completions: 20, attempts: 30, passingYards: 185,
-          passingTd: 0, interceptions: 2, rushingYards: 19, rushingTd: 0 }
-      },
-      {
-        week: 8, date: '2018-09-01', opponent: 'Estero', home: false,
-        teamScore: 26, opponentScore: 17,
-        stats: { completions: 14, attempts: 21, passingYards: 283,
-          passingTd: 4, interceptions: 1, rushingYards: 23, rushingTd: 1 }
-      },
-      {
-        week: 9, date: '2018-10-08', opponent: 'Riverdale', home: true,
-        teamScore: 31, opponentScore: 38,
-        stats: { completions: 15, attempts: 27, passingYards: 252,
-          passingTd: 0, interceptions: 2, rushingYards: 34, rushingTd: 0 }
-      },
-      {
-        week: 10, date: '2018-10-15', opponent: 'Bonita Springs', home: true,
-        teamScore: 9, opponentScore: 42,
-        stats: { completions: 11, attempts: 26, passingYards: 205,
-          passingTd: 0, interceptions: 2, rushingYards: 10, rushingTd: 0 }
-      },
-      {
-        week: 11, date: '2018-10-22', opponent: 'Dunbar', home: false,
-        teamScore: 35, opponentScore: 12,
-        stats: { completions: 13, attempts: 25, passingYards: 271,
-          passingTd: 0, interceptions: 0, rushingYards: 61, rushingTd: 1 }
-      },
+      { week:  2, date: '2018-08-25', kickoff: '7:30pm',
+        opponent: 'Edison', home: true, conference: false },
+      { week:  3, date: '2018-09-01', kickoff: '7:30pm',
+        opponent: 'Palmetto', home: true, conference: false },
+      { week:  7, date: '2018-09-28', kickoff: '7:30pm',
+        opponent: 'Palmetto Ridge', home: true, conference: true },
+      { week:  8, date: '2018-10-06', kickoff: '7:30pm',
+        opponent: 'Lely', home: true, conference: false },
+      { week:  9, date: '2018-10-13', kickoff: '7:00pm',
+        opponent: 'Golden Gate', home: false, conference: true },
+      { week: 10, date: '2018-10-20', kickoff: '7:30pm',
+        opponent: 'South Fort Myers', home: false, conference: false },
+      { week: 11, date: '2018-10-27', kickoff: '7:00pm',
+        opponent: 'Barron Collier', home: false, conference: true },
+      { week: 12, date: '2018-11-03', kickoff: '7:30pm',
+        opponent: 'Piper', home: true, conference: false },
     ],
   }
 };
@@ -346,14 +139,20 @@ EGE.gamesFor = function (player, season) {
   return (player && bySlug[player.slug]) || [];
 };
 
-/* The games actually played, in week order — byes and missed weeks dropped. */
+/* A game is final once it has a result. Until then it is a fixture. */
+EGE.isFinal = function (game) {
+  return Boolean(game && game.result &&
+    typeof game.result.teamScore === 'number' &&
+    typeof game.result.opponentScore === 'number');
+};
+
 EGE.gamesPlayed = function (player, season) {
-  return EGE.gamesFor(player, season).filter(function (game) { return !game.bye; });
+  return EGE.gamesFor(player, season).filter(EGE.isFinal);
 };
 
 EGE.gameInWeek = function (player, week, season) {
   return EGE.gamesFor(player, season).filter(function (game) {
-    return game.week === week && !game.bye;
+    return game.week === week;
   })[0] || null;
 };
 
@@ -372,7 +171,7 @@ EGE.recordFor = function (player, season) {
   var wins = 0;
   var losses = 0;
   EGE.gamesPlayed(player, season).forEach(function (game) {
-    if (game.teamScore > game.opponentScore) { wins += 1; } else { losses += 1; }
+    if (game.result.teamScore > game.result.opponentScore) { wins += 1; } else { losses += 1; }
   });
   return { wins: wins, losses: losses, text: wins + '-' + losses };
 };

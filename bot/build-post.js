@@ -2,16 +2,32 @@
    Turns one week of the season into a Discord message.
 
    ## Week {n}
-   {embed per player who actually played}
+   {embed per player with a game that week}
 
-   A player on a bye, a player who did not play, and a player with no
+   A game that has been played shows the result, the final score and the
+   player's stat line. A game that has not shows the matchup and the
+   kickoff. A player on a bye, one with no game that week, and one with no
    schedule at all are simply left out.
    ========================================================================== */
 
 'use strict';
 
-const COLOR_WIN  = 0x41713c;   /* the site's grass green */
-const COLOR_LOSS = 0xa64412;   /* the site's deep accent */
+const COLOR_WIN      = 0x41713c;   /* the site's grass green */
+const COLOR_LOSS     = 0xa64412;   /* the site's deep accent */
+const COLOR_UPCOMING = 0xf0b82a;   /* the site's gold, for a game not yet played */
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/* Dates are plain calendar days, so read them as such rather than letting
+   the runtime's time zone move them. */
+function kickoffLabel(game) {
+  const parts = String(game.date).split('-').map(Number);
+  const when = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+  const day = WEEKDAYS[when.getUTCDay()] + ' ' + MONTHS[when.getUTCMonth()] + ' ' + when.getUTCDate();
+  return game.kickoff ? day + ', ' + game.kickoff : day;
+}
 
 /* Absolute URLs — Discord will not load anything relative. */
 function asset(siteUrl, relativePath) {
@@ -65,36 +81,52 @@ function statFields(player, stats) {
   return fields;
 }
 
-/* Record through the given week, so the embed says where the season stands. */
+/* Record through the given week, so the embed says where the season stands.
+   Null while nothing has been played, rather than a meaningless 0-0. */
 function recordThrough(EGE, player, week, season) {
   let wins = 0;
   let losses = 0;
+  let counted = 0;
   EGE.gamesPlayed(player, season).forEach(function (game) {
     if (game.week > week) { return; }
-    if (game.teamScore > game.opponentScore) { wins += 1; } else { losses += 1; }
+    counted += 1;
+    if (game.result.teamScore > game.result.opponentScore) { wins += 1; } else { losses += 1; }
   });
-  return wins + '-' + losses;
+  return counted ? wins + '-' + losses : null;
 }
 
 function buildEmbed(EGE, player, game, options) {
   const siteUrl = options.siteUrl;
   const season = options.season;
   const team = EGE.teamFor(player);
-  const won = game.teamScore > game.opponentScore;
   const opponent = opponentTeam(EGE, game.opponent);
+  const played = EGE.isFinal(game);
+  const won = played && game.result.teamScore > game.result.opponentScore;
+  const matchup = (game.home ? 'vs ' : 'at ') + game.opponent;
 
   const embed = {
-    color: won ? COLOR_WIN : COLOR_LOSS,
+    color: played ? (won ? COLOR_WIN : COLOR_LOSS) : COLOR_UPCOMING,
     author: {
       name: player.name,
       url: playerUrl(siteUrl, player),
       icon_url: asset(siteUrl, player.headshot)
     },
-    title: (won ? 'W ' : 'L ') + game.teamScore + '–' + game.opponentScore +
-           (game.home ? ' vs ' : ' at ') + game.opponent,
+    title: played
+      ? (won ? 'W ' : 'L ') + game.result.teamScore + '\u2013' + game.result.opponentScore + ' ' + matchup
+      : matchup,
     url: playerUrl(siteUrl, player),
-    fields: statFields(player, game.stats)
+    fields: []
   };
+
+  if (played) {
+    embed.fields = statFields(player, game.stats);
+  } else {
+    embed.fields.push({ name: 'Kickoff', value: kickoffLabel(game), inline: true });
+    embed.fields.push({ name: 'Where', value: game.home ? 'Home' : 'Away', inline: true });
+    if (game.conference) {
+      embed.fields.push({ name: 'Conference', value: 'Yes', inline: true });
+    }
+  }
 
   /* The player's own mark leads; the opponent's sits in the footer when we
      have one, which is as close to both crests as an embed allows. */
@@ -102,15 +134,16 @@ function buildEmbed(EGE, player, game, options) {
 
   const footerBits = [team ? team.school : 'School TBD'];
   if (team && team.league) { footerBits.push(team.league); }
-  footerBits.push(season + ' · ' + recordThrough(EGE, player, game.week, season));
+  const record = recordThrough(EGE, player, game.week, season);
+  footerBits.push(record ? season + ' \u00b7 ' + record : String(season));
 
-  embed.footer = { text: footerBits.join(' · ') };
+  embed.footer = { text: footerBits.join(' \u00b7 ') };
   if (opponent && opponent.logo) { embed.footer.icon_url = asset(siteUrl, opponent.logo); }
 
   return embed;
 }
 
-/* Every player who actually took the field in this week. */
+/* Every player with a game this week. */
 function gamesInWeek(EGE, week, season) {
   return EGE.players
     .map(function (player) {
@@ -120,12 +153,12 @@ function gamesInWeek(EGE, week, season) {
 }
 
 function buildWeekPost(EGE, week, options) {
-  const played = gamesInWeek(EGE, week, options.season);
-  if (!played.length) { return null; }
+  const playing = gamesInWeek(EGE, week, options.season);
+  if (!playing.length) { return null; }
 
   return {
     content: '## Week ' + week,
-    embeds: played.map(function (entry) {
+    embeds: playing.map(function (entry) {
       return buildEmbed(EGE, entry.player, entry.game, options);
     }),
     allowed_mentions: { parse: [] }

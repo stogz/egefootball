@@ -161,13 +161,27 @@ four times a day, walking the season out slowly:
 ```
 
 Each embed carries the player as its author — name, headshot, and a link to
-their page on the site — the result and final score as the title, their stat
-line for that game in fields, their school's mark as the thumbnail, and the
-school, league and running record in the footer. Win and loss colour the
-embed's spine green or clay.
+their page on the site — their school's mark as the thumbnail, and the school
+and league in the footer. What sits between depends on whether the game has
+been played:
 
-A player on a bye, one who didn't play, or one with no schedule at all is
-left out of the post rather than shown empty.
+- **A fixture** shows the matchup, the kickoff, home or away, and whether it
+  is a conference game. Gold spine.
+- **A final** shows the result and score in the title, the player's stat line
+  in fields, and the record through that week in the footer. Green for a win,
+  clay for a loss.
+
+Nothing has been played yet, so every embed is currently a fixture. A game
+gains a `result` and `stats` in `data/schedule.js` and the same post starts
+reporting it.
+
+When our own schools meet — Bloomington at Normal Community in week 3 — the
+opponent's mark rides in the footer icon, which is as close to both crests as
+one embed allows. Other opponents have no mark in the repo, so the footer
+simply goes without.
+
+A player on a bye, one with no game that week, and one with no schedule at
+all are left out of the post rather than shown empty.
 
 **It reads the site's own data.** `bot/site-data.js` runs `data/players.js`,
 `data/ratings.js` and `data/schedule.js` in a sandbox, so the bot and the
@@ -249,8 +263,8 @@ Built so far:
 - `js/auth.js` — Supabase auth: sign in, the one-time password, session state.
 - `data/ratings.js` — the attribute list, the per-position weights, every
   player's ratings, and the maths that turns them into an overall.
-- `data/schedule.js` — the regular season: every player's games, results and
-  stat lines, with byes marked so they can be skipped.
+- `data/schedule.js` — the regular season: every player's fixtures, and
+  results and stat lines once games are played.
 - `bot/` — the Discord scores bot (see below).
 - `supabase/schema.sql` — the `player_accounts` table and its policies. Run it
   once in the Supabase SQL editor.
@@ -331,12 +345,13 @@ One thing at a time, in this order:
    log sections are not.*
 5. **Schedule data + display** — 2018 junior-year high school schedules per
    school, rendered with results and running record. Later seasons follow the
-   same shape once 2018 is working. *The data is in `data/schedule.js` and the
-   record shows on the player page; the schedule itself is not rendered yet.*
+   same shape once 2018 is working. *The real fixtures are in
+   `data/schedule.js` and the Discord bot posts them; the schedule is not
+   rendered on the player page yet.*
 6. **Stat lines** — TE game log for Paxon Hatch first, other position sets as
-   positions are confirmed. *Per-game stats exist in `data/schedule.js` and
-   the Discord bot posts them; the game log on the player page does not
-   render them yet.*
+   positions are confirmed. *The shape is in place — a game carries a `stats`
+   object once played, and the bot renders it per position — but no game has
+   been played yet.*
 7. **Login + portal** — Supabase auth, accounts, attributes, overalls.
    *Login is in: allowlisted emails, a password set once, and the signed-in
    player's headshot in the nav. The portal behind it — attributes and
@@ -353,7 +368,8 @@ One thing at a time, in this order:
 - College programs for all six — the ladder needs them from the 2020 season on.
 - A school for Vitel — with no school he has no schedule, so the bot never
   posts him.
-- Real opponents, scores and stat lines, in place of the generated schedule.
+- Results and stat lines, once games are played. The fixtures are real; every
+  game is still waiting on a `result`.
 - Real rating numbers, in place of the generated placeholders.
 - Sign-in emails for Parr, Vitel, and Stewart.
 - Whether workout and overall changes persist per browser (`localStorage`) or in
