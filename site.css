@@ -242,6 +242,30 @@ body {
   min-height: 1.2em;
 }
 
+/* --- credits in the nav ------------------------------------------------- */
+
+.ege-credits {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  flex: none;
+  padding: 6px 11px;
+  border: var(--fb-border-thin) solid var(--fb-gold);
+  color: var(--fb-gold);
+}
+.ege-credits__value {
+  font-family: var(--fb-font-display);
+  font-size: 18px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.ege-credits__unit {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
 /* --- signed-in avatar --------------------------------------------------- */
 
 /* The kit's reset squares every corner, so the round ones have to say so. */

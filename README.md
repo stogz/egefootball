@@ -230,14 +230,14 @@ the workflow will run and fail loudly rather than post anywhere.
 
 ## The Shop
 
-A tab next to Players, at `#shop`. Everything a player can spend an offseason's
-credits on, and everything that earns them. The catalogue lives in
-`data/shop.js`.
+A tab next to Players, at `#shop`, **visible only to a signed-in player**.
+Signed out, the tab isn't there and the page says to sign in. Signed in, the
+nav carries the player's credit balance beside their headshot. Everyone starts
+on 0 and earns from there. The catalogue lives in `data/shop.js`.
 
-**Allowance** is 100 credits an offseason, 200 over $5m AAV, 300 over $10m —
-the higher band replaces the lower one rather than stacking. **Earnings** add
-to it: 60 for a regular season, 10 to 70 by contract size, and 15 to 75 for
-how the season went. Anything unspent carries into the next offseason.
+**Allowance** is 60 credits every offseason, whatever a player is paid.
+**Earnings** add to it by contract size and by how the season went, 10 up to
+75. Anything unspent carries into the next offseason.
 
 On sale:
 
@@ -248,15 +248,16 @@ On sale:
 - **Offseason training** — strength or cardio at 45, each trading something
   away, or overall at 35 for a smaller gain with no cost.
 - **QB Connection** (30), **Hyperbaric Chamber** (50, then 65, then 85, then
-  20 more each time, NFL only), **Intel** (20).
+  20 more each time, NFL only), **Intel** (20, high school and college only).
 
 Each stat booster names the attribute in `data/ratings.js` it applies to, so
 buying one has somewhere to land once spending is built. Block Power is the
 one exception: the ratings carry run block power and pass block power
 separately, and which one it raises is still open.
 
-> Buying is not wired up yet — the shop is the catalogue, and spending needs
-> the portal to hold a credit balance per player.
+> Buying is not wired up yet — the shop is the catalogue. Balances live in
+> `data/players.js` at 0 apiece, so spending them needs somewhere to write
+> back to.
 
 ---
 
@@ -288,8 +289,9 @@ Each of the six gets an account and a private portal.
   resource, so choices have a cost.
 - **Interactive layer** — beyond workouts, the portal is meant to be something a
   player actually plays with between games. Scope TBD; workouts come first.
-- **Credits** — the shop lists what they buy and what earns them. The balance
-  itself has nowhere to live until the portal holds one.
+- **Credits** — 60 an offseason plus what a season earns, spent in the shop.
+  Every player starts on 0. The balance shows in the nav but has nowhere to be
+  written back to until the portal holds one.
 
 The read-only side of the site (schedules, records, stats) stays public — no
 login needed to browse.
@@ -417,9 +419,8 @@ One thing at a time, in this order:
   game is still waiting on a `result`.
 - Real rating numbers, in place of the generated placeholders.
 - Sign-in emails for Parr, Vitel, and Stewart.
-- How the 100/200/300 offseason allowance and the credit earnings table fit
-  together — whether the allowance is the base that earnings add to, or the
-  earnings table replaces it.
+- Whether the 60 an offseason is the earnings table's "Regular" row or sits on
+  top of it. The shop currently treats them as the same 60.
 - Which attribute Block Power raises: run block power, pass block power, or
   both.
 - Whether workout and overall changes persist per browser (`localStorage`) or in

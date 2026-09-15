@@ -261,6 +261,12 @@
 
   /* --- shop ------------------------------------------------------------- */
 
+  /* Everyone starts on nothing; a balance will come from the portal once it
+     has somewhere to keep one. */
+  function creditsFor(player) {
+    return typeof player.credits === 'number' ? player.credits : EGE.shop.startingCredits;
+  }
+
   function creditTag(credits) {
     return el('span', 'fb-tag fb-tag--num fb-tag--gold', credits + ' cr');
   }
@@ -316,8 +322,17 @@
   }
 
   function renderShop() {
+    var player = EGE.auth.currentPlayer();
+
+    document.getElementById('shopLocked').hidden = Boolean(player);
+    document.getElementById('shopContent').hidden = !player;
+    if (!player) { return; }
+
+    document.getElementById('shopBalanceNote').textContent =
+      player.first + ' has ' + creditsFor(player) + ' credits to spend.';
+
     var allowance = document.getElementById('shopAllowance');
-    if (allowance.childNodes.length) { return; }      /* built once */
+    if (allowance.childNodes.length) { return; }      /* the catalogue is built once */
 
     EGE.shop.allowance.forEach(function (band) {
       var tile = el('div', 'fb-tile');
@@ -534,11 +549,17 @@
     EGE.auth.signOut();
   });
 
+  document.getElementById('shopLoginBtn').addEventListener('click', function () {
+    openLogin();
+  });
+
   function showSignedOutNav() {
     loginBtn.className = 'fb-btn fb-btn--inverse';
     loginBtn.textContent = 'Log In';
     loginBtn.removeAttribute('title');
     loginBtn.setAttribute('aria-label', 'Open the player portal');
+    document.getElementById('navShop').hidden = true;
+    document.getElementById('navCredits').hidden = true;
   }
 
   function showSignedInNav(player) {
@@ -550,6 +571,13 @@
     loginBtn.appendChild(img);
     loginBtn.title = player.name;
     loginBtn.setAttribute('aria-label', 'Open ' + player.name + '’s portal');
+
+    document.getElementById('navShop').hidden = false;
+
+    var credits = document.getElementById('navCredits');
+    credits.hidden = false;
+    credits.title = creditsFor(player) + ' credits to spend in the shop';
+    document.getElementById('navCreditsValue').textContent = creditsFor(player);
   }
 
   EGE.auth.onChange(function (player) {
@@ -565,6 +593,7 @@
       showPanel(panelAuth);
       loadAccount();
     }
+    route();          /* the shop appears and disappears with the session */
   });
 
   /* --- portal: open and close ------------------------------------------- */

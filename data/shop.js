@@ -13,12 +13,14 @@ window.EGE = window.EGE || {};
 
 EGE.shop = {
 
-  /* What a player gets to spend each offseason, before anything earned. */
+  /* What every player gets each offseason, whatever they are paid. This is
+     the "Regular" row of the earnings table below, not an extra 60 on top. */
   allowance: [
-    { label: 'Every offseason',          credits: 100 },
-    { label: 'Making over $5m AAV',      credits: 200 },
-    { label: 'Making over $10m AAV',     credits: 300 }
+    { label: 'Every offseason', credits: 60 }
   ],
+
+  /* What a player has to start with, before an offseason has been played. */
+  startingCredits: 0,
 
   /* Credits earned on top. Unspent credits carry into the next season. */
   earnings: [
@@ -155,8 +157,10 @@ EGE.shop = {
         {
           name: 'Intel',
           credits: 20,
+          note: 'High school and college only',
           description: 'Find out which games scouts will be at — college scouts while ' +
-                       'you are in high school, NFL scouts while you are in college.'
+                       'you are in high school, NFL scouts while you are in college. ' +
+                       'Nothing left to scout for once you are in the NFL.'
         }
       ]
     }

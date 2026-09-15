@@ -26,8 +26,13 @@
       </a>
       <div class="fb-nav__links">
         <a class="fb-navlink is-active" href="#" id="navPlayers">Players</a>
-        <a class="fb-navlink" href="#shop" id="navShop">Shop</a>
+        <a class="fb-navlink" href="#shop" id="navShop" hidden>Shop</a>
       </div>
+
+      <span class="ege-credits" id="navCredits" hidden>
+        <span class="ege-credits__value" id="navCreditsValue">0</span>
+        <span class="ege-credits__unit">cr</span>
+      </span>
       <button class="fb-btn fb-btn--inverse" id="loginBtn" type="button">Log In</button>
     </div>
   </nav>
@@ -69,14 +74,25 @@
         </div>
       </header>
 
+      <div class="fb-panel" id="shopLocked" hidden>
+        <div class="fb-panel__strip">
+          <span class="fb-eyebrow" style="color: var(--fb-ink);">Players only</span>
+        </div>
+        <div class="fb-panel__body fb-stack">
+          <p style="margin: 0; font-size: 15px;">
+            The shop is part of your portal. Sign in to see what your credits buy.
+          </p>
+          <button class="fb-btn fb-btn--primary" id="shopLoginBtn" type="button">Log In</button>
+        </div>
+      </div>
+
+      <div id="shopContent">
       <div class="ege-shop-top">
         <div class="fb-panel">
           <div class="fb-panel__head"><h3 style="font-size: 21px;">Offseason Allowance</h3></div>
           <div class="fb-panel__body">
             <div class="fb-row fb-row--wrap" id="shopAllowance"></div>
-            <p class="fb-meta" style="margin: 12px 0 0;">
-              Set by what you are paid. The higher band replaces the lower one.
-            </p>
+            <p class="fb-meta" style="margin: 12px 0 0;" id="shopBalanceNote"></p>
           </div>
         </div>
 
@@ -95,6 +111,7 @@
       </div>
 
       <div id="shopSections"></div>
+      </div><!-- /shopContent -->
 
     </section>
 
