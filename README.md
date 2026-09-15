@@ -79,7 +79,8 @@ holds:
   at first; later seasons appear as they are authored.
 - **Schedule** — every scheduled game in the selected season: week, date,
   kickoff, opponent with home/away and a mark for conference games, and the
-  result once it has been played.
+  result once it has been played. A silhouette marks a game scouts will attend,
+  for a player holding Intel for that season.
 - **Record** — running wins and losses for the selected season.
 - **Game log** — per-game stats for that player, with the stat lines driven by
   their position (see below).
@@ -114,6 +115,10 @@ they are the only position here whose overall should turn on it — the group
 is simply absent for everyone else, and their pages don't show it. A group
 scores as the plain average of the attributes inside it.
 
+Receiving counts heavily for a running back — these are backs who catch, not
+just carry — so for Cooper and Sam a receiving point is worth nearly as much
+as a carrying one and about as much again as a general one.
+
 **A player's page shows only the groups their position is judged on**, under
 the names that position uses: a quarterback gets General, Passing and
 Carrying; a back gets General, Receiving and Carrying; a tight end gets
@@ -142,17 +147,25 @@ The same attributes score very differently by position, which is the point:
 | WR | 32 |
 | TBD | 40 |
 
+Anything bought in the shop lands on top of these: `EGE.valuesFor` adds the
+boosts to the base numbers before any group or overall is worked out, so a
+purchase moves the rating the moment it is made.
+
 **The values in the file are placeholders.** They put every player near 50
 overall, in this order:
 
 | Player | Position | Overall |
 | --- | --- | --- |
 | Jaykeb Stewart | QB | 55 |
-| Cooper Clark | RB | 53 |
+| Cooper Clark | RB | 52 |
 | Andrew Parr | TE | 51 |
-| Sam Stogsdill | RB | 50 |
+| Sam Stogsdill | RB | 49 |
 | Isaac Vitel | QB | 48 |
 | Paxon Hatch | TE | 46 |
+
+The two backs sit a point lower than the rest of the table was written for,
+because receiving now counts for a back and neither of them catches well yet.
+The order is unchanged, and points bought into receiving are what closes it.
 
 Replace them with real numbers as they are decided; nothing else has to
 change.
@@ -241,7 +254,12 @@ the page as a collapsible panel rather than taking up the top of it. Anything
 unspent carries into the next offseason.
 
 **Your Inventory** heads the page: what this player owns, what is in effect,
-and the balance. Buying deducts credits and drops the item in. A performance
+and the balance. Anything bought repeatedly is one row with a quantity rather
+than a row per purchase — points read as *Catching +5*, boosters as *1.5x
+Booster ×3* — in the inventory, in the admin panel, and in the database. Using
+a booster takes one off the pile; the row goes when the last one does.
+Training is the exception and stays one row per purchase, since each carries
+its own roll. Buying deducts credits and drops the item in. A performance
 booster is held unused until it is used, and using it deletes it — the
 inventory is what a player still has, not a receipt book. Everything else
 carries an in-effect switch that can be turned off and on. A stat booster
@@ -249,19 +267,149 @@ records which attribute it was bought for.
 
 On sale:
 
-- **Performance boosters** — 2.5x (70), 2.0x (45), 1.5x (25). Regular season
-  only, one use per purchase.
-- **Stat boosters** — +1 (15), +2 (35), +3 (60), spent on any one of 24
-  attributes across passing, receiving, carrying and blocking.
-- **Offseason training** — strength or cardio at 45, each trading something
-  away, or overall at 35 for a smaller gain with no cost.
-- **QB Connection** (30), **Hyperbaric Chamber** (50, then 65, then 85, then
-  20 more each time, NFL only), **Intel** (20, high school and college only).
+- **Performance boosters** — 2.5x (40), 2.0x (25), 1.5x (15). Regular season
+  only, one use per purchase. They are stickers: holographic, gold and silver
+  sunbursts you stick on a game.
+- **Rating points** — bought straight into an attribute, priced by how close
+  that attribute already is to 99. Cheap early, dear late.
+- **Offseason training** — strength (20) or cardio (25), each with a downside
+  rolled when you buy it, or overall (20) for a smaller gain with nothing to
+  lose. A flat price for a fixed set of points: poor value early, very good
+  value once single points have got expensive.
+- **QB Connection** (20), **Hyperbaric Chamber** (35, then 45, then 60, then
+  15 more each time), **Intel** (15).
+
+**Some things can't be bought yet.** An item can name the levels it belongs
+to, and the shop greys it out everywhere else with the reason on the card —
+the chamber is NFL only, and nobody has played an NFL season, so it reads
+*Unavailable*. The check runs in the buy call too, since a disabled button is
+only a suggestion.
+
+**Intel lasts one season.** A purchase records the season it was made in.
+While it is live, silhouettes appear beside the scouted games on that player's
+own schedule — hover one and it says SCOUTS IN ATTENDANCE — and the legend
+counts them. Once the season turns over the row reads *Expired*, the
+silhouettes go, and it can't be switched back on. Which games scouts attend is
+in `data/schedule.js` all along as `scouts: true`; Intel buys the right to see
+it, and only on your own page.
 
 Each stat booster names the attribute in `data/ratings.js` it applies to, so
 buying one has somewhere to land once spending is built. Block Power is the
 one exception: the ratings carry run block power and pass block power
 separately, and which one it raises is still open.
+
+### Rating points
+
+The shop's main business. A player buys points straight into the attributes
+their position is judged on, and **a point costs more the closer that
+attribute is to 99**:
+
+```
+cost = 36 / (99 - rating + 1)
+```
+
+| Rating | 50 | 60 | 70 | 80 | 85 | 90 | 95 | 97 | 98 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Next point | 1 | 1 | 2 | 2 | 3 | 4 | 8 | 12 | 18 |
+
+**The general attributes are not for sale.** Speed, strength, stamina,
+awareness and the rest move only through offseason training, which is what
+keeps training worth a slot in the shop. A quarterback is left with passing
+and carrying to buy into; a tight end with catching, blocking and carrying.
+
+A credit or two while a player is young and unformed, twenty-odd once they
+are nearly maxed. That is what slows development down by the time they reach
+the NFL, without ever capping it.
+
+Points on the same attribute stack onto one row, so eighty points across a
+career leave a handful of rows rather than eighty.
+
+The table shows every attribute the position uses, what it is at, how many
+points of it are worth one overall, and what the next one costs — **ordered
+by what a credit actually buys**, so the top of the table is the right answer
+and nobody has to work out the weighting themselves.
+
+Three buttons per row buy **+1, +2 or +4** at one, two and four times the
+price of the next single point. Buying in fours is a small discount at the
+steep end of the curve, where four separate points would each cost more than
+the last; it is there to save clicking.
+
+**Tuning.** `UPGRADE_BASE` in `data/economy.js` is set so an offseason moves a
+player about four overall. A 90-credit offseason, 20 of it on Overall
+Training and the rest taken from the top of the table:
+
+| Player | Position | Gain |
+| --- | --- | --- |
+| Andrew Parr | TE | +3 |
+| Cooper Clark | RB | +3 |
+| Paxon Hatch | TE | +4 |
+| Isaac Vitel | QB | +6 |
+| Sam Stogsdill | RB | +4 |
+| Jaykeb Stewart | QB | +4 |
+| | | **+4.00 average** |
+
+Skipping training and putting all 90 into points comes out at +4.67, so the
+two ways of spending an offseason are worth roughly the same. Season after
+season it flattens on its own, which is the point.
+
+### Booster stickers
+
+A booster is not used from a list — it is **stuck on a game**. Signed in and
+looking at your own schedule, every unplayed game grows a dashed **+** in the
+Booster column. Clicking it slides a drawer up from the bottom of the screen
+holding the stickers you own, each with a count. Click one and it goes on that
+game and comes out of your inventory.
+
+Hovering a sticker you can still move fades it back, rules slanted lines
+across it and draws a cross over it, all in the same ink as its edge — it
+stays exactly where it is and exactly the size it is. Click to take it off and
+put it back in the drawer.
+
+**Once the game has been played the sticker is stuck for good**: no cross, and
+no + on a game that already has a result.
+
+**Stickers are private.** Only the player who stuck one on — and Sam, as
+admin — can see what is riding on which game. That is in the policy on
+`game_boosters`, not just the interface, because the anon key can query the
+table directly.
+
+Each sticker is two die-cut layers, a backing in the same ink as the printed
+number with the foil face inset inside it, both clipped to the same sunburst.
+A plain border would be cut away by the clip-path, which is what made the
+first pass look chewed at the edges; each face also paints a solid ground
+under its moving gradients so nothing can flash through bare.
+
+They sit bigger than their row and hang over the edge of it, top and bottom,
+centred on the same point the empty slots use so the column stays a column.
+Angle and vertical nudge both come from a hash of the sticker's own row id, so
+every sticker lands differently and keeps that placement through every redraw
+— scattered, but never jittering. Nothing in the slot is in the row's flow, so
+a row carrying a sticker measures exactly the same as one without: 51px either
+way.
+
+The three designs scale off a single `--sticker-size`, so the same sunburst
+renders at 62px on a schedule row and 76px in the drawer without a second copy
+of the CSS.
+
+### Training
+
+| Item | Effect | Risk |
+| --- | --- | --- |
+| Overall Offseason Training | Speed, acceleration, strength, agility, jumping, stamina +1 | none |
+| Offseason Cardio Training | Speed, acceleration, agility, stamina +2 | strength −2 |
+| Offseason Strength Training | Strength +4 | agility, stamina, speed −2 each |
+
+Risks are rolled once, when the item is bought, and the result is stored on
+the row. Reloading the page never re-rolls it.
+
+### Everything carries over
+
+Training, stat boosters and unused performance boosters all stay season to
+season. Intel is the only thing that lapses, at the end of the season it was
+bought for.
+
+A quarterback's **QB Connection** reads **Back Field Connection** — he is
+learning his backs and receivers, not himself.
 
 **Sam is the admin.** He sees every account's balance and everything each one
 owns, can set any balance, grant any item without charging for it, and remove
@@ -270,9 +418,14 @@ rather than from the browser.
 
 Balances and inventories live in Supabase — `player_credits` and
 `player_inventory` in `supabase/schema.sql` — and the policies there do the
-real enforcing: a player reads and writes only their own rows, an admin reads
-and writes everyone's. The browser code is the shape of the UI, not the
-security boundary.
+real enforcing: a player writes only their own rows, an admin writes
+everyone's. The browser code is the shape of the UI, not the security
+boundary.
+
+Purchases are **readable by everyone**, because a boosted overall has to show
+on a player's card wherever it appears. Intel is the exception, in the policy
+as well as the interface: only its owner and an admin can read an Intel row,
+so nobody else can work out which games scouts will be at.
 
 > Buying reads the balance, checks it and writes it back in sequence rather
 > than in one locked transaction. With six players and one shop the worst case
@@ -331,11 +484,14 @@ Built so far:
 - `data/schedule.js` — the regular season: every player's fixtures, and
   results and stat lines once games are played.
 - `bot/` — the Discord scores bot (see below).
-- `supabase/schema.sql` — the `player_accounts` table and its policies. Run it
-  once in the Supabase SQL editor.
+- `supabase/schema.sql` — every table and policy: accounts, credits,
+  inventory, admins, and the stickers stuck on games. Run it in the Supabase
+  SQL editor; it is safe to run again.
 - `js/supabase-config.js` — your Supabase URL and anon key. Blank by default.
-- `data/shop.js` — the shop catalogue: allowance bands, credit earnings, and
-  everything on sale.
+- `data/shop.js` — the shop catalogue: credit earnings and everything on sale.
+- `data/economy.js` — every number about credits in one place: what a rating
+  point costs, how much overall a point is worth, and the tuning behind both.
+  Nothing else in the site invents a price.
 - `site.css` — the theme (palette overriding the kit's tokens) plus the page
   components the kit doesn't cover (player card, roster grid, shop, login).
 

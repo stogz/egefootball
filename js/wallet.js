@@ -16,6 +16,7 @@ EGE.wallet = (function () {
   var CREDITS = 'player_credits';
   var INVENTORY = 'player_inventory';
   var ADMINS = 'admins';
+  var GAME_BOOSTERS = 'game_boosters';
 
   var isAdmin = false;
 
@@ -106,36 +107,324 @@ EGE.wallet = (function () {
       .catch(function () { return []; });
   }
 
+  /* --- what a purchase does to the ratings -------------------------------- */
+
+  /* Training rolls its downside once, when it is bought, and the result is
+     stored: nobody gets to re-roll by reloading the page. */
+  function rollEffects(item) {
+    var effects = {};
+    Object.keys(item.effects || {}).forEach(function (key) {
+      effects[key] = item.effects[key];
+    });
+
+    if (item.needsTarget) { return effects; }
+
+    (item.risks || []).forEach(function (risk) {
+      if (Math.random() < risk.chance) {
+        effects[risk.attribute] = (effects[risk.attribute] || 0) + risk.amount;
+      }
+    });
+    return effects;
+  }
+
+  function effectsForTarget(item, target) {
+    var effects = {};
+    if (item.needsTarget && target) { effects[target] = item.boost || 1; }
+    return effects;
+  }
+
+  /* How many of this item a player already owns, which is what makes the
+     next one dearer. */
+  function ownedCount(rows, key) {
+    return (rows || []).filter(function (row) { return row.item_key === key; }).length;
+  }
+
+  /* Everything bought, everywhere, summed per attribute per account, so a
+     boosted overall shows on every page. Intel rows are invisible to anyone
+     but their owner, and carry no effects anyway. */
+  function loadBoosts() {
+    var c = client();
+    if (!c) { return Promise.resolve({}); }
+
+    return c.from(INVENTORY).select('email, effects, active, season')
+      .then(function (res) {
+        var boosts = {};
+        if (res.error) { EGE.appliedBoosts = boosts; return boosts; }
+
+        (res.data || []).forEach(function (row) {
+          if (!row.active || lapsed(row) || !row.effects) { return; }
+
+          /* Rows are owned by an email; ratings are keyed by player. */
+          var player = EGE.players.filter(function (p) {
+            return p.email && row.email && p.email.toLowerCase() === row.email.toLowerCase();
+          })[0];
+          if (!player) { return; }
+
+          var forPlayer = boosts[player.slug] || (boosts[player.slug] = {});
+          Object.keys(row.effects).forEach(function (attr) {
+            forPlayer[attr] = (forPlayer[attr] || 0) + row.effects[attr];
+          });
+        });
+
+        EGE.appliedBoosts = boosts;
+        return boosts;
+      })
+      .catch(function () { EGE.appliedBoosts = {}; return {}; });
+  }
+
   /* --- buying ------------------------------------------------------------ */
 
   /* Six players and one shop, so the balance is read, checked and written
      in sequence rather than locked. The worst case is a double spend from
      two tabs at once, which an admin can put right. */
-  function buy(email, item, target) {
+  function buy(email, item, target, player) {
     var c = client();
     if (!c) { return fail(offline()); }
     if (!item) { return fail('That item is not in the shop.'); }
     if (item.needsTarget && !target) { return fail('Choose which attribute to raise.'); }
 
+    /* The button is disabled too, but a disabled button is a suggestion. */
+    var allowed = EGE.itemAvailable(item, EGE.currentSeason);
+    if (!allowed.ok) { return fail(allowed.reason); }
+
     return creditsFor(email).then(function (balance) {
       if (balance === null) { return { ok: false, message: offline() }; }
-      if (balance < item.credits) {
-        return { ok: false, message: 'Not enough credits — that costs ' + item.credits + ', you have ' + balance + '.' };
+
+      var price = EGE.priceFor(item);
+      if (balance < price) {
+        return { ok: false, message: 'Not enough credits — that costs ' + price + ', you have ' + balance + '.' };
       }
 
-      return c.from(INVENTORY).insert({
+      var effects = item.needsTarget ? effectsForTarget(item, target) : rollEffects(item);
+
+      return inventoryFor(email).then(function (rows) {
+        var existing = item.consumable ? stackedRow(rows, item.key, null) : null;
+
+        var write = existing
+          ? c.from(INVENTORY).update({
+              quantity: quantityOf(existing) + 1,
+              credits: (existing.credits || 0) + price
+            }).eq('id', existing.id)
+          : c.from(INVENTORY).insert({
+              email: email,
+              item_key: item.key,
+              item_name: EGE.itemName(item, player),
+              target: target || null,
+              quantity: 1,
+              credits: price,
+              effects: effects,
+              consumable: Boolean(item.consumable),
+              season: item.seasonBound ? EGE.currentSeason : null,
+              active: !item.consumable   /* a booster is in effect only once used */
+            });
+
+        return write.then(function (res) {
+          if (res.error) { return { ok: false, message: res.error.message }; }
+          return setCredits(email, balance - price).then(function (spent) {
+            if (!spent.ok) { return spent; }
+            return {
+              ok: true,
+              effects: effects,
+              message: 'Bought ' + EGE.itemName(item, player) + ' for ' + price + ' credits.',
+              credits: spent.credits
+            };
+          });
+        });
+      });
+    });
+  }
+
+  /* Things bought over and over stack onto one row: rating points and
+     performance boosters both keep a quantity rather than a row apiece. */
+  function stackedRow(rows, itemKey, target) {
+    return (rows || []).filter(function (row) {
+      return row.item_key === itemKey && (row.target || null) === (target || null);
+    })[0] || null;
+  }
+
+  function quantityOf(row) {
+    return typeof row.quantity === 'number' ? row.quantity : 1;
+  }
+
+  /* Buys one point on one attribute. The price comes from what the attribute
+     is at right now, so it is worked out here rather than trusted from the
+     page that asked. */
+  function buyUpgrade(email, player, attributeKey, points) {
+    var c = client();
+    if (!c) { return fail(offline()); }
+
+    var wanted = points || 1;
+    var attribute = EGE.economy.upgradePlan(player).filter(function (row) {
+      return row.key === attributeKey;
+    })[0];
+
+    if (!attribute) {
+      var known = EGE.boostableFor(player).filter(function (row) {
+        return row.key === attributeKey;
+      })[0];
+      if (known && EGE.economy.TRAINING_ONLY_GROUPS.indexOf(known.groupKey) !== -1) {
+        return fail(known.label + ' moves through offseason training, not credits.');
+      }
+      return fail('That attribute is not one this position is judged on.');
+    }
+    if (attribute.cost === null) {
+      return fail(attribute.label + ' is already at ' + EGE.economy.MAX_RATING + '.');
+    }
+
+    /* Never sell more than there is room for below 99. */
+    var buying = EGE.economy.pointsAvailable(attribute.value, wanted);
+    if (!buying) {
+      return fail(attribute.label + ' is already at ' + EGE.economy.MAX_RATING + '.');
+    }
+
+    var price = EGE.economy.bulkCost(attribute.value, buying);
+
+    return creditsFor(email).then(function (balance) {
+      if (balance === null) { return { ok: false, message: offline() }; }
+      if (balance < price) {
+        return {
+          ok: false,
+          message: 'Not enough credits — that costs ' + price + ', you have ' + balance + '.'
+        };
+      }
+
+      return inventoryFor(email).then(function (rows) {
+        var existing = stackedRow(rows, 'upgrade', attributeKey);
+        var owned = existing ? quantityOf(existing) + buying : buying;
+        var effects = {};
+        effects[attributeKey] = owned;
+
+        var write = existing
+          ? c.from(INVENTORY).update({
+              quantity: owned,
+              effects: effects,
+              credits: (existing.credits || 0) + price
+            }).eq('id', existing.id)
+          : c.from(INVENTORY).insert({
+              email: email,
+              item_key: 'upgrade',
+              item_name: attribute.label,
+              target: attributeKey,
+              quantity: buying,
+              credits: price,
+              effects: effects,
+              consumable: false,
+              season: null,
+              active: true
+            });
+
+        return write.then(function (res) {
+          if (res.error) { return { ok: false, message: res.error.message }; }
+          return setCredits(email, balance - attribute.cost).then(function (spent) {
+            if (!spent.ok) { return spent; }
+            return {
+              ok: true,
+              message: attribute.label + ' ' + attribute.value + ' \u2192 ' + (attribute.value + buying) +
+                       ' for ' + price + ' credits.',
+              credits: spent.credits
+            };
+          });
+        });
+      });
+    });
+  }
+
+  /* --- boosters stuck on games ------------------------------------------- */
+
+  /* Every sticker on every game, keyed by player slug and then by week, so a
+     schedule can draw them without asking per row. */
+  function loadGameBoosters(season) {
+    var c = client();
+    if (!c) { EGE.gameBoosters = {}; return Promise.resolve({}); }
+
+    return c.from(GAME_BOOSTERS).select('*').eq('season', season || EGE.currentSeason)
+      .then(function (res) {
+        var byPlayer = {};
+        if (res.error) { EGE.gameBoosters = byPlayer; return byPlayer; }
+
+        (res.data || []).forEach(function (row) {
+          var player = EGE.players.filter(function (p) {
+            return p.email && row.email && p.email.toLowerCase() === row.email.toLowerCase();
+          })[0];
+          if (!player) { return; }
+          var weeks = byPlayer[player.slug] || (byPlayer[player.slug] = {});
+          weeks[row.week] = row;
+        });
+
+        EGE.gameBoosters = byPlayer;
+        return byPlayer;
+      })
+      .catch(function () { EGE.gameBoosters = {}; return {}; });
+  }
+
+  /* Sticks one on a game: the sticker leaves the inventory, because it is on
+     the schedule now rather than in a drawer. */
+  function applyBooster(email, item, season, week) {
+    var c = client();
+    if (!c) { return fail(offline()); }
+
+    return inventoryFor(email).then(function (rows) {
+      var owned = stackedRow(rows, item.key, null);
+      if (!owned || quantityOf(owned) < 1) { return { ok: false, message: 'You do not own one of those.' }; }
+
+      return c.from(GAME_BOOSTERS).insert({
         email: email,
+        season: season,
+        week: week,
         item_key: item.key,
-        item_name: item.name,
-        target: target || null,
-        credits: item.credits,
-        consumable: Boolean(item.consumable),
-        active: !item.consumable      /* a booster is in effect only once used */
+        item_name: item.name
       }).then(function (res) {
-        if (res.error) { return { ok: false, message: res.error.message }; }
-        return setCredits(email, balance - item.credits).then(function (spent) {
-          if (!spent.ok) { return spent; }
-          return { ok: true, message: 'Bought ' + item.name + '.', credits: spent.credits };
+        if (res.error) {
+          return {
+            ok: false,
+            message: /duplicate|unique/i.test(res.error.message || '')
+              ? 'That game already has a sticker on it.'
+              : res.error.message
+          };
+        }
+
+        var left = quantityOf(owned) - 1;
+        var write = left > 0
+          ? c.from(INVENTORY).update({ quantity: left }).eq('id', owned.id)
+          : c.from(INVENTORY).delete().eq('id', owned.id);
+
+        return write.then(function () {
+          return { ok: true, message: item.name + ' stuck on week ' + week + '.' };
+        });
+      });
+    });
+  }
+
+  /* Peels one off and puts it back in the drawer. */
+  function peelBooster(email, sticker) {
+    var c = client();
+    if (!c) { return fail(offline()); }
+
+    var item = EGE.shopItem(sticker.item_key);
+    if (!item) { return fail('That sticker is not in the shop any more.'); }
+
+    return c.from(GAME_BOOSTERS).delete().eq('id', sticker.id).then(function (res) {
+      if (res.error) { return { ok: false, message: res.error.message }; }
+
+      return inventoryFor(email).then(function (rows) {
+        var owned = stackedRow(rows, item.key, null);
+        var write = owned
+          ? c.from(INVENTORY).update({ quantity: quantityOf(owned) + 1 }).eq('id', owned.id)
+          : c.from(INVENTORY).insert({
+              email: email,
+              item_key: item.key,
+              item_name: item.name,
+              target: null,
+              quantity: 1,
+              credits: 0,
+              effects: {},
+              consumable: true,
+              season: null,
+              active: false
+            });
+
+        return write.then(function () {
+          return { ok: true, message: item.name + ' back in your inventory.' };
         });
       });
     });
@@ -143,16 +432,25 @@ EGE.wallet = (function () {
 
   /* --- using and toggling ------------------------------------------------ */
 
-  /* A performance booster is spent the moment it is used, so the row goes:
-     the inventory is what a player still has. */
+  /* A performance booster is spent the moment it is used: one comes off the
+     pile, and the row goes when the last one does. The inventory is what a
+     player still has, not a receipt book. */
   function useItem(row) {
     var c = client();
     if (!c) { return fail(offline()); }
     if (!row.consumable) { return fail('That one is not used up.'); }
 
-    return c.from(INVENTORY).delete().eq('id', row.id).then(function (res) {
+    var left = quantityOf(row) - 1;
+    var write = left > 0
+      ? c.from(INVENTORY).update({ quantity: left }).eq('id', row.id)
+      : c.from(INVENTORY).delete().eq('id', row.id);
+
+    return write.then(function (res) {
       if (res.error) { return { ok: false, message: res.error.message }; }
-      return { ok: true, message: row.item_name + ' used.' };
+      return {
+        ok: true,
+        message: row.item_name + ' used' + (left > 0 ? ' \u2014 ' + left + ' left.' : '.')
+      };
     });
   }
 
@@ -179,6 +477,26 @@ EGE.wallet = (function () {
     });
   }
 
+  /* Takes one off a stack, keeping the row until it empties. */
+  function decrement(row) {
+    var c = client();
+    if (!c) { return fail(offline()); }
+
+    var left = quantityOf(row) - 1;
+    if (left <= 0) { return removeItem(row); }
+
+    var patch = { quantity: left };
+    if (row.item_key === 'upgrade' && row.target) {
+      patch.effects = {};
+      patch.effects[row.target] = left;
+    }
+
+    return c.from(INVENTORY).update(patch).eq('id', row.id).then(function (res) {
+      if (res.error) { return { ok: false, message: res.error.message }; }
+      return { ok: true, message: row.item_name + ' down to ' + left + '.' };
+    });
+  }
+
   /* Hands an item over without charging for it. */
   function grant(email, item, target) {
     var c = client();
@@ -189,8 +507,10 @@ EGE.wallet = (function () {
       item_key: item.key,
       item_name: item.name,
       target: target || null,
+      effects: item.needsTarget ? effectsForTarget(item, target) : rollEffects(item),
       credits: 0,
       consumable: Boolean(item.consumable),
+      season: item.seasonBound ? EGE.currentSeason : null,
       active: !item.consumable
     }).then(function (res) {
       if (res.error) { return { ok: false, message: res.error.message }; }
@@ -198,7 +518,23 @@ EGE.wallet = (function () {
     });
   }
 
+  /* A season-bound row is spent the moment the season turns over. */
+  function lapsed(row) {
+    return typeof row.season === 'number' && row.season !== EGE.currentSeason;
+  }
+
+  /* Does this inventory hold live Intel for the season on show? */
+  function hasIntel(rows) {
+    return (rows || []).some(function (row) {
+      return row.item_key === 'intel' && row.active && !lapsed(row);
+    });
+  }
+
   return {
+    loadBoosts: loadBoosts,
+    ownedCount: ownedCount,
+    lapsed: lapsed,
+    hasIntel: hasIntel,
     refreshAdmin: refreshAdmin,
     admin: admin,
     creditsFor: creditsFor,
@@ -207,9 +543,15 @@ EGE.wallet = (function () {
     allInventory: allInventory,
     allCredits: allCredits,
     buy: buy,
+    buyUpgrade: buyUpgrade,
+    loadGameBoosters: loadGameBoosters,
+    applyBooster: applyBooster,
+    peelBooster: peelBooster,
     useItem: useItem,
     setActive: setActive,
     removeItem: removeItem,
+    decrement: decrement,
+    quantityOf: quantityOf,
     grant: grant
   };
 })();

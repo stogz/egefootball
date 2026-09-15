@@ -99,7 +99,8 @@
             <span class="ege-ovr__value" id="shopBalance">0</span>
           </div>
         </div>
-        <div class="fb-panel__body">
+        <div class="fb-panel__body fb-stack fb-stack--lg">
+          <div id="inventoryApplied"></div>
           <div class="ege-items" id="inventoryItems"></div>
           <p class="fb-meta" id="inventoryEmpty" hidden>
             Nothing bought yet. Everything below is waiting.
@@ -197,6 +198,7 @@
                 <th>Time</th>
                 <th>Opponent</th>
                 <th class="num">Result</th>
+                <th class="num">Booster</th>
               </tr>
             </thead>
             <tbody id="scheduleBody"></tbody>
@@ -306,6 +308,7 @@
 <script src="data/ratings.js"></script>
 <script src="data/schedule.js"></script>
 <script src="data/shop.js"></script>
+<script src="data/economy.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/wallet.js"></script>
 <script src="js/app.js"></script>

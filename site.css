@@ -364,6 +364,13 @@ body {
 /* --- shop: owned items and admin ---------------------------------------- */
 
 .ege-item--active { border-color: var(--fb-accent); box-shadow: 3px 3px 0 var(--fb-tint-clay); }
+.ege-item--locked { background: var(--fb-surface); }
+.ege-item__blocked {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fb-accent-deep);
+}
 .ege-item__target { width: 100%; }
 .ege-item .fb-btn { margin-top: auto; }
 
@@ -410,6 +417,387 @@ body {
   background: var(--fb-tint-sage);
 }
 
+/* The rating points table: one row per attribute this position is judged on. */
+.ege-upgrades tbody tr { cursor: default; }
+.ege-upgrades td { vertical-align: middle; }
+.ege-upgrades .fb-meter { width: 120px; }
+.ege-upgrade__group {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-muted-2);
+  white-space: nowrap;
+}
+.ege-schedule__slot {
+  width: 1%;
+  white-space: nowrap;
+  padding-left: 30px;
+  padding-right: 20px;     /* room for a sticker that overhangs its row */
+  overflow: visible;
+  position: relative;
+}
+
+/* The schedule only needs to scroll when it genuinely does not fit; letting
+   it overflow the rest of the time keeps a lifted sticker whole. */
+@media (min-width: 900px) {
+  #scheduleTableWrap { overflow: visible; }
+}
+.ege-upgrade__moved { font-weight: 800; color: var(--fb-accent-deep); }
+.ege-upgrade__per { font-weight: 800; color: var(--fb-muted); font-variant-numeric: tabular-nums; }
+.ege-upgrade__buy {
+  padding: 7px 10px;
+  font-size: 11px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  min-width: 62px;
+}
+/* The bulk buttons sit quieter than the single point beside them. */
+.ege-upgrades td:last-child,
+.ege-upgrades td:nth-last-child(2) { padding-left: 4px; }
+
+.ege-applied {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 12px 14px;
+  border: var(--fb-border-thin) dashed var(--fb-ink);
+  background: var(--fb-tint-wash);
+}
+
+/* --- booster stickers ---------------------------------------------------- */
+
+/* Two die-cut layers: a white backing and the foil face inset inside it, both
+   clipped to the same sunburst. A plain border would be cut off by the
+   clip-path, which is what made the old edges look chewed. */
+.ege-sticker {
+  --sticker-size: 40px;
+  --tilt: 0deg;
+  --cut: polygon(
+    50% 0%, 58% 12%, 71% 4%, 74% 18%, 88% 12%, 82% 26%, 96% 29%, 84% 40%,
+    100% 50%, 84% 60%, 96% 71%, 82% 74%, 88% 88%, 74% 82%, 71% 96%, 58% 88%,
+    50% 100%, 42% 88%, 29% 96%, 26% 82%, 12% 88%, 18% 74%, 4% 71%, 16% 60%,
+    0% 50%, 16% 40%, 4% 29%, 18% 26%, 12% 12%, 26% 18%, 29% 4%, 42% 12%
+  );
+
+  --sticker-ink: #201e1d;
+
+  width: var(--sticker-size);
+  height: var(--sticker-size);
+  flex: none;
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+
+  /* The die-cut edge is the same ink as the number printed on it. */
+  background: var(--sticker-ink);
+  clip-path: var(--cut);
+  filter: drop-shadow(2px 3px 3px rgba(0, 0, 0, .45));
+  transform: rotate(var(--tilt));
+  transform-origin: center;
+  transition: transform .28s cubic-bezier(.2, .8, .3, 1), filter .28s ease;
+}
+
+/* The foil face, inset so the white shows as a die-cut border. */
+.ege-sticker__face {
+  position: absolute;
+  inset: 8%;
+  display: grid;
+  place-items: center;
+  clip-path: var(--cut);
+  overflow: hidden;
+}
+.ege-sticker__face::before,
+.ege-sticker__face::after { content: ''; position: absolute; inset: 0; }
+.ege-sticker__face::after { mix-blend-mode: screen; }
+
+.ege-sticker__text {
+  position: relative;
+  z-index: 2;
+  font-family: var(--fb-font-display);
+  font-size: calc(var(--sticker-size) * 0.27);
+  line-height: 1;
+  color: var(--sticker-ink);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .35);
+}
+
+/* Each variant paints a solid ground first, so a moving gradient can never
+   leave a bare patch showing through. */
+.ege-sticker--holo .ege-sticker__face { background: #ded6ef; }
+.ege-sticker--gold .ege-sticker__face { background: #d89b28; }
+.ege-sticker--silver .ege-sticker__face { background: #b9bec5; }
+
+/* 2.5x — holographic */
+.ege-sticker--holo .ege-sticker__face::before {
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255,204,228,.95) 0%, rgba(255,204,228,0) 45%),
+    radial-gradient(circle at 78% 18%, rgba(214,202,255,.95) 0%, rgba(214,202,255,0) 48%),
+    radial-gradient(circle at 30% 75%, rgba(194,228,255,.95) 0%, rgba(194,228,255,0) 50%),
+    radial-gradient(circle at 72% 70%, rgba(215,204,245,.95) 0%, rgba(215,204,245,0) 45%),
+    linear-gradient(135deg, #f5d2de 0%, #d5cdf3 18%, #d2edcd 35%, #cfe4f8 52%,
+                    #dfd1f3 68%, #f0d6ce 84%, #d2edd7 100%);
+  background-size: 140% 140%, 150% 150%, 145% 145%, 150% 150%, 200% 200%;
+  animation: ege-holo-flow 8s ease-in-out infinite;
+}
+.ege-sticker--holo .ege-sticker__face::after {
+  opacity: .55;
+  background: linear-gradient(110deg,
+    rgba(255,255,255,.20) 0%, rgba(255,255,255,.05) 20%, rgba(190,255,215,.18) 38%,
+    rgba(210,205,255,.14) 55%, rgba(255,214,228,.18) 72%, rgba(205,235,255,.18) 100%);
+  background-size: 200% 200%;
+  animation: ege-sheen 10s ease-in-out infinite;
+}
+
+/* 2.0x — gold */
+.ege-sticker--gold .ege-sticker__face::before {
+  background:
+    radial-gradient(circle at 25% 25%, rgba(255,242,168,.95) 0%, rgba(255,242,168,0) 50%),
+    radial-gradient(circle at 72% 70%, rgba(150,96,12,.6) 0%, rgba(150,96,12,0) 52%),
+    linear-gradient(120deg, #9c6410 0%, #d89b28 15%, #ffe392 30%, #c98917 43%,
+                    #f4c653 56%, #fff0a8 68%, #d79a27 82%, #a76a10 100%);
+  background-size: 150% 150%, 150% 150%, 220% 220%;
+  animation: ege-metal-flow 7s ease-in-out infinite;
+}
+.ege-sticker--gold .ege-sticker__face::after {
+  background: linear-gradient(115deg,
+    rgba(255,255,255,.05) 10%, rgba(255,246,190,.35) 32%, rgba(255,255,255,.08) 46%,
+    rgba(255,225,120,.25) 66%, rgba(255,255,255,.04) 85%);
+  background-size: 200% 200%;
+  animation: ege-sheen 9s ease-in-out infinite;
+}
+
+/* 1.5x — silver */
+.ege-sticker--silver .ege-sticker__face::before {
+  background:
+    radial-gradient(circle at 24% 22%, rgba(255,255,255,.95) 0%, rgba(255,255,255,0) 48%),
+    radial-gradient(circle at 72% 72%, rgba(94,101,110,.5) 0%, rgba(94,101,110,0) 52%),
+    linear-gradient(120deg, #6f747b 0%, #aeb4bb 14%, #f5f6f7 28%, #9ba1a9 41%,
+                    #d5d9dd 55%, #ffffff 68%, #a8aeb5 82%, #70757c 100%);
+  background-size: 150% 150%, 150% 150%, 220% 220%;
+  animation: ege-metal-flow 7s ease-in-out infinite;
+}
+.ege-sticker--silver .ege-sticker__face::after {
+  background: linear-gradient(115deg,
+    rgba(255,255,255,.06) 10%, rgba(255,255,255,.38) 32%, rgba(220,225,230,.10) 46%,
+    rgba(255,255,255,.26) 66%, rgba(255,255,255,.05) 85%);
+  background-size: 200% 200%;
+  animation: ege-sheen 9s ease-in-out infinite;
+}
+
+@keyframes ege-holo-flow {
+  0%   { background-position: 0% 0%, 100% 0%, 0% 100%, 100% 100%, 0% 50%; }
+  25%  { background-position: 20% 10%, 85% 20%, 15% 85%, 80% 90%, 40% 60%; }
+  50%  { background-position: 40% 20%, 70% 35%, 30% 70%, 65% 75%, 100% 50%; }
+  75%  { background-position: 20% 35%, 88% 18%, 22% 92%, 82% 68%, 60% 40%; }
+  100% { background-position: 0% 0%, 100% 0%, 0% 100%, 100% 100%, 0% 50%; }
+}
+@keyframes ege-metal-flow {
+  0%   { background-position: 0% 0%, 100% 100%, 0% 50%; }
+  25%  { background-position: 25% 15%, 80% 85%, 35% 55%; }
+  50%  { background-position: 45% 30%, 60% 70%, 100% 50%; }
+  75%  { background-position: 20% 35%, 85% 60%, 55% 45%; }
+  100% { background-position: 0% 0%, 100% 100%, 0% 50%; }
+}
+@keyframes ege-sheen {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+/* --- a sticker on a game ------------------------------------------------- */
+
+/* The slot is only as tall as a line of text. Everything in it is positioned
+   out of the flow, so neither a sticker nor the plus can change a row's
+   height — rows in the booster column measure the same as rows without one. */
+.ege-slot {
+  position: relative;
+  display: block;
+  width: 46px;
+  height: 19px;
+}
+
+.ege-slot__add {
+  position: absolute;
+  left: 50%;
+  margin-left: -14px;
+  top: 50%;
+  margin-top: -14px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  cursor: pointer;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--fb-muted);
+  background: transparent;
+  border: var(--fb-border-thin) dashed var(--fb-muted-2);
+}
+.ege-slot__add:hover {
+  color: var(--fb-accent-deep);
+  border-color: var(--fb-accent);
+  border-style: solid;
+}
+
+.ege-slot__applied {
+  position: absolute;
+  /* Centred on the same point the plus uses, so a column of stickers lines
+     up with the column of empty slots. */
+  left: 50%;
+  margin-left: calc(var(--sticker-size, 54px) / -2);
+  /* Centred on the row, then nudged a few pixels so it sits over the edge
+     above or below rather than neatly inside. */
+  top: 50%;
+  margin-top: calc(var(--nudge, 0px) - (var(--sticker-size, 54px) / 2));
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 0;
+  padding: 0;
+  width: var(--sticker-size, 54px);
+  height: var(--sticker-size, 54px);
+}
+.ege-slot__applied--peelable { cursor: pointer; perspective: 460px; }
+.ege-slot__applied--stuck { cursor: default; }
+
+/* The shadow the sticker casts on the row as it comes away from it. */
+.ege-slot__applied--peelable::after {
+  content: '';
+  position: absolute;
+  inset: 18% 10% 10% 30%;
+  z-index: -2;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .38);
+  filter: blur(6px);
+  opacity: 0;
+  transition: opacity .28s ease;
+}
+.ege-slot__applied--peelable:hover::after,
+.ege-slot__applied--peelable:focus-visible::after { opacity: 1; }
+
+/* Hovering one you can still move fades it back, rules it through with
+   slanted lines and crosses it out — it stays exactly where it is and
+   exactly the size it is. */
+.ege-sticker { transition: transform .28s cubic-bezier(.2, .8, .3, 1), opacity .16s ease; }
+
+.ege-slot__applied--peelable:hover .ege-sticker,
+.ege-slot__applied--peelable:focus-visible .ege-sticker { opacity: .62; }
+.ege-slot__applied--peelable:hover,
+.ege-slot__applied--peelable:focus-visible { z-index: 6; }
+
+/* The slanted rules, cut to the same sunburst so they stop at the edge. */
+.ege-sticker__hatch {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  clip-path: var(--cut);
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--sticker-ink) 0 2px,
+    transparent 2px 11px
+  );
+  opacity: 0;
+  transition: opacity .16s ease;
+  pointer-events: none;
+}
+.ege-slot__applied--peelable:hover .ege-sticker__hatch,
+.ege-slot__applied--peelable:focus-visible .ege-sticker__hatch { opacity: .5; }
+
+.ege-sticker__x {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  font-family: var(--fb-font-display);
+  font-size: calc(var(--sticker-size) * 0.66);
+  line-height: 1;
+  color: var(--sticker-ink);
+  opacity: 0;
+  transition: opacity .16s ease;
+  pointer-events: none;
+}
+.ege-slot__applied--peelable:hover .ege-sticker__x,
+.ege-slot__applied--peelable:focus-visible .ege-sticker__x { opacity: 1; }
+
+/* --- the sticker drawer -------------------------------------------------- */
+
+.ege-drawer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  background: var(--fb-ink);
+  border-top: var(--fb-border) solid var(--fb-accent);
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, .45);
+  animation: ege-drawer-up .2s ease-out;
+}
+@keyframes ege-drawer-up {
+  from { transform: translateY(100%); }
+  to   { transform: none; }
+}
+.ege-drawer__inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 16px 22px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+}
+.ege-drawer__title {
+  font-family: var(--fb-font-display);
+  font-size: 20px;
+  color: var(--fb-cream);
+  margin-right: auto;
+}
+.ege-drawer__title small {
+  display: block;
+  font-family: var(--fb-font-body);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-accent);
+}
+.ege-drawer__stickers { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+
+.ege-pick {
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.ege-pick:hover .ege-sticker,
+.ege-pick:focus-visible .ege-sticker {
+  transform: rotate(var(--tilt)) scale(1.14) translateY(-3px);
+  filter: drop-shadow(3px 6px 7px rgba(0, 0, 0, .5));
+}
+.ege-pick__count {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  z-index: 5;
+  min-width: 22px;
+  padding: 2px 5px;
+  background: var(--fb-accent);
+  border: 2px solid var(--fb-ink);
+  color: var(--fb-ink);
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.ege-drawer__empty { color: var(--fb-sand); font-size: 13px; font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ege-sticker::before,
+  .ege-sticker::after { animation: none; }
+  .ege-drawer { animation: none; }
+}
+
 /* --- schedule table ----------------------------------------------------- */
 
 /* The kit's table rows are built for picking one; these are just a list. */
@@ -433,6 +821,20 @@ body {
   text-transform: uppercase;
   color: var(--fb-muted-2);
 }
+.ege-scout {
+  display: inline-block;
+  width: 17px;
+  height: 17px;
+  margin-left: 7px;
+  vertical-align: -3px;
+  cursor: help;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  /* head and shoulders */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231d2416'%3E%3Ccircle cx='12' cy='7.5' r='4'/%3E%3Cpath d='M3.5 21a8.5 8.5 0 0 1 17 0z'/%3E%3C/svg%3E");
+}
+
 .ege-schedule__conf {
   margin-left: 4px;
   color: var(--fb-accent-deep);

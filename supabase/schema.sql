@@ -162,3 +162,149 @@ create policy "inventory deleted by owner or admin"
 
 -- A used performance booster is deleted rather than kept: the inventory is
 -- what a player still has, not a receipt book.
+
+-- A season-bound item — Intel — records the season it was bought for, so it
+-- can lapse when that season ends.
+alter table public.player_inventory
+  add column if not exists season integer;
+
+-- What a purchase did to the player's ratings, as { attribute: delta }. A
+-- training row keeps the roll it made, so it is never re-rolled.
+alter table public.player_inventory
+  add column if not exists effects jsonb not null default '{}'::jsonb;
+
+-- Purchases are public, because a boosted overall has to show on a player's
+-- card for everyone. Intel is the exception: only its owner and an admin see
+-- which games scouts will be at.
+-- Drop both names: the old one this replaces, and its own, so re-running the
+-- file never fails on a policy that is already there. A failure here rolls the
+-- whole script back in the Supabase editor, which is how a new column can go
+-- missing after what looked like a successful run.
+drop policy if exists "inventory readable by owner or admin" on public.player_inventory;
+drop policy if exists "inventory readable to all but intel" on public.player_inventory;
+create policy "inventory readable to all but intel"
+  on public.player_inventory for select
+  using (
+    item_key <> 'intel'
+    or email = auth.jwt() ->> 'email'
+    or public.is_admin()
+  );
+
+-- Repeat purchases of the same thing are one row with a quantity, not a row
+-- each: a player buying eighty rating points should leave a handful of rows,
+-- not eighty. Training stays one row per purchase, because each carries its
+-- own roll.
+alter table public.player_inventory
+  add column if not exists quantity integer not null default 1;
+
+-- Anything bought before this existed is one row per purchase. Fold those
+-- together first, or the unique index below will refuse to build.
+--
+-- The keeper is chosen once, in `ranked`, and both the update and the delete
+-- read that same choice. Picking it twice by two different rules would write
+-- the totals onto one row and keep the other.
+with ranked as (
+  select
+    id, email, item_key, target,
+    coalesce(target, '') as target_key,
+    quantity, credits,
+    row_number() over (
+      partition by email, item_key, coalesce(target, '')
+      order by purchased_at, id
+    ) as seq
+  from public.player_inventory
+  where item_key = 'upgrade' or consumable
+),
+totals as (
+  select email, item_key, target_key,
+         sum(quantity) as total_quantity,
+         sum(credits)  as total_credits
+  from ranked
+  group by email, item_key, target_key
+),
+keepers as (
+  select ranked.id, totals.total_quantity, totals.total_credits
+  from ranked
+  join totals
+    on totals.email = ranked.email
+   and totals.item_key = ranked.item_key
+   and totals.target_key = ranked.target_key
+  where ranked.seq = 1
+)
+update public.player_inventory inv
+set quantity = keepers.total_quantity,
+    credits  = keepers.total_credits,
+    effects  = case
+                 when inv.item_key = 'upgrade' and inv.target is not null
+                 then jsonb_build_object(inv.target, keepers.total_quantity)
+                 else inv.effects
+               end
+from keepers
+where inv.id = keepers.id;
+
+delete from public.player_inventory inv
+using (
+  select id, row_number() over (
+    partition by email, item_key, coalesce(target, '')
+    order by purchased_at, id
+  ) as seq
+  from public.player_inventory
+  where item_key = 'upgrade' or consumable
+) dupes
+where inv.id = dupes.id and dupes.seq > 1;
+
+create unique index if not exists player_inventory_stacked_idx
+  on public.player_inventory (email, item_key, coalesce(target, ''))
+  where item_key = 'upgrade' or consumable;
+
+-- PostgREST keeps its own picture of the schema, and a new column is invisible
+-- to the API until that is refreshed. Supabase usually does it on its own; this
+-- makes sure. Without it the site reports that it "could not find the 'quantity'
+-- column of 'player_inventory' in the schema cache".
+notify pgrst, 'reload schema';
+
+-- ===========================================================================
+-- Boosters stuck on games
+--
+-- One row per sticker on a game. Applying one takes it off the inventory
+-- stack; peeling it off puts it back. Once the game has been played the
+-- sticker stays where it is.
+-- ===========================================================================
+
+create table if not exists public.game_boosters (
+  id         uuid primary key default gen_random_uuid(),
+  email      text        not null,
+  season     integer     not null,
+  week       integer     not null,
+  item_key   text        not null,
+  item_name  text        not null,
+  applied_at timestamptz not null default now(),
+  unique (email, season, week)          -- one sticker per game
+);
+
+create index if not exists game_boosters_email_idx
+  on public.game_boosters (email, season, week);
+
+alter table public.game_boosters enable row level security;
+
+-- A sticker is private. Only the player who stuck it on and an admin can see
+-- what is riding on which game — nobody gets to scout the opposition's
+-- boosters. Hiding it in the interface alone would mean nothing, since the
+-- anon key can query this table directly.
+drop policy if exists "game boosters are readable" on public.game_boosters;
+drop policy if exists "game boosters readable by owner or admin" on public.game_boosters;
+create policy "game boosters readable by owner or admin"
+  on public.game_boosters for select to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin());
+
+drop policy if exists "game boosters placed by owner or admin" on public.game_boosters;
+create policy "game boosters placed by owner or admin"
+  on public.game_boosters for insert to authenticated
+  with check (email = auth.jwt() ->> 'email' or public.is_admin());
+
+drop policy if exists "game boosters removed by owner or admin" on public.game_boosters;
+create policy "game boosters removed by owner or admin"
+  on public.game_boosters for delete to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin());
+
+notify pgrst, 'reload schema';

@@ -21,13 +21,21 @@ window.EGE = window.EGE || {};
 /* The season ladder. See the project spec — 2018 junior year of high school
    through the 2023 NFL Draft. */
 EGE.seasons = [
-  { year: 2018, level: 'High school varsity', class: 'Junior year' },
-  { year: 2019, level: 'High school varsity', class: 'Senior year' },
-  { year: 2020, level: 'College football',    class: 'Freshman year' },
-  { year: 2021, level: 'College football',    class: 'Sophomore year' },
-  { year: 2022, level: 'College football',    class: 'Junior year' },
-  { year: 2023, level: 'College football',    class: 'Senior year', optional: true }
+  { year: 2018, level: 'High school varsity', tier: 'highSchool', class: 'Junior year' },
+  { year: 2019, level: 'High school varsity', tier: 'highSchool', class: 'Senior year' },
+  { year: 2020, level: 'College football',    tier: 'college',    class: 'Freshman year' },
+  { year: 2021, level: 'College football',    tier: 'college',    class: 'Sophomore year' },
+  { year: 2022, level: 'College football',    tier: 'college',    class: 'Junior year' },
+  { year: 2023, level: 'College football',    tier: 'college',    class: 'Senior year', optional: true }
 ];
+
+/* Which level of football a season is played at. Nothing is at 'nfl' yet —
+   the ladder ends at the draft. */
+EGE.tierFor = function (season) {
+  var year = season || EGE.currentSeason;
+  var found = EGE.seasons.filter(function (s) { return s.year === year; })[0];
+  return found ? found.tier : null;
+};
 
 /* The season the site opens on. */
 EGE.currentSeason = 2018;

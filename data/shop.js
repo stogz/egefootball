@@ -41,95 +41,66 @@ EGE.shop = {
       blurb: 'Regular season games only, one use per purchase. Save one for a ' +
              'hard opponent, or spend it proving a point against a rival.',
       items: [
-        { key: 'boost-2-5', name: '2.5x Booster', credits: 70, tag: '2.5x', consumable: true },
-        { key: 'boost-2-0', name: '2.0x Booster', credits: 45, tag: '2.0x', consumable: true },
-        { key: 'boost-1-5', name: '1.5x Booster', credits: 25, tag: '1.5x', consumable: true }
+        { key: 'boost-2-5', name: '2.5x Booster', credits: 40, tag: '2.5x', consumable: true },
+        { key: 'boost-2-0', name: '2.0x Booster', credits: 25, tag: '2.0x', consumable: true },
+        { key: 'boost-1-5', name: '1.5x Booster', credits: 15, tag: '1.5x', consumable: true }
       ]
     },
 
     {
-      key: 'stat-boosters',
-      title: 'Stat Boosters',
-      blurb: 'Applied to any one of the attributes below.',
-      items: [
-        { key: 'stat-1', name: '+1 Booster', credits: 15, tag: '+1', needsTarget: true },
-        { key: 'stat-2', name: '+2 Booster', credits: 35, tag: '+2', needsTarget: true },
-        { key: 'stat-3', name: '+3 Booster', credits: 60, tag: '+3', needsTarget: true }
-      ],
-      /* Which attributes a stat booster can be spent on. */
-      targets: [
-        {
-          label: 'Passing',
-          attributes: [
-            { label: 'Throw Power',          key: 'throwPower' },
-            { label: 'Throw Under Pressure', key: 'throwUnderPressure' },
-            { label: 'Throw Accuracy Short', key: 'throwAccuracyShort' },
-            { label: 'Throw Accuracy Mid',   key: 'throwAccuracyMid' },
-            { label: 'Throw Accuracy Deep',  key: 'throwAccuracyDeep' },
-            { label: 'Throw on the Run',     key: 'throwOnTheRun' },
-            { label: 'Play Action',          key: 'playAction' },
-            { label: 'Break Sack',           key: 'breakSack' }
-          ]
-        },
-        {
-          label: 'Receiving',
-          attributes: [
-            { label: 'Catching',             key: 'catching' },
-            { label: 'Catching in Traffic',  key: 'catchInTraffic' },
-            { label: 'Route Running Short',  key: 'routeRunningShort' },
-            { label: 'Route Running Medium', key: 'routeRunningMedium' },
-            { label: 'Route Running Deep',   key: 'routeRunningDeep' },
-            { label: 'Release',              key: 'release' }
-          ]
-        },
-        {
-          label: 'Carrying',
-          attributes: [
-            { label: 'Carrying',            key: 'carrying' },
-            { label: 'Break Tackle',        key: 'breakTackle' },
-            { label: 'Trucking',            key: 'trucking' },
-            { label: 'Change of Direction', key: 'changeOfDirection' },
-            { label: 'Stiff Arm',           key: 'stiffArm' },
-            { label: 'Spin Move',           key: 'spinMove' },
-            { label: 'Juke Move',           key: 'jukeMove' }
-          ]
-        },
-        {
-          label: 'Blocking',
-          attributes: [
-            { label: 'Block Power', key: null },   /* run and pass block power */
-            { label: 'Run Block',   key: 'runBlock' },
-            { label: 'Pass Block',  key: 'passBlock' }
-          ]
-        }
-      ]
+      key: 'upgrades',
+      title: 'Rating Points',
+      blurb: 'Buy points straight into the attributes your position is judged ' +
+             'on. A point costs more the closer that attribute is to 99, so ' +
+             'early ones are a credit or two and late ones are not. The ' +
+             'general attributes are not here — speed, strength, stamina and ' +
+             'the rest move through offseason training only.',
+      upgrades: true,
+      items: []
     },
 
     {
       key: 'training',
       title: 'Offseason Training',
-      blurb: 'Where the whole offseason goes. Each one trades something away.',
+      blurb: 'Where the whole offseason goes. A flat price for a fixed set of ' +
+             'points, which is poor value early and very good value later, ' +
+             'once single points have got expensive.',
       items: [
         {
           key: 'train-strength',
           name: 'Offseason Strength Training',
-          credits: 45,
-          description: 'Strength, power and weight, built with frequent lifting and a ' +
-                       'strict weight-gaining diet. Can cost speed, agility and stamina.'
+          credits: 20,
+          effects: { strength: 4 },
+          risks: [
+            { attribute: 'agility', amount: -2, chance: 0.5 },
+            { attribute: 'stamina', amount: -2, chance: 0.5 },
+            { attribute: 'speed',   amount: -2, chance: 0.5 }
+          ],
+          description: 'Strength +4. Agility, stamina and speed each risk -2, ' +
+                       'rolled when you buy it.'
         },
         {
           key: 'train-cardio',
           name: 'Offseason Cardio Training',
-          credits: 45,
-          description: 'Speed, stamina and agility, built with frequent conditioning ' +
-                       'aimed at losing weight. Can cost strength, power and weight.'
+          credits: 25,
+          effects: { speed: 2, acceleration: 2, agility: 2, stamina: 2 },
+          risks: [
+            { attribute: 'strength', amount: -2, chance: 0.5 }
+          ],
+          description: 'Speed, acceleration, agility and stamina +2 each. ' +
+                       'Strength risks -2, rolled when you buy it.'
         },
         {
           key: 'train-overall',
           name: 'Overall Offseason Training',
-          credits: 35,
-          description: 'Speed, strength, stamina and agility together, but only a little ' +
-                       'of each. No side effects, and no jump as big as training one thing.'
+          credits: 20,
+          effects: {
+            speed: 1, acceleration: 1, strength: 1,
+            agility: 1, jumping: 1, stamina: 1
+          },
+          description: 'Speed, acceleration, strength, agility, jumping and ' +
+                       'stamina +1 each. Nothing to lose, and no jump as big ' +
+                       'as training one thing.'
         }
       ]
     },
@@ -141,27 +112,32 @@ EGE.shop = {
         {
           key: 'qb-connection',
           name: 'QB Connection',
-          credits: 30,
+          nameByPosition: { QB: 'Back Field Connection' },
+          credits: 20,
           description: 'The whole offseason spent with your quarterback, learning his ' +
-                       'routes and calls. Chemistry resets if he is injured, traded or ' +
-                       'otherwise leaves. Better chemistry can mean more targets.'
+                       'routes and calls — or, for a quarterback, with the backs and ' +
+                       'receivers behind him. Chemistry resets if they are injured, ' +
+                       'traded or otherwise leave. Better chemistry can mean more targets.'
         },
         {
           key: 'hyperbaric',
           name: 'Hyperbaric Chamber',
-          credits: 50,
-          creditsLadder: [50, 65, 85],
-          creditsStep: 20,
+          credits: 35,
+          creditsLadder: [35, 45, 60],
+          creditsStep: 15,
           note: 'NFL only',
+          tiers: ['nfl'],
           description: 'Lowers your injury chance, and bought often enough it extends ' +
                        'your career. Only available after your first NFL season. ' +
-                       '50, then 65, then 85, and 20 more each time after that.'
+                       '35, then 45, then 60, and 15 more each time after that.'
         },
         {
           key: 'intel',
           name: 'Intel',
-          credits: 20,
+          credits: 15,
           note: 'High school and college only',
+          tiers: ['highSchool', 'college'],
+          seasonBound: true,          /* good for the season it is bought in */
           description: 'Find out which games scouts will be at — college scouts while ' +
                        'you are in high school, NFL scouts while you are in college. ' +
                        'Nothing left to scout for once you are in the NFL.'
@@ -169,6 +145,34 @@ EGE.shop = {
       ]
     }
   ]
+};
+
+/* What an item is called for this player: a quarterback's connection is with
+   his back field rather than with himself. */
+EGE.itemName = function (item, player) {
+  if (!item) { return ''; }
+  var byPosition = item.nameByPosition || {};
+  return (player && byPosition[player.position]) || item.name;
+};
+
+/* Catalogue items have one flat price. Rating points are the only thing that
+   scales, and their price lives in data/economy.js. */
+EGE.priceFor = function (item) {
+  return item ? item.credits : 0;
+};
+
+/* Whether an item can be bought in a given season, and why not when it
+   cannot. A player with no NFL season behind them cannot buy a chamber. */
+EGE.itemAvailable = function (item, season) {
+  if (!item || !item.tiers) { return { ok: true }; }
+
+  var tier = EGE.tierFor(season);
+  if (item.tiers.indexOf(tier) !== -1) { return { ok: true }; }
+
+  if (item.tiers.length === 1 && item.tiers[0] === 'nfl') {
+    return { ok: false, reason: 'NFL only — nobody has played an NFL season yet.' };
+  }
+  return { ok: false, reason: 'Not available at this level.' };
 };
 
 /* Every purchasable thing, flattened, so an inventory row can name what it
@@ -188,15 +192,5 @@ EGE.shopItem = function (key) {
   return found ? found.item : null;
 };
 
-/* The attributes a stat booster may be spent on, flattened for a picker. */
-EGE.boosterTargets = function () {
-  var section = EGE.shop.sections.filter(function (s) { return s.key === 'stat-boosters'; })[0];
-  if (!section) { return []; }
-  var out = [];
-  section.targets.forEach(function (group) {
-    group.attributes.forEach(function (attr) {
-      out.push({ label: attr.label, key: attr.key, group: group.label });
-    });
-  });
-  return out;
-};
+/* The attributes a stat booster may be spent on — see EGE.boostableFor in
+   data/ratings.js, which reads them off the player's own ratings page. */

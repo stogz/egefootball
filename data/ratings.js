@@ -101,7 +101,9 @@ EGE.ratingGroups = [
    defenders and kickers need attributes this file does not carry. */
 EGE.positionWeights = {
   QB: { general: 20, passing: 46, receiving:  2, ballCarrier: 16 },
-  RB: { general: 26, passing:  1, receiving: 14, ballCarrier: 46 },
+  /* Receiving counts heavily for a back — these are backs who catch, not
+     just carry. */
+  RB: { general: 25, passing:  1, receiving: 22, ballCarrier: 39 },
   WR: { general: 28, passing:  1, receiving: 48, ballCarrier: 20 },
   TE: { general: 26, passing:  1, receiving: 40, ballCarrier: 14, blocking: 20 },
 
@@ -252,9 +254,36 @@ function egeGroupByKey(key) {
   return EGE.ratingGroups.filter(function (g) { return g.key === key; })[0] || null;
 }
 
+/* What the shop has done to a player's ratings, summed per attribute and
+   keyed by player slug — not by email, so a player whose sign-in address is
+   still TBD can carry boosts too. Filled in by js/wallet.js; empty until it
+   has loaded, and empty forever if Supabase is not reachable. */
+EGE.appliedBoosts = {};
+
+EGE.boostsFor = function (player) {
+  if (!player) { return {}; }
+  return EGE.appliedBoosts[player.slug] || {};
+};
+
+/* Base ratings with everything bought folded in. Nothing leaves 1-99. */
+EGE.valuesFor = function (player) {
+  var base = (player && EGE.ratings[player.slug]) || null;
+  if (!base) { return null; }
+
+  var boosts = EGE.boostsFor(player);
+  if (!Object.keys(boosts).length) { return base; }
+
+  var out = {};
+  Object.keys(base).forEach(function (key) {
+    var value = base[key] + (boosts[key] || 0);
+    out[key] = Math.max(1, Math.min(99, value));
+  });
+  return out;
+};
+
 /* A group scores as the plain average of the attributes inside it. */
-EGE.groupRating = function (slug, groupKey) {
-  var values = EGE.ratings[slug];
+EGE.groupRating = function (player, groupKey) {
+  var values = EGE.valuesFor(player);
   var group = egeGroupByKey(groupKey);
   if (!values || !group) { return null; }
 
@@ -264,6 +293,21 @@ EGE.groupRating = function (slug, groupKey) {
     if (typeof values[attr.key] === 'number') { total += values[attr.key]; counted += 1; }
   });
   return counted ? Math.round(total / counted) : null;
+};
+
+/* Every attribute this player's position is judged on, under the labels their
+   page uses. What of it can be bought is the economy's business, not this
+   file's — see TRAINING_ONLY_GROUPS in data/economy.js. */
+EGE.boostableFor = function (player) {
+  var out = [];
+  EGE.shownGroupsFor(player && player.position).forEach(function (shown) {
+    var group = egeGroupByKey(shown.key);
+    if (!group) { return; }
+    group.attributes.forEach(function (attr) {
+      out.push({ key: attr.key, label: attr.label, group: shown.label, groupKey: shown.key });
+    });
+  });
+  return out;
 };
 
 EGE.weightsFor = function (position) {
@@ -278,7 +322,7 @@ EGE.overallFor = function (player) {
   var weighted = 0;
   var totalWeight = 0;
   EGE.ratingGroups.forEach(function (group) {
-    var rating = EGE.groupRating(player.slug, group.key);
+    var rating = EGE.groupRating(player, group.key);
     var weight = weights[group.key] || 0;
     if (rating === null || !weight) { return; }
     weighted += rating * weight;
@@ -293,7 +337,9 @@ EGE.overallFor = function (player) {
    player has no numbers for are dropped rather than rendered empty. */
 EGE.ratingsFor = function (player) {
   if (!player || !EGE.ratings[player.slug]) { return null; }
-  var values = EGE.ratings[player.slug];
+  var values = EGE.valuesFor(player);
+  var base = EGE.ratings[player.slug];
+  var boosts = EGE.boostsFor(player);
 
   return {
     overall: EGE.overallFor(player),
@@ -304,9 +350,15 @@ EGE.ratingsFor = function (player) {
       return {
         key: group.key,
         label: shown.label,
-        rating: EGE.groupRating(player.slug, group.key),
+        rating: EGE.groupRating(player, group.key),
         attributes: group.attributes.map(function (attr) {
-          return { key: attr.key, label: attr.label, value: values[attr.key] };
+          return {
+            key: attr.key,
+            label: attr.label,
+            value: values[attr.key],
+            base: base[attr.key],
+            boost: boosts[attr.key] || 0
+          };
         })
       };
     }).filter(function (group) { return group && group.rating !== null; })

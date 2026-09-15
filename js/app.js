@@ -157,6 +157,204 @@
     return WEEKDAYS[when.getUTCDay()] + ' ' + MONTHS[when.getUTCMonth()] + ' ' + when.getUTCDate();
   }
 
+  /* A head and shoulders in the margin of a scouted game. */
+  function scoutMark() {
+    var mark = el('span', 'ege-scout');
+    mark.title = 'SCOUTS IN ATTENDANCE';
+    mark.setAttribute('aria-label', 'Scouts in attendance');
+    mark.setAttribute('role', 'img');
+    return mark;
+  }
+
+  var showScouts = false;
+  var schedulePlayer = null;
+
+  /* --- booster stickers --------------------------------------------------- */
+
+  var STICKER_LOOK = {
+    'boost-2-5': { modifier: 'holo',   label: '2.5x' },
+    'boost-2-0': { modifier: 'gold',   label: '2.0x' },
+    'boost-1-5': { modifier: 'silver', label: '1.5x' }
+  };
+
+  /* A scatter that is random per sticker but settled once it is placed: the
+     row's own id is the seed, so the angle survives every redraw and no two
+     stickers land the same way. */
+  function scatter(seed) {
+    var hash = 2166136261;
+    String(seed).split('').forEach(function (ch) {
+      hash ^= ch.charCodeAt(0);
+      hash = (hash * 16777619) >>> 0;
+    });
+    return {
+      tilt: ((hash % 33) - 16),                  /* -16deg .. +16deg */
+      nudge: (((hash >>> 8) % 13) - 6)           /* -6px .. +6px  */
+    };
+  }
+
+  function stickerEl(itemKey, size, seed) {
+    var look = STICKER_LOOK[itemKey];
+    if (!look) { return null; }
+
+    var sticker = el('span', 'ege-sticker ege-sticker--' + look.modifier);
+    sticker.style.setProperty('--sticker-size', (size || 40) + 'px');
+    sticker.style.setProperty('--tilt', scatter(seed == null ? itemKey : seed).tilt + 'deg');
+
+    var face = el('span', 'ege-sticker__face');
+    face.appendChild(el('span', 'ege-sticker__text', look.label));
+    sticker.appendChild(face);
+
+    return sticker;
+  }
+
+  /* Stickers are private: your own, or anyone's if you are an admin. The
+     policy on game_boosters enforces it; this only decides what to draw. */
+  function canSeeStickers(player) {
+    return isMe(player) || EGE.wallet.admin();
+  }
+
+  function stickerOn(player, week) {
+    if (!canSeeStickers(player)) { return null; }
+    var byWeek = (EGE.gameBoosters || {})[player.slug] || {};
+    return byWeek[week] || null;
+  }
+
+  /* The slot at the end of a schedule row: a sticker if one is stuck there,
+     a plus if this is your own unplayed game, and nothing otherwise. */
+  function stickerSlot(player, game) {
+    var slot = el('span', 'ege-slot');
+    var mine = isMe(player);
+    var played = EGE.isFinal(game);
+    var stuck = stickerOn(player, game.week);
+
+    if (stuck) {
+      var peelable = mine && !played;
+      var applied = el('button', 'ege-slot__applied ' +
+        (peelable ? 'ege-slot__applied--peelable' : 'ege-slot__applied--stuck'));
+      applied.type = 'button';
+      applied.disabled = !peelable;
+      applied.title = peelable
+        ? stuck.item_name + ' \u2014 click to peel it off'
+        : stuck.item_name + ' \u2014 the game has been played, it stays put';
+      /* Bigger than the row on purpose, sitting over it, and nudged a few
+         pixels up or down so it overlaps the row above or below. */
+      var seed = stuck.id || (player.slug + '-' + game.week);
+      var placing = scatter(seed);
+      var sticker = stickerEl(stuck.item_key, 62, seed);
+      applied.style.setProperty('--sticker-size', '62px');
+      applied.style.setProperty('--nudge', placing.nudge + 'px');
+      applied.appendChild(sticker);
+      if (peelable) {
+        sticker.appendChild(el('span', 'ege-sticker__hatch'));
+        sticker.appendChild(el('span', 'ege-sticker__x', '\u00d7'));
+        applied.addEventListener('click', function () {
+          applied.disabled = true;
+          EGE.wallet.peelBooster(player.email, stuck).then(function (res) {
+            announce(res.message, !res.ok);
+            refreshShop();
+          });
+        });
+      }
+      slot.appendChild(applied);
+      return slot;
+    }
+
+    if (mine && !played) {
+      var add = el('button', 'ege-slot__add', '+');
+      add.type = 'button';
+      add.title = 'Put a booster on this game';
+      add.setAttribute('aria-label', 'Put a booster on week ' + game.week);
+      add.addEventListener('click', function () { openDrawer(player, game); });
+      slot.appendChild(add);
+    }
+
+    return slot;
+  }
+
+  function isMe(player) {
+    var signedIn = EGE.auth.currentPlayer();
+    return Boolean(signedIn && player && signedIn.slug === player.slug);
+  }
+
+  /* --- the drawer --------------------------------------------------------- */
+
+  var drawer = null;
+  var drawerFor = null;
+
+  function announce(message, isError) {
+    sayShop(message, isError);
+    if (drawer) { renderDrawer(); }
+  }
+
+  function closeDrawer() {
+    drawerFor = null;
+    if (drawer) { drawer.remove(); drawer = null; }
+  }
+
+  function openDrawer(player, game) {
+    drawerFor = { player: player, game: game };
+    renderDrawer();
+  }
+
+  function renderDrawer() {
+    if (!drawerFor) { return; }
+    if (drawer) { drawer.remove(); }
+
+    var game = drawerFor.game;
+    var player = drawerFor.player;
+
+    drawer = el('div', 'ege-drawer');
+    var inner = el('div', 'ege-drawer__inner');
+
+    var title = el('div', 'ege-drawer__title');
+    title.appendChild(el('small', null, 'Week ' + game.week + ' \u00b7 ' +
+      (game.home ? 'vs ' : 'at ') + game.opponent));
+    title.appendChild(document.createTextNode('Your Booster Stickers'));
+    inner.appendChild(title);
+
+    var owned = shopState.inventory.filter(function (row) {
+      return row.consumable && STICKER_LOOK[row.item_key];
+    });
+
+    if (!owned.length) {
+      inner.appendChild(el('span', 'ege-drawer__empty',
+        'No boosters in the drawer. They are in the shop.'));
+    } else {
+      var strip = el('div', 'ege-drawer__stickers');
+      owned.forEach(function (row) {
+        var pick = el('button', 'ege-pick');
+        pick.type = 'button';
+        pick.title = 'Stick ' + row.item_name + ' on week ' + game.week;
+        pick.appendChild(stickerEl(row.item_key, 76, row.item_key));
+        pick.appendChild(el('span', 'ege-pick__count', '\u00d7' + EGE.wallet.quantityOf(row)));
+        pick.addEventListener('click', function () {
+          pick.disabled = true;
+          EGE.wallet.applyBooster(player.email, EGE.shopItem(row.item_key),
+                                  EGE.currentSeason, game.week)
+            .then(function (res) {
+              sayShop(res.message, !res.ok);
+              if (res.ok) { closeDrawer(); }
+              refreshShop();
+            });
+        });
+        strip.appendChild(pick);
+      });
+      inner.appendChild(strip);
+    }
+
+    var close = el('button', 'fb-btn fb-btn--inverse', 'Close');
+    close.type = 'button';
+    close.addEventListener('click', closeDrawer);
+    inner.appendChild(close);
+
+    drawer.appendChild(inner);
+    document.body.appendChild(drawer);
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && drawer) { closeDrawer(); }
+  });
+
   function scheduleRow(game) {
     var row = el('tr');
 
@@ -172,6 +370,7 @@
       mark.title = 'Conference game';
       opponent.appendChild(mark);
     }
+    if (showScouts && game.scouts) { opponent.appendChild(scoutMark()); }
     row.appendChild(opponent);
 
     var result = el('td', 'num');
@@ -184,6 +383,10 @@
     }
     row.appendChild(result);
 
+    var slot = el('td', 'num ege-schedule__slot');
+    if (schedulePlayer) { slot.appendChild(stickerSlot(schedulePlayer, game)); }
+    row.appendChild(slot);
+
     return row;
   }
 
@@ -191,6 +394,9 @@
     var panel = document.getElementById('schedulePanel');
     var body = document.getElementById('scheduleBody');
     var games = EGE.gamesFor(player);
+
+    showScouts = canSeeScouts(player);
+    schedulePlayer = player;
 
     body.innerHTML = '';
     panel.hidden = false;
@@ -211,9 +417,12 @@
       : EGE.currentSeason + ' \u00b7 ' + games.length + ' games \u00b7 none played yet';
 
     var conference = games.filter(function (game) { return game.conference; }).length;
-    document.getElementById('scheduleLegend').textContent = conference
-      ? '* conference game (' + conference + ' of ' + games.length + ')'
-      : '';
+    var legend = conference ? '* conference game (' + conference + ' of ' + games.length + ')' : '';
+    if (showScouts) {
+      var scouted = EGE.scoutedGames(player).length;
+      legend += (legend ? ' \u00b7 ' : '') + 'Intel: scouts at ' + scouted + ' games this season';
+    }
+    document.getElementById('scheduleLegend').textContent = legend;
   }
 
   /* --- ratings ---------------------------------------------------------- */
@@ -264,12 +473,22 @@
   var sayShop = reporter('shopMessage');
   var shopState = { player: null, credits: 0, inventory: [], built: false };
 
+  /* Scouts are in the schedule data all along; Intel is what lets a player
+     see them, and only on their own page, for the season they bought it. */
+  function canSeeScouts(player) {
+    var signedIn = EGE.auth.currentPlayer();
+    if (!signedIn || !player || signedIn.slug !== player.slug) { return false; }
+    return EGE.wallet.hasIntel(shopState.inventory);
+  }
+
   function creditTag(credits) {
     return el('span', 'fb-tag fb-tag--num fb-tag--gold', credits + ' cr');
   }
 
   function targetLabel(key) {
-    var found = EGE.boosterTargets().filter(function (t) { return t.key === key || t.label === key; })[0];
+    var found = EGE.ratingGroups
+      .reduce(function (all, group) { return all.concat(group.attributes); }, [])
+      .filter(function (attr) { return attr.key === key; })[0];
     return found ? found.label : key;
   }
 
@@ -279,31 +498,29 @@
     var card = el('div', 'ege-item');
 
     var head = el('div', 'ege-item__head');
-    head.appendChild(el('h4', 'ege-item__name', item.name));
+    head.appendChild(el('h4', 'ege-item__name', EGE.itemName(item, shopState.player)));
     head.appendChild(creditTag(item.credits));
     card.appendChild(head);
 
     if (item.note) { card.appendChild(el('span', 'fb-tag fb-tag--outline', item.note)); }
     if (item.description) { card.appendChild(el('p', 'ege-item__text', item.description)); }
 
-    /* A stat booster has to know what it is raising before it can be bought. */
     var picker = null;
-    if (item.needsTarget) {
-      picker = el('select', 'fb-select ege-item__target');
-      EGE.boosterTargets().forEach(function (target) {
-        var opt = el('option', null, target.group + ' \u00b7 ' + target.label);
-        opt.value = target.label;
-        picker.appendChild(opt);
-      });
-      card.appendChild(picker);
+    var allowed = EGE.itemAvailable(item, EGE.currentSeason);
+    if (!allowed.ok) {
+      card.classList.add('ege-item--locked');
+      card.appendChild(el('p', 'ege-item__blocked', allowed.reason));
     }
 
-    var buy = el('button', 'fb-btn fb-btn--primary fb-btn--block', 'Buy');
+    var buy = el('button', 'fb-btn fb-btn--primary fb-btn--block',
+      allowed.ok ? 'Buy' : 'Unavailable');
     buy.type = 'button';
+    buy.disabled = !allowed.ok;
+    if (picker) { picker.disabled = !allowed.ok; }
     buy.addEventListener('click', function () {
       buy.disabled = true;
       sayShop('Buying\u2026', false);
-      EGE.wallet.buy(shopState.player.email, item, picker ? picker.value : null)
+      EGE.wallet.buy(shopState.player.email, item, null, shopState.player)
         .then(function (res) {
           buy.disabled = false;
           sayShop(res.message, !res.ok);
@@ -325,51 +542,169 @@
     var body = el('div', 'fb-panel__body fb-stack fb-stack--lg');
     if (section.blurb) { body.appendChild(el('p', 'ege-item__text', section.blurb)); }
 
-    var grid = el('div', 'ege-items');
-    section.items.forEach(function (item) { grid.appendChild(buildShopItem(item)); });
-    body.appendChild(grid);
-
-    if (section.targets) { body.appendChild(buildTargets(section.targets)); }
+    if (section.upgrades) {
+      body.appendChild(buildUpgrades());
+    } else {
+      var grid = el('div', 'ege-items');
+      section.items.forEach(function (item) { grid.appendChild(buildShopItem(item)); });
+      body.appendChild(grid);
+    }
 
     panel.appendChild(body);
     return panel;
   }
 
-  /* The attributes a stat booster can be spent on, grouped the way the shop
-     lists them. */
-  function buildTargets(targets) {
-    var wrap = el('div', 'ege-targets');
-    targets.forEach(function (group) {
-      var box = el('div', 'ege-targets__group');
-      box.appendChild(el('span', 'fb-eyebrow', group.label));
-      var list = el('div', 'fb-row fb-row--wrap');
-      group.attributes.forEach(function (attr) {
-        list.appendChild(el('span', 'fb-tag', attr.label));
+  /* Rating points get a table: every attribute this position is judged on,
+     what it is at, and what the next point costs. Buying redraws it, because
+     the next point always costs a little more. */
+  var upgradesBody = null;
+
+  function upgradeRow(row) {
+    var tr = el('tr');
+
+    tr.appendChild(el('td', 'ege-upgrade__group', row.group));
+    tr.appendChild(el('td', null, row.label));
+
+    var value = el('td', 'num');
+    value.appendChild(el('strong', null, row.value));
+    if (row.base !== row.value) {
+      var moved = row.value - row.base;
+      value.appendChild(el('span', 'ege-upgrade__moved', ' ' + (moved > 0 ? '+' : '') + moved));
+    }
+    tr.appendChild(value);
+
+    var meter = el('td');
+    var bar = el('div', 'fb-meter');
+    var fill = el('div', 'fb-meter__fill' + (row.value >= 80 ? '' : ' fb-meter__fill--alt'));
+    fill.style.width = Math.max(0, Math.min(100, row.value)) + '%';
+    bar.appendChild(fill);
+    meter.appendChild(bar);
+    tr.appendChild(meter);
+
+    var per = el('td', 'num');
+    per.appendChild(el('span', 'ege-upgrade__per', row.pointsPerOverall || '\u2014'));
+    tr.appendChild(per);
+
+    /* One button per size: a point, two points, four. */
+    EGE.economy.BULK_SIZES.forEach(function (points) {
+      var cell = el('td', 'num');
+
+      if (row.cost === null) {
+        cell.appendChild(el('span', 'fb-tag fb-tag--outline', points === 1 ? 'Maxed' : ''));
+        tr.appendChild(cell);
+        return;
+      }
+
+      var buying = EGE.economy.pointsAvailable(row.value, points);
+      var price = EGE.economy.bulkCost(row.value, buying);
+
+      var buy = el('button', 'fb-btn ege-upgrade__buy' + (points === 1 ? ' fb-btn--primary' : ''));
+      buy.type = 'button';
+      buy.textContent = '+' + points + '  \u00b7  ' + price;
+      buy.disabled = shopState.credits < price;
+      buy.title = buying < points
+        ? 'Only ' + buying + ' left below ' + EGE.economy.MAX_RATING
+        : row.label + ' ' + row.value + ' \u2192 ' + (row.value + buying) + ' for ' + price + ' credits';
+      buy.addEventListener('click', function () {
+        buy.disabled = true;
+        sayShop('Buying\u2026', false);
+        EGE.wallet.buyUpgrade(shopState.player.email, shopState.player, row.key, points)
+          .then(function (res) {
+            sayShop(res.message, !res.ok);
+            refreshShop();
+          });
       });
-      box.appendChild(list);
-      wrap.appendChild(box);
+      cell.appendChild(buy);
+      tr.appendChild(cell);
     });
+
+    return tr;
+  }
+
+  function buildUpgrades() {
+    var wrap = el('div', 'fb-tablewrap');
+    var table = el('table', 'fb-table ege-upgrades');
+
+    var head = el('thead');
+    var headRow = el('tr');
+    ['Group', 'Attribute', 'Rating', '', 'Points per +1 OVR', 'Next point', '', '']
+      .forEach(function (label, i) {
+        headRow.appendChild(el('th', i >= 2 ? 'num' : null, label));
+      });
+    head.appendChild(headRow);
+    table.appendChild(head);
+
+    upgradesBody = el('tbody');
+    table.appendChild(upgradesBody);
+    wrap.appendChild(table);
+
+    refreshUpgrades();
     return wrap;
+  }
+
+  function refreshUpgrades() {
+    if (!upgradesBody || !shopState.player) { return; }
+    upgradesBody.innerHTML = '';
+    EGE.economy.upgradePlan(shopState.player).forEach(function (row) {
+      upgradesBody.appendChild(upgradeRow(row));
+    });
   }
 
   /* --- the inventory ----------------------------------------------------- */
 
   function inventoryCard(row, options) {
-    var card = el('div', 'ege-item' + (row.active ? ' ege-item--active' : ''));
+    var lapsed = EGE.wallet.lapsed(row);
+    var live = row.active && !lapsed;
+    var quantity = EGE.wallet.quantityOf(row);
+    var isUpgrade = row.item_key === 'upgrade';
+    var card = el('div', 'ege-item' + (live ? ' ege-item--active' : '') +
+      (lapsed ? ' ege-item--locked' : ''));
+
+    /* Points read as what they are: Catching +5. Everything else keeps its
+       name and carries a count when there is more than one. */
+    var state = isUpgrade
+      ? '+' + quantity
+      : (lapsed ? 'Expired' : (row.active ? 'In effect' : (row.consumable ? 'Unused' : 'Off')));
 
     var head = el('div', 'ege-item__head');
-    head.appendChild(el('h4', 'ege-item__name', row.item_name));
-    head.appendChild(el('span', 'fb-tag fb-tag--num ' + (row.active ? 'fb-tag--sage' : 'fb-tag--outline'),
-      row.active ? 'In effect' : (row.consumable ? 'Unused' : 'Off')));
+    head.appendChild(el('h4', 'ege-item__name',
+      row.item_name + (!isUpgrade && quantity > 1 ? ' \u00d7' + quantity : '')));
+    head.appendChild(el('span', 'fb-tag fb-tag--num ' +
+      (live ? 'fb-tag--sage' : (lapsed ? 'fb-tag--clay' : 'fb-tag--outline')), state));
     card.appendChild(head);
 
-    if (row.target) {
-      card.appendChild(el('p', 'ege-item__text', 'Applied to ' + targetLabel(row.target) + '.'));
+    if (typeof row.season === 'number') {
+      card.appendChild(el('p', 'ege-item__text', lapsed
+        ? 'Bought for the ' + row.season + ' season, which is over.'
+        : 'Good for the ' + row.season + ' season only.'));
+    }
+
+    if (isUpgrade) {
+      card.appendChild(el('p', 'ege-item__text',
+        (row.credits || 0) + ' credits spent, all of it in the rating.'));
+    } else if (row.effects && Object.keys(row.effects).length) {
+      card.appendChild(el('p', 'ege-item__text', Object.keys(row.effects).map(function (attr) {
+        return targetLabel(attr) + ' ' + (row.effects[attr] > 0 ? '+' : '') + row.effects[attr];
+      }).join(', ')));
     }
 
     var actions = el('div', 'fb-row fb-row--wrap');
 
-    if (row.consumable) {
+    if (isUpgrade) {
+      if (options.admin) {
+        var minus = el('button', 'fb-btn', '\u22121');
+        minus.type = 'button';
+        minus.title = 'Take one point back';
+        minus.addEventListener('click', function () {
+          minus.disabled = true;
+          EGE.wallet.decrement(row).then(function (res) {
+            options.report(res.message, !res.ok);
+            options.refresh();
+          });
+        });
+        actions.appendChild(minus);
+      }
+    } else if (row.consumable) {
       var use = el('button', 'fb-btn fb-btn--primary', 'Use');
       use.type = 'button';
       use.title = 'Using it spends it';
@@ -381,7 +716,7 @@
         });
       });
       actions.appendChild(use);
-    } else {
+    } else if (!lapsed) {
       var toggle = el('button', 'fb-btn', row.active ? 'Turn off' : 'Turn on');
       toggle.type = 'button';
       toggle.addEventListener('click', function () {
@@ -411,12 +746,48 @@
     return card;
   }
 
+  /* Everything a player's purchases add up to, attribute by attribute. */
+  function boostSummary(rows) {
+    var totals = {};
+    rows.forEach(function (row) {
+      if (!row.active || EGE.wallet.lapsed(row) || !row.effects) { return; }
+      Object.keys(row.effects).forEach(function (attr) {
+        totals[attr] = (totals[attr] || 0) + row.effects[attr];
+      });
+    });
+    return totals;
+  }
+
+  function buildBoostSummary(totals) {
+    var keys = Object.keys(totals).filter(function (key) { return totals[key] !== 0; });
+    if (!keys.length) { return null; }
+
+    keys.sort(function (a, b) { return totals[b] - totals[a]; });
+
+    var box = el('div', 'ege-applied');
+    box.appendChild(el('span', 'fb-eyebrow', 'Applied to your ratings'));
+
+    var list = el('div', 'fb-row fb-row--wrap');
+    keys.forEach(function (key) {
+      var up = totals[key] > 0;
+      list.appendChild(el('span', 'fb-tag fb-tag--num ' + (up ? 'fb-tag--sage' : 'fb-tag--clay'),
+        targetLabel(key) + ' ' + (up ? '+' : '') + totals[key]));
+    });
+    box.appendChild(list);
+    return box;
+  }
+
   function renderInventory() {
     var holder = document.getElementById('inventoryItems');
+    var applied = document.getElementById('inventoryApplied');
     holder.innerHTML = '';
+    applied.innerHTML = '';
 
     document.getElementById('shopBalance').textContent = shopState.credits;
     document.getElementById('inventoryEmpty').hidden = shopState.inventory.length > 0;
+
+    var summary = buildBoostSummary(boostSummary(shopState.inventory));
+    if (summary) { applied.appendChild(summary); }
 
     shopState.inventory.forEach(function (row) {
       holder.appendChild(inventoryCard(row, {
@@ -529,11 +900,16 @@
 
     return Promise.all([
       EGE.wallet.creditsFor(player.email),
-      EGE.wallet.inventoryFor(player.email)
-    ]).then(function (both) {
-      shopState.credits = both[0] === null ? EGE.shop.startingCredits : both[0];
-      shopState.inventory = both[1];
+      EGE.wallet.inventoryFor(player.email),
+      EGE.wallet.loadBoosts(),
+      EGE.wallet.loadGameBoosters(EGE.currentSeason)
+    ]).then(function (all) {
+      shopState.credits = all[0] === null ? EGE.shop.startingCredits : all[0];
+      shopState.inventory = all[1];
       renderInventory();
+      refreshUpgrades();
+      redrawRatings();
+      refreshScoutMarks();
       updateNavCredits(shopState.credits);
       return renderAdmin();
     });
@@ -570,6 +946,25 @@
     sayShop('', false);
     buildCatalogue();
     refreshShop();
+  }
+
+  /* Boosts land after a page may already have been drawn — the roster's
+     overalls and the open player page both need redrawing. */
+  function redrawRatings() {
+    roster.innerHTML = '';
+    renderRoster();
+
+    var hash = window.location.hash.replace(/^#/, '');
+    var player = hash ? EGE.playerBySlug(hash) : null;
+    if (player) { renderPlayer(player); }
+  }
+
+  /* The inventory arrives after a page may already have been drawn, so redraw
+     the schedule if what it shows has changed. */
+  function refreshScoutMarks() {
+    var hash = window.location.hash.replace(/^#/, '');
+    var player = hash ? EGE.playerBySlug(hash) : null;
+    if (player && canSeeScouts(player) !== showScouts) { renderSchedule(player); }
   }
 
   /* --- routing ---------------------------------------------------------- */
@@ -804,7 +1199,12 @@
 
   EGE.auth.onChange(function (player) {
     if (player) {
-      EGE.wallet.refreshAdmin(player.email).then(function () { route(); });
+      /* The wallet loads on sign-in, not on reaching the shop: a player page
+         needs the inventory too, to know whether to show the scouts. */
+      shopState.player = player;
+      EGE.wallet.refreshAdmin(player.email)
+        .then(refreshShop)
+        .then(route);
       showSignedInNav(player);
       document.getElementById('signedInName').textContent = player.name;
       var photo = document.getElementById('signedInPhoto');
@@ -815,6 +1215,9 @@
       showSignedOutNav();
       showPanel(panelAuth);
       loadAccount();
+      shopState.player = null;
+      shopState.inventory = [];
+      shopState.credits = EGE.shop.startingCredits;
     }
     route();          /* the shop appears and disappears with the session */
   });
