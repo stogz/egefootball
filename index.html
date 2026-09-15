@@ -101,21 +101,16 @@
       <button class="fb-modal__close" type="button" data-close-login aria-label="Close">&times;</button>
     </div>
 
-    <!-- ---------- signed out: sign in / first password ---------------- -->
+    <!-- ---------- signed out ------------------------------------------ -->
     <div class="fb-modal__body" id="panelAuth">
       <label class="ege-field">
         <span class="fb-eyebrow">Player</span>
         <select class="fb-select" id="loginPlayer"></select>
       </label>
 
-      <div class="fb-seg" id="authTabs" role="tablist">
-        <button class="fb-seg__opt is-active" type="button" role="tab"
-                aria-selected="true" data-mode="signin">Sign In</button>
-        <button class="fb-seg__opt" type="button" role="tab"
-                aria-selected="false" data-mode="create">First Time</button>
-      </div>
+      <p class="fb-meta" style="margin: 0;" id="authLead">Checking this account&hellip;</p>
 
-      <form class="fb-stack" id="authForm">
+      <form class="fb-stack" id="authForm" hidden>
         <label class="ege-field">
           <span class="fb-eyebrow" id="passwordLabel">Password</span>
           <span class="ege-pw">
@@ -134,7 +129,9 @@
             <button class="ege-eye" type="button" data-reveals="authConfirm"
                     aria-label="Show password" aria-pressed="false"></button>
           </span>
-          <span class="fb-meta">Type it twice so a typo can't lock you out.</span>
+          <span class="fb-meta">
+            Type it twice. This password is permanent — only an admin can change it later.
+          </span>
         </label>
 
         <p class="ege-note" id="authMessage" role="alert" hidden></p>
@@ -143,66 +140,12 @@
           Sign In
         </button>
 
-        <button class="fb-btn fb-btn--ghost fb-btn--block" id="forgotBtn" type="button">
-          Forgot password? Email me a PIN
+        <!-- Only shown when the account table cannot be reached, so the
+             portal cannot tell which form this player needs. -->
+        <button class="fb-btn fb-btn--ghost fb-btn--block" id="modeSwitch" type="button" hidden>
+          First time? Set your password
         </button>
       </form>
-    </div>
-
-    <!-- ---------- forgotten password: PIN then new password ----------- -->
-    <div class="fb-modal__body" id="panelPin" hidden>
-      <p class="fb-meta" style="margin: 0;" id="pinWho"></p>
-
-      <!-- step 1 -->
-      <form class="fb-stack" id="pinForm">
-        <label class="ege-field">
-          <span class="fb-eyebrow">Six-digit PIN</span>
-          <input class="fb-input ege-pin" id="pinCode" type="text"
-                 inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
-                 title="The six digits from the email" placeholder="000000"
-                 autocomplete="one-time-code" required>
-        </label>
-
-        <p class="ege-note" id="pinMessage" role="alert" hidden></p>
-
-        <button class="fb-btn fb-btn--primary fb-btn--block" id="pinSubmit" type="submit">
-          Check PIN
-        </button>
-        <button class="fb-btn fb-btn--block" id="pinResend" type="button">Send another PIN</button>
-      </form>
-
-      <!-- step 2 -->
-      <form class="fb-stack" id="newPasswordForm" hidden>
-        <label class="ege-field">
-          <span class="fb-eyebrow">New password</span>
-          <span class="ege-pw">
-            <input class="fb-input" id="newPassword" type="password"
-                   autocomplete="new-password" minlength="8" required>
-            <button class="ege-eye" type="button" data-reveals="newPassword"
-                    aria-label="Show password" aria-pressed="false"></button>
-          </span>
-        </label>
-
-        <label class="ege-field">
-          <span class="fb-eyebrow">Confirm new password</span>
-          <span class="ege-pw">
-            <input class="fb-input" id="newPasswordConfirm" type="password"
-                   autocomplete="new-password" minlength="8" required>
-            <button class="ege-eye" type="button" data-reveals="newPasswordConfirm"
-                    aria-label="Show password" aria-pressed="false"></button>
-          </span>
-        </label>
-
-        <p class="ege-note" id="newPasswordMessage" role="alert" hidden></p>
-
-        <button class="fb-btn fb-btn--primary fb-btn--block" id="newPasswordSubmit" type="submit">
-          Save Password
-        </button>
-      </form>
-
-      <button class="fb-btn fb-btn--ghost fb-btn--block" id="pinBack" type="button">
-        &larr; Back
-      </button>
     </div>
 
     <!-- ---------- signed in ------------------------------------------- -->
