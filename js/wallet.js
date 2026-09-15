@@ -248,10 +248,11 @@ EGE.wallet = (function () {
   /* Buys one point on one attribute. The price comes from what the attribute
      is at right now, so it is worked out here rather than trusted from the
      page that asked. */
-  function buyUpgrade(email, player, attributeKey) {
+  function buyUpgrade(email, player, attributeKey, points) {
     var c = client();
     if (!c) { return fail(offline()); }
 
+    var wanted = points || 1;
     var attribute = EGE.economy.upgradePlan(player).filter(function (row) {
       return row.key === attributeKey;
     })[0];
@@ -261,34 +262,42 @@ EGE.wallet = (function () {
       return fail(attribute.label + ' is already at ' + EGE.economy.MAX_RATING + '.');
     }
 
+    /* Never sell more than there is room for below 99. */
+    var buying = EGE.economy.pointsAvailable(attribute.value, wanted);
+    if (!buying) {
+      return fail(attribute.label + ' is already at ' + EGE.economy.MAX_RATING + '.');
+    }
+
+    var price = EGE.economy.bulkCost(attribute.value, buying);
+
     return creditsFor(email).then(function (balance) {
       if (balance === null) { return { ok: false, message: offline() }; }
-      if (balance < attribute.cost) {
+      if (balance < price) {
         return {
           ok: false,
-          message: 'Not enough credits — that point costs ' + attribute.cost + ', you have ' + balance + '.'
+          message: 'Not enough credits — that costs ' + price + ', you have ' + balance + '.'
         };
       }
 
       return inventoryFor(email).then(function (rows) {
         var existing = stackedRow(rows, 'upgrade', attributeKey);
-        var points = existing ? quantityOf(existing) + 1 : 1;
+        var owned = existing ? quantityOf(existing) + buying : buying;
         var effects = {};
-        effects[attributeKey] = points;
+        effects[attributeKey] = owned;
 
         var write = existing
           ? c.from(INVENTORY).update({
-              quantity: points,
+              quantity: owned,
               effects: effects,
-              credits: (existing.credits || 0) + attribute.cost
+              credits: (existing.credits || 0) + price
             }).eq('id', existing.id)
           : c.from(INVENTORY).insert({
               email: email,
               item_key: 'upgrade',
               item_name: attribute.label,
               target: attributeKey,
-              quantity: 1,
-              credits: attribute.cost,
+              quantity: buying,
+              credits: price,
               effects: effects,
               consumable: false,
               season: null,
@@ -301,8 +310,8 @@ EGE.wallet = (function () {
             if (!spent.ok) { return spent; }
             return {
               ok: true,
-              message: attribute.label + ' ' + attribute.value + ' \u2192 ' + (attribute.value + 1) +
-                       ' for ' + attribute.cost + ' credits.',
+              message: attribute.label + ' ' + attribute.value + ' \u2192 ' + (attribute.value + buying) +
+                       ' for ' + price + ' credits.',
               credits: spent.credits
             };
           });

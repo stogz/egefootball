@@ -101,7 +101,9 @@ EGE.ratingGroups = [
    defenders and kickers need attributes this file does not carry. */
 EGE.positionWeights = {
   QB: { general: 20, passing: 46, receiving:  2, ballCarrier: 16 },
-  RB: { general: 26, passing:  1, receiving: 14, ballCarrier: 46 },
+  /* Receiving counts heavily for a back — these are backs who catch, not
+     just carry. */
+  RB: { general: 25, passing:  1, receiving: 22, ballCarrier: 39 },
   WR: { general: 28, passing:  1, receiving: 48, ballCarrier: 20 },
   TE: { general: 26, passing:  1, receiving: 40, ballCarrier: 14, blocking: 20 },
 

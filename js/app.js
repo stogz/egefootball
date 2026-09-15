@@ -393,27 +393,38 @@
     per.appendChild(el('span', 'ege-upgrade__per', row.pointsPerOverall || '\u2014'));
     tr.appendChild(per);
 
-    var action = el('td', 'num');
-    if (row.cost === null) {
-      action.appendChild(el('span', 'fb-tag fb-tag--outline', 'Maxed'));
-    } else {
-      var buy = el('button', 'fb-btn fb-btn--primary ege-upgrade__buy');
+    /* One button per size: a point, two points, four. */
+    EGE.economy.BULK_SIZES.forEach(function (points) {
+      var cell = el('td', 'num');
+
+      if (row.cost === null) {
+        cell.appendChild(el('span', 'fb-tag fb-tag--outline', points === 1 ? 'Maxed' : ''));
+        tr.appendChild(cell);
+        return;
+      }
+
+      var buying = EGE.economy.pointsAvailable(row.value, points);
+      var price = EGE.economy.bulkCost(row.value, buying);
+
+      var buy = el('button', 'fb-btn ege-upgrade__buy' + (points === 1 ? ' fb-btn--primary' : ''));
       buy.type = 'button';
-      buy.textContent = '+1  \u00b7  ' + row.cost + ' cr';
-      buy.disabled = shopState.credits < row.cost;
-      buy.title = row.label + ' ' + row.value + ' \u2192 ' + (row.value + 1);
+      buy.textContent = '+' + points + '  \u00b7  ' + price;
+      buy.disabled = shopState.credits < price;
+      buy.title = buying < points
+        ? 'Only ' + buying + ' left below ' + EGE.economy.MAX_RATING
+        : row.label + ' ' + row.value + ' \u2192 ' + (row.value + buying) + ' for ' + price + ' credits';
       buy.addEventListener('click', function () {
         buy.disabled = true;
         sayShop('Buying\u2026', false);
-        EGE.wallet.buyUpgrade(shopState.player.email, shopState.player, row.key)
+        EGE.wallet.buyUpgrade(shopState.player.email, shopState.player, row.key, points)
           .then(function (res) {
             sayShop(res.message, !res.ok);
             refreshShop();
           });
       });
-      action.appendChild(buy);
-    }
-    tr.appendChild(action);
+      cell.appendChild(buy);
+      tr.appendChild(cell);
+    });
 
     return tr;
   }
@@ -424,7 +435,7 @@
 
     var head = el('thead');
     var headRow = el('tr');
-    ['Group', 'Attribute', 'Rating', '', 'Points per +1 OVR', 'Next point']
+    ['Group', 'Attribute', 'Rating', '', 'Points per +1 OVR', 'Next point', '', '']
       .forEach(function (label, i) {
         headRow.appendChild(el('th', i >= 2 ? 'num' : null, label));
       });

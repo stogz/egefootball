@@ -432,11 +432,15 @@ body {
 .ege-upgrade__moved { font-weight: 800; color: var(--fb-accent-deep); }
 .ege-upgrade__per { font-weight: 800; color: var(--fb-muted); font-variant-numeric: tabular-nums; }
 .ege-upgrade__buy {
-  padding: 7px 12px;
+  padding: 7px 10px;
   font-size: 11px;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  min-width: 62px;
 }
+/* The bulk buttons sit quieter than the single point beside them. */
+.ege-upgrades td:last-child,
+.ege-upgrades td:nth-last-child(2) { padding-left: 4px; }
 
 .ege-applied {
   display: flex;

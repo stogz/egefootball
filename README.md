@@ -115,6 +115,10 @@ they are the only position here whose overall should turn on it — the group
 is simply absent for everyone else, and their pages don't show it. A group
 scores as the plain average of the attributes inside it.
 
+Receiving counts heavily for a running back — these are backs who catch, not
+just carry — so for Cooper and Sam a receiving point is worth nearly as much
+as a carrying one and about as much again as a general one.
+
 **A player's page shows only the groups their position is judged on**, under
 the names that position uses: a quarterback gets General, Passing and
 Carrying; a back gets General, Receiving and Carrying; a tight end gets
@@ -153,11 +157,15 @@ overall, in this order:
 | Player | Position | Overall |
 | --- | --- | --- |
 | Jaykeb Stewart | QB | 55 |
-| Cooper Clark | RB | 53 |
+| Cooper Clark | RB | 52 |
 | Andrew Parr | TE | 51 |
-| Sam Stogsdill | RB | 50 |
+| Sam Stogsdill | RB | 49 |
 | Isaac Vitel | QB | 48 |
 | Paxon Hatch | TE | 46 |
+
+The two backs sit a point lower than the rest of the table was written for,
+because receiving now counts for a back and neither of them catches well yet.
+The order is unchanged, and points bought into receiving are what closes it.
 
 Replace them with real numbers as they are decided; nothing else has to
 change.
@@ -314,6 +322,11 @@ The table shows every attribute the position uses, what it is at, how many
 points of it are worth one overall, and what the next one costs — **ordered
 by what a credit actually buys**, so the top of the table is the right answer
 and nobody has to work out the weighting themselves.
+
+Three buttons per row buy **+1, +2 or +4** at one, two and four times the
+price of the next single point. Buying in fours is a small discount at the
+steep end of the curve, where four separate points would each cost more than
+the last; it is there to save clicking.
 
 **Tuning.** `UPGRADE_BASE` in `data/economy.js` is set so an offseason moves a
 player about four overall. Spending a 90-credit offseason from the top of the

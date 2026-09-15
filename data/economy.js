@@ -90,25 +90,30 @@ EGE.economy = (function () {
     });
   }
 
-  /* What a run of points would cost, for a "buy several" button. */
-  function costOfPoints(value, points) {
-    var total = 0;
-    var at = value;
-    for (var i = 0; i < points; i += 1) {
-      var next = upgradeCost(at);
-      if (next === null) { return total ? total : null; }
-      total += next;
-      at += 1;
-    }
-    return total;
+  /* Buying several at once is priced off the next single point rather than
+     off each step: +2 costs double, +4 costs quadruple. It saves a little at
+     the steep end of the curve, which is the point of offering it. */
+  var BULK_SIZES = [1, 2, 4];
+
+  function bulkCost(value, points) {
+    var single = upgradeCost(value);
+    if (single === null) { return null; }
+    return single * points;
+  }
+
+  /* How far a run of points can actually go before hitting 99. */
+  function pointsAvailable(value, wanted) {
+    return Math.max(0, Math.min(wanted, MAX_RATING - value));
   }
 
   return {
     UPGRADE_BASE: UPGRADE_BASE,
     MAX_RATING: MAX_RATING,
     TYPICAL_BUDGET: TYPICAL_BUDGET,
+    BULK_SIZES: BULK_SIZES,
     upgradeCost: upgradeCost,
-    costOfPoints: costOfPoints,
+    bulkCost: bulkCost,
+    pointsAvailable: pointsAvailable,
     gainPerPoint: gainPerPoint,
     upgradePlan: upgradePlan
   };
