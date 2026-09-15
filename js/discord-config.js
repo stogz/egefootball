@@ -26,5 +26,5 @@
 window.EGE = window.EGE || {};
 
 EGE.discordConfig = {
-  webhookUrl: ''
+  webhookUrl: 'https://discordapp.com/api/webhooks/1549516493572800673/39BDW02xGa2Ntu_TXWocUdCjAtoMvGcV-VGSCSX_1IOQD_qFuK-2F7cSVlgDEGKwmUUi'
 };
