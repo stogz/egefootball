@@ -120,41 +120,109 @@ EGE.discordPost = (function () {
 
   /* --- the whole line, in a block -------------------------------------------- */
 
-  /* Every typed number as `5 REC, 52 REYDS, ...`, wrapped so it reads as a
-     couple of lines rather than one long one. 42 characters is what fits a
-     Discord code block without wrapping again on a phone. */
-  var LINE_WIDTH = 42;
+  /* Every embed is the same height, whatever the position and whatever
+     happened in the game. Two things make that true: the block below is
+     always three lines, and there are always exactly three fields under it.
+
+     Four numbers a line does it. Every position's line is eleven or twelve
+     typed numbers — a quarterback's twelve fill three rows exactly, and
+     everyone else's eleven leave one gap on the last row. Wrapping by
+     character width, which is what this used to do, gave two lines for one
+     player and three for the next. */
+  var PER_LINE = 4;
+
+  /* Right-align the numbers and left-align the labels, column by column, so
+     the block reads as a table rather than a run-on sentence. Discord renders
+     a code block in a monospace font, which is the only reason this lines up
+     at all. */
+  function gridOf(cells) {
+    var rows = [];
+    for (var at = 0; at < cells.length; at += PER_LINE) {
+      rows.push(cells.slice(at, at + PER_LINE));
+    }
+
+    /* How wide each column has to be to hold its widest entry. */
+    var valueWidth = [];
+    var labelWidth = [];
+    rows.forEach(function (row) {
+      row.forEach(function (cell, column) {
+        valueWidth[column] = Math.max(valueWidth[column] || 0, cell.value.length);
+        labelWidth[column] = Math.max(labelWidth[column] || 0, cell.label.length);
+      });
+    });
+
+    return rows.map(function (row) {
+      return row.map(function (cell, column) {
+        return padStart(cell.value, valueWidth[column]) + ' ' +
+               padEnd(cell.label, labelWidth[column]);
+      }).join('  ').replace(/\s+$/, '');
+    });
+  }
+
+  function padStart(text, width) {
+    var out = String(text);
+    while (out.length < width) { out = ' ' + out; }
+    return out;
+  }
+
+  function padEnd(text, width) {
+    var out = String(text);
+    while (out.length < width) { out += ' '; }
+    return out;
+  }
+
+  /* Always three lines, so a short line never shortens the embed. */
+  function asBlock(lines) {
+    var out = lines.slice(0, 3);
+    while (out.length < 3) { out.push(''); }
+    return '```\n' + out.join('\n') + '\n```';
+  }
 
   function statBlock(player, stats) {
-    var pairs = EGE.statline.fieldsFor(player.position, stats).map(function (field) {
-      return field.value + ' ' + field.label;
-    });
+    return asBlock(gridOf(EGE.statline.fieldsFor(player.position, stats)));
+  }
 
-    var lines = [];
-    var line = '';
-    pairs.forEach(function (pair) {
-      var next = line ? line + ', ' + pair : pair;
-      if (line && next.length > LINE_WIDTH) { lines.push(line); line = pair; } else { line = next; }
-    });
-    if (line) { lines.push(line); }
+  /* A game nobody has played has no numbers to show, so it shows what is
+     known about it instead — in the same three lines, so the embed comes out
+     the same height as every other one. */
+  function fixtureBlock(game) {
+    var rows = [
+      ['Kickoff', kickoffLabel(game)],
+      ['Where', game.home ? 'Home' : 'Away'],
+      ['Game', game.conference ? 'Conference' : 'Non-conference']
+    ];
+    var width = rows.reduce(function (widest, row) {
+      return Math.max(widest, row[0].length);
+    }, 0);
 
-    return '```\n' + lines.join('\n') + '\n```';
+    return asBlock(rows.map(function (row) {
+      return padEnd(row[0], width) + '  ' + row[1];
+    }));
   }
 
   /* --- the three that matter ------------------------------------------------- */
 
-  /* `5/9, 52YDS` — what he did with what he was given. Nothing to report
-     collapses to a nought rather than spelling out three zeroes. */
+  /* `5/9, 52` — what he did with what he was given, then the yards.
+
+     No YDS on the end. A field column is about 95 pixels on a phone, and
+     `12/18, 187YDS` measures 95 exactly while `24 CAR, 287YDS` measures 110 —
+     either wraps to a second line and makes that embed taller than the one
+     above it. Without the suffix the widest either gets is 81. The heading
+     underneath already says whether these are receiving yards or rushing
+     ones, so the suffix was only ever saying it twice.
+
+     Nothing to report collapses to a nought rather than spelling out zeroes. */
   function outOf(made, given, yards) {
     if (!given) { return '0'; }
-    return made + '/' + given + ', ' + yards + 'YDS';
+    return made + '/' + given + ', ' + yards;
   }
 
-  /* `14 CAR, 76YDS`. Carrying has no attempts to fall short of, so it says
-     how many rather than how many of how many. */
+  /* `14 CAR, 76`. Carrying has no attempts to fall short of, so it says how
+     many rather than how many of how many — and it keeps CAR, because a bare
+     `14, 76` gives no clue which number is which. */
   function runs(carries, yards) {
     if (!carries) { return '0'; }
-    return carries + ' CAR, ' + yards + 'YDS';
+    return carries + ' CAR, ' + yards;
   }
 
   function touchdowns(player, stats) {
@@ -165,7 +233,10 @@ EGE.discordPost = (function () {
      most of first, and what he did least of last. */
   var SUMMARY = {
     QB: [
-      { label: 'Touchdowns/Interceptions',
+      /* Shortened on purpose. Spelled out in full it is 150px wide, which is
+         wider than a field column on any screen, so it wraps to two lines and
+         makes every quarterback's embed taller than everybody else's. */
+      { label: 'Touchdowns/INT',
         text: function (p, s) { return touchdowns(p, s) + '/' + (s.interceptions || 0); } },
       { label: 'Passing',
         text: function (p, s) { return outOf(s.completions, s.attempts, s.passingYards); } },
@@ -237,34 +308,24 @@ EGE.discordPost = (function () {
         matchup + '](' + playerUrl(siteUrl, player) + ')'
       : '[' + matchup + '](' + playerUrl(siteUrl, player) + ')';
 
-    if (played && game.stats) {
-      var stats = EGE.statline.complete(player.position, game.stats);
+    /* Three fields, always, and never a fourth: a fourth wraps onto a second
+       row and makes that embed taller than the one above it. The number is
+       the field's name and the heading is its value, because Discord draws a
+       name above its value and the number is what should be read first. */
+    var stats = played && game.stats
+      ? EGE.statline.complete(player.position, game.stats)
+      : null;
 
-      embed.description = headline + '\n' + statBlock(player, stats);
+    embed.description = headline + '\n' +
+      (stats ? statBlock(player, stats) : fixtureBlock(game));
 
-      /* Three summaries under the block. The number is the field's name and
-         the heading is its value, because Discord draws a name above its
-         value and the number is what should be read first. */
-      summaryFor(player).forEach(function (part) {
-        embed.fields.push({
-          name: part.text(player, stats),
-          value: part.label,
-          inline: true
-        });
+    summaryFor(player).forEach(function (part) {
+      embed.fields.push({
+        name: stats ? part.text(player, stats) : '\u2014',
+        value: part.label,
+        inline: true
       });
-
-      var credits = EGE.economy.touchdownCredits(player, stats);
-      if (credits) {
-        embed.fields.push({ name: '+' + credits, value: 'Credits', inline: true });
-      }
-    } else {
-      embed.description = headline;
-      embed.fields.push({ name: kickoffLabel(game), value: 'Kickoff', inline: true });
-      embed.fields.push({ name: game.home ? 'Home' : 'Away', value: 'Where', inline: true });
-      if (game.conference) {
-        embed.fields.push({ name: 'Yes', value: 'Conference', inline: true });
-      }
-    }
+    });
 
     embed.footer = { text: 'EGE Football Simulation' };
 

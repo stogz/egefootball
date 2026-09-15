@@ -188,7 +188,7 @@ An embed reads top to bottom as:
 | --- | --- |
 | **Author** | the school, with its mark. Not a link — there is nothing on the site to send anybody to for a school |
 | **Headline** | ``W `28-3` vs. Millbrook``, and the one link in the embed: the player's own page. The score is in backticks, so it sits in a box |
-| **Block** | the whole stat line as `5 REC, 52 REYDS, 6 YAC, …`, wrapped at 42 characters so it reads as a couple of lines and does not wrap again on a phone |
+| **Block** | the whole stat line as a three-line grid, four numbers to a line, columns aligned |
 | **Fields** | three summaries, the number above its heading |
 | **Thumbnail** | the player's headshot. The post is about him, not his school |
 | **Footer** | EGE Football Simulation |
@@ -208,21 +208,43 @@ he does first:
 
 | | | | |
 | --- | --- | --- | --- |
-| **QB** | Touchdowns/Interceptions | Passing | Rushing |
+| **QB** | Touchdowns/INT | Passing | Rushing |
 | **RB** | Touchdowns | Rushing | Receiving |
 | **TE**, **WR** | Touchdowns | Receiving | Rushing |
 
-Passing and receiving read as what he did with what he was given —
-`9/18, 118YDS`, `5/9, 52YDS`. Carrying has no attempts to fall short of, so it
-says how many rather than how many of how many: `19 CAR, 159YDS`. Nothing to
-report collapses to a nought rather than spelling out three zeroes. Credits
-earned come last when the game paid any.
+Passing and receiving read as what he did with what he was given — `9/18, 118`
+and `5/9, 52` are the same shape. Carrying has no attempts to fall short of,
+so it says how many rather than how many of how many: `19 CAR, 159`. Nothing
+to report collapses to a nought rather than spelling out zeroes.
 
 The number is the field's name and the heading is its value, because Discord
 draws a name above its value and the number is what should be read first.
 
-A game that has not been played shows the matchup, the kickoff, home or away,
-and whether it is a conference game instead.
+A game that has not been played keeps the same shape: the kickoff, home or
+away, and whether it is a conference game fill the three block lines, and the
+three summaries show dashes.
+
+### Every embed is the same height
+
+A week of posts should read as a column, not a staircase, so the layout is
+fixed rather than following the numbers:
+
+- **The block is always three lines.** Four numbers to a line does it: a
+  quarterback's twelve fill three rows exactly, and everybody else's eleven
+  leave one gap on the last row. Wrapping by character width — the obvious
+  way — gave two lines for one player and three for the next.
+- **There are always exactly three fields.** A fourth wraps onto a second row
+  and makes that embed taller than the one above it, which is why credits
+  earned are no longer among them.
+- **Nothing in a field is wide enough to wrap.** A field column is about 95
+  pixels on a phone. `Touchdowns/Interceptions` measures 150, so the heading
+  is `Touchdowns/INT`; `12/18, 187YDS` measures 95 exactly and
+  `24 CAR, 287YDS` measures 110, so the yards go without a `YDS` suffix that
+  the heading underneath was saying for them anyway. The widest either gets
+  now is 81.
+
+Checked by rendering all 47 games of the season, plus a fixture, at desktop
+and phone width: every one comes out the same height.
 
 ### The kickoff timestamp
 
