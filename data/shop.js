@@ -153,6 +153,7 @@ EGE.shop = {
           creditsLadder: [50, 65, 85],
           creditsStep: 20,
           note: 'NFL only',
+          tiers: ['nfl'],
           description: 'Lowers your injury chance, and bought often enough it extends ' +
                        'your career. Only available after your first NFL season. ' +
                        '50, then 65, then 85, and 20 more each time after that.'
@@ -162,6 +163,8 @@ EGE.shop = {
           name: 'Intel',
           credits: 20,
           note: 'High school and college only',
+          tiers: ['highSchool', 'college'],
+          seasonBound: true,          /* good for the season it is bought in */
           description: 'Find out which games scouts will be at — college scouts while ' +
                        'you are in high school, NFL scouts while you are in college. ' +
                        'Nothing left to scout for once you are in the NFL.'
@@ -169,6 +172,20 @@ EGE.shop = {
       ]
     }
   ]
+};
+
+/* Whether an item can be bought in a given season, and why not when it
+   cannot. A player with no NFL season behind them cannot buy a chamber. */
+EGE.itemAvailable = function (item, season) {
+  if (!item || !item.tiers) { return { ok: true }; }
+
+  var tier = EGE.tierFor(season);
+  if (item.tiers.indexOf(tier) !== -1) { return { ok: true }; }
+
+  if (item.tiers.length === 1 && item.tiers[0] === 'nfl') {
+    return { ok: false, reason: 'NFL only — nobody has played an NFL season yet.' };
+  }
+  return { ok: false, reason: 'Not available at this level.' };
 };
 
 /* Every purchasable thing, flattened, so an inventory row can name what it

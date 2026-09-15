@@ -79,7 +79,8 @@ holds:
   at first; later seasons appear as they are authored.
 - **Schedule** — every scheduled game in the selected season: week, date,
   kickoff, opponent with home/away and a mark for conference games, and the
-  result once it has been played.
+  result once it has been played. A silhouette marks a game scouts will attend,
+  for a player holding Intel for that season.
 - **Record** — running wins and losses for the selected season.
 - **Game log** — per-game stats for that player, with the stat lines driven by
   their position (see below).
@@ -256,7 +257,21 @@ On sale:
 - **Offseason training** — strength or cardio at 45, each trading something
   away, or overall at 35 for a smaller gain with no cost.
 - **QB Connection** (30), **Hyperbaric Chamber** (50, then 65, then 85, then
-  20 more each time, NFL only), **Intel** (20, high school and college only).
+  20 more each time), **Intel** (20).
+
+**Some things can't be bought yet.** An item can name the levels it belongs
+to, and the shop greys it out everywhere else with the reason on the card —
+the chamber is NFL only, and nobody has played an NFL season, so it reads
+*Unavailable*. The check runs in the buy call too, since a disabled button is
+only a suggestion.
+
+**Intel lasts one season.** A purchase records the season it was made in.
+While it is live, silhouettes appear beside the scouted games on that player's
+own schedule — hover one and it says SCOUTS IN ATTENDANCE — and the legend
+counts them. Once the season turns over the row reads *Expired*, the
+silhouettes go, and it can't be switched back on. Which games scouts attend is
+in `data/schedule.js` all along as `scouts: true`; Intel buys the right to see
+it, and only on your own page.
 
 Each stat booster names the attribute in `data/ratings.js` it applies to, so
 buying one has somewhere to land once spending is built. Block Power is the

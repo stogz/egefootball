@@ -162,3 +162,8 @@ create policy "inventory deleted by owner or admin"
 
 -- A used performance booster is deleted rather than kept: the inventory is
 -- what a player still has, not a receipt book.
+
+-- A season-bound item — Intel — records the season it was bought for, so it
+-- can lapse when that season ends.
+alter table public.player_inventory
+  add column if not exists season integer;

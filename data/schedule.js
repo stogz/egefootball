@@ -11,6 +11,9 @@
 
    `conference: true` marks the games listed with an asterisk.
 
+   `scouts: true` marks a game scouts will be at. It is always in the data;
+   what a player buys with Intel is the right to see it.
+
    No results yet: this is the schedule as it stands before the season. A
    game gains a `result: { teamScore, opponentScore }` and a `stats` object
    once it has been played, and everything reading this file already handles
@@ -26,7 +29,7 @@ EGE.schedule = {
       { week:  1, date: '2018-08-18', kickoff: '7:00pm',
         opponent: 'Millbrook', home: true, conference: false },
       { week:  2, date: '2018-08-25', kickoff: '7:30pm',
-        opponent: 'Richmond Senior', home: false, conference: false },
+        opponent: 'Richmond Senior', home: false, conference: false, scouts: true },
       { week:  3, date: '2018-09-04', kickoff: '6:00pm',
         opponent: 'Middle Creek', home: true, conference: false },
       { week:  4, date: '2018-09-08', kickoff: '7:00pm',
@@ -38,13 +41,13 @@ EGE.schedule = {
       { week:  8, date: '2018-10-06', kickoff: '7:00pm',
         opponent: 'Knightdale', home: true, conference: true },
       { week:  9, date: '2018-10-13', kickoff: '7:00pm',
-        opponent: 'Corinth Holders', home: false, conference: true },
+        opponent: 'Corinth Holders', home: false, conference: true, scouts: true },
       { week: 10, date: '2018-10-20', kickoff: '7:00pm',
         opponent: 'Rolesville', home: true, conference: true },
       { week: 11, date: '2018-10-27', kickoff: '7:00pm',
         opponent: 'Wakefield', home: false, conference: true },
       { week: 12, date: '2018-11-03', kickoff: '7:00pm',
-        opponent: 'Heritage', home: true, conference: true },
+        opponent: 'Heritage', home: true, conference: true, scouts: true },
     ],
     'cooper-clark': [
       { week:  2, date: '2018-08-25', kickoff: '7:00pm',
@@ -54,7 +57,7 @@ EGE.schedule = {
       { week:  4, date: '2018-09-08', kickoff: '7:00pm',
         opponent: 'Sweetwater', home: false, conference: false },
       { week:  5, date: '2018-09-15', kickoff: '7:00pm',
-        opponent: 'Mission Hills', home: true, conference: true },
+        opponent: 'Mission Hills', home: true, conference: true, scouts: true },
       { week:  6, date: '2018-09-22', kickoff: '7:00pm',
         opponent: 'La Costa Canyon', home: false, conference: true },
       { week:  8, date: '2018-10-06', kickoff: '7:00pm',
@@ -62,7 +65,7 @@ EGE.schedule = {
       { week:  9, date: '2018-10-13', kickoff: '7:00pm',
         opponent: 'San Marcos', home: true, conference: true },
       { week: 10, date: '2018-10-20', kickoff: '7:00pm',
-        opponent: 'Torrey Pines', home: true, conference: true },
+        opponent: 'Torrey Pines', home: true, conference: true, scouts: true },
       { week: 11, date: '2018-10-27', kickoff: '7:00pm',
         opponent: 'El Camino', home: false, conference: true },
       { week: 12, date: '2018-11-03', kickoff: '7:00pm',
@@ -72,13 +75,13 @@ EGE.schedule = {
       { week:  2, date: '2018-08-25', kickoff: '7:00pm',
         opponent: 'Manual', home: true, conference: true },
       { week:  3, date: '2018-09-01', kickoff: '7:00pm',
-        opponent: 'Normal Community', home: false, conference: true },
+        opponent: 'Normal Community', home: false, conference: true, scouts: true },
       { week:  4, date: '2018-09-08', kickoff: '7:00pm',
-        opponent: 'Champaign Central', home: true, conference: true },
+        opponent: 'Champaign Central', home: true, conference: true, scouts: true },
       { week:  5, date: '2018-09-15', kickoff: '7:00pm',
         opponent: 'Kankakee', home: true, conference: false },
       { week:  6, date: '2018-09-22', kickoff: '7:30pm',
-        opponent: 'Peoria', home: false, conference: true },
+        opponent: 'Peoria', home: false, conference: true, scouts: true },
       { week:  7, date: '2018-09-29', kickoff: '7:00pm',
         opponent: 'Normal West', home: true, conference: true },
       { week:  8, date: '2018-10-06', kickoff: '7:00pm',
@@ -94,7 +97,7 @@ EGE.schedule = {
       { week:  2, date: '2018-08-25', kickoff: '7:00pm',
         opponent: 'Urbana', home: false, conference: true },
       { week:  3, date: '2018-09-01', kickoff: '7:00pm',
-        opponent: 'Bloomington', home: true, conference: true },
+        opponent: 'Bloomington', home: true, conference: true, scouts: true },
       { week:  4, date: '2018-09-08', kickoff: '7:00pm',
         opponent: 'Peoria Notre Dame', home: false, conference: true },
       { week:  5, date: '2018-09-15', kickoff: '7:00pm',
@@ -108,7 +111,7 @@ EGE.schedule = {
       { week:  9, date: '2018-10-13', kickoff: '7:00pm',
         opponent: 'Danville', home: true, conference: true },
       { week: 10, date: '2018-10-20', kickoff: '7:00pm',
-        opponent: 'Champaign Central', home: false, conference: true },
+        opponent: 'Champaign Central', home: false, conference: true, scouts: true },
     ],
     'jaykeb-stewart': [
       { week:  2, date: '2018-08-25', kickoff: '7:30pm',
@@ -116,7 +119,7 @@ EGE.schedule = {
       { week:  3, date: '2018-09-01', kickoff: '7:30pm',
         opponent: 'Palmetto', home: true, conference: false },
       { week:  7, date: '2018-09-28', kickoff: '7:30pm',
-        opponent: 'Palmetto Ridge', home: true, conference: true },
+        opponent: 'Palmetto Ridge', home: true, conference: true, scouts: true },
       { week:  8, date: '2018-10-06', kickoff: '7:30pm',
         opponent: 'Lely', home: true, conference: false },
       { week:  9, date: '2018-10-13', kickoff: '7:00pm',
@@ -124,7 +127,7 @@ EGE.schedule = {
       { week: 10, date: '2018-10-20', kickoff: '7:30pm',
         opponent: 'South Fort Myers', home: false, conference: false },
       { week: 11, date: '2018-10-27', kickoff: '7:00pm',
-        opponent: 'Barron Collier', home: false, conference: true },
+        opponent: 'Barron Collier', home: false, conference: true, scouts: true },
       { week: 12, date: '2018-11-03', kickoff: '7:30pm',
         opponent: 'Piper', home: true, conference: false },
     ],
@@ -165,6 +168,12 @@ EGE.lastWeek = function (season) {
     bySlug[slug].forEach(function (game) { if (game.week > last) { last = game.week; } });
   });
   return last;
+};
+
+/* The games scouts will attend. Only worth reading when the player has
+   Intel for that season. */
+EGE.scoutedGames = function (player, season) {
+  return EGE.gamesFor(player, season).filter(function (game) { return game.scouts; });
 };
 
 EGE.recordFor = function (player, season) {

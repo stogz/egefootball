@@ -117,6 +117,10 @@ EGE.wallet = (function () {
     if (!item) { return fail('That item is not in the shop.'); }
     if (item.needsTarget && !target) { return fail('Choose which attribute to raise.'); }
 
+    /* The button is disabled too, but a disabled button is a suggestion. */
+    var allowed = EGE.itemAvailable(item, EGE.currentSeason);
+    if (!allowed.ok) { return fail(allowed.reason); }
+
     return creditsFor(email).then(function (balance) {
       if (balance === null) { return { ok: false, message: offline() }; }
       if (balance < item.credits) {
@@ -130,6 +134,7 @@ EGE.wallet = (function () {
         target: target || null,
         credits: item.credits,
         consumable: Boolean(item.consumable),
+        season: item.seasonBound ? EGE.currentSeason : null,
         active: !item.consumable      /* a booster is in effect only once used */
       }).then(function (res) {
         if (res.error) { return { ok: false, message: res.error.message }; }
@@ -191,6 +196,7 @@ EGE.wallet = (function () {
       target: target || null,
       credits: 0,
       consumable: Boolean(item.consumable),
+      season: item.seasonBound ? EGE.currentSeason : null,
       active: !item.consumable
     }).then(function (res) {
       if (res.error) { return { ok: false, message: res.error.message }; }
@@ -198,7 +204,21 @@ EGE.wallet = (function () {
     });
   }
 
+  /* A season-bound row is spent the moment the season turns over. */
+  function lapsed(row) {
+    return typeof row.season === 'number' && row.season !== EGE.currentSeason;
+  }
+
+  /* Does this inventory hold live Intel for the season on show? */
+  function hasIntel(rows) {
+    return (rows || []).some(function (row) {
+      return row.item_key === 'intel' && row.active && !lapsed(row);
+    });
+  }
+
   return {
+    lapsed: lapsed,
+    hasIntel: hasIntel,
     refreshAdmin: refreshAdmin,
     admin: admin,
     creditsFor: creditsFor,

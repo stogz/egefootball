@@ -157,6 +157,17 @@
     return WEEKDAYS[when.getUTCDay()] + ' ' + MONTHS[when.getUTCMonth()] + ' ' + when.getUTCDate();
   }
 
+  /* A head and shoulders in the margin of a scouted game. */
+  function scoutMark() {
+    var mark = el('span', 'ege-scout');
+    mark.title = 'SCOUTS IN ATTENDANCE';
+    mark.setAttribute('aria-label', 'Scouts in attendance');
+    mark.setAttribute('role', 'img');
+    return mark;
+  }
+
+  var showScouts = false;
+
   function scheduleRow(game) {
     var row = el('tr');
 
@@ -172,6 +183,7 @@
       mark.title = 'Conference game';
       opponent.appendChild(mark);
     }
+    if (showScouts && game.scouts) { opponent.appendChild(scoutMark()); }
     row.appendChild(opponent);
 
     var result = el('td', 'num');
@@ -192,6 +204,8 @@
     var body = document.getElementById('scheduleBody');
     var games = EGE.gamesFor(player);
 
+    showScouts = canSeeScouts(player);
+
     body.innerHTML = '';
     panel.hidden = false;
     document.getElementById('scheduleTableWrap').hidden = !games.length;
@@ -211,9 +225,12 @@
       : EGE.currentSeason + ' \u00b7 ' + games.length + ' games \u00b7 none played yet';
 
     var conference = games.filter(function (game) { return game.conference; }).length;
-    document.getElementById('scheduleLegend').textContent = conference
-      ? '* conference game (' + conference + ' of ' + games.length + ')'
-      : '';
+    var legend = conference ? '* conference game (' + conference + ' of ' + games.length + ')' : '';
+    if (showScouts) {
+      var scouted = EGE.scoutedGames(player).length;
+      legend += (legend ? ' \u00b7 ' : '') + 'Intel: scouts at ' + scouted + ' games this season';
+    }
+    document.getElementById('scheduleLegend').textContent = legend;
   }
 
   /* --- ratings ---------------------------------------------------------- */
@@ -264,6 +281,14 @@
   var sayShop = reporter('shopMessage');
   var shopState = { player: null, credits: 0, inventory: [], built: false };
 
+  /* Scouts are in the schedule data all along; Intel is what lets a player
+     see them, and only on their own page, for the season they bought it. */
+  function canSeeScouts(player) {
+    var signedIn = EGE.auth.currentPlayer();
+    if (!signedIn || !player || signedIn.slug !== player.slug) { return false; }
+    return EGE.wallet.hasIntel(shopState.inventory);
+  }
+
   function creditTag(credits) {
     return el('span', 'fb-tag fb-tag--num fb-tag--gold', credits + ' cr');
   }
@@ -298,8 +323,17 @@
       card.appendChild(picker);
     }
 
-    var buy = el('button', 'fb-btn fb-btn--primary fb-btn--block', 'Buy');
+    var allowed = EGE.itemAvailable(item, EGE.currentSeason);
+    if (!allowed.ok) {
+      card.classList.add('ege-item--locked');
+      card.appendChild(el('p', 'ege-item__blocked', allowed.reason));
+    }
+
+    var buy = el('button', 'fb-btn fb-btn--primary fb-btn--block',
+      allowed.ok ? 'Buy' : 'Unavailable');
     buy.type = 'button';
+    buy.disabled = !allowed.ok;
+    if (picker) { picker.disabled = !allowed.ok; }
     buy.addEventListener('click', function () {
       buy.disabled = true;
       sayShop('Buying\u2026', false);
@@ -355,13 +389,23 @@
   /* --- the inventory ----------------------------------------------------- */
 
   function inventoryCard(row, options) {
-    var card = el('div', 'ege-item' + (row.active ? ' ege-item--active' : ''));
+    var lapsed = EGE.wallet.lapsed(row);
+    var live = row.active && !lapsed;
+    var card = el('div', 'ege-item' + (live ? ' ege-item--active' : '') +
+      (lapsed ? ' ege-item--locked' : ''));
 
+    var state = lapsed ? 'Expired' : (row.active ? 'In effect' : (row.consumable ? 'Unused' : 'Off'));
     var head = el('div', 'ege-item__head');
     head.appendChild(el('h4', 'ege-item__name', row.item_name));
-    head.appendChild(el('span', 'fb-tag fb-tag--num ' + (row.active ? 'fb-tag--sage' : 'fb-tag--outline'),
-      row.active ? 'In effect' : (row.consumable ? 'Unused' : 'Off')));
+    head.appendChild(el('span', 'fb-tag fb-tag--num ' +
+      (live ? 'fb-tag--sage' : (lapsed ? 'fb-tag--clay' : 'fb-tag--outline')), state));
     card.appendChild(head);
+
+    if (typeof row.season === 'number') {
+      card.appendChild(el('p', 'ege-item__text', lapsed
+        ? 'Bought for the ' + row.season + ' season, which is over.'
+        : 'Good for the ' + row.season + ' season only.'));
+    }
 
     if (row.target) {
       card.appendChild(el('p', 'ege-item__text', 'Applied to ' + targetLabel(row.target) + '.'));
@@ -381,7 +425,7 @@
         });
       });
       actions.appendChild(use);
-    } else {
+    } else if (!lapsed) {
       var toggle = el('button', 'fb-btn', row.active ? 'Turn off' : 'Turn on');
       toggle.type = 'button';
       toggle.addEventListener('click', function () {
@@ -534,6 +578,7 @@
       shopState.credits = both[0] === null ? EGE.shop.startingCredits : both[0];
       shopState.inventory = both[1];
       renderInventory();
+      refreshScoutMarks();
       updateNavCredits(shopState.credits);
       return renderAdmin();
     });
@@ -570,6 +615,14 @@
     sayShop('', false);
     buildCatalogue();
     refreshShop();
+  }
+
+  /* The inventory arrives after a page may already have been drawn, so redraw
+     the schedule if what it shows has changed. */
+  function refreshScoutMarks() {
+    var hash = window.location.hash.replace(/^#/, '');
+    var player = hash ? EGE.playerBySlug(hash) : null;
+    if (player && canSeeScouts(player) !== showScouts) { renderSchedule(player); }
   }
 
   /* --- routing ---------------------------------------------------------- */
@@ -804,7 +857,12 @@
 
   EGE.auth.onChange(function (player) {
     if (player) {
-      EGE.wallet.refreshAdmin(player.email).then(function () { route(); });
+      /* The wallet loads on sign-in, not on reaching the shop: a player page
+         needs the inventory too, to know whether to show the scouts. */
+      shopState.player = player;
+      EGE.wallet.refreshAdmin(player.email)
+        .then(refreshShop)
+        .then(route);
       showSignedInNav(player);
       document.getElementById('signedInName').textContent = player.name;
       var photo = document.getElementById('signedInPhoto');
@@ -815,6 +873,9 @@
       showSignedOutNav();
       showPanel(panelAuth);
       loadAccount();
+      shopState.player = null;
+      shopState.inventory = [];
+      shopState.credits = EGE.shop.startingCredits;
     }
     route();          /* the shop appears and disappears with the session */
   });
