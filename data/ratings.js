@@ -1,7 +1,8 @@
 /* ==========================================================================
    EGE Football — player ratings
-   Four groups of attributes per player, the same shape for everyone. Each
-   group scores as the average of its attributes, and a player's overall is
+   Four groups of attributes every player carries, plus blocking for the
+   tight ends, who are the only position here whose overall should turn on
+   it. A group scores as the average of its attributes, and a player's overall is
    those group scores weighted by what their position actually does — a
    quarterback's overall leans on passing, a back's on ball carrying — with
    every other group still counting for something.
@@ -72,6 +73,20 @@ EGE.ratingGroups = [
       { key: 'breakSack',         label: 'Break Sack' }
     ]
   },
+  {
+    key: 'blocking',
+    label: 'Blocking',
+    attributes: [
+      { key: 'runBlock',          label: 'Run Block' },
+      { key: 'passBlock',         label: 'Pass Block' },
+      { key: 'impactBlocking',    label: 'Impact Blocking' },
+      { key: 'runBlockPower',     label: 'Run Block Power' },
+      { key: 'runBlockFinesse',   label: 'Run Block Finesse' },
+      { key: 'passBlockPower',    label: 'Pass Block Power' },
+      { key: 'passBlockFinesse',  label: 'Pass Block Finesse' },
+      { key: 'leadBlock',         label: 'Lead Block' }
+    ]
+  },
 ];
 
 /* How much each group counts toward the overall, per position. These do not
@@ -80,17 +95,19 @@ EGE.ratingGroups = [
    rest. Nothing is ever zero: a quarterback who can carry the ball is worth
    more than one who cannot, just not much more.
 
-   Only the positions the four groups actually describe are listed. Linemen,
-   defenders and kickers need attributes this file no longer carries. */
+   A group with no weight here is left out of that position's overall
+   entirely, which is how blocking counts for a tight end and for nobody
+   else. Only the positions these groups describe are listed: linemen,
+   defenders and kickers need attributes this file does not carry. */
 EGE.positionWeights = {
   QB: { general: 20, passing: 46, receiving:  2, ballCarrier: 16 },
   RB: { general: 26, passing:  1, receiving: 14, ballCarrier: 46 },
   WR: { general: 28, passing:  1, receiving: 48, ballCarrier: 20 },
-  TE: { general: 26, passing:  1, receiving: 44, ballCarrier: 16 },
+  TE: { general: 26, passing:  1, receiving: 40, ballCarrier: 14, blocking: 20 },
 
   /* Used while a player's position is still TBD: everything counts, with
      the athletic attributes counting most. */
-  DEFAULT: { general: 34, passing: 20, receiving: 22, ballCarrier: 24 }
+  DEFAULT: { general: 34, passing: 20, receiving: 22, ballCarrier: 24, blocking: 14 }
 };
 
 /* Placeholder attribute values, keyed by player slug. */
@@ -129,19 +146,23 @@ EGE.ratings = {
   },
   'andrew-parr': {
     /* General */
-    speed: 49, acceleration: 48, strength: 43, agility: 41, awareness: 45,
-    jumping: 43, injury: 48, stamina: 42, toughness: 44,
+    speed: 46, acceleration: 47, strength: 52, agility: 46, awareness: 46,
+    jumping: 47, injury: 42, stamina: 46, toughness: 48,
     /* Passing */
-    throwPower: 14, throwUnderPressure: 19, throwAccuracyShort: 13,
-    throwAccuracyMid: 10, throwAccuracyDeep: 17, throwOnTheRun: 15,
-    playAction: 9,
+    throwPower: 18, throwUnderPressure: 8, throwAccuracyShort: 11,
+    throwAccuracyMid: 8, throwAccuracyDeep: 18, throwOnTheRun: 16,
+    playAction: 7,
     /* Receiving */
-    catching: 60, spectacularCatch: 61, catchInTraffic: 59,
-    routeRunningShort: 60, routeRunningMedium: 52, routeRunningDeep: 58,
-    release: 60,
+    catching: 64, spectacularCatch: 63, catchInTraffic: 59,
+    routeRunningShort: 58, routeRunningMedium: 52, routeRunningDeep: 50,
+    release: 57,
     /* Ball Carrier */
-    carrying: 41, breakTackle: 38, trucking: 32, changeOfDirection: 37,
-    bcVision: 40, stiffArm: 44, spinMove: 45, jukeMove: 38, breakSack: 43,
+    carrying: 33, breakTackle: 35, trucking: 36, changeOfDirection: 33,
+    bcVision: 39, stiffArm: 39, spinMove: 44, jukeMove: 40, breakSack: 41,
+    /* Blocking */
+    runBlock: 51, passBlock: 53, impactBlocking: 50, runBlockPower: 48,
+    runBlockFinesse: 58, passBlockPower: 58, passBlockFinesse: 56,
+    leadBlock: 54,
   },
   'sam-stogsdill': {
     /* General */
@@ -177,19 +198,23 @@ EGE.ratings = {
   },
   'paxon-hatch': {
     /* General */
-    speed: 45, acceleration: 44, strength: 39, agility: 37, awareness: 41,
-    jumping: 39, injury: 45, stamina: 38, toughness: 40,
+    speed: 38, acceleration: 42, strength: 40, agility: 43, awareness: 43,
+    jumping: 36, injury: 35, stamina: 46, toughness: 38,
     /* Passing */
-    throwPower: 13, throwUnderPressure: 18, throwAccuracyShort: 12,
-    throwAccuracyMid: 9, throwAccuracyDeep: 15, throwOnTheRun: 13,
-    playAction: 8,
+    throwPower: 8, throwUnderPressure: 19, throwAccuracyShort: 12,
+    throwAccuracyMid: 17, throwAccuracyDeep: 12, throwOnTheRun: 14,
+    playAction: 7,
     /* Receiving */
-    catching: 56, spectacularCatch: 57, catchInTraffic: 54,
-    routeRunningShort: 56, routeRunningMedium: 47, routeRunningDeep: 53,
+    catching: 53, spectacularCatch: 56, catchInTraffic: 52,
+    routeRunningShort: 55, routeRunningMedium: 54, routeRunningDeep: 45,
     release: 55,
     /* Ball Carrier */
-    carrying: 37, breakTackle: 34, trucking: 29, changeOfDirection: 34,
-    bcVision: 36, stiffArm: 40, spinMove: 41, jukeMove: 34, breakSack: 40,
+    carrying: 37, breakTackle: 33, trucking: 29, changeOfDirection: 41,
+    bcVision: 35, stiffArm: 39, spinMove: 41, jukeMove: 39, breakSack: 42,
+    /* Blocking */
+    runBlock: 45, passBlock: 50, impactBlocking: 45, runBlockPower: 52,
+    runBlockFinesse: 51, passBlockPower: 40, passBlockFinesse: 41,
+    leadBlock: 42,
   },
 };
 
@@ -235,7 +260,9 @@ EGE.overallFor = function (player) {
   return totalWeight ? Math.round(weighted / totalWeight) : null;
 };
 
-/* Everything a ratings panel needs, in display order. */
+/* Everything a ratings panel needs, in display order. Groups this player has
+   no numbers for — blocking, for anyone who is not a tight end — are left
+   out rather than rendered empty. */
 EGE.ratingsFor = function (player) {
   if (!player || !EGE.ratings[player.slug]) { return null; }
   var values = EGE.ratings[player.slug];
@@ -254,6 +281,6 @@ EGE.ratingsFor = function (player) {
           return { key: attr.key, label: attr.label, value: values[attr.key] };
         })
       };
-    })
+    }).filter(function (group) { return group.rating !== null; })
   };
 };

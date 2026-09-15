@@ -48,8 +48,13 @@ EGE.teams = {
   },
   naples: {
     school: 'Naples High School',
-    league: null,             // TBD
+    league: '6A District 12',
     logo: 'icon/naples.png'
+  },
+  wakeForest: {
+    school: 'Wake Forest High School',
+    league: 'Northern 4A',
+    logo: null                // no mark in icon/ yet
   }
 };
 
@@ -59,7 +64,7 @@ EGE.players = [
     name: 'Andrew Parr',
     first: 'Andrew',
     last: 'Parr',
-    team: null,               // TBD
+    team: 'wakeForest',
     position: 'TE',
     jersey: null,             // TBD
     email: null,              // TBD

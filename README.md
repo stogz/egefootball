@@ -16,12 +16,12 @@ and in what order.
 
 | Player | School | League | Position |
 | --- | --- | --- | --- |
-| Andrew Parr | TBD | TBD | TE |
+| Andrew Parr | Wake Forest High School | Northern 4A | TE |
 | Cooper Clark | Carlsbad High School | Avocado League | RB |
 | Paxon Hatch | Bloomington High School | Big Twelve | TE |
 | Isaac Vitel | TBD | TBD | QB |
 | Sam Stogsdill | Normal Community High School | Big Twelve | RB |
-| Jaykeb Stewart | Naples High School | TBD | QB |
+| Jaykeb Stewart | Naples High School | 6A District 12 | QB |
 
 Everything marked TBD is genuinely unknown right now and should stay TBD in code
 and data until it is confirmed — no placeholder guesses that later read as facts.
@@ -29,7 +29,8 @@ and data until it is confirmed — no placeholder guesses that later read as fac
 Headshots live in `headshot/`, keyed by last name: `parr.png`, `clark.png`,
 `hatch.png`, `vitel.png`, `stogsdill.png`, `stewart.png`. School marks live in
 `icon/`, keyed by school: `carlsbad.png`, `bloomington.png`, `normal.png`,
-`naples.png`. A team with no mark renders its school line without one.
+`naples.png`. Wake Forest has no mark yet; a team without one renders its
+school line without it.
 
 ---
 
@@ -107,17 +108,21 @@ positions are confirmed.
 ## Ratings
 
 Every player carries the same 32 attributes, in four groups: General,
-Passing, Receiving, Ball Carrier. A group scores as the plain average of the
-attributes inside it.
+Passing, Receiving, Ball Carrier. Tight ends carry a fifth, Blocking, since
+they are the only position here whose overall should turn on it — the group
+is simply absent for everyone else, and their pages don't show it. A group
+scores as the plain average of the attributes inside it.
 
 **The overall is those group scores weighted by position.** A quarterback's
 overall leans on passing, a back's on ball carrying — but nothing is ever
 worth zero, so a quarterback who can carry the ball still rates above one who
 can't, just not by much. Weights live in `EGE.positionWeights` and are
 normalised when the overall is worked out, so a group can be nudged without
-rebalancing the others. Only QB, RB, WR and TE are weighted, since those are
-the positions these four groups describe; anything else falls back to
-`DEFAULT`, which counts every group fairly evenly.
+rebalancing the others. A group left out of a position's weights is left out
+of that position's overall entirely, which is how blocking counts for a tight
+end and for nobody else. Only QB, RB, WR and TE are weighted, since those are
+the positions these groups describe; anything else falls back to `DEFAULT`,
+which counts every group fairly evenly.
 
 The same attributes score very differently by position, which is the point:
 
@@ -285,9 +290,8 @@ One thing at a time, in this order:
 - Does any of the six play the optional 2023 senior college season instead of
   declaring for the 2023 draft?
 - College programs for all six — the ladder needs them from the 2020 season on.
-- Schools for Parr and Vitel.
+- A school for Vitel, and a mark for Wake Forest.
 - Real rating numbers, in place of the generated placeholders.
-- The league Naples High School plays in.
 - Sign-in emails for Parr, Vitel, and Stewart.
 - Whether workout and overall changes persist per browser (`localStorage`) or in
   Supabase. Read-only season data stays in the `data/*.js` files either way.
