@@ -287,11 +287,15 @@ create index if not exists game_boosters_email_idx
 
 alter table public.game_boosters enable row level security;
 
--- Anyone can see what is stuck on a game: a booster is a boast, not a secret.
+-- A sticker is private. Only the player who stuck it on and an admin can see
+-- what is riding on which game — nobody gets to scout the opposition's
+-- boosters. Hiding it in the interface alone would mean nothing, since the
+-- anon key can query this table directly.
 drop policy if exists "game boosters are readable" on public.game_boosters;
-create policy "game boosters are readable"
-  on public.game_boosters for select
-  using (true);
+drop policy if exists "game boosters readable by owner or admin" on public.game_boosters;
+create policy "game boosters readable by owner or admin"
+  on public.game_boosters for select to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin());
 
 drop policy if exists "game boosters placed by owner or admin" on public.game_boosters;
 create policy "game boosters placed by owner or admin"

@@ -429,7 +429,14 @@ body {
   color: var(--fb-muted-2);
   white-space: nowrap;
 }
-.ege-schedule__slot { width: 1%; white-space: nowrap; padding-left: 22px; }
+.ege-schedule__slot {
+  width: 1%;
+  white-space: nowrap;
+  padding-left: 30px;
+  padding-right: 20px;     /* room for a sticker that overhangs its row */
+  overflow: visible;
+  position: relative;
+}
 
 /* The schedule only needs to scroll when it genuinely does not fit; letting
    it overflow the rest of the time keeps a lifted sticker whole. */
@@ -460,97 +467,117 @@ body {
 
 /* --- booster stickers ---------------------------------------------------- */
 
-/* A sunburst die-cut that scales off one variable, so the same sticker works
-   at 34px in a schedule row and 76px in the drawer. */
+/* Two die-cut layers: a white backing and the foil face inset inside it, both
+   clipped to the same sunburst. A plain border would be cut off by the
+   clip-path, which is what made the old edges look chewed. */
 .ege-sticker {
   --sticker-size: 40px;
+  --tilt: 0deg;
+  --cut: polygon(
+    50% 0%, 58% 12%, 71% 4%, 74% 18%, 88% 12%, 82% 26%, 96% 29%, 84% 40%,
+    100% 50%, 84% 60%, 96% 71%, 82% 74%, 88% 88%, 74% 82%, 71% 96%, 58% 88%,
+    50% 100%, 42% 88%, 29% 96%, 26% 82%, 12% 88%, 18% 74%, 4% 71%, 16% 60%,
+    0% 50%, 16% 40%, 4% 29%, 18% 26%, 12% 12%, 26% 18%, 29% 4%, 42% 12%
+  );
+
   width: var(--sticker-size);
   height: var(--sticker-size);
   flex: none;
   position: relative;
   display: inline-grid;
   place-items: center;
-  overflow: hidden;
-  border: calc(var(--sticker-size) * 0.055) solid #fff;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, .3);
-  clip-path: polygon(
-    50% 0%, 58% 12%, 71% 4%, 74% 18%, 88% 12%, 82% 26%, 96% 29%, 84% 40%,
-    100% 50%, 84% 60%, 96% 71%, 82% 74%, 88% 88%, 74% 82%, 71% 96%, 58% 88%,
-    50% 100%, 42% 88%, 29% 96%, 26% 82%, 12% 88%, 18% 74%, 4% 71%, 16% 60%,
-    0% 50%, 16% 40%, 4% 29%, 18% 26%, 12% 12%, 26% 18%, 29% 4%, 42% 12%
-  );
-  transition: transform .16s ease, box-shadow .16s ease;
+
+  background: #fff;
+  clip-path: var(--cut);
+  filter: drop-shadow(2px 3px 3px rgba(0, 0, 0, .45));
+  transform: rotate(var(--tilt));
+  transform-origin: center;
+  transition: transform .28s cubic-bezier(.2, .8, .3, 1), filter .28s ease;
 }
 
-.ege-sticker::before,
-.ege-sticker::after { content: ''; position: absolute; inset: 0; }
-.ege-sticker::before { z-index: 0; }
-.ege-sticker::after { z-index: 1; mix-blend-mode: screen; }
+/* The foil face, inset so the white shows as a die-cut border. */
+.ege-sticker__face {
+  position: absolute;
+  inset: 8%;
+  display: grid;
+  place-items: center;
+  clip-path: var(--cut);
+  overflow: hidden;
+}
+.ege-sticker__face::before,
+.ege-sticker__face::after { content: ''; position: absolute; inset: 0; }
+.ege-sticker__face::after { mix-blend-mode: screen; }
 
 .ege-sticker__text {
   position: relative;
   z-index: 2;
   font-family: var(--fb-font-display);
-  font-size: calc(var(--sticker-size) * 0.3);
+  font-size: calc(var(--sticker-size) * 0.27);
   line-height: 1;
   color: #201e1d;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, .25);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .35);
 }
 
+/* Each variant paints a solid ground first, so a moving gradient can never
+   leave a bare patch showing through. */
+.ege-sticker--holo .ege-sticker__face { background: #ded6ef; }
+.ege-sticker--gold .ege-sticker__face { background: #d89b28; }
+.ege-sticker--silver .ege-sticker__face { background: #b9bec5; }
+
 /* 2.5x — holographic */
-.ege-sticker--holo::before {
+.ege-sticker--holo .ege-sticker__face::before {
   background:
-    radial-gradient(circle at 18% 22%, rgba(255,204,228,1) 0%, rgba(255,204,228,0) 28%),
-    radial-gradient(circle at 78% 18%, rgba(214,202,255,1) 0%, rgba(214,202,255,0) 30%),
-    radial-gradient(circle at 30% 75%, rgba(194,228,255,1) 0%, rgba(194,228,255,0) 32%),
-    radial-gradient(circle at 72% 70%, rgba(215,204,245,1) 0%, rgba(215,204,245,0) 28%),
+    radial-gradient(circle at 18% 22%, rgba(255,204,228,.95) 0%, rgba(255,204,228,0) 45%),
+    radial-gradient(circle at 78% 18%, rgba(214,202,255,.95) 0%, rgba(214,202,255,0) 48%),
+    radial-gradient(circle at 30% 75%, rgba(194,228,255,.95) 0%, rgba(194,228,255,0) 50%),
+    radial-gradient(circle at 72% 70%, rgba(215,204,245,.95) 0%, rgba(215,204,245,0) 45%),
     linear-gradient(135deg, #f5d2de 0%, #d5cdf3 18%, #d2edcd 35%, #cfe4f8 52%,
                     #dfd1f3 68%, #f0d6ce 84%, #d2edd7 100%);
-  background-size: 160% 160%, 180% 180%, 170% 170%, 180% 180%, 250% 250%;
+  background-size: 140% 140%, 150% 150%, 145% 145%, 150% 150%, 200% 200%;
   animation: ege-holo-flow 8s ease-in-out infinite;
 }
-.ege-sticker--holo::after {
-  opacity: .5;
+.ege-sticker--holo .ege-sticker__face::after {
+  opacity: .55;
   background: linear-gradient(110deg,
     rgba(255,255,255,.20) 0%, rgba(255,255,255,.05) 20%, rgba(190,255,215,.18) 38%,
     rgba(210,205,255,.14) 55%, rgba(255,214,228,.18) 72%, rgba(205,235,255,.18) 100%);
-  background-size: 220% 220%;
+  background-size: 200% 200%;
   animation: ege-sheen 10s ease-in-out infinite;
 }
 
 /* 2.0x — gold */
-.ege-sticker--gold::before {
+.ege-sticker--gold .ege-sticker__face::before {
   background:
-    radial-gradient(circle at 25% 25%, rgba(255,242,168,.95) 0%, rgba(255,242,168,0) 32%),
-    radial-gradient(circle at 72% 70%, rgba(191,126,20,.65) 0%, rgba(191,126,20,0) 35%),
+    radial-gradient(circle at 25% 25%, rgba(255,242,168,.95) 0%, rgba(255,242,168,0) 50%),
+    radial-gradient(circle at 72% 70%, rgba(150,96,12,.6) 0%, rgba(150,96,12,0) 52%),
     linear-gradient(120deg, #9c6410 0%, #d89b28 15%, #ffe392 30%, #c98917 43%,
                     #f4c653 56%, #fff0a8 68%, #d79a27 82%, #a76a10 100%);
-  background-size: 180% 180%, 180% 180%, 300% 300%;
+  background-size: 150% 150%, 150% 150%, 220% 220%;
   animation: ege-metal-flow 7s ease-in-out infinite;
 }
-.ege-sticker--gold::after {
+.ege-sticker--gold .ege-sticker__face::after {
   background: linear-gradient(115deg,
     rgba(255,255,255,.05) 10%, rgba(255,246,190,.35) 32%, rgba(255,255,255,.08) 46%,
     rgba(255,225,120,.25) 66%, rgba(255,255,255,.04) 85%);
-  background-size: 250% 250%;
+  background-size: 200% 200%;
   animation: ege-sheen 9s ease-in-out infinite;
 }
 
 /* 1.5x — silver */
-.ege-sticker--silver::before {
+.ege-sticker--silver .ege-sticker__face::before {
   background:
-    radial-gradient(circle at 24% 22%, rgba(255,255,255,.95) 0%, rgba(255,255,255,0) 30%),
-    radial-gradient(circle at 72% 72%, rgba(110,118,128,.5) 0%, rgba(110,118,128,0) 36%),
+    radial-gradient(circle at 24% 22%, rgba(255,255,255,.95) 0%, rgba(255,255,255,0) 48%),
+    radial-gradient(circle at 72% 72%, rgba(94,101,110,.5) 0%, rgba(94,101,110,0) 52%),
     linear-gradient(120deg, #6f747b 0%, #aeb4bb 14%, #f5f6f7 28%, #9ba1a9 41%,
                     #d5d9dd 55%, #ffffff 68%, #a8aeb5 82%, #70757c 100%);
-  background-size: 180% 180%, 180% 180%, 300% 300%;
+  background-size: 150% 150%, 150% 150%, 220% 220%;
   animation: ege-metal-flow 7s ease-in-out infinite;
 }
-.ege-sticker--silver::after {
+.ege-sticker--silver .ege-sticker__face::after {
   background: linear-gradient(115deg,
     rgba(255,255,255,.06) 10%, rgba(255,255,255,.38) 32%, rgba(220,225,230,.10) 46%,
     rgba(255,255,255,.26) 66%, rgba(255,255,255,.05) 85%);
-  background-size: 250% 250%;
+  background-size: 200% 200%;
   animation: ege-sheen 9s ease-in-out infinite;
 }
 
@@ -575,14 +602,18 @@ body {
 
 /* --- a sticker on a game ------------------------------------------------- */
 
+/* The slot keeps a normal size and the sticker is positioned out of the
+   flow inside it, so a sticker bigger than the row overhangs it instead of
+   making every row taller. */
 .ege-slot {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  min-width: 46px;
+  width: 46px;
+  height: 30px;
 }
 
-/* The empty slot: a dashed box with a plus, only there when signed in. */
 .ege-slot__add {
   width: 30px;
   height: 30px;
@@ -601,46 +632,73 @@ body {
   border-style: solid;
 }
 
-/* Hovering a peelable sticker lifts it and crosses it out. */
 .ege-slot__applied {
-  position: relative;
-  display: inline-grid;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  margin-top: calc(var(--nudge, 0px) - 50%);
+  display: grid;
   place-items: center;
   background: none;
   border: 0;
   padding: 0;
+  width: var(--sticker-size, 54px);
+  height: var(--sticker-size, 54px);
 }
-.ege-slot__applied--peelable { cursor: pointer; }
-.ege-slot__applied--peelable:hover .ege-sticker,
-.ege-slot__applied--peelable:focus-visible .ege-sticker {
-  /* Grows inward from its right edge: the table's scroll box would clip a
-     sticker that expanded outward. */
-  transform-origin: right center;
-  transform: scale(1.75) rotate(-6deg);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, .45);
-  z-index: 3;
-}
-.ege-sticker__x {
-  position: absolute;
-  inset: 0;
-  z-index: 4;
-  display: grid;
-  place-items: center;
-  font-family: var(--fb-font-display);
-  font-size: calc(var(--sticker-size) * 0.72);
-  line-height: 1;
-  color: #b3160f;
-  text-shadow: 0 0 5px rgba(255, 255, 255, .95);
-  opacity: 0;
-  transition: opacity .16s ease;
-  pointer-events: none;
-}
-.ege-slot__applied--peelable:hover .ege-sticker__x,
-.ege-slot__applied--peelable:focus-visible .ege-sticker__x { opacity: 1; }
-
-/* A sticker on a game that has been played is stuck for good. */
+.ege-slot__applied--peelable { cursor: pointer; perspective: 460px; }
 .ege-slot__applied--stuck { cursor: default; }
 
+/* The shadow the sticker casts on the row as it comes away from it. */
+.ege-slot__applied--peelable::after {
+  content: '';
+  position: absolute;
+  inset: 18% 10% 10% 30%;
+  z-index: -2;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .38);
+  filter: blur(6px);
+  opacity: 0;
+  transition: opacity .28s ease;
+}
+.ege-slot__applied--peelable:hover::after,
+.ege-slot__applied--peelable:focus-visible::after { opacity: 1; }
+
+/* Peeling: the sticker hinges up on its right edge and leans towards you,
+   so the left side lifts clear of the row and its underside comes into view.
+   The perspective lives on the parent, which is what makes it read as paper
+   coming off rather than a flat thing being scaled. */
+.ege-slot__applied--peelable:hover .ege-sticker,
+.ege-slot__applied--peelable:focus-visible .ege-sticker {
+  transform-origin: 88% 62%;
+  transform:
+    rotate(var(--tilt))
+    translate(-16%, -22%)
+    rotateY(-52deg)
+    rotateX(14deg)
+    rotateZ(-12deg)
+    scale(2.1);
+  filter: drop-shadow(-5px 9px 7px rgba(0, 0, 0, .5));
+  z-index: 6;
+}
+.ege-slot__applied--peelable:hover,
+.ege-slot__applied--peelable:focus-visible { z-index: 6; }
+
+/* The paper underside, showing along the lifted edge. */
+.ege-sticker__back {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  clip-path: var(--cut);
+  background: linear-gradient(100deg, #b4aa9c 0%, #e8e1d6 35%, #cfc7bb 70%, #a79c8c 100%);
+  opacity: 0;
+  transform: translateX(6%);
+  transition: opacity .28s ease, transform .28s ease;
+}
+.ege-slot__applied--peelable:hover .ege-sticker__back,
+.ege-slot__applied--peelable:focus-visible .ege-sticker__back {
+  opacity: 1;
+  transform: translateX(11%) scaleX(1.04);
+}
 /* --- the sticker drawer -------------------------------------------------- */
 
 .ege-drawer {
@@ -694,7 +752,10 @@ body {
   place-items: center;
 }
 .ege-pick:hover .ege-sticker,
-.ege-pick:focus-visible .ege-sticker { transform: scale(1.12) rotate(4deg); }
+.ege-pick:focus-visible .ege-sticker {
+  transform: rotate(var(--tilt)) scale(1.14) translateY(-3px);
+  filter: drop-shadow(3px 6px 7px rgba(0, 0, 0, .5));
+}
 .ege-pick__count {
   position: absolute;
   right: -6px;

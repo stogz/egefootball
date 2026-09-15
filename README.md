@@ -360,21 +360,31 @@ Booster column. Clicking it slides a drawer up from the bottom of the screen
 holding the stickers you own, each with a count. Click one and it goes on that
 game and comes out of your inventory.
 
-Hovering a sticker you can still move **lifts it off the page and draws a red
-cross through it** — click to peel it off and put it back in the drawer. The
-cross lives inside the sticker so it rides the same scale and tilt rather than
-chasing them, and the sticker grows inward from its right edge so the table
-never clips it.
+Hovering a sticker you can still move **peels it**: it hinges up on its right
+edge, leans towards you, throws a shadow on the row and shows its paper
+underside along the lifted edge. Click to take it off and put it back in the
+drawer. The perspective sits on the parent rather than in the transform, which
+is what makes it read as paper coming away rather than a flat thing scaling.
 
-**Once the game has been played the sticker is stuck for good**: no cross, no
-peeling, and no + on a game that already has a result. Other people see your
-stickers on your schedule but get no + and no cross — a booster is a boast,
-not a secret, and `game_boosters` is readable by everyone and writable only by
-its owner.
+**Once the game has been played the sticker is stuck for good**: no peel, and
+no + on a game that already has a result.
+
+**Stickers are private.** Only the player who stuck one on — and Sam, as
+admin — can see what is riding on which game. That is in the policy on
+`game_boosters`, not just the interface, because the anon key can query the
+table directly.
+
+Each sticker is two die-cut layers, a white backing with the foil face inset
+inside it, both clipped to the same sunburst. A plain border would be cut away
+by the clip-path, which is what made the first pass look chewed at the edges;
+each face also paints a solid ground under its moving gradients so nothing can
+flash through bare. They sit bigger than their row and overhang it, each
+tilted a few degrees off true by a hash of the player and week, so a column of
+them looks stuck on by hand rather than laid out by a machine.
 
 The three designs scale off a single `--sticker-size`, so the same sunburst
-renders at 34px in a schedule row and 76px in the drawer without a second
-copy of the CSS.
+renders at 62px on a schedule row and 76px in the drawer without a second copy
+of the CSS.
 
 ### Training
 

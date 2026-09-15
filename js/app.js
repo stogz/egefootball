@@ -177,17 +177,41 @@
     'boost-1-5': { modifier: 'silver', label: '1.5x' }
   };
 
-  function stickerEl(itemKey, size) {
+  /* A stable, scattered-looking tilt: the same game always gets the same
+     angle, but no two in a column look placed by a machine. */
+  function tiltFor(seed) {
+    var hash = 0;
+    String(seed).split('').forEach(function (ch) {
+      hash = (hash * 31 + ch.charCodeAt(0)) % 997;
+    });
+    return (hash % 27) - 13;      /* -13deg .. +13deg */
+  }
+
+  function stickerEl(itemKey, size, seed) {
     var look = STICKER_LOOK[itemKey];
     if (!look) { return null; }
 
     var sticker = el('span', 'ege-sticker ege-sticker--' + look.modifier);
     sticker.style.setProperty('--sticker-size', (size || 40) + 'px');
-    sticker.appendChild(el('span', 'ege-sticker__text', look.label));
+    sticker.style.setProperty('--tilt', tiltFor(seed == null ? itemKey : seed) + 'deg');
+
+    sticker.appendChild(el('span', 'ege-sticker__back'));
+
+    var face = el('span', 'ege-sticker__face');
+    face.appendChild(el('span', 'ege-sticker__text', look.label));
+    sticker.appendChild(face);
+
     return sticker;
   }
 
+  /* Stickers are private: your own, or anyone's if you are an admin. The
+     policy on game_boosters enforces it; this only decides what to draw. */
+  function canSeeStickers(player) {
+    return isMe(player) || EGE.wallet.admin();
+  }
+
   function stickerOn(player, week) {
+    if (!canSeeStickers(player)) { return null; }
     var byWeek = (EGE.gameBoosters || {})[player.slug] || {};
     return byWeek[week] || null;
   }
@@ -209,12 +233,14 @@
       applied.title = peelable
         ? stuck.item_name + ' \u2014 click to peel it off'
         : stuck.item_name + ' \u2014 the game has been played, it stays put';
-      var sticker = stickerEl(stuck.item_key, 34);
+      /* Bigger than the row on purpose, sitting over it, and nudged a few
+         pixels off centre so a column of them looks stuck on by hand. */
+      var seed = player.slug + '-' + game.week;
+      var sticker = stickerEl(stuck.item_key, 62, seed);
+      applied.style.setProperty('--sticker-size', '62px');
+      applied.style.setProperty('--nudge', (tiltFor(seed + 'y') / 4).toFixed(1) + 'px');
       applied.appendChild(sticker);
       if (peelable) {
-        /* The cross lives inside the sticker so it is carried by the same
-           scale and rotation rather than chasing them. */
-        sticker.appendChild(el('span', 'ege-sticker__x', '\u00d7'));
         applied.addEventListener('click', function () {
           applied.disabled = true;
           EGE.wallet.peelBooster(player.email, stuck).then(function (res) {
@@ -293,7 +319,7 @@
         var pick = el('button', 'ege-pick');
         pick.type = 'button';
         pick.title = 'Stick ' + row.item_name + ' on week ' + game.week;
-        pick.appendChild(stickerEl(row.item_key, 76));
+        pick.appendChild(stickerEl(row.item_key, 76, row.item_key));
         pick.appendChild(el('span', 'ege-pick__count', '\u00d7' + EGE.wallet.quantityOf(row)));
         pick.addEventListener('click', function () {
           pick.disabled = true;
