@@ -216,19 +216,34 @@ alter table public.player_inventory
 alter table public.player_inventory
   add column if not exists effects jsonb not null default '{}'::jsonb;
 
--- Purchases are public, because a boosted overall has to show on a player's
--- card for everyone. Intel is the exception: only its owner and an admin see
--- which games scouts will be at.
--- Drop both names: the old one this replaces, and its own, so re-running the
--- file never fails on a policy that is already there. A failure here rolls the
--- whole script back in the Supabase editor, which is how a new column can go
--- missing after what looked like a successful run.
+-- What a purchase did to somebody's ratings is public, because a bought
+-- overall is a permanent part of a player and has to read the same to a
+-- passer-by as it does to the person who paid for it. Nothing else about the
+-- purchase is.
+--
+-- The line between the two is the effects column, which is exactly the set of
+-- rows the site reads for everyone: rating points and training carry the
+-- attributes they moved, and every other thing in the shop carries {}. So a
+-- booster sitting in the drawer, a QB connection, a chamber and Intel are all
+-- the owner's and an admin's, and the rule needs no list of item keys to keep
+-- up to date -- anything added to the shop later is private unless it changes
+-- a rating.
+--
+-- This replaces "all but intel", which named the one private thing instead of
+-- the public one and so left unused boosters readable to anyone with the anon
+-- key. Nothing on the site drew them, but the rows went over the wire.
+--
+-- Drop every name this has had, so re-running the file never fails on a policy
+-- that is already there. A failure here rolls the whole script back in the
+-- Supabase editor, which is how a new column can go missing after what looked
+-- like a successful run.
 drop policy if exists "inventory readable by owner or admin" on public.player_inventory;
 drop policy if exists "inventory readable to all but intel" on public.player_inventory;
-create policy "inventory readable to all but intel"
+drop policy if exists "inventory rating changes are public" on public.player_inventory;
+create policy "inventory rating changes are public"
   on public.player_inventory for select
   using (
-    item_key <> 'intel'
+    effects <> '{}'::jsonb
     or email = auth.jwt() ->> 'email'
     or public.is_admin()
   );
