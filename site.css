@@ -17,6 +17,12 @@
   --fb-accent-hover: #fa9859;
   --fb-accent-deep: #a64412;        /* accent as text on cream: 5.55:1 */
 
+  /* The page's own background, under another name. Three rules already asked
+     for --fb-paper and none of them were getting anything, because nothing
+     ever defined it — the step numbers and the inline code in the admin steps
+     have been drawing on no background at all. */
+  --fb-paper: var(--fb-cream);
+
   --fb-cream: #fbf4e6;              /* panel ground */
   --fb-surface: #f6e6cd;
   --fb-sand: #e7dac5;
@@ -1229,3 +1235,409 @@ body {
 .ege-statfield__input { width: 100%; }
 
 .ege-item__where { display: block; font-size: 11px; line-height: 1.4; }
+
+/* ==========================================================================
+   On a phone
+   Written against an iPhone, which is what this is read on. Most of it is not
+   about width — the layout already fits — but about the handful of things a
+   finger and a notch do differently from a mouse and a rectangle.
+   ========================================================================== */
+
+html {
+  /* Safari inflates text when a phone is turned sideways unless told not to. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  /* The default blue flash on every tap looks like a bug on a site this
+     colour. A faint wash of the accent reads as a press instead. */
+  -webkit-tap-highlight-color: rgba(166, 68, 18, .12);
+}
+
+/* The notch, the Dynamic Island and the home indicator. viewport-fit=cover in
+   the head lets the page paint under all three; this keeps the content out of
+   them, and falls back to nothing on a screen without any. */
+.fb-nav__inner,
+.fb-wrap {
+  /* 22px is the kit's own gutter; the inset only ever widens it, and only on a
+     screen that has one. */
+  padding-left: max(22px, env(safe-area-inset-left));
+  padding-right: max(22px, env(safe-area-inset-right));
+}
+
+.fb-shell {
+  /* 100vh on iOS is the window with the toolbars hidden, so a page that is
+     exactly full height gets a scrollbar it does not need. dvh is the real
+     visible height; vh stays for anything that has not caught up. */
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@supports (padding: max(0px)) {
+  .fb-nav { padding-top: env(safe-area-inset-top); }
+}
+
+/* --- what a finger needs ---------------------------------------------------
+
+   Everything below is behind `hover: none`, so it applies to touch screens and
+   leaves the desktop alone. Apple asks for 44 points square; the buttons on
+   this site were 26 to 34 tall. */
+
+@media (hover: none) {
+
+  .fb-btn,
+  .fb-navlink,
+  .ege-slot__add,
+  .ege-schedule__open,
+  select,
+  input[type='number'],
+  input[type='text'],
+  input[type='password'] {
+    min-height: 44px;
+  }
+
+  .fb-btn--sm {
+    min-height: 40px;
+    padding: 8px 14px;
+  }
+
+  /* The week number on the schedule opens that game's stat line, and was a
+     21x26 target. It is the width of its column and the height of its row
+     now, which is the whole cell. */
+  .ege-schedule__open {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 44px;
+    padding: 4px 0;
+  }
+
+  /* The rating point buttons sat three to a row at 33 tall. */
+  .ege-upgrade__buy { min-height: 44px; }
+
+  /* A sticker that can still be peeled says so on its own, because there is
+     no hovering on a touch screen — without this the cross that means "tap to
+     take this off" never appears at all, and the booster looks stuck. */
+  .ege-slot__applied--peelable .ege-sticker { opacity: .72; }
+  .ege-slot__applied--peelable .ege-sticker__hatch { opacity: .38; }
+  .ege-slot__applied--peelable .ege-sticker__x { opacity: .9; }
+
+  /* Rows that light up under a mouse do nothing useful under a finger, and
+     leave a row stuck highlighted after a tap. */
+  .ege-schedule tbody tr:hover,
+  .ege-earnings tbody tr:hover { background: transparent; }
+}
+
+/* --- tables that run off the side ------------------------------------------
+
+   The game log is fifteen columns; on a phone about 850px of it is off to the
+   right. It scrolls, but nothing said so. The shadow on the right edge is
+   painted by the scroll container itself, so it fades out as you reach the
+   end and comes back when you scroll away — no script, and it cannot get out
+   of step with the scroll position. */
+
+.fb-tablewrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+
+  /* Without this the wrapper does not scroll at all inside a flex or grid
+     parent: a flex item's min-width is auto, so it grows to whatever the table
+     needs and pushes the page sideways instead of clipping it. Every one of
+     these sits in a .fb-stack, so every one of them needed it. */
+  min-width: 0;
+
+  background:
+    linear-gradient(to right, var(--fb-paper) 30%, transparent) left center,
+    linear-gradient(to left,  var(--fb-paper) 30%, transparent) right center,
+    radial-gradient(farthest-side at 0 50%, rgba(29, 36, 22, .22), transparent) left center,
+    radial-gradient(farthest-side at 100% 50%, rgba(29, 36, 22, .22), transparent) right center;
+  background-repeat: no-repeat;
+  background-size: 34px 100%, 34px 100%, 14px 100%, 14px 100%;
+  background-attachment: local, local, scroll, scroll;
+}
+
+@media (max-width: 620px) {
+  /* A hint under the table the first time, since the shadow alone is quiet. */
+  .ege-gamelog__swipe {
+    display: block;
+    padding: 8px 0 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--fb-accent-deep);
+  }
+}
+.ege-gamelog__swipe { display: none; }
+
+/* --- reading it at arm's length --------------------------------------------
+
+   10px is a footnote on a desktop and a squint on a phone. */
+
+@media (max-width: 620px) {
+  .ege-statrow__label,
+  .ege-statfield__label,
+  .ege-awards .fb-meta,
+  .ege-weekline td .fb-meta { font-size: 11.5px; }
+
+  .ege-gamelog__boost { font-size: 12px; }
+
+  /* The nav was taking 129px of an 844px screen — a sixth of it, before any
+     football. The brand keeps its own line; the links, the balance and the
+     face share the next one. */
+  .fb-nav__inner {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    row-gap: 2px;
+    column-gap: 10px;
+  }
+
+  .fb-brand {
+    font-size: 19px;
+    flex: 1 1 100%;
+  }
+  .fb-brand img,
+  .fb-brand svg { transform: scale(.82); transform-origin: left center; }
+
+  .fb-nav__links { gap: 2px; margin-right: auto; }
+  .fb-navlink { padding-left: 9px; padding-right: 9px; font-size: 14px; }
+
+  .ege-credits { padding: 4px 9px; }
+  /* 44 and no smaller: it is the way into the portal, and Apple's floor. */
+  .ege-avatarbtn { width: 44px; height: 44px; }
+  .ege-avatarbtn .ege-avatar { width: 100%; height: 100%; }
+
+  /* A hero sized for a laptop is most of the first screen on a phone. */
+  .fb-hero { padding-top: 26px !important; padding-bottom: 20px !important; }
+
+  /* The title's hard shadow is 8px, which is a quarter of the letter height
+     once the type comes down to phone size — it reads as a second word behind
+     the first. It comes down with the type. */
+  .fb-hero__title {
+    font-size: clamp(30px, 9vw, 44px);
+    text-shadow: 3px 3px 0 var(--fb-ink);
+  }
+  .fb-hero__lede { font-size: 15px; }
+
+  /* --- the roster, turned sideways ----------------------------------------
+
+     Six portrait cards is six screens of scrolling before anybody has picked
+     anyone. On its side, each player is a band you can read at a glance and
+     the whole squad fits in two. */
+
+  .ege-card {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .ege-card__photo {
+    flex: 0 0 116px;
+    aspect-ratio: auto;
+    border-bottom: 0;
+    border-right: var(--fb-border) solid var(--fb-ink);
+  }
+  .ege-card__photo img { object-position: center 14%; }
+
+  .ege-card__body {
+    padding: 11px 13px 12px;
+    gap: 6px;
+    min-width: 0;
+  }
+  .ege-card__name { font-size: 21px; }
+
+  /* The jersey badge is pinned to a corner that is now much smaller. */
+  .ege-card__jersey { transform: scale(.85); transform-origin: top left; }
+
+  /* The season editor's number fields, two up instead of one. */
+  .ege-statgrid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+}
+
+/* --- what iOS does to a form ------------------------------------------------
+
+   Safari zooms the whole page in when you focus a control whose text is under
+   16px, and does not zoom back out afterwards. Every control on this site was
+   13 or 14. This is the one that actually makes it feel broken. */
+
+/* A select is as wide as its longest option unless it is told otherwise, and
+   at 16px "Offseason Strength Training" is wider than an iPhone. Left alone it
+   pushed the page to 435px on a 390px screen, and Safari answers that by
+   zooming the whole page out to fit — which is most of what "it looks tiny on
+   my phone" turns out to be. */
+select,
+.fb-select,
+.fb-input {
+  max-width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 620px) {
+  /* The admin's award and grant pickers, each on their own line rather than
+     squeezed beside their button. */
+  .ege-account__award,
+  .ege-account__grant { flex: 1 1 100%; }
+
+  /* Named by class as well as element: `.fb-input` and `.fb-select` are class
+     selectors, and a bare `input` would lose to them every time. 13px and 14px
+     is what they were, and both are under the line. */
+  input,
+  select,
+  textarea,
+  .fb-input,
+  .fb-select,
+  .fb-select--sm,
+  .ege-statfield__input,
+  .ege-account__credits {
+    font-size: 16px;
+  }
+}
+
+/* --- the last few targets -------------------------------------------------- */
+
+@media (hover: none) {
+  /* 40 was better than the 30 it started at, but Apple asks for 44 and these
+     are the buttons that publish a week. */
+  .fb-btn--sm { min-height: 44px; }
+
+  /* The wordmark is a link home. */
+  .fb-brand { display: inline-flex; align-items: center; min-height: 44px; }
+}
+
+@media (max-width: 620px) {
+  /* Table headings and eyebrows are set at 10px, which is a footnote on a
+     laptop and a squint at arm's length. The letter-spacing is what makes
+     them legible small, so it stays. */
+  .fb-table th,
+  .fb-eyebrow,
+  .ege-credits__unit,
+  .ege-ovr__label,
+  .ege-detail__list dt,
+  .ege-card__go,
+  .ege-upgrade__group { font-size: 11.5px; }
+
+  /* Which makes the header cells taller than they need to be. */
+  .fb-table th { padding-top: 9px; padding-bottom: 9px; }
+}
+
+/* --- the schedule, on a small screen ----------------------------------------
+
+   Seven columns do not fit in 390 points. Left as a table it scrolled, and
+   what scrolled off was the result — the one thing anybody opens a schedule
+   to see. The date wrapped to three lines doing it.
+
+   So on a phone each game stops being a row and becomes a small block: who
+   and when on the left, what happened on the right, the week number as the
+   handle that opens the stat line. Same markup, same cells, same order in the
+   source — only the layout changes. */
+
+@media (max-width: 620px) {
+
+  .ege-schedule { min-width: 0; }
+  .ege-schedule thead { display: none; }
+
+  .ege-schedule tbody tr:not(.ege-statrow) {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 2px 10px;
+    padding: 9px 12px;
+    border-bottom: var(--fb-border-thin) solid rgba(29, 36, 22, .16);
+  }
+
+  .ege-schedule tbody tr:not(.ege-statrow) > td {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+
+  /* the week number spans both lines, as the handle for the whole block */
+  .ege-schedule tbody tr .ege-schedule__week { grid-area: 1 / 1 / 3 / 2; font-size: 17px; }
+
+  .ege-schedule tbody tr .ege-schedule__opponent { grid-area: 1 / 2 / 2 / 3; }
+  .ege-schedule tbody tr > td:nth-child(2) {        /* the date */
+    grid-area: 2 / 2 / 3 / 3;
+    font-size: 12px;
+    color: var(--fb-muted);
+    white-space: nowrap;
+  }
+
+  /* Kickoff time moves into the dropdown rather than taking a column here.
+     Written to out-weigh the `> td { display: block }` above it, which has one
+     more element in it and would otherwise win. */
+  .ege-schedule tbody tr:not(.ege-statrow) > td.ege-schedule__time { display: none; }
+
+  .ege-schedule tbody tr > td:nth-child(5) { grid-area: 1 / 3 / 2 / 4; text-align: right; }
+  .ege-schedule tbody tr .ege-schedule__credits { grid-area: 2 / 3 / 3 / 4; text-align: right; }
+  .ege-schedule tbody tr .ege-schedule__slot { grid-area: 1 / 4 / 3 / 5; }
+
+  /* The opponent can run out of room; ellipsis beats pushing the score off. */
+  .ege-schedule__opponent .fb-name {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: bottom;
+  }
+
+  /* A block, not a row, so it no longer needs a scroll shadow either. */
+  #scheduleTableWrap { background: none; }
+
+  /* A sticker sized to overhang a 51px desktop row swamps a phone one. */
+  .ege-slot__applied { --sticker-size: 46px; }
+  .ege-slot__applied .ege-sticker { width: 46px; height: 46px; }
+}
+
+.ege-statrow__when {
+  flex-basis: 100%;
+  margin: 0 0 6px;
+  font-size: 12px;
+}
+
+/* --- the rating points table, on a small screen -----------------------------
+
+   Eight columns, and the three that matter — the buy buttons — were the three
+   that scrolled off the right. Same answer as the schedule: each attribute
+   becomes a block, and what you came to press is under your thumb. */
+
+@media (max-width: 620px) {
+
+  .ege-upgrades { min-width: 0; }
+  .ege-upgrades thead { display: none; }
+
+  .ege-upgrades tbody tr {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px 8px;
+    padding: 12px;
+    border-bottom: var(--fb-border-thin) solid rgba(29, 36, 22, .16);
+  }
+
+  .ege-upgrades tbody tr > td {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+
+  /* group, then the attribute with its rating, then the bar, then the cost */
+  .ege-upgrades tbody tr > td:nth-child(1) { grid-column: 1 / -1; }
+  .ege-upgrades tbody tr > td:nth-child(2) {
+    grid-column: 1 / 3;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .ege-upgrades tbody tr > td:nth-child(3) { grid-column: 3; text-align: right; font-size: 17px; }
+  .ege-upgrades tbody tr > td:nth-child(4) { grid-column: 1 / -1; }
+  .ege-upgrades tbody tr > td:nth-child(5) {
+    grid-column: 1 / -1;
+    font-size: 12px;
+    color: var(--fb-muted);
+  }
+
+  /* The bare number meant nothing without its column heading. */
+  .ege-upgrades tbody tr > td:nth-child(5)::after {
+    content: ' points per +1 overall';
+  }
+
+  /* One button per column, full width, so all three are a thumb wide. */
+  .ege-upgrade__buy { width: 100%; }
+}

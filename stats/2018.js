@@ -315,8 +315,90 @@ EGE.stats[2018] = {
         } },
     ],
 
-    /* Isaac Vitel — no school yet, so no fixtures. */
-    'isaac-vitel': [],
+    /* Isaac Vitel — Bloomington High School */
+    'isaac-vitel': [
+      { week:  2, date: '2018-08-25', kickoff: '7:00pm',
+        opponent: 'Manual', home: true, conference: true,
+        result: { teamScore: 14, opponentScore: 34 }, booster: null,
+        stats: {
+          completions: 12, attempts: 21, passingYards: 152,
+          passingYac: 28, passingTd: 2, interceptions: 0, carries: 7,
+          rushingYards: 18, rushingTd: 0, rushingLong: 11, sacks: 3,
+          fumbles: 1, passingAvg: 12.7, rating: 111.6, rushingAvg: 2.6
+        } },
+      { week:  3, date: '2018-09-01', kickoff: '7:00pm',
+        opponent: 'Normal Community', home: false, conference: true, scouts: true,
+        result: { teamScore: 10, opponentScore: 13 }, booster: null,
+        stats: {
+          completions: 11, attempts: 22, passingYards: 154,
+          passingYac: 31, passingTd: 1, interceptions: 1, carries: 5,
+          rushingYards: 26, rushingTd: 0, rushingLong: 19, sacks: 1,
+          fumbles: 0, passingAvg: 14, rating: 69.1, rushingAvg: 5.2
+        } },
+      { week:  4, date: '2018-09-08', kickoff: '7:00pm',
+        opponent: 'Champaign Central', home: true, conference: true, scouts: true,
+        result: { teamScore: 10, opponentScore: 27 }, booster: null,
+        stats: {
+          completions: 10, attempts: 20, passingYards: 161,
+          passingYac: 42, passingTd: 1, interceptions: 2, carries: 3,
+          rushingYards: 18, rushingTd: 0, rushingLong: 16, sacks: 3,
+          fumbles: 0, passingAvg: 16.1, rating: 54.4, rushingAvg: 6
+        } },
+      { week:  5, date: '2018-09-15', kickoff: '7:00pm',
+        opponent: 'Kankakee', home: true, conference: false,
+        result: { teamScore: 20, opponentScore: 28 }, booster: null,
+        stats: {
+          completions: 9, attempts: 18, passingYards: 116, passingYac: 28,
+          passingTd: 3, interceptions: 1, carries: 8, rushingYards: 13,
+          rushingTd: 0, rushingLong: 10, sacks: 2, fumbles: 0,
+          passingAvg: 12.9, rating: 87, rushingAvg: 1.6
+        } },
+      { week:  6, date: '2018-09-22', kickoff: '7:30pm',
+        opponent: 'Peoria', home: false, conference: true, scouts: true,
+        result: { teamScore: 7, opponentScore: 16 }, booster: null,
+        stats: {
+          completions: 11, attempts: 21, passingYards: 153,
+          passingYac: 38, passingTd: 1, interceptions: 3, carries: 7,
+          rushingYards: 4, rushingTd: 0, rushingLong: 3, sacks: 3,
+          fumbles: 1, passingAvg: 13.9, rating: 52.4, rushingAvg: 0.6
+        } },
+      { week:  7, date: '2018-09-29', kickoff: '7:00pm',
+        opponent: 'Normal West', home: true, conference: true,
+        result: { teamScore: 10, opponentScore: 9 }, booster: null,
+        stats: {
+          completions: 12, attempts: 21, passingYards: 161,
+          passingYac: 26, passingTd: 1, interceptions: 2, carries: 3,
+          rushingYards: -4, rushingTd: 0, rushingLong: 1, sacks: 1,
+          fumbles: 0, passingAvg: 13.4, rating: 57.9, rushingAvg: -1.3
+        } },
+      { week:  8, date: '2018-10-06', kickoff: '7:00pm',
+        opponent: 'Richwoods', home: false, conference: true,
+        result: { teamScore: 20, opponentScore: 0 }, booster: null,
+        stats: {
+          completions: 7, attempts: 15, passingYards: 87, passingYac: 17,
+          passingTd: 0, interceptions: 1, carries: 5, rushingYards: 9,
+          rushingTd: 0, rushingLong: 5, sacks: 3, fumbles: 0,
+          passingAvg: 12.4, rating: 37.4, rushingAvg: 1.8
+        } },
+      { week:  9, date: '2018-10-13', kickoff: '7:00pm',
+        opponent: 'Urbana', home: true, conference: true,
+        result: { teamScore: 13, opponentScore: 0 }, booster: null,
+        stats: {
+          completions: 10, attempts: 19, passingYards: 137,
+          passingYac: 25, passingTd: 0, interceptions: 1, carries: 6,
+          rushingYards: 8, rushingTd: 1, rushingLong: 6, sacks: 2,
+          fumbles: 1, passingAvg: 13.7, rating: 54.1, rushingAvg: 1.3
+        } },
+      { week: 10, date: '2018-10-20', kickoff: '7:00pm',
+        opponent: 'Danville', home: false, conference: true,
+        result: { teamScore: 24, opponentScore: 15 }, booster: null,
+        stats: {
+          completions: 8, attempts: 15, passingYards: 138, passingYac: 26,
+          passingTd: 1, interceptions: 1, carries: 5, rushingYards: 16,
+          rushingTd: 0, rushingLong: 12, sacks: 1, fumbles: 1,
+          passingAvg: 17.3, rating: 79.3, rushingAvg: 3.2
+        } },
+    ],
 
     /* Sam Stogsdill — Normal Community High School */
     'sam-stogsdill': [
