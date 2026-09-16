@@ -2270,10 +2270,20 @@
     box.title = shown + ' credits to spend in the shop';
   }
 
-  /* Which weeks are out is what decides whether a visitor sees a score at
-     all, so it loads before the first draw and for everybody — signed in or
-     not, player or passer-by. */
-  EGE.wallet.loadPublishedWeeks().then(function () {
+  /* Two things decide what a visitor sees before anybody signs in, so both
+     load before the first draw and for everybody — signed in or not, player
+     or passer-by.
+
+     Which weeks are out decides whether there is a score at all. And what
+     has been bought decides every overall on the site: a rating point is a
+     permanent part of a player, not a private note, and it has to read the
+     same to a passer-by as it does to the person who paid for it. This used
+     to be loaded from refreshShop, which needs a signed-in player, so
+     signing out dropped every overall back to its base number. */
+  Promise.all([
+    EGE.wallet.loadPublishedWeeks(),
+    EGE.wallet.loadBoosts()
+  ]).then(function () {
     redrawRatings();
   });
 
