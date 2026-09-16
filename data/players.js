@@ -14,6 +14,12 @@
    `email` is the address that player signs in with. Only the six listed
    here can hold an account; a null email means their portal is not open
    yet. These are sign-in identifiers, not contact details.
+
+   Written lowercase, always. Supabase lowercases the address in auth.users,
+   so the JWT carries the lowercase form, and every row policy on the site is
+   `email = auth.jwt() ->> 'email'` -- a byte comparison in Postgres. An
+   address stored here as Jkeb.stew@gmail.com would read fine and then have
+   every single write to its credits, inventory and boosters refused.
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -89,7 +95,7 @@ EGE.players = [
     team: 'wakeForest',
     position: 'TE',
     jersey: null,             // TBD
-    email: null,              // TBD
+    email: 'daikrotlr@gmail.com',
     credits: 0,
     headshot: 'headshot/parr.png'
   },
@@ -125,7 +131,7 @@ EGE.players = [
     team: 'bloomington',
     position: 'QB',
     jersey: null,             // TBD
-    email: null,              // TBD
+    email: 'isaacvitel2005@gmail.com',
     credits: 0,
     headshot: 'headshot/vitel.png'
   },
@@ -149,7 +155,7 @@ EGE.players = [
     team: 'naples',
     position: 'QB',
     jersey: null,             // TBD
-    email: null,              // TBD
+    email: 'jkeb.stew@gmail.com',
     credits: 0,
     headshot: 'headshot/stewart.png'
   }
