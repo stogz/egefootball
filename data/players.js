@@ -122,7 +122,7 @@ EGE.players = [
     name: 'Isaac Vitel',
     first: 'Isaac',
     last: 'Vitel',
-    team: null,               // TBD
+    team: 'bloomington',
     position: 'QB',
     jersey: null,             // TBD
     email: null,              // TBD

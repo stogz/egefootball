@@ -14,14 +14,19 @@ and in what order.
 
 ## The Six Players
 
-| Player | School | League | Position |
-| --- | --- | --- | --- |
-| Andrew Parr | Wake Forest High School | Northern 4A | TE |
-| Cooper Clark | Carlsbad High School | Avocado League | RB |
-| Paxon Hatch | Bloomington High School | Big Twelve | TE |
-| Isaac Vitel | TBD | TBD | QB |
-| Sam Stogsdill | Normal Community High School | Big Twelve | RB |
-| Jaykeb Stewart | Naples High School | 6A District 12 | QB |
+| Player | School | League | Position | Plays like |
+| --- | --- | --- | --- | --- |
+| Andrew Parr | Wake Forest High School | Northern 4A | TE | a complete tight end |
+| Cooper Clark | Carlsbad High School | Avocado League | RB | a receiving back |
+| Paxon Hatch | Bloomington High School | Big Twelve | TE | a complete tight end |
+| Isaac Vitel | Bloomington High School | Big Twelve | QB | a deep thrower |
+| Sam Stogsdill | Normal Community High School | Big Twelve | RB | a power back |
+| Jaykeb Stewart | Naples High School | 6A District 12 | QB | a pocket passer |
+
+**Isaac and Paxon are teammates**, which the data has to respect: they play the
+same fixtures, carry the same scorelines, and every ball Paxon catches is one
+Isaac threw. His completions, attempts, yards and touchdowns each start at
+Paxon's and go up from there.
 
 Everything marked TBD is genuinely unknown right now and should stay TBD in code
 and data until it is confirmed — no placeholder guesses that later read as facts.
@@ -108,6 +113,13 @@ positions are confirmed.
 ---
 
 ## Ratings
+
+Every player has a shape as well as a number. The shapes are made by moving
+points **within** the weighting rather than adding them, so reshaping somebody
+never changes their overall: Isaac's deep ball came out of his short accuracy,
+Sam's trucking came out of his spin and juke, and Cooper's hands came out of
+his power running. Each one was checked before it was written — all three
+overalls are exactly where they were.
 
 Every player carries the same 32 attributes, in four groups: General,
 Passing, Receiving, Ball Carrier. Tight ends carry a fifth, Blocking, since

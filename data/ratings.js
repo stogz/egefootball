@@ -146,12 +146,12 @@ EGE.ratings = {
     throwAccuracyMid: 10, throwAccuracyDeep: 17, throwOnTheRun: 15,
     playAction: 10,
     /* Receiving */
-    catching: 45, spectacularCatch: 46, catchInTraffic: 44,
-    routeRunningShort: 45, routeRunningMedium: 37, routeRunningDeep: 42,
-    release: 45,
+    catching: 51, spectacularCatch: 48, catchInTraffic: 49,
+    routeRunningShort: 50, routeRunningMedium: 43, routeRunningDeep: 42,
+    release: 49,
     /* Ball Carrier */
-    carrying: 58, breakTackle: 55, trucking: 50, changeOfDirection: 54,
-    bcVision: 57, stiffArm: 61, spinMove: 62, jukeMove: 55, breakSack: 60,
+    carrying: 55, breakTackle: 51, trucking: 44, changeOfDirection: 54,
+    bcVision: 55, stiffArm: 56, spinMove: 62, jukeMove: 55, breakSack: 60,
   },
   'andrew-parr': {
     /* General */
@@ -175,7 +175,7 @@ EGE.ratings = {
   },
   'sam-stogsdill': {
     /* General */
-    speed: 54, acceleration: 53, strength: 48, agility: 46, awareness: 49,
+    speed: 54, acceleration: 51, strength: 54, agility: 42, awareness: 49,
     jumping: 48, injury: 53, stamina: 46, toughness: 49,
     /* Passing */
     throwPower: 14, throwUnderPressure: 18, throwAccuracyShort: 13,
@@ -186,17 +186,17 @@ EGE.ratings = {
     routeRunningShort: 43, routeRunningMedium: 35, routeRunningDeep: 40,
     release: 43,
     /* Ball Carrier */
-    carrying: 55, breakTackle: 52, trucking: 47, changeOfDirection: 51,
-    bcVision: 54, stiffArm: 58, spinMove: 59, jukeMove: 52, breakSack: 58,
+    carrying: 58, breakTackle: 58, trucking: 63, changeOfDirection: 43,
+    bcVision: 54, stiffArm: 66, spinMove: 45, jukeMove: 41, breakSack: 58,
   },
   'isaac-vitel': {
     /* General */
     speed: 47, acceleration: 46, strength: 41, agility: 39, awareness: 42,
     jumping: 41, injury: 46, stamina: 40, toughness: 42,
     /* Passing */
-    throwPower: 55, throwUnderPressure: 60, throwAccuracyShort: 54,
-    throwAccuracyMid: 51, throwAccuracyDeep: 58, throwOnTheRun: 56,
-    playAction: 51,
+    throwPower: 64, throwUnderPressure: 60, throwAccuracyShort: 47,
+    throwAccuracyMid: 47, throwAccuracyDeep: 69, throwOnTheRun: 54,
+    playAction: 44,
     /* Receiving */
     catching: 23, spectacularCatch: 25, catchInTraffic: 22,
     routeRunningShort: 23, routeRunningMedium: 15, routeRunningDeep: 21,
