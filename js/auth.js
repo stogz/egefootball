@@ -5,9 +5,11 @@
    password afterwards — that is an admin job, done from the Supabase
    dashboard. No confirmation emails, no reset emails, no email cost.
 
-   Whether an account already has a password is recorded in the
-   public.player_accounts table (see supabase/schema.sql) so the portal can
-   show the right form before anyone types anything.
+   Whether an account already has a password is asked of auth.users, through
+   the account_has_password function in supabase/schema.sql, so the portal can
+   show the right form before anyone types anything. public.player_accounts
+   keeps the same answer as a fallback for a project that has not had the
+   function added yet.
 
    Depends on: supabase-js (loaded from CDN in index.html) and
    js/supabase-config.js.
@@ -20,6 +22,7 @@ EGE.auth = (function () {
 
   var MIN_PASSWORD = 8;
   var ACCOUNTS_TABLE = 'player_accounts';
+  var HAS_PASSWORD_FN = 'account_has_password';
 
   var client = null;
   var listeners = [];
@@ -97,9 +100,38 @@ EGE.auth = (function () {
   /* --- does this account have a password yet? --------------------------- */
 
   /* 'set' — sign in. 'unset' — first password, asked for twice.
-     'unknown' — the table is missing or unreachable, so the portal offers
-     both rather than guessing. */
+     'unknown' — nothing could be reached, so the portal offers both rather
+     than guessing.
+
+     Asked of auth.users, through the account_has_password function in
+     supabase/schema.sql, because auth.users is the only thing that actually
+     knows. player_accounts is a note about it, and a note can be wrong — a
+     password set before that table existed, or a row whose write was lost on
+     the way, leaves a player who has had a password for months being asked to
+     pick a first one every single time. */
   function accountState(email) {
+    var c = getClient();
+    if (!c) { return Promise.resolve('unknown'); }
+
+    /* try/catch as well as .catch, because a client old enough not to have
+       .rpc at all throws here rather than rejecting. */
+    try {
+      return c.rpc(HAS_PASSWORD_FN, { p_email: email })
+        .then(function (res) {
+          /* No such function yet — a project that has not had the schema
+             run again. Fall back to the note. */
+          if (res.error || typeof res.data !== 'boolean') {
+            return stateFromTable(email);
+          }
+          return res.data ? 'set' : 'unset';
+        })
+        .catch(function () { return stateFromTable(email); });
+    } catch (e) {
+      return stateFromTable(email);
+    }
+  }
+
+  function stateFromTable(email) {
     var c = getClient();
     if (!c) { return Promise.resolve('unknown'); }
 
@@ -114,8 +146,12 @@ EGE.auth = (function () {
       .catch(function () { return 'unknown'; });
   }
 
-  /* Recorded right after a password is created, by the account that owns it
-     — the table's policies allow nothing else. */
+  /* Recorded right after a password is created, and again after every
+     successful sign-in — by the account that owns it, which is the only
+     thing the table's policies allow. Writing it on sign-in too is what
+     makes the note catch up on its own: one sign-in fixes a row that was
+     never written, so the fallback above is right from then on even in a
+     project where the function has not been added. */
   function markPasswordSet(email) {
     var c = getClient();
     if (!c) { return Promise.resolve(); }
@@ -136,6 +172,9 @@ EGE.auth = (function () {
         if (res.error) {
           return { ok: false, message: 'That password is not right.' };
         }
+        /* Not waited on: it is housekeeping, and a slow write should not hold
+           up the word that you are in. */
+        markPasswordSet(email);
         return { ok: true, message: 'Signed in.' };
       });
   }

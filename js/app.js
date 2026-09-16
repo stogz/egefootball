@@ -231,6 +231,7 @@
   }
 
   var showScouts = false;
+  var showBoosters = false;
   var schedulePlayer = null;
 
   /* Which season the player page is showing. It follows the live season until
@@ -286,6 +287,39 @@
     return isMe(player) || EGE.wallet.admin();
   }
 
+  /* A mouse has hover, so a sticker it can take off says so as the pointer
+     arrives: it fades, rules itself through and shows a cross. A finger has
+     none of that, and drawing the cross permanently instead made every phone
+     screen look like the booster was already half off.
+
+     So on a touch screen the sticker arms rather than showing: the first tap
+     lifts it and draws the cross, the second takes it off, and a tap anywhere
+     else puts it back down. The cross is only ever up while you are actually
+     taking one off, and a stray tap costs nothing. */
+  var armedSticker = null;
+
+  function disarmSticker() {
+    var was = armedSticker;
+    armedSticker = null;
+    if (!was) { return; }
+    was.classList.remove('ege-slot__applied--armed');
+    if (was.dataset.restTitle) {
+      was.title = was.dataset.restTitle;
+      was.setAttribute('aria-label', was.dataset.restTitle);
+    }
+  }
+
+  /* Anywhere else on the page, including another sticker. Runs after the
+     sticker's own handler, which is what lets that one arm itself without
+     this one immediately putting it back down. */
+  document.addEventListener('click', function (event) {
+    if (!armedSticker) { return; }
+    var inside = event.target.closest
+      ? event.target.closest('.ege-slot__applied--armed')
+      : null;
+    if (inside !== armedSticker) { disarmSticker(); }
+  });
+
   /* The slot at the end of a schedule row: a sticker if one is stuck there,
      a plus if this is your own unplayed game, and nothing otherwise. */
   function stickerSlot(player, game) {
@@ -313,13 +347,12 @@
         (peelable ? 'ege-slot__applied--peelable' : 'ege-slot__applied--stuck'));
       applied.type = 'button';
       applied.disabled = !peelable;
-      /* A finger has no hover, so on a touch screen the cross is always
-         showing and the word is tap. */
       var touch = window.matchMedia && window.matchMedia('(hover: none)').matches;
       applied.title = peelable
         ? stuck.item_name + ' \u2014 ' + (touch ? 'tap' : 'click') + ' to peel it off'
         : stuck.item_name + ' \u2014 the game has been played, it stays put';
       applied.setAttribute('aria-label', applied.title);
+      applied.dataset.restTitle = applied.title;
       /* Bigger than the row on purpose, sitting over it, and nudged a few
          pixels up or down so it overlaps the row above or below. */
       var seed = stuck.id;
@@ -332,6 +365,17 @@
         sticker.appendChild(el('span', 'ege-sticker__hatch'));
         sticker.appendChild(el('span', 'ege-sticker__x', '\u00d7'));
         applied.addEventListener('click', function () {
+          /* First tap on a touch screen only arms it. */
+          if (touch && armedSticker !== applied) {
+            disarmSticker();
+            armedSticker = applied;
+            applied.classList.add('ege-slot__applied--armed');
+            applied.title = 'Tap the cross to take ' + stuck.item_name +
+                            ' off week ' + game.week;
+            applied.setAttribute('aria-label', applied.title);
+            return;
+          }
+          disarmSticker();
           applied.disabled = true;
           EGE.wallet.peelBooster(player.email, stuck).then(function (res) {
             announce(res.message, !res.ok);
@@ -443,7 +487,9 @@
   }
 
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && drawer) { closeDrawer(); }
+    if (e.key !== 'Escape') { return; }
+    if (drawer) { closeDrawer(); }
+    disarmSticker();
   });
 
   function scheduleRow(game) {
@@ -501,9 +547,16 @@
     }
     row.appendChild(credits);
 
-    var slot = el('td', 'num ege-schedule__slot');
-    if (schedulePlayer) { slot.appendChild(stickerSlot(schedulePlayer, game)); }
-    row.appendChild(slot);
+    /* What somebody has riding on a game is his own business and an
+       admin's. On anyone else's schedule, and on every schedule when nobody
+       is signed in, the column is not drawn at all — an empty column of
+       dashes still announces that there is something there to not be shown,
+       and there is nothing to announce. */
+    if (showBoosters) {
+      var slot = el('td', 'num ege-schedule__slot');
+      slot.appendChild(stickerSlot(schedulePlayer, game));
+      row.appendChild(slot);
+    }
 
     return row;
   }
@@ -516,7 +569,7 @@
     row.dataset.forWeek = game.week;
 
     var cell = el('td');
-    cell.colSpan = 6;
+    cell.colSpan = showBoosters ? 7 : 6;
 
     var stats = EGE.statline.complete(player.position, game.stats);
     var box = el('div', 'ege-statrow__box');
@@ -561,7 +614,13 @@
     var games = EGE.gamesFor(player, season);
 
     showScouts = canSeeScouts(player);
+    showBoosters = canSeeStickers(player);
     schedulePlayer = player;
+
+    document.getElementById('scheduleBoosterHead').hidden = !showBoosters;
+
+    /* Every row is about to be replaced, so whatever was armed is gone. */
+    disarmSticker();
 
     body.innerHTML = '';
     panel.hidden = false;
@@ -784,6 +843,18 @@
     head.appendChild(el('h4', 'ege-item__name', EGE.itemName(item, shopState.player)));
     head.appendChild(creditTag(item.credits));
     card.appendChild(head);
+
+    /* A booster is a sticker, and a sticker is the whole appeal of it. The
+       card shows the thing itself rather than describing it — the same
+       element the drawer and the schedule draw, at the same size the drawer
+       uses. Seeded on the item key so every 2.5x in the shop sits at the same
+       angle, which is what makes it read as a product shot rather than as one
+       that has already been stuck somewhere. */
+    if (STICKER_LOOK[item.key]) {
+      var show = el('div', 'ege-item__sticker');
+      show.appendChild(stickerEl(item.key, 76, item.key));
+      card.appendChild(show);
+    }
 
     if (item.note) { card.appendChild(el('span', 'fb-tag fb-tag--outline', item.note)); }
     if (item.description) { card.appendChild(el('p', 'ege-item__text', item.description)); }
@@ -2267,9 +2338,108 @@
     if (e.key === 'Escape' && !loginModal.hidden) { closeLogin(); }
   });
 
+  /* --- download the app --------------------------------------------------- */
+
+  /* There is no app. There is this site, pinned to a home screen, which on a
+     phone is the same thing: its own icon, no address bar, and the status bar
+     tinted to match the nav. Apple has no install prompt to offer, so the only
+     way anybody finds Add to Home Screen is by being shown where it is.
+
+     It draws on a phone and nowhere else, and it stops drawing the moment the
+     site is opened from the home screen — at that point the guide is telling
+     you to do the thing you have already done. */
+
+  function alreadyInstalled() {
+    if (window.navigator.standalone) { return true; }          /* iOS */
+    return Boolean(window.matchMedia &&
+      window.matchMedia('(display-mode: standalone)').matches); /* everyone else */
+  }
+
+  function onAPhone() {
+    if (!window.matchMedia) { return false; }
+    /* A coarse pointer and a small screen. Asking for both is what keeps a
+       touchscreen laptop out of it. */
+    return window.matchMedia('(pointer: coarse)').matches &&
+           window.matchMedia('(max-width: 820px)').matches;
+  }
+
+  function onApple() {
+    var ua = navigator.userAgent || '';
+    if (/iPhone|iPad|iPod/i.test(ua)) { return true; }
+    /* An iPad on iPadOS 13 and up reports itself as a Mac; the touch points
+       are the only thing that gives it away. */
+    return navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+  }
+
+  /* The share glyph as Apple draws it, because "the share button" means
+     nothing until you have seen which one it is. */
+  function shareGlyph() {
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'ege-install__glyph');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.innerHTML =
+      '<path d="M12 3v12M12 3l-4 4M12 3l4 4" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<path d="M6 11H4.5v9.5h15V11H18" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+    return svg;
+  }
+
+  var INSTALL_GUIDES = {
+    apple: {
+      kind: 'iPhone and iPad',
+      lede: 'Four taps and EGE Football sits on your home screen next to ' +
+            'everything else, full screen, with no address bar across the top.',
+      steps: [
+        { text: 'Open this page in Safari. The button this needs is Safari\u2019s own.' },
+        { text: 'Tap the Share button in the bar at the bottom \u2014 the square ' +
+                'with an arrow coming out of the top.', glyph: 'share' },
+        { text: 'Scroll that list down and tap Add to Home Screen.' },
+        { text: 'Tap Add, top right. Then close Safari and open it from the icon.' }
+      ]
+    },
+    other: {
+      kind: 'Android',
+      lede: 'Chrome will pin the site to your home screen as an app, with its ' +
+            'own icon and no address bar.',
+      steps: [
+        { text: 'Open this page in Chrome.' },
+        { text: 'Tap the three-dot menu, top right.', glyph: 'dots' },
+        { text: 'Tap Add to Home screen, or Install app if it offers that instead.' },
+        { text: 'Tap Install. Then open it from the icon rather than from Chrome.' }
+      ]
+    }
+  };
+
+  function renderInstallGuide() {
+    var panel = document.getElementById('installGuide');
+    if (!onAPhone() || alreadyInstalled()) { panel.hidden = true; return; }
+
+    var guide = onApple() ? INSTALL_GUIDES.apple : INSTALL_GUIDES.other;
+    document.getElementById('installKind').textContent = guide.kind;
+    document.getElementById('installLede').textContent = guide.lede;
+
+    var list = document.getElementById('installSteps');
+    list.innerHTML = '';
+    guide.steps.forEach(function (step) {
+      var item = el('li', 'ege-install__step');
+      var body = el('span', 'ege-install__text', step.text);
+      if (step.glyph === 'share') { body.appendChild(shareGlyph()); }
+      if (step.glyph === 'dots') {
+        body.appendChild(el('span', 'ege-install__glyph ege-install__dots', '\u22ee'));
+      }
+      item.appendChild(body);
+      list.appendChild(item);
+    });
+
+    panel.hidden = false;
+  }
+
   /* --- go --------------------------------------------------------------- */
 
   renderRoster();
+  renderInstallGuide();
   fillPlayerSelect();
   route();
   EGE.auth.init();

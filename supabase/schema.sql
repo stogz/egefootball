@@ -44,6 +44,47 @@ create policy "players update their own row"
 -- No delete policy: rows are never removed from the browser.
 
 -- ---------------------------------------------------------------------------
+-- Does this account have a password?
+--
+-- player_accounts is a note about auth.users, and a note can be wrong. A
+-- password set before this table existed, or a row whose write was lost on the
+-- way, leaves the portal offering the first-password form to somebody who has
+-- had a password for months -- every time they open it.
+--
+-- auth.users is the only thing that actually knows, and it is not readable
+-- from a browser and should not be. So this function reads it instead and
+-- answers the one question the portal asks. One boolean out, nothing else.
+--
+-- It does tell an anonymous caller whether an address has a password here. The
+-- anon key already gives that away: signUp on an address that exists comes
+-- back with an empty identities array, which is exactly how js/auth.js spots
+-- the same thing today. This adds no reach -- it only costs nothing to ask,
+-- where signUp would leave a half-made account behind.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.account_has_password(p_email text)
+returns boolean
+language sql
+stable
+security definer
+-- Pinned, because a SECURITY DEFINER function that resolves names through the
+-- caller's search_path can be pointed at anything. auth.users below is
+-- schema-qualified for the same reason.
+set search_path = public, pg_temp
+as $$
+  select exists (
+    select 1
+      from auth.users u
+     where lower(u.email) = lower(trim(p_email))
+       and u.encrypted_password is not null
+       and u.encrypted_password <> ''
+  );
+$$;
+
+revoke all on function public.account_has_password(text) from public;
+grant execute on function public.account_has_password(text) to anon, authenticated;
+
+-- ---------------------------------------------------------------------------
 -- Admin notes
 --
 -- Changing a player's password is deliberately not possible from the site.
@@ -52,8 +93,10 @@ create policy "players update their own row"
 -- service_role key and auth.admin.updateUserById(). Never put that key in
 -- this repo.
 --
--- If you clear a player's password and want the site to offer the first-time
--- form again, flip their row back:
+-- To put a player back on the first-time form, delete their user under
+-- Authentication -> Users. The portal reads auth.users, so that is all it
+-- takes -- and clear the stale note at the same time, since it is what the
+-- portal falls back to:
 --
 --   update public.player_accounts set password_set = false
 --   where email = 'someone@example.com';
