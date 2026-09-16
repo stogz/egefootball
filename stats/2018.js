@@ -22,6 +22,28 @@
    `conference: true` marks the games listed with an asterisk, and
    `scouts: true` marks a game scouts will be at — what Intel buys is the
    right to see it.
+
+   Where the numbers come from
+   ---------------------------
+   The fixtures, the dates, the kickoff times and the scores are the real
+   2018 seasons of the five schools. `teamScore` is always this team's own
+   score, which is not how a scoreboard listing prints it — those put the
+   higher number first whether the team won or lost, so a 35-36 defeat reads
+   there as "L 36-35". Flipping the losses is the one thing to remember when
+   copying a new season in by hand.
+
+   Week numbers run across all five schools rather than per player, because
+   publishing is per week for everybody at once. A Friday, the Saturday after
+   it and the Thursday before it are one week, which is why Bloomington's
+   Saturday games and Wake Forest's Thursday one sit in the same weeks as
+   everyone else's Fridays, and why a school with a bye simply has no game
+   with that week number.
+
+   The stat lines are made up. They are drawn to fit the score they sit
+   under — nobody has more touchdowns than the board has room for — and to
+   fit the player: Isaac throws deep and pays for it, Sam carries, Cooper
+   catches. Every ball Paxon caught is one Isaac threw, because they play for
+   the same school.
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -35,529 +57,529 @@ EGE.stats[2018] = {
 
     /* Andrew Parr — Wake Forest High School */
     'andrew-parr': [
-      { week:  1, date: '2018-08-18', kickoff: '7:00pm',
-        opponent: 'Millbrook', home: true, conference: false,
-        result: { teamScore: 42, opponentScore: 10 }, booster: null,
+      { week:  1, date: '2018-08-17', kickoff: '7:00pm',
+        opponent: 'Millbrook', home: false, conference: false,
+        result: { teamScore: 51, opponentScore: 0 }, booster: null,
         stats: {
-          receptions: 5, receivingYards: 52, receivingYac: 6,
-          receivingTd: 0, receivingLong: 13, targets: 9, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 2,
-          receivingAvg: 10.4, totalYards: 52, totalTd: 0
-        } },
-      { week:  2, date: '2018-08-25', kickoff: '7:30pm',
-        opponent: 'Richmond Senior', home: false, conference: false, scouts: true,
-        result: { teamScore: 20, opponentScore: 17 }, booster: null,
-        stats: {
-          receptions: 5, receivingYards: 44, receivingYac: 7,
-          receivingTd: 1, receivingLong: 12, targets: 11, carries: 0,
+          receptions: 3, receivingYards: 25, receivingYac: 7,
+          receivingTd: 1, receivingLong: 17, targets: 4, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 8.8, totalYards: 44, totalTd: 1
+          receivingAvg: 8.3, totalYards: 25, totalTd: 1
         } },
-      { week:  3, date: '2018-09-04', kickoff: '6:00pm',
-        opponent: 'Middle Creek', home: true, conference: false,
-        result: { teamScore: 28, opponentScore: 14 }, booster: null,
+      { week:  2, date: '2018-08-24', kickoff: '7:00pm',
+        opponent: 'Richmond Senior', home: true, conference: false, scouts: true,
+        result: { teamScore: 49, opponentScore: 28 }, booster: null,
         stats: {
-          receptions: 5, receivingYards: 71, receivingYac: 16,
-          receivingTd: 2, receivingLong: 23, targets: 6, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 14.2, totalYards: 71, totalTd: 2
-        } },
-      { week:  4, date: '2018-09-08', kickoff: '7:00pm',
-        opponent: 'Leesville Road', home: false, conference: false,
-        result: { teamScore: 27, opponentScore: 13 }, booster: null,
-        stats: {
-          receptions: 5, receivingYards: 88, receivingYac: 2,
-          receivingTd: 2, receivingLong: 33, targets: 6, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 17.6, totalYards: 88, totalTd: 2
-        } },
-      { week:  5, date: '2018-09-15', kickoff: '7:00pm',
-        opponent: 'Southern Nash', home: false, conference: false,
-        result: { teamScore: 6, opponentScore: 21 }, booster: null,
-        stats: {
-          receptions: 3, receivingYards: 33, receivingYac: 10,
-          receivingTd: 0, receivingLong: 18, targets: 4, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 11, totalYards: 33, totalTd: 0
-        } },
-      { week:  6, date: '2018-09-22', kickoff: '7:00pm',
-        opponent: 'Franklinton', home: true, conference: false,
-        result: { teamScore: 0, opponentScore: 28 }, booster: null,
-        stats: {
-          receptions: 4, receivingYards: 49, receivingYac: 6,
-          receivingTd: 0, receivingLong: 17, targets: 8, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 12.3, totalYards: 49, totalTd: 0
-        } },
-      { week:  8, date: '2018-10-06', kickoff: '7:00pm',
-        opponent: 'Knightdale', home: true, conference: true,
-        result: { teamScore: 10, opponentScore: 6 }, booster: null,
-        stats: {
-          receptions: 6, receivingYards: 86, receivingYac: 18,
-          receivingTd: 0, receivingLong: 28, targets: 7, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 14.3, totalYards: 86, totalTd: 0
-        } },
-      { week:  9, date: '2018-10-13', kickoff: '7:00pm',
-        opponent: 'Corinth Holders', home: false, conference: true, scouts: true,
-        result: { teamScore: 17, opponentScore: 7 }, booster: null,
-        stats: {
-          receptions: 10, receivingYards: 103, receivingYac: 14,
-          receivingTd: 1, receivingLong: 16, targets: 13, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 10.3, totalYards: 103, totalTd: 1
-        } },
-      { week: 10, date: '2018-10-20', kickoff: '7:00pm',
-        opponent: 'Rolesville', home: true, conference: true,
-        result: { teamScore: 9, opponentScore: 17 }, booster: null,
-        stats: {
-          receptions: 6, receivingYards: 80, receivingYac: 8,
-          receivingTd: 0, receivingLong: 27, targets: 8, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 13.3, totalYards: 80, totalTd: 0
-        } },
-      { week: 11, date: '2018-10-27', kickoff: '7:00pm',
-        opponent: 'Wakefield', home: false, conference: true,
-        result: { teamScore: 14, opponentScore: 10 }, booster: null,
-        stats: {
-          receptions: 2, receivingYards: 19, receivingYac: 5,
-          receivingTd: 1, receivingLong: 11, targets: 3, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 9.5, totalYards: 19, totalTd: 1
-        } },
-      { week: 12, date: '2018-11-03', kickoff: '7:00pm',
-        opponent: 'Heritage', home: true, conference: true, scouts: true,
-        result: { teamScore: 42, opponentScore: 3 }, booster: null,
-        stats: {
-          receptions: 9, receivingYards: 107, receivingYac: 14,
-          receivingTd: 1, receivingLong: 17, targets: 9, carries: 0,
+          receptions: 7, receivingYards: 91, receivingYac: 19,
+          receivingTd: 1, receivingLong: 21, targets: 10, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 1,
-          receivingAvg: 11.9, totalYards: 107, totalTd: 1
+          receivingAvg: 13, totalYards: 91, totalTd: 1
+        } },
+      { week:  3, date: '2018-08-31', kickoff: '7:00pm',
+        opponent: 'Middle Creek', home: false, conference: false,
+        result: { teamScore: 22, opponentScore: 9 }, booster: null,
+        stats: {
+          receptions: 4, receivingYards: 58, receivingYac: 14,
+          receivingTd: 0, receivingLong: 32, targets: 6, carries: 1,
+          rushingYards: 6, rushingTd: 0, rushingLong: 6, fumbles: 0,
+          receivingAvg: 14.5, rushingAvg: 6, totalYards: 64, totalTd: 0
+        } },
+      { week:  4, date: '2018-09-07', kickoff: '7:00pm',
+        opponent: 'Leesville Road', home: true, conference: false,
+        result: { teamScore: 31, opponentScore: 18 }, booster: null,
+        stats: {
+          receptions: 5, receivingYards: 81, receivingYac: 31,
+          receivingTd: 0, receivingLong: 26, targets: 9, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 16.2, totalYards: 81, totalTd: 0
+        } },
+      { week:  6, date: '2018-09-21', kickoff: '7:30pm',
+        opponent: 'Franklinton', home: false, conference: false,
+        result: { teamScore: 42, opponentScore: 7 }, booster: null,
+        stats: {
+          receptions: 6, receivingYards: 56, receivingYac: 11,
+          receivingTd: 0, receivingLong: 20, targets: 8, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 9.3, totalYards: 56, totalTd: 0
+        } },
+      { week:  8, date: '2018-10-05', kickoff: '7:00pm',
+        opponent: 'Knightdale', home: false, conference: true,
+        result: { teamScore: 55, opponentScore: 14 }, booster: null,
+        stats: {
+          receptions: 3, receivingYards: 27, receivingYac: 6,
+          receivingTd: 2, receivingLong: 23, targets: 5, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 9, totalYards: 27, totalTd: 2
+        } },
+      { week: 10, date: '2018-10-19', kickoff: '7:00pm',
+        opponent: 'Rolesville', home: false, conference: true, scouts: true,
+        result: { teamScore: 24, opponentScore: 7 }, booster: null,
+        stats: {
+          receptions: 3, receivingYards: 38, receivingYac: 9,
+          receivingTd: 0, receivingLong: 23, targets: 5, carries: 1,
+          rushingYards: 5, rushingTd: 0, rushingLong: 5, fumbles: 0,
+          receivingAvg: 12.7, rushingAvg: 5, totalYards: 43, totalTd: 0
+        } },
+      { week: 11, date: '2018-10-25', kickoff: '7:00pm',
+        opponent: 'Wakefield', home: true, conference: true,
+        result: { teamScore: 42, opponentScore: 0 }, booster: null,
+        stats: {
+          receptions: 5, receivingYards: 46, receivingYac: 11,
+          receivingTd: 0, receivingLong: 23, targets: 7, carries: 1,
+          rushingYards: 3, rushingTd: 0, rushingLong: 3, fumbles: 0,
+          receivingAvg: 9.2, rushingAvg: 3, totalYards: 49, totalTd: 0
+        } },
+      { week: 12, date: '2018-11-02', kickoff: '7:00pm',
+        opponent: 'Heritage', home: false, conference: true,
+        result: { teamScore: 38, opponentScore: 2 }, booster: null,
+        stats: {
+          receptions: 4, receivingYards: 43, receivingYac: 11,
+          receivingTd: 1, receivingLong: 26, targets: 7, carries: 1,
+          rushingYards: 4, rushingTd: 1, rushingLong: 4, fumbles: 1,
+          receivingAvg: 10.8, rushingAvg: 4, totalYards: 47, totalTd: 2
+        } },
+      { week: 13, date: '2018-11-09', kickoff: '7:00pm',
+        opponent: 'Corinth Holders', home: true, conference: true, scouts: true,
+        result: { teamScore: 70, opponentScore: 7 }, booster: 'boost-2-5',
+        stats: {
+          receptions: 3, receivingYards: 35, receivingYac: 10,
+          receivingTd: 0, receivingLong: 21, targets: 5, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 11.7, totalYards: 35, totalTd: 0
         } },
     ],
 
     /* Cooper Clark — Carlsbad High School */
     'cooper-clark': [
-      { week:  2, date: '2018-08-25', kickoff: '7:00pm',
-        opponent: 'Del Norte', home: true, conference: false,
-        result: { teamScore: 21, opponentScore: 17 }, booster: null,
+      { week:  1, date: '2018-08-17', kickoff: '7:00pm',
+        opponent: 'Steele Canyon', home: true, conference: false,
+        result: { teamScore: 41, opponentScore: 13 }, booster: null,
         stats: {
-          carries: 14, rushingYards: 126, rushingTd: 1, rushingLong: 36,
-          receptions: 0, receivingYards: 0, receivingYac: 0,
-          receivingTd: 0, receivingLong: 0, targets: 1, fumbles: 0,
-          rushingAvg: 9, totalYards: 126, totalTd: 1
+          receptions: 4, receivingYards: 46, receivingYac: 26,
+          receivingTd: 1, receivingLong: 30, targets: 6, carries: 13,
+          rushingYards: 56, rushingTd: 0, rushingLong: 16, fumbles: 0,
+          receivingAvg: 11.5, rushingAvg: 4.3, totalYards: 102, totalTd: 1
         } },
-      { week:  3, date: '2018-09-01', kickoff: '7:00pm',
-        opponent: 'St. Augustine', home: false, conference: false,
-        result: { teamScore: 7, opponentScore: 10 }, booster: null,
+      { week:  2, date: '2018-08-24', kickoff: '7:00pm',
+        opponent: 'Desert Vista', home: true, conference: false,
+        result: { teamScore: 21, opponentScore: 33 }, booster: null,
         stats: {
-          carries: 18, rushingYards: 118, rushingTd: 1, rushingLong: 41,
-          receptions: 2, receivingYards: 20, receivingYac: 12,
-          receivingTd: 0, receivingLong: 14, targets: 5, fumbles: 0,
-          rushingAvg: 6.6, receivingAvg: 10, totalYards: 138, totalTd: 1
+          receptions: 4, receivingYards: 39, receivingYac: 23,
+          receivingTd: 0, receivingLong: 22, targets: 5, carries: 8,
+          rushingYards: 45, rushingTd: 0, rushingLong: 13, fumbles: 0,
+          receivingAvg: 9.8, rushingAvg: 5.6, totalYards: 84, totalTd: 0
         } },
-      { week:  4, date: '2018-09-08', kickoff: '7:00pm',
-        opponent: 'Sweetwater', home: false, conference: false,
-        result: { teamScore: 15, opponentScore: 7 }, booster: null,
+      { week:  3, date: '2018-08-31', kickoff: '7:00pm',
+        opponent: 'Sweetwater', home: true, conference: false,
+        result: { teamScore: 62, opponentScore: 0 }, booster: null,
         stats: {
-          carries: 16, rushingYards: 77, rushingTd: 1, rushingLong: 30,
-          receptions: 2, receivingYards: 13, receivingYac: 1,
-          receivingTd: 0, receivingLong: 10, targets: 2, fumbles: 0,
-          rushingAvg: 4.8, receivingAvg: 6.5, totalYards: 90, totalTd: 1
+          receptions: 5, receivingYards: 52, receivingYac: 25,
+          receivingTd: 0, receivingLong: 15, targets: 6, carries: 16,
+          rushingYards: 89, rushingTd: 0, rushingLong: 18, fumbles: 0,
+          receivingAvg: 10.4, rushingAvg: 5.6, totalYards: 141, totalTd: 0
         } },
-      { week:  5, date: '2018-09-15', kickoff: '7:00pm',
-        opponent: 'Mission Hills', home: true, conference: true, scouts: true,
-        result: { teamScore: 28, opponentScore: 6 }, booster: null,
+      { week:  4, date: '2018-09-07', kickoff: '7:00pm',
+        opponent: 'Mission Hills', home: false, conference: true, scouts: true,
+        result: { teamScore: 21, opponentScore: 24 }, booster: null,
         stats: {
-          carries: 14, rushingYards: 59, rushingTd: 1, rushingLong: 19,
-          receptions: 3, receivingYards: 24, receivingYac: 12,
-          receivingTd: 1, receivingLong: 11, targets: 4, fumbles: 1,
-          rushingAvg: 4.2, receivingAvg: 8, totalYards: 83, totalTd: 2
+          receptions: 2, receivingYards: 19, receivingYac: 9,
+          receivingTd: 1, receivingLong: 19, targets: 3, carries: 14,
+          rushingYards: 66, rushingTd: 0, rushingLong: 18, fumbles: 0,
+          receivingAvg: 9.5, rushingAvg: 4.7, totalYards: 85, totalTd: 1
         } },
-      { week:  6, date: '2018-09-22', kickoff: '7:00pm',
-        opponent: 'La Costa Canyon', home: false, conference: true,
-        result: { teamScore: 7, opponentScore: 17 }, booster: null,
+      { week:  5, date: '2018-09-14', kickoff: '7:15pm',
+        opponent: 'San Marcos', home: false, conference: true,
+        result: { teamScore: 35, opponentScore: 24 }, booster: 'boost-2-0',
         stats: {
-          carries: 12, rushingYards: 43, rushingTd: 0, rushingLong: 10,
-          receptions: 2, receivingYards: 11, receivingYac: 6,
-          receivingTd: 1, receivingLong: 7, targets: 2, fumbles: 0,
-          rushingAvg: 3.6, receivingAvg: 5.5, totalYards: 54, totalTd: 1
+          receptions: 5, receivingYards: 44, receivingYac: 24,
+          receivingTd: 1, receivingLong: 14, targets: 7, carries: 10,
+          rushingYards: 37, rushingTd: 1, rushingLong: 12, fumbles: 0,
+          receivingAvg: 8.8, rushingAvg: 3.7, totalYards: 81, totalTd: 2
         } },
-      { week:  8, date: '2018-10-06', kickoff: '7:00pm',
-        opponent: 'Oceanside', home: false, conference: true,
-        result: { teamScore: 10, opponentScore: 21 }, booster: null,
+      { week:  7, date: '2018-09-28', kickoff: '7:00pm',
+        opponent: 'Torrey Pines', home: true, conference: true,
+        result: { teamScore: 28, opponentScore: 35 }, booster: null,
         stats: {
-          carries: 13, rushingYards: 48, rushingTd: 1, rushingLong: 7,
-          receptions: 2, receivingYards: 22, receivingYac: 12,
-          receivingTd: 0, receivingLong: 11, targets: 4, fumbles: 1,
-          rushingAvg: 3.7, receivingAvg: 11, totalYards: 70, totalTd: 1
+          receptions: 3, receivingYards: 24, receivingYac: 13,
+          receivingTd: 0, receivingLong: 18, targets: 4, carries: 16,
+          rushingYards: 53, rushingTd: 0, rushingLong: 13, fumbles: 0,
+          receivingAvg: 8, rushingAvg: 3.3, totalYards: 77, totalTd: 0
         } },
-      { week:  9, date: '2018-10-13', kickoff: '7:00pm',
-        opponent: 'San Marcos', home: true, conference: true,
-        result: { teamScore: 36, opponentScore: 34 }, booster: null,
+      { week:  8, date: '2018-10-05', kickoff: '7:00pm',
+        opponent: 'Oceanside', home: true, conference: true,
+        result: { teamScore: 23, opponentScore: 21 }, booster: 'boost-1-5',
         stats: {
-          carries: 15, rushingYards: 48, rushingTd: 1, rushingLong: 7,
-          receptions: 1, receivingYards: 17, receivingYac: 10,
-          receivingTd: 0, receivingLong: 17, targets: 2, fumbles: 0,
-          rushingAvg: 3.2, receivingAvg: 17, totalYards: 65, totalTd: 1
+          receptions: 3, receivingYards: 23, receivingYac: 13,
+          receivingTd: 0, receivingLong: 15, targets: 4, carries: 17,
+          rushingYards: 74, rushingTd: 1, rushingLong: 10, fumbles: 0,
+          receivingAvg: 7.7, rushingAvg: 4.4, totalYards: 97, totalTd: 1
         } },
-      { week: 10, date: '2018-10-20', kickoff: '7:00pm',
-        opponent: 'Torrey Pines', home: true, conference: true, scouts: true,
-        result: { teamScore: 41, opponentScore: 21 }, booster: null,
+      { week: 10, date: '2018-10-19', kickoff: '7:00pm',
+        opponent: 'La Costa Canyon', home: true, conference: true, scouts: true,
+        result: { teamScore: 24, opponentScore: 7 }, booster: null,
         stats: {
-          carries: 19, rushingYards: 159, rushingTd: 2, rushingLong: 37,
-          receptions: 2, receivingYards: 43, receivingYac: 20,
-          receivingTd: 1, receivingLong: 22, targets: 3, fumbles: 1,
-          rushingAvg: 8.4, receivingAvg: 21.5, totalYards: 202, totalTd: 3
+          receptions: 3, receivingYards: 39, receivingYac: 24,
+          receivingTd: 0, receivingLong: 19, targets: 4, carries: 12,
+          rushingYards: 46, rushingTd: 0, rushingLong: 13, fumbles: 0,
+          receivingAvg: 13, rushingAvg: 3.8, totalYards: 85, totalTd: 0
         } },
-      { week: 11, date: '2018-10-27', kickoff: '7:00pm',
-        opponent: 'El Camino', home: false, conference: true,
-        result: { teamScore: 35, opponentScore: 17 }, booster: null,
+      { week: 11, date: '2018-10-26', kickoff: '7:00pm',
+        opponent: 'Vista', home: false, conference: false,
+        result: { teamScore: 28, opponentScore: 0 }, booster: null,
         stats: {
-          carries: 14, rushingYards: 96, rushingTd: 2, rushingLong: 35,
-          receptions: 1, receivingYards: 11, receivingYac: 1,
-          receivingTd: 0, receivingLong: 11, targets: 2, fumbles: 1,
-          rushingAvg: 6.9, receivingAvg: 11, totalYards: 107, totalTd: 2
-        } },
-      { week: 12, date: '2018-11-03', kickoff: '7:00pm',
-        opponent: 'Vista', home: true, conference: false,
-        result: { teamScore: 9, opponentScore: 20 }, booster: null,
-        stats: {
-          carries: 16, rushingYards: 117, rushingTd: 0, rushingLong: 40,
-          receptions: 3, receivingYards: 35, receivingYac: 8,
-          receivingTd: 0, receivingLong: 17, targets: 3, fumbles: 0,
-          rushingAvg: 7.3, receivingAvg: 11.7, totalYards: 152, totalTd: 0
+          receptions: 5, receivingYards: 38, receivingYac: 25,
+          receivingTd: 0, receivingLong: 12, targets: 7, carries: 14,
+          rushingYards: 56, rushingTd: 0, rushingLong: 12, fumbles: 0,
+          receivingAvg: 7.6, rushingAvg: 4, totalYards: 94, totalTd: 0
         } },
     ],
 
     /* Paxon Hatch — Bloomington High School */
     'paxon-hatch': [
-      { week:  2, date: '2018-08-25', kickoff: '7:00pm',
-        opponent: 'Manual', home: true, conference: true,
-        result: { teamScore: 14, opponentScore: 34 }, booster: null,
-        stats: {
-          receptions: 5, receivingYards: 50, receivingYac: 10,
-          receivingTd: 1, receivingLong: 15, targets: 8, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 10, totalYards: 50, totalTd: 1
-        } },
-      { week:  3, date: '2018-09-01', kickoff: '7:00pm',
-        opponent: 'Normal Community', home: false, conference: true, scouts: true,
-        result: { teamScore: 10, opponentScore: 13 }, booster: null,
-        stats: {
-          receptions: 4, receivingYards: 45, receivingYac: 15,
-          receivingTd: 1, receivingLong: 17, targets: 8, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 11.3, totalYards: 45, totalTd: 1
-        } },
-      { week:  4, date: '2018-09-08', kickoff: '7:00pm',
-        opponent: 'Champaign Central', home: true, conference: true, scouts: true,
-        result: { teamScore: 10, opponentScore: 27 }, booster: null,
-        stats: {
-          receptions: 3, receivingYards: 39, receivingYac: 2,
-          receivingTd: 1, receivingLong: 29, targets: 6, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 13, totalYards: 39, totalTd: 1
-        } },
-      { week:  5, date: '2018-09-15', kickoff: '7:00pm',
-        opponent: 'Kankakee', home: true, conference: false,
-        result: { teamScore: 20, opponentScore: 28 }, booster: null,
-        stats: {
-          receptions: 2, receivingYards: 23, receivingYac: 2,
-          receivingTd: 0, receivingLong: 12, targets: 6, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 11.5, totalYards: 23, totalTd: 0
-        } },
-      { week:  6, date: '2018-09-22', kickoff: '7:30pm',
-        opponent: 'Peoria', home: false, conference: true, scouts: true,
-        result: { teamScore: 7, opponentScore: 16 }, booster: null,
-        stats: {
-          receptions: 3, receivingYards: 20, receivingYac: 0,
-          receivingTd: 0, receivingLong: 10, targets: 6, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 1,
-          receivingAvg: 6.7, totalYards: 20, totalTd: 0
-        } },
-      { week:  7, date: '2018-09-29', kickoff: '7:00pm',
-        opponent: 'Normal West', home: true, conference: true,
-        result: { teamScore: 10, opponentScore: 9 }, booster: null,
-        stats: {
-          receptions: 2, receivingYards: 18, receivingYac: 7,
-          receivingTd: 1, receivingLong: 11, targets: 3, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 1,
-          receivingAvg: 9, totalYards: 18, totalTd: 1
-        } },
-      { week:  8, date: '2018-10-06', kickoff: '7:00pm',
-        opponent: 'Richwoods', home: false, conference: true,
-        result: { teamScore: 20, opponentScore: 0 }, booster: null,
-        stats: {
-          receptions: 1, receivingYards: 4, receivingYac: 0,
-          receivingTd: 0, receivingLong: 4, targets: 4, carries: 1,
-          rushingYards: 1, rushingTd: 0, rushingLong: 1, fumbles: 1,
-          rushingAvg: 1, receivingAvg: 4, totalYards: 5, totalTd: 0
-        } },
-      { week:  9, date: '2018-10-13', kickoff: '7:00pm',
-        opponent: 'Urbana', home: true, conference: true,
-        result: { teamScore: 13, opponentScore: 0 }, booster: null,
-        stats: {
-          receptions: 3, receivingYards: 18, receivingYac: 3,
-          receivingTd: 0, receivingLong: 7, targets: 5, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 6, totalYards: 18, totalTd: 0
-        } },
-      { week: 10, date: '2018-10-20', kickoff: '7:00pm',
+      { week:  2, date: '2018-08-24', kickoff: '7:00pm',
         opponent: 'Danville', home: false, conference: true,
-        result: { teamScore: 24, opponentScore: 15 }, booster: null,
+        result: { teamScore: 21, opponentScore: 12 }, booster: null,
         stats: {
-          receptions: 1, receivingYards: 10, receivingYac: 3,
-          receivingTd: 1, receivingLong: 10, targets: 3, carries: 0,
+          receptions: 5, receivingYards: 84, receivingYac: 31,
+          receivingTd: 0, receivingLong: 26, targets: 7, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 16.8, totalYards: 84, totalTd: 0
+        } },
+      { week:  3, date: '2018-09-01', kickoff: '12:00pm',
+        opponent: 'Rich East', home: false, conference: false,
+        result: { teamScore: 21, opponentScore: 14 }, booster: null,
+        stats: {
+          receptions: 5, receivingYards: 109, receivingYac: 33,
+          receivingTd: 1, receivingLong: 44, targets: 6, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 21.8, totalYards: 109, totalTd: 1
+        } },
+      { week:  4, date: '2018-09-07', kickoff: '7:00pm',
+        opponent: 'Manual', home: true, conference: true,
+        result: { teamScore: 50, opponentScore: 0 }, booster: null,
+        stats: {
+          receptions: 4, receivingYards: 72, receivingYac: 27,
+          receivingTd: 1, receivingLong: 33, targets: 7, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 18, totalYards: 72, totalTd: 1
+        } },
+      { week:  5, date: '2018-09-14', kickoff: '7:00pm',
+        opponent: 'Normal West', home: false, conference: true,
+        result: { teamScore: 14, opponentScore: 17 }, booster: null,
+        stats: {
+          receptions: 6, receivingYards: 83, receivingYac: 18,
+          receivingTd: 0, receivingLong: 20, targets: 9, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 13.8, totalYards: 83, totalTd: 0
+        } },
+      { week:  6, date: '2018-09-22', kickoff: '4:00pm',
+        opponent: 'Urbana', home: true, conference: true,
+        result: { teamScore: 47, opponentScore: 12 }, booster: null,
+        stats: {
+          receptions: 4, receivingYards: 84, receivingYac: 34,
+          receivingTd: 1, receivingLong: 41, targets: 6, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 21, totalYards: 84, totalTd: 1
+        } },
+      { week:  7, date: '2018-09-28', kickoff: '7:00pm',
+        opponent: 'Normal Community', home: true, conference: true, scouts: true,
+        result: { teamScore: 28, opponentScore: 49 }, booster: null,
+        stats: {
+          receptions: 3, receivingYards: 66, receivingYac: 25,
+          receivingTd: 1, receivingLong: 36, targets: 4, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 1,
-          receivingAvg: 10, totalYards: 10, totalTd: 1
+          receivingAvg: 22, totalYards: 66, totalTd: 1
+        } },
+      { week:  8, date: '2018-10-05', kickoff: '7:00pm',
+        opponent: 'Peoria Notre Dame', home: true, conference: true,
+        result: { teamScore: 56, opponentScore: 28 }, booster: null,
+        stats: {
+          receptions: 5, receivingYards: 72, receivingYac: 16,
+          receivingTd: 1, receivingLong: 36, targets: 6, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 14.4, totalYards: 72, totalTd: 1
+        } },
+      { week:  9, date: '2018-10-12', kickoff: '7:00pm',
+        opponent: 'Peoria', home: false, conference: true,
+        result: { teamScore: 51, opponentScore: 40 }, booster: null,
+        stats: {
+          receptions: 3, receivingYards: 53, receivingYac: 11,
+          receivingTd: 2, receivingLong: 44, targets: 7, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 17.7, totalYards: 53, totalTd: 2
+        } },
+      { week: 10, date: '2018-10-19', kickoff: '7:00pm',
+        opponent: 'Centennial', home: true, conference: true,
+        result: { teamScore: 41, opponentScore: 0 }, booster: null,
+        stats: {
+          receptions: 4, receivingYards: 85, receivingYac: 33,
+          receivingTd: 0, receivingLong: 39, targets: 7, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 21.3, totalYards: 85, totalTd: 0
         } },
     ],
 
-    /* Isaac Vitel — Bloomington High School */
+    /* Isaac Vitel — Bloomington High School, and Paxon’s quarterback */
     'isaac-vitel': [
-      { week:  2, date: '2018-08-25', kickoff: '7:00pm',
-        opponent: 'Manual', home: true, conference: true,
-        result: { teamScore: 14, opponentScore: 34 }, booster: null,
-        stats: {
-          completions: 12, attempts: 21, passingYards: 152,
-          passingYac: 28, passingTd: 2, interceptions: 0, carries: 7,
-          rushingYards: 18, rushingTd: 0, rushingLong: 11, sacks: 3,
-          fumbles: 1, passingAvg: 12.7, rating: 111.6, rushingAvg: 2.6
-        } },
-      { week:  3, date: '2018-09-01', kickoff: '7:00pm',
-        opponent: 'Normal Community', home: false, conference: true, scouts: true,
-        result: { teamScore: 10, opponentScore: 13 }, booster: null,
-        stats: {
-          completions: 11, attempts: 22, passingYards: 154,
-          passingYac: 31, passingTd: 1, interceptions: 1, carries: 5,
-          rushingYards: 26, rushingTd: 0, rushingLong: 19, sacks: 1,
-          fumbles: 0, passingAvg: 14, rating: 69.1, rushingAvg: 5.2
-        } },
-      { week:  4, date: '2018-09-08', kickoff: '7:00pm',
-        opponent: 'Champaign Central', home: true, conference: true, scouts: true,
-        result: { teamScore: 10, opponentScore: 27 }, booster: null,
-        stats: {
-          completions: 10, attempts: 20, passingYards: 161,
-          passingYac: 42, passingTd: 1, interceptions: 2, carries: 3,
-          rushingYards: 18, rushingTd: 0, rushingLong: 16, sacks: 3,
-          fumbles: 0, passingAvg: 16.1, rating: 54.4, rushingAvg: 6
-        } },
-      { week:  5, date: '2018-09-15', kickoff: '7:00pm',
-        opponent: 'Kankakee', home: true, conference: false,
-        result: { teamScore: 20, opponentScore: 28 }, booster: null,
-        stats: {
-          completions: 9, attempts: 18, passingYards: 116, passingYac: 28,
-          passingTd: 3, interceptions: 1, carries: 8, rushingYards: 13,
-          rushingTd: 0, rushingLong: 10, sacks: 2, fumbles: 0,
-          passingAvg: 12.9, rating: 87, rushingAvg: 1.6
-        } },
-      { week:  6, date: '2018-09-22', kickoff: '7:30pm',
-        opponent: 'Peoria', home: false, conference: true, scouts: true,
-        result: { teamScore: 7, opponentScore: 16 }, booster: null,
-        stats: {
-          completions: 11, attempts: 21, passingYards: 153,
-          passingYac: 38, passingTd: 1, interceptions: 3, carries: 7,
-          rushingYards: 4, rushingTd: 0, rushingLong: 3, sacks: 3,
-          fumbles: 1, passingAvg: 13.9, rating: 52.4, rushingAvg: 0.6
-        } },
-      { week:  7, date: '2018-09-29', kickoff: '7:00pm',
-        opponent: 'Normal West', home: true, conference: true,
-        result: { teamScore: 10, opponentScore: 9 }, booster: null,
-        stats: {
-          completions: 12, attempts: 21, passingYards: 161,
-          passingYac: 26, passingTd: 1, interceptions: 2, carries: 3,
-          rushingYards: -4, rushingTd: 0, rushingLong: 1, sacks: 1,
-          fumbles: 0, passingAvg: 13.4, rating: 57.9, rushingAvg: -1.3
-        } },
-      { week:  8, date: '2018-10-06', kickoff: '7:00pm',
-        opponent: 'Richwoods', home: false, conference: true,
-        result: { teamScore: 20, opponentScore: 0 }, booster: null,
-        stats: {
-          completions: 7, attempts: 15, passingYards: 87, passingYac: 17,
-          passingTd: 0, interceptions: 1, carries: 5, rushingYards: 9,
-          rushingTd: 0, rushingLong: 5, sacks: 3, fumbles: 0,
-          passingAvg: 12.4, rating: 37.4, rushingAvg: 1.8
-        } },
-      { week:  9, date: '2018-10-13', kickoff: '7:00pm',
-        opponent: 'Urbana', home: true, conference: true,
-        result: { teamScore: 13, opponentScore: 0 }, booster: null,
-        stats: {
-          completions: 10, attempts: 19, passingYards: 137,
-          passingYac: 25, passingTd: 0, interceptions: 1, carries: 6,
-          rushingYards: 8, rushingTd: 1, rushingLong: 6, sacks: 2,
-          fumbles: 1, passingAvg: 13.7, rating: 54.1, rushingAvg: 1.3
-        } },
-      { week: 10, date: '2018-10-20', kickoff: '7:00pm',
+      { week:  2, date: '2018-08-24', kickoff: '7:00pm',
         opponent: 'Danville', home: false, conference: true,
-        result: { teamScore: 24, opponentScore: 15 }, booster: null,
+        result: { teamScore: 21, opponentScore: 12 }, booster: null,
         stats: {
-          completions: 8, attempts: 15, passingYards: 138, passingYac: 26,
-          passingTd: 1, interceptions: 1, carries: 5, rushingYards: 16,
-          rushingTd: 0, rushingLong: 12, sacks: 1, fumbles: 1,
-          passingAvg: 17.3, rating: 79.3, rushingAvg: 3.2
+          completions: 12, attempts: 24, passingYards: 194, passingYac: 31,
+          passingTd: 1, interceptions: 2, carries: 2, rushingYards: 7,
+          rushingTd: 0, rushingLong: 7, sacks: 3, fumbles: 0,
+          passingAvg: 16.2, rating: 56.6, rushingAvg: 3.5
+        } },
+      { week:  3, date: '2018-09-01', kickoff: '12:00pm',
+        opponent: 'Rich East', home: false, conference: false,
+        result: { teamScore: 21, opponentScore: 14 }, booster: null,
+        stats: {
+          completions: 18, attempts: 30, passingYards: 292, passingYac: 89,
+          passingTd: 3, interceptions: 1, carries: 3, rushingYards: 11,
+          rushingTd: 0, rushingLong: 11, sacks: 3, fumbles: 0,
+          passingAvg: 16.2, rating: 112.1, rushingAvg: 3.7
+        } },
+      { week:  4, date: '2018-09-07', kickoff: '7:00pm',
+        opponent: 'Manual', home: true, conference: true,
+        result: { teamScore: 50, opponentScore: 0 }, booster: null,
+        stats: {
+          completions: 10, attempts: 22, passingYards: 172, passingYac: 29,
+          passingTd: 1, interceptions: 1, carries: 2, rushingYards: 3,
+          rushingTd: 1, rushingLong: 3, sacks: 0, fumbles: 0,
+          passingAvg: 17.2, rating: 68.8, rushingAvg: 1.5
+        } },
+      { week:  5, date: '2018-09-14', kickoff: '7:00pm',
+        opponent: 'Normal West', home: false, conference: true,
+        result: { teamScore: 14, opponentScore: 17 }, booster: null,
+        stats: {
+          completions: 15, attempts: 32, passingYards: 274, passingYac: 60,
+          passingTd: 0, interceptions: 2, carries: 5, rushingYards: 14,
+          rushingTd: 0, rushingLong: 11, sacks: 3, fumbles: 0,
+          passingAvg: 18.3, rating: 50.8, rushingAvg: 2.8
+        } },
+      { week:  6, date: '2018-09-22', kickoff: '4:00pm',
+        opponent: 'Urbana', home: true, conference: true,
+        result: { teamScore: 47, opponentScore: 12 }, booster: null,
+        stats: {
+          completions: 13, attempts: 26, passingYards: 223, passingYac: 62,
+          passingTd: 2, interceptions: 2, carries: 2, rushingYards: 4,
+          rushingTd: 0, rushingLong: 4, sacks: 3, fumbles: 0,
+          passingAvg: 17.2, rating: 73.1, rushingAvg: 2
+        } },
+      { week:  7, date: '2018-09-28', kickoff: '7:00pm',
+        opponent: 'Normal Community', home: true, conference: true, scouts: true,
+        result: { teamScore: 28, opponentScore: 49 }, booster: null,
+        stats: {
+          completions: 10, attempts: 17, passingYards: 152, passingYac: 40,
+          passingTd: 2, interceptions: 1, carries: 2, rushingYards: 9,
+          rushingTd: 0, rushingLong: 9, sacks: 1, fumbles: 0,
+          passingAvg: 15.2, rating: 103.1, rushingAvg: 4.5
+        } },
+      { week:  8, date: '2018-10-05', kickoff: '7:00pm',
+        opponent: 'Peoria Notre Dame', home: true, conference: true,
+        result: { teamScore: 56, opponentScore: 28 }, booster: null,
+        stats: {
+          completions: 10, attempts: 21, passingYards: 155, passingYac: 24,
+          passingTd: 2, interceptions: 2, carries: 4, rushingYards: 5,
+          rushingTd: 0, rushingLong: 5, sacks: 2, fumbles: 0,
+          passingAvg: 15.5, rating: 64.7, rushingAvg: 1.3
+        } },
+      { week:  9, date: '2018-10-12', kickoff: '7:00pm',
+        opponent: 'Peoria', home: false, conference: true, scouts: true,
+        result: { teamScore: 51, opponentScore: 40 }, booster: null,
+        stats: {
+          completions: 10, attempts: 20, passingYards: 155, passingYac: 46,
+          passingTd: 3, interceptions: 1, carries: 4, rushingYards: 6,
+          rushingTd: 1, rushingLong: 3, sacks: 0, fumbles: 0,
+          passingAvg: 15.5, rating: 94.8, rushingAvg: 1.5
+        } },
+      { week: 10, date: '2018-10-19', kickoff: '7:00pm',
+        opponent: 'Centennial', home: true, conference: true,
+        result: { teamScore: 41, opponentScore: 0 }, booster: null,
+        stats: {
+          completions: 10, attempts: 21, passingYards: 183, passingYac: 30,
+          passingTd: 1, interceptions: 1, carries: 4, rushingYards: 4,
+          rushingTd: 0, rushingLong: 4, sacks: 0, fumbles: 0,
+          passingAvg: 18.3, rating: 74.1, rushingAvg: 1
         } },
     ],
 
     /* Sam Stogsdill — Normal Community High School */
     'sam-stogsdill': [
-      { week:  2, date: '2018-08-25', kickoff: '7:00pm',
-        opponent: 'Urbana', home: false, conference: true,
-        result: { teamScore: 0, opponentScore: 7 }, booster: null,
+      { week:  2, date: '2018-08-24', kickoff: '7:00pm',
+        opponent: 'Richwoods', home: false, conference: true,
+        result: { teamScore: 43, opponentScore: 7 }, booster: null,
         stats: {
-          carries: 13, rushingYards: 85, rushingTd: 0, rushingLong: 36,
-          receptions: 0, receivingYards: 0, receivingYac: 0,
-          receivingTd: 0, receivingLong: 0, targets: 1, fumbles: 0,
-          rushingAvg: 6.5, totalYards: 85, totalTd: 0
+          receptions: 1, receivingYards: 5, receivingYac: 3, receivingTd: 0,
+          receivingLong: 5, targets: 2, carries: 25, rushingYards: 151,
+          rushingTd: 1, rushingLong: 18, fumbles: 0, receivingAvg: 5,
+          rushingAvg: 6, totalYards: 156, totalTd: 1
         } },
-      { week:  3, date: '2018-09-01', kickoff: '7:00pm',
-        opponent: 'Bloomington', home: true, conference: true, scouts: true,
-        result: { teamScore: 13, opponentScore: 10 }, booster: null,
+      { week:  3, date: '2018-08-31', kickoff: '7:00pm',
+        opponent: 'Normal West', home: true, conference: true,
+        result: { teamScore: 49, opponentScore: 27 }, booster: null,
         stats: {
-          carries: 14, rushingYards: 86, rushingTd: 0, rushingLong: 26,
-          receptions: 1, receivingYards: 12, receivingYac: 0,
-          receivingTd: 0, receivingLong: 12, targets: 1, fumbles: 0,
-          rushingAvg: 6.1, receivingAvg: 12, totalYards: 98, totalTd: 0
+          receptions: 1, receivingYards: 8, receivingYac: 6, receivingTd: 0,
+          receivingLong: 8, targets: 2, carries: 28, rushingYards: 183,
+          rushingTd: 1, rushingLong: 14, fumbles: 0, receivingAvg: 8,
+          rushingAvg: 6.5, totalYards: 191, totalTd: 1
         } },
-      { week:  4, date: '2018-09-08', kickoff: '7:00pm',
-        opponent: 'Peoria Notre Dame', home: false, conference: true,
-        result: { teamScore: 35, opponentScore: 3 }, booster: null,
+      { week:  4, date: '2018-09-07', kickoff: '7:00pm',
+        opponent: 'Urbana', home: true, conference: true,
+        result: { teamScore: 49, opponentScore: 6 }, booster: null,
         stats: {
-          carries: 14, rushingYards: 55, rushingTd: 1, rushingLong: 6,
-          receptions: 1, receivingYards: 7, receivingYac: 2,
-          receivingTd: 1, receivingLong: 7, targets: 4, fumbles: 2,
-          rushingAvg: 3.9, receivingAvg: 7, totalYards: 62, totalTd: 2
+          receptions: 1, receivingYards: 10, receivingYac: 6,
+          receivingTd: 1, receivingLong: 10, targets: 2, carries: 23,
+          rushingYards: 145, rushingTd: 1, rushingLong: 12, fumbles: 0,
+          receivingAvg: 10, rushingAvg: 6.3, totalYards: 155, totalTd: 2
         } },
-      { week:  5, date: '2018-09-15', kickoff: '7:00pm',
-        opponent: 'Normal West', home: false, conference: true,
-        result: { teamScore: 13, opponentScore: 10 }, booster: null,
+      { week:  5, date: '2018-09-14', kickoff: '7:00pm',
+        opponent: 'Neuqua Valley', home: true, conference: false,
+        result: { teamScore: 35, opponentScore: 36 }, booster: null,
         stats: {
-          carries: 15, rushingYards: 98, rushingTd: 1, rushingLong: 33,
-          receptions: 3, receivingYards: 28, receivingYac: 11,
-          receivingTd: 0, receivingLong: 11, targets: 4, fumbles: 0,
-          rushingAvg: 6.5, receivingAvg: 9.3, totalYards: 126, totalTd: 1
+          receptions: 1, receivingYards: 10, receivingYac: 7,
+          receivingTd: 1, receivingLong: 10, targets: 1, carries: 20,
+          rushingYards: 80, rushingTd: 0, rushingLong: 13, fumbles: 0,
+          receivingAvg: 10, rushingAvg: 4, totalYards: 90, totalTd: 1
         } },
-      { week:  6, date: '2018-09-22', kickoff: '7:00pm',
-        opponent: 'Richwoods', home: true, conference: true,
-        result: { teamScore: 17, opponentScore: 24 }, booster: null,
+      { week:  6, date: '2018-09-21', kickoff: '7:00pm',
+        opponent: 'Manual', home: false, conference: true,
+        result: { teamScore: 48, opponentScore: 8 }, booster: null,
         stats: {
-          carries: 18, rushingYards: 100, rushingTd: 0, rushingLong: 27,
-          receptions: 0, receivingYards: 0, receivingYac: 0,
-          receivingTd: 0, receivingLong: 0, targets: 3, fumbles: 0,
-          rushingAvg: 5.6, totalYards: 100, totalTd: 0
+          receptions: 1, receivingYards: 10, receivingYac: 8,
+          receivingTd: 0, receivingLong: 10, targets: 1, carries: 21,
+          rushingYards: 118, rushingTd: 2, rushingLong: 14, fumbles: 0,
+          receivingAvg: 10, rushingAvg: 5.6, totalYards: 128, totalTd: 2
         } },
-      { week:  7, date: '2018-09-29', kickoff: '7:00pm',
-        opponent: 'Bradley-Bourbonnais', home: true, conference: false,
-        result: { teamScore: 17, opponentScore: 3 }, booster: null,
+      { week:  7, date: '2018-09-28', kickoff: '7:00pm',
+        opponent: 'Bloomington', home: false, conference: true, scouts: true,
+        result: { teamScore: 49, opponentScore: 28 }, booster: 'boost-2-5',
         stats: {
-          carries: 8, rushingYards: 28, rushingTd: 1, rushingLong: 6,
-          receptions: 1, receivingYards: 12, receivingYac: 1,
-          receivingTd: 0, receivingLong: 12, targets: 4, fumbles: 0,
-          rushingAvg: 3.5, receivingAvg: 12, totalYards: 40, totalTd: 1
+          receptions: 2, receivingYards: 10, receivingYac: 8,
+          receivingTd: 1, receivingLong: 10, targets: 3, carries: 16,
+          rushingYards: 69, rushingTd: 1, rushingLong: 16, fumbles: 0,
+          receivingAvg: 5, rushingAvg: 4.3, totalYards: 79, totalTd: 2
         } },
-      { week:  8, date: '2018-10-06', kickoff: '7:00pm',
-        opponent: 'Centennial', home: true, conference: true,
-        result: { teamScore: 14, opponentScore: 13 }, booster: null,
-        stats: {
-          carries: 14, rushingYards: 54, rushingTd: 0, rushingLong: 20,
-          receptions: 1, receivingYards: 3, receivingYac: 1,
-          receivingTd: 1, receivingLong: 3, targets: 2, fumbles: 0,
-          rushingAvg: 3.9, receivingAvg: 3, totalYards: 57, totalTd: 1
-        } },
-      { week:  9, date: '2018-10-13', kickoff: '7:00pm',
+      { week:  8, date: '2018-10-05', kickoff: '7:00pm',
         opponent: 'Danville', home: true, conference: true,
-        result: { teamScore: 10, opponentScore: 14 }, booster: null,
+        result: { teamScore: 36, opponentScore: 8 }, booster: null,
         stats: {
-          carries: 12, rushingYards: 76, rushingTd: 1, rushingLong: 34,
-          receptions: 1, receivingYards: 16, receivingYac: 5,
-          receivingTd: 0, receivingLong: 16, targets: 3, fumbles: 0,
-          rushingAvg: 6.3, receivingAvg: 16, totalYards: 92, totalTd: 1
+          receptions: 1, receivingYards: 7, receivingYac: 5, receivingTd: 0,
+          receivingLong: 7, targets: 1, carries: 23, rushingYards: 150,
+          rushingTd: 1, rushingLong: 15, fumbles: 0, receivingAvg: 7,
+          rushingAvg: 6.5, totalYards: 157, totalTd: 1
         } },
-      { week: 10, date: '2018-10-20', kickoff: '7:00pm',
-        opponent: 'Champaign Central', home: false, conference: true, scouts: true,
-        result: { teamScore: 13, opponentScore: 14 }, booster: null,
+      { week:  9, date: '2018-10-12', kickoff: '7:00pm',
+        opponent: 'Centennial', home: false, conference: true,
+        result: { teamScore: 35, opponentScore: 7 }, booster: null,
         stats: {
-          carries: 10, rushingYards: 27, rushingTd: 0, rushingLong: 16,
-          receptions: 0, receivingYards: 0, receivingYac: 0,
-          receivingTd: 0, receivingLong: 0, targets: 2, fumbles: 0,
-          rushingAvg: 2.7, totalYards: 27, totalTd: 0
+          receptions: 1, receivingYards: 4, receivingYac: 2, receivingTd: 0,
+          receivingLong: 4, targets: 1, carries: 26, rushingYards: 141,
+          rushingTd: 0, rushingLong: 14, fumbles: 0, receivingAvg: 4,
+          rushingAvg: 5.4, totalYards: 145, totalTd: 0
+        } },
+      { week: 10, date: '2018-10-19', kickoff: '7:00pm',
+        opponent: 'Peoria', home: true, conference: true, scouts: true,
+        result: { teamScore: 61, opponentScore: 14 }, booster: null,
+        stats: {
+          receptions: 1, receivingYards: 10, receivingYac: 8,
+          receivingTd: 0, receivingLong: 10, targets: 1, carries: 22,
+          rushingYards: 131, rushingTd: 0, rushingLong: 12, fumbles: 0,
+          receivingAvg: 10, rushingAvg: 6, totalYards: 141, totalTd: 0
         } },
     ],
 
     /* Jaykeb Stewart — Naples High School */
     'jaykeb-stewart': [
-      { week:  2, date: '2018-08-25', kickoff: '7:30pm',
+      { week:  2, date: '2018-08-24', kickoff: '7:30pm',
         opponent: 'Edison', home: true, conference: false,
-        result: { teamScore: 34, opponentScore: 7 }, booster: null,
+        result: { teamScore: 30, opponentScore: 18 }, booster: null,
         stats: {
-          completions: 9, attempts: 18, passingYards: 118, passingYac: 33,
-          passingTd: 2, interceptions: 0, carries: 4, rushingYards: 35,
-          rushingTd: 0, rushingLong: 29, sacks: 4, fumbles: 0,
-          passingAvg: 13.1, rating: 108.1, rushingAvg: 8.8
+          completions: 10, attempts: 17, passingYards: 118, passingYac: 48,
+          passingTd: 2, interceptions: 0, carries: 5, rushingYards: 24,
+          rushingTd: 1, rushingLong: 19, sacks: 0, fumbles: 0,
+          passingAvg: 11.8, rating: 119.2, rushingAvg: 4.8
         } },
-      { week:  3, date: '2018-09-01', kickoff: '7:30pm',
+      { week:  3, date: '2018-08-31', kickoff: '7:30pm',
         opponent: 'Palmetto', home: true, conference: false,
-        result: { teamScore: 34, opponentScore: 23 }, booster: null,
+        result: { teamScore: 17, opponentScore: 26 }, booster: 'boost-1-5',
         stats: {
-          completions: 13, attempts: 25, passingYards: 180,
-          passingYac: 25, passingTd: 2, interceptions: 2, carries: 4,
-          rushingYards: 12, rushingTd: 1, rushingLong: 6, sacks: 2,
-          fumbles: 0, passingAvg: 13.8, rating: 68.8, rushingAvg: 3
+          completions: 8, attempts: 12, passingYards: 110, passingYac: 48,
+          passingTd: 1, interceptions: 0, carries: 6, rushingYards: 33,
+          rushingTd: 1, rushingLong: 20, sacks: 3, fumbles: 0,
+          passingAvg: 13.8, rating: 123.6, rushingAvg: 5.5
         } },
-      { week:  7, date: '2018-09-28', kickoff: '7:30pm',
-        opponent: 'Palmetto Ridge', home: true, conference: true, scouts: true,
-        result: { teamScore: 35, opponentScore: 27 }, booster: null,
+      { week:  5, date: '2018-09-14', kickoff: '7:00pm',
+        opponent: 'Gulf Coast', home: false, conference: false,
+        result: { teamScore: 51, opponentScore: 0 }, booster: null,
         stats: {
-          completions: 14, attempts: 19, passingYards: 200,
-          passingYac: 27, passingTd: 3, interceptions: 1, carries: 4,
-          rushingYards: 24, rushingTd: 0, rushingLong: 10, sacks: 1,
-          fumbles: 0, passingAvg: 14.3, rating: 125, rushingAvg: 6
+          completions: 15, attempts: 25, passingYards: 166, passingYac: 72,
+          passingTd: 4, interceptions: 1, carries: 3, rushingYards: 16,
+          rushingTd: 0, rushingLong: 16, sacks: 3, fumbles: 0,
+          passingAvg: 11.1, rating: 102.7, rushingAvg: 5.3
         } },
-      { week:  8, date: '2018-10-06', kickoff: '7:30pm',
-        opponent: 'Lely', home: true, conference: false,
-        result: { teamScore: 21, opponentScore: 12 }, booster: null,
+      { week:  6, date: '2018-09-21', kickoff: '7:30pm',
+        opponent: 'Immokalee', home: true, conference: false, scouts: true,
+        result: { teamScore: 48, opponentScore: 17 }, booster: null,
         stats: {
-          completions: 20, attempts: 27, passingYards: 298,
-          passingYac: 72, passingTd: 2, interceptions: 2, carries: 4,
-          rushingYards: 7, rushingTd: 0, rushingLong: 5, sacks: 0,
-          fumbles: 1, passingAvg: 14.9, rating: 103.6, rushingAvg: 1.8
+          completions: 13, attempts: 18, passingYards: 173, passingYac: 53,
+          passingTd: 2, interceptions: 1, carries: 3, rushingYards: 9,
+          rushingTd: 0, rushingLong: 8, sacks: 3, fumbles: 0,
+          passingAvg: 13.3, rating: 116.2, rushingAvg: 3
         } },
-      { week:  9, date: '2018-10-13', kickoff: '7:00pm',
-        opponent: 'Golden Gate', home: false, conference: true,
-        result: { teamScore: 17, opponentScore: 31 }, booster: null,
+      { week:  7, date: '2018-09-28', kickoff: '7:00pm',
+        opponent: 'Palmetto Ridge', home: false, conference: true,
+        result: { teamScore: 42, opponentScore: 0 }, booster: null,
         stats: {
-          completions: 12, attempts: 22, passingYards: 187,
-          passingYac: 43, passingTd: 2, interceptions: 0, carries: 2,
-          rushingYards: 2, rushingTd: 0, rushingLong: 4, sacks: 0,
-          fumbles: 1, passingAvg: 15.6, rating: 113.3, rushingAvg: 1
+          completions: 12, attempts: 18, passingYards: 159, passingYac: 48,
+          passingTd: 3, interceptions: 1, carries: 5, rushingYards: 22,
+          rushingTd: 0, rushingLong: 8, sacks: 0, fumbles: 0,
+          passingAvg: 13.3, rating: 110.9, rushingAvg: 4.4
         } },
-      { week: 10, date: '2018-10-20', kickoff: '7:30pm',
-        opponent: 'South Fort Myers', home: false, conference: false,
-        result: { teamScore: 20, opponentScore: 14 }, booster: null,
+      { week:  8, date: '2018-10-05', kickoff: '7:00pm',
+        opponent: 'Lely', home: false, conference: false,
+        result: { teamScore: 45, opponentScore: 0 }, booster: null,
         stats: {
-          completions: 9, attempts: 16, passingYards: 158, passingYac: 23,
-          passingTd: 3, interceptions: 0, carries: 2, rushingYards: 4,
-          rushingTd: 0, rushingLong: 2, sacks: 1, fumbles: 1,
-          passingAvg: 17.6, rating: 129.7, rushingAvg: 2
+          completions: 11, attempts: 18, passingYards: 134, passingYac: 58,
+          passingTd: 3, interceptions: 1, carries: 4, rushingYards: 11,
+          rushingTd: 0, rushingLong: 11, sacks: 3, fumbles: 0,
+          passingAvg: 12.2, rating: 100.5, rushingAvg: 2.8
         } },
-      { week: 11, date: '2018-10-27', kickoff: '7:00pm',
-        opponent: 'Barron Collier', home: false, conference: true, scouts: true,
-        result: { teamScore: 10, opponentScore: 20 }, booster: null,
+      { week:  9, date: '2018-10-12', kickoff: '7:30pm',
+        opponent: 'Golden Gate', home: true, conference: true,
+        result: { teamScore: 31, opponentScore: 10 }, booster: null,
         stats: {
-          completions: 5, attempts: 15, passingYards: 70, passingYac: 20,
-          passingTd: 0, interceptions: 0, carries: 4, rushingYards: 32,
-          rushingTd: 0, rushingLong: 25, sacks: 2, fumbles: 0,
-          passingAvg: 14, rating: 49.3, rushingAvg: 8
+          completions: 10, attempts: 17, passingYards: 134, passingYac: 50,
+          passingTd: 2, interceptions: 1, carries: 6, rushingYards: 14,
+          rushingTd: 1, rushingLong: 8, sacks: 3, fumbles: 1,
+          passingAvg: 13.4, rating: 98.7, rushingAvg: 2.3
         } },
-      { week: 12, date: '2018-11-03', kickoff: '7:30pm',
+      { week: 10, date: '2018-10-19', kickoff: '7:30pm',
+        opponent: 'South Fort Myers', home: true, conference: false,
+        result: { teamScore: 63, opponentScore: 0 }, booster: null,
+        stats: {
+          completions: 16, attempts: 23, passingYards: 241, passingYac: 91,
+          passingTd: 1, interceptions: 1, carries: 7, rushingYards: 20,
+          rushingTd: 1, rushingLong: 6, sacks: 2, fumbles: 1,
+          passingAvg: 15.1, rating: 100.1, rushingAvg: 2.9
+        } },
+      { week: 11, date: '2018-10-26', kickoff: '7:30pm',
+        opponent: 'Barron Collier', home: true, conference: true, scouts: true,
+        result: { teamScore: 25, opponentScore: 9 }, booster: null,
+        stats: {
+          completions: 8, attempts: 14, passingYards: 122, passingYac: 52,
+          passingTd: 1, interceptions: 0, carries: 6, rushingYards: 33,
+          rushingTd: 0, rushingLong: 16, sacks: 1, fumbles: 0,
+          passingAvg: 15.3, rating: 109.8, rushingAvg: 5.5
+        } },
+      { week: 12, date: '2018-11-02', kickoff: '7:30pm',
         opponent: 'Piper', home: true, conference: false,
-        result: { teamScore: 35, opponentScore: 3 }, booster: null,
+        result: { teamScore: 42, opponentScore: 6 }, booster: null,
         stats: {
-          completions: 16, attempts: 27, passingYards: 305,
-          passingYac: 62, passingTd: 4, interceptions: 0, carries: 3,
-          rushingYards: 10, rushingTd: 0, rushingLong: 6, sacks: 1,
-          fumbles: 0, passingAvg: 19.1, rating: 138.1, rushingAvg: 3.3
+          completions: 17, attempts: 26, passingYards: 258, passingYac: 99,
+          passingTd: 3, interceptions: 1, carries: 4, rushingYards: 26,
+          rushingTd: 0, rushingLong: 26, sacks: 2, fumbles: 0,
+          passingAvg: 15.2, rating: 120.4, rushingAvg: 6.5
         } },
     ],
   }
