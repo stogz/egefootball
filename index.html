@@ -66,6 +66,24 @@
         <!-- cards rendered from data/players.js -->
       </div>
 
+      <!-- Phones only, and only when it is not already on the home screen.
+           app.js unhides it and writes the steps for whichever phone this is. -->
+      <section class="fb-panel ege-install ege-section-gap" id="installGuide" hidden>
+        <div class="fb-panel__head">
+          <h3>Download the App</h3>
+          <span class="fb-meta" id="installKind"></span>
+        </div>
+        <div class="fb-panel__body fb-stack fb-stack--lg">
+          <p class="ege-item__text" id="installLede"></p>
+          <ol class="ege-install__steps" id="installSteps"></ol>
+          <p class="fb-meta ege-install__foot">
+            There is nothing to download and no store to go through. It is this
+            site, pinned to your home screen with its own icon, and it updates
+            whenever the site does.
+          </p>
+        </div>
+      </section>
+
     </section>
 
     <!-- ===== shop ===================================================== -->
@@ -486,7 +504,7 @@
                 <th>Opponent</th>
                 <th class="num">Result</th>
                 <th class="num">Credits</th>
-                <th class="num">Booster</th>
+                <th class="num" id="scheduleBoosterHead">Booster</th>
               </tr>
             </thead>
             <tbody id="scheduleBody"></tbody>

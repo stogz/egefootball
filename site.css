@@ -358,6 +358,29 @@ body {
 }
 .ege-item .fb-tag--outline { align-self: flex-start; }
 
+/* A booster card shows the sticker itself. The sticker is tilted and casts a
+   drop-shadow, so it is given a band of its own rather than being squeezed
+   into the flow: a rotated 76px square is 100px across its corners and would
+   otherwise clip against the card's padding. */
+.ege-item__sticker {
+  display: grid;
+  place-items: center;
+  min-height: 104px;
+  margin: 2px 0;
+  background:
+    radial-gradient(ellipse at 50% 46%, rgba(240, 184, 42, .22), transparent 66%),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(29, 36, 22, .05) 0 6px,
+      transparent 6px 12px
+    );
+  border: var(--fb-border-thin) dashed rgba(29, 36, 22, .22);
+}
+
+/* It is a picture of the thing, not a control, so it neither takes a tap nor
+   sits in the tab order. */
+.ege-item__sticker .ege-sticker { pointer-events: none; }
+
 .ege-targets {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
@@ -724,6 +747,17 @@ body {
 }
 .ege-slot__applied--peelable:hover .ege-sticker__x,
 .ege-slot__applied--peelable:focus-visible .ege-sticker__x { opacity: 1; }
+
+/* A finger cannot hover, so on a touch screen the same look is reached by
+   tapping the sticker once: app.js puts this class on, and the tap after it
+   is the one that takes the booster off. Everything a hover does, one tap
+   does — the cross is up only while you are taking one off, never just
+   because you are holding a phone. */
+.ege-slot__applied--armed { z-index: 6; }
+.ege-slot__applied--armed::after { opacity: 1; }
+.ege-slot__applied--armed .ege-sticker { opacity: .62; }
+.ege-slot__applied--armed .ege-sticker__hatch { opacity: .5; }
+.ege-slot__applied--armed .ege-sticker__x { opacity: 1; }
 
 /* --- the sticker drawer -------------------------------------------------- */
 
@@ -1272,7 +1306,20 @@ body {
      visible height; vh stays for anything that has not caught up. */
   min-height: 100vh;
   min-height: 100dvh;
-  padding-bottom: env(safe-area-inset-bottom);
+
+  /* Room under the last thing on the page. Every view ended flush against the
+     bottom edge, which on a phone puts the final row of a table under the
+     home indicator and under Safari's toolbar as it slides back up — it looks
+     like the page has been cut off rather than finished. Inside the box
+     rather than below it (border-box), so a page shorter than the screen
+     still does not gain a scrollbar it has no use for. */
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+}
+
+@media (max-width: 620px) {
+  /* More of it on a phone, where the toolbar that comes and goes is about
+     50px of the screen on its own. */
+  .fb-shell { padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
 }
 
 @supports (padding: max(0px)) {
@@ -1316,13 +1363,6 @@ body {
 
   /* The rating point buttons sat three to a row at 33 tall. */
   .ege-upgrade__buy { min-height: 44px; }
-
-  /* A sticker that can still be peeled says so on its own, because there is
-     no hovering on a touch screen — without this the cross that means "tap to
-     take this off" never appears at all, and the booster looks stuck. */
-  .ege-slot__applied--peelable .ege-sticker { opacity: .72; }
-  .ege-slot__applied--peelable .ege-sticker__hatch { opacity: .38; }
-  .ege-slot__applied--peelable .ege-sticker__x { opacity: .9; }
 
   /* Rows that light up under a mouse do nothing useful under a finger, and
      leave a row stuck highlighted after a tap. */
@@ -1641,3 +1681,69 @@ select,
   /* One button per column, full width, so all three are a thumb wide. */
   .ege-upgrade__buy { width: 100%; }
 }
+
+/* --- download the app -------------------------------------------------------
+
+   Numbered steps, but not the admin flow's steps: those are a checklist that
+   remembers what has been done, and these are four sentences you read once
+   and then never again. Kept to a phone, where the panel is one column wide
+   anyway. */
+
+.ege-install__steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: install;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ege-install__step {
+  counter-increment: install;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+/* The number sits in a chip of its own, the way the admin steps number
+   theirs, so the four read as an order rather than as a list. */
+.ege-install__step::before {
+  content: counter(install);
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  font-family: var(--fb-font-display);
+  font-size: 15px;
+  line-height: 1;
+  color: var(--fb-cream);
+  background: var(--fb-ink);
+}
+
+.ege-install__text { display: inline; }
+
+/* A glyph inline with the words, at the size of the words, so "the square
+   with an arrow coming out of the top" is settled by looking rather than by
+   reading it twice. */
+.ege-install__glyph {
+  display: inline-block;
+  width: 1.05em;
+  height: 1.05em;
+  margin-left: 6px;
+  vertical-align: -.18em;
+  color: var(--fb-accent-deep);
+}
+
+.ege-install__dots {
+  width: auto;
+  font-size: 1.25em;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.ege-install__foot { margin: 0; }
