@@ -924,6 +924,39 @@ that's usually fine, and once a password is set nothing on the site can change
 it — but it does mean each player should claim their own account before the
 site is shared around.
 
+### On a phone
+
+Most of it is read on an iPhone, so the layout answers to one. The width was
+already fine; what was not:
+
+- **Safari was zooming the whole page out.** A `<select>` is as wide as its
+  longest option, and at a tappable font size "Offseason Strength Training"
+  is wider than the screen — the page came to 435 points on a 390 point phone,
+  and Safari's answer to that is to shrink everything to fit. That is most of
+  what "it looks tiny on my phone" turns out to be.
+- **Safari was zooming *in* on every form field.** iOS zooms when you focus a
+  control whose text is under 16px and does not zoom back out. Every control
+  here was 13 or 14.
+- **The tables hid the point.** The schedule scrolled the *result* off the
+  right; the shop scrolled the *buy buttons* off. Under 620px each row becomes
+  a block instead — same markup, same cells, only the layout changes — so what
+  you came to see is under your thumb.
+- **Tap targets.** Apple asks for 44 points square. The week handle that opens
+  a stat line was 21×26, the buy buttons 33 tall, the admin's publish buttons
+  30.
+- **Nothing hover-only.** A finger cannot hover, so the cross that means "tap
+  to peel this booster off" never appeared at all and an applied sticker
+  looked stuck.
+- **The notch.** `viewport-fit=cover` with `env(safe-area-inset-*)`, and
+  `100dvh` rather than `100vh`, which on iOS is the window with the toolbars
+  hidden.
+
+The roster turns sideways too — six portrait cards was six screens of
+scrolling before anybody had picked anyone, and it is two now.
+
+Everything is behind `max-width: 620px` or `hover: none`, so the desktop
+layout is untouched; that is checked as well as the phone one.
+
 ### Kit and assets
 
 Already in the repo and used as-is — `style.css` and `organic-styles.css` are

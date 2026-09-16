@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- viewport-fit=cover lets the page paint under the notch and the home
+     indicator; site.css keeps the content itself out of them with env(). -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+<!-- Tints the status bar to match the nav when it is pinned to the home screen. -->
+<meta name="theme-color" content="#1d2416">
+<meta name="apple-mobile-web-app-title" content="EGE Football">
+<meta name="mobile-web-app-capable" content="yes">
 <title>EGE Football</title>
 <meta name="description" content="Career simulation following six players from the 2018 junior year of high school to the 2023 NFL Draft.">
 
@@ -514,6 +521,7 @@
         </div>
         <div class="fb-panel__foot">
           <span class="fb-meta" id="gameLogLegend"></span>
+          <span class="ege-gamelog__swipe">Swipe the table sideways for the rest of the line.</span>
         </div>
       </div>
 

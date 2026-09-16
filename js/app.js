@@ -151,8 +151,9 @@
     document.getElementById('playerFootNote').textContent = !games.length
       ? 'No schedule for ' + season + ' yet.'
       : (done
-          ? done + ' of ' + games.length + ' games played. Click a week on the ' +
-            'schedule for the stat line.'
+          ? done + ' of ' + games.length + ' games played. ' +
+            (window.matchMedia && window.matchMedia('(hover: none)').matches ? 'Tap' : 'Click') +
+            ' a week on the schedule for the stat line.'
           : 'None of the ' + games.length + ' games have been posted yet.');
 
     fillPlayerSeasons(player);
@@ -312,9 +313,13 @@
         (peelable ? 'ege-slot__applied--peelable' : 'ege-slot__applied--stuck'));
       applied.type = 'button';
       applied.disabled = !peelable;
+      /* A finger has no hover, so on a touch screen the cross is always
+         showing and the word is tap. */
+      var touch = window.matchMedia && window.matchMedia('(hover: none)').matches;
       applied.title = peelable
-        ? stuck.item_name + ' \u2014 click to peel it off'
+        ? stuck.item_name + ' \u2014 ' + (touch ? 'tap' : 'click') + ' to peel it off'
         : stuck.item_name + ' \u2014 the game has been played, it stays put';
+      applied.setAttribute('aria-label', applied.title);
       /* Bigger than the row on purpose, sitting over it, and nudged a few
          pixels up or down so it overlaps the row above or below. */
       var seed = stuck.id;
@@ -516,6 +521,13 @@
     var stats = EGE.statline.complete(player.position, game.stats);
     var box = el('div', 'ege-statrow__box');
 
+    /* The kickoff has no column of its own on a narrow screen, so it rides
+       here instead of being lost. */
+    if (game.kickoff) {
+      box.appendChild(el('p', 'fb-meta ege-statrow__when',
+        gameDate(game) + ', ' + game.kickoff + (game.home ? ' \u00b7 home' : ' \u00b7 away')));
+    }
+
     if (!game.stats) {
       box.appendChild(el('p', 'fb-meta', 'No stat line for this one.'));
     } else {
@@ -579,7 +591,9 @@
       legend += (legend ? ' · ' : '') + 'Intel: scouts at ' + scouted + ' games this season';
     }
     if (played) {
-      legend += (legend ? ' · ' : '') + 'Click a week to see the stat line';
+      var touch = window.matchMedia && window.matchMedia('(hover: none)').matches;
+      legend += (legend ? ' · ' : '') +
+        (touch ? 'Tap' : 'Click') + ' a week to see the stat line';
     }
     document.getElementById('scheduleLegend').textContent = legend;
   }
