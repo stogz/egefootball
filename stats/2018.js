@@ -58,9 +58,9 @@ EGE.stats[2018] = {
         result: { teamScore: 22, opponentScore: 9 }, booster: null,
         stats: {
           receptions: 4, receivingYards: 58, receivingYac: 14,
-          receivingTd: 0, receivingLong: 32, targets: 6, carries: 1,
-          rushingYards: 6, rushingTd: 0, rushingLong: 6, fumbles: 0,
-          rushingAvg: 6, receivingAvg: 14.5, totalYards: 64, totalTd: 0
+          receivingTd: 0, receivingLong: 32, targets: 6, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 14.5, totalYards: 58, totalTd: 0
         } },
       { week:  4, date: '2018-09-07', kickoff: '7:00pm',
         opponent: 'Leesville Road', home: true, conference: false,
@@ -149,7 +149,7 @@ EGE.stats[2018] = {
         } },
       { week:  3, date: '2018-08-31', kickoff: '7:00pm',
         opponent: 'Sweetwater', home: true, conference: false,
-        result: { teamScore: 62, opponentScore: 0 }, booster: null,
+        result: { teamScore: 44, opponentScore: 0 }, booster: null,
         stats: {
           carries: 16, rushingYards: 89, rushingTd: 0, rushingLong: 18,
           receptions: 5, receivingYards: 52, receivingYac: 25,
@@ -225,7 +225,7 @@ EGE.stats[2018] = {
         } },
       { week:  3, date: '2018-09-01', kickoff: '12:00pm',
         opponent: 'Rich East', home: false, conference: false,
-        result: { teamScore: 21, opponentScore: 14 }, booster: null,
+        result: { teamScore: 30, opponentScore: 7 }, booster: null,
         stats: {
           receptions: 5, receivingYards: 109, receivingYac: 33,
           receivingTd: 1, receivingLong: 44, targets: 6, carries: 0,
@@ -310,7 +310,7 @@ EGE.stats[2018] = {
         } },
       { week:  3, date: '2018-09-01', kickoff: '12:00pm',
         opponent: 'Rich East', home: false, conference: false,
-        result: { teamScore: 21, opponentScore: 14 }, booster: null,
+        result: { teamScore: 30, opponentScore: 7 }, booster: null,
         stats: {
           completions: 18, attempts: 30, passingYards: 292,
           passingYac: 89, passingTd: 3, interceptions: 1, carries: 3,
@@ -397,10 +397,10 @@ EGE.stats[2018] = {
         opponent: 'Normal West', home: true, conference: true,
         result: { teamScore: 49, opponentScore: 27 }, booster: null,
         stats: {
-          carries: 28, rushingYards: 183, rushingTd: 1, rushingLong: 14,
+          carries: 28, rushingYards: 183, rushingTd: 2, rushingLong: 14,
           receptions: 1, receivingYards: 8, receivingYac: 6,
           receivingTd: 0, receivingLong: 8, targets: 2, fumbles: 0,
-          rushingAvg: 6.5, receivingAvg: 8, totalYards: 191, totalTd: 1
+          rushingAvg: 6.5, receivingAvg: 8, totalYards: 191, totalTd: 2
         } },
       { week:  4, date: '2018-09-07', kickoff: '7:00pm',
         opponent: 'Urbana', home: true, conference: true,
@@ -484,7 +484,7 @@ EGE.stats[2018] = {
         stats: {
           completions: 8, attempts: 12, passingYards: 110, passingYac: 48,
           passingTd: 1, interceptions: 0, carries: 6, rushingYards: 33,
-          rushingTd: 1, rushingLong: 20, sacks: 3, fumbles: 0,
+          rushingTd: 1, rushingLong: 20, sacks: 3, fumbles: 1,
           passingAvg: 13.8, rating: 123.6, rushingAvg: 5.5
         } },
       { week:  5, date: '2018-09-14', kickoff: '7:00pm',
