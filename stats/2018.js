@@ -171,8 +171,8 @@ EGE.stats[2018] = {
         stats: {
           carries: 10, rushingYards: 37, rushingTd: 1, rushingLong: 12,
           receptions: 5, receivingYards: 44, receivingYac: 24,
-          receivingTd: 1, receivingLong: 14, targets: 7, fumbles: 0,
-          rushingAvg: 3.7, receivingAvg: 8.8, totalYards: 81, totalTd: 2
+          receivingTd: 0, receivingLong: 14, targets: 7, fumbles: 0,
+          rushingAvg: 3.7, receivingAvg: 8.8, totalYards: 81, totalTd: 1
         } },
       { week:  7, date: '2018-09-28', kickoff: '7:00pm',
         opponent: 'Torrey Pines', home: true, conference: true,
@@ -243,12 +243,12 @@ EGE.stats[2018] = {
         } },
       { week:  5, date: '2018-09-14', kickoff: '7:00pm',
         opponent: 'Normal West', home: false, conference: true,
-        result: { teamScore: 14, opponentScore: 17 }, booster: null,
+        result: { teamScore: 24, opponentScore: 27 }, booster: 'boost-2-0',
         stats: {
-          receptions: 6, receivingYards: 83, receivingYac: 18,
-          receivingTd: 0, receivingLong: 20, targets: 9, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 13.8, totalYards: 83, totalTd: 0
+          receptions: 13, receivingYards: 184, receivingYac: 51,
+          receivingTd: 1, receivingLong: 61, targets: 16, carries: 1,
+          rushingYards: 2, rushingTd: 0, rushingLong: 2, fumbles: 0,
+          rushingAvg: 2, receivingAvg: 14.2, totalYards: 186, totalTd: 1
         } },
       { week:  6, date: '2018-09-22', kickoff: '4:00pm',
         opponent: 'Urbana', home: true, conference: true,
@@ -328,12 +328,12 @@ EGE.stats[2018] = {
         } },
       { week:  5, date: '2018-09-14', kickoff: '7:00pm',
         opponent: 'Normal West', home: false, conference: true,
-        result: { teamScore: 14, opponentScore: 17 }, booster: null,
+        result: { teamScore: 24, opponentScore: 27 }, booster: null,
         stats: {
-          completions: 15, attempts: 32, passingYards: 274,
-          passingYac: 60, passingTd: 0, interceptions: 2, carries: 5,
-          rushingYards: 14, rushingTd: 0, rushingLong: 11, sacks: 3,
-          fumbles: 0, passingAvg: 18.3, rating: 50.8, rushingAvg: 2.8
+          completions: 15, attempts: 32, passingYards: 269,
+          passingYac: 73, passingTd: 1, interceptions: 2, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, sacks: 4,
+          fumbles: 1, passingAvg: 17.9, rating: 60.5
         } },
       { week:  6, date: '2018-09-22', kickoff: '4:00pm',
         opponent: 'Urbana', home: true, conference: true,
@@ -415,10 +415,10 @@ EGE.stats[2018] = {
         opponent: 'Neuqua Valley', home: true, conference: false,
         result: { teamScore: 35, opponentScore: 36 }, booster: null,
         stats: {
-          carries: 20, rushingYards: 80, rushingTd: 0, rushingLong: 13,
-          receptions: 1, receivingYards: 10, receivingYac: 7,
-          receivingTd: 1, receivingLong: 10, targets: 1, fumbles: 0,
-          rushingAvg: 4, receivingAvg: 10, totalYards: 90, totalTd: 1
+          carries: 11, rushingYards: 73, rushingTd: 0, rushingLong: 7,
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 1,
+          rushingAvg: 6.6, totalYards: 73, totalTd: 0
         } },
       { week:  6, date: '2018-09-21', kickoff: '7:00pm',
         opponent: 'Manual', home: false, conference: true,
