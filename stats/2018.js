@@ -158,12 +158,12 @@ EGE.stats[2018] = {
         } },
       { week:  4, date: '2018-09-07', kickoff: '7:00pm',
         opponent: 'Mission Hills', home: false, conference: true, scouts: true,
-        result: { teamScore: 21, opponentScore: 24 }, booster: null,
+        result: { teamScore: 44, opponentScore: 29 }, booster: null,
         stats: {
-          carries: 14, rushingYards: 66, rushingTd: 0, rushingLong: 18,
+          carries: 14, rushingYards: 121, rushingTd: 1, rushingLong: 52,
           receptions: 2, receivingYards: 19, receivingYac: 9,
           receivingTd: 1, receivingLong: 19, targets: 3, fumbles: 0,
-          rushingAvg: 4.7, receivingAvg: 9.5, totalYards: 85, totalTd: 1
+          rushingAvg: 8.6, receivingAvg: 9.5, totalYards: 140, totalTd: 2
         } },
       { week:  5, date: '2018-09-14', kickoff: '7:15pm',
         opponent: 'San Marcos', home: false, conference: true,
@@ -322,9 +322,9 @@ EGE.stats[2018] = {
         result: { teamScore: 50, opponentScore: 0 }, booster: null,
         stats: {
           completions: 10, attempts: 22, passingYards: 172,
-          passingYac: 29, passingTd: 1, interceptions: 1, carries: 2,
+          passingYac: 29, passingTd: 4, interceptions: 1, carries: 2,
           rushingYards: 3, rushingTd: 1, rushingLong: 3, sacks: 0,
-          fumbles: 0, passingAvg: 17.2, rating: 68.8, rushingAvg: 1.5
+          fumbles: 0, passingAvg: 17.2, rating: 93.2, rushingAvg: 1.5
         } },
       { week:  5, date: '2018-09-14', kickoff: '7:00pm',
         opponent: 'Normal West', home: false, conference: true,
