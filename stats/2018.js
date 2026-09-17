@@ -131,7 +131,7 @@ EGE.stats[2018] = {
     'cooper-clark': [
       { week:  1, date: '2018-08-17', kickoff: '7:00pm',
         opponent: 'Steele Canyon', home: true, conference: false,
-        result: { teamScore: 41, opponentScore: 13 }, booster: null,
+        result: { teamScore: 39, opponentScore: 7 }, booster: null,
         stats: {
           carries: 13, rushingYards: 56, rushingTd: 0, rushingLong: 16,
           receptions: 4, receivingYards: 46, receivingYac: 26,
