@@ -71,47 +71,25 @@
 
   /* --- player cards ----------------------------------------------------- */
 
+  /* Four things, and the sketch has no room for a fifth: the name, the school
+     with its mark, the way in, and the overall in a box on the right.
+
+     No headshot, no league line, no position or season chip. They were all on
+     here and they are all one tap away on the player's own page -- what a
+     roster is for is telling six people apart and putting them in order, and
+     a name and a number do that on their own. */
   function buildCard(player) {
-    var team = EGE.teamFor(player);
     var card = el('a', 'ege-card');
     card.href = '#' + player.slug;
 
-    var photo = el('div', 'ege-card__photo');
-    var img = el('img');
-    img.src = player.headshot;
-    img.alt = player.name;
-    img.loading = 'lazy';
-    photo.appendChild(img);
-    if (player.jersey) { photo.appendChild(el('span', 'ege-card__jersey', '#' + player.jersey)); }
-    card.appendChild(photo);
-
-    var body = el('div', 'ege-card__body');
-
-    /* The words on the left, the badge on the right, so a column of cards
-       gives a column of badges to read down. */
     var text = el('div', 'ege-card__text');
     text.appendChild(el('h3', 'ege-card__name', player.name));
     text.appendChild(schoolLine(player));
-    text.appendChild(el('p', 'ege-card__league', team ? (team.league || 'League ' + TBD) : ''));
-
-    var tags = el('div', 'fb-row fb-row--wrap');
-    if (player.position) {
-      tags.appendChild(el('span', 'fb-tag fb-tag--ink', player.position));
-    } else {
-      tags.appendChild(el('span', 'fb-tag fb-tag--outline', 'POS ' + TBD));
-    }
-    tags.appendChild(el('span', 'fb-tag fb-tag--gold', EGE.currentSeason));
-    text.appendChild(tags);
-
     text.appendChild(el('span', 'ege-card__go', 'View player →'));
-    body.appendChild(text);
+    card.appendChild(text);
 
-    /* The number used to be a tag among the tags, which is not what an
-       overall is: it is the one thing you compare players on. */
     var box = overallBox(EGE.overallFor(player), 'ege-ovrbox--card');
-    if (box) { body.appendChild(box); }
-
-    card.appendChild(body);
+    if (box) { card.appendChild(box); }
 
     return card;
   }

@@ -148,9 +148,17 @@ body {
 
 /* --- player card -------------------------------------------------------- */
 
+/* The words on the left, the overall on the right, and nothing else on it.
+   A row rather than a column, so a grid of cards gives a column of numbers
+   you can read straight down. */
 .ege-card {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 16px;
+  padding: 16px 18px;
+  /* Room for the overall box to sit in without the card closing around it. */
+  min-height: 132px;
   background: var(--fb-cream);
   border: var(--fb-border) solid var(--fb-ink);
   box-shadow: var(--fb-shadow) var(--fb-shadow) 0 rgba(0, 0, 0, .35);
@@ -169,40 +177,6 @@ body {
   box-shadow: 3px 3px 0 rgba(0, 0, 0, .35);
 }
 
-/* Headshots are cutouts on a transparent ground, so the card supplies one. */
-.ege-card__photo {
-  position: relative;
-  aspect-ratio: 4 / 3;
-  border-bottom: var(--fb-border) solid var(--fb-ink);
-  background: linear-gradient(165deg, var(--fb-tint-sage) 35%, var(--fb-tint-sage-2));
-  overflow: hidden;
-}
-.ege-card__photo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 18%;
-  display: block;
-}
-.ege-card__jersey {
-  position: absolute;
-  top: 0; left: 0;
-  background: var(--fb-ink);
-  color: var(--fb-cream);
-  font-family: var(--fb-font-display);
-  font-size: 18px;
-  padding: 4px 10px 5px;
-}
-/* The words on the left, the overall on the right. A row rather than a column,
-   so a grid of cards gives a column of badges you can read straight down. */
-.ege-card__body {
-  padding: 14px 16px 16px;
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  gap: 14px;
-  flex: 1;
-}
 .ege-card__text {
   display: flex;
   flex-direction: column;
@@ -215,6 +189,8 @@ body {
   font-size: 24px;
   line-height: 1.05;
 }
+/* Two lines reserved whether the school name needs them or not, so six cards
+   put six "View player" links on the same line as each other. */
 .ege-card__school {
   font-size: 12px;
   font-weight: 600;
@@ -311,15 +287,6 @@ body {
   color: var(--fb-accent-deep);
 }
 
-.ege-card__league {
-  margin: 0;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--fb-muted-2);
-  min-height: 1.2em;
-}
 
 /* --- credits in the nav ------------------------------------------------- */
 
@@ -1533,48 +1500,32 @@ body {
   }
   .fb-hero__lede { font-size: 15px; }
 
-  /* --- the roster, turned sideways ----------------------------------------
+  /* --- the roster, on a phone ----------------------------------------------
 
-     Six portrait cards is six screens of scrolling before anybody has picked
-     anyone. On its side, each player is a band you can read at a glance and
-     the whole squad fits in two. */
+     The card is already a band rather than a portrait, so there is nothing to
+     turn on its side any more -- only a name to bring down and a box to bring
+     in, so the whole squad still fits in two screens. */
 
   .ege-card {
-    flex-direction: row;
-    align-items: stretch;
-  }
-
-  .ege-card__photo {
-    flex: 0 0 116px;
-    aspect-ratio: auto;
-    border-bottom: 0;
-    border-right: var(--fb-border) solid var(--fb-ink);
-  }
-  .ege-card__photo img { object-position: center 14%; }
-
-  .ege-card__body {
-    padding: 11px 13px 12px;
-    gap: 6px;
-    min-width: 0;
+    gap: 12px;
+    padding: 13px 14px;
+    min-height: 0;
   }
   .ege-card__name { font-size: 21px; }
   .ege-card__text { gap: 6px; }
 
-  /* A narrower box, because a sideways card has a photo, a name, a school and
-     the overall to fit across 390 points. The number keeps its size -- it is
-     the only thing on there meant to be read at a glance -- and the word over
-     it stays at the 11px floor the rest of this file uses. */
+  /* A narrower box, because a name, a school and the overall have to fit
+     across 390 points. The number keeps its size -- it is the only thing on
+     there meant to be read at a glance -- and the word over it stays at the
+     11px floor the rest of this file uses. */
   .ege-ovrbox--card {
-    width: 58px;
+    width: 62px;
     padding: 6px 4px 8px;
   }
-  .ege-ovrbox--card .ege-ovrbox__value { font-size: 27px; }
+  .ege-ovrbox--card .ege-ovrbox__value { font-size: 28px; }
   .ege-ovrbox--card .ege-ovrbox__label { font-size: 11px; letter-spacing: .1em; }
 
   .ege-ovrbox--page .ege-ovrbox__label { font-size: 11px; }
-
-  /* The jersey badge is pinned to a corner that is now much smaller. */
-  .ege-card__jersey { transform: scale(.85); transform-origin: top left; }
 
   /* The season editor's number fields, two up instead of one. */
   .ege-statgrid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
