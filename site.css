@@ -144,12 +144,16 @@ body {
 }
 .ege-ovrbox--page .ege-ovrbox__value { font-size: 42px; }
 
-/* The slot that holds it, with the climb arrow beside rather than inside. */
+/* On a player page the box goes to the right of everything, the way it goes
+   to the right of the words on a roster card -- and the climb sits under it
+   rather than beside it, so the two read as one thing. */
 .ege-ovrslot {
+  flex: none;
+  margin-left: auto;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  margin-top: 16px;
+  gap: 8px;
 }
 
 /* Drawn once from the base ratings and again once everything bought has
@@ -283,12 +287,63 @@ body {
 /* Until the new file has decoded. The frame's own gradient shows through,
    which is better than the last player's face. */
 .ege-detail__photo img.is-loading { opacity: 0; }
+/* The picture and what is written under it, as one column. */
+.ege-detail__figure {
+  flex: none;
+  width: 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ege-detail__figure .ege-detail__photo { width: 100%; }
+
 .ege-detail__col { flex: 1 1 320px; min-width: 0; }
 .ege-detail__name {
   font-family: var(--fb-font-display);
-  font-size: clamp(30px, 5vw, 44px);
-  line-height: 1.05;
-  margin: 6px 0 10px;
+  font-size: clamp(36px, 6.2vw, 58px);
+  line-height: 1.02;
+  margin: 6px 0 16px;
+}
+
+/* --- height and weight --------------------------------------------------
+
+   The overall box's colours, because these belong to the player the way the
+   overall does -- everything in the list beside them is about this season
+   and these two are not. */
+
+.ege-vitals {
+  display: flex;
+  background: var(--fb-ink);
+  border: var(--fb-border) solid var(--fb-ink);
+  color: var(--fb-cream);
+}
+.ege-vitals__cell {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 9px 6px 11px;
+  text-align: center;
+}
+/* A hairline between the two, in the cream rather than in a new colour. */
+.ege-vitals__cell + .ege-vitals__cell {
+  border-left: var(--fb-border-thin) solid rgba(251, 244, 230, .22);
+}
+.ege-vitals__label {
+  /* 11px is the floor the mobile audit holds every label to. */
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--fb-accent);
+}
+.ege-vitals__value {
+  font-family: var(--fb-font-display);
+  font-size: 22px;
+  line-height: 1;
+  white-space: nowrap;
 }
 .ege-detail__list {
   margin: 0;
@@ -336,6 +391,116 @@ body {
   color: var(--fb-accent-deep);
 }
 
+
+/* --- the season, at a glance ------------------------------------------------
+
+   Three across, then four, then three, with every row centred and every cell
+   the same width. That is all the stagger is: four cells are one half-cell
+   wider at each end than three, so the threes come to rest exactly between
+   the fours. No cell is positioned, so a row of four that has to get narrower
+   on a phone takes the rows of three with it and the pattern holds. */
+
+/* The band it sits in: the panel's own foot, which already carries the kit's
+   3px rule across the top of it. The panel's own ground, so that rule is the
+   only thing between the ten numbers and what is above them. */
+.ege-tallybar {
+  display: block;
+  padding: 18px 18px 20px;
+}
+
+.ege-tally {
+  --tally-gap: 12px;
+  /* One width for every cell in every row, which is what the stagger rests
+     on -- and it is the row of four that has to fit, so that is what sets it.
+     The cells take the whole width between them rather than huddling in the
+     middle of it.
+
+     This is a width only. It is deliberately not fed into font-size: a
+     percentage there resolves against the parent font rather than the
+     container, which silently floors every number in the grid while still
+     passing a spill check. The type is sized below and corrected in app.js
+     against what actually rendered. */
+  --tally-cell: calc((100% - 3 * var(--tally-gap)) / 4);
+  --tally-max: 40px;
+
+  /* Negative: the rows tuck into each other rather than stacking clear of
+     each other. They can, because they are staggered -- the numbers of one
+     row sit in the horizontal gaps of the next, so the blocks overlap and
+     the text never does.
+
+     18px, where 20 is where the first pair of words touch at any width from
+     621 up and 24 collides at nearly all of them. The margin is for
+     Caprasimo: it arrives after this file does, and it is not the same
+     height as the face these were measured in. */
+  --tally-lift: -18px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+.ege-tally__row + .ege-tally__row { margin-top: var(--tally-lift); }
+
+.ege-tally__row {
+  display: flex;
+  justify-content: center;
+  gap: var(--tally-gap);
+  width: 100%;
+}
+
+.ege-tally__cell {
+  width: var(--tally-cell);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  text-align: center;
+}
+
+/* The display face, at the size the overall box uses, and every one of the
+   ten at the same size as the others. */
+.ege-tally__value {
+  font-family: var(--fb-font-display);
+  color: var(--fb-ink);
+  /* As big as the design allows, and then `--tally-fit` brings it down if the
+     widest of the ten does not fit the cell it is in -- which app.js works
+     out by measuring the text that actually rendered. Nothing here can know
+     that on its own: how wide a digit is depends on the font, and Caprasimo
+     arrives over the network long after this stylesheet does. */
+  font-size: calc(var(--tally-max) * var(--tally-fit, 1));
+  line-height: .95;
+  white-space: nowrap;
+}
+
+/* And the body face under it, small enough to read as a caption on the
+   number rather than as a second number. */
+.ege-tally__label {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  /* The deep orange rather than the bright one: this is small text on a light
+     ground now, which is what --fb-accent-deep is for. */
+  color: var(--fb-accent-deep);
+}
+
+/* Four cells across a phone leaves each of them about 75px, which is not
+   enough for a 30px number with four digits in it. The ceiling comes down
+   and app.js still brings it further where it has to. */
+@media (max-width: 620px) {
+  .ege-tallybar { padding: 14px 14px 16px; }
+  .ege-tally {
+    --tally-gap: 8px;
+    /* A ceiling, not a size: four cells across 390 points is about 75 each,
+       and app.js brings anything that will not fit one down from here. */
+    --tally-max: 30px;
+    /* Positive here. A 75px cell leaves the rows no horizontal room to pass
+       each other in, so anything less than clear is a collision. */
+    --tally-lift: 8px;
+  }
+  .ege-tally__label { font-size: 11px; letter-spacing: .06em; }
+}
 
 /* --- credits in the nav ------------------------------------------------- */
 
@@ -1265,7 +1430,6 @@ body {
 /* How far the shop has carried an overall, beside the number itself. */
 .ege-ovr__climb {
   display: inline-block;
-  margin-left: 8px;
   padding: 2px 7px;
   border: var(--fb-border-thin) solid var(--fb-ink);
   background: var(--fb-tint-sage);

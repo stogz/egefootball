@@ -11,6 +11,10 @@
    `credits` is the shop balance. Everyone starts on nothing and earns it
    an offseason at a time.
 
+   `height` is in inches and `weight` in pounds, so they are numbers rather
+   than something to be parsed back apart. EGE.heightText and
+   EGE.weightText below turn them into the text the page shows.
+
    `email` is the address that player signs in with. Only the six listed
    here can hold an account; a null email means their portal is not open
    yet. These are sign-in identifiers, not contact details.
@@ -95,6 +99,8 @@ EGE.players = [
     team: 'wakeForest',
     position: 'TE',
     jersey: null,             // TBD
+    height: 72,               // inches
+    weight: 245,              // pounds
     email: 'daikrotlr@gmail.com',
     credits: 0,
     headshot: 'headshot/parr.png'
@@ -107,6 +113,8 @@ EGE.players = [
     team: 'carlsbad',
     position: 'RB',
     jersey: null,             // TBD
+    height: 68,               // inches
+    weight: 175,              // pounds
     email: 'cooperclrk@gmail.com',
     credits: 0,
     headshot: 'headshot/clark.png'
@@ -119,6 +127,8 @@ EGE.players = [
     team: 'bloomington',
     position: 'TE',
     jersey: null,             // TBD
+    height: 74,               // inches
+    weight: 275,              // pounds
     email: 'paxonhatch@gmail.com',
     credits: 0,
     headshot: 'headshot/hatch.png'
@@ -131,6 +141,8 @@ EGE.players = [
     team: 'bloomington',
     position: 'QB',
     jersey: null,             // TBD
+    height: 69,               // inches
+    weight: 185,              // pounds
     email: 'isaacvitel2005@gmail.com',
     credits: 0,
     headshot: 'headshot/vitel.png'
@@ -143,6 +155,8 @@ EGE.players = [
     team: 'normal',
     position: 'RB',
     jersey: null,             // TBD
+    height: 73,               // inches
+    weight: 210,              // pounds
     email: 'stogzfam@gmail.com',
     credits: 0,
     headshot: 'headshot/stogsdill.png'
@@ -155,11 +169,26 @@ EGE.players = [
     team: 'naples',
     position: 'QB',
     jersey: null,             // TBD
+    height: 71,               // inches
+    weight: 185,              // pounds
     email: 'jkeb.stew@gmail.com',
     credits: 0,
     headshot: 'headshot/stewart.png'
   }
 ];
+
+/* Feet and inches, the way a programme prints them. Stored as inches so two
+   players can be compared without parsing a string back apart. */
+EGE.heightText = function (player) {
+  var inches = player && player.height;
+  if (typeof inches !== 'number') { return null; }
+  return Math.floor(inches / 12) + '\u2032' + (inches % 12) + '\u2033';
+};
+
+EGE.weightText = function (player) {
+  var pounds = player && player.weight;
+  return typeof pounds === 'number' ? pounds + ' lbs' : null;
+};
 
 /* The team a player suits up for, or null while their school is unknown. */
 EGE.teamFor = function (player) {

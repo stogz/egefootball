@@ -173,22 +173,13 @@
     document.getElementById('playerName').textContent = player.name;
     document.getElementById('playerSeason').textContent = seasonLabel(season);
     document.getElementById('playerPosition').textContent = player.position || TBD;
-    document.getElementById('playerSchoolRow').textContent = team ? team.school : TBD;
     document.getElementById('playerLeague').textContent = (team && team.league) || TBD;
 
     var record = EGE.recordFor(player, season);
     var played = EGE.gamesPlayed(player, season).length;
     document.getElementById('playerRecord').textContent = played ? record.text : '\u2014';
 
-    var tags = document.getElementById('playerTags');
-    tags.innerHTML = '';
-    if (player.position) {
-      tags.appendChild(el('span', 'fb-tag fb-tag--ink', player.position));
-    } else {
-      tags.appendChild(el('span', 'fb-tag fb-tag--outline', 'POS ' + TBD));
-    }
-    var year = (EGE.seasons.filter(function (s) { return s.year === season; })[0] || {});
-    if (year.class) { tags.appendChild(el('span', 'fb-tag fb-tag--gold', year.class)); }
+    renderVitals(player);
 
     var overall = EGE.overallFor(player);
     /* Not `overallBox`: that is the function above, and a local of the same
@@ -204,22 +195,124 @@
 
     renderOverallClimb(player, overall);
 
-    /* The line under the box says where the season is up to, which is a more
-       useful thing than a promise that stats are coming. */
-    var games = EGE.gamesFor(player, season);
-    var done = EGE.gamesPlayed(player, season).length;
-    document.getElementById('playerFootNote').textContent = !games.length
-      ? 'No schedule for ' + season + ' yet.'
-      : (done
-          ? done + ' of ' + games.length + ' games played. ' +
-            (window.matchMedia && window.matchMedia('(hover: none)').matches ? 'Tap' : 'Click') +
-            ' a week on the schedule for the stat line.'
-          : 'None of the ' + games.length + ' games have been posted yet.');
+    renderTally(player, season);
 
     fillPlayerSeasons(player);
     renderSchedule(player);
     renderGameLog(player);
     renderRatings(player);
+  }
+
+  /* --- the season, at a glance --------------------------------------------
+
+     Ten numbers in three rows, three across then four then three. Every row
+     is centred and every cell is the same width, which is the whole trick:
+     four cells are one half-cell wider at each end than three, so the threes
+     land exactly between the fours without a single position being written
+     down anywhere.
+
+     The numbers are the season's totals over the games that have been
+     published -- the same totals the game log foots with, from the same
+     columns, so the two can never disagree. Nothing private is in here: a
+     stat line belongs to whoever is reading it. */
+  function renderTally(player, season) {
+    var tally = document.getElementById('playerTally');
+    tally.innerHTML = '';
+
+    /* The bar goes with it: an empty dark band under the panel says nothing
+       and looks like a mistake. What the season is up to is on the schedule
+       below either way. */
+    var played = EGE.gamesPlayed(player, season);
+    document.getElementById('playerTallyBar').hidden = !played.length;
+    if (!played.length) { return; }
+
+    var totals = EGE.statline.totalLine(player.position, played.map(function (game) {
+      return EGE.statline.complete(player.position, game.stats);
+    }));
+
+    var cells = EGE.statline.headlineFor(player.position);
+    var at = 0;
+
+    EGE.statline.HEADLINE_ROWS.forEach(function (howMany) {
+      var row = el('div', 'ege-tally__row');
+
+      cells.slice(at, at + howMany).forEach(function (column) {
+        var shown = EGE.statline.show(totals.columns[column.key]);
+
+        var cell = el('div', 'ege-tally__cell');
+        cell.title = column.title;
+
+        cell.appendChild(el('span', 'ege-tally__value', shown));
+
+        cell.appendChild(el('span', 'ege-tally__label', column.label));
+        row.appendChild(cell);
+      });
+
+      at += howMany;
+      tally.appendChild(row);
+    });
+
+    fitTally(tally);
+  }
+
+  /* The stylesheet asks for the biggest number the design allows. Whether it
+     fits depends on how wide a digit is, which depends on the font, and
+     Caprasimo is still on its way down when the first draw happens -- so it
+     is measured here, against the text that actually rendered.
+
+     One correction for the whole grid, taken from the worst cell, so the ten
+     stay the same size as each other. Sizing each to its own length was the
+     obvious thing and it looked wrong: 120/228 beside 21 at two different
+     sizes reads as a mistake rather than as a design. */
+  function fitTally(tally) {
+    tally.style.removeProperty('--tally-fit');
+
+    var worst = 1;
+    Array.prototype.forEach.call(
+      tally.querySelectorAll('.ege-tally__cell'),
+      function (cell) {
+        var room = cell.getBoundingClientRect().width;
+        var need = cell.querySelector('.ege-tally__value').getBoundingClientRect().width;
+        if (room > 0 && need > room) { worst = Math.max(worst, need / room); }
+      }
+    );
+
+    if (worst > 1) { tally.style.setProperty('--tally-fit', String(1 / worst)); }
+  }
+
+  /* Re-measured when the width changes, and again when the webfont lands --
+     the first measurement is of the fallback face, and Caprasimo is not the
+     same width. */
+  function refitTally() {
+    var bar = document.getElementById('playerTallyBar');
+    if (bar && !bar.hidden) { fitTally(document.getElementById('playerTally')); }
+  }
+
+  window.addEventListener('resize', refitTally);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(refitTally);
+  }
+
+  /* The two facts about a player that no season changes, under his picture.
+     Dark, like the overall box, because they belong to him rather than to
+     the year -- everything in the list beside them is about this season. */
+  function renderVitals(player) {
+    var box = document.getElementById('playerVitals');
+    box.innerHTML = '';
+
+    var shown = [
+      { label: 'Height', value: EGE.heightText(player) },
+      { label: 'Weight', value: EGE.weightText(player) }
+    ].filter(function (one) { return one.value; });
+
+    box.hidden = !shown.length;
+
+    shown.forEach(function (one) {
+      var cell = el('div', 'ege-vitals__cell');
+      cell.appendChild(el('span', 'ege-vitals__label', one.label));
+      cell.appendChild(el('span', 'ege-vitals__value', one.value));
+      box.appendChild(cell);
+    });
   }
 
   /* How far the shop has carried him. The base numbers in data/ratings.js are
