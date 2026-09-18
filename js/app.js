@@ -54,10 +54,30 @@
     return line;
   }
 
+  /* --- the overall box ---------------------------------------------------- */
+
+  /* One element for every place an overall is shown, so the number reads the
+     same on a card as it does on a page. The site's own dark chip: the word
+     in the accent orange, the number under it in cream. */
+  function overallBox(overall, modifier) {
+    if (typeof overall !== 'number') { return null; }
+
+    var box = el('div', 'ege-ovrbox' + (modifier ? ' ' + modifier : ''));
+    box.title = overall + ' overall';
+    box.appendChild(el('span', 'ege-ovrbox__label', 'OVR'));
+    box.appendChild(el('span', 'ege-ovrbox__value', String(overall)));
+    return box;
+  }
+
   /* --- player cards ----------------------------------------------------- */
 
+  /* The headshot across the top, and under it the name, the school with its
+     mark, the way in, and the overall in a box on the right.
+
+     No league line and no position or season chip: both are on the player's
+     own page, one tap away, and what a roster is for is telling six people
+     apart and putting them in order. */
   function buildCard(player) {
-    var team = EGE.teamFor(player);
     var card = el('a', 'ege-card');
     card.href = '#' + player.slug;
 
@@ -70,35 +90,69 @@
     if (player.jersey) { photo.appendChild(el('span', 'ege-card__jersey', '#' + player.jersey)); }
     card.appendChild(photo);
 
+    /* The words on the left, the overall on the right. */
     var body = el('div', 'ege-card__body');
-    body.appendChild(el('h3', 'ege-card__name', player.name));
-    body.appendChild(schoolLine(player));
-    body.appendChild(el('p', 'ege-card__league', team ? (team.league || 'League ' + TBD) : ''));
+    var text = el('div', 'ege-card__text');
+    text.appendChild(el('h3', 'ege-card__name', player.name));
+    text.appendChild(schoolLine(player));
+    text.appendChild(el('span', 'ege-card__go', 'View player →'));
+    body.appendChild(text);
 
-    var tags = el('div', 'fb-row fb-row--wrap');
-    if (player.position) {
-      tags.appendChild(el('span', 'fb-tag fb-tag--ink', player.position));
-    } else {
-      tags.appendChild(el('span', 'fb-tag fb-tag--outline', 'POS ' + TBD));
-    }
-    tags.appendChild(el('span', 'fb-tag fb-tag--gold', EGE.currentSeason));
+    var box = overallBox(EGE.overallFor(player), 'ege-ovrbox--card');
+    if (box) { body.appendChild(box); }
 
-    var overall = EGE.overallFor(player);
-    if (overall !== null) {
-      tags.appendChild(el('span', 'fb-tag fb-tag--num fb-tag--sage', 'OVR ' + overall));
-    }
-    body.appendChild(tags);
-
-    body.appendChild(el('span', 'ege-card__go', 'View player →'));
     card.appendChild(body);
-
     return card;
+  }
+
+  /* Best first, three across, so the top three are the top row. A player
+     with no ratings yet has no overall to be ranked on and goes last; names
+     break a tie, so the order never wobbles between two equal players. */
+  function byOverall(a, b) {
+    var left = EGE.overallFor(a);
+    var right = EGE.overallFor(b);
+    if (left === right) { return a.name.localeCompare(b.name); }
+    if (left === null) { return 1; }
+    if (right === null) { return -1; }
+    return right - left;
   }
 
   function renderRoster() {
     var frag = document.createDocumentFragment();
-    EGE.players.forEach(function (player) { frag.appendChild(buildCard(player)); });
+    EGE.players.slice().sort(byOverall).forEach(function (player) {
+      frag.appendChild(buildCard(player));
+    });
     roster.appendChild(frag);
+  }
+
+  /* One <img> is reused for every player, and a browser keeps painting the
+     file it already has until the new one has decoded -- so for an instant
+     after clicking a player you are still looking at the one you left.
+
+     Hiding it until the new file is ready shows the empty frame instead,
+     which is at least not somebody else's face. A file already in the cache
+     is ready in the same tick and never blinks, so this costs nothing on the
+     second visit to a player. */
+  function showPhoto(img, src, alt) {
+    img.alt = alt;
+    if (img.getAttribute('src') === src) { return; }
+
+    /* Ask a throwaway first. A file the browser already holds is complete the
+       moment it is asked for, and swapping to it is instantaneous -- hiding
+       and fading that one in would be a flicker of its own, put there by the
+       code meant to remove one. Every headshot is on the roster, so in
+       practice this is the path nearly every click takes. */
+    var probe = new Image();
+    probe.src = src;
+    if (probe.complete) {
+      img.classList.remove('is-loading');
+      img.src = src;
+      return;
+    }
+
+    img.classList.add('is-loading');
+    img.onload = img.onerror = function () { img.classList.remove('is-loading'); };
+    img.src = src;
   }
 
   /* --- player view ------------------------------------------------------ */
@@ -110,9 +164,7 @@
 
     document.getElementById('playerStripLabel').textContent = seasonLabel(season);
 
-    var photo = document.getElementById('playerPhoto');
-    photo.src = player.headshot;
-    photo.alt = player.name;
+    showPhoto(document.getElementById('playerPhoto'), player.headshot, player.name);
 
     var school = document.getElementById('playerSchool');
     school.innerHTML = '';
@@ -139,9 +191,17 @@
     if (year.class) { tags.appendChild(el('span', 'fb-tag fb-tag--gold', year.class)); }
 
     var overall = EGE.overallFor(player);
-    var overallBox = document.getElementById('playerOverall');
-    overallBox.hidden = overall === null;
-    document.getElementById('playerOverallValue').textContent = overall === null ? '' : overall;
+    /* Not `overallBox`: that is the function above, and a local of the same
+       name shadows it three lines later. */
+    var overallWrap = document.getElementById('playerOverall');
+    overallWrap.hidden = overall === null;
+
+    /* The same box the roster card carries, at the size a page can afford. */
+    var slot = document.getElementById('playerOverallBox');
+    slot.innerHTML = '';
+    var box = overallBox(overall, 'ege-ovrbox--page');
+    if (box) { slot.appendChild(box); }
+
     renderOverallClimb(player, overall);
 
     /* The line under the box says where the season is up to, which is a more
@@ -2328,7 +2388,26 @@
     EGE.wallet.loadBoosts()
   ]).then(function () {
     redrawRatings();
+    settle();
   });
+
+  /* The roster is drawn twice on every load: once from the base ratings,
+     because the page cannot wait for a round trip before it has anything on
+     it, and again a moment later with everything bought folded in. The second
+     draw can reorder the cards, and that reshuffle is the flicker.
+
+     So the first draw is done with the roster transparent. It still takes up
+     its space, so nothing moves under it, and it fades in once the numbers it
+     is sorted by are the real ones. Both promises resolve even when Supabase
+     cannot be reached, so this can never sit there hidden. */
+  function settle() {
+    roster.classList.remove('is-waiting');
+    document.getElementById('playerOverall').classList.remove('is-waiting');
+  }
+
+  /* A slow network should not mean a blank page for ever, whatever happens
+     to those two promises. */
+  window.setTimeout(settle, 4000);
 
   EGE.auth.onChange(function (player) {
     if (player) {
@@ -2490,6 +2569,9 @@
   }
 
   /* --- go --------------------------------------------------------------- */
+
+  roster.classList.add('is-waiting');
+  document.getElementById('playerOverall').classList.add('is-waiting');
 
   renderRoster();
   renderInstallGuide();

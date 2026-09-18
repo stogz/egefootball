@@ -71,6 +71,17 @@ body {
 }
 .fb-nav__links { flex: 1 1 auto; }
 
+/* --- a hero with nothing beside it --------------------------------------- */
+
+/* The kit's hero is a two-column row with the words on the left and something
+   on the right. With only a title in it, it reads as a title shoved to one
+   side, so this one centres. */
+.fb-hero--centred {
+  justify-content: center;
+  text-align: center;
+}
+.fb-hero--centred .fb-hero__col { flex: 0 1 760px; }
+
 /* --- player select grid ------------------------------------------------- */
 
 /* Capped at three across so the six sit in an even 3 + 3, rather than the
@@ -83,8 +94,76 @@ body {
 @media (min-width: 620px)  { .ege-roster { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 1000px) { .ege-roster { grid-template-columns: repeat(3, 1fr); } }
 
+/* --- the overall box -------------------------------------------------------
+
+   The site's own dark chip, stacked: the word in the accent orange, the
+   number under it in cream. The same element on a roster card and on a
+   player page, so the one number people compare players on never looks like
+   two different things. */
+
+.ege-ovrbox {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 72px;
+  padding: 8px 6px 10px;
+  background: var(--fb-ink);
+  border: var(--fb-border) solid var(--fb-ink);
+  color: var(--fb-cream);
+  text-align: center;
+}
+.ege-ovrbox__label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--fb-accent);
+}
+.ege-ovrbox__value {
+  font-family: var(--fb-font-display);
+  font-size: 34px;
+  line-height: .96;
+}
+
+/* On a roster card: the same width it always was, and as tall as the column
+   of words beside it -- top level with the name, bottom level with the way
+   in. The word and the number keep their own sizes and stay in the middle of
+   whatever height that comes to. */
+.ege-ovrbox--card {
+  align-self: stretch;
+  padding-block: 10px;
+}
+
+/* On a player page, where there is room for it to be the headline. */
+.ege-ovrbox--page {
+  width: 92px;
+  padding: 10px 8px 12px;
+}
+.ege-ovrbox--page .ege-ovrbox__value { font-size: 42px; }
+
+/* The slot that holds it, with the climb arrow beside rather than inside. */
+.ege-ovrslot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+/* Drawn once from the base ratings and again once everything bought has
+   landed, which can reorder it -- so the first draw is invisible and the
+   second is what anybody sees. It keeps its space either way, so nothing
+   under it moves when it arrives. */
+.ege-roster,
+.ege-ovrslot { transition: opacity .2s ease; }
+.ege-roster.is-waiting,
+.ege-ovrslot.is-waiting { opacity: 0; }
+
 /* --- player card -------------------------------------------------------- */
 
+/* The headshot across the top, the band under it. */
 .ege-card {
   display: flex;
   flex-direction: column;
@@ -130,18 +209,33 @@ body {
   font-size: 18px;
   padding: 4px 10px 5px;
 }
+
+/* The words on the left, the overall on the right. `stretch` is what makes
+   the box start level with the top of the name and end level with the bottom
+   of the way in -- it is as tall as the words beside it, whatever they come
+   to, rather than a fixed height that has to be guessed. */
 .ege-card__body {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 14px;
   padding: 14px 16px 16px;
+  flex: 1;
+}
+.ege-card__text {
   display: flex;
   flex-direction: column;
   gap: 9px;
   flex: 1;
+  min-width: 0;
 }
 .ege-card__name {
   font-family: var(--fb-font-display);
   font-size: 24px;
   line-height: 1.05;
 }
+/* Two lines reserved whether the school name needs them or not, so six cards
+   put six "View player" links on the same line as each other. */
 .ege-card__school {
   font-size: 12px;
   font-weight: 600;
@@ -184,7 +278,11 @@ body {
   object-fit: cover;
   object-position: center 18%;
   display: block;
+  transition: opacity .16s ease;
 }
+/* Until the new file has decoded. The frame's own gradient shows through,
+   which is better than the last player's face. */
+.ege-detail__photo img.is-loading { opacity: 0; }
 .ege-detail__col { flex: 1 1 320px; min-width: 0; }
 .ege-detail__name {
   font-family: var(--fb-font-display);
@@ -238,15 +336,6 @@ body {
   color: var(--fb-accent-deep);
 }
 
-.ege-card__league {
-  margin: 0;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--fb-muted-2);
-  min-height: 1.2em;
-}
 
 /* --- credits in the nav ------------------------------------------------- */
 
@@ -1481,13 +1570,27 @@ body {
 
   .ege-card__body {
     padding: 11px 13px 12px;
-    gap: 6px;
+    gap: 10px;
     min-width: 0;
   }
   .ege-card__name { font-size: 21px; }
 
-  /* The jersey badge is pinned to a corner that is now much smaller. */
+  /* The jersey chip is pinned to a corner that is now much smaller. */
   .ege-card__jersey { transform: scale(.85); transform-origin: top left; }
+  .ege-card__text { gap: 6px; }
+
+  /* A narrower box, because a name, a school and the overall have to fit
+     across 390 points. The number keeps its size -- it is the only thing on
+     there meant to be read at a glance -- and the word over it stays at the
+     11px floor the rest of this file uses. */
+  .ege-ovrbox--card {
+    width: 62px;
+    padding: 6px 4px 8px;
+  }
+  .ege-ovrbox--card .ege-ovrbox__value { font-size: 28px; }
+  .ege-ovrbox--card .ege-ovrbox__label { font-size: 11px; letter-spacing: .1em; }
+
+  .ege-ovrbox--page .ege-ovrbox__label { font-size: 11px; }
 
   /* The season editor's number fields, two up instead of one. */
   .ege-statgrid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
