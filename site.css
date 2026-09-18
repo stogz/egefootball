@@ -40,7 +40,82 @@
   --fb-muted-2: #807664;
 
   --fb-gold: #f0b82a;               /* new: season / year chips */
+
+  /* Two floors the fluid type scale below is not allowed to cross. A
+     small-caps label stops shrinking at 11px, which is what the mobile audit
+     holds every label to, and small print made of sentences stops at 11.5.
+     max() is the whole of it: under the floor the pixel value wins, over it
+     the rem does, so both are no-ops at the full root size. */
+  --fb-label: max(11px, .6875rem);
+  --fb-small: max(11.5px, .75rem);
 }
+
+/* --- type that gets out of the way on a small screen ----------------------
+
+   One number does all of it. Every size on this site is set in rem, so the
+   root size below takes the whole page's type down with the screen: 16px
+   wherever there are 620 points or more to work with, easing to 13 on the
+   narrowest phone anybody reads this on. No breakpoint fires and nothing is
+   repositioned -- the words just stop taking room the layout needed, which
+   is most of what "crushed on a phone" was.
+
+   620 is where it reaches full size on purpose: it is the width every other
+   phone rule in this file is written against, so the type is at its smallest
+   exactly where the layout is doing the most work.
+
+   The kit's type is in pixels and style.css is not ours to edit, so the
+   sizes this site actually uses are restated here in rem. Every one of them
+   is the kit's own number over 16 -- at the full root size nothing has
+   moved. */
+
+html { font-size: clamp(13px, 1.15vw + 8.87px, 16px); }
+
+/* organic-styles.css */
+body { font-size: .9375rem; }                     /* 15 */
+h1 { font-size: 2.625rem; }                       /* 42 */
+h2 { font-size: 2rem; }                           /* 32 */
+h3 { font-size: 1.5625rem; }                      /* 25 */
+h4 { font-size: 1.25rem; }                        /* 20 */
+
+/* style.css */
+.fb-brand__word { font-size: 1.375rem; }          /* 22 */
+.fb-navlink { font-size: .8125rem; }              /* 13 */
+.fb-btn { font-size: .75rem; }                    /* 12 */
+.fb-btn--primary { font-size: .875rem; }          /* 14 */
+.fb-input { font-size: .875rem; }                 /* 14 */
+.fb-select { font-size: .8125rem; }               /* 13 */
+.fb-table { font-size: .875rem; }                 /* 14 */
+.fb-table th { font-size: .625rem; }              /* 10 */
+.fb-hero__lede { font-size: 1.0625rem; }          /* 17 */
+.fb-modal__title { font-size: 1.1875rem; }        /* 19 */
+.fb-tag { font-size: var(--fb-label); }           /* 11, floored */
+.fb-kicker { font-size: var(--fb-label); }        /* 11, floored */
+.fb-eyebrow { font-size: .625rem; }               /* 10 */
+.fb-meta { font-size: var(--fb-small); }          /* 12, floored */
+
+/* One size for every panel head, rather than the kit's 25px in some of them
+   and an inline 21 in the rest. */
+.fb-panel__head h3 { font-size: 1.3125rem; }      /* 21 */
+
+/* --- what the pointer says ------------------------------------------------
+
+   The cursor answers one question: can I click this? A question mark over
+   every abbreviation and every marked-up number said something else, and it
+   said it over most of a player page. Tooltips stay -- a title is still there
+   for anyone who hovers, and a touch screen never had a cursor to change --
+   but nothing turns the pointer into a question mark any more.
+
+   The kit puts a hand on every table row and heading, from a table whose
+   rows opened something. Neither of these does, so neither claims to; the
+   game log's own sortable headings ask for the hand back themselves. */
+abbr[title] {
+  cursor: inherit;
+  text-decoration: none;
+}
+
+.fb-table tbody tr,
+.ege-schedule th,
+.ege-gamelog th { cursor: default; }
 
 /* --- page ground --------------------------------------------------------- */
 
@@ -116,7 +191,7 @@ body {
   text-align: center;
 }
 .ege-ovrbox__label {
-  font-size: 10px;
+  font-size: .625rem;
   font-weight: 800;
   letter-spacing: .18em;
   text-transform: uppercase;
@@ -124,7 +199,7 @@ body {
 }
 .ege-ovrbox__value {
   font-family: var(--fb-font-display);
-  font-size: 34px;
+  font-size: 2.125rem;
   line-height: .96;
 }
 
@@ -137,33 +212,14 @@ body {
   padding-block: 10px;
 }
 
-/* On a player page, where there is room for it to be the headline. */
-.ege-ovrbox--page {
-  width: 92px;
-  padding: 10px 8px 12px;
-}
-.ege-ovrbox--page .ege-ovrbox__value { font-size: 42px; }
-
-/* On a player page the box goes to the right of everything, the way it goes
-   to the right of the words on a roster card -- and the climb sits under it
-   rather than beside it, so the two read as one thing. */
-.ege-ovrslot {
-  flex: none;
-  margin-left: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
 /* Drawn once from the base ratings and again once everything bought has
-   landed, which can reorder it -- so the first draw is invisible and the
-   second is what anybody sees. It keeps its space either way, so nothing
-   under it moves when it arrives. */
+   landed, which can reorder the roster and change the overall -- so the
+   first draw is invisible and the second is what anybody sees. Both keep
+   their space either way, so nothing under them moves when they arrive. */
 .ege-roster,
-.ege-ovrslot { transition: opacity .2s ease; }
+.ege-ovr--head { transition: opacity .2s ease; }
 .ege-roster.is-waiting,
-.ege-ovrslot.is-waiting { opacity: 0; }
+.ege-ovr--head.is-waiting { opacity: 0; }
 
 /* --- player card -------------------------------------------------------- */
 
@@ -210,7 +266,7 @@ body {
   background: var(--fb-ink);
   color: var(--fb-cream);
   font-family: var(--fb-font-display);
-  font-size: 18px;
+  font-size: 1.125rem;
   padding: 4px 10px 5px;
 }
 
@@ -235,13 +291,13 @@ body {
 }
 .ege-card__name {
   font-family: var(--fb-font-display);
-  font-size: 24px;
+  font-size: 1.5rem;
   line-height: 1.05;
 }
 /* Two lines reserved whether the school name needs them or not, so six cards
    put six "View player" links on the same line as each other. */
 .ege-card__school {
-  font-size: 12px;
+  font-size: .75rem;
   font-weight: 600;
   color: var(--fb-muted);
   min-height: 2.6em;
@@ -249,7 +305,7 @@ body {
 .ege-card__go {
   margin-top: auto;
   padding-top: 4px;
-  font-size: 10px;
+  font-size: .625rem;
   font-weight: 800;
   letter-spacing: .14em;
   text-transform: uppercase;
@@ -260,16 +316,36 @@ body {
 /* Season chip — the kit has no gold tag. */
 .fb-tag--gold { background: var(--fb-gold); }
 
-/* --- player detail (placeholder until the real page is built) ----------- */
+/* --- the player header ---------------------------------------------------
+
+   Four things in it: the picture with his height and weight welded to the
+   bottom of it, then the school, the name and the four facts about the
+   season, stacked in the column beside it.
+
+   Grid, and every one of the four named, because a phone rearranges them
+   rather than just narrowing them -- see the phone block near the end of
+   this file. The top right of the desktop grid is deliberately empty: the
+   overall moved down to the ratings it comes from, and that corner is being
+   kept clear. */
 
 .ege-detail__top {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 22px;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  grid-template-areas:
+    "figure school"
+    "figure name"
+    "figure list";
+  align-content: start;
+  gap: 0 22px;
 }
+.ege-detail__figure { grid-area: figure; }
+.ege-detail__school { grid-area: school; min-width: 0; }
+.ege-detail__name { grid-area: name; }
+.ege-detail__list { grid-area: list; }
+
 .ege-detail__photo {
-  width: 210px;
+  /* The figure's full width, whatever the grid gave it. */
+  width: 100%;
   flex: none;
   aspect-ratio: 4 / 3;
   border: var(--fb-border) solid var(--fb-ink);
@@ -287,29 +363,35 @@ body {
 /* Until the new file has decoded. The frame's own gradient shows through,
    which is better than the last player's face. */
 .ege-detail__photo img.is-loading { opacity: 0; }
-/* The picture and what is written under it, as one column. */
+/* The picture and what is written under it, as one block. No gap and no
+   second top edge: the vitals hang off the bottom of the frame and the two
+   share the line between them, so it reads as one card rather than as a
+   picture with a caption floating under it. */
 .ege-detail__figure {
-  flex: none;
-  width: 210px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  min-width: 0;
 }
-.ege-detail__figure .ege-detail__photo { width: 100%; }
+.ege-detail__figure .ege-detail__photo { border-bottom: 0; }
 
-.ege-detail__col { flex: 1 1 320px; min-width: 0; }
 .ege-detail__name {
   font-family: var(--fb-font-display);
-  font-size: clamp(36px, 6.2vw, 58px);
+  /* rem at both ends, so the ceiling comes down with the rest of the type
+     rather than staying a laptop-sized headline on a phone. */
+  font-size: clamp(1.75rem, 5.6vw, 3.4rem);
   line-height: 1.02;
-  margin: 6px 0 16px;
+  margin: 5px 0 16px;
+  overflow-wrap: break-word;
 }
 
 /* --- height and weight --------------------------------------------------
 
-   The overall box's colours, because these belong to the player the way the
-   overall does -- everything in the list beside them is about this season
-   and these two are not. */
+   The ink and orange of the site's own chip, because these two belong to the
+   player the way an overall does -- everything in the list beside them is
+   about this season and these are not.
+
+   Joined to the foot of the picture above: same width, one shared edge, no
+   gap. */
 
 .ege-vitals {
   display: flex;
@@ -332,8 +414,7 @@ body {
   border-left: var(--fb-border-thin) solid rgba(251, 244, 230, .22);
 }
 .ege-vitals__label {
-  /* 11px is the floor the mobile audit holds every label to. */
-  font-size: 11px;
+  font-size: var(--fb-label);
   font-weight: 800;
   letter-spacing: .16em;
   text-transform: uppercase;
@@ -341,7 +422,7 @@ body {
 }
 .ege-vitals__value {
   font-family: var(--fb-font-display);
-  font-size: 22px;
+  font-size: 1.375rem;
   line-height: 1;
   white-space: nowrap;
 }
@@ -349,11 +430,12 @@ body {
   margin: 0;
   display: grid;
   grid-template-columns: max-content 1fr;
+  align-content: start;
   gap: 8px 18px;
-  font-size: 14px;
+  font-size: .875rem;
 }
 .ege-detail__list dt {
-  font-size: 10px;
+  font-size: var(--fb-label);
   font-weight: 800;
   letter-spacing: .12em;
   text-transform: uppercase;
@@ -377,14 +459,14 @@ body {
   object-fit: contain;
 }
 .ege-school__name {
-  font-size: 12px;
+  font-size: .75rem;
   font-weight: 700;
   color: var(--fb-muted);
   min-width: 0;
 }
 .ege-school--lg .ege-school__logo { width: 34px; height: 34px; }
 .ege-school--lg .ege-school__name {
-  font-size: 11px;
+  font-size: var(--fb-label);
   font-weight: 800;
   letter-spacing: .14em;
   text-transform: uppercase;
@@ -394,72 +476,67 @@ body {
 
 /* --- the season, at a glance ------------------------------------------------
 
-   Three across, then four, then three, with every row centred and every cell
-   the same width. That is all the stagger is: four cells are one half-cell
-   wider at each end than three, so the threes come to rest exactly between
-   the fours. No cell is positioned, so a row of four that has to get narrower
-   on a phone takes the rows of three with it and the pattern holds. */
+   Ten numbers on one ruled strip under the header: ten across where there is
+   room for it, five and five on anything narrower, and every cell exactly as
+   wide as every other one. They were staggered three-four-three before, which
+   read as ten numbers that had failed to line up rather than as a pattern.
+   Now they sit on a shared baseline with a hairline between them, which is
+   how a scoreboard does it and how a stat is easiest to find.
+
+   Nothing here is positioned by hand. The count is the only thing that
+   changes with the width, so the same markup makes both layouts. */
 
 /* The band it sits in: the panel's own foot, which already carries the kit's
    3px rule across the top of it. The panel's own ground, so that rule is the
    only thing between the ten numbers and what is above them. */
 .ege-tallybar {
   display: block;
-  padding: 18px 18px 20px;
+  padding: 16px 18px 18px;
 }
 
 .ege-tally {
-  --tally-gap: 12px;
-  /* One width for every cell in every row, which is what the stagger rests
-     on -- and it is the row of four that has to fit, so that is what sets it.
-     The cells take the whole width between them rather than huddling in the
-     middle of it.
+  /* A ceiling, not a size: app.js brings it down from here when the longest
+     of the ten will not fit the cell it is in. */
+  --tally-max: 2.375rem;
 
-     This is a width only. It is deliberately not fed into font-size: a
-     percentage there resolves against the parent font rather than the
-     container, which silently floors every number in the grid while still
-     passing a spill check. The type is sized below and corrected in app.js
-     against what actually rendered. */
-  --tally-cell: calc((100% - 3 * var(--tally-gap)) / 4);
-  --tally-max: 40px;
-
-  /* Negative: the rows tuck into each other rather than stacking clear of
-     each other. They can, because they are staggered -- the numbers of one
-     row sit in the horizontal gaps of the next, so the blocks overlap and
-     the text never does.
-
-     18px, where 20 is where the first pair of words touch at any width from
-     621 up and 24 collides at nearly all of them. The margin is for
-     Caprasimo: it arrives after this file does, and it is not the same
-     height as the face these were measured in. */
-  --tally-lift: -18px;
-
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  row-gap: 16px;
 }
 
-.ege-tally__row + .ege-tally__row { margin-top: var(--tally-lift); }
-
-.ege-tally__row {
-  display: flex;
-  justify-content: center;
-  gap: var(--tally-gap);
-  width: 100%;
+/* Ten across only once each cell can hold a four-digit number without the
+   script having to shrink all ten to fit one. Below that they read better in
+   two rows of five than in one row of ten slivers. */
+@media (min-width: 1040px) {
+  .ege-tally { grid-template-columns: repeat(10, minmax(0, 1fr)); }
 }
 
 .ege-tally__cell {
-  width: var(--tally-cell);
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
+  gap: 2px;
+  padding: 0 4px;
   text-align: center;
+  /* The rule between one stat and the next. Whichever cell starts a row
+     loses it, which is what the selectors under each layout are for. */
+  border-left: var(--fb-border-thin) solid rgba(29, 36, 22, .14);
+}
+
+.ege-tally__cell:nth-child(5n + 1) { border-left: 0; }
+
+@media (min-width: 1040px) {
+  .ege-tally__cell:nth-child(5n + 1) {
+    border-left: var(--fb-border-thin) solid rgba(29, 36, 22, .14);
+  }
+  .ege-tally__cell:first-child { border-left: 0; }
 }
 
 /* The display face, at the size the overall box uses, and every one of the
-   ten at the same size as the others. */
+   ten at the same size as the others. Sizing each to its own length was the
+   obvious thing and it looked wrong: 120 beside 21 at two different sizes
+   reads as a mistake rather than as a design. */
 .ege-tally__value {
   font-family: var(--fb-font-display);
   color: var(--fb-ink);
@@ -476,30 +553,23 @@ body {
 /* And the body face under it, small enough to read as a caption on the
    number rather than as a second number. */
 .ege-tally__label {
-  font-size: 13px;
+  font-size: var(--fb-label);
   font-weight: 800;
-  letter-spacing: .12em;
+  letter-spacing: .1em;
   text-transform: uppercase;
   /* The deep orange rather than the bright one: this is small text on a light
      ground now, which is what --fb-accent-deep is for. */
   color: var(--fb-accent-deep);
 }
 
-/* Four cells across a phone leaves each of them about 75px, which is not
-   enough for a 30px number with four digits in it. The ceiling comes down
-   and app.js still brings it further where it has to. */
 @media (max-width: 620px) {
-  .ege-tallybar { padding: 14px 14px 16px; }
+  .ege-tallybar { padding: 13px 12px 15px; }
   .ege-tally {
-    --tally-gap: 8px;
-    /* A ceiling, not a size: four cells across 390 points is about 75 each,
-       and app.js brings anything that will not fit one down from here. */
-    --tally-max: 30px;
-    /* Positive here. A 75px cell leaves the rows no horizontal room to pass
-       each other in, so anything less than clear is a collision. */
-    --tally-lift: 8px;
+    --tally-max: 1.85rem;
+    row-gap: 13px;
   }
-  .ege-tally__label { font-size: 11px; letter-spacing: .06em; }
+  .ege-tally__cell { padding: 0 4px; gap: 1px; }
+  .ege-tally__label { letter-spacing: .04em; }
 }
 
 /* --- credits in the nav ------------------------------------------------- */
@@ -515,12 +585,12 @@ body {
 }
 .ege-credits__value {
   font-family: var(--fb-font-display);
-  font-size: 18px;
+  font-size: 1.125rem;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 .ege-credits__unit {
-  font-size: 10px;
+  font-size: .625rem;
   font-weight: 800;
   letter-spacing: .14em;
   text-transform: uppercase;
@@ -560,7 +630,7 @@ body {
 .ege-who__name {
   margin: 2px 0 0;
   font-family: var(--fb-font-display);
-  font-size: 22px;
+  font-size: 1.375rem;
 }
 
 /* --- shop --------------------------------------------------------------- */
@@ -601,12 +671,12 @@ body {
 }
 .ege-item__name {
   font-family: var(--fb-font-display);
-  font-size: 18px;
+  font-size: 1.125rem;
   line-height: 1.1;
 }
 .ege-item__text {
   margin: 0;
-  font-size: 13px;
+  font-size: .8125rem;
   line-height: 1.5;
   color: var(--fb-muted);
 }
@@ -650,7 +720,7 @@ body {
 .ege-item--locked { background: var(--fb-surface); }
 .ege-item__blocked {
   margin: 0;
-  font-size: 12px;
+  font-size: .75rem;
   font-weight: 700;
   color: var(--fb-accent-deep);
 }
@@ -668,7 +738,7 @@ body {
 .ege-details__summary::after {
   content: '+';
   font-family: var(--fb-font-display);
-  font-size: 22px;
+  font-size: 1.375rem;
   line-height: 1;
   color: var(--fb-accent-deep);
 }
@@ -690,7 +760,7 @@ body {
   justify-content: space-between;
   gap: 12px;
 }
-.ege-account__name { font-family: var(--fb-font-display); font-size: 20px; }
+.ege-account__name { font-family: var(--fb-font-display); font-size: 1.25rem; }
 .ege-account__credits { width: 96px; }
 .ege-avatar--sm {
   width: 38px;
@@ -705,7 +775,7 @@ body {
 .ege-upgrades td { vertical-align: middle; }
 .ege-upgrades .fb-meter { width: 120px; }
 .ege-upgrade__group {
-  font-size: 10px;
+  font-size: .625rem;
   font-weight: 800;
   letter-spacing: .12em;
   text-transform: uppercase;
@@ -730,7 +800,7 @@ body {
 .ege-upgrade__per { font-weight: 800; color: var(--fb-muted); font-variant-numeric: tabular-nums; }
 .ege-upgrade__buy {
   padding: 7px 10px;
-  font-size: 11px;
+  font-size: .6875rem;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   min-width: 62px;
@@ -908,7 +978,7 @@ body {
   height: 28px;
   padding: 0;
   cursor: pointer;
-  font-size: 17px;
+  font-size: 1.0625rem;
   font-weight: 800;
   line-height: 1;
   color: var(--fb-muted);
@@ -1041,14 +1111,14 @@ body {
 }
 .ege-drawer__title {
   font-family: var(--fb-font-display);
-  font-size: 20px;
+  font-size: 1.25rem;
   color: var(--fb-cream);
   margin-right: auto;
 }
 .ege-drawer__title small {
   display: block;
   font-family: var(--fb-font-body);
-  font-size: 11px;
+  font-size: .6875rem;
   font-weight: 700;
   letter-spacing: .12em;
   text-transform: uppercase;
@@ -1080,11 +1150,11 @@ body {
   background: var(--fb-accent);
   border: 2px solid var(--fb-ink);
   color: var(--fb-ink);
-  font-size: 11px;
+  font-size: .6875rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
-.ege-drawer__empty { color: var(--fb-sand); font-size: 13px; font-weight: 600; }
+.ege-drawer__empty { color: var(--fb-sand); font-size: .8125rem; font-weight: 600; }
 
 @media (prefers-reduced-motion: reduce) {
   .ege-sticker::before,
@@ -1100,7 +1170,7 @@ body {
 
 .ege-schedule__week {
   font-family: var(--fb-font-display);
-  font-size: 17px;
+  font-size: 1.0625rem;
   width: 1%;
   white-space: nowrap;
 }
@@ -1110,7 +1180,7 @@ body {
 .ege-schedule__side {
   display: inline-block;
   width: 20px;
-  font-size: 11px;
+  font-size: .6875rem;
   font-weight: 800;
   text-transform: uppercase;
   color: var(--fb-muted-2);
@@ -1121,7 +1191,6 @@ body {
   height: 17px;
   margin-left: 7px;
   vertical-align: -3px;
-  cursor: help;
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
@@ -1134,7 +1203,6 @@ body {
   color: var(--fb-accent-deep);
   font-weight: 800;
   text-decoration: none;
-  cursor: help;
 }
 
 /* --- ratings ------------------------------------------------------------ */
@@ -1149,7 +1217,7 @@ body {
   color: var(--fb-cream);
 }
 .ege-ovr__label {
-  font-size: 10px;
+  font-size: .625rem;
   font-weight: 800;
   letter-spacing: .16em;
   text-transform: uppercase;
@@ -1157,13 +1225,13 @@ body {
 }
 .ege-ovr__value {
   font-family: var(--fb-font-display);
-  font-size: 30px;
+  font-size: 1.875rem;
   line-height: 1;
 }
 
 /* Sitting in a panel head rather than under a name. */
 .ege-ovr--head { margin-top: 0; padding: 6px 12px; }
-.ege-ovr--head .ege-ovr__value { font-size: 24px; }
+.ege-ovr--head .ege-ovr__value { font-size: 1.5rem; }
 
 .ege-groups {
   display: grid;
@@ -1181,14 +1249,14 @@ body {
   border-bottom: var(--fb-border-thin) solid var(--fb-ink);
 }
 .ege-group__label {
-  font-size: 11px;
+  font-size: .6875rem;
   font-weight: 800;
   letter-spacing: .14em;
   text-transform: uppercase;
 }
 .ege-group__score {
   font-family: var(--fb-font-display);
-  font-size: 22px;
+  font-size: 1.375rem;
   line-height: 1;
 }
 
@@ -1198,7 +1266,7 @@ body {
   align-items: center;
   gap: 10px;
   padding: 3px 0;
-  font-size: 12px;
+  font-size: .75rem;
 }
 .ege-attr__label { font-weight: 600; color: var(--fb-muted); min-width: 0; }
 .ege-attr__value {
@@ -1225,7 +1293,7 @@ body {
   margin: 0;
   padding: 10px 12px;
   border: var(--fb-border-thin) solid var(--fb-ink);
-  font-size: 13px;
+  font-size: .8125rem;
   font-weight: 600;
   line-height: 1.4;
 }
@@ -1312,7 +1380,7 @@ body {
   border: var(--fb-border-thin) solid var(--fb-ink);
   background: var(--fb-paper);
   font-family: var(--fb-font-display);
-  font-size: 17px;
+  font-size: 1.0625rem;
   line-height: 1;
 }
 /* Done: the number gives way to a tick in the same box. */
@@ -1324,23 +1392,23 @@ body {
   display: grid;
   place-items: center;
   color: var(--fb-ink);
-  font-size: 17px;
+  font-size: 1.0625rem;
 }
 
 .ege-step__title {
   font-family: var(--fb-font-display);
-  font-size: 19px;
+  font-size: 1.1875rem;
   margin: 0 0 4px;
 }
 
 .ege-step__blurb {
   margin: 0;
-  font-size: 13px;
+  font-size: .8125rem;
   font-weight: 600;
   line-height: 1.5;
 }
 .ege-step__blurb code {
-  font-size: 12px;
+  font-size: .75rem;
   padding: 1px 4px;
   background: var(--fb-paper);
   border: var(--fb-border-thin) solid var(--fb-ink);
@@ -1360,7 +1428,7 @@ body {
   text-align: right;
   white-space: nowrap;
 }
-.ege-awards .fb-meta { display: block; font-size: 11px; }
+.ege-awards .fb-meta { display: block; font-size: .6875rem; }
 /* A player with no sign-in yet: their touchdowns count, but there is no
    account for the credits to land in until there is. */
 .ege-awards__row--noaccount td { opacity: .72; }
@@ -1370,8 +1438,6 @@ body {
 .ege-gamelog th,
 .ege-gamelog td { white-space: nowrap; }
 
-.ege-gamelog th[title] { cursor: help; }
-
 .ege-gamelog__opponent { min-width: 150px; }
 
 .ege-gamelog tfoot td {
@@ -1379,16 +1445,54 @@ body {
   background: var(--fb-tint-sage);
 }
 
+/* --- sorting the game log --------------------------------------------------
+
+   Every heading that sorts is a button filling its own cell, so the target is
+   the whole heading rather than the four letters in it. The arrow is drawn
+   into the heading when that column is the one the table is ordered on, and
+   the column itself is shaded the whole way down -- a heading lit up on its
+   own leaves you counting columns to find the numbers it sorted. */
+
+.ege-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+.ege-gamelog th.num .ege-sort { justify-content: flex-end; }
+.ege-sort:hover { color: var(--fb-accent); }
+
+.ege-sort__mark {
+  font-size: .55em;
+  line-height: 1;
+  /* The arrow is drawn on the baseline of a cap-height label, so it needs
+     lifting to sit level with the letters beside it. */
+  transform: translateY(-1px);
+}
+
+/* The kit already turns a sorted heading the accent colour; this is the rest
+   of the column, at the faintest shade that still reads as one block on both
+   the plain rows and the shaded ones. */
+.ege-gamelog td.is-sorted-cell { background: rgba(229, 110, 40, .12); }
+.ege-gamelog tfoot td.is-sorted-cell { background: var(--fb-tint-sage-2); }
+
 /* The multiplier that was riding on a game, beside the opponent. */
 .ege-gamelog__boost {
   margin-left: 7px;
   padding: 1px 5px;
   border: var(--fb-border-thin) solid var(--fb-ink);
   background: var(--fb-tint-gold, var(--fb-tint-clay));
-  font-size: 11px;
+  font-size: .6875rem;
   font-weight: 800;
   text-decoration: none;
-  cursor: help;
 }
 
 /* Rolling a week: a label and its control side by side, and a preview whose
@@ -1411,85 +1515,53 @@ body {
 
 .fb-btn--sm {
   padding: 5px 11px;
-  font-size: 12px;
+  font-size: .75rem;
 }
 
 /* ==========================================================================
    Seasons, stat lines and what a game paid
    ========================================================================== */
 
-/* The season switcher sits in the schedule's head, small enough to stay out
-   of the way when there is only one season to switch between. */
-.ege-seasonbar { align-items: center; gap: 12px; }
-.fb-select--sm {
-  padding: 5px 26px 5px 9px;
-  font-size: 12px;
-  background-position: right 8px center;
-}
+/* The arrow that folds a panel away, in the corner its heading used to write
+   a summary of the table in. Nothing else is up there now: a schedule that
+   says how many games there are, above a list of that many games, is the
+   table saying itself twice.
 
-/* How far the shop has carried an overall, beside the number itself. */
-.ege-ovr__climb {
-  display: inline-block;
-  padding: 2px 7px;
-  border: var(--fb-border-thin) solid var(--fb-ink);
-  background: var(--fb-tint-sage);
-  /* The overall sits in a dark box, so the badge has to say what colour its
-     own text is rather than inherit the light one and vanish. */
-  color: var(--fb-ink);
-  font-family: var(--fb-font-display);
-  font-size: 13px;
-  line-height: 1.3;
-  vertical-align: middle;
-  cursor: help;
-}
-.ege-ovr__climb--down { background: var(--fb-tint-clay); }
-
-/* A played week opens to show its stat line. The week number is the handle. */
-.ege-schedule__open {
-  border: 0;
-  background: none;
+   A chevron drawn in two borders rather than set as a glyph, so it is the
+   same weight as every other line on the page and turns over cleanly. Up
+   while the panel is open (press it to fold), down once it is folded. */
+.ege-collapse {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
   padding: 0;
-  font: inherit;
-  color: inherit;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: transparent;
+  color: var(--fb-ink);
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-style: dotted;
 }
-.ege-schedule__open::after {
-  content: '\25be';
-  margin-left: 5px;
-  font-size: 10px;
-  display: inline-block;
-}
-.ege-schedule__row--open .ege-schedule__open::after { transform: rotate(180deg); }
+.ege-collapse:hover { background: var(--fb-surface); }
+.ege-collapse:active { transform: translate(1px, 1px); }
 
-.ege-statrow > td { padding: 0; }
-.ege-statrow__box {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 18px;
-  padding: 12px 14px;
-  border-top: var(--fb-border-thin) solid var(--fb-ink);
-  background: var(--fb-tint-wash);
+.ege-collapse::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(2px) rotate(-135deg);
+  transition: transform .15s ease;
 }
-.ege-statrow__stat {
-  display: flex;
-  flex-direction: column;
-  min-width: 52px;
+.ege-collapse[aria-expanded='false']::before {
+  transform: translateY(-2px) rotate(45deg);
 }
-.ege-statrow__label {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  cursor: help;
-}
-.ege-statrow__value {
-  font-family: var(--fb-font-display);
-  font-size: 16px;
-}
-.ege-statrow__note { flex-basis: 100%; margin: 4px 0 0; }
+
+/* Folded: the head is the whole panel, so the rule under it would be a second
+   line right against the panel's own bottom edge. */
+.fb-panel.is-collapsed > *:not(.fb-panel__head):not(.fb-panel__strip) { display: none; }
+.fb-panel.is-collapsed .fb-panel__head { border-bottom: 0; }
 
 /* What a game paid, on the row it was earned. */
 .ege-schedule__credits { white-space: nowrap; }
@@ -1497,9 +1569,8 @@ body {
   padding: 2px 7px;
   border: var(--fb-border-thin) solid var(--fb-ink);
   background: var(--fb-tint-gold, var(--fb-tint-sage));
-  font-size: 12px;
+  font-size: .75rem;
   font-weight: 800;
-  cursor: help;
 }
 
 /* The season editor: a lot of small number fields in a tidy grid. */
@@ -1514,14 +1585,14 @@ body {
   gap: 4px;
 }
 .ege-statfield__label {
-  font-size: 10px;
+  font-size: .625rem;
   font-weight: 800;
   letter-spacing: .06em;
   text-transform: uppercase;
 }
 .ege-statfield__input { width: 100%; }
 
-.ege-item__where { display: block; font-size: 11px; line-height: 1.4; }
+.ege-item__where { display: block; font-size: .6875rem; line-height: 1.4; }
 
 /* ==========================================================================
    On a phone
@@ -1590,7 +1661,6 @@ body {
   .fb-btn,
   .fb-navlink,
   .ege-slot__add,
-  .ege-schedule__open,
   select,
   input[type='number'],
   input[type='text'],
@@ -1603,16 +1673,11 @@ body {
     padding: 8px 14px;
   }
 
-  /* The week number on the schedule opens that game's stat line, and was a
-     21x26 target. It is the width of its column and the height of its row
-     now, which is the whole cell. */
-  .ege-schedule__open {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    min-width: 44px;
-    padding: 4px 0;
-  }
+  /* The arrow that folds a panel away, and the headings that sort the game
+     log. A heading is as wide as its column, which for a two-letter stat is
+     under a thumb, so the height is what there is to give. */
+  .ege-collapse { width: 44px; height: 44px; }
+  .ege-sort { min-height: 38px; }
 
   /* The rating point buttons sat three to a row at 33 tall. */
   .ege-upgrade__buy { min-height: 44px; }
@@ -1652,29 +1717,45 @@ body {
   background-attachment: local, local, scroll, scroll;
 }
 
+/* The game log keeps its columns on a phone -- fifteen numbers do not become
+   a block the way seven schedule cells do -- so what it can give back is the
+   room around them. Tighter cells and no floor under the opponent put four or
+   five stats on the screen instead of one, and the rest is still a swipe
+   away. */
 @media (max-width: 620px) {
-  /* A hint under the table the first time, since the shadow alone is quiet. */
+  .ege-gamelog th { padding: 8px 9px; }
+  .ege-gamelog td { padding: 9px; }
+  .ege-gamelog__opponent { min-width: 0; }
+  .ege-gamelog .fb-tag { padding: 3px 6px; }
+  .ege-gamelog .ege-schedule__side { width: 16px; }
+}
+
+/* A hint under the game log, since the scroll shadow alone is quiet. Only on
+   a phone: on anything wider the whole line is already on the screen. */
+.ege-gamelog__swipe { display: none; }
+
+@media (max-width: 620px) {
   .ege-gamelog__swipe {
     display: block;
-    padding: 8px 0 0;
-    font-size: 12px;
+    margin: 0;
+    padding: 10px 14px 12px;
+    border-top: var(--fb-border-thin) solid rgba(29, 36, 22, .16);
+    font-size: var(--fb-small);
     font-weight: 700;
     color: var(--fb-accent-deep);
   }
 }
-.ege-gamelog__swipe { display: none; }
 
 /* --- reading it at arm's length --------------------------------------------
 
    10px is a footnote on a desktop and a squint on a phone. */
 
 @media (max-width: 620px) {
-  .ege-statrow__label,
   .ege-statfield__label,
   .ege-awards .fb-meta,
-  .ege-weekline td .fb-meta { font-size: 11.5px; }
+  .ege-weekline td .fb-meta { font-size: var(--fb-small); }
 
-  .ege-gamelog__boost { font-size: 12px; }
+  .ege-gamelog__boost { font-size: var(--fb-label); }
 
   /* The nav was taking 129px of an 844px screen — a sixth of it, before any
      football. The brand keeps its own line; the links, the balance and the
@@ -1687,14 +1768,14 @@ body {
   }
 
   .fb-brand {
-    font-size: 19px;
+    font-size: 1.1875rem;
     flex: 1 1 100%;
   }
   .fb-brand img,
   .fb-brand svg { transform: scale(.82); transform-origin: left center; }
 
   .fb-nav__links { gap: 2px; margin-right: auto; }
-  .fb-navlink { padding-left: 9px; padding-right: 9px; font-size: 14px; }
+  .fb-navlink { padding-left: 9px; padding-right: 9px; font-size: .875rem; }
 
   .ege-credits { padding: 4px 9px; }
   /* 44 and no smaller: it is the way into the portal, and Apple's floor. */
@@ -1708,10 +1789,10 @@ body {
      once the type comes down to phone size — it reads as a second word behind
      the first. It comes down with the type. */
   .fb-hero__title {
-    font-size: clamp(30px, 9vw, 44px);
+    font-size: clamp(1.875rem, 9vw, 2.75rem);
     text-shadow: 3px 3px 0 var(--fb-ink);
   }
-  .fb-hero__lede { font-size: 15px; }
+  .fb-hero__lede { font-size: .9375rem; }
 
   /* --- the roster, turned sideways ----------------------------------------
 
@@ -1737,7 +1818,7 @@ body {
     gap: 10px;
     min-width: 0;
   }
-  .ege-card__name { font-size: 21px; }
+  .ege-card__name { font-size: 1.3125rem; }
 
   /* The jersey chip is pinned to a corner that is now much smaller. */
   .ege-card__jersey { transform: scale(.85); transform-origin: top left; }
@@ -1751,10 +1832,64 @@ body {
     width: 62px;
     padding: 6px 4px 8px;
   }
-  .ege-ovrbox--card .ege-ovrbox__value { font-size: 28px; }
-  .ege-ovrbox--card .ege-ovrbox__label { font-size: 11px; letter-spacing: .1em; }
+  .ege-ovrbox--card .ege-ovrbox__value { font-size: 1.75rem; }
+  .ege-ovrbox--card .ege-ovrbox__label { font-size: var(--fb-label); letter-spacing: .1em; }
 
-  .ege-ovrbox--page .ege-ovrbox__label { font-size: 11px; }
+  /* --- the player header, on a phone --------------------------------------
+
+     Three bands instead of one column beside the picture: the school across
+     the top, the picture and the name on the middle line, the four facts
+     across the bottom.
+
+     The school goes first because it is the longest unbreakable thing in the
+     header -- beside the picture it had about 70 points, and "Bloomington
+     High School" ran off the side of the panel rather than wrapping into it.
+     The four facts go last because beside the name they had about 150 points
+     to fit "Avocado League" into. Between them, the header was most of a
+     screen; now it is half of one and nothing is squeezed.
+
+     The picture is a share of the screen rather than a fixed width, so it is
+     the same proportion of a small phone as of a big one. */
+  .ege-detail {
+    /* Wide enough at the bottom of the range for "175 lbs" to sit in half of
+       it without being cut, which is what sets the floor. */
+    --figure: clamp(124px, 34vw, 168px);
+  }
+  .ege-detail__top {
+    grid-template-columns: var(--figure) minmax(0, 1fr);
+    grid-template-areas:
+      "school school"
+      "figure name"
+      "list   list";
+    /* One gap between all three bands, rather than the margins the desktop
+       stack uses -- there is nothing stacked to space out here. */
+    gap: 12px 14px;
+  }
+
+  /* Centred against the picture rather than pinned to the top of it: the name
+     is a line or two against a frame several times its height. */
+  .ege-detail__name {
+    align-self: center;
+    margin: 0;
+  }
+
+  .ege-detail__list { gap: 6px 14px; }
+
+  .ege-school--lg .ege-school__logo { width: 24px; height: 24px; }
+  /* Tracking is what makes small caps legible, and it is also what decides
+     whether the longest school name gets one line or two. Less of it here. */
+  .ege-school--lg .ege-school__name { letter-spacing: .08em; }
+
+  /* The height and weight are a caption on the picture here, not a headline.
+     At the desktop size they were a third of the frame's height again, and
+     the two words over them ran into each other. */
+  .ege-vitals__cell { padding: 6px 3px 7px; }
+  .ege-vitals__label { letter-spacing: .06em; }
+  .ege-vitals__value { font-size: 1.0625rem; }
+
+  /* The panel's own padding is most of a narrow screen otherwise. */
+  .ege-detail > .fb-panel__body { padding: 14px; }
+  .ege-detail .fb-panel__strip { padding: 8px 14px; }
 
   /* The season editor's number fields, two up instead of one. */
   .ege-statgrid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
@@ -1792,9 +1927,10 @@ select,
   textarea,
   .fb-input,
   .fb-select,
-  .fb-select--sm,
   .ege-statfield__input,
   .ege-account__credits {
+    /* px, and not scaled with the rest: this is Safari's threshold, not a
+       size the design gets to choose. */
     font-size: 16px;
   }
 }
@@ -1820,7 +1956,7 @@ select,
   .ege-ovr__label,
   .ege-detail__list dt,
   .ege-card__go,
-  .ege-upgrade__group { font-size: 11.5px; }
+  .ege-upgrade__group { font-size: var(--fb-label); }
 
   /* Which makes the header cells taller than they need to be. */
   .fb-table th { padding-top: 9px; padding-bottom: 9px; }
@@ -1842,36 +1978,37 @@ select,
   .ege-schedule { min-width: 0; }
   .ege-schedule thead { display: none; }
 
-  .ege-schedule tbody tr:not(.ege-statrow) {
+  .ege-schedule tbody tr {
     display: grid;
-    grid-template-columns: 34px minmax(0, 1fr) auto auto;
+    grid-template-columns: 30px minmax(0, 1fr) auto auto;
     align-items: center;
     gap: 2px 10px;
-    padding: 9px 12px;
+    padding: 8px 11px;
     border-bottom: var(--fb-border-thin) solid rgba(29, 36, 22, .16);
   }
 
-  .ege-schedule tbody tr:not(.ege-statrow) > td {
+  .ege-schedule tbody tr > td {
     display: block;
     padding: 0;
     border: 0;
   }
 
-  /* the week number spans both lines, as the handle for the whole block */
-  .ege-schedule tbody tr .ege-schedule__week { grid-area: 1 / 1 / 3 / 2; font-size: 17px; }
+  /* the week number spans both lines of its block */
+  .ege-schedule tbody tr .ege-schedule__week { grid-area: 1 / 1 / 3 / 2; font-size: 1.0625rem; }
 
   .ege-schedule tbody tr .ege-schedule__opponent { grid-area: 1 / 2 / 2 / 3; }
   .ege-schedule tbody tr > td:nth-child(2) {        /* the date */
     grid-area: 2 / 2 / 3 / 3;
-    font-size: 12px;
+    font-size: .75rem;
     color: var(--fb-muted);
     white-space: nowrap;
   }
 
-  /* Kickoff time moves into the dropdown rather than taking a column here.
-     Written to out-weigh the `> td { display: block }` above it, which has one
-     more element in it and would otherwise win. */
-  .ege-schedule tbody tr:not(.ege-statrow) > td.ege-schedule__time { display: none; }
+  /* Seven columns do not fit, and the kickoff is the one nobody is looking
+     for: every game on the card is an evening one. Written to out-weigh the
+     `> td { display: block }` above it, which has one more element in it and
+     would otherwise win. */
+  .ege-schedule tbody tr > td.ege-schedule__time { display: none; }
 
   .ege-schedule tbody tr > td:nth-child(5) { grid-area: 1 / 3 / 2 / 4; text-align: right; }
   .ege-schedule tbody tr .ege-schedule__credits { grid-area: 2 / 3 / 3 / 4; text-align: right; }
@@ -1892,12 +2029,6 @@ select,
   /* A sticker sized to overhang a 51px desktop row swamps a phone one. */
   .ege-slot__applied { --sticker-size: 46px; }
   .ege-slot__applied .ege-sticker { width: 46px; height: 46px; }
-}
-
-.ege-statrow__when {
-  flex-basis: 100%;
-  margin: 0 0 6px;
-  font-size: 12px;
 }
 
 /* --- the rating points table, on a small screen -----------------------------
@@ -1929,14 +2060,14 @@ select,
   .ege-upgrades tbody tr > td:nth-child(1) { grid-column: 1 / -1; }
   .ege-upgrades tbody tr > td:nth-child(2) {
     grid-column: 1 / 3;
-    font-size: 16px;
+    font-size: 1rem;
     font-weight: 700;
   }
-  .ege-upgrades tbody tr > td:nth-child(3) { grid-column: 3; text-align: right; font-size: 17px; }
+  .ege-upgrades tbody tr > td:nth-child(3) { grid-column: 3; text-align: right; font-size: 1.0625rem; }
   .ege-upgrades tbody tr > td:nth-child(4) { grid-column: 1 / -1; }
   .ege-upgrades tbody tr > td:nth-child(5) {
     grid-column: 1 / -1;
-    font-size: 12px;
+    font-size: .75rem;
     color: var(--fb-muted);
   }
 
@@ -1971,7 +2102,7 @@ select,
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  font-size: 15px;
+  font-size: .9375rem;
   line-height: 1.45;
 }
 
@@ -1985,7 +2116,7 @@ select,
   width: 28px;
   height: 28px;
   font-family: var(--fb-font-display);
-  font-size: 15px;
+  font-size: .9375rem;
   line-height: 1;
   color: var(--fb-cream);
   background: var(--fb-ink);
