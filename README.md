@@ -594,6 +594,19 @@ day and he is still twenty credits better off.
 A player with no sign-in yet still scores: the admin page shows what they are
 owed as *waiting*, and it lands in full the first time they log in.
 
+**Correcting a week.** Change the touchdowns in `stats/{year}.js`, commit, and
+the credits follow: an award already on the ledger that is now worth more pays
+the difference and nothing more, so the same week can be settled as often as
+you like. It reaches a player the next time they open the site, and **Pay
+credits** on the admin page pushes it to everyone at once without republishing
+anything — which is what that button is for once every week is already out.
+
+The one thing it will not do is take credits back. An award that is now worth
+*less* than what was paid stays paid, because the player may well have spent
+it; lowering a published number means adjusting that balance by hand on the
+admin page. Weeks that have not been published yet have nothing on the ledger,
+so changing those is free.
+
 > The credits come from the browser, because what a touchdown is worth is
 > worked out from `stats/{year}.js` and Postgres has no copy of it. A player
 > could already set their own balance directly — buying things needs that — so
@@ -632,8 +645,49 @@ hand or through the season editor. `booster` is the performance booster that
 was riding on the game, and once a week is out that is where it lives for
 good, so the row behind it can be cleared out of Supabase.
 
-A new season is a new file and one more `<script>` tag in `index.html`. The
-bot finds them on its own.
+A new season is a new file and one more year in the `SEASONS` list at the top
+of `js/site-data.js`. The bot finds them on its own.
+
+### The file is the season
+
+Nothing is logged anywhere else. There is no stats table in Supabase — the
+tables there are accounts, admins, balances, inventory, stickers, the credit
+ledger and which weeks are out, and not one of them holds a number from a
+game. Change a touchdown in `stats/{year}.js` and the schedule, the record,
+the game log, the season totals, the ratings the shop is priced against, the
+Discord post and the credits that touchdown is worth all move with it, because
+every one of them reads that file and only that file.
+
+Which only holds if the browser reads the file rather than its own copy of it.
+A static host serves everything with a cache lifetime — GitHub Pages sends
+`max-age=600` — and for those ten minutes a browser that has been here before
+answers from its own cache without asking. A committed correction is simply
+not there yet, and pinned to a home screen it can hold on longer than that.
+
+That was a real problem rather than a slow one, because the admin page pays
+touchdown credits out of whatever *that* browser thinks the file says. Paying
+a published week from a stale copy writes the old number into the ledger, and
+the ledger never pays a number back down.
+
+So the three files the admin page regenerates go through `js/site-data.js`
+instead of `<script>` tags:
+
+```
+data/season.js      which season is live, and which are locked
+data/ratings.js     the ratings a locked season baked in
+stats/{year}.js     the season itself
+```
+
+It fetches them with `cache: 'no-cache'`, which is *revalidate*, not
+re-download: unchanged, that is a 304 and a few hundred bytes; changed, it is
+the new file. `js/app.js` draws nothing until they land, because a first draw
+from an empty season would be wrong rather than late. Opened from a `file://`
+path, where a fetch is cross-origin and a script tag is not, it falls back to
+a tag with a cache-busting query.
+
+Everything else — the code, the kit, the players, the shop — is still tagged
+in `index.html` the ordinary way. Those only change when a deploy does, and a
+deploy is a new `index.html` too.
 
 ### Nothing is out until you say so
 
@@ -893,7 +947,11 @@ Built so far:
   ratings locked. Small on purpose: the admin portal rewrites this whole file
   when a season is rolled over.
 - `stats/{year}.js` — one per season: every fixture, and the score, stat line
-  and booster for each once it has been played. Nothing else holds a schedule.
+  and booster for each once it has been played. Nothing else holds a schedule,
+  and nothing else holds a stat.
+- `js/site-data.js` — the list of seasons, and the loader that fetches the
+  three files the admin regenerates past the browser cache, so a committed
+  correction is on the site rather than ten minutes behind it.
 - `data/games.js` — how everything else gets at those games, and the one place
   that decides what "played" means.
 - `data/statline.js` — what a stat line is: the columns each position is read
@@ -911,8 +969,10 @@ Built so far:
 
 No build step and no bundler: open `index.html` in a browser, or serve the
 folder with anything static. Data files are plain `<script>` globals rather than
-ES modules so the site also works straight off the filesystem. The only external
-dependency is supabase-js, loaded from a CDN.
+ES modules so the site also works straight off the filesystem — including the
+three that `js/site-data.js` fetches, which fall back to a script tag when
+there is no origin to fetch from. The only external dependency is supabase-js,
+loaded from a CDN.
 
 ### Connecting Supabase
 

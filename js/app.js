@@ -2471,14 +2471,16 @@
      permanent part of a player, not a private note, and it has to read the
      same to a passer-by as it does to the person who paid for it. This used
      to be loaded from refreshShop, which needs a signed-in player, so
-     signing out dropped every overall back to its base number. */
-  Promise.all([
+     signing out dropped every overall back to its base number.
+
+     Asked for as this file runs rather than once the season has landed:
+     neither of them needs it, and waiting on one before asking for the other
+     would put two round trips end to end for nothing. start() is where what
+     comes back is used. */
+  var fromServer = Promise.all([
     EGE.wallet.loadPublishedWeeks(),
     EGE.wallet.loadBoosts()
-  ]).then(function () {
-    redrawRatings();
-    settle();
-  });
+  ]);
 
   /* The roster is drawn twice on every load: once from the base ratings,
      because the page cannot wait for a round trip before it has anything on
@@ -2494,11 +2496,11 @@
     document.getElementById('ratingsOverallBox').classList.remove('is-waiting');
   }
 
-  /* A slow network should not mean a blank page for ever, whatever happens
-     to those two promises. */
-  window.setTimeout(settle, 4000);
-
-  EGE.auth.onChange(function (player) {
+  /* Registered in start(), not here: EGE.auth.onChange calls what it is
+     given straight away with whoever is already signed in, and the first
+     thing this does is route() -- which draws a player page out of a season
+     that has not arrived yet. */
+  function onSignedInChange(player) {
     if (player) {
       /* The wallet loads on sign-in, not on reaching the shop: a player page
          needs the inventory too, to know whether to show the scouts. */
@@ -2535,7 +2537,7 @@
       shopState.credits = EGE.shop.startingCredits;
     }
     route();          /* the shop appears and disappears with the session */
-  });
+  }
 
   /* --- portal: open and close ------------------------------------------- */
 
@@ -2659,13 +2661,43 @@
 
   /* --- go --------------------------------------------------------------- */
 
-  roster.classList.add('is-waiting');
-  document.getElementById('ratingsOverallBox').classList.add('is-waiting');
+  /* Nothing is drawn until the season is in, because everything drawn is made
+     of it: the roster is sorted on overalls, the player page is the schedule,
+     and the admin page pays credits out of the stat lines. Starting on an
+     empty EGE.stats and filling it in afterwards would mean a first draw that
+     is wrong rather than one that is late.
 
-  renderRoster();
-  renderInstallGuide();
-  fillPlayerSelect();
-  route();
-  EGE.auth.init();
-  window.addEventListener('hashchange', route);
+     js/site-data.js fetches those files past the browser cache, so this is
+     one revalidation — a 304 and a few hundred bytes on every load after the
+     first. */
+  function start() {
+    roster.classList.add('is-waiting');
+    document.getElementById('ratingsOverallBox').classList.add('is-waiting');
+
+    renderRoster();
+    renderInstallGuide();
+    fillPlayerSelect();
+    route();
+
+    EGE.auth.onChange(onSignedInChange);
+    EGE.auth.init();
+    window.addEventListener('hashchange', route);
+
+    fromServer.then(function () {
+      redrawRatings();
+      settle();
+    });
+
+    /* A slow network should not mean a faded page for ever, whatever happens
+       to those two promises. */
+    window.setTimeout(settle, 4000);
+  }
+
+  /* Either way: a season file that will not load is a broken page, but a
+     blank one tells nobody that. What did not load says so in the console
+     and the rest of the site still works. */
+  EGE.siteData.ready.then(start, function (error) {
+    window.console.error('The season would not load.', error);
+    start();
+  });
 })();

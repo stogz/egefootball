@@ -265,8 +265,13 @@ function egeGroupByKey(key) {
 /* What the shop has done to a player's ratings, summed per attribute and
    keyed by player slug — not by email, so a player whose sign-in address is
    still TBD can carry boosts too. Filled in by js/wallet.js; empty until it
-   has loaded, and empty forever if Supabase is not reachable. */
-EGE.appliedBoosts = {};
+   has loaded, and empty forever if Supabase is not reachable.
+
+   `|| {}` rather than a plain `{}`: this file is fetched past the cache by
+   js/site-data.js and so runs a moment after the page does, which can be
+   after Supabase has answered. Flattening it here would throw away boosts
+   that had already landed. */
+EGE.appliedBoosts = EGE.appliedBoosts || {};
 
 EGE.boostsFor = function (player) {
   if (!player) { return {}; }
