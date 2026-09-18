@@ -203,6 +203,13 @@
             the week to Discord — one button. Pulling a week back is one click
             too, as often as you like.
           </p>
+          <p class="fb-meta" style="margin: 0;">
+            Correcting a stat line after its week is out is fine: Pay credits
+            works out what everybody is owed again and pays the difference. It
+            never pays the same touchdown twice, and it never takes credits
+            back from a number that went down — adjust a balance by hand for
+            that.
+          </p>
 
           <div class="fb-row fb-row--wrap ege-weekbar">
             <label class="ege-field ege-field--inline">
@@ -210,6 +217,10 @@
               <select class="fb-select" id="weekSeason"></select>
             </label>
             <span class="fb-meta" id="weekSummary"></span>
+            <button class="fb-btn fb-btn--sm" id="payCredits" type="button"
+                    title="Pay anything the published weeks owe that has not gone out yet">
+              Pay credits
+            </button>
           </div>
 
           <div class="fb-tablewrap">
