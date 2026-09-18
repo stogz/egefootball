@@ -414,20 +414,33 @@ create policy "awards readable by owner or admin"
 -- Inserting the award and adding the credits have to happen together or not
 -- at all: crediting first and dying would pay twice on the next load, and
 -- inserting first and dying would never pay at all. One function, one
--- transaction, and the unique index decides what is new.
+-- transaction, and the ledger row -- taken under lock -- decides what is
+-- still owed.
 --
 -- What it returns is what it actually paid, which is 0 on every call after
--- the first for the same awards.
+-- the first for the same awards -- unless what the award is worth has gone up
+-- since, and then it pays the difference and nothing more. That is what makes
+-- a corrected stat line land: publish a week with two touchdowns in it, notice
+-- a third and write it in, and the next call pays the ten credits that were
+-- missed rather than deciding week three has already been dealt with. It never
+-- takes credits back when a number goes down; a player may have spent them
+-- already, and an admin can adjust a balance by hand.
 --
 -- On trust: the credits come from the browser, because what a touchdown is
--- worth is worked out from the schedule in data/schedule.js, and Postgres has
--- no copy of it. A player could already set their own balance directly — the
+-- worth is worked out from the season file in stats/{year}.js, and Postgres
+-- has no copy of it. A player could already set their own balance directly — the
 -- update policy on player_credits allows it, because buying things needs it —
 -- so this is not a new hole. It is still worth closing the easy half of it:
 -- for anyone who is not an admin, an award has to look like one of the two
 -- kinds the site issues, and cannot be worth more than the biggest either
 -- kind could honestly be. An admin's awards are whatever they type, which is
 -- the point of them.
+--
+-- The touchdown ceiling is 120 rather than 60. Sixty is six touchdowns at a
+-- back's rate, and a back on a side that puts up 49 can beat that in a night
+-- -- at which point the award was silently dropped and the best game of his
+-- season paid nothing. 120 still bounds it at eleven or twelve, which is more
+-- than any scoreboard on this site has room for.
 -- ---------------------------------------------------------------------------
 
 create or replace function public.pay_credit_awards(
@@ -443,6 +456,8 @@ declare
   v_caller text := auth.jwt() ->> 'email';
   v_admin  boolean := public.is_admin();
   v_paid   integer := 0;
+  v_have   integer;
+  r        record;
 begin
   if v_caller is null then
     raise exception 'sign in first';
@@ -454,30 +469,55 @@ begin
     return 0;
   end if;
 
-  with incoming as (
+  -- One award at a time, so an award already on the ledger can be taken under
+  -- lock before it is compared. Doing it in one statement would let two
+  -- callers -- the admin publishing a week and the player opening the site in
+  -- the same second -- both read the same old number and both pay the
+  -- difference. There are never more than a season's worth of these.
+  for r in
     select
       a ->> 'key'                             as award_key,
       coalesce((a ->> 'credits')::integer, 0) as credits,
       a ->> 'note'                            as note
     from jsonb_array_elements(p_awards) as a
-  ),
-  allowed as (
-    select * from incoming
-    where credits > 0
-      and award_key is not null
-      and (
-        v_admin
-        or (award_key ~ '^offseason-[0-9]{4}$' and credits <= 60)
-        or (award_key ~ '^td-w[0-9]{1,2}$'     and credits <= 60)
-      )
-  ),
-  inserted as (
-    insert into public.credit_awards (email, season, award_key, credits, note)
-    select p_email, p_season, award_key, credits, note from allowed
-    on conflict (email, season, award_key) do nothing
-    returning credits
-  )
-  select coalesce(sum(credits), 0) into v_paid from inserted;
+  loop
+    continue when r.award_key is null or r.credits <= 0;
+    continue when not (
+      v_admin
+      or (r.award_key ~ '^offseason-[0-9]{4}$' and r.credits <= 60)
+      or (r.award_key ~ '^td-w[0-9]{1,2}$'     and r.credits <= 120)
+    );
+
+    -- for update: if the row is there, nobody else may decide about it until
+    -- this transaction is done. Under read committed a blocked lock re-reads
+    -- the row it was waiting on, so the loser of a race sees the winner's
+    -- number and pays nothing.
+    select credits into v_have
+      from public.credit_awards
+     where email = p_email and season = p_season and award_key = r.award_key
+     for update;
+
+    if v_have is null then
+      -- Never paid. on conflict do nothing rather than a plain insert,
+      -- because a caller that inserted this key between the select above and
+      -- here is holding the unique index, and this one must not pay for it.
+      insert into public.credit_awards (email, season, award_key, credits, note)
+      values (p_email, p_season, r.award_key, r.credits, r.note)
+      on conflict (email, season, award_key) do nothing;
+      if found then
+        v_paid := v_paid + r.credits;
+      end if;
+
+    elsif r.credits > v_have then
+      -- Worth more than it was: pay the difference, not the whole thing.
+      update public.credit_awards
+         set credits = r.credits, note = r.note, awarded_at = now()
+       where email = p_email and season = p_season and award_key = r.award_key;
+      v_paid := v_paid + (r.credits - v_have);
+    end if;
+
+    v_have := null;
+  end loop;
 
   if v_paid > 0 then
     insert into public.player_credits as pc (email, credits, updated_at)

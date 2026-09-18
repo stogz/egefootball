@@ -1471,10 +1471,16 @@
     return EGE.wallet.publishWeek(season, week).then(function (res) {
       if (!res.ok) { sayAdmin(res.message, true); return; }
 
-      return sendWeekToDiscord(season, week).then(function (posted) {
-        var paid = payTheWeek(season);
-        sayAdmin('Week ' + week + ' is out. ' + posted.message, !posted.ok);
-        return paid;
+      /* Credits before Discord, and waited on. It used to fire the payment
+         off and compose the message without it, so the one thing the admin
+         wanted to know — whether the touchdowns had been paid — was the one
+         thing the message never said. Paying first also means a webhook that
+         hangs cannot hold up the credits. */
+      return payTheWeek(season).then(function (paid) {
+        return sendWeekToDiscord(season, week).then(function (posted) {
+          sayAdmin('Week ' + week + ' is out. ' + creditLine(paid) + ' ' + posted.message,
+                   !posted.ok || Boolean(paid.missed.length));
+        });
       });
     }).then(function () {
       return refreshAdminView();
@@ -1508,14 +1514,51 @@
   }
 
   /* Everyone's touchdown credits for the season, now that a week has landed.
-     Paying is keyed on what earned it, so a week published twice pays once. */
+
+     Every player, and every week, not just the one going out: paying is keyed
+     on what earned it, so a week that is already square costs one call and
+     pays nothing, and a stat line corrected since it was published pays the
+     difference. That is what makes this safe to run as often as you like. */
   function payTheWeek(season) {
     return Promise.all(EGE.playersWithAccounts().map(function (player) {
-      return EGE.wallet.syncAwards(player, season);
-    })).then(function (paid) {
-      return paid.reduce(function (sum, one) { return sum + (one.paid || 0); }, 0);
+      return EGE.wallet.syncAwards(player, season).then(function (res) {
+        return { player: player, paid: res.paid || 0, problem: res.message || null };
+      });
+    })).then(function (all) {
+      var paid = all.filter(function (one) { return one.paid > 0; });
+      return {
+        credits: paid.reduce(function (sum, one) { return sum + one.paid; }, 0),
+        names: paid.map(function (one) { return one.player.first + ' +' + one.paid; }),
+        missed: all.filter(function (one) { return one.problem; })
+                   .map(function (one) { return one.player.first; })
+      };
     });
   }
+
+  /* What to tell the admin about the credits, which is never nothing. */
+  function creditLine(paid) {
+    var line = paid.credits
+      ? paid.credits + ' credits paid \u2014 ' + paid.names.join(', ') + '.'
+      : 'No credits were owed.';
+    if (paid.missed.length) {
+      line += ' ' + paid.missed.join(', ') + ' could not be paid.';
+    }
+    return line;
+  }
+
+  /* The same run on its own, for after a stat line has been corrected: there
+     is no week left to publish once they are all out, and a correction still
+     has to reach somebody's balance. */
+  document.getElementById('payCredits').addEventListener('click', function () {
+    var button = this;
+    button.disabled = true;
+    sayAdmin('Paying\u2026', false);
+    payTheWeek(adminSeason()).then(function (paid) {
+      button.disabled = false;
+      sayAdmin(creditLine(paid), Boolean(paid.missed.length));
+      return refreshAdminView();
+    });
+  });
 
   /* --- the season file ------------------------------------------------------ */
 
