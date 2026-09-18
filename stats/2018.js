@@ -82,7 +82,7 @@ EGE.stats[2018] = {
         } },
       { week:  8, date: '2018-10-05', kickoff: '7:00pm',
         opponent: 'Knightdale', home: false, conference: true,
-        result: { teamScore: 55, opponentScore: 14 }, booster: null,
+        result: { teamScore: 55, opponentScore: 14 }, booster: 'boost-1-5',
         stats: {
           receptions: 3, receivingYards: 27, receivingYac: 6,
           receivingTd: 2, receivingLong: 23, targets: 5, carries: 0,
@@ -359,7 +359,7 @@ EGE.stats[2018] = {
         stats: {
           completions: 10, attempts: 21, passingYards: 155,
           passingYac: 24, passingTd: 2, interceptions: 2, carries: 4,
-          rushingYards: 5, rushingTd: 0, rushingLong: 5, sacks: 2,
+          rushingYards: 5, rushingTd: 0, rushingLong: 5, sacks: 3,
           fumbles: 0, passingAvg: 15.5, rating: 64.7, rushingAvg: 1.3
         } },
       { week:  9, date: '2018-10-12', kickoff: '7:00pm',
@@ -440,12 +440,12 @@ EGE.stats[2018] = {
         } },
       { week:  8, date: '2018-10-05', kickoff: '7:00pm',
         opponent: 'Danville', home: true, conference: true,
-        result: { teamScore: 36, opponentScore: 8 }, booster: null,
+        result: { teamScore: 36, opponentScore: 6 }, booster: null,
         stats: {
-          carries: 23, rushingYards: 150, rushingTd: 1, rushingLong: 15,
+          carries: 9, rushingYards: 67, rushingTd: 0, rushingLong: 15,
           receptions: 1, receivingYards: 7, receivingYac: 5,
           receivingTd: 0, receivingLong: 7, targets: 1, fumbles: 0,
-          rushingAvg: 6.5, receivingAvg: 7, totalYards: 157, totalTd: 1
+          rushingAvg: 7.4, receivingAvg: 7, totalYards: 74, totalTd: 0
         } },
       { week:  9, date: '2018-10-12', kickoff: '7:00pm',
         opponent: 'Centennial', home: false, conference: true,
@@ -518,10 +518,10 @@ EGE.stats[2018] = {
         opponent: 'Lely', home: false, conference: false,
         result: { teamScore: 45, opponentScore: 0 }, booster: null,
         stats: {
-          completions: 11, attempts: 18, passingYards: 134,
+          completions: 16, attempts: 23, passingYards: 161,
           passingYac: 58, passingTd: 3, interceptions: 1, carries: 4,
           rushingYards: 11, rushingTd: 0, rushingLong: 11, sacks: 3,
-          fumbles: 0, passingAvg: 12.2, rating: 100.5, rushingAvg: 2.8
+          fumbles: 0, passingAvg: 10.1, rating: 110.7, rushingAvg: 2.8
         } },
       { week:  9, date: '2018-10-12', kickoff: '7:30pm',
         opponent: 'Golden Gate', home: true, conference: true,
