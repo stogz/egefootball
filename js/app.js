@@ -54,38 +54,19 @@
     return line;
   }
 
-  /* --- the overall badge -------------------------------------------------- */
+  /* --- the overall box ---------------------------------------------------- */
 
-  /* One element for every place an overall is shown, so a gold player is gold
-     on his card and gold on his page. The tier comes from data/ratings.js;
-     everything about how it looks is a class name and lives in site.css.
+  /* One element for every place an overall is shown, so the number reads the
+     same on a card as it does on a page. The site's own dark chip: the word
+     in the accent orange, the number under it in cream. */
+  function overallBox(overall, modifier) {
+    if (typeof overall !== 'number') { return null; }
 
-     The sheen is three stacked layers rather than one gradient: a ground the
-     colour can never fall off, a moving band of light over it, and a highlight
-     on top. That is what makes gold read as metal rather than as yellow. */
-  function overallBadge(player, overall, modifier) {
-    var tier = EGE.badgeFor(overall);
-    if (!tier) { return null; }
-
-    var badge = el('div', 'ege-badge ege-badge--' + tier.key +
-      (tier.animated ? ' ege-badge--live' : '') + (modifier ? ' ' + modifier : ''));
-    badge.setAttribute('data-tier', tier.key);
-
-    /* The badge does not print what it is called -- the colour is the whole
-       point, and eight names in eight boxes is eight words to read on a page
-       whose job is to be glanced at. The name still has to exist somewhere,
-       though: a badge that says its tier in colour alone says nothing at all
-       to a screen reader, and nothing to somebody who has not learnt the
-       eight yet. So it lives in the tooltip and in the accessible name. */
-    badge.title = tier.label + ' \u2014 ' + overall + ' overall';
-    badge.setAttribute('aria-label', badge.title);
-
-    var face = el('span', 'ege-badge__face');
-    face.appendChild(el('span', 'ege-badge__label', 'OVR'));
-    face.appendChild(el('span', 'ege-badge__value', String(overall)));
-    badge.appendChild(face);
-
-    return badge;
+    var box = el('div', 'ege-ovrbox' + (modifier ? ' ' + modifier : ''));
+    box.title = overall + ' overall';
+    box.appendChild(el('span', 'ege-ovrbox__label', 'OVR'));
+    box.appendChild(el('span', 'ege-ovrbox__value', String(overall)));
+    return box;
   }
 
   /* --- player cards ----------------------------------------------------- */
@@ -127,8 +108,8 @@
 
     /* The number used to be a tag among the tags, which is not what an
        overall is: it is the one thing you compare players on. */
-    var badge = overallBadge(player, EGE.overallFor(player), 'ege-badge--card');
-    if (badge) { body.appendChild(badge); }
+    var box = overallBox(EGE.overallFor(player), 'ege-ovrbox--card');
+    if (box) { body.appendChild(box); }
 
     card.appendChild(body);
 
@@ -193,16 +174,16 @@
     if (year.class) { tags.appendChild(el('span', 'fb-tag fb-tag--gold', year.class)); }
 
     var overall = EGE.overallFor(player);
-    var overallBox = document.getElementById('playerOverall');
-    overallBox.hidden = overall === null;
+    /* Not `overallBox`: that is the function above, and a local of the same
+       name shadows it three lines later. */
+    var overallWrap = document.getElementById('playerOverall');
+    overallWrap.hidden = overall === null;
 
-    /* The same badge the roster card carries, at the size a page can afford.
-       Redrawn rather than re-labelled, because the tier can change under a
-       player between two visits. */
-    var slot = document.getElementById('playerOverallBadge');
+    /* The same box the roster card carries, at the size a page can afford. */
+    var slot = document.getElementById('playerOverallBox');
     slot.innerHTML = '';
-    var badge = overallBadge(player, overall, 'ege-badge--page');
-    if (badge) { slot.appendChild(badge); }
+    var box = overallBox(overall, 'ege-ovrbox--page');
+    if (box) { slot.appendChild(box); }
 
     renderOverallClimb(player, overall);
 
@@ -1622,82 +1603,6 @@
     });
   });
 
-  /* --- the badge swatch book ------------------------------------------------
-
-     Eight bands and a squad that is entirely in the bottom one, so there is
-     no way to see what a Galaxy Opal looks like without waiting three seasons
-     for somebody to earn it. This draws any overall on demand, with the real
-     badge rather than a picture of one, so what is on screen here is exactly
-     what a card will show when somebody gets there. */
-
-  var badgeStage = document.getElementById('badgeStage');
-  var badgeSlider = document.getElementById('badgeSlider');
-  var badgeNumber = document.getElementById('badgeNumber');
-
-  /* Nobody in particular: the badge only wants a number. */
-  function showBadgeFor(overall) {
-    var tier = EGE.badgeFor(overall);
-
-    badgeStage.innerHTML = '';
-    var badge = overallBadge(null, overall, 'ege-badge--page');
-    if (badge) { badgeStage.appendChild(badge); }
-
-    document.getElementById('badgeReading').textContent =
-      tier ? tier.label + ' \u00b7 ' + EGE.badgeRange(tier) : '';
-
-    /* Who this would be, if anybody. Useful the other way round: it says how
-       far the squad is from the badge on screen. */
-    var at = EGE.players.filter(function (player) {
-      return EGE.overallFor(player) === overall;
-    }).map(function (player) { return player.first; });
-    document.getElementById('badgeWho').textContent = at.length
-      ? at.join(' and ') + ' ' + (at.length === 1 ? 'is' : 'are') + ' here'
-      : 'nobody is at ' + overall + ' yet';
-
-    /* Both inputs follow, whichever one moved. */
-    if (badgeSlider.value !== String(overall)) { badgeSlider.value = overall; }
-    if (badgeNumber.value !== String(overall)) { badgeNumber.value = overall; }
-  }
-
-  function clampOverall(raw) {
-    var n = Math.round(Number(raw));
-    if (!isFinite(n)) { return 0; }
-    return Math.max(0, Math.min(99, n));
-  }
-
-  badgeSlider.addEventListener('input', function () {
-    showBadgeFor(clampOverall(badgeSlider.value));
-  });
-  badgeNumber.addEventListener('input', function () {
-    /* An empty box mid-typing is not a zero, so it waits rather than jumping. */
-    if (badgeNumber.value === '') { return; }
-    showBadgeFor(clampOverall(badgeNumber.value));
-  });
-  badgeNumber.addEventListener('blur', function () {
-    showBadgeFor(clampOverall(badgeNumber.value));
-  });
-
-  /* All eight at once, each at the bottom of its own band, because the bottom
-     is the number you want to recognise -- it is the one that just changed
-     colour. */
-  function renderBadgeBook() {
-    var all = document.getElementById('badgeAll');
-    all.innerHTML = '';
-
-    EGE.tiers.slice().reverse().forEach(function (tier) {
-      var at = tier.from === 0 ? 50 : tier.from;
-
-      var cell = el('button', 'ege-swatch');
-      cell.type = 'button';
-      cell.title = 'Preview ' + tier.label;
-      cell.appendChild(overallBadge(null, at, 'ege-badge--swatch'));
-      cell.appendChild(el('span', 'ege-swatch__name', tier.label));
-      cell.appendChild(el('span', 'ege-swatch__range', EGE.badgeRange(tier)));
-      cell.addEventListener('click', function () { showBadgeFor(at); });
-      all.appendChild(cell);
-    });
-  }
-
   /* --- the season file ------------------------------------------------------ */
 
   /* Every week edited this sitting, as week -> slug -> { result, booster,
@@ -2087,10 +1992,6 @@
       renderAwards();
       renderLockPreview();
       renderWeeks();
-      /* The swatches read the live overalls to say who is where, so they are
-         redrawn with everything else rather than built once. */
-      renderBadgeBook();
-      showBadgeFor(clampOverall(badgeSlider.value));
     });
   }
 

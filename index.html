@@ -316,45 +316,6 @@
         </div>
       </div>
 
-      <!-- what every badge looks like, without having to get a player there -->
-      <div class="fb-panel ege-section-gap" id="badgePanel">
-        <div class="fb-panel__head">
-          <h3 style="font-size: 21px;">Overall Badges</h3>
-          <span class="fb-meta">Eight bands, 0 to 99</span>
-        </div>
-        <div class="fb-panel__body fb-stack fb-stack--lg">
-          <p class="fb-meta" style="margin: 0;">
-            The badges do not print what they are called, so this is where to
-            find out which is which. Drag the slider to see any overall, or
-            press a badge to jump to its band.
-          </p>
-
-          <div class="ege-badgelab">
-            <div class="ege-badgelab__stage" id="badgeStage"></div>
-            <div class="ege-badgelab__dial">
-              <p class="ege-badgelab__reading" id="badgeReading"></p>
-              <input class="ege-badgelab__slider" id="badgeSlider" type="range"
-                     min="0" max="99" value="85" aria-label="Overall to preview">
-              <div class="fb-row fb-row--wrap">
-                <label class="ege-field ege-field--inline">
-                  <span class="fb-eyebrow">Overall</span>
-                  <input class="fb-input ege-badgelab__number" id="badgeNumber"
-                         type="number" min="0" max="99" step="1" value="85">
-                </label>
-                <span class="fb-meta" id="badgeWho"></span>
-              </div>
-            </div>
-          </div>
-
-          <div class="ege-badgelab__all" id="badgeAll"></div>
-        </div>
-        <div class="fb-panel__foot">
-          <span class="fb-meta">
-            Nothing here changes anybody's rating. It is a swatch book.
-          </span>
-        </div>
-      </div>
-
       <!-- the end of a season, in the order it has to happen -->
       <div class="fb-panel ege-section-gap" id="seasonPanel">
         <div class="fb-panel__head">
@@ -506,10 +467,10 @@
               <h2 class="ege-detail__name" id="playerName"></h2>
               <div class="fb-row fb-row--wrap" id="playerTags"></div>
 
-              <!-- The badge itself is built in app.js, so the tier only has to
-                   be decided in one place. The climb arrow rides beside it. -->
+              <!-- The box itself is built in app.js, so the card and the page
+                   never disagree about it. The climb arrow rides beside it. -->
               <div class="ege-ovrslot" id="playerOverall" hidden>
-                <span id="playerOverallBadge"></span>
+                <span id="playerOverallBox"></span>
                 <span class="ege-ovr__climb" id="playerOverallClimb" hidden></span>
               </div>
 

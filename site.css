@@ -94,324 +94,56 @@ body {
 @media (min-width: 620px)  { .ege-roster { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 1000px) { .ege-roster { grid-template-columns: repeat(3, 1fr); } }
 
-/* --- the overall badge ------------------------------------------------------
+/* --- the overall box -------------------------------------------------------
 
-   Eight tiers, floor to ceiling, and the only thing that separates them here
-   is colour and movement -- the markup is identical, so a player promoted from
-   silver to gold changes one class name and nothing else.
+   The site's own dark chip, stacked: the word in the accent orange, the
+   number under it in cream. The same element on a roster card and on a
+   player page, so the one number people compare players on never looks like
+   two different things. */
 
-   Each badge is three layers over a solid ground: the ground is the colour it
-   can never fall off, ::before is a band of light that travels across it, and
-   ::after is a fixed highlight that keeps the top edge lit while the band is
-   somewhere else. One moving gradient on its own reads as a flashing box; the
-   three together read as metal.
-
-   Unranked does not move. That is the point of it. */
-
-.ege-badge {
-  --t1: #14160f;              /* the ground */
-  --t2: #2a2e21;              /* what the sheen travels toward */
-  --badge-ink: var(--fb-cream);
-  --sheen: rgba(255, 255, 255, .34);
-  --glow: transparent;
-
-  position: relative;
+.ege-ovrbox {
   display: flex;
   flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 72px;
-  padding: 9px 6px 10px;
-  overflow: hidden;
-  isolation: isolate;
-  color: var(--badge-ink);
-  background: linear-gradient(150deg, var(--t1) 0%, var(--t2) 52%, var(--t1) 100%);
-  border: var(--fb-border) solid var(--fb-ink);
-  box-shadow: 0 0 0 0 var(--glow);
-}
-
-/* The travelling band. 250% wide so there is somewhere to travel from. */
-.ege-badge::before {
-  content: '';
-  position: absolute;
-  inset: -40%;
-  z-index: 1;
-  background: linear-gradient(
-    105deg,
-    transparent 38%,
-    var(--sheen) 47%,
-    rgba(255, 255, 255, .72) 50%,
-    var(--sheen) 53%,
-    transparent 62%
-  );
-  background-size: 250% 100%;
-  background-position: 130% 0;
-  pointer-events: none;
-}
-
-/* The fixed highlight, so the badge is lit even between sweeps. */
-.ege-badge::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, .26) 0%,
-    rgba(255, 255, 255, .04) 38%,
-    transparent 62%,
-    rgba(0, 0, 0, .18) 100%
-  );
-  pointer-events: none;
-}
-
-.ege-badge--live::before { animation: ege-badge-sweep 4.6s ease-in-out infinite; }
-
-@keyframes ege-badge-sweep {
-  0%        { background-position: 130% 0; }
-  55%, 100% { background-position: -130% 0; }
-}
-
-.ege-badge__face {
-  position: relative;
-  z-index: 3;
-  display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
+  justify-content: center;
+  gap: 2px;
+  width: 72px;
+  padding: 8px 6px 10px;
+  background: var(--fb-ink);
+  border: var(--fb-border) solid var(--fb-ink);
+  color: var(--fb-cream);
   text-align: center;
 }
-.ege-badge__label {
-  font-size: 9px;
+.ege-ovrbox__label {
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: .18em;
   text-transform: uppercase;
-  opacity: .78;
+  color: var(--fb-accent);
 }
-.ege-badge__value {
+.ege-ovrbox__value {
   font-family: var(--fb-font-display);
   font-size: 34px;
   line-height: .96;
-  /* The number sits on a moving ground, so it carries its own contrast. */
-  text-shadow: 0 1px 2px rgba(0, 0, 0, .45);
 }
-
-/* --- the eight ------------------------------------------------------------ */
-
-/* Black, and still. 50 to 60 is where this squad is; below that it is still
-   the right answer, so unranked is the floor rather than a band. */
-.ege-badge--unranked {
-  --t1: #14160f;
-  --t2: #30352a;
-  --badge-ink: #cfc9b6;
-}
-
-.ege-badge--bronze {
-  --t1: #6d3a15;
-  --t2: #c07a3c;
-  --badge-ink: #fdf0e2;
-  --sheen: rgba(255, 216, 170, .38);
-}
-
-.ege-badge--silver {
-  --t1: #6f767d;
-  --t2: #d6dce1;
-  --badge-ink: #14160f;
-  --sheen: rgba(255, 255, 255, .55);
-}
-.ege-badge--silver .ege-badge__value { text-shadow: 0 1px 1px rgba(255, 255, 255, .55); }
-
-.ege-badge--gold {
-  --t1: #8a5d0e;
-  --t2: #f2c744;
-  --badge-ink: #1a1405;
-  --sheen: rgba(255, 246, 198, .62);
-  --glow: rgba(242, 199, 68, .35);
-  box-shadow: 0 0 14px -2px var(--glow);
-}
-.ege-badge--gold .ege-badge__value { text-shadow: 0 1px 1px rgba(255, 240, 180, .6); }
-
-/* Cold and bright, and it sweeps faster than the metals do. */
-.ege-badge--diamond {
-  --t1: #4f9dc4;
-  --t2: #e8fbff;
-  --badge-ink: #0b2430;
-  --sheen: rgba(255, 255, 255, .8);
-  --glow: rgba(150, 226, 255, .45);
-  box-shadow: 0 0 16px -2px var(--glow);
-}
-.ege-badge--diamond.ege-badge--live::before { animation-duration: 3.4s; }
-.ege-badge--diamond .ege-badge__value { text-shadow: 0 1px 1px rgba(255, 255, 255, .7); }
-
-.ege-badge--pink-diamond {
-  --t1: #a31256;
-  --t2: #ffb3dd;
-  --badge-ink: #2b0418;
-  --sheen: rgba(255, 233, 246, .78);
-  --glow: rgba(255, 121, 193, .48);
-  box-shadow: 0 0 16px -2px var(--glow);
-}
-.ege-badge--pink-diamond.ege-badge--live::before { animation-duration: 3.4s; }
-.ege-badge--pink-diamond .ege-badge__value { text-shadow: 0 1px 1px rgba(255, 220, 240, .6); }
-
-/* --- the top two ---------------------------------------------------------- */
-
-/* An opal is not one colour with a shine on it, so the ground is a conic
-   sweep of the whole wheel and the whole wheel turns. */
-.ege-badge--galaxy-opal {
-  --badge-ink: #fffdf6;
-  --sheen: rgba(255, 255, 255, .5);
-  --glow: rgba(120, 220, 255, .5);
-  background:
-    conic-gradient(
-      from 0deg,
-      #2de2c8, #4f8bff, #a970ff, #ff6ec7, #ffc86b, #7dffb0, #2de2c8
-    );
-  box-shadow: 0 0 18px -2px var(--glow);
-}
-.ege-badge--galaxy-opal.ege-badge--live {
-  animation: ege-badge-turn 9s linear infinite;
-}
-.ege-badge--galaxy-opal .ege-badge__value {
-  text-shadow: 0 1px 3px rgba(0, 0, 0, .55);
-}
-@keyframes ege-badge-turn {
-  to { filter: hue-rotate(360deg); }
-}
-
-/* Dark matter is the only one that is mostly dark. Two nebulae drift across
-   a black ground on their own clock, so it never repeats on the eye. */
-.ege-badge--dark-matter {
-  --badge-ink: #f2e9ff;
-  --sheen: rgba(200, 160, 255, .42);
-  --glow: rgba(150, 80, 255, .55);
-  background:
-    radial-gradient(ellipse 70% 60% at 22% 28%, rgba(190, 96, 255, .85), transparent 62%),
-    radial-gradient(ellipse 65% 55% at 78% 72%, rgba(60, 130, 255, .8), transparent 60%),
-    linear-gradient(160deg, #10061f 0%, #23073f 52%, #0a0415 100%);
-  background-size: 180% 180%, 180% 180%, 100% 100%;
-  box-shadow: 0 0 20px -2px var(--glow);
-}
-.ege-badge--dark-matter.ege-badge--live {
-  animation: ege-badge-drift 12s ease-in-out infinite;
-}
-.ege-badge--dark-matter .ege-badge__value { text-shadow: 0 0 10px rgba(190, 120, 255, .8); }
-@keyframes ege-badge-drift {
-  0%, 100% { background-position: 0% 0%,   100% 100%, 0 0; }
-  50%      { background-position: 100% 60%, 0% 40%,   0 0; }
-}
-
-/* --- where badges sit ----------------------------------------------------- */
 
 /* On a roster card: the box on the right, the words on the left. */
-.ege-badge--card { align-self: center; }
+.ege-ovrbox--card { align-self: center; }
 
 /* On a player page, where there is room for it to be the headline. */
-.ege-badge--page {
+.ege-ovrbox--page {
   width: 92px;
-  padding: 11px 8px 12px;
+  padding: 10px 8px 12px;
 }
-.ege-badge--page .ege-badge__value { font-size: 42px; }
-.ege-badge--page .ege-badge__label { font-size: 10px; }
+.ege-ovrbox--page .ege-ovrbox__value { font-size: 42px; }
 
-/* The slot that holds it, with the climb arrow beside rather than inside:
-   the badge has a moving ground and the arrow needs to stay readable. */
+/* The slot that holds it, with the climb arrow beside rather than inside. */
 .ege-ovrslot {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-top: 16px;
-}
-
-/* --- the swatch book -------------------------------------------------------
-
-   Admin only. Eight bands and a squad entirely inside the bottom one, so the
-   only way to know what a Galaxy Opal looks like is to draw one. */
-
-.ege-badgelab {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 22px 26px;
-  padding: 18px;
-  background: var(--fb-surface);
-  border: var(--fb-border-thin) solid var(--fb-ink);
-}
-.ege-badgelab__stage {
-  display: grid;
-  place-items: center;
-  /* Held at the size of the biggest badge, so dragging the slider does not
-     shuffle everything beside it. */
-  min-width: 92px;
-  min-height: 96px;
-}
-.ege-badgelab__dial {
-  flex: 1 1 260px;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.ege-badgelab__reading {
-  margin: 0;
-  font-family: var(--fb-font-display);
-  font-size: 22px;
-  line-height: 1.1;
-}
-.ege-badgelab__slider {
-  width: 100%;
-  accent-color: var(--fb-accent);
-}
-.ege-badgelab__number { width: 88px; }
-
-.ege-badgelab__all {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
-  gap: 14px;
-}
-
-/* Each swatch is a button, because pressing one is how you get the big badge
-   to that band. */
-.ege-swatch {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 12px 6px 10px;
-  background: var(--fb-cream);
-  border: var(--fb-border-thin) solid var(--fb-ink);
-  cursor: pointer;
-  color: var(--fb-ink);
-  text-align: center;
-}
-.ege-swatch:hover,
-.ege-swatch:focus-visible { background: var(--fb-tint-sage); }
-.ege-swatch__name {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-  line-height: 1.15;
-}
-.ege-swatch__range {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--fb-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Small enough that eight fit across, big enough to tell apart. */
-.ege-badge--swatch {
-  width: 62px;
-  padding: 7px 5px 8px;
-}
-.ege-badge--swatch .ege-badge__value { font-size: 26px; }
-.ege-badge--swatch .ege-badge__label { font-size: 8px; }
-
-@media (prefers-reduced-motion: reduce) {
-  .ege-badge::before,
-  .ege-badge--galaxy-opal.ege-badge--live,
-  .ege-badge--dark-matter.ege-badge--live { animation: none; }
 }
 
 /* --- player card -------------------------------------------------------- */
@@ -1828,27 +1560,18 @@ body {
   .ege-card__name { font-size: 21px; }
   .ege-card__text { gap: 6px; }
 
-  /* A narrower badge, because a sideways card has a photo, a name, a school
-     and a badge to fit across 390 points. The number is the only thing on it
-     that has to be read from across a room, so it keeps its size and the
-     eyebrow over it stays at the 11px floor the rest of this file uses. */
-  .ege-badge--card {
+  /* A narrower box, because a sideways card has a photo, a name, a school and
+     the overall to fit across 390 points. The number keeps its size -- it is
+     the only thing on there meant to be read at a glance -- and the word over
+     it stays at the 11px floor the rest of this file uses. */
+  .ege-ovrbox--card {
     width: 58px;
-    padding: 6px 4px 7px;
+    padding: 6px 4px 8px;
   }
-  .ege-badge--card .ege-badge__value { font-size: 27px; }
-  .ege-badge--card .ege-badge__label { font-size: 11px; }
+  .ege-ovrbox--card .ege-ovrbox__value { font-size: 27px; }
+  .ege-ovrbox--card .ege-ovrbox__label { font-size: 11px; letter-spacing: .1em; }
 
-  .ege-badge--page .ege-badge__label { font-size: 11px; }
-
-  /* The swatch book is admin-only, but the admin has a phone too. */
-  .ege-badge--swatch .ege-badge__label { font-size: 11px; }
-  .ege-badgelab__slider {
-    /* A range input is 16px of hit area by default, which is nothing to aim
-       a thumb at. The track keeps its own size; this is the box around it. */
-    height: 44px;
-  }
-  .ege-swatch { min-height: 44px; }
+  .ege-ovrbox--page .ege-ovrbox__label { font-size: 11px; }
 
   /* The jersey badge is pinned to a corner that is now much smaller. */
   .ege-card__jersey { transform: scale(.85); transform-origin: top left; }
