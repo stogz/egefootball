@@ -75,10 +75,10 @@ EGE.stats[2018] = {
         opponent: 'Franklinton', home: false, conference: false,
         result: { teamScore: 42, opponentScore: 7 }, booster: null,
         stats: {
-          receptions: 6, receivingYards: 56, receivingYac: 11,
-          receivingTd: 0, receivingLong: 20, targets: 8, carries: 0,
+          receptions: 6, receivingYards: 60, receivingYac: 8,
+          receivingTd: 0, receivingLong: 20, targets: 6, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 9.3, totalYards: 56, totalTd: 0
+          receivingAvg: 10, totalYards: 60, totalTd: 0
         } },
       { week:  8, date: '2018-10-05', kickoff: '7:00pm',
         opponent: 'Knightdale', home: false, conference: true,
@@ -422,7 +422,7 @@ EGE.stats[2018] = {
         } },
       { week:  6, date: '2018-09-21', kickoff: '7:00pm',
         opponent: 'Manual', home: false, conference: true,
-        result: { teamScore: 48, opponentScore: 8 }, booster: null,
+        result: { teamScore: 48, opponentScore: 3 }, booster: null,
         stats: {
           carries: 21, rushingYards: 118, rushingTd: 2, rushingLong: 14,
           receptions: 1, receivingYards: 10, receivingYac: 8,
@@ -498,7 +498,7 @@ EGE.stats[2018] = {
         } },
       { week:  6, date: '2018-09-21', kickoff: '7:30pm',
         opponent: 'Immokalee', home: true, conference: false, scouts: true,
-        result: { teamScore: 48, opponentScore: 17 }, booster: null,
+        result: { teamScore: 48, opponentScore: 7 }, booster: null,
         stats: {
           completions: 13, attempts: 18, passingYards: 173,
           passingYac: 53, passingTd: 2, interceptions: 1, carries: 3,
