@@ -459,28 +459,32 @@
         </div>
         <div class="fb-panel__body">
           <div class="ege-detail__top">
-            <div class="ege-detail__photo">
-              <img id="playerPhoto" src="" alt="">
+            <div class="ege-detail__figure">
+              <div class="ege-detail__photo">
+                <img id="playerPhoto" src="" alt="">
+              </div>
+              <!-- Under the player, the two facts about him that no season
+                   changes. Written in app.js from data/players.js. -->
+              <div class="ege-vitals" id="playerVitals"></div>
             </div>
+
             <div class="ege-detail__col">
               <div class="ege-school" id="playerSchool"></div>
               <h2 class="ege-detail__name" id="playerName"></h2>
-              <div class="fb-row fb-row--wrap" id="playerTags"></div>
 
-              <!-- The box itself is built in app.js, so the card and the page
-                   never disagree about it. The climb arrow rides beside it. -->
-              <div class="ege-ovrslot" id="playerOverall" hidden>
-                <span id="playerOverallBox"></span>
-                <span class="ege-ovr__climb" id="playerOverallClimb" hidden></span>
-              </div>
-
-              <dl class="ege-detail__list" style="margin-top: 18px;">
+              <dl class="ege-detail__list">
                 <dt>Season</dt><dd id="playerSeason"></dd>
                 <dt>Position</dt><dd id="playerPosition"></dd>
-                <dt>School</dt><dd id="playerSchoolRow"></dd>
                 <dt>League</dt><dd id="playerLeague"></dd>
                 <dt>Record</dt><dd id="playerRecord"></dd>
               </dl>
+            </div>
+
+            <!-- The box itself is built in app.js, so the card and the page
+                 never disagree about it. The climb sits under it. -->
+            <div class="ege-ovrslot" id="playerOverall" hidden>
+              <span id="playerOverallBox"></span>
+              <span class="ege-ovr__climb" id="playerOverallClimb" hidden></span>
             </div>
           </div>
         </div>

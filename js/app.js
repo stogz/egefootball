@@ -173,22 +173,13 @@
     document.getElementById('playerName').textContent = player.name;
     document.getElementById('playerSeason').textContent = seasonLabel(season);
     document.getElementById('playerPosition').textContent = player.position || TBD;
-    document.getElementById('playerSchoolRow').textContent = team ? team.school : TBD;
     document.getElementById('playerLeague').textContent = (team && team.league) || TBD;
 
     var record = EGE.recordFor(player, season);
     var played = EGE.gamesPlayed(player, season).length;
     document.getElementById('playerRecord').textContent = played ? record.text : '\u2014';
 
-    var tags = document.getElementById('playerTags');
-    tags.innerHTML = '';
-    if (player.position) {
-      tags.appendChild(el('span', 'fb-tag fb-tag--ink', player.position));
-    } else {
-      tags.appendChild(el('span', 'fb-tag fb-tag--outline', 'POS ' + TBD));
-    }
-    var year = (EGE.seasons.filter(function (s) { return s.year === season; })[0] || {});
-    if (year.class) { tags.appendChild(el('span', 'fb-tag fb-tag--gold', year.class)); }
+    renderVitals(player);
 
     var overall = EGE.overallFor(player);
     /* Not `overallBox`: that is the function above, and a local of the same
@@ -300,6 +291,28 @@
   window.addEventListener('resize', refitTally);
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(refitTally);
+  }
+
+  /* The two facts about a player that no season changes, under his picture.
+     Dark, like the overall box, because they belong to him rather than to
+     the year -- everything in the list beside them is about this season. */
+  function renderVitals(player) {
+    var box = document.getElementById('playerVitals');
+    box.innerHTML = '';
+
+    var shown = [
+      { label: 'Height', value: EGE.heightText(player) },
+      { label: 'Weight', value: EGE.weightText(player) }
+    ].filter(function (one) { return one.value; });
+
+    box.hidden = !shown.length;
+
+    shown.forEach(function (one) {
+      var cell = el('div', 'ege-vitals__cell');
+      cell.appendChild(el('span', 'ege-vitals__label', one.label));
+      cell.appendChild(el('span', 'ege-vitals__value', one.value));
+      box.appendChild(cell);
+    });
   }
 
   /* How far the shop has carried him. The base numbers in data/ratings.js are

@@ -144,12 +144,16 @@ body {
 }
 .ege-ovrbox--page .ege-ovrbox__value { font-size: 42px; }
 
-/* The slot that holds it, with the climb arrow beside rather than inside. */
+/* On a player page the box goes to the right of everything, the way it goes
+   to the right of the words on a roster card -- and the climb sits under it
+   rather than beside it, so the two read as one thing. */
 .ege-ovrslot {
+  flex: none;
+  margin-left: auto;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  margin-top: 16px;
+  gap: 8px;
 }
 
 /* Drawn once from the base ratings and again once everything bought has
@@ -283,12 +287,63 @@ body {
 /* Until the new file has decoded. The frame's own gradient shows through,
    which is better than the last player's face. */
 .ege-detail__photo img.is-loading { opacity: 0; }
+/* The picture and what is written under it, as one column. */
+.ege-detail__figure {
+  flex: none;
+  width: 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ege-detail__figure .ege-detail__photo { width: 100%; }
+
 .ege-detail__col { flex: 1 1 320px; min-width: 0; }
 .ege-detail__name {
   font-family: var(--fb-font-display);
-  font-size: clamp(30px, 5vw, 44px);
-  line-height: 1.05;
-  margin: 6px 0 10px;
+  font-size: clamp(36px, 6.2vw, 58px);
+  line-height: 1.02;
+  margin: 6px 0 16px;
+}
+
+/* --- height and weight --------------------------------------------------
+
+   The overall box's colours, because these belong to the player the way the
+   overall does -- everything in the list beside them is about this season
+   and these two are not. */
+
+.ege-vitals {
+  display: flex;
+  background: var(--fb-ink);
+  border: var(--fb-border) solid var(--fb-ink);
+  color: var(--fb-cream);
+}
+.ege-vitals__cell {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 9px 6px 11px;
+  text-align: center;
+}
+/* A hairline between the two, in the cream rather than in a new colour. */
+.ege-vitals__cell + .ege-vitals__cell {
+  border-left: var(--fb-border-thin) solid rgba(251, 244, 230, .22);
+}
+.ege-vitals__label {
+  /* 11px is the floor the mobile audit holds every label to. */
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--fb-accent);
+}
+.ege-vitals__value {
+  font-family: var(--fb-font-display);
+  font-size: 22px;
+  line-height: 1;
+  white-space: nowrap;
 }
 .ege-detail__list {
   margin: 0;
@@ -1375,7 +1430,6 @@ body {
 /* How far the shop has carried an overall, beside the number itself. */
 .ege-ovr__climb {
   display: inline-block;
-  margin-left: 8px;
   padding: 2px 7px;
   border: var(--fb-border-thin) solid var(--fb-ink);
   background: var(--fb-tint-sage);
