@@ -678,16 +678,31 @@ data/ratings.js     the ratings a locked season baked in
 stats/{year}.js     the season itself
 ```
 
-It fetches them with `cache: 'no-cache'`, which is *revalidate*, not
-re-download: unchanged, that is a 304 and a few hundred bytes; changed, it is
-the new file. `js/app.js` draws nothing until they land, because a first draw
-from an empty season would be wrong rather than late. Opened from a `file://`
-path, where a fetch is cross-origin and a script tag is not, it falls back to
-a tag with a cache-busting query.
+It writes them out as `<script>` tags with a cache-busting query, which is a
+different URL every load and therefore always a fetch.
+
+**Why `document.write`, of all things.** Because these have to be in place
+*before* `js/app.js` runs, exactly as they always were. `document.write` from
+a parser-blocking script inserts them into the parse stream at that point, so
+they execute in order and `js/app.js` still finds a fully loaded season the
+moment it starts.
+
+Fetching them instead and starting the app afterwards was the obvious move,
+and it was wrong: **a deploy is not atomic in a browser.** `index.html` is
+cached too, so for a while after a push a returning visitor runs one file old
+and one new. An `app.js` that waits on a loader the cached `index.html` never
+mentions dies on the spot, and so does a cached `app.js` that expects the
+season to already be there. Keeping the contract synchronous is what makes
+both halves of a half-applied deploy work — which is worth more than the
+304s the fetch would have won.
+
+The cost is that those three are re-downloaded rather than revalidated: about
+45KB a load today. Opened from a `file://` path the query is left off, because
+there is no cache to get past and a query on a file URL is a path that does
+not exist.
 
 Everything else — the code, the kit, the players, the shop — is still tagged
-in `index.html` the ordinary way. Those only change when a deploy does, and a
-deploy is a new `index.html` too.
+in `index.html` the ordinary way. Those only change when a deploy does.
 
 ### Nothing is out until you say so
 
@@ -949,9 +964,9 @@ Built so far:
 - `stats/{year}.js` — one per season: every fixture, and the score, stat line
   and booster for each once it has been played. Nothing else holds a schedule,
   and nothing else holds a stat.
-- `js/site-data.js` — the list of seasons, and the loader that fetches the
-  three files the admin regenerates past the browser cache, so a committed
-  correction is on the site rather than ten minutes behind it.
+- `js/site-data.js` — the list of seasons, and the tags it writes for the
+  three files the admin regenerates, cache-busted so a committed correction is
+  on the site rather than ten minutes behind it.
 - `data/games.js` — how everything else gets at those games, and the one place
   that decides what "played" means.
 - `data/statline.js` — what a stat line is: the columns each position is read
@@ -970,8 +985,8 @@ Built so far:
 No build step and no bundler: open `index.html` in a browser, or serve the
 folder with anything static. Data files are plain `<script>` globals rather than
 ES modules so the site also works straight off the filesystem — including the
-three that `js/site-data.js` fetches, which fall back to a script tag when
-there is no origin to fetch from. The only external dependency is supabase-js,
+three that `js/site-data.js` writes out, which drop their cache-busting query
+when there is no cache to get past. The only external dependency is supabase-js,
 loaded from a CDN.
 
 ### Connecting Supabase
