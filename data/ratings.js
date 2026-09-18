@@ -323,6 +323,41 @@ EGE.weightsFor = function (position) {
 };
 
 /* The overall: every group score, weighted by what the position asks for. */
+/* --- what an overall is called -------------------------------------------- */
+
+/* The badge a number earns. Eight of them, floor to ceiling, and every
+   number between 0 and 99 lands in exactly one -- the bands touch, so there
+   is no overall the site cannot name.
+
+   Unranked is the floor rather than a band of its own: 50-60 is where this
+   squad is today, but a junior year has no promise of a fifty, and a number
+   with nowhere to go is worse than a black badge.
+
+   `animated: false` on unranked only. The rest move, which is the point of
+   them -- a gold badge should look like something worth having. */
+EGE.tiers = [
+  { key: 'dark-matter',  label: 'Dark Matter',  from: 99, animated: true },
+  { key: 'galaxy-opal',  label: 'Galaxy Opal',  from: 98, animated: true },
+  { key: 'pink-diamond', label: 'Pink Diamond', from: 96, animated: true },
+  { key: 'diamond',      label: 'Diamond',      from: 90, animated: true },
+  { key: 'gold',         label: 'Gold',         from: 80, animated: true },
+  { key: 'silver',       label: 'Silver',       from: 70, animated: true },
+  { key: 'bronze',       label: 'Bronze',       from: 60, animated: true },
+  { key: 'unranked',     label: 'Unranked',     from: 0,  animated: false }
+];
+
+/* Highest band the number reaches. Null in, null out: a player with no
+   ratings has no badge rather than a black one.
+
+   Not `tierFor`: data/players.js already owns that name for the level a
+   season is played at -- high school, college, NFL -- and the shop reads it
+   to decide what is on sale. Two different `tier`s, so this one is named for
+   what it returns. */
+EGE.badgeFor = function (overall) {
+  if (typeof overall !== 'number') { return null; }
+  return EGE.tiers.filter(function (tier) { return overall >= tier.from; })[0] || null;
+};
+
 EGE.overallFor = function (player) {
   if (!player || !EGE.ratings[player.slug]) { return null; }
   var weights = EGE.weightsFor(player.position);

@@ -50,15 +50,10 @@
     <!-- ===== home: player select ====================================== -->
     <section id="view-home">
 
-      <header class="fb-hero" style="padding: 44px 0 30px;">
+      <header class="fb-hero fb-hero--centred" style="padding: 44px 0 30px;">
         <div class="fb-hero__col">
           <span class="fb-kicker">2018 &middot; Junior Year &middot; High School Varsity</span>
-          <h1 class="fb-hero__title" style="margin: 14px 0 12px;">Pick a Player</h1>
-          <p class="fb-hero__lede">
-            Six players, six seasons — 2018 junior year of high school through
-            their college careers to the 2023 NFL Draft. Choose one to open
-            their schedule, record, and game log.
-          </p>
+          <h1 class="fb-hero__title" style="margin: 14px 0 0;">EGE Football</h1>
         </div>
       </header>
 
@@ -472,9 +467,10 @@
               <h2 class="ege-detail__name" id="playerName"></h2>
               <div class="fb-row fb-row--wrap" id="playerTags"></div>
 
-              <div class="ege-ovr" id="playerOverall" hidden>
-                <span class="ege-ovr__label">Overall</span>
-                <span class="ege-ovr__value" id="playerOverallValue"></span>
+              <!-- The badge itself is built in app.js, so the tier only has to
+                   be decided in one place. The climb arrow rides beside it. -->
+              <div class="ege-ovrslot" id="playerOverall" hidden>
+                <span id="playerOverallBadge"></span>
                 <span class="ege-ovr__climb" id="playerOverallClimb" hidden></span>
               </div>
 

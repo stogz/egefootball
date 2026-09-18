@@ -54,6 +54,33 @@
     return line;
   }
 
+  /* --- the overall badge -------------------------------------------------- */
+
+  /* One element for every place an overall is shown, so a gold player is gold
+     on his card and gold on his page. The tier comes from data/ratings.js;
+     everything about how it looks is a class name and lives in site.css.
+
+     The sheen is three stacked layers rather than one gradient: a ground the
+     colour can never fall off, a moving band of light over it, and a highlight
+     on top. That is what makes gold read as metal rather than as yellow. */
+  function overallBadge(player, overall, modifier) {
+    var tier = EGE.badgeFor(overall);
+    if (!tier) { return null; }
+
+    var badge = el('div', 'ege-badge ege-badge--' + tier.key +
+      (tier.animated ? ' ege-badge--live' : '') + (modifier ? ' ' + modifier : ''));
+    badge.setAttribute('data-tier', tier.key);
+    badge.title = tier.label + ' \u2014 ' + overall + ' overall';
+
+    var face = el('span', 'ege-badge__face');
+    face.appendChild(el('span', 'ege-badge__label', 'OVR'));
+    face.appendChild(el('span', 'ege-badge__value', String(overall)));
+    face.appendChild(el('span', 'ege-badge__tier', tier.label));
+    badge.appendChild(face);
+
+    return badge;
+  }
+
   /* --- player cards ----------------------------------------------------- */
 
   function buildCard(player) {
@@ -71,9 +98,13 @@
     card.appendChild(photo);
 
     var body = el('div', 'ege-card__body');
-    body.appendChild(el('h3', 'ege-card__name', player.name));
-    body.appendChild(schoolLine(player));
-    body.appendChild(el('p', 'ege-card__league', team ? (team.league || 'League ' + TBD) : ''));
+
+    /* The words on the left, the badge on the right, so a column of cards
+       gives a column of badges to read down. */
+    var text = el('div', 'ege-card__text');
+    text.appendChild(el('h3', 'ege-card__name', player.name));
+    text.appendChild(schoolLine(player));
+    text.appendChild(el('p', 'ege-card__league', team ? (team.league || 'League ' + TBD) : ''));
 
     var tags = el('div', 'fb-row fb-row--wrap');
     if (player.position) {
@@ -82,22 +113,38 @@
       tags.appendChild(el('span', 'fb-tag fb-tag--outline', 'POS ' + TBD));
     }
     tags.appendChild(el('span', 'fb-tag fb-tag--gold', EGE.currentSeason));
+    text.appendChild(tags);
 
-    var overall = EGE.overallFor(player);
-    if (overall !== null) {
-      tags.appendChild(el('span', 'fb-tag fb-tag--num fb-tag--sage', 'OVR ' + overall));
-    }
-    body.appendChild(tags);
+    text.appendChild(el('span', 'ege-card__go', 'View player →'));
+    body.appendChild(text);
 
-    body.appendChild(el('span', 'ege-card__go', 'View player →'));
+    /* The number used to be a tag among the tags, which is not what an
+       overall is: it is the one thing you compare players on. */
+    var badge = overallBadge(player, EGE.overallFor(player), 'ege-badge--card');
+    if (badge) { body.appendChild(badge); }
+
     card.appendChild(body);
 
     return card;
   }
 
+  /* Best first, three across, so the top three are the top row. A player
+     with no ratings yet has no overall to be ranked on and goes last; names
+     break a tie, so the order never wobbles between two equal players. */
+  function byOverall(a, b) {
+    var left = EGE.overallFor(a);
+    var right = EGE.overallFor(b);
+    if (left === right) { return a.name.localeCompare(b.name); }
+    if (left === null) { return 1; }
+    if (right === null) { return -1; }
+    return right - left;
+  }
+
   function renderRoster() {
     var frag = document.createDocumentFragment();
-    EGE.players.forEach(function (player) { frag.appendChild(buildCard(player)); });
+    EGE.players.slice().sort(byOverall).forEach(function (player) {
+      frag.appendChild(buildCard(player));
+    });
     roster.appendChild(frag);
   }
 
@@ -141,7 +188,15 @@
     var overall = EGE.overallFor(player);
     var overallBox = document.getElementById('playerOverall');
     overallBox.hidden = overall === null;
-    document.getElementById('playerOverallValue').textContent = overall === null ? '' : overall;
+
+    /* The same badge the roster card carries, at the size a page can afford.
+       Redrawn rather than re-labelled, because the tier can change under a
+       player between two visits. */
+    var slot = document.getElementById('playerOverallBadge');
+    slot.innerHTML = '';
+    var badge = overallBadge(player, overall, 'ege-badge--page');
+    if (badge) { slot.appendChild(badge); }
+
     renderOverallClimb(player, overall);
 
     /* The line under the box says where the season is up to, which is a more
