@@ -128,8 +128,14 @@ body {
   line-height: .96;
 }
 
-/* On a roster card: the box on the right, the words on the left. */
-.ege-ovrbox--card { align-self: center; }
+/* On a roster card: the same width it always was, and as tall as the column
+   of words beside it -- top level with the name, bottom level with the way
+   in. The word and the number keep their own sizes and stay in the middle of
+   whatever height that comes to. */
+.ege-ovrbox--card {
+  align-self: stretch;
+  padding-block: 10px;
+}
 
 /* On a player page, where there is room for it to be the headline. */
 .ege-ovrbox--page {
@@ -146,19 +152,21 @@ body {
   margin-top: 16px;
 }
 
+/* Drawn once from the base ratings and again once everything bought has
+   landed, which can reorder it -- so the first draw is invisible and the
+   second is what anybody sees. It keeps its space either way, so nothing
+   under it moves when it arrives. */
+.ege-roster,
+.ege-ovrslot { transition: opacity .2s ease; }
+.ege-roster.is-waiting,
+.ege-ovrslot.is-waiting { opacity: 0; }
+
 /* --- player card -------------------------------------------------------- */
 
-/* The words on the left, the overall on the right, and nothing else on it.
-   A row rather than a column, so a grid of cards gives a column of numbers
-   you can read straight down. */
+/* The headshot across the top, the band under it. */
 .ege-card {
   display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  gap: 16px;
-  padding: 16px 18px;
-  /* Room for the overall box to sit in without the card closing around it. */
-  min-height: 132px;
+  flex-direction: column;
   background: var(--fb-cream);
   border: var(--fb-border) solid var(--fb-ink);
   box-shadow: var(--fb-shadow) var(--fb-shadow) 0 rgba(0, 0, 0, .35);
@@ -177,6 +185,43 @@ body {
   box-shadow: 3px 3px 0 rgba(0, 0, 0, .35);
 }
 
+/* Headshots are cutouts on a transparent ground, so the card supplies one. */
+.ege-card__photo {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-bottom: var(--fb-border) solid var(--fb-ink);
+  background: linear-gradient(165deg, var(--fb-tint-sage) 35%, var(--fb-tint-sage-2));
+  overflow: hidden;
+}
+.ege-card__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 18%;
+  display: block;
+}
+.ege-card__jersey {
+  position: absolute;
+  top: 0; left: 0;
+  background: var(--fb-ink);
+  color: var(--fb-cream);
+  font-family: var(--fb-font-display);
+  font-size: 18px;
+  padding: 4px 10px 5px;
+}
+
+/* The words on the left, the overall on the right. `stretch` is what makes
+   the box start level with the top of the name and end level with the bottom
+   of the way in -- it is as tall as the words beside it, whatever they come
+   to, rather than a fixed height that has to be guessed. */
+.ege-card__body {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 14px;
+  padding: 14px 16px 16px;
+  flex: 1;
+}
 .ege-card__text {
   display: flex;
   flex-direction: column;
@@ -233,7 +278,11 @@ body {
   object-fit: cover;
   object-position: center 18%;
   display: block;
+  transition: opacity .16s ease;
 }
+/* Until the new file has decoded. The frame's own gradient shows through,
+   which is better than the last player's face. */
+.ege-detail__photo img.is-loading { opacity: 0; }
 .ege-detail__col { flex: 1 1 320px; min-width: 0; }
 .ege-detail__name {
   font-family: var(--fb-font-display);
@@ -1500,18 +1549,34 @@ body {
   }
   .fb-hero__lede { font-size: 15px; }
 
-  /* --- the roster, on a phone ----------------------------------------------
+  /* --- the roster, turned sideways ----------------------------------------
 
-     The card is already a band rather than a portrait, so there is nothing to
-     turn on its side any more -- only a name to bring down and a box to bring
-     in, so the whole squad still fits in two screens. */
+     Six portrait cards is six screens of scrolling before anybody has picked
+     anyone. On its side, each player is a band you can read at a glance and
+     the whole squad fits in two. */
 
   .ege-card {
-    gap: 12px;
-    padding: 13px 14px;
-    min-height: 0;
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .ege-card__photo {
+    flex: 0 0 116px;
+    aspect-ratio: auto;
+    border-bottom: 0;
+    border-right: var(--fb-border) solid var(--fb-ink);
+  }
+  .ege-card__photo img { object-position: center 14%; }
+
+  .ege-card__body {
+    padding: 11px 13px 12px;
+    gap: 10px;
+    min-width: 0;
   }
   .ege-card__name { font-size: 21px; }
+
+  /* The jersey chip is pinned to a corner that is now much smaller. */
+  .ege-card__jersey { transform: scale(.85); transform-origin: top left; }
   .ege-card__text { gap: 6px; }
 
   /* A narrower box, because a name, a school and the overall have to fit

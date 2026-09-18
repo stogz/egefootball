@@ -71,26 +71,37 @@
 
   /* --- player cards ----------------------------------------------------- */
 
-  /* Four things, and the sketch has no room for a fifth: the name, the school
-     with its mark, the way in, and the overall in a box on the right.
+  /* The headshot across the top, and under it the name, the school with its
+     mark, the way in, and the overall in a box on the right.
 
-     No headshot, no league line, no position or season chip. They were all on
-     here and they are all one tap away on the player's own page -- what a
-     roster is for is telling six people apart and putting them in order, and
-     a name and a number do that on their own. */
+     No league line and no position or season chip: both are on the player's
+     own page, one tap away, and what a roster is for is telling six people
+     apart and putting them in order. */
   function buildCard(player) {
     var card = el('a', 'ege-card');
     card.href = '#' + player.slug;
 
+    var photo = el('div', 'ege-card__photo');
+    var img = el('img');
+    img.src = player.headshot;
+    img.alt = player.name;
+    img.loading = 'lazy';
+    photo.appendChild(img);
+    if (player.jersey) { photo.appendChild(el('span', 'ege-card__jersey', '#' + player.jersey)); }
+    card.appendChild(photo);
+
+    /* The words on the left, the overall on the right. */
+    var body = el('div', 'ege-card__body');
     var text = el('div', 'ege-card__text');
     text.appendChild(el('h3', 'ege-card__name', player.name));
     text.appendChild(schoolLine(player));
     text.appendChild(el('span', 'ege-card__go', 'View player →'));
-    card.appendChild(text);
+    body.appendChild(text);
 
     var box = overallBox(EGE.overallFor(player), 'ege-ovrbox--card');
-    if (box) { card.appendChild(box); }
+    if (box) { body.appendChild(box); }
 
+    card.appendChild(body);
     return card;
   }
 
@@ -114,6 +125,36 @@
     roster.appendChild(frag);
   }
 
+  /* One <img> is reused for every player, and a browser keeps painting the
+     file it already has until the new one has decoded -- so for an instant
+     after clicking a player you are still looking at the one you left.
+
+     Hiding it until the new file is ready shows the empty frame instead,
+     which is at least not somebody else's face. A file already in the cache
+     is ready in the same tick and never blinks, so this costs nothing on the
+     second visit to a player. */
+  function showPhoto(img, src, alt) {
+    img.alt = alt;
+    if (img.getAttribute('src') === src) { return; }
+
+    /* Ask a throwaway first. A file the browser already holds is complete the
+       moment it is asked for, and swapping to it is instantaneous -- hiding
+       and fading that one in would be a flicker of its own, put there by the
+       code meant to remove one. Every headshot is on the roster, so in
+       practice this is the path nearly every click takes. */
+    var probe = new Image();
+    probe.src = src;
+    if (probe.complete) {
+      img.classList.remove('is-loading');
+      img.src = src;
+      return;
+    }
+
+    img.classList.add('is-loading');
+    img.onload = img.onerror = function () { img.classList.remove('is-loading'); };
+    img.src = src;
+  }
+
   /* --- player view ------------------------------------------------------ */
 
   function renderPlayer(player, keepSeason) {
@@ -123,9 +164,7 @@
 
     document.getElementById('playerStripLabel').textContent = seasonLabel(season);
 
-    var photo = document.getElementById('playerPhoto');
-    photo.src = player.headshot;
-    photo.alt = player.name;
+    showPhoto(document.getElementById('playerPhoto'), player.headshot, player.name);
 
     var school = document.getElementById('playerSchool');
     school.innerHTML = '';
@@ -2349,7 +2388,26 @@
     EGE.wallet.loadBoosts()
   ]).then(function () {
     redrawRatings();
+    settle();
   });
+
+  /* The roster is drawn twice on every load: once from the base ratings,
+     because the page cannot wait for a round trip before it has anything on
+     it, and again a moment later with everything bought folded in. The second
+     draw can reorder the cards, and that reshuffle is the flicker.
+
+     So the first draw is done with the roster transparent. It still takes up
+     its space, so nothing moves under it, and it fades in once the numbers it
+     is sorted by are the real ones. Both promises resolve even when Supabase
+     cannot be reached, so this can never sit there hidden. */
+  function settle() {
+    roster.classList.remove('is-waiting');
+    document.getElementById('playerOverall').classList.remove('is-waiting');
+  }
+
+  /* A slow network should not mean a blank page for ever, whatever happens
+     to those two promises. */
+  window.setTimeout(settle, 4000);
 
   EGE.auth.onChange(function (player) {
     if (player) {
@@ -2511,6 +2569,9 @@
   }
 
   /* --- go --------------------------------------------------------------- */
+
+  roster.classList.add('is-waiting');
+  document.getElementById('playerOverall').classList.add('is-waiting');
 
   renderRoster();
   renderInstallGuide();
