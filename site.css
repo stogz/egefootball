@@ -345,6 +345,15 @@ body {
    the fours. No cell is positioned, so a row of four that has to get narrower
    on a phone takes the rows of three with it and the pattern holds. */
 
+/* The band it sits in: the panel's own foot, which already carries the kit's
+   3px rule across the top of it. Dark, like the overall box, so the ten
+   numbers read as the panel's own footer rather than as more of the page. */
+.ege-tallybar {
+  display: block;
+  padding: 20px 18px 22px;
+  background: var(--fb-ink);
+}
+
 .ege-tally {
   --tally-gap: 12px;
   /* One width for every cell in every row, which is what the stagger rests
@@ -358,15 +367,12 @@ body {
      passing a spill check. The type is sized below and corrected in app.js
      against what actually rendered. */
   --tally-cell: calc((100% - 3 * var(--tally-gap)) / 4);
-  --tally-max: 30px;
+  --tally-max: 40px;
 
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 16px;
-  margin-top: 26px;
-  padding-top: 24px;
-  border-top: var(--fb-border-thin) solid rgba(29, 36, 22, .18);
+  gap: 18px;
 }
 
 .ege-tally__row {
@@ -389,6 +395,7 @@ body {
    ten at the same size as the others. */
 .ege-tally__value {
   font-family: var(--fb-font-display);
+  color: var(--fb-cream);
   /* As big as the design allows, and then `--tally-fit` brings it down if the
      widest of the ten does not fit the cell it is in -- which app.js works
      out by measuring the text that actually rendered. Nothing here can know
@@ -402,23 +409,25 @@ body {
 /* And the body face under it, small enough to read as a caption on the
    number rather than as a second number. */
 .ege-tally__label {
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: .12em;
   text-transform: uppercase;
-  color: var(--fb-muted);
+  color: var(--fb-accent);
 }
 
 /* Four cells across a phone leaves each of them about 75px, which is not
    enough for a 30px number with four digits in it. The ceiling comes down
    and app.js still brings it further where it has to. */
 @media (max-width: 620px) {
+  .ege-tallybar { padding: 15px 14px 17px; }
   .ege-tally {
     --tally-gap: 8px;
-    --tally-max: 26px;
+    /* A ceiling, not a size: four cells across 390 points is about 75 each,
+       and app.js brings anything that will not fit one down from here. */
+    --tally-max: 30px;
     gap: 13px;
   }
-  /* The floor the rest of this stylesheet holds small type to. */
   .ege-tally__label { font-size: 11px; letter-spacing: .06em; }
 }
 

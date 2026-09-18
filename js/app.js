@@ -206,18 +206,6 @@
 
     renderTally(player, season);
 
-    /* The line under the box says where the season is up to, which is a more
-       useful thing than a promise that stats are coming. */
-    var games = EGE.gamesFor(player, season);
-    var done = EGE.gamesPlayed(player, season).length;
-    document.getElementById('playerFootNote').textContent = !games.length
-      ? 'No schedule for ' + season + ' yet.'
-      : (done
-          ? done + ' of ' + games.length + ' games played. ' +
-            (window.matchMedia && window.matchMedia('(hover: none)').matches ? 'Tap' : 'Click') +
-            ' a week on the schedule for the stat line.'
-          : 'None of the ' + games.length + ' games have been posted yet.');
-
     fillPlayerSeasons(player);
     renderSchedule(player);
     renderGameLog(player);
@@ -240,8 +228,11 @@
     var tally = document.getElementById('playerTally');
     tally.innerHTML = '';
 
+    /* The bar goes with it: an empty dark band under the panel says nothing
+       and looks like a mistake. What the season is up to is on the schedule
+       below either way. */
     var played = EGE.gamesPlayed(player, season);
-    tally.hidden = !played.length;
+    document.getElementById('playerTallyBar').hidden = !played.length;
     if (!played.length) { return; }
 
     var totals = EGE.statline.totalLine(player.position, played.map(function (game) {
@@ -302,8 +293,8 @@
      the first measurement is of the fallback face, and Caprasimo is not the
      same width. */
   function refitTally() {
-    var tally = document.getElementById('playerTally');
-    if (tally && !tally.hidden) { fitTally(tally); }
+    var bar = document.getElementById('playerTallyBar');
+    if (bar && !bar.hidden) { fitTally(document.getElementById('playerTally')); }
   }
 
   window.addEventListener('resize', refitTally);
