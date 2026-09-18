@@ -358,6 +358,17 @@ EGE.badgeFor = function (overall) {
   return EGE.tiers.filter(function (tier) { return overall >= tier.from; })[0] || null;
 };
 
+/* The band in words -- "60-69", "98", "under 60". Worked out from where the
+   next band starts rather than written down twice, so moving a boundary in
+   the table above moves what is printed about it. */
+EGE.badgeRange = function (tier) {
+  if (!tier) { return ''; }
+  var above = EGE.tiers.filter(function (other) { return other.from > tier.from; });
+  var ceiling = above.length ? above[above.length - 1].from - 1 : 99;
+  if (tier.from === 0) { return 'under ' + (ceiling + 1); }
+  return tier.from === ceiling ? String(tier.from) : tier.from + '\u2013' + ceiling;
+};
+
 EGE.overallFor = function (player) {
   if (!player || !EGE.ratings[player.slug]) { return null; }
   var weights = EGE.weightsFor(player.position);
