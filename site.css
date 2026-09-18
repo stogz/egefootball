@@ -346,12 +346,11 @@ body {
    on a phone takes the rows of three with it and the pattern holds. */
 
 /* The band it sits in: the panel's own foot, which already carries the kit's
-   3px rule across the top of it. Dark, like the overall box, so the ten
-   numbers read as the panel's own footer rather than as more of the page. */
+   3px rule across the top of it. The panel's own ground, so that rule is the
+   only thing between the ten numbers and what is above them. */
 .ege-tallybar {
   display: block;
-  padding: 20px 18px 22px;
-  background: var(--fb-ink);
+  padding: 18px 18px 20px;
 }
 
 .ege-tally {
@@ -369,11 +368,24 @@ body {
   --tally-cell: calc((100% - 3 * var(--tally-gap)) / 4);
   --tally-max: 40px;
 
+  /* Negative: the rows tuck into each other rather than stacking clear of
+     each other. They can, because they are staggered -- the numbers of one
+     row sit in the horizontal gaps of the next, so the blocks overlap and
+     the text never does.
+
+     18px, where 20 is where the first pair of words touch at any width from
+     621 up and 24 collides at nearly all of them. The margin is for
+     Caprasimo: it arrives after this file does, and it is not the same
+     height as the face these were measured in. */
+  --tally-lift: -18px;
+
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 18px;
+  gap: 0;
 }
+
+.ege-tally__row + .ege-tally__row { margin-top: var(--tally-lift); }
 
 .ege-tally__row {
   display: flex;
@@ -395,7 +407,7 @@ body {
    ten at the same size as the others. */
 .ege-tally__value {
   font-family: var(--fb-font-display);
-  color: var(--fb-cream);
+  color: var(--fb-ink);
   /* As big as the design allows, and then `--tally-fit` brings it down if the
      widest of the ten does not fit the cell it is in -- which app.js works
      out by measuring the text that actually rendered. Nothing here can know
@@ -413,20 +425,24 @@ body {
   font-weight: 800;
   letter-spacing: .12em;
   text-transform: uppercase;
-  color: var(--fb-accent);
+  /* The deep orange rather than the bright one: this is small text on a light
+     ground now, which is what --fb-accent-deep is for. */
+  color: var(--fb-accent-deep);
 }
 
 /* Four cells across a phone leaves each of them about 75px, which is not
    enough for a 30px number with four digits in it. The ceiling comes down
    and app.js still brings it further where it has to. */
 @media (max-width: 620px) {
-  .ege-tallybar { padding: 15px 14px 17px; }
+  .ege-tallybar { padding: 14px 14px 16px; }
   .ege-tally {
     --tally-gap: 8px;
     /* A ceiling, not a size: four cells across 390 points is about 75 each,
        and app.js brings anything that will not fit one down from here. */
     --tally-max: 30px;
-    gap: 13px;
+    /* Positive here. A 75px cell leaves the rows no horizontal room to pass
+       each other in, so anything less than clear is a collision. */
+    --tally-lift: 8px;
   }
   .ege-tally__label { font-size: 11px; letter-spacing: .06em; }
 }
