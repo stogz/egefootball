@@ -261,12 +261,12 @@ EGE.stats[2018] = {
         } },
       { week:  7, date: '2018-09-28', kickoff: '7:00pm',
         opponent: 'Normal Community', home: true, conference: true, scouts: true,
-        result: { teamScore: 28, opponentScore: 49 }, booster: null,
+        result: { teamScore: 40, opponentScore: 38 }, booster: null,
         stats: {
-          receptions: 3, receivingYards: 66, receivingYac: 25,
-          receivingTd: 1, receivingLong: 36, targets: 4, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 1,
-          receivingAvg: 22, totalYards: 66, totalTd: 1
+          receptions: 14, receivingYards: 209, receivingYac: 52,
+          receivingTd: 3, receivingLong: 63, targets: 16, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 14.9, totalYards: 209, totalTd: 3
         } },
       { week:  8, date: '2018-10-05', kickoff: '7:00pm',
         opponent: 'Peoria Notre Dame', home: true, conference: true,
@@ -346,12 +346,12 @@ EGE.stats[2018] = {
         } },
       { week:  7, date: '2018-09-28', kickoff: '7:00pm',
         opponent: 'Normal Community', home: true, conference: true, scouts: true,
-        result: { teamScore: 28, opponentScore: 49 }, booster: null,
+        result: { teamScore: 40, opponentScore: 38 }, booster: null,
         stats: {
-          completions: 10, attempts: 17, passingYards: 152,
-          passingYac: 40, passingTd: 2, interceptions: 1, carries: 2,
-          rushingYards: 9, rushingTd: 0, rushingLong: 9, sacks: 1,
-          fumbles: 0, passingAvg: 15.2, rating: 103.1, rushingAvg: 4.5
+          completions: 22, attempts: 32, passingYards: 297,
+          passingYac: 40, passingTd: 4, interceptions: 3, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, sacks: 1,
+          fumbles: 0, passingAvg: 13.5, rating: 98.6
         } },
       { week:  8, date: '2018-10-05', kickoff: '7:00pm',
         opponent: 'Peoria Notre Dame', home: true, conference: true,
@@ -431,12 +431,12 @@ EGE.stats[2018] = {
         } },
       { week:  7, date: '2018-09-28', kickoff: '7:00pm',
         opponent: 'Bloomington', home: false, conference: true, scouts: true,
-        result: { teamScore: 49, opponentScore: 28 }, booster: null,
+        result: { teamScore: 38, opponentScore: 40 }, booster: null,
         stats: {
-          carries: 16, rushingYards: 69, rushingTd: 1, rushingLong: 16,
-          receptions: 2, receivingYards: 10, receivingYac: 8,
-          receivingTd: 1, receivingLong: 10, targets: 3, fumbles: 0,
-          rushingAvg: 4.3, receivingAvg: 5, totalYards: 79, totalTd: 2
+          carries: 24, rushingYards: 183, rushingTd: 2, rushingLong: 56,
+          receptions: 4, receivingYards: 19, receivingYac: 8,
+          receivingTd: 1, receivingLong: 10, targets: 5, fumbles: 0,
+          rushingAvg: 7.6, receivingAvg: 4.8, totalYards: 202, totalTd: 3
         } },
       { week:  8, date: '2018-10-05', kickoff: '7:00pm',
         opponent: 'Danville', home: true, conference: true,
