@@ -133,6 +133,52 @@ EGE.statline = (function () {
     return LINES[position] || LINES.WR;
   }
 
+  /* --- the ten a season is remembered by ----------------------------------
+
+     The whole line is fifteen columns wide, which is a table. Ten of them is
+     a thing you can look at, and ten is what a staggered three-four-three
+     grid holds. Named by key, and read back out of lineFor, so a headline
+     number and the same number in the game log can never be two different
+     opinions -- change a label or how a column totals and both move.
+
+     The order is the order they are laid out in: the first three across the
+     top, the next four across the middle, the last three across the bottom.
+     What a position is judged on goes at the top.
+
+     No LNG for a back: rushingLong and receivingLong are both labelled LNG,
+     and two cells reading LNG side by side with different numbers under them
+     is worse than leaving both out. */
+  var HEADLINES = {
+    QB: ['completions', 'passingYards', 'passingTd',
+         'interceptions', 'rating', 'passingAvg', 'sacks',
+         'carries', 'rushingYards', 'rushingTd'],
+
+    RB: ['totalYards', 'totalTd', 'carries',
+         'rushingYards', 'rushingAvg', 'rushingTd', 'receptions',
+         'receivingYards', 'receivingTd', 'fumbles'],
+
+    TE: ['totalYards', 'totalTd', 'receptions',
+         'receivingYards', 'receivingAvg', 'receivingTd', 'targets',
+         'receivingYac', 'receivingLong', 'fumbles']
+  };
+  HEADLINES.WR = HEADLINES.TE;
+
+  /* How many go on each row, top to bottom. Three between four between three
+     is what makes the rows sit offset from each other. */
+  var HEADLINE_ROWS = [3, 4, 3];
+
+  /* The ten columns themselves, in order. A key that is not a column of this
+     position's line is dropped rather than drawn empty -- which cannot happen
+     with the table above, and would be a silent hole if it ever did. */
+  function headlineFor(position) {
+    var line = lineFor(position);
+    var wanted = HEADLINES[position] || HEADLINES.WR;
+
+    return wanted.map(function (key) {
+      return line.filter(function (column) { return column.key === key; })[0];
+    }).filter(Boolean);
+  }
+
   /* Where one column covers two numbers, what each of them is called on its
      own — C/ATT is one column but two things to type, and two fields in a
      Discord post. */
@@ -235,6 +281,8 @@ EGE.statline = (function () {
 
   return {
     lineFor: lineFor,
+    headlineFor: headlineFor,
+    HEADLINE_ROWS: HEADLINE_ROWS,
     keysFor: keysFor,
     labelFor: labelFor,
     fieldsFor: fieldsFor,

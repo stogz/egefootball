@@ -204,6 +204,8 @@
 
     renderOverallClimb(player, overall);
 
+    renderTally(player, season);
+
     /* The line under the box says where the season is up to, which is a more
        useful thing than a promise that stats are coming. */
     var games = EGE.gamesFor(player, season);
@@ -220,6 +222,96 @@
     renderSchedule(player);
     renderGameLog(player);
     renderRatings(player);
+  }
+
+  /* --- the season, at a glance --------------------------------------------
+
+     Ten numbers in three rows, three across then four then three. Every row
+     is centred and every cell is the same width, which is the whole trick:
+     four cells are one half-cell wider at each end than three, so the threes
+     land exactly between the fours without a single position being written
+     down anywhere.
+
+     The numbers are the season's totals over the games that have been
+     published -- the same totals the game log foots with, from the same
+     columns, so the two can never disagree. Nothing private is in here: a
+     stat line belongs to whoever is reading it. */
+  function renderTally(player, season) {
+    var tally = document.getElementById('playerTally');
+    tally.innerHTML = '';
+
+    var played = EGE.gamesPlayed(player, season);
+    tally.hidden = !played.length;
+    if (!played.length) { return; }
+
+    var totals = EGE.statline.totalLine(player.position, played.map(function (game) {
+      return EGE.statline.complete(player.position, game.stats);
+    }));
+
+    var cells = EGE.statline.headlineFor(player.position);
+    var at = 0;
+    var longest = 1;
+
+    EGE.statline.HEADLINE_ROWS.forEach(function (howMany) {
+      var row = el('div', 'ege-tally__row');
+
+      cells.slice(at, at + howMany).forEach(function (column) {
+        var shown = EGE.statline.show(totals.columns[column.key]);
+
+        var cell = el('div', 'ege-tally__cell');
+        cell.title = column.title;
+
+        longest = Math.max(longest, shown.length);
+        cell.appendChild(el('span', 'ege-tally__value', shown));
+
+        cell.appendChild(el('span', 'ege-tally__label', column.label));
+        row.appendChild(cell);
+      });
+
+      at += howMany;
+      tally.appendChild(row);
+    });
+
+    /* The longest of the ten decides the size of all ten, so the grid reads
+       as one set of numbers rather than ten unrelated ones. */
+    tally.style.setProperty('--chars', String(longest));
+    fitTally(tally);
+  }
+
+  /* The stylesheet can only guess at how wide ten numbers will come out: that
+     depends on the font, and Caprasimo is still on its way down when the
+     first draw happens. So the guess is measured and corrected here, against
+     the text that actually rendered in whatever font actually loaded.
+
+     One correction for the whole grid, from the worst cell, so they all stay
+     the same size. */
+  function fitTally(tally) {
+    tally.style.removeProperty('--tally-fit');
+
+    var worst = 1;
+    Array.prototype.forEach.call(
+      tally.querySelectorAll('.ege-tally__cell'),
+      function (cell) {
+        var room = cell.getBoundingClientRect().width;
+        var need = cell.querySelector('.ege-tally__value').getBoundingClientRect().width;
+        if (room > 0 && need > room) { worst = Math.max(worst, need / room); }
+      }
+    );
+
+    if (worst > 1) { tally.style.setProperty('--tally-fit', String(1 / worst)); }
+  }
+
+  /* Re-measured when the width changes, and again when the webfont lands --
+     the first measurement is of the fallback face, and Caprasimo is not the
+     same width. */
+  function refitTally() {
+    var tally = document.getElementById('playerTally');
+    if (tally && !tally.hidden) { fitTally(tally); }
+  }
+
+  window.addEventListener('resize', refitTally);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(refitTally);
   }
 
   /* How far the shop has carried him. The base numbers in data/ratings.js are

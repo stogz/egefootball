@@ -337,6 +337,97 @@ body {
 }
 
 
+/* --- the season, at a glance ------------------------------------------------
+
+   Three across, then four, then three, with every row centred and every cell
+   the same width. That is all the stagger is: four cells are one half-cell
+   wider at each end than three, so the threes come to rest exactly between
+   the fours. No cell is positioned, so a row of four that has to get narrower
+   on a phone takes the rows of three with it and the pattern holds. */
+
+.ege-tally {
+  --tally-gap: 10px;
+  /* One width for every cell in every row, which is what the stagger rests
+     on. Kept in plain pixels rather than worked out from the container:
+     the same value sets the type size below, and a percentage inside a
+     font-size resolves against the parent font rather than the width, which
+     silently floors every number in the grid. */
+  --tally-cell: 92px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
+  margin-top: 26px;
+  padding-top: 24px;
+  border-top: var(--fb-border-thin) solid rgba(29, 36, 22, .18);
+}
+
+.ege-tally__row {
+  display: flex;
+  justify-content: center;
+  gap: var(--tally-gap);
+}
+
+.ege-tally__cell {
+  width: var(--tally-cell);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  text-align: center;
+}
+
+/* The display face, at the size the overall box uses -- unless something in
+   the set is too long to wear it, and then they all come down together.
+
+   `--chars` is the longest value in this tally, set once in app.js. Sizing
+   each cell to its own contents was the obvious thing and it looked wrong:
+   120/228 beside 21 at two different sizes reads as a mistake rather than as
+   a design. Ten numbers in a grid are one thing, so they are one size.
+
+   Widths, not breakpoints -- the same sum answers for a 92px cell on a
+   desktop and a 65px one on an iPhone SE. */
+.ege-tally {
+  --chars: 3;
+}
+.ege-tally__value {
+  font-family: var(--fb-font-display);
+  /* The starting guess, and then `--tally-fit` is what app.js multiplies it
+     by once it has measured the text that actually rendered. A guess is all
+     this can be on its own: how wide a digit is depends on the font, and
+     Caprasimo arrives over the network long after this stylesheet does. */
+  font-size: calc(
+    clamp(12px, calc(var(--tally-cell) / var(--chars) * 1.6), 30px)
+    * var(--tally-fit, 1)
+  );
+  line-height: .95;
+  white-space: nowrap;
+}
+
+/* And the body face under it, small enough to read as a caption on the
+   number rather than as a second number. */
+.ege-tally__label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-muted);
+}
+
+/* A row of four at 92px is 398px across, which is wider than a phone. This is
+   the one number that has to come down, and everything else follows it --
+   the cells, the stagger and the type all read from it. */
+@media (max-width: 620px) {
+  .ege-tally {
+    --tally-cell: 64px;
+    --tally-gap: 8px;
+    gap: 13px;
+  }
+  /* The floor the rest of this stylesheet holds small type to. */
+  .ege-tally__label { font-size: 11px; letter-spacing: .06em; }
+}
+
 /* --- credits in the nav ------------------------------------------------- */
 
 .ege-credits {
