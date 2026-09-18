@@ -250,7 +250,6 @@
 
     var cells = EGE.statline.headlineFor(player.position);
     var at = 0;
-    var longest = 1;
 
     EGE.statline.HEADLINE_ROWS.forEach(function (howMany) {
       var row = el('div', 'ege-tally__row');
@@ -261,7 +260,6 @@
         var cell = el('div', 'ege-tally__cell');
         cell.title = column.title;
 
-        longest = Math.max(longest, shown.length);
         cell.appendChild(el('span', 'ege-tally__value', shown));
 
         cell.appendChild(el('span', 'ege-tally__label', column.label));
@@ -272,19 +270,18 @@
       tally.appendChild(row);
     });
 
-    /* The longest of the ten decides the size of all ten, so the grid reads
-       as one set of numbers rather than ten unrelated ones. */
-    tally.style.setProperty('--chars', String(longest));
     fitTally(tally);
   }
 
-  /* The stylesheet can only guess at how wide ten numbers will come out: that
-     depends on the font, and Caprasimo is still on its way down when the
-     first draw happens. So the guess is measured and corrected here, against
-     the text that actually rendered in whatever font actually loaded.
+  /* The stylesheet asks for the biggest number the design allows. Whether it
+     fits depends on how wide a digit is, which depends on the font, and
+     Caprasimo is still on its way down when the first draw happens -- so it
+     is measured here, against the text that actually rendered.
 
-     One correction for the whole grid, from the worst cell, so they all stay
-     the same size. */
+     One correction for the whole grid, taken from the worst cell, so the ten
+     stay the same size as each other. Sizing each to its own length was the
+     obvious thing and it looked wrong: 120/228 beside 21 at two different
+     sizes reads as a mistake rather than as a design. */
   function fitTally(tally) {
     tally.style.removeProperty('--tally-fit');
 
