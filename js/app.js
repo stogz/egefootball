@@ -157,9 +157,8 @@
 
   /* --- player view ------------------------------------------------------ */
 
-  function renderPlayer(player, keepSeason) {
+  function renderPlayer(player) {
     var team = EGE.teamFor(player);
-    if (!keepSeason) { viewSeason = null; }
     var season = shownSeason();
 
     document.getElementById('playerStripLabel').textContent = seasonLabel(season);
@@ -171,7 +170,9 @@
     school.appendChild(schoolLine(player, 'ege-school--lg'));
 
     document.getElementById('playerName').textContent = player.name;
-    document.getElementById('playerSeason').textContent = seasonLabel(season);
+    /* The year on its own. Which class and which level it is are already
+       across the strip at the top of the panel, in full. */
+    document.getElementById('playerSeason').textContent = String(season);
     document.getElementById('playerPosition').textContent = player.position || TBD;
     document.getElementById('playerLeague').textContent = (team && team.league) || TBD;
 
@@ -180,24 +181,8 @@
     document.getElementById('playerRecord').textContent = played ? record.text : '\u2014';
 
     renderVitals(player);
-
-    var overall = EGE.overallFor(player);
-    /* Not `overallBox`: that is the function above, and a local of the same
-       name shadows it three lines later. */
-    var overallWrap = document.getElementById('playerOverall');
-    overallWrap.hidden = overall === null;
-
-    /* The same box the roster card carries, at the size a page can afford. */
-    var slot = document.getElementById('playerOverallBox');
-    slot.innerHTML = '';
-    var box = overallBox(overall, 'ege-ovrbox--page');
-    if (box) { slot.appendChild(box); }
-
-    renderOverallClimb(player, overall);
-
     renderTally(player, season);
 
-    fillPlayerSeasons(player);
     renderSchedule(player);
     renderGameLog(player);
     renderRatings(player);
@@ -205,11 +190,11 @@
 
   /* --- the season, at a glance --------------------------------------------
 
-     Ten numbers in three rows, three across then four then three. Every row
-     is centred and every cell is the same width, which is the whole trick:
-     four cells are one half-cell wider at each end than three, so the threes
-     land exactly between the fours without a single position being written
-     down anywhere.
+     Ten numbers on one rule-ruled strip: ten across where there is room for
+     it, five and five on anything narrower. Every cell is the same width as
+     every other, the numbers all sit on one baseline, and a hairline between
+     them says where one stat ends and the next begins. The layout is CSS's
+     alone -- this only says which ten and in what order.
 
      The numbers are the season's totals over the games that have been
      published -- the same totals the game log foots with, from the same
@@ -230,26 +215,13 @@
       return EGE.statline.complete(player.position, game.stats);
     }));
 
-    var cells = EGE.statline.headlineFor(player.position);
-    var at = 0;
-
-    EGE.statline.HEADLINE_ROWS.forEach(function (howMany) {
-      var row = el('div', 'ege-tally__row');
-
-      cells.slice(at, at + howMany).forEach(function (column) {
-        var shown = EGE.statline.show(totals.columns[column.key]);
-
-        var cell = el('div', 'ege-tally__cell');
-        cell.title = column.title;
-
-        cell.appendChild(el('span', 'ege-tally__value', shown));
-
-        cell.appendChild(el('span', 'ege-tally__label', column.label));
-        row.appendChild(cell);
-      });
-
-      at += howMany;
-      tally.appendChild(row);
+    EGE.statline.headlineFor(player.position).forEach(function (column) {
+      var cell = el('div', 'ege-tally__cell');
+      cell.title = column.title;
+      cell.appendChild(el('span', 'ege-tally__value',
+        EGE.statline.show(totals.columns[column.key])));
+      cell.appendChild(el('span', 'ege-tally__label', column.label));
+      tally.appendChild(cell);
     });
 
     fitTally(tally);
@@ -271,7 +243,12 @@
     Array.prototype.forEach.call(
       tally.querySelectorAll('.ege-tally__cell'),
       function (cell) {
-        var room = cell.getBoundingClientRect().width;
+        /* The content box, not the border box: the cell's padding is what
+           keeps a long number off the hairline beside it, and measuring
+           against the outside would let it sit right on the rule. */
+        var pad = window.getComputedStyle(cell);
+        var room = cell.getBoundingClientRect().width
+          - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight);
         var need = cell.querySelector('.ege-tally__value').getBoundingClientRect().width;
         if (room > 0 && need > room) { worst = Math.max(worst, need / room); }
       }
@@ -315,51 +292,6 @@
     });
   }
 
-  /* How far the shop has carried him. The base numbers in data/ratings.js are
-     where the season started; the difference is what he has bought since, and
-     it goes beside the overall as an arrow rather than as another panel
-     nobody scrolls to. */
-  function renderOverallClimb(player, overall) {
-    var climb = document.getElementById('playerOverallClimb');
-    var boosts = EGE.boostsFor(player);
-
-    if (overall === null || !Object.keys(boosts).length) {
-      climb.hidden = true;
-      return;
-    }
-
-    var was = EGE.exports.baseOverall(player);
-    var moved = overall - was;
-
-    climb.hidden = !moved;
-    if (!moved) { return; }
-
-    climb.textContent = (moved > 0 ? '\u25b2 +' : '\u25bc ') + moved;
-    climb.className = 'ege-ovr__climb' + (moved > 0 ? '' : ' ege-ovr__climb--down');
-    climb.title = 'Started the season at ' + was + '. ' +
-      (moved > 0 ? 'Up ' + moved : 'Down ' + Math.abs(moved)) + ' from the shop.';
-  }
-
-  /* The seasons this player has a schedule for. One of them and the picker
-     stays out of the way. */
-  function fillPlayerSeasons(player) {
-    var pick = document.getElementById('playerSeasonPick');
-    var seasons = EGE.seasonsPlayed().filter(function (year) {
-      return EGE.gamesFor(player, year).length;
-    });
-
-    pick.innerHTML = '';
-    seasons.forEach(function (year) {
-      var option = el('option', null, String(year));
-      option.value = year;
-      pick.appendChild(option);
-    });
-
-    var showing = seasons.indexOf(shownSeason()) === -1 ? seasons[seasons.length - 1] : shownSeason();
-    if (showing) { pick.value = showing; viewSeason = showing; }
-    pick.hidden = seasons.length < 2;
-  }
-
   /* --- schedule --------------------------------------------------------- */
 
   var WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -387,13 +319,13 @@
   var showBoosters = false;
   var schedulePlayer = null;
 
-  /* Which season the player page is showing. It follows the live season until
-     somebody picks another one, and resets when a different player is opened
-     so nobody lands on a year that player never had. */
-  var viewSeason = null;
-
+  /* Which season a player page is showing. The live one: with one season on
+     the ladder so far there is nothing to choose between, and the picker
+     that used to sit in the schedule's head is gone. Everything reads this
+     rather than EGE.currentSeason directly, so adding a way back to an older
+     year is a change to this function and nothing else. */
   function shownSeason() {
-    return viewSeason || EGE.currentSeason;
+    return EGE.currentSeason;
   }
 
   /* --- booster stickers --------------------------------------------------- */
@@ -649,19 +581,7 @@
     var row = el('tr');
     var played = EGE.isFinal(game);
 
-    var week = el('td', 'ege-schedule__week');
-    /* A played game opens to show what he did in it. */
-    if (played) {
-      var toggle = el('button', 'ege-schedule__open', String(game.week));
-      toggle.type = 'button';
-      toggle.setAttribute('aria-expanded', 'false');
-      toggle.title = 'Show the stat line for week ' + game.week;
-      week.appendChild(toggle);
-      row.dataset.week = game.week;
-    } else {
-      week.textContent = game.week;
-    }
-    row.appendChild(week);
+    row.appendChild(el('td', 'ege-schedule__week', game.week));
 
     row.appendChild(el('td', null, gameDate(game)));
     row.appendChild(el('td', 'ege-schedule__time', game.kickoff || '—'));
@@ -714,52 +634,6 @@
     return row;
   }
 
-  /* The row that drops open under a played game: that game's line under the
-     columns his position is read in. */
-  function statRow(player, game) {
-    var row = el('tr', 'ege-statrow');
-    row.hidden = true;
-    row.dataset.forWeek = game.week;
-
-    var cell = el('td');
-    cell.colSpan = showBoosters ? 7 : 6;
-
-    var stats = EGE.statline.complete(player.position, game.stats);
-    var box = el('div', 'ege-statrow__box');
-
-    /* The kickoff has no column of its own on a narrow screen, so it rides
-       here instead of being lost. */
-    if (game.kickoff) {
-      box.appendChild(el('p', 'fb-meta ege-statrow__when',
-        gameDate(game) + ', ' + game.kickoff + (game.home ? ' \u00b7 home' : ' \u00b7 away')));
-    }
-
-    if (!game.stats) {
-      box.appendChild(el('p', 'fb-meta', 'No stat line for this one.'));
-    } else {
-      EGE.statline.lineFor(player.position).forEach(function (column) {
-        var item = el('div', 'ege-statrow__stat');
-        var label = el('span', 'ege-statrow__label', column.label);
-        label.title = column.title;
-        item.appendChild(label);
-        item.appendChild(el('span', 'ege-statrow__value', column.text(stats)));
-        box.appendChild(item);
-      });
-    }
-
-    var booster = EGE.boosterOn(player, game);
-    if (booster && canSeeStickers(player)) {
-      var note = el('p', 'fb-meta ege-statrow__note',
-        booster.name + ' was on this game' +
-        (booster.multiplier ? ' — ' + booster.multiplier + 'x' : '') + '.');
-      box.appendChild(note);
-    }
-
-    cell.appendChild(box);
-    row.appendChild(cell);
-    return row;
-  }
-
   function renderSchedule(player) {
     var panel = document.getElementById('schedulePanel');
     var body = document.getElementById('scheduleBody');
@@ -781,20 +655,16 @@
     document.getElementById('scheduleEmpty').hidden = Boolean(games.length);
 
     if (!games.length) {
-      document.getElementById('scheduleNote').textContent = season;
-      document.getElementById('scheduleLegend').textContent = '';
+      setLegend('scheduleFoot', 'scheduleLegend', '');
       return;
     }
 
-    games.forEach(function (game) {
-      body.appendChild(scheduleRow(game));
-      if (EGE.isFinal(game)) { body.appendChild(statRow(player, game)); }
-    });
-
-    var played = EGE.gamesPlayed(player, season).length;
-    document.getElementById('scheduleNote').textContent = played
-      ? season + ' · ' + games.length + ' games · ' + EGE.recordFor(player, season).text
-      : season + ' · ' + games.length + ' games · none played yet';
+    /* Nothing is slipped in between two games any more, so the kit's own
+       even-row shading lands on every second game and stays there whatever
+       the week has done. It used to break the moment a week was published:
+       the stat line that dropped open under a finished game was a row of its
+       own, and every row after it changed colour. */
+    games.forEach(function (game) { body.appendChild(scheduleRow(game)); });
 
     var conference = games.filter(function (game) { return game.conference; }).length;
     var legend = conference ? '* conference game (' + conference + ' of ' + games.length + ')' : '';
@@ -802,31 +672,72 @@
       var scouted = EGE.scoutedGames(player, season).length;
       legend += (legend ? ' · ' : '') + 'Intel: scouts at ' + scouted + ' games this season';
     }
-    if (played) {
-      var touch = window.matchMedia && window.matchMedia('(hover: none)').matches;
-      legend += (legend ? ' · ' : '') +
-        (touch ? 'Tap' : 'Click') + ' a week to see the stat line';
-    }
-    document.getElementById('scheduleLegend').textContent = legend;
+    setLegend('scheduleFoot', 'scheduleLegend', legend);
   }
 
-  /* One listener on the table rather than one per row, so rows can be redrawn
-     without leaving handlers behind. */
-  document.getElementById('scheduleBody').addEventListener('click', function (event) {
-    var button = event.target.closest('.ege-schedule__open');
-    if (!button) { return; }
-
-    var row = button.closest('tr');
-    var stats = row.nextElementSibling;
-    if (!stats || !stats.classList.contains('ege-statrow')) { return; }
-
-    var open = stats.hidden;
-    stats.hidden = !open;
-    button.setAttribute('aria-expanded', open ? 'true' : 'false');
-    row.classList.toggle('ege-schedule__row--open', open);
-  });
-
   /* --- the game log ------------------------------------------------------- */
+
+  /* Which column the log is ordered on, and which way. `key` is null for the
+     order the season was played in, which is what it opens on and what it
+     goes back to when a third click clears a column.
+
+     It survives a redraw -- the boosts and the inventory land after the page
+     is already up and redraw this table -- and is cleared when a different
+     player is opened, so nobody arrives on somebody else's sort. */
+  var DOWN = 'down';          /* biggest first */
+  var UP = 'up';              /* smallest first */
+
+  var logSort = { key: null, dir: DOWN };
+  var logPlayer = null;
+
+  /* Every column can be read as a number: the worked-out ones are filled in
+     by statline.complete before they get here, and C/ATT sorts on the
+     completions it leads with. A column with nothing in it -- an average
+     with no attempts behind it -- sorts to the bottom either way, because
+     the alternative is a blank row at the top of a table somebody has just
+     asked to be shown the best of. */
+  function sortValue(stats, key) {
+    var value = stats ? stats[key] : null;
+    return typeof value === 'number' ? value : null;
+  }
+
+  function byColumn(position, key, dir) {
+    return function (a, b) {
+      if (key === 'week') { return dir === DOWN ? b.week - a.week : a.week - b.week; }
+
+      var left = sortValue(EGE.statline.complete(position, a.stats), key);
+      var right = sortValue(EGE.statline.complete(position, b.stats), key);
+      /* Two equal numbers keep the order the season was played in, so a
+         sorted table never shuffles rows with nothing to separate them. */
+      if (left === right) { return a.week - b.week; }
+      if (left === null) { return 1; }
+      if (right === null) { return -1; }
+      return dir === DOWN ? right - left : left - right;
+    };
+  }
+
+  /* The arrow that says which way a sorted column is running, drawn in the
+     heading itself so the column and its state are never a guess. */
+  function sortMark(dir) {
+    return el('span', 'ege-sort__mark', dir === DOWN ? '▼' : '▲');
+  }
+
+  /* A heading that sorts the table it is in. Biggest first on the first
+     click, whatever the column: what a stat table gets asked is who had the
+     best day, not the worst. */
+  function sortableHead(label, key, title, className) {
+    var sorted = logSort.key === key;
+    var th = el('th', (className ? className + ' ' : '') + (sorted ? 'is-sorted' : ''));
+
+    var button = el('button', 'ege-sort', label);
+    button.type = 'button';
+    button.dataset.sortKey = key;
+    if (title) { button.title = title; }
+    if (sorted) { button.appendChild(sortMark(logSort.dir)); }
+
+    th.appendChild(button);
+    return th;
+  }
 
   /* Every game played, under the columns this position is read in. The
      columns come from data/statline.js, so this table and the Discord post
@@ -835,6 +746,11 @@
     var panel = document.getElementById('gameLogPanel');
     var season = shownSeason();
     var played = EGE.gamesPlayed(player, season);
+
+    if (logPlayer !== player.slug) {
+      logPlayer = player.slug;
+      logSort = { key: null, dir: DOWN };
+    }
 
     panel.hidden = !played.length;
     if (!played.length) { return; }
@@ -847,18 +763,30 @@
     body.innerHTML = '';
     foot.innerHTML = '';
 
-    head.appendChild(el('th', null, 'Wk'));
+    head.appendChild(sortableHead('Wk', 'week', 'Week'));
     head.appendChild(el('th', null, 'Opponent'));
-    head.appendChild(el('th', null, 'Result'));
+    head.appendChild(el('th', 'num', 'Result'));
     columns.forEach(function (column) {
-      var th = el('th', 'num', column.label);
-      th.title = column.title;
-      head.appendChild(th);
+      head.appendChild(sortableHead(column.label, column.key, column.title, 'num'));
     });
+
+    /* Where the sorted column falls, counted from the left. Wk is the first
+       of the three fixed columns; a stat column comes after all three. */
+    var sortedAt = -1;
+    if (logSort.key === 'week') {
+      sortedAt = 0;
+    } else if (logSort.key) {
+      columns.forEach(function (column, at) {
+        if (column.key === logSort.key) { sortedAt = at + 3; }
+      });
+    }
+
+    var order = played.slice();
+    if (logSort.key) { order.sort(byColumn(player.position, logSort.key, logSort.dir)); }
 
     var boosted = 0;
 
-    played.forEach(function (game) {
+    order.forEach(function (game) {
       var row = el('tr');
       row.appendChild(el('td', 'ege-schedule__week', game.week));
 
@@ -892,7 +820,8 @@
 
     /* The totals row works each column out the way that column adds up: a
        long is the longest, and a rating is worked out again from the season's
-       numbers rather than averaged across games. */
+       numbers rather than averaged across games. It is the season, so it is
+       the same line however the games above it are ordered. */
     var totals = EGE.statline.totalLine(player.position, played.map(function (game) {
       return EGE.statline.complete(player.position, game.stats);
     }));
@@ -906,18 +835,85 @@
       foot.appendChild(cell);
     });
 
-    var record = EGE.recordFor(player, season);
-    document.getElementById('gameLogNote').textContent =
-      played.length + (played.length === 1 ? ' game' : ' games') + ' · ' + record.text;
+    markSortedColumn(sortedAt);
 
-    document.getElementById('gameLogLegend').textContent = boosted
+    setLegend('gameLogFoot', 'gameLogLegend', boosted
       ? 'A multiplier beside an opponent is a booster that was on that game — only you and an admin see it.'
-      : 'Hover a column heading for what it stands for.';
+      : '');
   }
 
-  document.getElementById('playerSeasonPick').addEventListener('change', function (event) {
-    viewSeason = Number(event.target.value);
-    if (schedulePlayer) { renderPlayer(schedulePlayer, true); }
+  /* The sorted column, shaded down the whole table rather than only in its
+     heading, so the eye can follow the numbers it was sorted on.
+
+     The totals row runs one label across the three fixed columns, so a stat
+     column sits two cells further left down there than it does in the body,
+     and the week has no cell of its own in it at all. */
+  function markSortedColumn(at) {
+    var table = document.querySelector('.ege-gamelog');
+    Array.prototype.forEach.call(table.querySelectorAll('.is-sorted-cell'),
+      function (cell) { cell.classList.remove('is-sorted-cell'); });
+    if (at < 0) { return; }
+
+    Array.prototype.forEach.call(table.querySelectorAll('tbody tr'), function (row) {
+      if (row.children[at]) { row.children[at].classList.add('is-sorted-cell'); }
+    });
+
+    if (at < 3) { return; }
+    var totals = document.getElementById('gameLogTotals');
+    if (totals.children[at - 2]) { totals.children[at - 2].classList.add('is-sorted-cell'); }
+  }
+
+  /* One listener on the heading row: the headings are redrawn on every sort,
+     and a listener per heading would be left behind by that. Clicking the
+     column that is already sorted turns it around, and clicking it once more
+     puts the season back in the order it was played in. */
+  document.getElementById('gameLogHead').addEventListener('click', function (event) {
+    var button = event.target.closest('.ege-sort');
+    if (!button) { return; }
+
+    var key = button.dataset.sortKey;
+    if (logSort.key !== key) {
+      logSort = { key: key, dir: DOWN };
+    } else if (logSort.dir === DOWN) {
+      logSort = { key: key, dir: UP };
+    } else {
+      logSort = { key: null, dir: DOWN };
+    }
+
+    if (schedulePlayer) { renderGameLog(schedulePlayer); }
+  });
+
+  /* --- panel feet and the fold-away arrow ---------------------------------- */
+
+  /* A foot with nothing written in it is a band of empty cream under a hard
+     rule, which reads as something that failed to load. It goes away with
+     its text. */
+  function setLegend(footId, legendId, text) {
+    document.getElementById(legendId).textContent = text;
+    document.getElementById(footId).hidden = !text;
+  }
+
+  /* Schedule and game log fold away; the ratings do not, because the overall
+     in the corner of that one is the number the page is about.
+
+     The arrow is the only thing in those heads now -- what used to be
+     written up there said what the table underneath already says. */
+  document.addEventListener('click', function (event) {
+    var button = event.target.closest('.ege-collapse');
+    if (!button) { return; }
+
+    var panel = document.getElementById(button.dataset.collapses);
+    if (!panel) { return; }
+
+    var open = button.getAttribute('aria-expanded') !== 'false';
+    button.setAttribute('aria-expanded', open ? 'false' : 'true');
+    panel.classList.toggle('is-collapsed', open);
+
+    /* The arrow has no words in it, so what it does has to be said here --
+       and what it does is the opposite of what it did a moment ago. */
+    var heading = panel.querySelector('.fb-panel__head h3');
+    button.setAttribute('aria-label', (open ? 'Show the ' : 'Hide the ') +
+      (heading ? heading.textContent.toLowerCase() : 'panel'));
   });
 
   /* --- ratings ---------------------------------------------------------- */
@@ -2214,7 +2210,7 @@
 
     var hash = window.location.hash.replace(/^#/, '');
     var player = hash ? EGE.playerBySlug(hash) : null;
-    if (player) { renderPlayer(player, true); }
+    if (player) { renderPlayer(player); }
   }
 
   /* The inventory arrives after a page may already have been drawn, so redraw
@@ -2495,7 +2491,7 @@
      cannot be reached, so this can never sit there hidden. */
   function settle() {
     roster.classList.remove('is-waiting');
-    document.getElementById('playerOverall').classList.remove('is-waiting');
+    document.getElementById('ratingsOverallBox').classList.remove('is-waiting');
   }
 
   /* A slow network should not mean a blank page for ever, whatever happens
@@ -2664,7 +2660,7 @@
   /* --- go --------------------------------------------------------------- */
 
   roster.classList.add('is-waiting');
-  document.getElementById('playerOverall').classList.add('is-waiting');
+  document.getElementById('ratingsOverallBox').classList.add('is-waiting');
 
   renderRoster();
   renderInstallGuide();

@@ -100,7 +100,7 @@
           <span class="fb-eyebrow" style="color: var(--fb-ink);">Players only</span>
         </div>
         <div class="fb-panel__body fb-stack">
-          <p style="margin: 0; font-size: 15px;">
+          <p style="margin: 0;">
             The shop is part of your portal. Sign in to see what your credits buy.
           </p>
           <button class="fb-btn fb-btn--primary" id="shopLoginBtn" type="button">Log In</button>
@@ -114,7 +114,7 @@
       <!-- what this player owns -->
       <div class="fb-panel" id="inventoryPanel">
         <div class="fb-panel__head">
-          <h3 style="font-size: 21px;">Your Inventory</h3>
+          <h3>Your Inventory</h3>
           <div class="ege-ovr ege-ovr--head">
             <span class="ege-ovr__label">Credits</span>
             <span class="ege-ovr__value" id="shopBalance">0</span>
@@ -134,7 +134,7 @@
       <!-- how credits are earned, out of the way until wanted -->
       <details class="fb-panel ege-section-gap ege-details" id="earningsDetails">
         <summary class="fb-panel__head ege-details__summary">
-          <h3 style="font-size: 21px;">Earning Credits</h3>
+          <h3>Earning Credits</h3>
           <span class="fb-meta">60 every offseason, plus what the season earns</span>
         </summary>
         <div class="fb-tablewrap">
@@ -172,7 +172,7 @@
           <span class="fb-eyebrow" style="color: var(--fb-ink);">Not for you</span>
         </div>
         <div class="fb-panel__body fb-stack">
-          <p style="margin: 0; font-size: 15px;" id="adminLockedNote">
+          <p style="margin: 0;" id="adminLockedNote">
             This page is the commissioner's. Nothing here is yours to change.
           </p>
           <a class="fb-btn fb-btn--primary" href="#">All Players</a>
@@ -186,7 +186,7 @@
       <!-- putting a week out -->
       <div class="fb-panel" id="weekPanel">
         <div class="fb-panel__head">
-          <h3 style="font-size: 21px;">Weeks</h3>
+          <h3>Weeks</h3>
           <span class="fb-meta" id="weekNote"></span>
         </div>
         <div class="fb-panel__body fb-stack fb-stack--lg">
@@ -241,7 +241,7 @@
       <!-- editing the season file -->
       <div class="fb-panel ege-section-gap" id="editorPanel">
         <div class="fb-panel__head">
-          <h3 style="font-size: 21px;">Season File</h3>
+          <h3>Season File</h3>
           <span class="fb-meta" id="editorNote"></span>
         </div>
         <div class="fb-panel__body fb-stack fb-stack--lg">
@@ -279,7 +279,7 @@
       <!-- what the season has paid out so far -->
       <div class="fb-panel ege-section-gap" id="awardsPanel">
         <div class="fb-panel__head">
-          <h3 style="font-size: 21px;">Credits Earned</h3>
+          <h3>Credits Earned</h3>
           <span class="fb-meta" id="awardsNote"></span>
         </div>
         <div class="fb-panel__body">
@@ -307,7 +307,7 @@
       <!-- every account -->
       <div class="fb-panel ege-section-gap" id="adminPanel">
         <div class="fb-panel__head">
-          <h3 style="font-size: 21px;">Accounts</h3>
+          <h3>Accounts</h3>
           <span class="fb-meta">Credits, awards and everything bought</span>
         </div>
         <div class="fb-panel__body fb-stack fb-stack--lg" id="adminAccounts"></div>
@@ -319,7 +319,7 @@
       <!-- the end of a season, in the order it has to happen -->
       <div class="fb-panel ege-section-gap" id="seasonPanel">
         <div class="fb-panel__head">
-          <h3 style="font-size: 21px;">End of Season</h3>
+          <h3>End of Season</h3>
           <span class="fb-meta" id="seasonPanelNote"></span>
         </div>
         <div class="fb-panel__body fb-stack fb-stack--lg">
@@ -458,40 +458,41 @@
           <span class="fb-eyebrow" style="color: var(--fb-ink);" id="playerStripLabel"></span>
         </div>
         <div class="fb-panel__body">
+          <!-- Four areas, placed by CSS: the picture, the school, the name
+               and the four facts. They stack beside the picture on a wide
+               screen; on a phone the school takes the top line and the facts
+               the bottom one, because a school name has nowhere to break and
+               nothing else in here is that long.
+
+               The top right is deliberately empty — the overall lives with
+               the ratings now, and that corner is kept clear for what goes
+               in it next. -->
           <div class="ege-detail__top">
             <div class="ege-detail__figure">
               <div class="ege-detail__photo">
                 <img id="playerPhoto" src="" alt="">
               </div>
-              <!-- Under the player, the two facts about him that no season
-                   changes. Written in app.js from data/players.js. -->
+              <!-- Joined to the bottom of the picture, sharing its edge: the
+                   two facts about him that no season changes. Written in
+                   app.js from data/players.js. -->
               <div class="ege-vitals" id="playerVitals"></div>
             </div>
 
-            <div class="ege-detail__col">
-              <div class="ege-school" id="playerSchool"></div>
-              <h2 class="ege-detail__name" id="playerName"></h2>
+            <div class="ege-detail__school" id="playerSchool"></div>
+            <h2 class="ege-detail__name" id="playerName"></h2>
 
-              <dl class="ege-detail__list">
-                <dt>Season</dt><dd id="playerSeason"></dd>
-                <dt>Position</dt><dd id="playerPosition"></dd>
-                <dt>League</dt><dd id="playerLeague"></dd>
-                <dt>Record</dt><dd id="playerRecord"></dd>
-              </dl>
-            </div>
-
-            <!-- The box itself is built in app.js, so the card and the page
-                 never disagree about it. The climb sits under it. -->
-            <div class="ege-ovrslot" id="playerOverall" hidden>
-              <span id="playerOverallBox"></span>
-              <span class="ege-ovr__climb" id="playerOverallClimb" hidden></span>
-            </div>
+            <dl class="ege-detail__list">
+              <dt>Season</dt><dd id="playerSeason"></dd>
+              <dt>Position</dt><dd id="playerPosition"></dd>
+              <dt>League</dt><dd id="playerLeague"></dd>
+              <dt>Record</dt><dd id="playerRecord"></dd>
+            </dl>
           </div>
         </div>
 
-        <!-- The season so far, three across then four then three, built in
-             app.js from the same columns the game log is made of. It is the
-             panel's foot, which is where the kit's hard rule already is. -->
+        <!-- The season so far, built in app.js from the same columns the game
+             log is made of. It is the panel's foot, which is where the kit's
+             hard rule already is. -->
         <div class="fb-panel__foot ege-tallybar" id="playerTallyBar" hidden>
           <div class="ege-tally" id="playerTally"></div>
         </div>
@@ -499,14 +500,10 @@
 
       <div class="fb-panel ege-section-gap" id="schedulePanel" hidden>
         <div class="fb-panel__head">
-          <h3 style="font-size: 21px;">Schedule</h3>
-          <div class="fb-row fb-row--wrap ege-seasonbar">
-            <label class="ege-field ege-field--inline">
-              <span class="fb-eyebrow">Season</span>
-              <select class="fb-select fb-select--sm" id="playerSeasonPick"></select>
-            </label>
-            <span class="fb-meta" id="scheduleNote"></span>
-          </div>
+          <h3>Schedule</h3>
+          <button class="ege-collapse" type="button"
+                  data-collapses="schedulePanel" aria-controls="schedulePanel"
+                  aria-expanded="true" aria-label="Hide the schedule"></button>
         </div>
 
         <div class="fb-tablewrap" id="scheduleTableWrap">
@@ -530,7 +527,7 @@
           <p class="ege-note" style="margin: 0;">No schedule yet — this player has no school.</p>
         </div>
 
-        <div class="fb-panel__foot">
+        <div class="fb-panel__foot" id="scheduleFoot" hidden>
           <span class="fb-meta" id="scheduleLegend"></span>
         </div>
       </div>
@@ -538,8 +535,10 @@
       <!-- every game played, under this position's stat line -->
       <div class="fb-panel ege-section-gap" id="gameLogPanel" hidden>
         <div class="fb-panel__head">
-          <h3 style="font-size: 21px;">Game Log</h3>
-          <span class="fb-meta" id="gameLogNote"></span>
+          <h3>Game Log</h3>
+          <button class="ege-collapse" type="button"
+                  data-collapses="gameLogPanel" aria-controls="gameLogPanel"
+                  aria-expanded="true" aria-label="Hide the game log"></button>
         </div>
         <div class="fb-tablewrap">
           <table class="fb-table ege-gamelog">
@@ -552,16 +551,23 @@
             </tfoot>
           </table>
         </div>
-        <div class="fb-panel__foot">
+        <!-- Its own band rather than part of the foot below: the foot goes
+             away when there is nothing written in it, and on a phone this
+             still has something to say. -->
+        <p class="ege-gamelog__swipe">Swipe the table sideways for the rest of the line.</p>
+        <div class="fb-panel__foot" id="gameLogFoot" hidden>
           <span class="fb-meta" id="gameLogLegend"></span>
-          <span class="ege-gamelog__swipe">Swipe the table sideways for the rest of the line.</span>
         </div>
       </div>
 
       <div class="fb-panel ege-section-gap" id="ratingsPanel" hidden>
         <div class="fb-panel__head">
-          <h3 style="font-size: 21px;">Ratings</h3>
-          <div class="ege-ovr ege-ovr--head">
+          <h3>Ratings</h3>
+          <!-- The one place the overall is shown on a player page: with the
+               ratings it is worked out from. It waits for the shop's boosts
+               to land rather than showing the base number and then changing
+               it under whoever is reading it. -->
+          <div class="ege-ovr ege-ovr--head" id="ratingsOverallBox">
             <span class="ege-ovr__label">Overall</span>
             <span class="ege-ovr__value" id="ratingsOverall"></span>
           </div>

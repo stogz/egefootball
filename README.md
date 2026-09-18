@@ -78,19 +78,29 @@ player takes instead of declaring; it pushes that player to the 2024 draft.
 Routed by player name, e.g. `#andrew-parr`, `#paxon-hatch`. Each player page
 holds:
 
-- **Header** — headshot, name, school, position, class year, current overall.
-- **Season selector** — switches between the seasons on the ladder above. The
-  2018 junior-year high school season is the default and the only one with data
-  at first; later seasons appear as they are authored.
+- **Header** — headshot with height and weight joined to the foot of it, then
+  school, name, season, position, league and record. The overall is not up
+  here: it lives with the ratings it is worked out from, at the foot of the
+  page. The top right of the header is deliberately empty.
+- **Season strip** — the ten numbers the season is remembered by, across the
+  foot of the header panel: ten across on a wide screen, five and five on
+  anything narrower.
 - **Schedule** — every scheduled game in the selected season: week, date,
   kickoff, opponent with home/away and a mark for conference games, and the
   result once it has been played. A silhouette marks a game scouts will attend,
   for a player holding Intel for that season.
-- **Record** — running wins and losses for the selected season.
 - **Game log** — per-game stats for that player, with the stat lines driven by
-  their position (see below).
-- **Season totals** — the game log aggregated for the selected season, plus
-  career totals across every season played.
+  their position (see below), and a totals row for the season.
+- **Ratings** — every attribute in its group, with the overall in the corner.
+
+The schedule and the game log each fold away behind an arrow in their heading;
+the ratings do not, because the overall in that corner is the number the page
+is about.
+
+The season shown is the live one. There is one season on the ladder so far, so
+there is nothing to switch between; `shownSeason()` in `js/app.js` is the one
+place that decides, and a way back to an older year is a change to it and
+nothing else.
 
 ### Position-driven stat lines
 
@@ -736,12 +746,15 @@ numbers. Averaging a column of averages is how a stat page ends up lying.
 
 ### On the player page
 
-A **season switcher** in the schedule head, once there is more than one season
-to switch between. Every past season keeps its schedule, its stat lines, its
-record and the boosters that were on its games.
+The game log **sorts** on any of its columns: click a heading and the table
+reorders on that stat, biggest first, because the question a stat table gets
+asked is who had the best day. Click it again for smallest first, and a third
+time to put the season back in the order it was played in. An arrow in the
+heading says which way it is running, and the sorted column is shaded the
+whole way down so the eye can follow it.
 
-Every published week **opens** to show that game's line under the columns the
-position is read in. The week number is the handle.
+The season totals row is the season, so it stays the same line however the
+games above it are ordered.
 
 A **credits marker** on the row says what the game paid — visible to the
 player and to an admin, nobody else, the same rule the boosters follow.
@@ -941,20 +954,38 @@ already fine; what was not:
   right; the shop scrolled the *buy buttons* off. Under 620px each row becomes
   a block instead — same markup, same cells, only the layout changes — so what
   you came to see is under your thumb.
-- **Tap targets.** Apple asks for 44 points square. The week handle that opens
-  a stat line was 21×26, the buy buttons 33 tall, the admin's publish buttons
-  30.
+- **Tap targets.** Apple asks for 44 points square. The buy buttons were 33
+  tall, the admin's publish buttons 30, and the arrow that folds a panel away
+  is held to 44 square.
 - **Nothing hover-only.** A finger cannot hover, so the cross that means "tap
   to peel this booster off" never appeared at all and an applied sticker
   looked stuck.
 - **The notch.** `viewport-fit=cover` with `env(safe-area-inset-*)`, and
   `100dvh` rather than `100vh`, which on iOS is the window with the toolbars
   hidden.
+- **The type was laptop-sized.** Every size on the site is set in `rem`, and
+  the root size is one fluid value: `clamp(13px, 1.15vw + 8.87px, 16px)`. At
+  620 points and up it is 16 and nothing has changed; below that it eases down
+  to 13 on the narrowest phone. No breakpoint fires and nothing is
+  repositioned — the words simply stop taking room the layout needed.
+
+  Two floors stop it going too far: `--fb-label` holds a small-caps label at
+  11px and `--fb-small` holds small print at 11.5, both with `max()`, which is
+  a no-op at the full root size. The one absolute pixel size left is the 16px
+  on form controls, which is Safari's zoom threshold rather than a size the
+  design gets to choose.
+
+  The kit's own type is in pixels and `style.css` is not edited, so the sizes
+  this site uses are restated in `rem` at the top of `site.css` — each one the
+  kit's own number over 16.
 
 The roster turns sideways too — six portrait cards was six screens of
-scrolling before anybody had picked anyone, and it is two now.
+scrolling before anybody had picked anyone, and it is two now. The player
+header rearranges: the picture and the name share the top line, and the four
+facts about the season drop under both and run the full width rather than
+being squeezed into what the name left of a 390 point screen.
 
-Everything is behind `max-width: 620px` or `hover: none`, so the desktop
+Everything else is behind `max-width: 620px` or `hover: none`, so the desktop
 layout is untouched; that is checked as well as the phone one.
 
 ### Kit and assets
