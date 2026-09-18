@@ -656,17 +656,19 @@
 <script src="js/supabase-config.js"></script>
 <script src="js/discord-config.js"></script>
 
-<!-- The three files the admin page regenerates — the season pointer, the
-     locked ratings and the season itself — are not tagged here. They are
-     fetched past the browser cache by js/site-data.js, which is where the
-     list of seasons lives now, so a corrected stat line is on the site the
-     moment it is committed rather than ten minutes later. -->
-<script src="js/site-data.js"></script>
-
 <script src="data/players.js"></script>
 <script src="data/shop.js"></script>
 <script src="data/economy.js"></script>
 <script src="data/statline.js"></script>
+
+<!-- The three files the admin page regenerates — the season pointer, the
+     locked ratings and the season itself — are written out by this one with a
+     cache-busting query, and the list of seasons lives in it. They land here,
+     in the order they always did and before anything reads them, so a
+     corrected stat line is on the site the moment it is committed rather than
+     ten minutes later. -->
+<script src="js/site-data.js"></script>
+
 <script src="data/games.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/wallet.js"></script>
