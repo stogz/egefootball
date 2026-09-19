@@ -71,29 +71,32 @@ EGE.shop = {
       blurb: 'Where the whole offseason goes. The first block of a workout is ' +
              'cheap and every one after it costs twice the last, so an ' +
              'offseason spent entirely on one thing runs out of credits long ' +
-             'before it runs out of attributes. The prices go back to the ' +
-             'bottom when the season is locked and the workouts fold into the ' +
-             'ratings.',
+             'before it runs out of attributes. The two that specialise are ' +
+             'the cheap ones and carry a risk; the one that spreads itself ' +
+             'evenly costs more and has nothing to lose. The prices go back ' +
+             'to the bottom when the season is locked and the workouts fold ' +
+             'into the ratings.',
       items: [
         {
           key: 'train-strength',
-          name: 'Offseason Strength Training',
-          credits: 10,
+          name: 'Strength Training',
+          credits: 8,
           creditsStack: 2,
-          effects: { strength: 4 },
+          effects: { strength: 4, toughness: 2, injury: 2, jumping: 2 },
           risks: [
             { attribute: 'agility', amount: -2 },
             { attribute: 'stamina', amount: -2 },
             { attribute: 'speed',   amount: -2 }
           ],
-          description: 'Strength +4. One roll of a twelve-sided die when you ' +
-                       'buy it: on a 1, 2 or 3 it costs you 2 agility, 2 ' +
-                       'stamina and 2 speed. Three times out of four, nothing.'
+          description: 'Strength +4, and toughness, injury and jumping +2 ' +
+                       'each. One roll of a twelve-sided die when you buy it: ' +
+                       'on a 1, 2 or 3 it costs you 2 agility, 2 stamina and ' +
+                       '2 speed. Three times out of four, nothing.'
         },
         {
           key: 'train-cardio',
-          name: 'Offseason Cardio Training',
-          credits: 12,
+          name: 'Cardio Training',
+          credits: 8,
           creditsStack: 2,
           effects: { speed: 2, acceleration: 2, agility: 2, stamina: 2 },
           risks: [
@@ -106,8 +109,8 @@ EGE.shop = {
         },
         {
           key: 'train-overall',
-          name: 'Overall Offseason Training',
-          credits: 10,
+          name: 'Overall Training',
+          credits: 12,
           creditsStack: 2,
           effects: {
             speed: 1, acceleration: 1, strength: 1,

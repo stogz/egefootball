@@ -1990,7 +1990,7 @@ body {
    13 or 14. This is the one that actually makes it feel broken. */
 
 /* A select is as wide as its longest option unless it is told otherwise, and
-   at 16px "Offseason Strength Training" is wider than an iPhone. Left alone it
+   at 16px a long item name is wider than an iPhone. Left alone it
    pushed the page to 435px on a 390px screen, and Safari answers that by
    zooming the whole page out to fit — which is most of what "it looks tiny on
    my phone" turns out to be. */

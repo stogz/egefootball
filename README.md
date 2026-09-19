@@ -384,11 +384,11 @@ On sale:
   sunbursts you stick on a game.
 - **Rating points** — bought straight into an attribute, priced by how close
   that attribute already is to 99. Cheap early, dear late.
-- **Offseason training** — strength (10) or cardio (12), each with a downside
-  rolled when you buy it, or overall (10) for a smaller gain with nothing to
-  lose. Cheap to start and **twice the price every time you buy it**, so an
-  offseason spent on one workout runs out of credits long before it runs out
-  of attributes. See below.
+- **Offseason training** — strength (8) or cardio (8), each with a downside
+  rolled when you buy it, or overall (12) for a smaller gain spread wider with
+  nothing to lose. Cheap to start and **twice the price every time you buy
+  it**, so an offseason spent on one workout runs out of credits long before
+  it runs out of attributes. See below.
 - **QB Connection** (20), **Hyperbaric Chamber** (35, then 45, then 60, then
   15 more each time), **Intel** (15).
 
@@ -517,22 +517,26 @@ downside lands, all of it; on 4 and up, none of it — a quarter of the time,
 not most of it. Rolling each risk separately is what made three coin flips add
 up to a debuff nearly every time (87.5%, as it turned out).
 
-| Item | Effect | Risk |
-| --- | --- | --- |
-| Overall Offseason Training | Speed, acceleration, strength, agility, jumping, stamina +1 | none |
-| Offseason Cardio Training | Speed, acceleration, agility, stamina +2 | strength −2 |
-| Offseason Strength Training | Strength +4 | agility, stamina, speed −2 each |
+| Item | Effect | Risk | From |
+| --- | --- | --- | --- |
+| Strength Training | Strength +4, and toughness, injury and jumping +2 each | agility, stamina, speed −2 each | 8 |
+| Cardio Training | Speed, acceleration, agility, stamina +2 | strength −2 | 8 |
+| Overall Training | Speed, acceleration, strength, agility, jumping, stamina +1 | none | 12 |
 
 Risks are rolled once, when the item is bought, and the result is stored on
 the row. Reloading the page never re-rolls it.
 
 **The price doubles every time.** A workout carries `creditsStack: 2` in
 `data/shop.js`, and `EGE.priceFor(item, owned)` multiplies its base price by
-that for each one already on the books — strength runs 10, 20, 40, 80, 160.
-A 60-credit offseason buys two of them and has 30 left, which is the point:
-the cheap first block makes training worth doing, and the doubling makes
-spending a whole offseason on one attribute a choice rather than the obvious
-move.
+that for each one already on the books — strength runs 8, 16, 32, 64, 128.
+A 60-credit offseason buys three of them — 8 + 16 + 32 = 56 — and the fourth
+is 64 on its own. That is the point: the cheap first block makes training
+worth doing, and the doubling makes spending a whole offseason on one
+attribute a choice rather than the obvious move.
+
+The two that specialise are the cheap ones and both carry a risk. Overall
+Training spreads the same idea across six attributes, has nothing to lose,
+and starts half again as dear for it.
 
 `owned` is counted from the inventory rows, so the reset is the one that
 already exists: **Clear the shop rows** at the end of a season deletes every
@@ -1036,7 +1040,7 @@ Most of it is read on an iPhone, so the layout answers to one. The width was
 already fine; what was not:
 
 - **Safari was zooming the whole page out.** A `<select>` is as wide as its
-  longest option, and at a tappable font size "Offseason Strength Training"
+  longest option, and at a tappable font size a name that long
   is wider than the screen — the page came to 435 points on a 390 point phone,
   and Safari's answer to that is to shrink everything to fit. That is most of
   what "it looks tiny on my phone" turns out to be.
