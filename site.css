@@ -572,6 +572,29 @@ body {
   .ege-tally__label { letter-spacing: .04em; }
 }
 
+/* --- the coin ------------------------------------------------------------
+
+   What a credit looks like, in place of the letters "cr". Drawn as a mask
+   rather than an <img>: the PNG's alpha is the shape and the fill is
+   currentColor, so the one file is gold against the dark nav and ink on the
+   gold chip in the shop without a second asset or a filter. It is sized in em
+   so it tracks whatever it sits beside. */
+.ege-coin {
+  display: inline-block;
+  width: 1.05em;
+  height: 1.05em;
+  /* Nudged down to sit on the line of the digits rather than above them. */
+  vertical-align: -.16em;
+  background-color: currentColor;
+  -webkit-mask: url('icon/coin.png') center / contain no-repeat;
+  mask: url('icon/coin.png') center / contain no-repeat;
+}
+
+/* A price, with the coin standing in for the unit. The gap is not decoration:
+   the coin is an upright oval, and set tight against a number it reads as one
+   more digit -- 40 became 400. */
+.ege-price { gap: .34em; }
+
 /* --- credits in the nav ------------------------------------------------- */
 
 .ege-credits {
@@ -589,12 +612,9 @@ body {
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
-.ege-credits__unit {
-  font-size: .625rem;
-  font-weight: 800;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-}
+/* Sized against the number beside it rather than against the small caps it
+   replaced, so the two read as one balance. */
+.ege-credits__coin { font-size: 1rem; }
 
 /* --- signed-in avatar --------------------------------------------------- */
 
@@ -1009,6 +1029,13 @@ body {
   width: var(--sticker-size, 54px);
   height: var(--sticker-size, 54px);
 }
+/* Bigger than the row on purpose, so it sits over it rather than inside it.
+   This used to be written into the element by app.js; it is here now so a
+   phone can have a smaller one, and so the number printed on it -- which is
+   a fraction of this -- comes down with it. */
+.ege-slot__applied,
+.ege-slot__applied .ege-sticker { --sticker-size: 62px; }
+
 .ege-slot__applied--peelable { cursor: pointer; perspective: 460px; }
 .ege-slot__applied--stuck { cursor: default; }
 
@@ -1453,12 +1480,17 @@ body {
    the column itself is shaded the whole way down -- a heading lit up on its
    own leaves you counting columns to find the numbers it sorted. */
 
+/* The cell's padding belongs to the button, not to the cell: a heading you
+   have to hit the four letters of is a heading that mostly ignores you. This
+   way the target is the whole box, corner to corner. */
+.ege-gamelog th.is-sortable { padding: 0; }
+
 .ege-sort {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   width: 100%;
-  padding: 0;
+  padding: 11px 14px;
   border: 0;
   background: none;
   font: inherit;
@@ -1529,7 +1561,12 @@ body {
 
    A chevron drawn in two borders rather than set as a glyph, so it is the
    same weight as every other line on the page and turns over cleanly. Up
-   while the panel is open (press it to fold), down once it is folded. */
+   while the panel is open (press it to fold), down once it is folded.
+
+   No box around it. Every other hard-edged rectangle on this site is a panel
+   or a button you are meant to read; a third one drawn around a single arrow
+   in the corner of a heading was just another line to look at. The arrow is
+   the control. */
 .ege-collapse {
   flex: none;
   display: grid;
@@ -1537,13 +1574,13 @@ body {
   width: 36px;
   height: 36px;
   padding: 0;
-  border: var(--fb-border-thin) solid var(--fb-ink);
+  border: 0;
   background: transparent;
   color: var(--fb-ink);
   cursor: pointer;
 }
-.ege-collapse:hover { background: var(--fb-surface); }
-.ege-collapse:active { transform: translate(1px, 1px); }
+.ege-collapse:hover { color: var(--fb-accent-deep); }
+.ege-collapse:active { transform: translateY(1px); }
 
 .ege-collapse::before {
   content: '';
@@ -1660,12 +1697,22 @@ body {
 
   .fb-btn,
   .fb-navlink,
-  .ege-slot__add,
   select,
   input[type='number'],
   input[type='text'],
   input[type='password'] {
     min-height: 44px;
+  }
+
+  /* The empty booster slot is a square and has to stay one: it is a die-cut
+     outline waiting for a sticker, and 44 points of min-height stretched it
+     into a letterbox. The square keeps its shape and the tap target comes
+     from an invisible surround instead, which is what a tap target is. */
+  .ege-slot__add { width: 32px; height: 32px; }
+  .ege-slot__add::after {
+    content: '';
+    position: absolute;
+    inset: -6px;            /* 32 + 12 = 44 */
   }
 
   .fb-btn--sm {
@@ -1724,6 +1771,8 @@ body {
    away. */
 @media (max-width: 620px) {
   .ege-gamelog th { padding: 8px 9px; }
+  .ege-gamelog th.is-sortable { padding: 0; }
+  .ege-gamelog th.is-sortable .ege-sort { padding: 8px 9px; }
   .ege-gamelog td { padding: 9px; }
   .ege-gamelog__opponent { min-width: 0; }
   .ege-gamelog .fb-tag { padding: 3px 6px; }
@@ -1860,20 +1909,22 @@ body {
     grid-template-areas:
       "school school"
       "figure name"
-      "list   list";
+      "figure list";
     /* One gap between all three bands, rather than the margins the desktop
        stack uses -- there is nothing stacked to space out here. */
     gap: 12px 14px;
+    /* The picture spans the name and the facts; if the words come to less
+       than its height the rows must not stretch to meet it. */
+    align-items: start;
   }
+  /* The four facts belong to the name, so they sit under it rather than
+     under the picture as well. That leaves them a column rather than the
+     panel, so the gap between a label and its value comes in and a long
+     league name is allowed to wrap rather than forcing the column wider. */
+  .ege-detail__list { row-gap: 5px; column-gap: 10px; }
+  .ege-detail__list dd { overflow-wrap: break-word; }
 
-  /* Centred against the picture rather than pinned to the top of it: the name
-     is a line or two against a frame several times its height. */
-  .ege-detail__name {
-    align-self: center;
-    margin: 0;
-  }
-
-  .ege-detail__list { gap: 6px 14px; }
+  .ege-detail__name { margin: 0 0 10px; }
 
   .ege-school--lg .ege-school__logo { width: 24px; height: 24px; }
   /* Tracking is what makes small caps legible, and it is also what decides
@@ -1893,6 +1944,15 @@ body {
 
   /* The season editor's number fields, two up instead of one. */
   .ege-statgrid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+}
+
+/* The narrowest phone still made. The four facts have a column rather than
+   the whole panel now, so what is left to give them is the space around
+   them: a tighter gutter and a tighter gap, and "Avocado League" stops
+   sitting against the panel edge. */
+@media (max-width: 360px) {
+  .ege-detail__top { column-gap: 10px; }
+  .ege-detail > .fb-panel__body { padding: 12px; }
 }
 
 /* --- what iOS does to a form ------------------------------------------------
@@ -1952,7 +2012,6 @@ select,
      them legible small, so it stays. */
   .fb-table th,
   .fb-eyebrow,
-  .ege-credits__unit,
   .ege-ovr__label,
   .ege-detail__list dt,
   .ege-card__go,
@@ -2026,9 +2085,17 @@ select,
   /* A block, not a row, so it no longer needs a scroll shadow either. */
   #scheduleTableWrap { background: none; }
 
-  /* A sticker sized to overhang a 51px desktop row swamps a phone one. */
-  .ege-slot__applied { --sticker-size: 46px; }
-  .ege-slot__applied .ege-sticker { width: 46px; height: 46px; }
+  /* A sticker sized to overhang a 51px desktop row swamps a phone one. One
+     variable does it now, so the number printed on it comes down with the
+     die-cut rather than staying sized for the desktop sticker -- which is
+     what was cramming a 17px "2.5x" into a 46px sunburst. */
+  .ege-slot__applied,
+  .ege-slot__applied .ege-sticker { --sticker-size: 50px; }
+
+  /* Half the scatter. At full tilt a 44px sunburst measures 55 corner to
+     corner, which is wider than the column it hangs in and puts its points
+     through the side of the panel. */
+  .ege-slot__applied .ege-sticker { transform: rotate(calc(var(--tilt) * .5)); }
 }
 
 /* --- the rating points table, on a small screen -----------------------------
