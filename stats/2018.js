@@ -279,12 +279,12 @@ EGE.stats[2018] = {
         } },
       { week:  9, date: '2018-10-12', kickoff: '7:00pm',
         opponent: 'Peoria', home: false, conference: true,
-        result: { teamScore: 51, opponentScore: 40 }, booster: null,
+        result: { teamScore: 56, opponentScore: 40 }, booster: null,
         stats: {
-          receptions: 3, receivingYards: 53, receivingYac: 11,
-          receivingTd: 2, receivingLong: 44, targets: 7, carries: 0,
+          receptions: 6, receivingYards: 53, receivingYac: 11,
+          receivingTd: 2, receivingLong: 37, targets: 7, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 17.7, totalYards: 53, totalTd: 2
+          receivingAvg: 8.8, totalYards: 53, totalTd: 2
         } },
       { week: 10, date: '2018-10-19', kickoff: '7:00pm',
         opponent: 'Centennial', home: true, conference: true,
@@ -364,12 +364,12 @@ EGE.stats[2018] = {
         } },
       { week:  9, date: '2018-10-12', kickoff: '7:00pm',
         opponent: 'Peoria', home: false, conference: true, scouts: true,
-        result: { teamScore: 51, opponentScore: 40 }, booster: null,
+        result: { teamScore: 56, opponentScore: 40 }, booster: null,
         stats: {
-          completions: 10, attempts: 20, passingYards: 155,
-          passingYac: 46, passingTd: 3, interceptions: 1, carries: 4,
-          rushingYards: 6, rushingTd: 1, rushingLong: 3, sacks: 0,
-          fumbles: 0, passingAvg: 15.5, rating: 94.8, rushingAvg: 1.5
+          completions: 14, attempts: 24, passingYards: 216,
+          passingYac: 46, passingTd: 4, interceptions: 1, carries: 2,
+          rushingYards: 27, rushingTd: 1, rushingLong: 24, sacks: 1,
+          fumbles: 0, passingAvg: 15.4, rating: 110.4, rushingAvg: 13.5
         } },
       { week: 10, date: '2018-10-19', kickoff: '7:00pm',
         opponent: 'Centennial', home: true, conference: true,
@@ -525,12 +525,12 @@ EGE.stats[2018] = {
         } },
       { week:  9, date: '2018-10-12', kickoff: '7:30pm',
         opponent: 'Golden Gate', home: true, conference: true,
-        result: { teamScore: 31, opponentScore: 10 }, booster: null,
+        result: { teamScore: 0, opponentScore: 10 }, booster: null,
         stats: {
-          completions: 10, attempts: 17, passingYards: 134,
-          passingYac: 50, passingTd: 2, interceptions: 1, carries: 6,
-          rushingYards: 14, rushingTd: 1, rushingLong: 8, sacks: 3,
-          fumbles: 1, passingAvg: 13.4, rating: 98.7, rushingAvg: 2.3
+          completions: 11, attempts: 20, passingYards: 112,
+          passingYac: 47, passingTd: 0, interceptions: 1, carries: 8,
+          rushingYards: 14, rushingTd: 0, rushingLong: 8, sacks: 6,
+          fumbles: 1, passingAvg: 10.2, rating: 50.4, rushingAvg: 1.8
         } },
       { week: 10, date: '2018-10-19', kickoff: '7:30pm',
         opponent: 'South Fort Myers', home: true, conference: false,
