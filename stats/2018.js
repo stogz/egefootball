@@ -94,9 +94,9 @@ EGE.stats[2018] = {
         result: { teamScore: 24, opponentScore: 7 }, booster: null,
         stats: {
           receptions: 3, receivingYards: 38, receivingYac: 9,
-          receivingTd: 0, receivingLong: 23, targets: 5, carries: 1,
-          rushingYards: 5, rushingTd: 0, rushingLong: 5, fumbles: 0,
-          rushingAvg: 5, receivingAvg: 12.7, totalYards: 43, totalTd: 0
+          receivingTd: 0, receivingLong: 23, targets: 5, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 12.7, totalYards: 38, totalTd: 0
         } },
       { week: 11, date: '2018-10-25', kickoff: '7:00pm',
         opponent: 'Wakefield', home: true, conference: true,
@@ -196,10 +196,10 @@ EGE.stats[2018] = {
         opponent: 'La Costa Canyon', home: true, conference: true, scouts: true,
         result: { teamScore: 24, opponentScore: 7 }, booster: null,
         stats: {
-          carries: 12, rushingYards: 46, rushingTd: 0, rushingLong: 13,
+          carries: 12, rushingYards: 62, rushingTd: 0, rushingLong: 18,
           receptions: 3, receivingYards: 39, receivingYac: 24,
           receivingTd: 0, receivingLong: 19, targets: 4, fumbles: 0,
-          rushingAvg: 3.8, receivingAvg: 13, totalYards: 85, totalTd: 0
+          rushingAvg: 5.2, receivingAvg: 13, totalYards: 101, totalTd: 0
         } },
       { week: 11, date: '2018-10-26', kickoff: '7:00pm',
         opponent: 'Vista', home: false, conference: false,
@@ -288,12 +288,12 @@ EGE.stats[2018] = {
         } },
       { week: 10, date: '2018-10-19', kickoff: '7:00pm',
         opponent: 'Centennial', home: true, conference: true,
-        result: { teamScore: 41, opponentScore: 0 }, booster: null,
+        result: { teamScore: 44, opponentScore: 0 }, booster: 'boost-1-5',
         stats: {
-          receptions: 4, receivingYards: 85, receivingYac: 33,
-          receivingTd: 0, receivingLong: 39, targets: 7, carries: 0,
+          receptions: 7, receivingYards: 124, receivingYac: 37,
+          receivingTd: 1, receivingLong: 41, targets: 12, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 21.3, totalYards: 85, totalTd: 0
+          receivingAvg: 17.7, totalYards: 124, totalTd: 1
         } },
     ],
 
@@ -373,12 +373,12 @@ EGE.stats[2018] = {
         } },
       { week: 10, date: '2018-10-19', kickoff: '7:00pm',
         opponent: 'Centennial', home: true, conference: true,
-        result: { teamScore: 41, opponentScore: 0 }, booster: null,
+        result: { teamScore: 44, opponentScore: 0 }, booster: null,
         stats: {
-          completions: 10, attempts: 21, passingYards: 183,
-          passingYac: 30, passingTd: 1, interceptions: 1, carries: 4,
+          completions: 10, attempts: 26, passingYards: 183,
+          passingYac: 30, passingTd: 3, interceptions: 2, carries: 4,
           rushingYards: 4, rushingTd: 0, rushingLong: 4, sacks: 0,
-          fumbles: 0, passingAvg: 18.3, rating: 74.1, rushingAvg: 1
+          fumbles: 0, passingAvg: 18.3, rating: 69.9, rushingAvg: 1
         } },
     ],
 
@@ -460,10 +460,10 @@ EGE.stats[2018] = {
         opponent: 'Peoria', home: true, conference: true, scouts: true,
         result: { teamScore: 61, opponentScore: 14 }, booster: null,
         stats: {
-          carries: 22, rushingYards: 131, rushingTd: 0, rushingLong: 12,
+          carries: 28, rushingYards: 197, rushingTd: 3, rushingLong: 42,
           receptions: 1, receivingYards: 10, receivingYac: 8,
           receivingTd: 0, receivingLong: 10, targets: 1, fumbles: 0,
-          rushingAvg: 6, receivingAvg: 10, totalYards: 141, totalTd: 0
+          rushingAvg: 7, receivingAvg: 10, totalYards: 207, totalTd: 3
         } },
     ],
 
@@ -537,9 +537,9 @@ EGE.stats[2018] = {
         result: { teamScore: 63, opponentScore: 0 }, booster: null,
         stats: {
           completions: 16, attempts: 23, passingYards: 241,
-          passingYac: 91, passingTd: 1, interceptions: 1, carries: 7,
+          passingYac: 91, passingTd: 3, interceptions: 1, carries: 7,
           rushingYards: 20, rushingTd: 1, rushingLong: 6, sacks: 2,
-          fumbles: 1, passingAvg: 15.1, rating: 100.1, rushingAvg: 2.9
+          fumbles: 1, passingAvg: 15.1, rating: 125.2, rushingAvg: 2.9
         } },
       { week: 11, date: '2018-10-26', kickoff: '7:30pm',
         opponent: 'Barron Collier', home: true, conference: true, scouts: true,
