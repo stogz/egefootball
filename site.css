@@ -322,19 +322,18 @@ body {
    bottom of it, then the school, the name and the four facts about the
    season, stacked in the column beside it.
 
-   Grid, and every one of the four named, because a phone rearranges them
-   rather than just narrowing them -- see the phone block near the end of
-   this file. The top right of the desktop grid is deliberately empty: the
-   overall moved down to the ratings it comes from, and that corner is being
-   kept clear. */
+   Grid, and every one of them named, because a phone rearranges them rather
+   than just narrowing them -- see the phone block near the end of this file.
+   The right-hand column is the college offers, which is what that corner was
+   being kept clear for; it collapses to nothing for a player holding none. */
 
 .ege-detail__top {
   display: grid;
-  grid-template-columns: 210px minmax(0, 1fr);
+  grid-template-columns: 210px minmax(0, 1fr) auto;
   grid-template-areas:
-    "figure school"
-    "figure name"
-    "figure list";
+    "figure school offers"
+    "figure name   offers"
+    "figure list   offers";
   align-content: start;
   gap: 0 22px;
 }
@@ -1003,6 +1002,151 @@ body {
   0%, 100% { background-position: 0% 50%; }
   50%      { background-position: 100% 50%; }
 }
+
+/* --- college offers ------------------------------------------------------
+
+   An offer is a sticker: the same sunburst the boosters are cut from, the
+   school's colour printed on it and the school's mark on top of that.
+
+   No die-cut edge on these. A booster's white border is what makes three foil
+   stickers on the same row tell themselves apart; a handful of college marks
+   in their own colours already do. The face fills the cut instead, so the
+   colour runs to the points of the star. If an outline is wanted later it is
+   the `inset` below and nothing else. */
+.ege-sticker--offer {
+  --sticker-ink: var(--team-ground);
+}
+.ege-sticker--offer .ege-sticker__face {
+  inset: 0;
+  background: var(--team-ground);
+}
+
+/* Flat and matte. The boosters run a gradient across the face because that
+   is what a holographic sticker does; a college sticker is a printed vinyl
+   die-cut, one solid colour with no shine in it at all. Both of the base
+   sticker's foil layers are turned off rather than toned down. */
+.ege-sticker--offer .ege-sticker__face::before,
+.ege-sticker--offer .ege-sticker__face::after { background: none; }
+
+/* The mark, as big as the die-cut will carry it. A sunburst's flat middle is
+   about three quarters of its width and the rest is teeth, so 72% fills the
+   middle and lets the odd wide mark reach a little way into the points --
+   which is what a sticker printed for the shape looks like. */
+.ege-sticker__logo {
+  position: relative;
+  z-index: 2;
+  width: 72%;
+  height: 72%;
+  object-fit: contain;
+}
+
+/* Until a school's mark has been added, its short name stands in for it, set
+   in the school's other colour. */
+.ege-sticker__abbr {
+  position: relative;
+  z-index: 2;
+  padding: 0 4%;
+  font-family: var(--fb-font-display);
+  font-size: calc(var(--sticker-size) * 0.23);
+  line-height: 1;
+  letter-spacing: .02em;
+  text-align: center;
+  color: var(--team-ink);
+}
+
+/* --- where the offers sit ------------------------------------------------
+
+   The top corner of the player header, which is the corner that was being
+   kept clear for them. They are stuck on rather than laid out: each one is
+   positioned, tilted and nudged off its place on a loose grid, all of it
+   worked out from the player and the school so a sticker lands the same way
+   every time the page is drawn.
+
+   The box has a size of its own because everything in it is out of the flow.
+   Nothing here can push the name or the facts around. */
+.ege-offers {
+  grid-area: offers;
+  position: relative;
+  width: var(--offers-width, 210px);
+  height: var(--offers-height, 132px);
+  justify-self: end;
+
+  /* Stuck on last, so they lie over the panel rather than under it. */
+  z-index: 4;
+
+  /* Pulled up over the orange strip and out past the panel's right edge.
+     A sticker somebody pressed on does not respect a padding box: these
+     start on the cream, run up onto the orange, and the outermost of them
+     hang a few pixels over the border into the page.
+
+     Negative margins rather than a transform, because the margin also takes
+     the space back off the grid -- the name beside them keeps the width the
+     overhang is borrowing. */
+  margin-top: calc(var(--offers-lift) * -1);
+  margin-right: calc(var(--offers-reach) * -1);
+  margin-bottom: calc(var(--offers-lift) * -1);
+  --offers-lift: 60px;
+  --offers-reach: 22px;
+}
+
+/* Nothing between the stickers and the page edge may clip them. The panel and
+   its body do not set overflow, but the strip they ride up onto is a painted
+   band and the body is where the box lives, so both are said out loud: a
+   clip here would cut a sticker in half and look like a bug. */
+.ege-detail,
+.ege-detail .fb-panel__body,
+.ege-detail .fb-panel__strip { overflow: visible; }
+
+.ege-offers__sticker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  /* set from the scatter, in app.js */
+  transform: translate(var(--at-x), var(--at-y));
+}
+
+/* A sticker further down the pile sits under the ones stuck on after it,
+   until you point at it. */
+.ege-offers__sticker { z-index: 1; }
+.ege-offers__sticker:hover { z-index: 5; }
+
+/* --- the in-between widths -----------------------------------------------
+
+   A tablet, or a half-width browser window. Wide enough that the phone layout
+   has not kicked in, not wide enough to give a corner away: the offers column
+   is a fixed number of points and the name pays for all of it, so at about
+   700 the header was reading "Sam Stogs / dill".
+
+   So the stickers drop to a band of their own here too, and the three things
+   beside the picture get the whole of the rest. The phone block further down
+   rearranges the rest as well; this only moves the stickers.
+
+   It sits below the rule it undoes rather than up with the grid, because
+   `justify-self: end` and the lift are set there and both have to lose here.
+
+   The ceiling is where the longest name still holds one line with a corner
+   given away, which is a little over a thousand points rather than the nine
+   hundred the column arithmetic alone suggests: the headline is sized off the
+   viewport, so a wider window asks for more room at the same time as it
+   offers it. */
+@media (max-width: 1000px) {
+  .ege-detail__top {
+    grid-template-columns: 210px minmax(0, 1fr);
+    grid-template-areas:
+      "figure school"
+      "figure name"
+      "figure list"
+      "offers offers";
+  }
+  /* A band has nothing above it to ride up onto and no corner to hang off. */
+  .ege-offers {
+    justify-self: center;
+    margin-top: 16px;
+    --offers-lift: 0px;
+    --offers-reach: 0px;
+  }
+}
+
 
 /* --- a sticker on a game ------------------------------------------------- */
 
@@ -1937,7 +2081,9 @@ body {
     grid-template-areas:
       "school school"
       "figure name"
-      "figure list";
+      "figure list"
+      "offers offers";
+    justify-items: start;
     /* One gap between all three bands, rather than the margins the desktop
        stack uses -- there is nothing stacked to space out here. */
     gap: 12px 14px;
@@ -1950,6 +2096,20 @@ body {
      panel, so the gap between a label and its value comes in and a long
      league name is allowed to wrap rather than forcing the column wider. */
   .ege-detail__list { row-gap: 5px; column-gap: 10px; }
+
+  /* A band under the header rather than a corner of it, and centred: a
+     cluster of stickers pushed to one edge of a phone reads as a mistake.
+
+     No lift and no reach here. Both of those are for a corner sticker riding
+     up onto the orange strip above it and out over the edge beside it; down
+     here there is no strip overhead, and a phone has no margin to spare at
+     the sides -- an overhang on a 360-point screen is a sticker half off the
+     glass rather than a sticker stuck on carelessly. */
+  .ege-offers {
+    justify-self: center;
+    --offers-lift: 0px;
+    --offers-reach: 0px;
+  }
   .ege-detail__list dd { overflow-wrap: break-word; }
 
   .ege-detail__name { margin: 0 0 10px; }

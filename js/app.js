@@ -181,6 +181,7 @@
     document.getElementById('playerRecord').textContent = played ? record.text : '\u2014';
 
     renderVitals(player);
+    renderOffers(player);
     renderTally(player, season);
 
     renderSchedule(player);
@@ -368,6 +369,123 @@
     sticker.appendChild(face);
 
     return sticker;
+  }
+
+  /* --- college offers ------------------------------------------------------
+
+     One sticker per offer, stuck in the top corner of the header. They are
+     laid on a loose grid and then knocked off it -- position, tilt and all --
+     so a row of them reads as stickers somebody pressed on rather than as
+     icons in a line.
+
+     Every bit of that comes out of the same hash the boosters use, seeded on
+     the player and the school. So a sticker lands in the same place and at
+     the same angle on every draw, on every device, for good: it is a thing
+     stuck to the page, and a thing that moves when you reload is not stuck to
+     anything. */
+
+  var OFFER_SIZE = 92;      /* the die-cut, in pixels */
+
+  /* Two across up to four of them, three across beyond that. Three offers on
+     a three-wide grid is a row, and a row is the one thing a handful of
+     stickers never looks like. */
+  function offerCols(count) { return count > 4 ? 3 : 2; }
+
+  /* Where one sticker goes, and how far off square. The grid is tighter than
+     the sticker is wide, so they overlap the way a handful of stickers on a
+     folder do; the jitter is what stops the overlap looking like a pattern. */
+  function offerPlacing(seed, at, size, cols) {
+    var hash = 2166136261;
+    String(seed).split('').forEach(function (ch) {
+      hash ^= ch.charCodeAt(0);
+      hash = (hash * 16777619) >>> 0;
+    });
+
+    var stepX = size * 0.82;
+    var stepY = size * 0.80;
+    var jitter = size * 0.22;
+
+    return {
+      x: (at % cols) * stepX + ((hash % 101) / 100 - 0.5) * 2 * jitter,
+      y: Math.floor(at / cols) * stepY +
+         (((hash >>> 9) % 101) / 100 - 0.5) * 2 * jitter,
+      tilt: ((hash >>> 17) % 33) - 16         /* -16deg .. +16deg */
+    };
+  }
+
+  /* The school's mark, or its short name until the mark has been added. A
+     file that is not there yet is not an error: icon/offers/{logo}.png lands
+     whenever it lands and the sticker picks it up with no change here. */
+  function offerFace(college, sticker) {
+    var abbr = el('span', 'ege-sticker__abbr', college.short);
+
+    if (!college.logo) { return abbr; }
+
+    var logo = el('img', 'ege-sticker__logo');
+    logo.src = 'icon/offers/' + college.logo + '.png';
+    logo.alt = '';                   /* the sticker's own label says it */
+    logo.loading = 'lazy';
+    logo.addEventListener('error', function () {
+      if (logo.parentNode) { logo.parentNode.replaceChild(abbr, logo); }
+    });
+    return logo;
+  }
+
+  function offerSticker(player, entry, at, cols) {
+    var college = entry.college;
+    var place = offerPlacing(player.slug + '-' + entry.key, at, OFFER_SIZE, cols);
+
+    var slot = el('div', 'ege-offers__sticker');
+    slot.style.setProperty('--at-x', Math.round(place.x) + 'px');
+    slot.style.setProperty('--at-y', Math.round(place.y) + 'px');
+
+    var sticker = el('span', 'ege-sticker ege-sticker--offer');
+    sticker.style.setProperty('--sticker-size', OFFER_SIZE + 'px');
+    sticker.style.setProperty('--tilt', place.tilt + 'deg');
+    sticker.style.setProperty('--team-ground', college.ground);
+    sticker.style.setProperty('--team-ink', college.ink);
+    sticker.title = college.name + ' have offered';
+
+    var face = el('span', 'ege-sticker__face');
+    sticker.appendChild(face);
+    sticker.appendChild(offerFace(college, sticker));
+
+    slot.appendChild(sticker);
+    return slot;
+  }
+
+  function renderOffers(player) {
+    var box = document.getElementById('playerOffers');
+    box.innerHTML = '';
+
+    var offers = EGE.offersFor(player);
+    box.hidden = !offers.length;
+    if (!offers.length) { return; }
+
+    var cols = offerCols(offers.length);
+    offers.forEach(function (entry, at) {
+      box.appendChild(offerSticker(player, entry, at, cols));
+    });
+
+    /* The box is only as big as the stickers in it, so a player with three
+       does not reserve room for five. The last row is as wide as it is.
+
+       It is deliberately a little narrower than the stickers can reach. The
+       box is what the grid reserves and what the page measures for a
+       scrollbar; the stickers inside it are out of the flow and are allowed
+       past its edge, which is how the outermost of them end up hanging over
+       the panel border without the page growing a sideways scroll. Room for
+       the jitter is on the height, where there is nothing to overflow. */
+    var rows = Math.ceil(offers.length / cols);
+    cols = Math.min(offers.length, cols);
+    box.style.setProperty('--offers-width',
+      Math.round((cols - 1) * OFFER_SIZE * 0.82 + OFFER_SIZE * 1.10) + 'px');
+    box.style.setProperty('--offers-height',
+      Math.round((rows - 1) * OFFER_SIZE * 0.80 + OFFER_SIZE * 1.34) + 'px');
+
+    box.setAttribute('aria-label', offers.length +
+      (offers.length === 1 ? ' college offer: ' : ' college offers: ') +
+      offers.map(function (one) { return one.college.name; }).join(', '));
   }
 
   /* Stickers are private: your own, or anyone's if you are an admin. The
