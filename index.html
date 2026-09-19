@@ -462,9 +462,7 @@
                the bottom one, because a school name has nowhere to break and
                nothing else in here is that long.
 
-               The top right is deliberately empty — the overall lives with
-               the ratings now, and that corner is kept clear for what goes
-               in it next. -->
+               The top right is where the college offers are stuck. -->
           <div class="ege-detail__top">
             <div class="ege-detail__figure">
               <div class="ege-detail__photo">
@@ -478,6 +476,10 @@
 
             <div class="ege-detail__school" id="playerSchool"></div>
             <h2 class="ege-detail__name" id="playerName"></h2>
+
+            <!-- The offers on the table, as stickers. Built in app.js from
+                 data/offers.js; the corner is empty for a player with none. -->
+            <div class="ege-offers" id="playerOffers" hidden></div>
 
             <dl class="ege-detail__list">
               <dt>Season</dt><dd id="playerSeason"></dd>
@@ -655,6 +657,7 @@
 <script src="js/discord-config.js"></script>
 
 <script src="data/players.js"></script>
+<script src="data/offers.js"></script>
 <script src="data/shop.js"></script>
 <script src="data/economy.js"></script>
 <script src="data/statline.js"></script>
