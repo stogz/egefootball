@@ -572,29 +572,66 @@ body {
   .ege-tally__label { letter-spacing: .04em; }
 }
 
+/* --- the coin ------------------------------------------------------------
+
+   What a credit looks like, in place of the letters "cr". Drawn as a mask
+   rather than an <img>: the PNG's alpha is the shape and the fill is
+   currentColor, so the one file is gold against the dark nav and ink on the
+   gold chip in the shop without a second asset or a filter.
+
+   It is exactly as tall as the number beside it. Two things make that true
+   rather than approximate. icon/coin.png is cropped to the coin's own edges,
+   so the box and the ink are the same thing -- a canvas with padding in it
+   would leave the coin floating somewhere inside its box. And a digit's ink
+   is a known height: .71em in Figtree, .67em in Caprasimo, measured off the
+   faces themselves. Sitting a box of that height on the baseline puts its top
+   on the top of the number and its bottom on the bottom.
+
+   If the icon is ever redrawn, save it tight to the coin's edges. */
+.ege-coin {
+  --coin-height: .71em;                  /* Figtree digits */
+
+  display: inline-block;
+  vertical-align: baseline;
+  height: var(--coin-height);
+  aspect-ratio: 194 / 192;               /* icon/coin.png, cropped */
+  background-color: currentColor;
+  -webkit-mask: url('icon/coin.png') center / contain no-repeat;
+  mask: url('icon/coin.png') center / contain no-repeat;
+}
+
+/* A number and what it is worth, as one unbreakable thing. The gap is not
+   decoration: the coin is a round mark, and set tight against a figure it
+   reads as one more digit -- 40 became 400. */
+.ege-price {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.ege-price .ege-coin { margin-left: .34em; }
+
 /* --- credits in the nav ------------------------------------------------- */
 
 .ege-credits {
   display: inline-flex;
+  /* Baseline, so the coin -- whose own baseline is the bottom of its box --
+     lands on the line the digits stand on. */
   align-items: baseline;
   gap: 5px;
   flex: none;
   padding: 6px 11px;
   border: var(--fb-border-thin) solid var(--fb-gold);
   color: var(--fb-gold);
+  /* On the chip rather than on the number, so the coin beside it is sized in
+     em against the same thing the digits are. */
+  font-size: 1.125rem;
 }
 .ege-credits__value {
   font-family: var(--fb-font-display);
-  font-size: 1.125rem;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
-.ege-credits__unit {
-  font-size: .625rem;
-  font-weight: 800;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-}
+/* The balance is set in the display face, whose digits are shorter. */
+.ege-credits__coin { --coin-height: .67em; }
 
 /* --- signed-in avatar --------------------------------------------------- */
 
@@ -718,6 +755,13 @@ body {
 
 .ege-item--active { border-color: var(--fb-accent); box-shadow: 3px 3px 0 var(--fb-tint-clay); }
 .ege-item--locked { background: var(--fb-surface); }
+/* What the next one costs, on a workout that gets dearer each time. */
+.ege-item__stack {
+  margin: 0;
+  font-weight: 700;
+  color: var(--fb-accent-deep);
+}
+
 .ege-item__blocked {
   margin: 0;
   font-size: .75rem;
@@ -798,6 +842,10 @@ body {
 }
 .ege-upgrade__moved { font-weight: 800; color: var(--fb-accent-deep); }
 .ege-upgrade__per { font-weight: 800; color: var(--fb-muted); font-variant-numeric: tabular-nums; }
+/* The button says what it buys and what it costs. The coin is what tells the
+   two numbers apart: "+2" and "24" side by side are otherwise just numbers. */
+.ege-upgrade__price { margin-left: 2px; }
+
 .ege-upgrade__buy {
   padding: 7px 10px;
   font-size: .6875rem;
@@ -1009,6 +1057,13 @@ body {
   width: var(--sticker-size, 54px);
   height: var(--sticker-size, 54px);
 }
+/* Bigger than the row on purpose, so it sits over it rather than inside it.
+   This used to be written into the element by app.js; it is here now so a
+   phone can have a smaller one, and so the number printed on it -- which is
+   a fraction of this -- comes down with it. */
+.ege-slot__applied,
+.ege-slot__applied .ege-sticker { --sticker-size: 62px; }
+
 .ege-slot__applied--peelable { cursor: pointer; perspective: 460px; }
 .ege-slot__applied--stuck { cursor: default; }
 
@@ -1453,12 +1508,17 @@ body {
    the column itself is shaded the whole way down -- a heading lit up on its
    own leaves you counting columns to find the numbers it sorted. */
 
+/* The cell's padding belongs to the button, not to the cell: a heading you
+   have to hit the four letters of is a heading that mostly ignores you. This
+   way the target is the whole box, corner to corner. */
+.ege-gamelog th.is-sortable { padding: 0; }
+
 .ege-sort {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   width: 100%;
-  padding: 0;
+  padding: 11px 14px;
   border: 0;
   background: none;
   font: inherit;
@@ -1529,7 +1589,12 @@ body {
 
    A chevron drawn in two borders rather than set as a glyph, so it is the
    same weight as every other line on the page and turns over cleanly. Up
-   while the panel is open (press it to fold), down once it is folded. */
+   while the panel is open (press it to fold), down once it is folded.
+
+   No box around it. Every other hard-edged rectangle on this site is a panel
+   or a button you are meant to read; a third one drawn around a single arrow
+   in the corner of a heading was just another line to look at. The arrow is
+   the control. */
 .ege-collapse {
   flex: none;
   display: grid;
@@ -1537,13 +1602,13 @@ body {
   width: 36px;
   height: 36px;
   padding: 0;
-  border: var(--fb-border-thin) solid var(--fb-ink);
+  border: 0;
   background: transparent;
   color: var(--fb-ink);
   cursor: pointer;
 }
-.ege-collapse:hover { background: var(--fb-surface); }
-.ege-collapse:active { transform: translate(1px, 1px); }
+.ege-collapse:hover { color: var(--fb-accent-deep); }
+.ege-collapse:active { transform: translateY(1px); }
 
 .ege-collapse::before {
   content: '';
@@ -1660,12 +1725,22 @@ body {
 
   .fb-btn,
   .fb-navlink,
-  .ege-slot__add,
   select,
   input[type='number'],
   input[type='text'],
   input[type='password'] {
     min-height: 44px;
+  }
+
+  /* The empty booster slot is a square and has to stay one: it is a die-cut
+     outline waiting for a sticker, and 44 points of min-height stretched it
+     into a letterbox. The square keeps its shape and the tap target comes
+     from an invisible surround instead, which is what a tap target is. */
+  .ege-slot__add { width: 32px; height: 32px; }
+  .ege-slot__add::after {
+    content: '';
+    position: absolute;
+    inset: -6px;            /* 32 + 12 = 44 */
   }
 
   .fb-btn--sm {
@@ -1724,6 +1799,8 @@ body {
    away. */
 @media (max-width: 620px) {
   .ege-gamelog th { padding: 8px 9px; }
+  .ege-gamelog th.is-sortable { padding: 0; }
+  .ege-gamelog th.is-sortable .ege-sort { padding: 8px 9px; }
   .ege-gamelog td { padding: 9px; }
   .ege-gamelog__opponent { min-width: 0; }
   .ege-gamelog .fb-tag { padding: 3px 6px; }
@@ -1860,20 +1937,22 @@ body {
     grid-template-areas:
       "school school"
       "figure name"
-      "list   list";
+      "figure list";
     /* One gap between all three bands, rather than the margins the desktop
        stack uses -- there is nothing stacked to space out here. */
     gap: 12px 14px;
+    /* The picture spans the name and the facts; if the words come to less
+       than its height the rows must not stretch to meet it. */
+    align-items: start;
   }
+  /* The four facts belong to the name, so they sit under it rather than
+     under the picture as well. That leaves them a column rather than the
+     panel, so the gap between a label and its value comes in and a long
+     league name is allowed to wrap rather than forcing the column wider. */
+  .ege-detail__list { row-gap: 5px; column-gap: 10px; }
+  .ege-detail__list dd { overflow-wrap: break-word; }
 
-  /* Centred against the picture rather than pinned to the top of it: the name
-     is a line or two against a frame several times its height. */
-  .ege-detail__name {
-    align-self: center;
-    margin: 0;
-  }
-
-  .ege-detail__list { gap: 6px 14px; }
+  .ege-detail__name { margin: 0 0 10px; }
 
   .ege-school--lg .ege-school__logo { width: 24px; height: 24px; }
   /* Tracking is what makes small caps legible, and it is also what decides
@@ -1895,6 +1974,15 @@ body {
   .ege-statgrid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
 }
 
+/* The narrowest phone still made. The four facts have a column rather than
+   the whole panel now, so what is left to give them is the space around
+   them: a tighter gutter and a tighter gap, and "Avocado League" stops
+   sitting against the panel edge. */
+@media (max-width: 360px) {
+  .ege-detail__top { column-gap: 10px; }
+  .ege-detail > .fb-panel__body { padding: 12px; }
+}
+
 /* --- what iOS does to a form ------------------------------------------------
 
    Safari zooms the whole page in when you focus a control whose text is under
@@ -1902,7 +1990,7 @@ body {
    13 or 14. This is the one that actually makes it feel broken. */
 
 /* A select is as wide as its longest option unless it is told otherwise, and
-   at 16px "Offseason Strength Training" is wider than an iPhone. Left alone it
+   at 16px a long item name is wider than an iPhone. Left alone it
    pushed the page to 435px on a 390px screen, and Safari answers that by
    zooming the whole page out to fit — which is most of what "it looks tiny on
    my phone" turns out to be. */
@@ -1952,7 +2040,6 @@ select,
      them legible small, so it stays. */
   .fb-table th,
   .fb-eyebrow,
-  .ege-credits__unit,
   .ege-ovr__label,
   .ege-detail__list dt,
   .ege-card__go,
@@ -2026,9 +2113,17 @@ select,
   /* A block, not a row, so it no longer needs a scroll shadow either. */
   #scheduleTableWrap { background: none; }
 
-  /* A sticker sized to overhang a 51px desktop row swamps a phone one. */
-  .ege-slot__applied { --sticker-size: 46px; }
-  .ege-slot__applied .ege-sticker { width: 46px; height: 46px; }
+  /* A sticker sized to overhang a 51px desktop row swamps a phone one. One
+     variable does it now, so the number printed on it comes down with the
+     die-cut rather than staying sized for the desktop sticker -- which is
+     what was cramming a 17px "2.5x" into a 46px sunburst. */
+  .ege-slot__applied,
+  .ege-slot__applied .ege-sticker { --sticker-size: 50px; }
+
+  /* Half the scatter. At full tilt a 44px sunburst measures 55 corner to
+     corner, which is wider than the column it hangs in and puts its points
+     through the side of the panel. */
+  .ege-slot__applied .ege-sticker { transform: rotate(calc(var(--tilt) * .5)); }
 }
 
 /* --- the rating points table, on a small screen -----------------------------

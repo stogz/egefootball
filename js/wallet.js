@@ -212,17 +212,24 @@ EGE.wallet = (function () {
     var allowed = EGE.itemAvailable(item, EGE.currentSeason);
     if (!allowed.ok) { return fail(allowed.reason); }
 
-    return creditsFor(email).then(function (balance) {
+    /* Both up front, because a stacking price depends on what is already
+       owned: asking for the balance, pricing it, and only then reading the
+       inventory would price the fourth workout as though it were the first.
+       And it is priced here rather than taken from the page, which is the
+       whole reason this runs on what the server says. */
+    return Promise.all([creditsFor(email), inventoryFor(email)]).then(function (both) {
+      var balance = both[0];
+      var rows = both[1];
       if (balance === null) { return { ok: false, message: offline() }; }
 
-      var price = EGE.priceFor(item);
+      var price = EGE.priceFor(item, EGE.timesBought(rows, item.key));
       if (balance < price) {
         return { ok: false, message: 'Not enough credits — that costs ' + price + ', you have ' + balance + '.' };
       }
 
       var effects = item.needsTarget ? effectsForTarget(item, target) : rollEffects(item);
 
-      return inventoryFor(email).then(function (rows) {
+      return Promise.resolve().then(function () {
         var existing = item.consumable ? stackedRow(rows, item.key, null) : null;
 
         var write = existing

@@ -351,12 +351,16 @@
     };
   }
 
+  /* `size` in pixels, or null to leave it to the stylesheet -- which is what
+     the sticker on a schedule row does, because how big it should be depends
+     on how much row there is, and that is a question CSS is holding the
+     answer to rather than this. */
   function stickerEl(itemKey, size, seed) {
     var look = STICKER_LOOK[itemKey];
     if (!look) { return null; }
 
     var sticker = el('span', 'ege-sticker ege-sticker--' + look.modifier);
-    sticker.style.setProperty('--sticker-size', (size || 40) + 'px');
+    if (size) { sticker.style.setProperty('--sticker-size', size + 'px'); }
     sticker.style.setProperty('--tilt', scatter(seed == null ? itemKey : seed).tilt + 'deg');
 
     var face = el('span', 'ege-sticker__face');
@@ -438,12 +442,13 @@
         : stuck.item_name + ' \u2014 the game has been played, it stays put';
       applied.setAttribute('aria-label', applied.title);
       applied.dataset.restTitle = applied.title;
-      /* Bigger than the row on purpose, sitting over it, and nudged a few
-         pixels up or down so it overlaps the row above or below. */
+      /* How big it is belongs to the stylesheet -- it is bigger than the row
+         on purpose, and how much bigger depends on how much row there is.
+         What is settled here is only the scatter: which way this one leans
+         and how far it hangs over the row above or below. */
       var seed = stuck.id;
       var placing = scatter(seed);
-      var sticker = stickerEl(stuck.item_key, 62, seed);
-      applied.style.setProperty('--sticker-size', '62px');
+      var sticker = stickerEl(stuck.item_key, null, seed);
       applied.style.setProperty('--nudge', placing.nudge + 'px');
       applied.appendChild(sticker);
       if (peelable) {
@@ -727,7 +732,8 @@
      best day, not the worst. */
   function sortableHead(label, key, title, className) {
     var sorted = logSort.key === key;
-    var th = el('th', (className ? className + ' ' : '') + (sorted ? 'is-sorted' : ''));
+    var th = el('th', (className ? className + ' ' : '') + 'is-sortable' +
+      (sorted ? ' is-sorted' : ''));
 
     var button = el('button', 'ege-sort', label);
     button.type = 'button';
@@ -838,7 +844,7 @@
     markSortedColumn(sortedAt);
 
     setLegend('gameLogFoot', 'gameLogLegend', boosted
-      ? 'A multiplier beside an opponent is a booster that was on that game — only you and an admin see it.'
+      ? 'A multiplier beside an opponent is a booster that was on that game.'
       : '');
   }
 
@@ -972,8 +978,28 @@
     return EGE.wallet.hasIntel(shopState.inventory);
   }
 
+  function coinEl() {
+    var coin = el('span', 'ege-coin');
+    coin.setAttribute('role', 'img');
+    coin.setAttribute('aria-label', 'credits');
+    return coin;
+  }
+
+  /* A number of credits with the coin after it, as one unbreakable run. The
+     coin carries the unit, so this reads 40 (coin) rather than 40 cr -- and
+     being a mask it comes out in whatever ink surrounds it, gold on the dark
+     nav and black on the gold chip. */
+  function priceText(credits, className) {
+    var price = el('span', 'ege-price' + (className ? ' ' + className : ''),
+      String(credits));
+    price.appendChild(coinEl());
+    return price;
+  }
+
   function creditTag(credits) {
-    return el('span', 'fb-tag fb-tag--num fb-tag--gold', credits + ' cr');
+    var tag = el('span', 'fb-tag fb-tag--num fb-tag--gold');
+    tag.appendChild(priceText(credits));
+    return tag;
   }
 
   function targetLabel(key) {
@@ -985,13 +1011,28 @@
 
   /* --- the catalogue ----------------------------------------------------- */
 
+  /* Cards whose price is not fixed, so refreshShop can put the new one on
+     them: an offseason workout costs twice what the last one did. */
+  var stackedCards = [];
+
   function buildShopItem(item) {
     var card = el('div', 'ege-item');
 
     var head = el('div', 'ege-item__head');
     head.appendChild(el('h4', 'ege-item__name', EGE.itemName(item, shopState.player)));
-    head.appendChild(creditTag(item.credits));
+    var tag = creditTag(EGE.priceFor(item, ownedNow(item)));
+    head.appendChild(tag);
     card.appendChild(head);
+
+    /* What the next one will cost, and why. Written from the item rather
+       than into its description, so the prose and the price can never drift
+       apart. */
+    var stackNote = null;
+    if (item.creditsStack) {
+      stackNote = el('p', 'fb-meta ege-item__stack');
+      card.appendChild(stackNote);
+      stackedCards.push({ item: item, tag: tag, note: stackNote, head: head });
+    }
 
     /* A booster is a sticker, and a sticker is the whole appeal of it. The
        card shows the thing itself rather than describing it — the same
@@ -1103,7 +1144,8 @@
 
       var buy = el('button', 'fb-btn ege-upgrade__buy' + (points === 1 ? ' fb-btn--primary' : ''));
       buy.type = 'button';
-      buy.textContent = '+' + points + '  \u00b7  ' + price;
+      buy.appendChild(el('span', null, '+' + points));
+      buy.appendChild(priceText(price, 'ege-upgrade__price'));
       buy.disabled = shopState.credits < price;
       buy.title = buying < points
         ? 'Only ' + buying + ' left below ' + EGE.economy.MAX_RATING
@@ -1145,6 +1187,35 @@
     return wrap;
   }
 
+  /* How many of this item the player is holding right now. */
+  function ownedNow(item) {
+    return EGE.timesBought(shopState.inventory, item.key);
+  }
+
+  /* The price on a stacking card, and the sentence under it, after anything
+     has been bought or cleared. */
+  function refreshStackedPrices() {
+    stackedCards.forEach(function (card) {
+      var owned = ownedNow(card.item);
+      var price = EGE.priceFor(card.item, owned);
+
+      var fresh = creditTag(price);
+      card.head.replaceChild(fresh, card.tag);
+      card.tag = fresh;
+
+      /* The chip is what this one costs, so the sentence is about the one
+         after it -- saying "the next one" of a price already on the card is
+         how it reads as though the chip were wrong. */
+      var after = EGE.priceFor(card.item, owned + 1);
+      var times = owned === 1 ? 'once' : (owned === 2 ? 'twice' : owned + ' times');
+
+      card.note.textContent = owned
+        ? 'Bought ' + times + ' this offseason. The one after this costs ' + after + '.'
+        : 'Twice the price each time you buy it \u2014 the one after this costs ' +
+          after + '.';
+    });
+  }
+
   function refreshUpgrades() {
     if (!upgradesBody || !shopState.player) { return; }
     upgradesBody.innerHTML = '';
@@ -1182,10 +1253,16 @@
         : 'Good for the ' + row.season + ' season only.'));
     }
 
-    if (isUpgrade) {
+    /* What a thing did to the ratings is not written on the thing. Every
+       point bought is already in "Applied to your ratings" at the top of the
+       panel, added up per attribute, which is the number a player actually
+       wants -- and repeating it card by card only made the same sum harder
+       to read. An admin still sees it, because an admin is looking at
+       somebody else's inventory and has no summary of it. */
+    if (options.admin && isUpgrade) {
       card.appendChild(el('p', 'ege-item__text',
         (row.credits || 0) + ' credits spent, all of it in the rating.'));
-    } else if (row.effects && Object.keys(row.effects).length) {
+    } else if (options.admin && row.effects && Object.keys(row.effects).length) {
       card.appendChild(el('p', 'ege-item__text', Object.keys(row.effects).map(function (attr) {
         return targetLabel(attr) + ' ' + (row.effects[attr] > 0 ? '+' : '') + row.effects[attr];
       }).join(', ')));
@@ -1282,12 +1359,25 @@
     applied.innerHTML = '';
 
     document.getElementById('shopBalance').textContent = shopState.credits;
-    document.getElementById('inventoryEmpty').hidden = shopState.inventory.length > 0;
 
     var summary = buildBoostSummary(boostSummary(shopState.inventory));
     if (summary) { applied.appendChild(summary); }
 
-    shopState.inventory.forEach(function (row) {
+    /* Rating points are not kept as things. A player who has bought eight of
+       them had eight cards saying what the box above them already says once,
+       per attribute, in the order that matters. What is left in here is what
+       is actually an item: a booster to put on a game, Intel to switch on.
+
+       They are still owned -- the summary is built from every row, above,
+       and the shop still prices the next point off them. They are just not
+       a shelf of identical cards any more. */
+    var things = shopState.inventory.filter(function (row) {
+      return row.item_key !== 'upgrade';
+    });
+
+    document.getElementById('inventoryEmpty').hidden = things.length > 0 || Boolean(summary);
+
+    things.forEach(function (row) {
       holder.appendChild(inventoryCard(row, {
         admin: false,
         report: sayShop,
@@ -2147,6 +2237,7 @@
       shopState.credits = all[0] === null ? EGE.shop.startingCredits : all[0];
       shopState.inventory = all[1];
       renderInventory();
+      refreshStackedPrices();
       refreshUpgrades();
       redrawRatings();
       refreshScoutMarks();
@@ -2157,6 +2248,7 @@
   function buildCatalogue() {
     if (shopState.built) { return; }
     shopState.built = true;
+    stackedCards = [];
 
     var earnings = document.getElementById('shopEarnings');
     EGE.shop.earnings.forEach(function (row) {
