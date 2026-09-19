@@ -844,7 +844,7 @@
     markSortedColumn(sortedAt);
 
     setLegend('gameLogFoot', 'gameLogLegend', boosted
-      ? 'A multiplier beside an opponent is a booster that was on that game — only you and an admin see it.'
+      ? 'A multiplier beside an opponent is a booster that was on that game.'
       : '');
   }
 
@@ -978,15 +978,27 @@
     return EGE.wallet.hasIntel(shopState.inventory);
   }
 
-  /* A price. The coin carries the unit, so the chip reads 40 (coin) rather
-     than 40 cr -- and being a mask, it comes out in the chip's own ink rather
-     than the gold it is drawn in. */
-  function creditTag(credits) {
-    var tag = el('span', 'fb-tag fb-tag--num fb-tag--gold ege-price', String(credits));
+  function coinEl() {
     var coin = el('span', 'ege-coin');
     coin.setAttribute('role', 'img');
     coin.setAttribute('aria-label', 'credits');
-    tag.appendChild(coin);
+    return coin;
+  }
+
+  /* A number of credits with the coin after it, as one unbreakable run. The
+     coin carries the unit, so this reads 40 (coin) rather than 40 cr -- and
+     being a mask it comes out in whatever ink surrounds it, gold on the dark
+     nav and black on the gold chip. */
+  function priceText(credits, className) {
+    var price = el('span', 'ege-price' + (className ? ' ' + className : ''),
+      String(credits));
+    price.appendChild(coinEl());
+    return price;
+  }
+
+  function creditTag(credits) {
+    var tag = el('span', 'fb-tag fb-tag--num fb-tag--gold');
+    tag.appendChild(priceText(credits));
     return tag;
   }
 
@@ -999,13 +1011,28 @@
 
   /* --- the catalogue ----------------------------------------------------- */
 
+  /* Cards whose price is not fixed, so refreshShop can put the new one on
+     them: an offseason workout costs twice what the last one did. */
+  var stackedCards = [];
+
   function buildShopItem(item) {
     var card = el('div', 'ege-item');
 
     var head = el('div', 'ege-item__head');
     head.appendChild(el('h4', 'ege-item__name', EGE.itemName(item, shopState.player)));
-    head.appendChild(creditTag(item.credits));
+    var tag = creditTag(EGE.priceFor(item, ownedNow(item)));
+    head.appendChild(tag);
     card.appendChild(head);
+
+    /* What the next one will cost, and why. Written from the item rather
+       than into its description, so the prose and the price can never drift
+       apart. */
+    var stackNote = null;
+    if (item.creditsStack) {
+      stackNote = el('p', 'fb-meta ege-item__stack');
+      card.appendChild(stackNote);
+      stackedCards.push({ item: item, tag: tag, note: stackNote, head: head });
+    }
 
     /* A booster is a sticker, and a sticker is the whole appeal of it. The
        card shows the thing itself rather than describing it — the same
@@ -1117,7 +1144,8 @@
 
       var buy = el('button', 'fb-btn ege-upgrade__buy' + (points === 1 ? ' fb-btn--primary' : ''));
       buy.type = 'button';
-      buy.textContent = '+' + points + '  \u00b7  ' + price;
+      buy.appendChild(el('span', null, '+' + points));
+      buy.appendChild(priceText(price, 'ege-upgrade__price'));
       buy.disabled = shopState.credits < price;
       buy.title = buying < points
         ? 'Only ' + buying + ' left below ' + EGE.economy.MAX_RATING
@@ -1157,6 +1185,35 @@
 
     refreshUpgrades();
     return wrap;
+  }
+
+  /* How many of this item the player is holding right now. */
+  function ownedNow(item) {
+    return EGE.timesBought(shopState.inventory, item.key);
+  }
+
+  /* The price on a stacking card, and the sentence under it, after anything
+     has been bought or cleared. */
+  function refreshStackedPrices() {
+    stackedCards.forEach(function (card) {
+      var owned = ownedNow(card.item);
+      var price = EGE.priceFor(card.item, owned);
+
+      var fresh = creditTag(price);
+      card.head.replaceChild(fresh, card.tag);
+      card.tag = fresh;
+
+      /* The chip is what this one costs, so the sentence is about the one
+         after it -- saying "the next one" of a price already on the card is
+         how it reads as though the chip were wrong. */
+      var after = EGE.priceFor(card.item, owned + 1);
+      var times = owned === 1 ? 'once' : (owned === 2 ? 'twice' : owned + ' times');
+
+      card.note.textContent = owned
+        ? 'Bought ' + times + ' this offseason. The one after this costs ' + after + '.'
+        : 'Twice the price each time you buy it \u2014 the one after this costs ' +
+          after + '.';
+    });
   }
 
   function refreshUpgrades() {
@@ -2180,6 +2237,7 @@
       shopState.credits = all[0] === null ? EGE.shop.startingCredits : all[0];
       shopState.inventory = all[1];
       renderInventory();
+      refreshStackedPrices();
       refreshUpgrades();
       redrawRatings();
       refreshScoutMarks();
@@ -2190,6 +2248,7 @@
   function buildCatalogue() {
     if (shopState.built) { return; }
     shopState.built = true;
+    stackedCards = [];
 
     var earnings = document.getElementById('shopEarnings');
     EGE.shop.earnings.forEach(function (row) {

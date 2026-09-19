@@ -577,44 +577,61 @@ body {
    What a credit looks like, in place of the letters "cr". Drawn as a mask
    rather than an <img>: the PNG's alpha is the shape and the fill is
    currentColor, so the one file is gold against the dark nav and ink on the
-   gold chip in the shop without a second asset or a filter. It is sized in em
-   so it tracks whatever it sits beside. */
+   gold chip in the shop without a second asset or a filter.
+
+   It is exactly as tall as the number beside it. Two things make that true
+   rather than approximate. icon/coin.png is cropped to the coin's own edges,
+   so the box and the ink are the same thing -- a canvas with padding in it
+   would leave the coin floating somewhere inside its box. And a digit's ink
+   is a known height: .71em in Figtree, .67em in Caprasimo, measured off the
+   faces themselves. Sitting a box of that height on the baseline puts its top
+   on the top of the number and its bottom on the bottom.
+
+   If the icon is ever redrawn, save it tight to the coin's edges. */
 .ege-coin {
+  --coin-height: .71em;                  /* Figtree digits */
+
   display: inline-block;
-  width: 1.05em;
-  height: 1.05em;
-  /* Nudged down to sit on the line of the digits rather than above them. */
-  vertical-align: -.16em;
+  vertical-align: baseline;
+  height: var(--coin-height);
+  aspect-ratio: 194 / 192;               /* icon/coin.png, cropped */
   background-color: currentColor;
   -webkit-mask: url('icon/coin.png') center / contain no-repeat;
   mask: url('icon/coin.png') center / contain no-repeat;
 }
 
-/* A price, with the coin standing in for the unit. The gap is not decoration:
-   the coin is an upright oval, and set tight against a number it reads as one
-   more digit -- 40 became 400. */
-.ege-price { gap: .34em; }
+/* A number and what it is worth, as one unbreakable thing. The gap is not
+   decoration: the coin is a round mark, and set tight against a figure it
+   reads as one more digit -- 40 became 400. */
+.ege-price {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.ege-price .ege-coin { margin-left: .34em; }
 
 /* --- credits in the nav ------------------------------------------------- */
 
 .ege-credits {
   display: inline-flex;
+  /* Baseline, so the coin -- whose own baseline is the bottom of its box --
+     lands on the line the digits stand on. */
   align-items: baseline;
   gap: 5px;
   flex: none;
   padding: 6px 11px;
   border: var(--fb-border-thin) solid var(--fb-gold);
   color: var(--fb-gold);
+  /* On the chip rather than on the number, so the coin beside it is sized in
+     em against the same thing the digits are. */
+  font-size: 1.125rem;
 }
 .ege-credits__value {
   font-family: var(--fb-font-display);
-  font-size: 1.125rem;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
-/* Sized against the number beside it rather than against the small caps it
-   replaced, so the two read as one balance. */
-.ege-credits__coin { font-size: 1rem; }
+/* The balance is set in the display face, whose digits are shorter. */
+.ege-credits__coin { --coin-height: .67em; }
 
 /* --- signed-in avatar --------------------------------------------------- */
 
@@ -738,6 +755,13 @@ body {
 
 .ege-item--active { border-color: var(--fb-accent); box-shadow: 3px 3px 0 var(--fb-tint-clay); }
 .ege-item--locked { background: var(--fb-surface); }
+/* What the next one costs, on a workout that gets dearer each time. */
+.ege-item__stack {
+  margin: 0;
+  font-weight: 700;
+  color: var(--fb-accent-deep);
+}
+
 .ege-item__blocked {
   margin: 0;
   font-size: .75rem;
@@ -818,6 +842,10 @@ body {
 }
 .ege-upgrade__moved { font-weight: 800; color: var(--fb-accent-deep); }
 .ege-upgrade__per { font-weight: 800; color: var(--fb-muted); font-variant-numeric: tabular-nums; }
+/* The button says what it buys and what it costs. The coin is what tells the
+   two numbers apart: "+2" and "24" side by side are otherwise just numbers. */
+.ege-upgrade__price { margin-left: 2px; }
+
 .ege-upgrade__buy {
   padding: 7px 10px;
   font-size: .6875rem;

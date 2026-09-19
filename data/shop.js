@@ -68,14 +68,18 @@ EGE.shop = {
     {
       key: 'training',
       title: 'Offseason Training',
-      blurb: 'Where the whole offseason goes. A flat price for a fixed set of ' +
-             'points, which is poor value early and very good value later, ' +
-             'once single points have got expensive.',
+      blurb: 'Where the whole offseason goes. The first block of a workout is ' +
+             'cheap and every one after it costs twice the last, so an ' +
+             'offseason spent entirely on one thing runs out of credits long ' +
+             'before it runs out of attributes. The prices go back to the ' +
+             'bottom when the season is locked and the workouts fold into the ' +
+             'ratings.',
       items: [
         {
           key: 'train-strength',
           name: 'Offseason Strength Training',
-          credits: 20,
+          credits: 10,
+          creditsStack: 2,
           effects: { strength: 4 },
           risks: [
             { attribute: 'agility', amount: -2 },
@@ -89,7 +93,8 @@ EGE.shop = {
         {
           key: 'train-cardio',
           name: 'Offseason Cardio Training',
-          credits: 25,
+          credits: 12,
+          creditsStack: 2,
           effects: { speed: 2, acceleration: 2, agility: 2, stamina: 2 },
           risks: [
             { attribute: 'strength', amount: -2 }
@@ -102,7 +107,8 @@ EGE.shop = {
         {
           key: 'train-overall',
           name: 'Overall Offseason Training',
-          credits: 20,
+          credits: 10,
+          creditsStack: 2,
           effects: {
             speed: 1, acceleration: 1, strength: 1,
             agility: 1, jumping: 1, stamina: 1
@@ -164,10 +170,31 @@ EGE.itemName = function (item, player) {
   return (player && byPosition[player.position]) || item.name;
 };
 
-/* Catalogue items have one flat price. Rating points are the only thing that
-   scales, and their price lives in data/economy.js. */
-EGE.priceFor = function (item) {
-  return item ? item.credits : 0;
+/* What an item costs the next time this player buys one.
+
+   Most things have one flat price. An item with `creditsStack` gets dearer
+   every time it is bought -- 2 doubles it, so 10 becomes 20, then 40, then
+   80 -- which is what stops an offseason being spent entirely on the same
+   workout. Rating points are the other scaling thing, and their price is
+   worked out from the attribute rather than from a count, in data/economy.js.
+
+   `owned` is how many are already on the books. Offseason workouts are wiped
+   when a season is locked, so that count goes back to zero and the price with
+   it -- see clearLockedRows in js/wallet.js. */
+EGE.priceFor = function (item, owned) {
+  if (!item) { return 0; }
+  var times = owned || 0;
+  if (!item.creditsStack || times < 1) { return item.credits; }
+  return Math.round(item.credits * Math.pow(item.creditsStack, times));
+};
+
+/* How many of an item a player holds, counting a stacked row's quantity
+   rather than the row. */
+EGE.timesBought = function (rows, itemKey) {
+  return (rows || []).reduce(function (count, row) {
+    if (row.item_key !== itemKey) { return count; }
+    return count + (typeof row.quantity === 'number' ? row.quantity : 1);
+  }, 0);
 };
 
 /* Whether an item can be bought in a given season, and why not when it

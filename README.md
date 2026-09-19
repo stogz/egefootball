@@ -384,10 +384,11 @@ On sale:
   sunbursts you stick on a game.
 - **Rating points** — bought straight into an attribute, priced by how close
   that attribute already is to 99. Cheap early, dear late.
-- **Offseason training** — strength (20) or cardio (25), each with a downside
-  rolled when you buy it, or overall (20) for a smaller gain with nothing to
-  lose. A flat price for a fixed set of points: poor value early, very good
-  value once single points have got expensive.
+- **Offseason training** — strength (10) or cardio (12), each with a downside
+  rolled when you buy it, or overall (10) for a smaller gain with nothing to
+  lose. Cheap to start and **twice the price every time you buy it**, so an
+  offseason spent on one workout runs out of credits long before it runs out
+  of attributes. See below.
 - **QB Connection** (20), **Hyperbaric Chamber** (35, then 45, then 60, then
   15 more each time), **Intel** (15).
 
@@ -524,6 +525,23 @@ up to a debuff nearly every time (87.5%, as it turned out).
 
 Risks are rolled once, when the item is bought, and the result is stored on
 the row. Reloading the page never re-rolls it.
+
+**The price doubles every time.** A workout carries `creditsStack: 2` in
+`data/shop.js`, and `EGE.priceFor(item, owned)` multiplies its base price by
+that for each one already on the books — strength runs 10, 20, 40, 80, 160.
+A 60-credit offseason buys two of them and has 30 left, which is the point:
+the cheap first block makes training worth doing, and the doubling makes
+spending a whole offseason on one attribute a choice rather than the obvious
+move.
+
+`owned` is counted from the inventory rows, so the reset is the one that
+already exists: **Clear the shop rows** at the end of a season deletes every
+`train-%` row once the workouts have been folded into `data/ratings.js`, and
+the next offseason starts at the bottom of the ladder again.
+
+The price is worked out in `js/wallet.js` from what the server holds rather
+than from what the page says, the same as every other price here — the page
+is showing it, not deciding it.
 
 ### Everything carries over
 
