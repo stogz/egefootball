@@ -385,9 +385,15 @@ EGE.stats[2018] = {
           receivingTd: 1, receivingLong: 14, targets: 5, fumbles: 0,
           rushingAvg: 4.2, receivingAvg: 15, totalYards: 95, totalTd: 2
         } },
-       { week: 15, date: '2018-11-17', kickoff: '7:00pm',
-        opponent: 'Torrey Pines', home: true, conference: false, playoff: true
-       },
+      { week: 15, date: '2018-11-17', kickoff: '7:00pm',
+        opponent: 'Torrey Pines', home: true, conference: false, playoff: true,
+        result: { teamScore: 21, opponentScore: 20 }, booster: null,
+        stats: {
+          carries: 12, rushingYards: 50, rushingTd: 1, rushingLong: 25,
+          receptions: 3, receivingYards: 45, receivingYac: 25,
+          receivingTd: 1, receivingLong: 14, targets: 5, fumbles: 0,
+          rushingAvg: 4.2, receivingAvg: 15, totalYards: 95, totalTd: 2
+        } },
     ],
 
     /* Paxon Hatch — Bloomington High School */
