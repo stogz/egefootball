@@ -713,6 +713,54 @@ the bucket the admin publishes, not a row on a calendar — so every playoff
 game is week 14, and the schedule draws a dotted rule above the first of
 them.
 
+### The rest of the draw
+
+A bracket is thirty-one games and one of them is his. The other thirty live in
+a `playoffs` block in the same file:
+
+```js
+playoffs: {
+  normal: [
+    /* first round */
+    { week: 14, results: [
+      /* the left half, top to bottom */
+      ['Rockford East', 24, 7],                   /* Simeon */
+      ...
+      /* then the right half */
+      ...
+      null,          /* Normal Community v St. Charles North — his own */
+    ] },
+    /* second round */
+    { week: 15, results: [] },
+    ...
+  ],
+  ...
+}
+```
+
+One entry per bracket, keyed the way `data/brackets.js` is keyed. Each is a
+list of rounds; each round is the week it is played in and one result per
+matchup, in the order the bracket draws them — the whole left half top to
+bottom, then the whole right half. A result is `[winner, winner's score,
+loser's score]`, and the winner is named rather than pointed at so a line can
+be read and changed without counting boxes.
+
+`null` means the site works it out. Two cases: a bye, which advances on its
+own, and the one matchup his own school is in — that is a game in the same
+file with a stat line on it, and a bracket that could disagree with the
+schedule about whether he won is worse than no bracket. Change that game's
+score and the draw changes with it.
+
+**A round is drawn once its week is published.** Nothing in the bracket is
+settled before then, the same rule the schedule, the record and the credits
+already follow — so the draw can never be ahead of what the admin has put out.
+Publishing week 14 fills the first round in *and* stands the second round up
+with the teams that won it, because round two's matchups are round one's
+winners. Fill a later round in and publish its week, and it moves on again.
+
+To change who goes through, edit one line. To change how his own school did,
+edit his game up in `games`.
+
 A new season is a new file and one more year in the `SEASONS` list at the top
 of `js/site-data.js`. The bot finds them on its own.
 
@@ -1040,9 +1088,10 @@ Built so far:
 - `data/offers.js` — who has offered whom, and each school's sticker colour
   and mark. Adding a key to a player's list puts the sticker on his header.
 - `data/brackets.js` — the playoff bracket each school is in, as the field was
-  drawn: every first-round matchup and seed, and nothing else. Empty on
-  purpose — what happened in a game lives in `stats/{year}.js` like any other
-  game. A school with no entry has no Tournament switch.
+  drawn: every first-round matchup and seed, and nothing else. No results —
+  those live in `stats/{year}.js` like any other game. It also holds
+  `EGE.bracketState`, which is how far the draw has got given what has been
+  published. A school with no entry has no Tournament switch.
 - `data/statline.js` — what a stat line is: the columns each position is read
   in, and how a season of them adds up.
 - `js/discord-post.js` — one week as a Discord message. Loaded by the browser

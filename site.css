@@ -1900,7 +1900,7 @@ body {
 }
 
 .ege-bracket {
-  min-width: 1180px;
+  min-width: 1520px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1926,12 +1926,12 @@ body {
 }
 .ege-bracket__heads {
   display: grid;
-  grid-template-columns: 1.45fr 1fr 1fr 1fr;
+  grid-template-columns: 1.7fr 1.15fr 1.1fr 1fr;
   gap: 0 10px;
 }
 /* The right half counts its rounds back towards the edge. */
 .ege-bracket__heads--flip {
-  grid-template-columns: 1fr 1fr 1fr 1.45fr;
+  grid-template-columns: 1fr 1.1fr 1.15fr 1.7fr;
   direction: rtl;
 }
 .ege-bracket__heads--flip .ege-bracket__head { direction: ltr; }
@@ -1969,12 +1969,19 @@ body {
 }
 
 /* The first round is where every name in the draw is written, and some of
-   them are "Wheaton-Warrenville South". The rounds after it hold one name
-   each at most and will hold none for weeks, so the width goes to the round
-   that needs it. */
+   them are "Wheaton-Warrenville South", so it takes the most. The rounds
+   after it need less but not much less: once a round is played its boxes
+   carry a score as well as a name, and a column sized for an empty box cuts
+   every name in it the moment the week goes out.
+
+   The whole thing is wider than any panel because of it. It already scrolls
+   sideways, so the cost of the extra width is a little more swiping and the
+   gain is that three names in four draws get cut instead of fourteen. The
+   three that still do are the longest in any of them and carry the full name
+   as a title. */
 .ege-bracket__side {
   display: grid;
-  grid-template-columns: 1.45fr 1fr 1fr 1fr;
+  grid-template-columns: 1.7fr 1.15fr 1.1fr 1fr;
   /* One row per half-matchup, plus one for each group heading. The count is
      set from the draw, in app.js. */
   grid-template-rows: repeat(var(--rows), minmax(21px, auto));
@@ -1991,7 +1998,7 @@ body {
   text-transform: uppercase;
   color: var(--fb-muted-2);
 }
-.ege-bracket__side--flip { grid-template-columns: 1fr 1fr 1fr 1.45fr; }
+.ege-bracket__side--flip { grid-template-columns: 1fr 1.1fr 1.15fr 1.7fr; }
 .ege-bracket__side--flip .ege-bracket__group { text-align: right; }
 
 /* --- one matchup ---------------------------------------------------------- */
@@ -2049,6 +2056,37 @@ body {
 .ege-seed--us .ege-seed__name { font-weight: 800; color: var(--fb-accent-deep); }
 .ege-seed--us .ege-seed__no { color: var(--fb-accent-deep); }
 
+/* --- a matchup that has been played --------------------------------------
+
+   The winner stays in the ink the rest of the draw is set in and the loser
+   goes grey. That is the whole treatment: a bracket is read by running an eye
+   down it for who is still in, and anything louder than a colour change makes
+   thirty-one boxes shout at once. */
+.ege-seed__score {
+  flex: none;
+  margin-left: auto;
+  padding-left: 8px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--fb-muted-2);
+}
+.ege-bracket__side--flip .ege-seed__score {
+  margin: 0 auto 0 0;
+  padding: 0 8px 0 0;
+}
+
+.ege-seed--through .ege-seed__name { font-weight: 700; }
+.ege-seed--through .ege-seed__score { color: var(--fb-ink); }
+
+.ege-seed--out .ege-seed__name,
+.ege-seed--out .ege-seed__no { color: var(--fb-muted-2); }
+/* Beaten, and it was his. Still his colour, because finding himself in the
+   draw is what the highlight is for and that does not stop mattering when he
+   loses -- but the same grey weight as anyone else who went out. */
+.ege-seed--out.ege-seed--us { background: transparent; }
+.ege-seed--out.ege-seed--us .ege-seed__name { color: var(--fb-accent-deep); font-weight: 600; }
+.ege-seed--out.ege-seed--us .ege-seed__no { color: var(--fb-accent-deep); }
+
 .ege-seed--bye .ege-seed__name { font-style: italic; color: var(--fb-muted-2); }
 .ege-seed--blank { min-height: 21px; }
 
@@ -2094,6 +2132,16 @@ body {
   font-size: 1rem;
   color: var(--fb-muted-2);
 }
+
+/* Somebody has actually won it. The dashes come off the box and the name goes
+   in the site's ink -- the one place in the draw that stops being a fixture
+   and becomes a fact. */
+.ege-bracket__champion--crowned {
+  border-style: solid;
+  border-color: var(--fb-ink);
+  background: var(--fb-tint-clay);
+}
+.ege-bracket__champion--crowned .ege-bracket__cupname { color: var(--fb-ink); }
 
 /* Folded: the head is the whole panel, so the rule under it would be a second
    line right against the panel's own bottom edge. */

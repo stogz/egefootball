@@ -325,6 +325,7 @@ EGE.exports = (function () {
     lines.push('  season: ' + season + ',');
     lines.push('  level: ' + quote(forSeason.level || '') + ',');
     lines.push('');
+    playoffLines(forSeason).forEach(function (line) { lines.push(line); });
     lines.push('  games: {');
 
     EGE.players.forEach(function (player) {
@@ -383,6 +384,47 @@ EGE.exports = (function () {
 
   function pad(number) {
     return String(number).length < 2 ? ' ' + number : String(number);
+  }
+
+  /* The draws, written back out as they were read.
+
+     The editor never touches these -- there is nothing in it that edits a
+     game somebody else played -- but the file is rewritten whole, so
+     anything not written here is dropped. That is how the playoff flags were
+     nearly lost, and thirty results a bracket is a worse thing to lose. */
+  function playoffLines(forSeason) {
+    var draws = forSeason.playoffs;
+    if (!draws || !Object.keys(draws).length) { return []; }
+
+    var out = ['  /* How the rest of each draw went. See data/brackets.js for the',
+               '     order: the whole left half top to bottom, then the whole right.',
+               '     [winner, winner\'s score, loser\'s score], or null for a bye and',
+               '     for the one matchup his own school is in. */',
+               '  playoffs: {'];
+
+    Object.keys(draws).forEach(function (key, at) {
+      if (at) { out.push(''); }
+      out.push('    ' + key + ': [');
+      (draws[key] || []).forEach(function (round) {
+        var results = round.results || [];
+        if (!results.length) {
+          out.push('      { week: ' + round.week + ', results: [] },');
+          return;
+        }
+        out.push('      { week: ' + round.week + ', results: [');
+        results.forEach(function (row) {
+          out.push('        ' + (row
+            ? '[' + quote(row[0]) + ', ' + row[1] + ', ' + row[2] + '],'
+            : 'null,'));
+        });
+        out.push('      ] },');
+      });
+      out.push('    ],');
+    });
+
+    out.push('  },');
+    out.push('');
+    return out;
   }
 
   /* One game, as the two or three lines the file writes it on. */

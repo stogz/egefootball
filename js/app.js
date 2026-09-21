@@ -902,7 +902,11 @@
      A slot with no team in it yet is the same line left blank, which is what
      makes an undrawn round read as somewhere a team is going to go rather
      than as a gap. */
-  function bracketTeam(team, us) {
+  /* One team on one line of a matchup. `result` is the settled matchup it is
+     part of, or null while it is still to be played -- it decides whether
+     this line is the one that went through and what score sits at the end of
+     it. */
+  function bracketTeam(team, us, result) {
     var row = el('div', 'ege-seed');
     if (!team) {
       row.classList.add('ege-seed--blank');
@@ -917,30 +921,47 @@
     row.title = team.name;
     row.appendChild(el('span', 'ege-seed__no', team.seed));
     row.appendChild(el('span', 'ege-seed__name', team.name));
+
+    if (result) {
+      var through = result.name === team.name;
+      row.classList.add(through ? 'ege-seed--through' : 'ege-seed--out');
+      if (typeof result.hi === 'number') {
+        row.appendChild(el('span', 'ege-seed__score', through ? result.hi : result.lo));
+      }
+    }
+
     return row;
   }
 
-  /* A matchup box. `game` is null for a round that has not been drawn yet. */
-  function bracketGame(game, us) {
+  /* A matchup box. `slot` carries whoever is in it and whatever has been
+     settled; a round nobody has reached yet has neither, and draws as the
+     dashed outline a team is going to go in. */
+  function bracketGame(slot, us) {
     var box = el('div', 'ege-tie');
+    var has = slot && (slot.a || slot.b);
 
-    if (!game) {
+    if (!has) {
       box.classList.add('ege-tie--open');
       box.appendChild(bracketTeam(null));
       box.appendChild(bracketTeam(null));
       return box;
     }
 
-    box.appendChild(bracketTeam(game.a, us));
+    var result = slot.result && !slot.result.bye ? slot.result : null;
+    if (slot.result) { box.classList.add('ege-tie--done'); }
 
-    if (game.b) {
-      box.appendChild(bracketTeam(game.b, us));
-    } else {
+    box.appendChild(bracketTeam(slot.a, us, result));
+
+    if (slot.b) {
+      box.appendChild(bracketTeam(slot.b, us, result));
+    } else if (slot.a) {
       /* A bye is one team and the week off, not a team against nobody. */
       var pass = el('div', 'ege-seed ege-seed--bye');
       pass.appendChild(el('span', 'ege-seed__no'));
       pass.appendChild(el('span', 'ege-seed__name', 'Bye'));
       box.appendChild(pass);
+    } else {
+      box.appendChild(bracketTeam(null));
     }
 
     return box;
@@ -948,7 +969,7 @@
 
   /* One half of the draw. `flip` turns the boxes round for the right-hand
      side, so both halves read inwards towards the final. */
-  function bracketSide(bracket, side, flip) {
+  function bracketSide(state, side, flip) {
     var plan = bracketRows(side);
     var box = el('div', 'ege-bracket__side' + (flip ? ' ege-bracket__side--flip' : ''));
     box.style.setProperty('--rows', plan.height);
@@ -958,17 +979,17 @@
          other way round on the right. */
       var column = flip ? BRACKET_ROUNDS - r : r + 1;
 
-      round.forEach(function (slot) {
-        if (slot.opener && slot.opener.label) {
-          var head = el('div', 'ege-bracket__group', slot.opener.label);
+      round.forEach(function (place, at) {
+        if (place.opener && place.opener.label) {
+          var head = el('div', 'ege-bracket__group', place.opener.label);
           head.style.gridColumn = column;
-          head.style.gridRow = (slot.start - 1) + ' / ' + slot.start;
+          head.style.gridRow = (place.start - 1) + ' / ' + place.start;
           box.appendChild(head);
         }
 
-        var tie = bracketGame(slot.opener ? slot.opener.game : null, bracket.us);
+        var tie = bracketGame(state.rounds[r][state.at(r, flip, at)], state.bracket.us);
         tie.style.gridColumn = column;
-        tie.style.gridRow = slot.start + ' / ' + slot.end;
+        tie.style.gridRow = place.start + ' / ' + place.end;
         box.appendChild(tie);
       });
     });
@@ -992,10 +1013,11 @@
   function renderBracket(player) {
     var wrap = document.getElementById('bracketWrap');
     var box = document.getElementById('bracket');
-    var bracket = EGE.bracketFor(player);
+    var state = EGE.bracketState(player, shownSeason());
 
     box.innerHTML = '';
-    if (!bracket) { return; }
+    if (!state) { return; }
+    var bracket = state.bracket;
 
     box.appendChild(el('div', 'ege-bracket__title', bracket.title));
 
@@ -1012,18 +1034,20 @@
     heads.appendChild(bracketHeads(bracket, true));
     box.appendChild(heads);
 
-    grid.appendChild(bracketSide(bracket, bracket.left, false));
+    grid.appendChild(bracketSide(state, bracket.left, false));
 
-    /* The final, and the line under it where a champion goes. */
+    /* The final, and the line under it where a champion goes. Nothing is
+       written on it until the last game is published. */
     var centre = el('div', 'ege-bracket__centre');
-    centre.appendChild(bracketGame(null, bracket.us));
-    var cup = el('div', 'ege-bracket__champion');
+    centre.appendChild(bracketGame(state.final, bracket.us));
+    var cup = el('div', 'ege-bracket__champion' +
+      (state.champion ? ' ege-bracket__champion--crowned' : ''));
     cup.appendChild(el('span', 'ege-bracket__cuplabel', 'Champion'));
-    cup.appendChild(el('span', 'ege-bracket__cupname', '—'));
+    cup.appendChild(el('span', 'ege-bracket__cupname', state.champion || '—'));
     centre.appendChild(cup);
     grid.appendChild(centre);
 
-    grid.appendChild(bracketSide(bracket, bracket.right, true));
+    grid.appendChild(bracketSide(state, bracket.right, true));
 
     box.appendChild(grid);
     wrap.setAttribute('aria-label', bracket.title + ' bracket');
