@@ -22,6 +22,13 @@
    `conference: true` marks the games listed with an asterisk, and
    `scouts: true` marks a game scouts will be at — what Intel buys is the
    right to see it.
+
+   `playoff: true` is a postseason game. It reads the same as any other game
+   and is listed with two asterisks, but no booster goes on it: what a player
+   spends his stickers on is the regular season, and by the time the bracket
+   is out there is nothing left to plan. `bye: true` is a playoff round drawn
+   into the schedule that is not played at all — no opponent, no kickoff, no
+   stat line, and nothing to publish.
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -125,6 +132,11 @@ EGE.stats[2018] = {
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
           receivingAvg: 11.7, totalYards: 35, totalTd: 0
         } },
+      /* NCHSAA 4A first round. Wake Forest are the one seed on the east side
+         and sit this one out. */
+      { week: 14, date: '2018-11-16', kickoff: null,
+        opponent: null, home: false, conference: false, playoff: true, bye: true,
+        result: null, booster: null, stats: null },
     ],
 
     /* Cooper Clark — Carlsbad High School */
@@ -210,6 +222,9 @@ EGE.stats[2018] = {
           receivingTd: 0, receivingLong: 12, targets: 7, fumbles: 0,
           rushingAvg: 4, receivingAvg: 7.6, totalYards: 94, totalTd: 0
         } },
+      { week: 13, date: '2018-11-09', kickoff: '7:00pm',
+        opponent: 'San Marcos', home: true, conference: false, playoff: true,
+        result: null, booster: null, stats: null },
     ],
 
     /* Paxon Hatch — Bloomington High School */
@@ -295,6 +310,10 @@ EGE.stats[2018] = {
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
           receivingAvg: 17.7, totalYards: 124, totalTd: 1
         } },
+      /* IHSA Class 6A first round. Bloomington are the six seed. */
+      { week: 11, date: '2018-10-27', kickoff: '2:00pm',
+        opponent: 'Crete-Monee', home: true, conference: false, playoff: true,
+        result: null, booster: null, stats: null },
     ],
 
     /* Isaac Vitel — Bloomington High School */
@@ -380,6 +399,10 @@ EGE.stats[2018] = {
           rushingYards: 4, rushingTd: 0, rushingLong: 4, sacks: 0,
           fumbles: 0, passingAvg: 18.3, rating: 69.9, rushingAvg: 1
         } },
+      /* IHSA Class 6A first round. Bloomington are the six seed. */
+      { week: 11, date: '2018-10-27', kickoff: '2:00pm',
+        opponent: 'Crete-Monee', home: true, conference: false, playoff: true,
+        result: null, booster: null, stats: null },
     ],
 
     /* Sam Stogsdill — Normal Community High School */
@@ -465,6 +488,10 @@ EGE.stats[2018] = {
           receivingTd: 0, receivingLong: 10, targets: 1, fumbles: 0,
           rushingAvg: 7, receivingAvg: 10, totalYards: 207, totalTd: 3
         } },
+      /* IHSA Class 7A first round. Normal Community are the eleven seed. */
+      { week: 11, date: '2018-10-27', kickoff: '1:00pm',
+        opponent: 'St. Charles North', home: true, conference: false, playoff: true,
+        result: null, booster: null, stats: null },
     ],
 
     /* Jaykeb Stewart — Naples High School */
@@ -559,6 +586,11 @@ EGE.stats[2018] = {
           rushingYards: 26, rushingTd: 0, rushingLong: 26, sacks: 2,
           fumbles: 0, passingAvg: 15.2, rating: 120.4, rushingAvg: 6.5
         } },
+      /* FHSAA Class 6A region quarterfinal. Naples are the one seed in
+         Region 3. */
+      { week: 13, date: '2018-11-09', kickoff: '7:30pm',
+        opponent: 'Lehigh', home: true, conference: false, playoff: true,
+        result: null, booster: null, stats: null },
     ],
   }
 };

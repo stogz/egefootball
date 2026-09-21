@@ -81,14 +81,16 @@ holds:
 - **Header** — headshot with height and weight joined to the foot of it, then
   school, name, season, position, league and record. The overall is not up
   here: it lives with the ratings it is worked out from, at the foot of the
-  page. The top right of the header is deliberately empty.
+  page. The top right holds the college offers, as stickers.
 - **Season strip** — the ten numbers the season is remembered by, across the
   foot of the header panel: ten across on a wide screen, five and five on
   anything narrower.
 - **Schedule** — every scheduled game in the selected season: week, date,
   kickoff, opponent with home/away and a mark for conference games, and the
   result once it has been played. A silhouette marks a game scouts will attend,
-  for a player holding Intel for that season.
+  for a player holding Intel for that season. Postseason games are marked with
+  two asterisks, and a school in a bracket gets a **Games | Tournament** switch
+  beside the fold-away arrow.
 - **Game log** — per-game stats for that player, with the stat lines driven by
   their position (see below), and a totals row for the season.
 - **Ratings** — every attribute in its group, with the overall in the corner.
@@ -487,6 +489,12 @@ put it back in the drawer.
 **Once the game has been played the sticker is stuck for good**: no cross, and
 no + on a game that already has a result.
 
+**Nothing goes on a playoff game.** A booster is what you spend a limited
+drawer on across a regular season you can see all of; the postseason is not
+planned, it is whatever the bracket hands you. A game with `playoff: true`
+grows no +, the drawer never opens on it, and `applyBooster` in `js/wallet.js`
+refuses the week even if it is called directly.
+
 **Stickers are private.** Only the player who stuck one on — and Sam, as
 admin — can see what is riding on which game. That is in the policy on
 `game_boosters`, not just the interface, because the anon key can query the
@@ -666,6 +674,22 @@ them — the numbers come from wherever you generate them and are typed in, by
 hand or through the season editor. `booster` is the performance booster that
 was riding on the game, and once a week is out that is where it lives for
 good, so the row behind it can be cleared out of Supabase.
+
+Two more flags mark the postseason:
+
+```js
+{ week: 11, date: '2018-10-27', kickoff: '1:00pm',
+  opponent: 'St. Charles North', home: true, conference: false, playoff: true,
+  result: null, booster: null, stats: null },
+
+{ week: 14, date: '2018-11-16', kickoff: null,
+  opponent: null, home: false, conference: false, playoff: true, bye: true,
+  result: null, booster: null, stats: null },
+```
+
+`playoff: true` is listed with two asterisks and takes no booster. `bye: true`
+is a round drawn into the schedule that is not played at all — no opponent, no
+kickoff, no stat line, and nothing for the editor to ask for.
 
 A new season is a new file and one more year in the `SEASONS` list at the top
 of `js/site-data.js`. The bot finds them on its own.
@@ -991,6 +1015,12 @@ Built so far:
   on the site rather than ten minutes behind it.
 - `data/games.js` — how everything else gets at those games, and the one place
   that decides what "played" means.
+- `data/offers.js` — who has offered whom, and each school's sticker colour
+  and mark. Adding a key to a player's list puts the sticker on his header.
+- `data/brackets.js` — the playoff bracket each school is in, as the field was
+  drawn: every first-round matchup and seed, and nothing else. Empty on
+  purpose — what happened in a game lives in `stats/{year}.js` like any other
+  game. A school with no entry has no Tournament switch.
 - `data/statline.js` — what a stat line is: the columns each position is read
   in, and how a season of them adds up.
 - `js/discord-post.js` — one week as a Discord message. Loaded by the browser

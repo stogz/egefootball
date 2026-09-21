@@ -501,9 +501,34 @@
       <div class="fb-panel ege-section-gap" id="schedulePanel" hidden>
         <div class="fb-panel__head">
           <h3>Schedule</h3>
+          <!-- The two ways of looking at the same postseason: the games on
+               the schedule, and the bracket they are being played in. Built
+               as a pair of radios rather than buttons because that is what it
+               is -- one of two, and which one is on matters. The label makes
+               the whole pill clickable and the input itself is hidden.
+
+               Drawn in app.js when the player's school has a bracket; a
+               school with none never sees the switch. -->
+          <div class="ege-switch" id="scheduleSwitch" role="group"
+               aria-label="What to show in this panel" hidden>
+            <label class="ege-switch__option">
+              <input type="radio" name="scheduleView" value="games" checked>
+              <span>Games</span>
+            </label>
+            <label class="ege-switch__option">
+              <input type="radio" name="scheduleView" value="tournament">
+              <span>Tournament</span>
+            </label>
+          </div>
           <button class="ege-collapse" type="button"
                   data-collapses="schedulePanel" aria-controls="schedulePanel"
                   aria-expanded="true" aria-label="Hide the schedule"></button>
+        </div>
+
+        <!-- The bracket. Empty until a player with one is on screen, and
+             hidden whenever the switch is on Games. -->
+        <div class="fb-tablewrap ege-bracketwrap" id="bracketWrap" hidden>
+          <div class="ege-bracket" id="bracket"></div>
         </div>
 
         <div class="fb-tablewrap" id="scheduleTableWrap">
@@ -658,6 +683,7 @@
 
 <script src="data/players.js"></script>
 <script src="data/offers.js"></script>
+<script src="data/brackets.js"></script>
 <script src="data/shop.js"></script>
 <script src="data/economy.js"></script>
 <script src="data/statline.js"></script>

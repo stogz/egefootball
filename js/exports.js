@@ -371,7 +371,11 @@ EGE.exports = (function () {
     return Promise.resolve(out);
   }
 
+  /* Null writes as the literal, not as the four letters in quotes. A bye has
+     no opponent and no kickoff, and 'null' in that slot would read back in as
+     a team called null. */
   function quote(text) {
+    if (text === null || text === undefined) { return 'null'; }
     return String(text).indexOf("'") === -1
       ? "'" + text + "'"
       : JSON.stringify(text);
@@ -394,8 +398,13 @@ EGE.exports = (function () {
 
     var stats = scored ? EGE.statline.complete(player.position, typed) : null;
 
+    /* Every flag the file can carry, or the editor writing a season back out
+       would quietly drop the ones it does not know about -- a playoff game
+       would come back as a regular one the first time anybody saved. */
     var flags = ['home: ' + (game.home ? 'true' : 'false'),
                  'conference: ' + (game.conference ? 'true' : 'false')];
+    if (game.playoff) { flags.push('playoff: true'); }
+    if (game.bye) { flags.push('bye: true'); }
     if (game.scouts) { flags.push('scouts: true'); }
 
     var out = [

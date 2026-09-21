@@ -301,7 +301,14 @@ EGE.discordPost = (function () {
     played = played && EGE.hasResult(game);
 
     var won = played && game.result.teamScore > game.result.opponentScore;
-    var matchup = (game.home ? 'vs. ' : 'at ') + game.opponent;
+
+    /* A bye has nobody to play, so it is said rather than written as a
+       fixture -- "at null" is what this read before there were byes in the
+       file. The postseason is marked the way the schedule marks it. */
+    var matchup = game.bye
+      ? 'Bye week'
+      : (game.home ? 'vs. ' : 'at ') + game.opponent;
+    if (game.playoff && !game.bye) { matchup += ' **'; }
 
     var embed = {
       color: played ? (won ? COLOR_WIN : COLOR_LOSS) : COLOR_UPCOMING,

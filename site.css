@@ -1767,6 +1767,318 @@ body {
   transform: translateY(-2px) rotate(45deg);
 }
 
+/* --- games, or the tournament --------------------------------------------
+
+   Two ways of looking at the same postseason, side by side in the panel head
+   next to the arrow that folds the whole thing away.
+
+   A pair of radios drawn as one pill with a divider down it, because that is
+   what the control is: one of two, and the one that is on is the one you are
+   looking at. Two separate buttons would leave it to the reader to work out
+   which state they were in. The inputs themselves are taken off the screen
+   rather than hidden, so a keyboard still lands on them and a screen reader
+   still calls them a radio group. */
+.ege-switch {
+  display: flex;
+  flex: none;
+  margin-left: auto;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-cream);
+  overflow: hidden;
+}
+
+.ege-switch__option {
+  position: relative;
+  display: block;
+  cursor: pointer;
+}
+.ege-switch__option + .ege-switch__option {
+  border-left: var(--fb-border-thin) solid var(--fb-ink);
+}
+
+/* Off the screen, not display:none -- a radio that is not rendered is a radio
+   the keyboard cannot reach. */
+.ege-switch__option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ege-switch__option span {
+  display: block;
+  padding: 6px 13px;
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-muted);
+  white-space: nowrap;
+  transition: background .14s ease, color .14s ease;
+}
+.ege-switch__option:hover span { color: var(--fb-ink); }
+.ege-switch__option input:checked + span {
+  background: var(--fb-ink);
+  color: var(--fb-cream);
+}
+/* The focus ring goes on the pill, since the input it belongs to is not on
+   the screen to carry one. */
+.ege-switch__option input:focus-visible + span {
+  outline: var(--fb-border-thin) solid var(--fb-accent);
+  outline-offset: -4px;
+}
+
+/* On a phone there is not room for a heading, a two-word switch and the
+   arrow on one line, and what wrapped was the arrow -- stranded on a line of
+   its own under the switch, which made it look like a third option.
+
+   So the switch takes the whole of the second line instead and the arrow
+   stays up with the heading where it is on every other panel. Full width and
+   split evenly, which is what a segmented control is on a phone anyway. */
+@media (max-width: 620px) {
+  #schedulePanel .ege-switch {
+    order: 3;
+    flex-basis: 100%;
+    width: 100%;
+    margin-left: 0;
+  }
+  #schedulePanel .ege-collapse { order: 2; }
+  #schedulePanel .ege-switch__option { flex: 1; }
+  #schedulePanel .ege-switch__option span { text-align: center; }
+}
+
+/* --- a bye, and a playoff game -------------------------------------------
+
+   A week with nobody to play is still a week. It is written where an
+   opponent goes, in the muted ink the rest of the row's furniture uses, so
+   it reads as the absence of a fixture rather than as a team called Bye. */
+.ege-schedule__bye {
+  font-style: italic;
+  color: var(--fb-muted);
+}
+
+/* --- the bracket ---------------------------------------------------------
+
+   The tournament a school is in, drawn the way a bracket is drawn: the two
+   halves of the draw working inwards from the edges and meeting in the
+   middle.
+
+   Every box is placed by hand on a grid -- see bracketRows in js/app.js.
+   A round column is not a list of boxes spacing themselves out; a
+   second-round box spans exactly the rows of the two first-round boxes that
+   feed it, which is what puts it exactly between them however many group
+   headings are above it.
+
+   It scrolls sideways rather than reflowing. A bracket is one shape and a
+   narrow one does not exist -- the alternative to a scroll is type nobody
+   can read. */
+.ege-bracketwrap {
+  padding: 16px 18px 20px;
+  background:
+    repeating-linear-gradient(90deg,
+      transparent, transparent 58px,
+      rgba(32, 38, 26, .035) 58px, rgba(32, 38, 26, .035) 60px),
+    var(--fb-tint-wash);
+  border-bottom: var(--fb-border) solid var(--fb-ink);
+}
+
+.ege-bracket {
+  min-width: 1180px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ege-bracket__title {
+  font-family: var(--fb-font-display);
+  font-size: 1.125rem;
+  text-align: center;
+  color: var(--fb-ink);
+}
+
+/* --- the round headings --------------------------------------------------
+
+   One strip over the whole thing: four rounds out to the left edge, the
+   final in the middle, four rounds back again. The same nine columns the
+   draw below it uses, so a heading is over its own column. */
+.ege-bracket__strip {
+  display: grid;
+  grid-template-columns: 4fr minmax(150px, 1.2fr) 4fr;
+  gap: 0 14px;
+  align-items: end;
+}
+.ege-bracket__heads {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr 1fr 1fr;
+  gap: 0 10px;
+}
+/* The right half counts its rounds back towards the edge. */
+.ege-bracket__heads--flip {
+  grid-template-columns: 1fr 1fr 1fr 1.45fr;
+  direction: rtl;
+}
+.ege-bracket__heads--flip .ege-bracket__head { direction: ltr; }
+
+.ege-bracket__head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 5px;
+  border-bottom: var(--fb-border-thin) solid var(--fb-ink);
+  text-align: center;
+}
+.ege-bracket__head--final { border-bottom-color: var(--fb-accent); }
+
+.ege-bracket__when {
+  font-size: var(--fb-label);
+  font-weight: 700;
+  color: var(--fb-muted-2);
+}
+.ege-bracket__round {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--fb-ink);
+}
+
+/* --- the draw ------------------------------------------------------------- */
+
+.ege-bracket__grid {
+  display: grid;
+  grid-template-columns: 4fr minmax(150px, 1.2fr) 4fr;
+  gap: 0 14px;
+  align-items: stretch;
+}
+
+/* The first round is where every name in the draw is written, and some of
+   them are "Wheaton-Warrenville South". The rounds after it hold one name
+   each at most and will hold none for weeks, so the width goes to the round
+   that needs it. */
+.ege-bracket__side {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr 1fr 1fr;
+  /* One row per half-matchup, plus one for each group heading. The count is
+     set from the draw, in app.js. */
+  grid-template-rows: repeat(var(--rows), minmax(21px, auto));
+  gap: 4px 10px;
+}
+
+/* The name of a block of the draw -- a region, or a half of the state.
+   Sits on a row of its own above the first matchup in it. */
+.ege-bracket__group {
+  align-self: end;
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--fb-muted-2);
+}
+.ege-bracket__side--flip { grid-template-columns: 1fr 1fr 1fr 1.45fr; }
+.ege-bracket__side--flip .ege-bracket__group { text-align: right; }
+
+/* --- one matchup ---------------------------------------------------------- */
+
+.ege-tie {
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-cream);
+  overflow: hidden;
+}
+
+/* A round that has not been drawn yet. Dashed and empty on purpose: it is
+   somewhere a team is going to go, which is not the same as a box that
+   failed to fill in. */
+.ege-tie--open {
+  border-style: dashed;
+  border-color: var(--fb-muted-2);
+  background: transparent;
+}
+
+.ege-seed {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 7px;
+  min-height: 21px;
+  font-size: var(--fb-small);
+  line-height: 1.15;
+}
+.ege-seed + .ege-seed { border-top: 1px solid rgba(32, 38, 26, .22); }
+.ege-tie--open .ege-seed + .ege-seed { border-top-color: rgba(32, 38, 26, .12); }
+
+.ege-seed__no {
+  flex: none;
+  width: 1.4em;
+  text-align: right;
+  font-size: var(--fb-label);
+  font-weight: 700;
+  color: var(--fb-muted-2);
+}
+.ege-seed__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fb-ink);
+}
+
+/* The school whose page this is. The one row in the draw drawn in the site's
+   own orange -- a bracket of thirty-two names is unreadable until you can
+   find yourself in it. */
+.ege-seed--us { background: var(--fb-tint-clay); }
+.ege-seed--us .ege-seed__name { font-weight: 800; color: var(--fb-accent-deep); }
+.ege-seed--us .ege-seed__no { color: var(--fb-accent-deep); }
+
+.ege-seed--bye .ege-seed__name { font-style: italic; color: var(--fb-muted-2); }
+.ege-seed--blank { min-height: 21px; }
+
+/* The right half reads inwards, so its seeds sit against the inner edge. */
+.ege-bracket__side--flip .ege-seed { flex-direction: row-reverse; }
+.ege-bracket__side--flip .ege-seed__no { text-align: left; }
+.ege-bracket__side--flip .ege-seed__name { text-align: right; }
+
+/* --- the middle ----------------------------------------------------------- */
+
+/* The final, and the trophy under it. `.ege-tie` centres itself in a grid
+   row, which in this flex column means centring across the width instead --
+   so the final would draw itself as wide as the nothing written in it. */
+.ege-bracket__centre {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+.ege-bracket__centre .ege-tie { align-self: stretch; }
+
+/* Where a champion goes. Nothing is written on it yet, which is the point:
+   the trophy line is the one box on the page that is about the end of the
+   season rather than the next game. */
+.ege-bracket__champion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 9px 10px;
+  border: var(--fb-border-thin) dashed var(--fb-muted-2);
+  text-align: center;
+}
+.ege-bracket__cuplabel {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--fb-accent-deep);
+}
+.ege-bracket__cupname {
+  font-family: var(--fb-font-display);
+  font-size: 1rem;
+  color: var(--fb-muted-2);
+}
+
 /* Folded: the head is the whole panel, so the rule under it would be a second
    line right against the panel's own bottom edge. */
 .fb-panel.is-collapsed > *:not(.fb-panel__head):not(.fb-panel__strip) { display: none; }
