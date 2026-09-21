@@ -291,6 +291,15 @@ EGE.stats[2018] = {
       { week: 14, date: '2018-11-16', kickoff: null,
         opponent: null, home: false, conference: false, playoff: true, bye: true,
         result: null, booster: null, stats: null },
+      { week: 15, date: '2018-11-23', kickoff: '7:30pm',
+        opponent: 'Wakefield', home: true, conference: true, playoff: true,
+        result: { teamScore: 70, opponentScore: 7 }, booster: null,
+        stats: {
+          receptions: 3, receivingYards: 35, receivingYac: 10,
+          receivingTd: 0, receivingLong: 21, targets: 5, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 11.7, totalYards: 35, totalTd: 0
+        } },
     ],
 
     /* Cooper Clark — Carlsbad High School */
@@ -489,6 +498,15 @@ EGE.stats[2018] = {
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 1,
           receivingAvg: 17.1, totalYards: 120, totalTd: 0
         } },
+      { week: 15, date: '2018-11-3', kickoff: '6:00pm',
+        opponent: 'Glenwood', home: true, conference: false, playoff: true,
+        result: { teamScore: 35, opponentScore: 14 }, booster: null,
+        stats: {
+          receptions: 7, receivingYards: 120, receivingYac: 41,
+          receivingTd: 0, receivingLong: 47, targets: 11, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 1,
+          receivingAvg: 17.1, totalYards: 120, totalTd: 0
+        } },
     ],
 
     /* Isaac Vitel — Bloomington High School */
@@ -577,6 +595,15 @@ EGE.stats[2018] = {
       /* IHSA Class 6A first round. Bloomington are the six seed. */
       { week: 14, date: '2018-10-27', kickoff: '2:00pm',
         opponent: 'Crete-Monee', home: true, conference: false, playoff: true,
+        result: { teamScore: 35, opponentScore: 14 }, booster: null,
+        stats: {
+          completions: 10, attempts: 29, passingYards: 185, passingYac: 59,
+          passingTd: 2, interceptions: 3, carries: 1, rushingYards: 2,
+          rushingTd: 0, rushingLong: 2, sacks: 1, fumbles: 1,
+          passingAvg: 18.5, rating: 40.8, rushingAvg: 2
+        } },
+      { week: 15, date: '2018-11-3', kickoff: '6:00pm',
+        opponent: 'Glenwood', home: true, conference: false, playoff: true,
         result: { teamScore: 35, opponentScore: 14 }, booster: null,
         stats: {
           completions: 10, attempts: 29, passingYards: 185, passingYac: 59,
@@ -777,6 +804,15 @@ EGE.stats[2018] = {
          Region 3. */
       { week: 14, date: '2018-11-09', kickoff: '7:30pm',
         opponent: 'Lehigh', home: true, conference: false, playoff: true,
+        result: { teamScore: 17, opponentScore: 10 }, booster: null,
+        stats: {
+          completions: 12, attempts: 21, passingYards: 143, passingYac: 56,
+          passingTd: 2, interceptions: 1, carries: 4, rushingYards: 31,
+          rushingTd: 0, rushingLong: 12, sacks: 2, fumbles: 0,
+          passingAvg: 11.9, rating: 90, rushingAvg: 7.8
+        } },
+      { week: 15, date: '2018-11-16', kickoff: '7:30pm',
+        opponent: 'Barron Collier', home: true, conference: false, playoff: true,
         result: { teamScore: 17, opponentScore: 10 }, booster: null,
         stats: {
           completions: 12, attempts: 21, passingYards: 143, passingYac: 56,
