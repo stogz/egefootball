@@ -387,6 +387,7 @@ EGE.stats[2018] = {
         } },
        { week: 15, date: '2018-11-17', kickoff: '7:00pm',
         opponent: 'Torrey Pines', home: true, conference: false, playoff: true
+       },
     ],
 
     /* Paxon Hatch — Bloomington High School */
