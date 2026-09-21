@@ -1853,6 +1853,22 @@ body {
    A week with nobody to play is still a week. It is written where an
    opponent goes, in the muted ink the rest of the row's furniture uses, so
    it reads as the absence of a fixture rather than as a team called Bye. */
+/* --- where the season ends and the postseason starts ----------------------
+
+   A dotted rule above the first playoff row. The hairline between two games
+   says "next week"; this one says the year has changed shape -- everything
+   above it was scheduled in August and everything below it was earned. Dotted
+   rather than solid because it is a division within one table and not the
+   edge of a new one, and heavier than the row lines so it is not mistaken for
+   another of them.
+
+   On the rows themselves rather than on a spacer, so nothing is slipped in
+   between two games: a row of its own would flip the zebra striping under it,
+   which is the bug the stat-line drawer used to cause. */
+.ege-schedule__break > td {
+  border-top: var(--fb-border-thin) dotted rgba(29, 36, 22, .55);
+}
+
 .ege-schedule__bye {
   font-style: italic;
   color: var(--fb-muted);
@@ -2550,6 +2566,12 @@ select,
     display: block;
     padding: 0;
     border: 0;
+  }
+
+  /* The cells carry no borders down here, so the postseason rule goes on the
+     row, where the rest of the row lines are. */
+  .ege-schedule tbody tr.ege-schedule__break {
+    border-top: var(--fb-border-thin) dotted rgba(29, 36, 22, .55);
   }
 
   /* the week number spans both lines of its block */

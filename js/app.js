@@ -706,9 +706,13 @@
     disarmSticker();
   });
 
-  function scheduleRow(game) {
+  function scheduleRow(game, opensPlayoffs) {
     var row = el('tr');
     var played = EGE.isFinal(game);
+
+    /* The first postseason row carries the line that divides the two halves
+       of the year. */
+    if (opensPlayoffs) { row.classList.add('ege-schedule__break'); }
 
     row.appendChild(el('td', 'ege-schedule__week', game.week));
 
@@ -819,14 +823,17 @@
        the week has done. It used to break the moment a week was published:
        the stat line that dropped open under a finished game was a row of its
        own, and every row after it changed colour. */
-    games.forEach(function (game) { body.appendChild(scheduleRow(game)); });
+    var firstPlayoff = games.filter(function (game) { return game.playoff; })[0];
+    games.forEach(function (game) {
+      body.appendChild(scheduleRow(game, game === firstPlayoff));
+    });
 
     var conference = games.filter(function (game) { return game.conference; }).length;
     var legend = conference ? '* conference game (' + conference + ' of ' + games.length + ')' : '';
 
     var playoff = games.filter(function (game) { return game.playoff; }).length;
     if (playoff) {
-      legend += (legend ? ' · ' : '') + '** playoff game — no booster goes on one';
+      legend += (legend ? ' · ' : '') + '** playoff game';
     }
 
     if (showScouts) {

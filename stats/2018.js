@@ -222,7 +222,7 @@ EGE.stats[2018] = {
           receivingTd: 0, receivingLong: 12, targets: 7, fumbles: 0,
           rushingAvg: 4, receivingAvg: 7.6, totalYards: 94, totalTd: 0
         } },
-      { week: 13, date: '2018-11-09', kickoff: '7:00pm',
+      { week: 14, date: '2018-11-09', kickoff: '7:00pm',
         opponent: 'San Marcos', home: true, conference: false, playoff: true,
         result: null, booster: null, stats: null },
     ],
@@ -311,7 +311,7 @@ EGE.stats[2018] = {
           receivingAvg: 17.7, totalYards: 124, totalTd: 1
         } },
       /* IHSA Class 6A first round. Bloomington are the six seed. */
-      { week: 11, date: '2018-10-27', kickoff: '2:00pm',
+      { week: 14, date: '2018-10-27', kickoff: '2:00pm',
         opponent: 'Crete-Monee', home: true, conference: false, playoff: true,
         result: null, booster: null, stats: null },
     ],
@@ -400,7 +400,7 @@ EGE.stats[2018] = {
           fumbles: 0, passingAvg: 18.3, rating: 69.9, rushingAvg: 1
         } },
       /* IHSA Class 6A first round. Bloomington are the six seed. */
-      { week: 11, date: '2018-10-27', kickoff: '2:00pm',
+      { week: 14, date: '2018-10-27', kickoff: '2:00pm',
         opponent: 'Crete-Monee', home: true, conference: false, playoff: true,
         result: null, booster: null, stats: null },
     ],
@@ -489,7 +489,7 @@ EGE.stats[2018] = {
           rushingAvg: 7, receivingAvg: 10, totalYards: 207, totalTd: 3
         } },
       /* IHSA Class 7A first round. Normal Community are the eleven seed. */
-      { week: 11, date: '2018-10-27', kickoff: '1:00pm',
+      { week: 14, date: '2018-10-27', kickoff: '1:00pm',
         opponent: 'St. Charles North', home: true, conference: false, playoff: true,
         result: null, booster: null, stats: null },
     ],
@@ -588,7 +588,7 @@ EGE.stats[2018] = {
         } },
       /* FHSAA Class 6A region quarterfinal. Naples are the one seed in
          Region 3. */
-      { week: 13, date: '2018-11-09', kickoff: '7:30pm',
+      { week: 14, date: '2018-11-09', kickoff: '7:30pm',
         opponent: 'Lehigh', home: true, conference: false, playoff: true,
         result: null, booster: null, stats: null },
     ],

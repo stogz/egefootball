@@ -678,7 +678,7 @@ good, so the row behind it can be cleared out of Supabase.
 Two more flags mark the postseason:
 
 ```js
-{ week: 11, date: '2018-10-27', kickoff: '1:00pm',
+{ week: 14, date: '2018-10-27', kickoff: '1:00pm',
   opponent: 'St. Charles North', home: true, conference: false, playoff: true,
   result: null, booster: null, stats: null },
 
@@ -690,6 +690,12 @@ Two more flags mark the postseason:
 `playoff: true` is listed with two asterisks and takes no booster. `bye: true`
 is a round drawn into the schedule that is not played at all — no opponent, no
 kickoff, no stat line, and nothing for the editor to ask for.
+
+The postseason is one week whatever the calendar says. Five schools in four
+states play their first round across three different Saturdays, and a week is
+the bucket the admin publishes, not a row on a calendar — so every playoff
+game is week 14, and the schedule draws a dotted rule above the first of
+them.
 
 A new season is a new file and one more year in the `SEASONS` list at the top
 of `js/site-data.js`. The bot finds them on its own.
