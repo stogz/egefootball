@@ -206,6 +206,22 @@ four times a day, walking the season out slowly:
 {one embed per player with a game that week}
 ```
 
+The postseason counts from one again:
+
+```
+## Playoffs Week One
+{one embed per player playing that week}
+```
+
+Which weeks those are is read off the games — `EGE.playoffWeeks` in
+`data/games.js` is every week with a `playoff: true` game in it, and a week's
+place in that list is its round. Nothing has to be told where the regular
+season ends, and a season whose playoffs open at week 12 or week 15 names
+itself correctly.
+
+A player on a bye is left out, the same as a player with no game that week:
+there is nothing to post about somebody who is not playing.
+
 An embed reads top to bottom as:
 
 | | |

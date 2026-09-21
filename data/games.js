@@ -139,6 +139,36 @@ EGE.scoutedGames = function (player, season) {
   return EGE.gamesFor(player, season).filter(function (game) { return game.scouts; });
 };
 
+/* --- the postseason ------------------------------------------------------ */
+
+/* Every week with a playoff game in it, in order.
+
+   The postseason is not a week number. Five schools in four states play their
+   first round across three different Saturdays, and a season could open its
+   playoffs at week 12 or week 15 -- so which weeks are postseason is read off
+   the games rather than counted from a constant. */
+EGE.playoffWeeks = function (season) {
+  var year = season || EGE.currentSeason;
+  var forSeason = EGE.stats[year];
+  if (!forSeason) { return []; }
+
+  var seen = {};
+  Object.keys(forSeason.games).forEach(function (slug) {
+    forSeason.games[slug].forEach(function (game) {
+      if (game.playoff) { seen[game.week] = true; }
+    });
+  });
+  return Object.keys(seen).map(Number).sort(function (a, b) { return a - b; });
+};
+
+/* Which round of the postseason a week is, counting from one, or 0 for a
+   regular-season week. It is the week's place in the list above rather than
+   a subtraction, so a gap between two playoff weeks does not invent a round
+   nobody played. */
+EGE.playoffRound = function (week, season) {
+  return EGE.playoffWeeks(season).indexOf(Number(week)) + 1;
+};
+
 /* --- boosters ------------------------------------------------------------ */
 
 /* What was riding on a game.

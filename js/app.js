@@ -2008,7 +2008,13 @@
     var ready = 0;
 
     weeks.forEach(function (week) {
-      var games = EGE.gamesInWeek(week, season);
+      /* A bye is on the schedule but has nothing to type into it, so it is
+         not one of the games a week is waiting on. Counting it would leave
+         the playoff week reading "5 of 6 filled in" for good and never
+         showing as ready to publish. */
+      var games = EGE.gamesInWeek(week, season).filter(function (entry) {
+        return !entry.game.bye;
+      });
       var filled = games.filter(function (entry) { return EGE.hasResult(entry.game); }).length;
       var published = EGE.isPublished(season, week);
       var row = weekState.published.filter(function (r) {
@@ -2209,7 +2215,9 @@
     select.innerHTML = '';
 
     weeks.forEach(function (week) {
-      var games = EGE.gamesInWeek(week, season);
+      var games = EGE.gamesInWeek(week, season).filter(function (entry) {
+        return !entry.game.bye;
+      });
       var filled = games.filter(function (entry) { return EGE.hasResult(entry.game); }).length;
       var option = el('option', null, 'Week ' + week + '  ·  ' + filled + ' of ' +
                       games.length + ' filled in');
@@ -2220,7 +2228,7 @@
     /* Open on the first week that still needs numbers. */
     var next = weeks.filter(function (week) {
       return EGE.gamesInWeek(week, season).some(function (entry) {
-        return !EGE.hasResult(entry.game);
+        return !entry.game.bye && !EGE.hasResult(entry.game);
       });
     })[0];
     select.value = next || weeks[0] || '';

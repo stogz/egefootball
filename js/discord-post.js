@@ -13,6 +13,11 @@
    player's stat line. A game that has not shows the matchup and the kickoff.
    A player on a bye, one with no game that week, and one with no schedule at
    all are simply left out.
+
+   A postseason week is headed "Playoffs Week One" rather than "Week
+   Fourteen". Which weeks those are is read off the games -- see
+   EGE.playoffWeeks in data/games.js -- so the heading does not need telling
+   when the regular season ends.
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -103,6 +108,16 @@ EGE.discordPost = (function () {
 
   function weekWord(week) {
     return WORDS[week] || String(week);
+  }
+
+  /* What the message is headed. The postseason counts from one again: week
+     fourteen is Playoffs Week One, and a channel reading it should not have
+     to know which week of the year the brackets came out. */
+  function weekTitle(week, season) {
+    var round = EGE.playoffRound(week, season);
+    return round
+      ? 'Playoffs Week ' + weekWord(round)
+      : 'Week ' + weekWord(week);
   }
 
   /* --- the pieces of an embed ------------------------------------------------ */
@@ -305,10 +320,14 @@ EGE.discordPost = (function () {
     /* A bye has nobody to play, so it is said rather than written as a
        fixture -- "at null" is what this read before there were byes in the
        file. The postseason is marked the way the schedule marks it. */
+    /* buildWeekPost drops byes before it gets here, but this is exported on
+       its own, and "at null" is what a bye read as before there was a guard.
+       No mark for a playoff game: the whole message is headed Playoffs Week
+       One, and a pair of asterisks in a Discord link is bold rather than a
+       footnote. */
     var matchup = game.bye
       ? 'Bye week'
       : (game.home ? 'vs. ' : 'at ') + game.opponent;
-    if (game.playoff && !game.bye) { matchup += ' **'; }
 
     var embed = {
       color: played ? (won ? COLOR_WIN : COLOR_LOSS) : COLOR_UPCOMING,
@@ -389,11 +408,16 @@ EGE.discordPost = (function () {
     var season = settings.season || EGE.currentSeason;
     var siteUrl = settings.siteUrl || SITE;
 
-    var playing = EGE.gamesInWeek(week, season);
+    /* A bye is on the schedule because the week is, but there is nothing to
+       post about a player who is not playing -- the same rule that already
+       leaves out a player with no game that week at all. */
+    var playing = EGE.gamesInWeek(week, season).filter(function (entry) {
+      return !entry.game.bye;
+    });
     if (!playing.length) { return null; }
 
     return {
-      content: '## Week ' + weekWord(week),
+      content: '## ' + weekTitle(week, season),
       embeds: playing.map(function (entry) {
         return buildEmbed(entry.player, entry.game, {
           season: season, siteUrl: siteUrl, played: settings.played
