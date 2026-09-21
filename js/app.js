@@ -595,6 +595,12 @@
       return slot;
     }
 
+    /* Nothing goes on a playoff game. Boosters are a thing you plan a
+       regular season around -- you are spending a limited drawer on the
+       weeks you think matter -- and the postseason is not planned, it is
+       whatever the bracket hands you. The drawer never opens on one, and
+       neither does the plus that opens it. */
+
     /* A booster goes on any game that has not been published yet.
 
        Not "any game with no result in it" — the season is written up front,
@@ -602,7 +608,7 @@
        could ever use a booster. Holding a week back is exactly the window in
        which a player puts a sticker on it and the admin writes it into the
        file before putting the week out. */
-    if (mine && !played) {
+    if (mine && !played && !game.playoff) {
       var add = el('button', 'ege-slot__add', '+');
       add.type = 'button';
       add.title = 'Put a booster on this game';
@@ -700,9 +706,13 @@
     disarmSticker();
   });
 
-  function scheduleRow(game) {
+  function scheduleRow(game, opensPlayoffs) {
     var row = el('tr');
     var played = EGE.isFinal(game);
+
+    /* The first postseason row carries the line that divides the two halves
+       of the year. */
+    if (opensPlayoffs) { row.classList.add('ege-schedule__break'); }
 
     row.appendChild(el('td', 'ege-schedule__week', game.week));
 
@@ -710,12 +720,26 @@
     row.appendChild(el('td', 'ege-schedule__time', game.kickoff || '—'));
 
     var opponent = el('td', 'ege-schedule__opponent');
-    opponent.appendChild(el('span', 'ege-schedule__side', game.home ? 'vs' : 'at'));
-    opponent.appendChild(el('span', 'fb-name', game.opponent));
+    if (game.bye) {
+      /* Nobody to play and nowhere to be. The row is still here because the
+         week is: a bye is a round of the bracket, and a schedule that skips
+         it makes the weeks either side look wrong. */
+      opponent.appendChild(el('span', 'ege-schedule__bye', 'Bye'));
+    } else {
+      opponent.appendChild(el('span', 'ege-schedule__side', game.home ? 'vs' : 'at'));
+      opponent.appendChild(el('span', 'fb-name', game.opponent));
+    }
     if (game.conference) {
       var mark = el('abbr', 'ege-schedule__conf', '*');
       mark.title = 'Conference game';
       opponent.appendChild(mark);
+    }
+    /* Two of them for the postseason, one for a conference game. A playoff
+       game is never also a conference game, so the two never stack. */
+    if (game.playoff) {
+      var post = el('abbr', 'ege-schedule__conf', '**');
+      post.title = 'Playoff game';
+      opponent.appendChild(post);
     }
     if (showScouts && game.scouts) { opponent.appendChild(scoutMark()); }
     row.appendChild(opponent);
@@ -765,6 +789,16 @@
 
     showScouts = canSeeScouts(player);
     showBoosters = canSeeStickers(player);
+
+    /* A bracket belongs to a school, so opening somebody else's page puts the
+       panel back on his games rather than leaving it on a tournament he is
+       not in. A redraw of the same player keeps whichever he chose -- the
+       boosters and the inventory land late and draw this again. */
+    if (!schedulePlayer || schedulePlayer.slug !== player.slug) {
+      scheduleView = 'games';
+      var onGames = document.querySelector('.ege-switch__option input[value="games"]');
+      if (onGames) { onGames.checked = true; }
+    }
     schedulePlayer = player;
 
     document.getElementById('scheduleBoosterHead').hidden = !showBoosters;
@@ -779,6 +813,8 @@
 
     if (!games.length) {
       setLegend('scheduleFoot', 'scheduleLegend', '');
+      renderBracket(player);
+      showScheduleView();
       return;
     }
 
@@ -787,16 +823,269 @@
        the week has done. It used to break the moment a week was published:
        the stat line that dropped open under a finished game was a row of its
        own, and every row after it changed colour. */
-    games.forEach(function (game) { body.appendChild(scheduleRow(game)); });
+    var firstPlayoff = games.filter(function (game) { return game.playoff; })[0];
+    games.forEach(function (game) {
+      body.appendChild(scheduleRow(game, game === firstPlayoff));
+    });
 
     var conference = games.filter(function (game) { return game.conference; }).length;
     var legend = conference ? '* conference game (' + conference + ' of ' + games.length + ')' : '';
+
+    var playoff = games.filter(function (game) { return game.playoff; }).length;
+    if (playoff) {
+      legend += (legend ? ' · ' : '') + '** playoff game';
+    }
+
     if (showScouts) {
       var scouted = EGE.scoutedGames(player, season).length;
       legend += (legend ? ' · ' : '') + 'Intel: scouts at ' + scouted + ' games this season';
     }
     setLegend('scheduleFoot', 'scheduleLegend', legend);
+
+    renderBracket(player);
+    showScheduleView();
   }
+
+
+  /* --- the bracket ---------------------------------------------------------
+
+     The same panel as the schedule, showing the other half of the same
+     thing: the games are what this player plays, the bracket is what he is
+     playing in. A switch in the panel head picks one.
+
+     Laid out on a grid with every box placed by hand, rather than left to a
+     column of boxes to space themselves out. A bracket only reads as a
+     bracket when a second-round box sits exactly between the two first-round
+     boxes that feed it, and "exactly between" is arithmetic, not
+     `space-around`: the moment one side has a group heading in it and the
+     other does not, an evenly spaced column drifts a row out of line with
+     the round beside it.
+
+     So every box knows the rows it spans. A first-round matchup takes two;
+     anything later takes the rows of the two matchups that feed it, added
+     together. A heading takes one of its own, and because the later rounds
+     are built out of the ranges underneath them rather than counted from the
+     top, that extra row pushes the whole branch down with it and nothing
+     comes apart. */
+
+  var BRACKET_ROUNDS = 4;         /* per side, before the final */
+
+  /* Where every box on one side goes: the row each first-round matchup
+     occupies, and then each later round folded up out of the pair below it.
+     Rows are 1-based and the end is exclusive, which is what CSS grid wants
+     written as `grid-row: start / end`. */
+  function bracketRows(side) {
+    var openers = EGE.bracketOpeners(side);
+    var rounds = [[]];
+    var at = 1;
+
+    openers.forEach(function (opener) {
+      if (opener.label) { at += 1; }          /* the heading's own row */
+      rounds[0].push({ start: at, end: at + 2, opener: opener });
+      at += 2;
+    });
+
+    /* Each round after the first is its two feeders, end to end. */
+    for (var r = 1; r < BRACKET_ROUNDS; r += 1) {
+      var below = rounds[r - 1];
+      var here = [];
+      for (var i = 0; i + 1 < below.length; i += 2) {
+        here.push({ start: below[i].start, end: below[i + 1].end });
+      }
+      rounds.push(here);
+    }
+
+    return { rounds: rounds, height: at - 1 };
+  }
+
+  /* One team on one line of a matchup: its seed, its name, and nothing else.
+     A slot with no team in it yet is the same line left blank, which is what
+     makes an undrawn round read as somewhere a team is going to go rather
+     than as a gap. */
+  /* One team on one line of a matchup. `result` is the settled matchup it is
+     part of, or null while it is still to be played -- it decides whether
+     this line is the one that went through and what score sits at the end of
+     it. */
+  function bracketTeam(team, us, result) {
+    var row = el('div', 'ege-seed');
+    if (!team) {
+      row.classList.add('ege-seed--blank');
+      row.appendChild(el('span', 'ege-seed__no'));
+      row.appendChild(el('span', 'ege-seed__name'));
+      return row;
+    }
+
+    if (us && team.name === us) { row.classList.add('ege-seed--us'); }
+    /* Two names in these four draws are longer than a first-round box and get
+       cut; the title is so the cut one can still be read. */
+    row.title = team.name;
+    row.appendChild(el('span', 'ege-seed__no', team.seed));
+    row.appendChild(el('span', 'ege-seed__name', team.name));
+
+    if (result) {
+      var through = result.name === team.name;
+      row.classList.add(through ? 'ege-seed--through' : 'ege-seed--out');
+      if (typeof result.hi === 'number') {
+        row.appendChild(el('span', 'ege-seed__score', through ? result.hi : result.lo));
+      }
+    }
+
+    return row;
+  }
+
+  /* A matchup box. `slot` carries whoever is in it and whatever has been
+     settled; a round nobody has reached yet has neither, and draws as the
+     dashed outline a team is going to go in. */
+  function bracketGame(slot, us) {
+    var box = el('div', 'ege-tie');
+    var has = slot && (slot.a || slot.b);
+
+    if (!has) {
+      box.classList.add('ege-tie--open');
+      box.appendChild(bracketTeam(null));
+      box.appendChild(bracketTeam(null));
+      return box;
+    }
+
+    var result = slot.result && !slot.result.bye ? slot.result : null;
+    if (slot.result) { box.classList.add('ege-tie--done'); }
+
+    box.appendChild(bracketTeam(slot.a, us, result));
+
+    if (slot.b) {
+      box.appendChild(bracketTeam(slot.b, us, result));
+    } else if (slot.a) {
+      /* A bye is one team and the week off, not a team against nobody. */
+      var pass = el('div', 'ege-seed ege-seed--bye');
+      pass.appendChild(el('span', 'ege-seed__no'));
+      pass.appendChild(el('span', 'ege-seed__name', 'Bye'));
+      box.appendChild(pass);
+    } else {
+      box.appendChild(bracketTeam(null));
+    }
+
+    return box;
+  }
+
+  /* One half of the draw. `flip` turns the boxes round for the right-hand
+     side, so both halves read inwards towards the final. */
+  function bracketSide(state, side, flip) {
+    var plan = bracketRows(side);
+    var box = el('div', 'ege-bracket__side' + (flip ? ' ege-bracket__side--flip' : ''));
+    box.style.setProperty('--rows', plan.height);
+
+    plan.rounds.forEach(function (round, r) {
+      /* Round one is nearest the edge on both sides, so the columns run the
+         other way round on the right. */
+      var column = flip ? BRACKET_ROUNDS - r : r + 1;
+
+      round.forEach(function (place, at) {
+        if (place.opener && place.opener.label) {
+          var head = el('div', 'ege-bracket__group', place.opener.label);
+          head.style.gridColumn = column;
+          head.style.gridRow = (place.start - 1) + ' / ' + place.start;
+          box.appendChild(head);
+        }
+
+        var tie = bracketGame(state.rounds[r][state.at(r, flip, at)], state.bracket.us);
+        tie.style.gridColumn = column;
+        tie.style.gridRow = place.start + ' / ' + place.end;
+        box.appendChild(tie);
+      });
+    });
+
+    return box;
+  }
+
+  /* The heading over a column of matchups: what the round is called, and the
+     day it is played on where the bracket says. */
+  function bracketHeads(bracket, flip) {
+    var strip = el('div', 'ege-bracket__heads' + (flip ? ' ege-bracket__heads--flip' : ''));
+    bracket.rounds.forEach(function (round) {
+      var cell = el('div', 'ege-bracket__head');
+      if (round.date) { cell.appendChild(el('span', 'ege-bracket__when', round.date)); }
+      cell.appendChild(el('span', 'ege-bracket__round', round.label));
+      strip.appendChild(cell);
+    });
+    return strip;
+  }
+
+  function renderBracket(player) {
+    var wrap = document.getElementById('bracketWrap');
+    var box = document.getElementById('bracket');
+    var state = EGE.bracketState(player, shownSeason());
+
+    box.innerHTML = '';
+    if (!state) { return; }
+    var bracket = state.bracket;
+
+    box.appendChild(el('div', 'ege-bracket__title', bracket.title));
+
+    var grid = el('div', 'ege-bracket__grid');
+
+    var heads = el('div', 'ege-bracket__strip');
+    heads.appendChild(bracketHeads(bracket, false));
+    var middle = el('div', 'ege-bracket__head ege-bracket__head--final');
+    if (bracket.final.date) {
+      middle.appendChild(el('span', 'ege-bracket__when', bracket.final.date));
+    }
+    middle.appendChild(el('span', 'ege-bracket__round', bracket.final.label));
+    heads.appendChild(middle);
+    heads.appendChild(bracketHeads(bracket, true));
+    box.appendChild(heads);
+
+    grid.appendChild(bracketSide(state, bracket.left, false));
+
+    /* The final, and the line under it where a champion goes. Nothing is
+       written on it until the last game is published. */
+    var centre = el('div', 'ege-bracket__centre');
+    centre.appendChild(bracketGame(state.final, bracket.us));
+    var cup = el('div', 'ege-bracket__champion' +
+      (state.champion ? ' ege-bracket__champion--crowned' : ''));
+    cup.appendChild(el('span', 'ege-bracket__cuplabel', 'Champion'));
+    cup.appendChild(el('span', 'ege-bracket__cupname', state.champion || '—'));
+    centre.appendChild(cup);
+    grid.appendChild(centre);
+
+    grid.appendChild(bracketSide(state, bracket.right, true));
+
+    box.appendChild(grid);
+    wrap.setAttribute('aria-label', bracket.title + ' bracket');
+  }
+
+  /* --- games or tournament -------------------------------------------------
+
+     Which of the two the panel is showing. It survives a redraw -- the
+     boosters and the inventory land after the page is up and draw the
+     schedule again -- and goes back to the games when a different player is
+     opened, because a bracket is his school's, not the site's. */
+  var scheduleView = 'games';
+
+  function showScheduleView() {
+    var bracket = schedulePlayer ? EGE.bracketFor(schedulePlayer) : null;
+    var tournament = Boolean(bracket) && scheduleView === 'tournament';
+
+    document.getElementById('scheduleSwitch').hidden = !bracket;
+    document.getElementById('bracketWrap').hidden = !tournament;
+
+    /* Everything the games view owns goes away together, the empty note and
+       the legend included -- a foot reading "* conference game" under a
+       bracket is the schedule talking over it. */
+    var games = EGE.gamesFor(schedulePlayer, shownSeason());
+    document.getElementById('scheduleTableWrap').hidden = tournament || !games.length;
+    document.getElementById('scheduleEmpty').hidden = tournament || Boolean(games.length);
+    document.getElementById('scheduleFoot').hidden = tournament ||
+      !document.getElementById('scheduleLegend').textContent;
+  }
+
+  document.addEventListener('change', function (event) {
+    var input = event.target.closest
+      ? event.target.closest('.ege-switch__option input')
+      : null;
+    if (!input || input.name !== 'scheduleView') { return; }
+    scheduleView = input.value;
+    showScheduleView();
+  });
 
   /* --- the game log ------------------------------------------------------- */
 
@@ -1743,7 +2032,13 @@
     var ready = 0;
 
     weeks.forEach(function (week) {
-      var games = EGE.gamesInWeek(week, season);
+      /* A bye is on the schedule but has nothing to type into it, so it is
+         not one of the games a week is waiting on. Counting it would leave
+         the playoff week reading "5 of 6 filled in" for good and never
+         showing as ready to publish. */
+      var games = EGE.gamesInWeek(week, season).filter(function (entry) {
+        return !entry.game.bye;
+      });
       var filled = games.filter(function (entry) { return EGE.hasResult(entry.game); }).length;
       var published = EGE.isPublished(season, week);
       var row = weekState.published.filter(function (r) {
@@ -1944,7 +2239,9 @@
     select.innerHTML = '';
 
     weeks.forEach(function (week) {
-      var games = EGE.gamesInWeek(week, season);
+      var games = EGE.gamesInWeek(week, season).filter(function (entry) {
+        return !entry.game.bye;
+      });
       var filled = games.filter(function (entry) { return EGE.hasResult(entry.game); }).length;
       var option = el('option', null, 'Week ' + week + '  ·  ' + filled + ' of ' +
                       games.length + ' filled in');
@@ -1955,7 +2252,7 @@
     /* Open on the first week that still needs numbers. */
     var next = weeks.filter(function (week) {
       return EGE.gamesInWeek(week, season).some(function (entry) {
-        return !EGE.hasResult(entry.game);
+        return !entry.game.bye && !EGE.hasResult(entry.game);
       });
     })[0];
     select.value = next || weeks[0] || '';
@@ -1998,9 +2295,19 @@
     var name = el('div');
     name.appendChild(el('span', 'ege-account__name', player.name));
     name.appendChild(el('span', 'fb-meta', player.position + '  ·  ' +
-      (game.home ? 'vs ' : 'at ') + game.opponent + '  ·  ' + game.date));
+      (game.bye ? 'Bye' : (game.home ? 'vs ' : 'at ') + game.opponent) +
+      '  ·  ' + game.date));
     who.appendChild(name);
     head.appendChild(who);
+
+    /* A bye is a week off. There is no score to enter, no booster that could
+       have been on it and no stat line to type, so the card says so and
+       stops -- a form offering all three would only invite a result for a
+       game that was never played. */
+    if (game.bye) {
+      box.appendChild(el('span', 'ege-note', 'Bye week \u2014 nothing to enter.'));
+      return box;
+    }
 
     var score = el('div', 'fb-row');
     score.appendChild(numberField('Us', held.result ? held.result.teamScore : null, function (value) {

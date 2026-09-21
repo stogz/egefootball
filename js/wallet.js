@@ -687,6 +687,18 @@ EGE.wallet = (function () {
     var c = client();
     if (!c) { return fail(offline()); }
 
+    /* The page does not draw a plus on a playoff game, but the page is not
+       what decides. A booster is spent on planning a regular season, and the
+       postseason is not planned -- so the week is checked here as well, where
+       the sticker actually leaves the drawer. */
+    var owner = EGE.players.filter(function (p) {
+      return p.email && email && p.email.toLowerCase() === String(email).toLowerCase();
+    })[0];
+    var target = owner ? EGE.gameInWeek(owner, week, season) : null;
+    if (target && target.playoff) {
+      return fail('No boosters in the playoffs \u2014 that one is a postseason game.');
+    }
+
     return inventoryFor(email).then(function (rows) {
       var owned = stackedRow(rows, item.key, null);
       if (!owned || quantityOf(owned) < 1) { return { ok: false, message: 'You do not own one of those.' }; }

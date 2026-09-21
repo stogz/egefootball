@@ -38,7 +38,13 @@ EGE.colleges = {
   SIU:        { name: 'Southern Illinois', short: 'SIU',   ground: '#72001B', ink: '#F4F1EA', logo: 'SIU' },
   WIU:        { name: 'Western Illinois',  short: 'WIU',   ground: '#582C83', ink: '#FFC72C', logo: 'WIU' },
   UNI:        { name: 'Northern Iowa',     short: 'UNI',   ground: '#FFC72C', ink: '#4F2D7F', logo: 'UNI' },
-  INDY:       { name: 'Indianapolis',      short: 'INDY',  ground: '#B31B1B', ink: '#FFFFFF', logo: 'INDY' },
+  /* Navy rather than the crimson this started on. Two reasons: the crimson
+     sat against Southeast Missouri's red on Sam's header and the pair read as
+     one sticker, and the Sycamore mark is itself royal blue, so a royal blue
+     ground would have left only its white keyline holding it apart from the
+     colour behind it. Navy gives the mark room and nothing else in his
+     handful is near it. */
+  INDY:       { name: 'Indy State',        short: 'INDY',  ground: '#0C2340', ink: '#FFFFFF', logo: 'INDY' },
   SEMO:       { name: 'Southeast Missouri', short: 'SEMO', ground: '#C8102E', ink: '#FFFFFF', logo: 'SEMO' },
 
   /* --- California -------------------------------------------------------- */

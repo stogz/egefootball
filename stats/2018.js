@@ -22,6 +22,13 @@
    `conference: true` marks the games listed with an asterisk, and
    `scouts: true` marks a game scouts will be at — what Intel buys is the
    right to see it.
+
+   `playoff: true` is a postseason game. It reads the same as any other game
+   and is listed with two asterisks, but no booster goes on it: what a player
+   spends his stickers on is the regular season, and by the time the bracket
+   is out there is nothing left to plan. `bye: true` is a playoff round drawn
+   into the schedule that is not played at all — no opponent, no kickoff, no
+   stat line, and nothing to publish.
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -30,6 +37,160 @@ EGE.stats = EGE.stats || {};
 EGE.stats[2018] = {
   season: 2018,
   level: 'High school varsity',
+
+  /* --- how the rest of the draw went ----------------------------------------
+
+     A bracket is thirty-one games and one of them is his. This is the other
+     thirty: who won, and by what.
+
+     One entry per bracket, keyed the way data/brackets.js is keyed. Each is a
+     list of rounds, and each round is the week it is played in and one result
+     per matchup, in the order the bracket draws them -- the whole left half
+     top to bottom, then the whole right half.
+
+     A result is [winner, winner's score, loser's score]. The winner is named
+     rather than pointed at, so a line can be read and changed without
+     counting boxes.
+
+     `null` means the site works it out: a bye, which advances on its own,
+     and the one matchup his school is in, which is a game in this file with a
+     stat line on it and must not be said twice. Everything follows from that
+     one game -- change its score and the bracket changes with it.
+
+     A round is drawn once its week is published. Round one is week fourteen,
+     so publishing week fourteen fills the first round in and stands the
+     second round up with the teams that won. Fill a later round in the same
+     way and publish its week, and the draw moves on again.
+     ========================================================================= */
+  playoffs: {
+    normal: [
+      /* first round */
+      { week: 14, results: [
+        /* the left half, top to bottom */
+        ['Rockford East', 24, 7],                   /* Simeon */
+        ['Harlem', 47, 0],                          /* Lincoln-Way West */
+        ['Nazareth Academy', 17, 13],               /* Andrew */
+        ['Hersey', 48, 38],                         /* Lincoln-Way Central */
+        ['Batavia', 46, 14],                        /* Granite City */
+        ['Moline', 48, 28],                         /* Glenbrook North */
+        ['Willowbrook', 57, 21],                    /* Lincoln Park */
+        ['Maine West', 7, 3],                       /* Benet Academy */
+        /* then the right half */
+        ['Glenbard East', 21, 13],                  /* Prospect */
+        ['East St. Louis', 31, 20],                 /* Hoffman Estates */
+        ['Chicago Mt. Carmel', 34, 21],             /* Thornton Fractional North */
+        ['DeKalb', 48, 28],                         /* Lake Zurich */
+        ['Hononegah', 3, 0],                        /* Buffalo Grove */
+        ['Wheaton-Warrenville South', 47, 41],      /* Belleville West */
+        ['Rolling Meadows', 41, 21],                /* Alton */
+        null,                                       /* Normal Community v St. Charles North — his own, see the games above */
+      ] },
+      /* second round */
+      { week: 15, results: [] },
+      /* third round */
+      { week: 16, results: [] },
+      /* fourth round */
+      { week: 17, results: [] },
+      /* the final */
+      { week: 18, results: [] },
+    ],
+
+    bloomington: [
+      /* first round */
+      { week: 14, results: [
+        /* the left half, top to bottom */
+        ['Cary-Grove', 42, 23],                     /* Wauconda */
+        ['Von Steuben', 43, 28],                    /* Kaneland */
+        ['Lake Forest', 55, 35],                    /* Phillips */
+        ['Prairie Ridge', 49, 48],                  /* Hinsdale South */
+        ['Antioch', 27, 13],                        /* Reavis */
+        ['Lakes', 13, 10],                          /* Belvidere North */
+        ['Kenwood', 44, 7],                         /* Crystal Lake South */
+        ['Saint Ignatius College Prep', 31, 22],    /* Niles Notre Dame */
+        /* then the right half */
+        ['Richards', 27, 0],                        /* Rock Island */
+        ['Yorkville', 24, 13],                      /* Dunlap */
+        ['Normal West', 37, 17],                    /* Peoria Notre Dame */
+        ['Shepard', 14, 7],                         /* Springfield */
+        ['Washington', 41, 7],                      /* Providence Catholic */
+        ['Quincy', 31, 20],                         /* Sacred Heart-Griffin */
+        ['Glenwood', 27, 13],                       /* Lemont */
+        null,                                       /* Bloomington v Crete-Monee — his own, see the games above */
+      ] },
+      /* second round */
+      { week: 15, results: [] },
+      /* third round */
+      { week: 16, results: [] },
+      /* fourth round */
+      { week: 17, results: [] },
+      /* the final */
+      { week: 18, results: [] },
+    ],
+
+    wakeForest: [
+      /* first round */
+      { week: 14, results: [
+        /* the left half, top to bottom */
+        null,                                       /* Wake Forest have a bye */
+        ['Wakefield', 52, 33],                      /* Fuquay-Varina */
+        null,                                       /* Leesville Road have a bye */
+        ['Broughton', 23, 13],                      /* Rolesville */
+        null,                                       /* Holly Springs have a bye */
+        ['Panther Creek', 48, 36],                  /* Pinecrest */
+        ['Enloe', 45, 13],                          /* Garner */
+        null,                                       /* Hoggard have a bye */
+        /* then the right half */
+        null,                                       /* Mallard Creek have a bye */
+        ['North Mecklenburg', 35, 27],              /* Hough */
+        null,                                       /* Ardrey Kell have a bye */
+        ['Chambers', 36, 28],                       /* Northwest Guilford */
+        null,                                       /* Butler have a bye */
+        ['Myers Park', 21, 20],                     /* Providence */
+        ['Reagan', 27, 13],                         /* West Forsyth */
+        null,                                       /* Richmond Senior have a bye */
+      ] },
+      /* second round */
+      { week: 15, results: [] },
+      /* third round */
+      { week: 16, results: [] },
+      /* fourth round */
+      { week: 17, results: [] },
+      /* the final */
+      { week: 18, results: [] },
+    ],
+
+    naples: [
+      /* first round */
+      { week: 14, results: [
+        /* the left half, top to bottom */
+        ['Navarre', 53, 34],                        /* Pace */
+        ['Escambia', 41, 3],                        /* St. Augustine */
+        ['Niceville', 21, 13],                      /* Crestview */
+        ['Pine Forest', 44, 3],                     /* Gulf Breeze */
+        ['Vanguard', 41, 24],                       /* Sebring */
+        ['Lake Wales', 38, 6],                      /* Gainesville */
+        ['Mitchell', 38, 0],                        /* Lake Weir */
+        ['Armwood', 41, 0],                         /* South Lake */
+        /* then the right half */
+        null,                                       /* Naples v Lehigh — his own, see the games above */
+        ['Barron Collier', 38, 6],                  /* Fort Myers */
+        ['North Fort Myers', 21, 13],               /* Largo */
+        ['Charlotte', 21, 13],                      /* Clearwater */
+        ['Carol City', 34, 25],                     /* Norland */
+        ['Dillard', 21, 20],                        /* Central */
+        ['Northwestern', 20, 13],                   /* Mainland */
+        ['Heritage', 45, 9],                        /* Eau Gallie */
+      ] },
+      /* second round */
+      { week: 15, results: [] },
+      /* third round */
+      { week: 16, results: [] },
+      /* fourth round */
+      { week: 17, results: [] },
+      /* the final */
+      { week: 18, results: [] },
+    ],
+  },
 
   games: {
 
@@ -125,6 +286,11 @@ EGE.stats[2018] = {
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
           receivingAvg: 11.7, totalYards: 35, totalTd: 0
         } },
+      /* NCHSAA 4A first round. Wake Forest are the one seed on the east side
+         and sit this one out. */
+      { week: 14, date: '2018-11-16', kickoff: null,
+        opponent: null, home: false, conference: false, playoff: true, bye: true,
+        result: null, booster: null, stats: null },
     ],
 
     /* Cooper Clark — Carlsbad High School */
@@ -209,6 +375,15 @@ EGE.stats[2018] = {
           receptions: 5, receivingYards: 38, receivingYac: 25,
           receivingTd: 0, receivingLong: 12, targets: 7, fumbles: 0,
           rushingAvg: 4, receivingAvg: 7.6, totalYards: 94, totalTd: 0
+        } },
+      { week: 14, date: '2018-11-09', kickoff: '7:00pm',
+        opponent: 'San Marcos', home: true, conference: false, playoff: true,
+        result: { teamScore: 21, opponentScore: 20 }, booster: null,
+        stats: {
+          carries: 12, rushingYards: 50, rushingTd: 1, rushingLong: 25,
+          receptions: 3, receivingYards: 45, receivingYac: 25,
+          receivingTd: 1, receivingLong: 14, targets: 5, fumbles: 0,
+          rushingAvg: 4.2, receivingAvg: 15, totalYards: 95, totalTd: 2
         } },
     ],
 
@@ -295,6 +470,16 @@ EGE.stats[2018] = {
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
           receivingAvg: 17.7, totalYards: 124, totalTd: 1
         } },
+      /* IHSA Class 6A first round. Bloomington are the six seed. */
+      { week: 14, date: '2018-10-27', kickoff: '2:00pm',
+        opponent: 'Crete-Monee', home: true, conference: false, playoff: true,
+        result: { teamScore: 35, opponentScore: 14 }, booster: null,
+        stats: {
+          receptions: 7, receivingYards: 120, receivingYac: 41,
+          receivingTd: 0, receivingLong: 47, targets: 11, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 1,
+          receivingAvg: 17.1, totalYards: 120, totalTd: 0
+        } },
     ],
 
     /* Isaac Vitel — Bloomington High School */
@@ -380,6 +565,16 @@ EGE.stats[2018] = {
           rushingYards: 4, rushingTd: 0, rushingLong: 4, sacks: 0,
           fumbles: 0, passingAvg: 18.3, rating: 69.9, rushingAvg: 1
         } },
+      /* IHSA Class 6A first round. Bloomington are the six seed. */
+      { week: 14, date: '2018-10-27', kickoff: '2:00pm',
+        opponent: 'Crete-Monee', home: true, conference: false, playoff: true,
+        result: { teamScore: 35, opponentScore: 14 }, booster: null,
+        stats: {
+          completions: 10, attempts: 29, passingYards: 185, passingYac: 59,
+          passingTd: 2, interceptions: 3, carries: 1, rushingYards: 2,
+          rushingTd: 0, rushingLong: 2, sacks: 1, fumbles: 1,
+          passingAvg: 18.5, rating: 40.8, rushingAvg: 2
+        } },
     ],
 
     /* Sam Stogsdill — Normal Community High School */
@@ -464,6 +659,16 @@ EGE.stats[2018] = {
           receptions: 1, receivingYards: 10, receivingYac: 8,
           receivingTd: 0, receivingLong: 10, targets: 1, fumbles: 0,
           rushingAvg: 7, receivingAvg: 10, totalYards: 207, totalTd: 3
+        } },
+      /* IHSA Class 7A first round. Normal Community are the eleven seed. */
+      { week: 14, date: '2018-10-27', kickoff: '1:00pm',
+        opponent: 'St. Charles North', home: true, conference: false, playoff: true,
+        result: { teamScore: 24, opponentScore: 26 }, booster: null,
+        stats: {
+          carries: 20, rushingYards: 121, rushingTd: 2, rushingLong: 15,
+          receptions: 0, receivingYards: 0, receivingYac: 0, receivingTd: 0,
+          receivingLong: 0, targets: 1, fumbles: 0, rushingAvg: 6.1,
+          totalYards: 121, totalTd: 2
         } },
     ],
 
@@ -558,6 +763,17 @@ EGE.stats[2018] = {
           passingYac: 99, passingTd: 3, interceptions: 1, carries: 4,
           rushingYards: 26, rushingTd: 0, rushingLong: 26, sacks: 2,
           fumbles: 0, passingAvg: 15.2, rating: 120.4, rushingAvg: 6.5
+        } },
+      /* FHSAA Class 6A region quarterfinal. Naples are the one seed in
+         Region 3. */
+      { week: 14, date: '2018-11-09', kickoff: '7:30pm',
+        opponent: 'Lehigh', home: true, conference: false, playoff: true,
+        result: { teamScore: 17, opponentScore: 10 }, booster: null,
+        stats: {
+          completions: 12, attempts: 21, passingYards: 143, passingYac: 56,
+          passingTd: 2, interceptions: 1, carries: 4, rushingYards: 31,
+          rushingTd: 0, rushingLong: 12, sacks: 2, fumbles: 0,
+          passingAvg: 11.9, rating: 90, rushingAvg: 7.8
         } },
     ],
   }

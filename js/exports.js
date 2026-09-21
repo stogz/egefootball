@@ -325,6 +325,7 @@ EGE.exports = (function () {
     lines.push('  season: ' + season + ',');
     lines.push('  level: ' + quote(forSeason.level || '') + ',');
     lines.push('');
+    playoffLines(forSeason).forEach(function (line) { lines.push(line); });
     lines.push('  games: {');
 
     EGE.players.forEach(function (player) {
@@ -371,7 +372,11 @@ EGE.exports = (function () {
     return Promise.resolve(out);
   }
 
+  /* Null writes as the literal, not as the four letters in quotes. A bye has
+     no opponent and no kickoff, and 'null' in that slot would read back in as
+     a team called null. */
   function quote(text) {
+    if (text === null || text === undefined) { return 'null'; }
     return String(text).indexOf("'") === -1
       ? "'" + text + "'"
       : JSON.stringify(text);
@@ -379,6 +384,47 @@ EGE.exports = (function () {
 
   function pad(number) {
     return String(number).length < 2 ? ' ' + number : String(number);
+  }
+
+  /* The draws, written back out as they were read.
+
+     The editor never touches these -- there is nothing in it that edits a
+     game somebody else played -- but the file is rewritten whole, so
+     anything not written here is dropped. That is how the playoff flags were
+     nearly lost, and thirty results a bracket is a worse thing to lose. */
+  function playoffLines(forSeason) {
+    var draws = forSeason.playoffs;
+    if (!draws || !Object.keys(draws).length) { return []; }
+
+    var out = ['  /* How the rest of each draw went. See data/brackets.js for the',
+               '     order: the whole left half top to bottom, then the whole right.',
+               '     [winner, winner\'s score, loser\'s score], or null for a bye and',
+               '     for the one matchup his own school is in. */',
+               '  playoffs: {'];
+
+    Object.keys(draws).forEach(function (key, at) {
+      if (at) { out.push(''); }
+      out.push('    ' + key + ': [');
+      (draws[key] || []).forEach(function (round) {
+        var results = round.results || [];
+        if (!results.length) {
+          out.push('      { week: ' + round.week + ', results: [] },');
+          return;
+        }
+        out.push('      { week: ' + round.week + ', results: [');
+        results.forEach(function (row) {
+          out.push('        ' + (row
+            ? '[' + quote(row[0]) + ', ' + row[1] + ', ' + row[2] + '],'
+            : 'null,'));
+        });
+        out.push('      ] },');
+      });
+      out.push('    ],');
+    });
+
+    out.push('  },');
+    out.push('');
+    return out;
   }
 
   /* One game, as the two or three lines the file writes it on. */
@@ -394,8 +440,13 @@ EGE.exports = (function () {
 
     var stats = scored ? EGE.statline.complete(player.position, typed) : null;
 
+    /* Every flag the file can carry, or the editor writing a season back out
+       would quietly drop the ones it does not know about -- a playoff game
+       would come back as a regular one the first time anybody saved. */
     var flags = ['home: ' + (game.home ? 'true' : 'false'),
                  'conference: ' + (game.conference ? 'true' : 'false')];
+    if (game.playoff) { flags.push('playoff: true'); }
+    if (game.bye) { flags.push('bye: true'); }
     if (game.scouts) { flags.push('scouts: true'); }
 
     var out = [
