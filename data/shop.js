@@ -58,7 +58,7 @@ EGE.shop = {
       title: 'Rating Points',
       blurb: 'Buy points straight into the attributes your position is judged ' +
              'on. A point costs more the closer that attribute is to 99, so ' +
-             'early ones are a credit or two and late ones are not. The ' +
+             'early ones are two or three credits and late ones are not. The ' +
              'general attributes are not here — speed, strength, stamina and ' +
              'the rest move through offseason training only.',
       upgrades: true,
