@@ -58,7 +58,7 @@ EGE.shop = {
       title: 'Rating Points',
       blurb: 'Buy points straight into the attributes your position is judged ' +
              'on. A point costs more the closer that attribute is to 99, so ' +
-             'early ones are a credit or two and late ones are not. The ' +
+             'early ones are two or three credits and late ones are not. The ' +
              'general attributes are not here — speed, strength, stamina and ' +
              'the rest move through offseason training only.',
       upgrades: true,
@@ -71,9 +71,9 @@ EGE.shop = {
       blurb: 'Where the whole offseason goes. The first block of a workout is ' +
              'cheap and every one after it costs twice the last, so an ' +
              'offseason spent entirely on one thing runs out of credits long ' +
-             'before it runs out of attributes. The two that specialise are ' +
-             'the cheap ones and carry a risk; the one that spreads itself ' +
-             'evenly costs more and has nothing to lose. The prices go back ' +
+             'before it runs out of attributes. The two that specialise carry ' +
+             'a risk; the one that spreads itself evenly costs the most and ' +
+             'has nothing to lose. The prices go back ' +
              'to the bottom when the season is locked and the workouts fold ' +
              'into the ratings.',
       items: [
@@ -96,7 +96,7 @@ EGE.shop = {
         {
           key: 'train-cardio',
           name: 'Cardio Training',
-          credits: 8,
+          credits: 16,
           creditsStack: 2,
           effects: { speed: 2, acceleration: 2, agility: 2, stamina: 2 },
           risks: [
@@ -110,7 +110,7 @@ EGE.shop = {
         {
           key: 'train-overall',
           name: 'Overall Training',
-          credits: 12,
+          credits: 20,
           creditsStack: 2,
           effects: {
             speed: 1, acceleration: 1, strength: 1,

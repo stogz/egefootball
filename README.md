@@ -137,62 +137,67 @@ Every player carries the same 32 attributes, in four groups: General,
 Passing, Receiving, Ball Carrier. Tight ends carry a fifth, Blocking, since
 they are the only position here whose overall should turn on it — the group
 is simply absent for everyone else, and their pages don't show it. A group
-scores as the plain average of the attributes inside it.
-
-Receiving counts heavily for a running back — these are backs who catch, not
-just carry — so for Cooper and Sam a receiving point is worth nearly as much
-as a carrying one and about as much again as a general one.
+scores as the plain average of the attributes inside it; that is the number
+beside each group on a player's page.
 
 **A player's page shows only the groups their position is judged on**, under
 the names that position uses: a quarterback gets General, Passing and
 Carrying; a back gets General, Receiving and Carrying; a tight end gets
-General, Catching, Blocking and Carrying. The groups left off the page still
-count toward the overall — they just aren't worth a column. `EGE.positionGroups`
-decides what is shown, separately from `EGE.positionWeights`, which decides
-what counts.
+General, Catching, Blocking and Carrying. `EGE.positionGroups` decides what
+is shown, separately from `EGE.positionWeights`, which decides what counts.
 
-**The overall is those group scores weighted by position.** A quarterback's
-overall leans on passing, a back's on ball carrying — but nothing is ever
-worth zero, so a quarterback who can carry the ball still rates above one who
-can't, just not by much. Weights live in `EGE.positionWeights` and are
-normalised when the overall is worked out, so a group can be nudged without
-rebalancing the others. A group left out of a position's weights is left out
-of that position's overall entirely, which is how blocking counts for a tight
-end and for nobody else. Only QB, RB, WR and TE are weighted, since those are
-the positions these groups describe; anything else falls back to `DEFAULT`,
-which counts every group fairly evenly.
+**The overall works the way Madden's does.** It is not an average of
+everything on the page — under that, the only way to a 99 was a 99 in every
+attribute, throw power included for a tight end. Instead each position names
+its key attributes and how much each one matters (`EGE.positionWeights`, per
+attribute), and nothing else counts at all. Those are averaged by weight,
+and the average is stretched away from 50:
+
+```
+overall = 50 + 1.4 × (key-attribute average − 50), kept within 1-99
+```
+
+So a player whose key attributes are all in the 80s and 90s is a 99 — the
+Madden 99 tight end this was checked against (99 catching and awareness,
+high 80s speed and routes, blocking in the 60s, a 33 throw power) comes out
+at exactly 99. A tight end's key attributes are his hands, routes, awareness
+and athleticism, with blocking behind them; a quarterback's are his arm,
+accuracy and awareness; a back's are his speed, vision and ball carrying,
+with his hands counting for something since these are backs who catch.
+The stretch lives in `EGE.overallScale`. Only QB, RB, WR and TE are
+weighted; anything else falls back to `DEFAULT`, a little of everything.
 
 The same attributes score very differently by position, which is the point:
 
 | Isaac Vitel's ratings, scored as | Overall |
 | --- | --- |
-| QB | 48 |
-| RB | 37 |
-| WR | 32 |
-| TBD | 40 |
+| QB | 59 |
+| RB | 25 |
+| WR | 17 |
+| TBD | 31 |
 
 Anything bought in the shop lands on top of these: `EGE.valuesFor` adds the
 boosts to the base numbers before any group or overall is worked out, so a
 purchase moves the rating the moment it is made.
 
-**The values in the file are placeholders.** They put every player near 50
-overall, in this order:
+**Moving to the Madden-style overall changed nobody's overall.** Scored the
+new way, the ratings locked at the end of the 2018 season would have put
+both quarterbacks at 74 and everyone else a few points up, so every
+attribute a player has was scaled down by the same proportion — about 16%
+for Isaac, 14% for Jaykeb, 3-7% for the rest — until each landed exactly
+where they were:
 
 | Player | Position | Overall |
 | --- | --- | --- |
-| Jaykeb Stewart | QB | 55 |
-| Cooper Clark | RB | 52 |
-| Andrew Parr | TE | 51 |
-| Sam Stogsdill | RB | 49 |
-| Isaac Vitel | QB | 48 |
-| Paxon Hatch | TE | 46 |
+| Jaykeb Stewart | QB | 61 |
+| Isaac Vitel | QB | 59 |
+| Cooper Clark | RB | 56 |
+| Andrew Parr | TE | 55 |
+| Sam Stogsdill | RB | 54 |
+| Paxon Hatch | TE | 51 |
 
-The two backs sit a point lower than the rest of the table was written for,
-because receiving now counts for a back and neither of them catches well yet.
-The order is unchanged, and points bought into receiving are what closes it.
-
-Replace them with real numbers as they are decided; nothing else has to
-change.
+Scaling rather than subtracting keeps each player's shape: strengths are
+still strengths, and nothing that was low has been pushed to the floor.
 
 ---
 
@@ -442,19 +447,19 @@ their position is judged on, and **a point costs more the closer that
 attribute is to 99**:
 
 ```
-cost = 36 / (99 - rating + 1)
+cost = 100 / (99 - rating + 1)
 ```
 
 | Rating | 50 | 60 | 70 | 80 | 85 | 90 | 95 | 97 | 98 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Next point | 1 | 1 | 2 | 2 | 3 | 4 | 8 | 12 | 18 |
+| Next point | 2 | 3 | 4 | 5 | 7 | 10 | 20 | 34 | 50 |
 
 **The general attributes are not for sale.** Speed, strength, stamina,
 awareness and the rest move only through offseason training, which is what
 keeps training worth a slot in the shop. A quarterback is left with passing
 and carrying to buy into; a tight end with catching, blocking and carrying.
 
-A credit or two while a player is young and unformed, twenty-odd once they
+Two or three credits while a player is young and unformed, fifty once they
 are nearly maxed. That is what slows development down by the time they reach
 the NFL, without ever capping it.
 
@@ -472,20 +477,22 @@ steep end of the curve, where four separate points would each cost more than
 the last; it is there to save clicking.
 
 **Tuning.** `UPGRADE_BASE` in `data/economy.js` is set so an offseason moves a
-player about four overall. A 90-credit offseason, 20 of it on Overall
-Training and the rest taken from the top of the table:
+player about four overall. It was 36 until the overall moved to key
+attributes; a point in one of those is now worth about twice as much
+overall, so it went to 100 to keep the same pace. A 90-credit offseason, 20
+of it on Overall Training and the rest taken from the top of the table:
 
 | Player | Position | Gain |
 | --- | --- | --- |
-| Andrew Parr | TE | +3 |
+| Andrew Parr | TE | +4 |
 | Cooper Clark | RB | +3 |
 | Paxon Hatch | TE | +4 |
-| Isaac Vitel | QB | +6 |
+| Isaac Vitel | QB | +4 |
 | Sam Stogsdill | RB | +4 |
 | Jaykeb Stewart | QB | +4 |
-| | | **+4.00 average** |
+| | | **+3.83 average** |
 
-Skipping training and putting all 90 into points comes out at +4.67, so the
+Skipping training and putting all 90 into points comes out at +4.33, so the
 two ways of spending an offseason are worth roughly the same. Season after
 season it flattens on its own, which is the point.
 
@@ -544,8 +551,8 @@ up to a debuff nearly every time (87.5%, as it turned out).
 | Item | Effect | Risk | From |
 | --- | --- | --- | --- |
 | Strength Training | Strength +4, and toughness, injury and jumping +2 each | agility, stamina, speed −2 each | 8 |
-| Cardio Training | Speed, acceleration, agility, stamina +2 | strength −2 | 8 |
-| Overall Training | Speed, acceleration, strength, agility, jumping, stamina +1 | none | 12 |
+| Cardio Training | Speed, acceleration, agility, stamina +2 | strength −2 | 16 |
+| Overall Training | Speed, acceleration, strength, agility, jumping, stamina +1 | none | 20 |
 
 Risks are rolled once, when the item is bought, and the result is stored on
 the row. Reloading the page never re-rolls it.
@@ -558,9 +565,19 @@ is 64 on its own. That is the point: the cheap first block makes training
 worth doing, and the doubling makes spending a whole offseason on one
 attribute a choice rather than the obvious move.
 
-The two that specialise are the cheap ones and both carry a risk. Overall
-Training spreads the same idea across six attributes, has nothing to lose,
-and starts half again as dear for it.
+The two that specialise both carry a risk. Overall Training spreads the
+same idea across six attributes, has nothing to lose, and costs the most
+for it.
+
+**Prices follow what a workout does to the overall.** Since the overall
+moved to key attributes, speed, acceleration and agility count for a lot
+more and strength, toughness and injury for less. Cardio went from 8 to 16
+and Overall Training from 12 to 20, which keeps what a credit buys in
+overall about where it was: on average across the six players, one Cardio
+block is worth about 0.45 overall (0.22 before) and one Overall Training
+block about 0.29 (0.17 before). Strength Training stays at 8. It is worth
+less overall than it was (about 0.12), but what it buys in toughness and
+injury matters outside the number.
 
 `owned` is counted from the inventory rows, so the reset is the one that
 already exists: **Clear the shop rows** at the end of a season deletes every

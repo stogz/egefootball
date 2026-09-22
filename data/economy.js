@@ -9,12 +9,14 @@
 
        cost = UPGRADE_BASE / (99 - value + 1)
 
-   So it is a credit or two while a player is in the 40s and 50s, a handful
-   in the 80s, and twenty-odd at 98 — which is what slows development down
-   once a player is good rather than capping it.
+   So it is two or three credits while a player is in the 40s and 50s, five
+   to ten in the 80s, and fifty at 98 — which is what slows
+   development down once a player is good rather than capping it.
 
    UPGRADE_BASE is tuned, not guessed: spending a typical offseason budget on
-   the best-value points moves a player about four overall. Retune it by
+   the best-value points moves a player about four overall. It went from 36
+   to 100 when the overall moved to key attributes, since a point in one of
+   those is now worth about twice what it was. Retune it by
    changing this number and re-running the numbers in the README.
    ========================================================================== */
 
@@ -23,7 +25,7 @@ window.EGE = window.EGE || {};
 EGE.economy = (function () {
   'use strict';
 
-  var UPGRADE_BASE = 36;
+  var UPGRADE_BASE = 100;
   var MAX_RATING = 99;
 
   /* Groups credits cannot buy into. The general attributes — speed, strength,
@@ -42,23 +44,11 @@ EGE.economy = (function () {
     return Math.max(1, Math.ceil(UPGRADE_BASE / (MAX_RATING - value + 1)));
   }
 
-  /* How much of an overall one point on this attribute is worth. A point in
-     the group a position leans on is worth several times one outside it. */
+  /* How much of an overall one point on this attribute is worth. Only the
+     attributes a position counts are worth anything, and the ones it leans
+     on hardest are worth the most. */
   function gainPerPoint(player, attributeKey) {
-    var weights = EGE.weightsFor(player.position);
-    var total = EGE.ratingGroups.reduce(function (sum, group) {
-      return sum + (weights[group.key] || 0);
-    }, 0);
-
-    var found = null;
-    EGE.ratingGroups.forEach(function (group) {
-      group.attributes.forEach(function (attr) {
-        if (attr.key === attributeKey) { found = group; }
-      });
-    });
-    if (!found || !total) { return 0; }
-
-    return (weights[found.key] || 0) / total / found.attributes.length;
+    return EGE.overallPerPoint(player, attributeKey);
   }
 
   /* Everything a player can put credits into: the attributes their position
