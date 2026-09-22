@@ -97,6 +97,10 @@ EGE.exports = (function () {
     });
 
     lines.push('};');
+    /* What tells the portal this season is already in the numbers above, so
+       the shop rows can be cleared on a later visit and the season can never
+       be folded in twice. */
+    lines.push('EGE.ratingsLockedSeason = ' + season + ';');
     lines.push(END);
     return lines.join('\n');
   }

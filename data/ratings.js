@@ -273,6 +273,7 @@ EGE.ratings = {
     leadBlock: 48,
   },
 };
+EGE.ratingsLockedSeason = 2018;
 /* ege:ratings:end */
 
 /* Which group scores a position's page shows, and what to call them there.

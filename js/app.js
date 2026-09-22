@@ -2484,6 +2484,7 @@
     });
 
     var locked = EGE.seasonLocked(EGE.currentSeason);
+    step('stepLock', locked || adminState.ratingsDownloaded);
     document.getElementById('seasonPanelNote').textContent = locked
       ? EGE.currentSeason + ' is already locked'
       : 'The ' + EGE.currentSeason + ' season';
@@ -2541,15 +2542,16 @@
       }).then(function () { log.disabled = false; });
     });
 
-    /* Two locks on the clear: the ratings file has to have been built in this
-       sitting, and the word has to be typed. Everything it deletes is only
-       recoverable from that file. */
+    /* Two locks on the clear: the ratings file has to exist — built in this
+       sitting, or already committed with this season locked in it — and the
+       word has to be typed. Everything it deletes is only recoverable from
+       that file. */
     confirm.addEventListener('input', function () {
       clear.disabled = confirm.value.trim().toUpperCase() !== 'CLEAR';
     });
 
     clear.addEventListener('click', function () {
-      if (!adminState.ratingsDownloaded) {
+      if (!adminState.ratingsDownloaded && !EGE.seasonLocked(EGE.currentSeason)) {
         sayAdmin('Download the ratings file first — step 1. Clearing without it ' +
                  'loses everything anybody bought this season.', true);
         return;
