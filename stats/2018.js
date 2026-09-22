@@ -281,12 +281,12 @@ EGE.stats[2018] = {
         } },
       { week: 16, date: '2018-11-23', kickoff: '7:30pm',
         opponent: 'Leesville Road', home: true, conference: true, playoff: true,
-        result: { teamScore: 41, opponentScore: 9 }, booster: null,
+        result: { teamScore: 27, opponentScore: 20 }, booster: null,
         stats: {
-          receptions: 7, receivingYards: 104, receivingYac: 68,
-          receivingTd: 1, receivingLong: 57, targets: 11, carries: 0,
+          receptions: 4, receivingYards: 26, receivingYac: 9,
+          receivingTd: 1, receivingLong: 14, targets: 6, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 14.9, totalYards: 104, totalTd: 1
+          receivingAvg: 6.5, totalYards: 26, totalTd: 1
         } },
     ],
 
@@ -496,12 +496,12 @@ EGE.stats[2018] = {
         } },
       { week: 16, date: '2018-11-3', kickoff: '6:00pm',
         opponent: 'Washington', home: false, conference: false, playoff: true,
-        result: { teamScore: 48, opponentScore: 13 }, booster: null,
+        result: { teamScore: 9, opponentScore: 24 }, booster: null,
         stats: {
-          receptions: 2, receivingYards: 32, receivingYac: 12,
+          receptions: 4, receivingYards: 37, receivingYac: 26,
           receivingTd: 0, receivingLong: 17, targets: 4, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 16, totalYards: 32, totalTd: 0
+          receivingAvg: 9.3, totalYards: 37, totalTd: 0
         } },
     ],
 
@@ -608,12 +608,12 @@ EGE.stats[2018] = {
         } },
       { week: 16, date: '2018-11-3', kickoff: '6:00pm',
         opponent: 'Washington', home: false, conference: false, playoff: true,
-        result: { teamScore: 48, opponentScore: 13 }, booster: null,
+        result: { teamScore: 9, opponentScore: 24 }, booster: null,
         stats: {
-          completions: 26, attempts: 37, passingYards: 364,
-          passingYac: 122, passingTd: 4, interceptions: 0, carries: 1,
-          rushingYards: 4, rushingTd: 1, rushingLong: 4, sacks: 2,
-          fumbles: 0, passingAvg: 14, rating: 137.7, rushingAvg: 4
+          completions: 7, attempts: 24, passingYards: 144, passingYac: 52,
+          passingTd: 0, interceptions: 1, carries: 0, rushingYards: 0,
+          rushingTd: 0, rushingLong: 0, sacks: 5, fumbles: 0,
+          passingAvg: 20.6, rating: 34.7
         } },
     ],
 
@@ -823,12 +823,12 @@ EGE.stats[2018] = {
         } },
       { week: 16, date: '2018-11-16', kickoff: '7:30pm',
         opponent: 'North Fort Myers', home: true, conference: false, playoff: true,
-        result: { teamScore: 10, opponentScore: 6 }, booster: null,
+        result: { teamScore: 38, opponentScore: 52 }, booster: null,
         stats: {
-          completions: 10, attempts: 21, passingYards: 177,
-          passingYac: 95, passingTd: 0, interceptions: 0, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, sacks: 6,
-          fumbles: 1, passingAvg: 17.7, rating: 76.9
+          completions: 19, attempts: 32, passingYards: 233,
+          passingYac: 137, passingTd: 4, interceptions: 1, carries: 3,
+          rushingYards: 12, rushingTd: 1, rushingLong: 5, sacks: 2,
+          fumbles: 0, passingAvg: 12.3, rating: 108.5, rushingAvg: 4
         } },
     ],
   }
