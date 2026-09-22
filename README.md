@@ -479,21 +479,21 @@ the last; it is there to save clicking.
 **Tuning.** `UPGRADE_BASE` in `data/economy.js` is set so an offseason moves a
 player about four overall. It was 36 until the overall moved to key
 attributes; a point in one of those is now worth about twice as much
-overall, so it went to 100 to keep the same pace. A 90-credit offseason, 12
+overall, so it went to 100 to keep the same pace. A 90-credit offseason, 20
 of it on Overall Training and the rest taken from the top of the table:
 
 | Player | Position | Gain |
 | --- | --- | --- |
 | Andrew Parr | TE | +4 |
-| Cooper Clark | RB | +4 |
+| Cooper Clark | RB | +3 |
 | Paxon Hatch | TE | +4 |
-| Isaac Vitel | QB | +5 |
+| Isaac Vitel | QB | +4 |
 | Sam Stogsdill | RB | +4 |
-| Jaykeb Stewart | QB | +5 |
-| | | **+4.33 average** |
+| Jaykeb Stewart | QB | +4 |
+| | | **+3.83 average** |
 
-Skipping training and putting all 90 into points also comes out at +4.33, so
-the two ways of spending an offseason are worth the same. Season after
+Skipping training and putting all 90 into points comes out at +4.33, so the
+two ways of spending an offseason are worth roughly the same. Season after
 season it flattens on its own, which is the point.
 
 ### Booster stickers
@@ -551,8 +551,8 @@ up to a debuff nearly every time (87.5%, as it turned out).
 | Item | Effect | Risk | From |
 | --- | --- | --- | --- |
 | Strength Training | Strength +4, and toughness, injury and jumping +2 each | agility, stamina, speed −2 each | 8 |
-| Cardio Training | Speed, acceleration, agility, stamina +2 | strength −2 | 8 |
-| Overall Training | Speed, acceleration, strength, agility, jumping, stamina +1 | none | 12 |
+| Cardio Training | Speed, acceleration, agility, stamina +2 | strength −2 | 16 |
+| Overall Training | Speed, acceleration, strength, agility, jumping, stamina +1 | none | 20 |
 
 Risks are rolled once, when the item is bought, and the result is stored on
 the row. Reloading the page never re-rolls it.
@@ -565,9 +565,19 @@ is 64 on its own. That is the point: the cheap first block makes training
 worth doing, and the doubling makes spending a whole offseason on one
 attribute a choice rather than the obvious move.
 
-The two that specialise are the cheap ones and both carry a risk. Overall
-Training spreads the same idea across six attributes, has nothing to lose,
-and starts half again as dear for it.
+The two that specialise both carry a risk. Overall Training spreads the
+same idea across six attributes, has nothing to lose, and costs the most
+for it.
+
+**Prices follow what a workout does to the overall.** Since the overall
+moved to key attributes, speed, acceleration and agility count for a lot
+more and strength, toughness and injury for less. Cardio went from 8 to 16
+and Overall Training from 12 to 20, which keeps what a credit buys in
+overall about where it was: on average across the six players, one Cardio
+block is worth about 0.45 overall (0.22 before) and one Overall Training
+block about 0.29 (0.17 before). Strength Training stays at 8. It is worth
+less overall than it was (about 0.12), but what it buys in toughness and
+injury matters outside the number.
 
 `owned` is counted from the inventory rows, so the reset is the one that
 already exists: **Clear the shop rows** at the end of a season deletes every
