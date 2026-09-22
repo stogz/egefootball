@@ -279,6 +279,15 @@ EGE.stats[2018] = {
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
           receivingAvg: 14.9, totalYards: 104, totalTd: 1
         } },
+      { week: 16, date: '2018-11-23', kickoff: '7:30pm',
+        opponent: 'Leesville Road', home: true, conference: true, playoff: true,
+        result: { teamScore: 41, opponentScore: 9 }, booster: null,
+        stats: {
+          receptions: 7, receivingYards: 104, receivingYac: 68,
+          receivingTd: 1, receivingLong: 57, targets: 11, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 14.9, totalYards: 104, totalTd: 1
+        } },
     ],
 
     /* Cooper Clark — Carlsbad High School */
@@ -485,6 +494,15 @@ EGE.stats[2018] = {
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
           receivingAvg: 16, totalYards: 32, totalTd: 0
         } },
+      { week: 16, date: '2018-11-3', kickoff: '6:00pm',
+        opponent: 'Washington', home: false, conference: false, playoff: true,
+        result: { teamScore: 48, opponentScore: 13 }, booster: null,
+        stats: {
+          receptions: 2, receivingYards: 32, receivingYac: 12,
+          receivingTd: 0, receivingLong: 17, targets: 4, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 16, totalYards: 32, totalTd: 0
+        } },
     ],
 
     /* Isaac Vitel — Bloomington High School */
@@ -581,6 +599,15 @@ EGE.stats[2018] = {
         } },
       { week: 15, date: '2018-11-3', kickoff: '6:00pm',
         opponent: 'Glenwood', home: true, conference: false, playoff: true,
+        result: { teamScore: 48, opponentScore: 13 }, booster: null,
+        stats: {
+          completions: 26, attempts: 37, passingYards: 364,
+          passingYac: 122, passingTd: 4, interceptions: 0, carries: 1,
+          rushingYards: 4, rushingTd: 1, rushingLong: 4, sacks: 2,
+          fumbles: 0, passingAvg: 14, rating: 137.7, rushingAvg: 4
+        } },
+      { week: 16, date: '2018-11-3', kickoff: '6:00pm',
+        opponent: 'Washington', home: false, conference: false, playoff: true,
         result: { teamScore: 48, opponentScore: 13 }, booster: null,
         stats: {
           completions: 26, attempts: 37, passingYards: 364,
@@ -787,6 +814,15 @@ EGE.stats[2018] = {
         } },
       { week: 15, date: '2018-11-16', kickoff: '7:30pm',
         opponent: 'Barron Collier', home: true, conference: false, playoff: true,
+        result: { teamScore: 10, opponentScore: 6 }, booster: null,
+        stats: {
+          completions: 10, attempts: 21, passingYards: 177,
+          passingYac: 95, passingTd: 0, interceptions: 0, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, sacks: 6,
+          fumbles: 1, passingAvg: 17.7, rating: 76.9
+        } },
+      { week: 16, date: '2018-11-16', kickoff: '7:30pm',
+        opponent: 'North Fort Myers', home: true, conference: false, playoff: true,
         result: { teamScore: 10, opponentScore: 6 }, booster: null,
         stats: {
           completions: 10, attempts: 21, passingYards: 177,
