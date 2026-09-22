@@ -20,9 +20,14 @@ EGE.currentSeason = 2018;
 
 EGE.lockedSeasons = [];
 
-/* Whether a season's ratings have been hardcoded already. */
+/* Whether a season's ratings have been hardcoded already: either it has been
+   rolled past, or data/ratings.js says it was locked at the end of it. The
+   second is what covers the stretch between committing the ratings file and
+   rolling the season over. */
 EGE.seasonLocked = function (season) {
-  return (EGE.lockedSeasons || []).indexOf(season || EGE.currentSeason) !== -1;
+  var year = season || EGE.currentSeason;
+  return (EGE.lockedSeasons || []).indexOf(year) !== -1 ||
+    EGE.ratingsLockedSeason === year;
 };
 
 /* The season after this one on the ladder, or null at the end of it. */
