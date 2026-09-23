@@ -1608,9 +1608,9 @@
     if (section.blurb) { body.appendChild(el('p', 'ege-item__text', section.blurb)); }
 
     if (section.upgrades) {
+      body.appendChild(buildUpgrades());
       /* Any section that asks to be drawn in here -- the offseason workouts
-         -- goes in the same box, above the points table, where it is seen
-         before thirty rows of attributes rather than after them. */
+         -- goes in the same box, under the points table. */
       EGE.shop.sections.filter(function (other) {
         return other.panel === section.key;
       }).forEach(function (other) {
@@ -1618,7 +1618,6 @@
         other.items.forEach(function (item) { extra.appendChild(buildShopItem(item)); });
         body.appendChild(extra);
       });
-      body.appendChild(buildUpgrades());
     } else {
       var grid = el('div', 'ege-items');
       section.items.forEach(function (item) { grid.appendChild(buildShopItem(item)); });
@@ -1897,41 +1896,34 @@
     return box;
   }
 
-  /* --- the locker ---------------------------------------------------------
+  /* --- what a player owns, on one line --------------------------------------
 
-     A player's inventory is their locker: icon/locker.webp, cropped to the
-     open one in the middle of the row. The boosters sit on the top shelf,
-     everything else on the one under it, and their jersey hangs in the
-     bottom, cut off by the bottom of the picture so the name and the top of
-     the number are what show.
+     Under "Applied to your ratings": the boosters as their stickers, then
+     everything else as its shop icon, each with how many are held boxed on
+     its corner. A workout bought three times is one icon with 3X on it, and
+     Intel is its own switch -- tap it to turn it on or off. */
 
-     Everything is placed in percentages of the picture and sized in
-     container units, so it all scales with the locker. */
-
-  function lockerStickers(rows) {
+  function ownedStickers(rows, line) {
     var counts = {};
     rows.filter(isShelved).forEach(function (row) {
       counts[row.item_key] = (counts[row.item_key] || 0) + EGE.wallet.quantityOf(row);
     });
 
-    var shelf = el('div', 'ege-locker__shelf ege-locker__shelf--top');
     /* Biggest multiplier first, the order the shop sells them in. */
     Object.keys(STICKER_LOOK).filter(function (key) {
       return counts[key] > 0;
-    }).forEach(function (key, at) {
+    }).forEach(function (key) {
       var item = EGE.shopItem(key);
-      var slot = el('div', 'ege-locker__thing');
+      var slot = el('div', 'ege-owned__thing');
       slot.title = counts[key] + ' \u00d7 ' + (item ? item.name : key);
       slot.setAttribute('aria-label', slot.title);
-      /* Seeded apart, so the stickers on one shelf lean different ways. */
-      slot.appendChild(stickerEl(key, null, key + '-shelf-' + at));
+      slot.appendChild(stickerEl(key, 52, key));
       slot.appendChild(el('span', 'ege-shelf__count', counts[key] + 'X'));
-      shelf.appendChild(slot);
+      line.appendChild(slot);
     });
-    return shelf;
   }
 
-  function lockerThing(rows) {
+  function ownedThing(rows) {
     var row = rows[0];
     var item = EGE.shopItem(row.item_key);
     var lapsed = EGE.wallet.lapsed(row);
@@ -1939,10 +1931,8 @@
     var off = switchable && !row.active;
     var count = rows.reduce(function (sum, one) { return sum + EGE.wallet.quantityOf(one); }, 0);
 
-    /* Anything with a switch -- Intel -- is the switch: tap it to turn it on
-       or off. A workout is just there. */
     var thing = el(switchable ? 'button' : 'div',
-      'ege-locker__thing ege-locker__item' + (lapsed ? ' is-expired' : (off ? ' is-off' : '')));
+      'ege-owned__thing ege-owned__item' + (lapsed ? ' is-expired' : (off ? ' is-off' : '')));
     var label = row.item_name +
       (count > 1 ? ' \u00d7' + count : '') +
       (lapsed ? ' \u2014 expired' : '') +
@@ -1951,15 +1941,15 @@
     thing.setAttribute('aria-label', label);
 
     if (item && item.icon) {
-      var icon = el('img', 'ege-locker__icon');
+      var icon = el('img', 'ege-owned__icon');
       icon.src = item.icon;
       icon.alt = '';
       thing.appendChild(icon);
     } else {
-      thing.appendChild(el('span', 'ege-locker__word', row.item_name));
+      thing.appendChild(el('span', 'ege-owned__word', row.item_name));
     }
     if (count > 1) { thing.appendChild(el('span', 'ege-shelf__count', count + 'X')); }
-    if (off) { thing.appendChild(el('span', 'ege-locker__flag', 'Off')); }
+    if (off || lapsed) { thing.appendChild(el('span', 'ege-owned__flag', lapsed ? 'Expired' : 'Off')); }
 
     if (switchable) {
       thing.type = 'button';
@@ -1974,9 +1964,7 @@
     return thing;
   }
 
-  function lockerItems(rows) {
-    /* A workout bought three times is one thing with 3X on it. Anything with
-       a switch or a season keeps a place of its own. */
+  function ownedItems(rows, line) {
     var groups = [];
     var byKey = {};
     rows.filter(function (row) { return !isShelved(row); }).forEach(function (row) {
@@ -1987,74 +1975,7 @@
         groups.push([row]);
       }
     });
-
-    var shelf = el('div', 'ege-locker__shelf ege-locker__shelf--middle');
-    groups.forEach(function (group) { shelf.appendChild(lockerThing(group)); });
-    return shelf;
-  }
-
-  /* The back of their jersey on a hanger: name across the shoulders and the
-     number under it, drawn in the same heavy outline as the locker. The
-     picture's bottom edge cuts through the number. */
-  var SVG = 'http://www.w3.org/2000/svg';
-
-  function svgEl(tag, attrs, text) {
-    var node = document.createElementNS(SVG, tag);
-    Object.keys(attrs).forEach(function (key) {
-      if (attrs[key] != null) { node.setAttribute(key, attrs[key]); }
-    });
-    if (text != null) { node.textContent = text; }
-    return node;
-  }
-
-  function lockerJersey(player) {
-    var svg = svgEl('svg', {
-      'class': 'ege-locker__jersey',
-      viewBox: '0 0 300 300',
-      preserveAspectRatio: 'xMidYMin meet',
-      'aria-hidden': 'true'
-    });
-
-    /* The hook under the shelf, and the hanger off it. */
-    svg.appendChild(svgEl('path', {
-      d: 'M150 34 C150 22 150 14 158 10 C166 6 170 16 164 20',
-      fill: 'none', stroke: '#20261a', 'stroke-width': 5, 'stroke-linecap': 'round'
-    }));
-    svg.appendChild(svgEl('path', {
-      d: 'M150 34 L52 70 L248 70 Z',
-      fill: 'none', stroke: '#6f6a5e', 'stroke-width': 6, 'stroke-linejoin': 'round'
-    }));
-
-    /* Shoulders, short sleeves, and a body that runs off the bottom. */
-    svg.appendChild(svgEl('path', {
-      d: 'M112 58 C124 70 176 70 188 58 L246 76 L290 150 L252 170 L240 150 ' +
-         'L240 320 L60 320 L60 150 L48 170 L10 150 L54 76 Z',
-      fill: '#8c491a', stroke: '#20261a', 'stroke-width': 5, 'stroke-linejoin': 'round'
-    }));
-    /* The collar, and a stripe on each sleeve. */
-    svg.appendChild(svgEl('path', {
-      d: 'M112 58 C124 76 176 76 188 58',
-      fill: 'none', stroke: '#f5ead8', 'stroke-width': 6
-    }));
-    svg.appendChild(svgEl('path', { d: 'M24 128 L60 144', stroke: '#f5ead8', 'stroke-width': 7 }));
-    svg.appendChild(svgEl('path', { d: 'M276 128 L240 144', stroke: '#f5ead8', 'stroke-width': 7 }));
-
-    var name = String(player.last || player.name || '').toUpperCase();
-    svg.appendChild(svgEl('text', {
-      x: 150, y: 172, 'text-anchor': 'middle',
-      'class': 'ege-locker__jerseyname',
-      'font-size': name.length > 8 ? 24 : 28,
-      textLength: name.length > 6 ? 150 : null
-    }, name));
-
-    if (player.jersey != null) {
-      svg.appendChild(svgEl('text', {
-        x: 150, y: 352, 'text-anchor': 'middle',
-        'class': 'ege-locker__jerseynumber',
-        'font-size': 150
-      }, String(player.jersey)));
-    }
-    return svg;
+    groups.forEach(function (group) { line.appendChild(ownedThing(group)); });
   }
 
   function isShelved(row) {
@@ -2088,18 +2009,9 @@
 
     document.getElementById('inventoryEmpty').hidden = things.length > 0 || Boolean(summary);
 
-    /* The locker is there even when it is empty -- the jersey is in it. */
-    var player = shopState.player;
-    holder.hidden = !player;
-    if (!player) { return; }
-
-    var locker = el('div', 'ege-locker__frame');
-    locker.appendChild(lockerStickers(things));
-    locker.appendChild(lockerItems(things));
-    var bottom = el('div', 'ege-locker__bottom');
-    bottom.appendChild(lockerJersey(player));
-    locker.appendChild(bottom);
-    holder.appendChild(locker);
+    holder.hidden = !things.length;
+    ownedStickers(things, holder);
+    ownedItems(things, holder);
   }
 
   /* --- admin ------------------------------------------------------------- */

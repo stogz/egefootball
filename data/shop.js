@@ -78,7 +78,7 @@ EGE.shop = {
     {
       key: 'training',
       title: 'Offseason Training',
-      /* Drawn inside the Rating Points panel, above the points, rather than
+      /* Drawn inside the Rating Points panel, under the points, rather than
          as a panel of its own. Each workout's price doubles every time it is
          bought, and goes back to the bottom when the season is locked. */
       panel: 'upgrades',
