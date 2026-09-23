@@ -22,6 +22,15 @@
 </head>
 <body>
 
+<!-- The loading screen. Up from the first paint, over a blurred page, until
+     the published weeks and the purchases have come back from Supabase --
+     js/app.js takes it down. If that script never gets that far, the
+     stylesheet takes it down on its own after a few seconds. -->
+<div class="ege-loader" id="siteLoader" role="status" aria-live="polite">
+  <img class="ege-loader__ball" src="icon/football_loader_preview.gif" alt="" width="220" height="220">
+  <span class="ege-loader__text">Loading&hellip;</span>
+</div>
+
 <div class="fb-shell">
 
   <!-- ===== nav ========================================================= -->
@@ -52,7 +61,8 @@
 
       <header class="fb-hero fb-hero--centred" style="padding: 44px 0 30px;">
         <div class="fb-hero__col">
-          <span class="fb-kicker">2018 &middot; Junior Year &middot; High School Varsity</span>
+          <!-- The live season, written in by js/app.js from data/season.js. -->
+          <span class="fb-kicker" id="homeSeasonLabel">2019 &middot; Senior Year &middot; High School Varsity</span>
           <h1 class="fb-hero__title" style="margin: 14px 0 0;">EGE Football</h1>
         </div>
       </header>
@@ -505,6 +515,17 @@
         <div class="fb-panel__foot ege-tallybar" id="playerTallyBar" hidden>
           <div class="ege-tally" id="playerTally"></div>
         </div>
+      </div>
+
+      <!-- Which season the page is showing: the live one to start with, and
+           any season logged before it. Built in app.js; hidden while there is
+           only one season to show. -->
+      <div class="ege-seasonbar" id="seasonBar" hidden>
+        <button type="button" class="fb-btn ege-seasonbar__step" id="seasonPrev"
+                aria-label="Previous season">&lsaquo;</button>
+        <select class="fb-select ege-seasonbar__pick" id="seasonPick" aria-label="Season"></select>
+        <button type="button" class="fb-btn ege-seasonbar__step" id="seasonNext"
+                aria-label="Next season">&rsaquo;</button>
       </div>
 
       <div class="fb-panel ege-section-gap" id="schedulePanel" hidden>

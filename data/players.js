@@ -31,12 +31,12 @@ window.EGE = window.EGE || {};
 /* The season ladder. See the project spec — 2018 junior year of high school
    through the 2023 NFL Draft. */
 EGE.seasons = [
-  { year: 2018, level: 'High school varsity', tier: 'highSchool', class: 'Junior year' },
-  { year: 2019, level: 'High school varsity', tier: 'highSchool', class: 'Senior year' },
-  { year: 2020, level: 'College football',    tier: 'college',    class: 'Freshman year' },
-  { year: 2021, level: 'College football',    tier: 'college',    class: 'Sophomore year' },
-  { year: 2022, level: 'College football',    tier: 'college',    class: 'Junior year' },
-  { year: 2023, level: 'College football',    tier: 'college',    class: 'Senior year', optional: true }
+  { year: 2018, level: 'High School Varsity', tier: 'highSchool', class: 'Junior Year' },
+  { year: 2019, level: 'High School Varsity', tier: 'highSchool', class: 'Senior Year' },
+  { year: 2020, level: 'College Football',    tier: 'college',    class: 'Freshman Year' },
+  { year: 2021, level: 'College Football',    tier: 'college',    class: 'Sophomore Year' },
+  { year: 2022, level: 'College Football',    tier: 'college',    class: 'Junior Year' },
+  { year: 2023, level: 'College Football',    tier: 'college',    class: 'Senior Year', optional: true }
 ];
 
 /* Which level of football a season is played at. Nothing is at 'nfl' yet —

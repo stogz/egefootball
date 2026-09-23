@@ -27,10 +27,48 @@
     return node;
   }
 
+  /* --- the loading screen ----------------------------------------------
+
+     The overlay in index.html is up from the first paint. Each thing that
+     goes to Supabase before the page is worth looking at holds it up with
+     loading() and lets go with loaded(); the last one to let go takes it
+     down. The page load itself is the first hold. */
+  var loaderHolds = 1;
+  var loaderTimer = null;
+
+  /* The script is running, so it is in charge of the overlay from here and
+     the stylesheet's eight-second backstop stands down -- otherwise the
+     overlay could never come back up for a sign-in later on. */
+  document.getElementById('siteLoader').classList.add('is-managed');
+
+  function loading() {
+    loaderHolds += 1;
+    var loader = document.getElementById('siteLoader');
+    if (loader) { loader.classList.remove('is-done'); }
+    document.documentElement.classList.add('is-loading');
+  }
+
+  function loaded() {
+    loaderHolds = Math.max(0, loaderHolds - 1);
+    if (loaderHolds) { return; }
+    /* A beat's grace, so two loads back to back do not flash it off and on. */
+    window.clearTimeout(loaderTimer);
+    loaderTimer = window.setTimeout(function () {
+      if (loaderHolds) { return; }
+      var loader = document.getElementById('siteLoader');
+      if (loader) { loader.classList.add('is-done'); }
+      document.documentElement.classList.remove('is-loading');
+    }, 120);
+  }
+
   function seasonLabel(year) {
     var s = EGE.seasons.filter(function (x) { return x.year === year; })[0];
     return s ? s.year + ' · ' + s.class + ' · ' + s.level : String(year);
   }
+
+  /* The home page's line follows the live season rather than being typed
+     into index.html, so rolling a season over moves it too. */
+  document.getElementById('homeSeasonLabel').textContent = seasonLabel(EGE.currentSeason);
 
   /* School name with its mark beside it, or a plain TBD while unknown. */
   function schoolLine(player, className) {
@@ -159,6 +197,7 @@
 
   function renderPlayer(player) {
     var team = EGE.teamFor(player);
+    renderSeasonBar(player);
     var season = shownSeason();
 
     document.getElementById('playerStripLabel').textContent = seasonLabel(season);
@@ -326,8 +365,71 @@
      rather than EGE.currentSeason directly, so adding a way back to an older
      year is a change to this function and nothing else. */
   function shownSeason() {
-    return EGE.currentSeason;
+    return viewedSeason || EGE.currentSeason;
   }
+
+  /* The season picked on the switcher under the player header, or null for
+     the live one. Opening a different player goes back to the live season:
+     the switcher is for looking back at one player, not a setting. */
+  var viewedSeason = null;
+  var seasonFor = null;
+
+  /* Every season with a file in stats/, up to the live one. A season still to
+     come is on the ladder in data/players.js but has nothing to show. */
+  function loggedSeasons() {
+    return EGE.seasonsPlayed().filter(function (year) {
+      return year <= EGE.currentSeason;
+    });
+  }
+
+  function renderSeasonBar(player) {
+    if (seasonFor !== player.slug) {
+      seasonFor = player.slug;
+      viewedSeason = null;
+    }
+
+    var years = loggedSeasons();
+    var season = shownSeason();
+    var bar = document.getElementById('seasonBar');
+    bar.hidden = years.length < 2;
+    if (bar.hidden) { return; }
+
+    var pick = document.getElementById('seasonPick');
+    pick.innerHTML = '';
+    /* The year and the class, which is short enough for a phone. The level
+       is across the strip at the top of the panel already. */
+    years.slice().reverse().forEach(function (year) {
+      var s = EGE.seasons.filter(function (x) { return x.year === year; })[0];
+      var option = el('option', null, s ? year + ' \u00b7 ' + s.class : String(year));
+      option.value = year;
+      pick.appendChild(option);
+    });
+    pick.value = String(season);
+
+    var at = years.indexOf(season);
+    document.getElementById('seasonPrev').disabled = at <= 0;
+    document.getElementById('seasonNext').disabled = at === -1 || at >= years.length - 1;
+  }
+
+  function showSeason(year) {
+    var hash = window.location.hash.replace(/^#/, '');
+    var player = hash ? EGE.playerBySlug(hash) : null;
+    if (!player) { return; }
+    viewedSeason = year === EGE.currentSeason ? null : year;
+    renderPlayer(player);
+  }
+
+  function stepSeason(by) {
+    var years = loggedSeasons();
+    var next = years[years.indexOf(shownSeason()) + by];
+    if (next) { showSeason(next); }
+  }
+
+  document.getElementById('seasonPick').addEventListener('change', function (e) {
+    showSeason(Number(e.target.value));
+  });
+  document.getElementById('seasonPrev').addEventListener('click', function () { stepSeason(-1); });
+  document.getElementById('seasonNext').addEventListener('click', function () { stepSeason(1); });
 
   /* --- booster stickers --------------------------------------------------- */
 
@@ -608,7 +710,7 @@
        could ever use a booster. Holding a week back is exactly the window in
        which a player puts a sticker on it and the admin writes it into the
        file before putting the week out. */
-    if (mine && !played && !game.playoff) {
+    if (mine && !played && !game.playoff && game.season === EGE.currentSeason) {
       var add = el('button', 'ege-slot__add', '+');
       add.type = 'button';
       add.title = 'Put a booster on this game';
@@ -679,7 +781,7 @@
         pick.addEventListener('click', function () {
           pick.disabled = true;
           EGE.wallet.applyBooster(player.email, EGE.shopItem(row.item_key),
-                                  EGE.currentSeason, game.week)
+                                  game.season, game.week)
             .then(function (res) {
               sayShop(res.message, !res.ok);
               if (res.ok) { closeDrawer(); }
@@ -788,7 +890,9 @@
     var season = shownSeason();
     var games = EGE.gamesFor(player, season);
 
-    showScouts = canSeeScouts(player);
+    /* Intel is good for the season it was bought in, so an older season on
+       the switcher shows no scouts. */
+    showScouts = canSeeScouts(player) && season === EGE.currentSeason;
     showBoosters = canSeeStickers(player);
 
     /* A bracket belongs to a school, so opening somebody else's page puts the
@@ -1453,6 +1557,18 @@
       var show = el('div', 'ege-item__sticker');
       show.appendChild(stickerEl(item.key, 76, item.key));
       card.appendChild(show);
+    } else if (item.icon) {
+      /* Everything else with a picture shows it in the same frame, so the
+         shop reads as a shelf of things rather than a wall of paragraphs. */
+      var frame = el('div', 'ege-item__sticker ege-item__icon');
+      var icon = el('img');
+      icon.src = item.icon;
+      icon.alt = '';
+      icon.width = 76;
+      icon.height = 76;
+      icon.loading = 'lazy';
+      frame.appendChild(icon);
+      card.appendChild(frame);
     }
 
     if (item.note) { card.appendChild(el('span', 'fb-tag fb-tag--outline', item.note)); }
@@ -2872,7 +2988,9 @@
     var hash = window.location.hash.replace(/^#/, '');
     var player = hash ? EGE.playerBySlug(hash) : null;
     if (!player) { return; }
-    if (canSeeScouts(player) !== showScouts) { renderSchedule(player); }
+    if ((canSeeScouts(player) && shownSeason() === EGE.currentSeason) !== showScouts) {
+      renderSchedule(player);
+    }
     /* Whether the boosters show in the log turns on who is signed in too. */
     renderGameLog(player);
   }
@@ -3131,7 +3249,7 @@
   ]).then(function () {
     redrawRatings();
     settle();
-  });
+  }).then(null, settle);
 
   /* The roster is drawn twice on every load: once from the base ratings,
      because the page cannot wait for a round trip before it has anything on
@@ -3142,7 +3260,12 @@
      its space, so nothing moves under it, and it fades in once the numbers it
      is sorted by are the real ones. Both promises resolve even when Supabase
      cannot be reached, so this can never sit there hidden. */
+  var booted = false;
+
   function settle() {
+    /* The page load's hold on the loading screen, let go of once however many
+       ways this is reached -- the loads landing, or the timeout below. */
+    if (!booted) { booted = true; loaded(); }
     roster.classList.remove('is-waiting');
     document.getElementById('ratingsOverallBox').classList.remove('is-waiting');
   }
@@ -3156,6 +3279,7 @@
       /* The wallet loads on sign-in, not on reaching the shop: a player page
          needs the inventory too, to know whether to show the scouts. */
       shopState.player = player;
+      loading();
       EGE.wallet.loadPublishedWeeks()
         .then(function () { return EGE.wallet.refreshAdmin(player.email); })
         .then(function (admin) {
@@ -3172,7 +3296,8 @@
           }
           return refreshShop();
         })
-        .then(route);
+        .then(route)
+        .then(loaded, loaded);
       showSignedInNav(player);
       document.getElementById('signedInName').textContent = player.name;
       var photo = document.getElementById('signedInPhoto');

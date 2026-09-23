@@ -73,6 +73,14 @@ player takes instead of declaring; it pushes that player to the 2024 draft.
   headshot, name, school, and position (or TBD).
 - Selecting a card routes to that player's page.
 
+### Loading screen
+
+From the first paint until the published weeks and the purchases have come
+back from Supabase, the whole site is blurred and
+`icon/football_loader_preview.gif` spins in the middle. Signing in raises it
+again while that player's wallet loads. If the script never gets far enough
+to take it down, the stylesheet does after eight seconds.
+
 ### Player page — `/#{name}`
 
 Routed by player name, e.g. `#andrew-parr`, `#paxon-hatch`. Each player page
@@ -85,6 +93,12 @@ holds:
 - **Season strip** — the ten numbers the season is remembered by, across the
   foot of the header panel: ten across on a wide screen, five and five on
   anything narrower.
+- **Season switcher** — under the header, once more than one season is
+  logged: a drop-down of every season with a file in `stats/`, up to the live
+  one, with ‹ and › either side to step through them. It switches the header,
+  season strip, schedule, game log and bracket to that season. Opening a
+  different player goes back to the live season. An older season shows no
+  scouts and takes no boosters.
 - **Schedule** — every scheduled game in the selected season: week, date,
   kickoff, opponent with home/away and a mark for conference games, and the
   result once it has been played. A silhouette marks a game scouts will attend,
@@ -393,6 +407,10 @@ A tab next to Players, at `#shop`, **visible only to a signed-in player**.
 Signed out, the tab isn't there and the page says to sign in. Signed in, the
 nav carries the player's credit balance beside their headshot. Everyone starts
 on 0 and earns from there. The catalogue lives in `data/shop.js`.
+
+Items with a picture name it as `icon`. The originals are in `icon/shop` at
+1254px; the site loads 256px copies from `icon/shop/small`, about 115KB for
+all six instead of 1.8MB.
 
 **Credits** are 60 every offseason, whatever a player is paid, plus what the
 season earns by contract size and honours. That table sits at the bottom of
