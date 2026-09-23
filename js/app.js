@@ -1302,8 +1302,6 @@
     var order = played.slice();
     if (logSort.key) { order.sort(byColumn(player.position, logSort.key, logSort.dir)); }
 
-    var boosted = 0;
-
     order.forEach(function (game) {
       var row = el('tr');
       row.appendChild(el('td', 'ege-schedule__week', game.week));
@@ -1316,7 +1314,6 @@
          under the same rule the stickers on the schedule follow. */
       var booster = EGE.boosterOn(player, game);
       if (booster && canSeeStickers(player)) {
-        boosted += 1;
         var mark = el('abbr', 'ege-gamelog__boost', booster.multiplier + 'x');
         mark.title = booster.name + ' was on this game';
         opponent.appendChild(mark);
@@ -1356,9 +1353,7 @@
 
     markSortedColumn(sortedAt);
 
-    setLegend('gameLogFoot', 'gameLogLegend', boosted
-      ? 'A multiplier beside an opponent is a booster that was on that game.'
-      : '');
+    setLegend('gameLogFoot', 'gameLogLegend', '');
   }
 
   /* The sorted column, shaded down the whole table rather than only in its
@@ -1613,6 +1608,16 @@
     if (section.blurb) { body.appendChild(el('p', 'ege-item__text', section.blurb)); }
 
     if (section.upgrades) {
+      /* Any section that asks to be drawn in here -- the offseason workouts
+         -- goes in the same box, above the points table, where it is seen
+         before thirty rows of attributes rather than after them. */
+      EGE.shop.sections.filter(function (other) {
+        return other.panel === section.key;
+      }).forEach(function (other) {
+        var extra = el('div', 'ege-items ege-items--joined');
+        other.items.forEach(function (item) { extra.appendChild(buildShopItem(item)); });
+        body.appendChild(extra);
+      });
       body.appendChild(buildUpgrades());
     } else {
       var grid = el('div', 'ege-items');
@@ -1762,15 +1767,29 @@
 
     /* Points read as what they are: Catching +5. Everything else keeps its
        name and carries a count when there is more than one. */
+    /* Nothing says "In effect": owning a thing is what puts it in effect. A
+       tag is only for what is not -- expired, switched off, unused. */
+    var workout = isWorkout(row) && !isUpgrade;
     var state = isUpgrade
       ? '+' + quantity
-      : (lapsed ? 'Expired' : (row.active ? 'In effect' : (row.consumable ? 'Unused' : 'Off')));
+      : (lapsed ? 'Expired' : (row.consumable ? 'Unused' : (row.active || workout ? null : 'Off')));
 
     var head = el('div', 'ege-item__head');
-    head.appendChild(el('h4', 'ege-item__name',
+    var item = EGE.shopItem(row.item_key);
+    var title = el('div', 'ege-item__title');
+    if (item && item.icon) {
+      var icon = el('img', 'ege-item__mini');
+      icon.src = item.icon;
+      icon.alt = '';
+      title.appendChild(icon);
+    }
+    title.appendChild(el('h4', 'ege-item__name',
       row.item_name + (!isUpgrade && quantity > 1 ? ' \u00d7' + quantity : '')));
-    head.appendChild(el('span', 'fb-tag fb-tag--num ' +
-      (live ? 'fb-tag--sage' : (lapsed ? 'fb-tag--clay' : 'fb-tag--outline')), state));
+    head.appendChild(title);
+    if (state) {
+      head.appendChild(el('span', 'fb-tag fb-tag--num ' +
+        (lapsed ? 'fb-tag--clay' : 'fb-tag--outline'), state));
+    }
     card.appendChild(head);
 
     if (typeof row.season === 'number') {
@@ -1817,7 +1836,7 @@
       var where = el('span', 'fb-meta ege-item__where',
         'Use it on your player page \u2014 the + beside a game on your schedule.');
       actions.appendChild(where);
-    } else if (!lapsed) {
+    } else if (!lapsed && !workout) {
       var toggle = el('button', 'fb-btn', row.active ? 'Turn off' : 'Turn on');
       toggle.type = 'button';
       toggle.addEventListener('click', function () {
@@ -1851,7 +1870,7 @@
   function boostSummary(rows) {
     var totals = {};
     rows.forEach(function (row) {
-      if (!row.active || EGE.wallet.lapsed(row) || !row.effects) { return; }
+      if (EGE.wallet.lapsed(row) || !row.effects) { return; }
       Object.keys(row.effects).forEach(function (attr) {
         totals[attr] = (totals[attr] || 0) + row.effects[attr];
       });
@@ -1882,7 +1901,20 @@
     return Boolean(row.consumable && STICKER_LOOK[row.item_key]);
   }
 
-  function boosterShelf(rows) {
+  /* A workout is a permanent part of the ratings once it is bought: there is
+     nothing to switch off, so it has no switch and says nothing about being
+     in effect. */
+  function isWorkout(row) {
+    return Boolean(row.effects && Object.keys(row.effects).length);
+  }
+
+  /* --- the locker ---------------------------------------------------------
+
+     A player's inventory is their locker. The boosters are stuck on the door,
+     one sticker per kind with how many are held boxed on its corner, and
+     everything else sits in the cubbies underneath with its icon. */
+
+  function lockerStickers(rows) {
     var counts = {};
     rows.filter(isShelved).forEach(function (row) {
       counts[row.item_key] = (counts[row.item_key] || 0) + EGE.wallet.quantityOf(row);
@@ -1892,20 +1924,80 @@
     var keys = Object.keys(STICKER_LOOK).filter(function (key) { return counts[key] > 0; });
     if (!keys.length) { return null; }
 
-    var shelf = el('div', 'ege-shelf');
-    var row = el('div', 'ege-shelf__row');
-    keys.forEach(function (key) {
+    var door = el('div', 'ege-locker__stickers');
+    keys.forEach(function (key, at) {
       var item = EGE.shopItem(key);
       var slot = el('div', 'ege-shelf__slot');
       slot.title = counts[key] + ' \u00d7 ' + (item ? item.name : key);
       slot.setAttribute('aria-label', slot.title);
-      slot.appendChild(stickerEl(key, 64, key));
+      /* Seeded apart, so the stickers on one door lean different ways. */
+      slot.appendChild(stickerEl(key, 64, key + '-door-' + at));
       slot.appendChild(el('span', 'ege-shelf__count', counts[key] + 'X'));
-      row.appendChild(slot);
+      door.appendChild(slot);
     });
-    shelf.appendChild(row);
-    shelf.appendChild(el('p', 'fb-meta ege-shelf__hint',
-      'Put one on a game with the + beside it on your schedule.'));
+    return door;
+  }
+
+  function cubby(rows) {
+    var row = rows[0];
+    var item = EGE.shopItem(row.item_key);
+    var lapsed = EGE.wallet.lapsed(row);
+    var off = !isWorkout(row) && !row.active && !lapsed;
+    var count = rows.reduce(function (sum, one) { return sum + EGE.wallet.quantityOf(one); }, 0);
+
+    var box = el('div', 'ege-cubby' + (lapsed ? ' is-expired' : (off ? ' is-off' : '')));
+
+    if (item && item.icon) {
+      var icon = el('img', 'ege-cubby__icon');
+      icon.src = item.icon;
+      icon.alt = '';
+      icon.width = 56;
+      icon.height = 56;
+      box.appendChild(icon);
+    }
+    if (count > 1) { box.appendChild(el('span', 'ege-shelf__count ege-cubby__count', count + 'X')); }
+
+    box.appendChild(el('span', 'ege-cubby__name', row.item_name));
+
+    if (lapsed) {
+      box.appendChild(el('span', 'ege-cubby__meta', 'Expired'));
+    } else if (typeof row.season === 'number') {
+      box.appendChild(el('span', 'ege-cubby__meta', row.season + ' season'));
+    }
+
+    /* Intel, and anything else that is a switch rather than a workout. */
+    if (!isWorkout(row) && !lapsed) {
+      var toggle = el('button', 'fb-btn fb-btn--sm ege-cubby__toggle', row.active ? 'Turn off' : 'Turn on');
+      toggle.type = 'button';
+      toggle.addEventListener('click', function () {
+        toggle.disabled = true;
+        EGE.wallet.setActive(row, !row.active).then(function (res) {
+          sayShop(res.message, !res.ok);
+          refreshShop();
+        });
+      });
+      box.appendChild(toggle);
+    }
+    return box;
+  }
+
+  function lockerCubbies(rows) {
+    /* A workout bought three times is one cubby with 3X on it. Anything with
+       a switch or a season keeps a cubby of its own. */
+    var groups = [];
+    var byKey = {};
+    rows.filter(function (row) { return !isShelved(row); }).forEach(function (row) {
+      if (isWorkout(row)) {
+        if (!byKey[row.item_key]) { byKey[row.item_key] = []; groups.push(byKey[row.item_key]); }
+        byKey[row.item_key].push(row);
+      } else {
+        groups.push([row]);
+      }
+    });
+    if (!groups.length) { return null; }
+
+    var shelf = el('div', 'ege-locker__cubbies');
+    groups.forEach(function (group) { shelf.appendChild(cubby(group)); });
     return shelf;
   }
 
@@ -1920,35 +2012,25 @@
     var summary = buildBoostSummary(boostSummary(shopState.inventory));
     if (summary) { applied.appendChild(summary); }
 
-    /* Rating points are not kept as things. A player who has bought eight of
-       them had eight cards saying what the box above them already says once,
-       per attribute, in the order that matters. What is left in here is what
-       is actually an item: a booster to put on a game, Intel to switch on.
-
-       They are still owned -- the summary is built from every row, above,
-       and the shop still prices the next point off them. They are just not
-       a shelf of identical cards any more. */
+    /* Rating points are not kept as things -- "Applied to your ratings"
+       above says what they add up to, per attribute. What is left is what is
+       actually an item. */
     var things = shopState.inventory.filter(function (row) {
       return row.item_key !== 'upgrade';
     });
 
     document.getElementById('inventoryEmpty').hidden = things.length > 0 || Boolean(summary);
+    holder.hidden = !things.length;
+    if (!things.length) { return; }
 
-    /* Boosters are stickers, so they are shown as stickers: one of each kind
-       held, with how many in a box on its corner, rather than a card apiece
-       saying the same thing in words. */
-    var shelf = boosterShelf(things);
-    if (shelf) { holder.appendChild(shelf); }
-
-    things.filter(function (row) {
-      return !isShelved(row);
-    }).forEach(function (row) {
-      holder.appendChild(inventoryCard(row, {
-        admin: false,
-        report: sayShop,
-        refresh: refreshShop
-      }));
-    });
+    var door = el('div', 'ege-locker__door');
+    door.appendChild(el('div', 'ege-locker__vents'));
+    var stickers = lockerStickers(things);
+    if (stickers) { door.appendChild(stickers); }
+    var cubbies = lockerCubbies(things);
+    if (cubbies) { door.appendChild(cubbies); }
+    door.appendChild(el('span', 'ege-locker__handle'));
+    holder.appendChild(door);
   }
 
   /* --- admin ------------------------------------------------------------- */
@@ -2938,7 +3020,9 @@
     buildEarnings();
 
     var sections = document.getElementById('shopSections');
-    EGE.shop.sections.forEach(function (section) {
+    EGE.shop.sections.filter(function (section) {
+      return !section.panel;
+    }).forEach(function (section) {
       sections.appendChild(buildShopSection(section));
     });
   }

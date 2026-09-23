@@ -28,7 +28,7 @@
      stylesheet takes it down on its own after a few seconds. -->
 <div class="ege-loader" id="siteLoader" role="status" aria-live="polite">
   <img class="ege-loader__ball" src="icon/football_loader_preview.gif" alt="" width="220" height="220">
-  <span class="ege-loader__text">Loading&hellip;</span>
+  <span class="ege-visually-hidden">Loading</span>
 </div>
 
 <div class="fb-shell">
@@ -130,7 +130,7 @@
         </div>
         <div class="fb-panel__body fb-stack fb-stack--lg">
           <div id="inventoryApplied"></div>
-          <div class="ege-items" id="inventoryItems"></div>
+          <div class="ege-locker" id="inventoryItems" hidden></div>
           <p class="fb-meta" id="inventoryEmpty" hidden>
             Nothing bought yet. Everything below is waiting.
           </p>

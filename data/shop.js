@@ -78,14 +78,10 @@ EGE.shop = {
     {
       key: 'training',
       title: 'Offseason Training',
-      blurb: 'Where the whole offseason goes. The first block of a workout is ' +
-             'cheap and every one after it costs twice the last, so an ' +
-             'offseason spent entirely on one thing runs out of credits long ' +
-             'before it runs out of attributes. The two that specialise carry ' +
-             'a risk; the one that spreads itself evenly costs the most and ' +
-             'has nothing to lose. The prices go back ' +
-             'to the bottom when the season is locked and the workouts fold ' +
-             'into the ratings.',
+      /* Drawn inside the Rating Points panel, above the points, rather than
+         as a panel of its own. Each workout's price doubles every time it is
+         bought, and goes back to the bottom when the season is locked. */
+      panel: 'upgrades',
       items: [
         {
           key: 'train-strength',

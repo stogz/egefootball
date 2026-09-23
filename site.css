@@ -2209,13 +2209,6 @@ body {
 
 /* The boosters a player holds: one sticker per kind, with the count boxed on
    its corner. It spans the whole inventory grid rather than taking a cell. */
-.ege-shelf { grid-column: 1 / -1; }
-.ege-shelf__row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 22px;
-  padding: 10px 4px 4px;
-}
 .ege-shelf__slot {
   position: relative;
   display: inline-flex;
@@ -2236,7 +2229,7 @@ body {
   text-align: center;
   z-index: 2;
 }
-.ege-shelf__hint { margin: 6px 0 0; }
+
 
 /* ==========================================================================
    On a phone
@@ -2860,7 +2853,7 @@ select,
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background: rgba(245, 234, 216, .45);
+  background: rgba(86, 99, 63, .72);
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
   transition: opacity .25s ease, visibility 0s linear .25s;
@@ -2874,12 +2867,13 @@ select,
 }
 /* The GIF has a lot of empty frame around the ball, so it is drawn big. */
 .ege-loader__ball { width: 220px; height: 220px; margin: -50px 0; }
-.ege-loader__text {
-  font-size: .75rem;
-  font-weight: 800;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--fb-ink);
+.ege-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 /* No page scrolling underneath it while it is up. */
@@ -2920,4 +2914,111 @@ html.is-loading, html.is-loading body { overflow: hidden; }
 .ege-seasonbar__step:disabled { opacity: .35; cursor: default; }
 @media (max-width: 620px) {
   .ege-seasonbar__pick { text-transform: none; letter-spacing: 0; padding-left: 10px; padding-right: 24px; }
+}
+
+
+/* ==========================================================================
+   The locker
+   A player's inventory, drawn as their locker: a painted metal door with
+   vents across the top and a handle down the side. The boosters are stuck on
+   the door; everything else sits in the cubbies below it.
+   ========================================================================== */
+
+.ege-locker[hidden] { display: none; }
+.ege-locker__door {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 16px 40px 22px 18px;
+  border: var(--fb-border) solid var(--fb-ink);
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, .06), transparent 30%, transparent 70%, rgba(0, 0, 0, .12)),
+    linear-gradient(180deg, #5d6c45, #46532f);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .06), var(--fb-shadow) var(--fb-shadow) 0 var(--fb-ink);
+}
+/* Six slats, pressed into the door. */
+.ege-locker__vents {
+  align-self: center;
+  width: min(60%, 260px);
+  height: 42px;
+  background: repeating-linear-gradient(180deg,
+    rgba(0, 0, 0, .55) 0 4px, rgba(255, 255, 255, .08) 4px 5px, transparent 5px 8px);
+  border-radius: 3px;
+}
+.ege-locker__handle {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  width: 10px;
+  height: 64px;
+  margin-top: -32px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  border-radius: 5px;
+  background: linear-gradient(90deg, #d8d2c3, #9d978a);
+}
+
+.ege-locker__stickers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+  padding: 4px;
+}
+
+.ege-locker__cubbies {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 112px), 1fr));
+  gap: 12px;
+}
+.ege-cubby {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 10px 12px;
+  text-align: center;
+  color: var(--fb-cream);
+  background: rgba(0, 0, 0, .28);
+  border: var(--fb-border-thin) solid rgba(0, 0, 0, .55);
+  box-shadow: inset 0 6px 12px rgba(0, 0, 0, .35);
+}
+.ege-cubby__icon {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  /* The icons are drawn in ink; on the door they want to be cream. */
+  filter: invert(1) sepia(.25) brightness(.97);
+}
+.ege-cubby__name { font-weight: 800; font-size: .875rem; line-height: 1.2; }
+.ege-cubby__meta {
+  font-size: .6875rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  opacity: .75;
+}
+.ege-cubby__count { top: 6px; right: 6px; }
+.ege-cubby__toggle {
+  white-space: nowrap;
+  padding-left: 10px;
+  padding-right: 10px;
+  margin-top: 2px;
+  color: var(--fb-cream);
+  background: transparent;
+  border-color: var(--fb-cream);
+  box-shadow: none;
+}
+.ege-cubby__toggle:hover { background: rgba(255, 255, 255, .1); }
+.ege-cubby.is-off .ege-cubby__icon,
+.ege-cubby.is-expired .ege-cubby__icon { opacity: .4; }
+
+/* The admin's inventory cards carry the same icons, small, beside the name. */
+.ege-item__title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ege-item__mini { width: 28px; height: 28px; object-fit: contain; flex: 0 0 auto; }
+
+/* The workouts, above the rating points in the same panel. */
+.ege-items--joined {
+  padding-bottom: 18px;
+  border-bottom: var(--fb-border-thin) solid var(--fb-ink);
 }

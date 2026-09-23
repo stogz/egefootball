@@ -425,9 +425,10 @@ a booster takes one off the pile; the row goes when the last one does.
 Training is the exception and stays one row per purchase, since each carries
 its own roll. Buying deducts credits and drops the item in. A performance
 booster is held unused until it is used, and using it deletes it — the
-inventory is what a player still has, not a receipt book. Everything else
-carries an in-effect switch that can be turned off and on. A stat booster
-records which attribute it was bought for.
+inventory is what a player still has, not a receipt book. Workouts and rating
+points are in the ratings for good once bought and have no switch; Intel and the
+other non-workout items can still be turned off and on. A stat booster records
+which attribute it was bought for.
 
 On sale:
 
@@ -633,8 +634,15 @@ A quarterback's **QB Connection** reads **O-Line Connection** — he spends the
 offseason with his offensive line, and better chemistry means a lower chance of
 being sacked. Either way it cannot be bought until college.
 
-Boosters in the inventory are shown as their stickers, one per kind, with how
-many are held boxed on the corner (`3X`), rather than a card apiece.
+**The inventory is a locker.** A green metal door with vents across the top
+and a handle down the side. The boosters are stuck on the door as their
+stickers, one per kind, with how many are held boxed on the corner (`3X`).
+Everything else sits in the cubbies below with its icon from `icon/shop`; a
+workout bought more than once is one cubby with its count, and a cubby only
+says anything about its state when it is off or expired.
+
+**Offseason training** sits in the Rating Points panel, above the points table,
+rather than in a panel of its own.
 
 **Sam is the admin**, and his tools are on their own page — see
 [The Admin Portal](#the-admin-portal). Nothing admin sits on the shop page:
