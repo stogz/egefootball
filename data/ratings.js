@@ -164,7 +164,7 @@ EGE.overallScale = { pivot: 50, stretch: 1.4 };
    cleared. Nothing else in this file is touched, so leave the markers alone
    and edit inside them freely. */
 /* ege:ratings:start */
-/* Locked on 2026-09-22, at the end of the 2018 season. Every rating
+/* Locked on 2026-09-23, at the end of the 2019 season. Every rating
    point and every offseason workout bought during that season is part of
    these numbers now, and the shop rows behind them have been cleared. */
 EGE.ratings = {
@@ -186,8 +186,8 @@ EGE.ratings = {
   },
   'cooper-clark': {
     /* General */
-    speed: 55, acceleration: 53, strength: 49, agility: 46, awareness: 48,
-    jumping: 48, injury: 54, stamina: 47, toughness: 49,
+    speed: 55, acceleration: 55, strength: 53, agility: 46, awareness: 48,
+    jumping: 50, injury: 56, stamina: 47, toughness: 51,
     /* Passing */
     throwPower: 14, throwUnderPressure: 18, throwAccuracyShort: 12,
     throwAccuracyMid: 9, throwAccuracyDeep: 16, throwOnTheRun: 14,
@@ -210,20 +210,20 @@ EGE.ratings = {
     playAction: 7,
     /* Receiving */
     catching: 67, spectacularCatch: 60, catchInTraffic: 67,
-    routeRunningShort: 61, routeRunningMedium: 61, routeRunningDeep: 62,
+    routeRunningShort: 62, routeRunningMedium: 61, routeRunningDeep: 62,
     release: 62,
     /* Ball Carrier */
     carrying: 43, breakTackle: 33, trucking: 34, changeOfDirection: 31,
     bcVision: 37, stiffArm: 37, spinMove: 42, jukeMove: 38, breakSack: 39,
     /* Blocking */
-    runBlock: 48, passBlock: 50, impactBlocking: 59, runBlockPower: 46,
+    runBlock: 49, passBlock: 52, impactBlocking: 59, runBlockPower: 46,
     runBlockFinesse: 55, passBlockPower: 57, passBlockFinesse: 57,
     leadBlock: 51,
   },
   'sam-stogsdill': {
     /* General */
-    speed: 53, acceleration: 52, strength: 63, agility: 42, awareness: 46,
-    jumping: 45, injury: 50, stamina: 45, toughness: 46,
+    speed: 56, acceleration: 55, strength: 70, agility: 45, awareness: 46,
+    jumping: 50, injury: 54, stamina: 48, toughness: 50,
     /* Passing */
     throwPower: 13, throwUnderPressure: 17, throwAccuracyShort: 12,
     throwAccuracyMid: 9, throwAccuracyDeep: 15, throwOnTheRun: 13,
@@ -273,7 +273,7 @@ EGE.ratings = {
     leadBlock: 48,
   },
 };
-EGE.ratingsLockedSeason = 2018;
+EGE.ratingsLockedSeason = 2019;
 /* ege:ratings:end */
 
 /* Which group scores a position's page shows, and what to call them there.
