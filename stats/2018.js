@@ -75,7 +75,9 @@ EGE.stats[2018] = {
         ['Batavia', 47, 28],
         ['St. Charles North', 27, 21],
       ] },
-      { week: 18, results: [] },
+      { week: 18, results: [
+        ['Batavia', 22, 17],
+      ] },
     ],
 
     bloomington: [
@@ -117,7 +119,9 @@ EGE.stats[2018] = {
         ['Kenwood', 28, 21],
         ['Washington', 38, 35],
       ] },
-      { week: 18, results: [] },
+      { week: 18, results: [
+        ['Washington', 44, 19],
+      ] },
     ],
 
     wakeForest: [
@@ -159,7 +163,9 @@ EGE.stats[2018] = {
         null,
         ['Chambers', 21, 13],
       ] },
-      { week: 18, results: [] },
+      { week: 18, results: [
+         null,
+      ] },
     ],
 
     naples: [
@@ -201,7 +207,9 @@ EGE.stats[2018] = {
         ['Navarre', 35, 22],
         ['Northwestern', 40, 7],
       ] },
-      { week: 18, results: [] },
+      { week: 18, results: [
+        ['Navarre', 38, 34],
+      ] },
     ],
   },
 
@@ -323,6 +331,15 @@ EGE.stats[2018] = {
       { week: 17, date: '2018-12-7', kickoff: '7:30pm',
         opponent: 'Holly Springs', home: true, conference: false, playoff: true,
         result: { teamScore: 30, opponentScore: 14 }, booster: null,
+        stats: {
+          receptions: 6, receivingYards: 43, receivingYac: 12,
+          receivingTd: 0, receivingLong: 19, targets: 8, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 7.2, totalYards: 43, totalTd: 0
+        } },
+      { week: 18, date: '2018-12-14', kickoff: '7:30pm',
+        opponent: 'Chambers', home: true, conference: false, playoff: true,
+        result: { teamScore: 45, opponentScore: 38 }, booster: null,
         stats: {
           receptions: 6, receivingYards: 43, receivingYac: 12,
           receivingTd: 0, receivingLong: 19, targets: 8, carries: 0,
