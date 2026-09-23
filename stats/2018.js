@@ -324,10 +324,10 @@ EGE.stats[2018] = {
         opponent: 'Holly Springs', home: true, conference: false, playoff: true,
         result: { teamScore: 30, opponentScore: 14 }, booster: null,
         stats: {
-          receptions: 4, receivingYards: 26, receivingYac: 9,
-          receivingTd: 1, receivingLong: 14, targets: 6, carries: 0,
+          receptions: 6, receivingYards: 43, receivingYac: 12,
+          receivingTd: 0, receivingLong: 19, targets: 8, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 6.5, totalYards: 26, totalTd: 1
+          receivingAvg: 7.2, totalYards: 43, totalTd: 0
         } },
     ],
 
