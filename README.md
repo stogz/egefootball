@@ -634,12 +634,16 @@ A quarterback's **QB Connection** reads **O-Line Connection** — he spends the
 offseason with his offensive line, and better chemistry means a lower chance of
 being sacked. Either way it cannot be bought until college.
 
-**The inventory is a locker.** A green metal door with vents across the top
-and a handle down the side. The boosters are stuck on the door as their
-stickers, one per kind, with how many are held boxed on the corner (`3X`).
-Everything else sits in the cubbies below with its icon from `icon/shop`; a
-workout bought more than once is one cubby with its count, and a cubby only
-says anything about its state when it is off or expired.
+**The inventory is a locker.** `icon/locker.webp`, cropped to the open locker
+in the middle of the row. The boosters stand on the top shelf as their
+stickers, one per kind with how many are held boxed on the corner (`3X`).
+Everything else stands on the shelf under it as its icon from `icon/shop`; a
+workout bought more than once is one icon with its count, and Intel is its own
+switch — tap it to turn it on or off, and it greys out with an OFF tag while
+off. The player's jersey hangs in the bottom: last name across the shoulders
+and the number under it, cut off by the bottom of the picture. Numbers come
+from `jersey` in `data/players.js`. Everything is sized off the locker's width,
+so it is the same picture on a phone and a desktop.
 
 **Offseason training** sits in the Rating Points panel, above the points table,
 rather than in a panel of its own.

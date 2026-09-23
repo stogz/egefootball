@@ -98,7 +98,7 @@ EGE.players = [
     last: 'Parr',
     team: 'wakeForest',
     position: 'TE',
-    jersey: null,             // TBD
+    jersey: 87,
     height: 72,               // inches
     weight: 245,              // pounds
     email: 'daikrotlr@gmail.com',
@@ -112,7 +112,7 @@ EGE.players = [
     last: 'Clark',
     team: 'carlsbad',
     position: 'RB',
-    jersey: null,             // TBD
+    jersey: 25,
     height: 68,               // inches
     weight: 175,              // pounds
     email: 'cooperclrk@gmail.com',
@@ -126,7 +126,7 @@ EGE.players = [
     last: 'Hatch',
     team: 'bloomington',
     position: 'TE',
-    jersey: null,             // TBD
+    jersey: 88,
     height: 74,               // inches
     weight: 275,              // pounds
     email: 'paxonhatch@gmail.com',
@@ -140,7 +140,7 @@ EGE.players = [
     last: 'Vitel',
     team: 'bloomington',
     position: 'QB',
-    jersey: null,             // TBD
+    jersey: 24,
     height: 69,               // inches
     weight: 185,              // pounds
     email: 'isaacvitel2005@gmail.com',
@@ -154,7 +154,7 @@ EGE.players = [
     last: 'Stogsdill',
     team: 'normal',
     position: 'RB',
-    jersey: null,             // TBD
+    jersey: 7,
     height: 73,               // inches
     weight: 210,              // pounds
     email: 'stogzfam@gmail.com',
@@ -168,7 +168,7 @@ EGE.players = [
     last: 'Stewart',
     team: 'naples',
     position: 'QB',
-    jersey: null,             // TBD
+    jersey: 2,
     height: 71,               // inches
     weight: 185,              // pounds
     email: 'jkeb.stew@gmail.com',

@@ -1897,22 +1897,16 @@
     return box;
   }
 
-  function isShelved(row) {
-    return Boolean(row.consumable && STICKER_LOOK[row.item_key]);
-  }
-
-  /* A workout is a permanent part of the ratings once it is bought: there is
-     nothing to switch off, so it has no switch and says nothing about being
-     in effect. */
-  function isWorkout(row) {
-    return Boolean(row.effects && Object.keys(row.effects).length);
-  }
-
   /* --- the locker ---------------------------------------------------------
 
-     A player's inventory is their locker. The boosters are stuck on the door,
-     one sticker per kind with how many are held boxed on its corner, and
-     everything else sits in the cubbies underneath with its icon. */
+     A player's inventory is their locker: icon/locker.webp, cropped to the
+     open one in the middle of the row. The boosters sit on the top shelf,
+     everything else on the one under it, and their jersey hangs in the
+     bottom, cut off by the bottom of the picture so the name and the top of
+     the number are what show.
+
+     Everything is placed in percentages of the picture and sized in
+     container units, so it all scales with the locker. */
 
   function lockerStickers(rows) {
     var counts = {};
@@ -1920,70 +1914,69 @@
       counts[row.item_key] = (counts[row.item_key] || 0) + EGE.wallet.quantityOf(row);
     });
 
+    var shelf = el('div', 'ege-locker__shelf ege-locker__shelf--top');
     /* Biggest multiplier first, the order the shop sells them in. */
-    var keys = Object.keys(STICKER_LOOK).filter(function (key) { return counts[key] > 0; });
-    if (!keys.length) { return null; }
-
-    var door = el('div', 'ege-locker__stickers');
-    keys.forEach(function (key, at) {
+    Object.keys(STICKER_LOOK).filter(function (key) {
+      return counts[key] > 0;
+    }).forEach(function (key, at) {
       var item = EGE.shopItem(key);
-      var slot = el('div', 'ege-shelf__slot');
+      var slot = el('div', 'ege-locker__thing');
       slot.title = counts[key] + ' \u00d7 ' + (item ? item.name : key);
       slot.setAttribute('aria-label', slot.title);
-      /* Seeded apart, so the stickers on one door lean different ways. */
-      slot.appendChild(stickerEl(key, 64, key + '-door-' + at));
+      /* Seeded apart, so the stickers on one shelf lean different ways. */
+      slot.appendChild(stickerEl(key, null, key + '-shelf-' + at));
       slot.appendChild(el('span', 'ege-shelf__count', counts[key] + 'X'));
-      door.appendChild(slot);
+      shelf.appendChild(slot);
     });
-    return door;
+    return shelf;
   }
 
-  function cubby(rows) {
+  function lockerThing(rows) {
     var row = rows[0];
     var item = EGE.shopItem(row.item_key);
     var lapsed = EGE.wallet.lapsed(row);
-    var off = !isWorkout(row) && !row.active && !lapsed;
+    var switchable = !isWorkout(row) && !lapsed;
+    var off = switchable && !row.active;
     var count = rows.reduce(function (sum, one) { return sum + EGE.wallet.quantityOf(one); }, 0);
 
-    var box = el('div', 'ege-cubby' + (lapsed ? ' is-expired' : (off ? ' is-off' : '')));
+    /* Anything with a switch -- Intel -- is the switch: tap it to turn it on
+       or off. A workout is just there. */
+    var thing = el(switchable ? 'button' : 'div',
+      'ege-locker__thing ege-locker__item' + (lapsed ? ' is-expired' : (off ? ' is-off' : '')));
+    var label = row.item_name +
+      (count > 1 ? ' \u00d7' + count : '') +
+      (lapsed ? ' \u2014 expired' : '') +
+      (switchable ? (row.active ? ' \u2014 on, tap to turn off' : ' \u2014 off, tap to turn on') : '');
+    thing.title = label;
+    thing.setAttribute('aria-label', label);
 
     if (item && item.icon) {
-      var icon = el('img', 'ege-cubby__icon');
+      var icon = el('img', 'ege-locker__icon');
       icon.src = item.icon;
       icon.alt = '';
-      icon.width = 56;
-      icon.height = 56;
-      box.appendChild(icon);
+      thing.appendChild(icon);
+    } else {
+      thing.appendChild(el('span', 'ege-locker__word', row.item_name));
     }
-    if (count > 1) { box.appendChild(el('span', 'ege-shelf__count ege-cubby__count', count + 'X')); }
+    if (count > 1) { thing.appendChild(el('span', 'ege-shelf__count', count + 'X')); }
+    if (off) { thing.appendChild(el('span', 'ege-locker__flag', 'Off')); }
 
-    box.appendChild(el('span', 'ege-cubby__name', row.item_name));
-
-    if (lapsed) {
-      box.appendChild(el('span', 'ege-cubby__meta', 'Expired'));
-    } else if (typeof row.season === 'number') {
-      box.appendChild(el('span', 'ege-cubby__meta', row.season + ' season'));
-    }
-
-    /* Intel, and anything else that is a switch rather than a workout. */
-    if (!isWorkout(row) && !lapsed) {
-      var toggle = el('button', 'fb-btn fb-btn--sm ege-cubby__toggle', row.active ? 'Turn off' : 'Turn on');
-      toggle.type = 'button';
-      toggle.addEventListener('click', function () {
-        toggle.disabled = true;
+    if (switchable) {
+      thing.type = 'button';
+      thing.addEventListener('click', function () {
+        thing.disabled = true;
         EGE.wallet.setActive(row, !row.active).then(function (res) {
           sayShop(res.message, !res.ok);
           refreshShop();
         });
       });
-      box.appendChild(toggle);
     }
-    return box;
+    return thing;
   }
 
-  function lockerCubbies(rows) {
-    /* A workout bought three times is one cubby with 3X on it. Anything with
-       a switch or a season keeps a cubby of its own. */
+  function lockerItems(rows) {
+    /* A workout bought three times is one thing with 3X on it. Anything with
+       a switch or a season keeps a place of its own. */
     var groups = [];
     var byKey = {};
     rows.filter(function (row) { return !isShelved(row); }).forEach(function (row) {
@@ -1994,11 +1987,85 @@
         groups.push([row]);
       }
     });
-    if (!groups.length) { return null; }
 
-    var shelf = el('div', 'ege-locker__cubbies');
-    groups.forEach(function (group) { shelf.appendChild(cubby(group)); });
+    var shelf = el('div', 'ege-locker__shelf ege-locker__shelf--middle');
+    groups.forEach(function (group) { shelf.appendChild(lockerThing(group)); });
     return shelf;
+  }
+
+  /* The back of their jersey on a hanger: name across the shoulders and the
+     number under it, drawn in the same heavy outline as the locker. The
+     picture's bottom edge cuts through the number. */
+  var SVG = 'http://www.w3.org/2000/svg';
+
+  function svgEl(tag, attrs, text) {
+    var node = document.createElementNS(SVG, tag);
+    Object.keys(attrs).forEach(function (key) {
+      if (attrs[key] != null) { node.setAttribute(key, attrs[key]); }
+    });
+    if (text != null) { node.textContent = text; }
+    return node;
+  }
+
+  function lockerJersey(player) {
+    var svg = svgEl('svg', {
+      'class': 'ege-locker__jersey',
+      viewBox: '0 0 300 300',
+      preserveAspectRatio: 'xMidYMin meet',
+      'aria-hidden': 'true'
+    });
+
+    /* The hook under the shelf, and the hanger off it. */
+    svg.appendChild(svgEl('path', {
+      d: 'M150 34 C150 22 150 14 158 10 C166 6 170 16 164 20',
+      fill: 'none', stroke: '#20261a', 'stroke-width': 5, 'stroke-linecap': 'round'
+    }));
+    svg.appendChild(svgEl('path', {
+      d: 'M150 34 L52 70 L248 70 Z',
+      fill: 'none', stroke: '#6f6a5e', 'stroke-width': 6, 'stroke-linejoin': 'round'
+    }));
+
+    /* Shoulders, short sleeves, and a body that runs off the bottom. */
+    svg.appendChild(svgEl('path', {
+      d: 'M112 58 C124 70 176 70 188 58 L246 76 L290 150 L252 170 L240 150 ' +
+         'L240 320 L60 320 L60 150 L48 170 L10 150 L54 76 Z',
+      fill: '#8c491a', stroke: '#20261a', 'stroke-width': 5, 'stroke-linejoin': 'round'
+    }));
+    /* The collar, and a stripe on each sleeve. */
+    svg.appendChild(svgEl('path', {
+      d: 'M112 58 C124 76 176 76 188 58',
+      fill: 'none', stroke: '#f5ead8', 'stroke-width': 6
+    }));
+    svg.appendChild(svgEl('path', { d: 'M24 128 L60 144', stroke: '#f5ead8', 'stroke-width': 7 }));
+    svg.appendChild(svgEl('path', { d: 'M276 128 L240 144', stroke: '#f5ead8', 'stroke-width': 7 }));
+
+    var name = String(player.last || player.name || '').toUpperCase();
+    svg.appendChild(svgEl('text', {
+      x: 150, y: 172, 'text-anchor': 'middle',
+      'class': 'ege-locker__jerseyname',
+      'font-size': name.length > 8 ? 24 : 28,
+      textLength: name.length > 6 ? 150 : null
+    }, name));
+
+    if (player.jersey != null) {
+      svg.appendChild(svgEl('text', {
+        x: 150, y: 352, 'text-anchor': 'middle',
+        'class': 'ege-locker__jerseynumber',
+        'font-size': 150
+      }, String(player.jersey)));
+    }
+    return svg;
+  }
+
+  function isShelved(row) {
+    return Boolean(row.consumable && STICKER_LOOK[row.item_key]);
+  }
+
+  /* A workout is a permanent part of the ratings once it is bought: there is
+     nothing to switch off, so it has no switch and says nothing about being
+     in effect. */
+  function isWorkout(row) {
+    return Boolean(row.effects && Object.keys(row.effects).length);
   }
 
   function renderInventory() {
@@ -2020,17 +2087,19 @@
     });
 
     document.getElementById('inventoryEmpty').hidden = things.length > 0 || Boolean(summary);
-    holder.hidden = !things.length;
-    if (!things.length) { return; }
 
-    var door = el('div', 'ege-locker__door');
-    door.appendChild(el('div', 'ege-locker__vents'));
-    var stickers = lockerStickers(things);
-    if (stickers) { door.appendChild(stickers); }
-    var cubbies = lockerCubbies(things);
-    if (cubbies) { door.appendChild(cubbies); }
-    door.appendChild(el('span', 'ege-locker__handle'));
-    holder.appendChild(door);
+    /* The locker is there even when it is empty -- the jersey is in it. */
+    var player = shopState.player;
+    holder.hidden = !player;
+    if (!player) { return; }
+
+    var locker = el('div', 'ege-locker__frame');
+    locker.appendChild(lockerStickers(things));
+    locker.appendChild(lockerItems(things));
+    var bottom = el('div', 'ege-locker__bottom');
+    bottom.appendChild(lockerJersey(player));
+    locker.appendChild(bottom);
+    holder.appendChild(locker);
   }
 
   /* --- admin ------------------------------------------------------------- */
