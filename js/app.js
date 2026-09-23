@@ -1456,7 +1456,8 @@
     }
 
     if (item.note) { card.appendChild(el('span', 'fb-tag fb-tag--outline', item.note)); }
-    if (item.description) { card.appendChild(el('p', 'ege-item__text', item.description)); }
+    var description = EGE.itemDescription(item, shopState.player);
+    if (description) { card.appendChild(el('p', 'ege-item__text', description)); }
 
     var picker = null;
     var allowed = EGE.itemAvailable(item, EGE.currentSeason);
@@ -1761,6 +1762,37 @@
     return box;
   }
 
+  function isShelved(row) {
+    return Boolean(row.consumable && STICKER_LOOK[row.item_key]);
+  }
+
+  function boosterShelf(rows) {
+    var counts = {};
+    rows.filter(isShelved).forEach(function (row) {
+      counts[row.item_key] = (counts[row.item_key] || 0) + EGE.wallet.quantityOf(row);
+    });
+
+    /* Biggest multiplier first, the order the shop sells them in. */
+    var keys = Object.keys(STICKER_LOOK).filter(function (key) { return counts[key] > 0; });
+    if (!keys.length) { return null; }
+
+    var shelf = el('div', 'ege-shelf');
+    var row = el('div', 'ege-shelf__row');
+    keys.forEach(function (key) {
+      var item = EGE.shopItem(key);
+      var slot = el('div', 'ege-shelf__slot');
+      slot.title = counts[key] + ' \u00d7 ' + (item ? item.name : key);
+      slot.setAttribute('aria-label', slot.title);
+      slot.appendChild(stickerEl(key, 64, key));
+      slot.appendChild(el('span', 'ege-shelf__count', counts[key] + 'X'));
+      row.appendChild(slot);
+    });
+    shelf.appendChild(row);
+    shelf.appendChild(el('p', 'fb-meta ege-shelf__hint',
+      'Put one on a game with the + beside it on your schedule.'));
+    return shelf;
+  }
+
   function renderInventory() {
     var holder = document.getElementById('inventoryItems');
     var applied = document.getElementById('inventoryApplied');
@@ -1786,7 +1818,15 @@
 
     document.getElementById('inventoryEmpty').hidden = things.length > 0 || Boolean(summary);
 
-    things.forEach(function (row) {
+    /* Boosters are stickers, so they are shown as stickers: one of each kind
+       held, with how many in a box on its corner, rather than a card apiece
+       saying the same thing in words. */
+    var shelf = boosterShelf(things);
+    if (shelf) { holder.appendChild(shelf); }
+
+    things.filter(function (row) {
+      return !isShelved(row);
+    }).forEach(function (row) {
       holder.appendChild(inventoryCard(row, {
         admin: false,
         report: sayShop,

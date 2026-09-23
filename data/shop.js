@@ -137,12 +137,19 @@ EGE.shop = {
         {
           key: 'qb-connection',
           name: 'QB Connection',
-          nameByPosition: { QB: 'Back Field Connection' },
+          nameByPosition: { QB: 'O-Line Connection' },
           credits: 20,
+          note: 'College and later',
+          tiers: ['college', 'nfl'],
           description: 'The whole offseason spent with your quarterback, learning his ' +
-                       'routes and calls — or, for a quarterback, with the backs and ' +
-                       'receivers behind him. Chemistry resets if they are injured, ' +
-                       'traded or otherwise leave. Better chemistry can mean more targets.'
+                       'routes and calls. Chemistry resets if they are injured, ' +
+                       'traded or otherwise leave. Better chemistry can mean more targets.',
+          descriptionByPosition: {
+            QB: 'The whole offseason spent with your offensive line, learning their ' +
+                'protections and calls. Chemistry resets if they are injured, ' +
+                'traded or otherwise leave. Better chemistry means a lower chance ' +
+                'of being sacked.'
+          }
         },
         {
           key: 'hyperbaric',
@@ -173,11 +180,18 @@ EGE.shop = {
 };
 
 /* What an item is called for this player: a quarterback's connection is with
-   his back field rather than with himself. */
+   his offensive line rather than with himself. */
 EGE.itemName = function (item, player) {
   if (!item) { return ''; }
   var byPosition = item.nameByPosition || {};
   return (player && byPosition[player.position]) || item.name;
+};
+
+/* What an item says it does for this player, on the same terms as its name. */
+EGE.itemDescription = function (item, player) {
+  if (!item) { return ''; }
+  var byPosition = item.descriptionByPosition || {};
+  return (player && byPosition[player.position]) || item.description || '';
 };
 
 /* What an item costs the next time this player buys one.
@@ -217,6 +231,9 @@ EGE.itemAvailable = function (item, season) {
 
   if (item.tiers.length === 1 && item.tiers[0] === 'nfl') {
     return { ok: false, reason: 'NFL only — nobody has played an NFL season yet.' };
+  }
+  if (tier === 'highSchool' && item.tiers.indexOf('college') !== -1) {
+    return { ok: false, reason: 'Not until college.' };
   }
   return { ok: false, reason: 'Not available at this level.' };
 };

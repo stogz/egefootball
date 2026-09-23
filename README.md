@@ -423,7 +423,7 @@ On sale:
   nothing to lose. Cheap to start and **twice the price every time you buy
   it**, so an offseason spent on one workout runs out of credits long before
   it runs out of attributes. See below.
-- **QB Connection** (20), **Hyperbaric Chamber** (35, then 45, then 60, then
+- **QB Connection** (20, college and later), **Hyperbaric Chamber** (35, then 45, then 60, then
   15 more each time), **Intel** (15).
 
 **Some things can't be bought yet.** An item can name the levels it belongs
@@ -611,8 +611,12 @@ A performance booster is **used on the player page**, by putting it on a game
 from your own schedule. There is no Use button in the shop: spending one there
 never said which game it was for.
 
-A quarterback's **QB Connection** reads **Back Field Connection** — he is
-learning his backs and receivers, not himself.
+A quarterback's **QB Connection** reads **O-Line Connection** — he spends the
+offseason with his offensive line, and better chemistry means a lower chance of
+being sacked. Either way it cannot be bought until college.
+
+Boosters in the inventory are shown as their stickers, one per kind, with how
+many are held boxed on the corner (`3X`), rather than a card apiece.
 
 **Sam is the admin**, and his tools are on their own page — see
 [The Admin Portal](#the-admin-portal). Nothing admin sits on the shop page:
