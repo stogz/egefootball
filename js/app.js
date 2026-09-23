@@ -1804,7 +1804,7 @@
 
   /* One account: what it holds, what it has been paid, and the two things an
      admin does to it by hand — set a balance, or hand something over. */
-  function adminAccount(player, credits, rows, awards) {
+  function adminAccount(player, credits, rows) {
     var box = el('div', 'ege-account');
 
     var head = el('div', 'ege-account__head');
@@ -1838,12 +1838,12 @@
     head.appendChild(editor);
     box.appendChild(head);
 
-    /* An award off the earnings table. It goes through the same ledger the
-       touchdowns do, so the season log has a line for it rather than a
-       balance that moved for no recorded reason. */
+    /* An award off the earnings table, added straight onto the balance.
+       Nothing is logged: it is the credits that matter, not a record of how
+       they got there. The offseason 60 is not offered -- it pays itself. */
     var awarder = el('div', 'fb-row fb-row--wrap');
     var reason = el('select', 'fb-select ege-account__award');
-    EGE.shop.earnings.forEach(function (row) {
+    EGE.shop.earnings.filter(function (row) { return !row.automatic; }).forEach(function (row) {
       var opt = el('option', null, row.label + '  +' + row.credits);
       opt.value = row.credits + '|' + row.label;
       reason.appendChild(opt);
@@ -1855,7 +1855,7 @@
     pay.addEventListener('click', function () {
       var parts = reason.value.split('|');
       pay.disabled = true;
-      EGE.wallet.awardCredits(player.email, parts[0], parts[1]).then(function (res) {
+      EGE.wallet.awardCredits(player.email, parts[0]).then(function (res) {
         pay.disabled = false;
         sayAdmin(res.ok ? player.first + ': ' + res.message : res.message, !res.ok);
         refreshAdminView();
@@ -1887,13 +1887,6 @@
     granter.appendChild(give);
     box.appendChild(granter);
 
-    var earned = awards.reduce(function (sum, row) { return sum + row.credits; }, 0);
-    if (earned) {
-      box.appendChild(el('p', 'fb-meta',
-        'Earned ' + earned + ' credits this season, over ' + awards.length +
-        (awards.length === 1 ? ' award.' : ' awards.')));
-    }
-
     if (!rows.length) {
       box.appendChild(el('p', 'fb-meta', 'Nothing bought.'));
     } else {
@@ -1914,12 +1907,8 @@
     EGE.playersWithAccounts().forEach(function (player) {
       var row = adminState.credits.filter(function (c) { return c.email === player.email; })[0];
       var owned = adminState.inventory.filter(function (i) { return i.email === player.email; });
-      var paid = adminState.awards.filter(function (a) {
-        return player.email && a.email &&
-               a.email.toLowerCase() === player.email.toLowerCase();
-      });
       holder.appendChild(adminAccount(player, row ? row.credits : EGE.shop.startingCredits,
-                                     owned, paid));
+                                     owned));
     });
   }
 
@@ -1965,7 +1954,9 @@
       }, 0);
       touchdowns = Math.round(touchdowns * 10) / 10;
 
-      var all = sums.td + sums.offseason + sums.manual;
+      /* Awards handed out by hand are not counted: they are not logged any
+         more, and the few from before that change are not worth a column. */
+      var all = sums.td + sums.offseason;
       var owed = games.reduce(function (sum, game) {
         return sum + EGE.economy.gameCredits(player, game.stats, season);
       }, 0);
@@ -1986,7 +1977,7 @@
       tr.appendChild(el('td', 'num', String(touchdowns)));
 
       if (player.email) {
-        [sums.td, sums.offseason, sums.manual].forEach(function (value) {
+        [sums.td, sums.offseason].forEach(function (value) {
           tr.appendChild(el('td', 'num', String(value)));
         });
         var total = el('td', 'num');
@@ -2726,20 +2717,69 @@
     });
   }
 
+  /* The Earning Credits panel: what an offseason pays, what a game pays, and
+     how a game's fantasy points are scored. The game rows are read out of
+     data/economy.js, so the panel can never describe different maths from
+     the maths that pays. */
+  var SUB = '\u221f ';
+
+  function earningRow(body, label, value, sub) {
+    var tr = el('tr', sub ? 'ege-earnings__sub' : 'ege-earnings__lead');
+    tr.appendChild(el('td', null, (sub ? SUB : '') + label));
+    var cell = el('td', 'num');
+    cell.appendChild(el('strong', null, value));
+    tr.appendChild(cell);
+    body.appendChild(tr);
+  }
+
+  function buildEarnings() {
+    var offseason = document.getElementById('shopEarnings');
+    EGE.shop.earnings.forEach(function (row) {
+      earningRow(offseason, row.label, '+' + row.credits, row.sub);
+    });
+
+    var economy = EGE.economy;
+    var shares = economy.FANTASY_SHARE;
+    var perGame = document.getElementById('shopGameEarnings');
+    earningRow(perGame, 'Every Game', 'fantasy pts \u00d7', false);
+    [['QB', 'Quarterback'], ['RB', 'Running Back'], ['TE', 'Tight End']].forEach(function (pos) {
+      earningRow(perGame, pos[1], '\u00d7' + shares[pos[0]].toFixed(2), true);
+    });
+
+    var f = economy.FANTASY;
+    var per = function (rate) { return String(Math.round(1 / rate)); };
+    var scoring = document.getElementById('shopFantasy');
+    [
+      ['Passing', null],
+      ['Yards', '1 per ' + per(f.passingYards)],
+      ['Touchdown', '+' + f.passingTd],
+      ['Interception', String(f.interceptions)],
+      ['Rushing', null],
+      ['Yards', '1 per ' + per(f.rushingYards)],
+      ['Touchdown', '+' + f.rushingTd],
+      ['Receiving', null],
+      ['Catch', '+' + f.receptions],
+      ['Yards', '1 per ' + per(f.receivingYards)],
+      ['Touchdown', '+' + f.receivingTd],
+      ['Fumble lost', String(f.fumbles)]
+    ].forEach(function (row) {
+      if (row[1] === null) {
+        var head = el('tr', 'ege-earnings__lead');
+        head.appendChild(el('td', null, row[0]));
+        head.appendChild(el('td', 'num'));
+        scoring.appendChild(head);
+        return;
+      }
+      earningRow(scoring, row[0], row[1].replace('-', '\u2212'), row[0] !== 'Fumble lost');
+    });
+  }
+
   function buildCatalogue() {
     if (shopState.built) { return; }
     shopState.built = true;
     stackedCards = [];
 
-    var earnings = document.getElementById('shopEarnings');
-    EGE.shop.earnings.forEach(function (row) {
-      var tr = el('tr');
-      tr.appendChild(el('td', null, row.label));
-      var credits = el('td', 'num');
-      credits.appendChild(el('strong', null, '+' + row.credits));
-      tr.appendChild(credits);
-      earnings.appendChild(tr);
-    });
+    buildEarnings();
 
     var sections = document.getElementById('shopSections');
     EGE.shop.sections.forEach(function (section) {

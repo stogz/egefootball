@@ -1019,12 +1019,13 @@ things that end a season.
 
 **Accounts** — every balance and everything each player owns. Set a balance,
 hand an item over without charging for it, remove anything, or pay an award off
-the earnings table. An award goes through the same ledger the touchdowns do, so
-the season log has a line for it rather than a balance that moved for no
-recorded reason.
+the earnings table — a salary or an honour, which all stack. An award is added
+straight onto the balance and not logged anywhere; the offseason 60 is not in
+the list, because it pays itself.
 
-**Credits Earned** — what the season has paid out so far, by player: touchdowns
-scored, what they were worth, the allowance, anything paid by hand.
+**Credits Earned** — what the season has paid out so far, by player: the
+touchdowns or fantasy points scored, what the games paid, and the allowance.
+Awards handed out by hand are not counted.
 
 **End of Season** — four steps, in this order, because the order is the only
 thing keeping anybody's season safe:
@@ -1332,8 +1333,6 @@ One thing at a time, in this order:
   game is still waiting on a `result`.
 - Real rating numbers, in place of the generated placeholders.
 - Sign-in emails for Parr, Vitel, and Stewart.
-- Whether the 60 an offseason is the earnings table's "Regular" row or sits on
-  top of it. The shop currently treats them as the same 60.
 - Which attribute Block Power raises: run block power, pass block power, or
   both.
 - Whether workout and overall changes persist per browser (`localStorage`) or in

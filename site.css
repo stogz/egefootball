@@ -684,6 +684,12 @@ body {
 .ege-shop-top .fb-tile__label { margin-bottom: 4px; }
 
 .ege-earnings tbody tr { cursor: default; }
+/* Two columns fit any phone, so these do not need the 480px every other
+   table keeps to scroll sideways at. */
+.ege-earnings { min-width: 0; }
+.ege-earnings + .ege-earnings { margin-top: 12px; }
+.ege-earnings__lead td:first-child { font-weight: 800; }
+.ege-earnings__sub td:first-child { padding-left: 22px; }
 .ege-earnings tbody tr:hover { background: var(--fb-tint-wash); }
 
 .ege-items {

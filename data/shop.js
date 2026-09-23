@@ -17,21 +17,28 @@ EGE.shop = {
   startingCredits: 0,
 
   /* What every player gets each offseason, whatever they are paid. The same
-     60 as the earnings table's "Regular" row, not an extra 60 on top. */
+     60 as the earnings table's "Every Off-season" row, not an extra 60 on
+     top. */
   offseasonCredits: 60,
 
-  /* Credits earned on top. Unspent credits carry into the next season. */
+  /* How an offseason pays, as the shop's Earning Credits panel shows it.
+     Every row stacks: a starter who made the Pro Bowl gets the 60, the 30
+     for his salary and the 30 for the Pro Bowl.
+
+     The first row is paid on its own on the way into a season (see
+     awardsEarned in data/economy.js). The `sub` rows are the ones an admin
+     hands out from the admin page. Unspent credits carry into the next
+     season. */
   earnings: [
-    { label: 'Regular',                credits: 60 },
-    { label: 'Rookie / small contract', credits: 10 },
-    { label: 'Average starter salary',  credits: 30 },
-    { label: 'High salary',             credits: 50 },
-    { label: 'Top 3 salary',            credits: 70 },
-    { label: 'Good season',             credits: 15 },
-    { label: 'Pro Bowl season',         credits: 30 },
-    { label: 'All-Pro season',          credits: 45 },
-    { label: 'Major award season',      credits: 60 },
-    { label: 'MVP / OPOY / DPOY',       credits: 75 }
+    { label: 'Every Off-season',   credits: 60, automatic: true },
+    { label: 'Rookie Contract',    credits: 10, sub: true },
+    { label: 'Starter Salary',     credits: 30, sub: true },
+    { label: 'High Salary',        credits: 50, sub: true },
+    { label: 'Superstar Salary',   credits: 70, sub: true },
+    { label: 'Pro-Bowl Honors',    credits: 30, sub: true },
+    { label: 'All-Pro Honors',     credits: 45, sub: true },
+    { label: 'Major Award Season', credits: 60, sub: true },
+    { label: 'MVP/OPOY',           credits: 75, sub: true }
   ],
 
   /* Training rolls one twelve-sided die, and the downside lands on a 1, 2 or
