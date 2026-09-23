@@ -381,7 +381,7 @@ EGE.exports = (function () {
      a team called null. */
   function quote(text) {
     if (text === null || text === undefined) { return 'null'; }
-    return String(text).indexOf("'") === -1
+    return !/['\\]/.test(String(text))
       ? "'" + text + "'"
       : JSON.stringify(text);
   }
@@ -436,6 +436,7 @@ EGE.exports = (function () {
     var result = edited ? edited.result : game.result;
     var booster = edited ? edited.booster : game.booster;
     var typed = edited ? edited.stats : game.stats;
+    var plays = bigPlaysOf(edited ? edited.bigPlays : game.bigPlays);
 
     /* A score is only a score with both halves of it. */
     var scored = result &&
@@ -472,8 +473,30 @@ EGE.exports = (function () {
     out.push('        result: ' + resultText + ', booster: ' + boosterText + ',');
     out.push('        stats: {');
     statLines(player, stats).forEach(function (line) { out.push(line); });
-    out.push('        } },');
+
+    /* Only a game with big plays gets the line, so every game that has none
+       comes back out exactly as it went in. */
+    if (!plays.length) {
+      out.push('        } },');
+      return out;
+    }
+
+    out.push('        },');
+    out.push('        bigPlays: [');
+    plays.forEach(function (play, at) {
+      out.push('          ' + quote(play) + (at < plays.length - 1 ? ',' : ''));
+    });
+    out.push('        ] },');
     return out;
+  }
+
+  /* The big plays as a clean list: one play a string, trimmed, and nothing
+     blank. The editor hands over whatever was in the box, one play a line. */
+  function bigPlaysOf(plays) {
+    var list = typeof plays === 'string' ? plays.split('\n') : (plays || []);
+    return list.map(function (play) {
+      return String(play).replace(/\s+/g, ' ').trim();
+    }).filter(Boolean);
   }
 
   /* The stat line, wrapped so it reads as a line rather than a column. */
@@ -512,6 +535,10 @@ EGE.exports = (function () {
       '',
       '   Nothing here shows on the site until the admin publishes that week. The',
       '   numbers can sit in the repository for as long as it takes.',
+      '',
+      '   `bigPlays` is an optional list of the moments worth calling out, one',
+      "   string a play — '44 yard receiving touchdown bomb'. They go out under",
+      '   the stat line in the Discord post. A game with none leaves it off.',
       '',
       '   `conference: true` marks the games listed with an asterisk, and',
       '   `scouts: true` marks a game scouts will be at — what Intel buys is the',

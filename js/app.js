@@ -2215,7 +2215,7 @@
   /* --- the season file ------------------------------------------------------ */
 
   /* Every week edited this sitting, as week -> slug -> { result, booster,
-     stats }, held here until the file is written.
+     stats, bigPlays }, held here until the file is written.
 
      All of them, not just the one on screen: editing week 2, flipping to
      week 4 and coming back has to still have week 2's numbers in it, and the
@@ -2353,6 +2353,21 @@
     });
     box.appendChild(grid);
 
+    /* The big plays, typed in by hand one to a line, under all of the
+       numbers. They go out under the stat line in the Discord post. */
+    var plays = el('label', 'ege-statfield ege-bigplays');
+    plays.appendChild(el('span', 'ege-statfield__label', 'Big plays \u2014 one per line'));
+    var text = el('textarea', 'fb-input ege-bigplays__input');
+    text.rows = 3;
+    text.placeholder = '44 yard receiving touchdown bomb\n3 yard receiving touchdown';
+    text.value = (held.bigPlays || []).join('\n');
+    text.setAttribute('aria-label', 'Big plays for ' + player.name);
+    text.addEventListener('input', function () {
+      held.bigPlays = text.value.split('\n');
+    });
+    plays.appendChild(text);
+    box.appendChild(plays);
+
     return box;
   }
 
@@ -2383,7 +2398,8 @@
           opponentScore: entry.game.result.opponentScore
         } : null,
         booster: entry.game.booster || null,
-        stats: entry.game.stats ? Object.assign({}, entry.game.stats) : null
+        stats: entry.game.stats ? Object.assign({}, entry.game.stats) : null,
+        bigPlays: (entry.game.bigPlays || []).slice()
       };
     });
 

@@ -9,8 +9,9 @@
    {an embed per player with a game that week}
    {a link back to the site}
 
-   A game that has been played shows the result, the final score and the
-   player's stat line. A game that has not shows the matchup and the kickoff.
+   A game that has been played shows the result, the final score, the
+   player's stat line and, when any were typed in, the game's big plays. A
+   game that has not shows the matchup and the kickoff.
    A player on a bye, one with no game that week, and one with no schedule at
    all are simply left out.
 
@@ -136,20 +137,40 @@ EGE.discordPost = (function () {
   /* --- the whole line, in a block -------------------------------------------- */
 
   /* Every embed is the same height, whatever the position and whatever
-     happened in the game. Two things make that true: the block below is
-     always three lines, and there are always exactly three fields under it.
+     happened in the game: the block below is always four lines, and there
+     are always exactly three fields under it.
 
-     Four numbers a line does it. Every position's line is eleven or twelve
-     typed numbers — a quarterback's twelve fill three rows exactly, and
-     everyone else's eleven leave one gap on the last row. Wrapping by
-     character width, which is what this used to do, gave two lines for one
-     player and three for the next. */
-  var PER_LINE = 4;
+     Three numbers a line does it. Every position's line is eleven or twelve
+     typed numbers — a quarterback's twelve fill four rows exactly, and
+     everyone else's eleven leave one gap on the last row.
+
+     It used to be four a line, which fit on a wide screen and fell apart on
+     a narrow one. The headshot takes its column out of the embed, so a
+     phone or a half-width window leaves the block about thirty characters,
+     and a busy game — three-digit yards, five-letter labels — went past
+     that. Discord wraps a code block rather than scrolling it, so the last
+     cell of every row dropped onto a line of its own and the table turned
+     into a jumble. Three a line is never wider than the space it has. */
+  var PER_LINE = 3;
+
+  /* The widest a line may be, in characters. Comfortably inside the room a
+     narrow embed leaves beside the headshot, so nothing in the block ever
+     wraps whatever the numbers are. */
+  var BLOCK_WIDTH = 30;
+
+  /* How many lines the stat block always is. */
+  var BLOCK_LINES = 4;
 
   /* Right-align the numbers and left-align the labels, column by column, so
      the block reads as a table rather than a run-on sentence. Discord renders
      a code block in a monospace font, which is the only reason this lines up
-     at all. */
+     at all.
+
+     Two spaces between columns reads best, and is what nearly every game
+     gets. A line that would come out wider than BLOCK_WIDTH with two tries
+     again with one, and a line still too wide after that — a four-digit
+     number nobody will post — loses the gap between a number and its label
+     rather than wrapping. */
   function gridOf(cells) {
     var rows = [];
     for (var at = 0; at < cells.length; at += PER_LINE) {
@@ -166,12 +187,26 @@ EGE.discordPost = (function () {
       });
     });
 
-    return rows.map(function (row) {
-      return row.map(function (cell, column) {
-        return padStart(cell.value, valueWidth[column]) + ' ' +
-               padEnd(cell.label, labelWidth[column]);
-      }).join('  ');
-    });
+    function layout(gap, join) {
+      return rows.map(function (row) {
+        return row.map(function (cell, column) {
+          return padStart(cell.value, valueWidth[column]) + join +
+                 padEnd(cell.label, labelWidth[column]);
+        }).join(gap).replace(/\s+$/, '');
+      });
+    }
+
+    function fits(lines) {
+      return lines.every(function (line) { return line.length <= BLOCK_WIDTH; });
+    }
+
+    var roomy = layout('  ', ' ');
+    if (fits(roomy)) { return roomy; }
+
+    var tight = layout(' ', ' ');
+    if (fits(tight)) { return tight; }
+
+    return layout(' ', '');
   }
 
   function padStart(text, width) {
@@ -186,41 +221,32 @@ EGE.discordPost = (function () {
     return out;
   }
 
-  /* How wide the block is, in characters — and so how wide the embed is.
+  /* Anything typed goes inside a code block, where a backtick would close
+     the block early and spill the rest of the embed out as markdown. A
+     straight quote reads the same. */
+  function plain(text) {
+    return String(text).replace(/`/g, "'").replace(/\s+/g, ' ').trim();
+  }
 
-     Discord sizes an embed to its widest content, so a quiet game came out
-     narrower than a busy one and the right-hand edge moved from post to post.
-     Padding every line to the same length fixes it in place.
+  /* Always the same number of lines, so the height of an embed does not
+     depend on what happened in the game.
 
-     No invisible character is needed for this, and the one people reach for
-     would not work anyway: a zero-width space is, as the name says, zero
-     wide. Inside a code block ordinary spaces are kept rather than collapsed,
-     and the font is monospaced, so 39 characters is always the same number of
-     pixels whatever is in them.
+     The lines are not padded out to a common width any more. The spacer
+     image at the bottom already pins the embed's width, and trailing spaces
+     were only ever one more thing that could wrap on a narrow screen. */
+  function asBlock(lines, count) {
+    var out = lines.slice(0, count);
+    while (out.length < count) { out.push(''); }
 
-     39 is what the format can produce at its widest — every number three
-     digits, which is a tight team of tight ends short of a stat line anybody
-     will post. Wider would be wasted, and wide enough to wrap on a phone,
-     where the block has about 41 characters to play with. */
-  var BLOCK_WIDTH = 39;
-
-  /* Always three lines of always the same length, so neither the height nor
-     the width of an embed depends on what happened in the game. */
-  function asBlock(lines) {
-    var out = lines.slice(0, 3);
-    while (out.length < 3) { out.push(''); }
-
-    return '```\n' + out.map(function (line) {
-      return padEnd(line, BLOCK_WIDTH);
-    }).join('\n') + '\n```';
+    return '```\n' + out.join('\n') + '\n```';
   }
 
   function statBlock(player, stats) {
-    return asBlock(gridOf(EGE.statline.fieldsFor(player.position, stats)));
+    return asBlock(gridOf(EGE.statline.fieldsFor(player.position, stats)), BLOCK_LINES);
   }
 
   /* A game nobody has played has no numbers to show, so it shows what is
-     known about it instead — in the same three lines, so the embed comes out
+     known about it instead — in the same four lines, so the embed comes out
      the same height as every other one. */
   function fixtureBlock(game) {
     var rows = [
@@ -234,32 +260,94 @@ EGE.discordPost = (function () {
 
     return asBlock(rows.map(function (row) {
       return padEnd(row[0], width) + '  ' + row[1];
-    }));
+    }), BLOCK_LINES);
+  }
+
+  /* --- the big plays ----------------------------------------------------------- */
+
+  /* The moments worth a line of their own, typed in on the admin page one to
+     a line: `- 44 yard receiving touchdown bomb`.
+
+     They go in a block of their own under the stat line, and they are
+     wrapped here, at word boundaries and to the same width as the block
+     above, rather than left for Discord to break wherever the screen ends.
+     A play that runs long carries on under its own first word, so it still
+     reads as one play and not two.
+
+     Five plays at most, and a hundred characters a play. Discord takes no
+     more than 6000 characters of text across every embed in a message, and
+     six players' worth of long lists would go past it and lose the whole
+     week's post rather than just the tail of one list. */
+  var MAX_PLAYS = 5;
+  var MAX_PLAY_LENGTH = 100;
+
+  function wrapPlay(text) {
+    var room = BLOCK_WIDTH - 2;
+    var lines = [];
+    var line = '';
+
+    plain(text).split(' ').forEach(function (word) {
+      /* A single word longer than a whole line is cut, not left to wrap. */
+      while (word.length > room) {
+        if (line) { lines.push(line); line = ''; }
+        lines.push(word.slice(0, room));
+        word = word.slice(room);
+      }
+      if (!word) { return; }
+
+      if (line && (line + ' ' + word).length > room) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = line ? line + ' ' + word : word;
+      }
+    });
+    if (line) { lines.push(line); }
+
+    return lines.map(function (part, at) { return (at ? '  ' : '- ') + part; });
+  }
+
+  function bigPlaysOf(game) {
+    return (game.bigPlays || []).map(function (play) {
+      var text = plain(play);
+      return text.length > MAX_PLAY_LENGTH
+        ? text.slice(0, MAX_PLAY_LENGTH - 3).replace(/\s+$/, '') + '...'
+        : text;
+    }).filter(Boolean).slice(0, MAX_PLAYS);
+  }
+
+  function bigPlaysBlock(game) {
+    var plays = bigPlaysOf(game);
+    if (!plays.length) { return null; }
+
+    var lines = [];
+    plays.forEach(function (play) {
+      wrapPlay(play).forEach(function (line) { lines.push(line); });
+    });
+    return asBlock(lines, lines.length);
   }
 
   /* --- the three that matter ------------------------------------------------- */
 
-  /* `5/9, 52` — what he did with what he was given, then the yards.
+  /* `5/9, 59YDS` — what he did with what he was given, then the yards.
 
-     No YDS on the end. A field column is about 95 pixels on a phone, and
-     `12/18, 187YDS` measures 95 exactly while `24 CAR, 287YDS` measures 110 —
-     either wraps to a second line and makes that embed taller than the one
-     above it. Without the suffix the widest either gets is 81. The heading
-     underneath already says whether these are receiving yards or rushing
-     ones, so the suffix was only ever saying it twice.
+     The YDS is there so nobody has to guess which number is the yardage.
+     Every field is also set in a code span, the same dark box the score
+     sits in, which is monospaced — so it measures the same whatever the
+     digits are, and the three fields line up from one embed to the next.
 
      Nothing to report collapses to a nought rather than spelling out zeroes. */
   function outOf(made, given, yards) {
     if (!given) { return '0'; }
-    return made + '/' + given + ', ' + yards;
+    return made + '/' + given + ', ' + yards + 'YDS';
   }
 
-  /* `14 CAR, 76`. Carrying has no attempts to fall short of, so it says how
-     many rather than how many of how many — and it keeps CAR, because a bare
-     `14, 76` gives no clue which number is which. */
+  /* `14 CAR, 76YDS`. Carrying has no attempts to fall short of, so it says
+     how many rather than how many of how many — and it keeps CAR, because a
+     bare `14, 76YDS` gives no clue what the first number is. */
   function runs(carries, yards) {
     if (!carries) { return '0'; }
-    return carries + ' CAR, ' + yards;
+    return carries + ' CAR, ' + yards + 'YDS';
   }
 
   function touchdowns(player, stats) {
@@ -364,12 +452,18 @@ EGE.discordPost = (function () {
       ? EGE.statline.complete(player.position, game.stats)
       : null;
 
+    /* The big plays, when any were typed in, go straight under the stat
+       line in a block of their own. A game without any has nothing there
+       rather than an empty box. */
+    var plays = stats ? bigPlaysBlock(game) : null;
+
     embed.description = headline + '\n' +
-      (stats ? statBlock(player, stats) : fixtureBlock(game));
+      (stats ? statBlock(player, stats) : fixtureBlock(game)) +
+      (plays ? '\n' + plays : '');
 
     summaryFor(player).forEach(function (part) {
       embed.fields.push({
-        name: stats ? part.text(player, stats) : '\u2014',
+        name: stats ? code(part.text(player, stats)) : '\u2014',
         value: part.label,
         inline: true
       });
