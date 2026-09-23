@@ -19,6 +19,10 @@
    Nothing here shows on the site until the admin publishes that week. The
    numbers can sit in the repository for as long as it takes.
 
+   `bigPlays` is an optional list of the moments worth calling out, one
+   string a play — '44 yard receiving touchdown bomb'. They go out under
+   the stat line in the Discord post. A game with none leaves it off.
+
    `conference: true` marks the games listed with an asterisk, and
    `scouts: true` marks a game scouts will be at — what Intel buys is the
    right to see it.

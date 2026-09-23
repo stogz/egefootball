@@ -233,7 +233,8 @@ An embed reads top to bottom as:
 | --- | --- |
 | **Author** | the school, with its mark. Not a link — there is nothing on the site to send anybody to for a school |
 | **Headline** | ``W `28-3` vs. Millbrook``, and the one link in the embed: the player's own page. The score is in backticks, so it sits in a box |
-| **Block** | the whole stat line as a three-line grid, four numbers to a line, columns aligned |
+| **Block** | the whole stat line as a four-line grid, three numbers to a line, columns aligned |
+| **Big plays** | a second block, only when the game has any: one `- ` line per play, typed in on the admin page |
 | **Fields** | three summaries, the number above its heading |
 | **Thumbnail** | the player's headshot. The post is about him, not his school |
 | **Footer** | EGE Football Simulation |
@@ -257,10 +258,18 @@ he does first:
 | **RB** | Touchdowns | Rushing | Receiving |
 | **TE**, **WR** | Touchdowns | Receiving | Rushing |
 
-Passing and receiving read as what he did with what he was given — `9/18, 118`
-and `5/9, 52` are the same shape. Carrying has no attempts to fall short of,
-so it says how many rather than how many of how many: `19 CAR, 159`. Nothing
-to report collapses to a nought rather than spelling out zeroes.
+Passing and receiving read as what he did with what he was given —
+`9/18, 118YDS` and `5/9, 52YDS` are the same shape. Carrying has no attempts
+to fall short of, so it says how many rather than how many of how many:
+`19 CAR, 159YDS`. Nothing to report collapses to a nought rather than spelling
+out zeroes. Every summary is set in a code span, so it sits in the same dark
+box as the score.
+
+The big plays are the game's `bigPlays` list from `stats/{year}.js`, typed in
+one to a line in the season editor. They are word-wrapped to the block's
+width with a hanging indent, so a long play stays readable as one play. At
+most five go out, each cut at 100 characters, because Discord refuses a
+message with more than 6000 characters of embed text in it.
 
 The number is the field's name and the heading is its value, because Discord
 draws a name above its value and the number is what should be read first.
@@ -274,22 +283,26 @@ three summaries show dashes.
 A week of posts should read as a column, not a staircase, so the layout is
 fixed rather than following the numbers:
 
-- **The block is always three lines.** Four numbers to a line does it: a
-  quarterback's twelve fill three rows exactly, and everybody else's eleven
-  leave one gap on the last row. Wrapping by character width — the obvious
-  way — gave two lines for one player and three for the next.
+- **The block is always four lines.** Three numbers to a line does it: a
+  quarterback's twelve fill four rows exactly, and everybody else's eleven
+  leave one gap on the last row. It used to be four numbers to a line, which
+  fit on a wide screen, but the headshot takes a column out of the embed and
+  a narrow window left the block about 33 characters — a busy game went past
+  that, Discord wrapped the last cell of each row onto a line of its own, and
+  the grid turned into a jumble. No line is ever wider than 30 characters now:
+  two spaces between columns, one if that would be too wide, and none between
+  a number and its label as a last resort.
 - **There are always exactly three fields.** A fourth wraps onto a second row
   and makes that embed taller than the one above it, which is why credits
   earned are no longer among them.
-- **Nothing in a field is wide enough to wrap.** A field column is about 95
-  pixels on a phone. `Touchdowns/Interceptions` measures 150, so the heading
-  is `Touchdowns/INT`; `12/18, 187YDS` measures 95 exactly and
-  `24 CAR, 287YDS` measures 110, so the yards go without a `YDS` suffix that
-  the heading underneath was saying for them anyway. The widest either gets
-  now is 81.
+- **Headings stay short.** A field column is about 95 pixels on a phone.
+  `Touchdowns/Interceptions` measures 150, so the heading is
+  `Touchdowns/INT`. The yardage keeps its `YDS` so there is no guessing which
+  number is which; the very widest summaries (`24 CAR, 287YDS`) can still
+  wrap in a field column on a narrow phone.
 
-Checked by rendering all 47 games of the season, plus a fixture, at desktop
-and phone width: every one comes out the same height.
+A game with big plays is taller than one without, by however many lines the
+plays take — that is the point of them.
 
 ### And the same width
 
@@ -297,11 +310,9 @@ Discord sizes an embed to its widest content, so a quiet game came out
 narrower than a busy one and the right-hand edge moved from post to post. Two
 things hold it still:
 
-- **Every block line is padded to 39 characters.** Inside a code block
-  ordinary spaces are kept rather than collapsed, and the font is monospaced,
-  so 39 characters is always the same number of pixels whatever is in them.
-  39 is what the format can produce at its widest — every number three digits
-  — and it is under the 41 or so a phone will take without wrapping.
+- **Block lines are not padded any more.** They used to be padded out to 39
+  characters, which was one more thing that could wrap on a narrow screen.
+  The spacer image below already holds the width on its own.
 - **A transparent spacer image, `icon/spacer.png`.** Discord scales an embed
   image down to the embed's maximum width, so one deliberately wider than any
   embed pins it to that maximum. It is 1600×2 and entirely transparent, 92
@@ -706,7 +717,9 @@ the same thing, so they live on the same line.
 them — the numbers come from wherever you generate them and are typed in, by
 hand or through the season editor. `booster` is the performance booster that
 was riding on the game, and once a week is out that is where it lives for
-good, so the row behind it can be cleared out of Supabase.
+good, so the row behind it can be cleared out of Supabase. `bigPlays` is an
+optional list of strings, one per big play, shown under the stat line in the
+Discord post.
 
 Two more flags mark the postseason:
 
@@ -917,6 +930,11 @@ it: the score, the booster, and every number that position's line is typed
 from. The averages, the totals and the passer rating are not there — they
 follow from the rest and are worked out when the file is written, so a line
 can never disagree with itself.
+
+Under the numbers is a **Big plays** box: type one play per line
+(`44 yard receiving touchdown bomb`) and they are written into the game as
+`bigPlays` and go out under the stat line in the Discord post. Blank lines
+are dropped. Big plays are only saved on a game with a score in it.
 
 Edit as many weeks as you like; they are all held until you download. **Pull
 in the stickers players applied** takes whatever is on that week in Supabase
