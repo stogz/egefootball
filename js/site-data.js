@@ -47,7 +47,7 @@
   'use strict';
 
   /* One file per season. Add the next one here when it starts. */
-  var SEASONS = [2018];
+  var SEASONS = [2018, 2019];
 
   /* In the order they have always loaded in. */
   var FILES = ['data/season.js', 'data/ratings.js'].concat(

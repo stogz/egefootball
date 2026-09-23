@@ -17,21 +17,28 @@ EGE.shop = {
   startingCredits: 0,
 
   /* What every player gets each offseason, whatever they are paid. The same
-     60 as the earnings table's "Regular" row, not an extra 60 on top. */
+     60 as the earnings table's "Every Off-season" row, not an extra 60 on
+     top. */
   offseasonCredits: 60,
 
-  /* Credits earned on top. Unspent credits carry into the next season. */
+  /* How an offseason pays, as the shop's Earning Credits panel shows it.
+     Every row stacks: a starter who made the Pro Bowl gets the 60, the 30
+     for his salary and the 30 for the Pro Bowl.
+
+     The first row is paid on its own on the way into a season (see
+     awardsEarned in data/economy.js). The `sub` rows are the ones an admin
+     hands out from the admin page. Unspent credits carry into the next
+     season. */
   earnings: [
-    { label: 'Regular',                credits: 60 },
-    { label: 'Rookie / small contract', credits: 10 },
-    { label: 'Average starter salary',  credits: 30 },
-    { label: 'High salary',             credits: 50 },
-    { label: 'Top 3 salary',            credits: 70 },
-    { label: 'Good season',             credits: 15 },
-    { label: 'Pro Bowl season',         credits: 30 },
-    { label: 'All-Pro season',          credits: 45 },
-    { label: 'Major award season',      credits: 60 },
-    { label: 'MVP / OPOY / DPOY',       credits: 75 }
+    { label: 'Every Off-season',   credits: 60, automatic: true },
+    { label: 'Rookie Contract',    credits: 10, sub: true },
+    { label: 'Starter Salary',     credits: 30, sub: true },
+    { label: 'High Salary',        credits: 50, sub: true },
+    { label: 'Superstar Salary',   credits: 70, sub: true },
+    { label: 'Pro-Bowl Honors',    credits: 30, sub: true },
+    { label: 'All-Pro Honors',     credits: 45, sub: true },
+    { label: 'Major Award Season', credits: 60, sub: true },
+    { label: 'MVP/OPOY',           credits: 75, sub: true }
   ],
 
   /* Training rolls one twelve-sided die, and the downside lands on a 1, 2 or
@@ -130,12 +137,19 @@ EGE.shop = {
         {
           key: 'qb-connection',
           name: 'QB Connection',
-          nameByPosition: { QB: 'Back Field Connection' },
+          nameByPosition: { QB: 'O-Line Connection' },
           credits: 20,
+          note: 'College and later',
+          tiers: ['college', 'nfl'],
           description: 'The whole offseason spent with your quarterback, learning his ' +
-                       'routes and calls — or, for a quarterback, with the backs and ' +
-                       'receivers behind him. Chemistry resets if they are injured, ' +
-                       'traded or otherwise leave. Better chemistry can mean more targets.'
+                       'routes and calls. Chemistry resets if they are injured, ' +
+                       'traded or otherwise leave. Better chemistry can mean more targets.',
+          descriptionByPosition: {
+            QB: 'The whole offseason spent with your offensive line, learning their ' +
+                'protections and calls. Chemistry resets if they are injured, ' +
+                'traded or otherwise leave. Better chemistry means a lower chance ' +
+                'of being sacked.'
+          }
         },
         {
           key: 'hyperbaric',
@@ -166,11 +180,18 @@ EGE.shop = {
 };
 
 /* What an item is called for this player: a quarterback's connection is with
-   his back field rather than with himself. */
+   his offensive line rather than with himself. */
 EGE.itemName = function (item, player) {
   if (!item) { return ''; }
   var byPosition = item.nameByPosition || {};
   return (player && byPosition[player.position]) || item.name;
+};
+
+/* What an item says it does for this player, on the same terms as its name. */
+EGE.itemDescription = function (item, player) {
+  if (!item) { return ''; }
+  var byPosition = item.descriptionByPosition || {};
+  return (player && byPosition[player.position]) || item.description || '';
 };
 
 /* What an item costs the next time this player buys one.
@@ -210,6 +231,9 @@ EGE.itemAvailable = function (item, season) {
 
   if (item.tiers.length === 1 && item.tiers[0] === 'nfl') {
     return { ok: false, reason: 'NFL only — nobody has played an NFL season yet.' };
+  }
+  if (tier === 'highSchool' && item.tiers.indexOf('college') !== -1) {
+    return { ok: false, reason: 'Not until college.' };
   }
   return { ok: false, reason: 'Not available at this level.' };
 };

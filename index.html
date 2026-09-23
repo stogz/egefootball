@@ -137,12 +137,22 @@
         </summary>
         <div class="fb-tablewrap">
           <table class="fb-table ege-earnings">
-            <thead><tr><th>Season</th><th class="num">Credits</th></tr></thead>
+            <thead><tr><th>Offseason</th><th class="num">Credits</th></tr></thead>
             <tbody id="shopEarnings"></tbody>
+          </table>
+          <table class="fb-table ege-earnings">
+            <thead><tr><th>Per game</th><th class="num">Credits</th></tr></thead>
+            <tbody id="shopGameEarnings"></tbody>
+          </table>
+          <table class="fb-table ege-earnings">
+            <thead><tr><th>Fantasy scoring</th><th class="num">Points</th></tr></thead>
+            <tbody id="shopFantasy"></tbody>
           </table>
         </div>
         <div class="fb-panel__foot">
-          <span class="fb-meta">Unspent credits come back with you next season.</span>
+          <span class="fb-meta">Everything stacks. A game pays its fantasy points
+            times your position's share, always rounded up, and never less than
+            1. Unspent credits come back with you next season.</span>
         </div>
       </details>
 
@@ -192,14 +202,14 @@
           <p class="fb-meta" style="margin: 0;">
             The season file holds every result of the year, and nobody sees any
             of it until you put a week out. Publishing shows the scores and the
-            stat lines, moves the records, pays the touchdown credits and posts
+            stat lines, moves the records, pays the game credits and posts
             the week to Discord — one button. Pulling a week back is one click
             too, as often as you like.
           </p>
           <p class="fb-meta" style="margin: 0;">
             Correcting a stat line after its week is out is fine: Pay credits
             works out what everybody is owed again and pays the difference. It
-            never pays the same touchdown twice, and it never takes credits
+            never pays the same game twice, and it never takes credits
             back from a number that went down — adjust a balance by hand for
             that.
           </p>
@@ -286,10 +296,9 @@
               <thead>
                 <tr>
                   <th>Player</th>
-                  <th>Touchdowns</th>
-                  <th>From touchdowns</th>
+                  <th id="awardsScored">Touchdowns</th>
+                  <th>From games</th>
                   <th>Allowance</th>
-                  <th>By hand</th>
                   <th>Earned</th>
                 </tr>
               </thead>

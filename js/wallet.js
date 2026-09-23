@@ -417,30 +417,29 @@ EGE.wallet = (function () {
     }).catch(function () { return { paid: 0 }; });
   }
 
-  /* Hands out credits an admin has decided on — a good season, a Pro Bowl,
-     whatever the earnings table calls it. Logged like any other award, so it
-     shows up in the season log rather than as a balance that changed for no
-     recorded reason. */
-  function awardCredits(email, credits, note) {
+  /* Hands out credits an admin has decided on — a salary, a Pro Bowl,
+     whatever the earnings table calls it. Added straight onto the balance
+     and not logged anywhere: the credits are the point, not a record of
+     them.
+
+     Read, then written. A balance that cannot be read is never treated as
+     nothing, or awarding 30 would set it to 30. */
+  function awardCredits(email, credits) {
     var c = client();
     if (!c) { return fail(offline()); }
 
     var amount = Math.round(Number(credits) || 0);
     if (amount <= 0) { return fail('An award has to be worth something.'); }
 
-    /* Unique per account per season, and an admin may well hand out two of
-       the same size in one season, so the clock breaks the tie. */
-    var key = 'manual-' + Date.now().toString(36);
-
-    return c.rpc('pay_credit_awards', {
-      p_email: email,
-      p_season: EGE.currentSeason,
-      p_awards: [{ key: key, credits: amount, note: note || 'Awarded by an admin' }]
-    }).then(function (res) {
-      if (res.error) { return { ok: false, message: res.error.message }; }
-      var paid = Number(res.data) || 0;
-      if (!paid) { return { ok: false, message: 'Nothing was paid \u2014 try again.' }; }
-      return { ok: true, credits: paid, message: paid + ' credits awarded.' };
+    return creditsFor(email).then(function (have) {
+      if (have === null) {
+        return { ok: false, message: 'Could not read the balance \u2014 nothing was added.' };
+      }
+      return setCredits(email, have + amount).then(function (res) {
+        if (!res.ok) { return res; }
+        return { ok: true, credits: res.credits,
+                 message: amount + ' credits added \u2014 ' + res.credits + ' now.' };
+      });
     });
   }
 

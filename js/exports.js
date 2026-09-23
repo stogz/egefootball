@@ -218,7 +218,8 @@ EGE.exports = (function () {
             multiplier: booster.multiplier
           } : null,
           touchdowns: EGE.economy.touchdownsIn(game.stats),
-          creditsEarned: EGE.economy.touchdownCredits(player, game.stats)
+          fantasyPoints: EGE.economy.fantasyPoints(game.stats),
+          creditsEarned: EGE.economy.gameCredits(player, game.stats, season)
         };
       }),
 
@@ -437,6 +438,7 @@ EGE.exports = (function () {
     var booster = edited ? edited.booster : game.booster;
     var typed = edited ? edited.stats : game.stats;
     var plays = bigPlaysOf(edited ? edited.bigPlays : game.bigPlays);
+    var overtime = edited ? edited.overtime : game.overtime;
 
     /* A score is only a score with both halves of it. */
     var scored = result &&
@@ -453,6 +455,8 @@ EGE.exports = (function () {
     if (game.playoff) { flags.push('playoff: true'); }
     if (game.bye) { flags.push('bye: true'); }
     if (game.scouts) { flags.push('scouts: true'); }
+    /* Overtime needs a score to have gone to overtime in. */
+    if (overtime && scored) { flags.push('overtime: true'); }
 
     var out = [
       '      { week: ' + pad(game.week) + ', date: ' + quote(game.date) +
@@ -539,6 +543,9 @@ EGE.exports = (function () {
       '   `bigPlays` is an optional list of the moments worth calling out, one',
       "   string a play — '44 yard receiving touchdown bomb'. They go out under",
       '   the stat line in the Discord post. A game with none leaves it off.',
+      '',
+      '   `overtime: true` marks a game that went to overtime. The score is still',
+      '   the final one; the flag only adds the OT beside it.',
       '',
       '   `conference: true` marks the games listed with an asterisk, and',
       '   `scouts: true` marks a game scouts will be at — what Intel buys is the',

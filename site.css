@@ -684,6 +684,12 @@ body {
 .ege-shop-top .fb-tile__label { margin-bottom: 4px; }
 
 .ege-earnings tbody tr { cursor: default; }
+/* Two columns fit any phone, so these do not need the 480px every other
+   table keeps to scroll sideways at. */
+.ege-earnings { min-width: 0; }
+.ege-earnings + .ege-earnings { margin-top: 12px; }
+.ege-earnings__lead td:first-child { font-weight: 800; }
+.ege-earnings__sub td:first-child { padding-left: 22px; }
 .ege-earnings tbody tr:hover { background: var(--fb-tint-wash); }
 
 .ege-items {
@@ -2177,6 +2183,10 @@ body {
 }
 .ege-statfield__input { width: 100%; }
 
+/* The overtime box sits beside the two score fields. */
+.ege-otfield { align-items: center; }
+.ege-otfield__input { width: 20px; height: 20px; margin: 10px 0; }
+
 /* The big plays box, under the numbers and the full width of the card. */
 .ege-bigplays { margin-top: 12px; }
 .ege-bigplays__input {
@@ -2187,6 +2197,37 @@ body {
 }
 
 .ege-item__where { display: block; font-size: .6875rem; line-height: 1.4; }
+
+/* The boosters a player holds: one sticker per kind, with the count boxed on
+   its corner. It spans the whole inventory grid rather than taking a cell. */
+.ege-shelf { grid-column: 1 / -1; }
+.ege-shelf__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+  padding: 10px 4px 4px;
+}
+.ege-shelf__slot {
+  position: relative;
+  display: inline-flex;
+  padding: 6px;
+}
+.ege-shelf__count {
+  position: absolute;
+  top: -4px;
+  right: -8px;
+  min-width: 26px;
+  padding: 2px 5px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-cream, #fff);
+  color: var(--fb-ink);
+  font-size: .75rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  z-index: 2;
+}
+.ege-shelf__hint { margin: 6px 0 0; }
 
 /* ==========================================================================
    On a phone

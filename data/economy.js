@@ -113,18 +113,76 @@ EGE.economy = (function () {
     return Math.max(0, Math.min(wanted, MAX_RATING - value));
   }
 
-  /* --- credits earned in season ------------------------------------------ */
+  /* --- credits earned in season ------------------------------------------
 
-  /* What a touchdown is worth, by position. A quarterback throws for more of
-     them than a back runs for, so his are worth less each — the season adds
-     up to something similar either way.
+     From 2019 a game pays for the fantasy points in it, not just for its
+     touchdowns. A touchdown is still the biggest single thing on the line,
+     but the yards count too, so a hundred-yard night with nothing in the end
+     zone still pays -- which touchdowns alone never did.
 
-     A receiver is paid as a back is: the quarterback is the position singled
-     out here, not the backfield. */
+     The scoring is the common half-PPR one:
+
+       passing    1 a 25 yards, 4 a touchdown, -2 an interception
+       rushing    1 a 10 yards, 6 a touchdown
+       receiving  1 a 10 yards, 6 a touchdown, 0.5 a catch
+                  -2 a fumble lost
+
+     The positions do not score alike -- a strong tight end game is about 22
+     points, a strong back or quarterback game about 31 -- so each keeps a
+     share of his points. The shares were worked out from the 2018 season's 72
+     stat lines rather than picked: they are what makes a breakout game (the
+     average of each position's 75th and 90th percentile) pay the same 15
+     credits whatever the position, with one scale over all three chosen so
+     that the whole season pays what touchdowns did (757 credits against 745),
+     so nothing in the shop needs repricing.
+
+     Always rounded up -- there is no half a credit -- and a game played never
+     pays less than 1, however badly it went. */
+  var FANTASY = {
+    passingYards: 1 / 25,
+    passingTd: 4,
+    interceptions: -2,
+    rushingYards: 1 / 10,
+    rushingTd: 6,
+    receivingYards: 1 / 10,
+    receivingTd: 6,
+    receptions: 0.5,
+    fumbles: -2
+  };
+
+  var FANTASY_SHARE = { QB: 0.55, RB: 0.5, TE: 0.75, WR: 0.75, DEFAULT: 0.5 };
+
+  /* The first season paid this way. 2018 was paid for touchdowns as it went,
+     and the ledger tops up any award that has grown, so paying it again on
+     the new scale would hand every player a second helping of a season
+     already settled. */
+  var FANTASY_FROM = 2019;
+
+  function fantasyPoints(stats) {
+    if (!stats) { return 0; }
+    var points = Object.keys(FANTASY).reduce(function (sum, key) {
+      return sum + (typeof stats[key] === 'number' ? stats[key] * FANTASY[key] : 0);
+    }, 0);
+    /* To the hundredth, so 3.3 plus 6.7 is 10 and not 10.000000000000002. */
+    return Math.round(points * 100) / 100;
+  }
+
+  function fantasyShareFor(position) {
+    var share = FANTASY_SHARE[position];
+    return typeof share === 'number' ? share : FANTASY_SHARE.DEFAULT;
+  }
+
+  function paysFantasy(season) {
+    return (season || EGE.currentSeason) >= FANTASY_FROM;
+  }
+
+  /* --- how 2018 was paid ------------------------------------------------
+
+     What a touchdown was worth, by position. Kept because 2018 was paid on
+     it and its ledger has to keep adding up to what it said. */
   var TD_CREDITS = { QB: 5, RB: 10, TE: 10, WR: 10, DEFAULT: 5 };
 
-  /* The stat keys a touchdown can arrive under. A quarterback who runs one in
-     is paid at his own rate, not a back's. */
+  /* The stat keys a touchdown can arrive under. */
   var TD_KEYS = ['passingTd', 'rushingTd', 'receivingTd'];
 
   function tdRateFor(position) {
@@ -143,10 +201,27 @@ EGE.economy = (function () {
     return touchdownsIn(stats) * tdRateFor(player && player.position);
   }
 
+  /* --- what one game pays ----------------------------------------------- */
+
+  function gameCredits(player, stats, season) {
+    if (!stats) { return 0; }
+    if (!paysFantasy(season)) { return touchdownCredits(player, stats); }
+
+    var share = fantasyShareFor(player && player.position);
+    var credits = Math.ceil(Math.round(fantasyPoints(stats) * share * 100) / 100);
+    return Math.max(1, credits);
+  }
+
+  /* How a position is paid in a season, in a few words for the admin page. */
+  function rateText(position, season) {
+    return paysFantasy(season)
+      ? fantasyShareFor(position) + '\u00d7 fantasy pts'
+      : tdRateFor(position) + ' a TD';
+  }
+
   /* Every credit a player is owed for a season, worked out from the season
-     data rather than from anything stored: post a result with two touchdowns
-     in it and the back who scored them is owed twenty more credits than he
-     was a moment ago.
+     data rather than from anything stored: post a result and the player is
+     owed that game's credits the moment the week is out.
 
      Each award carries a key that is stable for what earned it, which is what
      makes paying them safe to repeat — the same week's touchdowns can only
@@ -168,14 +243,25 @@ EGE.economy = (function () {
       });
     }
 
+    /* Keyed td-w{week} in every season, fantasy or not. It is the key the
+       ledger already takes from a player's own browser (see
+       pay_credit_awards in supabase/schema.sql), so the new scoring needed
+       no change to the database. */
     EGE.gamesPlayed(player, year).forEach(function (game) {
-      var tds = touchdownsIn(game.stats);
-      if (!tds) { return; }
+      var credits = gameCredits(player, game.stats, year);
+      if (!credits) { return; }
+
+      var what;
+      if (paysFantasy(year)) {
+        what = fantasyPoints(game.stats) + ' fantasy points';
+      } else {
+        var tds = touchdownsIn(game.stats);
+        what = tds + (tds === 1 ? ' touchdown' : ' touchdowns');
+      }
       out.push({
         key: 'td-w' + game.week,
-        credits: tds * tdRateFor(player.position),
-        note: tds + (tds === 1 ? ' touchdown' : ' touchdowns') +
-              ' in week ' + game.week + ' v ' + game.opponent
+        credits: credits,
+        note: what + ' in week ' + game.week + ' v ' + game.opponent
       });
     });
 
@@ -197,6 +283,14 @@ EGE.economy = (function () {
     tdRateFor: tdRateFor,
     touchdownsIn: touchdownsIn,
     touchdownCredits: touchdownCredits,
+    FANTASY: FANTASY,
+    FANTASY_SHARE: FANTASY_SHARE,
+    FANTASY_FROM: FANTASY_FROM,
+    fantasyPoints: fantasyPoints,
+    fantasyShareFor: fantasyShareFor,
+    paysFantasy: paysFantasy,
+    gameCredits: gameCredits,
+    rateText: rateText,
     awardsEarned: awardsEarned
   };
 })();
