@@ -209,5 +209,5 @@ EGE.boosterOn = function (player, game) {
    schedule row is showing. Nothing is owed for a week nobody has put out. */
 EGE.creditsFromGame = function (player, game) {
   if (!EGE.isFinal(game)) { return 0; }
-  return EGE.economy.touchdownCredits(player, game.stats);
+  return EGE.economy.gameCredits(player, game.stats, game.season);
 };

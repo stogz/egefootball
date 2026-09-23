@@ -441,6 +441,10 @@ create policy "awards readable by owner or admin"
 -- -- at which point the award was silently dropped and the best game of his
 -- season paid nothing. 120 still bounds it at eleven or twelve, which is more
 -- than any scoreboard on this site has room for.
+--
+-- From 2019 the same td-w{week} key carries a game's fantasy-point credits
+-- (see data/economy.js). 120 still bounds them: it would take about 160
+-- fantasy points in one game from a tight end, and more from anyone else.
 -- ---------------------------------------------------------------------------
 
 create or replace function public.pay_credit_awards(

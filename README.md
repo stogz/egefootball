@@ -637,20 +637,45 @@ so nobody else can work out which games scouts will be at.
 
 ### Credits earn themselves
 
-Nobody hands credits out by hand for a good game. A touchdown is worth credits
-the moment the week is published:
+Nobody hands credits out by hand for a good game. Every game pays for its
+**fantasy points** the moment the week is published, so a big night without a
+touchdown still pays. The scoring is standard half PPR:
 
-| Position | A touchdown is worth |
+| | |
 | --- | --- |
-| RB | 10 |
-| TE | 10 |
-| WR | 10 |
-| QB | 5 |
+| Passing | 1 per 25 yards, 4 per touchdown, −2 per interception |
+| Rushing | 1 per 10 yards, 6 per touchdown |
+| Receiving | 1 per 10 yards, 6 per touchdown, 0.5 per catch |
+| Fumble lost | −2 |
 
-A quarterback throws for more of them than a back runs for, so his are worth
-less each and the season comes out somewhere similar either way. Every
-touchdown counts at the player's own rate, however it was scored — a
-quarterback who runs one in is paid 5, not 10.
+Each position keeps a share of its points, because they do not score alike —
+a strong tight end game is about 22 points, a strong back or quarterback game
+about 31:
+
+| Position | Credits per fantasy point | A breakout game pays |
+| --- | --- | --- |
+| QB | 0.55 | 15 |
+| RB | 0.50 | 15 |
+| TE, WR | 0.75 | 15 |
+
+The shares are worked out from the 2018 season's 72 stat lines, not picked.
+They make a breakout game (the average of each position's 75th and 90th
+percentile) pay the same 15 credits for every position. One scale over all
+three then makes a whole season pay what touchdowns used to (757 credits
+across the six against 745), so no shop price needed to change. Re-scored this
+way, 2018 would have paid 90–173 a player instead of 70–165, and no game would
+have paid nothing.
+
+Credits are **always rounded up** — there is no half a credit — and a game
+played never pays less than 1.
+
+**2018 stays on touchdowns.** It was paid as it went, 10 a touchdown for a
+back or tight end and 5 for a quarterback, and the ledger tops up any award
+that has grown, so re-scoring it would pay every player a second time for a
+season already settled. Fantasy scoring starts with 2019
+(`EGE.economy.FANTASY_FROM`). The award key is still `td-w{week}` for both
+systems, because that is the key the database already accepts from a
+player's own browser, so the change needed nothing in Supabase.
 
 On top of that, every season after the first pays the flat **60** offseason
 allowance on the way into it. The first season pays nothing: everybody starts
@@ -661,14 +686,14 @@ every time they open the site, and each award carries a key for what earned it
 — `td-w4`, `offseason-2019`. Those keys are unique per player per season in
 `credit_awards`, and `pay_credit_awards()` inserts the new ones and moves the
 balance **in one transaction**, so paying on every page load is both safe and
-the whole point. Post a result with two touchdowns in it and the back who
-scored them is twenty credits better off the next time he looks. Reload all
-day and he is still twenty credits better off.
+the whole point. Post a result and the player is that game's credits better
+off the next time he looks. Reload all day and he is still only that much
+better off.
 
 A player with no sign-in yet still scores: the admin page shows what they are
 owed as *waiting*, and it lands in full the first time they log in.
 
-**Correcting a week.** Change the touchdowns in `stats/{year}.js`, commit, and
+**Correcting a week.** Change a stat line in `stats/{year}.js`, commit, and
 the credits follow: an award already on the ledger that is now worth more pays
 the difference and nothing more, so the same week can be settled as often as
 you like. It reaches a player the next time they open the site, and **Pay

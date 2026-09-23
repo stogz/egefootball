@@ -218,7 +218,8 @@ EGE.exports = (function () {
             multiplier: booster.multiplier
           } : null,
           touchdowns: EGE.economy.touchdownsIn(game.stats),
-          creditsEarned: EGE.economy.touchdownCredits(player, game.stats)
+          fantasyPoints: EGE.economy.fantasyPoints(game.stats),
+          creditsEarned: EGE.economy.gameCredits(player, game.stats, season)
         };
       }),
 

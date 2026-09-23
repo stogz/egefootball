@@ -761,7 +761,7 @@
     var earned = schedulePlayer ? EGE.creditsFromGame(schedulePlayer, game) : 0;
     if (earned && canSeeStickers(schedulePlayer)) {
       var tag = el('span', 'ege-schedule__paid', '+' + earned);
-      tag.title = earned + ' credits for the touchdowns in this game';
+      tag.title = earned + ' credits for this game';
       credits.appendChild(tag);
     } else {
       credits.appendChild(el('span', 'ege-schedule__pending', '—'));
@@ -1935,7 +1935,9 @@
     var body = document.getElementById('awardsBody');
     body.innerHTML = '';
 
-    var totals = { all: 0, touchdowns: 0, waiting: 0 };
+    var totals = { all: 0, touchdowns: 0, games: 0, waiting: 0 };
+    var fantasySeason = EGE.economy.paysFantasy(EGE.currentSeason);
+    document.getElementById('awardsScored').textContent = fantasySeason ? 'Fantasy pts' : 'Touchdowns';
 
     /* All six, not only the ones who can be paid. A player with no sign-in
        still scores touchdowns, and they are worth counting: the credits wait
@@ -1950,15 +1952,26 @@
       paid.forEach(function (row) { sums[awardKind(row)] += row.credits; });
 
       /* Counted from the schedule rather than from the ledger, so it is right
-         for a week nobody has been paid for yet. */
-      var touchdowns = EGE.gamesPlayed(player, EGE.currentSeason).reduce(function (sum, game) {
-        return sum + EGE.economy.touchdownsIn(game.stats);
+         for a week nobody has been paid for yet. What a game earns is
+         whatever that season pays on: touchdowns in 2018, fantasy points
+         after. */
+      var season = EGE.currentSeason;
+      var fantasy = EGE.economy.paysFantasy(season);
+      var games = EGE.gamesPlayed(player, season);
+      var touchdowns = games.reduce(function (sum, game) {
+        return sum + (fantasy
+          ? EGE.economy.fantasyPoints(game.stats)
+          : EGE.economy.touchdownsIn(game.stats));
       }, 0);
+      touchdowns = Math.round(touchdowns * 10) / 10;
 
       var all = sums.td + sums.offseason + sums.manual;
-      var owed = touchdowns * EGE.economy.tdRateFor(player.position);
+      var owed = games.reduce(function (sum, game) {
+        return sum + EGE.economy.gameCredits(player, game.stats, season);
+      }, 0);
       totals.all += all;
       totals.touchdowns += touchdowns;
+      totals.games += games.length;
       if (!player.email) { totals.waiting += owed; }
 
       var tr = el('tr');
@@ -1967,7 +1980,7 @@
       var name = el('td');
       name.appendChild(el('strong', null, player.name));
       name.appendChild(el('span', 'fb-meta', player.email
-        ? player.position + '  ·  ' + EGE.economy.tdRateFor(player.position) + ' a TD'
+        ? player.position + '  ·  ' + EGE.economy.rateText(player.position, EGE.currentSeason)
         : player.position + '  ·  no sign-in yet'));
       tr.appendChild(name);
       tr.appendChild(el('td', 'num', String(touchdowns)));
@@ -1992,14 +2005,22 @@
 
     document.getElementById('awardsNote').textContent =
       'The ' + EGE.currentSeason + ' season so far';
-    document.getElementById('awardsFoot').textContent = totals.touchdowns
-      ? totals.touchdowns + ' touchdowns, ' + totals.all + ' credits paid out' +
-        (totals.waiting
-          ? ', and ' + totals.waiting + ' waiting on an account to be paid into.'
-          : '.')
-      : 'No touchdowns posted yet. Credits appear here as results go in — ' +
-        EGE.economy.TD_CREDITS.RB + ' a touchdown for a back or a tight end, ' +
-        EGE.economy.TD_CREDITS.QB + ' for a quarterback.';
+    var waiting = totals.waiting
+      ? ', and ' + totals.waiting + ' waiting on an account to be paid into.'
+      : '.';
+    var shares = EGE.economy.FANTASY_SHARE;
+
+    document.getElementById('awardsFoot').textContent = fantasySeason
+      ? (totals.games
+          ? totals.games + ' games played, ' + totals.all + ' credits paid out' + waiting
+          : 'No games posted yet. Every game pays its fantasy points (half PPR), ' +
+            'rounded up, at ' + shares.QB + ' for a quarterback, ' + shares.RB +
+            ' for a back and ' + shares.TE + ' for a tight end.')
+      : (totals.touchdowns
+          ? totals.touchdowns + ' touchdowns, ' + totals.all + ' credits paid out' + waiting
+          : 'No touchdowns posted yet. Credits appear here as results go in — ' +
+            EGE.economy.TD_CREDITS.RB + ' a touchdown for a back or a tight end, ' +
+            EGE.economy.TD_CREDITS.QB + ' for a quarterback.');
   }
 
   /* --- putting a week out --------------------------------------------------- */
