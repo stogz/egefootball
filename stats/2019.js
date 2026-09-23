@@ -23,6 +23,9 @@
    string a play — '44 yard receiving touchdown bomb'. They go out under
    the stat line in the Discord post. A game with none leaves it off.
 
+   `overtime: true` marks a game that went to overtime. The score is still
+   the final one; the flag only adds the OT beside it.
+
    `conference: true` marks the games listed with an asterisk, and
    `scouts: true` marks a game scouts will be at — what Intel buys is the
    right to see it.
@@ -64,7 +67,7 @@ EGE.stats[2019] = {
         opponent: 'Corinth Holders', home: false, conference: true,
         result: { teamScore: 34, opponentScore: 7 }, booster: null, stats: null },
       { week: 10, date: '2019-10-25', kickoff: '7:00pm',
-        opponent: 'Rolesville', home: true, conference: true,
+        opponent: 'Rolesville', home: true, conference: true, overtime: true,
         result: { teamScore: 31, opponentScore: 30 }, booster: null, stats: null },
       { week: 11, date: '2019-11-01', kickoff: '7:00pm',
         opponent: 'Wakefield', home: false, conference: true,

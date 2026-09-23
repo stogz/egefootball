@@ -748,7 +748,8 @@
     if (played) {
       var won = game.result.teamScore > game.result.opponentScore;
       result.appendChild(el('span', 'fb-tag fb-tag--num ' + (won ? 'fb-tag--sage' : 'fb-tag--clay'),
-        (won ? 'W ' : 'L ') + game.result.teamScore + '–' + game.result.opponentScore));
+        (won ? 'W ' : 'L ') + game.result.teamScore + '–' + game.result.opponentScore +
+        (game.overtime ? '/OT' : '')));
     } else {
       result.appendChild(el('span', 'ege-schedule__pending', '—'));
     }
@@ -1221,7 +1222,8 @@
       var won = game.result.teamScore > game.result.opponentScore;
       var result = el('td', 'num');
       result.appendChild(el('span', 'fb-tag fb-tag--num ' + (won ? 'fb-tag--sage' : 'fb-tag--clay'),
-        (won ? 'W ' : 'L ') + game.result.teamScore + '–' + game.result.opponentScore));
+        (won ? 'W ' : 'L ') + game.result.teamScore + '–' + game.result.opponentScore +
+        (game.overtime ? '/OT' : '')));
       row.appendChild(result);
 
       var stats = EGE.statline.complete(player.position, game.stats) || {};
@@ -2215,7 +2217,7 @@
   /* --- the season file ------------------------------------------------------ */
 
   /* Every week edited this sitting, as week -> slug -> { result, booster,
-     stats, bigPlays }, held here until the file is written.
+     stats, bigPlays, overtime }, held here until the file is written.
 
      All of them, not just the one on screen: editing week 2, flipping to
      week 4 and coming back has to still have week 2's numbers in it, and the
@@ -2318,6 +2320,20 @@
       held.result = held.result || { teamScore: null, opponentScore: null };
       held.result.opponentScore = value;
     }));
+
+    /* Whether it went to overtime. Only a flag: the score above is still the
+       final score, overtime included. */
+    var ot = el('label', 'ege-statfield ege-otfield');
+    ot.appendChild(el('span', 'ege-statfield__label', 'OT'));
+    var otBox = el('input', 'ege-otfield__input');
+    otBox.type = 'checkbox';
+    otBox.checked = Boolean(held.overtime);
+    otBox.setAttribute('aria-label', 'Went to overtime');
+    otBox.addEventListener('change', function () {
+      held.overtime = otBox.checked;
+    });
+    ot.appendChild(otBox);
+    score.appendChild(ot);
     head.appendChild(score);
     box.appendChild(head);
 
@@ -2398,6 +2414,7 @@
           opponentScore: entry.game.result.opponentScore
         } : null,
         booster: entry.game.booster || null,
+        overtime: Boolean(entry.game.overtime),
         stats: entry.game.stats ? Object.assign({}, entry.game.stats) : null,
         bigPlays: (entry.game.bigPlays || []).slice()
       };

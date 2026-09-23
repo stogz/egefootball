@@ -441,7 +441,7 @@ EGE.discordPost = (function () {
     var headline = played
       ? '[' + (won ? 'W' : 'L') + ' ' +
         code(game.result.teamScore + '-' + game.result.opponentScore) + ' ' +
-        matchup + '](' + playerUrl(siteUrl, player) + ')'
+        matchup + (game.overtime ? ' (OT)' : '') + '](' + playerUrl(siteUrl, player) + ')'
       : '[' + matchup + '](' + playerUrl(siteUrl, player) + ')';
 
     /* Three fields, always, and never a fourth: a fourth wraps onto a second

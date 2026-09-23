@@ -23,6 +23,9 @@
    string a play — '44 yard receiving touchdown bomb'. They go out under
    the stat line in the Discord post. A game with none leaves it off.
 
+   `overtime: true` marks a game that went to overtime. The score is still
+   the final one; the flag only adds the OT beside it.
+
    `conference: true` marks the games listed with an asterisk, and
    `scouts: true` marks a game scouts will be at — what Intel buys is the
    right to see it.

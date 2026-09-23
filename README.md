@@ -721,6 +721,11 @@ good, so the row behind it can be cleared out of Supabase. `bigPlays` is an
 optional list of strings, one per big play, shown under the stat line in the
 Discord post.
 
+`overtime: true` marks a game that went to overtime. The score stays the
+final score; the flag adds `/OT` to the result on the site (`W 31–30/OT`) and
+` (OT)` after the opponent in the Discord headline. It is a checkbox beside
+the score in the season editor, and only written into the file when it is on.
+
 Two more flags mark the postseason:
 
 ```js
