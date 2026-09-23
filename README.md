@@ -1126,7 +1126,9 @@ Built so far:
   drawn: every first-round matchup and seed, and nothing else. No results —
   those live in `stats/{year}.js` like any other game. It also holds
   `EGE.bracketState`, which is how far the draw has got given what has been
-  published. A school with no entry has no Tournament switch.
+  published. A school with no entry has no Tournament switch. The draws
+  belong to one season, `EGE.bracketsSeason`; any other season has no
+  bracket until its own are written in and that is moved on.
 - `data/statline.js` — what a stat line is: the columns each position is read
   in, and how a season of them adds up.
 - `js/discord-post.js` — one week as a Discord message. Loaded by the browser

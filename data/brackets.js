@@ -45,6 +45,11 @@ window.EGE = window.EGE || {};
     return { a: { seed: seed, name: name }, b: null };
   }
 
+  /* The season these draws are from. A bracket belongs to one year's
+     playoffs, so any other season -- the next one, before its own draws are
+     written in -- has no bracket rather than last year's. */
+  EGE.bracketsSeason = 2018;
+
   /* Keyed by the team key in data/players.js, so a player's bracket is
      whatever his school is playing in. A school with no entry here has no
      bracket, and the switcher does not offer one. */
@@ -206,8 +211,9 @@ window.EGE = window.EGE || {};
   /* The bracket a player's school is in, or null. Carlsbad has a playoff game
      and no entry here yet, which is the case this has to answer for: a school
      can be in the postseason without its bracket having been drawn up. */
-  EGE.bracketFor = function (player) {
+  EGE.bracketFor = function (player, season) {
     if (!player || !player.team) { return null; }
+    if ((season || EGE.currentSeason) !== EGE.bracketsSeason) { return null; }
     return EGE.brackets[player.team] || null;
   };
 
@@ -281,7 +287,7 @@ window.EGE = window.EGE || {};
      whatever has been settled. */
   EGE.bracketState = function (player, season) {
     var year = season || EGE.currentSeason;
-    var bracket = EGE.bracketFor(player);
+    var bracket = EGE.bracketFor(player, year);
     if (!bracket) { return null; }
 
     var forSeason = EGE.stats[year] || {};

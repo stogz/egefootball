@@ -1062,7 +1062,7 @@
   var scheduleView = 'games';
 
   function showScheduleView() {
-    var bracket = schedulePlayer ? EGE.bracketFor(schedulePlayer) : null;
+    var bracket = schedulePlayer ? EGE.bracketFor(schedulePlayer, shownSeason()) : null;
     var tournament = Boolean(bracket) && scheduleView === 'tournament';
 
     document.getElementById('scheduleSwitch').hidden = !bracket;
