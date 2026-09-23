@@ -125,7 +125,6 @@
     img.alt = player.name;
     img.loading = 'lazy';
     photo.appendChild(img);
-    if (player.jersey) { photo.appendChild(el('span', 'ege-card__jersey', '#' + player.jersey)); }
     card.appendChild(photo);
 
     /* The words on the left, the overall on the right. */
