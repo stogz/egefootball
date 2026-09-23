@@ -155,7 +155,10 @@ EGE.stats[2018] = {
         ['Chambers', 24, 0],
         ['Richmond Senior', 37, 14],
       ] },
-      { week: 17, results: [] },
+      { week: 17, results: [
+        null,
+        ['Chambers', 21, 13],
+      ] },
       { week: 18, results: [] },
     ],
 
@@ -194,7 +197,10 @@ EGE.stats[2018] = {
         null,
         ['Northwestern', 19, 15],
       ] },
-      { week: 17, results: [] },
+      { week: 17, results: [
+        ['Navarre', 35, 22],
+        ['Northwestern', 40, 7],
+      ] },
       { week: 18, results: [] },
     ],
   },
@@ -297,7 +303,7 @@ EGE.stats[2018] = {
         opponent: null, home: false, conference: false, playoff: true, bye: true,
         result: null, booster: null, stats: null },
       { week: 15, date: '2018-11-23', kickoff: '7:30pm',
-        opponent: 'Wakefield', home: true, conference: true, playoff: true,
+        opponent: 'Wakefield', home: true, conference: false, playoff: true,
         result: { teamScore: 41, opponentScore: 9 }, booster: null,
         stats: {
           receptions: 7, receivingYards: 104, receivingYac: 68,
@@ -306,8 +312,17 @@ EGE.stats[2018] = {
           receivingAvg: 14.9, totalYards: 104, totalTd: 1
         } },
       { week: 16, date: '2018-11-30', kickoff: '7:30pm',
-        opponent: 'Leesville Road', home: true, conference: true, playoff: true,
+        opponent: 'Leesville Road', home: true, conference: false, playoff: true,
         result: { teamScore: 27, opponentScore: 20 }, booster: null,
+        stats: {
+          receptions: 4, receivingYards: 26, receivingYac: 9,
+          receivingTd: 1, receivingLong: 14, targets: 6, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 6.5, totalYards: 26, totalTd: 1
+        } },
+      { week: 17, date: '2018-12-7', kickoff: '7:30pm',
+        opponent: 'Holly Springs', home: true, conference: false, playoff: true,
+        result: { teamScore: 30, opponentScore: 14 }, booster: null,
         stats: {
           receptions: 4, receivingYards: 26, receivingYac: 9,
           receivingTd: 1, receivingLong: 14, targets: 6, carries: 0,
