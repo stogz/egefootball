@@ -260,15 +260,6 @@ body {
   object-position: center 18%;
   display: block;
 }
-.ege-card__jersey {
-  position: absolute;
-  top: 0; left: 0;
-  background: var(--fb-ink);
-  color: var(--fb-cream);
-  font-family: var(--fb-font-display);
-  font-size: 1.125rem;
-  padding: 4px 10px 5px;
-}
 
 /* The words on the left, the overall on the right. `stretch` is what makes
    the box start level with the top of the name and end level with the bottom
@@ -2470,7 +2461,6 @@ body {
   .ege-card__name { font-size: 1.3125rem; }
 
   /* The jersey chip is pinned to a corner that is now much smaller. */
-  .ege-card__jersey { transform: scale(.85); transform-origin: top left; }
   .ege-card__text { gap: 6px; }
 
   /* A narrower box, because a name, a school and the overall have to fit
