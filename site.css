@@ -747,6 +747,15 @@ body {
    sits in the tab order. */
 .ege-item__sticker .ege-sticker { pointer-events: none; }
 
+/* The shop's icons sit in the same frame the boosters do. */
+.ege-item__icon img {
+  display: block;
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
 .ege-targets {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
@@ -2200,13 +2209,6 @@ body {
 
 /* The boosters a player holds: one sticker per kind, with the count boxed on
    its corner. It spans the whole inventory grid rather than taking a cell. */
-.ege-shelf { grid-column: 1 / -1; }
-.ege-shelf__row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 22px;
-  padding: 10px 4px 4px;
-}
 .ege-shelf__slot {
   position: relative;
   display: inline-flex;
@@ -2227,7 +2229,7 @@ body {
   text-align: center;
   z-index: 2;
 }
-.ege-shelf__hint { margin: 6px 0 0; }
+
 
 /* ==========================================================================
    On a phone
@@ -2832,3 +2834,144 @@ select,
 }
 
 .ege-install__foot { margin: 0; }
+
+
+/* ==========================================================================
+   The loading screen
+   Over everything, from the first paint: the page blurred behind it and the
+   football spinning in the middle. js/app.js adds .is-done once Supabase has
+   answered. The animation is the backstop -- if the script never gets that
+   far, the page still comes back after eight seconds.
+   ========================================================================== */
+
+.ege-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(86, 99, 63, .72);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  transition: opacity .25s ease, visibility 0s linear .25s;
+  animation: ege-loader-bail 0s linear 8s forwards;
+}
+.ege-loader.is-managed { animation: none; }
+.ege-loader.is-done {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+/* The GIF has a lot of empty frame around the ball, so it is drawn big. */
+.ege-loader__ball { width: 220px; height: 220px; margin: -50px 0; }
+.ege-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* No page scrolling underneath it while it is up. */
+html.is-loading, html.is-loading body { overflow: hidden; }
+
+@keyframes ege-loader-bail {
+  to { opacity: 0; visibility: hidden; pointer-events: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ege-loader { transition: none; }
+}
+
+/* ==========================================================================
+   The season switcher, under the player header
+   ========================================================================== */
+
+.ege-seasonbar {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 18px;
+}
+.ege-seasonbar[hidden] { display: none; }
+.ege-seasonbar__pick {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 800;
+}
+.ege-seasonbar__step {
+  flex: 0 0 auto;
+  min-width: 46px;
+  padding-left: 0;
+  padding-right: 0;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+.ege-seasonbar__step:disabled { opacity: .35; cursor: default; }
+@media (max-width: 620px) {
+  .ege-seasonbar__pick { text-transform: none; letter-spacing: 0; padding-left: 10px; padding-right: 24px; }
+}
+
+
+/* ==========================================================================
+   What a player owns, on one line under "Applied to your ratings": the
+   boosters as stickers and everything else as its icon, each with its count
+   boxed on the corner.
+   ========================================================================== */
+
+.ege-owned[hidden] { display: none; }
+.ege-owned {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px 24px;
+  padding: 8px 4px;
+}
+.ege-owned__thing {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+.ege-owned__item {
+  width: 56px;
+  height: 56px;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+}
+button.ege-owned__item { cursor: pointer; }
+.ege-owned__icon { width: 100%; height: 100%; object-fit: contain; }
+.ege-owned__word { font-size: .6875rem; font-weight: 800; text-align: center; line-height: 1.1; }
+.ege-owned__flag {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 4px;
+  font-size: .5625rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--fb-cream);
+  background: var(--fb-ink);
+  white-space: nowrap;
+}
+.ege-owned__item.is-off .ege-owned__icon,
+.ege-owned__item.is-expired .ege-owned__icon { opacity: .4; }
+
+/* The admin's inventory cards carry the same icons, small, beside the name. */
+.ege-item__title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ege-item__mini { width: 28px; height: 28px; object-fit: contain; flex: 0 0 auto; }
+
+/* The workouts, under the rating points in the same panel. */
+.ege-items--joined {
+  padding-top: 18px;
+  border-top: var(--fb-border-thin) solid var(--fb-ink);
+}

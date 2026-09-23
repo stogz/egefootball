@@ -177,7 +177,10 @@ EGE.wallet = (function () {
         if (res.error) { EGE.appliedBoosts = boosts; return boosts; }
 
         (res.data || []).forEach(function (row) {
-          if (!row.active || lapsed(row) || !row.effects) { return; }
+          /* A row with effects is a workout or rating points, and those are in
+             the ratings for good once bought -- there is no switch for them,
+             so a row left switched off from before still counts. */
+          if (lapsed(row) || !row.effects) { return; }
 
           /* Rows are owned by an email; ratings are keyed by player. */
           var player = EGE.players.filter(function (p) {

@@ -7,6 +7,9 @@
    attribute in data/ratings.js. Where a listed item has no single attribute
    behind it yet — Block Power covers both run and pass block power — the
    key is null until that is settled.
+
+   `icon` is the picture on an item's card. The originals are in icon/shop at
+   1254px; the site loads the 256px copies in icon/shop/small.
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -75,17 +78,14 @@ EGE.shop = {
     {
       key: 'training',
       title: 'Offseason Training',
-      blurb: 'Where the whole offseason goes. The first block of a workout is ' +
-             'cheap and every one after it costs twice the last, so an ' +
-             'offseason spent entirely on one thing runs out of credits long ' +
-             'before it runs out of attributes. The two that specialise carry ' +
-             'a risk; the one that spreads itself evenly costs the most and ' +
-             'has nothing to lose. The prices go back ' +
-             'to the bottom when the season is locked and the workouts fold ' +
-             'into the ratings.',
+      /* Drawn inside the Rating Points panel, under the points, rather than
+         as a panel of its own. Each workout's price doubles every time it is
+         bought, and goes back to the bottom when the season is locked. */
+      panel: 'upgrades',
       items: [
         {
           key: 'train-strength',
+          icon: 'icon/shop/small/strength.png',
           name: 'Strength Training',
           credits: 8,
           creditsStack: 2,
@@ -102,6 +102,7 @@ EGE.shop = {
         },
         {
           key: 'train-cardio',
+          icon: 'icon/shop/small/cardio.png',
           name: 'Cardio Training',
           credits: 16,
           creditsStack: 2,
@@ -116,6 +117,7 @@ EGE.shop = {
         },
         {
           key: 'train-overall',
+          icon: 'icon/shop/small/gym.png',
           name: 'Overall Training',
           credits: 20,
           creditsStack: 2,
@@ -136,6 +138,7 @@ EGE.shop = {
       items: [
         {
           key: 'qb-connection',
+          icon: 'icon/shop/small/qb.png',
           name: 'QB Connection',
           nameByPosition: { QB: 'O-Line Connection' },
           credits: 20,
@@ -153,6 +156,7 @@ EGE.shop = {
         },
         {
           key: 'hyperbaric',
+          icon: 'icon/shop/small/chamber.png',
           name: 'Hyperbaric Chamber',
           credits: 35,
           creditsLadder: [35, 45, 60],
@@ -165,6 +169,7 @@ EGE.shop = {
         },
         {
           key: 'intel',
+          icon: 'icon/shop/small/intel.png',
           name: 'Intel',
           credits: 15,
           note: 'High school and college only',

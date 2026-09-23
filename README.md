@@ -73,6 +73,14 @@ player takes instead of declaring; it pushes that player to the 2024 draft.
   headshot, name, school, and position (or TBD).
 - Selecting a card routes to that player's page.
 
+### Loading screen
+
+From the first paint until the published weeks and the purchases have come
+back from Supabase, the whole site is blurred and
+`icon/football_loader_preview.gif` spins in the middle. Signing in raises it
+again while that player's wallet loads. If the script never gets far enough
+to take it down, the stylesheet does after eight seconds.
+
 ### Player page — `/#{name}`
 
 Routed by player name, e.g. `#andrew-parr`, `#paxon-hatch`. Each player page
@@ -85,6 +93,12 @@ holds:
 - **Season strip** — the ten numbers the season is remembered by, across the
   foot of the header panel: ten across on a wide screen, five and five on
   anything narrower.
+- **Season switcher** — under the header, once more than one season is
+  logged: a drop-down of every season with a file in `stats/`, up to the live
+  one, with ‹ and › either side to step through them. It switches the header,
+  season strip, schedule, game log and bracket to that season. Opening a
+  different player goes back to the live season. An older season shows no
+  scouts and takes no boosters.
 - **Schedule** — every scheduled game in the selected season: week, date,
   kickoff, opponent with home/away and a mark for conference games, and the
   result once it has been played. A silhouette marks a game scouts will attend,
@@ -394,6 +408,10 @@ Signed out, the tab isn't there and the page says to sign in. Signed in, the
 nav carries the player's credit balance beside their headshot. Everyone starts
 on 0 and earns from there. The catalogue lives in `data/shop.js`.
 
+Items with a picture name it as `icon`. The originals are in `icon/shop` at
+1254px; the site loads 256px copies from `icon/shop/small`, about 115KB for
+all six instead of 1.8MB.
+
 **Credits** are 60 every offseason, whatever a player is paid, plus what the
 season earns by contract size and honours. That table sits at the bottom of
 the page as a collapsible panel rather than taking up the top of it. Anything
@@ -407,9 +425,10 @@ a booster takes one off the pile; the row goes when the last one does.
 Training is the exception and stays one row per purchase, since each carries
 its own roll. Buying deducts credits and drops the item in. A performance
 booster is held unused until it is used, and using it deletes it — the
-inventory is what a player still has, not a receipt book. Everything else
-carries an in-effect switch that can be turned off and on. A stat booster
-records which attribute it was bought for.
+inventory is what a player still has, not a receipt book. Workouts and rating
+points are in the ratings for good once bought and have no switch; Intel and the
+other non-workout items can still be turned off and on. A stat booster records
+which attribute it was bought for.
 
 On sale:
 
@@ -615,8 +634,14 @@ A quarterback's **QB Connection** reads **O-Line Connection** — he spends the
 offseason with his offensive line, and better chemistry means a lower chance of
 being sacked. Either way it cannot be bought until college.
 
-Boosters in the inventory are shown as their stickers, one per kind, with how
-many are held boxed on the corner (`3X`), rather than a card apiece.
+**What a player owns** sits on one line under *Applied to your ratings*: the
+boosters as their stickers, then everything else as its icon from `icon/shop`,
+each with how many are held boxed on its corner (`3X`). A workout bought more
+than once is one icon with its count. Intel is its own switch — tap it to turn
+it on or off, and it greys out with an OFF tag while off.
+
+**Offseason training** sits in the Rating Points panel, under the points table,
+rather than in a panel of its own.
 
 **Sam is the admin**, and his tools are on their own page — see
 [The Admin Portal](#the-admin-portal). Nothing admin sits on the shop page:
