@@ -71,7 +71,10 @@ EGE.stats[2018] = {
         ['Chicago Mt. Carmel', 29, 19],
         ['St. Charles North', 21, 10],
       ] },
-      { week: 17, results: [] },
+      { week: 17, results: [
+        ['Batavia', 47, 28],
+        ['St. Charles North', 27, 21],
+      ] },
       { week: 18, results: [] },
     ],
 
@@ -110,7 +113,10 @@ EGE.stats[2018] = {
         ['Richards', 22, 16],
         null,
       ] },
-      { week: 17, results: [] },
+      { week: 17, results: [
+        ['Kenwood', 28, 21],
+        ['Washington', 38, 35],
+      ] },
       { week: 18, results: [] },
     ],
 
