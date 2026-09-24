@@ -44,7 +44,16 @@ EGE.stats[2019] = {
     'andrew-parr': [
       { week:  1, date: '2019-08-23', kickoff: '7:00pm',
         opponent: 'Cardinal Gibbons', home: true, conference: false, scouts: true,
-        result: { teamScore: 24, opponentScore: 27 }, booster: null, stats: null },
+        result: { teamScore: 27, opponentScore: 24 }, booster: null,
+        stats: {
+          receptions: 7, receivingYards: 96, receivingYac: 0,
+          receivingTd: 1, receivingLong: 29, targets: 0, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 13.7, totalYards: 96, totalTd: 1
+        },
+        bigPlays: [
+          '12 yard receiving touchdown'
+        ] },
       { week:  2, date: '2019-08-30', kickoff: '7:00pm',
         opponent: 'Clayton', home: false, conference: false,
         result: { teamScore: 42, opponentScore: 10 }, booster: null, stats: null },
@@ -81,7 +90,19 @@ EGE.stats[2019] = {
     'cooper-clark': [
       { week:  1, date: '2019-08-23', kickoff: '7:00pm',
         opponent: 'Hart', home: true, conference: false,
-        result: { teamScore: 42, opponentScore: 14 }, booster: null, stats: null },
+        result: { teamScore: 58, opponentScore: 14 }, booster: null,
+        stats: {
+          carries: 21, rushingYards: 137, rushingTd: 3, rushingLong: 38,
+          receptions: 4, receivingYards: 26, receivingYac: 9,
+          receivingTd: 1, receivingLong: 12, targets: 6, fumbles: 0,
+          rushingAvg: 6.5, receivingAvg: 6.5, totalYards: 163, totalTd: 4
+        },
+        bigPlays: [
+          '38 yard rushing touchdown bomb',
+          '12 yard receiving touchdown',
+          '6 yard rushing touchdown',
+          '1 yard rushing touchdown'
+        ] },
       { week:  2, date: '2019-08-30', kickoff: '7:00pm',
         opponent: 'Millikan', home: false, conference: false,
         result: { teamScore: 52, opponentScore: 7 }, booster: null, stats: null },
@@ -208,7 +229,19 @@ EGE.stats[2019] = {
     'jaykeb-stewart': [
       { week:  1, date: '2019-08-23', kickoff: '7:30pm',
         opponent: 'Riverview Sarasota', home: false, conference: false, scouts: true,
-        result: { teamScore: 29, opponentScore: 28 }, booster: null, stats: null },
+        result: { teamScore: 29, opponentScore: 28 }, booster: null,
+        stats: {
+          completions: 28, attempts: 45, passingYards: 385,
+          passingYac: 233, passingTd: 3, interceptions: 1, carries: 1,
+          rushingYards: 5, rushingTd: 0, rushingLong: 5, sacks: 1,
+          fumbles: 0, passingAvg: 13.8, rating: 102.5, rushingAvg: 5
+        },
+        bigPlays: [
+          '32 yard passing touchdown',
+          '12 yard passing touchdown',
+          '7 yard passing touchdown',
+          '66 yard dot on third down'
+        ] },
       { week:  2, date: '2019-08-30', kickoff: '7:30pm',
         opponent: 'Edison', home: true, conference: false, scouts: true,
         result: { teamScore: 17, opponentScore: 12 }, booster: null, stats: null },
