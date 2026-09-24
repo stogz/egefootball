@@ -44,15 +44,18 @@ EGE.stats[2019] = {
     'andrew-parr': [
       { week:  1, date: '2019-08-23', kickoff: '7:00pm',
         opponent: 'Cardinal Gibbons', home: true, conference: false, scouts: true,
-        result: { teamScore: 27, opponentScore: 24 }, booster: null,
+        result: { teamScore: 38, opponentScore: 24 }, booster: 'boost-2-5',
         stats: {
-          receptions: 7, receivingYards: 96, receivingYac: 0,
-          receivingTd: 1, receivingLong: 29, targets: 0, carries: 0,
+          receptions: 9, receivingYards: 205, receivingYac: 144,
+          receivingTd: 3, receivingLong: 53, targets: 14, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 13.7, totalYards: 96, totalTd: 1
+          receivingAvg: 22.8, totalYards: 205, totalTd: 3
         },
         bigPlays: [
-          '12 yard receiving touchdown'
+          '53 yard receiving touchdown',
+          '22 yard receiving touchdown',
+          '10 yard receiving touchdown',
+          '44 yard reception'
         ] },
       { week:  2, date: '2019-08-30', kickoff: '7:00pm',
         opponent: 'Clayton', home: false, conference: false,
