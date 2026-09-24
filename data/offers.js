@@ -55,16 +55,47 @@ EGE.colleges = {
   /* --- the south --------------------------------------------------------- */
   GaSouthern: { name: 'Georgia Southern',  short: 'GASO',  ground: '#041E42', ink: '#A89968', logo: 'GeorgiaSouthern' },
   FAU:        { name: 'Florida Atlantic',  short: 'FAU',   ground: '#003366', ink: '#FFFFFF', logo: 'FAU' },
-  FIU:        { name: 'Florida Intl',      short: 'FIU',   ground: '#081E3F', ink: '#B6862C', logo: 'FIU' }
+  FIU:        { name: 'Florida Intl',      short: 'FIU',   ground: '#081E3F', ink: '#B6862C', logo: 'FIU' },
+  /* Black for the gold UCF: the letters carry their own white keyline. Sand
+     for the green bull and gold for the maroon BC, so none of the three
+     sits on its own colour. */
+  UCF:        { name: 'UCF',               short: 'UCF',   ground: '#000000', ink: '#B7A369', logo: 'UCF' },
+  USF:        { name: 'South Florida',     short: 'USF',   ground: '#CFC493', ink: '#006747', logo: 'USF' },
+  Bethune:    { name: 'Bethune-Cookman',   short: 'BCU',   ground: '#F2A900', ink: '#6F263D', logo: 'Bethune' },
+
+  /* --- the Carolinas and Virginia ---------------------------------------- */
+  /* No mark for Charlotte yet, so it prints as CLT until Charlotte.png lands. */
+  Charlotte:  { name: 'Charlotte',         short: 'CLT',   ground: '#046A38', ink: '#FFFFFF', logo: 'Charlotte' },
+  ODU:        { name: 'Old Dominion',      short: 'ODU',   ground: '#003057', ink: '#A1D2F1', logo: 'dominion' },
+  JMU:        { name: 'James Madison',     short: 'JMU',   ground: '#CBB677', ink: '#450084', logo: 'JMU' },
+  Elon:       { name: 'Elon',              short: 'ELON',  ground: '#FFFFFF', ink: '#73000A', logo: 'elon' },
+  NCCentral:  { name: 'NC Central',        short: 'NCCU',  ground: '#A2AAAD', ink: '#880023', logo: 'NCCentral' },
+
+  /* --- the Mountain West and the desert ----------------------------------- */
+  /* Twelve on Cooper's header, so the grounds are spread to keep neighbours
+     apart: Fresno on navy rather than red (Arizona has the red), Boise on its
+     orange rather than its blue horse's blue, UNLV's red letters on black. */
+  SDSU:       { name: 'San Diego State',   short: 'SDSU',  ground: '#FFFFFF', ink: '#A6192E', logo: 'SDSU' },
+  Fresno:     { name: 'Fresno State',      short: 'FRES',  ground: '#13284C', ink: '#DB0032', logo: 'Fresno' },
+  SJSU:       { name: 'San Jose State',    short: 'SJSU',  ground: '#0055A2', ink: '#E5A823', logo: 'SJSU' },
+  Nevada:     { name: 'Nevada',            short: 'NEV',   ground: '#B1B3B3', ink: '#003366', logo: 'Nevada' },
+  UNLV:       { name: 'UNLV',              short: 'UNLV',  ground: '#1A1A1A', ink: '#CF0A2C', logo: 'UNLV' },
+  ColoState:  { name: 'Colorado State',    short: 'CSU',   ground: '#C8C372', ink: '#1E4D2B', logo: 'ColoradoState' },
+  Boise:      { name: 'Boise State',       short: 'BSU',   ground: '#D64309', ink: '#0033A0', logo: 'Boise' },
+  Arizona:    { name: 'Arizona',           short: 'ARIZ',  ground: '#AB0520', ink: '#FFFFFF', logo: 'Arizona' },
+  ASU:        { name: 'Arizona State',     short: 'ASU',   ground: '#8C1D40', ink: '#FFC627', logo: 'ASU' }
 };
 
 /* Who has offered whom. Add a key to a list and the sticker is on the page;
    there is nothing else to change. */
 EGE.offers = {
   'sam-stogsdill': ['ISU', 'EIU', 'SIU', 'INDY', 'SEMO'],
-  'paxon-hatch':   ['ISU', 'UNI', 'WIU'],
-  'cooper-clark':  ['SacState', 'UCDavis', 'CalPoly'],
-  'jaykeb-stewart': ['GaSouthern', 'FAU', 'FIU']
+  'paxon-hatch':   ['ISU', 'UNI', 'WIU', 'EIU', 'SIU'],
+  'cooper-clark':  ['SacState', 'UCDavis', 'CalPoly', 'SDSU', 'Fresno', 'SJSU',
+                    'Nevada', 'UNLV', 'ColoState', 'Boise', 'Arizona', 'ASU'],
+  'jaykeb-stewart': ['GaSouthern', 'FAU', 'FIU', 'UCF', 'USF', 'Bethune'],
+  'andrew-parr':   ['Charlotte', 'ODU', 'JMU', 'Elon', 'NCCentral'],
+  'isaac-vitel':   ['ISU']
 };
 
 /* The offers a player is holding, as whole college records rather than keys.
