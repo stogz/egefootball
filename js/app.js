@@ -495,14 +495,13 @@
   /* Where one sticker goes, and how far off square. The grid is tighter than
      the sticker is wide, so they overlap the way a handful of stickers on a
      folder do; the jitter is what stops the overlap looking like a pattern. */
-  function offerPlacing(seed, at, size, cols) {
+  function offerPlacing(seed, at, size, cols, stepX) {
     var hash = 2166136261;
     String(seed).split('').forEach(function (ch) {
       hash ^= ch.charCodeAt(0);
       hash = (hash * 16777619) >>> 0;
     });
 
-    var stepX = size * 0.82;
     var stepY = size * 0.80;
     var jitter = size * 0.22;
 
@@ -512,6 +511,76 @@
          (((hash >>> 9) % 101) / 100 - 0.5) * 2 * jitter,
       tilt: ((hash >>> 17) % 33) - 16         /* -16deg .. +16deg */
     };
+  }
+
+  /* How far along a row one sticker is from the next, when nothing asks for
+     more room than that. */
+  var OFFER_STEP = OFFER_SIZE * 0.82;
+
+  /* How wide the box is for a grid this many across. */
+  function offerSpan(cols, step) {
+    return (cols - 1) * step + OFFER_SIZE * 1.10;
+  }
+
+  /* The width the stickers can have in the corner: from the right edge they
+     hang over, back to the end of the longest line of words beside the
+     picture -- the name, nearly always, but the school and the facts are
+     counted too so a sticker never lands on a word. Measured with the box
+     out of the grid, so the words are where they sit with no stickers taking
+     room off them. The jitter comes off as well, since a sticker nudged left
+     can reach that far past the box. */
+  function offerRoom(box) {
+    var top = box.parentNode;
+    var reach = parseFloat(window.getComputedStyle(box).getPropertyValue('--offers-reach')) || 0;
+    var gap = parseFloat(window.getComputedStyle(top).columnGap) || 0;
+
+    /* The text itself, one run at a time: the blocks it sits in are the
+       full width of the column and would say the words run to the edge. */
+    var words = 0;
+    [document.getElementById('playerSchool'), document.getElementById('playerName'),
+     top.querySelector('.ege-detail__list')].forEach(function (node) {
+      if (!node) { return; }
+      var walk = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+      var range = document.createRange();
+      while (walk.nextNode()) {
+        if (!walk.currentNode.nodeValue.trim()) { continue; }
+        range.selectNodeContents(walk.currentNode);
+        words = Math.max(words, range.getBoundingClientRect().right);
+      }
+    });
+
+    return top.getBoundingClientRect().right + reach - words - gap - OFFER_SIZE * 0.22;
+  }
+
+  /* How many across, and how far apart. A handful keeps the grid above. A
+     pile that grid would stack more than two deep is let out sideways
+     instead, rather than running down past the facts: as many across as fit
+     between the name and the edge, so long as the last row is at least half
+     full -- a lone sticker trailing under a long row reads as one that fell
+     off. Then the row is spaced out to use the room it was given, never so
+     far apart that the stickers stop overlapping.
+
+     Only in the corner. Where the offers are a band of their own under the
+     header, they keep to the plain grid. */
+  function offerLayout(box, count) {
+    var plain = offerCols(count);
+    var layout = { cols: plain, step: OFFER_STEP };
+    if (Math.ceil(count / plain) <= 2) { return layout; }
+    if (window.matchMedia('(max-width: 1000px)').matches) { return layout; }
+
+    var room = offerRoom(box);
+    function fits(cols) {
+      var last = count - (Math.ceil(count / cols) - 1) * cols;
+      return cols < count && last * 2 >= cols && offerSpan(cols, OFFER_STEP) <= room;
+    }
+    for (var cols = count - 1; cols > plain; cols -= 1) {
+      if (fits(cols)) { layout.cols = cols; break; }
+    }
+    if (layout.cols > plain) {
+      layout.step = Math.min(OFFER_SIZE * 0.88,
+        Math.max(OFFER_STEP, (room - OFFER_SIZE * 1.10) / (layout.cols - 1)));
+    }
+    return layout;
   }
 
   /* The school's mark, or its short name until the mark has been added. A
@@ -532,9 +601,9 @@
     return logo;
   }
 
-  function offerSticker(player, entry, at, cols) {
+  function offerSticker(player, entry, at, cols, step) {
     var college = entry.college;
-    var place = offerPlacing(player.slug + '-' + entry.key, at, OFFER_SIZE, cols);
+    var place = offerPlacing(player.slug + '-' + entry.key, at, OFFER_SIZE, cols, step);
 
     var slot = el('div', 'ege-offers__sticker');
     slot.style.setProperty('--at-x', Math.round(place.x) + 'px');
@@ -555,17 +624,23 @@
     return slot;
   }
 
+  var offersPlayer = null;
+
   function renderOffers(player) {
     var box = document.getElementById('playerOffers');
     box.innerHTML = '';
+    offersPlayer = player;
 
+    /* Out of the grid while the room is measured, then back in. */
+    box.hidden = true;
     var offers = EGE.offersFor(player);
-    box.hidden = !offers.length;
     if (!offers.length) { return; }
 
-    var cols = offerCols(offers.length);
+    var layout = offerLayout(box, offers.length);
+    var cols = layout.cols;
+    box.hidden = false;
     offers.forEach(function (entry, at) {
-      box.appendChild(offerSticker(player, entry, at, cols));
+      box.appendChild(offerSticker(player, entry, at, cols, layout.step));
     });
 
     /* The box is only as big as the stickers in it, so a player with three
@@ -579,14 +654,25 @@
        the jitter is on the height, where there is nothing to overflow. */
     var rows = Math.ceil(offers.length / cols);
     cols = Math.min(offers.length, cols);
-    box.style.setProperty('--offers-width',
-      Math.round((cols - 1) * OFFER_SIZE * 0.82 + OFFER_SIZE * 1.10) + 'px');
+    box.style.setProperty('--offers-width', Math.round(offerSpan(cols, layout.step)) + 'px');
     box.style.setProperty('--offers-height',
       Math.round((rows - 1) * OFFER_SIZE * 0.80 + OFFER_SIZE * 1.34) + 'px');
 
     box.setAttribute('aria-label', offers.length +
       (offers.length === 1 ? ' college offer: ' : ' college offers: ') +
       offers.map(function (one) { return one.college.name; }).join(', '));
+  }
+
+  /* Laid out again when the width changes, and when the webfont lands: both
+     move where the name ends, which is what the room is measured to. */
+  function refitOffers() {
+    var box = document.getElementById('playerOffers');
+    if (offersPlayer && box.offsetParent !== null) { renderOffers(offersPlayer); }
+  }
+
+  window.addEventListener('resize', refitOffers);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(refitOffers);
   }
 
   /* Stickers are private: your own, or anyone's if you are an admin. The
