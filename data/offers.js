@@ -64,8 +64,6 @@ EGE.colleges = {
   Bethune:    { name: 'Bethune-Cookman',   short: 'BCU',   ground: '#F2A900', ink: '#6F263D', logo: 'Bethune' },
 
   /* --- the Carolinas and Virginia ---------------------------------------- */
-  /* No mark for Charlotte yet, so it prints as CLT until Charlotte.png lands. */
-  Charlotte:  { name: 'Charlotte',         short: 'CLT',   ground: '#046A38', ink: '#FFFFFF', logo: 'Charlotte' },
   ODU:        { name: 'Old Dominion',      short: 'ODU',   ground: '#003057', ink: '#A1D2F1', logo: 'dominion' },
   JMU:        { name: 'James Madison',     short: 'JMU',   ground: '#CBB677', ink: '#450084', logo: 'JMU' },
   Elon:       { name: 'Elon',              short: 'ELON',  ground: '#FFFFFF', ink: '#73000A', logo: 'elon' },
@@ -94,7 +92,7 @@ EGE.offers = {
   'cooper-clark':  ['SacState', 'UCDavis', 'CalPoly', 'SDSU', 'Fresno', 'SJSU',
                     'Nevada', 'UNLV', 'ColoState', 'Boise', 'Arizona', 'ASU'],
   'jaykeb-stewart': ['GaSouthern', 'FAU', 'FIU', 'UCF', 'USF', 'Bethune'],
-  'andrew-parr':   ['Charlotte', 'ODU', 'JMU', 'Elon', 'NCCentral'],
+  'andrew-parr':   ['ODU', 'JMU', 'Elon', 'NCCentral'],
   'isaac-vitel':   ['ISU']
 };
 
