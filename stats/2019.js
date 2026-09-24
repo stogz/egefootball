@@ -72,7 +72,13 @@ EGE.stats[2019] = {
         ] },
       { week:  3, date: '2019-09-09', kickoff: '7:00pm',
         opponent: 'Middle Creek', home: true, conference: false,
-        result: { teamScore: 52, opponentScore: 6 }, booster: null, stats: null },
+        result: { teamScore: 52, opponentScore: 6 }, booster: null,
+        stats: {
+          receptions: 6, receivingYards: 81, receivingYac: 48,
+          receivingTd: 0, receivingLong: 32, targets: 9, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 13.5, totalYards: 81, totalTd: 0
+        } },
       { week:  4, date: '2019-09-13', kickoff: '7:00pm',
         opponent: 'Millbrook', home: false, conference: false,
         result: { teamScore: 49, opponentScore: 7 }, booster: null, stats: null },
@@ -132,7 +138,17 @@ EGE.stats[2019] = {
         ] },
       { week:  3, date: '2019-09-06', kickoff: '7:00pm',
         opponent: 'Lawndale', home: false, conference: false, scouts: true,
-        result: { teamScore: 16, opponentScore: 35 }, booster: null, stats: null },
+        result: { teamScore: 24, opponentScore: 42 }, booster: 'boost-2-0',
+        stats: {
+          carries: 7, rushingYards: 2, rushingTd: 0, rushingLong: 5,
+          receptions: 11, receivingYards: 106, receivingYac: 43,
+          receivingTd: 2, receivingLong: 16, targets: 14, fumbles: 1,
+          rushingAvg: 0.3, receivingAvg: 9.6, totalYards: 108, totalTd: 2
+        },
+        bigPlays: [
+          '12 yard receiving touchdown',
+          '1 yard receiving touchdown'
+        ] },
       { week:  4, date: '2019-09-13', kickoff: '7:00pm',
         opponent: 'Mission Hills', home: true, conference: true,
         result: { teamScore: 17, opponentScore: 7 }, booster: null, stats: null },
@@ -173,7 +189,13 @@ EGE.stats[2019] = {
         ] },
       { week:  3, date: '2019-09-07', kickoff: '1:00pm',
         opponent: 'Lincoln-Way Central', home: true, conference: false, scouts: true,
-        result: { teamScore: 6, opponentScore: 46 }, booster: null, stats: null },
+        result: { teamScore: 10, opponentScore: 46 }, booster: null,
+        stats: {
+          receptions: 4, receivingYards: 16, receivingYac: 16,
+          receivingTd: 0, receivingLong: 16, targets: 6, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 4, totalYards: 16, totalTd: 0
+        } },
       { week:  4, date: '2019-09-13', kickoff: '7:00pm',
         opponent: 'Manual', home: false, conference: true,
         result: { teamScore: 28, opponentScore: 8 }, booster: null, stats: null },
@@ -217,7 +239,16 @@ EGE.stats[2019] = {
         ] },
       { week:  3, date: '2019-09-07', kickoff: '1:00pm',
         opponent: 'Lincoln-Way Central', home: true, conference: false, scouts: true,
-        result: { teamScore: 6, opponentScore: 46 }, booster: null, stats: null },
+        result: { teamScore: 10, opponentScore: 46 }, booster: 'boost-1-5',
+        stats: {
+          completions: 15, attempts: 26, passingYards: 138,
+          passingYac: 120, passingTd: 0, interceptions: 2, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, sacks: 0,
+          fumbles: 1, passingAvg: 9.2, rating: 40.2
+        },
+        bigPlays: [
+          '42 yard pick-six'
+        ] },
       { week:  4, date: '2019-09-13', kickoff: '7:00pm',
         opponent: 'Manual', home: false, conference: true,
         result: { teamScore: 28, opponentScore: 8 }, booster: null, stats: null },
@@ -260,7 +291,19 @@ EGE.stats[2019] = {
         ] },
       { week:  3, date: '2019-09-06', kickoff: '7:00pm',
         opponent: 'Normal West', home: false, conference: true, scouts: true,
-        result: { teamScore: 19, opponentScore: 14 }, booster: null, stats: null },
+        result: { teamScore: 37, opponentScore: 14 }, booster: 'boost-1-5',
+        stats: {
+          carries: 35, rushingYards: 312, rushingTd: 3, rushingLong: 60,
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
+          rushingAvg: 8.9, totalYards: 312, totalTd: 3
+        },
+        bigPlays: [
+          '60 yard touchdown',
+          '55 yard touchdown',
+          '3 yard touchdown',
+          '43 yard BEAST-mode'
+        ] },
       { week:  4, date: '2019-09-13', kickoff: '7:00pm',
         opponent: 'Urbana', home: false, conference: true,
         result: { teamScore: 40, opponentScore: 0 }, booster: null, stats: null },
@@ -317,7 +360,17 @@ EGE.stats[2019] = {
         ] },
       { week:  3, date: '2019-09-06', kickoff: '7:30pm',
         opponent: 'Monsignor Pace', home: true, conference: false, scouts: true,
-        result: { teamScore: 38, opponentScore: 28 }, booster: null, stats: null },
+        result: { teamScore: 38, opponentScore: 28 }, booster: null,
+        stats: {
+          completions: 18, attempts: 34, passingYards: 164,
+          passingYac: 71, passingTd: 2, interceptions: 0, carries: 5,
+          rushingYards: 31, rushingTd: 0, rushingLong: 19, sacks: 2,
+          fumbles: 0, passingAvg: 9.1, rating: 85.9, rushingAvg: 6.2
+        },
+        bigPlays: [
+          '19 yard passing touchdown',
+          '5 yard passing touchdown'
+        ] },
       { week:  4, date: '2019-09-13', kickoff: '7:30pm',
         opponent: 'Palmetto Ridge', home: true, conference: true,
         result: { teamScore: 37, opponentScore: 0 }, booster: null, stats: null },
