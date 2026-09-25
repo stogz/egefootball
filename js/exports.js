@@ -101,8 +101,44 @@ EGE.exports = (function () {
        the shop rows can be cleared on a later visit and the season can never
        be folded in twice. */
     lines.push('EGE.ratingsLockedSeason = ' + season + ';');
+    seasonStartLines(season).forEach(function (line) { lines.push(line); });
     lines.push(END);
     return lines.join('\n');
+  }
+
+  /* The numbers the base is about to overwrite, kept so the player page can
+     still show how far the season moved everybody once the purchases are
+     folded in. Only what moved; everything else started where it ends. */
+  function seasonStartLines(season) {
+    var lines = [
+      '/* Where the numbers above stood when that season kicked off: only the',
+      '   attributes that moved, at their old values. It is what the ticker on a',
+      '   player\'s ratings measures the season\'s climb from. */',
+      'EGE.ratingsSeasonStart = {',
+      '  season: ' + season + ',',
+      '  changes: {'
+    ];
+
+    Object.keys(EGE.ratings).forEach(function (slug) {
+      var player = EGE.playerBySlug(slug);
+      if (!player) { return; }
+      var start = EGE.seasonStartValuesFor(player);
+      var values = EGE.valuesFor(player);
+      var pairs = Object.keys(start).filter(function (key) {
+        return values[key] !== start[key];
+      }).map(function (key) {
+        return key + ': ' + start[key] + ',';
+      });
+      if (!pairs.length) { return; }
+
+      lines.push("    '" + slug + "': {");
+      wrapPairs(pairs, '      ').forEach(function (line) { lines.push(line); });
+      lines.push('    },');
+    });
+
+    lines.push('  }');
+    lines.push('};');
+    return lines;
   }
 
   /* What the lock will change, so the portal can say so before it is done. */

@@ -126,7 +126,7 @@ EGE.players = [
     last: 'Hatch',
     team: 'bloomington',
     position: 'TE',
-    jersey: 88,
+    jersey: 10,
     height: 74,               // inches
     weight: 275,              // pounds
     email: 'paxonhatch@gmail.com',
@@ -140,7 +140,7 @@ EGE.players = [
     last: 'Vitel',
     team: 'bloomington',
     position: 'QB',
-    jersey: 24,
+    jersey: 8,
     height: 69,               // inches
     weight: 185,              // pounds
     email: 'isaacvitel2005@gmail.com',
@@ -154,7 +154,7 @@ EGE.players = [
     last: 'Stogsdill',
     team: 'normal',
     position: 'RB',
-    jersey: 7,
+    jersey: 34,
     height: 73,               // inches
     weight: 210,              // pounds
     email: 'stogzfam@gmail.com',

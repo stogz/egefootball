@@ -1438,50 +1438,178 @@ body {
 .ege-ovr--head { margin-top: 0; padding: 6px 12px; }
 .ege-ovr--head .ege-ovr__value { font-size: 1.5rem; }
 
+/* The overall in the ratings head: the roster card's own ink box, so the
+   number reads the same here as it does on the card that links to it. */
+.ege-ratings__head {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  transition: opacity .2s ease;
+}
+.ege-ratings__head.is-waiting { opacity: 0; }
+.ege-ovrbox--head { width: 64px; padding: 6px 6px 8px; }
+.ege-ovrbox--head .ege-ovrbox__value { font-size: 1.875rem; }
+
+/* --- the ticker -----------------------------------------------------------
+
+   Which way a rating has gone since the season began, the way a stock quote
+   says it: an arrow and a signed number. Green climbing, the deep orange
+   falling, a flat rule for no change. Drawn as masks so one shape takes
+   whatever colour the ticker is in. */
+.ege-ticker {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--ticker-ink);
+}
+.ege-ticker--up   { --ticker-ink: #2e7d32; --ticker-ground: #dcefd2; }
+.ege-ticker--down { --ticker-ink: var(--fb-accent-deep); --ticker-ground: var(--fb-tint-clay); }
+.ege-ticker--flat { --ticker-ink: var(--fb-muted); --ticker-ground: var(--fb-surface); }
+.ege-ticker[hidden] { display: none; }
+
+.ege-ticker__mark {
+  flex: none;
+  width: .9em;
+  height: .9em;
+  background-color: currentColor;
+  -webkit-mask: var(--ticker-mark) center / contain no-repeat;
+  mask: var(--ticker-mark) center / contain no-repeat;
+}
+/* A plain triangle on the small ones, where a chart line would be a smudge. */
+.ege-ticker--up   { --ticker-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 1l4.5 7.5h-9z'/%3E%3C/svg%3E"); }
+.ege-ticker--down { --ticker-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 9L.5 1.5h9z'/%3E%3C/svg%3E"); }
+.ege-ticker--flat { --ticker-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M1 4h8v2H1z'/%3E%3C/svg%3E"); }
+
+/* The big one, beside the overall: a chip with the chart line in it. */
+.ege-ticker--lg {
+  gap: 7px;
+  padding: 0 12px;
+  border: var(--fb-border) solid var(--fb-ink);
+  background: var(--ticker-ground);
+  box-shadow: 3px 3px 0 var(--fb-ink);
+  font-size: 1.125rem;
+}
+.ege-ticker--lg .ege-ticker__num { font-family: var(--fb-font-display); font-weight: 400; font-size: 1.5rem; }
+.ege-ticker--lg .ege-ticker__mark { width: 1.35em; height: 1.35em; }
+.ege-ticker--lg.ege-ticker--up   { --ticker-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='square'%3E%3Cpath d='M2 19l7-7 4 4 8-9'/%3E%3Cpath d='M14 6h7v7'/%3E%3C/svg%3E"); }
+.ege-ticker--lg.ege-ticker--down { --ticker-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='square'%3E%3Cpath d='M2 5l7 7 4-4 8 9'/%3E%3Cpath d='M14 18h7v-7'/%3E%3C/svg%3E"); }
+.ege-ticker--lg.ege-ticker--flat { --ticker-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='square'%3E%3Cpath d='M2 12h19'/%3E%3Cpath d='M16 7l5 5-5 5'/%3E%3C/svg%3E"); }
+.ege-ticker__since {
+  align-self: center;
+  margin-left: 2px;
+  padding-left: 8px;
+  border-left: var(--fb-border-thin) solid currentColor;
+  font-size: var(--fb-label, .625rem);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  opacity: .8;
+}
+
+/* In an ink band: the bright green reads there, the dark one would not. */
+.ege-ticker--sm { font-size: .75rem; }
+.ege-group__head .ege-ticker--up   { --ticker-ink: #8fd694; }
+.ege-group__head .ege-ticker--down { --ticker-ink: var(--fb-accent-hover); }
+.ege-group__head .ege-ticker--flat { --ticker-ink: rgba(245, 234, 216, .55); }
+
+.ege-ticker--xs { font-size: .6875rem; gap: 2px; }
+.ege-ticker--xs .ege-ticker__mark { width: .75em; height: .75em; }
+
+/* --- the groups -----------------------------------------------------------
+
+   Each group is a small panel of its own in the kit's language: a 2px ink
+   frame with a hard shadow, the name and score on an ink band across the top
+   the way a table's head is, and the attributes as ruled, striped rows. */
 .ege-groups {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 272px), 1fr));
-  gap: 22px 30px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+  gap: 24px;
+  align-items: start;
 }
-.ege-group { min-width: 0; }
+.ege-group {
+  min-width: 0;
+  background: #fffaf1;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, .28);
+}
 .ege-group__head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding-bottom: 6px;
-  margin-bottom: 10px;
-  border-bottom: var(--fb-border-thin) solid var(--fb-ink);
+  padding: 9px 12px;
+  background: var(--fb-ink);
+  color: var(--fb-cream);
+  border-bottom: 4px solid var(--fb-accent);
 }
 .ege-group__label {
   font-size: .6875rem;
   font-weight: 800;
-  letter-spacing: .14em;
+  letter-spacing: .16em;
   text-transform: uppercase;
 }
 .ege-group__score {
-  font-family: var(--fb-font-display);
-  font-size: 1.375rem;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
 }
+.ege-group__value {
+  font-family: var(--fb-font-display);
+  font-size: 1.625rem;
+  line-height: 1;
+  color: var(--fb-accent);
+}
+.ege-group__body { padding: 4px 0; }
 
 .ege-attr {
   display: grid;
-  grid-template-columns: 1fr 74px 26px;
+  grid-template-columns: minmax(0, 1fr) 88px 24px 34px;
   align-items: center;
   gap: 10px;
-  padding: 3px 0;
+  padding: 6px 12px;
   font-size: .75rem;
 }
-.ege-attr__label { font-weight: 600; color: var(--fb-muted); min-width: 0; }
+.ege-attr:nth-child(even) { background: rgba(32, 38, 26, .045); }
+.ege-attr__label { font-weight: 700; color: var(--fb-muted); min-width: 0; }
 .ege-attr__value {
   font-weight: 800;
   text-align: right;
   font-variant-numeric: tabular-nums;
+  font-size: .8125rem;
+}
+.ege-attr__ticker { display: flex; justify-content: flex-start; }
+
+/* The bar: ink-framed like the kit's meter, filled to where the number stood
+   at the start of the season, with the season's gain laid on the end in the
+   accent. An 80 or better fills in ink rather than grass. */
+.ege-meter {
+  position: relative;
+  height: 12px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: #fff;
+  overflow: hidden;
+}
+.ege-meter__fill,
+.ege-meter__gain {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+}
+.ege-meter__fill { background: var(--fb-grass); }
+.ege-meter--high .ege-meter__fill { background: var(--fb-ink); }
+.ege-meter__gain {
+  background: var(--fb-accent);
+  box-shadow: inset 1px 0 0 var(--fb-cream);
 }
 
 @media (max-width: 420px) {
-  .ege-attr { grid-template-columns: 1fr 54px 26px; }
+  .ege-attr { grid-template-columns: minmax(0, 1fr) 48px 22px 30px; gap: 8px; padding: 6px 10px; }
+  .ege-ticker--lg { padding: 0 9px; }
+  .ege-ticker--lg .ege-ticker__num { font-size: 1.25rem; }
 }
 
 /* --- login form --------------------------------------------------------- */
@@ -2878,21 +3006,55 @@ html.is-loading, html.is-loading body { overflow: hidden; }
 }
 
 /* ==========================================================================
-   The season switcher, under the player header
+   The bar above the player: the way back, and the season switcher
    ========================================================================== */
 
+.ege-playerbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 12px;
+  padding: 30px 0 22px;
+}
+
+/* The switcher wears the All Players button's outline: a cream frame on the
+   field, cream capitals, and the frame filling in on hover. The arrows are
+   the same button, square; the picker is a select dressed to match. */
 .ege-seasonbar {
   display: flex;
   align-items: stretch;
   gap: 8px;
-  margin-top: 18px;
+  min-width: 0;
 }
 .ege-seasonbar[hidden] { display: none; }
 .ege-seasonbar__pick {
-  flex: 1 1 auto;
   min-width: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  border: var(--fb-border) solid var(--fb-cream);
+  background-color: transparent;
+  /* A cream chevron in place of the one the browser draws. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23f5ead8' stroke-width='2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px 8px;
+  color: var(--fb-cream);
+  font-size: 12px;
   font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 11px 36px 11px 16px;
+  cursor: pointer;
 }
+.ege-seasonbar__pick:hover {
+  background-color: var(--fb-cream);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2320261a' stroke-width='2'/%3E%3C/svg%3E");
+  color: var(--fb-ink);
+}
+.ege-seasonbar__pick:focus { border-color: var(--fb-cream); }
+/* The open list is the browser's own, on a light ground. */
+.ege-seasonbar__pick option { background: var(--fb-cream); color: var(--fb-ink); }
+
 .ege-seasonbar__step {
   flex: 0 0 auto;
   min-width: 46px;
@@ -2901,9 +3063,25 @@ html.is-loading, html.is-loading body { overflow: hidden; }
   font-size: 1.25rem;
   line-height: 1;
 }
-.ege-seasonbar__step:disabled { opacity: .35; cursor: default; }
+/* The kit greys a disabled button onto sand; out here on the grass that is
+   a pale block, so it just fades instead. */
+.ege-seasonbar__step[disabled] {
+  background: transparent;
+  opacity: .35;
+  cursor: default;
+}
+.ege-seasonbar__step[disabled]:hover { background: transparent; color: var(--fb-cream); }
+
 @media (max-width: 620px) {
-  .ege-seasonbar__pick { text-transform: none; letter-spacing: 0; padding-left: 10px; padding-right: 24px; }
+  .ege-playerbar { padding: 22px 0 18px; gap: 10px; }
+  .ege-seasonbar { flex: 1 1 100%; }
+  .ege-seasonbar__pick {
+    flex: 1 1 auto;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 16px;
+    padding: 9px 32px 9px 12px;
+  }
 }
 
 

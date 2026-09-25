@@ -195,7 +195,6 @@
   /* --- player view ------------------------------------------------------ */
 
   function renderPlayer(player) {
-    var team = EGE.teamFor(player);
     renderSeasonBar(player);
     var season = shownSeason();
 
@@ -208,15 +207,15 @@
     school.appendChild(schoolLine(player, 'ege-school--lg'));
 
     document.getElementById('playerName').textContent = player.name;
-    /* The year on its own. Which class and which level it is are already
-       across the strip at the top of the panel, in full. */
-    document.getElementById('playerSeason').textContent = String(season);
+    /* Three facts under the name: what he plays, how his team's season is
+       going, and the number on his back. Which season, class and level it
+       is are across the strip at the top of the panel, in full. */
     document.getElementById('playerPosition').textContent = player.position || TBD;
-    document.getElementById('playerLeague').textContent = (team && team.league) || TBD;
-
-    var record = EGE.recordFor(player, season);
-    var played = EGE.gamesPlayed(player, season).length;
-    document.getElementById('playerRecord').textContent = played ? record.text : '\u2014';
+    /* The team's wins and losses over the season on show, 0-0 until the
+       first result is published. */
+    document.getElementById('playerRecord').textContent = EGE.recordFor(player, season).text;
+    document.getElementById('playerJersey').textContent =
+      typeof player.jersey === 'number' ? '#' + player.jersey : TBD;
 
     renderVitals(player);
     renderOffers(player);
@@ -307,6 +306,12 @@
   window.addEventListener('resize', refitTally);
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(refitTally);
+    /* A face the home page never used -- a weight only the player page
+       asks for -- lands after `ready` has already gone, so listen for
+       every load rather than only the first round. */
+    if (document.fonts.addEventListener) {
+      document.fonts.addEventListener('loadingdone', refitTally);
+    }
   }
 
   /* The two facts about a player that no season changes, under his picture.
@@ -673,6 +678,24 @@
   window.addEventListener('resize', refitOffers);
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(refitOffers);
+    if (document.fonts.addEventListener) {
+      document.fonts.addEventListener('loadingdone', refitOffers);
+    }
+  }
+
+  /* And whenever the header itself changes width without the window doing
+     so -- a scrollbar arriving as the schedule fills the page under it is
+     the usual one. Width only: laying the stickers out changes the header's
+     height, and reacting to that would go round in a circle. */
+  if (window.ResizeObserver) {
+    var headerWidth = 0;
+    new window.ResizeObserver(function (entries) {
+      var width = Math.round(entries[0].contentRect.width);
+      if (!width || width === headerWidth) { return; }
+      headerWidth = width;
+      refitOffers();
+      refitTally();
+    }).observe(document.querySelector('.ege-detail'));
   }
 
   /* Stickers are private: your own, or anyone's if you are an admin. The
@@ -1519,27 +1542,90 @@
 
   var ratingsPanel = document.getElementById('ratingsPanel');
 
+  /* A stock ticker for a rating: which way it has gone since the live
+     season began, and by how much. Up is green with the arrow climbing, down
+     is the deep orange with it falling, and a number that has not moved gets
+     a flat line and a zero -- still drawn, so "nothing yet" reads as an
+     answer rather than as something missing. */
+  function tickerEl(change, modifier) {
+    var way = change > 0 ? 'up' : change < 0 ? 'down' : 'flat';
+    var ticker = el('span', 'ege-ticker ege-ticker--' + way + (modifier ? ' ' + modifier : ''));
+    var mark = el('span', 'ege-ticker__mark');
+    mark.setAttribute('aria-hidden', 'true');
+    ticker.appendChild(mark);
+    ticker.appendChild(el('span', 'ege-ticker__num',
+      change > 0 ? '+' + change : change < 0 ? '\u2212' + Math.abs(change) : '0'));
+    return ticker;
+  }
+
+  function tickerTitle(change, from, to) {
+    var season = EGE.currentSeason + ' season';
+    if (!change) { return 'No change since the ' + season + ' began (' + to + ')'; }
+    return (change > 0 ? 'Up ' : 'Down ') + Math.abs(change) + ' since the ' + season +
+      ' began (' + from + ' \u2192 ' + to + ')';
+  }
+
+  /* How full a meter is, as a share of the 1-99 scale. */
+  function meterShare(value) {
+    return Math.max(0, Math.min(100, value)) + '%';
+  }
+
   function buildGroup(group) {
     var box = el('div', 'ege-group');
 
     var head = el('div', 'ege-group__head');
     head.appendChild(el('span', 'ege-group__label', group.label));
-    head.appendChild(el('span', 'ege-group__score', group.rating));
+    var score = el('span', 'ege-group__score');
+    if (typeof group.ratingStart === 'number') {
+      var moved = group.rating - group.ratingStart;
+      var ticker = tickerEl(moved, 'ege-ticker--sm');
+      ticker.title = tickerTitle(moved, group.ratingStart, group.rating);
+      score.appendChild(ticker);
+    }
+    score.appendChild(el('span', 'ege-group__value', group.rating));
+    head.appendChild(score);
     box.appendChild(head);
 
+    var list = el('div', 'ege-group__body');
     group.attributes.forEach(function (attr) {
       var row = el('div', 'ege-attr');
+      var start = typeof attr.start === 'number' ? attr.start : attr.value;
+      var change = attr.value - start;
+      var tier = attr.value >= 80 ? 'high' : 'low';
+
       row.appendChild(el('span', 'ege-attr__label', attr.label));
 
-      var meter = el('div', 'fb-meter');
-      var fill = el('div', 'fb-meter__fill' + (attr.value >= 80 ? '' : ' fb-meter__fill--alt'));
-      fill.style.width = Math.max(0, Math.min(100, attr.value)) + '%';
+      /* The bar is where the number stood when the season began, and the
+         climb since then is laid on the end of it in orange -- the season's
+         gain, drawn as part of the bar rather than as a second one. */
+      var meter = el('div', 'ege-meter ege-meter--' + tier);
+      var fill = el('div', 'ege-meter__fill');
+      fill.style.width = meterShare(Math.min(start, attr.value));
       meter.appendChild(fill);
+      if (change > 0) {
+        var gain = el('div', 'ege-meter__gain');
+        gain.style.left = meterShare(start);
+        gain.style.width = meterShare(change);
+        meter.appendChild(gain);
+      }
       row.appendChild(meter);
 
       row.appendChild(el('span', 'ege-attr__value', attr.value));
-      box.appendChild(row);
+
+      /* Only where something moved: a column of zeroes down every group
+         would bury the handful that did. The slot is kept either way so the
+         numbers stay in one column. */
+      var slot = el('span', 'ege-attr__ticker');
+      if (change) {
+        var small = tickerEl(change, 'ege-ticker--xs');
+        small.title = tickerTitle(change, start, attr.value);
+        slot.appendChild(small);
+      }
+      row.appendChild(slot);
+
+      list.appendChild(row);
     });
+    box.appendChild(list);
 
     return box;
   }
@@ -1552,7 +1638,21 @@
     if (!ratings) { ratingsPanel.hidden = true; return; }
 
     document.getElementById('ratingsOverall').textContent =
-      ratings.overall === null ? '—' : ratings.overall;
+      ratings.overall === null ? '\u2014' : ratings.overall;
+
+    /* The ticker in the head: the overall's climb over the live season. */
+    var slot = document.getElementById('ratingsTicker');
+    slot.innerHTML = '';
+    var canTick = typeof ratings.overall === 'number' && typeof ratings.overallStart === 'number';
+    slot.hidden = !canTick;
+    if (canTick) {
+      var change = ratings.overall - ratings.overallStart;
+      var ticker = tickerEl(change);
+      slot.className = ticker.className + ' ege-ticker--lg';
+      while (ticker.firstChild) { slot.appendChild(ticker.firstChild); }
+      slot.appendChild(el('span', 'ege-ticker__since', 'This season'));
+      slot.title = tickerTitle(change, ratings.overallStart, ratings.overall);
+    }
 
     ratings.groups.forEach(function (group) { holder.appendChild(buildGroup(group)); });
     ratingsPanel.hidden = false;
@@ -3175,8 +3275,13 @@
       setNav('admin');
       document.title = 'Admin \u2014 EGE Football';
     } else if (player) {
-      renderPlayer(player);
+      /* Shown first, then drawn. The stickers and the season totals are
+         laid out by measuring the page, and a hidden page measures as
+         nothing -- drawn the other way round, the offers all piled up in
+         the corner and a long number spilled out of its cell until a
+         refresh redrew them. */
       show(viewPlayer);
+      renderPlayer(player);
       setNav('players');
       document.title = player.name;
     } else {
