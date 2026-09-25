@@ -3020,7 +3020,10 @@ html.is-loading, html.is-loading body { overflow: hidden; }
 /* The switcher wears the All Players button's outline: a cream frame on the
    field, cream capitals, and the frame filling in on hover. The arrows are
    the same button, square; the picker is a select dressed to match. */
+/* Everything right of All Players: the picker stretches to fill the row,
+   with the arrows at either end of it. */
 .ege-seasonbar {
+  flex: 1 1 0;
   display: flex;
   align-items: stretch;
   gap: 8px;
@@ -3028,7 +3031,10 @@ html.is-loading, html.is-loading body { overflow: hidden; }
 }
 .ege-seasonbar[hidden] { display: none; }
 .ege-seasonbar__pick {
+  flex: 1 1 auto;
   min-width: 0;
+  text-align: center;
+  text-align-last: center;
   -webkit-appearance: none;
   appearance: none;
   border: var(--fb-border) solid var(--fb-cream);
@@ -3043,7 +3049,9 @@ html.is-loading, html.is-loading body { overflow: hidden; }
   font-weight: 800;
   letter-spacing: .08em;
   text-transform: uppercase;
-  padding: 11px 36px 11px 16px;
+  /* Even padding both sides, so the centred label sits in the middle of
+     the frame rather than nudged left by the chevron's room. */
+  padding: 11px 36px;
   cursor: pointer;
 }
 .ege-seasonbar__pick:hover {
@@ -3074,13 +3082,15 @@ html.is-loading, html.is-loading body { overflow: hidden; }
 
 @media (max-width: 620px) {
   .ege-playerbar { padding: 22px 0 18px; gap: 10px; }
+  /* Too narrow for the picker to share a row with All Players and still
+     say which season it is, so it takes the full width of its own line. */
   .ege-seasonbar { flex: 1 1 100%; }
   .ege-seasonbar__pick {
     flex: 1 1 auto;
     text-transform: none;
     letter-spacing: 0;
     font-size: 16px;
-    padding: 9px 32px 9px 12px;
+    padding: 9px 32px;
   }
 }
 
