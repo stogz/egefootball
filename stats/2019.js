@@ -109,10 +109,10 @@ EGE.stats[2019] = {
         opponent: 'Wallace-Rose Hill', home: true, conference: false, scouts: true,
         result: { teamScore: 42, opponentScore: 28 }, booster: null,
         stats: {
-          receptions: 5, receivingYards: 47, receivingYac: 16,
-          receivingTd: 2, receivingLong: 21, targets: 7, carries: 0,
+          receptions: 10, receivingYards: 124, receivingYac: 16,
+          receivingTd: 2, receivingLong: 21, targets: 12, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 9.4, totalYards: 47, totalTd: 2
+          receivingAvg: 12.4, totalYards: 124, totalTd: 2
         },
         bigPlays: [
           '16 yard receiving touchdown',
@@ -453,10 +453,10 @@ EGE.stats[2019] = {
         opponent: 'Manual', home: false, conference: true,
         result: { teamScore: 28, opponentScore: 8 }, booster: null,
         stats: {
-          completions: 18, attempts: 25, passingYards: 311, passingYac: 138,
-          passingTd: 3, interceptions: 0, carries: 2, rushingYards: 3,
-          rushingTd: 0, rushingLong: 3, sacks: 1, fumbles: 1,
-          passingAvg: 17.3, rating: 153.5, rushingAvg: 1.5
+          completions: 18, attempts: 25, passingYards: 311,
+          passingYac: 138, passingTd: 3, interceptions: 0, carries: 2,
+          rushingYards: 3, rushingTd: 0, rushingLong: 3, sacks: 1,
+          fumbles: 1, passingAvg: 17.3, rating: 153.5, rushingAvg: 1.5
         },
         bigPlays: [
           '32 yard passing touchdown',
@@ -467,10 +467,10 @@ EGE.stats[2019] = {
         opponent: 'Normal West', home: true, conference: true,
         result: { teamScore: 16, opponentScore: 31 }, booster: null,
         stats: {
-          completions: 22, attempts: 39, passingYards: 275, passingYac: 98,
-          passingTd: 1, interceptions: 1, carries: 2, rushingYards: 7,
-          rushingTd: 0, rushingLong: 5, sacks: 4, fumbles: 0,
-          passingAvg: 12.5, rating: 76.3, rushingAvg: 3.5
+          completions: 22, attempts: 39, passingYards: 275,
+          passingYac: 98, passingTd: 1, interceptions: 1, carries: 2,
+          rushingYards: 7, rushingTd: 0, rushingLong: 5, sacks: 4,
+          fumbles: 0, passingAvg: 12.5, rating: 76.3, rushingAvg: 3.5
         },
         bigPlays: [
           '29 yard passing touchdown'
@@ -479,10 +479,10 @@ EGE.stats[2019] = {
         opponent: 'Urbana', home: true, conference: true,
         result: { teamScore: 58, opponentScore: 6 }, booster: null,
         stats: {
-          completions: 16, attempts: 23, passingYards: 244, passingYac: 83,
-          passingTd: 4, interceptions: 1, carries: 2, rushingYards: 8,
-          rushingTd: 0, rushingLong: 7, sacks: 1, fumbles: 0,
-          passingAvg: 15.3, rating: 125.7, rushingAvg: 4
+          completions: 16, attempts: 23, passingYards: 244,
+          passingYac: 83, passingTd: 4, interceptions: 1, carries: 2,
+          rushingYards: 8, rushingTd: 0, rushingLong: 7, sacks: 1,
+          fumbles: 0, passingAvg: 15.3, rating: 125.7, rushingAvg: 4
         },
         bigPlays: [
           '34 yard passing touchdown',
@@ -494,10 +494,10 @@ EGE.stats[2019] = {
         opponent: 'Normal Community', home: false, conference: true, scouts: true,
         result: { teamScore: 26, opponentScore: 43 }, booster: null,
         stats: {
-          completions: 20, attempts: 36, passingYards: 212, passingYac: 69,
-          passingTd: 3, interceptions: 3, carries: 1, rushingYards: 16,
-          rushingTd: 0, rushingLong: 16, sacks: 3, fumbles: 1,
-          passingAvg: 10.6, rating: 66, rushingAvg: 16
+          completions: 20, attempts: 36, passingYards: 212,
+          passingYac: 69, passingTd: 3, interceptions: 3, carries: 1,
+          rushingYards: 16, rushingTd: 0, rushingLong: 16, sacks: 3,
+          fumbles: 1, passingAvg: 10.6, rating: 66, rushingAvg: 16
         },
         bigPlays: [
           '34 yard passing touchdown',
@@ -509,10 +509,10 @@ EGE.stats[2019] = {
         opponent: 'Peoria Notre Dame', home: true, conference: true,
         result: { teamScore: 6, opponentScore: 20 }, booster: null,
         stats: {
-          completions: 12, attempts: 35, passingYards: 134, passingYac: 37,
-          passingTd: 1, interceptions: 0, carries: 3, rushingYards: -3,
-          rushingTd: 0, rushingLong: 0, sacks: 2, fumbles: 0,
-          passingAvg: 11.2, rating: 56.1, rushingAvg: -1
+          completions: 12, attempts: 35, passingYards: 134,
+          passingYac: 37, passingTd: 1, interceptions: 0, carries: 3,
+          rushingYards: -3, rushingTd: 0, rushingLong: 0, sacks: 2,
+          fumbles: 0, passingAvg: 11.2, rating: 56.1, rushingAvg: -1
         },
         bigPlays: [
           '27 yard passing touchdown'
@@ -521,10 +521,10 @@ EGE.stats[2019] = {
         opponent: 'Peoria', home: true, conference: true, scouts: true,
         result: { teamScore: 26, opponentScore: 42 }, booster: null,
         stats: {
-          completions: 22, attempts: 37, passingYards: 279, passingYac: 103,
-          passingTd: 3, interceptions: 3, carries: 0, rushingYards: 0,
-          rushingTd: 0, rushingLong: 0, sacks: 6, fumbles: 0,
-          passingAvg: 12.7, rating: 76.3
+          completions: 22, attempts: 37, passingYards: 279,
+          passingYac: 103, passingTd: 3, interceptions: 3, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, sacks: 6,
+          fumbles: 0, passingAvg: 12.7, rating: 76.3
         },
         bigPlays: [
           '38 yard passing touchdown',
@@ -536,10 +536,10 @@ EGE.stats[2019] = {
         opponent: 'Centennial', home: false, conference: true,
         result: { teamScore: 54, opponentScore: 6 }, booster: null,
         stats: {
-          completions: 12, attempts: 24, passingYards: 157, passingYac: 50,
-          passingTd: 4, interceptions: 1, carries: 2, rushingYards: 7,
-          rushingTd: 0, rushingLong: 4, sacks: 1, fumbles: 0,
-          passingAvg: 13.1, rating: 93.2, rushingAvg: 3.5
+          completions: 12, attempts: 24, passingYards: 157,
+          passingYac: 50, passingTd: 4, interceptions: 1, carries: 2,
+          rushingYards: 7, rushingTd: 0, rushingLong: 4, sacks: 1,
+          fumbles: 0, passingAvg: 13.1, rating: 93.2, rushingAvg: 3.5
         },
         bigPlays: [
           '17 yard passing touchdown (P. Hatch)',
@@ -586,9 +586,9 @@ EGE.stats[2019] = {
         result: { teamScore: 40, opponentScore: 0 }, booster: null,
         stats: {
           carries: 23, rushingYards: 150, rushingTd: 2, rushingLong: 14,
-          receptions: 1, receivingYards: 4, receivingYac: 3, receivingTd: 1,
-          receivingLong: 4, targets: 1, fumbles: 0, rushingAvg: 6.5,
-          receivingAvg: 4, totalYards: 154, totalTd: 3
+          receptions: 1, receivingYards: 4, receivingYac: 3,
+          receivingTd: 1, receivingLong: 4, targets: 1, fumbles: 0,
+          rushingAvg: 6.5, receivingAvg: 4, totalYards: 154, totalTd: 3
         },
         bigPlays: [
           '6 yard rushing touchdown',
@@ -600,9 +600,9 @@ EGE.stats[2019] = {
         result: { teamScore: 8, opponentScore: 42 }, booster: null,
         stats: {
           carries: 19, rushingYards: 129, rushingTd: 1, rushingLong: 25,
-          receptions: 1, receivingYards: 8, receivingYac: 4, receivingTd: 0,
-          receivingLong: 8, targets: 1, fumbles: 0, rushingAvg: 6.8,
-          receivingAvg: 8, totalYards: 137, totalTd: 1
+          receptions: 1, receivingYards: 8, receivingYac: 4,
+          receivingTd: 0, receivingLong: 8, targets: 1, fumbles: 0,
+          rushingAvg: 6.8, receivingAvg: 8, totalYards: 137, totalTd: 1
         },
         bigPlays: [
           '25 yard rushing touchdown'
@@ -612,24 +612,24 @@ EGE.stats[2019] = {
         result: { teamScore: 31, opponentScore: 6 }, booster: null,
         stats: {
           carries: 23, rushingYards: 183, rushingTd: 3, rushingLong: 68,
-          receptions: 0, receivingYards: 0, receivingYac: 0, receivingTd: 0,
-          receivingLong: 0, targets: 1, fumbles: 0, rushingAvg: 8,
-          totalYards: 183, totalTd: 3
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 1, fumbles: 0,
+          rushingAvg: 8, totalYards: 183, totalTd: 3
         },
         bigPlays: [
-          '68 yard BEAST-mode',
           '2 yard rushing touchdown',
           '2 yard rushing touchdown',
-          '1 yard rushing touchdown'
+          '1 yard rushing touchdown',
+          '68 yard BEAST-mode'
         ] },
       { week:  7, date: '2019-10-04', kickoff: '7:00pm',
         opponent: 'Bloomington', home: true, conference: true,
         result: { teamScore: 43, opponentScore: 26 }, booster: null,
         stats: {
           carries: 22, rushingYards: 211, rushingTd: 2, rushingLong: 30,
-          receptions: 0, receivingYards: 0, receivingYac: 0, receivingTd: 0,
-          receivingLong: 0, targets: 1, fumbles: 0, rushingAvg: 9.6,
-          totalYards: 211, totalTd: 2
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 1, fumbles: 0,
+          rushingAvg: 9.6, totalYards: 211, totalTd: 2
         },
         bigPlays: [
           '28 yard rushing touchdown',
@@ -649,9 +649,9 @@ EGE.stats[2019] = {
         result: { teamScore: 41, opponentScore: 13 }, booster: null,
         stats: {
           carries: 20, rushingYards: 117, rushingTd: 4, rushingLong: 14,
-          receptions: 1, receivingYards: 2, receivingYac: 1, receivingTd: 0,
-          receivingLong: 2, targets: 1, fumbles: 0, rushingAvg: 5.9,
-          receivingAvg: 2, totalYards: 119, totalTd: 4
+          receptions: 1, receivingYards: 2, receivingYac: 1,
+          receivingTd: 0, receivingLong: 2, targets: 1, fumbles: 0,
+          rushingAvg: 5.9, receivingAvg: 2, totalYards: 119, totalTd: 4
         },
         bigPlays: [
           '14 yard rushing touchdown',
@@ -664,9 +664,9 @@ EGE.stats[2019] = {
         result: { teamScore: 18, opponentScore: 32 }, booster: null,
         stats: {
           carries: 25, rushingYards: 103, rushingTd: 1, rushingLong: 20,
-          receptions: 0, receivingYards: 0, receivingYac: 0, receivingTd: 0,
-          receivingLong: 0, targets: 1, fumbles: 0, rushingAvg: 4.1,
-          totalYards: 103, totalTd: 1
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 1, fumbles: 0,
+          rushingAvg: 4.1, totalYards: 103, totalTd: 1
         },
         bigPlays: [
           '20 yard rushing touchdown'
@@ -721,10 +721,10 @@ EGE.stats[2019] = {
         opponent: 'Palmetto Ridge', home: true, conference: true,
         result: { teamScore: 37, opponentScore: 0 }, booster: null,
         stats: {
-          completions: 11, attempts: 24, passingYards: 173, passingYac: 74,
-          passingTd: 1, interceptions: 0, carries: 4, rushingYards: 43,
-          rushingTd: 0, rushingLong: 19, sacks: 1, fumbles: 0,
-          passingAvg: 15.7, rating: 84.2, rushingAvg: 10.8
+          completions: 11, attempts: 24, passingYards: 173,
+          passingYac: 74, passingTd: 1, interceptions: 0, carries: 4,
+          rushingYards: 43, rushingTd: 0, rushingLong: 19, sacks: 1,
+          fumbles: 0, passingAvg: 15.7, rating: 84.2, rushingAvg: 10.8
         },
         bigPlays: [
           '48 yard dot',
@@ -735,10 +735,10 @@ EGE.stats[2019] = {
         opponent: 'Lehigh', home: true, conference: false,
         result: { teamScore: 23, opponentScore: 7 }, booster: null,
         stats: {
-          completions: 14, attempts: 25, passingYards: 173, passingYac: 101,
-          passingTd: 2, interceptions: 1, carries: 3, rushingYards: 20,
-          rushingTd: 0, rushingLong: 12, sacks: 2, fumbles: 0,
-          passingAvg: 12.4, rating: 87.6, rushingAvg: 6.7
+          completions: 14, attempts: 25, passingYards: 173,
+          passingYac: 101, passingTd: 2, interceptions: 1, carries: 3,
+          rushingYards: 20, rushingTd: 0, rushingLong: 12, sacks: 2,
+          fumbles: 0, passingAvg: 12.4, rating: 87.6, rushingAvg: 6.7
         },
         bigPlays: [
           '48 yard dot',
@@ -749,13 +749,18 @@ EGE.stats[2019] = {
         opponent: 'Barron Collier', home: false, conference: true,
         result: { teamScore: 49, opponentScore: 14 }, booster: null,
         stats: {
-          completions: 13, attempts: 23, passingYards: 154, passingYac: 72,
-          passingTd: 1, interceptions: 1, carries: 8, rushingYards: 25,
-          rushingTd: 0, rushingLong: 9, sacks: 2, fumbles: 1,
-          passingAvg: 11.8, rating: 73.5, rushingAvg: 3.1
+          completions: 19, attempts: 33, passingYards: 254,
+          passingYac: 161, passingTd: 4, interceptions: 0, carries: 8,
+          rushingYards: 34, rushingTd: 1, rushingLong: 19, sacks: 0,
+          fumbles: 0, passingAvg: 13.4, rating: 121.7, rushingAvg: 4.3
         },
         bigPlays: [
-          '29 yard passing touchdown'
+          '29 yard passing touchdown',
+          '12 yard passing touchdown',
+          '10 yard passing touchdown',
+          '9 yard rushing touchdown',
+          '2 yard passing touchdown',
+          '44 yard-dot'
         ] },
       { week:  8, date: '2019-10-11', kickoff: '7:30pm',
         opponent: 'Lely', home: true, conference: true,
@@ -776,10 +781,10 @@ EGE.stats[2019] = {
         opponent: 'Golden Gate', home: false, conference: true,
         result: { teamScore: 49, opponentScore: 14 }, booster: null,
         stats: {
-          completions: 15, attempts: 24, passingYards: 214, passingYac: 89,
-          passingTd: 5, interceptions: 0, carries: 1, rushingYards: 3,
-          rushingTd: 1, rushingLong: 3, sacks: 1, fumbles: 0,
-          passingAvg: 14.3, rating: 130.9, rushingAvg: 3
+          completions: 15, attempts: 24, passingYards: 214,
+          passingYac: 89, passingTd: 5, interceptions: 0, carries: 1,
+          rushingYards: 3, rushingTd: 1, rushingLong: 3, sacks: 1,
+          fumbles: 0, passingAvg: 14.3, rating: 130.9, rushingAvg: 3
         },
         bigPlays: [
           '46 yard passing touchdown',
@@ -793,10 +798,10 @@ EGE.stats[2019] = {
         opponent: 'Immokalee', home: false, conference: true,
         result: { teamScore: 36, opponentScore: 7 }, booster: null,
         stats: {
-          completions: 15, attempts: 25, passingYards: 125, passingYac: 33,
-          passingTd: 2, interceptions: 1, carries: 3, rushingYards: 20,
-          rushingTd: 0, rushingLong: 12, sacks: 1, fumbles: 0,
-          passingAvg: 8.3, rating: 82.9, rushingAvg: 6.7
+          completions: 15, attempts: 25, passingYards: 125,
+          passingYac: 33, passingTd: 2, interceptions: 1, carries: 3,
+          rushingYards: 20, rushingTd: 0, rushingLong: 12, sacks: 1,
+          fumbles: 0, passingAvg: 8.3, rating: 82.9, rushingAvg: 6.7
         },
         bigPlays: [
           '10 yard passing touchdown',
