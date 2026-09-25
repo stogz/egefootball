@@ -89,7 +89,10 @@ holds:
 - **Header** — headshot with height and weight joined to the foot of it, then
   school and name, and under the name three facts: **Position**, **Record**
   (the team's wins and losses over the season on show, 0-0 until the first
-  result is out) and **Jersey**. The season, class and level are across the
+  result is out, followed by the current run — **6-1 · W4 Streak**, green for
+  wins and red for losses — until the team's season is over) and **Jersey**.
+  A season is over once it is behind the live one, or once the team has lost
+  a playoff game or won its bracket. The season, class and level are across the
   orange strip at the top of the panel. The overall is not up
   here: it lives with the ratings it is worked out from, at the foot of the
   page. The top right holds the college offers, as stickers.
@@ -111,10 +114,10 @@ holds:
 - **Game log** — per-game stats for that player, with the stat lines driven by
   their position (see below), and a totals row for the season.
 - **Ratings** — every attribute in its group, with the overall in the corner
-  and a stock ticker beside it: an arrow and the number of points the overall
-  has climbed (or fallen) since the live season began. Each group score and
-  each attribute that moved carries a smaller one, and the season's gain is
-  drawn in orange on the end of each bar.
+  and a green stock ticker beside it: an arrow and the number of points the
+  overall has climbed since the live season began. Each group score and each
+  attribute that moved carries a smaller one, and the season's gain is drawn
+  in orange on the end of each bar.
 
 The schedule and the game log each fold away behind an arrow in their heading;
 the ratings do not, because the overall in that corner is the number the page

@@ -213,7 +213,19 @@
     document.getElementById('playerPosition').textContent = player.position || TBD;
     /* The team's wins and losses over the season on show, 0-0 until the
        first result is published. */
-    document.getElementById('playerRecord').textContent = EGE.recordFor(player, season).text;
+    var record = document.getElementById('playerRecord');
+    record.textContent = EGE.recordFor(player, season).text;
+    /* The run the team is on, green for wins and red for losses, while the
+       season is still being played. Once it is over the record says it all. */
+    var streak = EGE.streakFor(player, season);
+    if (streak && !EGE.seasonOverFor(player, season)) {
+      record.appendChild(el('span', 'ege-record__dot', ' \u00b7 '));
+      var run = el('span', 'ege-streak ege-streak--' + (streak.won ? 'win' : 'loss'),
+        streak.text + ' Streak');
+      run.title = streak.count + (streak.won ? ' win' : ' loss') +
+        (streak.count === 1 ? '' : (streak.won ? 's' : 'es')) + ' in a row';
+      record.appendChild(run);
+    }
     document.getElementById('playerJersey').textContent =
       typeof player.jersey === 'number' ? '#' + player.jersey : TBD;
 
@@ -1576,8 +1588,8 @@
     var head = el('div', 'ege-group__head');
     head.appendChild(el('span', 'ege-group__label', group.label));
     var score = el('span', 'ege-group__score');
-    if (typeof group.ratingStart === 'number') {
-      var moved = group.rating - group.ratingStart;
+    var moved = typeof group.ratingStart === 'number' ? group.rating - group.ratingStart : 0;
+    if (moved) {
       var ticker = tickerEl(moved, 'ege-ticker--sm');
       ticker.title = tickerTitle(moved, group.ratingStart, group.rating);
       score.appendChild(ticker);
@@ -1586,19 +1598,18 @@
     head.appendChild(score);
     box.appendChild(head);
 
-    var list = el('div', 'ege-group__body');
+    var list = el('div');
     group.attributes.forEach(function (attr) {
       var row = el('div', 'ege-attr');
       var start = typeof attr.start === 'number' ? attr.start : attr.value;
       var change = attr.value - start;
-      var tier = attr.value >= 80 ? 'high' : 'low';
 
       row.appendChild(el('span', 'ege-attr__label', attr.label));
 
       /* The bar is where the number stood when the season began, and the
          climb since then is laid on the end of it in orange -- the season's
          gain, drawn as part of the bar rather than as a second one. */
-      var meter = el('div', 'ege-meter ege-meter--' + tier);
+      var meter = el('div', 'fb-meter ege-meter');
       var fill = el('div', 'ege-meter__fill');
       fill.style.width = meterShare(Math.min(start, attr.value));
       meter.appendChild(fill);
@@ -3325,15 +3336,21 @@
 
   function selectedPlayer() { return EGE.playerBySlug(loginPlayer.value); }
 
+  /* Starts on an empty "Select" rather than on whoever is first in the
+     list, so nobody opens the portal looking at somebody else's name. */
   function fillPlayerSelect() {
+    var none = el('option', null, 'Select');
+    none.value = '';
+    none.disabled = true;
+    loginPlayer.appendChild(none);
+
     EGE.players.forEach(function (player) {
       var opt = el('option', null, player.name + (player.email ? '' : ' \u2014 no account yet'));
       opt.value = player.slug;
       opt.disabled = !player.email;
       loginPlayer.appendChild(opt);
     });
-    var first = EGE.playersWithAccounts()[0];
-    if (first) { loginPlayer.value = first.slug; }
+    loginPlayer.value = '';
   }
 
   /* --- portal: show/hide password --------------------------------------- */
@@ -3378,6 +3395,13 @@
     authConfirm.value = '';
     modeSwitch.hidden = true;
 
+    /* Nobody picked yet: nothing to ask for until somebody is. */
+    if (!loginPlayer.value) {
+      authForm.hidden = true;
+      authLead.hidden = true;
+      return Promise.resolve();
+    }
+
     if (!player || !player.email) {
       authForm.hidden = true;
       authLead.hidden = false;
@@ -3420,6 +3444,7 @@
   authForm.addEventListener('submit', function (e) {
     e.preventDefault();
     var player = selectedPlayer();
+    if (!loginPlayer.value) { sayAuth('Pick your name first.', true); return; }
     if (!player || !player.email) { sayAuth('That player has no account yet.', true); return; }
 
     authSubmit.disabled = true;

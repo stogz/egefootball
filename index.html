@@ -515,7 +515,7 @@
 
             <dl class="ege-detail__list">
               <dt>Position</dt><dd id="playerPosition"></dd>
-              <dt>Record</dt><dd id="playerRecord"></dd>
+              <dt>Record</dt><dd id="playerRecord" class="ege-record"></dd>
               <dt>Jersey</dt><dd id="playerJersey"></dd>
             </dl>
           </div>
@@ -627,9 +627,9 @@
             <!-- How far the overall has climbed since the live season began,
                  like a stock ticker. Written in app.js. -->
             <span class="ege-ticker ege-ticker--lg" id="ratingsTicker" hidden></span>
-            <div class="ege-ovrbox ege-ovrbox--head">
-              <span class="ege-ovrbox__label">OVR</span>
-              <span class="ege-ovrbox__value" id="ratingsOverall"></span>
+            <div class="ege-ovr ege-ovr--head">
+              <span class="ege-ovr__label">Overall</span>
+              <span class="ege-ovr__value" id="ratingsOverall"></span>
             </div>
           </div>
         </div>
@@ -657,7 +657,7 @@
         <select class="fb-select" id="loginPlayer"></select>
       </label>
 
-      <p class="fb-meta" style="margin: 0;" id="authLead">Checking this account&hellip;</p>
+      <p class="fb-meta" style="margin: 0;" id="authLead" hidden></p>
 
       <form class="fb-stack" id="authForm" hidden>
         <label class="ege-field">
@@ -706,7 +706,6 @@
           <p class="ege-who__name" id="signedInName"></p>
         </div>
       </div>
-      <p class="fb-meta" style="margin: 0;">Offseason workouts and overalls land here.</p>
       <button class="fb-btn fb-btn--block" id="logoutBtn" type="button">Log Out</button>
     </div>
 
