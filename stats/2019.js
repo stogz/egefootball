@@ -251,17 +251,16 @@ EGE.stats[2019] = {
         ] },
       { week:  7, date: '2019-10-04', kickoff: '7:15pm',
         opponent: 'Torrey Pines', home: false, conference: true,
-        result: { teamScore: 42, opponentScore: 7 }, booster: null,
+        result: { teamScore: 36, opponentScore: 6 }, booster: null,
         stats: {
-          carries: 12, rushingYards: 102, rushingTd: 3, rushingLong: 51,
+          carries: 12, rushingYards: 102, rushingTd: 0, rushingLong: 51,
           receptions: 6, receivingYards: 39, receivingYac: 33,
-          receivingTd: 0, receivingLong: 11, targets: 7, fumbles: 0,
-          rushingAvg: 8.5, receivingAvg: 6.5, totalYards: 141, totalTd: 3
+          receivingTd: 1, receivingLong: 11, targets: 7, fumbles: 0,
+          rushingAvg: 8.5, receivingAvg: 6.5, totalYards: 141, totalTd: 1
         },
         bigPlays: [
-          '51 yard rushing touchdown',
-          '5 yard rushing touchdown',
-          '1 yard rushing touchdown'
+          '9 yard receiving touchdown',
+          '51 yard BEAST-MODE'
         ] },
       { week:  8, date: '2019-10-11', kickoff: '7:00pm',
         opponent: 'Oceanside', home: false, conference: true, scouts: true,
@@ -376,14 +375,18 @@ EGE.stats[2019] = {
           '5 yard receiving touchdown'
         ] },
       { week:  7, date: '2019-10-04', kickoff: '7:00pm',
-        opponent: 'Normal Community', home: false, conference: true, scouts: true,
-        result: { teamScore: 26, opponentScore: 43 }, booster: null,
+        opponent: 'Normal Community', home: false, conference: true, scouts: true, overtime: true,
+        result: { teamScore: 48, opponentScore: 45 }, booster: 'boost-2-0',
         stats: {
-          receptions: 7, receivingYards: 76, receivingYac: 18,
-          receivingTd: 0, receivingLong: 24, targets: 13, carries: 0,
+          receptions: 10, receivingYards: 108, receivingYac: 51,
+          receivingTd: 2, receivingLong: 37, targets: 18, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 1,
-          receivingAvg: 10.9, totalYards: 76, totalTd: 0
-        } },
+          receivingAvg: 10.8, totalYards: 108, totalTd: 2
+        },
+        bigPlays: [
+          '37 yard receiving touchdown',
+          '11 yard receiving touchdown'
+        ] },
       { week:  8, date: '2019-10-12', kickoff: '7:00pm',
         opponent: 'Peoria Notre Dame', home: true, conference: true,
         result: { teamScore: 6, opponentScore: 20 }, booster: null,
@@ -491,19 +494,21 @@ EGE.stats[2019] = {
           '5 yard passing touchdown (P. Hatch)'
         ] },
       { week:  7, date: '2019-10-04', kickoff: '7:00pm',
-        opponent: 'Normal Community', home: false, conference: true, scouts: true,
-        result: { teamScore: 26, opponentScore: 43 }, booster: null,
+        opponent: 'Normal Community', home: false, conference: true, scouts: true, overtime: true,
+        result: { teamScore: 48, opponentScore: 45 }, booster: 'boost-2-5',
         stats: {
-          completions: 20, attempts: 36, passingYards: 212,
-          passingYac: 69, passingTd: 3, interceptions: 3, carries: 1,
-          rushingYards: 16, rushingTd: 0, rushingLong: 16, sacks: 3,
-          fumbles: 1, passingAvg: 10.6, rating: 66, rushingAvg: 16
+          completions: 31, attempts: 42, passingYards: 428,
+          passingYac: 287, passingTd: 5, interceptions: 1, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, sacks: 0,
+          fumbles: 0, passingAvg: 13.8, rating: 135.7
         },
         bigPlays: [
-          '34 yard passing touchdown',
-          '1 yard passing touchdown',
-          '1 yard passing touchdown',
-          '20 yard pick-six'
+          '37 yard passing touchdown (P. Hatch)',
+          '11 yard passing touchdown (P. Hatch)',
+          '7 yard passing touchdown',
+          '6 yard passing touchdown',
+          '3 yard passing touchdown',
+          '55 yard pick-six'
         ] },
       { week:  8, date: '2019-10-12', kickoff: '7:00pm',
         opponent: 'Peoria Notre Dame', home: true, conference: true,
@@ -623,17 +628,19 @@ EGE.stats[2019] = {
           '68 yard BEAST-mode'
         ] },
       { week:  7, date: '2019-10-04', kickoff: '7:00pm',
-        opponent: 'Bloomington', home: true, conference: true,
-        result: { teamScore: 43, opponentScore: 26 }, booster: null,
+        opponent: 'Bloomington', home: true, conference: true, overtime: true,
+        result: { teamScore: 45, opponentScore: 48 }, booster: 'boost-2-5',
         stats: {
-          carries: 22, rushingYards: 211, rushingTd: 2, rushingLong: 30,
-          receptions: 0, receivingYards: 0, receivingYac: 0,
-          receivingTd: 0, receivingLong: 0, targets: 1, fumbles: 0,
-          rushingAvg: 9.6, totalYards: 211, totalTd: 2
+          carries: 36, rushingYards: 247, rushingTd: 4, rushingLong: 59,
+          receptions: 2, receivingYards: 12, receivingYac: 9,
+          receivingTd: 0, receivingLong: 9, targets: 3, fumbles: 1,
+          rushingAvg: 6.9, receivingAvg: 6, totalYards: 259, totalTd: 4
         },
         bigPlays: [
-          '28 yard rushing touchdown',
-          '28 yard rushing touchdown'
+          '59 yard rushing touchdown',
+          '12 yard rushing touchdown',
+          '8 yard rushing touchdown',
+          '1 yard rushing touchdown'
         ] },
       { week:  8, date: '2019-10-11', kickoff: '7:00pm',
         opponent: 'Danville', home: false, conference: true,
