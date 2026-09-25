@@ -515,9 +515,9 @@ EGE.stats[2019] = {
         result: { teamScore: 6, opponentScore: 20 }, booster: null,
         stats: {
           completions: 12, attempts: 35, passingYards: 134,
-          passingYac: 37, passingTd: 1, interceptions: 0, carries: 3,
-          rushingYards: -3, rushingTd: 0, rushingLong: 0, sacks: 2,
-          fumbles: 0, passingAvg: 11.2, rating: 56.1, rushingAvg: -1
+          passingYac: 37, passingTd: 1, interceptions: 2, carries: 3,
+          rushingYards: -3, rushingTd: 0, rushingLong: 0, sacks: 6,
+          fumbles: 0, passingAvg: 11.2, rating: 32.3, rushingAvg: -1
         },
         bigPlays: [
           '27 yard passing touchdown'
