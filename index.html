@@ -466,8 +466,21 @@
 
     <!-- ===== player detail ============================================ -->
     <section id="view-player" hidden>
-      <div style="padding: 30px 0 22px;">
+      <!-- The way back, and beside it which season the page is showing: the
+           live one to start with, and any season logged before it. Both sit
+           on the field above the player, in the same outlined style. The
+           switcher is built in app.js and hidden while there is only one
+           season to show. -->
+      <div class="ege-playerbar">
         <a class="fb-btn fb-btn--inverse" href="#">&larr; All Players</a>
+
+        <div class="ege-seasonbar" id="seasonBar" hidden>
+          <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="seasonPrev"
+                  aria-label="Previous season">&lsaquo;</button>
+          <select class="fb-select ege-seasonbar__pick" id="seasonPick" aria-label="Season"></select>
+          <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="seasonNext"
+                  aria-label="Next season">&rsaquo;</button>
+        </div>
       </div>
 
       <div class="fb-panel ege-detail">
@@ -476,7 +489,7 @@
         </div>
         <div class="fb-panel__body">
           <!-- Four areas, placed by CSS: the picture, the school, the name
-               and the four facts. They stack beside the picture on a wide
+               and the three facts. They stack beside the picture on a wide
                screen; on a phone the school takes the top line and the facts
                the bottom one, because a school name has nowhere to break and
                nothing else in here is that long.
@@ -501,10 +514,9 @@
             <div class="ege-offers" id="playerOffers" hidden></div>
 
             <dl class="ege-detail__list">
-              <dt>Season</dt><dd id="playerSeason"></dd>
               <dt>Position</dt><dd id="playerPosition"></dd>
-              <dt>League</dt><dd id="playerLeague"></dd>
-              <dt>Record</dt><dd id="playerRecord"></dd>
+              <dt>Record</dt><dd id="playerRecord" class="ege-record"></dd>
+              <dt>Jersey</dt><dd id="playerJersey"></dd>
             </dl>
           </div>
         </div>
@@ -515,17 +527,6 @@
         <div class="fb-panel__foot ege-tallybar" id="playerTallyBar" hidden>
           <div class="ege-tally" id="playerTally"></div>
         </div>
-      </div>
-
-      <!-- Which season the page is showing: the live one to start with, and
-           any season logged before it. Built in app.js; hidden while there is
-           only one season to show. -->
-      <div class="ege-seasonbar" id="seasonBar" hidden>
-        <button type="button" class="fb-btn ege-seasonbar__step" id="seasonPrev"
-                aria-label="Previous season">&lsaquo;</button>
-        <select class="fb-select ege-seasonbar__pick" id="seasonPick" aria-label="Season"></select>
-        <button type="button" class="fb-btn ege-seasonbar__step" id="seasonNext"
-                aria-label="Next season">&rsaquo;</button>
       </div>
 
       <div class="fb-panel ege-section-gap" id="schedulePanel" hidden>
@@ -622,9 +623,14 @@
                ratings it is worked out from. It waits for the shop's boosts
                to land rather than showing the base number and then changing
                it under whoever is reading it. -->
-          <div class="ege-ovr ege-ovr--head" id="ratingsOverallBox">
-            <span class="ege-ovr__label">Overall</span>
-            <span class="ege-ovr__value" id="ratingsOverall"></span>
+          <div class="ege-ratings__head" id="ratingsOverallBox">
+            <!-- How far the overall has climbed since the live season began,
+                 like a stock ticker. Written in app.js. -->
+            <span class="ege-ticker ege-ticker--lg" id="ratingsTicker" hidden></span>
+            <div class="ege-ovr ege-ovr--head">
+              <span class="ege-ovr__label">Overall</span>
+              <span class="ege-ovr__value" id="ratingsOverall"></span>
+            </div>
           </div>
         </div>
         <div class="fb-panel__body">
@@ -651,7 +657,7 @@
         <select class="fb-select" id="loginPlayer"></select>
       </label>
 
-      <p class="fb-meta" style="margin: 0;" id="authLead">Checking this account&hellip;</p>
+      <p class="fb-meta" style="margin: 0;" id="authLead" hidden></p>
 
       <form class="fb-stack" id="authForm" hidden>
         <label class="ege-field">
@@ -700,7 +706,6 @@
           <p class="ege-who__name" id="signedInName"></p>
         </div>
       </div>
-      <p class="fb-meta" style="margin: 0;">Offseason workouts and overalls land here.</p>
       <button class="fb-btn fb-btn--block" id="logoutBtn" type="button">Log Out</button>
     </div>
 

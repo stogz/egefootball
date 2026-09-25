@@ -87,14 +87,20 @@ Routed by player name, e.g. `#andrew-parr`, `#paxon-hatch`. Each player page
 holds:
 
 - **Header** — headshot with height and weight joined to the foot of it, then
-  school, name, season, position, league and record. The overall is not up
+  school and name, and under the name three facts: **Position**, **Record**
+  (the team's wins and losses over the season on show, 0-0 until the first
+  result is out, followed by the current run — **6-1 · W4 Streak**, green for
+  wins and red for losses — until the team's season is over) and **Jersey**.
+  A season is over once it is behind the live one, or once the team has lost
+  a playoff game or won its bracket. The season, class and level are across the
+  orange strip at the top of the panel. The overall is not up
   here: it lives with the ratings it is worked out from, at the foot of the
   page. The top right holds the college offers, as stickers.
 - **Season strip** — the ten numbers the season is remembered by, across the
   foot of the header panel: ten across on a wide screen, five and five on
   anything narrower.
-- **Season switcher** — under the header, once more than one season is
-  logged: a drop-down of every season with a file in `stats/`, up to the live
+- **Season switcher** — above the header, beside the All Players button and
+  outlined the same way, once more than one season is logged: a drop-down of every season with a file in `stats/`, up to the live
   one, with ‹ and › either side to step through them. It switches the header,
   season strip, schedule, game log and bracket to that season. Opening a
   different player goes back to the live season. An older season shows no
@@ -107,7 +113,11 @@ holds:
   beside the fold-away arrow.
 - **Game log** — per-game stats for that player, with the stat lines driven by
   their position (see below), and a totals row for the season.
-- **Ratings** — every attribute in its group, with the overall in the corner.
+- **Ratings** — every attribute in its group, with the overall in the corner
+  and a green stock ticker beside it: an arrow and the number of points the
+  overall has climbed since the live season began. Each group score and each
+  attribute that moved carries a smaller one, and the season's gain is drawn
+  in orange on the end of each bar.
 
 The schedule and the game log each fold away behind an arrow in their heading;
 the ratings do not, because the overall in that corner is the number the page
@@ -1096,8 +1106,14 @@ message rather than handing over half a file.
 ## The overall, and where it came from
 
 The numbers in `data/ratings.js` are where a season started. What a player has
-bought since shows beside his overall on his own page as an arrow — **▲ +3** —
+bought since shows beside his overall on his own page as a ticker — **▲ +3** —
 with the number he started at in the tooltip.
+
+Once the season is locked those purchases are part of the base numbers, so the
+lock also writes `EGE.ratingsSeasonStart` inside the markers: the attributes
+that moved, at the values they started the season on. While that season is
+still the live one the ticker measures from there; once the season rolls over
+it is ignored, and the new season's ticker starts from the locked numbers.
 
 At the end of a season the admin locks the ratings: everything bought is
 folded into the base numbers, the file is committed, and the rows behind it

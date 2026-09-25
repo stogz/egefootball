@@ -274,6 +274,24 @@ EGE.ratings = {
   },
 };
 EGE.ratingsLockedSeason = 2019;
+/* Where the numbers above stood when that season kicked off: only the
+   attributes that moved, at their old values. It is what the ticker on a
+   player's ratings measures the season's climb from. */
+EGE.ratingsSeasonStart = {
+  season: 2019,
+  changes: {
+    'cooper-clark': {
+      acceleration: 53, strength: 49, jumping: 48, injury: 54, toughness: 49,
+    },
+    'andrew-parr': {
+      routeRunningShort: 61, runBlock: 48, passBlock: 50,
+    },
+    'sam-stogsdill': {
+      speed: 53, acceleration: 52, strength: 63, agility: 42, jumping: 45,
+      injury: 50, stamina: 45, toughness: 46,
+    },
+  }
+};
 /* ege:ratings:end */
 
 /* Which group scores a position's page shows, and what to call them there.
@@ -337,10 +355,28 @@ EGE.valuesFor = function (player) {
   return out;
 };
 
+/* Where a player's numbers stood when the live season began. Until the
+   season is locked that is the file's own base numbers -- everything since
+   is in the shop rows. Once it is locked, the base has the season folded in,
+   and EGE.ratingsSeasonStart holds what it replaced. */
+EGE.seasonStartValuesFor = function (player) {
+  var base = (player && EGE.ratings[player.slug]) || null;
+  if (!base) { return null; }
+
+  var start = EGE.ratingsSeasonStart;
+  var changes = start && start.season === EGE.currentSeason &&
+                start.changes && start.changes[player.slug];
+  if (!changes) { return base; }
+
+  var out = {};
+  Object.keys(base).forEach(function (key) {
+    out[key] = typeof changes[key] === 'number' ? changes[key] : base[key];
+  });
+  return out;
+};
+
 /* A group scores as the plain average of the attributes inside it. */
-EGE.groupRating = function (player, groupKey) {
-  var values = EGE.valuesFor(player);
-  var group = egeGroupByKey(groupKey);
+function egeGroupAverage(values, group) {
   if (!values || !group) { return null; }
 
   var total = 0;
@@ -349,6 +385,10 @@ EGE.groupRating = function (player, groupKey) {
     if (typeof values[attr.key] === 'number') { total += values[attr.key]; counted += 1; }
   });
   return counted ? Math.round(total / counted) : null;
+}
+
+EGE.groupRating = function (player, groupKey) {
+  return egeGroupAverage(EGE.valuesFor(player), egeGroupByKey(groupKey));
 };
 
 /* Every attribute this player's position is judged on, under the labels their
@@ -384,14 +424,25 @@ function egeKeyAverage(values, weights) {
 }
 
 /* The overall: the position's key attributes, weighted and stretched. */
-EGE.overallFor = function (player) {
-  if (!player || !EGE.ratings[player.slug]) { return null; }
-  var key = egeKeyAverage(EGE.valuesFor(player), EGE.weightsFor(player.position));
+function egeOverallOf(values, position) {
+  if (!values) { return null; }
+  var key = egeKeyAverage(values, EGE.weightsFor(position));
   if (!key) { return null; }
 
   var scale = EGE.overallScale;
   var overall = scale.pivot + scale.stretch * (key.average - scale.pivot);
   return Math.max(1, Math.min(99, Math.round(overall)));
+}
+
+EGE.overallFor = function (player) {
+  if (!player || !EGE.ratings[player.slug]) { return null; }
+  return egeOverallOf(EGE.valuesFor(player), player.position);
+};
+
+/* The overall the live season started on. */
+EGE.seasonStartOverallFor = function (player) {
+  if (!player || !EGE.ratings[player.slug]) { return null; }
+  return egeOverallOf(EGE.seasonStartValuesFor(player), player.position);
 };
 
 /* How much overall one point on this attribute is worth to this player,
@@ -412,9 +463,12 @@ EGE.ratingsFor = function (player) {
   var values = EGE.valuesFor(player);
   var base = EGE.ratings[player.slug];
   var boosts = EGE.boostsFor(player);
+  var start = EGE.seasonStartValuesFor(player);
 
   return {
     overall: EGE.overallFor(player),
+    /* Where each number stood when the live season began, for the ticker. */
+    overallStart: EGE.seasonStartOverallFor(player),
     position: player.position || null,
     groups: EGE.shownGroupsFor(player.position).map(function (shown) {
       var group = egeGroupByKey(shown.key);
@@ -423,11 +477,13 @@ EGE.ratingsFor = function (player) {
         key: group.key,
         label: shown.label,
         rating: EGE.groupRating(player, group.key),
+        ratingStart: egeGroupAverage(start, group),
         attributes: group.attributes.map(function (attr) {
           return {
             key: attr.key,
             label: attr.label,
             value: values[attr.key],
+            start: start[attr.key],
             base: base[attr.key],
             boost: boosts[attr.key] || 0
           };

@@ -133,6 +133,43 @@ EGE.recordFor = function (player, season) {
   return { wins: wins, losses: losses, text: wins + '-' + losses };
 };
 
+/* The run the team is on: how many results in a row, counting back from the
+   latest published game, have gone the same way. Null before a game has been
+   played. A tie counts as a loss, as it does in the record. */
+EGE.streakFor = function (player, season) {
+  var played = EGE.gamesPlayed(player, season).slice().sort(function (a, b) {
+    return a.week - b.week;
+  });
+  if (!played.length) { return null; }
+
+  function won(game) { return game.result.teamScore > game.result.opponentScore; }
+
+  var latest = won(played[played.length - 1]);
+  var count = 0;
+  for (var i = played.length - 1; i >= 0 && won(played[i]) === latest; i -= 1) {
+    count += 1;
+  }
+  return { won: latest, count: count, text: (latest ? 'W' : 'L') + count };
+};
+
+/* Whether a team's season is done: any season before the live one, or the
+   live one once the team is out of the playoffs -- beaten in a playoff game,
+   or champions. A team still going, or waiting on its next game, is not. */
+EGE.seasonOverFor = function (player, season) {
+  var year = season || EGE.currentSeason;
+  if (year < EGE.currentSeason) { return true; }
+
+  var played = EGE.gamesPlayed(player, year).slice().sort(function (a, b) {
+    return a.week - b.week;
+  });
+  var last = played[played.length - 1];
+  if (!last || !last.playoff) { return false; }
+  if (last.result.teamScore <= last.result.opponentScore) { return true; }
+
+  var state = EGE.bracketState ? EGE.bracketState(player, year) : null;
+  return Boolean(state && state.champion && state.champion === state.bracket.us);
+};
+
 /* The games scouts will attend. Only worth reading when the player has Intel
    for that season. */
 EGE.scoutedGames = function (player, season) {
