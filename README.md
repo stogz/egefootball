@@ -106,13 +106,17 @@ holds:
   one, with ‹ and › either side to step through them. It switches the header,
   season strip, schedule, game log and bracket to that season. Opening a
   different player goes back to the live season. An older season shows no
-  scouts and takes no boosters.
+  scouts and takes no boosters. On a phone the whole bar is one row: All
+  Players becomes a round ← button, and the picker shows just the year.
 - **Schedule** — every scheduled game in the selected season: week, date,
   kickoff, opponent with home/away and a mark for conference games, and the
   result once it has been played. A silhouette marks a game scouts will attend,
   for a player holding Intel for that season. Postseason games are marked with
   two asterisks, and a school in a bracket gets a **Games | Tournament** switch
-  beside the fold-away arrow.
+  beside the fold-away arrow. The bracket fits the panel with no sideways
+  scrolling: on a laptop it reads left to right, first round to final, in
+  five columns. Below 1,100px the rounds stack one under the other instead,
+  as many games across as fit with every name written out.
 - **Game log** — per-game stats for that player, with the stat lines driven by
   their position (see below), and a totals row for the season.
 - **Ratings** — every attribute in its group, with the overall in the corner

@@ -435,19 +435,41 @@
 
     var pick = document.getElementById('seasonPick');
     pick.innerHTML = '';
-    /* The year and the class, which is short enough for a phone. The level
-       is across the strip at the top of the panel already. */
     years.slice().reverse().forEach(function (year) {
-      var s = EGE.seasons.filter(function (x) { return x.year === year; })[0];
-      var option = el('option', null, s ? year + ' \u00b7 ' + s.class : String(year));
+      var option = el('option');
       option.value = year;
       pick.appendChild(option);
     });
+    labelSeasons();
     pick.value = String(season);
 
     var at = years.indexOf(season);
     document.getElementById('seasonPrev').disabled = at <= 0;
     document.getElementById('seasonNext').disabled = at === -1 || at >= years.length - 1;
+  }
+
+  /* What each season in the picker says: the year and the class on a wider
+     screen, and the year alone on a phone, where the picker shares its row
+     with the way back and both arrows. The level is across the strip at the
+     top of the panel either way. */
+  var narrowBar = window.matchMedia('(max-width: 620px)');
+
+  function labelSeasons() {
+    var options = document.getElementById('seasonPick').options;
+    Array.prototype.forEach.call(options, function (option) {
+      var year = Number(option.value);
+      var s = EGE.seasons.filter(function (x) { return x.year === year; })[0];
+      option.textContent = narrowBar.matches || !s
+        ? String(year)
+        : year + ' \u00b7 ' + s.class;
+    });
+  }
+
+  /* A phone turned on its side, or a window dragged narrower. */
+  if (narrowBar.addEventListener) {
+    narrowBar.addEventListener('change', labelSeasons);
+  } else if (narrowBar.addListener) {
+    narrowBar.addListener(labelSeasons);
   }
 
   function showSeason(year) {
@@ -1152,9 +1174,9 @@
      top, that extra row pushes the whole branch down with it and nothing
      comes apart. */
 
-  var BRACKET_ROUNDS = 4;         /* per side, before the final */
+  var BRACKET_ROUNDS = 4;         /* before the final */
 
-  /* Where every box on one side goes: the row each first-round matchup
+  /* Where every box in the draw goes: the row each first-round matchup
      occupies, and then each later round folded up out of the pair below it.
      Rows are 1-based and the end is exclusive, which is what CSS grid wants
      written as `grid-row: start / end`. */
@@ -1251,49 +1273,25 @@
     return box;
   }
 
-  /* One half of the draw. `flip` turns the boxes round for the right-hand
-     side, so both halves read inwards towards the final. */
-  function bracketSide(state, side, flip) {
-    var plan = bracketRows(side);
-    var box = el('div', 'ege-bracket__side' + (flip ? ' ege-bracket__side--flip' : ''));
-    box.style.setProperty('--rows', plan.height);
-
-    plan.rounds.forEach(function (round, r) {
-      /* Round one is nearest the edge on both sides, so the columns run the
-         other way round on the right. */
-      var column = flip ? BRACKET_ROUNDS - r : r + 1;
-
-      round.forEach(function (place, at) {
-        if (place.opener && place.opener.label) {
-          var head = el('div', 'ege-bracket__group', place.opener.label);
-          head.style.gridColumn = column;
-          head.style.gridRow = (place.start - 1) + ' / ' + place.start;
-          box.appendChild(head);
-        }
-
-        var tie = bracketGame(state.rounds[r][state.at(r, flip, at)], state.bracket.us);
-        tie.style.gridColumn = column;
-        tie.style.gridRow = place.start + ' / ' + place.end;
-        box.appendChild(tie);
-      });
-    });
-
-    return box;
+  /* The heading over a round: what it is called, and the day it is played
+     on where the bracket says. */
+  function bracketHead(round, className) {
+    var cell = el('div', className);
+    if (round.date) { cell.appendChild(el('span', 'ege-bracket__when', round.date)); }
+    cell.appendChild(el('span', 'ege-bracket__round', round.label));
+    return cell;
   }
 
-  /* The heading over a column of matchups: what the round is called, and the
-     day it is played on where the bracket says. */
-  function bracketHeads(bracket, flip) {
-    var strip = el('div', 'ege-bracket__heads' + (flip ? ' ege-bracket__heads--flip' : ''));
-    bracket.rounds.forEach(function (round) {
-      var cell = el('div', 'ege-bracket__head');
-      if (round.date) { cell.appendChild(el('span', 'ege-bracket__when', round.date)); }
-      cell.appendChild(el('span', 'ege-bracket__round', round.label));
-      strip.appendChild(cell);
-    });
-    return strip;
-  }
+  /* The whole draw in one direction: every first-round game down the left,
+     each round after it one column further right, and the final and the
+     champion in the last. Five columns rather than the nine the two halves
+     facing each other took, which is what lets it fit the panel with every
+     name written out in full rather than making you scroll across it.
 
+     The same boxes, in the same order, are also a list: each round's heading
+     is in there too, hidden while the draw is a grid. On a phone, where five
+     columns cannot be read, the stylesheet lets go of the grid positions and
+     the rounds stack one under the other instead. */
   function renderBracket(player) {
     var wrap = document.getElementById('bracketWrap');
     var box = document.getElementById('bracket');
@@ -1305,35 +1303,54 @@
 
     box.appendChild(el('div', 'ege-bracket__title', bracket.title));
 
-    var grid = el('div', 'ege-bracket__grid');
-
-    var heads = el('div', 'ege-bracket__strip');
-    heads.appendChild(bracketHeads(bracket, false));
-    var middle = el('div', 'ege-bracket__head ege-bracket__head--final');
-    if (bracket.final.date) {
-      middle.appendChild(el('span', 'ege-bracket__when', bracket.final.date));
-    }
-    middle.appendChild(el('span', 'ege-bracket__round', bracket.final.label));
-    heads.appendChild(middle);
-    heads.appendChild(bracketHeads(bracket, true));
+    var heads = el('div', 'ege-bracket__heads');
+    bracket.rounds.forEach(function (round) {
+      heads.appendChild(bracketHead(round, 'ege-bracket__head'));
+    });
+    heads.appendChild(bracketHead(bracket.final, 'ege-bracket__head ege-bracket__head--final'));
     box.appendChild(heads);
 
-    grid.appendChild(bracketSide(state, bracket.left, false));
+    /* Both halves of the draw, top one first. The flat list the bracket's
+       state is kept in runs the same way -- the whole left half, then the
+       whole right -- so a box's place in its round is its place in there. */
+    var plan = bracketRows(bracket.left.concat(bracket.right));
+    var draw = el('div', 'ege-bracket__draw');
+    draw.style.setProperty('--rows', plan.height);
+
+    plan.rounds.forEach(function (round, r) {
+      draw.appendChild(bracketHead(bracket.rounds[r], 'ege-bracket__roundhead'));
+
+      round.forEach(function (place, at) {
+        if (place.opener && place.opener.label) {
+          var group = el('div', 'ege-bracket__group', place.opener.label);
+          group.style.gridColumn = r + 1;
+          group.style.gridRow = (place.start - 1) + ' / ' + place.start;
+          draw.appendChild(group);
+        }
+
+        var tie = bracketGame(state.rounds[r][at], bracket.us);
+        tie.style.gridColumn = r + 1;
+        tie.style.gridRow = place.start + ' / ' + place.end;
+        draw.appendChild(tie);
+      });
+    });
 
     /* The final, and the line under it where a champion goes. Nothing is
-       written on it until the last game is published. */
+       written on it until the last game is published. It spans the whole
+       height of the draw so it sits level with the middle of it. */
+    draw.appendChild(bracketHead(bracket.final, 'ege-bracket__roundhead'));
     var centre = el('div', 'ege-bracket__centre');
+    centre.style.gridColumn = BRACKET_ROUNDS + 1;
+    centre.style.gridRow = '1 / ' + (plan.height + 1);
     centre.appendChild(bracketGame(state.final, bracket.us));
     var cup = el('div', 'ege-bracket__champion' +
       (state.champion ? ' ege-bracket__champion--crowned' : ''));
     cup.appendChild(el('span', 'ege-bracket__cuplabel', 'Champion'));
-    cup.appendChild(el('span', 'ege-bracket__cupname', state.champion || '—'));
+    cup.appendChild(el('span', 'ege-bracket__cupname', state.champion || '\u2014'));
     centre.appendChild(cup);
-    grid.appendChild(centre);
+    draw.appendChild(centre);
 
-    grid.appendChild(bracketSide(state, bracket.right, true));
-
-    box.appendChild(grid);
+    box.appendChild(draw);
     wrap.setAttribute('aria-label', bracket.title + ' bracket');
   }
 
