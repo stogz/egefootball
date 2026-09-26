@@ -84,9 +84,10 @@ EGE.colleges = {
   ASU:        { name: 'Arizona State',     short: 'ASU',   ground: '#8C1D40', ink: '#FFC627', logo: 'ASU' },
 
   /* --- the senior-year offers ------------------------------------------- */
-  /* Added with the 2019 recruiting calls. None of these has a mark in
-     icon/offers/ yet, so each one prints its short name until the file
-     lands under the name in `logo`. */
+  /* Added with the 2019 recruiting calls. Six of these are on the school's
+     second colour rather than its first, because the mark itself is in the
+     first and vanished into it: EMU and Duke on white, Utah State on
+     silver, Cal on gold, Charlotte on its old gold, Navy on its gold. */
 
   /* Big Ten and the Big 12 */
   Illinois:    { name: 'Illinois',          short: 'ILL',   ground: '#13294B', ink: '#FF5F05', logo: 'Illinois' },
@@ -100,7 +101,7 @@ EGE.colleges = {
   NIU:         { name: 'Northern Illinois', short: 'NIU',   ground: '#BA0C2F', ink: '#FFFFFF', logo: 'NIU' },
   BallState:   { name: 'Ball State',        short: 'BALL',  ground: '#FFFFFF', ink: '#BA0C2F', logo: 'BallState' },
   WMU:         { name: 'Western Michigan',  short: 'WMU',   ground: '#6C4023', ink: '#B5A167', logo: 'WMU' },
-  EMU:         { name: 'Eastern Michigan',  short: 'EMU',   ground: '#006633', ink: '#FFFFFF', logo: 'EMU' },
+  EMU:         { name: 'Eastern Michigan',  short: 'EMU',   ground: '#FFFFFF', ink: '#006633', logo: 'EMU' },
   CMU:         { name: 'Central Michigan',  short: 'CMU',   ground: '#6A0032', ink: '#FFC82E', logo: 'CMU' },
   Toledo:      { name: 'Toledo',            short: 'TOL',   ground: '#15397F', ink: '#FFDA00', logo: 'Toledo' },
 
@@ -113,20 +114,20 @@ EGE.colleges = {
   OregonState: { name: 'Oregon State',      short: 'OSU',   ground: '#000000', ink: '#DC4405', logo: 'OregonState' },
   Colorado:    { name: 'Colorado',          short: 'CU',    ground: '#CFB87C', ink: '#000000', logo: 'Colorado' },
   Utah:        { name: 'Utah',              short: 'UTAH',  ground: '#BE0000', ink: '#FFFFFF', logo: 'Utah' },
-  Cal:         { name: 'Cal',               short: 'CAL',   ground: '#003262', ink: '#FDB515', logo: 'Cal' },
+  Cal:         { name: 'Cal',               short: 'CAL',   ground: '#FDB515', ink: '#003262', logo: 'Cal' },
   Hawaii:      { name: 'Hawaii',            short: 'UH',    ground: '#024731', ink: '#FFFFFF', logo: 'Hawaii' },
-  UtahState:   { name: 'Utah State',        short: 'USU',   ground: '#0F2439', ink: '#FFFFFF', logo: 'UtahState' },
+  UtahState:   { name: 'Utah State',        short: 'USU',   ground: '#A7A8AA', ink: '#0F2439', logo: 'UtahState' },
 
   /* The ACC, the academies and the Carolinas */
   WakeForest:  { name: 'Wake Forest',       short: 'WAKE',  ground: '#000000', ink: '#9E7E38', logo: 'WakeForest' },
   NCState:     { name: 'NC State',          short: 'NCSU',  ground: '#CC0000', ink: '#FFFFFF', logo: 'NCState' },
-  Duke:        { name: 'Duke',              short: 'DUKE',  ground: '#003087', ink: '#FFFFFF', logo: 'Duke' },
+  Duke:        { name: 'Duke',              short: 'DUKE',  ground: '#FFFFFF', ink: '#003087', logo: 'Duke' },
   AppState:    { name: 'App State',         short: 'APP',   ground: '#FFCC00', ink: '#000000', logo: 'AppState' },
   ECU:         { name: 'East Carolina',     short: 'ECU',   ground: '#592A8A', ink: '#FDC82F', logo: 'ECU' },
-  Charlotte:   { name: 'Charlotte',         short: 'CLT',   ground: '#046A38', ink: '#B9975B', logo: 'Charlotte' },
+  Charlotte:   { name: 'Charlotte',         short: 'CLT',   ground: '#B9975B', ink: '#046A38', logo: 'Charlotte' },
   Coastal:     { name: 'Coastal Carolina',  short: 'CCU',   ground: '#006F71', ink: '#A27752', logo: 'Coastal' },
   Army:        { name: 'Army',              short: 'ARMY',  ground: '#D4BF91', ink: '#000000', logo: 'Army' },
-  Navy:        { name: 'Navy',              short: 'NAVY',  ground: '#00205B', ink: '#C5B783', logo: 'Navy' },
+  Navy:        { name: 'Navy',              short: 'NAVY',  ground: '#C5B783', ink: '#00205B', logo: 'Navy' },
 
   /* The South */
   WKU:         { name: 'Western Kentucky',  short: 'WKU',   ground: '#FFFFFF', ink: '#C60C30', logo: 'WKU' },
