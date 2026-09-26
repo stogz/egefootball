@@ -87,7 +87,9 @@ Routed by player name, e.g. `#andrew-parr`, `#paxon-hatch`. Each player page
 holds:
 
 - **Header** — headshot with height and weight joined to the foot of it, then
-  school and name, and under the name three facts: **Position**, **Record**
+  school and name. Under the name is the recruiting line: 247-style stars out
+  of five and his rank at his position in his state (**★★★★☆ #1 RB in
+  Illinois**), from `EGE.recruiting` in `data/offers.js`. Under that, three facts: **Position**, **Record**
   (the team's wins and losses over the season on show, 0-0 until the first
   result is out, followed by the current run — **6-1 · W4 Streak**, green for
   wins and red for losses — until the team's season is over) and **Jersey**.
@@ -1196,8 +1198,8 @@ Built so far:
   on the site rather than ten minutes behind it.
 - `data/games.js` — how everything else gets at those games, and the one place
   that decides what "played" means.
-- `data/offers.js` — who has offered whom, and each school's sticker colour
-  and mark. Adding a key to a player's list puts the sticker on his header.
+- `data/offers.js` — who has offered whom, each school's sticker colour
+  and mark, and each player's recruiting stars, 247 rating and state rank. Adding a key to a player's list puts the sticker on his header.
 - `data/brackets.js` — the playoff bracket each school is in, as the field was
   drawn: every first-round matchup and seed, and nothing else. No results —
   those live in `stats/{year}.js` like any other game. It also holds

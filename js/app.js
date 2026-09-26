@@ -229,6 +229,7 @@
     document.getElementById('playerJersey').textContent =
       typeof player.jersey === 'number' ? '#' + player.jersey : TBD;
 
+    renderStars(player);
     renderVitals(player);
     renderOffers(player);
     renderTally(player, season);
@@ -324,6 +325,29 @@
     if (document.fonts.addEventListener) {
       document.fonts.addEventListener('loadingdone', refitTally);
     }
+  }
+
+  /* Stars out of five, the empty ones drawn as outlines, and where he ranks
+     at his position in his state. */
+  function renderStars(player) {
+    var box = document.getElementById('playerStars');
+    box.innerHTML = '';
+    var recruit = (EGE.recruiting || {})[player.slug];
+    box.hidden = !recruit;
+    if (!recruit) { return; }
+
+    var row = el('span', 'ege-stars__row');
+    row.setAttribute('role', 'img');
+    row.setAttribute('aria-label', recruit.stars + '-star recruit');
+    for (var i = 1; i <= 5; i += 1) {
+      var star = el('span', 'ege-stars__star' + (i > recruit.stars ? ' is-empty' : ''), '\u2605');
+      star.setAttribute('aria-hidden', 'true');
+      row.appendChild(star);
+    }
+    box.appendChild(row);
+    box.appendChild(el('span', 'ege-stars__rank',
+      '#' + recruit.stateRank + ' ' + recruit.position + ' in ' + recruit.state));
+    box.title = recruit.stars + '-star \u00b7 247 rating ' + recruit.rating;
   }
 
   /* The two facts about a player that no season changes, under his picture.
@@ -555,7 +579,7 @@
        full width of the column and would say the words run to the edge. */
     var words = 0;
     [document.getElementById('playerSchool'), document.getElementById('playerName'),
-     top.querySelector('.ege-detail__list')].forEach(function (node) {
+     document.getElementById('playerStars'), top.querySelector('.ege-detail__list')].forEach(function (node) {
       if (!node) { return; }
       var walk = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
       var range = document.createRange();
@@ -577,15 +601,18 @@
      off. Then the row is spaced out to use the room it was given, never so
      far apart that the stickers stop overlapping.
 
-     Only in the corner. Where the offers are a band of their own under the
-     header, they keep to the plain grid. */
+     In the corner the room is what the words leave; where the offers are a
+     band of their own under the header, it is the band's whole width. */
   function offerLayout(box, count) {
     var plain = offerCols(count);
     var layout = { cols: plain, step: OFFER_STEP };
     if (Math.ceil(count / plain) <= 2) { return layout; }
-    if (window.matchMedia('(max-width: 1000px)').matches) { return layout; }
 
-    var room = offerRoom(box);
+    /* Where the offers are a band of their own under the header, the band
+       is the panel's whole width, so a big pile spreads across it rather
+       than running down the page three at a time. */
+    var band = window.matchMedia('(max-width: 1000px)').matches;
+    var room = band ? box.parentNode.getBoundingClientRect().width : offerRoom(box);
     function fits(cols) {
       var last = count - (Math.ceil(count / cols) - 1) * cols;
       return cols < count && last * 2 >= cols && offerSpan(cols, OFFER_STEP) <= room;

@@ -324,6 +324,7 @@ body {
   grid-template-areas:
     "figure school offers"
     "figure name   offers"
+    "figure stars  offers"
     "figure list   offers";
   align-content: start;
   gap: 0 22px;
@@ -331,6 +332,7 @@ body {
 .ege-detail__figure { grid-area: figure; }
 .ege-detail__school { grid-area: school; min-width: 0; }
 .ege-detail__name { grid-area: name; }
+.ege-detail__stars { grid-area: stars; }
 .ege-detail__list { grid-area: list; }
 
 .ege-detail__photo {
@@ -372,6 +374,37 @@ body {
   line-height: 1.02;
   margin: 5px 0 16px;
   overflow-wrap: break-word;
+}
+
+/* --- the recruiting line -------------------------------------------------
+
+   Gold stars, five slots with the empty ones left as outlines, and his rank
+   at his position in his state beside them. Sits between the name and the
+   facts, and pulls up into the name's bottom margin so it reads as a caption
+   on the name rather than as one more fact. */
+.ege-stars {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin: -8px 0 14px;
+}
+.ege-stars[hidden] { display: none; }
+.ege-stars__row {
+  display: inline-flex;
+  gap: 1px;
+  font-size: 1.25rem;
+  line-height: 1;
+  letter-spacing: 0;
+}
+.ege-stars__star { color: #f2b705; -webkit-text-stroke: 1px var(--fb-ink); }
+.ege-stars__star.is-empty { color: transparent; -webkit-text-stroke: 1px rgba(32, 38, 26, .35); }
+.ege-stars__rank {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-ink);
 }
 
 /* --- height and weight --------------------------------------------------
@@ -1141,6 +1174,7 @@ body {
     grid-template-areas:
       "figure school"
       "figure name"
+      "figure stars"
       "figure list"
       "offers offers";
   }
@@ -2593,6 +2627,7 @@ body {
     grid-template-areas:
       "school school"
       "figure name"
+      "figure stars"
       "figure list"
       "offers offers";
     justify-items: start;
@@ -2625,6 +2660,9 @@ body {
   .ege-detail__list dd { overflow-wrap: break-word; }
 
   .ege-detail__name { margin: 0 0 10px; }
+  .ege-stars { margin: -14px 0 0; }
+  .ege-stars__row { font-size: 1.0625rem; }
+  .ege-stars__rank { letter-spacing: .06em; }
 
   .ege-school--lg .ege-school__logo { width: 24px; height: 24px; }
   /* Tracking is what makes small caps legible, and it is also what decides
