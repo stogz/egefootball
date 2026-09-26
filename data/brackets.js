@@ -139,7 +139,7 @@ window.EGE = window.EGE || {};
         { label: 'Third Round' },
         { label: 'Regional Round', date: 'Dec 7' }
       ],
-      final: { label: 'State Championship' },
+      final: { label: 'Championship' },
       left: [
         { label: 'East', games: [
           bye(1, 'Wake Forest'),
@@ -176,7 +176,7 @@ window.EGE = window.EGE || {};
         { label: 'Region Final', date: 'Nov 23' },
         { label: 'State Semifinal', date: 'Nov 30' }
       ],
-      final: { label: 'State Championship', date: 'Dec 8' },
+      final: { label: 'Championship', date: 'Dec 8' },
       left: [
         { label: 'Region 1', games: [
           m(1, 'Navarre', 8, 'Pace'),

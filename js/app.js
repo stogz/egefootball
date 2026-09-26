@@ -435,19 +435,41 @@
 
     var pick = document.getElementById('seasonPick');
     pick.innerHTML = '';
-    /* The year and the class, which is short enough for a phone. The level
-       is across the strip at the top of the panel already. */
     years.slice().reverse().forEach(function (year) {
-      var s = EGE.seasons.filter(function (x) { return x.year === year; })[0];
-      var option = el('option', null, s ? year + ' \u00b7 ' + s.class : String(year));
+      var option = el('option');
       option.value = year;
       pick.appendChild(option);
     });
+    labelSeasons();
     pick.value = String(season);
 
     var at = years.indexOf(season);
     document.getElementById('seasonPrev').disabled = at <= 0;
     document.getElementById('seasonNext').disabled = at === -1 || at >= years.length - 1;
+  }
+
+  /* What each season in the picker says: the year and the class on a wider
+     screen, and the year alone on a phone, where the picker shares its row
+     with the way back and both arrows. The level is across the strip at the
+     top of the panel either way. */
+  var narrowBar = window.matchMedia('(max-width: 620px)');
+
+  function labelSeasons() {
+    var options = document.getElementById('seasonPick').options;
+    Array.prototype.forEach.call(options, function (option) {
+      var year = Number(option.value);
+      var s = EGE.seasons.filter(function (x) { return x.year === year; })[0];
+      option.textContent = narrowBar.matches || !s
+        ? String(year)
+        : year + ' \u00b7 ' + s.class;
+    });
+  }
+
+  /* A phone turned on its side, or a window dragged narrower. */
+  if (narrowBar.addEventListener) {
+    narrowBar.addEventListener('change', labelSeasons);
+  } else if (narrowBar.addListener) {
+    narrowBar.addListener(labelSeasons);
   }
 
   function showSeason(year) {
@@ -745,6 +767,7 @@
     windowWidth = window.innerWidth;
     refitOffers();
     refitTally();
+    drawBracketLines();
   });
 
   if (document.fonts && document.fonts.ready) {
@@ -766,6 +789,7 @@
       headerWidth = width;
       refitOffers();
       refitTally();
+      drawBracketLines();
     }).observe(document.querySelector('.ege-detail'));
   }
 
@@ -1152,9 +1176,9 @@
      top, that extra row pushes the whole branch down with it and nothing
      comes apart. */
 
-  var BRACKET_ROUNDS = 4;         /* per side, before the final */
+  var BRACKET_ROUNDS = 4;         /* before the final */
 
-  /* Where every box on one side goes: the row each first-round matchup
+  /* Where every box in the draw goes: the row each first-round matchup
      occupies, and then each later round folded up out of the pair below it.
      Rows are 1-based and the end is exclusive, which is what CSS grid wants
      written as `grid-row: start / end`. */
@@ -1190,30 +1214,34 @@
      part of, or null while it is still to be played -- it decides whether
      this line is the one that went through and what score sits at the end of
      it. */
-  function bracketTeam(team, us, result) {
-    var row = el('div', 'ege-seed');
-    if (!team) {
-      row.classList.add('ege-seed--blank');
-      row.appendChild(el('span', 'ege-seed__no'));
-      row.appendChild(el('span', 'ege-seed__name'));
-      return row;
-    }
+  /* Every line has the same three parts -- seed, name, score -- whether or
+     not there is anything to put in them yet, so a name is centred in the
+     same space on every line of every box and they all sit in one column. */
+  function bracketLine(className, seed, name, score, team) {
+    var row = el('div', 'ege-seed' + (className ? ' ' + className : ''));
+    if (team) { row.setAttribute('data-team', team); }
+    row.appendChild(el('span', 'ege-seed__no', seed));
+    row.appendChild(el('span', 'ege-seed__name', name));
+    row.appendChild(el('span', 'ege-seed__score', score));
+    return row;
+  }
 
-    if (us && team.name === us) { row.classList.add('ege-seed--us'); }
-    /* Two names in these four draws are longer than a first-round box and get
-       cut; the title is so the cut one can still be read. */
-    row.title = team.name;
-    row.appendChild(el('span', 'ege-seed__no', team.seed));
-    row.appendChild(el('span', 'ege-seed__name', team.name));
+  function bracketTeam(team, us, result) {
+    if (!team) { return bracketLine('ege-seed--blank'); }
+
+    var score = null;
+    var classes = [];
+    if (us && team.name === us) { classes.push('ege-seed--us'); }
 
     if (result) {
       var through = result.name === team.name;
-      row.classList.add(through ? 'ege-seed--through' : 'ege-seed--out');
-      if (typeof result.hi === 'number') {
-        row.appendChild(el('span', 'ege-seed__score', through ? result.hi : result.lo));
-      }
+      classes.push(through ? 'ege-seed--through' : 'ege-seed--out');
+      if (typeof result.hi === 'number') { score = through ? result.hi : result.lo; }
     }
 
+    var row = bracketLine(classes.join(' '), team.seed, team.name, score, team.name);
+    /* The whole name, for one cut short at two lines. */
+    row.title = team.name;
     return row;
   }
 
@@ -1240,10 +1268,7 @@
       box.appendChild(bracketTeam(slot.b, us, result));
     } else if (slot.a) {
       /* A bye is one team and the week off, not a team against nobody. */
-      var pass = el('div', 'ege-seed ege-seed--bye');
-      pass.appendChild(el('span', 'ege-seed__no'));
-      pass.appendChild(el('span', 'ege-seed__name', 'Bye'));
-      box.appendChild(pass);
+      box.appendChild(bracketLine('ege-seed--bye', null, 'Bye', null));
     } else {
       box.appendChild(bracketTeam(null));
     }
@@ -1251,48 +1276,28 @@
     return box;
   }
 
-  /* One half of the draw. `flip` turns the boxes round for the right-hand
-     side, so both halves read inwards towards the final. */
-  function bracketSide(state, side, flip) {
-    var plan = bracketRows(side);
-    var box = el('div', 'ege-bracket__side' + (flip ? ' ege-bracket__side--flip' : ''));
-    box.style.setProperty('--rows', plan.height);
-
-    plan.rounds.forEach(function (round, r) {
-      /* Round one is nearest the edge on both sides, so the columns run the
-         other way round on the right. */
-      var column = flip ? BRACKET_ROUNDS - r : r + 1;
-
-      round.forEach(function (place, at) {
-        if (place.opener && place.opener.label) {
-          var head = el('div', 'ege-bracket__group', place.opener.label);
-          head.style.gridColumn = column;
-          head.style.gridRow = (place.start - 1) + ' / ' + place.start;
-          box.appendChild(head);
-        }
-
-        var tie = bracketGame(state.rounds[r][state.at(r, flip, at)], state.bracket.us);
-        tie.style.gridColumn = column;
-        tie.style.gridRow = place.start + ' / ' + place.end;
-        box.appendChild(tie);
-      });
-    });
-
-    return box;
+  /* The heading over a round: what it is called. The dates are on the
+     schedule, which is where anybody looks for when a game is. */
+  function bracketHead(round) {
+    return el('div', 'ege-bracket__head', round.label);
   }
 
-  /* The heading over a column of matchups: what the round is called, and the
-     day it is played on where the bracket says. */
-  function bracketHeads(bracket, flip) {
-    var strip = el('div', 'ege-bracket__heads' + (flip ? ' ege-bracket__heads--flip' : ''));
-    bracket.rounds.forEach(function (round) {
-      var cell = el('div', 'ege-bracket__head');
-      if (round.date) { cell.appendChild(el('span', 'ege-bracket__when', round.date)); }
-      cell.appendChild(el('span', 'ege-bracket__round', round.label));
-      strip.appendChild(cell);
-    });
-    return strip;
-  }
+  /* The two halves of the draw working inwards from the edges and meeting in
+     the middle, where the championship is: four rounds down the left, the
+     final, and the same four rounds mirrored down the right. Nine columns,
+     sized to fit a full-width computer screen; on anything narrower -- a
+     phone -- the panel scrolls sideways, and a line under it says so.
+
+     Every box is placed on one grid (see bracketRows), and the lines that
+     join a game to the one its winner plays next are drawn over it afterwards
+     by drawBracketLines, from where the boxes actually landed. */
+  var bracketTies = null;
+
+  /* Whether this bracket has been scrolled to his school yet. Once, the first
+     time it is on screen, and never again until a different bracket is drawn
+     -- scrolling it back after somebody has swiped across would be taking the
+     page out of their hands. */
+  var bracketFound = false;
 
   function renderBracket(player) {
     var wrap = document.getElementById('bracketWrap');
@@ -1300,41 +1305,285 @@
     var state = EGE.bracketState(player, shownSeason());
 
     box.innerHTML = '';
+    bracketTies = null;
+    bracketFound = false;
     if (!state) { return; }
     var bracket = state.bracket;
 
-    box.appendChild(el('div', 'ege-bracket__title', bracket.title));
-
-    var grid = el('div', 'ege-bracket__grid');
-
-    var heads = el('div', 'ege-bracket__strip');
-    heads.appendChild(bracketHeads(bracket, false));
-    var middle = el('div', 'ege-bracket__head ege-bracket__head--final');
-    if (bracket.final.date) {
-      middle.appendChild(el('span', 'ege-bracket__when', bracket.final.date));
-    }
-    middle.appendChild(el('span', 'ege-bracket__round', bracket.final.label));
-    heads.appendChild(middle);
-    heads.appendChild(bracketHeads(bracket, true));
+    /* The round names over their columns, on the dark band every table on the
+       site heads itself with: counting in from the left edge, the final,
+       then counting back out to the right edge. */
+    var heads = el('div', 'ege-bracket__heads');
+    bracket.rounds.forEach(function (round) { heads.appendChild(bracketHead(round)); });
+    heads.appendChild(bracketHead(bracket.final));
+    bracket.rounds.slice().reverse().forEach(function (round) {
+      heads.appendChild(bracketHead(round));
+    });
     box.appendChild(heads);
 
-    grid.appendChild(bracketSide(state, bracket.left, false));
+    var draw = el('div', 'ege-bracket__draw');
+    var lines = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    lines.setAttribute('class', 'ege-bracket__lines');
+    lines.setAttribute('aria-hidden', 'true');
+    draw.appendChild(lines);
 
-    /* The final, and the line under it where a champion goes. Nothing is
-       written on it until the last game is published. */
+    var ties = { left: [], right: [], final: null };
+    var height = 0;
+    var semis = [];
+
+    [['left', false], ['right', true]].forEach(function (half) {
+      var side = half[0];
+      var flip = half[1];
+      var plan = bracketRows(bracket[side]);
+      height = Math.max(height, plan.height);
+      semis.push(plan.rounds[plan.rounds.length - 1][0]);
+
+      plan.rounds.forEach(function (round, r) {
+        /* Round one is nearest the edge on both sides. */
+        var column = flip ? BRACKET_COLUMNS - r : r + 1;
+        ties[side][r] = [];
+
+        round.forEach(function (place, at) {
+          if (place.opener && place.opener.label) {
+            var group = el('div', 'ege-bracket__group' +
+              (flip ? ' ege-bracket__group--flip' : ''), place.opener.label);
+            group.style.gridColumn = column;
+            group.style.gridRow = (place.start - 1) + ' / ' + place.start;
+            draw.appendChild(group);
+          }
+
+          var tie = bracketGame(state.rounds[r][state.at(r, flip, at)], bracket.us);
+          if (flip) { tie.classList.add('ege-tie--flip'); }
+          tie.style.gridColumn = column;
+          tie.style.gridRow = place.start + ' / ' + place.end;
+          draw.appendChild(tie);
+          ties[side][r].push(tie);
+        });
+      });
+    });
+
+    draw.style.setProperty('--rows', height);
+
+    /* The championship in the middle column, spanning exactly the rows the
+       two semifinals span, so it sits dead level with them and the lines
+       into it run straight across. Centring it on the whole draw instead put
+       it a few points off wherever a region heading sat above one half --
+       the heading's row is in the draw but not under the semifinal -- and
+       the lines stepped up into it. If the two halves were ever drawn with
+       different rows it falls back to the whole height.
+
+       The line where a champion goes sits above the game. Nothing is written
+       on it until the last game is published. */
+    var level = semis[0].start === semis[1].start && semis[0].end === semis[1].end;
     var centre = el('div', 'ege-bracket__centre');
-    centre.appendChild(bracketGame(state.final, bracket.us));
+    centre.style.gridColumn = BRACKET_ROUNDS + 1;
+    centre.style.gridRow = level
+      ? semis[0].start + ' / ' + semis[0].end
+      : '1 / ' + (height + 1);
     var cup = el('div', 'ege-bracket__champion' +
       (state.champion ? ' ege-bracket__champion--crowned' : ''));
+    if (state.champion) { cup.setAttribute('data-team', state.champion); }
     cup.appendChild(el('span', 'ege-bracket__cuplabel', 'Champion'));
-    cup.appendChild(el('span', 'ege-bracket__cupname', state.champion || '—'));
+    cup.appendChild(el('span', 'ege-bracket__cupname', state.champion || '\u2014'));
     centre.appendChild(cup);
-    grid.appendChild(centre);
+    ties.final = bracketGame(state.final, bracket.us);
+    ties.final.classList.add('ege-tie--final');
+    centre.appendChild(ties.final);
+    draw.appendChild(centre);
 
-    grid.appendChild(bracketSide(state, bracket.right, true));
+    box.appendChild(draw);
+    bracketTies = ties;
+    bracketUs = bracket.us;
+    bracketHover = null;
+    watchBracket(draw);
 
-    box.appendChild(grid);
     wrap.setAttribute('aria-label', bracket.title + ' bracket');
+    drawBracketLines();
+  }
+
+  /* Four rounds a side, the final between them. */
+  var BRACKET_COLUMNS = BRACKET_ROUNDS * 2 + 1;
+
+  /* His school's name in the draw, and whichever team the pointer is on. */
+  var bracketUs = null;
+  var bracketHover = null;
+
+  /* The lines between the games. Each box gets an elbow out of the side
+     facing the middle: across to halfway between its column and the next,
+     up or down to the level of the game its winner plays next, and across
+     into that box. The two elbows out of a pair of games meet, and between
+     them they draw the bracket's bracket shape.
+
+     Drawn from where the boxes actually are rather than worked out from the
+     grid, because a long school name wraps and makes its box taller, and
+     every box is then a little off wherever arithmetic would have put it.
+     So they are drawn again whenever the draw changes size: when it is first
+     shown, when the window changes width, when the webfont lands.
+
+     The school whose page this is, while it is still winning, has its own
+     path through the draw drawn in the site's orange. */
+  function drawBracketLines() {
+    var wrap = document.getElementById('bracketWrap');
+    var swipe = document.getElementById('bracketSwipe');
+    var draw = wrap ? wrap.querySelector('.ege-bracket__draw') : null;
+    var visible = Boolean(draw && bracketTies && !wrap.hidden && wrap.offsetParent !== null);
+
+    var overflowing = visible && wrap.scrollWidth > wrap.clientWidth + 1;
+    if (swipe) { swipe.hidden = !overflowing; }
+    if (!visible) { return; }
+
+    /* On a screen too narrow for the whole bracket, open it where his school
+       is: the furthest round it reached, across the middle of the screen.
+       Sideways only -- the page itself is left where it is. */
+    if (!bracketFound && wrap.clientWidth) {
+      bracketFound = true;
+      var mine = draw.querySelectorAll('.ege-tie .ege-seed--us');
+      var furthest = null;
+      Array.prototype.forEach.call(mine, function (seed) {
+        var tie = seed.closest('.ege-tie');
+        var column = parseInt(tie.style.gridColumn, 10) || 0;
+        var depth = Math.min(column, BRACKET_COLUMNS + 1 - column);
+        if (!furthest || depth > furthest.depth) { furthest = { tie: tie, depth: depth }; }
+      });
+      if (overflowing && furthest) {
+        var at = furthest.tie.getBoundingClientRect();
+        var frame = wrap.getBoundingClientRect();
+        wrap.scrollLeft += (at.left + at.width / 2) - (frame.left + frame.width / 2);
+      }
+    }
+
+    /* Every line in the draw as tall as the tallest one in it, so every box
+       is the same size as every other: the one whose school's name needs the
+       most lines sets it for all of them. Measured from scratch each time --
+       a different width wraps the names differently. */
+    draw.style.removeProperty('--seed-height');
+    var tallest = 0;
+    Array.prototype.forEach.call(draw.querySelectorAll('.ege-seed'), function (line) {
+      tallest = Math.max(tallest, line.getBoundingClientRect().height);
+    });
+    if (tallest) { draw.style.setProperty('--seed-height', Math.ceil(tallest) + 'px'); }
+
+    var svg = draw.querySelector('.ege-bracket__lines');
+    var origin = draw.getBoundingClientRect();
+    if (!origin.width) { return; }
+
+    function place(node) {
+      var r = node.getBoundingClientRect();
+      return {
+        left: r.left - origin.left,
+        right: r.right - origin.left,
+        middle: (r.top + r.bottom) / 2 - origin.top
+      };
+    }
+
+    /* The team that went along a line: the one in both the box it leaves and
+       the box it goes into. None yet for a round that has not been played. */
+    function along(from, to) {
+      var next = Array.prototype.map.call(
+        to.querySelectorAll('.ege-seed[data-team]'),
+        function (line) { return line.getAttribute('data-team'); });
+      var found = null;
+      Array.prototype.forEach.call(from.querySelectorAll('.ege-seed[data-team]'), function (line) {
+        if (next.indexOf(line.getAttribute('data-team')) !== -1) { found = line.getAttribute('data-team'); }
+      });
+      return found;
+    }
+
+    var elbows = [];
+
+    function elbow(from, to, flip) {
+      var a = place(from);
+      var b = place(to);
+      var out = flip ? a.left : a.right;
+      var into = flip ? b.right : b.left;
+      var turn = (out + into) / 2;
+      elbows.push({
+        team: along(from, to),
+        d: 'M' + out.toFixed(1) + ' ' + a.middle.toFixed(1) +
+           'H' + turn.toFixed(1) +
+           'V' + b.middle.toFixed(1) +
+           'H' + into.toFixed(1)
+      });
+    }
+
+    [['left', false], ['right', true]].forEach(function (half) {
+      var rounds = bracketTies[half[0]];
+      rounds.forEach(function (round, r) {
+        round.forEach(function (tie, at) {
+          var next = r + 1 < rounds.length
+            ? rounds[r + 1][Math.floor(at / 2)]
+            : bracketTies.final;
+          elbow(tie, next, half[1]);
+        });
+      });
+    });
+
+    /* One path a line, so a team's own run through the draw can be picked
+       out. The plain ones first and his school's last, so his is on top --
+       it is the one line on the page in orange, as far as he got. */
+    var ns = 'http://www.w3.org/2000/svg';
+    svg.innerHTML = '';
+    elbows.sort(function (x, y) {
+      return (x.team === bracketUs ? 1 : 0) - (y.team === bracketUs ? 1 : 0);
+    }).forEach(function (line) {
+      var path = document.createElementNS(ns, 'path');
+      path.setAttribute('d', line.d);
+      if (line.team) { path.setAttribute('data-team', line.team); }
+      if (line.team && line.team === bracketUs) { path.setAttribute('class', 'is-us'); }
+      svg.appendChild(path);
+    });
+
+    showBracketHover();
+  }
+
+  /* Pointing at a team lights up every box it is in, white the way a
+     schedule row does under the pointer, and draws its run through the draw
+     in a heavier line -- how far it got, at a glance. */
+  function showBracketHover() {
+    var draw = document.querySelector('#bracket .ege-bracket__draw');
+    if (!draw) { return; }
+
+    Array.prototype.forEach.call(draw.querySelectorAll('.is-hover'), function (node) {
+      node.classList.remove('is-hover');
+    });
+    if (!bracketHover) { return; }
+
+    Array.prototype.forEach.call(draw.querySelectorAll('[data-team]'), function (node) {
+      if (node.getAttribute('data-team') !== bracketHover) { return; }
+      node.classList.add('is-hover');
+      /* A line is drawn over the ones before it, so his goes last. */
+      if (node.parentNode.namespaceURI === 'http://www.w3.org/2000/svg') {
+        node.parentNode.appendChild(node);
+      }
+    });
+  }
+
+  document.getElementById('bracket').addEventListener('mouseover', function (event) {
+    var line = event.target.closest ? event.target.closest('[data-team]') : null;
+    var team = line && !line.closest('svg') ? line.getAttribute('data-team') : null;
+    if (team === bracketHover) { return; }
+    bracketHover = team;
+    showBracketHover();
+  });
+
+  document.getElementById('bracket').addEventListener('mouseleave', function () {
+    if (!bracketHover) { return; }
+    bracketHover = null;
+    showBracketHover();
+  });
+
+  /* Whenever the draw changes size -- shown, hidden, a different width, a
+     font arriving -- its lines are drawn again. One observer, moved on to
+     each new draw as it is made. */
+  var bracketObserver = null;
+
+  function watchBracket(draw) {
+    if (!window.ResizeObserver) { return; }
+    if (!bracketObserver) {
+      bracketObserver = new window.ResizeObserver(function () { drawBracketLines(); });
+    }
+    bracketObserver.disconnect();
+    bracketObserver.observe(draw);
   }
 
   /* --- games or tournament -------------------------------------------------
@@ -1360,6 +1609,11 @@
     document.getElementById('scheduleEmpty').hidden = tournament || Boolean(games.length);
     document.getElementById('scheduleFoot').hidden = tournament ||
       !document.getElementById('scheduleLegend').textContent;
+
+    /* A hidden bracket measures as nothing, so its lines are drawn the moment
+       it is shown rather than when it was built -- and the swipe note goes
+       with it when it is not. */
+    drawBracketLines();
   }
 
   document.addEventListener('change', function (event) {

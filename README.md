@@ -106,13 +106,26 @@ holds:
   one, with ‹ and › either side to step through them. It switches the header,
   season strip, schedule, game log and bracket to that season. Opening a
   different player goes back to the live season. An older season shows no
-  scouts and takes no boosters.
+  scouts and takes no boosters. On a phone the whole bar is one row: All
+  Players becomes a round ← button, and the picker shows just the year.
 - **Schedule** — every scheduled game in the selected season: week, date,
   kickoff, opponent with home/away and a mark for conference games, and the
   result once it has been played. A silhouette marks a game scouts will attend,
   for a player holding Intel for that season. Postseason games are marked with
   two asterisks, and a school in a bracket gets a **Games | Tournament** switch
-  beside the fold-away arrow.
+  beside the fold-away arrow. The bracket is two-sided: the two halves of
+  the draw work inwards from the edges to the championship in the middle,
+  with a line from every game to the one its winner plays next, and his
+  school's path through it drawn in orange. The round names run across the
+  top on a dark band the same height as a table's heading row, and the
+  champion line sits above the championship game. Every box in a bracket is
+  the same size, with the names centred and seeds and scores in every box.
+  A name takes two lines at most; anything longer ends in an ellipsis, with
+  the whole name on its tooltip. Pointing at a team turns every box it is
+  in white and draws its run through the draw in a heavier line. It fits a full-width computer screen (1280px and up) with every name
+  written out, wrapping between words where it needs to. On anything
+  narrower it keeps its shape and scrolls sideways, opening at his school,
+  with a note under it saying to swipe.
 - **Game log** — per-game stats for that player, with the stat lines driven by
   their position (see below), and a totals row for the season.
 - **Ratings** — every attribute in its group, with the overall in the corner

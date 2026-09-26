@@ -472,7 +472,7 @@
            switcher is built in app.js and hidden while there is only one
            season to show. -->
       <div class="ege-playerbar">
-        <a class="fb-btn fb-btn--inverse" href="#">&larr; All Players</a>
+        <a class="fb-btn fb-btn--inverse ege-back" href="#">&larr; All Players</a>
 
         <div class="ege-seasonbar" id="seasonBar" hidden>
           <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="seasonPrev"
@@ -565,6 +565,9 @@
         <div class="fb-tablewrap ege-bracketwrap" id="bracketWrap" hidden>
           <div class="ege-bracket" id="bracket"></div>
         </div>
+        <!-- Outside the scroller so it stays put while the bracket moves.
+             Only shown while the bracket is wider than the screen. -->
+        <p class="ege-bracket__swipe" id="bracketSwipe" hidden>Swipe sideways to see the whole bracket.</p>
 
         <div class="fb-tablewrap" id="scheduleTableWrap">
           <table class="fb-table ege-schedule">
