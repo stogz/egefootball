@@ -116,8 +116,10 @@ holds:
   beside the fold-away arrow. The bracket is two-sided: the two halves of
   the draw work inwards from the edges to the championship in the middle,
   with a line from every game to the one its winner plays next, and his
-  school's path through it drawn in orange. Seeds and scores are in every
-  box. It fits a full-width computer screen (1280px and up) with every name
+  school's path through it drawn in orange. The round names run across the
+  top on a dark band like a table's heading row, and the champion line sits
+  above the championship game. Every box in a bracket is the same size,
+  with the names centred and seeds and scores in every box. It fits a full-width computer screen (1280px and up) with every name
   written out, wrapping between words where it needs to. On anything
   narrower it keeps its shape and scrolls sideways, opening at his school,
   with a note under it saying to swipe.

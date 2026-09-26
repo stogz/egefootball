@@ -1274,13 +1274,10 @@
     return box;
   }
 
-  /* The heading over a round: what it is called, and the day it is played
-     on where the bracket says. */
-  function bracketHead(round, className) {
-    var cell = el('div', className);
-    if (round.date) { cell.appendChild(el('span', 'ege-bracket__when', round.date)); }
-    cell.appendChild(el('span', 'ege-bracket__round', round.label));
-    return cell;
+  /* The heading over a round: what it is called. The dates are on the
+     schedule, which is where anybody looks for when a game is. */
+  function bracketHead(round) {
+    return el('div', 'ege-bracket__head', round.label);
   }
 
   /* The two halves of the draw working inwards from the edges and meeting in
@@ -1311,17 +1308,14 @@
     if (!state) { return; }
     var bracket = state.bracket;
 
-    box.appendChild(el('div', 'ege-bracket__title', bracket.title));
-
-    /* The round names over their columns: counting in from the left edge,
-       the final, then counting back out to the right edge. */
+    /* The round names over their columns, on the dark band every table on the
+       site heads itself with: counting in from the left edge, the final,
+       then counting back out to the right edge. */
     var heads = el('div', 'ege-bracket__heads');
-    bracket.rounds.forEach(function (round) {
-      heads.appendChild(bracketHead(round, 'ege-bracket__head'));
-    });
-    heads.appendChild(bracketHead(bracket.final, 'ege-bracket__head ege-bracket__head--final'));
+    bracket.rounds.forEach(function (round) { heads.appendChild(bracketHead(round)); });
+    heads.appendChild(bracketHead(bracket.final));
     bracket.rounds.slice().reverse().forEach(function (round) {
-      heads.appendChild(bracketHead(round, 'ege-bracket__head'));
+      heads.appendChild(bracketHead(round));
     });
     box.appendChild(heads);
 
@@ -1333,12 +1327,14 @@
 
     var ties = { left: [], right: [], final: null };
     var height = 0;
+    var semis = [];
 
     [['left', false], ['right', true]].forEach(function (half) {
       var side = half[0];
       var flip = half[1];
       var plan = bracketRows(bracket[side]);
       height = Math.max(height, plan.height);
+      semis.push(plan.rounds[plan.rounds.length - 1][0]);
 
       plan.rounds.forEach(function (round, r) {
         /* Round one is nearest the edge on both sides. */
@@ -1366,20 +1362,30 @@
 
     draw.style.setProperty('--rows', height);
 
-    /* The championship in the middle column, level with the middle of the
-       draw, and the line under it where a champion goes. Nothing is written
-       on that until the last game is published. */
+    /* The championship in the middle column, spanning exactly the rows the
+       two semifinals span, so it sits dead level with them and the lines
+       into it run straight across. Centring it on the whole draw instead put
+       it a few points off wherever a region heading sat above one half --
+       the heading's row is in the draw but not under the semifinal -- and
+       the lines stepped up into it. If the two halves were ever drawn with
+       different rows it falls back to the whole height.
+
+       The line where a champion goes sits above the game. Nothing is written
+       on it until the last game is published. */
+    var level = semis[0].start === semis[1].start && semis[0].end === semis[1].end;
     var centre = el('div', 'ege-bracket__centre');
     centre.style.gridColumn = BRACKET_ROUNDS + 1;
-    centre.style.gridRow = '1 / ' + (height + 1);
-    ties.final = bracketGame(state.final, bracket.us);
-    ties.final.classList.add('ege-tie--final');
-    centre.appendChild(ties.final);
+    centre.style.gridRow = level
+      ? semis[0].start + ' / ' + semis[0].end
+      : '1 / ' + (height + 1);
     var cup = el('div', 'ege-bracket__champion' +
       (state.champion ? ' ege-bracket__champion--crowned' : ''));
     cup.appendChild(el('span', 'ege-bracket__cuplabel', 'Champion'));
     cup.appendChild(el('span', 'ege-bracket__cupname', state.champion || '\u2014'));
     centre.appendChild(cup);
+    ties.final = bracketGame(state.final, bracket.us);
+    ties.final.classList.add('ege-tie--final');
+    centre.appendChild(ties.final);
     draw.appendChild(centre);
 
     box.appendChild(draw);
