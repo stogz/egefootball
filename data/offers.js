@@ -81,19 +81,90 @@ EGE.colleges = {
   ColoState:  { name: 'Colorado State',    short: 'CSU',   ground: '#C8C372', ink: '#1E4D2B', logo: 'ColoradoState' },
   Boise:      { name: 'Boise State',       short: 'BSU',   ground: '#D64309', ink: '#0033A0', logo: 'Boise' },
   Arizona:    { name: 'Arizona',           short: 'ARIZ',  ground: '#AB0520', ink: '#FFFFFF', logo: 'Arizona' },
-  ASU:        { name: 'Arizona State',     short: 'ASU',   ground: '#8C1D40', ink: '#FFC627', logo: 'ASU' }
+  ASU:        { name: 'Arizona State',     short: 'ASU',   ground: '#8C1D40', ink: '#FFC627', logo: 'ASU' },
+
+  /* --- the senior-year offers ------------------------------------------- */
+  /* Added with the 2019 recruiting calls. None of these has a mark in
+     icon/offers/ yet, so each one prints its short name until the file
+     lands under the name in `logo`. */
+
+  /* Big Ten and the Big 12 */
+  Illinois:    { name: 'Illinois',          short: 'ILL',   ground: '#13294B', ink: '#FF5F05', logo: 'Illinois' },
+  Iowa:        { name: 'Iowa',              short: 'IOWA',  ground: '#000000', ink: '#FFCD00', logo: 'Iowa' },
+  Minnesota:   { name: 'Minnesota',         short: 'MINN',  ground: '#7A0019', ink: '#FFCC33', logo: 'Minnesota' },
+  Indiana:     { name: 'Indiana',           short: 'IU',    ground: '#EEEDEB', ink: '#990000', logo: 'Indiana' },
+  Purdue:      { name: 'Purdue',            short: 'PUR',   ground: '#CEB888', ink: '#000000', logo: 'Purdue' },
+  IowaState:   { name: 'Iowa State',        short: 'IAST',  ground: '#F1BE48', ink: '#C8102E', logo: 'IowaState' },
+
+  /* The MAC */
+  NIU:         { name: 'Northern Illinois', short: 'NIU',   ground: '#BA0C2F', ink: '#FFFFFF', logo: 'NIU' },
+  BallState:   { name: 'Ball State',        short: 'BALL',  ground: '#FFFFFF', ink: '#BA0C2F', logo: 'BallState' },
+  WMU:         { name: 'Western Michigan',  short: 'WMU',   ground: '#6C4023', ink: '#B5A167', logo: 'WMU' },
+  EMU:         { name: 'Eastern Michigan',  short: 'EMU',   ground: '#006633', ink: '#FFFFFF', logo: 'EMU' },
+  CMU:         { name: 'Central Michigan',  short: 'CMU',   ground: '#6A0032', ink: '#FFC82E', logo: 'CMU' },
+  Toledo:      { name: 'Toledo',            short: 'TOL',   ground: '#15397F', ink: '#FFDA00', logo: 'Toledo' },
+
+  /* The Valley */
+  YSU:         { name: 'Youngstown State',  short: 'YSU',   ground: '#C8102E', ink: '#FFFFFF', logo: 'YSU' },
+  SouthDakota: { name: 'South Dakota',      short: 'USD',   ground: '#FFFFFF', ink: '#AD0000', logo: 'SouthDakota' },
+
+  /* The West */
+  WSU:         { name: 'Washington State',  short: 'WSU',   ground: '#981E32', ink: '#FFFFFF', logo: 'WSU' },
+  OregonState: { name: 'Oregon State',      short: 'OSU',   ground: '#000000', ink: '#DC4405', logo: 'OregonState' },
+  Colorado:    { name: 'Colorado',          short: 'CU',    ground: '#CFB87C', ink: '#000000', logo: 'Colorado' },
+  Utah:        { name: 'Utah',              short: 'UTAH',  ground: '#BE0000', ink: '#FFFFFF', logo: 'Utah' },
+  Cal:         { name: 'Cal',               short: 'CAL',   ground: '#003262', ink: '#FDB515', logo: 'Cal' },
+  Hawaii:      { name: 'Hawaii',            short: 'UH',    ground: '#024731', ink: '#FFFFFF', logo: 'Hawaii' },
+  UtahState:   { name: 'Utah State',        short: 'USU',   ground: '#0F2439', ink: '#FFFFFF', logo: 'UtahState' },
+
+  /* The ACC, the academies and the Carolinas */
+  WakeForest:  { name: 'Wake Forest',       short: 'WAKE',  ground: '#000000', ink: '#9E7E38', logo: 'WakeForest' },
+  NCState:     { name: 'NC State',          short: 'NCSU',  ground: '#CC0000', ink: '#FFFFFF', logo: 'NCState' },
+  Duke:        { name: 'Duke',              short: 'DUKE',  ground: '#003087', ink: '#FFFFFF', logo: 'Duke' },
+  AppState:    { name: 'App State',         short: 'APP',   ground: '#FFCC00', ink: '#000000', logo: 'AppState' },
+  ECU:         { name: 'East Carolina',     short: 'ECU',   ground: '#592A8A', ink: '#FDC82F', logo: 'ECU' },
+  Charlotte:   { name: 'Charlotte',         short: 'CLT',   ground: '#046A38', ink: '#B9975B', logo: 'Charlotte' },
+  Coastal:     { name: 'Coastal Carolina',  short: 'CCU',   ground: '#006F71', ink: '#A27752', logo: 'Coastal' },
+  Army:        { name: 'Army',              short: 'ARMY',  ground: '#D4BF91', ink: '#000000', logo: 'Army' },
+  Navy:        { name: 'Navy',              short: 'NAVY',  ground: '#00205B', ink: '#C5B783', logo: 'Navy' },
+
+  /* The South */
+  WKU:         { name: 'Western Kentucky',  short: 'WKU',   ground: '#FFFFFF', ink: '#C60C30', logo: 'WKU' },
+  SouthAlabama:{ name: 'South Alabama',     short: 'USA',   ground: '#00205B', ink: '#BF0D3E', logo: 'SouthAlabama' },
+  FAMU:        { name: 'Florida A&M',       short: 'FAMU',  ground: '#F47321', ink: '#008142', logo: 'FAMU' },
+  JaxState:    { name: 'Jacksonville State', short: 'JSU',  ground: '#CC0000', ink: '#FFFFFF', logo: 'JaxState' }
 };
 
 /* Who has offered whom. Add a key to a list and the sticker is on the page;
    there is nothing else to change. */
 EGE.offers = {
-  'sam-stogsdill': ['ISU', 'EIU', 'SIU', 'INDY', 'SEMO'],
-  'paxon-hatch':   ['ISU', 'UNI', 'WIU', 'EIU', 'SIU'],
+  'sam-stogsdill': ['ISU', 'EIU', 'SIU', 'INDY', 'SEMO',
+                    'NIU', 'BallState', 'WMU', 'EMU', 'CMU', 'Toledo', 'UNI', 'WIU',
+                    'Illinois', 'Iowa', 'Minnesota', 'Indiana', 'Purdue', 'IowaState'],
+  'paxon-hatch':   ['ISU', 'UNI', 'WIU', 'EIU', 'SIU',
+                    'INDY', 'YSU', 'SouthDakota', 'NIU', 'BallState'],
   'cooper-clark':  ['SacState', 'UCDavis', 'CalPoly', 'SDSU', 'Fresno', 'SJSU',
-                    'Nevada', 'UNLV', 'ColoState', 'Boise', 'Arizona', 'ASU'],
-  'jaykeb-stewart': ['GaSouthern', 'FAU', 'FIU', 'UCF', 'USF', 'Bethune'],
-  'andrew-parr':   ['ODU', 'JMU', 'Elon', 'NCCentral'],
-  'isaac-vitel':   ['ISU']
+                    'Nevada', 'UNLV', 'ColoState', 'Boise', 'Arizona', 'ASU',
+                    'WSU', 'Hawaii', 'UtahState', 'OregonState', 'Colorado', 'Utah', 'Cal'],
+  'jaykeb-stewart': ['GaSouthern', 'FAU', 'FIU', 'UCF', 'USF', 'Bethune',
+                     'Charlotte', 'SouthAlabama', 'FAMU', 'JaxState', 'WKU'],
+  'andrew-parr':   ['ODU', 'JMU', 'Elon', 'NCCentral',
+                    'AppState', 'ECU', 'Charlotte', 'Coastal', 'Army', 'Navy',
+                    'WakeForest', 'NCState', 'Duke'],
+  'isaac-vitel':   ['ISU', 'EIU', 'WIU', 'SIU', 'SEMO', 'INDY', 'NIU', 'BallState', 'UNI']
+};
+
+/* Where each of them stands as a recruit, the way 247Sports would have it:
+   the stars, the rating behind them (70-79 is two stars, 80-89 three,
+   90-97 four, 98 and up five), and the rank among the players at his
+   position in his state. Drawn under the name on his page. */
+EGE.recruiting = {
+  'sam-stogsdill':  { stars: 4, rating: 91, stateRank: 1,  position: 'RB', state: 'Illinois' },
+  'cooper-clark':   { stars: 4, rating: 90, stateRank: 8,  position: 'RB', state: 'California' },
+  'andrew-parr':    { stars: 4, rating: 90, stateRank: 1,  position: 'TE', state: 'North Carolina' },
+  'jaykeb-stewart': { stars: 3, rating: 88, stateRank: 12, position: 'QB', state: 'Florida' },
+  'isaac-vitel':    { stars: 3, rating: 84, stateRank: 4,  position: 'QB', state: 'Illinois' },
+  'paxon-hatch':    { stars: 3, rating: 81, stateRank: 3,  position: 'TE', state: 'Illinois' }
 };
 
 /* The offers a player is holding, as whole college records rather than keys.
