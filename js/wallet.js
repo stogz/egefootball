@@ -173,8 +173,12 @@ EGE.wallet = (function () {
 
     return c.from(INVENTORY).select('email, effects, active, season')
       .then(function (res) {
+        /* A request that failed says nothing about what has been bought, so
+           whatever was there already stays -- nothing on the first load, and
+           the last good answer on a refresh, rather than every overall on
+           the page dropping back to its base number for one bad request. */
+        if (res.error) { return EGE.appliedBoosts || {}; }
         var boosts = {};
-        if (res.error) { EGE.appliedBoosts = boosts; return boosts; }
 
         (res.data || []).forEach(function (row) {
           /* A row with effects is a workout or rating points, and those are in
@@ -197,7 +201,7 @@ EGE.wallet = (function () {
         EGE.appliedBoosts = boosts;
         return boosts;
       })
-      .catch(function () { EGE.appliedBoosts = {}; return {}; });
+      .catch(function () { return EGE.appliedBoosts || {}; });
   }
 
   /* --- buying ------------------------------------------------------------ */
@@ -460,8 +464,10 @@ EGE.wallet = (function () {
 
     return c.from(PUBLISHED).select('season, week, posted_at')
       .then(function (res) {
+        /* Same rule as the boosts: a failed request keeps what was already
+           out, rather than taking every score off the page. */
+        if (res.error) { return EGE.publishedWeeks || {}; }
         var bySeason = {};
-        if (res.error) { EGE.publishedWeeks = bySeason; return bySeason; }
 
         (res.data || []).forEach(function (row) {
           var weeks = bySeason[row.season] || (bySeason[row.season] = []);
@@ -474,7 +480,7 @@ EGE.wallet = (function () {
         EGE.publishedWeeks = bySeason;
         return bySeason;
       })
-      .catch(function () { EGE.publishedWeeks = {}; return {}; });
+      .catch(function () { return EGE.publishedWeeks || {}; });
   }
 
   /* Every published week with when it went out and whether Discord has had

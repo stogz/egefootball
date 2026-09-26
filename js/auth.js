@@ -77,13 +77,29 @@ EGE.auth = (function () {
     })[0] || null;
   }
 
+  /* Who the listeners were last told about: a slug, null for nobody, or
+     undefined before anybody has been told anything. */
+  var announced;
+
   function onChange(fn) {
     listeners.push(fn);
-    fn(currentPlayer());
+    var player = currentPlayer();
+    announced = player ? player.slug : null;
+    fn(player);
   }
 
+  /* Only when who is signed in has actually changed. supabase-js reports the
+     same session again and again -- SIGNED_IN every time the tab comes back
+     into view, TOKEN_REFRESHED about once an hour, INITIAL_SESSION on top of
+     the getSession below on every load -- and each of those used to run the
+     whole sign-in again: the loading screen, the credits sync, a redraw of
+     the page and a jump back to the top of it. The new tokens are kept
+     either way; only the page is spared. */
   function emit() {
     var player = currentPlayer();
+    var slug = player ? player.slug : null;
+    if (slug === announced) { return; }
+    announced = slug;
     listeners.forEach(function (fn) { fn(player); });
   }
 
