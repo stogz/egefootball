@@ -1214,30 +1214,32 @@
      part of, or null while it is still to be played -- it decides whether
      this line is the one that went through and what score sits at the end of
      it. */
-  function bracketTeam(team, us, result) {
-    var row = el('div', 'ege-seed');
-    if (!team) {
-      row.classList.add('ege-seed--blank');
-      row.appendChild(el('span', 'ege-seed__no'));
-      row.appendChild(el('span', 'ege-seed__name'));
-      return row;
-    }
+  /* Every line has the same three parts -- seed, name, score -- whether or
+     not there is anything to put in them yet, so a name is centred in the
+     same space on every line of every box and they all sit in one column. */
+  function bracketLine(className, seed, name, score) {
+    var row = el('div', 'ege-seed' + (className ? ' ' + className : ''));
+    row.appendChild(el('span', 'ege-seed__no', seed));
+    row.appendChild(el('span', 'ege-seed__name', name));
+    row.appendChild(el('span', 'ege-seed__score', score));
+    return row;
+  }
 
-    if (us && team.name === us) { row.classList.add('ege-seed--us'); }
-    /* Two names in these four draws are longer than a first-round box and get
-       cut; the title is so the cut one can still be read. */
-    row.title = team.name;
-    row.appendChild(el('span', 'ege-seed__no', team.seed));
-    row.appendChild(el('span', 'ege-seed__name', team.name));
+  function bracketTeam(team, us, result) {
+    if (!team) { return bracketLine('ege-seed--blank'); }
+
+    var score = null;
+    var classes = [];
+    if (us && team.name === us) { classes.push('ege-seed--us'); }
 
     if (result) {
       var through = result.name === team.name;
-      row.classList.add(through ? 'ege-seed--through' : 'ege-seed--out');
-      if (typeof result.hi === 'number') {
-        row.appendChild(el('span', 'ege-seed__score', through ? result.hi : result.lo));
-      }
+      classes.push(through ? 'ege-seed--through' : 'ege-seed--out');
+      if (typeof result.hi === 'number') { score = through ? result.hi : result.lo; }
     }
 
+    var row = bracketLine(classes.join(' '), team.seed, team.name, score);
+    row.title = team.name;
     return row;
   }
 
@@ -1264,10 +1266,7 @@
       box.appendChild(bracketTeam(slot.b, us, result));
     } else if (slot.a) {
       /* A bye is one team and the week off, not a team against nobody. */
-      var pass = el('div', 'ege-seed ege-seed--bye');
-      pass.appendChild(el('span', 'ege-seed__no'));
-      pass.appendChild(el('span', 'ege-seed__name', 'Bye'));
-      box.appendChild(pass);
+      box.appendChild(bracketLine('ege-seed--bye', null, 'Bye', null));
     } else {
       box.appendChild(bracketTeam(null));
     }
@@ -1437,6 +1436,17 @@
         wrap.scrollLeft += (at.left + at.width / 2) - (frame.left + frame.width / 2);
       }
     }
+
+    /* Every line in the draw as tall as the tallest one in it, so every box
+       is the same size as every other: the one whose school's name needs the
+       most lines sets it for all of them. Measured from scratch each time --
+       a different width wraps the names differently. */
+    draw.style.removeProperty('--seed-height');
+    var tallest = 0;
+    Array.prototype.forEach.call(draw.querySelectorAll('.ege-seed'), function (line) {
+      tallest = Math.max(tallest, line.getBoundingClientRect().height);
+    });
+    if (tallest) { draw.style.setProperty('--seed-height', Math.ceil(tallest) + 'px'); }
 
     var svg = draw.querySelector('.ege-bracket__lines');
     var origin = draw.getBoundingClientRect();
