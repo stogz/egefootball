@@ -898,6 +898,21 @@ stats/{year}.js     the season itself
 It writes them out as `<script>` tags with a cache-busting query, which is a
 different URL every load and therefore always a fetch.
 
+Everything else — `index.html`, `js/app.js`, the stylesheets, `data/offers.js`
+and the rest — is kept current by `sw.js`, a small service worker. It makes the
+browser check every one of the site's own files with the server before using
+its copy. An unchanged file costs a quick 304, and a changed one arrives new
+the first time. It keeps no copies of its own, so it cannot go stale itself,
+and it leaves other sites' files (Supabase, the fonts) alone. The header of
+`sw.js` says how to take it out if that is ever wanted: deleting the file is
+not enough.
+
+A page that is already open is a different problem: a phone does not reload a
+tab it put away, or the home-screen app when it is opened again. So coming
+back to the page after 30 seconds or more asks Supabase for the published
+weeks and the ratings again, and redraws in place, keeping your scroll
+position, if anything changed.
+
 **Why `document.write`, of all things.** Because these have to be in place
 *before* `js/app.js` runs, exactly as they always were. `document.write` from
 a parser-blocking script inserts them into the parse stream at that point, so
@@ -1196,6 +1211,9 @@ Built so far:
 - `js/site-data.js` — the list of seasons, and the tags it writes for the
   three files the admin regenerates, cache-busted so a committed correction is
   on the site rather than ten minutes behind it.
+- `sw.js` — a service worker that makes the browser check every one of the
+  site's own files with the server on each load, so a push is on the site the
+  next time it is opened rather than ten minutes later.
 - `data/games.js` — how everything else gets at those games, and the one place
   that decides what "played" means.
 - `data/offers.js` — who has offered whom, each school's sticker colour

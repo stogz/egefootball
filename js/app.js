@@ -316,7 +316,6 @@
     if (bar && !bar.hidden) { fitTally(document.getElementById('playerTally')); }
   }
 
-  window.addEventListener('resize', refitTally);
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(refitTally);
     /* A face the home page never used -- a weight only the player page
@@ -645,17 +644,22 @@
     return logo;
   }
 
-  function offerSticker(player, entry, at, cols, step) {
-    var college = entry.college;
+  /* Where one sticker sits and how far off square. Set on a sticker that
+     already exists as readily as on a new one, which is what lets a re-fit
+     move the stickers rather than build them all again. */
+  function placeSticker(slot, player, entry, at, cols, step) {
     var place = offerPlacing(player.slug + '-' + entry.key, at, OFFER_SIZE, cols, step);
-
-    var slot = el('div', 'ege-offers__sticker');
     slot.style.setProperty('--at-x', Math.round(place.x) + 'px');
     slot.style.setProperty('--at-y', Math.round(place.y) + 'px');
+    slot.firstChild.style.setProperty('--tilt', place.tilt + 'deg');
+  }
+
+  function offerSticker(player, entry, at, cols, step) {
+    var college = entry.college;
+    var slot = el('div', 'ege-offers__sticker');
 
     var sticker = el('span', 'ege-sticker ege-sticker--offer');
     sticker.style.setProperty('--sticker-size', OFFER_SIZE + 'px');
-    sticker.style.setProperty('--tilt', place.tilt + 'deg');
     sticker.style.setProperty('--team-ground', college.ground);
     sticker.style.setProperty('--team-ink', college.ink);
     sticker.title = college.name + ' have offered';
@@ -665,6 +669,7 @@
     sticker.appendChild(offerFace(college, sticker));
 
     slot.appendChild(sticker);
+    placeSticker(slot, player, entry, at, cols, step);
     return slot;
   }
 
@@ -672,19 +677,35 @@
 
   function renderOffers(player) {
     var box = document.getElementById('playerOffers');
-    box.innerHTML = '';
+    var offers = EGE.offersFor(player);
     offersPlayer = player;
+
+    /* The same stickers as are already up -- a re-fit, or the page redrawn
+       once the published weeks land -- are moved rather than made again.
+       Making them again swapped every logo for a fresh <img> that had to
+       decode before it showed, so the whole pile blinked; on a phone that
+       was every time the address bar slid in or out. */
+    var key = player.slug + ':' + offers.map(function (one) { return one.key; }).join(',');
+    var reuse = box.getAttribute('data-offers') === key &&
+                box.children.length === offers.length;
+    if (!reuse) {
+      box.innerHTML = '';
+      box.setAttribute('data-offers', key);
+    }
 
     /* Out of the grid while the room is measured, then back in. */
     box.hidden = true;
-    var offers = EGE.offersFor(player);
     if (!offers.length) { return; }
 
     var layout = offerLayout(box, offers.length);
     var cols = layout.cols;
     box.hidden = false;
     offers.forEach(function (entry, at) {
-      box.appendChild(offerSticker(player, entry, at, cols, layout.step));
+      if (reuse) {
+        placeSticker(box.children[at], player, entry, at, cols, layout.step);
+      } else {
+        box.appendChild(offerSticker(player, entry, at, cols, layout.step));
+      }
     });
 
     /* The box is only as big as the stickers in it, so a player with three
@@ -714,7 +735,18 @@
     if (offersPlayer && box.offsetParent !== null) { renderOffers(offersPlayer); }
   }
 
-  window.addEventListener('resize', refitOffers);
+  /* Only a change of width can move where the words end. A phone fires
+     `resize` every time its address bar slides in or out as you scroll,
+     which changes the height and nothing else -- re-fitting then was work
+     for nothing, done in the middle of a scroll. */
+  var windowWidth = window.innerWidth;
+  window.addEventListener('resize', function () {
+    if (window.innerWidth === windowWidth) { return; }
+    windowWidth = window.innerWidth;
+    refitOffers();
+    refitTally();
+  });
+
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(refitOffers);
     if (document.fonts.addEventListener) {
@@ -3298,9 +3330,15 @@
     viewAdmin.hidden  = view !== viewAdmin;
   }
 
+  /* The page route() last drew, so it can tell going somewhere from being
+     asked to draw the same page again. */
+  var routed = null;
+
   function route() {
     var hash = window.location.hash.replace(/^#/, '');
     var player = hash ? EGE.playerBySlug(hash) : null;
+    var moved = hash !== routed;
+    routed = hash;
 
     if (hash === 'shop') {
       renderShop();
@@ -3327,7 +3365,12 @@
       setNav('players');
       document.title = 'EGE Football';
     }
-    window.scrollTo(0, 0);
+
+    /* To the top only when this is a different page. route() is also how the
+       page is redrawn in place -- a sign-in landing, the shop appearing --
+       and doing it then threw whoever was halfway down a game log back up
+       to the header. */
+    if (moved) { window.scrollTo(0, 0); }
   }
 
   /* --- portal: shared bits ---------------------------------------------- */
@@ -3753,4 +3796,61 @@
   route();
   EGE.auth.init();
   window.addEventListener('hashchange', route);
+
+  /* --- staying current --------------------------------------------------
+
+     A phone does not reload a page it put away. Back on a tab from this
+     morning, or on the home-screen app opened again, you are looking at the
+     page as it was then: a week published since is not there, and neither is
+     anything anybody bought. That read as "I have to reload to see it".
+
+     So coming back to the page after a while asks Supabase again, and only
+     if the answer is different does anything get redrawn -- in place, with
+     the page left where you had it. */
+  var AWAY_BEFORE_REFRESH = 30 * 1000;
+  var hiddenSince = null;
+  var refreshing = false;
+
+  function liveState() {
+    return JSON.stringify([EGE.publishedWeeks, EGE.appliedBoosts]);
+  }
+
+  function refreshLive() {
+    if (refreshing) { return; }
+    refreshing = true;
+    var before = liveState();
+    Promise.all([
+      EGE.wallet.loadPublishedWeeks(),
+      EGE.wallet.loadBoosts()
+    ]).then(function () {
+      if (liveState() !== before) {
+        redrawRatings();
+        refreshScoutMarks();
+      }
+      updateNavCreditsFromServer();
+    }).then(function () { refreshing = false; }, function () { refreshing = false; });
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { hiddenSince = Date.now(); return; }
+    if (hiddenSince !== null && Date.now() - hiddenSince >= AWAY_BEFORE_REFRESH) {
+      refreshLive();
+    }
+    hiddenSince = null;
+  });
+
+  /* Back and forward can hand over the page itself, kept whole in memory,
+     rather than loading it: the same thing again. */
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted) { refreshLive(); }
+  });
+
+  /* And a fresh load always gets the files as they are now, not as the
+     browser last saw them. See sw.js. Opened straight off a disk there is no
+     server to ask, so it is left off there. */
+  if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
 })();
