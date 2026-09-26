@@ -767,6 +767,7 @@
     windowWidth = window.innerWidth;
     refitOffers();
     refitTally();
+    fitBracket();
   });
 
   if (document.fonts && document.fonts.ready) {
@@ -788,6 +789,7 @@
       headerWidth = width;
       refitOffers();
       refitTally();
+      fitBracket();
     }).observe(document.querySelector('.ege-detail'));
   }
 
@@ -1285,13 +1287,10 @@
   /* The whole draw in one direction: every first-round game down the left,
      each round after it one column further right, and the final and the
      champion in the last. Five columns rather than the nine the two halves
-     facing each other took, which is what lets it fit the panel with every
-     name written out in full rather than making you scroll across it.
-
-     The same boxes, in the same order, are also a list: each round's heading
-     is in there too, hidden while the draw is a grid. On a phone, where five
-     columns cannot be read, the stylesheet lets go of the grid positions and
-     the rounds stack one under the other instead. */
+     facing each other took, which is what lets it fit the panel on a laptop
+     with every name written out rather than making you scroll across it.
+     Narrower than that it is still this bracket, shrunk to fit -- see
+     fitBracket below. */
   function renderBracket(player) {
     var wrap = document.getElementById('bracketWrap');
     var box = document.getElementById('bracket');
@@ -1318,8 +1317,6 @@
     draw.style.setProperty('--rows', plan.height);
 
     plan.rounds.forEach(function (round, r) {
-      draw.appendChild(bracketHead(bracket.rounds[r], 'ege-bracket__roundhead'));
-
       round.forEach(function (place, at) {
         if (place.opener && place.opener.label) {
           var group = el('div', 'ege-bracket__group', place.opener.label);
@@ -1338,7 +1335,6 @@
     /* The final, and the line under it where a champion goes. Nothing is
        written on it until the last game is published. It spans the whole
        height of the draw so it sits level with the middle of it. */
-    draw.appendChild(bracketHead(bracket.final, 'ege-bracket__roundhead'));
     var centre = el('div', 'ege-bracket__centre');
     centre.style.gridColumn = BRACKET_ROUNDS + 1;
     centre.style.gridRow = '1 / ' + (plan.height + 1);
@@ -1351,7 +1347,55 @@
     draw.appendChild(centre);
 
     box.appendChild(draw);
+
+    /* Only said while the bracket is shrunk small enough to need it. */
+    box.appendChild(el('p', 'ege-bracket__hint',
+      'Pinch to zoom in, or turn your phone sideways.'));
+
     wrap.setAttribute('aria-label', bracket.title + ' bracket');
+    fitBracket();
+  }
+
+  /* A bracket is one shape: five rounds side by side, the first one down the
+     left with every team in it. Below a certain width the boxes cannot hold a
+     school's name however it wraps, and cutting the columns further only
+     turns names into three letters and an ellipsis.
+
+     So the bracket is never laid out narrower than BRACKET_MIN, and on a
+     screen narrower than that -- a phone held upright -- the whole thing is
+     shrunk to fit instead, the way a picture of it would be. It is all on the
+     screen at once and nothing scrolls sideways; pinching in reads it, and a
+     phone turned on its side has room for it at full size.
+
+     `zoom` rather than a transform, because zoom shrinks the space the
+     bracket takes along with it -- a transform would leave a bracket-sized
+     hole under it. A browser without zoom keeps the old behaviour: the panel
+     scrolls sideways. */
+  /* Wide enough that every column holds the longest single word in any of
+     the draws -- "Northwestern", "Willowbrook" -- beside a seed and a score,
+     so a name only ever wraps between its words. */
+  var BRACKET_MIN = 840;
+
+  function fitBracket() {
+    var wrap = document.getElementById('bracketWrap');
+    var box = document.getElementById('bracket');
+    if (!wrap || wrap.hidden || !box.firstChild) { return; }
+
+    var pad = window.getComputedStyle(wrap);
+    var room = wrap.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight);
+    var fitted = room > 0 && room < BRACKET_MIN;
+
+    var scale = room / BRACKET_MIN;
+    /* The hint is for a bracket shrunk past easy reading -- a phone held
+       upright. Turned on its side it is nine tenths size and says nothing. */
+    wrap.classList.toggle('is-fitted', fitted && scale < 0.7);
+    box.style.width = fitted ? BRACKET_MIN + 'px' : '';
+    box.style.zoom = fitted ? String(scale) : '';
+
+    /* The hint is inside the bracket and shrinks with it, so it is set large
+       enough to come out at an ordinary reading size afterwards. */
+    var hint = box.querySelector('.ege-bracket__hint');
+    if (hint) { hint.style.fontSize = fitted ? (12.5 / scale).toFixed(1) + 'px' : ''; }
   }
 
   /* --- games or tournament -------------------------------------------------
@@ -1377,6 +1421,10 @@
     document.getElementById('scheduleEmpty').hidden = tournament || Boolean(games.length);
     document.getElementById('scheduleFoot').hidden = tournament ||
       !document.getElementById('scheduleLegend').textContent;
+
+    /* A hidden bracket measures as nothing, so it is fitted the moment it is
+       shown rather than when it was drawn. */
+    if (tournament) { fitBracket(); }
   }
 
   document.addEventListener('change', function (event) {

@@ -2025,7 +2025,8 @@ body {
    that feed it, which is what puts it exactly between them however many
    group headings are above it.
 
-   On a phone the same boxes stack instead: see the end of this section. */
+   On a phone held upright it is the same bracket shrunk to fit the screen:
+   see fitBracket in js/app.js. */
 .ege-bracketwrap {
   padding: 16px 18px 20px;
   background:
@@ -2050,12 +2051,12 @@ body {
 }
 
 /* The round headings and the draw under them share one set of columns, so a
-   heading is always over its own round. The last column is a little
-   narrower: it holds one game and a trophy line, not a round of them. */
+   heading is always over its own round. All five the same width: the final
+   carries two names and scores like any other round. */
 .ege-bracket__heads,
 .ege-bracket__draw {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, .8fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   column-gap: 12px;
 }
 .ege-bracket__heads { align-items: end; }
@@ -2091,10 +2092,6 @@ body {
   grid-template-rows: repeat(var(--rows), minmax(21px, auto));
   row-gap: 4px;
 }
-
-/* Each round's own heading, for when the draw is a list. The strip above does
-   the job while it is a grid. */
-.ege-bracket__roundhead { display: none; }
 
 /* The name of a block of the draw -- a region, or a half of the state.
    Sits on a row of its own above the first matchup in it. */
@@ -2147,11 +2144,14 @@ body {
   font-weight: 700;
   color: var(--fb-muted-2);
 }
+/* A long school name wraps onto a second line, between its words, rather
+   than losing its end: the box grows taller, the rows of the draw grow with
+   it, and every box that spans them stays exactly between its two feeders.
+   The bracket is never laid out narrow enough for a single word not to fit
+   (see BRACKET_MIN in js/app.js); breaking inside one is only a last resort. */
 .ege-seed__name {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: break-word;
   color: var(--fb-ink);
 }
 
@@ -2241,55 +2241,20 @@ body {
 }
 .ege-bracket__champion--crowned .ege-bracket__cupname { color: var(--fb-ink); }
 
-/* --- the draw on anything narrower than a laptop -----------------------------
+/* The line that says how to read a bracket shrunk to fit a phone held
+   upright. Only there while it is. */
+.ege-bracket__hint {
+  display: none;
+  margin: 4px 0 0;
+  text-align: center;
+  font-size: var(--fb-small);
+  font-weight: 700;
+  color: var(--fb-muted);
+}
+.ege-bracketwrap.is-fitted .ege-bracket__hint { display: block; }
 
-   Five columns only read while each round has about 200 points to itself --
-   less than that and the names start getting cut, and on a phone it is 60
-   points a round. So below that the rounds stack instead, each under its own
-   heading: First Round, then Second Round, down to the final and the
-   champion. As many games across as have 200 points each -- four on a
-   tablet, one on a phone -- so every name is written out in full and there
-   is nothing to scroll sideways. Every box is the same as it is in the grid;
-   only where it sits changes. */
-@media (max-width: 1100px) {
-  .ege-bracketwrap { padding: 14px 12px 18px; }
-  .ege-bracket__heads { display: none; }
-
-  .ege-bracket__draw {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    grid-template-rows: none;
-    gap: 8px;
-  }
-  /* The positions app.js gave every box are for the grid; here they go
-     where they fall. */
-  .ege-bracket__draw > * {
-    grid-column: auto !important;
-    grid-row: auto !important;
-  }
-
-  .ege-bracket__roundhead,
-  .ege-bracket__group,
-  .ege-bracket__centre { grid-column: 1 / -1 !important; }
-
-  .ege-bracket__roundhead {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-    margin-top: 10px;
-    padding-bottom: 5px;
-    border-bottom: var(--fb-border-thin) solid var(--fb-ink);
-  }
-  .ege-bracket__roundhead:first-child { margin-top: 0; }
-  .ege-bracket__roundhead .ege-bracket__round { order: -1; }
-
-  /* The final and the champion side by side, where there is room for both. */
-  .ege-bracket__centre {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    align-items: stretch;
-    gap: 8px;
-  }
+@media (max-width: 620px) {
+  .ege-bracketwrap { padding: 14px 12px 16px; }
 }
 
 /* Folded: the head is the whole panel, so the rule under it would be a second
