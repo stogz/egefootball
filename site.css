@@ -2010,25 +2010,22 @@ body {
 
 /* --- the bracket ---------------------------------------------------------
 
-   The tournament a school is in, drawn in one direction: every first-round
-   game down the left, each round after it one column to the right, and the
-   final and the champion in the last column.
+   The tournament a school is in, drawn the way a bracket is drawn: the two
+   halves of the draw working inwards from the edges and meeting in the
+   middle, where the championship is, with a line from every game to the one
+   its winner plays next.
 
-   It used to be the two halves of the draw working inwards from the edges
-   and meeting in the middle, which is nine columns and was 1520px wide --
-   wider than any screen it was on, so you scrolled across it to see the
-   other half. Five columns fit the panel on anything from a tablet up, with
-   room for the longest school name in any of the draws.
-
-   Every box is placed by hand on the grid -- see bracketRows in js/app.js.
+   Every box is placed by hand on one grid -- see bracketRows in js/app.js.
    A second-round box spans exactly the rows of the two first-round boxes
    that feed it, which is what puts it exactly between them however many
-   group headings are above it.
+   group headings are above it. The lines are drawn over the grid afterwards
+   from where the boxes landed (drawBracketLines).
 
-   On a phone held upright it is the same bracket shrunk to fit the screen:
-   see fitBracket in js/app.js. */
+   Nine columns, sized to fit a full-width computer screen with every name in
+   full. Narrower than that -- a phone -- it keeps its shape and the panel
+   scrolls sideways, with a line under it saying so. */
 .ege-bracketwrap {
-  padding: 16px 18px 20px;
+  padding: 16px 10px 20px;
   background:
     repeating-linear-gradient(90deg,
       transparent, transparent 58px,
@@ -2038,9 +2035,14 @@ body {
 }
 
 .ege-bracket {
+  /* The narrowest it is laid out. A 1280px screen -- the smallest a laptop
+     comes, less a Windows scrollbar -- gives it a little more than this, and
+     at that width every column holds the longest single word in any of the
+     draws beside a seed and a score. */
+  min-width: 1185px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .ege-bracket__title {
@@ -2050,14 +2052,26 @@ body {
   color: var(--fb-ink);
 }
 
+/* While the bracket is wider than the screen, the middle of it is off to the
+   side, so the title holds to the left edge of the screen as the bracket
+   moves under it. */
+@media (max-width: 1240px) {
+  .ege-bracket__title {
+    align-self: flex-start;
+    position: sticky;
+    left: 0;
+    padding: 0 4px;
+  }
+}
+
 /* The round headings and the draw under them share one set of columns, so a
-   heading is always over its own round. All five the same width: the final
-   carries two names and scores like any other round. */
+   heading is always over its own round. The gap between columns is where the
+   lines run. */
 .ege-bracket__heads,
 .ege-bracket__draw {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  column-gap: 12px;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  column-gap: 11px;
 }
 .ege-bracket__heads { align-items: end; }
 
@@ -2079,7 +2093,7 @@ body {
 .ege-bracket__round {
   font-size: var(--fb-label);
   font-weight: 800;
-  letter-spacing: .1em;
+  letter-spacing: .08em;
   text-transform: uppercase;
   color: var(--fb-ink);
 }
@@ -2087,11 +2101,36 @@ body {
 /* --- the draw ------------------------------------------------------------- */
 
 .ege-bracket__draw {
+  position: relative;
   /* One row per half-matchup, plus one for each group heading. The count is
      set from the draw, in app.js. */
   grid-template-rows: repeat(var(--rows), minmax(21px, auto));
   row-gap: 4px;
 }
+
+/* The lines, laid over the whole draw and under the boxes. */
+.ege-bracket__lines {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 0;
+}
+.ege-bracket__lines path {
+  fill: none;
+  stroke: rgba(32, 38, 26, .5);
+  stroke-width: 1.5;
+}
+/* His school's way through the draw, as far as it has got. */
+.ege-bracket__lines path.is-us {
+  stroke: var(--fb-accent);
+  stroke-width: 2.5;
+}
+.ege-bracket__draw > .ege-tie,
+.ege-bracket__draw > .ege-bracket__centre { position: relative; z-index: 1; }
 
 /* The name of a block of the draw -- a region, or a half of the state.
    Sits on a row of its own above the first matchup in it. */
@@ -2103,6 +2142,20 @@ body {
   text-transform: uppercase;
   color: var(--fb-muted-2);
 }
+.ege-bracket__group--flip { text-align: right; }
+
+/* The note under a bracket wider than the screen. Its own band, outside the
+   part that scrolls. */
+.ege-bracket__swipe {
+  margin: 0;
+  padding: 9px 18px;
+  border-bottom: var(--fb-border) solid var(--fb-ink);
+  text-align: center;
+  font-size: var(--fb-small);
+  font-weight: 700;
+  color: var(--fb-muted);
+}
+.ege-bracket__swipe[hidden] { display: none; }
 
 /* --- one matchup ---------------------------------------------------------- */
 
@@ -2124,13 +2177,16 @@ body {
   background: transparent;
 }
 
+/* Set a half-point under the site's small text, and packed a little tighter
+   than a table row: nine rounds across one screen is what the bracket is
+   for, and this is what it costs. */
 .ege-seed {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 3px 7px;
+  gap: 4px;
+  padding: 3px 4px;
   min-height: 21px;
-  font-size: var(--fb-small);
+  font-size: 11px;
   line-height: 1.15;
 }
 .ege-seed + .ege-seed { border-top: 1px solid rgba(32, 38, 26, .22); }
@@ -2138,7 +2194,7 @@ body {
 
 .ege-seed__no {
   flex: none;
-  width: 1.4em;
+  width: 1.2em;
   text-align: right;
   font-size: var(--fb-label);
   font-weight: 700;
@@ -2148,10 +2204,14 @@ body {
    than losing its end: the box grows taller, the rows of the draw grow with
    it, and every box that spans them stays exactly between its two feeders.
    The bracket is never laid out narrow enough for a single word not to fit
-   (see BRACKET_MIN in js/app.js); breaking inside one is only a last resort. */
+   (see its min-width above); breaking inside one is only a last resort. */
 .ege-seed__name {
   min-width: 0;
   overflow-wrap: break-word;
+  /* If a word ever does have to break, it breaks where a dictionary says --
+     "North-western" -- rather than wherever the edge happens to be. */
+  -webkit-hyphens: auto;
+  hyphens: auto;
   color: var(--fb-ink);
 }
 
@@ -2171,7 +2231,7 @@ body {
 .ege-seed__score {
   flex: none;
   margin-left: auto;
-  padding-left: 8px;
+  padding-left: 2px;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   color: var(--fb-muted-2);
@@ -2192,19 +2252,28 @@ body {
 .ege-seed--bye .ege-seed__name { font-style: italic; color: var(--fb-muted-2); }
 .ege-seed--blank { min-height: 21px; }
 
+/* The right half reads inwards, so its boxes are mirrored: the seed against
+   the outer edge, the name set right, and the score towards the middle. */
+.ege-tie--flip .ege-seed { flex-direction: row-reverse; }
+.ege-tie--flip .ege-seed__no { text-align: left; }
+.ege-tie--flip .ege-seed__name { text-align: right; }
+.ege-tie--flip .ege-seed__score {
+  margin: 0 auto 0 0;
+  padding: 0 2px 0 0;
+}
+
 
 /* --- the middle ----------------------------------------------------------- */
 
-/* The final, and the trophy under it. `.ege-tie` centres itself in a grid
-   row, which in this flex column means centring across the width instead --
-   so the final would draw itself as wide as the nothing written in it. */
+/* The championship, exactly level with the middle of the draw so the lines
+   from both semifinals run straight into it, and the trophy line hanging
+   under it. Three rows: equal space above and below, the final between. */
 .ege-bracket__centre {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 10px;
+  display: grid;
+  grid-template-rows: 1fr auto 1fr;
 }
-.ege-bracket__centre .ege-tie { align-self: stretch; }
+.ege-bracket__centre .ege-tie { grid-row: 2; align-self: stretch; }
+.ege-bracket__centre .ege-bracket__champion { grid-row: 3; align-self: start; margin-top: 12px; }
 
 /* Where a champion goes. Nothing is written on it yet, which is the point:
    the trophy line is the one box on the page that is about the end of the
@@ -2240,22 +2309,6 @@ body {
   background: var(--fb-tint-clay);
 }
 .ege-bracket__champion--crowned .ege-bracket__cupname { color: var(--fb-ink); }
-
-/* The line that says how to read a bracket shrunk to fit a phone held
-   upright. Only there while it is. */
-.ege-bracket__hint {
-  display: none;
-  margin: 4px 0 0;
-  text-align: center;
-  font-size: var(--fb-small);
-  font-weight: 700;
-  color: var(--fb-muted);
-}
-.ege-bracketwrap.is-fitted .ege-bracket__hint { display: block; }
-
-@media (max-width: 620px) {
-  .ege-bracketwrap { padding: 14px 12px 16px; }
-}
 
 /* Folded: the head is the whole panel, so the rule under it would be a second
    line right against the panel's own bottom edge. */

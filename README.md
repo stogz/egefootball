@@ -113,12 +113,14 @@ holds:
   result once it has been played. A silhouette marks a game scouts will attend,
   for a player holding Intel for that season. Postseason games are marked with
   two asterisks, and a school in a bracket gets a **Games | Tournament** switch
-  beside the fold-away arrow. The bracket reads left to right, first round
-  to final, in five columns, and always fits the panel with no sideways
-  scrolling. Long school names wrap between their words rather than being
-  cut. It is never laid out narrower than 840px; on anything narrower the
-  whole bracket is shrunk to fit, so a phone held upright shows all of it at
-  once, with a note to pinch in or turn the phone sideways.
+  beside the fold-away arrow. The bracket is two-sided: the two halves of
+  the draw work inwards from the edges to the championship in the middle,
+  with a line from every game to the one its winner plays next, and his
+  school's path through it drawn in orange. Seeds and scores are in every
+  box. It fits a full-width computer screen (1280px and up) with every name
+  written out, wrapping between words where it needs to. On anything
+  narrower it keeps its shape and scrolls sideways, opening at his school,
+  with a note under it saying to swipe.
 - **Game log** — per-game stats for that player, with the stat lines driven by
   their position (see below), and a totals row for the season.
 - **Ratings** — every attribute in its group, with the overall in the corner

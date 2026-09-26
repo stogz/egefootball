@@ -767,7 +767,7 @@
     windowWidth = window.innerWidth;
     refitOffers();
     refitTally();
-    fitBracket();
+    drawBracketLines();
   });
 
   if (document.fonts && document.fonts.ready) {
@@ -789,7 +789,7 @@
       headerWidth = width;
       refitOffers();
       refitTally();
-      fitBracket();
+      drawBracketLines();
     }).observe(document.querySelector('.ege-detail'));
   }
 
@@ -1284,61 +1284,98 @@
     return cell;
   }
 
-  /* The whole draw in one direction: every first-round game down the left,
-     each round after it one column further right, and the final and the
-     champion in the last. Five columns rather than the nine the two halves
-     facing each other took, which is what lets it fit the panel on a laptop
-     with every name written out rather than making you scroll across it.
-     Narrower than that it is still this bracket, shrunk to fit -- see
-     fitBracket below. */
+  /* The two halves of the draw working inwards from the edges and meeting in
+     the middle, where the championship is: four rounds down the left, the
+     final, and the same four rounds mirrored down the right. Nine columns,
+     sized to fit a full-width computer screen; on anything narrower -- a
+     phone -- the panel scrolls sideways, and a line under it says so.
+
+     Every box is placed on one grid (see bracketRows), and the lines that
+     join a game to the one its winner plays next are drawn over it afterwards
+     by drawBracketLines, from where the boxes actually landed. */
+  var bracketTies = null;
+
+  /* Whether this bracket has been scrolled to his school yet. Once, the first
+     time it is on screen, and never again until a different bracket is drawn
+     -- scrolling it back after somebody has swiped across would be taking the
+     page out of their hands. */
+  var bracketFound = false;
+
   function renderBracket(player) {
     var wrap = document.getElementById('bracketWrap');
     var box = document.getElementById('bracket');
     var state = EGE.bracketState(player, shownSeason());
 
     box.innerHTML = '';
+    bracketTies = null;
+    bracketFound = false;
     if (!state) { return; }
     var bracket = state.bracket;
 
     box.appendChild(el('div', 'ege-bracket__title', bracket.title));
 
+    /* The round names over their columns: counting in from the left edge,
+       the final, then counting back out to the right edge. */
     var heads = el('div', 'ege-bracket__heads');
     bracket.rounds.forEach(function (round) {
       heads.appendChild(bracketHead(round, 'ege-bracket__head'));
     });
     heads.appendChild(bracketHead(bracket.final, 'ege-bracket__head ege-bracket__head--final'));
+    bracket.rounds.slice().reverse().forEach(function (round) {
+      heads.appendChild(bracketHead(round, 'ege-bracket__head'));
+    });
     box.appendChild(heads);
 
-    /* Both halves of the draw, top one first. The flat list the bracket's
-       state is kept in runs the same way -- the whole left half, then the
-       whole right -- so a box's place in its round is its place in there. */
-    var plan = bracketRows(bracket.left.concat(bracket.right));
     var draw = el('div', 'ege-bracket__draw');
-    draw.style.setProperty('--rows', plan.height);
+    var lines = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    lines.setAttribute('class', 'ege-bracket__lines');
+    lines.setAttribute('aria-hidden', 'true');
+    draw.appendChild(lines);
 
-    plan.rounds.forEach(function (round, r) {
-      round.forEach(function (place, at) {
-        if (place.opener && place.opener.label) {
-          var group = el('div', 'ege-bracket__group', place.opener.label);
-          group.style.gridColumn = r + 1;
-          group.style.gridRow = (place.start - 1) + ' / ' + place.start;
-          draw.appendChild(group);
-        }
+    var ties = { left: [], right: [], final: null };
+    var height = 0;
 
-        var tie = bracketGame(state.rounds[r][at], bracket.us);
-        tie.style.gridColumn = r + 1;
-        tie.style.gridRow = place.start + ' / ' + place.end;
-        draw.appendChild(tie);
+    [['left', false], ['right', true]].forEach(function (half) {
+      var side = half[0];
+      var flip = half[1];
+      var plan = bracketRows(bracket[side]);
+      height = Math.max(height, plan.height);
+
+      plan.rounds.forEach(function (round, r) {
+        /* Round one is nearest the edge on both sides. */
+        var column = flip ? BRACKET_COLUMNS - r : r + 1;
+        ties[side][r] = [];
+
+        round.forEach(function (place, at) {
+          if (place.opener && place.opener.label) {
+            var group = el('div', 'ege-bracket__group' +
+              (flip ? ' ege-bracket__group--flip' : ''), place.opener.label);
+            group.style.gridColumn = column;
+            group.style.gridRow = (place.start - 1) + ' / ' + place.start;
+            draw.appendChild(group);
+          }
+
+          var tie = bracketGame(state.rounds[r][state.at(r, flip, at)], bracket.us);
+          if (flip) { tie.classList.add('ege-tie--flip'); }
+          tie.style.gridColumn = column;
+          tie.style.gridRow = place.start + ' / ' + place.end;
+          draw.appendChild(tie);
+          ties[side][r].push(tie);
+        });
       });
     });
 
-    /* The final, and the line under it where a champion goes. Nothing is
-       written on it until the last game is published. It spans the whole
-       height of the draw so it sits level with the middle of it. */
+    draw.style.setProperty('--rows', height);
+
+    /* The championship in the middle column, level with the middle of the
+       draw, and the line under it where a champion goes. Nothing is written
+       on that until the last game is published. */
     var centre = el('div', 'ege-bracket__centre');
     centre.style.gridColumn = BRACKET_ROUNDS + 1;
-    centre.style.gridRow = '1 / ' + (plan.height + 1);
-    centre.appendChild(bracketGame(state.final, bracket.us));
+    centre.style.gridRow = '1 / ' + (height + 1);
+    ties.final = bracketGame(state.final, bracket.us);
+    ties.final.classList.add('ege-tie--final');
+    centre.appendChild(ties.final);
     var cup = el('div', 'ege-bracket__champion' +
       (state.champion ? ' ege-bracket__champion--crowned' : ''));
     cup.appendChild(el('span', 'ege-bracket__cuplabel', 'Champion'));
@@ -1347,55 +1384,129 @@
     draw.appendChild(centre);
 
     box.appendChild(draw);
-
-    /* Only said while the bracket is shrunk small enough to need it. */
-    box.appendChild(el('p', 'ege-bracket__hint',
-      'Pinch to zoom in, or turn your phone sideways.'));
+    bracketTies = ties;
+    watchBracket(draw);
 
     wrap.setAttribute('aria-label', bracket.title + ' bracket');
-    fitBracket();
+    drawBracketLines();
   }
 
-  /* A bracket is one shape: five rounds side by side, the first one down the
-     left with every team in it. Below a certain width the boxes cannot hold a
-     school's name however it wraps, and cutting the columns further only
-     turns names into three letters and an ellipsis.
+  /* Four rounds a side, the final between them. */
+  var BRACKET_COLUMNS = BRACKET_ROUNDS * 2 + 1;
 
-     So the bracket is never laid out narrower than BRACKET_MIN, and on a
-     screen narrower than that -- a phone held upright -- the whole thing is
-     shrunk to fit instead, the way a picture of it would be. It is all on the
-     screen at once and nothing scrolls sideways; pinching in reads it, and a
-     phone turned on its side has room for it at full size.
+  /* The lines between the games. Each box gets an elbow out of the side
+     facing the middle: across to halfway between its column and the next,
+     up or down to the level of the game its winner plays next, and across
+     into that box. The two elbows out of a pair of games meet, and between
+     them they draw the bracket's bracket shape.
 
-     `zoom` rather than a transform, because zoom shrinks the space the
-     bracket takes along with it -- a transform would leave a bracket-sized
-     hole under it. A browser without zoom keeps the old behaviour: the panel
-     scrolls sideways. */
-  /* Wide enough that every column holds the longest single word in any of
-     the draws -- "Northwestern", "Willowbrook" -- beside a seed and a score,
-     so a name only ever wraps between its words. */
-  var BRACKET_MIN = 840;
+     Drawn from where the boxes actually are rather than worked out from the
+     grid, because a long school name wraps and makes its box taller, and
+     every box is then a little off wherever arithmetic would have put it.
+     So they are drawn again whenever the draw changes size: when it is first
+     shown, when the window changes width, when the webfont lands.
 
-  function fitBracket() {
+     The school whose page this is, while it is still winning, has its own
+     path through the draw drawn in the site's orange. */
+  function drawBracketLines() {
     var wrap = document.getElementById('bracketWrap');
-    var box = document.getElementById('bracket');
-    if (!wrap || wrap.hidden || !box.firstChild) { return; }
+    var swipe = document.getElementById('bracketSwipe');
+    var draw = wrap ? wrap.querySelector('.ege-bracket__draw') : null;
+    var visible = Boolean(draw && bracketTies && !wrap.hidden && wrap.offsetParent !== null);
 
-    var pad = window.getComputedStyle(wrap);
-    var room = wrap.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight);
-    var fitted = room > 0 && room < BRACKET_MIN;
+    var overflowing = visible && wrap.scrollWidth > wrap.clientWidth + 1;
+    if (swipe) { swipe.hidden = !overflowing; }
+    if (!visible) { return; }
 
-    var scale = room / BRACKET_MIN;
-    /* The hint is for a bracket shrunk past easy reading -- a phone held
-       upright. Turned on its side it is nine tenths size and says nothing. */
-    wrap.classList.toggle('is-fitted', fitted && scale < 0.7);
-    box.style.width = fitted ? BRACKET_MIN + 'px' : '';
-    box.style.zoom = fitted ? String(scale) : '';
+    /* On a screen too narrow for the whole bracket, open it where his school
+       is: the furthest round it reached, across the middle of the screen.
+       Sideways only -- the page itself is left where it is. */
+    if (!bracketFound && wrap.clientWidth) {
+      bracketFound = true;
+      var mine = draw.querySelectorAll('.ege-tie .ege-seed--us');
+      var furthest = null;
+      Array.prototype.forEach.call(mine, function (seed) {
+        var tie = seed.closest('.ege-tie');
+        var column = parseInt(tie.style.gridColumn, 10) || 0;
+        var depth = Math.min(column, BRACKET_COLUMNS + 1 - column);
+        if (!furthest || depth > furthest.depth) { furthest = { tie: tie, depth: depth }; }
+      });
+      if (overflowing && furthest) {
+        var at = furthest.tie.getBoundingClientRect();
+        var frame = wrap.getBoundingClientRect();
+        wrap.scrollLeft += (at.left + at.width / 2) - (frame.left + frame.width / 2);
+      }
+    }
 
-    /* The hint is inside the bracket and shrinks with it, so it is set large
-       enough to come out at an ordinary reading size afterwards. */
-    var hint = box.querySelector('.ege-bracket__hint');
-    if (hint) { hint.style.fontSize = fitted ? (12.5 / scale).toFixed(1) + 'px' : ''; }
+    var svg = draw.querySelector('.ege-bracket__lines');
+    var origin = draw.getBoundingClientRect();
+    if (!origin.width) { return; }
+
+    function place(node) {
+      var r = node.getBoundingClientRect();
+      return {
+        left: r.left - origin.left,
+        right: r.right - origin.left,
+        middle: (r.top + r.bottom) / 2 - origin.top
+      };
+    }
+
+    var plain = [];
+    var ours = [];
+
+    function elbow(from, to, flip) {
+      var a = place(from);
+      var b = place(to);
+      var out = flip ? a.left : a.right;
+      var into = flip ? b.right : b.left;
+      var turn = (out + into) / 2;
+      var path = 'M' + out.toFixed(1) + ' ' + a.middle.toFixed(1) +
+                 'H' + turn.toFixed(1) +
+                 'V' + b.middle.toFixed(1) +
+                 'H' + into.toFixed(1);
+      /* Ours while ours is the line in the box that went through -- a bye
+         included, once its week is out: the week off is still a way on. */
+      var through = from.querySelector('.ege-seed--us.ege-seed--through') ||
+        (from.classList.contains('ege-tie--done') &&
+         from.querySelector('.ege-seed--us') && from.querySelector('.ege-seed--bye'));
+      (through ? ours : plain).push(path);
+    }
+
+    [['left', false], ['right', true]].forEach(function (half) {
+      var rounds = bracketTies[half[0]];
+      rounds.forEach(function (round, r) {
+        round.forEach(function (tie, at) {
+          var next = r + 1 < rounds.length
+            ? rounds[r + 1][Math.floor(at / 2)]
+            : bracketTies.final;
+          elbow(tie, next, half[1]);
+        });
+      });
+    });
+
+    var ns = 'http://www.w3.org/2000/svg';
+    svg.innerHTML = '';
+    [[plain, ''], [ours, 'is-us']].forEach(function (set) {
+      if (!set[0].length) { return; }
+      var path = document.createElementNS(ns, 'path');
+      path.setAttribute('d', set[0].join(''));
+      if (set[1]) { path.setAttribute('class', set[1]); }
+      svg.appendChild(path);
+    });
+  }
+
+  /* Whenever the draw changes size -- shown, hidden, a different width, a
+     font arriving -- its lines are drawn again. One observer, moved on to
+     each new draw as it is made. */
+  var bracketObserver = null;
+
+  function watchBracket(draw) {
+    if (!window.ResizeObserver) { return; }
+    if (!bracketObserver) {
+      bracketObserver = new window.ResizeObserver(function () { drawBracketLines(); });
+    }
+    bracketObserver.disconnect();
+    bracketObserver.observe(draw);
   }
 
   /* --- games or tournament -------------------------------------------------
@@ -1422,9 +1533,10 @@
     document.getElementById('scheduleFoot').hidden = tournament ||
       !document.getElementById('scheduleLegend').textContent;
 
-    /* A hidden bracket measures as nothing, so it is fitted the moment it is
-       shown rather than when it was drawn. */
-    if (tournament) { fitBracket(); }
+    /* A hidden bracket measures as nothing, so its lines are drawn the moment
+       it is shown rather than when it was built -- and the swipe note goes
+       with it when it is not. */
+    drawBracketLines();
   }
 
   document.addEventListener('change', function (event) {
