@@ -455,7 +455,7 @@ EGE.exports = (function () {
         out.push('      { week: ' + round.week + ', results: [');
         results.forEach(function (row) {
           out.push('        ' + (row
-            ? '[' + quote(row[0]) + ', ' + row[1] + ', ' + row[2] + '],'
+            ? '[' + quote(row[0]) + ', ' + scoreText(row[1]) + ', ' + scoreText(row[2]) + '],'
             : 'null,'));
         });
         out.push('      ] },');
@@ -466,6 +466,13 @@ EGE.exports = (function () {
     out.push('  },');
     out.push('');
     return out;
+  }
+
+  /* A score in a result, or null for a team that went through without a
+     game -- written as the literal either way, never as `undefined` for a
+     row somebody typed with the scores left off. */
+  function scoreText(score) {
+    return typeof score === 'number' ? String(score) : 'null';
   }
 
   /* One game, as the two or three lines the file writes it on. */

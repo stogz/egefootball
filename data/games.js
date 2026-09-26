@@ -154,10 +154,20 @@ EGE.streakFor = function (player, season) {
 
 /* Whether a team's season is done: any season before the live one, or the
    live one once the team is out of the playoffs -- beaten in a playoff game,
-   or champions. A team still going, or waiting on its next game, is not. */
+   or champions, or never in them at all once they have started without it.
+   A team still going, or waiting on its next game, is not. */
 EGE.seasonOverFor = function (player, season) {
   var year = season || EGE.currentSeason;
   if (year < EGE.currentSeason) { return true; }
+
+  /* Missed the playoffs: nothing of his has the flag, and the first week of
+     them is out. Until then a team with its regular season finished could
+     still be waiting to hear. */
+  var inPostseason = EGE.gamesFor(player, year).some(function (game) { return game.playoff; });
+  if (!inPostseason) {
+    var postseason = EGE.playoffWeeks(year);
+    return postseason.length > 0 && EGE.isPublished(year, postseason[0]);
+  }
 
   var played = EGE.gamesPlayed(player, year).slice().sort(function (a, b) {
     return a.week - b.week;

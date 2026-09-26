@@ -38,6 +38,154 @@ EGE.stats[2019] = {
   season: 2019,
   level: 'High school varsity',
 
+  /* How the rest of each draw went. See data/brackets.js for the
+     order: the whole left half top to bottom, then the whole right.
+     [winner, winner's score, loser's score], or null for a bye and
+     for the one matchup his own school is in. */
+  playoffs: {
+    normal: [
+      { week: 14, results: [
+        ['Chicago Mt. Carmel', 61, 14],
+        ['Glenbard North', 35, 8],
+        ['Phillips', 30, 24],
+        null,
+        ['Hersey', 49, 0],
+        ['Lake Zurich', 14, 7],
+        ['Willowbrook', 48, 21],
+        ['Yorkville', 0, 0],
+        ['Nazareth Academy', 47, 6],
+        ['Thornton', 35, 19],
+        ['Batavia', 49, 8],
+        ['Hononegah', 43, 17],
+        ['Rolling Meadows', 33, 12],
+        ['Prospect', 55, 53],
+        ['Downers Grove North', 35, 14],
+        ['Wheaton-Warrenville South', 50, 23],
+      ] },
+      { week: 15, results: [
+        ['Chicago Mt. Carmel', 34, 14],
+        null,
+        ['Lake Zurich', 14, 7],
+        ['Willowbrook', 33, 24],
+        ['Nazareth Academy', 49, 21],
+        ['Batavia', 48, 0],
+        ['Rolling Meadows', 26, 14],
+        ['Wheaton-Warrenville South', 28, 7],
+      ] },
+      { week: 16, results: [
+        null,
+        ['Willowbrook', 28, 10],
+        ['Nazareth Academy', 38, 24],
+        ['Rolling Meadows', 14, 9],
+      ] },
+      { week: 17, results: [
+        null,
+        ['Nazareth Academy', 42, 14],
+      ] },
+      { week: 18, results: [
+        null,
+      ] },
+    ],
+
+    wakeForest: [
+      { week: 14, results: [
+        null,
+        ['Rolesville', 47, 7],
+        ['Apex Friendship', 9, 6],
+        null,
+        null,
+        ['Garner', 20, 12],
+        ['Hoke County', 20, 10],
+        null,
+        null,
+        ['Hough', 28, 0],
+        ['Ardrey Kell', 25, 17],
+        null,
+        null,
+        ['Reagan', 26, 9],
+        ['Chambers', 21, 0],
+        null,
+      ] },
+      { week: 15, results: [
+        null,
+        ['Hoggard', 40, 23],
+        ['Garner', null, null],
+        ['Leesville Road', 43, 7],
+        ['Richmond Senior', 36, 27],
+        ['Myers Park', 48, 7],
+        ['West Forsyth', 28, 12],
+        ['Chambers', 13, 7],
+      ] },
+      { week: 16, results: [
+        null,
+        ['Leesville Road', 41, 7],
+        ['Richmond Senior', 35, 32],
+        ['Chambers', 35, 7],
+      ] },
+      { week: 17, results: [
+        null,
+        ['Chambers', 38, 7],
+      ] },
+      { week: 18, results: [
+        null,
+      ] },
+    ],
+
+    naples: [
+      { week: 14, results: [
+        ['Escambia', 44, 0],
+        ['Mainland', 38, 20],
+        ['Columbia', 14, 7],
+        ['Riverside', 29, 21],
+        ['Gaither', 47, 27],
+        ['Clearwater', 35, 6],
+        ['Lake Minneola', 42, 13],
+        ['Largo', 14, 0],
+        ['Palmetto', 24, 21],
+        ['Port Charlotte', 21, 6],
+        ['Charlotte', 20, 7],
+        ['Lake Gibson', 31, 21],
+        null,
+        ['Central', 38, 0],
+        ['Fort Myers', 49, 28],
+        ['Dillard', 47, 7],
+      ] },
+      { week: 15, results: [
+        ['Escambia', 27, 7],
+        ['Riverside', 6, 3],
+        ['Gaither', 27, 20],
+        ['Lake Minneola', 33, 13],
+        ['Palmetto', 23, 17],
+        ['Charlotte', 45, 42],
+        null,
+        ['Dillard', 35, 30],
+      ] },
+      { week: 16, results: [
+        ['Escambia', 39, 13],
+        ['Gaither', 41, 7],
+        ['Palmetto', 62, 15],
+        null,
+      ] },
+      { week: 17, results: [
+        ['Escambia', 45, 21],
+        null,
+      ] },
+      { week: 18, results: [
+        null,
+      ] },
+    ],
+
+    carlsbad: [
+      { week: 14, results: [
+        ['Helix', 12, 7],
+        null,
+      ] },
+      { week: 15, results: [
+        null,
+      ] },
+    ],
+  },
+
   games: {
 
     /* Andrew Parr — Wake Forest High School */
@@ -185,6 +333,65 @@ EGE.stats[2019] = {
           '40 yard receiving touchdown',
           '21 yard receiving touchdown'
         ] },
+      { week: 14, date: '2019-11-15', kickoff: null,
+        opponent: null, home: false, conference: false, playoff: true, bye: true,
+        result: null, booster: null, stats: null },
+      { week: 15, date: '2019-11-22', kickoff: '7:30pm',
+        opponent: 'Rolesville', home: true, conference: false, playoff: true,
+        result: { teamScore: 26, opponentScore: 14 }, booster: null,
+        stats: {
+          receptions: 8, receivingYards: 131, receivingYac: 57,
+          receivingTd: 2, receivingLong: 41, targets: 10, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 16.4, totalYards: 131, totalTd: 2
+        },
+        bigPlays: [
+          '41 yard receiving touchdown',
+          '12 yard receiving touchdown',
+          '27 yard reception'
+        ] },
+      { week: 16, date: '2019-11-29', kickoff: '7:30pm',
+        opponent: 'Hoggard', home: true, conference: false, playoff: true,
+        result: { teamScore: 13, opponentScore: 0 }, booster: null,
+        stats: {
+          receptions: 7, receivingYards: 104, receivingYac: 38,
+          receivingTd: 2, receivingLong: 34, targets: 9, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 14.9, totalYards: 104, totalTd: 2
+        },
+        bigPlays: [
+          '34 yard receiving touchdown',
+          '6 yard receiving touchdown'
+        ] },
+      { week: 17, date: '2019-12-06', kickoff: '7:30pm',
+        opponent: 'Leesville Road', home: true, conference: false, playoff: true, scouts: true,
+        result: { teamScore: 27, opponentScore: 21 }, booster: null,
+        stats: {
+          receptions: 9, receivingYards: 148, receivingYac: 61,
+          receivingTd: 2, receivingLong: 47, targets: 12, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 16.4, totalYards: 148, totalTd: 2
+        },
+        bigPlays: [
+          '47 yard receiving touchdown',
+          '15 yard go-ahead receiving touchdown',
+          '31 yard reception on fourth down'
+        ] },
+      { week: 18, date: '2019-12-14', kickoff: '3:00pm',
+        opponent: 'Chambers', home: true, conference: false, playoff: true, scouts: true,
+        result: { teamScore: 31, opponentScore: 24 }, booster: null,
+        stats: {
+          receptions: 10, receivingYards: 167, receivingYac: 71,
+          receivingTd: 3, receivingLong: 52, targets: 13, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 16.7, totalYards: 167, totalTd: 3
+        },
+        bigPlays: [
+          '52 yard receiving touchdown',
+          '22 yard receiving touchdown',
+          '4 yard receiving touchdown',
+          '36 yard reception'
+        ] },
     ],
 
     /* Cooper Clark — Carlsbad High School */
@@ -326,6 +533,34 @@ EGE.stats[2019] = {
           '29 yard receiving touchdown',
           '34 yard rushing touchdown',
           '2 yard rushing touchdown'
+        ] },
+      { week: 14, date: '2019-11-15', kickoff: '7:00pm',
+        opponent: 'Cathedral Catholic', home: false, conference: false, playoff: true, scouts: true,
+        result: { teamScore: 21, opponentScore: 20 }, booster: null,
+        stats: {
+          carries: 24, rushingYards: 156, rushingTd: 2, rushingLong: 44,
+          receptions: 6, receivingYards: 71, receivingYac: 52,
+          receivingTd: 1, receivingLong: 18, targets: 7, fumbles: 0,
+          rushingAvg: 6.5, receivingAvg: 11.8, totalYards: 227, totalTd: 3
+        },
+        bigPlays: [
+          '44 yard rushing touchdown',
+          '18 yard receiving touchdown',
+          '3 yard rushing touchdown'
+        ] },
+      { week: 15, date: '2019-11-23', kickoff: '7:00pm',
+        opponent: 'Helix', home: true, conference: false, playoff: true, scouts: true,
+        result: { teamScore: 28, opponentScore: 24 }, booster: null,
+        stats: {
+          carries: 27, rushingYards: 188, rushingTd: 2, rushingLong: 46,
+          receptions: 5, receivingYards: 117, receivingYac: 98,
+          receivingTd: 1, receivingLong: 80, targets: 6, fumbles: 0,
+          rushingAvg: 7, receivingAvg: 23.4, totalYards: 305, totalTd: 3
+        },
+        bigPlays: [
+          '80 yard receiving touchdown on a screen',
+          '46 yard rushing touchdown',
+          '9 yard go-ahead rushing touchdown'
         ] },
     ],
 
@@ -700,6 +935,80 @@ EGE.stats[2019] = {
           '23 yard rushing touchdown',
           '4 yard rushing touchdown'
         ] },
+      { week: 14, date: '2019-11-02', kickoff: '1:00pm',
+        opponent: 'Reavis', home: true, conference: false, playoff: true,
+        result: { teamScore: 36, opponentScore: 14 }, booster: null,
+        stats: {
+          carries: 29, rushingYards: 238, rushingTd: 4, rushingLong: 61,
+          receptions: 1, receivingYards: 9, receivingYac: 6,
+          receivingTd: 0, receivingLong: 9, targets: 1, fumbles: 0,
+          rushingAvg: 8.2, receivingAvg: 9, totalYards: 247, totalTd: 4
+        },
+        bigPlays: [
+          '61 yard rushing touchdown',
+          '17 yard rushing touchdown',
+          '3 yard rushing touchdown',
+          '1 yard rushing touchdown'
+        ] },
+      { week: 15, date: '2019-11-09', kickoff: '1:00pm',
+        opponent: 'Phillips', home: false, conference: false, playoff: true,
+        result: { teamScore: 28, opponentScore: 20 }, booster: null,
+        stats: {
+          carries: 34, rushingYards: 203, rushingTd: 3, rushingLong: 44,
+          receptions: 2, receivingYards: 17, receivingYac: 12,
+          receivingTd: 0, receivingLong: 11, targets: 2, fumbles: 0,
+          rushingAvg: 6, receivingAvg: 8.5, totalYards: 220, totalTd: 3
+        },
+        bigPlays: [
+          '44 yard rushing touchdown',
+          '8 yard rushing touchdown',
+          '2 yard rushing touchdown'
+        ] },
+      { week: 16, date: '2019-11-16', kickoff: '1:00pm',
+        opponent: 'Chicago Mt. Carmel', home: false, conference: false, playoff: true, scouts: true,
+        result: { teamScore: 27, opponentScore: 24 }, booster: null,
+        stats: {
+          carries: 38, rushingYards: 276, rushingTd: 3, rushingLong: 67,
+          receptions: 1, receivingYards: 12, receivingYac: 9,
+          receivingTd: 0, receivingLong: 12, targets: 2, fumbles: 0,
+          rushingAvg: 7.3, receivingAvg: 12, totalYards: 288, totalTd: 3
+        },
+        bigPlays: [
+          '67 yard rushing touchdown',
+          '23 yard rushing touchdown',
+          '4 yard go-ahead rushing touchdown',
+          '38 yard BEAST-mode'
+        ] },
+      { week: 17, date: '2019-11-23', kickoff: '1:00pm',
+        opponent: 'Willowbrook', home: false, conference: false, playoff: true,
+        result: { teamScore: 35, opponentScore: 17 }, booster: null,
+        stats: {
+          carries: 31, rushingYards: 241, rushingTd: 4, rushingLong: 52,
+          receptions: 2, receivingYards: 26, receivingYac: 19,
+          receivingTd: 0, receivingLong: 18, targets: 3, fumbles: 0,
+          rushingAvg: 7.8, receivingAvg: 13, totalYards: 267, totalTd: 4
+        },
+        bigPlays: [
+          '52 yard rushing touchdown',
+          '29 yard rushing touchdown',
+          '6 yard rushing touchdown',
+          '1 yard rushing touchdown'
+        ] },
+      { week: 18, date: '2019-11-30', kickoff: '4:00pm',
+        opponent: 'Nazareth Academy', home: true, conference: false, playoff: true, scouts: true, overtime: true,
+        result: { teamScore: 31, opponentScore: 34 }, booster: null,
+        stats: {
+          carries: 39, rushingYards: 287, rushingTd: 4, rushingLong: 71,
+          receptions: 2, receivingYards: 21, receivingYac: 14,
+          receivingTd: 0, receivingLong: 13, targets: 3, fumbles: 0,
+          rushingAvg: 7.4, receivingAvg: 10.5, totalYards: 308, totalTd: 4
+        },
+        bigPlays: [
+          '71 yard rushing touchdown',
+          '33 yard rushing touchdown',
+          '5 yard rushing touchdown',
+          '2 yard game-tying rushing touchdown'
+        ] },
     ],
 
     /* Jaykeb Stewart — Naples High School */
@@ -837,6 +1146,86 @@ EGE.stats[2019] = {
           '35 yard passing touchdown',
           '18 yard passing touchdown',
           '10 yard passing touchdown'
+        ] },
+      { week: 14, date: '2019-11-08', kickoff: '7:30pm',
+        opponent: 'South Fort Myers', home: true, conference: false, playoff: true,
+        result: { teamScore: 45, opponentScore: 7 }, booster: null,
+        stats: {
+          completions: 18, attempts: 24, passingYards: 276,
+          passingYac: 131, passingTd: 4, interceptions: 0, carries: 3,
+          rushingYards: 22, rushingTd: 1, rushingLong: 11, sacks: 1,
+          fumbles: 0, passingAvg: 15.3, rating: 152.1, rushingAvg: 7.3
+        },
+        bigPlays: [
+          '62 yard passing touchdown',
+          '28 yard passing touchdown',
+          '15 yard passing touchdown',
+          '4 yard passing touchdown',
+          '11 yard rushing touchdown'
+        ] },
+      { week: 15, date: '2019-11-15', kickoff: '7:30pm',
+        opponent: 'Central', home: true, conference: false, playoff: true, scouts: true,
+        result: { teamScore: 38, opponentScore: 35 }, booster: null,
+        stats: {
+          completions: 27, attempts: 36, passingYards: 382,
+          passingYac: 168, passingTd: 5, interceptions: 1, carries: 5,
+          rushingYards: 18, rushingTd: 0, rushingLong: 9, sacks: 2,
+          fumbles: 0, passingAvg: 14.1, rating: 136.8, rushingAvg: 3.6
+        },
+        bigPlays: [
+          '71 yard passing touchdown',
+          '38 yard passing touchdown',
+          '24 yard passing touchdown',
+          '9 yard passing touchdown',
+          '3 yard game-winning passing touchdown',
+          '52 yard dot on third and 11'
+        ] },
+      { week: 16, date: '2019-11-22', kickoff: '7:30pm',
+        opponent: 'Dillard', home: true, conference: false, playoff: true,
+        result: { teamScore: 31, opponentScore: 14 }, booster: null,
+        stats: {
+          completions: 22, attempts: 31, passingYards: 297,
+          passingYac: 129, passingTd: 3, interceptions: 0, carries: 4,
+          rushingYards: 26, rushingTd: 1, rushingLong: 14, sacks: 1,
+          fumbles: 0, passingAvg: 13.5, rating: 133.4, rushingAvg: 6.5
+        },
+        bigPlays: [
+          '44 yard passing touchdown',
+          '19 yard passing touchdown',
+          '7 yard passing touchdown',
+          '5 yard rushing touchdown'
+        ] },
+      { week: 17, date: '2019-11-29', kickoff: '7:30pm',
+        opponent: 'Palmetto', home: false, conference: false, playoff: true,
+        result: { teamScore: 35, opponentScore: 28 }, booster: null,
+        stats: {
+          completions: 25, attempts: 37, passingYards: 341,
+          passingYac: 150, passingTd: 4, interceptions: 1, carries: 6,
+          rushingYards: 31, rushingTd: 0, rushingLong: 12, sacks: 2,
+          fumbles: 0, passingAvg: 13.6, rating: 121.6, rushingAvg: 5.2
+        },
+        bigPlays: [
+          '58 yard passing touchdown',
+          '33 yard passing touchdown',
+          '12 yard passing touchdown',
+          '6 yard passing touchdown',
+          '41 yard dot'
+        ] },
+      { week: 18, date: '2019-12-12', kickoff: '7:00pm',
+        opponent: 'Escambia', home: true, conference: false, playoff: true, scouts: true,
+        result: { teamScore: 34, opponentScore: 24 }, booster: null,
+        stats: {
+          completions: 24, attempts: 32, passingYards: 318,
+          passingYac: 139, passingTd: 3, interceptions: 0, carries: 5,
+          rushingYards: 27, rushingTd: 1, rushingLong: 13, sacks: 1,
+          fumbles: 0, passingAvg: 13.3, rating: 137.2, rushingAvg: 5.4
+        },
+        bigPlays: [
+          '64 yard passing touchdown',
+          '27 yard passing touchdown',
+          '8 yard passing touchdown',
+          '3 yard rushing touchdown',
+          '46 yard dot'
         ] },
     ],
   }
