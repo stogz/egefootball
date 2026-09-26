@@ -1217,8 +1217,9 @@
   /* Every line has the same three parts -- seed, name, score -- whether or
      not there is anything to put in them yet, so a name is centred in the
      same space on every line of every box and they all sit in one column. */
-  function bracketLine(className, seed, name, score) {
+  function bracketLine(className, seed, name, score, team) {
     var row = el('div', 'ege-seed' + (className ? ' ' + className : ''));
+    if (team) { row.setAttribute('data-team', team); }
     row.appendChild(el('span', 'ege-seed__no', seed));
     row.appendChild(el('span', 'ege-seed__name', name));
     row.appendChild(el('span', 'ege-seed__score', score));
@@ -1238,7 +1239,8 @@
       if (typeof result.hi === 'number') { score = through ? result.hi : result.lo; }
     }
 
-    var row = bracketLine(classes.join(' '), team.seed, team.name, score);
+    var row = bracketLine(classes.join(' '), team.seed, team.name, score, team.name);
+    /* The whole name, for one cut short at two lines. */
     row.title = team.name;
     return row;
   }
@@ -1380,6 +1382,7 @@
       : '1 / ' + (height + 1);
     var cup = el('div', 'ege-bracket__champion' +
       (state.champion ? ' ege-bracket__champion--crowned' : ''));
+    if (state.champion) { cup.setAttribute('data-team', state.champion); }
     cup.appendChild(el('span', 'ege-bracket__cuplabel', 'Champion'));
     cup.appendChild(el('span', 'ege-bracket__cupname', state.champion || '\u2014'));
     centre.appendChild(cup);
@@ -1390,6 +1393,8 @@
 
     box.appendChild(draw);
     bracketTies = ties;
+    bracketUs = bracket.us;
+    bracketHover = null;
     watchBracket(draw);
 
     wrap.setAttribute('aria-label', bracket.title + ' bracket');
@@ -1398,6 +1403,10 @@
 
   /* Four rounds a side, the final between them. */
   var BRACKET_COLUMNS = BRACKET_ROUNDS * 2 + 1;
+
+  /* His school's name in the draw, and whichever team the pointer is on. */
+  var bracketUs = null;
+  var bracketHover = null;
 
   /* The lines between the games. Each box gets an elbow out of the side
      facing the middle: across to halfway between its column and the next,
@@ -1467,8 +1476,20 @@
       };
     }
 
-    var plain = [];
-    var ours = [];
+    /* The team that went along a line: the one in both the box it leaves and
+       the box it goes into. None yet for a round that has not been played. */
+    function along(from, to) {
+      var next = Array.prototype.map.call(
+        to.querySelectorAll('.ege-seed[data-team]'),
+        function (line) { return line.getAttribute('data-team'); });
+      var found = null;
+      Array.prototype.forEach.call(from.querySelectorAll('.ege-seed[data-team]'), function (line) {
+        if (next.indexOf(line.getAttribute('data-team')) !== -1) { found = line.getAttribute('data-team'); }
+      });
+      return found;
+    }
+
+    var elbows = [];
 
     function elbow(from, to, flip) {
       var a = place(from);
@@ -1476,16 +1497,13 @@
       var out = flip ? a.left : a.right;
       var into = flip ? b.right : b.left;
       var turn = (out + into) / 2;
-      var path = 'M' + out.toFixed(1) + ' ' + a.middle.toFixed(1) +
-                 'H' + turn.toFixed(1) +
-                 'V' + b.middle.toFixed(1) +
-                 'H' + into.toFixed(1);
-      /* Ours while ours is the line in the box that went through -- a bye
-         included, once its week is out: the week off is still a way on. */
-      var through = from.querySelector('.ege-seed--us.ege-seed--through') ||
-        (from.classList.contains('ege-tie--done') &&
-         from.querySelector('.ege-seed--us') && from.querySelector('.ege-seed--bye'));
-      (through ? ours : plain).push(path);
+      elbows.push({
+        team: along(from, to),
+        d: 'M' + out.toFixed(1) + ' ' + a.middle.toFixed(1) +
+           'H' + turn.toFixed(1) +
+           'V' + b.middle.toFixed(1) +
+           'H' + into.toFixed(1)
+      });
     }
 
     [['left', false], ['right', true]].forEach(function (half) {
@@ -1500,16 +1518,59 @@
       });
     });
 
+    /* One path a line, so a team's own run through the draw can be picked
+       out. The plain ones first and his school's last, so his is on top --
+       it is the one line on the page in orange, as far as he got. */
     var ns = 'http://www.w3.org/2000/svg';
     svg.innerHTML = '';
-    [[plain, ''], [ours, 'is-us']].forEach(function (set) {
-      if (!set[0].length) { return; }
+    elbows.sort(function (x, y) {
+      return (x.team === bracketUs ? 1 : 0) - (y.team === bracketUs ? 1 : 0);
+    }).forEach(function (line) {
       var path = document.createElementNS(ns, 'path');
-      path.setAttribute('d', set[0].join(''));
-      if (set[1]) { path.setAttribute('class', set[1]); }
+      path.setAttribute('d', line.d);
+      if (line.team) { path.setAttribute('data-team', line.team); }
+      if (line.team && line.team === bracketUs) { path.setAttribute('class', 'is-us'); }
       svg.appendChild(path);
     });
+
+    showBracketHover();
   }
+
+  /* Pointing at a team lights up every box it is in, white the way a
+     schedule row does under the pointer, and draws its run through the draw
+     in a heavier line -- how far it got, at a glance. */
+  function showBracketHover() {
+    var draw = document.querySelector('#bracket .ege-bracket__draw');
+    if (!draw) { return; }
+
+    Array.prototype.forEach.call(draw.querySelectorAll('.is-hover'), function (node) {
+      node.classList.remove('is-hover');
+    });
+    if (!bracketHover) { return; }
+
+    Array.prototype.forEach.call(draw.querySelectorAll('[data-team]'), function (node) {
+      if (node.getAttribute('data-team') !== bracketHover) { return; }
+      node.classList.add('is-hover');
+      /* A line is drawn over the ones before it, so his goes last. */
+      if (node.parentNode.namespaceURI === 'http://www.w3.org/2000/svg') {
+        node.parentNode.appendChild(node);
+      }
+    });
+  }
+
+  document.getElementById('bracket').addEventListener('mouseover', function (event) {
+    var line = event.target.closest ? event.target.closest('[data-team]') : null;
+    var team = line && !line.closest('svg') ? line.getAttribute('data-team') : null;
+    if (team === bracketHover) { return; }
+    bracketHover = team;
+    showBracketHover();
+  });
+
+  document.getElementById('bracket').addEventListener('mouseleave', function () {
+    if (!bracketHover) { return; }
+    bracketHover = null;
+    showBracketHover();
+  });
 
   /* Whenever the draw changes size -- shown, hidden, a different width, a
      font arriving -- its lines are drawn again. One observer, moved on to

@@ -2061,17 +2061,33 @@ body {
 }
 
 /* The dark band, set the way the schedule's and the game log's heading rows
-   are: the site's ink, cream capitals. */
+   are -- the site's ink, cream capitals -- and exactly as tall as theirs: a
+   table heading is 11px of padding, a line of 10px capitals, and 11px more.
+   `1lh` is that line, whatever the font makes of it, so the two agree to
+   the pixel. A round name too long for one line ("Region Quarterfinal")
+   takes two, set tight enough to fit the same height. */
 .ege-bracket__heads {
   align-items: center;
-  padding: 10px;
+  box-sizing: border-box;
+  height: 37.5px;               /* for a browser without the lh unit */
+  height: calc(1lh + 22px);
+  padding: 0 10px;
+  font-size: 10px;
   background: var(--fb-ink);
 }
+/* On a phone the table headings are set a size up with less padding
+   round them; the band follows. */
+@media (max-width: 620px) {
+  .ege-bracket__heads {
+    height: 35px;
+    height: calc(1lh + 18px);
+    font-size: var(--fb-label);
+  }
+}
 .ege-bracket__head {
-  font-size: 10px;
   font-weight: 800;
   letter-spacing: .1em;
-  line-height: 1.3;
+  line-height: 1.05;
   text-transform: uppercase;
   text-align: center;
   color: var(--fb-cream);
@@ -2111,6 +2127,20 @@ body {
 }
 .ege-bracket__draw > .ege-tie,
 .ege-bracket__draw > .ege-bracket__centre { position: relative; z-index: 1; }
+
+/* A team under the pointer: every box it is in goes white, the way a row of
+   the schedule lights up, and its run through the draw is drawn heavier.
+   True white rather than the schedule's wash: on the cream of a box the
+   wash is too close to see. */
+.ege-bracket__draw .ege-seed[data-team] { cursor: default; }
+.ege-bracket__draw .ege-seed.is-hover,
+.ege-bracket__draw .ege-seed--us.is-hover { background: #fff; }
+.ege-bracket__champion.is-hover { background: #fff; }
+.ege-bracket__lines path.is-hover {
+  stroke: var(--fb-ink);
+  stroke-width: 3;
+}
+.ege-bracket__lines path.is-us.is-hover { stroke: var(--fb-accent); stroke-width: 3.5; }
 
 /* The name of a block of the draw -- a region, or a half of the state.
    Sits on a row of its own above the first matchup in it. */
@@ -2195,6 +2225,13 @@ body {
   flex: 1 1 auto;
   min-width: 0;
   text-align: center;
+  /* Two lines at most. A name that would take a third is cut there with an
+     ellipsis, and the whole of it is on the line's tooltip. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
   overflow-wrap: break-word;
   /* If a word ever does have to break, it breaks where a dictionary says --
      "North-western" -- rather than wherever the edge happens to be. */

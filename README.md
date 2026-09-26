@@ -117,9 +117,12 @@ holds:
   the draw work inwards from the edges to the championship in the middle,
   with a line from every game to the one its winner plays next, and his
   school's path through it drawn in orange. The round names run across the
-  top on a dark band like a table's heading row, and the champion line sits
-  above the championship game. Every box in a bracket is the same size,
-  with the names centred and seeds and scores in every box. It fits a full-width computer screen (1280px and up) with every name
+  top on a dark band the same height as a table's heading row, and the
+  champion line sits above the championship game. Every box in a bracket is
+  the same size, with the names centred and seeds and scores in every box.
+  A name takes two lines at most; anything longer ends in an ellipsis, with
+  the whole name on its tooltip. Pointing at a team turns every box it is
+  in white and draws its run through the draw in a heavier line. It fits a full-width computer screen (1280px and up) with every name
   written out, wrapping between words where it needs to. On anything
   narrower it keeps its shape and scrolls sideways, opening at his school,
   with a note under it saying to swipe.
