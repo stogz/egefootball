@@ -99,8 +99,8 @@ EGE.players = [
     team: 'wakeForest',
     position: 'TE',
     jersey: 87,
-    height: 72,               // inches
-    weight: 245,              // pounds
+    height: 76,               // inches
+    weight: 265,              // pounds
     email: 'daikrotlr@gmail.com',
     credits: 0,
     headshot: 'headshot/parr.png'
@@ -128,7 +128,7 @@ EGE.players = [
     position: 'TE',
     jersey: 10,
     height: 74,               // inches
-    weight: 275,              // pounds
+    weight: 265,              // pounds
     email: 'paxonhatch@gmail.com',
     credits: 0,
     headshot: 'headshot/hatch.png'
@@ -156,7 +156,7 @@ EGE.players = [
     position: 'RB',
     jersey: 34,
     height: 73,               // inches
-    weight: 210,              // pounds
+    weight: 245,              // pounds
     email: 'stogzfam@gmail.com',
     credits: 0,
     headshot: 'headshot/stogsdill.png'
