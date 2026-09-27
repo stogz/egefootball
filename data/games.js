@@ -160,9 +160,9 @@ EGE.seasonOverFor = function (player, season) {
   var year = season || EGE.currentSeason;
   if (year < EGE.currentSeason) { return true; }
 
-  /* Missed the playoffs: nothing of his has the flag, and the first week of
-     them is out. Until then a team with its regular season finished could
-     still be waiting to hear. */
+  /* Missed the playoffs: none of the player's games has the flag, and the
+     first week of them is out. Until then a team with its regular season
+     finished could still be waiting to hear. */
   var inPostseason = EGE.gamesFor(player, year).some(function (game) { return game.playoff; });
   if (!inPostseason) {
     var postseason = EGE.playoffWeeks(year);
@@ -181,9 +181,10 @@ EGE.seasonOverFor = function (player, season) {
 };
 
 /* The games scouts will attend. Only worth reading when the player has Intel
-   for that season. */
+   for that season. Only the games they can see coming count: a scout at a
+   playoff game past the next one is a playoff game past the next one. */
 EGE.scoutedGames = function (player, season) {
-  return EGE.gamesFor(player, season).filter(function (game) { return game.scouts; });
+  return EGE.scheduleFor(player, season).filter(function (game) { return game.scouts; });
 };
 
 /* --- the postseason ------------------------------------------------------ */
@@ -214,6 +215,45 @@ EGE.playoffWeeks = function (season) {
    nobody played. */
 EGE.playoffRound = function (week, season) {
   return EGE.playoffWeeks(season).indexOf(Number(week)) + 1;
+};
+
+/* --- how far ahead a player can see ----------------------------------------
+
+   The regular season is drawn up before it starts, and every fixture in it
+   is on the schedule from the first week. The postseason is not. Nobody
+   knows they are in it until the regular season is over, or who they play
+   next until they have won this week -- and a schedule that listed a state
+   final in October would be telling a player they get there.
+
+   So a playoff game only comes into sight once every week before it on the
+   player's schedule is out, which makes it the next game or one already
+   played, and nothing past it does. Out rather than played: a bye has no
+   score, and is behind them once its week is published, the week after it
+   being the next matchup from then on. A playoff week that is published is
+   in sight whatever else is, since its result is out for everyone.
+
+   The file still holds the whole postseason, the way it holds every result
+   before its week is published. This is what the page shows, not a lock. */
+
+/* The schedule as the player can see it: every regular-season fixture, and
+   the postseason as far as the next game and no further. */
+EGE.scheduleFor = function (player, season) {
+  var games = EGE.gamesFor(player, season);
+  var ahead = games.filter(function (game) {
+    return !EGE.isPublished(game.season, game.week);
+  }).map(function (game) { return game.week; });
+  var next = ahead.length ? Math.min.apply(null, ahead) : Infinity;
+
+  return games.filter(function (game) {
+    return !game.playoff || game.week <= next || EGE.isPublished(game.season, game.week);
+  });
+};
+
+/* Whether the player's postseason is in sight yet: a playoff game on the
+   schedule they can see. Until it is there is no bracket to show them
+   either, because a draw with their school in it says they made it. */
+EGE.postseasonInSight = function (player, season) {
+  return EGE.scheduleFor(player, season).some(function (game) { return game.playoff; });
 };
 
 /* --- boosters ------------------------------------------------------------ */

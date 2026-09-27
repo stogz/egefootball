@@ -1091,7 +1091,10 @@
     var panel = document.getElementById('schedulePanel');
     var body = document.getElementById('scheduleBody');
     var season = shownSeason();
-    var games = EGE.gamesFor(player, season);
+    /* The whole regular season, and the postseason only as far as the next
+       game: a row for the state final would be telling the player they get
+       there. Everything counted under the table is counted from these too. */
+    var games = EGE.scheduleFor(player, season);
 
     /* Intel is good for the season it was bought in, so an older season on
        the switcher shows no scouts. */
@@ -1314,7 +1317,12 @@
   function renderBracket(player) {
     var wrap = document.getElementById('bracketWrap');
     var box = document.getElementById('bracket');
-    var state = EGE.bracketState(player, shownSeason());
+    /* No draw until the player's first playoff game is in sight: a bracket
+       with their school in it says they made the playoffs before the regular
+       season has said so. */
+    var state = EGE.postseasonInSight(player, shownSeason())
+      ? EGE.bracketState(player, shownSeason())
+      : null;
 
     box.innerHTML = '';
     bracketTies = null;
@@ -1622,7 +1630,11 @@
   var scheduleView = 'games';
 
   function showScheduleView() {
-    var bracket = schedulePlayer ? EGE.bracketFor(schedulePlayer, shownSeason()) : null;
+    /* The switch comes with the postseason, not with the draw: see
+       renderBracket. */
+    var bracket = schedulePlayer && EGE.postseasonInSight(schedulePlayer, shownSeason())
+      ? EGE.bracketFor(schedulePlayer, shownSeason())
+      : null;
     var tournament = Boolean(bracket) && scheduleView === 'tournament';
 
     document.getElementById('scheduleSwitch').hidden = !bracket;
@@ -1631,7 +1643,7 @@
     /* Everything the games view owns goes away together, the empty note and
        the legend included -- a foot reading "* conference game" under a
        bracket is the schedule talking over it. */
-    var games = EGE.gamesFor(schedulePlayer, shownSeason());
+    var games = EGE.scheduleFor(schedulePlayer, shownSeason());
     document.getElementById('scheduleTableWrap').hidden = tournament || !games.length;
     document.getElementById('scheduleEmpty').hidden = tournament || Boolean(games.length);
     document.getElementById('scheduleFoot').hidden = tournament ||

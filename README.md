@@ -114,7 +114,23 @@ holds:
   result once it has been played. A silhouette marks a game scouts will attend,
   for a player holding Intel for that season. Postseason games are marked with
   two asterisks, and a school in a bracket gets a **Games | Tournament** switch
-  beside the fold-away arrow. The bracket is two-sided: the two halves of
+  beside the fold-away arrow.
+
+  **The postseason only shows as far as the next game.** The regular season is
+  all there from the first week, but no playoff game appears until every week
+  before it on that player's schedule is published — so nothing says a team
+  made the playoffs until its regular season is out, and each published
+  playoff week adds the next matchup and nothing after it. A bye counts as
+  done once its week is out. The Tournament switch arrives with the first
+  playoff row rather than with the draw, since a bracket with the school in
+  it would say the same thing early, and everything counted under the table
+  (the games, the Intel scouts) counts only the rows on it. This is the page,
+  not a lock: the season file still holds the whole postseason, the way it
+  holds every result before its week is published. The admin page still
+  lists every week, since that is where they get published from. It is
+  `EGE.scheduleFor` in `data/games.js`.
+
+  The bracket is two-sided: the two halves of
   the draw work inwards from the edges to the championship in the middle,
   with a line from every game to the one its winner plays next, and his
   school's path through it drawn in orange. The round names run across the
@@ -833,8 +849,9 @@ them.
 
 ### The rest of the draw
 
-A thirty-two-team bracket is thirty-one games, and the ones his school plays
-are his. Every other one lives in a `playoffs` block in the same file:
+A thirty-two-team bracket is thirty-one games. The ones a player's own school
+plays are up in `games`; every other one lives in a `playoffs` block in the
+same file:
 
 ```js
 playoffs: {
