@@ -133,7 +133,44 @@ EGE.colleges = {
   WKU:         { name: 'Western Kentucky',  short: 'WKU',   ground: '#FFFFFF', ink: '#C60C30', logo: 'WKU' },
   SouthAlabama:{ name: 'South Alabama',     short: 'USA',   ground: '#00205B', ink: '#BF0D3E', logo: 'SouthAlabama' },
   FAMU:        { name: 'Florida A&M',       short: 'FAMU',  ground: '#F47321', ink: '#008142', logo: 'FAMU' },
-  JaxState:    { name: 'Jacksonville State', short: 'JSU',  ground: '#CC0000', ink: '#FFFFFF', logo: 'JaxState' }
+  JaxState:    { name: 'Jacksonville State', short: 'JSU',  ground: '#CC0000', ink: '#FFFFFF', logo: 'JaxState' },
+
+  /* --- after the 2019 playoffs ----------------------------------------- */
+  /* Placed against where the real 2020 recruits rated beside each of them
+     signed. Grounds picked the same way as the rest: the mark's second
+     colour where its first would vanish into it -- Carolina blue on navy,
+     Georgia Tech and West Virginia gold on navy, Oregon green on yellow. */
+
+  /* Big Ten */
+  Wisconsin:     { name: 'Wisconsin',          short: 'WIS',   ground: '#FFFFFF', ink: '#C5050C', logo: 'Wisconsin' },
+  Nebraska:      { name: 'Nebraska',           short: 'NEB',   ground: '#F5F1E7', ink: '#E41C38', logo: 'Nebraska' },
+  MichiganState: { name: 'Michigan State',     short: 'MSU',   ground: '#FFFFFF', ink: '#18453B', logo: 'MichiganState' },
+  Northwestern:  { name: 'Northwestern',       short: 'NU',    ground: '#E4E0EE', ink: '#4E2A84', logo: 'Northwestern' },
+  Maryland:      { name: 'Maryland',           short: 'UMD',   ground: '#FFD200', ink: '#E03A3E', logo: 'Maryland' },
+
+  /* Pac-12 and BYU */
+  UCLA:          { name: 'UCLA',               short: 'UCLA',  ground: '#FFD100', ink: '#2774AE', logo: 'UCLA' },
+  Washington:    { name: 'Washington',         short: 'UW',    ground: '#B7A57A', ink: '#4B2E83', logo: 'Washington' },
+  Oregon:        { name: 'Oregon',             short: 'ORE',   ground: '#FEE123', ink: '#154733', logo: 'Oregon' },
+  BYU:           { name: 'BYU',                short: 'BYU',   ground: '#FFFFFF', ink: '#002E5D', logo: 'BYU' },
+
+  /* ACC, SEC and the Big 12 */
+  UNC:           { name: 'North Carolina',     short: 'UNC',   ground: '#13294B', ink: '#7BAFD4', logo: 'UNC' },
+  VirginiaTech:  { name: 'Virginia Tech',      short: 'VT',    ground: '#E5751F', ink: '#630031', logo: 'VirginiaTech' },
+  Louisville:    { name: 'Louisville',         short: 'LOU',   ground: '#000000', ink: '#AD0000', logo: 'Louisville' },
+  GeorgiaTech:   { name: 'Georgia Tech',       short: 'GT',    ground: '#003057', ink: '#B3A369', logo: 'GeorgiaTech' },
+  Syracuse:      { name: 'Syracuse',           short: 'CUSE',  ground: '#000E54', ink: '#F76900', logo: 'Syracuse' },
+  SouthCarolina: { name: 'South Carolina',     short: 'SC',    ground: '#FFFFFF', ink: '#73000A', logo: 'SouthCarolina' },
+  Kentucky:      { name: 'Kentucky',           short: 'UK',    ground: '#FFFFFF', ink: '#0033A0', logo: 'Kentucky' },
+  WestVirginia:  { name: 'West Virginia',      short: 'WVU',   ground: '#002855', ink: '#EAAA00', logo: 'WestVirginia' },
+
+  /* Group of Five and FCS */
+  Memphis:       { name: 'Memphis',            short: 'MEM',   ground: '#FFFFFF', ink: '#003087', logo: 'Memphis' },
+  Buffalo:       { name: 'Buffalo',            short: 'UB',    ground: '#FFFFFF', ink: '#005BBB', logo: 'Buffalo' },
+  MiamiOH:       { name: 'Miami (OH)',         short: 'MIA',   ground: '#FFFFFF', ink: '#C3142D', logo: 'MiamiOH' },
+  KentState:     { name: 'Kent State',         short: 'KENT',  ground: '#002664', ink: '#EAAB00', logo: 'KentState' },
+  MurrayState:   { name: 'Murray State',       short: 'MUR',   ground: '#ECAC00', ink: '#002144', logo: 'MurrayState' },
+  NDSU:          { name: 'North Dakota State', short: 'NDSU',  ground: '#FFC72A', ink: '#0A5640', logo: 'NDSU' }
 };
 
 /* Who has offered whom. Add a key to a list and the sticker is on the page;
@@ -141,18 +178,24 @@ EGE.colleges = {
 EGE.offers = {
   'sam-stogsdill': ['ISU', 'EIU', 'SIU', 'INDY', 'SEMO',
                     'NIU', 'BallState', 'WMU', 'EMU', 'CMU', 'Toledo', 'UNI', 'WIU',
-                    'Illinois', 'Iowa', 'Minnesota', 'Indiana', 'Purdue', 'IowaState'],
+                    'Illinois', 'Iowa', 'Minnesota', 'Indiana', 'Purdue', 'IowaState',
+                    'Wisconsin', 'Nebraska', 'MichiganState', 'Northwestern'],
   'paxon-hatch':   ['ISU', 'UNI', 'WIU', 'EIU', 'SIU',
-                    'INDY', 'YSU', 'SouthDakota', 'NIU', 'BallState'],
+                    'INDY', 'YSU', 'SouthDakota', 'NIU', 'BallState',
+                    'MiamiOH', 'WMU', 'Toledo', 'EMU', 'MurrayState', 'NDSU'],
   'cooper-clark':  ['SacState', 'UCDavis', 'CalPoly', 'SDSU', 'Fresno', 'SJSU',
                     'Nevada', 'UNLV', 'ColoState', 'Boise', 'Arizona', 'ASU',
-                    'WSU', 'Hawaii', 'UtahState', 'OregonState', 'Colorado', 'Utah', 'Cal'],
+                    'WSU', 'Hawaii', 'UtahState', 'OregonState', 'Colorado', 'Utah', 'Cal',
+                    'UCLA', 'Washington', 'Oregon', 'BYU'],
   'jaykeb-stewart': ['GaSouthern', 'FAU', 'FIU', 'UCF', 'USF', 'Bethune',
-                     'Charlotte', 'SouthAlabama', 'FAMU', 'JaxState', 'WKU'],
+                     'Charlotte', 'SouthAlabama', 'FAMU', 'JaxState', 'WKU',
+                     'GeorgiaTech', 'WestVirginia', 'Louisville', 'Syracuse', 'Kentucky', 'Memphis'],
   'andrew-parr':   ['ODU', 'JMU', 'Elon', 'NCCentral',
                     'AppState', 'ECU', 'Charlotte', 'Coastal', 'Army', 'Navy',
-                    'WakeForest', 'NCState', 'Duke'],
-  'isaac-vitel':   ['ISU', 'EIU', 'WIU', 'SIU', 'SEMO', 'INDY', 'NIU', 'BallState', 'UNI']
+                    'WakeForest', 'NCState', 'Duke',
+                    'UNC', 'VirginiaTech', 'SouthCarolina', 'Maryland', 'Louisville'],
+  'isaac-vitel':   ['ISU', 'EIU', 'WIU', 'SIU', 'SEMO', 'INDY', 'NIU', 'BallState', 'UNI',
+                    'Illinois', 'Toledo', 'WMU', 'Buffalo', 'MiamiOH', 'KentState']
 };
 
 /* Where each of them stands as a recruit, the way 247Sports would have it:
