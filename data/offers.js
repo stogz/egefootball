@@ -157,15 +157,27 @@ EGE.offers = {
 
 /* Where each of them stands as a recruit, the way 247Sports would have it:
    the stars, the rating behind them (70-79 is two stars, 80-89 three,
-   90-97 four, 98 and up five), and the rank among the players at his
-   position in his state. Drawn under the name on his page. */
+   90-97 four, 98 and up five), and the rank among the players at that
+   position in that state. Drawn under the name on the player's page.
+
+   The ranks are placed against the real 247Sports 2020 class: the rating
+   is the simulation's, and the rank is where it falls among the real
+   recruits at the same position in the same state. A quarterback is
+   counted against pro-style and dual-threat alike, and a back against
+   247's RBs. Who is above each of them, as 247 has it:
+
+     Cooper   #2  Kendall Milton (Buchanan, 95)
+     Jaykeb   #3  Carson Beck (Mandarin, 92), Anthony Richardson
+                  (Eastside, 92); level with Jeff Sims (Sandalwood, 88)
+     Paxon    #2  Hunter Welcing (Lake Zurich, 84)
+     Sam, Andrew and Isaac are rated above everybody real in theirs. */
 EGE.recruiting = {
   'sam-stogsdill':  { stars: 4, rating: 91, stateRank: 1,  position: 'RB', state: 'Illinois' },
-  'cooper-clark':   { stars: 4, rating: 90, stateRank: 8,  position: 'RB', state: 'California' },
+  'cooper-clark':   { stars: 4, rating: 90, stateRank: 2,  position: 'RB', state: 'California' },
   'andrew-parr':    { stars: 4, rating: 90, stateRank: 1,  position: 'TE', state: 'North Carolina' },
-  'jaykeb-stewart': { stars: 3, rating: 88, stateRank: 12, position: 'QB', state: 'Florida' },
-  'isaac-vitel':    { stars: 3, rating: 84, stateRank: 4,  position: 'QB', state: 'Illinois' },
-  'paxon-hatch':    { stars: 3, rating: 81, stateRank: 3,  position: 'TE', state: 'Illinois' }
+  'jaykeb-stewart': { stars: 3, rating: 88, stateRank: 3,  position: 'QB', state: 'Florida' },
+  'isaac-vitel':    { stars: 3, rating: 84, stateRank: 1,  position: 'QB', state: 'Illinois' },
+  'paxon-hatch':    { stars: 3, rating: 81, stateRank: 2,  position: 'TE', state: 'Illinois' }
 };
 
 /* The offers a player is holding, as whole college records rather than keys.
