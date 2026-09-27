@@ -152,6 +152,7 @@ EGE.colleges = {
 
   /* Pac-12 and BYU */
   UCLA:          { name: 'UCLA',               short: 'UCLA',  ground: '#FFD100', ink: '#2774AE', logo: 'UCLA' },
+  USC:           { name: 'USC',                short: 'USC',   ground: '#FFFFFF', ink: '#990000', logo: 'USC' },
   Washington:    { name: 'Washington',         short: 'UW',    ground: '#B7A57A', ink: '#4B2E83', logo: 'Washington' },
   Oregon:        { name: 'Oregon',             short: 'ORE',   ground: '#FEE123', ink: '#154733', logo: 'Oregon' },
   BYU:           { name: 'BYU',                short: 'BYU',   ground: '#FFFFFF', ink: '#002E5D', logo: 'BYU' },
@@ -188,7 +189,7 @@ EGE.offers = {
   'cooper-clark':  ['SacState', 'UCDavis', 'CalPoly', 'SDSU', 'Fresno', 'SJSU',
                     'Nevada', 'UNLV', 'ColoState', 'Boise', 'Arizona', 'ASU',
                     'WSU', 'Hawaii', 'UtahState', 'OregonState', 'Colorado', 'Utah', 'Cal',
-                    'UCLA', 'Washington', 'Oregon', 'BYU'],
+                    'UCLA', 'Washington', 'Oregon', 'BYU', 'USC'],
   'jaykeb-stewart': ['GaSouthern', 'FAU', 'FIU', 'UCF', 'USF', 'Bethune',
                      'Charlotte', 'SouthAlabama', 'FAMU', 'JaxState', 'WKU',
                      'GeorgiaTech', 'WestVirginia', 'Louisville', 'Syracuse', 'Kentucky', 'Memphis'],
