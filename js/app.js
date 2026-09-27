@@ -344,8 +344,15 @@
       row.appendChild(star);
     }
     box.appendChild(row);
-    box.appendChild(el('span', 'ege-stars__rank',
-      '#' + recruit.stateRank + ' ' + recruit.position + ' in ' + recruit.state));
+    /* The state rank, and beside it the same position across the country.
+       The dot holds on to the state and the national rank holds together,
+       so a narrow header breaks the line after the dot and nowhere in
+       "#13 nationally". */
+    var rank = '#' + recruit.stateRank + ' ' + recruit.position + ' in ' + recruit.state;
+    if (recruit.nationalRank) {
+      rank += '\u00a0\u00b7 #' + recruit.nationalRank + '\u00a0nationally';
+    }
+    box.appendChild(el('span', 'ege-stars__rank', rank));
     box.title = recruit.stars + '-star \u00b7 247 rating ' + recruit.rating;
   }
 
