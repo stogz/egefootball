@@ -139,11 +139,13 @@ EGE.colleges = {
   /* Placed against where the real 2020 recruits rated beside each of them
      signed. Grounds picked the same way as the rest: the mark's second
      colour where its first would vanish into it -- Carolina blue on navy,
-     Georgia Tech and West Virginia gold on navy, Oregon green on yellow. */
+     Georgia Tech's gold on navy, West Virginia's navy mark on its gold,
+     Oregon green on yellow. Nebraska is on white rather than its cream,
+     which is the page's own colour and would lose the die-cut edge. */
 
   /* Big Ten */
   Wisconsin:     { name: 'Wisconsin',          short: 'WIS',   ground: '#FFFFFF', ink: '#C5050C', logo: 'Wisconsin' },
-  Nebraska:      { name: 'Nebraska',           short: 'NEB',   ground: '#F5F1E7', ink: '#E41C38', logo: 'Nebraska' },
+  Nebraska:      { name: 'Nebraska',           short: 'NEB',   ground: '#FFFFFF', ink: '#E41C38', logo: 'Nebraska' },
   MichiganState: { name: 'Michigan State',     short: 'MSU',   ground: '#FFFFFF', ink: '#18453B', logo: 'MichiganState' },
   Northwestern:  { name: 'Northwestern',       short: 'NU',    ground: '#E4E0EE', ink: '#4E2A84', logo: 'Northwestern' },
   Maryland:      { name: 'Maryland',           short: 'UMD',   ground: '#FFD200', ink: '#E03A3E', logo: 'Maryland' },
@@ -162,7 +164,7 @@ EGE.colleges = {
   Syracuse:      { name: 'Syracuse',           short: 'CUSE',  ground: '#000E54', ink: '#F76900', logo: 'Syracuse' },
   SouthCarolina: { name: 'South Carolina',     short: 'SC',    ground: '#FFFFFF', ink: '#73000A', logo: 'SouthCarolina' },
   Kentucky:      { name: 'Kentucky',           short: 'UK',    ground: '#FFFFFF', ink: '#0033A0', logo: 'Kentucky' },
-  WestVirginia:  { name: 'West Virginia',      short: 'WVU',   ground: '#002855', ink: '#EAAA00', logo: 'WestVirginia' },
+  WestVirginia:  { name: 'West Virginia',      short: 'WVU',   ground: '#EAAA00', ink: '#002855', logo: 'WestVirginia' },
 
   /* Group of Five and FCS */
   Memphis:       { name: 'Memphis',            short: 'MEM',   ground: '#FFFFFF', ink: '#003087', logo: 'Memphis' },
