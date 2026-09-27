@@ -2021,9 +2021,10 @@ body {
    group headings are above it. The lines are drawn over the grid afterwards
    from where the boxes landed (drawBracketLines).
 
-   Nine columns, sized to fit a full-width computer screen with every name in
-   full. Narrower than that -- a phone -- it keeps its shape and the panel
-   scrolls sideways, with a line under it saying so. */
+   Nine columns for thirty-two teams, sized to fit a full-width computer
+   screen with every name in full. Narrower than that -- a phone -- it keeps
+   its shape and the panel scrolls sideways, with a line under it saying so.
+   A smaller draw has fewer columns; app.js sets how many as --columns. */
 /* No padding at the top or the sides: the round names are a dark band
    running edge to edge right under the panel's head, the way a table's
    heading row does. The draw under it keeps its own margin. */
@@ -2042,8 +2043,9 @@ body {
      draw. A 1280px screen -- the smallest a laptop comes, less a Windows
      scrollbar -- gives it a little more than this, and at that width every
      column still holds the longest single word in any of the draws beside a
-     seed and a score. */
-  min-width: 1205px;
+     seed and a score. That is 133px a column, the box and the gap its lines
+     run through, and 8px over: 1205px for nine columns, 407px for three. */
+  min-width: calc(var(--columns, 9) * 133px + 8px);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -2056,8 +2058,19 @@ body {
 .ege-bracket__heads,
 .ege-bracket__draw {
   display: grid;
-  grid-template-columns: repeat(9, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--columns, 9), minmax(0, 1fr));
   column-gap: 11px;
+}
+
+/* A small draw -- San Diego's four teams -- spread across a panel built for
+   nine columns is three boxes the width of a table, and reads as one. Its
+   columns stop at a box's width and sit in the middle of the band, with
+   room enough between them for the lines to be seen. */
+.ege-bracket--small .ege-bracket__heads,
+.ege-bracket--small .ege-bracket__draw {
+  grid-template-columns: repeat(var(--columns), minmax(0, 13rem));
+  justify-content: center;
+  column-gap: 32px;
 }
 
 /* The dark band, set the way the schedule's and the game log's heading rows

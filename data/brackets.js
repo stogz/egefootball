@@ -1,7 +1,8 @@
 /* ==========================================================================
    EGE Football — the playoff brackets
-   One bracket per school that made its state playoffs, as the field was
-   drawn: every first-round matchup and every seed, and nothing else.
+   One bracket per school that made its state playoffs, a season at a time,
+   as the field was drawn: every first-round matchup and every seed, and
+   nothing else.
 
    Empty on purpose
    ----------------
@@ -13,16 +14,21 @@
 
    The shape
    ---------
-   All four of these are the same tournament twice over: two halves of eight
-   first-round matchups, each half narrowing 8 -> 4 -> 2 -> 1, and the two
-   survivors meeting in the final. That is why one renderer draws a 32-team
-   Illinois bracket, a North Carolina bracket with four byes in it and a
-   Florida bracket cut into four regions without knowing which is which.
+   Every one of these is the same tournament at one size or another: two
+   halves of first-round matchups, each half narrowing to one survivor, and
+   the two survivors meeting in the final. Most are thirty-two teams, eight
+   matchups a half narrowing 8 -> 4 -> 2 -> 1, and that is why one renderer
+   draws an Illinois bracket, a North Carolina bracket with byes in it and a
+   Florida bracket cut into four regions without knowing which is which. San
+   Diego's Open Division is four teams, one semifinal a half. How many rounds
+   a half runs to is how many `rounds` a bracket lists, and nothing else has
+   to be told.
 
-   `blocks` is how a side is labelled. Illinois runs a half straight through
-   and has one unnamed block of eight; North Carolina names each half; Florida
-   plays two regions a side, so a side is two named blocks of four. The
-   renderer just lays the blocks out in order and writes the names it finds.
+   `blocks` is how a side is labelled. Illinois ran its halves straight
+   through in 2018, one unnamed block of eight each, and printed quadrants in
+   2019; North Carolina names each half; Florida plays two regions a side, so
+   a side is two named blocks of four. The renderer just lays the blocks out
+   in order and writes the names it finds.
 
    `us` is the school whose page the bracket is on -- the one row drawn in
    the site's own ink rather than grey. It is matched by name, so it has to
@@ -45,15 +51,14 @@ window.EGE = window.EGE || {};
     return { a: { seed: seed, name: name }, b: null };
   }
 
-  /* The season these draws are from. A bracket belongs to one year's
-     playoffs, so any other season -- the next one, before its own draws are
-     written in -- has no bracket rather than last year's. */
-  EGE.bracketsSeason = 2018;
+  /* Keyed by season, and within a season by the team key in data/players.js,
+     so a player's bracket is whatever his school was playing in that year. A
+     bracket belongs to one year's playoffs: a season with no draws written in
+     yet has no bracket rather than last year's, and a school with no entry
+     for a season has none that season -- the switcher does not offer one. */
+  EGE.brackets = {};
 
-  /* Keyed by the team key in data/players.js, so a player's bracket is
-     whatever his school is playing in. A school with no entry here has no
-     bracket, and the switcher does not offer one. */
-  EGE.brackets = {
+  EGE.brackets[2018] = {
 
     /* --- Sam Stogsdill -------------------------------------------------- */
     normal: {
@@ -208,13 +213,164 @@ window.EGE = window.EGE || {};
     }
   };
 
-  /* The bracket a player's school is in, or null. Carlsbad has a playoff game
-     and no entry here yet, which is the case this has to answer for: a school
-     can be in the postseason without its bracket having been drawn up. */
+  /* Bloomington missed the 2019 playoffs, so Paxon and Isaac have no draw
+     this year. Carlsbad has one for the first time. */
+  EGE.brackets[2019] = {
+
+    /* --- Sam Stogsdill -------------------------------------------------- */
+    normal: {
+      title: 'IHSA Class 7A',
+      us: 'Normal Community',
+      rounds: [
+        { label: 'First Round' },
+        { label: 'Second Round' },
+        { label: 'Quarterfinal' },
+        { label: 'Semifinal' }
+      ],
+      final: { label: 'State Final', date: 'Nov 30' },
+      left: [
+        { label: 'Quadrant 1', games: [
+          m(1, 'Chicago Mt. Carmel', 32, 'Blue Island Eisenhower'),
+          m(16, 'Glenbard North', 17, 'Benet Academy'),
+          m(8, 'Phillips', 25, 'Lincoln-Way West'),
+          m(9, 'Normal Community', 24, 'Reavis')
+        ] },
+        { label: 'Quadrant 2', games: [
+          m(4, 'Hersey', 29, 'Rockford Auburn'),
+          m(13, 'Andrew', 20, 'Lake Zurich'),
+          m(5, 'Willowbrook', 28, 'Moline'),
+          m(12, 'Yorkville', 21, 'Thornton Fractional South')
+        ] }
+      ],
+      right: [
+        { label: 'Quadrant 3', games: [
+          m(2, 'Nazareth Academy', 31, 'Libertyville'),
+          m(15, 'Thornton', 18, 'Pekin'),
+          m(7, 'Batavia', 26, 'Thornwood'),
+          m(10, 'Hononegah', 23, 'Grant Community')
+        ] },
+        { label: 'Quadrant 4', games: [
+          m(3, 'Rolling Meadows', 30, 'Lincoln Park'),
+          m(14, 'Prospect', 19, 'DeKalb'),
+          m(6, 'Maine West', 27, 'Downers Grove North'),
+          m(11, 'Harlem', 22, 'Wheaton-Warrenville South')
+        ] }
+      ]
+    },
+
+    /* --- Andrew Parr ----------------------------------------------------- */
+    /* The first year of 4AA, the bigger schools split off from 4A. The East's
+       3 seed was never filled -- the bracket printed TBA -- so whoever came
+       out of Garner and Wakefield had the second round off as well. */
+    wakeForest: {
+      title: 'NCHSAA 4AA',
+      us: 'Wake Forest',
+      rounds: [
+        { label: 'First Round' },
+        { label: 'Second Round' },
+        { label: 'Third Round' },
+        { label: 'Regional Round', date: 'Dec 6' }
+      ],
+      final: { label: 'Championship', date: 'Dec 14' },
+      left: [
+        { label: 'East', games: [
+          bye(1, 'Wake Forest'),
+          m(8, 'Rolesville', 9, 'Panther Creek'),
+          m(5, 'Green Hope', 12, 'Apex Friendship'),
+          bye(4, 'Hoggard'),
+          bye(3, 'TBA'),
+          m(6, 'Garner', 11, 'Wakefield'),
+          m(7, 'Hoke County', 10, 'Millbrook'),
+          bye(2, 'Leesville Road')
+        ] }
+      ],
+      right: [
+        { label: 'West', games: [
+          bye(1, 'Richmond Senior'),
+          m(8, 'Hough', 9, 'Olympic'),
+          m(5, 'Ardrey Kell', 12, 'Independence'),
+          bye(4, 'Myers Park'),
+          bye(3, 'West Forsyth'),
+          m(6, 'Pinecrest', 11, 'Reagan'),
+          m(7, 'Butler', 10, 'Chambers'),
+          bye(2, 'Mallard Creek')
+        ] }
+      ]
+    },
+
+    /* --- Jaykeb Stewart --------------------------------------------------- */
+    /* Naples moved to Region 4 this year, the bottom of the right half. */
+    naples: {
+      title: 'FHSAA Class 6A',
+      us: 'Naples',
+      rounds: [
+        { label: 'Region Quarterfinal', date: 'Nov 8' },
+        { label: 'Region Semifinal', date: 'Nov 15' },
+        { label: 'Region Final', date: 'Nov 22' },
+        { label: 'State Semifinal', date: 'Nov 29' }
+      ],
+      final: { label: 'Championship', date: 'Dec 12' },
+      left: [
+        { label: 'Region 1', games: [
+          m(1, 'Escambia', 8, 'New Smyrna Beach'),
+          m(4, 'Mainland', 5, 'Booker T. Washington'),
+          m(3, 'Ponte Vedra', 6, 'Columbia'),
+          m(2, 'Riverside', 7, 'St. Augustine')
+        ] },
+        { label: 'Region 2', games: [
+          m(1, 'Gaither', 8, 'Boca Ciega'),
+          m(4, 'Hollins', 5, 'Clearwater'),
+          m(3, 'Lake Minneola', 6, 'Springstead'),
+          m(2, 'Largo', 7, 'Countryside')
+        ] }
+      ],
+      right: [
+        { label: 'Region 3', games: [
+          m(1, 'Palmetto', 8, 'Braden River'),
+          m(4, 'Hillsborough', 5, 'Port Charlotte'),
+          m(3, 'Westwood', 6, 'Charlotte'),
+          m(2, 'Lake Gibson', 7, 'Auburndale')
+        ] },
+        { label: 'Region 4', games: [
+          m(1, 'Naples', 8, 'South Fort Myers'),
+          m(4, 'Central', 5, 'Dunbar'),
+          m(3, 'Fort Myers', 6, 'North Fort Myers'),
+          m(2, 'Dillard', 7, 'Lely')
+        ] }
+      ]
+    },
+
+    /* --- Cooper Clark ---------------------------------------------------- */
+    /* The San Diego Section's Open Division: its top four, seeded, and two
+       rounds -- a semifinal a half and the final. */
+    carlsbad: {
+      title: 'CIF-SDS Open Division',
+      us: 'Carlsbad',
+      rounds: [
+        { label: 'Semifinal', date: 'Nov 15' }
+      ],
+      final: { label: 'Championship', date: 'Nov 23' },
+      left: [
+        { label: null, games: [
+          m(1, 'Helix', 4, 'St. Augustine')
+        ] }
+      ],
+      right: [
+        { label: null, games: [
+          m(2, 'Cathedral Catholic', 3, 'Carlsbad')
+        ] }
+      ]
+    }
+  };
+
+  /* The bracket a player's school was in that season, or null. Carlsbad in
+     2018 is the case this has to answer for: two playoff games and no draw
+     written in for them, because a school can be in the postseason without
+     its bracket having been drawn up. */
   EGE.bracketFor = function (player, season) {
     if (!player || !player.team) { return null; }
-    if ((season || EGE.currentSeason) !== EGE.bracketsSeason) { return null; }
-    return EGE.brackets[player.team] || null;
+    var draws = EGE.brackets[season || EGE.currentSeason] || {};
+    return draws[player.team] || null;
   };
 
   /* --- how far the draw has got ---------------------------------------------
@@ -237,16 +393,12 @@ window.EGE = window.EGE || {};
 
      Round two's matchups are round one's winners, so publishing a week both
      fills that round in and stands the next one up with the teams that
-     reached it. */
+     reached it.
 
-  var ROUNDS = 4;             /* per side, before the final */
-  var OPENERS = 16;           /* first-round matchups across the whole draw */
-
-  /* Where a round's slot sits in the flat list of that round's matchups: the
-     whole left half first, then the whole right. */
-  function flatIndex(round, flip, at) {
-    return (flip ? (OPENERS / 2) >> round : 0) + at;
-  }
+     A result with no score, [winner, null, null], is a team that went
+     through without playing -- North Carolina's Garner in 2019, drawn
+     against a seed that was never filled. It advances like any winner and is
+     drawn without a score. */
 
   function settle(slot, round, rounds, bracket, player, year, at) {
     var written = rounds[round] || {};
@@ -284,7 +436,12 @@ window.EGE = window.EGE || {};
   }
 
   /* The whole draw as it stands: every matchup, whoever is in it, and
-     whatever has been settled. */
+     whatever has been settled.
+
+     How big it is comes off the bracket rather than a constant -- how many
+     rounds a half runs to before the final, and how many matchups open it --
+     so a four-team section final and a thirty-two-team state draw are worked
+     through the same way. */
   EGE.bracketState = function (player, season) {
     var year = season || EGE.currentSeason;
     var bracket = EGE.bracketFor(player, year);
@@ -295,11 +452,18 @@ window.EGE = window.EGE || {};
 
     var openers = EGE.bracketOpeners(bracket.left)
       .concat(EGE.bracketOpeners(bracket.right));
+    var depth = bracket.rounds.length;      /* per side, before the final */
+
+    /* Where a round's slot sits in the flat list of that round's matchups:
+       the whole left half first, then the whole right. */
+    function flatIndex(round, flip, at) {
+      return (flip ? (openers.length / 2) >> round : 0) + at;
+    }
 
     var out = [];
-    for (var r = 0; r < ROUNDS; r += 1) {
+    for (var r = 0; r < depth; r += 1) {
       var here = [];
-      var count = OPENERS >> r;
+      var count = openers.length >> r;
       for (var i = 0; i < count; i += 1) {
         var slot = r === 0
           ? { a: openers[i].game.a, b: openers[i].game.b }
@@ -310,9 +474,9 @@ window.EGE = window.EGE || {};
       out.push(here);
     }
 
-    var last = out[ROUNDS - 1];
+    var last = out[depth - 1];
     var final = { a: survivor(last[0]), b: survivor(last[1]) };
-    final.result = settle(final, ROUNDS, rounds, bracket, player, year, 0);
+    final.result = settle(final, depth, rounds, bracket, player, year, 0);
 
     return {
       bracket: bracket,

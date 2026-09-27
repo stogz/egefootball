@@ -94,7 +94,8 @@ holds:
   result is out, followed by the current run — **6-1 · W4 Streak**, green for
   wins and red for losses — until the team's season is over) and **Jersey**.
   A season is over once it is behind the live one, or once the team has lost
-  a playoff game or won its bracket. The season, class and level are across the
+  a playoff game or won its bracket — or, for a school that missed the
+  playoffs, once their first week is out. The season, class and level are across the
   orange strip at the top of the panel. The overall is not up
   here: it lives with the ratings it is worked out from, at the foot of the
   page. The top right holds the college offers, as stickers.
@@ -113,7 +114,23 @@ holds:
   result once it has been played. A silhouette marks a game scouts will attend,
   for a player holding Intel for that season. Postseason games are marked with
   two asterisks, and a school in a bracket gets a **Games | Tournament** switch
-  beside the fold-away arrow. The bracket is two-sided: the two halves of
+  beside the fold-away arrow.
+
+  **The postseason only shows as far as the next game.** The regular season is
+  all there from the first week, but no playoff game appears until every week
+  before it on that player's schedule is published — so nothing says a team
+  made the playoffs until its regular season is out, and each published
+  playoff week adds the next matchup and nothing after it. A bye counts as
+  done once its week is out. The Tournament switch arrives with the first
+  playoff row rather than with the draw, since a bracket with the school in
+  it would say the same thing early, and everything counted under the table
+  (the games, the Intel scouts) counts only the rows on it. This is the page,
+  not a lock: the season file still holds the whole postseason, the way it
+  holds every result before its week is published. The admin page still
+  lists every week, since that is where they get published from. It is
+  `EGE.scheduleFor` in `data/games.js`.
+
+  The bracket is two-sided: the two halves of
   the draw work inwards from the edges to the championship in the middle,
   with a line from every game to the one its winner plays next, and his
   school's path through it drawn in orange. The round names run across the
@@ -125,7 +142,10 @@ holds:
   in white and draws its run through the draw in a heavier line. It fits a full-width computer screen (1280px and up) with every name
   written out, wrapping between words where it needs to. On anything
   narrower it keeps its shape and scrolls sideways, opening at his school,
-  with a note under it saying to swipe.
+  with a note under it saying to swipe. A draw has as many columns as it has
+  rounds: nine for a thirty-two-team state bracket, three for San Diego's
+  four-team Open Division, which sits in the middle of the band at a box's
+  width rather than stretching across it.
 - **Game log** — per-game stats for that player, with the stat lines driven by
   their position (see below), and a totals row for the season.
 - **Ratings** — every attribute in its group, with the overall in the corner
@@ -829,8 +849,9 @@ them.
 
 ### The rest of the draw
 
-A bracket is thirty-one games and one of them is his. The other thirty live in
-a `playoffs` block in the same file:
+A thirty-two-team bracket is thirty-one games. The ones a player's own school
+plays are up in `games`; every other one lives in a `playoffs` block in the
+same file:
 
 ```js
 playoffs: {
@@ -852,8 +873,9 @@ playoffs: {
 }
 ```
 
-One entry per bracket, keyed the way `data/brackets.js` is keyed. Each is a
-list of rounds; each round is the week it is played in and one result per
+One entry per bracket, keyed the way that season's draws are keyed in
+`data/brackets.js`. Each is a list of rounds, as many as the draw has plus
+the final; each round is the week it is played in and one result per
 matchup, in the order the bracket draws them — the whole left half top to
 bottom, then the whole right half. A result is `[winner, winner's score,
 loser's score]`, and the winner is named rather than pointed at so a line can
@@ -865,6 +887,10 @@ file with a stat line on it, and a bracket that could disagree with the
 schedule about whether he won is worse than no bracket. Change that game's
 score and the draw changes with it.
 
+A team that went through without a game is `[winner, null, null]` — North
+Carolina's Garner in 2019, drawn against a 3 seed the bracket never filled
+and printed as TBA. It advances like any winner and is drawn with no score.
+
 **A round is drawn once its week is published.** Nothing in the bracket is
 settled before then, the same rule the schedule, the record and the credits
 already follow — so the draw can never be ahead of what the admin has put out.
@@ -874,6 +900,13 @@ winners. Fill a later round in and publish its week, and it moves on again.
 
 To change who goes through, edit one line. To change how his own school did,
 edit his game up in `games`.
+
+The draws themselves — the seeds and the first-round matchups — are in
+`data/brackets.js` under their season, `EGE.brackets[2019]` beside
+`EGE.brackets[2018]`, so a new year's brackets go in next to the old ones and
+the season switcher still shows 2018's draw when you look back at 2018. A
+school with no entry for a season (Bloomington in 2019, Carlsbad in 2018) has
+no Tournament switch that season.
 
 A new season is a new file and one more year in the `SEASONS` list at the top
 of `js/site-data.js`. The bot finds them on its own.
@@ -1231,13 +1264,15 @@ Built so far:
   that decides what "played" means.
 - `data/offers.js` — who has offered whom, each school's sticker colour
   and mark, and each player's recruiting stars, 247 rating and state rank. Adding a key to a player's list puts the sticker on his header.
-- `data/brackets.js` — the playoff bracket each school is in, as the field was
-  drawn: every first-round matchup and seed, and nothing else. No results —
-  those live in `stats/{year}.js` like any other game. It also holds
-  `EGE.bracketState`, which is how far the draw has got given what has been
-  published. A school with no entry has no Tournament switch. The draws
-  belong to one season, `EGE.bracketsSeason`; any other season has no
-  bracket until its own are written in and that is moved on.
+- `data/brackets.js` — the playoff bracket each school is in, a season at a
+  time, as the field was drawn: every first-round matchup and seed, and
+  nothing else. No results — those live in `stats/{year}.js` like any other
+  game. It also holds `EGE.bracketState`, which is how far the draw has got
+  given what has been published, sized off the draw itself so a four-team
+  section final works the same way as a thirty-two-team state bracket. The
+  draws are keyed by season, `EGE.brackets[year]`; a season with nothing
+  written in has no brackets, and a school with no entry for a season has no
+  Tournament switch that season.
 - `data/statline.js` — what a stat line is: the columns each position is read
   in, and how a season of them adds up.
 - `js/discord-post.js` — one week as a Discord message. Loaded by the browser

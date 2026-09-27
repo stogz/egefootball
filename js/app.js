@@ -1091,7 +1091,10 @@
     var panel = document.getElementById('schedulePanel');
     var body = document.getElementById('scheduleBody');
     var season = shownSeason();
-    var games = EGE.gamesFor(player, season);
+    /* The whole regular season, and the postseason only as far as the next
+       game: a row for the state final would be telling the player they get
+       there. Everything counted under the table is counted from these too. */
+    var games = EGE.scheduleFor(player, season);
 
     /* Intel is good for the season it was bought in, so an older season on
        the switcher shows no scouts. */
@@ -1176,16 +1179,26 @@
      top, that extra row pushes the whole branch down with it and nothing
      comes apart. */
 
-  var BRACKET_ROUNDS = 4;         /* before the final */
+  /* How tall a draw has to be for the champion line to fit above its final.
+     Thirty-two teams are sixteen rows a half and never come near it. San
+     Diego's four are two rows a half, and get empty rows above and below
+     until they reach it -- the same number both ways, so the final still
+     sits level with the semifinals either side of it. */
+  var BRACKET_MIN_ROWS = 8;
 
   /* Where every box in the draw goes: the row each first-round matchup
-     occupies, and then each later round folded up out of the pair below it.
-     Rows are 1-based and the end is exclusive, which is what CSS grid wants
-     written as `grid-row: start / end`. */
-  function bracketRows(side) {
+     occupies, and then each later round folded up out of the pair below it,
+     for as many rounds as the half runs to. Rows are 1-based and the end is
+     exclusive, which is what CSS grid wants written as `grid-row: start /
+     end`. */
+  function bracketRows(side, depth) {
     var openers = EGE.bracketOpeners(side);
+    var used = openers.length * 2 + openers.filter(function (opener) {
+      return opener.label;
+    }).length;
+    var pad = Math.max(0, Math.ceil((BRACKET_MIN_ROWS - used) / 2));
     var rounds = [[]];
-    var at = 1;
+    var at = 1 + pad;
 
     openers.forEach(function (opener) {
       if (opener.label) { at += 1; }          /* the heading's own row */
@@ -1194,7 +1207,7 @@
     });
 
     /* Each round after the first is its two feeders, end to end. */
-    for (var r = 1; r < BRACKET_ROUNDS; r += 1) {
+    for (var r = 1; r < depth; r += 1) {
       var below = rounds[r - 1];
       var here = [];
       for (var i = 0; i + 1 < below.length; i += 2) {
@@ -1203,7 +1216,7 @@
       rounds.push(here);
     }
 
-    return { rounds: rounds, height: at - 1 };
+    return { rounds: rounds, height: at - 1 + pad, pad: pad };
   }
 
   /* One team on one line of a matchup: its seed, its name, and nothing else.
@@ -1283,10 +1296,12 @@
   }
 
   /* The two halves of the draw working inwards from the edges and meeting in
-     the middle, where the championship is: four rounds down the left, the
-     final, and the same four rounds mirrored down the right. Nine columns,
-     sized to fit a full-width computer screen; on anything narrower -- a
-     phone -- the panel scrolls sideways, and a line under it says so.
+     the middle, where the championship is: the rounds of the left half, the
+     final, and the same rounds mirrored down the right. Nine columns for
+     thirty-two teams, sized to fit a full-width computer screen; on anything
+     narrower -- a phone -- the panel scrolls sideways, and a line under it
+     says so. Four teams are three columns: a semifinal, the final, a
+     semifinal.
 
      Every box is placed on one grid (see bracketRows), and the lines that
      join a game to the one its winner plays next are drawn over it afterwards
@@ -1302,13 +1317,28 @@
   function renderBracket(player) {
     var wrap = document.getElementById('bracketWrap');
     var box = document.getElementById('bracket');
-    var state = EGE.bracketState(player, shownSeason());
+    /* No draw until the player's first playoff game is in sight: a bracket
+       with their school in it says they made the playoffs before the regular
+       season has said so. */
+    var state = EGE.postseasonInSight(player, shownSeason())
+      ? EGE.bracketState(player, shownSeason())
+      : null;
 
     box.innerHTML = '';
     bracketTies = null;
     bracketFound = false;
     if (!state) { return; }
     var bracket = state.bracket;
+
+    /* A column for every round of each half and one for the final, handed to
+       the stylesheet, which lays the heads and the draw out on that many. */
+    var depth = bracket.rounds.length;
+    bracketColumns = depth * 2 + 1;
+    box.style.setProperty('--columns', bracketColumns);
+    /* Anything short of a full thirty-two-team draw would stretch its few
+       columns across a panel built for nine; the stylesheet stops them at a
+       box's width and puts the draw in the middle. */
+    box.classList.toggle('ege-bracket--small', depth < 4);
 
     /* The round names over their columns, on the dark band every table on the
        site heads itself with: counting in from the left edge, the final,
@@ -1329,18 +1359,20 @@
 
     var ties = { left: [], right: [], final: null };
     var height = 0;
+    var pad = 0;
     var semis = [];
 
     [['left', false], ['right', true]].forEach(function (half) {
       var side = half[0];
       var flip = half[1];
-      var plan = bracketRows(bracket[side]);
+      var plan = bracketRows(bracket[side], depth);
       height = Math.max(height, plan.height);
+      pad = plan.pad;
       semis.push(plan.rounds[plan.rounds.length - 1][0]);
 
       plan.rounds.forEach(function (round, r) {
         /* Round one is nearest the edge on both sides. */
-        var column = flip ? BRACKET_COLUMNS - r : r + 1;
+        var column = flip ? bracketColumns - r : r + 1;
         ties[side][r] = [];
 
         round.forEach(function (place, at) {
@@ -1373,12 +1405,14 @@
        different rows it falls back to the whole height.
 
        The line where a champion goes sits above the game. Nothing is written
-       on it until the last game is published. */
+       on it until the last game is published. A draw short enough to have
+       been padded (see bracketRows) spans the empty rows too, one way as far
+       as the other, which is what gives that line somewhere to go. */
     var level = semis[0].start === semis[1].start && semis[0].end === semis[1].end;
     var centre = el('div', 'ege-bracket__centre');
-    centre.style.gridColumn = BRACKET_ROUNDS + 1;
+    centre.style.gridColumn = depth + 1;
     centre.style.gridRow = level
-      ? semis[0].start + ' / ' + semis[0].end
+      ? (semis[0].start - pad) + ' / ' + (semis[0].end + pad)
       : '1 / ' + (height + 1);
     var cup = el('div', 'ege-bracket__champion' +
       (state.champion ? ' ege-bracket__champion--crowned' : ''));
@@ -1401,8 +1435,9 @@
     drawBracketLines();
   }
 
-  /* Four rounds a side, the final between them. */
-  var BRACKET_COLUMNS = BRACKET_ROUNDS * 2 + 1;
+  /* The draw on screen, in columns: its rounds a side and the final between
+     them. Nine for thirty-two teams, three for four; set as each is drawn. */
+  var bracketColumns = 9;
 
   /* His school's name in the draw, and whichever team the pointer is on. */
   var bracketUs = null;
@@ -1442,7 +1477,7 @@
       Array.prototype.forEach.call(mine, function (seed) {
         var tie = seed.closest('.ege-tie');
         var column = parseInt(tie.style.gridColumn, 10) || 0;
-        var depth = Math.min(column, BRACKET_COLUMNS + 1 - column);
+        var depth = Math.min(column, bracketColumns + 1 - column);
         if (!furthest || depth > furthest.depth) { furthest = { tie: tie, depth: depth }; }
       });
       if (overflowing && furthest) {
@@ -1595,7 +1630,11 @@
   var scheduleView = 'games';
 
   function showScheduleView() {
-    var bracket = schedulePlayer ? EGE.bracketFor(schedulePlayer, shownSeason()) : null;
+    /* The switch comes with the postseason, not with the draw: see
+       renderBracket. */
+    var bracket = schedulePlayer && EGE.postseasonInSight(schedulePlayer, shownSeason())
+      ? EGE.bracketFor(schedulePlayer, shownSeason())
+      : null;
     var tournament = Boolean(bracket) && scheduleView === 'tournament';
 
     document.getElementById('scheduleSwitch').hidden = !bracket;
@@ -1604,7 +1643,7 @@
     /* Everything the games view owns goes away together, the empty note and
        the legend included -- a foot reading "* conference game" under a
        bracket is the schedule talking over it. */
-    var games = EGE.gamesFor(schedulePlayer, shownSeason());
+    var games = EGE.scheduleFor(schedulePlayer, shownSeason());
     document.getElementById('scheduleTableWrap').hidden = tournament || !games.length;
     document.getElementById('scheduleEmpty').hidden = tournament || Boolean(games.length);
     document.getElementById('scheduleFoot').hidden = tournament ||
