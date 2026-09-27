@@ -169,7 +169,11 @@ EGE.offers = {
      Cooper   #2  Kendall Milton (Buchanan, 95)
      Jaykeb   #3  Carson Beck (Mandarin, 92), Anthony Richardson
                   (Eastside, 92); level with Jeff Sims (Sandalwood, 88)
-     Paxon    #2  Hunter Welcing (Lake Zurich, 84)
+     Paxon    #5  as a wide receiver, the position Paxon is recruited at
+                  though he plays tight end: A.J. Henning (Lincoln-Way
+                  East, 94), Jadon Thompson (Naperville Central, 89),
+                  Kaevion Mack (Peoria, 84), Lawaun Powell (East St.
+                  Louis, 83)
      Sam, Andrew and Isaac are rated above everybody real in theirs. */
 EGE.recruiting = {
   'sam-stogsdill':  { stars: 4, rating: 91, stateRank: 1,  position: 'RB', state: 'Illinois' },
@@ -177,7 +181,7 @@ EGE.recruiting = {
   'andrew-parr':    { stars: 4, rating: 90, stateRank: 1,  position: 'TE', state: 'North Carolina' },
   'jaykeb-stewart': { stars: 3, rating: 88, stateRank: 3,  position: 'QB', state: 'Florida' },
   'isaac-vitel':    { stars: 3, rating: 84, stateRank: 1,  position: 'QB', state: 'Illinois' },
-  'paxon-hatch':    { stars: 3, rating: 81, stateRank: 2,  position: 'TE', state: 'Illinois' }
+  'paxon-hatch':    { stars: 3, rating: 81, stateRank: 5,  position: 'WR', state: 'Illinois' }
 };
 
 /* The offers a player is holding, as whole college records rather than keys.
