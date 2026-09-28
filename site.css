@@ -127,8 +127,14 @@ abbr[title] {
 
 /* The field: a painted gridiron, recoloured from its lime to the site's own
    grass (--fb-grass is its ground, and its markings are the soft green-white
-   the drawn yard lines used to be), and blown up well past the screen so only
-   a stretch of it is ever in view.
+   the drawn yard lines used to be), and drawn a little past the size of the
+   screen: large, but with the yard lines and numbers still in view.
+
+   It hangs from the bottom rather than the middle. The picture is square and
+   a desktop screen is wide, so covering the width leaves only a band of its
+   height on screen -- and from the middle that band is the hash marks, with
+   the yard numbers cut off above and below it. From the bottom the upright
+   row of numbers (30, 40, 50, 40, 30) is in the band.
 
    It sits on a fixed layer behind the page rather than on the body itself.
    `background-attachment: fixed` would do the same on a desktop, but iOS
@@ -143,7 +149,7 @@ body::before {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: var(--fb-grass) url('icon/field.webp') center / max(160vw, 160vh) no-repeat;
+  background: var(--fb-grass) url('icon/field.webp') center bottom / max(115vw, 115vh) no-repeat;
 }
 
 /* --- nav ---------------------------------------------------------------- */
