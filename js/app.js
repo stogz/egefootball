@@ -1886,8 +1886,9 @@
     document.getElementById(footId).hidden = !text;
   }
 
-  /* Schedule and game log fold away; the ratings do not, because the overall
-     in the corner of that one is the number the page is about.
+  /* Schedule, game log and ratings all fold away. The ratings used to stay
+     open because the overall sat in the corner of their heading; it is on a
+     band inside the panel now, and folds away with everything else in it.
 
      The arrow is the only thing in those heads now -- what used to be
      written up there said what the table underneath already says. */
@@ -2000,6 +2001,58 @@
     return box;
   }
 
+  /* His three best attributes, for the podium, best first.
+
+     Ranked among the attributes his position is judged on before anything
+     else. Every page shows Break Sack under Carrying, but it is a
+     quarterback's number and counts for nothing toward a back's overall;
+     straight off the top it would have been the second-best thing about
+     both running backs. Anything his position does not count only comes in
+     if there are not three that it does.
+
+     A tie goes to the attribute that counts for more toward his overall --
+     Catching over Catch in Traffic for a tight end -- and then to whichever
+     comes first on the page, so the same numbers always stand the same way. */
+  function bestAttributes(ratings, count) {
+    var weights = EGE.weightsFor(ratings.position);
+    var all = [];
+    ratings.groups.forEach(function (group) {
+      group.attributes.forEach(function (attr) {
+        if (typeof attr.value !== 'number') { return; }
+        all.push({
+          label: attr.label,
+          value: attr.value,
+          weight: weights[attr.key] || 0,
+          order: all.length
+        });
+      });
+    });
+
+    all.sort(function (a, b) {
+      return (b.weight > 0) - (a.weight > 0) ||
+        b.value - a.value ||
+        b.weight - a.weight ||
+        a.order - b.order;
+    });
+    return all.slice(0, count);
+  }
+
+  /* Written best first, which is the order a screen reader gives them. The
+     stylesheet is what stands them second, first, third, with the best one
+     biggest. */
+  function renderPodium(ratings) {
+    var list = document.getElementById('ratingsPodium');
+    list.innerHTML = '';
+
+    bestAttributes(ratings, 3).forEach(function (attr, at) {
+      var place = el('li', 'ege-podium__place ege-podium__place--' + (at + 1));
+      place.appendChild(el('span', 'ege-podium__value', attr.value));
+      place.appendChild(el('span', 'ege-podium__label', attr.label));
+      list.appendChild(place);
+    });
+    list.hidden = !list.children.length;
+  }
+
   function renderRatings(player) {
     var ratings = EGE.ratingsFor(player);
     var holder = document.getElementById('ratingsGroups');
@@ -2010,7 +2063,9 @@
     document.getElementById('ratingsOverall').textContent =
       ratings.overall === null ? '\u2014' : ratings.overall;
 
-    /* The ticker in the head: the overall's climb over the live season. */
+    renderPodium(ratings);
+
+    /* The ticker beside the overall: its climb over the live season. */
     var slot = document.getElementById('ratingsTicker');
     slot.innerHTML = '';
     var canTick = typeof ratings.overall === 'number' && typeof ratings.overallStart === 'number';
@@ -3917,7 +3972,7 @@
        ways this is reached -- the loads landing, or the timeout below. */
     if (!booted) { booted = true; loaded(); }
     roster.classList.remove('is-waiting');
-    document.getElementById('ratingsOverallBox').classList.remove('is-waiting');
+    document.getElementById('ratingsTop').classList.remove('is-waiting');
   }
 
   /* A slow network should not mean a blank page for ever, whatever happens
@@ -4088,7 +4143,7 @@
   /* --- go --------------------------------------------------------------- */
 
   roster.classList.add('is-waiting');
-  document.getElementById('ratingsOverallBox').classList.add('is-waiting');
+  document.getElementById('ratingsTop').classList.add('is-waiting');
 
   renderRoster();
   renderInstallGuide();

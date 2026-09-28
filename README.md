@@ -148,15 +148,23 @@ holds:
   width rather than stretching across it.
 - **Game log** — per-game stats for that player, with the stat lines driven by
   their position (see below), and a totals row for the season.
-- **Ratings** — every attribute in its group, with the overall in the corner
-  and a green stock ticker beside it: an arrow and the number of points the
-  overall has climbed since the live season began. Each group score and each
-  attribute that moved carries a smaller one, and the season's gain is drawn
-  in orange on the end of each bar.
+- **Ratings** — three tiers, top to bottom:
+  - **The overall**, on a dark band across the panel: the word in orange, the
+    number in white, and a green stock ticker after them — an arrow and the
+    number of points the overall has climbed since the live season began.
+  - **His three best attributes**, stood like a podium without the podium:
+    the best in the middle and biggest, the second on the left a size down,
+    the third on the right a size down again. They are ranked among the
+    attributes his position is judged on (the ones in `EGE.positionWeights`),
+    so a running back's Break Sack — a quarterback's number, worth nothing to
+    his overall — never makes it. A tie goes to whichever counts for more
+    toward his overall, then to whichever comes first on the page.
+  - **Every attribute in its group**, as before. Each group score and each
+    attribute that moved carries a smaller ticker, and the season's gain is
+    drawn in orange on the end of each bar.
 
-The schedule and the game log each fold away behind an arrow in their heading;
-the ratings do not, because the overall in that corner is the number the page
-is about.
+The schedule, the game log and the ratings each fold away behind an arrow in
+their heading.
 
 The season shown is the live one. There is one season on the ladder so far, so
 there is nothing to switch between; `shownSeason()` in `js/app.js` is the one

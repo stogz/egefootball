@@ -235,10 +235,8 @@ body::before {
    landed, which can reorder the roster and change the overall -- so the
    first draw is invisible and the second is what anybody sees. Both keep
    their space either way, so nothing under them moves when they arrive. */
-.ege-roster,
-.ege-ovr--head { transition: opacity .2s ease; }
-.ege-roster.is-waiting,
-.ege-ovr--head.is-waiting { opacity: 0; }
+.ege-roster { transition: opacity .2s ease; }
+.ege-roster.is-waiting { opacity: 0; }
 
 /* --- player card -------------------------------------------------------- */
 
@@ -1487,20 +1485,100 @@ body::before {
   line-height: 1;
 }
 
-/* Sitting in a panel head rather than under a name. */
+/* Sitting in a panel head rather than under a name -- the shop's credits. */
 .ege-ovr--head { margin-top: 0; padding: 6px 12px; }
 .ege-ovr--head .ege-ovr__value { font-size: 1.5rem; }
 
-/* The overall chip in the ratings head, with the season's ticker beside it.
-   Both wait for the shop's boosts to land before they show. */
-.ege-ratings__head {
+/* --- the top of the ratings: the overall, and the best three ---------------
+
+   Drawn once from the base ratings and again once everything bought has
+   landed, which can change the overall and reorder the best three -- so the
+   first draw is invisible and the second is what anybody sees. The band
+   itself stays dark the whole time; only what is written on it waits, so
+   the panel does not flash cream and then turn dark. */
+.ege-ovrband > *,
+.ege-podium { transition: opacity .2s ease; }
+.ege-ratings__top.is-waiting .ege-ovrband > *,
+.ege-ratings__top.is-waiting .ege-podium { opacity: 0; }
+
+/* The overall on a band of its own, the width of the panel: the word in the
+   accent orange, the number in white, the season's ticker after them. */
+.ege-ovrband {
   display: flex;
   align-items: center;
+  justify-content: center;
   flex-wrap: wrap;
-  gap: 14px;
-  transition: opacity .2s ease;
+  gap: 6px 14px;
+  padding: 14px 18px;
+  background: var(--fb-ink);
+  color: #fff;
 }
-.ege-ratings__head.is-waiting { opacity: 0; }
+.ege-ovrband__label {
+  font-size: .8125rem;
+  font-weight: 800;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--fb-accent);                /* 5.0:1 on the ink */
+}
+.ege-ovrband__value {
+  font-family: var(--fb-font-display);
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+/* The ticker's own green and deep orange are picked for cream and all but
+   vanish on the ink, so on the band it takes the light end of each. All
+   three clear 7:1. */
+.ege-ovrband .ege-ticker--up   { --ticker-ink: #8fd694; }
+.ege-ovrband .ege-ticker--down { --ticker-ink: var(--fb-accent-hover); }
+.ege-ovrband .ege-ticker--flat { --ticker-ink: #c9c1b1; }
+
+/* His three best attributes, stood the way a podium stands them -- second,
+   first, third -- without drawing the podium. The size says the place: the
+   best is the biggest, the second a step down, the third a step down again.
+
+   Each is a number over its name. The three share one grid, two rows deep,
+   so the numbers sit on one line along their feet and the names hang from
+   one line under them however many lines a long name wraps to. */
+.ege-podium {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: auto auto;
+  gap: 8px 14px;
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 26px 18px 14px;
+  list-style: none;
+}
+.ege-podium[hidden] { display: none; }
+
+.ege-podium__place {
+  display: grid;
+  grid-row: 1 / span 2;
+  grid-template-rows: subgrid;
+  justify-items: center;
+  min-width: 0;
+  text-align: center;
+}
+.ege-podium__place--1 { grid-column: 2; --podium-size: 4rem; }
+.ege-podium__place--2 { grid-column: 1; --podium-size: 3.375rem; }
+.ege-podium__place--3 { grid-column: 3; --podium-size: 2.875rem; }
+
+.ege-podium__value {
+  align-self: end;
+  font-family: var(--fb-font-display);
+  font-size: var(--podium-size);
+  line-height: .9;
+}
+.ege-podium__label {
+  align-self: start;
+  max-width: 100%;
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
 
 /* --- the ticker -----------------------------------------------------------
 
