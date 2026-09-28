@@ -166,7 +166,11 @@ EGE.players = [
     last: 'Hatch',
     team: 'bloomington',
     college: 'northDakotaState', // from 2020
-    position: 'TE',
+    position: 'WR',
+    /* A tight end in high school, a receiver full-time from 2020. Only the
+       header of an old season's page says so; everything else -- his
+       ratings, his overall, his stat lines -- is a receiver's. */
+    pastPositions: { 2018: 'TE', 2019: 'TE' },
     jersey: 10,
     height: 74,               // inches
     weight: 265,              // pounds
@@ -241,6 +245,15 @@ EGE.teamKeyFor = function (player, season) {
   if (!player) { return null; }
   var key = EGE.tierFor(season) === 'college' ? player.college : player.team;
   return key || null;
+};
+
+/* What a player's page header calls his position in a season: what he
+   played then, if he played something else, or what he plays now. */
+EGE.positionFor = function (player, season) {
+  if (!player) { return null; }
+  var year = season || EGE.currentSeason;
+  var past = player.pastPositions && player.pastPositions[year];
+  return past || player.position || null;
 };
 
 /* The team a player suits up for that season, or null while it is unknown. */

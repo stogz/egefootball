@@ -212,7 +212,8 @@
     /* Three facts under the name: what he plays, how his team's season is
        going, and the number on his back. Which season, class and level it
        is are across the strip at the top of the panel, in full. */
-    document.getElementById('playerPosition').textContent = player.position || TBD;
+    document.getElementById('playerPosition').textContent =
+      EGE.positionFor(player, season) || TBD;
     /* The team's wins and losses over the season on show, 0-0 until the
        first result is published. */
     var record = document.getElementById('playerRecord');
@@ -2847,7 +2848,7 @@
           ? totals.games + ' games played, ' + totals.all + ' credits paid out' + waiting
           : 'No games posted yet. Every game pays its fantasy points (half PPR), ' +
             'rounded up, at ' + shares.QB + ' for a quarterback, ' + shares.RB +
-            ' for a back and ' + shares.TE + ' for a tight end.')
+            ' for a back and ' + shares.TE + ' for a tight end or receiver.')
       : (totals.touchdowns
           ? totals.touchdowns + ' touchdowns, ' + totals.all + ' credits paid out' + waiting
           : 'No touchdowns posted yet. Credits appear here as results go in — ' +
@@ -3397,20 +3398,25 @@
     var confirm = document.getElementById('clearConfirm');
     var roll = document.getElementById('rollSeason');
 
+    /* As many times as it is wanted. A season that is already locked is not
+       folded in a second time: EGE.valuesFor counts its purchases from where
+       the season started while the rows behind them are still there, and from
+       the locked numbers once they are cleared, so downloading again hands
+       back the same file -- plus anything bought since. */
     lock.addEventListener('click', function () {
-      if (EGE.seasonLocked(EGE.currentSeason)) {
-        sayAdmin(EGE.currentSeason + ' is already locked — its purchases are in ' +
-                 'data/ratings.js already. Locking it twice would count them twice.', true);
-        return;
-      }
+      var again = EGE.seasonLocked(EGE.currentSeason);
       lock.disabled = true;
       EGE.exports.ratingsFile(EGE.currentSeason).then(function (text) {
         EGE.exports.download('ratings.js', text);
         adminState.ratingsDownloaded = true;
         step('stepLock', true);
         clear.disabled = confirm.value.trim().toUpperCase() !== 'CLEAR';
-        sayAdmin('ratings.js downloaded. Put it in data/ and commit it before ' +
-                 'clearing anything.', false);
+        sayAdmin(again
+          ? 'ratings.js downloaded again. ' + EGE.currentSeason + ' was already ' +
+            'locked, so its purchases are counted once, not twice — the file ' +
+            'matches the one committed, plus anything bought since.'
+          : 'ratings.js downloaded. Put it in data/ and commit it before ' +
+            'clearing anything.', false);
       }).catch(function (error) {
         sayAdmin(error.message, true);
       }).then(function () { lock.disabled = false; });
@@ -3583,7 +3589,8 @@
     var shares = economy.FANTASY_SHARE;
     var perGame = document.getElementById('shopGameEarnings');
     earningRow(perGame, 'Every Game', 'fantasy pts \u00d7', false);
-    [['QB', 'Quarterback'], ['RB', 'Running Back'], ['TE', 'Tight End']].forEach(function (pos) {
+    [['QB', 'Quarterback'], ['RB', 'Running Back'], ['TE', 'Tight End'],
+     ['WR', 'Wide Receiver']].forEach(function (pos) {
       earningRow(perGame, pos[1], '\u00d7' + shares[pos[0]].toFixed(2), true);
     });
 

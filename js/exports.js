@@ -246,6 +246,8 @@ EGE.exports = (function () {
           neutral: Boolean(game.neutral),
           conference: Boolean(game.conference),
           scouts: Boolean(game.scouts),
+          injured: Boolean(game.injured),
+          injury: game.injured ? (game.injury || null) : null,
           published: EGE.isPublished(season, game.week),
           result: game.result || null,
           stats: game.stats || null,
@@ -500,6 +502,10 @@ EGE.exports = (function () {
     if (game.playoff) { flags.push('playoff: true'); }
     if (game.bye) { flags.push('bye: true'); }
     if (game.scouts) { flags.push('scouts: true'); }
+    if (game.injured) {
+      flags.push('injured: true');
+      if (game.injury) { flags.push('injury: ' + quote(game.injury)); }
+    }
     /* Overtime needs a score to have gone to overtime in. */
     if (overtime && scored) { flags.push('overtime: true'); }
 
@@ -595,6 +601,10 @@ EGE.exports = (function () {
       '   `conference: true` marks the games listed with an asterisk, and',
       '   `scouts: true` marks a game scouts will be at — what Intel buys is the',
       '   right to see it.',
+      '',
+      '   `injured: true` marks a game the player missed hurt, and `injury` says',
+      "   what with — 'Bruised Shoulder'. The Discord post shows it in red, as",
+      '   DNP Injured: Bruised Shoulder, in place of his stat line.',
       '',
       '   `neutral: true` marks a game at a neutral site — listed as vs, and home',
       '   is false because it is nobody\'s. A kickoff of null is one that has not',

@@ -18,7 +18,7 @@ and in what order.
 | --- | --- | --- | --- | --- | --- | --- |
 | Andrew Parr | Wake Forest High School | Northern 4A | Alabama | SEC | TE | a complete tight end |
 | Cooper Clark | Carlsbad High School | Avocado League | USC | Pac-12 | RB | a receiving back |
-| Paxon Hatch | Bloomington High School | Big Twelve | North Dakota State | Missouri Valley | TE | a complete tight end |
+| Paxon Hatch | Bloomington High School | Big Twelve | North Dakota State | Missouri Valley | WR (TE through 2019) | a full-time receiver |
 | Isaac Vitel | Bloomington High School | Big Twelve | Illinois | Big Ten | QB | a deep thrower |
 | Sam Stogsdill | Normal Community High School | Big Twelve | Ohio State | Big Ten | RB | a power back |
 | Jaykeb Stewart | Naples High School | 6A District 12 | Ohio State | Big Ten | QB | a pocket passer |
@@ -353,6 +353,22 @@ draws a name above its value and the number is what should be read first.
 A game that has not been played keeps the same shape: the kickoff, home or
 away, and whether it is a conference game fill the three block lines, and the
 three summaries show dashes.
+
+A game the player missed hurt is marked in `stats/{year}.js` with
+`injured: true` and what it was in `injury` — `injury: 'Bruised Shoulder'`.
+Its embed keeps the headline (the matchup, or the score once it is played),
+the spacer and the footer, and in place of the stat line and the three
+summaries carries one line in red:
+
+```ansi
+[2;31mDNP Injured: Bruised Shoulder[0m
+```
+
+Discord only colours text in an `ansi` code block, and the colour is an
+escape sequence (ESC, then `[2;31m` for red and `[0m` to stop), which is why
+it looks like stray brackets anywhere else. On the site an injured game has
+no stat line, so it counts toward the team's record but adds nothing to his
+season totals or his credits.
 
 ### Every embed is the same height
 
@@ -1166,7 +1182,12 @@ thing keeping anybody's season safe:
    rather than rebuilt. A player nobody spent anything on comes out byte for
    byte as they went in, so the diff is only the players who actually moved.
    Commit it, and the improvements are part of the site rather than part of a
-   database.
+   database. It can be downloaded again as often as needed, before or after
+   the lock is committed and before or after the rows are cleared: while a
+   locked season's rows are still there, `EGE.valuesFor` counts them from
+   where the season started rather than on top of the locked numbers, so a
+   second download is the same file — plus anything bought since — and the
+   site never shows a purchase twice in the meantime.
 2. **Log the season.** Downloads `data/logs/season-{year}.js`: every game with
    the stats posted in it and the booster that was riding on it, every credit
    earned, and everything bought. A record, not a source — nothing on the site
