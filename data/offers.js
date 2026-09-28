@@ -213,22 +213,39 @@ EGE.offers = {
    country: one more than the real players at that position rated above
    it. A quarterback is
    counted against pro-style and dual-threat alike, and a back against
-   247's RBs. Who is above each of them, as 247 has it:
+   247's RBs. Who is above each of them, as 247 has it, after the 2019
+   season and its playoffs:
 
-     Cooper   #2  Kendall Milton (Buchanan, 95)
-     Jaykeb   #3  Carson Beck (Mandarin, 92), Anthony Richardson
-                  (Eastside, 92); level with Jeff Sims (Sandalwood, 88)
+     Sam      #5  nationally, after 3,247 yards and 43 touchdowns on the
+                  ground and a Class 7A state final lost in overtime (287
+                  yards, 4 touchdowns in it): Bijan Robinson (Salpointe
+                  Catholic, AZ, 98), Demarkcus Bowman (Lakeland, FL, 98),
+                  Zach Evans (North Shore, TX, 97) and Jahmyr Gibbs
+                  (Dalton, GA, 97); level with six at 95
+     Cooper   #2  in California, behind Kendall Milton (Buchanan, 95); #11
+                  nationally, level with Woody Marks and Jaylan Knighton
+                  (94), after 1,810 rushing and 732 receiving yards, 30
+                  touchdowns and the CIF-SDS Open Division title
+     Andrew   #3  nationally, after his 2019 senior year (113 catches,
+                  1,837 yards, 30 touchdowns): Arik Gilbert (Marietta, GA,
+                  99) and Michael Mayer (Covington Catholic, KY, 98); level
+                  with Theo Johnson (Holy Names, ON, 96)
+     Jaykeb   #1  in Florida, now clear of Carson Beck (Mandarin) and
+                  Anthony Richardson (Eastside), both 92; #12 nationally
+                  after going 14-0 to the FHSAA 6A title with 3,761 yards,
+                  45 touchdowns and 4 interceptions
      Paxon    #5  as a wide receiver, the position Paxon is recruited at
                   though he plays tight end: A.J. Henning (Lincoln-Way
                   East, 94), Jadon Thompson (Naperville Central, 89),
                   Kaevion Mack (Peoria, 84), Lawaun Powell (East St.
                   Louis, 83)
-     Sam, Andrew and Isaac are rated above everybody real in theirs. */
+     Sam, Andrew, Jaykeb and Isaac are rated above everybody real in
+     their state. */
 EGE.recruiting = {
-  'sam-stogsdill':  { stars: 4, rating: 91, stateRank: 1,  nationalRank: 20,  position: 'RB', state: 'Illinois' },
-  'cooper-clark':   { stars: 4, rating: 90, stateRank: 2,  nationalRank: 22,  position: 'RB', state: 'California' },
-  'andrew-parr':    { stars: 4, rating: 90, stateRank: 1,  nationalRank: 13,  position: 'TE', state: 'North Carolina' },
-  'jaykeb-stewart': { stars: 3, rating: 88, stateRank: 3,  nationalRank: 21,  position: 'QB', state: 'Florida' },
+  'sam-stogsdill':  { stars: 4, rating: 95, stateRank: 1,  nationalRank: 5,   position: 'RB', state: 'Illinois' },
+  'cooper-clark':   { stars: 4, rating: 94, stateRank: 2,  nationalRank: 11,  position: 'RB', state: 'California' },
+  'andrew-parr':    { stars: 4, rating: 96, stateRank: 1,  nationalRank: 3,   position: 'TE', state: 'North Carolina' },
+  'jaykeb-stewart': { stars: 4, rating: 93, stateRank: 1,  nationalRank: 12,  position: 'QB', state: 'Florida' },
   'isaac-vitel':    { stars: 3, rating: 84, stateRank: 1,  nationalRank: 71,  position: 'QB', state: 'Illinois' },
   'paxon-hatch':    { stars: 3, rating: 81, stateRank: 5,  nationalRank: 269, position: 'WR', state: 'Illinois' }
 };

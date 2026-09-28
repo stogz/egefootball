@@ -89,7 +89,7 @@ holds:
 - **Header** — headshot with height and weight joined to the foot of it, then
   school and name. Under the name is the recruiting line: 247-style stars out
   of five and his rank at his position in his state and nationally
-  (**★★★★☆ #1 RB in Illinois · #20 nationally**), from `EGE.recruiting` in `data/offers.js`. Under that, three facts: **Position**, **Record**
+  (**★★★★☆ #1 RB in Illinois · #5 nationally**), from `EGE.recruiting` in `data/offers.js`. Under that, three facts: **Position**, **Record**
   (the team's wins and losses over the season on show, 0-0 until the first
   result is out, followed by the current run — **6-1 · W4 Streak**, green for
   wins and red for losses — until the team's season is over) and **Jersey**.
