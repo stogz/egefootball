@@ -119,18 +119,31 @@ abbr[title] {
 
 /* --- page ground --------------------------------------------------------- */
 
-/* The body's background propagates to the canvas, but its positioning area is
-   the body box. On a short page the body is smaller than the viewport, so the
-   field pattern tiles a second time below the content and leaves a visible
-   seam. Guaranteeing the body fills the viewport keeps it a single tile. */
+/* The page always fills the screen, so a short page still ends at the foot of
+   it rather than halfway up. This used to stop the old striped pattern tiling
+   a second time below the content; the field below is on a fixed layer now
+   and does not care, but a page that stops mid-screen still looks unfinished. */
 .fb-shell { min-height: 100vh; }
 
-/* The field: yard lines, mown stripes, and a soft light sweep. */
-body {
-  background-image:
-    repeating-linear-gradient(90deg, var(--fb-line) 0 3px, transparent 3px 160px),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, .055) 0 80px, rgba(0, 0, 0, .06) 80px 160px),
-    radial-gradient(ellipse at 22% 0%, rgba(255, 255, 255, .13), transparent 62%);
+/* The field: a painted gridiron, recoloured from its lime to the site's own
+   grass (--fb-grass is its ground, and its markings are the soft green-white
+   the drawn yard lines used to be), and blown up well past the screen so only
+   a stretch of it is ever in view.
+
+   It sits on a fixed layer behind the page rather than on the body itself.
+   `background-attachment: fixed` would do the same on a desktop, but iOS
+   ignores it, and the picture would then scroll away and repeat down a long
+   player page. A fixed layer stays put everywhere. The body keeps the plain
+   grass colour underneath, for the moment before the picture loads. */
+body { background-image: none; }
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--fb-grass) url('icon/field.webp') center / max(160vw, 160vh) no-repeat;
 }
 
 /* --- nav ---------------------------------------------------------------- */
