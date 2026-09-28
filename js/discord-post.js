@@ -251,7 +251,7 @@ EGE.discordPost = (function () {
   function fixtureBlock(game) {
     var rows = [
       ['Kickoff', kickoffLabel(game)],
-      ['Where', game.home ? 'Home' : 'Away'],
+      ['Where', game.neutral ? 'Neutral site' : game.home ? 'Home' : 'Away'],
       ['Game', game.conference ? 'Conference' : 'Non-conference']
     ];
     var width = rows.reduce(function (widest, row) {
@@ -395,7 +395,7 @@ EGE.discordPost = (function () {
   function buildEmbed(player, game, options) {
     var siteUrl = options.siteUrl || SITE;
     var season = options.season || EGE.currentSeason;
-    var team = EGE.teamFor(player);
+    var team = EGE.teamFor(player, season);
 
     /* The admin publishes and posts in one click, so the week may not have
        been marked published yet when this is built. `played` is told, not
@@ -415,7 +415,7 @@ EGE.discordPost = (function () {
        footnote. */
     var matchup = game.bye
       ? 'Bye week'
-      : (game.home ? 'vs. ' : 'at ') + game.opponent;
+      : (game.home || game.neutral ? 'vs. ' : 'at ') + game.opponent;
 
     var embed = {
       color: played ? (won ? COLOR_WIN : COLOR_LOSS) : COLOR_UPCOMING,

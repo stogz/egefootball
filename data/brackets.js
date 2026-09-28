@@ -368,9 +368,11 @@ window.EGE = window.EGE || {};
      written in for them, because a school can be in the postseason without
      its bracket having been drawn up. */
   EGE.bracketFor = function (player, season) {
-    if (!player || !player.team) { return null; }
-    var draws = EGE.brackets[season || EGE.currentSeason] || {};
-    return draws[player.team] || null;
+    var year = season || EGE.currentSeason;
+    var team = EGE.teamKeyFor(player, year);
+    if (!team) { return null; }
+    var draws = EGE.brackets[year] || {};
+    return draws[team] || null;
   };
 
   /* --- how far the draw has got ---------------------------------------------
@@ -448,7 +450,7 @@ window.EGE = window.EGE || {};
     if (!bracket) { return null; }
 
     var forSeason = EGE.stats[year] || {};
-    var rounds = ((forSeason.playoffs || {})[player.team]) || [];
+    var rounds = ((forSeason.playoffs || {})[EGE.teamKeyFor(player, year)]) || [];
 
     var openers = EGE.bracketOpeners(bracket.left)
       .concat(EGE.bracketOpeners(bracket.right));

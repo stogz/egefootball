@@ -15,6 +15,10 @@
    than something to be parsed back apart. EGE.heightText and
    EGE.weightText below turn them into the text the page shows.
 
+   `team` is the high school a player played for and `college` the college,
+   both as keys in EGE.teams below. Which one a season shows is its tier on
+   the ladder -- see EGE.teamFor.
+
    `email` is the address that player signs in with. Only the six listed
    here can hold an account; a null email means their portal is not open
    yet. These are sign-in identifiers, not contact details.
@@ -55,7 +59,7 @@ EGE.tierFor = function (season) {
    `zone` is what turns a 7:00pm kickoff into a real moment. A Carlsbad game
    and a Wake Forest game both listed at 7:00pm are three hours apart, and a
    Discord timestamp is an instant — without this it would show everyone the
-   wrong hour for four of the five schools. The zones are read off where the
+   wrong hour for most of the schools. The zones are read off where the
    schools are, and they follow daylight saving on their own. */
 EGE.teams = {
   carlsbad: {
@@ -87,6 +91,40 @@ EGE.teams = {
     league: 'Northern 4A',
     logo: 'icon/wake.png',
     zone: 'America/New_York'
+  },
+
+  /* The colleges, from 2020 on. Their marks are the ones already cut for
+     the offer stickers in icon/offers/, so a school has one logo on the
+     site whether it is offering somebody or playing for them. */
+  ohioState: {
+    school: 'Ohio State',
+    league: 'Big Ten',
+    logo: 'icon/offers/OhioState.png',
+    zone: 'America/New_York'
+  },
+  northDakotaState: {
+    school: 'North Dakota State',
+    league: 'Missouri Valley',
+    logo: 'icon/offers/NDSU.png',
+    zone: 'America/Chicago'
+  },
+  usc: {
+    school: 'USC',
+    league: 'Pac-12',
+    logo: 'icon/offers/USC.png',
+    zone: 'America/Los_Angeles'
+  },
+  alabama: {
+    school: 'Alabama',
+    league: 'SEC',
+    logo: 'icon/offers/Alabama.png',
+    zone: 'America/Chicago'
+  },
+  illinois: {
+    school: 'Illinois',
+    league: 'Big Ten',
+    logo: 'icon/offers/Illinois.png',
+    zone: 'America/Chicago'
   }
 };
 
@@ -97,6 +135,7 @@ EGE.players = [
     first: 'Andrew',
     last: 'Parr',
     team: 'wakeForest',
+    college: 'alabama',       // from 2020
     position: 'TE',
     jersey: 87,
     height: 76,               // inches
@@ -111,6 +150,7 @@ EGE.players = [
     first: 'Cooper',
     last: 'Clark',
     team: 'carlsbad',
+    college: 'usc',           // from 2020
     position: 'RB',
     jersey: 25,
     height: 68,               // inches
@@ -125,6 +165,7 @@ EGE.players = [
     first: 'Paxon',
     last: 'Hatch',
     team: 'bloomington',
+    college: 'northDakotaState', // from 2020
     position: 'TE',
     jersey: 10,
     height: 74,               // inches
@@ -139,6 +180,7 @@ EGE.players = [
     first: 'Isaac',
     last: 'Vitel',
     team: 'bloomington',
+    college: 'illinois',      // from 2020
     position: 'QB',
     jersey: 8,
     height: 69,               // inches
@@ -153,6 +195,7 @@ EGE.players = [
     first: 'Sam',
     last: 'Stogsdill',
     team: 'normal',
+    college: 'ohioState',     // from 2020
     position: 'RB',
     jersey: 34,
     height: 73,               // inches
@@ -167,6 +210,7 @@ EGE.players = [
     first: 'Jaykeb',
     last: 'Stewart',
     team: 'naples',
+    college: 'ohioState',     // from 2020
     position: 'QB',
     jersey: 2,
     height: 71,               // inches
@@ -190,9 +234,19 @@ EGE.weightText = function (player) {
   return typeof pounds === 'number' ? pounds + ' lbs' : null;
 };
 
-/* The team a player suits up for, or null while their school is unknown. */
-EGE.teamFor = function (player) {
-  return (player && player.team && EGE.teams[player.team]) || null;
+/* Which school a player was at in a season, as its key in EGE.teams: `team`
+   through the high school years, `college` from the first college one. A
+   season left out means the live one. Null while a school is unknown. */
+EGE.teamKeyFor = function (player, season) {
+  if (!player) { return null; }
+  var key = EGE.tierFor(season) === 'college' ? player.college : player.team;
+  return key || null;
+};
+
+/* The team a player suits up for that season, or null while it is unknown. */
+EGE.teamFor = function (player, season) {
+  var key = EGE.teamKeyFor(player, season);
+  return (key && EGE.teams[key]) || null;
 };
 
 /* The accounts allowed to sign in. */
