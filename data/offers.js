@@ -223,11 +223,15 @@ EGE.offers = {
                   East, 94), Jadon Thompson (Naperville Central, 89),
                   Kaevion Mack (Peoria, 84), Lawaun Powell (East St.
                   Louis, 83)
-     Sam, Andrew and Isaac are rated above everybody real in theirs. */
+     Andrew   #3  nationally, after his 2019 senior year (113 catches,
+                  1,837 yards, 30 touchdowns): Arik Gilbert (Marietta, GA,
+                  99) and Michael Mayer (Covington Catholic, KY, 98); level
+                  with Theo Johnson (Holy Names, ON, 96)
+     Sam, Andrew and Isaac are rated above everybody real in their state. */
 EGE.recruiting = {
   'sam-stogsdill':  { stars: 4, rating: 91, stateRank: 1,  nationalRank: 20,  position: 'RB', state: 'Illinois' },
   'cooper-clark':   { stars: 4, rating: 90, stateRank: 2,  nationalRank: 22,  position: 'RB', state: 'California' },
-  'andrew-parr':    { stars: 4, rating: 90, stateRank: 1,  nationalRank: 13,  position: 'TE', state: 'North Carolina' },
+  'andrew-parr':    { stars: 4, rating: 96, stateRank: 1,  nationalRank: 3,   position: 'TE', state: 'North Carolina' },
   'jaykeb-stewart': { stars: 3, rating: 88, stateRank: 3,  nationalRank: 21,  position: 'QB', state: 'Florida' },
   'isaac-vitel':    { stars: 3, rating: 84, stateRank: 1,  nationalRank: 71,  position: 'QB', state: 'Illinois' },
   'paxon-hatch':    { stars: 3, rating: 81, stateRank: 5,  nationalRank: 269, position: 'WR', state: 'Illinois' }
