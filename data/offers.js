@@ -173,7 +173,31 @@ EGE.colleges = {
   MiamiOH:       { name: 'Miami (OH)',         short: 'MIA',   ground: '#FFFFFF', ink: '#C3142D', logo: 'MiamiOH' },
   KentState:     { name: 'Kent State',         short: 'KENT',  ground: '#002664', ink: '#EAAB00', logo: 'KentState' },
   MurrayState:   { name: 'Murray State',       short: 'MUR',   ground: '#ECAC00', ink: '#002144', logo: 'MurrayState' },
-  NDSU:          { name: 'North Dakota State', short: 'NDSU',  ground: '#FFC72A', ink: '#0A5640', logo: 'NDSU' }
+  NDSU:          { name: 'North Dakota State', short: 'NDSU',  ground: '#FFC72A', ink: '#0A5640', logo: 'NDSU' },
+
+  /* --- after the 2019 re-rankings ---------------------------------------- */
+  /* The national programmes that came in once Sam, Cooper, Andrew and Jaykeb
+     climbed into the top of 247's 2020 lists. As before, the ground is the
+     school's second colour wherever the mark is drawn in its first: the
+     crimson A on Alabama's grey, the orange paw on Clemson purple, the
+     Gator on Florida blue, the Seminole on gold, the Georgia G on red
+     (black would make three black stickers on Andrew's header), the U on
+     Miami green, the block M on navy, the navy ND on gold and Ohio State on
+     its grey. Tennessee's orange T is on white rather than its smokey grey,
+     so it does not sit beside Ohio State's grey on Jaykeb's header. */
+  Alabama:       { name: 'Alabama',            short: 'BAMA',  ground: '#828A8F', ink: '#9E1B32', logo: 'Alabama' },
+  Clemson:       { name: 'Clemson',            short: 'CLEM',  ground: '#522D80', ink: '#F56600', logo: 'Clemson' },
+  Florida:       { name: 'Florida',            short: 'UF',    ground: '#0021A5', ink: '#FA4616', logo: 'Florida' },
+  FloridaState:  { name: 'Florida State',      short: 'FSU',   ground: '#CEB888', ink: '#782F40', logo: 'FloridaState' },
+  Georgia:       { name: 'Georgia',            short: 'UGA',   ground: '#BA0C2F', ink: '#FFFFFF', logo: 'Georgia' },
+  Miami:         { name: 'Miami',              short: 'MIA',   ground: '#005030', ink: '#F47321', logo: 'Miami' },
+  Michigan:      { name: 'Michigan',           short: 'MICH',  ground: '#00274C', ink: '#FFCB05', logo: 'Michigan' },
+  NotreDame:     { name: 'Notre Dame',         short: 'ND',    ground: '#C99700', ink: '#0C2340', logo: 'NotreDame' },
+  OhioState:     { name: 'Ohio State',         short: 'OSU',   ground: '#666666', ink: '#FFFFFF', logo: 'OhioState' },
+  Oklahoma:      { name: 'Oklahoma',           short: 'OU',    ground: '#FFFFFF', ink: '#841617', logo: 'Oklahoma' },
+  PennState:     { name: 'Penn State',         short: 'PSU',   ground: '#FFFFFF', ink: '#041E42', logo: 'PennState' },
+  Stanford:      { name: 'Stanford',           short: 'STAN',  ground: '#FFFFFF', ink: '#8C1515', logo: 'Stanford' },
+  Tennessee:     { name: 'Tennessee',          short: 'TENN',  ground: '#FFFFFF', ink: '#FF8200', logo: 'Tennessee' }
 };
 
 /* Who has offered whom. Add a key to a list and the sticker is on the page;
@@ -182,21 +206,26 @@ EGE.offers = {
   'sam-stogsdill': ['ISU', 'EIU', 'SIU', 'INDY', 'SEMO',
                     'NIU', 'BallState', 'WMU', 'EMU', 'CMU', 'Toledo', 'UNI', 'WIU',
                     'Illinois', 'Iowa', 'Minnesota', 'Indiana', 'Purdue', 'IowaState',
-                    'Wisconsin', 'Nebraska', 'MichiganState', 'Northwestern'],
+                    'Wisconsin', 'Nebraska', 'MichiganState', 'Northwestern',
+                    'NotreDame', 'OhioState', 'Michigan', 'PennState', 'Alabama'],
   'paxon-hatch':   ['ISU', 'UNI', 'WIU', 'EIU', 'SIU',
                     'INDY', 'YSU', 'SouthDakota', 'NIU', 'BallState',
                     'MiamiOH', 'WMU', 'Toledo', 'EMU', 'MurrayState', 'NDSU'],
   'cooper-clark':  ['SacState', 'UCDavis', 'CalPoly', 'SDSU', 'Fresno', 'SJSU',
                     'Nevada', 'UNLV', 'ColoState', 'Boise', 'Arizona', 'ASU',
                     'WSU', 'Hawaii', 'UtahState', 'OregonState', 'Colorado', 'Utah', 'Cal',
-                    'UCLA', 'Washington', 'Oregon', 'BYU', 'USC'],
+                    'UCLA', 'Washington', 'Oregon', 'BYU', 'USC',
+                    'Stanford', 'NotreDame', 'Georgia', 'Oklahoma', 'Michigan'],
   'jaykeb-stewart': ['GaSouthern', 'FAU', 'FIU', 'UCF', 'USF', 'Bethune',
                      'Charlotte', 'SouthAlabama', 'FAMU', 'JaxState', 'WKU',
-                     'GeorgiaTech', 'WestVirginia', 'Louisville', 'Syracuse', 'Kentucky', 'Memphis'],
+                     'GeorgiaTech', 'WestVirginia', 'Louisville', 'Syracuse', 'Kentucky', 'Memphis',
+                     'Florida', 'FloridaState', 'Miami', 'Georgia', 'Tennessee', 'OhioState'],
   'andrew-parr':   ['ODU', 'JMU', 'Elon', 'NCCentral',
                     'AppState', 'ECU', 'Charlotte', 'Coastal', 'Army', 'Navy',
                     'WakeForest', 'NCState', 'Duke',
-                    'UNC', 'VirginiaTech', 'SouthCarolina', 'Maryland', 'Louisville'],
+                    'UNC', 'VirginiaTech', 'SouthCarolina', 'Maryland', 'Louisville',
+                    'Clemson', 'NotreDame', 'PennState', 'Georgia', 'Michigan',
+                    'Alabama', 'OhioState'],
   'isaac-vitel':   ['ISU', 'EIU', 'WIU', 'SIU', 'SEMO', 'INDY', 'NIU', 'BallState', 'UNI',
                     'Illinois', 'Toledo', 'WMU', 'Buffalo', 'MiamiOH', 'KentState']
 };
