@@ -521,6 +521,8 @@
             <dl class="ege-detail__list">
               <dt>Position</dt><dd id="playerPosition"></dd>
               <dt>Record</dt><dd id="playerRecord" class="ege-record"></dd>
+              <!-- College seasons only, where the recruiting stars were. -->
+              <dt id="playerConferenceLabel" hidden>Conference</dt><dd id="playerConference" hidden></dd>
               <dt>Jersey</dt><dd id="playerJersey"></dd>
             </dl>
           </div>
@@ -576,10 +578,9 @@
               <tr>
                 <th>Wk</th>
                 <th>Date</th>
-                <th>Time</th>
                 <th>Opponent</th>
                 <th class="num">Result</th>
-                <th class="num">Credits</th>
+                <th class="num" id="scheduleCreditsHead">Credits</th>
                 <th class="num" id="scheduleBoosterHead">Booster</th>
               </tr>
             </thead>
@@ -737,6 +738,8 @@
 <script src="data/players.js"></script>
 <script src="data/offers.js"></script>
 <script src="data/brackets.js"></script>
+<script src="data/conferences.js"></script>
+<script src="data/logos.js"></script>
 <script src="data/shop.js"></script>
 <script src="data/economy.js"></script>
 <script src="data/statline.js"></script>

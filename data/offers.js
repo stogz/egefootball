@@ -201,27 +201,30 @@ EGE.colleges = {
 };
 
 /* Who has offered whom. Add a key to a list and the sticker is on the page;
-   there is nothing else to change. */
+   there is nothing else to change.
+
+   The four biggest handfuls -- Sam, Cooper, Andrew and Jaykeb -- were cut
+   back to their best seventeen or eighteen: past that the corner was a pile
+   rather than a handful, and the smallest programmes at the bottom of it
+   were the ones nobody was looking for. Their schools stay in
+   `EGE.colleges` above, so putting one back is putting its key back. */
 EGE.offers = {
-  'sam-stogsdill': ['ISU', 'EIU', 'SIU', 'INDY', 'SEMO',
-                    'NIU', 'BallState', 'WMU', 'EMU', 'CMU', 'Toledo', 'UNI', 'WIU',
+  'sam-stogsdill': ['NIU', 'BallState',
                     'Illinois', 'Iowa', 'Minnesota', 'Indiana', 'Purdue', 'IowaState',
                     'Wisconsin', 'Nebraska', 'MichiganState', 'Northwestern',
                     'NotreDame', 'OhioState', 'Michigan', 'PennState', 'Alabama'],
   'paxon-hatch':   ['ISU', 'UNI', 'WIU', 'EIU', 'SIU',
                     'INDY', 'YSU', 'SouthDakota', 'NIU', 'BallState',
                     'MiamiOH', 'WMU', 'Toledo', 'EMU', 'MurrayState', 'NDSU'],
-  'cooper-clark':  ['SacState', 'UCDavis', 'CalPoly', 'SDSU', 'Fresno', 'SJSU',
-                    'Nevada', 'UNLV', 'ColoState', 'Boise', 'Arizona', 'ASU',
-                    'WSU', 'Hawaii', 'UtahState', 'OregonState', 'Colorado', 'Utah', 'Cal',
+  'cooper-clark':  ['Boise', 'Arizona', 'ASU',
+                    'WSU', 'OregonState', 'Colorado', 'Utah', 'Cal',
                     'UCLA', 'Washington', 'Oregon', 'BYU', 'USC',
                     'Stanford', 'NotreDame', 'Georgia', 'Oklahoma', 'Michigan'],
-  'jaykeb-stewart': ['GaSouthern', 'FAU', 'FIU', 'UCF', 'USF', 'Bethune',
-                     'Charlotte', 'SouthAlabama', 'FAMU', 'JaxState', 'WKU',
+  'jaykeb-stewart': ['GaSouthern', 'UCF', 'USF',
+                     'SouthAlabama', 'WKU',
                      'GeorgiaTech', 'WestVirginia', 'Louisville', 'Syracuse', 'Kentucky', 'Memphis',
                      'Florida', 'FloridaState', 'Miami', 'Georgia', 'Tennessee', 'OhioState'],
-  'andrew-parr':   ['ODU', 'JMU', 'Elon', 'NCCentral',
-                    'AppState', 'ECU', 'Charlotte', 'Coastal', 'Army', 'Navy',
+  'andrew-parr':   ['AppState', 'Army', 'Navy',
                     'WakeForest', 'NCState', 'Duke',
                     'UNC', 'VirginiaTech', 'SouthCarolina', 'Maryland', 'Louisville',
                     'Clemson', 'NotreDame', 'PennState', 'Georgia', 'Michigan',

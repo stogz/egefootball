@@ -1430,9 +1430,18 @@ body::before {
   width: 1%;
   white-space: nowrap;
 }
-.ege-schedule__time,
 .ege-schedule__pending { color: var(--fb-muted); }
 .ege-schedule__opponent { white-space: nowrap; }
+/* The opponent's mark, between the vs/at and the name. Sized in the markup
+   too, so the row does not jump when the picture arrives. */
+.ege-teamlogo {
+  display: inline-block;          /* the kit makes every img a block */
+  width: 20px;
+  height: 20px;
+  margin: 0 6px 0 2px;
+  object-fit: contain;
+  vertical-align: middle;
+}
 .ege-schedule__side {
   display: inline-block;
   width: 20px;
@@ -2929,7 +2938,7 @@ select,
 
 /* --- the schedule, on a small screen ----------------------------------------
 
-   Seven columns do not fit in 390 points. Left as a table it scrolled, and
+   Six columns do not fit in 390 points. Left as a table it scrolled, and
    what scrolled off was the result — the one thing anybody opens a schedule
    to see. The date wrapped to three lines doing it.
 
@@ -2975,13 +2984,7 @@ select,
     white-space: nowrap;
   }
 
-  /* Seven columns do not fit, and the kickoff is the one nobody is looking
-     for: every game on the card is an evening one. Written to out-weigh the
-     `> td { display: block }` above it, which has one more element in it and
-     would otherwise win. */
-  .ege-schedule tbody tr > td.ege-schedule__time { display: none; }
-
-  .ege-schedule tbody tr > td:nth-child(5) { grid-area: 1 / 3 / 2 / 4; text-align: right; }
+  .ege-schedule tbody tr .ege-schedule__result { grid-area: 1 / 3 / 2 / 4; text-align: right; }
   .ege-schedule tbody tr .ege-schedule__credits { grid-area: 2 / 3 / 3 / 4; text-align: right; }
   .ege-schedule tbody tr .ege-schedule__slot { grid-area: 1 / 4 / 3 / 5; }
 
@@ -2993,6 +2996,8 @@ select,
     text-overflow: ellipsis;
     vertical-align: bottom;
   }
+  /* Less the mark in front of it, where there is one. */
+  .ege-schedule__opponent .ege-teamlogo + .fb-name { max-width: calc(100% - 48px); }
 
   /* A block, not a row, so it no longer needs a scroll shadow either. */
   #scheduleTableWrap { background: none; }

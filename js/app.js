@@ -229,6 +229,7 @@
         (streak.count === 1 ? '' : (streak.won ? 's' : 'es')) + ' in a row';
       record.appendChild(run);
     }
+    renderConference(player, season);
     document.getElementById('playerJersey').textContent =
       typeof player.jersey === 'number' ? '#' + player.jersey : TBD;
 
@@ -335,6 +336,23 @@
      carried into college. */
   function recruitingSeason() {
     return EGE.tierFor(shownSeason()) === 'highSchool';
+  }
+
+  /* Where his team stands in its division -- 3RD in SEC West -- in the
+     college seasons, which is where the recruiting stars were. Worked out
+     from the published weeks, so it moves as they come out. TBD until the
+     team has played a conference game. */
+  function renderConference(player, season) {
+    var label = document.getElementById('playerConferenceLabel');
+    var box = document.getElementById('playerConference');
+    var standing = recruitingSeason() ? null : EGE.standingFor(player, season);
+    label.hidden = box.hidden = !standing;
+    if (!standing) { return; }
+    box.textContent = (standing.place ? EGE.ordinal(standing.place) : TBD) +
+      ' in\u00a0' + standing.league;
+    box.title = standing.place
+      ? standing.wins + '-' + standing.losses + ' in ' + standing.conference + ' games'
+      : '';
   }
 
   /* Stars out of five, the empty ones drawn as outlines, and where he ranks
@@ -1031,6 +1049,28 @@
     disarmSticker();
   });
 
+  /* An opponent's name with its mark in front of it, the mark straight off
+     ESPN's image server (see data/logos.js). College seasons only: ESPN
+     carries no high schools, and a Washington or a Lehigh on a high school
+     schedule is not the college of that name. A mark that fails to load
+     takes itself out rather than leaving a broken-image box in the row. */
+  function opponentName(cell, game) {
+    var name = game.opponent;
+    var src = EGE.tierFor(game.season) === 'college' && EGE.logoFor && EGE.logoFor(name);
+    if (src) {
+      var logo = el('img', 'ege-teamlogo');
+      logo.src = src;
+      logo.alt = '';                 /* the name beside it says it */
+      logo.width = 20;
+      logo.height = 20;
+      logo.loading = 'lazy';
+      logo.decoding = 'async';
+      logo.addEventListener('error', function () { logo.remove(); });
+      cell.appendChild(logo);
+    }
+    cell.appendChild(el('span', 'fb-name', name));
+  }
+
   function scheduleRow(game, opensPlayoffs) {
     var row = el('tr');
     var played = EGE.isFinal(game);
@@ -1042,7 +1082,6 @@
     row.appendChild(el('td', 'ege-schedule__week', game.week));
 
     row.appendChild(el('td', null, gameDate(game)));
-    row.appendChild(el('td', 'ege-schedule__time', game.kickoff || '—'));
 
     var opponent = el('td', 'ege-schedule__opponent');
     if (game.bye) {
@@ -1052,7 +1091,7 @@
       opponent.appendChild(el('span', 'ege-schedule__bye', 'Bye'));
     } else {
       opponent.appendChild(el('span', 'ege-schedule__side', game.home || game.neutral ? 'vs' : 'at'));
-      opponent.appendChild(el('span', 'fb-name', game.opponent));
+      opponentName(opponent, game);
     }
     if (game.conference) {
       var mark = el('abbr', 'ege-schedule__conf', '*');
@@ -1069,7 +1108,7 @@
     if (showScouts && game.scouts) { opponent.appendChild(scoutMark()); }
     row.appendChild(opponent);
 
-    var result = el('td', 'num');
+    var result = el('td', 'num ege-schedule__result');
     if (played) {
       var won = game.result.teamScore > game.result.opponentScore;
       result.appendChild(el('span', 'fb-tag fb-tag--num ' + (won ? 'fb-tag--sage' : 'fb-tag--clay'),
@@ -1081,17 +1120,20 @@
     row.appendChild(result);
 
     /* What the game paid. Only his own, and an admin's — a balance is nobody
-       else's business. */
-    var credits = el('td', 'num ege-schedule__credits');
-    var earned = schedulePlayer ? EGE.creditsFromGame(schedulePlayer, game) : 0;
-    if (earned && canSeeStickers(schedulePlayer)) {
-      var tag = el('span', 'ege-schedule__paid', '+' + earned);
-      tag.title = earned + ' credits for this game';
-      credits.appendChild(tag);
-    } else {
-      credits.appendChild(el('span', 'ege-schedule__pending', '—'));
+       else's business, so on anyone else's schedule the column is not drawn
+       at all, the same as the boosters beside it. */
+    if (showBoosters) {
+      var credits = el('td', 'num ege-schedule__credits');
+      var earned = schedulePlayer ? EGE.creditsFromGame(schedulePlayer, game) : 0;
+      if (earned) {
+        var tag = el('span', 'ege-schedule__paid', '+' + earned);
+        tag.title = earned + ' credits for this game';
+        credits.appendChild(tag);
+      } else {
+        credits.appendChild(el('span', 'ege-schedule__pending', '—'));
+      }
+      row.appendChild(credits);
     }
-    row.appendChild(credits);
 
     /* What somebody has riding on a game is his own business and an
        admin's. On anyone else's schedule, and on every schedule when nobody
@@ -1132,6 +1174,7 @@
     }
     schedulePlayer = player;
 
+    document.getElementById('scheduleCreditsHead').hidden = !showBoosters;
     document.getElementById('scheduleBoosterHead').hidden = !showBoosters;
 
     /* Every row is about to be replaced, so whatever was armed is gone. */
@@ -1800,7 +1843,7 @@
 
       var opponent = el('td', 'ege-gamelog__opponent');
       opponent.appendChild(el('span', 'ege-schedule__side', game.home || game.neutral ? 'vs' : 'at'));
-      opponent.appendChild(el('span', 'fb-name', game.opponent));
+      opponentName(opponent, game);
 
       /* A booster is the player's own business, and an admin's. It shows here
          under the same rule the stickers on the schedule follow. */

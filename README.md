@@ -101,6 +101,12 @@ holds:
   (the team's wins and losses over the season on show, 0-0 until the first
   result is out, followed by the current run — **6-1 · W4 Streak**, green for
   wins and red for losses — until the team's season is over) and **Jersey**.
+  A college season puts a fourth between Record and Jersey, in the room the
+  recruiting line leaves: **Conference**, where the team stands in its
+  division as of the published weeks — **3RD in SEC West** — and TBD until
+  the team has played a conference game. It moves week by week: the six's
+  own games come from the season file, and everybody else's from
+  `data/conferences.js` (see *Conference standings* below).
   A season is over once it is behind the live one, or once the team has lost
   a playoff game or won its bracket — or, for a school that missed the
   playoffs, once their first week is out. The season, class and level are across the
@@ -108,6 +114,8 @@ holds:
   here: it lives with the ratings it is worked out from, at the foot of the
   page. The top right holds the college offers, as stickers — again on the
   high school seasons only. Once he has signed, the corner is empty.
+  The marks on them are cut down to 160 pixels on their long side, which is
+  more than twice the size they are drawn at, so a page of them loads fast.
 - **Season strip** — the ten numbers the season is remembered by, across the
   foot of the header panel: ten across on a wide screen, five and five on
   anything narrower.
@@ -119,8 +127,13 @@ holds:
   scouts and takes no boosters. On a phone the whole bar is one row: All
   Players becomes a round ← button, and the picker shows just the year.
 - **Schedule** — every scheduled game in the selected season: week, date,
-  kickoff, opponent with home/away and a mark for conference games, and the
-  result once it has been played. A silhouette marks a game scouts will attend,
+  opponent with home/away, the opponent's logo (college seasons only,
+  straight off ESPN's image server by the school's ESPN id in
+  `data/logos.js` -- nothing is saved into the site) and a mark for
+  conference games, and the result once it has been played. No kickoff
+  time: the file still carries it for the Discord post, but the page does
+  not show it. The Credits and Booster columns are only drawn on your own
+  schedule, or on anyone's for an admin. A silhouette marks a game scouts will attend,
   for a player holding Intel for that season. Postseason games are marked with
   two asterisks, and a school in a bracket gets a **Games | Tournament** switch
   beside the fold-away arrow.
@@ -954,6 +967,36 @@ Kickoff times had mostly not been set by then, so they are null (a dash on the
 page) until they are filled in. A game at a neutral site carries
 `neutral: true` and reads as vs.
 
+### Conference standings
+
+The Conference line on a college season's header is the team's place in its
+division — **2ND in Big Ten East** — as of the weeks published so far, so it
+moves the way the record does. Only the six's schools are in the season
+files, so the rest of each conference is in `data/conferences.js`: a whole
+conference schedule for everybody else, built around the fixtures already in
+`stats/2020.js` and following each league's real shape (every division
+rival; the Big Ten's three crossovers with Indiana-Purdue locked; the SEC's
+permanent and rotating crossovers; four of six across the Pac-12 with the
+California schools always meeting; eight of ten in the Valley), with the
+rivalry games on their usual weekends.
+
+Those games are played out from the strength each school actually showed in
+2020 — points scored and allowed a game in the real final standings — with
+seeded dice, and of the first four thousand seeds the one kept for each
+conference is the one whose final table comes closest to how those schools
+really finished. A game in there counts once its week is published. The six's
+own conference games are read from the season file as they are published, so
+a result corrected in the editor moves the standings with it.
+
+A division is ordered by conference winning percentage, then wins, then
+losses, then head to head among the schools still level, then conference
+point differential. The line reads TBD until the team has played a
+conference game.
+
+`node tools/build-conferences.js` writes the file. Run it again only if a
+fixture changes; a new season needs its conferences, their 2020-style
+strengths and its week window added at the top of the script.
+
 ### The file is the season
 
 Nothing is logged anywhere else. There is no stats table in Supabase — the
@@ -1282,6 +1325,9 @@ Built so far:
 - `data/ratings.js` — the attribute list, the per-position weights, every
   player's ratings, and the maths that turns them into an overall.
 
+- `tools/` — scripts run by hand, never by the site:
+  `build-conferences.js` writes `data/conferences.js` and `build-logos.js`
+  writes `data/logos.js`. `node tools/<name>.js` from the repository root.
 - `bot/` — the Discord scores bot (see below).
 - `supabase/schema.sql` — every table and policy: accounts, credits,
   inventory, admins, the stickers stuck on games, the credit awards a season
@@ -1321,6 +1367,14 @@ Built so far:
   draws are keyed by season, `EGE.brackets[year]`; a season with nothing
   written in has no brackets, and a school with no entry for a season has no
   Tournament switch that season.
+- `data/conferences.js` — every conference game of a college season that
+  none of the six is in, played out, keyed by season and conference, with
+  each conference's divisions. Written by `tools/build-conferences.js`
+  rather than by hand. See *Conference standings*.
+- `data/logos.js` — every college team ESPN carries (about 770, every
+  division) against the id ESPN files its logo under, keyed by the name the
+  season files use, and `EGE.logoFor(name)`, which turns one into an image
+  address on ESPN's server. Written by `tools/build-logos.js`.
 - `data/statline.js` — what a stat line is: the columns each position is read
   in, and how a season of them adds up.
 - `js/discord-post.js` — one week as a Discord message. Loaded by the browser
