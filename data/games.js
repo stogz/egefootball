@@ -152,6 +152,32 @@ EGE.streakFor = function (player, season) {
   return { won: latest, count: count, text: (latest ? 'W' : 'L') + count };
 };
 
+/* Where the team sits in its conference, as of the latest published game
+   that says: `standing: 3` on a game is third in the conference once that
+   game is in. Only the teams these six play for are in the files, so the
+   place is typed in rather than worked out. Null for a school with no
+   conference; a place of null is one not given yet. */
+EGE.standingFor = function (player, season) {
+  var year = season || EGE.currentSeason;
+  var team = EGE.teamFor(player, year);
+  if (!team || !team.league) { return null; }
+
+  var placed = EGE.gamesPlayed(player, year).filter(function (game) {
+    return typeof game.standing === 'number';
+  }).sort(function (a, b) { return a.week - b.week; });
+  var latest = placed[placed.length - 1];
+
+  return { league: team.league, place: latest ? latest.standing : null };
+};
+
+/* 1ST, 2ND, 3RD, 4TH ... 11TH, 12TH, 13TH ... 21ST. */
+EGE.ordinal = function (number) {
+  var tens = number % 100;
+  var suffix = (tens >= 11 && tens <= 13) ? 'TH'
+    : ({ 1: 'ST', 2: 'ND', 3: 'RD' })[number % 10] || 'TH';
+  return number + suffix;
+};
+
 /* Whether a team's season is done: any season before the live one, or the
    live one once the team is out of the playoffs -- beaten in a playoff game,
    or champions, or never in them at all once they have started without it.

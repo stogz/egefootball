@@ -229,6 +229,7 @@
         (streak.count === 1 ? '' : (streak.won ? 's' : 'es')) + ' in a row';
       record.appendChild(run);
     }
+    renderConference(player, season);
     document.getElementById('playerJersey').textContent =
       typeof player.jersey === 'number' ? '#' + player.jersey : TBD;
 
@@ -335,6 +336,19 @@
      carried into college. */
   function recruitingSeason() {
     return EGE.tierFor(shownSeason()) === 'highSchool';
+  }
+
+  /* Where his team stands in its conference -- 3RD in SEC -- in the college
+     seasons, which is where the recruiting stars were. TBD until a place
+     has been given for a published game. */
+  function renderConference(player, season) {
+    var label = document.getElementById('playerConferenceLabel');
+    var box = document.getElementById('playerConference');
+    var standing = recruitingSeason() ? null : EGE.standingFor(player, season);
+    label.hidden = box.hidden = !standing;
+    if (!standing) { return; }
+    box.textContent = (standing.place ? EGE.ordinal(standing.place) : TBD) +
+      ' in\u00a0' + standing.league;
   }
 
   /* Stars out of five, the empty ones drawn as outlines, and where he ranks

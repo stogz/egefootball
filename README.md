@@ -101,6 +101,10 @@ holds:
   (the team's wins and losses over the season on show, 0-0 until the first
   result is out, followed by the current run — **6-1 · W4 Streak**, green for
   wins and red for losses — until the team's season is over) and **Jersey**.
+  A college season puts a fourth between Record and Jersey, in the room the
+  recruiting line leaves: **Conference**, where the team stands in it —
+  **3RD in SEC** — from `standing` on the latest published game in the
+  season file, and TBD until one has a place on it.
   A season is over once it is behind the live one, or once the team has lost
   a playoff game or won its bracket — or, for a school that missed the
   playoffs, once their first week is out. The season, class and level are across the
@@ -108,6 +112,8 @@ holds:
   here: it lives with the ratings it is worked out from, at the foot of the
   page. The top right holds the college offers, as stickers — again on the
   high school seasons only. Once he has signed, the corner is empty.
+  The marks on them are cut down to 160 pixels on their long side, which is
+  more than twice the size they are drawn at, so a page of them loads fast.
 - **Season strip** — the ten numbers the season is remembered by, across the
   foot of the header panel: ten across on a wide screen, five and five on
   anything narrower.
