@@ -1325,6 +1325,9 @@ Built so far:
 - `data/ratings.js` — the attribute list, the per-position weights, every
   player's ratings, and the maths that turns them into an overall.
 
+- `tools/` — scripts run by hand, never by the site:
+  `build-conferences.js` writes `data/conferences.js` and `build-logos.js`
+  writes `data/logos.js`. `node tools/<name>.js` from the repository root.
 - `bot/` — the Discord scores bot (see below).
 - `supabase/schema.sql` — every table and policy: accounts, credits,
   inventory, admins, the stickers stuck on games, the credit awards a season
