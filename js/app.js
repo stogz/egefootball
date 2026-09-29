@@ -1049,6 +1049,28 @@
     disarmSticker();
   });
 
+  /* An opponent's name with its mark in front of it, the mark straight off
+     ESPN's image server (see data/logos.js). College seasons only: ESPN
+     carries no high schools, and a Washington or a Lehigh on a high school
+     schedule is not the college of that name. A mark that fails to load
+     takes itself out rather than leaving a broken-image box in the row. */
+  function opponentName(cell, game) {
+    var name = game.opponent;
+    var src = EGE.tierFor(game.season) === 'college' && EGE.logoFor && EGE.logoFor(name);
+    if (src) {
+      var logo = el('img', 'ege-teamlogo');
+      logo.src = src;
+      logo.alt = '';                 /* the name beside it says it */
+      logo.width = 20;
+      logo.height = 20;
+      logo.loading = 'lazy';
+      logo.decoding = 'async';
+      logo.addEventListener('error', function () { logo.remove(); });
+      cell.appendChild(logo);
+    }
+    cell.appendChild(el('span', 'fb-name', name));
+  }
+
   function scheduleRow(game, opensPlayoffs) {
     var row = el('tr');
     var played = EGE.isFinal(game);
@@ -1070,7 +1092,7 @@
       opponent.appendChild(el('span', 'ege-schedule__bye', 'Bye'));
     } else {
       opponent.appendChild(el('span', 'ege-schedule__side', game.home || game.neutral ? 'vs' : 'at'));
-      opponent.appendChild(el('span', 'fb-name', game.opponent));
+      opponentName(opponent, game);
     }
     if (game.conference) {
       var mark = el('abbr', 'ege-schedule__conf', '*');
@@ -1818,7 +1840,7 @@
 
       var opponent = el('td', 'ege-gamelog__opponent');
       opponent.appendChild(el('span', 'ege-schedule__side', game.home || game.neutral ? 'vs' : 'at'));
-      opponent.appendChild(el('span', 'fb-name', game.opponent));
+      opponentName(opponent, game);
 
       /* A booster is the player's own business, and an admin's. It shows here
          under the same rule the stickers on the schedule follow. */

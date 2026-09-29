@@ -127,7 +127,10 @@ holds:
   scouts and takes no boosters. On a phone the whole bar is one row: All
   Players becomes a round ← button, and the picker shows just the year.
 - **Schedule** — every scheduled game in the selected season: week, date,
-  kickoff, opponent with home/away and a mark for conference games, and the
+  kickoff, opponent with home/away, the opponent's logo (college seasons
+  only, straight off ESPN's image server by the school's ESPN id in
+  `data/logos.js` -- nothing is saved into the site) and a mark for
+  conference games, and the
   result once it has been played. A silhouette marks a game scouts will attend,
   for a player holding Intel for that season. Postseason games are marked with
   two asterisks, and a school in a bracket gets a **Games | Tournament** switch
@@ -1363,6 +1366,10 @@ Built so far:
   none of the six is in, played out, keyed by season and conference, with
   each conference's divisions. Written by `tools/build-conferences.js`
   rather than by hand. See *Conference standings*.
+- `data/logos.js` — every college team ESPN carries (about 770, every
+  division) against the id ESPN files its logo under, keyed by the name the
+  season files use, and `EGE.logoFor(name)`, which turns one into an image
+  address on ESPN's server. Written by `tools/build-logos.js`.
 - `data/statline.js` — what a stat line is: the columns each position is read
   in, and how a season of them adds up.
 - `js/discord-post.js` — one week as a Discord message. Loaded by the browser
