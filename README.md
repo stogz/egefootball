@@ -1395,6 +1395,11 @@ three that `js/site-data.js` writes out, which drop their cache-busting query
 when there is no cache to get past. The only external dependency is supabase-js,
 loaded from a CDN.
 
+The live site is on Vercel, which deploys `main` on every push and builds a
+preview for every pull request. If a merge does not show up on the site within
+a minute or so, Vercel did not hear about the push: redeploy the latest `main`
+from the project's Deployments page, or push to `main` again.
+
 ### Connecting Supabase
 
 1. In your Supabase project, open **Settings → API** and copy the **Project
