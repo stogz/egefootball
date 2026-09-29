@@ -127,11 +127,13 @@ holds:
   scouts and takes no boosters. On a phone the whole bar is one row: All
   Players becomes a round ← button, and the picker shows just the year.
 - **Schedule** — every scheduled game in the selected season: week, date,
-  kickoff, opponent with home/away, the opponent's logo (college seasons
-  only, straight off ESPN's image server by the school's ESPN id in
+  opponent with home/away, the opponent's logo (college seasons only,
+  straight off ESPN's image server by the school's ESPN id in
   `data/logos.js` -- nothing is saved into the site) and a mark for
-  conference games, and the
-  result once it has been played. A silhouette marks a game scouts will attend,
+  conference games, and the result once it has been played. No kickoff
+  time: the file still carries it for the Discord post, but the page does
+  not show it. The Credits and Booster columns are only drawn on your own
+  schedule, or on anyone's for an admin. A silhouette marks a game scouts will attend,
   for a player holding Intel for that season. Postseason games are marked with
   two asterisks, and a school in a bracket gets a **Games | Tournament** switch
   beside the fold-away arrow.

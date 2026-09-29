@@ -1082,7 +1082,6 @@
     row.appendChild(el('td', 'ege-schedule__week', game.week));
 
     row.appendChild(el('td', null, gameDate(game)));
-    row.appendChild(el('td', 'ege-schedule__time', game.kickoff || '—'));
 
     var opponent = el('td', 'ege-schedule__opponent');
     if (game.bye) {
@@ -1109,7 +1108,7 @@
     if (showScouts && game.scouts) { opponent.appendChild(scoutMark()); }
     row.appendChild(opponent);
 
-    var result = el('td', 'num');
+    var result = el('td', 'num ege-schedule__result');
     if (played) {
       var won = game.result.teamScore > game.result.opponentScore;
       result.appendChild(el('span', 'fb-tag fb-tag--num ' + (won ? 'fb-tag--sage' : 'fb-tag--clay'),
@@ -1121,17 +1120,20 @@
     row.appendChild(result);
 
     /* What the game paid. Only his own, and an admin's — a balance is nobody
-       else's business. */
-    var credits = el('td', 'num ege-schedule__credits');
-    var earned = schedulePlayer ? EGE.creditsFromGame(schedulePlayer, game) : 0;
-    if (earned && canSeeStickers(schedulePlayer)) {
-      var tag = el('span', 'ege-schedule__paid', '+' + earned);
-      tag.title = earned + ' credits for this game';
-      credits.appendChild(tag);
-    } else {
-      credits.appendChild(el('span', 'ege-schedule__pending', '—'));
+       else's business, so on anyone else's schedule the column is not drawn
+       at all, the same as the boosters beside it. */
+    if (showBoosters) {
+      var credits = el('td', 'num ege-schedule__credits');
+      var earned = schedulePlayer ? EGE.creditsFromGame(schedulePlayer, game) : 0;
+      if (earned) {
+        var tag = el('span', 'ege-schedule__paid', '+' + earned);
+        tag.title = earned + ' credits for this game';
+        credits.appendChild(tag);
+      } else {
+        credits.appendChild(el('span', 'ege-schedule__pending', '—'));
+      }
+      row.appendChild(credits);
     }
-    row.appendChild(credits);
 
     /* What somebody has riding on a game is his own business and an
        admin's. On anyone else's schedule, and on every schedule when nobody
@@ -1172,6 +1174,7 @@
     }
     schedulePlayer = player;
 
+    document.getElementById('scheduleCreditsHead').hidden = !showBoosters;
     document.getElementById('scheduleBoosterHead').hidden = !showBoosters;
 
     /* Every row is about to be replaced, so whatever was armed is gone. */
