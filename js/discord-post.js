@@ -435,7 +435,8 @@ EGE.discordPost = (function () {
       fields: []
     };
 
-    if (team && team.logo) { embed.author.icon_url = asset(siteUrl, team.logo); }
+    var logo = team && (team.discordLogo || team.logo);
+    if (logo) { embed.author.icon_url = asset(siteUrl, logo); }
 
     /* The headline, and the one link in the embed: his own page. It is the
        description rather than the title because a title renders as flat text

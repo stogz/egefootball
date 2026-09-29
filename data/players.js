@@ -95,11 +95,14 @@ EGE.teams = {
 
   /* The colleges, from 2020 on. Their marks are the ones already cut for
      the offer stickers in icon/offers/, so a school has one logo on the
-     site whether it is offering somebody or playing for them. */
+     site whether it is offering somebody or playing for them.
+     `discordLogo`, where a school has one, replaces the logo in the Discord
+     posts only — for a mark too dark to read on Discord's background. */
   ohioState: {
     school: 'Ohio State',
     league: 'Big Ten',
     logo: 'icon/offers/OhioState.png',
+    discordLogo: 'icon/OhioStateWhite.png',
     zone: 'America/New_York'
   },
   northDakotaState: {
