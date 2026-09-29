@@ -175,109 +175,115 @@ EGE.stats[2020] = {
         opponent: 'Alabama', home: false, conference: false, neutral: true,
         result: { teamScore: 16, opponentScore: 58 }, booster: null,
         stats: {
-          carries: 0, rushingYards: 0, rushingTd: 0, rushingLong: 0,
+          carries: 4, rushingYards: 12, rushingTd: 0, rushingLong: 6,
           receptions: 0, receivingYards: 0, receivingYac: 0,
-          receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
-          totalYards: 0, totalTd: 0
+          receivingTd: 0, receivingLong: 0, targets: 1, fumbles: 0,
+          rushingAvg: 3, totalYards: 12, totalTd: 0
         } },
       { week:  2, date: '2020-09-12', kickoff: null,
         opponent: 'New Mexico', home: true, conference: false,
         result: { teamScore: 45, opponentScore: 13 }, booster: null,
         stats: {
-          carries: 2, rushingYards: 4, rushingTd: 0, rushingLong: 3,
+          carries: 6, rushingYards: 24, rushingTd: 0, rushingLong: 9,
           receptions: 0, receivingYards: 0, receivingYac: 0,
           receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
-          rushingAvg: 2, totalYards: 4, totalTd: 0
+          rushingAvg: 4, totalYards: 24, totalTd: 0
         } },
       { week:  3, date: '2020-09-19', kickoff: null,
         opponent: 'Stanford', home: false, conference: true,
         result: { teamScore: 43, opponentScore: 30 }, booster: null,
         stats: {
-          carries: 3, rushingYards: 5, rushingTd: 0, rushingLong: 2,
+          carries: 5, rushingYards: 29, rushingTd: 0, rushingLong: 9,
           receptions: 0, receivingYards: 0, receivingYac: 0,
-          receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
-          rushingAvg: 1.7, totalYards: 5, totalTd: 0
+          receivingTd: 0, receivingLong: 0, targets: 1, fumbles: 0,
+          rushingAvg: 5.8, totalYards: 29, totalTd: 0
         } },
       { week:  4, date: '2020-09-26', kickoff: null,
         opponent: 'Arizona State', home: true, conference: true,
         result: { teamScore: 31, opponentScore: 37 }, booster: null,
         stats: {
-          carries: 0, rushingYards: 0, rushingTd: 0, rushingLong: 0,
-          receptions: 0, receivingYards: 0, receivingYac: 0,
-          receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
-          totalYards: 0, totalTd: 0
+          carries: 1, rushingYards: 21, rushingTd: 0, rushingLong: 21,
+          receptions: 1, receivingYards: 5, receivingYac: 3,
+          receivingTd: 0, receivingLong: 5, targets: 1, fumbles: 0,
+          rushingAvg: 21, receivingAvg: 5, totalYards: 26, totalTd: 0
         } },
       { week:  5, date: '2020-10-02', kickoff: null,
         opponent: 'Utah', home: false, conference: true,
         result: { teamScore: 21, opponentScore: 24 }, booster: null,
         stats: {
-          carries: 1, rushingYards: -1, rushingTd: 0, rushingLong: -1,
-          receptions: 0, receivingYards: 0, receivingYac: 0,
-          receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
-          rushingAvg: -1, totalYards: -1, totalTd: 0
+          carries: 4, rushingYards: 12, rushingTd: 0, rushingLong: 9,
+          receptions: 1, receivingYards: 5, receivingYac: 4,
+          receivingTd: 0, receivingLong: 5, targets: 1, fumbles: 0,
+          rushingAvg: 3, receivingAvg: 5, totalYards: 17, totalTd: 0
         } },
       { week:  6, date: '2020-10-10', kickoff: null,
         opponent: 'California', home: true, conference: true,
         result: { teamScore: 38, opponentScore: 10 }, booster: null,
         stats: {
-          carries: 2, rushingYards: -2, rushingTd: 0, rushingLong: 0,
+          carries: 4, rushingYards: 44, rushingTd: 0, rushingLong: 31,
           receptions: 0, receivingYards: 0, receivingYac: 0,
           receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
-          rushingAvg: -1, totalYards: -2, totalTd: 0
+          rushingAvg: 11, totalYards: 44, totalTd: 0
         } },
       { week:  7, date: '2020-10-17', kickoff: null,
         opponent: 'Arizona', home: false, conference: true,
         result: { teamScore: 44, opponentScore: 10 }, booster: null,
         stats: {
-          carries: 3, rushingYards: 44, rushingTd: 0, rushingLong: 33,
-          receptions: 0, receivingYards: 0, receivingYac: 0,
-          receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
-          rushingAvg: 14.7, totalYards: 44, totalTd: 0
-        } },
+          carries: 8, rushingYards: 42, rushingTd: 1, rushingLong: 21,
+          receptions: 1, receivingYards: 10, receivingYac: 7,
+          receivingTd: 0, receivingLong: 10, targets: 1, fumbles: 0,
+          rushingAvg: 5.3, receivingAvg: 10, totalYards: 52, totalTd: 1
+        },
+        bigPlays: [
+          '21 yard rushing touchdown'
+        ] },
       { week:  9, date: '2020-10-31', kickoff: null,
         opponent: 'Colorado', home: true, conference: true,
         result: { teamScore: 41, opponentScore: 14 }, booster: null,
         stats: {
-          carries: 3, rushingYards: 6, rushingTd: 0, rushingLong: 3,
-          receptions: 1, receivingYards: 3, receivingYac: 3,
-          receivingTd: 0, receivingLong: 3, targets: 1, fumbles: 0,
-          rushingAvg: 2, receivingAvg: 3, totalYards: 9, totalTd: 0
+          carries: 6, rushingYards: 13, rushingTd: 0, rushingLong: 6,
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 1, fumbles: 0,
+          rushingAvg: 2.2, totalYards: 13, totalTd: 0
         } },
       { week: 10, date: '2020-11-07', kickoff: null,
         opponent: 'Oregon', home: false, conference: true,
         result: { teamScore: 28, opponentScore: 27 }, booster: null,
         stats: {
-          carries: 0, rushingYards: 0, rushingTd: 0, rushingLong: 0,
-          receptions: 0, receivingYards: 0, receivingYac: 0,
-          receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
-          totalYards: 0, totalTd: 0
+          carries: 4, rushingYards: 7, rushingTd: 0, rushingLong: 3,
+          receptions: 1, receivingYards: 1, receivingYac: 1,
+          receivingTd: 0, receivingLong: 1, targets: 1, fumbles: 0,
+          rushingAvg: 1.8, receivingAvg: 1, totalYards: 8, totalTd: 0
         } },
       { week: 11, date: '2020-11-14', kickoff: null,
         opponent: 'Washington', home: true, conference: true,
         result: { teamScore: 31, opponentScore: 20 }, booster: null,
         stats: {
-          carries: 2, rushingYards: -2, rushingTd: 0, rushingLong: 0,
-          receptions: 0, receivingYards: 0, receivingYac: 0,
-          receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
-          rushingAvg: -1, totalYards: -2, totalTd: 0
+          carries: 3, rushingYards: 18, rushingTd: 0, rushingLong: 7,
+          receptions: 1, receivingYards: 2, receivingYac: 2,
+          receivingTd: 0, receivingLong: 2, targets: 1, fumbles: 0,
+          rushingAvg: 6, receivingAvg: 2, totalYards: 20, totalTd: 0
         } },
       { week: 12, date: '2020-11-21', kickoff: null,
         opponent: 'UCLA', home: false, conference: true,
         result: { teamScore: 28, opponentScore: 50 }, booster: null,
         stats: {
-          carries: 2, rushingYards: 5, rushingTd: 0, rushingLong: 3,
-          receptions: 0, receivingYards: 0, receivingYac: 0,
-          receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
-          rushingAvg: 2.5, totalYards: 5, totalTd: 0
-        } },
+          carries: 4, rushingYards: 11, rushingTd: 1, rushingLong: 6,
+          receptions: 1, receivingYards: 11, receivingYac: 10,
+          receivingTd: 0, receivingLong: 11, targets: 1, fumbles: 0,
+          rushingAvg: 2.8, receivingAvg: 11, totalYards: 22, totalTd: 1
+        },
+        bigPlays: [
+          '6 yard rushing touchdown'
+        ] },
       { week: 13, date: '2020-11-28', kickoff: null,
         opponent: 'Notre Dame', home: true, conference: false,
         result: { teamScore: 34, opponentScore: 33 }, booster: null,
         stats: {
-          carries: 2, rushingYards: 3, rushingTd: 0, rushingLong: 3,
-          receptions: 0, receivingYards: 0, receivingYac: 0,
-          receivingTd: 0, receivingLong: 0, targets: 1, fumbles: 0,
-          rushingAvg: 1.5, totalYards: 3, totalTd: 0
+          carries: 3, rushingYards: 4, rushingTd: 0, rushingLong: 3,
+          receptions: 1, receivingYards: 6, receivingYac: 6,
+          receivingTd: 0, receivingLong: 6, targets: 1, fumbles: 0,
+          rushingAvg: 1.3, receivingAvg: 6, totalYards: 10, totalTd: 0
         } },
     ],
 
