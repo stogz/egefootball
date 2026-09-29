@@ -502,7 +502,6 @@ EGE.exports = (function () {
     if (game.playoff) { flags.push('playoff: true'); }
     if (game.bye) { flags.push('bye: true'); }
     if (game.scouts) { flags.push('scouts: true'); }
-    if (typeof game.standing === 'number') { flags.push('standing: ' + game.standing); }
     if (game.injured) {
       flags.push('injured: true');
       if (game.injury) { flags.push('injury: ' + quote(game.injury)); }
@@ -602,10 +601,6 @@ EGE.exports = (function () {
       '   `conference: true` marks the games listed with an asterisk, and',
       '   `scouts: true` marks a game scouts will be at — what Intel buys is the',
       '   right to see it.',
-      '',
-      '   `standing: 3` is where the team sits in its conference once the game is',
-      '   in -- third, here. The header shows the one on the latest published',
-      '   game, as 3RD in SEC. A game without one leaves it where it was.',
       '',
       '   `injured: true` marks a game the player missed hurt, and `injury` says',
       "   what with — 'Bruised Shoulder'. The Discord post shows it in red, as",

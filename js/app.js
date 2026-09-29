@@ -338,9 +338,10 @@
     return EGE.tierFor(shownSeason()) === 'highSchool';
   }
 
-  /* Where his team stands in its conference -- 3RD in SEC -- in the college
-     seasons, which is where the recruiting stars were. TBD until a place
-     has been given for a published game. */
+  /* Where his team stands in its division -- 3RD in SEC West -- in the
+     college seasons, which is where the recruiting stars were. Worked out
+     from the published weeks, so it moves as they come out. TBD until the
+     team has played a conference game. */
   function renderConference(player, season) {
     var label = document.getElementById('playerConferenceLabel');
     var box = document.getElementById('playerConference');
@@ -349,6 +350,9 @@
     if (!standing) { return; }
     box.textContent = (standing.place ? EGE.ordinal(standing.place) : TBD) +
       ' in\u00a0' + standing.league;
+    box.title = standing.place
+      ? standing.wins + '-' + standing.losses + ' in ' + standing.conference + ' games'
+      : '';
   }
 
   /* Stars out of five, the empty ones drawn as outlines, and where he ranks

@@ -102,9 +102,11 @@ holds:
   result is out, followed by the current run — **6-1 · W4 Streak**, green for
   wins and red for losses — until the team's season is over) and **Jersey**.
   A college season puts a fourth between Record and Jersey, in the room the
-  recruiting line leaves: **Conference**, where the team stands in it —
-  **3RD in SEC** — from `standing` on the latest published game in the
-  season file, and TBD until one has a place on it.
+  recruiting line leaves: **Conference**, where the team stands in its
+  division as of the published weeks — **3RD in SEC West** — and TBD until
+  the team has played a conference game. It moves week by week: the six's
+  own games come from the season file, and everybody else's from
+  `data/conferences.js` (see *Conference standings* below).
   A season is over once it is behind the live one, or once the team has lost
   a playoff game or won its bracket — or, for a school that missed the
   playoffs, once their first week is out. The season, class and level are across the
@@ -960,6 +962,36 @@ Kickoff times had mostly not been set by then, so they are null (a dash on the
 page) until they are filled in. A game at a neutral site carries
 `neutral: true` and reads as vs.
 
+### Conference standings
+
+The Conference line on a college season's header is the team's place in its
+division — **2ND in Big Ten East** — as of the weeks published so far, so it
+moves the way the record does. Only the six's schools are in the season
+files, so the rest of each conference is in `data/conferences.js`: a whole
+conference schedule for everybody else, built around the fixtures already in
+`stats/2020.js` and following each league's real shape (every division
+rival; the Big Ten's three crossovers with Indiana-Purdue locked; the SEC's
+permanent and rotating crossovers; four of six across the Pac-12 with the
+California schools always meeting; eight of ten in the Valley), with the
+rivalry games on their usual weekends.
+
+Those games are played out from the strength each school actually showed in
+2020 — points scored and allowed a game in the real final standings — with
+seeded dice, and of the first four thousand seeds the one kept for each
+conference is the one whose final table comes closest to how those schools
+really finished. A game in there counts once its week is published. The six's
+own conference games are read from the season file as they are published, so
+a result corrected in the editor moves the standings with it.
+
+A division is ordered by conference winning percentage, then wins, then
+losses, then head to head among the schools still level, then conference
+point differential. The line reads TBD until the team has played a
+conference game.
+
+`node tools/build-conferences.js` writes the file. Run it again only if a
+fixture changes; a new season needs its conferences, their 2020-style
+strengths and its week window added at the top of the script.
+
 ### The file is the season
 
 Nothing is logged anywhere else. There is no stats table in Supabase — the
@@ -1327,6 +1359,10 @@ Built so far:
   draws are keyed by season, `EGE.brackets[year]`; a season with nothing
   written in has no brackets, and a school with no entry for a season has no
   Tournament switch that season.
+- `data/conferences.js` — every conference game of a college season that
+  none of the six is in, played out, keyed by season and conference, with
+  each conference's divisions. Written by `tools/build-conferences.js`
+  rather than by hand. See *Conference standings*.
 - `data/statline.js` — what a stat line is: the columns each position is read
   in, and how a season of them adds up.
 - `js/discord-post.js` — one week as a Discord message. Loaded by the browser
