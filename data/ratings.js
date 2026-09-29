@@ -308,6 +308,12 @@ EGE.positionGroups = {
     { key: 'receiving',   label: 'Receiving' },
     { key: 'ballCarrier', label: 'Carrying' }
   ],
+  /* No blocking: a receiver is not judged on it, and it is not on his page. */
+  WR: [
+    { key: 'general',     label: 'General' },
+    { key: 'receiving',   label: 'Receiving' },
+    { key: 'ballCarrier', label: 'Carrying' }
+  ],
   TE: [
     { key: 'general',     label: 'General' },
     { key: 'receiving',   label: 'Catching' },
@@ -339,7 +345,32 @@ EGE.boostsFor = function (player) {
   return EGE.appliedBoosts[player.slug] || {};
 };
 
-/* Base ratings with everything bought folded in. Nothing leaves 1-99. */
+/* Whether the shop rows the live season's lock folded into the base numbers
+   are still there to be counted.
+
+   Locking writes every purchase into the base, but the rows behind them stay
+   in Supabase until the admin clears them -- and in between, base plus rows
+   would count every one of them twice. So while the rows still carry all of
+   what the lock folded in (each attribute moved at least as far, the same
+   way), they are the season's purchases and are counted from where the
+   season started. Once they are cleared, or never were folded, the base is
+   the starting point as it always was. */
+function egeRowsStillFolded(player, base, boosts) {
+  var start = EGE.seasonStartValuesFor(player);
+  var folded = Object.keys(base).filter(function (key) {
+    return base[key] !== start[key];
+  });
+  if (!folded.length) { return false; }
+
+  return folded.every(function (key) {
+    var moved = base[key] - start[key];
+    var bought = boosts[key] || 0;
+    return moved > 0 ? bought >= moved : bought <= moved;
+  });
+}
+
+/* Base ratings with everything bought folded in, never twice. Nothing leaves
+   1-99. */
 EGE.valuesFor = function (player) {
   var base = (player && EGE.ratings[player.slug]) || null;
   if (!base) { return null; }
@@ -347,9 +378,13 @@ EGE.valuesFor = function (player) {
   var boosts = EGE.boostsFor(player);
   if (!Object.keys(boosts).length) { return base; }
 
+  var from = egeRowsStillFolded(player, base, boosts)
+    ? EGE.seasonStartValuesFor(player)
+    : base;
+
   var out = {};
-  Object.keys(base).forEach(function (key) {
-    var value = base[key] + (boosts[key] || 0);
+  Object.keys(from).forEach(function (key) {
+    var value = from[key] + (boosts[key] || 0);
     out[key] = Math.max(1, Math.min(99, value));
   });
   return out;

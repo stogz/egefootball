@@ -14,19 +14,26 @@ and in what order.
 
 ## The Six Players
 
-| Player | School | League | Position | Plays like |
-| --- | --- | --- | --- | --- |
-| Andrew Parr | Wake Forest High School | Northern 4A | TE | a complete tight end |
-| Cooper Clark | Carlsbad High School | Avocado League | RB | a receiving back |
-| Paxon Hatch | Bloomington High School | Big Twelve | TE | a complete tight end |
-| Isaac Vitel | Bloomington High School | Big Twelve | QB | a deep thrower |
-| Sam Stogsdill | Normal Community High School | Big Twelve | RB | a power back |
-| Jaykeb Stewart | Naples High School | 6A District 12 | QB | a pocket passer |
+| Player | High school (2018–19) | League | College (2020–) | Conference | Position | Plays like |
+| --- | --- | --- | --- | --- | --- | --- |
+| Andrew Parr | Wake Forest High School | Northern 4A | Alabama | SEC | TE | a complete tight end |
+| Cooper Clark | Carlsbad High School | Avocado League | USC | Pac-12 | RB | a receiving back |
+| Paxon Hatch | Bloomington High School | Big Twelve | North Dakota State | Missouri Valley | WR (TE through 2019) | a full-time receiver |
+| Isaac Vitel | Bloomington High School | Big Twelve | Illinois | Big Ten | QB | a deep thrower |
+| Sam Stogsdill | Normal Community High School | Big Twelve | Ohio State | Big Ten | RB | a power back |
+| Jaykeb Stewart | Naples High School | 6A District 12 | Ohio State | Big Ten | QB | a pocket passer |
 
-**Isaac and Paxon are teammates**, which the data has to respect: they play the
-same fixtures, carry the same scorelines, and every ball Paxon catches is one
-Isaac threw. His completions, attempts, yards and touchdowns each start at
-Paxon's and go up from there.
+**Isaac and Paxon were high school teammates**, which the data has to respect:
+they played the same fixtures, carried the same scorelines, and every ball
+Paxon caught was one Isaac threw. His completions, attempts, yards and
+touchdowns each start at Paxon's and go up from there. In college they split
+up, and **Sam and Jaykeb become teammates** at Ohio State instead — the same
+rule holds for them from 2020.
+
+A player's school is `team` (the high school) and `college` in
+`data/players.js`, both keys into `EGE.teams`; `EGE.teamFor(player, season)`
+picks one by the season's tier on the ladder, so a 2019 page still says Wake
+Forest High School after Andrew has gone to Alabama.
 
 Everything marked TBD is genuinely unknown right now and should stay TBD in code
 and data until it is confirmed — no placeholder guesses that later read as facts.
@@ -34,7 +41,8 @@ and data until it is confirmed — no placeholder guesses that later read as fac
 Headshots live in `headshot/`, keyed by last name: `parr.png`, `clark.png`,
 `hatch.png`, `vitel.png`, `stogsdill.png`, `stewart.png`. School marks live in
 `icon/`, keyed by school: `carlsbad.png`, `bloomington.png`, `normal.png`,
-`naples.png`, `wake.png`. A team without a mark renders its school line
+`naples.png`, `wake.png`. The colleges use the marks already cut for their
+offer stickers in `icon/offers/`. A team without a mark renders its school line
 without it.
 
 ---
@@ -89,7 +97,7 @@ holds:
 - **Header** — headshot with height and weight joined to the foot of it, then
   school and name. Under the name is the recruiting line: 247-style stars out
   of five and his rank at his position in his state and nationally
-  (**★★★★☆ #1 RB in Illinois · #5 nationally**), from `EGE.recruiting` in `data/offers.js`. Under that, three facts: **Position**, **Record**
+  (**★★★★☆ #1 RB in Illinois · #5 nationally**), from `EGE.recruiting` in `data/offers.js` — on the high school seasons only; a college season has no recruiting line. Under that, three facts: **Position**, **Record**
   (the team's wins and losses over the season on show, 0-0 until the first
   result is out, followed by the current run — **6-1 · W4 Streak**, green for
   wins and red for losses — until the team's season is over) and **Jersey**.
@@ -98,7 +106,8 @@ holds:
   playoffs, once their first week is out. The season, class and level are across the
   orange strip at the top of the panel. The overall is not up
   here: it lives with the ratings it is worked out from, at the foot of the
-  page. The top right holds the college offers, as stickers.
+  page. The top right holds the college offers, as stickers — again on the
+  high school seasons only. Once he has signed, the corner is empty.
 - **Season strip** — the ten numbers the season is remembered by, across the
   foot of the header panel: ten across on a wide screen, five and five on
   anything narrower.
@@ -344,6 +353,22 @@ draws a name above its value and the number is what should be read first.
 A game that has not been played keeps the same shape: the kickoff, home or
 away, and whether it is a conference game fill the three block lines, and the
 three summaries show dashes.
+
+A game the player missed hurt is marked in `stats/{year}.js` with
+`injured: true` and what it was in `injury` — `injury: 'Bruised Shoulder'`.
+Its embed keeps the headline (the matchup, or the score once it is played),
+the spacer and the footer, and in place of the stat line and the three
+summaries carries one line in red:
+
+```ansi
+[2;31mDNP Injured: Bruised Shoulder[0m
+```
+
+Discord only colours text in an `ansi` code block, and the colour is an
+escape sequence (ESC, then `[2;31m` for red and `[0m` to stop), which is why
+it looks like stray brackets anywhere else. On the site an injured game has
+no stat line, so it counts toward the team's record but adds nothing to his
+season totals or his credits.
 
 ### Every embed is the same height
 
@@ -917,7 +942,17 @@ school with no entry for a season (Bloomington in 2019, Carlsbad in 2018) has
 no Tournament switch that season.
 
 A new season is a new file and one more year in the `SEASONS` list at the top
-of `js/site-data.js`. The bot finds them on its own.
+of `js/site-data.js`. The bot finds them on its own. A season's file can go in
+before the season is live: the site shows seasons up to `EGE.currentSeason`
+and no further, so a file for next year waits, editable from the admin page,
+until the season is rolled over.
+
+**2020** is the first college season, laid out from each school's real 2020
+schedule as it was announced before COVID-19 rewrote it — the non-conference
+games included, and USC and Alabama opening against each other in Arlington.
+Kickoff times had mostly not been set by then, so they are null (a dash on the
+page) until they are filled in. A game at a neutral site carries
+`neutral: true` and reads as vs.
 
 ### The file is the season
 
@@ -1147,7 +1182,12 @@ thing keeping anybody's season safe:
    rather than rebuilt. A player nobody spent anything on comes out byte for
    byte as they went in, so the diff is only the players who actually moved.
    Commit it, and the improvements are part of the site rather than part of a
-   database.
+   database. It can be downloaded again as often as needed, before or after
+   the lock is committed and before or after the rows are cleared: while a
+   locked season's rows are still there, `EGE.valuesFor` counts them from
+   where the season started rather than on top of the locked numbers, so a
+   second download is the same file — plus anything bought since — and the
+   site never shows a purchase twice in the meantime.
 2. **Log the season.** Downloads `data/logs/season-{year}.js`: every game with
    the stats posted in it and the booster that was riding on it, every credit
    earned, and everything bought. A record, not a source — nothing on the site

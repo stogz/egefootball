@@ -11,7 +11,10 @@
 
    A game that has been played shows the result, the final score, the
    player's stat line and, when any were typed in, the game's big plays. A
-   game that has not shows the matchup and the kickoff.
+   game that has not shows the matchup and the kickoff. A game the player
+   missed hurt -- `injured: true`, with the injury in `injury` -- shows the
+   matchup, or the score once it is played, and one red line under it:
+   DNP Injured: Bruised Shoulder. No stat line and no fields.
    A player on a bye, one with no game that week, and one with no schedule at
    all are simply left out.
 
@@ -251,7 +254,7 @@ EGE.discordPost = (function () {
   function fixtureBlock(game) {
     var rows = [
       ['Kickoff', kickoffLabel(game)],
-      ['Where', game.home ? 'Home' : 'Away'],
+      ['Where', game.neutral ? 'Neutral site' : game.home ? 'Home' : 'Away'],
       ['Game', game.conference ? 'Conference' : 'Non-conference']
     ];
     var width = rows.reduce(function (widest, row) {
@@ -395,7 +398,7 @@ EGE.discordPost = (function () {
   function buildEmbed(player, game, options) {
     var siteUrl = options.siteUrl || SITE;
     var season = options.season || EGE.currentSeason;
-    var team = EGE.teamFor(player);
+    var team = EGE.teamFor(player, season);
 
     /* The admin publishes and posts in one click, so the week may not have
        been marked published yet when this is built. `played` is told, not
@@ -415,7 +418,7 @@ EGE.discordPost = (function () {
        footnote. */
     var matchup = game.bye
       ? 'Bye week'
-      : (game.home ? 'vs. ' : 'at ') + game.opponent;
+      : (game.home || game.neutral ? 'vs. ' : 'at ') + game.opponent;
 
     var embed = {
       color: played ? (won ? COLOR_WIN : COLOR_LOSS) : COLOR_UPCOMING,
@@ -448,7 +451,7 @@ EGE.discordPost = (function () {
        row and makes that embed taller than the one above it. The number is
        the field's name and the heading is its value, because Discord draws a
        name above its value and the number is what should be read first. */
-    var stats = played && game.stats
+    var stats = played && game.stats && !game.injured
       ? EGE.statline.complete(player.position, game.stats)
       : null;
 
@@ -456,6 +459,16 @@ EGE.discordPost = (function () {
        line in a block of their own. A game without any has nothing there
        rather than an empty box. */
     var plays = stats ? bigPlaysBlock(game) : null;
+
+    /* A player who did not play has one thing to say, in red, and nothing
+       else: no stat line and no fields under it. The spacer image and the
+       footer stay, so the embed is the same width and signed the same way as
+       the rest of the week. */
+    if (game.injured) {
+      embed.description = headline + '\n' + injuryBlock(game);
+      delete embed.fields;
+      return finishEmbed(embed, siteUrl, game, team);
+    }
 
     embed.description = headline + '\n' +
       (stats ? statBlock(player, stats) : fixtureBlock(game)) +
@@ -469,6 +482,22 @@ EGE.discordPost = (function () {
       });
     });
 
+    return finishEmbed(embed, siteUrl, game, team);
+  }
+
+  /* "DNP Injured: Bruised Shoulder", in red. Discord colours text only
+     inside an ansi code block, and the colour is an escape sequence: ESC,
+     then [2;31m for red, and [0m to end it. The injury is whatever the file
+     says, on one line; a game marked injured with nothing written says just
+     DNP Injured. */
+  function injuryBlock(game) {
+    var what = game.injury ? plain(game.injury) : '';
+    return '```ansi\n\u001b[2;31mDNP Injured' + (what ? ': ' + what : '') +
+      '\u001b[0m\n```';
+  }
+
+  /* What every embed ends with, played, upcoming or injured. */
+  function finishEmbed(embed, siteUrl, game, team) {
     /* Pins the embed to its full width, so the right-hand edge lands in the
        same place on every post rather than shrinking to fit a quiet game.
 

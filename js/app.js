@@ -70,9 +70,11 @@
      into index.html, so rolling a season over moves it too. */
   document.getElementById('homeSeasonLabel').textContent = seasonLabel(EGE.currentSeason);
 
-  /* School name with its mark beside it, or a plain TBD while unknown. */
-  function schoolLine(player, className) {
-    var team = EGE.teamFor(player);
+  /* School name with its mark beside it, or a plain TBD while unknown. The
+     live season's school unless told another -- a roster card is always the
+     live season, a player page is whichever one is picked. */
+  function schoolLine(player, className, season) {
+    var team = EGE.teamFor(player, season);
     var line = el('div', 'ege-school' + (className ? ' ' + className : ''));
 
     if (!team) {
@@ -204,13 +206,14 @@
 
     var school = document.getElementById('playerSchool');
     school.innerHTML = '';
-    school.appendChild(schoolLine(player, 'ege-school--lg'));
+    school.appendChild(schoolLine(player, 'ege-school--lg', season));
 
     document.getElementById('playerName').textContent = player.name;
     /* Three facts under the name: what he plays, how his team's season is
        going, and the number on his back. Which season, class and level it
        is are across the strip at the top of the panel, in full. */
-    document.getElementById('playerPosition').textContent = player.position || TBD;
+    document.getElementById('playerPosition').textContent =
+      EGE.positionFor(player, season) || TBD;
     /* The team's wins and losses over the season on show, 0-0 until the
        first result is published. */
     var record = document.getElementById('playerRecord');
@@ -326,12 +329,20 @@
     }
   }
 
+  /* Whether the season on show is one of the recruiting years. The stars and
+     the offer stickers are what a high school player is -- once he has signed
+     somewhere they are history, so they stay on 2018 and 2019 and are not
+     carried into college. */
+  function recruitingSeason() {
+    return EGE.tierFor(shownSeason()) === 'highSchool';
+  }
+
   /* Stars out of five, the empty ones drawn as outlines, and where he ranks
-     at his position in his state. */
+     at his position in his state. High school seasons only. */
   function renderStars(player) {
     var box = document.getElementById('playerStars');
     box.innerHTML = '';
-    var recruit = (EGE.recruiting || {})[player.slug];
+    var recruit = recruitingSeason() ? (EGE.recruiting || {})[player.slug] : null;
     box.hidden = !recruit;
     if (!recruit) { return; }
 
@@ -704,9 +715,11 @@
 
   var offersPlayer = null;
 
+  /* High school seasons only, like the stars. A college season draws none,
+     and the corner is left empty. */
   function renderOffers(player) {
     var box = document.getElementById('playerOffers');
-    var offers = EGE.offersFor(player);
+    var offers = recruitingSeason() ? EGE.offersFor(player) : [];
     offersPlayer = player;
 
     /* The same stickers as are already up -- a re-fit, or the page redrawn
@@ -969,7 +982,7 @@
 
     var title = el('div', 'ege-drawer__title');
     title.appendChild(el('small', null, 'Week ' + game.week + ' \u00b7 ' +
-      (game.home ? 'vs ' : 'at ') + game.opponent));
+      (game.home || game.neutral ? 'vs ' : 'at ') + game.opponent));
     title.appendChild(document.createTextNode('Your Booster Stickers'));
     inner.appendChild(title);
 
@@ -1038,7 +1051,7 @@
          it makes the weeks either side look wrong. */
       opponent.appendChild(el('span', 'ege-schedule__bye', 'Bye'));
     } else {
-      opponent.appendChild(el('span', 'ege-schedule__side', game.home ? 'vs' : 'at'));
+      opponent.appendChild(el('span', 'ege-schedule__side', game.home || game.neutral ? 'vs' : 'at'));
       opponent.appendChild(el('span', 'fb-name', game.opponent));
     }
     if (game.conference) {
@@ -1786,7 +1799,7 @@
       row.appendChild(el('td', 'ege-schedule__week', game.week));
 
       var opponent = el('td', 'ege-gamelog__opponent');
-      opponent.appendChild(el('span', 'ege-schedule__side', game.home ? 'vs' : 'at'));
+      opponent.appendChild(el('span', 'ege-schedule__side', game.home || game.neutral ? 'vs' : 'at'));
       opponent.appendChild(el('span', 'fb-name', game.opponent));
 
       /* A booster is the player's own business, and an admin's. It shows here
@@ -2835,7 +2848,7 @@
           ? totals.games + ' games played, ' + totals.all + ' credits paid out' + waiting
           : 'No games posted yet. Every game pays its fantasy points (half PPR), ' +
             'rounded up, at ' + shares.QB + ' for a quarterback, ' + shares.RB +
-            ' for a back and ' + shares.TE + ' for a tight end.')
+            ' for a back and ' + shares.TE + ' for a tight end or receiver.')
       : (totals.touchdowns
           ? totals.touchdowns + ' touchdowns, ' + totals.all + ' credits paid out' + waiting
           : 'No touchdowns posted yet. Credits appear here as results go in — ' +
@@ -3138,7 +3151,7 @@
     var name = el('div');
     name.appendChild(el('span', 'ege-account__name', player.name));
     name.appendChild(el('span', 'fb-meta', player.position + '  ·  ' +
-      (game.bye ? 'Bye' : (game.home ? 'vs ' : 'at ') + game.opponent) +
+      (game.bye ? 'Bye' : (game.home || game.neutral ? 'vs ' : 'at ') + game.opponent) +
       '  ·  ' + game.date));
     who.appendChild(name);
     head.appendChild(who);
@@ -3385,20 +3398,25 @@
     var confirm = document.getElementById('clearConfirm');
     var roll = document.getElementById('rollSeason');
 
+    /* As many times as it is wanted. A season that is already locked is not
+       folded in a second time: EGE.valuesFor counts its purchases from where
+       the season started while the rows behind them are still there, and from
+       the locked numbers once they are cleared, so downloading again hands
+       back the same file -- plus anything bought since. */
     lock.addEventListener('click', function () {
-      if (EGE.seasonLocked(EGE.currentSeason)) {
-        sayAdmin(EGE.currentSeason + ' is already locked — its purchases are in ' +
-                 'data/ratings.js already. Locking it twice would count them twice.', true);
-        return;
-      }
+      var again = EGE.seasonLocked(EGE.currentSeason);
       lock.disabled = true;
       EGE.exports.ratingsFile(EGE.currentSeason).then(function (text) {
         EGE.exports.download('ratings.js', text);
         adminState.ratingsDownloaded = true;
         step('stepLock', true);
         clear.disabled = confirm.value.trim().toUpperCase() !== 'CLEAR';
-        sayAdmin('ratings.js downloaded. Put it in data/ and commit it before ' +
-                 'clearing anything.', false);
+        sayAdmin(again
+          ? 'ratings.js downloaded again. ' + EGE.currentSeason + ' was already ' +
+            'locked, so its purchases are counted once, not twice — the file ' +
+            'matches the one committed, plus anything bought since.'
+          : 'ratings.js downloaded. Put it in data/ and commit it before ' +
+            'clearing anything.', false);
       }).catch(function (error) {
         sayAdmin(error.message, true);
       }).then(function () { lock.disabled = false; });
@@ -3571,7 +3589,8 @@
     var shares = economy.FANTASY_SHARE;
     var perGame = document.getElementById('shopGameEarnings');
     earningRow(perGame, 'Every Game', 'fantasy pts \u00d7', false);
-    [['QB', 'Quarterback'], ['RB', 'Running Back'], ['TE', 'Tight End']].forEach(function (pos) {
+    [['QB', 'Quarterback'], ['RB', 'Running Back'], ['TE', 'Tight End'],
+     ['WR', 'Wide Receiver']].forEach(function (pos) {
       earningRow(perGame, pos[1], '\u00d7' + shares[pos[0]].toFixed(2), true);
     });
 

@@ -226,7 +226,7 @@ EGE.exports = (function () {
     return {
       name: player.name,
       position: player.position,
-      team: player.team,
+      team: EGE.teamKeyFor(player, season),
       record: EGE.recordFor(player, season).text,
 
       /* The overall as the file had it going in, and as it ended up. The
@@ -243,8 +243,11 @@ EGE.exports = (function () {
           date: game.date,
           opponent: game.opponent,
           home: game.home,
+          neutral: Boolean(game.neutral),
           conference: Boolean(game.conference),
           scouts: Boolean(game.scouts),
+          injured: Boolean(game.injured),
+          injury: game.injured ? (game.injury || null) : null,
           published: EGE.isPublished(season, game.week),
           result: game.result || null,
           stats: game.stats || null,
@@ -371,7 +374,7 @@ EGE.exports = (function () {
 
     EGE.players.forEach(function (player) {
       var games = forSeason.games[player.slug] || [];
-      var team = EGE.teamFor(player);
+      var team = EGE.teamFor(player, season);
       lines.push('');
 
       if (!games.length) {
@@ -495,9 +498,14 @@ EGE.exports = (function () {
        would come back as a regular one the first time anybody saved. */
     var flags = ['home: ' + (game.home ? 'true' : 'false'),
                  'conference: ' + (game.conference ? 'true' : 'false')];
+    if (game.neutral) { flags.push('neutral: true'); }
     if (game.playoff) { flags.push('playoff: true'); }
     if (game.bye) { flags.push('bye: true'); }
     if (game.scouts) { flags.push('scouts: true'); }
+    if (game.injured) {
+      flags.push('injured: true');
+      if (game.injury) { flags.push('injury: ' + quote(game.injury)); }
+    }
     /* Overtime needs a score to have gone to overtime in. */
     if (overtime && scored) { flags.push('overtime: true'); }
 
@@ -593,6 +601,14 @@ EGE.exports = (function () {
       '   `conference: true` marks the games listed with an asterisk, and',
       '   `scouts: true` marks a game scouts will be at — what Intel buys is the',
       '   right to see it.',
+      '',
+      '   `injured: true` marks a game the player missed hurt, and `injury` says',
+      "   what with — 'Bruised Shoulder'. The Discord post shows it in red, as",
+      '   DNP Injured: Bruised Shoulder, in place of his stat line.',
+      '',
+      '   `neutral: true` marks a game at a neutral site — listed as vs, and home',
+      '   is false because it is nobody\'s. A kickoff of null is one that has not',
+      '   been set yet; it shows as a dash until it is.',
       '   ========================================================================== */',
       ''
     ];
