@@ -39,7 +39,11 @@ Everything marked TBD is genuinely unknown right now and should stay TBD in code
 and data until it is confirmed — no placeholder guesses that later read as facts.
 
 Headshots live in `headshot/`, keyed by last name: `parr.png`, `clark.png`,
-`hatch.png`, `vitel.png`, `stogsdill.png`, `stewart.png`. School marks live in
+`hatch.png`, `vitel.png`, `stogsdill.png`, `stewart.png`. Replacing one under the
+same name? Change `EGE.headshotVersion` in `data/players.js` as well: Discord
+keeps its own copy of any image a post links to and goes by the address, so
+the Discord posts only pick up a new picture once that version (on the end of
+the address) changes. School marks live in
 `icon/`, keyed by school: `carlsbad.png`, `bloomington.png`, `normal.png`,
 `naples.png`, `wake.png`. The colleges use the marks already cut for their
 offer stickers in `icon/offers/`. A team without a mark renders its school line
