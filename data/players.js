@@ -131,6 +131,13 @@ EGE.teams = {
   }
 };
 
+/* Which set of headshots is up. Discord keeps its own copy of every image a
+   post points at, for good, and goes by the address alone -- so a picture
+   replaced under the same file name never reaches a new post. The Discord
+   posts put this on the end of the headshot's address, which makes it a new
+   address. Change it whenever a headshot in headshot/ is replaced. */
+EGE.headshotVersion = '2026-09-30';
+
 EGE.players = [
   {
     slug: 'andrew-parr',

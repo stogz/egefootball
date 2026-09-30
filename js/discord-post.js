@@ -131,6 +131,11 @@ EGE.discordPost = (function () {
     return siteUrl.replace(/\/+$/, '') + '/' + String(path).replace(/^\/+/, '');
   }
 
+  function headshotUrl(siteUrl, player) {
+    var url = asset(siteUrl, player.headshot);
+    return EGE.headshotVersion ? url + '?v=' + encodeURIComponent(EGE.headshotVersion) : url;
+  }
+
   function playerUrl(siteUrl, player) {
     return siteUrl.replace(/\/+$/, '') + '/#' + player.slug;
   }
@@ -429,8 +434,10 @@ EGE.discordPost = (function () {
         name: team ? team.school : 'School TBD'
       },
 
-      /* The player's face, not the school crest — the post is about him. */
-      thumbnail: { url: asset(siteUrl, player.headshot) },
+      /* The player's face, not the school crest — the post is about him.
+         Versioned, so a replaced headshot is a new address to Discord rather
+         than one it already has a picture for (see data/players.js). */
+      thumbnail: { url: headshotUrl(siteUrl, player) },
 
       fields: []
     };
