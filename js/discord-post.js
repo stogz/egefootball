@@ -19,9 +19,11 @@
    all are simply left out.
 
    A postseason week is headed "Playoffs Week One" rather than "Week
-   Fourteen". Which weeks those are is read off the games -- see
-   EGE.playoffWeeks in data/games.js -- so the heading does not need telling
-   when the regular season ends.
+   Fourteen" -- "Postseason Week One" in college, where each game carries
+   its name (SEC Championship, Rose Bowl) beside the opponent. Which weeks
+   those are is read off the games -- see EGE.playoffWeeks in
+   data/games.js -- so the heading does not need telling when the regular
+   season ends.
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -116,12 +118,14 @@ EGE.discordPost = (function () {
 
   /* What the message is headed. The postseason counts from one again: week
      fourteen is Playoffs Week One, and a channel reading it should not have
-     to know which week of the year the brackets came out. */
+     to know which week of the year the brackets came out. A college one is
+     Postseason Week One: its weeks are title games and bowls as much as
+     playoff rounds, and each embed names the game it is. */
   function weekTitle(week, season) {
     var round = EGE.playoffRound(week, season);
-    return round
-      ? 'Playoffs Week ' + weekWord(round)
-      : 'Week ' + weekWord(week);
+    if (!round) { return 'Week ' + weekWord(week); }
+    var college = EGE.tierFor && EGE.tierFor(season || EGE.currentSeason) === 'college';
+    return (college ? 'Postseason Week ' : 'Playoffs Week ') + weekWord(round);
   }
 
   /* --- the pieces of an embed ------------------------------------------------ */
@@ -421,9 +425,12 @@ EGE.discordPost = (function () {
        No mark for a playoff game: the whole message is headed Playoffs Week
        One, and a pair of asterisks in a Discord link is bold rather than a
        footnote. */
+    /* A named game says which one on the same line -- vs. Florida, SEC
+       Championship -- so the embed stays the height of every other. */
     var matchup = game.bye
       ? 'Bye week'
-      : (game.home || game.neutral ? 'vs. ' : 'at ') + game.opponent;
+      : (game.home || game.neutral ? 'vs. ' : 'at ') + game.opponent +
+        (game.name ? ' · ' + game.name : '');
 
     var embed = {
       color: played ? (won ? COLOR_WIN : COLOR_LOSS) : COLOR_UPCOMING,

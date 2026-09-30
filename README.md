@@ -111,8 +111,10 @@ holds:
   the team has played a conference game. It moves week by week: the six's
   own games come from the season file, and everybody else's from
   `data/conferences.js` (see *Conference standings* below).
-  A season is over once it is behind the live one, or once the team has lost
-  a playoff game or won its bracket — or, for a school that missed the
+  A season is over once it is behind the live one, or once the team has
+  played the last postseason game in its file — beaten in a playoff, won its
+  bracket or played its bowl (a college team that loses its conference title
+  game still has a bowl to come) — or, for a school that missed the
   playoffs, once their first week is out. The season, class and level are across the
   orange strip at the top of the panel. The overall is not up
   here: it lives with the ratings it is worked out from, at the foot of the
@@ -139,17 +141,25 @@ holds:
   not show it. The Credits and Booster columns are only drawn on your own
   schedule, or on anyone's for an admin. A silhouette marks a game scouts will attend,
   for a player holding Intel for that season. Postseason games are marked with
-  two asterisks, and a school in a bracket gets a **Games | Tournament** switch
+  two asterisks, a named one — SEC Championship, Rose Bowl — CFP
+  Semifinal, FCS Quarterfinal — carries its `name` on a line under the
+  opponent, and a school in a bracket gets a **Games | Tournament** switch
   beside the fold-away arrow.
 
   **The postseason only shows as far as the next game.** The regular season is
   all there from the first week, but no playoff game appears until every week
   before it on that player's schedule is published — so nothing says a team
   made the playoffs until its regular season is out, and each published
-  playoff week adds the next matchup and nothing after it. A bye counts as
+  playoff week adds the next matchup and nothing after it. Past the
+  postseason's first week nothing shows until that week is out either, so a
+  bowl is not on a schedule before the conference title games that decide
+  who goes where. A bye counts as
   done once its week is out. The Tournament switch arrives with the first
-  playoff row rather than with the draw, since a bracket with the school in
-  it would say the same thing early, and everything counted under the table
+  game of the draw on the schedule, since a bracket with the school in it
+  would say the same thing early — for a high school that is its first
+  playoff row, and for a college team waiting on the College Football
+  Playoff it is the semifinal, which only appears once its conference title
+  game is published (`EGE.bracketInSight`). Everything counted under the table
   (the games, the Intel scouts) counts only the rows on it. This is the page,
   not a lock: the season file still holds the whole postseason, the way it
   holds every result before its week is published. The admin page still
@@ -169,9 +179,10 @@ holds:
   written out, wrapping between words where it needs to. On anything
   narrower it keeps its shape and scrolls sideways, opening at his school,
   with a note under it saying to swipe. A draw has as many columns as it has
-  rounds: nine for a thirty-two-team state bracket, three for San Diego's
-  four-team Open Division, which sits in the middle of the band at a box's
-  width rather than stretching across it.
+  rounds: nine for a thirty-two-team state bracket or the twenty-four-team
+  FCS playoffs (the eight seeds drawn with a first-round bye), three for San
+  Diego's four-team Open Division or the College Football Playoff, which sit
+  in the middle of the band at a box's width rather than stretching across it.
 - **Game log** — per-game stats for that player, with the stat lines driven by
   their position (see below), and a totals row for the season.
 - **Ratings** — three tiers, top to bottom:
@@ -310,6 +321,10 @@ The postseason counts from one again:
 ## Playoffs Week One
 {one embed per player playing that week}
 ```
+
+A college season heads it `## Postseason Week One`, since its weeks are
+conference title games and bowls as much as playoff rounds, and each embed
+names its game beside the opponent: `W 36-34 vs. Florida · SEC Championship`.
 
 Which weeks those are is read off the games — `EGE.playoffWeeks` in
 `data/games.js` is every week with a `playoff: true` game in it, and a week's

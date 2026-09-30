@@ -37,6 +37,13 @@
    `neutral: true` marks a game at a neutral site — listed as vs, and home
    is false because it is nobody's. A kickoff of null is one that has not
    been set yet; it shows as a dash until it is.
+
+   `playoff: true` marks a postseason game: a playoff round, and in college
+   a conference title game or a bowl too. `name` says which game it is —
+   'SEC Championship', 'Rose Bowl — CFP Semifinal' — and shows under the
+   opponent on the schedule and beside it in the Discord post. A game is
+   out of sight until the week before it is published, so a bowl is not
+   on anybody's schedule before the title game that sent them there.
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -45,6 +52,76 @@ EGE.stats = EGE.stats || {};
 EGE.stats[2020] = {
   season: 2020,
   level: 'College football',
+
+  /* How the rest of each draw went. See data/brackets.js for the
+     order: the whole left half top to bottom, then the whole right.
+     [winner, winner's score, loser's score], or null for a bye and
+     for the one matchup his own school is in. */
+  playoffs: {
+    ohioState: [
+      { week: 18, results: [
+        null,
+        ['Alabama', 34, 33],
+      ] },
+      { week: 19, results: [
+        null,
+      ] },
+    ],
+
+    alabama: [
+      { week: 18, results: [
+        ['Ohio State', 26, 19],
+        null,
+      ] },
+      { week: 19, results: [
+        null,
+      ] },
+    ],
+
+    northDakotaState: [
+      { week: 13, results: [
+        null,
+        ['Nicholls', 31, 21],
+        null,
+        ['Southeast Missouri State', 43, 23],
+        null,
+        ['Furman', 34, 24],
+        null,
+        ['Albany', 38, 14],
+        null,
+        ['Monmouth', 35, 20],
+        null,
+        ['San Diego', 57, 7],
+        null,
+        ['Wofford', 27, 20],
+        null,
+        ['Villanova', 34, 31],
+      ] },
+      { week: 14, results: [
+        null,
+        ['Central Arkansas', 42, 7],
+        ['Furman', 37, 21],
+        ['Albany', 36, 31],
+        ['James Madison', 44, 14],
+        ['South Dakota State', 28, 12],
+        ['Weber State', 30, 28],
+        ['Montana', 31, 21],
+      ] },
+      { week: 15, results: [
+        null,
+        ['Furman', 35, 6],
+        ['James Madison', 46, 19],
+        ['Montana', 28, 27],
+      ] },
+      { week: 16, results: [
+        null,
+        ['James Madison', 50, 14],
+      ] },
+      { week: 19, results: [
+        null,
+      ] },
+    ],
+  },
 
   games: {
 
@@ -167,6 +244,39 @@ EGE.stats[2020] = {
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
           receivingAvg: 14.3, totalYards: 57, totalTd: 0
         } },
+      { week: 14, date: '2020-12-05', kickoff: null,
+        name: 'SEC Championship',
+        opponent: 'Florida', home: false, conference: false, neutral: true, playoff: true,
+        result: { teamScore: 36, opponentScore: 34 }, booster: null,
+        stats: {
+          receptions: 5, receivingYards: 63, receivingYac: 28,
+          receivingTd: 0, receivingLong: 20, targets: 6, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 12.6, totalYards: 63, totalTd: 0
+        } },
+      { week: 18, date: '2021-01-01', kickoff: null,
+        name: 'Rose Bowl — CFP Semifinal',
+        opponent: 'Clemson', home: false, conference: false, neutral: true, playoff: true,
+        result: { teamScore: 34, opponentScore: 33 }, booster: null,
+        stats: {
+          receptions: 3, receivingYards: 22, receivingYac: 10,
+          receivingTd: 1, receivingLong: 13, targets: 4, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 7.3, totalYards: 22, totalTd: 1
+        },
+        bigPlays: [
+          '5 yard receiving touchdown'
+        ] },
+      { week: 19, date: '2021-01-11', kickoff: null,
+        name: 'CFP National Championship',
+        opponent: 'Ohio State', home: false, conference: false, neutral: true, playoff: true,
+        result: { teamScore: 44, opponentScore: 26 }, booster: null,
+        stats: {
+          receptions: 3, receivingYards: 26, receivingYac: 13,
+          receivingTd: 0, receivingLong: 13, targets: 3, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 8.7, totalYards: 26, totalTd: 0
+        } },
     ],
 
     /* Cooper Clark — USC */
@@ -284,6 +394,26 @@ EGE.stats[2020] = {
           receptions: 1, receivingYards: 6, receivingYac: 6,
           receivingTd: 0, receivingLong: 6, targets: 1, fumbles: 0,
           rushingAvg: 1.3, receivingAvg: 6, totalYards: 10, totalTd: 0
+        } },
+      { week: 14, date: '2020-12-04', kickoff: null,
+        name: 'Pac-12 Championship',
+        opponent: 'Stanford', home: false, conference: false, neutral: true, playoff: true,
+        result: { teamScore: 31, opponentScore: 28 }, booster: null,
+        stats: {
+          carries: 4, rushingYards: 21, rushingTd: 0, rushingLong: 12,
+          receptions: 1, receivingYards: 4, receivingYac: 4,
+          receivingTd: 0, receivingLong: 4, targets: 2, fumbles: 0,
+          rushingAvg: 5.3, receivingAvg: 4, totalYards: 25, totalTd: 0
+        } },
+      { week: 18, date: '2021-01-01', kickoff: null,
+        name: 'Peach Bowl',
+        opponent: 'Florida', home: false, conference: false, neutral: true, playoff: true,
+        result: { teamScore: 44, opponentScore: 28 }, booster: null,
+        stats: {
+          carries: 5, rushingYards: 18, rushingTd: 0, rushingLong: 7,
+          receptions: 1, receivingYards: 10, receivingYac: 10,
+          receivingTd: 0, receivingLong: 10, targets: 1, fumbles: 0,
+          rushingAvg: 3.6, receivingAvg: 10, totalYards: 28, totalTd: 0
         } },
     ],
 
@@ -410,6 +540,53 @@ EGE.stats[2020] = {
         bigPlays: [
           '43 yard receiving touchdown'
         ] },
+      { week: 14, date: '2020-12-05', kickoff: null,
+        name: 'FCS Second Round',
+        opponent: 'Nicholls', home: true, conference: false, playoff: true,
+        result: { teamScore: 40, opponentScore: 10 }, booster: null,
+        stats: {
+          receptions: 1, receivingYards: 11, receivingYac: 3,
+          receivingTd: 1, receivingLong: 11, targets: 3, carries: 1,
+          rushingYards: 55, rushingTd: 0, rushingLong: 55, fumbles: 0,
+          rushingAvg: 55, receivingAvg: 11, totalYards: 66, totalTd: 1
+        },
+        bigPlays: [
+          '11 yard receiving touchdown'
+        ] },
+      { week: 15, date: '2020-12-12', kickoff: null,
+        name: 'FCS Quarterfinal',
+        opponent: 'Central Arkansas', home: true, conference: false, playoff: true,
+        result: { teamScore: 44, opponentScore: 0 }, booster: null,
+        stats: {
+          receptions: 5, receivingYards: 120, receivingYac: 49,
+          receivingTd: 0, receivingLong: 33, targets: 8, carries: 1,
+          rushingYards: 6, rushingTd: 0, rushingLong: 6, fumbles: 0,
+          rushingAvg: 6, receivingAvg: 24, totalYards: 126, totalTd: 0
+        } },
+      { week: 16, date: '2020-12-19', kickoff: null,
+        name: 'FCS Semifinal',
+        opponent: 'Furman', home: true, conference: false, playoff: true,
+        result: { teamScore: 46, opponentScore: 7 }, booster: null,
+        stats: {
+          receptions: 2, receivingYards: 50, receivingYac: 23,
+          receivingTd: 0, receivingLong: 45, targets: 4, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 25, totalYards: 50, totalTd: 0
+        } },
+      { week: 19, date: '2021-01-09', kickoff: null,
+        name: 'FCS Championship',
+        opponent: 'James Madison', home: false, conference: false, neutral: true, playoff: true,
+        result: { teamScore: 37, opponentScore: 30 }, booster: null,
+        stats: {
+          receptions: 3, receivingYards: 48, receivingYac: 27,
+          receivingTd: 2, receivingLong: 30, targets: 5, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 16, totalYards: 48, totalTd: 2
+        },
+        bigPlays: [
+          '30 yard receiving touchdown',
+          '6 yard receiving touchdown'
+        ] },
     ],
 
     /* Isaac Vitel — Illinois */
@@ -507,6 +684,15 @@ EGE.stats[2020] = {
       { week: 13, date: '2020-11-28', kickoff: null,
         opponent: 'Northwestern', home: false, conference: true,
         result: { teamScore: 17, opponentScore: 38 }, booster: null,
+        stats: {
+          completions: 0, attempts: 0, passingYards: 0, passingYac: 0,
+          passingTd: 0, interceptions: 0, carries: 0, rushingYards: 0,
+          rushingTd: 0, rushingLong: 0, sacks: 0, fumbles: 0
+        } },
+      { week: 17, date: '2020-12-26', kickoff: null,
+        name: 'Quick Lane Bowl',
+        opponent: 'Ball State', home: false, conference: false, neutral: true, playoff: true,
+        result: { teamScore: 27, opponentScore: 20 }, booster: null,
         stats: {
           completions: 0, attempts: 0, passingYards: 0, passingYac: 0,
           passingTd: 0, interceptions: 0, carries: 0, rushingYards: 0,
@@ -633,6 +819,40 @@ EGE.stats[2020] = {
           receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
           rushingAvg: 6.6, totalYards: 33, totalTd: 0
         } },
+      { week: 14, date: '2020-12-05', kickoff: null,
+        name: 'Big Ten Championship',
+        opponent: 'Northwestern', home: false, conference: false, neutral: true, playoff: true,
+        result: { teamScore: 28, opponentScore: 6 }, booster: null,
+        stats: {
+          carries: 6, rushingYards: 30, rushingTd: 2, rushingLong: 8,
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
+          rushingAvg: 5, totalYards: 30, totalTd: 2
+        },
+        bigPlays: [
+          '2 yard rushing touchdown',
+          '2 yard rushing touchdown'
+        ] },
+      { week: 18, date: '2021-01-01', kickoff: null,
+        name: 'Sugar Bowl — CFP Semifinal',
+        opponent: 'Notre Dame', home: false, conference: false, neutral: true, playoff: true,
+        result: { teamScore: 26, opponentScore: 19 }, booster: null,
+        stats: {
+          carries: 4, rushingYards: 26, rushingTd: 0, rushingLong: 10,
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
+          rushingAvg: 6.5, totalYards: 26, totalTd: 0
+        } },
+      { week: 19, date: '2021-01-11', kickoff: null,
+        name: 'CFP National Championship',
+        opponent: 'Alabama', home: false, conference: false, neutral: true, playoff: true,
+        result: { teamScore: 26, opponentScore: 44 }, booster: null,
+        stats: {
+          carries: 4, rushingYards: 23, rushingTd: 0, rushingLong: 7,
+          receptions: 1, receivingYards: 9, receivingYac: 8,
+          receivingTd: 0, receivingLong: 9, targets: 1, fumbles: 0,
+          rushingAvg: 5.8, receivingAvg: 9, totalYards: 32, totalTd: 0
+        } },
     ],
 
     /* Jaykeb Stewart — Ohio State */
@@ -745,6 +965,34 @@ EGE.stats[2020] = {
       { week: 13, date: '2020-11-28', kickoff: null,
         opponent: 'Michigan', home: true, conference: true,
         result: { teamScore: 51, opponentScore: 24 }, booster: null,
+        stats: {
+          completions: 0, attempts: 0, passingYards: 0, passingYac: 0,
+          passingTd: 0, interceptions: 0, carries: 0, rushingYards: 0,
+          rushingTd: 0, rushingLong: 0, sacks: 0, fumbles: 0
+        } },
+      { week: 14, date: '2020-12-05', kickoff: null,
+        name: 'Big Ten Championship',
+        opponent: 'Northwestern', home: false, conference: false, neutral: true, playoff: true,
+        result: { teamScore: 28, opponentScore: 6 }, booster: null,
+        stats: {
+          completions: 3, attempts: 3, passingYards: 61, passingYac: 28,
+          passingTd: 0, interceptions: 0, carries: 1, rushingYards: -1,
+          rushingTd: 0, rushingLong: -1, sacks: 0, fumbles: 0,
+          passingAvg: 20.3, rating: 118.8, rushingAvg: -1
+        } },
+      { week: 18, date: '2021-01-01', kickoff: null,
+        name: 'Sugar Bowl — CFP Semifinal',
+        opponent: 'Notre Dame', home: false, conference: false, neutral: true, playoff: true,
+        result: { teamScore: 26, opponentScore: 19 }, booster: null,
+        stats: {
+          completions: 0, attempts: 0, passingYards: 0, passingYac: 0,
+          passingTd: 0, interceptions: 0, carries: 0, rushingYards: 0,
+          rushingTd: 0, rushingLong: 0, sacks: 0, fumbles: 0
+        } },
+      { week: 19, date: '2021-01-11', kickoff: null,
+        name: 'CFP National Championship',
+        opponent: 'Alabama', home: false, conference: false, neutral: true, playoff: true,
+        result: { teamScore: 26, opponentScore: 44 }, booster: null,
         stats: {
           completions: 0, attempts: 0, passingYards: 0, passingYac: 0,
           passingTd: 0, interceptions: 0, carries: 0, rushingYards: 0,
