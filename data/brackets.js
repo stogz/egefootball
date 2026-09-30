@@ -363,6 +363,82 @@ window.EGE = window.EGE || {};
     }
   };
 
+  /* College. The College Football Playoff is four teams, drawn the way the
+     committee drew them on selection day: one against four in the semifinal
+     the top seed chose, two against three in the other. Ohio State and
+     Alabama are both in it, so it is written once and handed to both, each
+     with its own school as `us`. */
+  function cfp(us) {
+    return {
+      title: 'College Football Playoff',
+      us: us,
+      rounds: [
+        { label: 'Semifinal', date: 'Jan 1' }
+      ],
+      final: { label: 'National Championship', date: 'Jan 11' },
+      left: [
+        { label: 'Sugar Bowl', games: [
+          m(1, 'Ohio State', 4, 'Notre Dame')
+        ] }
+      ],
+      right: [
+        { label: 'Rose Bowl', games: [
+          m(2, 'Alabama', 3, 'Clemson')
+        ] }
+      ]
+    };
+  }
+
+  EGE.brackets[2020] = {
+
+    /* --- Sam Stogsdill, Jaykeb Stewart ------------------------------------ */
+    ohioState: cfp('Ohio State'),
+
+    /* --- Andrew Parr ------------------------------------------------------ */
+    alabama: cfp('Alabama'),
+
+    /* --- Paxon Hatch ------------------------------------------------------ */
+    /* The FCS playoffs: twenty-four teams, the eight seeds off in the first
+       round and at home to its winners in the second. Unseeded teams have
+       no number. The field is 2019's, the last the pandemic left alone, with
+       the Missouri Valley's bids read off this season's Valley table. */
+    northDakotaState: {
+      title: 'NCAA Division I FCS Playoffs',
+      us: 'North Dakota State',
+      rounds: [
+        { label: 'First Round', date: 'Nov 28' },
+        { label: 'Second Round', date: 'Dec 5' },
+        { label: 'Quarterfinal', date: 'Dec 12' },
+        { label: 'Semifinal', date: 'Dec 19' }
+      ],
+      final: { label: 'National Championship', date: 'Jan 9' },
+      left: [
+        { label: null, games: [
+          bye(1, 'North Dakota State'),
+          m(null, 'Nicholls', null, 'North Dakota'),
+          bye(8, 'Central Arkansas'),
+          m(null, 'Southeast Missouri State', null, 'Missouri State'),
+          bye(4, 'Sacramento State'),
+          m(null, 'Austin Peay', null, 'Furman'),
+          bye(5, 'Montana State'),
+          m(null, 'Albany', null, 'Central Connecticut')
+        ] }
+      ],
+      right: [
+        { label: null, games: [
+          bye(2, 'James Madison'),
+          m(null, 'Monmouth', null, 'Holy Cross'),
+          bye(7, 'South Dakota State'),
+          m(null, 'Northern Iowa', null, 'San Diego'),
+          bye(3, 'Weber State'),
+          m(null, 'Wofford', null, 'Kennesaw State'),
+          bye(6, 'Montana'),
+          m(null, 'SE Louisiana', null, 'Villanova')
+        ] }
+      ]
+    }
+  };
+
   /* The bracket a player's school was in that season, or null. Carlsbad in
      2018 is the case this has to answer for: two playoff games and no draw
      written in for them, because a school can be in the postseason without

@@ -306,9 +306,15 @@ EGE.ordinal = function (number) {
 };
 
 /* Whether a team's season is done: any season before the live one, or the
-   live one once the team is out of the playoffs -- beaten in a playoff game,
-   or champions, or never in them at all once they have started without it.
-   A team still going, or waiting on its next game, is not. */
+   live one once the team has played its last postseason game -- beaten in a
+   playoff, champions, or through its bowl -- or was never in the postseason
+   at all once it has started without it. A team still going, or waiting on
+   its next game, is not.
+
+   The last game is the last one in the season file. A high school team that
+   loses a playoff game has nothing after it, and neither does a champion;
+   a college team that loses its conference title game still has its bowl
+   to come, so a loss alone does not end a season. */
 EGE.seasonOverFor = function (player, season) {
   var year = season || EGE.currentSeason;
   if (year < EGE.currentSeason) { return true; }
@@ -327,10 +333,7 @@ EGE.seasonOverFor = function (player, season) {
   });
   var last = played[played.length - 1];
   if (!last || !last.playoff) { return false; }
-  if (last.result.teamScore <= last.result.opponentScore) { return true; }
-
-  var state = EGE.bracketState ? EGE.bracketState(player, year) : null;
-  return Boolean(state && state.champion && state.champion === state.bracket.us);
+  return !EGE.gamesFor(player, year).some(function (game) { return game.week > last.week; });
 };
 
 /* The games scouts will attend. Only worth reading when the player has Intel
@@ -397,8 +400,17 @@ EGE.scheduleFor = function (player, season) {
   }).map(function (game) { return game.week; });
   var next = ahead.length ? Math.min.apply(null, ahead) : Infinity;
 
+  /* Nobody knows where they are going past the postseason's first week
+     until that week is out: the bowls are picked after the conference title
+     games. Illinois has no title game, so without this its bowl would be on
+     the schedule the moment the regular season ended. */
+  var postseason = EGE.playoffWeeks(season);
+  var opening = postseason.length ? postseason[0] : Infinity;
+  var picked = !postseason.length || EGE.isPublished(season || EGE.currentSeason, opening);
+
   return games.filter(function (game) {
-    return !game.playoff || game.week <= next || EGE.isPublished(game.season, game.week);
+    if (!game.playoff || EGE.isPublished(game.season, game.week)) { return true; }
+    return game.week <= next && (game.week === opening || picked);
   });
 };
 
@@ -407,6 +419,24 @@ EGE.scheduleFor = function (player, season) {
    either, because a draw with their school in it says they made it. */
 EGE.postseasonInSight = function (player, season) {
   return EGE.scheduleFor(player, season).some(function (game) { return game.playoff; });
+};
+
+/* Whether the player's bracket can be shown yet: a game of that tournament
+   on the schedule they can see. For a high school draw that is the same as
+   the postseason being in sight, because the playoffs are the whole of it.
+   A college postseason starts before its bracket does -- Ohio State's
+   conference title game is a playoff game, and the College Football Playoff
+   is picked after it -- so a draw with the school in it waits for a game in
+   or past the draw's first round, which the schedule only shows once the
+   title game is out. */
+EGE.bracketInSight = function (player, season) {
+  var year = season || EGE.currentSeason;
+  if (!EGE.bracketFor || !EGE.bracketFor(player, year)) { return false; }
+  var rounds = ((EGE.stats[year] || {}).playoffs || {})[EGE.teamKeyFor(player, year)] || [];
+  var from = rounds.length ? rounds[0].week : -Infinity;
+  return EGE.scheduleFor(player, year).some(function (game) {
+    return game.playoff && game.week >= from;
+  });
 };
 
 /* --- boosters ------------------------------------------------------------ */

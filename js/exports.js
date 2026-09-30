@@ -511,9 +511,12 @@ EGE.exports = (function () {
 
     var out = [
       '      { week: ' + pad(game.week) + ', date: ' + quote(game.date) +
-        ', kickoff: ' + quote(game.kickoff) + ',',
-      '        opponent: ' + quote(game.opponent) + ', ' + flags.join(', ') + ','
+        ', kickoff: ' + quote(game.kickoff) + ','
     ];
+    /* A postseason game's name gets a line of its own: 'Sugar Bowl — CFP
+       Semifinal' on the end of the flags would run the line off the page. */
+    if (game.name) { out.push('        name: ' + quote(game.name) + ','); }
+    out.push('        opponent: ' + quote(game.opponent) + ', ' + flags.join(', ') + ',');
 
     var resultText = scored
       ? '{ teamScore: ' + result.teamScore + ', opponentScore: ' + result.opponentScore + ' }'
@@ -609,6 +612,13 @@ EGE.exports = (function () {
       '   `neutral: true` marks a game at a neutral site — listed as vs, and home',
       '   is false because it is nobody\'s. A kickoff of null is one that has not',
       '   been set yet; it shows as a dash until it is.',
+      '',
+      '   `playoff: true` marks a postseason game: a playoff round, and in college',
+      '   a conference title game or a bowl too. `name` says which game it is —',
+      "   'SEC Championship', 'Rose Bowl — CFP Semifinal' — and shows under the",
+      '   opponent on the schedule and beside it in the Discord post. A game is',
+      '   out of sight until the week before it is published, so a bowl is not',
+      '   on anybody\'s schedule before the title game that sent them there.',
       '   ========================================================================== */',
       ''
     ];

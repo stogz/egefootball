@@ -1469,6 +1469,20 @@ body::before {
   font-weight: 800;
   text-decoration: none;
 }
+/* A postseason game's name -- SEC Championship, Rose Bowl -- under the
+   opponent, lined up past the vs/at. */
+.ege-schedule__event {
+  display: block;
+  margin: 1px 0 0 20px;
+  font-size: .6875rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--fb-accent-deep);
+}
 
 /* --- ratings ------------------------------------------------------------ */
 

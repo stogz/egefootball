@@ -1071,6 +1071,19 @@
     cell.appendChild(el('span', 'fb-name', name));
   }
 
+  /* What a postseason game is called -- SEC Championship, Rose Bowl, FCS
+     Quarterfinal -- on a line of its own under the opponent. A high school
+     playoff round has no name in the file and gets no line. */
+  function eventName(cell, game) {
+    if (game.name) { cell.appendChild(el('span', 'ege-schedule__event', game.name)); }
+  }
+
+  /* A high school's postseason is its playoffs; a college's is title games
+     and bowls as much as a bracket. */
+  function postseasonWord(season) {
+    return EGE.tierFor(season) === 'college' ? 'Postseason' : 'Playoff';
+  }
+
   function scheduleRow(game, opensPlayoffs) {
     var row = el('tr');
     var played = EGE.isFinal(game);
@@ -1099,13 +1112,15 @@
       opponent.appendChild(mark);
     }
     /* Two of them for the postseason, one for a conference game. A playoff
-       game is never also a conference game, so the two never stack. */
+       game is never also a conference game, so the two never stack -- a
+       conference title game is postseason, not a standings game. */
     if (game.playoff) {
       var post = el('abbr', 'ege-schedule__conf', '**');
-      post.title = 'Playoff game';
+      post.title = postseasonWord(game.season) + ' game';
       opponent.appendChild(post);
     }
     if (showScouts && game.scouts) { opponent.appendChild(scoutMark()); }
+    eventName(opponent, game);
     row.appendChild(opponent);
 
     var result = el('td', 'num ege-schedule__result');
@@ -1207,7 +1222,7 @@
 
     var playoff = games.filter(function (game) { return game.playoff; }).length;
     if (playoff) {
-      legend += (legend ? ' · ' : '') + '** playoff game';
+      legend += (legend ? ' · ' : '') + '** ' + postseasonWord(season).toLowerCase() + ' game';
     }
 
     if (showScouts) {
@@ -1380,10 +1395,11 @@
   function renderBracket(player) {
     var wrap = document.getElementById('bracketWrap');
     var box = document.getElementById('bracket');
-    /* No draw until the player's first playoff game is in sight: a bracket
-       with their school in it says they made the playoffs before the regular
-       season has said so. */
-    var state = EGE.postseasonInSight(player, shownSeason())
+    /* No draw until a game of it is in sight: a bracket with their school in
+       it says they made the playoffs before the season has said so -- the
+       regular season for a high school, and the conference title game for a
+       college team waiting on the College Football Playoff. */
+    var state = EGE.bracketInSight(player, shownSeason())
       ? EGE.bracketState(player, shownSeason())
       : null;
 
@@ -1693,9 +1709,8 @@
   var scheduleView = 'games';
 
   function showScheduleView() {
-    /* The switch comes with the postseason, not with the draw: see
-       renderBracket. */
-    var bracket = schedulePlayer && EGE.postseasonInSight(schedulePlayer, shownSeason())
+    /* The switch comes with the draw coming into sight: see renderBracket. */
+    var bracket = schedulePlayer && EGE.bracketInSight(schedulePlayer, shownSeason())
       ? EGE.bracketFor(schedulePlayer, shownSeason())
       : null;
     var tournament = Boolean(bracket) && scheduleView === 'tournament';
@@ -1853,6 +1868,7 @@
         mark.title = booster.name + ' was on this game';
         opponent.appendChild(mark);
       }
+      eventName(opponent, game);
       row.appendChild(opponent);
 
       var won = game.result.teamScore > game.result.opponentScore;
