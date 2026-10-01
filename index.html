@@ -42,6 +42,7 @@
       </a>
       <div class="fb-nav__links">
         <a class="fb-navlink is-active" href="#" id="navPlayers">Players</a>
+        <a class="fb-navlink" href="#teams" id="navTeams">Teams</a>
         <a class="fb-navlink" href="#shop" id="navShop" hidden>Shop</a>
         <a class="fb-navlink" href="#admin" id="navAdmin" hidden>Admin</a>
       </div>
@@ -89,6 +90,22 @@
         </div>
       </section>
 
+    </section>
+
+    <!-- ===== teams ==================================================== -->
+    <!-- Every school one of the six plays for this season: its record, where
+         it stands in its conference, which of the six are on it, and who
+         else is in each position room. Public, like the player pages. Built
+         in app.js from data/rosters.js and the season files. -->
+    <section id="view-teams" hidden>
+      <header class="fb-hero fb-hero--centred" style="padding: 44px 0 30px;">
+        <div class="fb-hero__col">
+          <span class="fb-kicker" id="teamsSeasonLabel"></span>
+          <h1 class="fb-hero__title" style="margin: 14px 0 0;">Teams</h1>
+        </div>
+      </header>
+      <nav class="ege-teamjump" id="teamsJump" aria-label="Jump to a team"></nav>
+      <div class="fb-stack fb-stack--lg" id="teamsList"></div>
     </section>
 
     <!-- ===== shop ===================================================== -->
@@ -528,6 +545,11 @@
           </div>
         </div>
 
+        <!-- The injury report: what he is hurt with and how healthy he is,
+             only while the week being played is one the season file marks
+             him injured for. Built in app.js from EGE.injuryFor. -->
+        <div class="ege-injury" id="playerInjury" hidden role="status"></div>
+
         <!-- The season so far, built in app.js from the same columns the game
              log is made of. It is the panel's foot, which is where the kit's
              hard rule already is. -->
@@ -579,6 +601,11 @@
                 <th>Wk</th>
                 <th>Date</th>
                 <th>Opponent</th>
+                <!-- How good the defense across the way is against what this
+                     player does: the run for a back, the pass for everyone
+                     else. College seasons only; see EGE.defenseGrade. -->
+                <th class="ege-schedule__gradehead" id="scheduleGradeHead"
+                    title="The opponent's defense against what you do: the run for a back, the pass for everyone else. A is the toughest, F the softest.">Opp D</th>
                 <th class="num">Result</th>
                 <th class="num" id="scheduleCreditsHead">Credits</th>
                 <th class="num" id="scheduleBoosterHead">Booster</th>
@@ -594,6 +621,23 @@
 
         <div class="fb-panel__foot" id="scheduleFoot" hidden>
           <span class="fb-meta" id="scheduleLegend"></span>
+        </div>
+      </div>
+
+      <!-- Where the team stands in its conference: every division, the
+           team's own first, with its row picked out so who is above and
+           below it reads at a glance. College seasons only. Built in app.js
+           from EGE.conferenceTables. -->
+      <div class="fb-panel ege-section-gap" id="standingsPanel" hidden>
+        <div class="fb-panel__head">
+          <h3>Conference Standings</h3>
+          <button class="ege-collapse" type="button"
+                  data-collapses="standingsPanel" aria-controls="standingsPanel"
+                  aria-expanded="true" aria-label="Hide the conference standings"></button>
+        </div>
+        <div class="ege-standings" id="standingsBody"></div>
+        <div class="fb-panel__foot" id="standingsFoot" hidden>
+          <span class="fb-meta" id="standingsLegend"></span>
         </div>
       </div>
 
@@ -740,6 +784,8 @@
 <script src="data/brackets.js"></script>
 <script src="data/conferences.js"></script>
 <script src="data/logos.js"></script>
+<script src="data/defenses.js"></script>
+<script src="data/rosters.js"></script>
 <script src="data/shop.js"></script>
 <script src="data/economy.js"></script>
 <script src="data/statline.js"></script>

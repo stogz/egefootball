@@ -215,6 +215,17 @@ EGE.wallet = (function () {
     if (!item) { return fail('That item is not in the shop.'); }
     if (item.needsTarget && !target) { return fail('Choose which attribute to raise.'); }
 
+    /* A connection is with somebody. The page will not let the button go
+       without one picked, and it has to be a quarterback on his own team. */
+    var quarterback = null;
+    if (EGE.needsQuarterback(item, player)) {
+      if (!target) { return fail('Choose which quarterback the connection is with.'); }
+      if (EGE.quarterbacksFor(player, EGE.currentSeason).indexOf(target) === -1) {
+        return fail(target + ' is not a quarterback on your team.');
+      }
+      quarterback = target;
+    }
+
     /* The button is disabled too, but a disabled button is a suggestion. */
     var allowed = EGE.itemAvailable(item, EGE.currentSeason);
     if (!allowed.ok) { return fail(allowed.reason); }
@@ -247,7 +258,7 @@ EGE.wallet = (function () {
           : c.from(INVENTORY).insert({
               email: email,
               item_key: item.key,
-              item_name: EGE.itemName(item, player),
+              item_name: EGE.connectionName(item, player, quarterback),
               target: target || null,
               quantity: 1,
               credits: price,
@@ -264,7 +275,7 @@ EGE.wallet = (function () {
             return {
               ok: true,
               effects: effects,
-              message: 'Bought ' + EGE.itemName(item, player) + ' for ' + price +
+              message: 'Bought ' + EGE.connectionName(item, player, quarterback) + ' for ' + price +
                        ' credits.' + rollMessage(item),
               credits: spent.credits
             };
@@ -707,7 +718,17 @@ EGE.wallet = (function () {
       return fail('No boosters in the playoffs \u2014 that one is a postseason game.');
     }
 
-    return inventoryFor(email).then(function (rows) {
+    /* Five a season, and only so many of each kind. Counted from what the
+       server holds right now -- the stickers reloaded first -- plus what the
+       season file already has written in, not from whatever this page last
+       drew. supabase/schema.sql refuses the row as well. */
+    return loadGameBoosters(season).then(function () {
+      return owner ? EGE.boosterRoom(owner, item.key, season) : { ok: true };
+    }).then(function (room) {
+      if (!room.ok) { return { ok: false, message: room.reason }; }
+      return inventoryFor(email);
+    }).then(function (rows) {
+      if (rows && rows.ok === false) { return rows; }
       var owned = stackedRow(rows, item.key, null);
       if (!owned || quantityOf(owned) < 1) { return { ok: false, message: 'You do not own one of those.' }; }
 
@@ -723,7 +744,7 @@ EGE.wallet = (function () {
             ok: false,
             message: /duplicate|unique/i.test(res.error.message || '')
               ? 'That game already has a sticker on it.'
-              : res.error.message
+              : res.error.message.replace(/^.*?(Season limit)/, '$1')
           };
         }
 
@@ -846,10 +867,18 @@ EGE.wallet = (function () {
     var c = client();
     if (!c) { return fail(offline()); }
 
+    var player = EGE.players.filter(function (p) {
+      return p.email && email && p.email.toLowerCase() === String(email).toLowerCase();
+    })[0];
+    var quarterback = EGE.needsQuarterback(item, player) ? (target || null) : null;
+    if (EGE.needsQuarterback(item, player) && !quarterback) {
+      return fail('Choose which quarterback the connection is with.');
+    }
+
     return c.from(INVENTORY).insert({
       email: email,
       item_key: item.key,
-      item_name: item.name,
+      item_name: quarterback ? EGE.connectionName(item, player, quarterback) : item.name,
       target: target || null,
       effects: item.needsTarget ? effectsForTarget(item, target) : rollEffects(item),
       credits: 0,

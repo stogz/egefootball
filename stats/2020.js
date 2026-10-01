@@ -32,7 +32,9 @@
 
    `injured: true` marks a game the player missed hurt, and `injury` says
    what with — 'Bruised Shoulder'. The Discord post shows it in red, as
-   DNP Injured: Bruised Shoulder, in place of his stat line.
+   DNP Injured: Bruised Shoulder, in place of his stat line. `health` is how
+   healthy he is that week, 0 to 100; while the week is the one being played
+   his page shows an injury report with it as a bar.
 
    `neutral: true` marks a game at a neutral site — listed as vs, and home
    is false because it is nobody's. A kickoff of null is one that has not

@@ -481,3 +481,251 @@ EGE.creditsFromGame = function (player, game) {
   if (!EGE.isFinal(game)) { return 0; }
   return EGE.economy.gameCredits(player, game.stats, game.season);
 };
+
+/* --- how good the defense across the way is ------------------------------
+
+   Every opponent's defense, graded A to F for the player looking at it: a
+   back is graded on the run defense he is about to run into, everybody else
+   -- the quarterbacks and the receivers -- on the pass defense. A stingy
+   run defense is an A for Cooper or Sam, a sieve is an F.
+
+   The numbers are each school's real yards allowed a game that season, from
+   data/defenses.js, ranked among every school at its level: FBS against
+   FBS, FCS against FCS. A grade is a fifth of that list -- the top fifth an
+   A, the bottom fifth an F. A season with no table yet borrows the latest
+   one before it, so a new season's schedule is graded from the day its file
+   goes in. High schools have no numbers anywhere and get no grade. */
+
+EGE.GRADES = ['A', 'B', 'C', 'D', 'F'];
+
+/* Which side of the ball a position runs into. */
+EGE.defenseSide = function (position) {
+  return position === 'RB' || position === 'FB' ? 'rush' : 'pass';
+};
+
+EGE.defenseTable = function (season) {
+  var tables = EGE.defenses || {};
+  var years = Object.keys(tables).map(Number).filter(function (year) {
+    return year <= season;
+  }).sort(function (a, b) { return b - a; });
+  return years.length ? { season: years[0], schools: tables[years[0]] } : null;
+};
+
+/* The grade a game's opponent gets for this player, or null where there is
+   nothing to grade on:
+     { letter: 'A', side: 'rush', yards: 78.1, perPlay: 2.5, rank: 1,
+       of: 125, level: 'FBS', season: 2020, text: 'Run defense: ...' } */
+EGE.defenseGrade = function (player, game) {
+  if (!game || game.bye || !game.opponent) { return null; }
+  if (EGE.tierFor(game.season) !== 'college') { return null; }
+
+  var table = EGE.defenseTable(game.season);
+  var school = table && table.schools[game.opponent];
+  if (!school) { return null; }
+
+  var side = EGE.defenseSide(EGE.positionFor(player, game.season));
+  var rank = side === 'rush' ? school.rushRank : school.passRank;
+  var share = (rank - 1) / school.of;
+  var letter = EGE.GRADES[Math.min(EGE.GRADES.length - 1, Math.floor(share * EGE.GRADES.length))];
+  var yards = side === 'rush' ? school.rush : school.pass;
+  var perPlay = side === 'rush' ? school.perCarry : school.perAttempt;
+  perPlay = typeof perPlay === 'number' ? perPlay.toFixed(1) : perPlay;
+  var from = school.from || table.season;
+
+  return {
+    letter: letter,
+    side: side,
+    yards: yards,
+    perPlay: perPlay,
+    rank: rank,
+    of: school.of,
+    level: school.level,
+    season: from,
+    text: (side === 'rush' ? 'Run' : 'Pass') + ' defense: ' + letter + ' — ' +
+      yards + ' ' + (side === 'rush' ? 'rushing' : 'passing') + ' yards a game allowed (' +
+      perPlay + ' a ' + (side === 'rush' ? 'carry' : 'throw') + '), ' +
+      EGE.ordinal(rank).toLowerCase() + ' of ' + school.of + ' ' + school.level +
+      ' in ' + from
+  };
+};
+
+/* --- the teams ------------------------------------------------------------ */
+
+/* Every school one of the six is at that season, as
+   { key, team, players: [...] }, in the order the players are listed. */
+EGE.teamsIn = function (season) {
+  var year = season || EGE.currentSeason;
+  var byKey = {};
+  var order = [];
+  EGE.players.forEach(function (player) {
+    var key = EGE.teamKeyFor(player, year);
+    if (!key || !EGE.teams[key]) { return; }
+    if (!byKey[key]) {
+      byKey[key] = { key: key, team: EGE.teams[key], players: [] };
+      order.push(byKey[key]);
+    }
+    byKey[key].players.push(player);
+  });
+  return order;
+};
+
+/* A team's position rooms that season: the real roster from
+   data/rosters.js with the six on that team put in at their positions, at
+   the head of the room. A season with no roster yet borrows the latest one
+   before it. Null for a school with no roster at all (every high school). */
+EGE.rosterFor = function (teamKey, season) {
+  var year = season || EGE.currentSeason;
+  var rosters = EGE.rosters || {};
+  var years = Object.keys(rosters).map(Number).filter(function (y) {
+    return y <= year && rosters[y][teamKey];
+  }).sort(function (a, b) { return b - a; });
+  var ours = EGE.players.filter(function (player) {
+    return EGE.teamKeyFor(player, year) === teamKey;
+  });
+  if (!years.length && !ours.length) { return null; }
+
+  var base = years.length ? rosters[years[0]][teamKey] : {};
+  var rooms = {};
+  ['QB', 'RB', 'WR', 'TE'].forEach(function (position) {
+    rooms[position] = ours.filter(function (player) {
+      return EGE.positionFor(player, year) === position;
+    }).map(function (player) {
+      return { name: player.name, jersey: player.jersey, height: player.height,
+               weight: player.weight, player: player };
+    }).concat((base[position] || []).filter(function (row) {
+      /* A real player wearing one of the six's numbers keeps it; nobody is
+         dropped for it. */
+      return row && row.name;
+    }));
+  });
+  rooms.season = years.length ? years[0] : year;
+  return rooms;
+};
+
+/* The quarterbacks a player can spend a QB Connection on: everybody in his
+   team's quarterback room that season, the six's own included, and never
+   himself. */
+EGE.quarterbacksFor = function (player, season) {
+  var key = EGE.teamKeyFor(player, season);
+  var rooms = key ? EGE.rosterFor(key, season) : null;
+  if (!rooms) { return []; }
+  return rooms.QB.filter(function (row) {
+    return !(row.player && row.player.slug === player.slug);
+  }).map(function (row) { return row.name; });
+};
+
+/* The whole conference a school plays in that season, a division table at a
+   time, the school's own division first:
+     { conference: 'Big Ten', school, tables: [divisionTable, ...] }
+   Null for a school with no race in data/conferences.js. */
+EGE.conferenceTables = function (school, season) {
+  var year = season || EGE.currentSeason;
+  var found = EGE.conferenceOf(school, year);
+  if (!found) { return null; }
+  var divisions = Object.keys(found.conference.divisions);
+  divisions.sort(function (a, b) {
+    return (b === found.division) - (a === found.division);
+  });
+  return {
+    conference: found.conference.name,
+    school: school,
+    tables: divisions.map(function (division) {
+      return EGE.divisionTable(found.conference.divisions[division][0], year);
+    })
+  };
+};
+
+/* --- injuries ------------------------------------------------------------
+
+   A game marked `injured: true` in the season file is one the player sits
+   out hurt, with what in `injury` and, optionally, how healthy he is that
+   week as a percentage in `health`. The player page shows it as an injury
+   report -- only while that week is the one being played, which is the
+   first week of the live season not yet published. Before it nobody knows,
+   and once the week is out the report goes with it unless the next week is
+   marked too. */
+
+/* The week the live season is on: the first one not yet published, or null
+   once every week is out. */
+EGE.currentWeek = function (season) {
+  var year = season || EGE.currentSeason;
+  var ahead = EGE.weeksIn(year).filter(function (week) {
+    return !EGE.isPublished(year, week);
+  });
+  return ahead.length ? ahead[0] : null;
+};
+
+/* What the injury report says, or null when there is nothing to report:
+     { week, injury: 'Hamstring', health: 60, status: 'Out',
+       back: 8 (the next week he is not marked, or null) } */
+EGE.injuryFor = function (player, season) {
+  var year = season || EGE.currentSeason;
+  if (year !== EGE.currentSeason) { return null; }
+  var week = EGE.currentWeek(year);
+  if (week === null) { return null; }
+
+  var game = EGE.gameInWeek(player, week, year);
+  if (!game || !game.injured) { return null; }
+
+  var health = typeof game.health === 'number'
+    ? Math.max(0, Math.min(100, Math.round(game.health))) : null;
+  var back = EGE.gamesFor(player, year).filter(function (other) {
+    return other.week > week && !other.bye && !other.injured;
+  }).sort(function (a, b) { return a.week - b.week; })[0];
+
+  return {
+    week: week,
+    injury: game.injury || null,
+    health: health,
+    status: 'Out',
+    back: back ? back.week : null
+  };
+};
+
+/* --- how many boosters a season can take ----------------------------------
+
+   Five a season at most, and no more than two 2.5x, three 2.0x and four
+   1.5x of them (`boosterSeasonLimit` and each booster's `seasonLimit` in
+   data/shop.js). What counts is what is on the season's games: stuck on
+   from Supabase, or written into the season file once the week was out. */
+EGE.boostersUsed = function (player, season) {
+  var year = season || EGE.currentSeason;
+  var used = { total: 0, byKey: {} };
+  EGE.gamesFor(player, year).forEach(function (game) {
+    var booster = EGE.boosterOn(player, game);
+    if (!booster) { return; }
+    used.total += 1;
+    used.byKey[booster.key] = (used.byKey[booster.key] || 0) + 1;
+  });
+  return used;
+};
+
+/* Whether one more of this booster can go on this season's games, and how
+   many of it and in all are left: { ok, reason, left, totalLeft }. */
+EGE.boosterRoom = function (player, itemKey, season) {
+  var item = EGE.shopItem(itemKey);
+  var used = EGE.boostersUsed(player, season);
+  var total = EGE.shop.boosterSeasonLimit || Infinity;
+  var limit = item && typeof item.seasonLimit === 'number' ? item.seasonLimit : Infinity;
+  var mine = used.byKey[itemKey] || 0;
+  var room = {
+    ok: true,
+    reason: null,
+    used: mine,
+    limit: limit,
+    left: Math.max(0, limit - mine),
+    totalUsed: used.total,
+    totalLimit: total,
+    totalLeft: Math.max(0, total - used.total)
+  };
+  if (used.total >= total) {
+    room.ok = false;
+    room.reason = 'That is all ' + total + ' boosters for this season \u2014 peel one off an ' +
+      'unplayed game to move it.';
+  } else if (mine >= limit) {
+    room.ok = false;
+    room.reason = 'Only ' + limit + ' ' + (item ? item.name : 'of those') + 's a season, and ' +
+      'they are all on games.';
+  }
+  return room;
+};

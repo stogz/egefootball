@@ -15,6 +15,7 @@
   var viewShop   = document.getElementById('view-shop');
   var viewPlayer = document.getElementById('view-player');
   var viewAdmin  = document.getElementById('view-admin');
+  var viewTeams  = document.getElementById('view-teams');
   var loginBtn   = document.getElementById('loginBtn');
   var loginModal = document.getElementById('loginModal');
 
@@ -235,12 +236,60 @@
 
     renderStars(player);
     renderVitals(player);
+    renderInjury(player, season);
     renderOffers(player);
     renderTally(player, season);
 
     renderSchedule(player);
+    renderStandings(player);
     renderGameLog(player);
     renderRatings(player);
+  }
+
+  /* --- the injury report ----------------------------------------------------
+
+     Only there while the week being played is one he is marked injured for:
+     a red cross, OUT, what with, and how healthy he is as a bar -- green
+     when he is nearly there, orange in the middle, red when he is a long
+     way off -- with the week he is expected back. */
+  function renderInjury(player, season) {
+    var box = document.getElementById('playerInjury');
+    var report = EGE.injuryFor(player, season);
+    box.innerHTML = '';
+    box.hidden = !report;
+    if (!report) { return; }
+
+    var head = el('div', 'ege-injury__head');
+    head.appendChild(el('span', 'ege-injury__cross', '+'));
+    var words = el('div', 'ege-injury__words');
+    words.appendChild(el('span', 'ege-injury__kicker', 'Injury report · Week ' + report.week));
+    var line = el('span', 'ege-injury__status');
+    line.appendChild(el('strong', null, report.status.toUpperCase()));
+    if (report.injury) { line.appendChild(document.createTextNode(' — ' + report.injury)); }
+    words.appendChild(line);
+    words.appendChild(el('span', 'ege-injury__back', report.back
+      ? 'Expected back week ' + report.back
+      : 'No return date'));
+    head.appendChild(words);
+    box.appendChild(head);
+
+    if (report.health !== null) {
+      var meter = el('div', 'ege-injury__health');
+      meter.appendChild(el('span', 'ege-injury__label', 'Health'));
+      var bar = el('div', 'ege-injury__bar');
+      bar.setAttribute('role', 'meter');
+      bar.setAttribute('aria-valuemin', '0');
+      bar.setAttribute('aria-valuemax', '100');
+      bar.setAttribute('aria-valuenow', String(report.health));
+      bar.setAttribute('aria-label', 'Health ' + report.health + '%');
+      var fill = el('span', 'ege-injury__fill ege-injury__fill--' +
+        (report.health >= 75 ? 'good' : report.health >= 40 ? 'fair' : 'poor'));
+      fill.style.width = report.health + '%';
+      bar.appendChild(fill);
+      meter.appendChild(bar);
+      meter.appendChild(el('span', 'ege-injury__pct', report.health + '%'));
+      box.appendChild(meter);
+    }
   }
 
   /* --- the season, at a glance --------------------------------------------
@@ -432,6 +481,7 @@
 
   var showScouts = false;
   var showBoosters = false;
+  var showGrades = false;
   var schedulePlayer = null;
 
   /* Which season a player page is showing. The live one: with one season on
@@ -1008,6 +1058,12 @@
       return row.consumable && STICKER_LOOK[row.item_key];
     });
 
+    /* What the season has room for: five in all, and so many of each. */
+    var used = EGE.boostersUsed(player, game.season);
+    var totalLimit = EGE.shop.boosterSeasonLimit;
+    inner.appendChild(el('span', 'ege-drawer__room',
+      used.total + ' of ' + totalLimit + ' boosters on this season\u2019s games'));
+
     if (!owned.length) {
       inner.appendChild(el('span', 'ege-drawer__empty',
         'No boosters in the drawer. They are in the shop.'));
@@ -1019,6 +1075,15 @@
         pick.title = 'Stick ' + row.item_name + ' on week ' + game.week;
         pick.appendChild(stickerEl(row.item_key, 76, row.item_key));
         pick.appendChild(el('span', 'ege-pick__count', '\u00d7' + EGE.wallet.quantityOf(row)));
+        var room = EGE.boosterRoom(player, row.item_key, game.season);
+        pick.appendChild(el('span', 'ege-pick__left', room.ok
+          ? Math.min(room.left, room.totalLeft) + ' left'
+          : 'Limit hit'));
+        if (!room.ok) {
+          pick.disabled = true;
+          pick.classList.add('is-spent');
+          pick.title = room.reason;
+        }
         pick.addEventListener('click', function () {
           pick.disabled = true;
           EGE.wallet.applyBooster(player.email, EGE.shopItem(row.item_key),
@@ -1123,6 +1188,19 @@
     eventName(opponent, game);
     row.appendChild(opponent);
 
+    /* The defense across the way, graded for what this player does. */
+    if (showGrades) {
+      var gradeCell = el('td', 'ege-schedule__grade');
+      var grade = EGE.defenseGrade(schedulePlayer, game);
+      if (grade) {
+        var chip = el('span', 'ege-grade ege-grade--' + grade.letter.toLowerCase(), grade.letter);
+        chip.title = grade.text;
+        chip.setAttribute('aria-label', grade.text);
+        gradeCell.appendChild(chip);
+      }
+      row.appendChild(gradeCell);
+    }
+
     var result = el('td', 'num ege-schedule__result');
     if (played) {
       var won = game.result.teamScore > game.result.opponentScore;
@@ -1177,6 +1255,9 @@
        the switcher shows no scouts. */
     showScouts = canSeeScouts(player) && season === EGE.currentSeason;
     showBoosters = canSeeStickers(player);
+    /* The column is only there when there is something in it: a college
+       season, against schools with numbers. */
+    showGrades = games.some(function (game) { return EGE.defenseGrade(player, game); });
 
     /* A bracket belongs to a school, so opening somebody else's page puts the
        panel back on his games rather than leaving it on a tournament he is
@@ -1189,6 +1270,7 @@
     }
     schedulePlayer = player;
 
+    document.getElementById('scheduleGradeHead').hidden = !showGrades;
     document.getElementById('scheduleCreditsHead').hidden = !showBoosters;
     document.getElementById('scheduleBoosterHead').hidden = !showBoosters;
 
@@ -1225,6 +1307,12 @@
       legend += (legend ? ' · ' : '') + '** ' + postseasonWord(season).toLowerCase() + ' game';
     }
 
+    if (showGrades) {
+      legend += (legend ? ' · ' : '') + 'Opp D: their ' +
+        (EGE.defenseSide(EGE.positionFor(player, season)) === 'rush' ? 'run' : 'pass') +
+        ' defense, A toughest to F softest';
+    }
+
     if (showScouts) {
       var scouted = EGE.scoutedGames(player, season).length;
       legend += (legend ? ' · ' : '') + 'Intel: scouts at ' + scouted + ' games this season';
@@ -1233,6 +1321,273 @@
 
     renderBracket(player);
     showScheduleView();
+  }
+
+
+  /* --- the conference standings --------------------------------------------
+
+     The whole conference rather than the one line in the header: every
+     division, the team's own first, ordered the way EGE.divisionTable orders
+     them, with the team's row picked out so who is above it and who is
+     below it reads at a glance. Conference games only -- nobody outside the
+     six has a non-conference result to count -- as of the published weeks,
+     the same as the record. */
+
+  function schoolMark(name) {
+    var src = EGE.logoFor && EGE.logoFor(name);
+    if (!src) { return null; }
+    var logo = el('img', 'ege-teamlogo');
+    logo.src = src;
+    logo.alt = '';
+    logo.width = 20;
+    logo.height = 20;
+    logo.loading = 'lazy';
+    logo.decoding = 'async';
+    logo.addEventListener('error', function () { logo.remove(); });
+    return logo;
+  }
+
+  /* The schools the six play for that season, so their rows can say so. */
+  function ourSchools(season) {
+    var names = {};
+    EGE.teamsIn(season).forEach(function (entry) { names[entry.team.school] = entry; });
+    return names;
+  }
+
+  function standingsTable(table, school, season) {
+    var ours = ourSchools(season);
+    var wrap = el('div', 'ege-standings__division');
+    wrap.appendChild(el('h4', 'ege-standings__title', table.division));
+
+    var scroller = el('div', 'fb-tablewrap');
+    var t = el('table', 'fb-table ege-standings__table');
+    var head = el('tr');
+    [['#', 'num'], ['Team', null], ['W-L', 'num'], ['PF', 'num ege-standings__pts'],
+     ['PA', 'num ege-standings__pts'], ['Diff', 'num']]
+      .forEach(function (col) { head.appendChild(el('th', col[1], col[0])); });
+    var thead = el('thead');
+    thead.appendChild(head);
+    t.appendChild(thead);
+
+    var started = table.rows.some(function (row) { return row.wins + row.losses; });
+    var body = el('tbody');
+    table.rows.forEach(function (row, i) {
+      var tr = el('tr');
+      if (row.school === school) { tr.classList.add('is-ours'); }
+      else if (ours[row.school]) { tr.classList.add('is-six'); }
+
+      tr.appendChild(el('td', 'num ege-standings__place', started ? String(i + 1) : '–'));
+
+      var name = el('td', 'ege-standings__team');
+      var mark = schoolMark(row.school);
+      if (mark) { name.appendChild(mark); }
+      name.appendChild(el('span', 'fb-name', row.school));
+      if (ours[row.school]) {
+        var who = ours[row.school].players.map(function (p) { return p.first; }).join(' & ');
+        var tag = el('span', 'ege-standings__who', who);
+        tag.title = who + (ours[row.school].players.length > 1 ? ' play here' : ' plays here');
+        name.appendChild(tag);
+      }
+      tr.appendChild(name);
+
+      tr.appendChild(el('td', 'num', row.wins + '-' + row.losses));
+      tr.appendChild(el('td', 'num ege-standings__pts', String(row.pointsFor)));
+      tr.appendChild(el('td', 'num ege-standings__pts', String(row.pointsAgainst)));
+      var diff = row.pointsFor - row.pointsAgainst;
+      tr.appendChild(el('td', 'num ege-standings__diff' +
+        (diff > 0 ? ' is-up' : diff < 0 ? ' is-down' : ''), (diff > 0 ? '+' : '') + diff));
+      body.appendChild(tr);
+    });
+    t.appendChild(body);
+    scroller.appendChild(t);
+    wrap.appendChild(scroller);
+    return wrap;
+  }
+
+  function renderStandings(player) {
+    var panel = document.getElementById('standingsPanel');
+    var body = document.getElementById('standingsBody');
+    var season = shownSeason();
+    var team = EGE.teamFor(player, season);
+    var conference = team && EGE.tierFor(season) === 'college'
+      ? EGE.conferenceTables(team.school, season) : null;
+
+    body.innerHTML = '';
+    panel.hidden = !conference;
+    if (!conference) { return; }
+
+    conference.tables.forEach(function (table) {
+      body.appendChild(standingsTable(table, team.school, season));
+    });
+    setLegend('standingsFoot', 'standingsLegend',
+      conference.conference + ' games only, as of the published weeks. Level teams split on ' +
+      'head to head, then point differential.');
+  }
+
+  /* --- the teams page --------------------------------------------------------
+
+     Every school one of the six plays for in the live season, one panel
+     each: the record and the conference place, which of the six are on it,
+     a rundown of every position room -- the six put in at the head of
+     theirs -- and the division table. */
+
+  var ROOMS = [
+    { key: 'QB', title: 'Quarterbacks' },
+    { key: 'RB', title: 'Running Backs' },
+    { key: 'WR', title: 'Receivers' },
+    { key: 'TE', title: 'Tight Ends' }
+  ];
+
+  /* How many of a room show before the rest fold away behind "more". */
+  var ROOM_SHOWN = 4;
+
+  function rosterLine(row) {
+    var item = el('li', 'ege-room__player' + (row.player ? ' is-six' : ''));
+    var top = el('span', 'ege-room__name');
+    if (typeof row.jersey === 'number') { top.appendChild(el('span', 'ege-room__jersey', '#' + row.jersey)); }
+    if (row.player) {
+      var link = el('a', null, row.name);
+      link.href = '#' + row.player.slug;
+      top.appendChild(link);
+    } else {
+      top.appendChild(document.createTextNode(row.name));
+    }
+    item.appendChild(top);
+
+    var sub = row.line || [EGE.heightText(row), row.weight ? row.weight + ' lbs' : null]
+      .filter(Boolean).join(' · ');
+    if (row.player) {
+      var overall = EGE.overallFor(row.player);
+      sub = 'EGE' + (typeof overall === 'number' ? ' · ' + overall + ' OVR' : '');
+    }
+    if (sub) { item.appendChild(el('span', 'ege-room__line', sub)); }
+    return item;
+  }
+
+  function roomEl(room, rows) {
+    var box = el('div', 'ege-room');
+    box.appendChild(el('h4', 'ege-room__title', room.title));
+    if (!rows.length) {
+      box.appendChild(el('p', 'ege-room__empty', 'Nobody listed.'));
+      return box;
+    }
+    var list = el('ol', 'ege-room__list');
+    rows.slice(0, ROOM_SHOWN).forEach(function (row) { list.appendChild(rosterLine(row)); });
+    box.appendChild(list);
+
+    if (rows.length > ROOM_SHOWN) {
+      var more = el('details', 'ege-room__more');
+      more.appendChild(el('summary', null, (rows.length - ROOM_SHOWN) + ' more'));
+      var rest = el('ol', 'ege-room__list');
+      rest.start = ROOM_SHOWN + 1;
+      rows.slice(ROOM_SHOWN).forEach(function (row) { rest.appendChild(rosterLine(row)); });
+      more.appendChild(rest);
+      box.appendChild(more);
+    }
+    return box;
+  }
+
+  function ourPlayerChip(player, season) {
+    var chip = el('a', 'ege-teamchip');
+    chip.href = '#' + player.slug;
+    var img = el('img', 'ege-teamchip__photo');
+    img.src = player.headshot;
+    img.alt = '';
+    img.loading = 'lazy';
+    chip.appendChild(img);
+    var text = el('span', 'ege-teamchip__text');
+    text.appendChild(el('span', 'ege-teamchip__name', player.name));
+    text.appendChild(el('span', 'ege-teamchip__meta',
+      [EGE.positionFor(player, season), typeof player.jersey === 'number' ? '#' + player.jersey : null]
+        .filter(Boolean).join(' · ')));
+    chip.appendChild(text);
+    var box = overallBox(EGE.overallFor(player), 'ege-ovrbox--chip');
+    if (box) { chip.appendChild(box); }
+    return chip;
+  }
+
+  function teamPanel(entry, season) {
+    var panel = el('section', 'fb-panel ege-team');
+    panel.id = 'team-' + entry.key;
+
+    var head = el('div', 'fb-panel__head ege-team__head');
+    var title = el('div', 'ege-team__title');
+    if (entry.team.logo) {
+      var logo = el('img', 'ege-team__logo');
+      logo.src = entry.team.logo;
+      logo.alt = '';
+      title.appendChild(logo);
+    }
+    title.appendChild(el('h3', null, entry.team.school));
+    head.appendChild(title);
+    head.appendChild(el('span', 'fb-meta', entry.team.league || ''));
+    panel.appendChild(head);
+
+    var body = el('div', 'fb-panel__body fb-stack fb-stack--lg');
+
+    /* The record is the team's, and every one of the six on a team plays
+       the same games, so the first of them speaks for it. */
+    var lead = entry.players[0];
+    var facts = el('dl', 'ege-team__facts');
+    function fact(label, value) {
+      facts.appendChild(el('dt', null, label));
+      facts.appendChild(el('dd', null, value));
+    }
+    var record = EGE.recordFor(lead, season).text;
+    var streak = EGE.streakFor(lead, season);
+    fact('Record', record + (streak && !EGE.seasonOverFor(lead, season) ? ' · ' + streak.text : ''));
+    var standing = EGE.standingFor(lead, season);
+    if (standing && standing.place) {
+      fact('Conference', standing.wins + '-' + standing.losses + ' · ' +
+        EGE.ordinal(standing.place) + ' in ' + standing.league);
+    } else if (standing) {
+      fact('Conference', standing.league + ' · TBD');
+    }
+    body.appendChild(facts);
+
+    var chips = el('div', 'ege-team__ours');
+    entry.players.forEach(function (player) { chips.appendChild(ourPlayerChip(player, season)); });
+    body.appendChild(chips);
+
+    var rooms = EGE.rosterFor(entry.key, season);
+    if (rooms) {
+      var grid = el('div', 'ege-rooms');
+      ROOMS.forEach(function (room) { grid.appendChild(roomEl(room, rooms[room.key] || [])); });
+      body.appendChild(grid);
+      if (rooms.season !== season) {
+        body.appendChild(el('p', 'fb-meta', 'Roster as of ' + rooms.season + '.'));
+      }
+    }
+
+    var conference = EGE.tierFor(season) === 'college'
+      ? EGE.conferenceTables(entry.team.school, season) : null;
+    if (conference) {
+      body.appendChild(standingsTable(conference.tables[0], entry.team.school, season));
+    }
+
+    panel.appendChild(body);
+    return panel;
+  }
+
+  function renderTeams() {
+    var season = EGE.currentSeason;
+    var list = document.getElementById('teamsList');
+    var jump = document.getElementById('teamsJump');
+    document.getElementById('teamsSeasonLabel').textContent = seasonLabel(season);
+    list.innerHTML = '';
+    jump.innerHTML = '';
+
+    EGE.teamsIn(season).forEach(function (entry) {
+      list.appendChild(teamPanel(entry, season));
+      var link = el('a', 'fb-btn fb-btn--inverse ege-teamjump__link', entry.team.school);
+      link.href = '#teams';
+      link.addEventListener('click', function (event) {
+        event.preventDefault();
+        var target = document.getElementById('team-' + entry.key);
+        if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      });
+      jump.appendChild(link);
+    });
   }
 
 
@@ -2259,17 +2614,41 @@
       card.appendChild(el('p', 'ege-item__blocked', allowed.reason));
     }
 
+    /* A QB Connection is with one quarterback, picked from his team's room,
+       and the button waits until one is. */
+    if (EGE.needsQuarterback(item, shopState.player)) {
+      var field = el('label', 'ege-statfield ege-item__pick');
+      field.appendChild(el('span', 'ege-statfield__label', 'Your quarterback'));
+      picker = el('select', 'fb-select');
+      var choose = el('option', null, 'Choose a quarterback\u2026');
+      choose.value = '';
+      picker.appendChild(choose);
+      EGE.quarterbacksFor(shopState.player, EGE.currentSeason).forEach(function (name) {
+        var option = el('option', null, name);
+        option.value = name;
+        picker.appendChild(option);
+      });
+      field.appendChild(picker);
+      card.appendChild(field);
+    }
+
     var buy = el('button', 'fb-btn fb-btn--primary fb-btn--block',
       allowed.ok ? 'Buy' : 'Unavailable');
     buy.type = 'button';
-    buy.disabled = !allowed.ok;
-    if (picker) { picker.disabled = !allowed.ok; }
+    buy.disabled = !allowed.ok || Boolean(picker && !picker.value);
+    if (picker) {
+      picker.disabled = !allowed.ok;
+      picker.addEventListener('change', function () {
+        buy.disabled = !allowed.ok || !picker.value;
+      });
+    }
     buy.addEventListener('click', function () {
       buy.disabled = true;
       sayShop('Buying\u2026', false);
-      EGE.wallet.buy(shopState.player.email, item, null, shopState.player)
+      EGE.wallet.buy(shopState.player.email, item, picker ? picker.value || null : null,
+                     shopState.player)
         .then(function (res) {
-          buy.disabled = false;
+          buy.disabled = Boolean(picker && !picker.value);
           sayShop(res.message, !res.ok);
           if (res.ok) { refreshShop(); }
         });
@@ -2775,11 +3154,27 @@
     });
     granter.appendChild(pick);
 
+    /* A QB Connection handed over is still with somebody. */
+    var qbPick = el('select', 'fb-select ege-account__grant');
+    EGE.quarterbacksFor(player, EGE.currentSeason).forEach(function (name) {
+      var opt = el('option', null, name);
+      opt.value = name;
+      qbPick.appendChild(opt);
+    });
+    qbPick.setAttribute('aria-label', 'Which quarterback');
+    function showQbPick() {
+      qbPick.hidden = !EGE.needsQuarterback(EGE.shopItem(pick.value), player);
+    }
+    pick.addEventListener('change', showQbPick);
+    showQbPick();
+    granter.appendChild(qbPick);
+
     var give = el('button', 'fb-btn', 'Grant');
     give.type = 'button';
     give.addEventListener('click', function () {
       give.disabled = true;
-      EGE.wallet.grant(player.email, EGE.shopItem(pick.value)).then(function (res) {
+      EGE.wallet.grant(player.email, EGE.shopItem(pick.value),
+                       qbPick.hidden ? null : qbPick.value || null).then(function (res) {
         give.disabled = false;
         sayAdmin(res.message, !res.ok);
         refreshAdminView();
@@ -3271,6 +3666,43 @@
     boosterRow.appendChild(pick);
     box.appendChild(boosterRow);
 
+    /* Hurt this week: he sits it out, the Discord post says DNP Injured, and
+       while it is the week being played his page carries the injury report
+       with how healthy he is. */
+    var hurtRow = el('div', 'fb-row fb-row--wrap ege-hurtrow');
+    var hurt = el('label', 'ege-statfield ege-otfield');
+    hurt.appendChild(el('span', 'ege-statfield__label', 'Injured'));
+    var hurtBox = el('input', 'ege-otfield__input');
+    hurtBox.type = 'checkbox';
+    hurtBox.checked = Boolean(held.injured);
+    hurtBox.setAttribute('aria-label', player.name + ' is injured this week');
+    hurt.appendChild(hurtBox);
+    hurtRow.appendChild(hurt);
+
+    var what = el('label', 'ege-statfield ege-hurtrow__what');
+    what.appendChild(el('span', 'ege-statfield__label', 'Injury'));
+    var whatInput = el('input', 'fb-input ege-statfield__input');
+    whatInput.type = 'text';
+    whatInput.placeholder = 'Bruised Shoulder';
+    whatInput.value = held.injury || '';
+    whatInput.addEventListener('input', function () { held.injury = whatInput.value; });
+    what.appendChild(whatInput);
+    hurtRow.appendChild(what);
+
+    var health = numberField('Health %', held.health, function (value) { held.health = value; });
+    hurtRow.appendChild(health);
+
+    function showHurt() {
+      what.hidden = !hurtBox.checked;
+      health.hidden = !hurtBox.checked;
+    }
+    hurtBox.addEventListener('change', function () {
+      held.injured = hurtBox.checked;
+      showHurt();
+    });
+    showHurt();
+    box.appendChild(hurtRow);
+
     var grid = el('div', 'ege-statgrid');
     EGE.statline.keysFor(player.position).forEach(function (key) {
       var label = EGE.statline.labelFor(player.position, key);
@@ -3328,6 +3760,9 @@
         } : null,
         booster: entry.game.booster || null,
         overtime: Boolean(entry.game.overtime),
+        injured: Boolean(entry.game.injured),
+        injury: entry.game.injury || '',
+        health: typeof entry.game.health === 'number' ? entry.game.health : null,
         stats: entry.game.stats ? Object.assign({}, entry.game.stats) : null,
         bigPlays: (entry.game.bigPlays || []).slice()
       };
@@ -3733,6 +4168,8 @@
     var hash = window.location.hash.replace(/^#/, '');
     var player = hash ? EGE.playerBySlug(hash) : null;
     if (player) { renderPlayer(player); }
+    /* The teams page carries records and overalls too. */
+    if (hash === 'teams') { renderTeams(); }
   }
 
   /* The inventory arrives after a page may already have been drawn, so redraw
@@ -3752,6 +4189,7 @@
 
   function setNav(active) {
     document.getElementById('navPlayers').classList.toggle('is-active', active === 'players');
+    document.getElementById('navTeams').classList.toggle('is-active', active === 'teams');
     document.getElementById('navShop').classList.toggle('is-active', active === 'shop');
     document.getElementById('navAdmin').classList.toggle('is-active', active === 'admin');
   }
@@ -3761,6 +4199,7 @@
     viewShop.hidden   = view !== viewShop;
     viewPlayer.hidden = view !== viewPlayer;
     viewAdmin.hidden  = view !== viewAdmin;
+    viewTeams.hidden  = view !== viewTeams;
   }
 
   /* The page route() last drew, so it can tell going somewhere from being
@@ -3773,7 +4212,12 @@
     var moved = hash !== routed;
     routed = hash;
 
-    if (hash === 'shop') {
+    if (hash === 'teams') {
+      renderTeams();
+      show(viewTeams);
+      setNav('teams');
+      document.title = 'Teams \u2014 EGE Football';
+    } else if (hash === 'shop') {
       renderShop();
       show(viewShop);
       setNav('shop');

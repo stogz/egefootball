@@ -1411,6 +1411,33 @@ body::before {
   font-variant-numeric: tabular-nums;
 }
 .ege-drawer__empty { color: var(--fb-sand); font-size: .8125rem; font-weight: 600; }
+/* How many more of each the season has room for, under the sticker, and a
+   kind the season is full of greyed out where it lies. */
+.ege-drawer__stickers:has(.ege-pick__left) { padding-bottom: 22px; column-gap: 26px; }
+.ege-pick__left {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--fb-sand);
+}
+.ege-pick.is-spent { cursor: not-allowed; }
+.ege-pick.is-spent .ege-sticker { filter: grayscale(1) opacity(.45); }
+.ege-pick.is-spent .ege-pick__left { color: var(--fb-accent); }
+.ege-drawer__room {
+  flex-basis: 100%;
+  order: -1;
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-sand);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .ege-sticker::before,
@@ -1462,6 +1489,28 @@ body::before {
   /* head and shoulders */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231d2416'%3E%3Ccircle cx='12' cy='7.5' r='4'/%3E%3Cpath d='M3.5 21a8.5 8.5 0 0 1 17 0z'/%3E%3C/svg%3E");
 }
+
+/* The opponent's defense, graded A to F against what this player does
+   (EGE.defenseGrade in data/games.js). A report card's colours: an A is a
+   good defense, so it is the hard one to play. */
+.ege-schedule__gradehead,
+.ege-schedule__grade { width: 1%; text-align: center; white-space: nowrap; }
+.ege-grade {
+  display: inline-block;
+  min-width: 1.75rem;
+  padding: 2px 6px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  font-family: var(--fb-font-display);
+  font-size: .875rem;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--fb-ink);
+}
+.ege-grade--a { background: #7fbf5a; }
+.ege-grade--b { background: var(--fb-tint-sage-2); }
+.ege-grade--c { background: #f3df8f; }
+.ege-grade--d { background: var(--fb-tint-clay-2); }
+.ege-grade--f { background: #e8826a; }
 
 .ege-schedule__conf {
   margin-left: 4px;
@@ -2998,6 +3047,13 @@ select,
     white-space: nowrap;
   }
 
+  /* The grade shares the date's line, at its far end. */
+  .ege-schedule tbody tr .ege-schedule__grade {
+    grid-area: 2 / 2 / 3 / 3;
+    justify-self: end;
+    width: auto;
+  }
+  .ege-schedule tbody tr .ege-grade { font-size: .75rem; padding: 0 5px; min-width: 1.4rem; }
   .ege-schedule tbody tr .ege-schedule__result { grid-area: 1 / 3 / 2 / 4; text-align: right; }
   .ege-schedule tbody tr .ege-schedule__credits { grid-area: 2 / 3 / 3 / 4; text-align: right; }
   .ege-schedule tbody tr .ege-schedule__slot { grid-area: 1 / 4 / 3 / 5; }
@@ -3375,3 +3431,194 @@ button.ege-owned__item { cursor: pointer; }
   padding-top: 18px;
   border-top: var(--fb-border-thin) solid var(--fb-ink);
 }
+
+/* --- conference standings ------------------------------------------------- */
+
+/* Every division of the conference, the team's own first. The team's row is
+   picked out in the accent, and any other school one of the six plays for
+   carries a quieter tint and their names. */
+.ege-standings { display: grid; gap: 0; }
+.ege-standings__division + .ege-standings__division { border-top: var(--fb-border) solid var(--fb-ink); }
+.ege-standings__title {
+  margin: 0;
+  padding: 10px 16px;
+  font-size: .8125rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  background: var(--fb-surface);
+}
+.ege-standings__table { min-width: 0; width: 100%; }
+.ege-standings__table th:first-child,
+.ege-standings__place { width: 1%; white-space: nowrap; font-family: var(--fb-font-display); }
+.ege-standings__team { white-space: nowrap; }
+.ege-standings__table tbody tr { cursor: default; }
+.ege-standings__table tbody tr.is-ours,
+.ege-standings__table tbody tr.is-ours:hover { background: var(--fb-tint-clay); box-shadow: inset 4px 0 0 var(--fb-accent); }
+.ege-standings__table tbody tr.is-six { background: var(--fb-tint-wash); }
+.ege-standings__who {
+  margin-left: 8px;
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--fb-accent-deep);
+}
+.ege-standings__diff.is-up { color: var(--fb-grass); }
+.ege-standings__diff.is-down { color: var(--fb-accent-deep); }
+
+@media (max-width: 620px) {
+  .ege-standings__table th, .ege-standings__table td { padding-left: 8px; padding-right: 8px; }
+  .ege-standings__who { display: none; }
+  /* Points for and against fold into the differential on a phone. */
+  .ege-standings__pts { display: none; }
+}
+
+/* --- the teams page --------------------------------------------------------- */
+
+.ege-teamjump {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 0 22px;
+}
+.ege-team__head { gap: 12px; }
+.ege-team__title { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.ege-team__logo { width: 40px; height: 40px; object-fit: contain; flex: none; }
+.ege-team__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 28px;
+  margin: 0;
+}
+.ege-team__facts dt {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-muted);
+}
+.ege-team__facts dd { margin: 2px 0 0; font-family: var(--fb-font-display); font-size: 1.25rem; }
+.ege-team__facts > dt { flex-basis: auto; }
+.ege-team__facts { display: grid; grid-auto-flow: column; grid-template-rows: auto auto; justify-content: start; }
+
+/* The six on this team: headshot, name, position and number, overall. */
+.ege-team__ours { display: flex; flex-wrap: wrap; gap: 12px; }
+.ege-teamchip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 6px 6px 6px;
+  border: var(--fb-border) solid var(--fb-ink);
+  background: var(--fb-tint-wash);
+  color: var(--fb-ink);
+  text-decoration: none;
+  box-shadow: 4px 4px 0 var(--fb-ink);
+}
+.ege-teamchip:hover { background: var(--fb-tint-clay); }
+.ege-teamchip__photo { width: 52px; height: 52px; object-fit: cover; object-position: top; background: var(--fb-sand); }
+.ege-teamchip__text { display: flex; flex-direction: column; gap: 2px; }
+.ege-teamchip__name { font-weight: 800; }
+.ege-teamchip__meta { font-size: var(--fb-small); color: var(--fb-muted); }
+.ege-ovrbox--chip { width: 54px; padding: 5px 4px 6px; }
+.ege-ovrbox--chip .ege-ovrbox__value { font-size: 1.5rem; }
+
+/* The position rooms: four across on a wide screen, two on a phone. */
+.ege-rooms {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+@media (max-width: 900px) { .ege-rooms { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 420px) { .ege-rooms { grid-template-columns: minmax(0, 1fr); } }
+.ege-room__title {
+  margin: 0 0 6px;
+  padding-bottom: 4px;
+  border-bottom: var(--fb-border-thin) solid var(--fb-ink);
+  font-size: .9375rem;
+}
+.ege-room__list { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.ege-room__player { display: flex; flex-direction: column; min-width: 0; }
+.ege-room__name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ege-room__jersey {
+  display: inline-block;
+  min-width: 2.1em;
+  margin-right: 4px;
+  font-size: var(--fb-small);
+  color: var(--fb-muted-2);
+}
+.ege-room__line { padding-left: calc(2.1em + 4px); font-size: var(--fb-small); color: var(--fb-muted); }
+.ege-room__player.is-six { padding: 3px 6px; margin: -3px -6px; background: var(--fb-tint-clay); box-shadow: inset 3px 0 0 var(--fb-accent); }
+.ege-room__player.is-six a { color: var(--fb-ink); }
+.ege-room__more { margin-top: 6px; }
+.ege-room__more summary {
+  cursor: pointer;
+  font-size: var(--fb-small);
+  font-weight: 800;
+  color: var(--fb-accent-deep);
+}
+.ege-room__more .ege-room__list { margin-top: 6px; }
+.ege-room__empty { margin: 0; font-size: var(--fb-small); color: var(--fb-muted); }
+
+/* The division table inside a team's panel sits flush in the body. */
+.ege-team .ege-standings__division { border: var(--fb-border) solid var(--fb-ink); }
+
+/* --- the injury report ------------------------------------------------------
+
+   A band across the header panel, above the season strip, only while the
+   week being played is one he is marked injured for. */
+.ege-injury {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 28px;
+  padding: 14px 20px;
+  border-top: var(--fb-border) solid var(--fb-ink);
+  background: #fde3dc;
+}
+.ege-injury__head { display: flex; align-items: center; gap: 14px; }
+.ege-injury__cross {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  background: #c8321e;
+  color: #fff;
+  font-family: var(--fb-font-display);
+  font-size: 2rem;
+  line-height: 1;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+}
+.ege-injury__words { display: flex; flex-direction: column; gap: 1px; }
+.ege-injury__kicker {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: #9b2414;
+}
+.ege-injury__status { font-size: 1.0625rem; }
+.ege-injury__status strong { color: #9b2414; letter-spacing: .04em; }
+.ege-injury__back { font-size: var(--fb-small); color: var(--fb-muted); }
+.ege-injury__health { display: flex; align-items: center; gap: 10px; flex: 1 1 220px; max-width: 420px; }
+.ege-injury__label {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.ege-injury__bar {
+  position: relative;
+  flex: 1;
+  height: 14px;
+  background: var(--fb-cream);
+  border: var(--fb-border-thin) solid var(--fb-ink);
+}
+.ege-injury__fill { position: absolute; inset: 0 auto 0 0; }
+.ege-injury__fill--good { background: var(--fb-grass); }
+.ege-injury__fill--fair { background: var(--fb-gold); }
+.ege-injury__fill--poor { background: #c8321e; }
+.ege-injury__pct { font-family: var(--fb-font-display); font-size: 1.125rem; min-width: 3ch; text-align: right; }
+.ege-hurtrow__what { flex: 1 1 200px; }
+.ege-hurtrow > .ege-statfield:last-child { flex: 0 0 110px; }
