@@ -121,7 +121,7 @@ EGE.teams = {
     school: 'USC',
     league: 'Pac-12',
     logo: 'icon/offers/USC.png',
-    ground: '#990000',
+    ground: '#9D2235',
     zone: 'America/Los_Angeles'
   },
   alabama: {

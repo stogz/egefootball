@@ -208,7 +208,6 @@ EGE.rosters[2021] = {
       { name: 'Miller Moss', jersey: 7, year: 1, overall: 57, height: 73, weight: 211, espn: 4431580, photo: true }
     ],
     RB: [
-      { name: 'Keaontay Ingram', jersey: 28, year: 4, overall: 73, height: 72, weight: 220, espn: 4362087, photo: true },
       { name: 'Vavae Malepeai', jersey: 6, year: 5, overall: 67, height: 72, weight: 220, espn: 4035695, photo: true },
       { name: 'Darwin Barlow', jersey: 24, year: 3, overall: 60, height: 72, weight: 220, espn: 4426635, photo: true, left: true },
       { name: 'Kenan Christon II', jersey: 8, year: 3, overall: 56, height: 70, weight: 202, espn: 4426910, photo: true, left: true },

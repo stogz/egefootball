@@ -164,7 +164,7 @@ holds:
   opponent with home/away, the opponent's logo (college seasons only,
   straight off ESPN's image server by the school's ESPN id in
   `data/logos.js` -- nothing is saved into the site) and a mark for
-  conference games, the **Opp D** grade, and the result once it has been
+  conference games, the **ODEF** grade, and the result once it has been
   played. No kickoff
   time: the file still carries it for the Discord post, but the page does
   not show it. The Credits and Booster columns are only drawn on your own
@@ -195,7 +195,7 @@ holds:
   lists every week, since that is where they get published from. It is
   `EGE.scheduleFor` in `data/games.js`.
 
-  **Opp D** grades the defense across the way, A to F, for what this player
+  **ODEF** grades the defense across the way, A to F, for what this player
   does: a back is graded on the run defense he runs into, a quarterback,
   receiver or tight end on the pass defense. A stingy run defense is an A
   for Cooper or Sam, and a sieve an F — a report card's colours, so the A is
@@ -242,7 +242,7 @@ them. **College only** — the high schools are on the player pages.
 
 **The index, `#teams`**, is a stack of cards, one school to a row: its mark
 on the left, on the school's own colour (`ground` in `EGE.teams` — Alabama
-crimson with the A in white, USC cardinal, NDSU green, Illinois orange,
+crimson with the A in white, USC cardinal (#9D2235), NDSU green, Illinois orange,
 Ohio State white; the team page's header uses the same), then its record and place in its division, the faces of the
 six who play there, and *View team →*. Above them is a season switcher
 across the full width of the page, as on a team's page — every college
@@ -330,7 +330,7 @@ Under the bar:
   drawing the table as it stood a week earlier.
 - **Schedule** — the team's games as anybody can see them, with results as
   they are published and the postseason as far as the next game, the same
-  rule a player's schedule follows. No credits, boosters or Opp D grades:
+  rule a player's schedule follows. No credits, boosters or ODEF grades:
   those belong to a player.
 
 The quarterback rooms are also where a QB Connection is picked from (see
@@ -1580,7 +1580,7 @@ Built so far:
 - `data/defenses.js` — every FBS and FCS school's rushing and passing yards
   allowed a game, by season, and where each ranks at its level. Written by
   `tools/build-defenses.js` from ESPN's box scores; add the new year to its
-  `SEASONS` and run it again when a season starts. The schedule's Opp D
+  `SEASONS` and run it again when a season starts. The schedule's ODEF
   grade is read from it.
 - `data/rosters.js` — the quarterbacks, backs, receivers and tight ends on
   each of the six's colleges, by season, each with his class, overall, ESPN
@@ -1591,7 +1591,7 @@ Built so far:
   wants in the QB Connection list can be deleted — until the next run.
   Real players who do not go to these schools in this simulation are in
   `NOT_HERE` at the top of the tool and are left off every roster: C.J.
-  Stroud and TreVeyon Henderson, whose timelines changed.
+  Stroud, TreVeyon Henderson and Keaontay Ingram, whose timelines changed.
 - `data/statline.js` — what a stat line is: the columns each position is read
   in, and how a season of them adds up.
 - `js/discord-post.js` — one week as a Discord message. Loaded by the browser

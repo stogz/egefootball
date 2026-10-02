@@ -1343,7 +1343,7 @@
     }
 
     if (showGrades) {
-      legend += (legend ? ' · ' : '') + 'Opp D: their ' +
+      legend += (legend ? ' · ' : '') + 'ODEF: their ' +
         (EGE.defenseSide(EGE.positionFor(player, season)) === 'rush' ? 'run' : 'pass') +
         ' defense, A toughest to F softest';
     }

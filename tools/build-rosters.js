@@ -61,7 +61,7 @@ const CORE = 'https://sports.core.api.espn.com/v2/sports/football/leagues/colleg
 /* Real players who are not at these schools in this simulation: the
    timeline changed and they went somewhere else, so they are left off
    every roster, every season. */
-const NOT_HERE = ['C.J. Stroud', 'TreVeyon Henderson'];
+const NOT_HERE = ['C.J. Stroud', 'TreVeyon Henderson', 'Keaontay Ingram'];
 
 /* The number a room is ordered by, from the category that position is
    judged on, which also feeds the overall. */
