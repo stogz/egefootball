@@ -318,16 +318,25 @@ Under the bar:
   Stroud's 2021 an 82. The constants are at the top of
   `tools/build-rosters.js`.
 - **Conference Standings** — the whole conference as one table: the dark
-  row of headings once at the top, and each division's name running up the
-  left of its schools in a cream column, the school's own division first,
-  with a rule between divisions. W-L, the conference streak (**Strk**, *W3* in green or *L1* in red),
-  points for and against, the differential, and **Chg**, how many places a
-  school has moved since the week before the latest one published — a green
-  ▲ up or a red ▼ down. The school's own row is picked out in orange and
-  nothing else is marked. On a phone the points and differential drop out
-  and a long school name is cut short, so the table fits the screen.
-  `EGE.conferenceTables` in `data/games.js` works out the movement by
-  drawing the table as it stood a week earlier.
+  row of headings once at the top and every school under it, the school's
+  own division first, a rule where the next division starts, and the
+  division in a short **Div** column (*East*, or just *E* on a phone). The
+  **#** is the division place, the conference record (**Conf**), the overall
+  record (**Ovr**, every game — see below), the conference streak (**Strk**,
+  *W3* in green or *L1* in red), conference points for and against and the
+  differential, and **Chg**, how many places a school has moved since the
+  week before the latest one published — a green ▲ up or a red ▼ down.
+  Every heading sorts, the way the game log's do: biggest first, then
+  smallest, then back to the standings (the place and the school's name go
+  1 and A first). Sorted, the divisions mix; the # stays each school's
+  division place. A line under it says which week the table runs through,
+  so a published week visibly moves it — the overall record moves every
+  week, including weeks with no conference games in them. The school's own
+  row is picked out in orange and nothing else is marked. On a phone the
+  points and differential drop out and a long school name is cut short; the
+  rest scrolls sideways. `EGE.conferenceTables` in `data/games.js` works out
+  the movement by drawing the table as it stood a week earlier, and
+  `EGE.overallRecord` the overall record.
 - **Schedule** — the team's games as anybody can see them, with results as
   they are published and the postseason as far as the next game, the same
   rule a player's schedule follows. No credits, boosters or ODEF grades:
@@ -1178,6 +1187,14 @@ A division is ordered by conference winning percentage, then wins, then
 losses, then head to head among the schools still level, then conference
 point differential. The line reads TBD until the team has played a
 conference game.
+
+A real season (2021) also lists every school's games outside its league in
+`nonConference`, as they really finished, which is what the standings'
+overall record counts alongside the conference games. A game against one of
+the six's schools is left out of that list — Oregon's at Ohio State is in
+the season file, played out — and read from the season file instead. 2020's
+races are drawn, with no outside games to count, so its standings have no
+Ovr column.
 
 `node tools/build-conferences.js {year}` writes one season's block of the
 file and leaves every other season's exactly as it was. Run it again only

@@ -751,6 +751,57 @@ EGE.quarterbacksFor = function (player, season) {
   }).map(function (row) { return row.name; });
 };
 
+/* A school's whole record, every game it has played that is out: its
+   conference games (EGE.conferenceResults), the games outside the league it
+   really played (the season's `nonConference` list in data/conferences.js),
+   and any game against one of the six's schools, read from the season file.
+   For one of the six's schools it is simply that school's games. Null for a
+   season whose races have no outside games to count -- 2020's are drawn,
+   and a record of conference games only would just repeat the W-L. */
+EGE.overallRecord = function (school, season, through) {
+  var year = season || EGE.currentSeason;
+  var upTo = typeof through === 'number' ? through : Infinity;
+  var found = EGE.conferenceOf(school, year);
+  if (!found || !found.conference.nonConference) { return null; }
+
+  var record = { wins: 0, losses: 0 };
+  function count(won) { if (won) { record.wins += 1; } else { record.losses += 1; } }
+
+  var own = EGE.players.filter(function (player) {
+    var team = EGE.teamFor(player, year);
+    return team && team.school === school;
+  })[0];
+  if (own) {
+    EGE.gamesPlayed(own, year).forEach(function (game) {
+      if (game.week <= upTo) { count(game.result.teamScore > game.result.opponentScore); }
+    });
+    return record;
+  }
+
+  EGE.conferenceResults(found.conference, year, through).forEach(function (game) {
+    if (game.home === school) { count(game.score[0] > game.score[1]); }
+    if (game.away === school) { count(game.score[1] > game.score[0]); }
+  });
+  found.conference.nonConference.forEach(function (game) {
+    if (game.school === school && game.week <= upTo && EGE.isPublished(year, game.week)) {
+      count(game.score[0] > game.score[1]);
+    }
+  });
+  /* Outside the league against one of the six -- Oregon at Ohio State. A
+     game is kept once, however many of the six play in it. */
+  var seen = {};
+  EGE.players.forEach(function (player) {
+    EGE.gamesPlayed(player, year).forEach(function (game) {
+      if (game.opponent !== school || game.conference || game.week > upTo) { return; }
+      var key = game.week + '|' + EGE.teamFor(player, year).school;
+      if (seen[key]) { return; }
+      seen[key] = true;
+      count(game.result.opponentScore > game.result.teamScore);
+    });
+  });
+  return record;
+};
+
 /* The whole conference a school plays in that season, a division table at a
    time, the school's own division first:
      { conference: 'Big Ten', school, week, tables: [divisionTable, ...] }
@@ -759,7 +810,9 @@ EGE.quarterbacksFor = function (player, season) {
    Each row carries `change`: how many places it has moved since the week
    before the latest one published -- 2 up, -1 down, 0 for none -- or null
    while there is no earlier table with conference games in it to move
-   from. */
+   from. And `overall`, its whole record from EGE.overallRecord (null in a
+   season with no outside games to count), which moves every week a game is
+   published, conference game or not. */
 EGE.conferenceTables = function (school, season) {
   var year = season || EGE.currentSeason;
   var found = EGE.conferenceOf(school, year);
@@ -781,6 +834,8 @@ EGE.conferenceTables = function (school, season) {
     conference: found.conference.name,
     school: school,
     week: latest,
+    /* Whether the rows carry an overall record (see EGE.overallRecord). */
+    overall: Boolean(found.conference.nonConference),
     tables: divisions.map(function (division) {
       var first = found.conference.divisions[division][0];
       var table = EGE.divisionTable(first, year);
@@ -791,6 +846,7 @@ EGE.conferenceTables = function (school, season) {
       }
       table.rows.forEach(function (row, i) {
         row.change = started(table) && places[row.school] ? places[row.school] - (i + 1) : null;
+        row.overall = EGE.overallRecord(row.school, year);
       });
       return table;
     })

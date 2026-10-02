@@ -554,11 +554,19 @@ function build(EGE, conf, seed) {
 const SITE = 'https://site.api.espn.com/apis/site/v2/sports/football/college-football';
 
 /* Every regular-season game the league's schools played, from ESPN, with
-   each school's real points a game and conference record:
-   { fixtures: [{ week, home, away }], rating: { school: [for, against, w, l] } } */
+   each school's real points a game and conference record, and the games
+   they played outside the league as they really finished:
+   { fixtures: [{ week, home, away }], rating: { school: [for, against, w, l] },
+     nonConference: [{ week, school, opponent, score: [school's, opponent's] }] }
+
+   A non-conference game the six's schools are in is left out of that list
+   either way round -- Ohio State's own, or Oregon's at Ohio State. Those are
+   in the season file, played out, and are read from there. */
 function realSeason(EGE, conf) {
   const schools = [].concat(...Object.values(conf.divisions));
   const members = new Set(schools);
+  const ours = new Set(EGE.players.map((p) => EGE.teamFor(p, SEASON)).filter(Boolean).map((t) => t.school));
+  const nonConference = [];
   const urls = schools.map(function (school) {
     const id = EGE.espnIds[school];
     if (!id) { throw new Error('No ESPN id for ' + school); }
@@ -594,7 +602,17 @@ function realSeason(EGE, conf) {
       row.games += 1;
       row.pf += us.score;
       row.pa += them.score;
-      if (!members.has(them.name)) { return; }
+      if (!members.has(them.name)) {
+        if (!ours.has(school) && !ours.has(them.name)) {
+          nonConference.push({
+            week: weekOf(localParts(game.date, 'America/Chicago').date, SEASON),
+            school: school,
+            opponent: them.name,
+            score: [us.score, them.score]
+          });
+        }
+        return;
+      }
       if (us.score > them.score) { row.w += 1; } else { row.l += 1; }
 
       if (seen.has(event.id)) { return; }
@@ -616,7 +634,8 @@ function realSeason(EGE, conf) {
       ? [Math.round(t.pf / t.games * 10) / 10, Math.round(t.pa / t.games * 10) / 10, t.w, t.l]
       : [21, 28, null, null];
   });
-  return { fixtures: fixtures, rating: rating };
+  nonConference.sort((p, q) => p.week - q.week || p.school.localeCompare(q.school));
+  return { fixtures: fixtures, rating: rating, nonConference: nonConference };
 }
 
 /* The real schedule played out with one seed: every game none of the six
@@ -683,6 +702,12 @@ function header() {
   out.push('');
   out.push('   A game here counts once its week is published, the same as everything');
   out.push('   else on the site. `score` is [home, away].');
+  out.push('');
+  out.push('   A real season also lists each school\'s games outside the league in');
+  out.push('   `nonConference`, as they really finished (`score` is [the school\'s,');
+  out.push('   the opponent\'s]), so the standings can carry an overall record that');
+  out.push('   moves every week, not only in weeks with a conference game. A game one');
+  out.push('   of the six\'s schools is in is left out: it is in the season file.');
   out.push('   ========================================================================== */');
   out.push('');
   out.push('window.EGE = window.EGE || {};');
@@ -714,7 +739,19 @@ function seasonBlock(results) {
         ', away: ' + quote(g.away) + ', score: [' + g.score[0] + ', ' + g.score[1] + '] }' +
         (i < r.games.length - 1 ? ',' : ''));
     });
-    out.push('    ]');
+    if (!r.nonConference) {
+      out.push('    ]');
+    } else {
+      out.push('    ],');
+      out.push('    /* Outside the league, as really played: [school\'s score, opponent\'s]. */');
+      out.push('    nonConference: [');
+      r.nonConference.forEach(function (g, i) {
+        out.push('      { week: ' + String(g.week).padStart(2) + ', school: ' + quote(g.school) +
+          ', opponent: ' + quote(g.opponent) + ', score: [' + g.score[0] + ', ' + g.score[1] + '] }' +
+          (i < r.nonConference.length - 1 ? ',' : ''));
+      });
+      out.push('    ]');
+    }
     out.push('  }' + (at < ids.length - 1 ? ',' : ''));
     if (at < ids.length - 1) { out.push(''); }
   });
@@ -723,7 +760,9 @@ function seasonBlock(results) {
   return out;
 }
 
-function quote(text) { return "'" + text + "'"; }
+/* A string as a single-quoted literal. Escaped, because a school can have
+   an apostrophe in it -- Hawai'i is on UCLA's and Oregon State's schedules. */
+function quote(text) { return "'" + String(text).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'"; }
 
 /* A division's schools: the keys of a drawn season's strengths, or a real
    season's plain list. */
@@ -753,6 +792,7 @@ function main() {
       if (built && (!best || built.score > best.score)) { best = Object.assign({ seed: seed }, built); }
     }
     if (!best) { throw new Error(id + ': no seed built a season'); }
+    if (season) { best.nonConference = season.nonConference; }
     results[id] = best;
     console.log(CONFERENCES[id].name + ': seed ' + best.seed + ', rank match ' + best.score.toFixed(3));
     Object.keys(CONFERENCES[id].divisions).forEach(function (d) {
