@@ -42,6 +42,7 @@
       </a>
       <div class="fb-nav__links">
         <a class="fb-navlink is-active" href="#" id="navPlayers">Players</a>
+        <a class="fb-navlink" href="#teams" id="navTeams">Teams</a>
         <a class="fb-navlink" href="#shop" id="navShop" hidden>Shop</a>
         <a class="fb-navlink" href="#admin" id="navAdmin" hidden>Admin</a>
       </div>
@@ -89,6 +90,104 @@
         </div>
       </section>
 
+    </section>
+
+    <!-- ===== teams ==================================================== -->
+    <!-- Laid out like the players: a card for every school one of the six
+         plays for this season, each opening that school's own page. College
+         seasons only. Public, like the player pages. Built in app.js. -->
+    <section id="view-teams" hidden>
+      <header class="fb-hero fb-hero--centred" style="padding: 44px 0 30px;">
+        <div class="fb-hero__col">
+          <span class="fb-kicker" id="teamsSeasonLabel"></span>
+          <h1 class="fb-hero__title" style="margin: 14px 0 0;">Teams</h1>
+        </div>
+      </header>
+      <!-- Which season, the same switcher a team's page has; the pick is
+           shared, so a team opened from here opens on the same season. -->
+      <div class="ege-seasonbar ege-teamsbar" id="teamsSeasonBar" hidden>
+        <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="teamsSeasonPrev"
+                aria-label="Previous season">&lsaquo;</button>
+        <select class="fb-select ege-seasonbar__pick" id="teamsSeasonPick" aria-label="Season"></select>
+        <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="teamsSeasonNext"
+                aria-label="Next season">&rsaquo;</button>
+      </div>
+      <div class="ege-teamgrid" id="teamsGrid"></div>
+    </section>
+
+    <!-- ===== a team =================================================== -->
+    <!-- One school: the way back and the season switcher, as on a player
+         page, then its header, its roster, its conference and its games. -->
+    <section id="view-team" hidden>
+      <div class="ege-playerbar">
+        <a class="fb-btn fb-btn--inverse ege-back" href="#teams">&larr; All Teams</a>
+
+        <div class="ege-seasonbar" id="teamSeasonBar" hidden>
+          <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="teamSeasonPrev"
+                  aria-label="Previous season">&lsaquo;</button>
+          <select class="fb-select ege-seasonbar__pick" id="teamSeasonPick" aria-label="Season"></select>
+          <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="teamSeasonNext"
+                  aria-label="Next season">&rsaquo;</button>
+        </div>
+      </div>
+
+      <div class="fb-panel" id="teamMissing" hidden>
+        <div class="fb-panel__body">
+          <p class="ege-note" style="margin: 0;">No team here. <a href="#teams">See every team.</a></p>
+        </div>
+      </div>
+
+      <div id="teamContent">
+        <div class="fb-panel ege-teamhead">
+          <div class="fb-panel__strip">
+            <span class="fb-eyebrow" style="color: var(--fb-ink);" id="teamStripLabel"></span>
+          </div>
+          <div class="fb-panel__body ege-teamhead__body">
+            <div class="ege-teamhead__logo" id="teamLogo"></div>
+            <div class="ege-teamhead__words">
+              <h2 class="ege-detail__name" id="teamName"></h2>
+              <dl class="ege-detail__list ege-teamhead__facts" id="teamFacts"></dl>
+            </div>
+          </div>
+        </div>
+
+        <div class="fb-panel ege-section-gap" id="teamRosterPanel">
+          <div class="fb-panel__head">
+            <h3>Roster</h3>
+            <button class="ege-collapse" type="button"
+                    data-collapses="teamRosterPanel" aria-controls="teamRosterPanel"
+                    aria-expanded="true" aria-label="Hide the roster"></button>
+          </div>
+          <div class="fb-panel__body" id="teamRosterBody"></div>
+        </div>
+
+        <div class="fb-panel ege-section-gap" id="teamStandingsPanel" hidden>
+          <div class="fb-panel__head">
+            <h3>Conference Standings</h3>
+            <button class="ege-collapse" type="button"
+                    data-collapses="teamStandingsPanel" aria-controls="teamStandingsPanel"
+                    aria-expanded="true" aria-label="Hide the conference standings"></button>
+          </div>
+          <div class="ege-standings" id="teamStandingsBody"></div>
+        </div>
+
+        <div class="fb-panel ege-section-gap" id="teamSchedulePanel">
+          <div class="fb-panel__head">
+            <h3>Schedule</h3>
+            <button class="ege-collapse" type="button"
+                    data-collapses="teamSchedulePanel" aria-controls="teamSchedulePanel"
+                    aria-expanded="true" aria-label="Hide the schedule"></button>
+          </div>
+          <div class="fb-tablewrap">
+            <table class="fb-table ege-schedule">
+              <thead>
+                <tr><th>Wk</th><th>Date</th><th>Opponent</th><th class="num">Result</th></tr>
+              </thead>
+              <tbody id="teamScheduleBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- ===== shop ===================================================== -->
@@ -528,6 +627,11 @@
           </div>
         </div>
 
+        <!-- The injury report: what he is hurt with and how healthy he is,
+             only while the week being played is one the season file marks
+             him injured for. Built in app.js from EGE.injuryFor. -->
+        <div class="ege-injury" id="playerInjury" hidden role="status"></div>
+
         <!-- The season so far, built in app.js from the same columns the game
              log is made of. It is the panel's foot, which is where the kit's
              hard rule already is. -->
@@ -579,6 +683,11 @@
                 <th>Wk</th>
                 <th>Date</th>
                 <th>Opponent</th>
+                <!-- How good the defense across the way is against what this
+                     player does: the run for a back, the pass for everyone
+                     else. College seasons only; see EGE.defenseGrade. -->
+                <th class="ege-schedule__gradehead" id="scheduleGradeHead"
+                    title="The opponent's defense against what you do: the run for a back, the pass for everyone else. A is the toughest, F the softest.">ODEF</th>
                 <th class="num">Result</th>
                 <th class="num" id="scheduleCreditsHead">Credits</th>
                 <th class="num" id="scheduleBoosterHead">Booster</th>
@@ -740,6 +849,8 @@
 <script src="data/brackets.js"></script>
 <script src="data/conferences.js"></script>
 <script src="data/logos.js"></script>
+<script src="data/defenses.js"></script>
+<script src="data/rosters.js"></script>
 <script src="data/shop.js"></script>
 <script src="data/economy.js"></script>
 <script src="data/statline.js"></script>

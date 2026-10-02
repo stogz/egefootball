@@ -4,7 +4,10 @@
    none of the six is in, played out, so the site can say where a school
    stands in its division week by week.
 
-     node tools/build-conferences.js
+     node tools/build-conferences.js 2021
+
+   One season at a time (2020 if none is given); the file keeps every other
+   season's block exactly as it was.
 
    Why it is made up
    -----------------
@@ -39,8 +42,10 @@
 const fs = require('fs');
 const path = require('path');
 const { loadSiteData } = require('../bot/site-data');
+const { fetchAll } = require('./espn');
+const { weekOf, localParts } = require('./calendar');
 
-const SEASON = 2020;
+const SEASON = Number(process.argv[2]) || 2020;
 const SEEDS = 4000;
 const OUT = path.join(__dirname, '..', 'data', 'conferences.js');
 
@@ -49,7 +54,7 @@ const OUT = path.join(__dirname, '..', 'data', 'conferences.js');
    Valley's own for its spring season). The record is only what the seed
    is judged against. Indiana State sat the spring out, so it has no record
    to be judged by and a strength in line with its 2019. */
-const CONFERENCES = {
+const DRAWN_2020 = {
   bigTen: {
     name: 'Big Ten',
     weeks: [4, 13],
@@ -167,6 +172,35 @@ const CONFERENCES = {
     rivalryWeek: { 12: [['North Dakota', 'South Dakota State']] }
   }
 };
+
+/* 2021 was played in full, so its conference schedules are the real ones,
+   read from ESPN, and only the scores are played out -- from each school's
+   real 2021 points scored and allowed a game, with the seed judged against
+   its real 2021 conference record, both also from ESPN. The leagues lined
+   up the same way as in 2020. */
+function membersOf(conferences) {
+  const out = {};
+  Object.keys(conferences).forEach(function (id) {
+    const divisions = {};
+    Object.keys(conferences[id].divisions).forEach(function (d) {
+      divisions[d] = Object.keys(conferences[id].divisions[d]);
+    });
+    out[id] = { name: conferences[id].name, divisions: divisions };
+  });
+  return out;
+}
+
+const REAL_2021 = membersOf(DRAWN_2020);
+
+/* How each season is built: drawn (a schedule made up in the league's real
+   shape) or real (the schedule as it was played). */
+const SEASONS = {
+  2020: { mode: 'drawn', conferences: DRAWN_2020 },
+  2021: { mode: 'real', conferences: REAL_2021 }
+};
+
+if (!SEASONS[SEASON]) { throw new Error('No conferences set up for ' + SEASON + ' -- add it to SEASONS.'); }
+const CONFERENCES = SEASONS[SEASON].conferences;
 
 /* --- dice ------------------------------------------------------------------ */
 
@@ -515,9 +549,117 @@ function build(EGE, conf, seed) {
   return { games: games, score: score, finals: won };
 }
 
+/* --- a season as it was played --------------------------------------------- */
+
+const SITE = 'https://site.api.espn.com/apis/site/v2/sports/football/college-football';
+
+/* Every regular-season game the league's schools played, from ESPN, with
+   each school's real points a game and conference record:
+   { fixtures: [{ week, home, away }], rating: { school: [for, against, w, l] } } */
+function realSeason(EGE, conf) {
+  const schools = [].concat(...Object.values(conf.divisions));
+  const members = new Set(schools);
+  const urls = schools.map(function (school) {
+    const id = EGE.espnIds[school];
+    if (!id) { throw new Error('No ESPN id for ' + school); }
+    return SITE + '/teams/' + id + '/schedule?season=' + SEASON + '&seasontype=2';
+  });
+  const got = fetchAll(urls, conf.name + ' schedules');
+
+  const seen = new Set();
+  const fixtures = [];
+  const tally = {};
+  schools.forEach(function (school) { tally[school] = { pf: 0, pa: 0, games: 0, w: 0, l: 0 }; });
+
+  urls.forEach(function (url, at) {
+    const school = schools[at];
+    ((got.get(url) || {}).events || []).forEach(function (event) {
+      const game = event.competitions[0];
+      const notes = ((game.notes || [])[0] || {}).headline || '';
+      const status = ((game.status || {}).type || {});
+      if (/championship/i.test(notes) || !status.completed) { return; }
+      const sides = game.competitors.map(function (c) {
+        return { name: c.team.location, home: c.homeAway === 'home', score: Number((c.score || {}).value || c.score) };
+      });
+      const us = sides.filter((x) => x.name === school)[0];
+      const them = sides.filter((x) => x !== us)[0];
+      if (!us || !them || isNaN(us.score) || isNaN(them.score)) { return; }
+
+      const row = tally[school];
+      row.games += 1;
+      row.pf += us.score;
+      row.pa += them.score;
+      if (!members.has(them.name)) { return; }
+      if (us.score > them.score) { row.w += 1; } else { row.l += 1; }
+
+      if (seen.has(event.id)) { return; }
+      seen.add(event.id);
+      const home = sides.filter((x) => x.home)[0] || sides[0];
+      const away = sides.filter((x) => x !== home)[0];
+      fixtures.push({
+        week: weekOf(localParts(game.date, 'America/Chicago').date, SEASON),
+        home: home.name,
+        away: away.name
+      });
+    });
+  });
+
+  const rating = {};
+  schools.forEach(function (school) {
+    const t = tally[school];
+    rating[school] = t.games
+      ? [Math.round(t.pf / t.games * 10) / 10, Math.round(t.pa / t.games * 10) / 10, t.w, t.l]
+      : [21, 28, null, null];
+  });
+  return { fixtures: fixtures, rating: rating };
+}
+
+/* The real schedule played out with one seed: every game none of the six
+   is in gets a score; the six's own come from the season file. */
+function buildReal(EGE, conf, seed, real) {
+  const rng = mulberry32(seed);
+  const rating = real.rating;
+  const teams = new Set(Object.keys(rating));
+  const fixed = fixedGames(EGE, teams);
+  const owners = ownersOf(fixed, teams, EGE);
+
+  const games = real.fixtures.filter(function (g) {
+    return !owners.has(g.home) && !owners.has(g.away);
+  }).map(function (g) {
+    return { week: g.week, home: g.home, away: g.away, score: play(g.home, g.away, rating, rng) };
+  }).sort((p, q) => p.week - q.week || p.home.localeCompare(q.home));
+
+  const won = new Map([...teams].map((t) => [t, [0, 0]]));
+  const result = (w, l) => { won.get(w)[0] += 1; won.get(l)[1] += 1; };
+  games.concat([...fixed.values()].filter((g) => g.score)).forEach(function (g) {
+    if (g.score[0] > g.score[1]) { result(g.home, g.away); } else { result(g.away, g.home); }
+  });
+  const judged = [...teams].filter((t) => rating[t][2] !== null);
+  const pct = (w, l) => (w + l ? w / (w + l) : 0.5);
+  const score = spearman(judged.map((t) => pct(...won.get(t))),
+                         judged.map((t) => pct(rating[t][2], rating[t][3])));
+  return { games: games, score: score, finals: won };
+}
+
 /* --- the file -------------------------------------------------------------- */
 
+/* The file with this season's block put in -- in place of the one that is
+   there, or after the last one -- and every other season's left alone. */
 function write(results) {
+  const block = seasonBlock(results);
+  const existing = fs.existsSync(OUT) ? fs.readFileSync(OUT, 'utf8') : null;
+  if (!existing) { fs.writeFileSync(OUT, header().concat(block).join('\n')); return; }
+  const start = existing.indexOf('EGE.conferences[' + SEASON + '] = {');
+  if (start === -1) {
+    fs.writeFileSync(OUT, existing.replace(/\n*$/, '\n\n') + block.join('\n'));
+    return;
+  }
+  const end = existing.indexOf('\n};\n', start) + 4;
+  fs.writeFileSync(OUT, existing.slice(0, start) + block.join('\n') +
+    existing.slice(end));
+}
+
+function header() {
   const out = [];
   out.push('/* ==========================================================================');
   out.push('   EGE Football — the conference races');
@@ -530,6 +672,10 @@ function write(results) {
   out.push('   read from stats/{year}.js as they are published, so the standings move');
   out.push('   with whatever the season file says.');
   out.push('');
+  out.push('   2020\'s schedules are drawn in each league\'s real shape, since the real');
+  out.push('   2020 was cut short; 2021\'s are the real ones, as played. Either way the');
+  out.push('   scores are played out here, from how strong each school really was.');
+  out.push('');
   out.push('   A game here counts once its week is published, the same as everything');
   out.push('   else on the site. `score` is [home, away].');
   out.push('   ========================================================================== */');
@@ -537,6 +683,11 @@ function write(results) {
   out.push('window.EGE = window.EGE || {};');
   out.push('EGE.conferences = EGE.conferences || {};');
   out.push('');
+  return out;
+}
+
+function seasonBlock(results) {
+  const out = [];
   out.push('EGE.conferences[' + SEASON + '] = {');
   const ids = Object.keys(results);
   ids.forEach(function (id, at) {
@@ -547,7 +698,7 @@ function write(results) {
     out.push('    divisions: {');
     const divs = Object.keys(conf.divisions);
     divs.forEach(function (d, i) {
-      const teams = Object.keys(conf.divisions[d]).map(quote).join(', ');
+      const teams = schoolsIn(conf.divisions[d]).map(quote).join(', ');
       out.push('      ' + quote(d) + ': [' + teams + ']' + (i < divs.length - 1 ? ',' : ''));
     });
     out.push('    },');
@@ -564,25 +715,43 @@ function write(results) {
   });
   out.push('};');
   out.push('');
-  fs.writeFileSync(OUT, out.join('\n'));
+  return out;
 }
 
 function quote(text) { return "'" + text + "'"; }
 
+/* A division's schools: the keys of a drawn season's strengths, or a real
+   season's plain list. */
+function schoolsIn(division) {
+  return Array.isArray(division) ? division : Object.keys(division);
+}
+
 function main() {
   const EGE = loadSiteData();
   const results = {};
+  const real = SEASONS[SEASON].mode === 'real';
+  if (real) {
+    /* ESPN's ids, for reading the schedules. */
+    const vm = require('vm');
+    const sandbox = {};
+    sandbox.window = sandbox;
+    vm.createContext(sandbox);
+    vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'data', 'logos.js'), 'utf8'), sandbox);
+    EGE.espnIds = sandbox.EGE.espnIds;
+  }
   Object.keys(CONFERENCES).forEach(function (id) {
+    const season = real ? realSeason(EGE, CONFERENCES[id]) : null;
     let best = null;
     for (let seed = 1; seed <= SEEDS; seed += 1) {
-      const built = build(EGE, CONFERENCES[id], seed);
+      const built = real ? buildReal(EGE, CONFERENCES[id], seed, season)
+                         : build(EGE, CONFERENCES[id], seed);
       if (built && (!best || built.score > best.score)) { best = Object.assign({ seed: seed }, built); }
     }
     if (!best) { throw new Error(id + ': no seed built a season'); }
     results[id] = best;
     console.log(CONFERENCES[id].name + ': seed ' + best.seed + ', rank match ' + best.score.toFixed(3));
     Object.keys(CONFERENCES[id].divisions).forEach(function (d) {
-      const rows = Object.keys(CONFERENCES[id].divisions[d]).map((t) => [t, best.finals.get(t)])
+      const rows = schoolsIn(CONFERENCES[id].divisions[d]).map((t) => [t, best.finals.get(t)])
         .sort((p, q) => q[1][0] / (q[1][0] + q[1][1]) - p[1][0] / (p[1][0] + p[1][1]));
       console.log('  ' + d + ': ' + rows.map((r) => r[0] + ' ' + r[1][0] + '-' + r[1][1]).join(', '));
     });

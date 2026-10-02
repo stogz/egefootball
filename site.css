@@ -505,6 +505,21 @@ body::before {
   min-width: 0;
 }
 .ege-school--lg .ege-school__logo { width: 34px; height: 34px; }
+/* On a college season the school is a link to its team page: the same line,
+   an arrow after it, and an underline on the name when pointed at. */
+.ege-school__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+.ege-school__link .ege-school__name { text-underline-offset: 4px; }
+.ege-school__link:hover .ege-school__name,
+.ege-school__link:focus-visible .ege-school__name { text-decoration: underline; }
+.ege-school__go { font-weight: 800; color: var(--fb-accent-deep); transition: transform .12s ease; }
+.ege-school__link:hover .ege-school__go { transform: translateX(3px); }
 .ege-school--lg .ege-school__name {
   font-size: var(--fb-label);
   font-weight: 800;
@@ -1411,6 +1426,33 @@ body::before {
   font-variant-numeric: tabular-nums;
 }
 .ege-drawer__empty { color: var(--fb-sand); font-size: .8125rem; font-weight: 600; }
+/* How many more of each the season has room for, under the sticker, and a
+   kind the season is full of greyed out where it lies. */
+.ege-drawer__stickers:has(.ege-pick__left) { padding-bottom: 22px; column-gap: 26px; }
+.ege-pick__left {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--fb-sand);
+}
+.ege-pick.is-spent { cursor: not-allowed; }
+.ege-pick.is-spent .ege-sticker { filter: grayscale(1) opacity(.45); }
+.ege-pick.is-spent .ege-pick__left { color: var(--fb-accent); }
+.ege-drawer__room {
+  flex-basis: 100%;
+  order: -1;
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-sand);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .ege-sticker::before,
@@ -1462,6 +1504,28 @@ body::before {
   /* head and shoulders */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231d2416'%3E%3Ccircle cx='12' cy='7.5' r='4'/%3E%3Cpath d='M3.5 21a8.5 8.5 0 0 1 17 0z'/%3E%3C/svg%3E");
 }
+
+/* The opponent's defense, graded A to F against what this player does
+   (EGE.defenseGrade in data/games.js). A report card's colours: an A is a
+   good defense, so it is the hard one to play. */
+.ege-schedule__gradehead,
+.ege-schedule__grade { width: 1%; text-align: center; white-space: nowrap; }
+.ege-grade {
+  display: inline-block;
+  min-width: 1.75rem;
+  padding: 2px 6px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  font-family: var(--fb-font-display);
+  font-size: .875rem;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--fb-ink);
+}
+.ege-grade--a { background: #7fbf5a; }
+.ege-grade--b { background: var(--fb-tint-sage-2); }
+.ege-grade--c { background: #f3df8f; }
+.ege-grade--d { background: var(--fb-tint-clay-2); }
+.ege-grade--f { background: #e8826a; }
 
 .ege-schedule__conf {
   margin-left: 4px;
@@ -1895,7 +1959,7 @@ body::before {
 
 .ege-gamelog tfoot td {
   border-top: var(--fb-border) solid var(--fb-ink);
-  background: var(--fb-tint-sage);
+  background: #fff;
 }
 
 /* --- sorting the game log --------------------------------------------------
@@ -1940,7 +2004,7 @@ body::before {
    of the column, at the faintest shade that still reads as one block on both
    the plain rows and the shaded ones. */
 .ege-gamelog td.is-sorted-cell { background: rgba(229, 110, 40, .12); }
-.ege-gamelog tfoot td.is-sorted-cell { background: var(--fb-tint-sage-2); }
+.ege-gamelog tfoot td.is-sorted-cell { background: rgba(229, 110, 40, .12); }
 
 /* The multiplier that was riding on a game, beside the opponent. */
 .ege-gamelog__boost {
@@ -2998,6 +3062,13 @@ select,
     white-space: nowrap;
   }
 
+  /* The grade shares the date's line, at its far end. */
+  .ege-schedule tbody tr .ege-schedule__grade {
+    grid-area: 2 / 2 / 3 / 3;
+    justify-self: end;
+    width: auto;
+  }
+  .ege-schedule tbody tr .ege-grade { font-size: .75rem; padding: 0 5px; min-width: 1.4rem; }
   .ege-schedule tbody tr .ege-schedule__result { grid-area: 1 / 3 / 2 / 4; text-align: right; }
   .ege-schedule tbody tr .ege-schedule__credits { grid-area: 2 / 3 / 3 / 4; text-align: right; }
   .ege-schedule tbody tr .ege-schedule__slot { grid-area: 1 / 4 / 3 / 5; }
@@ -3374,4 +3445,356 @@ button.ege-owned__item { cursor: pointer; }
 .ege-items--joined {
   padding-top: 18px;
   border-top: var(--fb-border-thin) solid var(--fb-ink);
+}
+
+/* --- conference standings ------------------------------------------------- */
+
+/* The whole conference in one table on a team's page: the dark row of
+   headings once at the top, and each division's name running up the left
+   of its schools in a cream column, the team's own division first. The
+   team's row is picked out in the accent, and that is all. */
+.ege-standings { display: grid; gap: 0; }
+.ege-standings__table th.ege-standings__divhead { width: 1%; padding: 0; }
+.ege-standings__table th.ege-standings__div {
+  width: 1%;
+  padding: 10px 8px;
+  background: var(--fb-surface);
+  border-right: var(--fb-border-thin) solid rgba(29, 36, 22, .35);
+  color: var(--fb-ink);
+  text-align: center;
+  vertical-align: middle;
+}
+.ege-standings__divname {
+  display: inline-block;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-family: var(--fb-font-display);
+  font-size: .8125rem;
+  font-weight: 400;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+/* A division after the first starts under a rule across the whole table. */
+.ege-standings__table tbody + tbody tr:first-child > * {
+  border-top: var(--fb-border-thin) solid rgba(29, 36, 22, .45);
+}
+.ege-standings__table { min-width: 0; width: 100%; }
+.ege-standings__table th:first-child,
+.ege-standings__place { width: 1%; white-space: nowrap; font-family: var(--fb-font-display); }
+.ege-standings__team { white-space: nowrap; }
+.ege-standings__table tbody tr { cursor: default; }
+/* The orange row: the accent bar on its first cell rather than the row, so
+   it sits beside the place and not on the division's column. */
+.ege-standings__table tbody tr.is-ours > td,
+.ege-standings__table tbody tr.is-ours:hover > td { background: var(--fb-tint-clay); }
+.ege-standings__table tbody tr.is-ours > td:first-of-type { box-shadow: inset 4px 0 0 var(--fb-accent); }
+.ege-standings__diff.is-up { color: var(--fb-grass); }
+.ege-standings__diff.is-down { color: var(--fb-accent-deep); }
+/* Places moved since last week: green up, red down -- the streak's colours. */
+.ege-standings__change { font-weight: 800; white-space: nowrap; }
+.ege-standings__change.is-up { color: #2e7d32; }
+.ege-standings__change.is-down { color: #c62828; }
+.ege-standings__arrow { margin-right: 3px; font-size: .75em; }
+
+@media (max-width: 620px) {
+  .ege-standings__table th, .ege-standings__table td { padding-left: 8px; padding-right: 8px; }
+  /* Points for and against fold into the differential on a phone. */
+  .ege-standings__pts { display: none; }
+  /* The division's column as narrow as its name, and a long school name
+     cut short rather than pushing the last column off the screen. */
+  .ege-standings__table th.ege-standings__div { padding: 8px 4px; }
+  .ege-standings__team .fb-name {
+    display: inline-block;
+    max-width: 8.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: bottom;
+  }
+}
+
+/* --- the teams ---------------------------------------------------------------
+
+   The index is a stack of cards, one school to a row, top to bottom: its
+   mark on the left where a headshot would be, and beside it the name, the
+   record and conference place, the faces of the six who play there and
+   the way in. Above it, the season switcher. */
+/* The full width of the page, as the bar over a team's page is. */
+.ege-teamsbar {
+  flex: none;
+  width: 100%;
+  margin: 0 0 22px;
+}
+.ege-teamgrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.ege-teamcard { flex-direction: row; }
+.ege-teamcard__mark {
+  flex: none;
+  width: clamp(110px, 22vw, 220px);
+  border-bottom: 0;
+  border-right: var(--fb-border) solid var(--fb-ink);
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 45%, #fff 0 38%, var(--fb-surface) 75%);
+}
+.ege-teamcard__mark { aspect-ratio: auto; min-height: 150px; }
+.ege-teamcard__mark img {
+  width: auto;
+  height: auto;
+  max-width: 70%;
+  max-height: 110px;
+  object-fit: contain;
+}
+@media (max-width: 620px) {
+  .ege-teamcard__mark { min-height: 120px; }
+  .ege-teamcard__mark img { max-height: 80px; }
+}
+.ege-teamcard .ege-card__school { min-height: 0; }
+/* A school's own colour behind its mark (EGE.teams `ground`), set inline;
+   `is-white` turns a mark that would vanish into it white. */
+.ege-teamcard__mark.is-painted,
+.ege-teamhead__logo.is-painted { background-image: none; }
+.ege-teamcard__mark img.is-white,
+.ege-teamhead__logo img.is-white { filter: brightness(0) invert(1); }
+.ege-teamcard__ours { display: flex; gap: 6px; }
+.ege-teamcard__face {
+  width: 38px;
+  height: 38px;
+  object-fit: cover;
+  object-position: top;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-sand);
+}
+
+/* A team's page: the mark on the left where a player's picture is, the
+   name and the facts beside it. */
+.ege-teamhead__body {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+.ege-teamhead__logo {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: clamp(96px, 18vw, 180px);
+  aspect-ratio: 1;
+  border: var(--fb-border) solid var(--fb-ink);
+  background: radial-gradient(circle at 50% 45%, #fff 0 40%, var(--fb-surface) 78%);
+}
+.ege-teamhead__logo img { width: 74%; height: 74%; object-fit: contain; }
+.ege-teamhead__words { min-width: 0; }
+.ege-teamhead__facts dd { font-size: 1rem; }
+.ege-teamhead__ours a { color: var(--fb-ink); text-decoration: underline; text-underline-offset: 3px; }
+/* On a phone the mark and the name share the top line and the facts run
+   the full width under both, the way a player's header does. */
+@media (max-width: 620px) {
+  .ege-teamhead__body {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    align-items: center;
+    gap: 14px 16px;
+  }
+  .ege-teamhead__logo { width: 88px; }
+  .ege-teamhead__words { display: contents; }
+  /* The player header's classes name grid areas this grid does not have. */
+  .ege-teamhead__body .ege-detail__name { grid-area: auto; margin: 0; }
+  .ege-teamhead__body .ege-teamhead__facts { grid-area: auto; grid-column: 1 / -1; }
+}
+
+/* A player in a room: picture, name, number, class and size, overall.
+   Every player is one of these; one of the six is a link to his page and
+   is picked out in orange. */
+.ege-teamchip {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  border: var(--fb-border) solid var(--fb-ink);
+  background: var(--fb-cream);
+  color: var(--fb-ink);
+  text-decoration: none;
+  box-shadow: 4px 4px 0 var(--fb-ink);
+}
+.ege-teamchip.is-six { background: var(--fb-tint-clay); box-shadow: 4px 4px 0 var(--fb-accent); }
+a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
+.ege-teamchip__photo {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  overflow: hidden;
+  background: var(--fb-sand);
+  font-weight: 800;
+  color: var(--fb-muted);
+}
+.ege-teamchip__photo img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.ege-teamchip__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ege-teamchip__name { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ege-teamchip__meta { display: flex; align-items: center; gap: 6px; font-size: var(--fb-small); color: var(--fb-muted); white-space: nowrap; }
+.ege-ovrbox--chip { width: 54px; padding: 5px 4px 6px; }
+.ege-ovrbox--chip .ege-ovrbox__value { font-size: 1.5rem; }
+
+/* The position rooms: four across on a wide screen, two on a phone. */
+/* Two rooms across, so a card is wide enough for every name on one line;
+   one on anything narrower. */
+.ege-rooms {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px 28px;
+}
+@media (max-width: 760px) { .ege-rooms { grid-template-columns: minmax(0, 1fr); } }
+.ege-room__title {
+  margin: 0 0 6px;
+  padding-bottom: 4px;
+  border-bottom: var(--fb-border-thin) solid var(--fb-ink);
+  font-size: .9375rem;
+}
+.ege-room__list { margin: 0; padding: 0 4px 4px 0; list-style: none; display: grid; gap: 12px; }
+.ege-room__class {
+  padding: 0 4px;
+  border: 1px solid var(--fb-ink);
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .06em;
+  color: var(--fb-ink);
+  text-decoration: none;
+}
+.ege-room__player { min-width: 0; }
+.ege-room__more { margin-top: 6px; }
+.ege-room__more summary {
+  cursor: pointer;
+  font-size: var(--fb-small);
+  font-weight: 800;
+  color: var(--fb-accent-deep);
+}
+.ege-room__more .ege-room__list { margin-top: 6px; }
+.ege-room__empty { margin: 0; font-size: var(--fb-small); color: var(--fb-muted); }
+
+
+/* --- the injury report ------------------------------------------------------
+
+   A band across the header panel, above the season strip, only while the
+   week being played is one he is marked injured for. */
+.ege-injury {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 28px;
+  padding: 14px 20px;
+  border-top: var(--fb-border) solid var(--fb-ink);
+  background: #fde3dc;
+}
+.ege-injury__head { display: flex; align-items: center; gap: 14px; }
+.ege-injury__cross {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  background: #c8321e;
+  color: #fff;
+  font-family: var(--fb-font-display);
+  font-size: 2rem;
+  line-height: 1;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+}
+.ege-injury__words { display: flex; flex-direction: column; gap: 1px; }
+.ege-injury__kicker {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: #9b2414;
+}
+.ege-injury__status { font-size: 1.0625rem; }
+.ege-injury__status strong { color: #9b2414; letter-spacing: .04em; }
+.ege-injury__back { font-size: var(--fb-small); color: var(--fb-muted); }
+.ege-injury__health { display: flex; align-items: center; gap: 10px; flex: 1 1 220px; max-width: 420px; }
+.ege-injury__label {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.ege-injury__bar {
+  position: relative;
+  flex: 1;
+  height: 14px;
+  background: var(--fb-cream);
+  border: var(--fb-border-thin) solid var(--fb-ink);
+}
+.ege-injury__fill { position: absolute; inset: 0 auto 0 0; }
+.ege-injury__fill--good { background: var(--fb-grass); }
+.ege-injury__fill--fair { background: var(--fb-gold); }
+.ege-injury__fill--poor { background: #c8321e; }
+.ege-injury__pct { font-family: var(--fb-font-display); font-size: 1.125rem; min-width: 3ch; text-align: right; }
+.ege-hurtrow__what { flex: 1 1 200px; }
+.ege-hurtrow > .ege-statfield:last-child { flex: 0 0 110px; }
+
+/* --- the diamond overall -------------------------------------------------------
+
+   80 and up: the overall box cut as a princess-cut blue diamond -- a
+   steel-blue frame, a band of triangular facets running in from the
+   corners, and a pale square table in the middle with its own four-way
+   cut, drawn as an SVG stretched to the box. The number sits on the table
+   in deep navy. A band of light sweeps across it every few seconds and a
+   sparkle twinkles in the corner; both stay still for anybody who has
+   asked for less motion. */
+.ege-ovrbox--diamond {
+  position: relative;
+  overflow: hidden;
+  border-color: #1f5577;
+  color: #0b2c45;
+  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'><defs><linearGradient id='f' x1='0' y1='1' x2='1' y2='0'><stop offset='0' stop-color='%233b7ea6'/><stop offset='.55' stop-color='%237fbfdb'/><stop offset='1' stop-color='%23dcf3fa'/></linearGradient></defs><rect width='100' height='100' fill='url(%23f)'/><polygon points='3,3 97,3 50,12' fill='%23c4ebf6' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='3,3 50,12 12,12' fill='%2355a3c7' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='97,3 88,12 50,12' fill='%238ccfe5' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='12,12 88,12 50,25' fill='%238ccfe5' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='12,12 50,25 25,25' fill='%23eafaff' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='88,12 75,25 50,25' fill='%2355a3c7' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='97,3 97,97 88,50' fill='%238ccfe5' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='97,3 88,50 88,12' fill='%23eafaff' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='97,97 88,88 88,50' fill='%232e6d93' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='88,12 88,88 75,50' fill='%23c4ebf6' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='88,12 75,50 75,25' fill='%2355a3c7' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='88,88 75,75 75,50' fill='%23eafaff' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='3,97 97,97 50,88' fill='%2355a3c7' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='3,97 50,88 12,88' fill='%238ccfe5' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='97,97 88,88 50,88' fill='%23c4ebf6' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='12,88 88,88 50,75' fill='%2355a3c7' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='12,88 50,75 25,75' fill='%238ccfe5' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='88,88 75,75 50,75' fill='%23eafaff' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='3,3 3,97 12,50' fill='%232e6d93' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='3,3 12,50 12,12' fill='%238ccfe5' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='3,97 12,88 12,50' fill='%23eafaff' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='12,12 12,88 25,50' fill='%238ccfe5' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='12,12 25,50 25,25' fill='%2355a3c7' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='12,88 25,75 25,50' fill='%23c4ebf6' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='25,25 50,25 50,50' fill='%23d6f4fb' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='50,25 75,25 50,50' fill='%23f3fdff' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='75,25 75,50 50,50' fill='%23e2f8fd' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='75,50 75,75 50,50' fill='%23c6eef8' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='75,75 50,75 50,50' fill='%23e9fafe' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='50,75 25,75 50,50' fill='%23b5e6f4' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='25,75 25,50 50,50' fill='%23cbeff8' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='25,50 25,25 50,50' fill='%23bde9f5' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/></svg>") center / 100% 100% no-repeat, #8ccfe5;
+  box-shadow: 0 0 10px rgba(91, 178, 220, .55);
+}
+.ege-ovrbox--diamond .ege-ovrbox__label {
+  position: relative;
+  z-index: 1;
+  color: #0b2c45;
+  text-shadow: 0 0 3px #fff, 0 0 6px #fff;
+}
+.ege-ovrbox--diamond .ege-ovrbox__value {
+  position: relative;
+  z-index: 1;
+  color: #0b2c45;
+  text-shadow: 0 0 3px #fff, 0 0 8px rgba(255, 255, 255, .9);
+}
+.ege-ovrbox--diamond::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -120%;
+  width: 45%;
+  height: 200%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .7), transparent);
+  transform: rotate(20deg);
+  animation: ege-diamond-shine 3.4s ease-in-out infinite;
+  pointer-events: none;
+}
+.ege-ovrbox--diamond::after {
+  content: '\2726';
+  position: absolute;
+  top: 1px;
+  right: 3px;
+  z-index: 1;
+  font-size: .625rem;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 0 4px #b3e5fc;
+  animation: ege-diamond-twinkle 1.6s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes ege-diamond-shine {
+  0%, 55% { left: -120%; }
+  100%    { left: 160%; }
+}
+@keyframes ege-diamond-twinkle {
+  0%, 100% { opacity: .35; transform: scale(.8); }
+  50%      { opacity: 1;   transform: scale(1.15); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ege-ovrbox--diamond::before { animation: none; left: 30%; opacity: .5; }
+  .ege-ovrbox--diamond::after { animation: none; opacity: .9; }
 }

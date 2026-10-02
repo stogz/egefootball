@@ -50,16 +50,26 @@ EGE.shop = {
   riskDie: 12,
   riskFailsOn: 3,
 
+  /* The most boosters one season's games can carry, whatever their kind.
+     Each kind has its own cap too (`seasonLimit` on the item). The same
+     numbers are enforced in supabase/schema.sql. */
+  boosterSeasonLimit: 5,
+
   sections: [
     {
       key: 'boosters',
       title: 'Performance Boosters',
       blurb: 'Regular season games only, one use per purchase. Save one for a ' +
-             'hard opponent, or spend it proving a point against a rival.',
+             'hard opponent, or spend it proving a point against a rival. A ' +
+             'season takes five at most: two 2.5x, three 2.0x and four 1.5x. ' +
+             'Any you do not use carry over.',
+      /* How many can go on a season's games: `seasonLimit` of each, and
+         `boosterSeasonLimit` above across all three. Buying is not capped --
+         an unused booster carries over -- only sticking one on a game is. */
       items: [
-        { key: 'boost-2-5', name: '2.5x Booster', credits: 40, tag: '2.5x', multiplier: 2.5, consumable: true },
-        { key: 'boost-2-0', name: '2.0x Booster', credits: 25, tag: '2.0x', multiplier: 2.0, consumable: true },
-        { key: 'boost-1-5', name: '1.5x Booster', credits: 15, tag: '1.5x', multiplier: 1.5, consumable: true }
+        { key: 'boost-2-5', name: '2.5x Booster', credits: 40, tag: '2.5x', multiplier: 2.5, consumable: true, seasonLimit: 2 },
+        { key: 'boost-2-0', name: '2.0x Booster', credits: 25, tag: '2.0x', multiplier: 2.0, consumable: true, seasonLimit: 3 },
+        { key: 'boost-1-5', name: '1.5x Booster', credits: 15, tag: '1.5x', multiplier: 1.5, consumable: true, seasonLimit: 4 }
       ]
     },
 
@@ -144,6 +154,10 @@ EGE.shop = {
           credits: 20,
           note: 'College and later',
           tiers: ['college', 'nfl'],
+          /* A receiver or a back names which quarterback it is with, from
+             his team's quarterback room (EGE.quarterbacksFor). A quarterback
+             buys the O-Line Connection and has nobody to pick. */
+          pickQuarterback: true,
           description: 'The whole offseason spent with your quarterback, learning his ' +
                        'routes and calls. Chemistry resets if they are injured, ' +
                        'traded or otherwise leave. Better chemistry can mean more targets.',
@@ -190,6 +204,19 @@ EGE.itemName = function (item, player) {
   if (!item) { return ''; }
   var byPosition = item.nameByPosition || {};
   return (player && byPosition[player.position]) || item.name;
+};
+
+/* Whether buying this item means naming a quarterback: the QB Connection,
+   for anybody who is not one. */
+EGE.needsQuarterback = function (item, player) {
+  return Boolean(item && item.pickQuarterback && player && player.position !== 'QB');
+};
+
+/* What an inventory row is called once the quarterback is named:
+   QB Connection — C.J. Stroud. */
+EGE.connectionName = function (item, player, quarterback) {
+  var name = EGE.itemName(item, player);
+  return quarterback ? name + ' \u2014 ' + quarterback : name;
 };
 
 /* What an item says it does for this player, on the same terms as its name. */

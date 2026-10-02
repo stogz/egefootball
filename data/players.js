@@ -97,36 +97,46 @@ EGE.teams = {
      the offer stickers in icon/offers/, so a school has one logo on the
      site whether it is offering somebody or playing for them.
      `discordLogo`, where a school has one, replaces the logo in the Discord
-     posts only — for a mark too dark to read on Discord's background. */
+     posts only — for a mark too dark to read on Discord's background.
+
+     `ground` is the colour the Teams pages put behind the mark, and
+     `whiteMark: true` draws the mark in white on it -- Alabama's script A
+     is the same crimson as its ground. */
   ohioState: {
     school: 'Ohio State',
     league: 'Big Ten',
     logo: 'icon/offers/OhioState.png',
     discordLogo: 'icon/OhioStateWhite.png',
+    ground: '#FFFFFF',
     zone: 'America/New_York'
   },
   northDakotaState: {
     school: 'North Dakota State',
     league: 'Missouri Valley',
     logo: 'icon/offers/NDSU.png',
+    ground: '#0A5640',
     zone: 'America/Chicago'
   },
   usc: {
     school: 'USC',
     league: 'Pac-12',
     logo: 'icon/offers/USC.png',
+    ground: '#9D2235',
     zone: 'America/Los_Angeles'
   },
   alabama: {
     school: 'Alabama',
     league: 'SEC',
     logo: 'icon/offers/Alabama.png',
+    ground: '#9E1B32',
+    whiteMark: true,
     zone: 'America/Chicago'
   },
   illinois: {
     school: 'Illinois',
     league: 'Big Ten',
     logo: 'icon/offers/Illinois.png',
+    ground: '#FF5F05',
     zone: 'America/Chicago'
   }
 };
@@ -197,6 +207,10 @@ EGE.players = [
     college: 'illinois',      // from 2020
     position: 'QB',
     jersey: 8,
+    /* Redshirted his freshman year: 2020 used no eligibility, so from 2021
+       his class runs a year behind everybody else's -- a freshman while
+       they are sophomores (see EGE.classFor). */
+    redshirt: 2020,
     height: 69,               // inches
     weight: 185,              // pounds
     email: 'isaacvitel2005@gmail.com',
@@ -270,6 +284,47 @@ EGE.positionFor = function (player, season) {
 EGE.teamFor = function (player, season) {
   var key = EGE.teamKeyFor(player, season);
   return (key && EGE.teams[key]) || null;
+};
+
+/* A player's class in a season, as his own page says it: Junior Year,
+   Freshman Year. The ladder's `class` is what it is for a player who never
+   redshirts. A player with `redshirt: {year}` sits that college season out
+   without using a year of eligibility: that season reads 'Redshirt', and
+   every one after it is the year of eligibility he is in, a year behind
+   everybody else -- Isaac is a 'Freshman Year' in 2021. Only the player pages say a class this way;
+   everywhere else a season is a year and a level, since the six are not all
+   in the same class. */
+var COLLEGE_CLASSES = ['Freshman Year', 'Sophomore Year', 'Junior Year', 'Senior Year', 'Fifth Year'];
+
+EGE.classFor = function (player, season) {
+  var year = season || EGE.currentSeason;
+  var found = EGE.seasons.filter(function (s) { return s.year === year; })[0];
+  if (!found) { return null; }
+  if (found.tier !== 'college') { return found.class; }
+
+  /* The redshirt year itself is just that; after it, the class is the
+     year of eligibility he is in -- a freshman again the year after. */
+  if (player && player.redshirt === year) { return 'Redshirt'; }
+  var eligibility = EGE.eligibilityYearFor(player, year);
+  return COLLEGE_CLASSES[Math.min(eligibility, COLLEGE_CLASSES.length) - 1];
+};
+
+/* Which year of eligibility a player is in that college season, 1 to 5:
+   one for every college season so far, less the one he redshirted once it
+   is behind him. Null in high school. */
+EGE.eligibilityYearFor = function (player, season) {
+  var year = season || EGE.currentSeason;
+  if (EGE.tierFor(year) !== 'college') { return null; }
+  var count = EGE.seasons.filter(function (s) {
+    return s.tier === 'college' && s.year <= year;
+  }).length;
+  if (player && player.redshirt && player.redshirt < year) { count -= 1; }
+  return Math.max(1, count);
+};
+
+/* Whether a player has a redshirt year behind him that season. */
+EGE.redshirtedBy = function (player, season) {
+  return Boolean(player && player.redshirt && player.redshirt < (season || EGE.currentSeason));
 };
 
 /* The accounts allowed to sign in. */

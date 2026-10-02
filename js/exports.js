@@ -248,6 +248,7 @@ EGE.exports = (function () {
           scouts: Boolean(game.scouts),
           injured: Boolean(game.injured),
           injury: game.injured ? (game.injury || null) : null,
+          health: game.injured && typeof game.health === 'number' ? game.health : null,
           published: EGE.isPublished(season, game.week),
           result: game.result || null,
           stats: game.stats || null,
@@ -485,6 +486,9 @@ EGE.exports = (function () {
     var typed = edited ? edited.stats : game.stats;
     var plays = bigPlaysOf(edited ? edited.bigPlays : game.bigPlays);
     var overtime = edited ? edited.overtime : game.overtime;
+    var injured = edited ? edited.injured : game.injured;
+    var injury = edited ? edited.injury : game.injury;
+    var health = edited ? edited.health : game.health;
 
     /* A score is only a score with both halves of it. */
     var scored = result &&
@@ -502,9 +506,12 @@ EGE.exports = (function () {
     if (game.playoff) { flags.push('playoff: true'); }
     if (game.bye) { flags.push('bye: true'); }
     if (game.scouts) { flags.push('scouts: true'); }
-    if (game.injured) {
+    if (injured) {
       flags.push('injured: true');
-      if (game.injury) { flags.push('injury: ' + quote(game.injury)); }
+      if (injury && String(injury).trim()) { flags.push('injury: ' + quote(String(injury).trim())); }
+      if (typeof health === 'number') {
+        flags.push('health: ' + Math.max(0, Math.min(100, Math.round(health))));
+      }
     }
     /* Overtime needs a score to have gone to overtime in. */
     if (overtime && scored) { flags.push('overtime: true'); }
@@ -607,7 +614,9 @@ EGE.exports = (function () {
       '',
       '   `injured: true` marks a game the player missed hurt, and `injury` says',
       "   what with — 'Bruised Shoulder'. The Discord post shows it in red, as",
-      '   DNP Injured: Bruised Shoulder, in place of his stat line.',
+      '   DNP Injured: Bruised Shoulder, in place of his stat line. `health` is how',
+      '   healthy he is that week, 0 to 100; while the week is the one being played',
+      '   his page shows an injury report with it as a bar.',
       '',
       '   `neutral: true` marks a game at a neutral site — listed as vs, and home',
       '   is false because it is nobody\'s. A kickoff of null is one that has not',

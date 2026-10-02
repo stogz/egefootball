@@ -75,6 +75,19 @@ high school graduation makes them draft-eligible, so declaring after junior year
 is the canonical path. The optional 2023 senior college season is the branch a
 player takes instead of declaring; it pushes that player to the 2024 draft.
 
+**Redshirts.** The ladder's class is what a season is for a player who never
+redshirts. **Isaac redshirted his freshman year** (`redshirt: 2020` in
+`data/players.js`): 2020 used no eligibility, so it reads simply *Redshirt*,
+and from then on he is the year of eligibility he is in, a year behind
+everybody else — *Freshman Year* in 2021, *Sophomore Year* in 2022.
+`EGE.classFor` works it out, and his Teams card says *RS* in 2020 and *FR*
+in 2021.
+
+So **a class is only ever named on a player's own page** — the strip across
+his header and his season switcher, both his own. Everywhere else a season
+is a year and a level, *2020 · College Football*: the home page, the Teams
+pages, the admin page.
+
 ---
 
 ## Site Structure
@@ -99,7 +112,10 @@ Routed by player name, e.g. `#andrew-parr`, `#paxon-hatch`. Each player page
 holds:
 
 - **Header** — headshot with height and weight joined to the foot of it, then
-  school and name. Under the name is the recruiting line: 247-style stars out
+  school and name. On a college season the school is a link — an arrow after
+  it, the name underlined when pointed at — to that school's team page,
+  opened on the same season. Where the team stands in its conference is on
+  the team page, not here. Under the name is the recruiting line: 247-style stars out
   of five and his rank at his position in his state and nationally
   (**★★★★☆ #1 RB in Illinois · #5 nationally**), from `EGE.recruiting` in `data/offers.js` — on the high school seasons only; a college season has no recruiting line. Under that, three facts: **Position**, **Record**
   (the team's wins and losses over the season on show, 0-0 until the first
@@ -115,19 +131,31 @@ holds:
   played the last postseason game in its file — beaten in a playoff, won its
   bracket or played its bowl (a college team that loses its conference title
   game still has a bowl to come) — or, for a school that missed the
-  playoffs, once their first week is out. The season, class and level are across the
+  playoffs, once their first week is out. The season, his class (see
+  *Redshirts*) and the level are across the
   orange strip at the top of the panel. The overall is not up
   here: it lives with the ratings it is worked out from, at the foot of the
   page. The top right holds the college offers, as stickers — again on the
   high school seasons only. Once he has signed, the corner is empty.
   The marks on them are cut down to 160 pixels on their long side, which is
   more than twice the size they are drawn at, so a page of them loads fast.
+- **Injury report** — a red band across the foot of the header panel, only
+  while the week being played (the first week of the live season not yet
+  published) is one the season file marks him `injured: true` for: OUT, what
+  with (`injury`), how healthy he is as a bar (`health`, 0–100 — green from
+  75, gold from 40, red under that) and the next week he is not marked, as
+  *Expected back week 8*. Before that week nobody knows, and once it is
+  published the band goes with it unless the next week is marked too. It is
+  `EGE.injuryFor` in `data/games.js`, and the season editor has the three
+  fields on every game.
 - **Season strip** — the ten numbers the season is remembered by, across the
   foot of the header panel: ten across on a wide screen, five and five on
   anything narrower.
 - **Season switcher** — above the header, beside the All Players button and
   outlined the same way, once more than one season is logged: a drop-down of every season with a file in `stats/`, up to the live
-  one, with ‹ and › either side to step through them. It switches the header,
+  one (and, for an admin, any season after it whose file is already in,
+  labelled *Preview*, so a new season can be looked over before it is rolled
+  over to), with ‹ and › either side to step through them. It switches the header,
   season strip, schedule, game log and bracket to that season. Opening a
   different player goes back to the live season. An older season shows no
   scouts and takes no boosters. On a phone the whole bar is one row: All
@@ -136,7 +164,8 @@ holds:
   opponent with home/away, the opponent's logo (college seasons only,
   straight off ESPN's image server by the school's ESPN id in
   `data/logos.js` -- nothing is saved into the site) and a mark for
-  conference games, and the result once it has been played. No kickoff
+  conference games, the **ODEF** grade, and the result once it has been
+  played. No kickoff
   time: the file still carries it for the Discord post, but the page does
   not show it. The Credits and Booster columns are only drawn on your own
   schedule, or on anyone's for an admin. A silhouette marks a game scouts will attend,
@@ -166,25 +195,23 @@ holds:
   lists every week, since that is where they get published from. It is
   `EGE.scheduleFor` in `data/games.js`.
 
-  The bracket is two-sided: the two halves of
-  the draw work inwards from the edges to the championship in the middle,
-  with a line from every game to the one its winner plays next, and his
-  school's path through it drawn in orange. The round names run across the
-  top on a dark band the same height as a table's heading row, and the
-  champion line sits above the championship game. Every box in a bracket is
-  the same size, with the names centred and seeds and scores in every box.
-  A name takes two lines at most; anything longer ends in an ellipsis, with
-  the whole name on its tooltip. Pointing at a team turns every box it is
-  in white and draws its run through the draw in a heavier line. It fits a full-width computer screen (1280px and up) with every name
-  written out, wrapping between words where it needs to. On anything
-  narrower it keeps its shape and scrolls sideways, opening at his school,
-  with a note under it saying to swipe. A draw has as many columns as it has
-  rounds: nine for a thirty-two-team state bracket or the twenty-four-team
-  FCS playoffs (the eight seeds drawn with a first-round bye), three for San
-  Diego's four-team Open Division or the College Football Playoff, which sit
-  in the middle of the band at a box's width rather than stretching across it.
+  **ODEF** grades the defense across the way, A to F, for what this player
+  does: a back is graded on the run defense he runs into, a quarterback,
+  receiver or tight end on the pass defense. A stingy run defense is an A
+  for Cooper or Sam, and a sieve an F — a report card's colours, so the A is
+  the hard one to play. The numbers are each school's real rushing and
+  passing yards allowed a game that season, ranked among every school at its
+  level (FBS against FBS, FCS against FCS), and a grade is a fifth of that
+  list. The tooltip says the number, the yards a play and the rank. A school
+  that barely played that season — UConn sat 2020 out, and the FCS played
+  its 2020 in the spring, which ESPN does not carry — is graded on the season
+  before, and says so. A season with no numbers yet borrows the latest ones,
+  so a new season's schedule is graded the day its file goes in. High
+  schools have no grade and no column. `EGE.defenseGrade` in
+  `data/games.js`, from `data/defenses.js`.
 - **Game log** — per-game stats for that player, with the stat lines driven by
-  their position (see below), and a totals row for the season.
+  their position (see below), and a totals row for the season, on white
+  under a hard rule.
 - **Ratings** — three tiers, top to bottom:
   - **The overall**, on a dark band across the panel: the word in orange, the
     number in white, and a green stock ticker after them — an arrow and the
@@ -207,6 +234,107 @@ The season shown is the live one. There is one season on the ladder so far, so
 there is nothing to switch between; `shownSeason()` in `js/app.js` is the one
 place that decides, and a way back to an older year is a change to it and
 nothing else.
+
+### Teams — `#teams`
+
+A tab beside Players, public like the player pages, and laid out like
+them. **College only** — the high schools are on the player pages.
+
+**The index, `#teams`**, is a stack of cards, one school to a row: its mark
+on the left, on the school's own colour (`ground` in `EGE.teams` — Alabama
+crimson with the A in white, USC cardinal (#9D2235), NDSU green, Illinois orange,
+Ohio State white; the team page's header uses the same), then its record and place in its division, the faces of the
+six who play there, and *View team →*. Above them is a season switcher
+across the full width of the page, as on a team's page — every college
+season, with ‹ and ›, starting on the live one.
+
+**A team's page, `#teams/{school}`** — `#teams/ohio-state` — has what a
+player page has above it: *← All Teams* and the season switcher, a
+drop-down of every college season that school had one of the six, with ‹
+and › either side. **The season is shared** between the index and every
+team's page: pick 2021 on either and it is 2021 on both, until it is
+changed again (a school that had none of the six that season opens on the
+latest season it did). An admin also sees a season whose file is in but which has not
+been rolled over to yet, marked *Preview*, so 2021 can be looked over now.
+Under the bar:
+
+- **The header** — the mark, the name, the record and streak, the place in
+  its division, and the six on it, through to their pages.
+- **Roster** — every quarterback, back, receiver and tight end on the
+  real roster that season, a room each, **best overall first**, so a room
+  reads as a depth chart and the six land wherever their overall puts them.
+  The rooms run two across (one on a phone), so every name fits on one
+  line. Every player is a card — a big headshot (ESPN's,
+  or initials where ESPN has none), name, number, **class** (FR, SO, JR,
+  SR, or GR for a fifth year), height and weight, and an **overall** in the
+  same box the six's is drawn in. One of the six is picked out in orange and
+  goes through to his page. No season stats are shown; they are in the
+  overall. **An 80 or better is a diamond**: the overall box is a
+  princess-cut blue diamond — a steel-blue frame, a band of triangular
+  facets running in from the corners, a pale square table in the middle
+  with the number on it in deep navy — drawn as an SVG, with a band of
+  light sweeping across it and a sparkle in the corner (still, for anybody
+  who asks for less motion). It is the same on the Teams page and the six's
+  roster cards, so it means the same thing everywhere. Four show and the rest fold away behind *N more*, but never past
+  one of the six. From `data/rosters.js`,
+  which `tools/build-rosters.js` writes; `EGE.rosterFor` in `data/games.js`
+  puts the six in. A season with no roster yet borrows the latest one.
+
+  **Nobody shares a number.** The six keep theirs. A real player wearing a
+  number already taken — one of the six's, or a better teammate's — gets
+  the nearest number his position wears that nobody on the team has (a
+  tight end the 80s first, a back the 20s to 40s, a quarterback or
+  receiver the teens): Andrew is Alabama's 87, so Miller Forristall is
+  their 85. Every real player's own number is kept before anybody is
+  moved, so moving one never moves another. ESPN only keeps a player's
+  latest number and headshot, so for a player who later transferred out
+  (`left: true`) they are his next school's; a teammate who stayed keeps a
+  shared number before him — Bryce Young is Alabama's 9, and Jahleel
+  Billingsley, whose 9 is from Texas, moves. The number ESPN has is on the
+  tooltip.
+
+  **The overalls.** Nobody publishes a rating for every college player, so
+  one is worked out for each, on the six's scale but **topping out at 84**
+  — a Heisman season — with most players between 50 and 75:
+
+  ```
+  overall = 50 + 34 × (0.25 × talent + 0.10 × experience + 0.75 × production)
+  ```
+
+  kept within 40–84. *Production* carries most of it: his season —
+  scrimmage yards plus 20 a touchdown — against a Heisman-calibre one at
+  his position (5,000 for a quarterback, 2,000 a back, 1,800 a receiver,
+  1,000 a tight end), no more than all of it, or four fifths of the season
+  before when that was better, since a quiet year does not make anybody
+  worse (and the FCS's spring 2020 is not on ESPN). *Talent* is how highly
+  he was recruited — the 247Sports Composite rating out of school, 80 and
+  under counting nothing and 100 everything, nothing for a walk-on. It is
+  only an ingredient; no recruiting number is shown. *Experience* is his
+  year of college. The weights add up to more than one, so a Heisman season
+  reaches 84 whether or not he was a five-star, and nobody gets near it on
+  recruiting alone. An FCS school's score counts 85%. A walk-on freshman is
+  a 50, a five-star freshman who has not played about 58, a good starter
+  about 70; DeVonta Smith's 2020 and Bryce Young's 2021 are 84s, C.J.
+  Stroud's 2021 an 82. The constants are at the top of
+  `tools/build-rosters.js`.
+- **Conference Standings** — the whole conference as one table: the dark
+  row of headings once at the top, and each division's name running up the
+  left of its schools in a cream column, the school's own division first,
+  with a rule between divisions. W-L, the conference streak (**Strk**, *W3* in green or *L1* in red),
+  points for and against, the differential, and **Chg**, how many places a
+  school has moved since the week before the latest one published — a green
+  ▲ up or a red ▼ down. The school's own row is picked out in orange and
+  nothing else is marked. On a phone the points and differential drop out
+  and a long school name is cut short, so the table fits the screen.
+  `EGE.conferenceTables` in `data/games.js` works out the movement by
+  drawing the table as it stood a week earlier.
+- **Schedule** — the team's games as anybody can see them, with results as
+  they are published and the postseason as far as the next game, the same
+  rule a player's schedule follows. No credits, boosters or ODEF grades:
+  those belong to a player.
+
+The quarterback rooms are also where a QB Connection is picked from (see
+the shop).
 
 ### Position-driven stat lines
 
@@ -543,7 +671,8 @@ which attribute it was bought for.
 On sale:
 
 - **Performance boosters** — 2.5x (40), 2.0x (25), 1.5x (15). Regular season
-  only, one use per purchase. They are stickers: holographic, gold and silver
+  only, one use per purchase, and **five a season at most: two 2.5x, three
+  2.0x and four 1.5x**. They are stickers: holographic, gold and silver
   sunbursts you stick on a game.
 - **Rating points** — bought straight into an attribute, priced by how close
   that attribute already is to 99. Cheap early, dear late.
@@ -552,7 +681,14 @@ On sale:
   nothing to lose. Cheap to start and **twice the price every time you buy
   it**, so an offseason spent on one workout runs out of credits long before
   it runs out of attributes. See below.
-- **QB Connection** (20, college and later), **Hyperbaric Chamber** (35, then 45, then 60, then
+- **QB Connection** (20, college and later) — **with a named quarterback**:
+  the card has a drop-down of his team's quarterback room that season
+  (`EGE.quarterbacksFor` — the real roster plus any of the six, never
+  himself), and Buy waits until one is picked. The row is called *QB
+  Connection — C.J. Stroud*, with the name in `target`, and the buy call
+  refuses a name that is not in the room. A quarterback's O-Line Connection
+  has nobody to pick. An admin granting one picks the quarterback too.
+  **Hyperbaric Chamber** (35, then 45, then 60, then
   15 more each time), **Intel** (15).
 
 **Some things can't be bought yet.** An item can name the levels it belongs
@@ -651,6 +787,18 @@ put it back in the drawer.
 
 **Once the game has been played the sticker is stuck for good**: no cross, and
 no + on a game that already has a result.
+
+**Five a season.** No more than five stickers go on one season's games, and
+no more than two 2.5x, three 2.0x and four 1.5x of them
+(`boosterSeasonLimit` and each booster's `seasonLimit` in `data/shop.js`).
+What counts is what is on the season's games — still in Supabase, or
+written into the season file once the week was out. The drawer says how
+many of the five are on games and how many of each kind are left, and greys
+out a kind the season is full of; peeling one off an unplayed game frees its
+place. `applyBooster` reloads the stickers and checks before it sticks one
+on, and a trigger on `game_boosters` in `supabase/schema.sql` refuses the
+row as well, for anything that skips the page. Buying is not capped: an
+unused booster carries over.
 
 **Nothing goes on a playoff game.** A booster is what you spend a limited
 drawer on across a regular season you can see all of; the postseason is not
@@ -885,6 +1033,11 @@ good, so the row behind it can be cleared out of Supabase. `bigPlays` is an
 optional list of strings, one per big play, shown under the stat line in the
 Discord post.
 
+`injured: true` marks a game the player sits out hurt, `injury` says what
+with — 'Bruised Shoulder' — and `health` how healthy he is that week, 0 to
+100. The Discord post shows DNP Injured in place of his stat line, and while
+that week is the one being played his page carries the injury report.
+
 `overtime: true` marks a game that went to overtime. The score stays the
 final score; the flag adds `/OT` to the result on the site (`W 31–30/OT`) and
 ` (OT)` after the opponent in the Discord headline. It is a checkbox beside
@@ -986,6 +1139,20 @@ Kickoff times had mostly not been set by then, so they are null (a dash on the
 page) until they are filled in. A game at a neutral site carries
 `neutral: true` and reads as vs.
 
+**2021** is set up and waiting: `stats/2021.js` holds every regular-season
+game each school really played in 2021, with dates and kickoffs where it is
+played, and no results yet — Isaac's opens in **week 0**, Illinois and
+Nebraska on August 28, the Saturday before Labor Day weekend. It was written
+by `node tools/build-season.js 2021`, which reads the schedules from ESPN
+and saves through the same code as the season editor; it refuses to write
+over a file that is already there. Conference title games, bowls and
+playoffs are not in it — those go in once the regular season is played — and
+no game is marked for scouts yet. The year is in `SEASONS` in
+`js/site-data.js`, so the admin can edit and publish it now; it shows to
+everybody once **Roll the season over** points `data/season.js` at it.
+Rosters (`data/rosters.js`), defense grades (`data/defenses.js`) and the
+conference races (`data/conferences.js`) all have 2021 in already.
+
 ### Conference standings
 
 The Conference line on a college season's header is the team's place in its
@@ -1012,9 +1179,15 @@ losses, then head to head among the schools still level, then conference
 point differential. The line reads TBD until the team has played a
 conference game.
 
-`node tools/build-conferences.js` writes the file. Run it again only if a
-fixture changes; a new season needs its conferences, their 2020-style
-strengths and its week window added at the top of the script.
+`node tools/build-conferences.js {year}` writes one season's block of the
+file and leaves every other season's exactly as it was. Run it again only
+if a fixture changes. 2020 is *drawn*: the real 2020 was cut short, so a
+schedule is made up in each league's shape, as above. 2021 is *real*: the
+season was played in full, so its conference schedules are read from ESPN
+as they were played, and only the scores are played out, from each school's
+real 2021 points for and against, with the seed judged against its real
+2021 conference record. A new season goes in `SEASONS` at the top of the
+script, usually as another real one.
 
 ### The file is the season
 
@@ -1345,12 +1518,22 @@ Built so far:
   player's ratings, and the maths that turns them into an overall.
 
 - `tools/` — scripts run by hand, never by the site:
-  `build-conferences.js` writes `data/conferences.js` and `build-logos.js`
-  writes `data/logos.js`. `node tools/<name>.js` from the repository root.
+  `build-season.js {year}` writes a new season's fixtures into
+  `stats/{year}.js` (week numbers from `calendar.js`, shared with the
+  conference races), `build-conferences.js {year}` writes that season into
+  `data/conferences.js`, `build-logos.js`
+  writes `data/logos.js`, `build-defenses.js` writes `data/defenses.js` and
+  `build-rosters.js` writes `data/rosters.js`. `node tools/<name>.js` from
+  the repository root. The last two read a few thousand ESPN (and, for the
+  rosters, 247Sports) pages through `tools/espn.js`, which fetches them in
+  parallel with curl and caches them in the system temp folder, so a second
+  run takes seconds.
 - `bot/` — the Discord scores bot (see below).
 - `supabase/schema.sql` — every table and policy: accounts, credits,
-  inventory, admins, the stickers stuck on games, the credit awards a season
-  pays out, and which weeks are published.
+  inventory, admins, the stickers stuck on games (and the trigger holding
+  them to five a season), the credit awards a season pays out, and which
+  weeks are published. **Re-run it after pulling this change** so the
+  booster limit is in the database as well as on the page.
 - `js/discord-config.js` — the channel webhook URL, if you are happy for it to
   be public. Blank by default.
 - `supabase/functions/post-week/` — the other way: an edge function that holds
@@ -1394,6 +1577,21 @@ Built so far:
   division) against the id ESPN files its logo under, keyed by the name the
   season files use, and `EGE.logoFor(name)`, which turns one into an image
   address on ESPN's server. Written by `tools/build-logos.js`.
+- `data/defenses.js` — every FBS and FCS school's rushing and passing yards
+  allowed a game, by season, and where each ranks at its level. Written by
+  `tools/build-defenses.js` from ESPN's box scores; add the new year to its
+  `SEASONS` and run it again when a season starts. The schedule's ODEF
+  grade is read from it.
+- `data/rosters.js` — the quarterbacks, backs, receivers and tight ends on
+  each of the six's colleges, by season, each with his class, overall, ESPN
+  id and whether ESPN has his headshot. Written by `tools/build-rosters.js`
+  from ESPN's rosters, game logs and season leaders, and the 247Sports
+  Composite (through `tools/recruiting.js`); add the year to its `SEASONS`
+  and run it again for a new season. Hand edits are fine — a walk-on nobody
+  wants in the QB Connection list can be deleted — until the next run.
+  Real players who do not go to these schools in this simulation are in
+  `NOT_HERE` at the top of the tool and are left off every roster: C.J.
+  Stroud, TreVeyon Henderson and Keaontay Ingram, whose timelines changed.
 - `data/statline.js` — what a stat line is: the columns each position is read
   in, and how a season of them adds up.
 - `js/discord-post.js` — one week as a Discord message. Loaded by the browser

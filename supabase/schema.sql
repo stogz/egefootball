@@ -365,6 +365,51 @@ create policy "game boosters removed by owner or admin"
   on public.game_boosters for delete to authenticated
   using (email = auth.jwt() ->> 'email' or public.is_admin());
 
+-- A season takes five boosters at most: two 2.5x, three 2.0x and four 1.5x
+-- (boosterSeasonLimit and each booster's seasonLimit in data/shop.js). The
+-- page checks before it sticks one on, and counts the boosters already
+-- written into the season file too; this is the backstop for the rows still
+-- in here, so a direct insert with the anon key cannot go past it either.
+create or replace function public.enforce_booster_limits()
+returns trigger
+language plpgsql
+as $$
+declare
+  kind_limit integer;
+  same_kind  integer;
+  every_kind integer;
+begin
+  kind_limit := case new.item_key
+    when 'boost-2-5' then 2
+    when 'boost-2-0' then 3
+    when 'boost-1-5' then 4
+    else null
+  end;
+
+  select count(*) into every_kind
+    from public.game_boosters
+   where lower(email) = lower(new.email) and season = new.season;
+
+  select count(*) into same_kind
+    from public.game_boosters
+   where lower(email) = lower(new.email) and season = new.season
+     and item_key = new.item_key;
+
+  if every_kind >= 5 then
+    raise exception 'Season limit: five boosters a season.';
+  end if;
+  if kind_limit is not null and same_kind >= kind_limit then
+    raise exception 'Season limit: % of those a season.', kind_limit;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists game_boosters_season_limits on public.game_boosters;
+create trigger game_boosters_season_limits
+  before insert on public.game_boosters
+  for each row execute function public.enforce_booster_limits();
+
 notify pgrst, 'reload schema';
 
 -- ===========================================================================
