@@ -220,7 +220,21 @@
 
     var school = document.getElementById('playerSchool');
     school.innerHTML = '';
-    school.appendChild(schoolLine(player, 'ege-school--lg', season));
+    /* A college season's school is a way through to its team page, opened
+       on the season this page is showing. */
+    var line = schoolLine(player, 'ege-school--lg', season);
+    var teamKey = EGE.tierFor(season) === 'college' ? EGE.teamKeyFor(player, season) : null;
+    if (teamKey && EGE.teams[teamKey]) {
+      var toTeam = el('a', 'ege-school__link');
+      toTeam.href = '#teams/' + EGE.teamSlug(teamKey);
+      toTeam.title = 'See ' + EGE.teams[teamKey].school + '\u2019s team page';
+      toTeam.appendChild(line);
+      toTeam.appendChild(el('span', 'ege-school__go', '\u2192'));
+      toTeam.addEventListener('click', function () { teamsPicked = season; });
+      school.appendChild(toTeam);
+    } else {
+      school.appendChild(line);
+    }
 
     document.getElementById('playerName').textContent = player.name;
     /* Three facts under the name: what he plays, how his team's season is
@@ -254,7 +268,6 @@
     renderTally(player, season);
 
     renderSchedule(player);
-    renderStandings(player);
     renderGameLog(player);
     renderRatings(player);
   }
@@ -1369,15 +1382,7 @@
     return logo;
   }
 
-  /* The schools the six play for that season, so their rows can say so. */
-  function ourSchools(season) {
-    var names = {};
-    EGE.teamsIn(season).forEach(function (entry) { names[entry.team.school] = entry; });
-    return names;
-  }
-
   function standingsTable(table, school, season) {
-    var ours = ourSchools(season);
     var wrap = el('div', 'ege-standings__division');
     wrap.appendChild(el('h4', 'ege-standings__title', table.division));
 
@@ -1396,7 +1401,6 @@
     table.rows.forEach(function (row, i) {
       var tr = el('tr');
       if (row.school === school) { tr.classList.add('is-ours'); }
-      else if (ours[row.school]) { tr.classList.add('is-six'); }
 
       tr.appendChild(el('td', 'num ege-standings__place', started ? String(i + 1) : '–'));
 
@@ -1404,12 +1408,6 @@
       var mark = schoolMark(row.school);
       if (mark) { name.appendChild(mark); }
       name.appendChild(el('span', 'fb-name', row.school));
-      if (ours[row.school]) {
-        var who = ours[row.school].players.map(function (p) { return p.first; }).join(' & ');
-        var tag = el('span', 'ege-standings__who', who);
-        tag.title = who + (ours[row.school].players.length > 1 ? ' play here' : ' plays here');
-        name.appendChild(tag);
-      }
       tr.appendChild(name);
 
       tr.appendChild(el('td', 'num', row.wins + '-' + row.losses));
@@ -1453,27 +1451,6 @@
     scroller.appendChild(t);
     wrap.appendChild(scroller);
     return wrap;
-  }
-
-  function renderStandings(player) {
-    var panel = document.getElementById('standingsPanel');
-    var body = document.getElementById('standingsBody');
-    var season = shownSeason();
-    var team = EGE.teamFor(player, season);
-    var conference = team && EGE.tierFor(season) === 'college'
-      ? EGE.conferenceTables(team.school, season) : null;
-
-    body.innerHTML = '';
-    panel.hidden = !conference;
-    if (!conference) { return; }
-
-    conference.tables.forEach(function (table) {
-      body.appendChild(standingsTable(table, team.school, season));
-    });
-    setLegend('standingsFoot', 'standingsLegend',
-      conference.conference + ' games only, as of the published weeks. Level teams split on ' +
-      'head to head, then point differential. Strk is the conference streak; Chg is the ' +
-      'move since last week.');
   }
 
   /* --- the teams: position rooms ------------------------------------------
@@ -1678,18 +1655,29 @@
 
   /* --- the index --------------------------------------------------------- */
 
+  /* A school's mark on its own colour, for a team card or a team page: the
+     ground from EGE.teams behind it, and the mark in white where the school
+     asks for it. A school with no colour keeps the cream. */
+  function paintMark(box, team, img) {
+    box.style.background = team.ground || '';
+    box.classList.toggle('is-painted', Boolean(team.ground));
+    if (img) { img.classList.toggle('is-white', Boolean(team.whiteMark)); }
+  }
+
   function teamCard(entry, season) {
     var card = el('a', 'ege-card ege-teamcard');
     card.href = '#teams/' + EGE.teamSlug(entry.key);
 
     var mark = el('div', 'ege-card__photo ege-teamcard__mark');
+    var logo = null;
     if (entry.team.logo) {
-      var logo = el('img');
+      logo = el('img');
       logo.src = entry.team.logo;
       logo.alt = '';
       logo.loading = 'lazy';
       mark.appendChild(logo);
     }
+    paintMark(mark, entry.team, logo);
     card.appendChild(mark);
 
     var body = el('div', 'ege-card__body');
@@ -1761,12 +1749,14 @@
 
     var mark = document.getElementById('teamLogo');
     mark.innerHTML = '';
+    var logo = null;
     if (entry.team.logo) {
-      var logo = el('img');
+      logo = el('img');
       logo.src = entry.team.logo;
       logo.alt = entry.team.school;
       mark.appendChild(logo);
     }
+    paintMark(mark, entry.team, logo);
     document.getElementById('teamName').textContent = entry.team.school;
 
     /* Everybody from the six on a team plays its games, so the first of them

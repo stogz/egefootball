@@ -505,6 +505,21 @@ body::before {
   min-width: 0;
 }
 .ege-school--lg .ege-school__logo { width: 34px; height: 34px; }
+/* On a college season the school is a link to its team page: the same line,
+   an arrow after it, and an underline on the name when pointed at. */
+.ege-school__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+.ege-school__link .ege-school__name { text-underline-offset: 4px; }
+.ege-school__link:hover .ege-school__name,
+.ege-school__link:focus-visible .ege-school__name { text-decoration: underline; }
+.ege-school__go { font-weight: 800; color: var(--fb-accent-deep); transition: transform .12s ease; }
+.ege-school__link:hover .ege-school__go { transform: translateX(3px); }
 .ege-school--lg .ege-school__name {
   font-size: var(--fb-label);
   font-weight: 800;
@@ -3434,9 +3449,8 @@ button.ege-owned__item { cursor: pointer; }
 
 /* --- conference standings ------------------------------------------------- */
 
-/* Every division of the conference, the team's own first. The team's row is
-   picked out in the accent, and any other school one of the six plays for
-   carries a quieter tint and their names. */
+/* Every division of the conference, the team's own first, on a team's
+   page. The team's row is picked out in the accent, and that is all. */
 .ege-standings { display: grid; gap: 0; }
 .ege-standings__division + .ege-standings__division { border-top: var(--fb-border) solid var(--fb-ink); }
 .ege-standings__title {
@@ -3454,15 +3468,6 @@ button.ege-owned__item { cursor: pointer; }
 .ege-standings__table tbody tr { cursor: default; }
 .ege-standings__table tbody tr.is-ours,
 .ege-standings__table tbody tr.is-ours:hover { background: var(--fb-tint-clay); box-shadow: inset 4px 0 0 var(--fb-accent); }
-.ege-standings__table tbody tr.is-six { background: var(--fb-tint-wash); }
-.ege-standings__who {
-  margin-left: 8px;
-  font-size: var(--fb-label);
-  font-weight: 800;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-  color: var(--fb-accent-deep);
-}
 .ege-standings__diff.is-up { color: var(--fb-grass); }
 .ege-standings__diff.is-down { color: var(--fb-accent-deep); }
 /* Places moved since last week: green up, red down -- the streak's colours. */
@@ -3473,7 +3478,6 @@ button.ege-owned__item { cursor: pointer; }
 
 @media (max-width: 620px) {
   .ege-standings__table th, .ege-standings__table td { padding-left: 8px; padding-right: 8px; }
-  .ege-standings__who { display: none; }
   /* Points for and against fold into the differential on a phone. */
   .ege-standings__pts { display: none; }
 }
@@ -3513,6 +3517,12 @@ button.ege-owned__item { cursor: pointer; }
   .ege-teamcard__mark img { max-height: 80px; }
 }
 .ege-teamcard .ege-card__school { min-height: 0; }
+/* A school's own colour behind its mark (EGE.teams `ground`), set inline;
+   `is-white` turns a mark that would vanish into it white. */
+.ege-teamcard__mark.is-painted,
+.ege-teamhead__logo.is-painted { background-image: none; }
+.ege-teamcard__mark img.is-white,
+.ege-teamhead__logo img.is-white { filter: brightness(0) invert(1); }
 .ege-teamcard__ours { display: flex; gap: 6px; }
 .ege-teamcard__face {
   width: 38px;

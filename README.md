@@ -111,7 +111,10 @@ Routed by player name, e.g. `#andrew-parr`, `#paxon-hatch`. Each player page
 holds:
 
 - **Header** — headshot with height and weight joined to the foot of it, then
-  school and name. Under the name is the recruiting line: 247-style stars out
+  school and name. On a college season the school is a link — an arrow after
+  it, the name underlined when pointed at — to that school's team page,
+  opened on the same season. Where the team stands in its conference is on
+  the team page, not here. Under the name is the recruiting line: 247-style stars out
   of five and his rank at his position in his state and nationally
   (**★★★★☆ #1 RB in Illinois · #5 nationally**), from `EGE.recruiting` in `data/offers.js` — on the high school seasons only; a college season has no recruiting line. Under that, three facts: **Position**, **Record**
   (the team's wins and losses over the season on show, 0-0 until the first
@@ -205,38 +208,6 @@ holds:
   so a new season's schedule is graded the day its file goes in. High
   schools have no grade and no column. `EGE.defenseGrade` in
   `data/games.js`, from `data/defenses.js`.
-- **Conference Standings** — college seasons only, under the schedule: the
-  whole conference, a table per division with his own first, ordered the
-  way the header's Conference line is (see *Conference standings* below).
-  His team's row is picked out in orange so who is above it and who is
-  below it reads at a glance, and any other school one of the six plays for
-  is tinted and names them. Conference games only, as of the published
-  weeks — W-L, the conference streak (**Strk**, *W3* in green or *L1* in
-  red), points for and against, the differential, and **Chg**: how many
-  places a school has moved since the week before the latest one
-  published, a green ▲ up or a red ▼ down (a dash for no move, or before
-  there is a week to move from). On a phone the points and differential
-  drop out. It folds away like the rest. `EGE.conferenceTables` in
-  `data/games.js` works out the movement by drawing the table as it stood
-  a week earlier.
-
-  The bracket is two-sided: the two halves of
-  the draw work inwards from the edges to the championship in the middle,
-  with a line from every game to the one its winner plays next, and his
-  school's path through it drawn in orange. The round names run across the
-  top on a dark band the same height as a table's heading row, and the
-  champion line sits above the championship game. Every box in a bracket is
-  the same size, with the names centred and seeds and scores in every box.
-  A name takes two lines at most; anything longer ends in an ellipsis, with
-  the whole name on its tooltip. Pointing at a team turns every box it is
-  in white and draws its run through the draw in a heavier line. It fits a full-width computer screen (1280px and up) with every name
-  written out, wrapping between words where it needs to. On anything
-  narrower it keeps its shape and scrolls sideways, opening at his school,
-  with a note under it saying to swipe. A draw has as many columns as it has
-  rounds: nine for a thirty-two-team state bracket or the twenty-four-team
-  FCS playoffs (the eight seeds drawn with a first-round bye), three for San
-  Diego's four-team Open Division or the College Football Playoff, which sit
-  in the middle of the band at a box's width rather than stretching across it.
 - **Game log** — per-game stats for that player, with the stat lines driven by
   their position (see below), and a totals row for the season.
 - **Ratings** — three tiers, top to bottom:
@@ -268,7 +239,9 @@ A tab beside Players, public like the player pages, and laid out like
 them. **College only** — the high schools are on the player pages.
 
 **The index, `#teams`**, is a stack of cards, one school to a row: its mark
-on the left, then its record and place in its division, the faces of the
+on the left, on the school's own colour (`ground` in `EGE.teams` — Alabama
+crimson with the A in white, USC cardinal, NDSU green, Illinois orange,
+Ohio State white; the team page's header uses the same), then its record and place in its division, the faces of the
 six who play there, and *View team →*. Above them is a season switcher —
 every college season, with ‹ and ›, starting on the live one.
 
@@ -341,8 +314,14 @@ Under the bar:
   about 70; DeVonta Smith's 2020 and Bryce Young's 2021 are 84s, C.J.
   Stroud's 2021 an 82. The constants are at the top of
   `tools/build-rosters.js`.
-- **Conference Standings** — the whole conference, a table a division,
-  streaks and week-on-week movement included.
+- **Conference Standings** — the whole conference, a table a division:
+  W-L, the conference streak (**Strk**, *W3* in green or *L1* in red),
+  points for and against, the differential, and **Chg**, how many places a
+  school has moved since the week before the latest one published — a green
+  ▲ up or a red ▼ down. The school's own row is picked out in orange and
+  nothing else is marked. On a phone the points and differential drop out.
+  `EGE.conferenceTables` in `data/games.js` works out the movement by
+  drawing the table as it stood a week earlier.
 - **Schedule** — the team's games as anybody can see them, with results as
   they are published and the postseason as far as the next game, the same
   rule a player's schedule follows. No credits, boosters or Opp D grades:

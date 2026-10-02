@@ -97,36 +97,46 @@ EGE.teams = {
      the offer stickers in icon/offers/, so a school has one logo on the
      site whether it is offering somebody or playing for them.
      `discordLogo`, where a school has one, replaces the logo in the Discord
-     posts only — for a mark too dark to read on Discord's background. */
+     posts only — for a mark too dark to read on Discord's background.
+
+     `ground` is the colour the Teams pages put behind the mark, and
+     `whiteMark: true` draws the mark in white on it -- Alabama's script A
+     is the same crimson as its ground. */
   ohioState: {
     school: 'Ohio State',
     league: 'Big Ten',
     logo: 'icon/offers/OhioState.png',
     discordLogo: 'icon/OhioStateWhite.png',
+    ground: '#FFFFFF',
     zone: 'America/New_York'
   },
   northDakotaState: {
     school: 'North Dakota State',
     league: 'Missouri Valley',
     logo: 'icon/offers/NDSU.png',
+    ground: '#0A5640',
     zone: 'America/Chicago'
   },
   usc: {
     school: 'USC',
     league: 'Pac-12',
     logo: 'icon/offers/USC.png',
+    ground: '#990000',
     zone: 'America/Los_Angeles'
   },
   alabama: {
     school: 'Alabama',
     league: 'SEC',
     logo: 'icon/offers/Alabama.png',
+    ground: '#9E1B32',
+    whiteMark: true,
     zone: 'America/Chicago'
   },
   illinois: {
     school: 'Illinois',
     league: 'Big Ten',
     logo: 'icon/offers/Illinois.png',
+    ground: '#FF5F05',
     zone: 'America/Chicago'
   }
 };
