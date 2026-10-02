@@ -104,6 +104,15 @@
           <h1 class="fb-hero__title" style="margin: 14px 0 0;">Teams</h1>
         </div>
       </header>
+      <!-- Which season the page is showing, built in app.js the same way as
+           the switcher on a player page. Hidden while there is only one. -->
+      <div class="ege-seasonbar ege-teamsbar" id="teamsSeasonBar" hidden>
+        <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="teamsSeasonPrev"
+                aria-label="Previous season">&lsaquo;</button>
+        <select class="fb-select ege-seasonbar__pick" id="teamsSeasonPick" aria-label="Season"></select>
+        <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="teamsSeasonNext"
+                aria-label="Next season">&rsaquo;</button>
+      </div>
       <nav class="ege-teamjump" id="teamsJump" aria-label="Jump to a team"></nav>
       <div class="fb-stack fb-stack--lg" id="teamsList"></div>
     </section>

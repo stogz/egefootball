@@ -3480,6 +3480,15 @@ button.ege-owned__item { cursor: pointer; }
 
 /* --- the teams page --------------------------------------------------------- */
 
+/* The Teams page's season switcher, centred over the jump buttons at the
+   width of a comfortable label rather than the whole row. */
+.ege-teamsbar {
+  flex: none;
+  width: min(100%, 540px);
+  margin: 0 auto 16px;
+}
+/* A high school's panel: just the six who played there, side by side. */
+.ege-team__ours { grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
 .ege-teamjump {
   display: flex;
   flex-wrap: wrap;

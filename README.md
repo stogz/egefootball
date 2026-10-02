@@ -136,7 +136,9 @@ holds:
   anything narrower.
 - **Season switcher** — above the header, beside the All Players button and
   outlined the same way, once more than one season is logged: a drop-down of every season with a file in `stats/`, up to the live
-  one, with ‹ and › either side to step through them. It switches the header,
+  one (and, for an admin, any season after it whose file is already in,
+  labelled *Preview*, so a new season can be looked over before it is rolled
+  over to), with ‹ and › either side to step through them. It switches the header,
   season strip, schedule, game log and bracket to that season. Opening a
   different player goes back to the live season. An older season shows no
   scouts and takes no boosters. On a phone the whole bar is one row: All
@@ -250,8 +252,16 @@ nothing else.
 ### Teams — `#teams`
 
 A tab beside Players, public like the player pages: one panel for every
-school one of the six plays for in the live season, with buttons across the
-top to jump to each.
+school one of the six plays for in the season on show, with buttons across
+the top to jump to each.
+
+**Any season, like a player page.** Under the heading is the same switcher
+a player page has — a drop-down of every season with a file in `stats/`, up
+to the live one, with ‹ and › either side — and it starts on the live
+season. An admin also sees a season whose file is in but which has not been
+rolled over to yet, marked *Preview*, so 2021 can be looked over now. A high
+school season has no roster to show, so its panels hold just the six who
+played there; a college season has the full rooms and the division table.
 
 The school and its mark sit in the middle of the panel's head, its league
 under them. A panel holds:
@@ -1122,6 +1132,20 @@ Kickoff times had mostly not been set by then, so they are null (a dash on the
 page) until they are filled in. A game at a neutral site carries
 `neutral: true` and reads as vs.
 
+**2021** is set up and waiting: `stats/2021.js` holds every regular-season
+game each school really played in 2021, with dates and kickoffs where it is
+played, and no results yet — Isaac's opens in **week 0**, Illinois and
+Nebraska on August 28, the Saturday before Labor Day weekend. It was written
+by `node tools/build-season.js 2021`, which reads the schedules from ESPN
+and saves through the same code as the season editor; it refuses to write
+over a file that is already there. Conference title games, bowls and
+playoffs are not in it — those go in once the regular season is played — and
+no game is marked for scouts yet. The year is in `SEASONS` in
+`js/site-data.js`, so the admin can edit and publish it now; it shows to
+everybody once **Roll the season over** points `data/season.js` at it.
+Rosters (`data/rosters.js`), defense grades (`data/defenses.js`) and the
+conference races (`data/conferences.js`) all have 2021 in already.
+
 ### Conference standings
 
 The Conference line on a college season's header is the team's place in its
@@ -1148,9 +1172,15 @@ losses, then head to head among the schools still level, then conference
 point differential. The line reads TBD until the team has played a
 conference game.
 
-`node tools/build-conferences.js` writes the file. Run it again only if a
-fixture changes; a new season needs its conferences, their 2020-style
-strengths and its week window added at the top of the script.
+`node tools/build-conferences.js {year}` writes one season's block of the
+file and leaves every other season's exactly as it was. Run it again only
+if a fixture changes. 2020 is *drawn*: the real 2020 was cut short, so a
+schedule is made up in each league's shape, as above. 2021 is *real*: the
+season was played in full, so its conference schedules are read from ESPN
+as they were played, and only the scores are played out, from each school's
+real 2021 points for and against, with the seed judged against its real
+2021 conference record. A new season goes in `SEASONS` at the top of the
+script, usually as another real one.
 
 ### The file is the season
 
@@ -1481,7 +1511,10 @@ Built so far:
   player's ratings, and the maths that turns them into an overall.
 
 - `tools/` — scripts run by hand, never by the site:
-  `build-conferences.js` writes `data/conferences.js`, `build-logos.js`
+  `build-season.js {year}` writes a new season's fixtures into
+  `stats/{year}.js` (week numbers from `calendar.js`, shared with the
+  conference races), `build-conferences.js {year}` writes that season into
+  `data/conferences.js`, `build-logos.js`
   writes `data/logos.js`, `build-defenses.js` writes `data/defenses.js` and
   `build-rosters.js` writes `data/rosters.js`. `node tools/<name>.js` from
   the repository root. The last two read a few thousand ESPN (and, for the

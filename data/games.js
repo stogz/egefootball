@@ -718,6 +718,8 @@ EGE.rosterFor = function (teamKey, season) {
     });
   });
   rooms.season = years.length ? years[0] : year;
+  /* Whether there is a real roster behind the rooms, or only the six. */
+  rooms.real = years.length > 0;
   return rooms;
 };
 
