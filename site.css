@@ -3531,9 +3531,19 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 }
 .ege-teamchip__photo img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
 .ege-teamchip__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.ege-teamchip__name { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Two lines before an ellipsis: four rooms across leaves a card about 280px,
+   and Brian Robinson Jr. needs both of them. */
+.ege-teamchip__name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-weight: 800;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
 .ege-teamchip__meta { display: flex; align-items: center; gap: 6px; font-size: var(--fb-small); color: var(--fb-muted); white-space: nowrap; }
-.ege-teamchip__place { font-size: var(--fb-small); font-weight: 800; color: var(--fb-accent-deep); white-space: nowrap; }
+.ege-teamchip__place { font-size: var(--fb-small); font-weight: 800; color: var(--fb-accent-deep); }
 .ege-ovrbox--chip { width: 54px; padding: 5px 4px 6px; }
 .ege-ovrbox--chip .ege-ovrbox__value { font-size: 1.5rem; }
 
