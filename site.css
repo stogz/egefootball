@@ -3537,19 +3537,52 @@ button.ege-owned__item { cursor: pointer; }
   border-bottom: var(--fb-border-thin) solid var(--fb-ink);
   font-size: .9375rem;
 }
-.ege-room__list { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
-.ege-room__player { display: flex; flex-direction: column; min-width: 0; }
+.ege-room__list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+/* Face, words, overall: the overall on the right edge like a roster card's. */
+.ege-room__player {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.ege-room__face {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  background: var(--fb-sand);
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  font-size: .75rem;
+  font-weight: 800;
+  color: var(--fb-muted);
+}
+.ege-room__face img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.ege-room__text { display: flex; flex-direction: column; min-width: 0; }
 .ege-room__name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ege-room__jersey {
-  display: inline-block;
-  min-width: 2.1em;
-  margin-right: 4px;
+  margin-right: 5px;
   font-size: var(--fb-small);
   color: var(--fb-muted-2);
 }
-.ege-room__line { padding-left: calc(2.1em + 4px); font-size: var(--fb-small); color: var(--fb-muted); }
-.ege-room__player.is-six { padding: 3px 6px; margin: -3px -6px; background: var(--fb-tint-clay); box-shadow: inset 3px 0 0 var(--fb-accent); }
+.ege-room__facts { display: flex; align-items: center; gap: 6px; font-size: var(--fb-small); color: var(--fb-muted); white-space: nowrap; }
+.ege-room__class {
+  padding: 0 4px;
+  border: 1px solid var(--fb-ink);
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .06em;
+  color: var(--fb-ink);
+  text-decoration: none;
+}
+.ege-room__line { font-size: var(--fb-small); color: var(--fb-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ege-room__player.is-six { padding: 4px 6px; margin: -4px -6px; background: var(--fb-tint-clay); box-shadow: inset 3px 0 0 var(--fb-accent); }
 .ege-room__player.is-six a { color: var(--fb-ink); }
+.ege-room__player.is-six .ege-room__line { color: var(--fb-accent-deep); font-weight: 700; }
+.ege-ovrbox--mini { width: 40px; padding: 3px 2px 4px; border-width: var(--fb-border-thin); }
+.ege-ovrbox--mini .ege-ovrbox__label { font-size: .5rem; letter-spacing: .12em; }
+.ege-ovrbox--mini .ege-ovrbox__value { font-size: 1.125rem; }
 .ege-room__more { margin-top: 6px; }
 .ege-room__more summary {
   cursor: pointer;

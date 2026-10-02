@@ -1,6 +1,6 @@
 /* ==========================================================================
-   EGE Football — reading ESPN from the tools
-   The scripts in tools/ that build a data file out of ESPN share this: a
+   EGE Football — reading ESPN (and 247Sports) from the tools
+   The scripts in tools/ that build a data file out of the web share this: a
    batch of addresses fetched many at a time, and kept on disk so a second
    run (or a run that died half way) does not ask for them all again.
 
@@ -25,13 +25,18 @@ function cachePath(url) {
   return path.join(CACHE, crypto.createHash('sha1').update(url).digest('hex') + '.json');
 }
 
-function read(file) {
-  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { return null; }
+function read(file, text) {
+  try {
+    const body = fs.readFileSync(file, 'utf8');
+    return text ? body : JSON.parse(body);
+  } catch (e) { return null; }
 }
 
 /* Every address in `urls`, parsed, as a Map from address to JSON (null for
-   anything that would not come back). */
-function fetchAll(urls, label) {
+   anything that would not come back) -- or to the page's text, with
+   `{ text: true }`, for a site that answers in HTML. */
+function fetchAll(urls, label, options) {
+  const text = Boolean(options && options.text);
   fs.mkdirSync(CACHE, { recursive: true });
   const wanted = [...new Set(urls)];
   const missing = wanted.filter(function (url) { return !fs.existsSync(cachePath(url)); });
@@ -44,8 +49,9 @@ function fetchAll(urls, label) {
     const file = path.join(CACHE, 'batch.cfg');
     fs.writeFileSync(file, config);
     try {
-      execFileSync('curl', ['-sS', '--fail', '--retry', '3', '--parallel',
-        '--parallel-max', '24', '-K', file], { stdio: ['ignore', 'ignore', 'pipe'] });
+      execFileSync('curl', ['-sS', '-L', '--fail', '--retry', '3', '--parallel',
+        '--parallel-max', String((options && options.parallel) || 24), '-K', file],
+        { stdio: ['ignore', 'ignore', 'pipe'] });
     } catch (e) {
       /* A 404 or two in a batch of hundreds is normal; whatever did not land
          reads as null below. */
@@ -57,7 +63,7 @@ function fetchAll(urls, label) {
   }
 
   const out = new Map();
-  wanted.forEach(function (url) { out.set(url, read(cachePath(url))); });
+  wanted.forEach(function (url) { out.set(url, read(cachePath(url), text)); });
   return out;
 }
 

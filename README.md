@@ -252,13 +252,45 @@ top to jump to each. A panel holds:
 - **The six on it** — a card each, with headshot, position, number and
   overall, through to their page.
 - **The rundown** — every quarterback, back, receiver and tight end on the
-  real roster that season, a room each, in the order they produced (the
-  season's line beside anybody who had one, height and weight for anybody
-  who did not), with the six put in at the head of their rooms. Four show,
-  and the rest fold away behind *N more*. From `data/rosters.js`, which
-  `tools/build-rosters.js` writes from ESPN; `EGE.rosterFor` in
-  `data/games.js` puts the six in. A season with no roster yet borrows the
-  latest one.
+  real roster that season, a room each, **best overall first**, so a room
+  reads as a depth chart and the six land wherever their overall puts them
+  (*2nd of 5 in the room*). Each player has his ESPN headshot (initials
+  where ESPN has none), number, **class** (FR, SO, JR, SR, or GR for a
+  fifth year), height and weight, his season's line, and an **overall** in
+  the same box the six's is drawn in. Four show and the rest fold away
+  behind *N more*, but never past one of the six. From `data/rosters.js`,
+  which `tools/build-rosters.js` writes; `EGE.rosterFor` in `data/games.js`
+  puts the six in. A season with no roster yet borrows the latest one.
+
+  **Nobody shares a number.** The six keep theirs. A real player wearing a
+  number already taken — one of the six's, or a better teammate's — gets
+  the nearest number his position wears that nobody on the team has (a
+  tight end the 80s first, a back the 20s to 40s, a quarterback or
+  receiver the teens): Andrew is Alabama's 87, so Miller Forristall is
+  their 85. Every real player's own number is kept before anybody is
+  moved, so moving one never moves another. The number he really wore is
+  on the tooltip.
+
+  **The overalls.** Nobody publishes a rating for every college player, so
+  one is worked out for each, on the six's 1–99 scale:
+
+  ```
+  overall = 45 + 24 × talent + 8 × experience + 24 × production
+  ```
+
+  *Talent* is how highly he was recruited — the 247Sports Composite rating
+  out of school, 80 and under counting nothing and 100 everything, nothing
+  for a walk-on. It is only an ingredient; no recruiting number is shown.
+  *Experience* is his year of college, a freshman nothing and a fifth-year
+  all of it. *Production* is his season — scrimmage yards plus 20 a
+  touchdown, against a very good season at his position (4,500 for a
+  quarterback, 1,500 a back, 1,200 a receiver, 750 a tight end) and no
+  more than all of it — or four fifths of the season before when that was
+  better, since a quiet year does not make anybody worse (and the FCS's
+  spring 2020 is not on ESPN). An FCS school's numbers count three-quarters.
+  It lands where it should: a five-star freshman who has not played is
+  about 69 (Jaykeb is 72), a walk-on senior low 50s, C.J. Stroud's 2021 a
+  92, Najee Harris's 2020 a 99.
 - **The division table**, the same one the player page shows.
 
 The quarterback rooms are also where a QB Connection is picked from (see
@@ -1429,9 +1461,10 @@ Built so far:
   `build-conferences.js` writes `data/conferences.js`, `build-logos.js`
   writes `data/logos.js`, `build-defenses.js` writes `data/defenses.js` and
   `build-rosters.js` writes `data/rosters.js`. `node tools/<name>.js` from
-  the repository root. The last two read a few thousand ESPN pages through
-  `tools/espn.js`, which fetches them in parallel with curl and caches them
-  in the system temp folder, so a second run takes seconds.
+  the repository root. The last two read a few thousand ESPN (and, for the
+  rosters, 247Sports) pages through `tools/espn.js`, which fetches them in
+  parallel with curl and caches them in the system temp folder, so a second
+  run takes seconds.
 - `bot/` — the Discord scores bot (see below).
 - `supabase/schema.sql` — every table and policy: accounts, credits,
   inventory, admins, the stickers stuck on games (and the trigger holding
@@ -1487,10 +1520,12 @@ Built so far:
   `SEASONS` and run it again when a season starts. The schedule's Opp D
   grade is read from it.
 - `data/rosters.js` — the quarterbacks, backs, receivers and tight ends on
-  each of the six's colleges, by season, from ESPN. Written by
-  `tools/build-rosters.js`; add the year to its `SEASONS` and run it again
-  for a new season. Hand edits are fine — a walk-on nobody wants in the QB
-  Connection list can be deleted — until the next run.
+  each of the six's colleges, by season, each with his class, overall, ESPN
+  id and whether ESPN has his headshot. Written by `tools/build-rosters.js`
+  from ESPN's rosters, game logs and season leaders, and the 247Sports
+  Composite (through `tools/recruiting.js`); add the year to its `SEASONS`
+  and run it again for a new season. Hand edits are fine — a walk-on nobody
+  wants in the QB Connection list can be deleted — until the next run.
 - `data/statline.js` — what a stat line is: the columns each position is read
   in, and how a season of them adds up.
 - `js/discord-post.js` — one week as a Discord message. Loaded by the browser

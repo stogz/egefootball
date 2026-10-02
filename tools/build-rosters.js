@@ -16,6 +16,21 @@
 
    Height and weight are ESPN's latest, not that season's.
 
+   Each player also carries:
+
+   - `year`, his year of college that season, 1 a freshman to 5 a
+     fifth-year. Counted from his recruiting class (a junior college
+     recruit arrives as a junior), or for a walk-on nobody ranked, from the
+     first season ESPN has him in a game log.
+   - `overall`, on the same 1-99 scale as the six's, so a room can be read
+     the way the six are. Nobody publishes one for every college player, so
+     it is worked out here from three things (see overallFor below): the
+     season he had, how far into college he is, and how highly he was
+     recruited -- the 247Sports Composite rating, read by
+     tools/recruiting.js and used only as an ingredient, never shown.
+   - `espn`, his ESPN id, and `photo: true` when ESPN has his headshot. The
+     page asks ESPN's image server for it, like the opponents' logos.
+
    Hand edits are fine afterwards (a walk-on quarterback nobody wants to see
    in the QB Connection list can just be deleted) but a re-run writes over
    them. A new season goes in SEASONS; a new school is picked up from
@@ -27,6 +42,7 @@
 const fs = require('fs');
 const path = require('path');
 const { fetchAll, refIds } = require('./espn');
+const recruiting = require('./recruiting');
 const { loadSiteData } = require('../bot/site-data');
 
 const SEASONS = [2020, 2021];
@@ -44,6 +60,43 @@ const LEADERS = { QB: 'passingYards', RB: 'rushingYards', WR: 'receivingYards', 
    which ESPN gives for a room's top few. Anybody below them gets his yards. */
 const LINES = { passingYards: 'passingLeader', rushingYards: 'rushingLeader', receivingYards: 'receivingLeader' };
 
+/* --- the overall -----------------------------------------------------------
+
+     overall = 45 + 24 x talent + 8 x experience + 24 x production
+
+   talent      the Composite rating coming out of school, 80 and under as
+               nothing and 100 as everything; nothing for anybody unranked.
+   experience  his year of college, a freshman nothing and a fifth-year all.
+   production  his season, as scrimmage yards plus 20 a touchdown, against
+               what a very good season at his position comes to (PAR below),
+               and no more than all of it. The season before counts at four
+               fifths when it was better -- a player is no worse for a quiet
+               year, and the FCS played its 2020 in the spring, which ESPN
+               does not carry, so Trey Lance's 2019 is his 2020 here.
+
+   An FCS team's numbers are three-quarters as good, since the yards came
+   against FCS defenses. It comes out on the six's scale: a five-star
+   freshman who has not played is about 69 (Jaykeb is 72), a walk-on senior
+   in the low 50s, and C.J. Stroud's 2021 a 92. Kept within 40-99. */
+const PAR = { QB: 4500, RB: 1500, WR: 1200, TE: 750 };
+const FCS = 0.75;
+
+function clamp01(n) { return Math.max(0, Math.min(1, n)); }
+
+function overallFor(position, recruit, year, output, fcs) {
+  const talent = recruit && typeof recruit.rating === 'number' ? clamp01((recruit.rating - 80) / 20) : 0;
+  const experience = clamp01((year - 1) / 4);
+  const production = clamp01(output / PAR[position]);
+  const rest = 24 * talent + 8 * experience + 24 * production;
+  return Math.max(40, Math.min(99, Math.round(45 + (fcs ? FCS : 1) * rest)));
+}
+
+/* The touchdowns in a leader line: '167 CAR, 1172 YDS, 15 TD' is 15. */
+function touchdowns(text) {
+  const found = String(text || '').match(/(\d+) TD/);
+  return found ? Number(found[1]) : 0;
+}
+
 function quote(text) {
   return "'" + String(text).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
 }
@@ -54,24 +107,23 @@ function inches(text) {
   return found ? Number(found[1]) * 12 + Number(found[2]) : null;
 }
 
-function rosterFor(season, espnId) {
-  const list = fetchAll([CORE + '/seasons/' + season + '/teams/' + espnId + '/athletes?limit=400'])
-    .values().next().value;
-  const ids = refIds(list && list.items, /athletes\/(\d+)/);
-  const urls = ids.map(function (id) { return CORE + '/seasons/' + season + '/athletes/' + id; });
-  const got = fetchAll(urls, season + ' roster ' + espnId);
-
-  /* ESPN's list for a season keeps everybody who was ever on the team -- J.T.
-     Barrett is on Ohio State's 2020 roster. What gives a season away is the
-     game log: a player who was not there has no games in it. */
-  const logs = fetchAll(urls.map(function (url) { return url + '/eventlog'; }), season + ' game logs ' + espnId);
-  function wasThere(url, body) {
-    const log = logs.get(url + '/eventlog');
-    if (!log || !log.events || !log.events.count) { return false; }
-    return !(body.draft && body.draft.year && body.draft.year <= season);
+/* The first season, of the five before this one, that ESPN has a player in
+   a game log for, anywhere -- for a player the Composite never ranked. */
+function firstSeason(id, season) {
+  const urls = [];
+  for (let back = 5; back >= 1; back -= 1) {
+    urls.push(CORE + '/seasons/' + (season - back) + '/athletes/' + id + '/eventlog');
   }
+  const got = fetchAll(urls);
+  for (let i = 0; i < urls.length; i += 1) {
+    const log = got.get(urls[i]);
+    if (log && log.events && log.events.count) { return season - (5 - i); }
+  }
+  return season;
+}
 
-  /* Every leader line in the categories a room is judged on, by athlete. */
+/* Every leader line in the categories a room is judged on, by athlete. */
+function leaderLines(season, espnId) {
   const leadersUrl = CORE + '/seasons/' + season + '/types/2/teams/' + espnId + '/leaders';
   const leaders = fetchAll([leadersUrl]).get(leadersUrl);
   const lines = {};
@@ -89,6 +141,41 @@ function rosterFor(season, espnId) {
       }
     });
   });
+  return lines;
+}
+
+function rosterFor(season, espnId, school, index, fcs) {
+  const list = fetchAll([CORE + '/seasons/' + season + '/teams/' + espnId + '/athletes?limit=400'])
+    .values().next().value;
+  const ids = refIds(list && list.items, /athletes\/(\d+)/);
+  const urls = ids.map(function (id) { return CORE + '/seasons/' + season + '/athletes/' + id; });
+  const got = fetchAll(urls, season + ' roster ' + espnId);
+
+  /* ESPN's list for a season keeps everybody who was ever on the team -- J.T.
+     Barrett is on Ohio State's 2020 roster, and Jameson Williams on its 2021
+     one after he had gone to Alabama. What gives a season away is the game
+     log: a player who was there has games in it, for this team. */
+  const logs = fetchAll(urls.map(function (url) { return url + '/eventlog'; }), season + ' game logs ' + espnId);
+  function wasThere(url, body) {
+    const log = logs.get(url + '/eventlog');
+    if (!log || !log.events || !log.events.count) { return false; }
+    if (!log.teams || !log.teams[String(espnId)]) { return false; }
+    return !(body.draft && body.draft.year && body.draft.year <= season);
+  }
+
+  const lines = leaderLines(season, espnId);
+  const before = leaderLines(season - 1, espnId);
+
+  /* Scrimmage yards and touchdowns, every way he got them: this season, or
+     four fifths of the last one if that was better. */
+  function output(id) {
+    function total(mine) {
+      return Object.keys(mine || {}).reduce(function (sum, key) {
+        return sum + (mine[key].value || 0) + 20 * touchdowns(mine[key].text);
+      }, 0);
+    }
+    return Math.max(total(lines[id]), 0.8 * total(before[id]));
+  }
 
   const rooms = {};
   POSITIONS.forEach(function (position) { rooms[position] = []; });
@@ -99,11 +186,18 @@ function rosterFor(season, espnId) {
     const position = FOLD[abbr] || abbr;
     if (!rooms[position]) { return; }
     const line = (lines[ids[i]] || {})[LEADERS[position]] || null;
+    const recruit = recruiting.find(index, body.fullName, position, school, season);
+    const year = Math.min(5, Math.max(1, recruit ? recruiting.yearsIn(recruit, season)
+                                                 : season - firstSeason(ids[i], season) + 1));
     rooms[position].push({
       name: body.fullName,
+      espn: ids[i],
+      photo: Boolean(body.headshot),
       jersey: body.jersey ? Number(body.jersey) : null,
       height: inches(body.displayHeight),
       weight: body.weight ? Math.round(body.weight) : null,
+      year: year,
+      overall: overallFor(position, recruit, year, output(ids[i]), fcs),
       value: line ? line.value : 0,
       line: line ? line.text : null
     });
@@ -111,7 +205,7 @@ function rosterFor(season, espnId) {
 
   POSITIONS.forEach(function (position) {
     rooms[position].sort(function (a, b) {
-      return (b.value - a.value) || a.name.localeCompare(b.name);
+      return (b.overall - a.overall) || (b.value - a.value) || a.name.localeCompare(b.name);
     });
   });
   return rooms;
@@ -127,6 +221,10 @@ function main() {
 
   const colleges = [...new Set(EGE.players.map(function (p) { return p.college; }).filter(Boolean))];
 
+  /* Six years of classes before the first season reaches every fifth-year
+     on its roster, and a sixth for anybody given an extra year. */
+  const index = recruiting.load(Math.min.apply(null, SEASONS) - 6, Math.max.apply(null, SEASONS));
+
   const out = [];
   out.push('/* ==========================================================================');
   out.push('   EGE Football — the rosters');
@@ -135,9 +233,13 @@ function main() {
   out.push('');
   out.push('   The skill players on each of the six\'s college teams, by season and by');
   out.push('   the team\'s key in EGE.teams: every quarterback, back, receiver and tight');
-  out.push('   end, in the order they produced that season, with the season\'s line');
-  out.push('   beside anybody who had one. The six are not listed -- they');
-  out.push('   are put into their rooms by EGE.rosterFor in data/games.js.');
+  out.push('   end, best first, with the season\'s line beside anybody who had one.');
+  out.push('   `year` is his year of college that season (1 a freshman, 5 a');
+  out.push('   fifth-year), `overall` his overall on the six\'s scale (how it is worked');
+  out.push('   out is at the top of the tool), `espn` his ESPN id and `photo` whether');
+  out.push('   ESPN has his headshot. Jersey numbers are ESPN\'s; EGE.rosterFor moves');
+  out.push('   anybody wearing one of the six\'s. The six are not listed -- they are');
+  out.push('   put into their rooms by EGE.rosterFor in data/games.js.');
   out.push('   ========================================================================== */');
   out.push('');
   out.push('window.EGE = window.EGE || {};');
@@ -149,13 +251,17 @@ function main() {
     colleges.forEach(function (key, c) {
       const school = EGE.teams[key].school;
       const espnId = sandbox.EGE.espnIds[school];
-      const rooms = rosterFor(season, espnId);
+      /* The Valley is the FCS; everybody else here is FBS. */
+      const fcs = EGE.teams[key].league === 'Missouri Valley';
+      const rooms = rosterFor(season, espnId, school, index, fcs);
       out.push('  ' + key + ': {');
       POSITIONS.forEach(function (position, p) {
         out.push('    ' + position + ': [');
         rooms[position].forEach(function (row, i) {
           const parts = ['name: ' + quote(row.name), 'jersey: ' + row.jersey,
-            'height: ' + row.height, 'weight: ' + row.weight];
+            'year: ' + row.year, 'overall: ' + row.overall,
+            'height: ' + row.height, 'weight: ' + row.weight, 'espn: ' + row.espn];
+          if (row.photo) { parts.push('photo: true'); }
           if (row.line) { parts.push('line: ' + quote(row.line)); }
           out.push('      { ' + parts.join(', ') + ' }' + (i < rooms[position].length - 1 ? ',' : ''));
         });

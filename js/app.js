@@ -1441,10 +1441,47 @@
   /* How many of a room show before the rest fold away behind "more". */
   var ROOM_SHOWN = 4;
 
-  function rosterLine(row) {
+  /* A face for a roster line: the six's own headshots, ESPN's for everybody
+     it has one for (asked for from ESPN's image server, like the opponents'
+     logos), and initials for anybody else -- or anybody whose picture does
+     not load. */
+  function rosterFace(row) {
+    var face = el('span', 'ege-room__face');
+    var initials = row.name.split(' ').filter(function (part) {
+      return /^[A-Z]/.test(part) && !/^(Jr|Sr|II|III|IV)\.?$/.test(part);
+    }).map(function (part) { return part.charAt(0); }).slice(0, 2).join('');
+    var src = row.player ? row.player.headshot : EGE.rosterPhoto(row);
+    if (!src) {
+      face.textContent = initials;
+      return face;
+    }
+    var img = el('img');
+    img.src = src;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.addEventListener('error', function () {
+      img.remove();
+      face.textContent = initials;
+    });
+    face.appendChild(img);
+    return face;
+  }
+
+  /* One player in a room: his face, his number and name, his class, how tall
+     and heavy, his season where he had one, and his overall in the same box
+     the six's is drawn in. */
+  function rosterLine(row, at, of) {
     var item = el('li', 'ege-room__player' + (row.player ? ' is-six' : ''));
+    item.appendChild(rosterFace(row));
+
+    var text = el('span', 'ege-room__text');
     var top = el('span', 'ege-room__name');
-    if (typeof row.jersey === 'number') { top.appendChild(el('span', 'ege-room__jersey', '#' + row.jersey)); }
+    if (typeof row.jersey === 'number') {
+      var number = el('span', 'ege-room__jersey', '#' + row.jersey);
+      if (row.realJersey) { number.title = 'Wears #' + row.realJersey + ' in real life'; }
+      top.appendChild(number);
+    }
     if (row.player) {
       var link = el('a', null, row.name);
       link.href = '#' + row.player.slug;
@@ -1452,15 +1489,27 @@
     } else {
       top.appendChild(document.createTextNode(row.name));
     }
-    item.appendChild(top);
+    text.appendChild(top);
 
-    var sub = row.line || [EGE.heightText(row), row.weight ? row.weight + ' lbs' : null]
-      .filter(Boolean).join(' · ');
-    if (row.player) {
-      var overall = EGE.overallFor(row.player);
-      sub = 'EGE' + (typeof overall === 'number' ? ' · ' + overall + ' OVR' : '');
+    var klass = EGE.CLASSES[row.year];
+    var facts = el('span', 'ege-room__facts');
+    if (klass) {
+      var chip = el('abbr', 'ege-room__class', klass.short);
+      chip.title = klass.name;
+      facts.appendChild(chip);
     }
-    if (sub) { item.appendChild(el('span', 'ege-room__line', sub)); }
+    var size = [EGE.heightText(row), row.weight ? row.weight + ' lbs' : null].filter(Boolean).join(' \u00b7 ');
+    if (size) { facts.appendChild(document.createTextNode(size)); }
+    text.appendChild(facts);
+
+    var sub = row.player
+      ? EGE.ordinal(at + 1).toLowerCase() + ' of ' + of + ' in the room'
+      : row.line;
+    if (sub) { text.appendChild(el('span', 'ege-room__line', sub)); }
+    item.appendChild(text);
+
+    var box = overallBox(row.overall, 'ege-ovrbox--mini');
+    if (box) { item.appendChild(box); }
     return item;
   }
 
@@ -1471,16 +1520,23 @@
       box.appendChild(el('p', 'ege-room__empty', 'Nobody listed.'));
       return box;
     }
+    /* Best first, and never folding one of the six away: a room shows down
+       to whichever of them is lowest, however far down that is. */
+    var shown = ROOM_SHOWN;
+    rows.forEach(function (row, i) { if (row.player) { shown = Math.max(shown, i + 1); } });
+
     var list = el('ol', 'ege-room__list');
-    rows.slice(0, ROOM_SHOWN).forEach(function (row) { list.appendChild(rosterLine(row)); });
+    rows.slice(0, shown).forEach(function (row, i) { list.appendChild(rosterLine(row, i, rows.length)); });
     box.appendChild(list);
 
-    if (rows.length > ROOM_SHOWN) {
+    if (rows.length > shown) {
       var more = el('details', 'ege-room__more');
-      more.appendChild(el('summary', null, (rows.length - ROOM_SHOWN) + ' more'));
+      more.appendChild(el('summary', null, (rows.length - shown) + ' more'));
       var rest = el('ol', 'ege-room__list');
-      rest.start = ROOM_SHOWN + 1;
-      rows.slice(ROOM_SHOWN).forEach(function (row) { rest.appendChild(rosterLine(row)); });
+      rest.start = shown + 1;
+      rows.slice(shown).forEach(function (row, i) {
+        rest.appendChild(rosterLine(row, shown + i, rows.length));
+      });
       more.appendChild(rest);
       box.appendChild(more);
     }
@@ -1554,9 +1610,10 @@
       var grid = el('div', 'ege-rooms');
       ROOMS.forEach(function (room) { grid.appendChild(roomEl(room, rooms[room.key] || [])); });
       body.appendChild(grid);
-      if (rooms.season !== season) {
-        body.appendChild(el('p', 'fb-meta', 'Roster as of ' + rooms.season + '.'));
-      }
+      body.appendChild(el('p', 'fb-meta ege-rooms__note',
+        'Each room best first. Overalls for everybody outside the six are worked out from ' +
+        'their real season, their year of college and how highly they were recruited.' +
+        (rooms.season !== season ? ' Roster as of ' + rooms.season + '.' : '')));
     }
 
     var conference = EGE.tierFor(season) === 'college'

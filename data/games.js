@@ -569,10 +569,65 @@ EGE.teamsIn = function (season) {
   return order;
 };
 
+/* What a year of college is called, 1 to 5. */
+EGE.CLASSES = [null,
+  { short: 'FR', name: 'Freshman' },
+  { short: 'SO', name: 'Sophomore' },
+  { short: 'JR', name: 'Junior' },
+  { short: 'SR', name: 'Senior' },
+  { short: 'GR', name: 'Fifth year' }];
+
+/* Which year of college one of the six is in that season: the first
+   college season on the ladder is his first. Null in high school. */
+EGE.collegeYearFor = function (player, season) {
+  var year = season || EGE.currentSeason;
+  if (EGE.tierFor(year) !== 'college') { return null; }
+  var first = EGE.seasons.filter(function (s) { return s.tier === 'college'; })[0];
+  return first ? Math.min(5, year - first.year + 1) : null;
+};
+
+/* The numbers a position wears when it has to be given a new one, in the
+   order they are tried: a tight end goes to the 80s first, a back to the
+   20s, 30s and 40s. */
+var JERSEY_RANGES = {
+  QB: [[1, 19]],
+  RB: [[20, 49], [1, 19]],
+  WR: [[1, 19], [80, 89]],
+  TE: [[80, 89], [40, 49], [1, 19]]
+};
+
+function freeJersey(position, wanted, used) {
+  var ranges = JERSEY_RANGES[position] || [[1, 99]];
+  for (var r = 0; r < ranges.length; r += 1) {
+    var open = [];
+    for (var n = ranges[r][0]; n <= ranges[r][1]; n += 1) {
+      if (!used[n]) { open.push(n); }
+    }
+    if (open.length) {
+      /* The nearest free number to the one he wore, so a 87 becomes an 86
+         or an 88 rather than an 80. */
+      open.sort(function (a, b) {
+        return (Math.abs(a - wanted) - Math.abs(b - wanted)) || (a - b);
+      });
+      return open[0];
+    }
+  }
+  return null;
+}
+
 /* A team's position rooms that season: the real roster from
-   data/rosters.js with the six on that team put in at their positions, at
-   the head of the room. A season with no roster yet borrows the latest one
-   before it. Null for a school with no roster at all (every high school). */
+   data/rosters.js with the six on that team put in at their positions, each
+   room ordered by overall, best first, so a room reads as a depth chart and
+   the six land wherever their overall puts them. A season with no roster
+   yet borrows the latest one before it. Null for a school with no roster at
+   all (every high school).
+
+   Nobody shares a number. The six keep theirs, and a real player wearing
+   one already taken -- one of the six's, or a teammate's further up the
+   rooms -- is given the nearest free number his position wears, with the
+   one he really wore kept as `realJersey`. Andrew Parr is Alabama's 87, so
+   Miller Forristall becomes an 85 -- the nearest tight end number nobody
+   on the team wears. */
 EGE.rosterFor = function (teamKey, season) {
   var year = season || EGE.currentSeason;
   var rosters = EGE.rosters || {};
@@ -585,21 +640,66 @@ EGE.rosterFor = function (teamKey, season) {
   if (!years.length && !ours.length) { return null; }
 
   var base = years.length ? rosters[years[0]][teamKey] : {};
+  var positions = ['QB', 'RB', 'WR', 'TE'];
+
+  var used = {};
+  ours.forEach(function (player) {
+    if (typeof player.jersey === 'number') { used[player.jersey] = true; }
+  });
+
+  var real = {};
+  positions.forEach(function (position) {
+    real[position] = (base[position] || []).filter(function (row) {
+      return row && row.name;
+    }).map(function (row) {
+      var copy = {};
+      Object.keys(row).forEach(function (k) { copy[k] = row[k]; });
+      return copy;
+    });
+  });
+  /* Everybody whose number is free keeps it, the best players first, before
+     anybody is moved -- so a player moved off one of the six's numbers never
+     lands on a teammate's and moves him in turn. */
+  var clashes = [];
+  positions.reduce(function (all, position) {
+    return all.concat(real[position].map(function (row) { return { row: row, position: position }; }));
+  }, []).sort(function (a, b) {
+    return (b.row.overall || 0) - (a.row.overall || 0);
+  }).forEach(function (entry) {
+    var row = entry.row;
+    if (typeof row.jersey !== 'number') { return; }
+    if (used[row.jersey]) { clashes.push(entry); } else { used[row.jersey] = true; }
+  });
+  clashes.forEach(function (entry) {
+    var row = entry.row;
+    var moved = freeJersey(entry.position, row.jersey, used);
+    if (moved === null) { return; }
+    row.realJersey = row.jersey;
+    row.jersey = moved;
+    used[moved] = true;
+  });
+
   var rooms = {};
-  ['QB', 'RB', 'WR', 'TE'].forEach(function (position) {
+  positions.forEach(function (position) {
     rooms[position] = ours.filter(function (player) {
       return EGE.positionFor(player, year) === position;
     }).map(function (player) {
       return { name: player.name, jersey: player.jersey, height: player.height,
-               weight: player.weight, player: player };
-    }).concat((base[position] || []).filter(function (row) {
-      /* A real player wearing one of the six's numbers keeps it; nobody is
-         dropped for it. */
-      return row && row.name;
-    }));
+               weight: player.weight, year: EGE.collegeYearFor(player, year),
+               overall: EGE.overallFor(player), player: player };
+    }).concat(real[position]).sort(function (a, b) {
+      return ((b.overall || 0) - (a.overall || 0)) || (b.player ? 1 : 0) - (a.player ? 1 : 0);
+    });
   });
   rooms.season = years.length ? years[0] : year;
   return rooms;
+};
+
+/* An ESPN headshot for a roster player, or null where ESPN has none. */
+EGE.rosterPhoto = function (row) {
+  if (!row || !row.photo || !row.espn) { return null; }
+  return 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/' +
+    row.espn + '.png&w=96&h=70';
 };
 
 /* The quarterbacks a player can spend a QB Connection on: everybody in his
