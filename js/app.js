@@ -16,6 +16,7 @@
   var viewPlayer = document.getElementById('view-player');
   var viewAdmin  = document.getElementById('view-admin');
   var viewTeams  = document.getElementById('view-teams');
+  var viewTeam   = document.getElementById('view-team');
   var loginBtn   = document.getElementById('loginBtn');
   var loginModal = document.getElementById('loginModal');
 
@@ -62,9 +63,12 @@
     }, 120);
   }
 
+  /* A season as the site names it: the year and the level. No class -- the
+     six are not all in the same one (Isaac redshirts 2021), so a class is
+     only ever said on a player's own page, from EGE.classFor. */
   function seasonLabel(year) {
     var s = EGE.seasons.filter(function (x) { return x.year === year; })[0];
-    return s ? s.year + ' · ' + s.class + ' · ' + s.level : String(year);
+    return s ? s.year + ' · ' + s.level : String(year);
   }
 
   /* The home page's line follows the live season rather than being typed
@@ -205,7 +209,12 @@
     renderSeasonBar(player);
     var season = shownSeason();
 
-    document.getElementById('playerStripLabel').textContent = seasonLabel(season);
+    /* His own page is the one place his class is said, and it is his: a
+       redshirt year puts him a year behind everybody else. */
+    var klass = EGE.classFor(player, season);
+    document.getElementById('playerStripLabel').textContent = season +
+      (klass ? ' \u00b7 ' + klass : '') + ' \u00b7 ' +
+      ((EGE.seasons.filter(function (x) { return x.year === season; })[0] || {}).level || '');
 
     showPhoto(document.getElementById('playerPhoto'), player.headshot, player.name);
 
@@ -552,15 +561,15 @@
   var narrowBar = window.matchMedia('(max-width: 620px)');
 
   function labelSeasons() {
-    ['seasonPick', 'teamsSeasonPick'].forEach(function (id) {
-      var options = document.getElementById(id).options;
-      Array.prototype.forEach.call(options, function (option) {
-        var year = Number(option.value);
-        var s = EGE.seasons.filter(function (x) { return x.year === year; })[0];
-        option.textContent = (narrowBar.matches || !s
-          ? String(year)
-          : year + ' \u00b7 ' + s.class) + (isPreview(year) ? ' \u00b7 Preview' : '');
-      });
+    var hash = window.location.hash.replace(/^#/, '');
+    var player = hash ? EGE.playerBySlug(hash) : null;
+    var options = document.getElementById('seasonPick').options;
+    Array.prototype.forEach.call(options, function (option) {
+      var year = Number(option.value);
+      var klass = player ? EGE.classFor(player, year) : null;
+      option.textContent = (narrowBar.matches || !klass
+        ? String(year)
+        : year + ' \u00b7 ' + klass) + (isPreview(year) ? ' \u00b7 Preview' : '');
     });
   }
 
@@ -1467,12 +1476,10 @@
       'move since last week.');
   }
 
-  /* --- the teams page --------------------------------------------------------
+  /* --- the teams: position rooms ------------------------------------------
 
-     Every school one of the six plays for in the live season, one panel
-     each: the record and the conference place, which of the six are on it,
-     a rundown of every position room -- the six put in at the head of
-     theirs -- and the division table. */
+     A team page's roster: a room for each skill position, best overall
+     first, the six put in wherever their overall puts them. */
 
   var ROOMS = [
     { key: 'QB', title: 'Quarterbacks' },
@@ -1533,8 +1540,8 @@
     }
     var klass = EGE.CLASSES[row.year];
     if (klass) {
-      var chip = el('abbr', 'ege-room__class', klass.short);
-      chip.title = klass.name;
+      var chip = el('abbr', 'ege-room__class', (row.redshirt ? 'RS ' : '') + klass.short);
+      chip.title = (row.redshirt ? 'Redshirt ' : '') + klass.name;
       meta.appendChild(chip);
     }
     text.appendChild(meta);
@@ -1580,149 +1587,300 @@
     return box;
   }
 
-  function teamPanel(entry, season) {
-    var panel = el('section', 'fb-panel ege-team');
-    panel.id = 'team-' + entry.key;
+  /* --- the teams ----------------------------------------------------------
 
-    /* The school and its mark in the middle of the head, its league under
-       them. */
-    var head = el('div', 'fb-panel__head ege-team__head');
-    var title = el('div', 'ege-team__title');
+     Laid out like the players: #teams is a card for every school one of the
+     six plays for, and a card opens that school's own page at
+     #teams/{school}, with the way back and a season switcher above it. College
+     seasons only -- the high schools are the player pages' business. */
+
+  /* Every college season there is something to show for: logged, and for an
+     admin any season whose file is in ahead of time. */
+  function collegeSeasons() {
+    return loggedSeasons().filter(function (year) { return EGE.tierFor(year) === 'college'; });
+  }
+
+  /* The season the index shows: the live one, or the latest college season
+     before it. Never a preview -- that is on a team's own switcher. */
+  function teamsIndexSeason() {
+    var years = collegeSeasons().filter(function (year) { return year <= EGE.currentSeason; });
+    return years.length ? years[years.length - 1] : null;
+  }
+
+  /* The seasons a school has a page for: the college seasons one of the six
+     was there. */
+  function teamSeasons(key) {
+    return collegeSeasons().filter(function (year) {
+      return EGE.teamsIn(year).some(function (entry) { return entry.key === key; });
+    });
+  }
+
+  function teamEntry(key, season) {
+    return EGE.teamsIn(season).filter(function (entry) { return entry.key === key; })[0] || null;
+  }
+
+  /* What a season is called away from a player page: the year and the
+     level. A class would be wrong for somebody -- Isaac redshirts 2021. */
+  function teamSeasonText(year) {
+    return seasonLabel(year) + (isPreview(year) ? ' · Preview' : '');
+  }
+
+  /* --- the index --------------------------------------------------------- */
+
+  function teamCard(entry, season) {
+    var card = el('a', 'ege-card ege-teamcard');
+    card.href = '#teams/' + EGE.teamSlug(entry.key);
+
+    var mark = el('div', 'ege-card__photo ege-teamcard__mark');
     if (entry.team.logo) {
-      var logo = el('img', 'ege-team__logo');
+      var logo = el('img');
       logo.src = entry.team.logo;
       logo.alt = '';
-      title.appendChild(logo);
+      logo.loading = 'lazy';
+      mark.appendChild(logo);
     }
-    title.appendChild(el('h3', null, entry.team.school));
-    head.appendChild(title);
-    if (entry.team.league) { head.appendChild(el('span', 'fb-meta ege-team__league', entry.team.league)); }
-    panel.appendChild(head);
+    card.appendChild(mark);
 
-    var body = el('div', 'fb-panel__body fb-stack fb-stack--lg');
+    var body = el('div', 'ege-card__body');
+    var text = el('div', 'ege-card__text');
+    text.appendChild(el('h3', 'ege-card__name', entry.team.school));
 
-    /* The record is the team's, and every one of the six on a team plays
-       the same games, so the first of them speaks for it. */
     var lead = entry.players[0];
-    var facts = el('dl', 'ege-team__facts');
-    function fact(label, value) {
-      facts.appendChild(el('dt', null, label));
-      facts.appendChild(el('dd', null, value));
-    }
-    var record = EGE.recordFor(lead, season).text;
-    var streak = EGE.streakFor(lead, season);
-    fact('Record', record + (streak && !EGE.seasonOverFor(lead, season) ? ' · ' + streak.text : ''));
     var standing = EGE.standingFor(lead, season);
-    if (standing && standing.place) {
-      fact('Conference', standing.wins + '-' + standing.losses + ' · ' +
-        EGE.ordinal(standing.place) + ' in ' + standing.league);
-    } else if (standing) {
-      fact('Conference', standing.league + ' · TBD');
-    }
-    body.appendChild(facts);
+    text.appendChild(el('span', 'ege-card__school',
+      EGE.recordFor(lead, season).text + ' · ' + (standing
+        ? (standing.place ? EGE.ordinal(standing.place) + ' in ' : '') + standing.league
+        : (entry.team.league || ''))));
 
-
-    var rooms = EGE.rosterFor(entry.key, season);
-    if (rooms && !rooms.real) {
-      /* No roster for this school -- every high school -- so just the six
-         who were on it, rather than four rooms saying nobody is listed. */
-      var ours = el('ol', 'ege-room__list ege-team__ours');
-      entry.players.forEach(function (player) {
-        ours.appendChild(rosterLine({
-          name: player.name, jersey: player.jersey, height: player.height,
-          weight: player.weight, year: EGE.collegeYearFor(player, season),
-          overall: EGE.overallFor(player), player: player
-        }));
-      });
-      body.appendChild(ours);
-    } else if (rooms) {
-      var grid = el('div', 'ege-rooms');
-      ROOMS.forEach(function (room) { grid.appendChild(roomEl(room, rooms[room.key] || [])); });
-      body.appendChild(grid);
-      if (rooms.season !== season) {
-        body.appendChild(el('p', 'fb-meta', 'Roster as of ' + rooms.season + '.'));
-      }
-    }
-
-    var conference = EGE.tierFor(season) === 'college'
-      ? EGE.conferenceTables(entry.team.school, season) : null;
-    if (conference) {
-      body.appendChild(standingsTable(conference.tables[0], entry.team.school, season));
-    }
-
-    panel.appendChild(body);
-    return panel;
+    var faces = el('span', 'ege-teamcard__ours');
+    entry.players.forEach(function (player) {
+      var face = el('img', 'ege-teamcard__face');
+      face.src = player.headshot;
+      face.alt = player.name;
+      face.title = player.name;
+      face.loading = 'lazy';
+      faces.appendChild(face);
+    });
+    text.appendChild(faces);
+    text.appendChild(el('span', 'ege-card__go', 'View team →'));
+    body.appendChild(text);
+    card.appendChild(body);
+    return card;
   }
 
-  /* The season the Teams page is showing: the live one until another is
-     picked on its switcher, and that pick stands while the page is open. */
-  var teamsSeason = null;
-
-  function shownTeamsSeason() {
-    var years = loggedSeasons();
-    return teamsSeason && years.indexOf(teamsSeason) !== -1 ? teamsSeason : EGE.currentSeason;
+  function renderTeams() {
+    var season = teamsIndexSeason();
+    var grid = document.getElementById('teamsGrid');
+    grid.innerHTML = '';
+    document.getElementById('teamsSeasonLabel').textContent = season ? teamSeasonText(season) : '';
+    if (!season) {
+      grid.appendChild(el('p', 'ege-note', 'No college season yet.'));
+      return;
+    }
+    EGE.teamsIn(season).forEach(function (entry) { grid.appendChild(teamCard(entry, season)); });
   }
 
-  /* The switcher over the teams: every season there is something to show
-     for, newest first, with a step either way -- the player page's, again. */
-  function renderTeamsSeasonBar(season) {
-    var years = loggedSeasons();
-    var bar = document.getElementById('teamsSeasonBar');
+  /* --- a team's page ------------------------------------------------------ */
+
+  /* The season a team's page is on: picked on its switcher, or the index's.
+     Opening a different team goes back to the index's season, the way
+     opening a different player goes back to the live one. */
+  var teamViewed = null;
+  var teamViewedFor = null;
+
+  function shownTeamSeason(key) {
+    if (teamViewedFor !== key) { teamViewedFor = key; teamViewed = null; }
+    var years = teamSeasons(key);
+    if (teamViewed && years.indexOf(teamViewed) !== -1) { return teamViewed; }
+    var index = teamsIndexSeason();
+    if (years.indexOf(index) !== -1) { return index; }
+    return years.length ? years[years.length - 1] : null;
+  }
+
+  function renderTeamSeasonBar(key, season) {
+    var years = teamSeasons(key);
+    var bar = document.getElementById('teamSeasonBar');
     bar.hidden = years.length < 2;
     if (bar.hidden) { return; }
 
-    var pick = document.getElementById('teamsSeasonPick');
+    var pick = document.getElementById('teamSeasonPick');
     pick.innerHTML = '';
     years.slice().reverse().forEach(function (year) {
-      var option = el('option');
+      var option = el('option', null, String(year) + (isPreview(year) ? ' · Preview' : ''));
       option.value = year;
       pick.appendChild(option);
     });
-    labelSeasons();
     pick.value = String(season);
 
     var at = years.indexOf(season);
-    document.getElementById('teamsSeasonPrev').disabled = at <= 0;
-    document.getElementById('teamsSeasonNext').disabled = at === -1 || at >= years.length - 1;
+    document.getElementById('teamSeasonPrev').disabled = at <= 0;
+    document.getElementById('teamSeasonNext').disabled = at === -1 || at >= years.length - 1;
   }
 
-  function showTeamsSeason(year) {
-    teamsSeason = year === EGE.currentSeason ? null : year;
-    renderTeams();
+  function currentTeamKey() {
+    var hash = window.location.hash.replace(/^#/, '');
+    return hash.indexOf('teams/') === 0 ? EGE.teamKeyBySlug(hash.slice(6)) : null;
   }
 
-  document.getElementById('teamsSeasonPick').addEventListener('change', function (e) {
-    showTeamsSeason(Number(e.target.value));
+  function showTeamSeason(year) {
+    var key = currentTeamKey();
+    if (!key) { return; }
+    teamViewed = year;
+    renderTeam(key);
+  }
+
+  document.getElementById('teamSeasonPick').addEventListener('change', function (e) {
+    showTeamSeason(Number(e.target.value));
   });
-  [['teamsSeasonPrev', -1], ['teamsSeasonNext', 1]].forEach(function (pair) {
+  [['teamSeasonPrev', -1], ['teamSeasonNext', 1]].forEach(function (pair) {
     document.getElementById(pair[0]).addEventListener('click', function () {
-      var years = loggedSeasons();
-      var next = years[years.indexOf(shownTeamsSeason()) + pair[1]];
-      if (next) { showTeamsSeason(next); }
+      var key = currentTeamKey();
+      if (!key) { return; }
+      var years = teamSeasons(key);
+      var next = years[years.indexOf(shownTeamSeason(key)) + pair[1]];
+      if (next) { showTeamSeason(next); }
     });
   });
 
-  function renderTeams() {
-    var season = shownTeamsSeason();
-    var list = document.getElementById('teamsList');
-    var jump = document.getElementById('teamsJump');
-    renderTeamsSeasonBar(season);
-    document.getElementById('teamsSeasonLabel').textContent = seasonLabel(season) +
-      (isPreview(season) ? ' \u00b7 Preview' : '');
-    list.innerHTML = '';
-    jump.innerHTML = '';
+  /* The header: the mark, the name, and what the season has come to. */
+  function renderTeamHead(entry, season) {
+    document.getElementById('teamStripLabel').textContent = teamSeasonText(season);
 
-    EGE.teamsIn(season).forEach(function (entry) {
-      list.appendChild(teamPanel(entry, season));
-      var link = el('a', 'fb-btn fb-btn--inverse ege-teamjump__link', entry.team.school);
-      link.href = '#teams';
-      link.addEventListener('click', function (event) {
-        event.preventDefault();
-        var target = document.getElementById('team-' + entry.key);
-        if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-      });
-      jump.appendChild(link);
+    var mark = document.getElementById('teamLogo');
+    mark.innerHTML = '';
+    if (entry.team.logo) {
+      var logo = el('img');
+      logo.src = entry.team.logo;
+      logo.alt = entry.team.school;
+      mark.appendChild(logo);
+    }
+    document.getElementById('teamName').textContent = entry.team.school;
+
+    /* Everybody from the six on a team plays its games, so the first of them
+       speaks for its record. */
+    var lead = entry.players[0];
+    var facts = document.getElementById('teamFacts');
+    facts.innerHTML = '';
+    function fact(label, value) {
+      facts.appendChild(el('dt', null, label));
+      var dd = el('dd');
+      if (typeof value === 'string') { dd.textContent = value; } else { dd.appendChild(value); }
+      facts.appendChild(dd);
+    }
+
+    var record = el('span', 'ege-record', EGE.recordFor(lead, season).text);
+    var streak = EGE.streakFor(lead, season);
+    if (streak && !EGE.seasonOverFor(lead, season)) {
+      record.appendChild(el('span', 'ege-record__dot', ' · '));
+      record.appendChild(el('span', 'ege-streak ege-streak--' + (streak.won ? 'win' : 'loss'),
+        streak.text + ' Streak'));
+    }
+    fact('Record', record);
+
+    var standing = EGE.standingFor(lead, season);
+    fact('Conference', standing
+      ? (standing.place ? EGE.ordinal(standing.place) + ' in ' : 'TBD in ') + standing.league
+      : (entry.team.league || 'TBD'));
+
+    var ours = el('span', 'ege-teamhead__ours');
+    entry.players.forEach(function (player, i) {
+      if (i) { ours.appendChild(document.createTextNode(' · ')); }
+      var link = el('a', null, player.name);
+      link.href = '#' + player.slug;
+      ours.appendChild(link);
     });
+    fact(entry.players.length > 1 ? 'EGE Players' : 'EGE Player', ours);
+  }
+
+  function renderTeamRoster(entry, season) {
+    var body = document.getElementById('teamRosterBody');
+    body.innerHTML = '';
+    var rooms = EGE.rosterFor(entry.key, season);
+    if (!rooms) { return; }
+    var grid = el('div', 'ege-rooms');
+    ROOMS.forEach(function (room) { grid.appendChild(roomEl(room, rooms[room.key] || [])); });
+    body.appendChild(grid);
+    if (rooms.season !== season) {
+      body.appendChild(el('p', 'fb-meta', 'Roster as of ' + rooms.season + '.'));
+    }
+  }
+
+  function renderTeamStandings(entry, season) {
+    var panel = document.getElementById('teamStandingsPanel');
+    var body = document.getElementById('teamStandingsBody');
+    var conference = EGE.conferenceTables(entry.team.school, season);
+    body.innerHTML = '';
+    panel.hidden = !conference;
+    if (!conference) { return; }
+    conference.tables.forEach(function (table) {
+      body.appendChild(standingsTable(table, entry.team.school, season));
+    });
+    setLegend('teamStandingsFoot', 'teamStandingsLegend',
+      conference.conference + ' games only, as of the published weeks. Strk is the conference ' +
+      'streak; Chg is the move since last week.');
+  }
+
+  /* The team's games as everybody can see them: the same fixtures, the same
+     rule about how far into the postseason anybody can see, and no credits,
+     boosters or grades -- those belong to a player. */
+  function renderTeamSchedule(entry, season) {
+    var body = document.getElementById('teamScheduleBody');
+    body.innerHTML = '';
+    var games = EGE.scheduleFor(entry.players[0], season);
+    var firstPlayoff = games.filter(function (game) { return game.playoff; })[0];
+    games.forEach(function (game) {
+      var row = el('tr');
+      if (game === firstPlayoff) { row.classList.add('ege-schedule__break'); }
+      row.appendChild(el('td', 'ege-schedule__week', game.week));
+      row.appendChild(el('td', null, gameDate(game)));
+
+      var opponent = el('td', 'ege-schedule__opponent');
+      if (game.bye) {
+        opponent.appendChild(el('span', 'ege-schedule__bye', 'Bye'));
+      } else {
+        opponent.appendChild(el('span', 'ege-schedule__side', game.home || game.neutral ? 'vs' : 'at'));
+        opponentName(opponent, game);
+      }
+      if (game.conference) {
+        var conf = el('abbr', 'ege-schedule__conf', '*');
+        conf.title = 'Conference game';
+        opponent.appendChild(conf);
+      }
+      if (game.playoff) {
+        var post = el('abbr', 'ege-schedule__conf', '**');
+        post.title = postseasonWord(game.season) + ' game';
+        opponent.appendChild(post);
+      }
+      eventName(opponent, game);
+      row.appendChild(opponent);
+
+      var result = el('td', 'num ege-schedule__result');
+      if (EGE.isFinal(game)) {
+        var won = game.result.teamScore > game.result.opponentScore;
+        result.appendChild(el('span', 'fb-tag fb-tag--num ' + (won ? 'fb-tag--sage' : 'fb-tag--clay'),
+          (won ? 'W ' : 'L ') + game.result.teamScore + '–' + game.result.opponentScore +
+          (game.overtime ? '/OT' : '')));
+      } else {
+        result.appendChild(el('span', 'ege-schedule__pending', '—'));
+      }
+      row.appendChild(result);
+      body.appendChild(row);
+    });
+  }
+
+  function renderTeam(key) {
+    var season = shownTeamSeason(key);
+    var entry = season ? teamEntry(key, season) : null;
+    document.getElementById('teamMissing').hidden = Boolean(entry);
+    document.getElementById('teamContent').hidden = !entry;
+    if (!entry) { return; }
+
+    renderTeamSeasonBar(key, season);
+    renderTeamHead(entry, season);
+    renderTeamRoster(entry, season);
+    renderTeamStandings(entry, season);
+    renderTeamSchedule(entry, season);
+    document.title = entry.team.school + ' — EGE Football';
   }
 
 
@@ -4303,8 +4461,9 @@
     var hash = window.location.hash.replace(/^#/, '');
     var player = hash ? EGE.playerBySlug(hash) : null;
     if (player) { renderPlayer(player); }
-    /* The teams page carries records and overalls too. */
+    /* The teams carry records and overalls too. */
     if (hash === 'teams') { renderTeams(); }
+    if (hash.indexOf('teams/') === 0) { renderTeam(EGE.teamKeyBySlug(hash.slice(6))); }
   }
 
   /* The inventory arrives after a page may already have been drawn, so redraw
@@ -4335,6 +4494,7 @@
     viewPlayer.hidden = view !== viewPlayer;
     viewAdmin.hidden  = view !== viewAdmin;
     viewTeams.hidden  = view !== viewTeams;
+    viewTeam.hidden   = view !== viewTeam;
   }
 
   /* The page route() last drew, so it can tell going somewhere from being
@@ -4352,6 +4512,10 @@
       show(viewTeams);
       setNav('teams');
       document.title = 'Teams \u2014 EGE Football';
+    } else if (hash.indexOf('teams/') === 0) {
+      show(viewTeam);
+      setNav('teams');
+      renderTeam(EGE.teamKeyBySlug(hash.slice(6)));
     } else if (hash === 'shop') {
       renderShop();
       show(viewShop);

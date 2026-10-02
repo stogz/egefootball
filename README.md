@@ -75,6 +75,18 @@ high school graduation makes them draft-eligible, so declaring after junior year
 is the canonical path. The optional 2023 senior college season is the branch a
 player takes instead of declaring; it pushes that player to the 2024 draft.
 
+**Redshirts.** The ladder's class is what a season is for a player who never
+redshirts. **Isaac redshirts 2021** (`redshirt: 2021` in `data/players.js`):
+it is his second year but uses no eligibility, so it reads *Sophomore Year ·
+Redshirt*, and from then on he is a year behind everybody else — *Redshirt
+Sophomore Year* in 2022, *Redshirt Junior Year* in 2023. `EGE.classFor`
+works it out, and his Teams card says *RS SO* rather than *JR*.
+
+So **a class is only ever named on a player's own page** — the strip across
+his header and his season switcher, both his own. Everywhere else a season
+is a year and a level, *2020 · College Football*: the home page, the Teams
+pages, the admin page.
+
 ---
 
 ## Site Structure
@@ -115,7 +127,8 @@ holds:
   played the last postseason game in its file — beaten in a playoff, won its
   bracket or played its bowl (a college team that loses its conference title
   game still has a bowl to come) — or, for a school that missed the
-  playoffs, once their first week is out. The season, class and level are across the
+  playoffs, once their first week is out. The season, his class (see
+  *Redshirts*) and the level are across the
   orange strip at the top of the panel. The overall is not up
   here: it lives with the ratings it is worked out from, at the foot of the
   page. The top right holds the college offers, as stickers — again on the
@@ -251,24 +264,25 @@ nothing else.
 
 ### Teams — `#teams`
 
-A tab beside Players, public like the player pages: one panel for every
-school one of the six plays for in the season on show, with buttons across
-the top to jump to each.
+A tab beside Players, public like the player pages, and laid out like
+them. **College only** — the high schools are on the player pages.
 
-**Any season, like a player page.** Under the heading is the same switcher
-a player page has — a drop-down of every season with a file in `stats/`, up
-to the live one, with ‹ and › either side — and it starts on the live
-season. An admin also sees a season whose file is in but which has not been
-rolled over to yet, marked *Preview*, so 2021 can be looked over now. A high
-school season has no roster to show, so its panels hold just the six who
-played there; a college season has the full rooms and the division table.
+**The index, `#teams`**, is the roster grid again: a card for every school
+one of the six plays for in the live season, with its mark where a
+headshot would be, its record and place in its division, the faces of the
+six who play there, and *View team →*.
 
-The school and its mark sit in the middle of the panel's head, its league
-under them. A panel holds:
+**A team's page, `#teams/{school}`** — `#teams/ohio-state` — has what a
+player page has above it: *← All Teams* and the season switcher, a
+drop-down of every college season that school had one of the six, with ‹
+and › either side. It opens on the live season; opening another team goes
+back to it. An admin also sees a season whose file is in but which has not
+been rolled over to yet, marked *Preview*, so 2021 can be looked over now.
+Under the bar:
 
-- **Record** and **Conference** — the team's record and streak, and its
-  conference record and place in its division.
-- **The rundown** — every quarterback, back, receiver and tight end on the
+- **The header** — the mark, the name, the record and streak, the place in
+  its division, and the six on it, through to their pages.
+- **Roster** — every quarterback, back, receiver and tight end on the
   real roster that season, a room each, **best overall first**, so a room
   reads as a depth chart and the six land wherever their overall puts them.
   The rooms run two across (one on a phone), so every name fits on one
@@ -277,11 +291,13 @@ under them. A panel holds:
   SR, or GR for a fifth year), height and weight, and an **overall** in the
   same box the six's is drawn in. One of the six is picked out in orange and
   goes through to his page. No season stats are shown; they are in the
-  overall. **An 80 or better is a diamond**: the overall box is cut as a
-  faceted blue gem with a band of light sweeping across it and a sparkle in
-  the corner (still, for anybody who asks for less motion) — on the Teams
-  page and on the six's roster cards alike, so it means the same thing
-  everywhere. Four show and the rest fold away behind *N more*, but never past
+  overall. **An 80 or better is a diamond**: the overall box is a
+  princess-cut blue diamond — a steel-blue frame, a band of triangular
+  facets running in from the corners, a pale square table in the middle
+  with the number on it in deep navy — drawn as an SVG, with a band of
+  light sweeping across it and a sparkle in the corner (still, for anybody
+  who asks for less motion). It is the same on the Teams page and the six's
+  roster cards, so it means the same thing everywhere. Four show and the rest fold away behind *N more*, but never past
   one of the six. From `data/rosters.js`,
   which `tools/build-rosters.js` writes; `EGE.rosterFor` in `data/games.js`
   puts the six in. A season with no roster yet borrows the latest one.
@@ -323,8 +339,12 @@ under them. A panel holds:
   about 70; DeVonta Smith's 2020 and Bryce Young's 2021 are 84s, C.J.
   Stroud's 2021 an 82. The constants are at the top of
   `tools/build-rosters.js`.
-- **The division table**, the same one the player page shows, streaks and
-  week-on-week movement included.
+- **Conference Standings** — the whole conference, a table a division,
+  streaks and week-on-week movement included.
+- **Schedule** — the team's games as anybody can see them, with results as
+  they are published and the postseason as far as the next game, the same
+  rule a player's schedule follows. No credits, boosters or Opp D grades:
+  those belong to a player.
 
 The quarterback rooms are also where a QB Connection is picked from (see
 the shop).

@@ -573,6 +573,16 @@ EGE.defenseGrade = function (player, game) {
 
 /* --- the teams ------------------------------------------------------------ */
 
+/* A school's address on the Teams page -- #teams/ohio-state -- and back. */
+EGE.teamSlug = function (key) {
+  var team = EGE.teams[key];
+  return team ? team.school.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : key;
+};
+
+EGE.teamKeyBySlug = function (slug) {
+  return Object.keys(EGE.teams).filter(function (key) { return EGE.teamSlug(key) === slug; })[0] || null;
+};
+
 /* Every school one of the six is at that season, as
    { key, team, players: [...] }, in the order the players are listed. */
 EGE.teamsIn = function (season) {
@@ -599,13 +609,11 @@ EGE.CLASSES = [null,
   { short: 'SR', name: 'Senior' },
   { short: 'GR', name: 'Fifth year' }];
 
-/* Which year of college one of the six is in that season: the first
-   college season on the ladder is his first. Null in high school. */
+/* Which year of college one of the six is in that season, by eligibility
+   (EGE.eligibilityYearFor -- a redshirt year does not count once it is
+   behind him). Null in high school. */
 EGE.collegeYearFor = function (player, season) {
-  var year = season || EGE.currentSeason;
-  if (EGE.tierFor(year) !== 'college') { return null; }
-  var first = EGE.seasons.filter(function (s) { return s.tier === 'college'; })[0];
-  return first ? Math.min(5, year - first.year + 1) : null;
+  return EGE.eligibilityYearFor(player, season);
 };
 
 /* The numbers a position wears when it has to be given a new one, in the
@@ -712,6 +720,7 @@ EGE.rosterFor = function (teamKey, season) {
     }).map(function (player) {
       return { name: player.name, jersey: player.jersey, height: player.height,
                weight: player.weight, year: EGE.collegeYearFor(player, year),
+               redshirt: EGE.redshirtedBy(player, year),
                overall: EGE.overallFor(player), player: player };
     }).concat(real[position]).sort(function (a, b) {
       return ((b.overall || 0) - (a.overall || 0)) || (b.player ? 1 : 0) - (a.player ? 1 : 0);

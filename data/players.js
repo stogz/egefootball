@@ -197,6 +197,10 @@ EGE.players = [
     college: 'illinois',      // from 2020
     position: 'QB',
     jersey: 8,
+    /* Sits 2021 out as a redshirt: it is his second year of school but does
+       not use a year of eligibility, so from 2022 his class runs a year
+       behind everybody else's (see EGE.classFor). */
+    redshirt: 2021,
     height: 69,               // inches
     weight: 185,              // pounds
     email: 'isaacvitel2005@gmail.com',
@@ -270,6 +274,47 @@ EGE.positionFor = function (player, season) {
 EGE.teamFor = function (player, season) {
   var key = EGE.teamKeyFor(player, season);
   return (key && EGE.teams[key]) || null;
+};
+
+/* A player's class in a season, as his own page says it: Junior Year,
+   Freshman Year. The ladder's `class` is what it is for a player who never
+   redshirts. A player with `redshirt: {year}` sits that college season out
+   without using a year of eligibility: that season reads 'Sophomore Year ·
+   Redshirt', and every one after it is a year behind and says so --
+   'Redshirt Sophomore Year'. Only the player pages say a class this way;
+   everywhere else a season is a year and a level, since the six are not all
+   in the same class. */
+var COLLEGE_CLASSES = ['Freshman Year', 'Sophomore Year', 'Junior Year', 'Senior Year', 'Fifth Year'];
+
+EGE.classFor = function (player, season) {
+  var year = season || EGE.currentSeason;
+  var found = EGE.seasons.filter(function (s) { return s.year === year; })[0];
+  if (!found) { return null; }
+  if (found.tier !== 'college') { return found.class; }
+
+  var eligibility = EGE.eligibilityYearFor(player, year);
+  var name = COLLEGE_CLASSES[Math.min(eligibility, COLLEGE_CLASSES.length) - 1];
+  if (player && player.redshirt === year) { return name + ' \u00b7 Redshirt'; }
+  if (player && player.redshirt && player.redshirt < year) { return 'Redshirt ' + name; }
+  return name;
+};
+
+/* Which year of eligibility a player is in that college season, 1 to 5:
+   one for every college season so far, less the one he redshirted once it
+   is behind him. Null in high school. */
+EGE.eligibilityYearFor = function (player, season) {
+  var year = season || EGE.currentSeason;
+  if (EGE.tierFor(year) !== 'college') { return null; }
+  var count = EGE.seasons.filter(function (s) {
+    return s.tier === 'college' && s.year <= year;
+  }).length;
+  if (player && player.redshirt && player.redshirt < year) { count -= 1; }
+  return Math.max(1, count);
+};
+
+/* Whether a player has a redshirt year behind him that season. */
+EGE.redshirtedBy = function (player, season) {
+  return Boolean(player && player.redshirt && player.redshirt < (season || EGE.currentSeason));
 };
 
 /* The accounts allowed to sign in. */

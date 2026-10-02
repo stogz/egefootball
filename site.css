@@ -3478,48 +3478,67 @@ button.ege-owned__item { cursor: pointer; }
   .ege-standings__pts { display: none; }
 }
 
-/* --- the teams page --------------------------------------------------------- */
+/* --- the teams ---------------------------------------------------------------
 
-/* The Teams page's season switcher, centred over the jump buttons at the
-   width of a comfortable label rather than the whole row. */
-.ege-teamsbar {
+   The index is the roster grid again, a card a school: its mark on the
+   card's ground where a headshot would be, the record and the conference
+   place, and the faces of the six who play there. */
+.ege-teamcard__mark {
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 45%, #fff 0 38%, var(--fb-surface) 75%);
+}
+.ege-teamcard__mark img {
+  width: 58%;
+  height: 72%;
+  object-fit: contain;
+  object-position: center;
+}
+.ege-teamcard__ours { display: flex; gap: 6px; }
+.ege-teamcard__face {
+  width: 38px;
+  height: 38px;
+  object-fit: cover;
+  object-position: top;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-sand);
+}
+
+/* A team's page: the mark on the left where a player's picture is, the
+   name and the facts beside it. */
+.ege-teamhead__body {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+.ege-teamhead__logo {
   flex: none;
-  width: min(100%, 540px);
-  margin: 0 auto 16px;
+  display: grid;
+  place-items: center;
+  width: clamp(96px, 18vw, 180px);
+  aspect-ratio: 1;
+  border: var(--fb-border) solid var(--fb-ink);
+  background: radial-gradient(circle at 50% 45%, #fff 0 40%, var(--fb-surface) 78%);
 }
-/* A high school's panel: just the six who played there, side by side. */
-.ege-team__ours { grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
-.ege-teamjump {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  margin: 0 0 22px;
+.ege-teamhead__logo img { width: 74%; height: 74%; object-fit: contain; }
+.ege-teamhead__words { min-width: 0; }
+.ege-teamhead__facts dd { font-size: 1rem; }
+.ege-teamhead__ours a { color: var(--fb-ink); text-decoration: underline; text-underline-offset: 3px; }
+/* On a phone the mark and the name share the top line and the facts run
+   the full width under both, the way a player's header does. */
+@media (max-width: 620px) {
+  .ege-teamhead__body {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    align-items: center;
+    gap: 14px 16px;
+  }
+  .ege-teamhead__logo { width: 88px; }
+  .ege-teamhead__words { display: contents; }
+  /* The player header's classes name grid areas this grid does not have. */
+  .ege-teamhead__body .ege-detail__name { grid-area: auto; margin: 0; }
+  .ege-teamhead__body .ege-teamhead__facts { grid-area: auto; grid-column: 1 / -1; }
 }
-.ege-team__head {
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-  text-align: center;
-}
-.ege-team__title { display: flex; align-items: center; justify-content: center; gap: 12px; min-width: 0; }
-.ege-team__logo { width: 40px; height: 40px; object-fit: contain; flex: none; }
-.ege-team__facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 28px;
-  margin: 0;
-}
-.ege-team__facts dt {
-  font-size: var(--fb-label);
-  font-weight: 800;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--fb-muted);
-}
-.ege-team__facts dd { margin: 2px 0 0; font-family: var(--fb-font-display); font-size: 1.25rem; }
-.ege-team__facts > dt { flex-basis: auto; }
-.ege-team__facts { display: grid; grid-auto-flow: column; grid-template-rows: auto auto; justify-content: start; }
 
 /* A player in a room: picture, name, number, class and size, overall.
    Every player is one of these; one of the six is a link to his page and
@@ -3591,8 +3610,6 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-room__more .ege-room__list { margin-top: 6px; }
 .ege-room__empty { margin: 0; font-size: var(--fb-small); color: var(--fb-muted); }
 
-/* The division table inside a team's panel sits flush in the body. */
-.ege-team .ege-standings__division { border: var(--fb-border) solid var(--fb-ink); }
 
 /* --- the injury report ------------------------------------------------------
 
@@ -3656,34 +3673,43 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 
 /* --- the diamond overall -------------------------------------------------------
 
-   80 and up: the overall box cut as a blue diamond. Facets are hard-stopped
-   gradients in four blues, and a band of light sweeps across them every few
-   seconds; a sparkle sits in the corner. Still for anybody who has asked
-   for less motion. */
+   80 and up: the overall box cut as a princess-cut blue diamond -- a
+   steel-blue frame, a band of triangular facets running in from the
+   corners, and a pale square table in the middle with its own four-way
+   cut, drawn as an SVG stretched to the box. The number sits on the table
+   in deep navy. A band of light sweeps across it every few seconds and a
+   sparkle twinkles in the corner; both stay still for anybody who has
+   asked for less motion. */
 .ege-ovrbox--diamond {
   position: relative;
   overflow: hidden;
-  border-color: #0b2a6b;
-  color: #fff;
-  background:
-    linear-gradient(135deg, transparent 0 46%, rgba(255, 255, 255, .22) 46% 54%, transparent 54%),
-    conic-gradient(from 45deg at 50% 50%,
-      #4fc3ff 0 12.5%, #1565c0 12.5% 25%, #82dcff 25% 37.5%, #0d47a1 37.5% 50%,
-      #29b6f6 50% 62.5%, #1e3a8a 62.5% 75%, #5ac8fa 75% 87.5%, #1976d2 87.5% 100%);
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .35), 0 0 12px rgba(41, 182, 246, .55);
+  border-color: #1f5577;
+  color: #0b2c45;
+  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'><defs><linearGradient id='f' x1='0' y1='1' x2='1' y2='0'><stop offset='0' stop-color='%233b7ea6'/><stop offset='.55' stop-color='%237fbfdb'/><stop offset='1' stop-color='%23dcf3fa'/></linearGradient></defs><rect width='100' height='100' fill='url(%23f)'/><polygon points='3,3 97,3 50,12' fill='%23c4ebf6' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='3,3 50,12 12,12' fill='%2355a3c7' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='97,3 88,12 50,12' fill='%238ccfe5' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='12,12 88,12 50,25' fill='%238ccfe5' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='12,12 50,25 25,25' fill='%23eafaff' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='88,12 75,25 50,25' fill='%2355a3c7' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='97,3 97,97 88,50' fill='%238ccfe5' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='97,3 88,50 88,12' fill='%23eafaff' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='97,97 88,88 88,50' fill='%232e6d93' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='88,12 88,88 75,50' fill='%23c4ebf6' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='88,12 75,50 75,25' fill='%2355a3c7' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='88,88 75,75 75,50' fill='%23eafaff' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='3,97 97,97 50,88' fill='%2355a3c7' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='3,97 50,88 12,88' fill='%238ccfe5' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='97,97 88,88 50,88' fill='%23c4ebf6' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='12,88 88,88 50,75' fill='%2355a3c7' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='12,88 50,75 25,75' fill='%238ccfe5' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='88,88 75,75 50,75' fill='%23eafaff' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='3,3 3,97 12,50' fill='%232e6d93' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='3,3 12,50 12,12' fill='%238ccfe5' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='3,97 12,88 12,50' fill='%23eafaff' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='12,12 12,88 25,50' fill='%238ccfe5' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='12,12 25,50 25,25' fill='%2355a3c7' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='12,88 25,75 25,50' fill='%23c4ebf6' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='25,25 50,25 50,50' fill='%23d6f4fb' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='50,25 75,25 50,50' fill='%23f3fdff' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='75,25 75,50 50,50' fill='%23e2f8fd' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='75,50 75,75 50,50' fill='%23c6eef8' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='75,75 50,75 50,50' fill='%23e9fafe' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='50,75 25,75 50,50' fill='%23b5e6f4' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='25,75 25,50 50,50' fill='%23cbeff8' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/><polygon points='25,50 25,25 50,50' fill='%23bde9f5' stroke='%23ffffff' stroke-opacity='.35' stroke-width='.4'/></svg>") center / 100% 100% no-repeat, #8ccfe5;
+  box-shadow: 0 0 10px rgba(91, 178, 220, .55);
 }
-.ege-ovrbox--diamond .ege-ovrbox__label { color: #e3f6ff; text-shadow: 0 1px 2px rgba(11, 42, 107, .8); }
-.ege-ovrbox--diamond .ege-ovrbox__value { position: relative; z-index: 1; text-shadow: 0 1px 3px rgba(11, 42, 107, .9); }
+.ege-ovrbox--diamond .ege-ovrbox__label {
+  position: relative;
+  z-index: 1;
+  color: #0b2c45;
+  text-shadow: 0 0 3px #fff, 0 0 6px #fff;
+}
+.ege-ovrbox--diamond .ege-ovrbox__value {
+  position: relative;
+  z-index: 1;
+  color: #0b2c45;
+  text-shadow: 0 0 3px #fff, 0 0 8px rgba(255, 255, 255, .9);
+}
 .ege-ovrbox--diamond::before {
   content: '';
   position: absolute;
   top: -50%;
   left: -120%;
-  width: 60%;
+  width: 45%;
   height: 200%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .75), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .7), transparent);
   transform: rotate(20deg);
-  animation: ege-diamond-shine 3.2s ease-in-out infinite;
+  animation: ege-diamond-shine 3.4s ease-in-out infinite;
   pointer-events: none;
 }
 .ege-ovrbox--diamond::after {
@@ -3691,6 +3717,7 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
   position: absolute;
   top: 1px;
   right: 3px;
+  z-index: 1;
   font-size: .625rem;
   line-height: 1;
   color: #fff;
