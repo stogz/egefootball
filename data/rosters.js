@@ -139,7 +139,6 @@ EGE.rosters[2020] = {
   ohioState: {
     QB: [
       { name: 'Justin Fields', jersey: 1, year: 3, overall: 78, height: 75, weight: 227, espn: 4362887, photo: true },
-      { name: 'C.J. Stroud', jersey: 7, year: 1, overall: 58, height: 75, weight: 218, espn: 4432577, photo: true },
       { name: 'Gunnar Hoak', jersey: 12, year: 5, overall: 56, height: 76, weight: 215, espn: 4035051, photo: true },
       { name: 'Jack Miller III', jersey: 10, year: 1, overall: 54, height: 75, weight: 210, espn: 4685091, photo: true }
     ],
@@ -302,12 +301,10 @@ EGE.rosters[2021] = {
   },
   ohioState: {
     QB: [
-      { name: 'C.J. Stroud', jersey: 7, year: 2, overall: 82, height: 75, weight: 218, espn: 4432577, photo: true },
       { name: 'Kyle McCord', jersey: 6, year: 1, overall: 60, height: 75, weight: 218, espn: 4433971, photo: true, left: true },
       { name: 'Jack Miller III', jersey: 10, year: 2, overall: 55, height: 75, weight: 210, espn: 4685091, photo: true }
     ],
     RB: [
-      { name: 'TreVeyon Henderson', jersey: 32, year: 1, overall: 81, height: 70, weight: 202, espn: 4432710, photo: true },
       { name: 'Master Teague', jersey: 33, year: 4, overall: 65, height: 71, weight: 220, espn: 4361354, photo: true },
       { name: 'Miyan Williams', jersey: 3, year: 2, overall: 62, height: 69, weight: 226, espn: 4432637, photo: true },
       { name: 'Evan Pryor', jersey: 21, year: 1, overall: 59, height: 70, weight: 189, espn: 4432757, photo: true, left: true },

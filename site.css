@@ -3480,20 +3480,39 @@ button.ege-owned__item { cursor: pointer; }
 
 /* --- the teams ---------------------------------------------------------------
 
-   The index is the roster grid again, a card a school: its mark on the
-   card's ground where a headshot would be, the record and the conference
-   place, and the faces of the six who play there. */
+   The index is a stack of cards, one school to a row, top to bottom: its
+   mark on the left where a headshot would be, and beside it the name, the
+   record and conference place, the faces of the six who play there and
+   the way in. Above it, the season switcher. */
+.ege-teamsbar {
+  flex: none;
+  width: min(100%, 420px);
+  margin: 0 auto 22px;
+}
+.ege-teamgrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.ege-teamcard { flex-direction: row; }
 .ege-teamcard__mark {
+  flex: none;
+  width: clamp(110px, 22vw, 220px);
+  border-bottom: 0;
+  border-right: var(--fb-border) solid var(--fb-ink);
   display: grid;
   place-items: center;
   background: radial-gradient(circle at 50% 45%, #fff 0 38%, var(--fb-surface) 75%);
 }
+.ege-teamcard__mark { aspect-ratio: auto; min-height: 150px; }
 .ege-teamcard__mark img {
-  width: 58%;
-  height: 72%;
+  width: auto;
+  height: auto;
+  max-width: 70%;
+  max-height: 110px;
   object-fit: contain;
-  object-position: center;
 }
+@media (max-width: 620px) {
+  .ege-teamcard__mark { min-height: 120px; }
+  .ege-teamcard__mark img { max-height: 80px; }
+}
+.ege-teamcard .ege-card__school { min-height: 0; }
 .ege-teamcard__ours { display: flex; gap: 6px; }
 .ege-teamcard__face {
   width: 38px;

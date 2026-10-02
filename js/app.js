@@ -1600,12 +1600,63 @@
     return loggedSeasons().filter(function (year) { return EGE.tierFor(year) === 'college'; });
   }
 
-  /* The season the index shows: the live one, or the latest college season
-     before it. Never a preview -- that is on a team's own switcher. */
+  /* The season the Teams pages are on. One pick for the index and every
+     team's page alike, so a season chosen on either carries over to the
+     other -- open a team from 2021's cards and it is 2021's team. Null for
+     the live season (or the latest college season before it). */
+  var teamsPicked = null;
+
   function teamsIndexSeason() {
-    var years = collegeSeasons().filter(function (year) { return year <= EGE.currentSeason; });
-    return years.length ? years[years.length - 1] : null;
+    var years = collegeSeasons();
+    if (teamsPicked && years.indexOf(teamsPicked) !== -1) { return teamsPicked; }
+    var live = years.filter(function (year) { return year <= EGE.currentSeason; });
+    return live.length ? live[live.length - 1] : null;
   }
+
+  /* A season switcher: every season in `years`, newest first, with a step
+     either way -- the player page's, for the index and a team's page. */
+  function fillTeamsBar(ids, years, season) {
+    var bar = document.getElementById(ids.bar);
+    bar.hidden = years.length < 2;
+    if (bar.hidden) { return; }
+
+    var pick = document.getElementById(ids.pick);
+    pick.innerHTML = '';
+    years.slice().reverse().forEach(function (year) {
+      var option = el('option', null, String(year) + (isPreview(year) ? ' \u00b7 Preview' : ''));
+      option.value = year;
+      pick.appendChild(option);
+    });
+    pick.value = String(season);
+
+    var at = years.indexOf(season);
+    document.getElementById(ids.prev).disabled = at <= 0;
+    document.getElementById(ids.next).disabled = at === -1 || at >= years.length - 1;
+  }
+
+  function pickTeamsSeason(year) {
+    teamsPicked = year;
+    var key = currentTeamKey();
+    if (key) { renderTeam(key); } else { renderTeams(); }
+  }
+
+  function wireTeamsBar(ids, yearsFor) {
+    document.getElementById(ids.pick).addEventListener('change', function (e) {
+      pickTeamsSeason(Number(e.target.value));
+    });
+    [[ids.prev, -1], [ids.next, 1]].forEach(function (pair) {
+      document.getElementById(pair[0]).addEventListener('click', function () {
+        var years = yearsFor();
+        var key = currentTeamKey();
+        var at = years.indexOf(key ? shownTeamSeason(key) : teamsIndexSeason());
+        var next = years[at + pair[1]];
+        if (next) { pickTeamsSeason(next); }
+      });
+    });
+  }
+
+  var INDEX_BAR = { bar: 'teamsSeasonBar', pick: 'teamsSeasonPick', prev: 'teamsSeasonPrev', next: 'teamsSeasonNext' };
+  var TEAM_BAR = { bar: 'teamSeasonBar', pick: 'teamSeasonPick', prev: 'teamSeasonPrev', next: 'teamSeasonNext' };
 
   /* The seasons a school has a page for: the college seasons one of the six
      was there. */
@@ -1672,6 +1723,7 @@
     var season = teamsIndexSeason();
     var grid = document.getElementById('teamsGrid');
     grid.innerHTML = '';
+    fillTeamsBar(INDEX_BAR, collegeSeasons(), season);
     document.getElementById('teamsSeasonLabel').textContent = season ? teamSeasonText(season) : '';
     if (!season) {
       grid.appendChild(el('p', 'ege-note', 'No college season yet.'));
@@ -1682,39 +1734,14 @@
 
   /* --- a team's page ------------------------------------------------------ */
 
-  /* The season a team's page is on: picked on its switcher, or the index's.
-     Opening a different team goes back to the index's season, the way
-     opening a different player goes back to the live one. */
-  var teamViewed = null;
-  var teamViewedFor = null;
-
+  /* The season a team's page is on: the one picked on the index or on a
+     team's switcher, if the school had one of the six that season;
+     otherwise the latest season it did. */
   function shownTeamSeason(key) {
-    if (teamViewedFor !== key) { teamViewedFor = key; teamViewed = null; }
     var years = teamSeasons(key);
-    if (teamViewed && years.indexOf(teamViewed) !== -1) { return teamViewed; }
-    var index = teamsIndexSeason();
-    if (years.indexOf(index) !== -1) { return index; }
+    var picked = teamsIndexSeason();
+    if (years.indexOf(picked) !== -1) { return picked; }
     return years.length ? years[years.length - 1] : null;
-  }
-
-  function renderTeamSeasonBar(key, season) {
-    var years = teamSeasons(key);
-    var bar = document.getElementById('teamSeasonBar');
-    bar.hidden = years.length < 2;
-    if (bar.hidden) { return; }
-
-    var pick = document.getElementById('teamSeasonPick');
-    pick.innerHTML = '';
-    years.slice().reverse().forEach(function (year) {
-      var option = el('option', null, String(year) + (isPreview(year) ? ' · Preview' : ''));
-      option.value = year;
-      pick.appendChild(option);
-    });
-    pick.value = String(season);
-
-    var at = years.indexOf(season);
-    document.getElementById('teamSeasonPrev').disabled = at <= 0;
-    document.getElementById('teamSeasonNext').disabled = at === -1 || at >= years.length - 1;
   }
 
   function currentTeamKey() {
@@ -1722,24 +1749,10 @@
     return hash.indexOf('teams/') === 0 ? EGE.teamKeyBySlug(hash.slice(6)) : null;
   }
 
-  function showTeamSeason(year) {
+  wireTeamsBar(INDEX_BAR, function () { return collegeSeasons(); });
+  wireTeamsBar(TEAM_BAR, function () {
     var key = currentTeamKey();
-    if (!key) { return; }
-    teamViewed = year;
-    renderTeam(key);
-  }
-
-  document.getElementById('teamSeasonPick').addEventListener('change', function (e) {
-    showTeamSeason(Number(e.target.value));
-  });
-  [['teamSeasonPrev', -1], ['teamSeasonNext', 1]].forEach(function (pair) {
-    document.getElementById(pair[0]).addEventListener('click', function () {
-      var key = currentTeamKey();
-      if (!key) { return; }
-      var years = teamSeasons(key);
-      var next = years[years.indexOf(shownTeamSeason(key)) + pair[1]];
-      if (next) { showTeamSeason(next); }
-    });
+    return key ? teamSeasons(key) : [];
   });
 
   /* The header: the mark, the name, and what the season has come to. */
@@ -1875,7 +1888,7 @@
     document.getElementById('teamContent').hidden = !entry;
     if (!entry) { return; }
 
-    renderTeamSeasonBar(key, season);
+    fillTeamsBar(TEAM_BAR, teamSeasons(key), season);
     renderTeamHead(entry, season);
     renderTeamRoster(entry, season);
     renderTeamStandings(entry, season);

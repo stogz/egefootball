@@ -103,7 +103,16 @@
           <h1 class="fb-hero__title" style="margin: 14px 0 0;">Teams</h1>
         </div>
       </header>
-      <div class="ege-roster ege-teamgrid" id="teamsGrid"></div>
+      <!-- Which season, the same switcher a team's page has; the pick is
+           shared, so a team opened from here opens on the same season. -->
+      <div class="ege-seasonbar ege-teamsbar" id="teamsSeasonBar" hidden>
+        <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="teamsSeasonPrev"
+                aria-label="Previous season">&lsaquo;</button>
+        <select class="fb-select ege-seasonbar__pick" id="teamsSeasonPick" aria-label="Season"></select>
+        <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="teamsSeasonNext"
+                aria-label="Next season">&rsaquo;</button>
+      </div>
+      <div class="ege-teamgrid" id="teamsGrid"></div>
     </section>
 
     <!-- ===== a team =================================================== -->

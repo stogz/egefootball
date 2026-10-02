@@ -58,6 +58,11 @@ const OUT = path.join(__dirname, '..', 'data', 'rosters.js');
 
 const CORE = 'https://sports.core.api.espn.com/v2/sports/football/leagues/college-football';
 
+/* Real players who are not at these schools in this simulation: the
+   timeline changed and they went somewhere else, so they are left off
+   every roster, every season. */
+const NOT_HERE = ['C.J. Stroud', 'TreVeyon Henderson'];
+
 /* The number a room is ordered by, from the category that position is
    judged on, which also feeds the overall. */
 const LEADERS = { QB: 'passingYards', RB: 'rushingYards', WR: 'receivingYards', TE: 'receivingYards' };
@@ -212,6 +217,7 @@ function rosterFor(season, espnId, school, index, fcs) {
   urls.forEach(function (url, i) {
     const body = got.get(url);
     if (!body || !wasThere(url, body)) { return; }
+    if (NOT_HERE.indexOf(body.fullName) !== -1) { return; }
     const abbr = body.position && body.position.abbreviation;
     const position = FOLD[abbr] || abbr;
     if (!rooms[position]) { return; }

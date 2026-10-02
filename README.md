@@ -76,11 +76,11 @@ is the canonical path. The optional 2023 senior college season is the branch a
 player takes instead of declaring; it pushes that player to the 2024 draft.
 
 **Redshirts.** The ladder's class is what a season is for a player who never
-redshirts. **Isaac redshirts 2021** (`redshirt: 2021` in `data/players.js`):
-it is his second year but uses no eligibility, so it reads *Sophomore Year ·
+redshirts. **Isaac redshirted his freshman year** (`redshirt: 2020` in
+`data/players.js`): 2020 used no eligibility, so it reads *Freshman Year ·
 Redshirt*, and from then on he is a year behind everybody else — *Redshirt
-Sophomore Year* in 2022, *Redshirt Junior Year* in 2023. `EGE.classFor`
-works it out, and his Teams card says *RS SO* rather than *JR*.
+Freshman Year* in 2021, *Redshirt Sophomore Year* in 2022. `EGE.classFor`
+works it out, and his Teams card says *RS FR* in 2021 rather than *SO*.
 
 So **a class is only ever named on a player's own page** — the strip across
 his header and his season switcher, both his own. Everywhere else a season
@@ -267,16 +267,18 @@ nothing else.
 A tab beside Players, public like the player pages, and laid out like
 them. **College only** — the high schools are on the player pages.
 
-**The index, `#teams`**, is the roster grid again: a card for every school
-one of the six plays for in the live season, with its mark where a
-headshot would be, its record and place in its division, the faces of the
-six who play there, and *View team →*.
+**The index, `#teams`**, is a stack of cards, one school to a row: its mark
+on the left, then its record and place in its division, the faces of the
+six who play there, and *View team →*. Above them is a season switcher —
+every college season, with ‹ and ›, starting on the live one.
 
 **A team's page, `#teams/{school}`** — `#teams/ohio-state` — has what a
 player page has above it: *← All Teams* and the season switcher, a
 drop-down of every college season that school had one of the six, with ‹
-and › either side. It opens on the live season; opening another team goes
-back to it. An admin also sees a season whose file is in but which has not
+and › either side. **The season is shared** between the index and every
+team's page: pick 2021 on either and it is 2021 on both, until it is
+changed again (a school that had none of the six that season opens on the
+latest season it did). An admin also sees a season whose file is in but which has not
 been rolled over to yet, marked *Preview*, so 2021 can be looked over now.
 Under the bar:
 
@@ -1602,6 +1604,9 @@ Built so far:
   Composite (through `tools/recruiting.js`); add the year to its `SEASONS`
   and run it again for a new season. Hand edits are fine — a walk-on nobody
   wants in the QB Connection list can be deleted — until the next run.
+  Real players who do not go to these schools in this simulation are in
+  `NOT_HERE` at the top of the tool and are left off every roster: C.J.
+  Stroud and TreVeyon Henderson, whose timelines changed.
 - `data/statline.js` — what a stat line is: the columns each position is read
   in, and how a season of them adds up.
 - `js/discord-post.js` — one week as a Discord message. Loaded by the browser

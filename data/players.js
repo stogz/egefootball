@@ -197,10 +197,10 @@ EGE.players = [
     college: 'illinois',      // from 2020
     position: 'QB',
     jersey: 8,
-    /* Sits 2021 out as a redshirt: it is his second year of school but does
-       not use a year of eligibility, so from 2022 his class runs a year
-       behind everybody else's (see EGE.classFor). */
-    redshirt: 2021,
+    /* Redshirted his freshman year: 2020 used no eligibility, so from 2021
+       his class runs a year behind everybody else's -- a redshirt freshman
+       while they are sophomores (see EGE.classFor). */
+    redshirt: 2020,
     height: 69,               // inches
     weight: 185,              // pounds
     email: 'isaacvitel2005@gmail.com',
@@ -279,9 +279,9 @@ EGE.teamFor = function (player, season) {
 /* A player's class in a season, as his own page says it: Junior Year,
    Freshman Year. The ladder's `class` is what it is for a player who never
    redshirts. A player with `redshirt: {year}` sits that college season out
-   without using a year of eligibility: that season reads 'Sophomore Year ·
+   without using a year of eligibility: that season reads 'Freshman Year ·
    Redshirt', and every one after it is a year behind and says so --
-   'Redshirt Sophomore Year'. Only the player pages say a class this way;
+   'Redshirt Freshman Year'. Only the player pages say a class this way;
    everywhere else a season is a year and a level, since the six are not all
    in the same class. */
 var COLLEGE_CLASSES = ['Freshman Year', 'Sophomore Year', 'Junior Year', 'Senior Year', 'Fifth Year'];
