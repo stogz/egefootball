@@ -657,14 +657,18 @@ EGE.rosterFor = function (teamKey, season) {
       return copy;
     });
   });
-  /* Everybody whose number is free keeps it, the best players first, before
+  /* Everybody whose number is free keeps it -- players who stayed before
+     players who later transferred out, then the best first -- before
      anybody is moved -- so a player moved off one of the six's numbers never
      lands on a teammate's and moves him in turn. */
   var clashes = [];
   positions.reduce(function (all, position) {
     return all.concat(real[position].map(function (row) { return { row: row, position: position }; }));
   }, []).sort(function (a, b) {
-    return (b.row.overall || 0) - (a.row.overall || 0);
+    /* A player who later left has ESPN's number from his next school, so a
+       teammate who stayed keeps a shared number before him. */
+    return ((a.row.left ? 1 : 0) - (b.row.left ? 1 : 0)) ||
+      ((b.row.overall || 0) - (a.row.overall || 0));
   }).forEach(function (entry) {
     var row = entry.row;
     if (typeof row.jersey !== 'number') { return; }

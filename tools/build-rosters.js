@@ -10,9 +10,9 @@
    The six are not in here: they are on the team because data/players.js
    says so, and EGE.rosterFor in data/games.js puts them in their position
    room when the page asks. Everybody else is the real roster for that
-   season, with the season's numbers beside anybody who has some, so a
-   room reads in the order it played in -- the starter first, the walk-ons
-   at the foot.
+   season, best overall first, so a room reads like a depth chart. Their
+   season's numbers go into the overall but are not written out: the page
+   shows the overall, not the stat line.
 
    Height and weight are ESPN's latest, not that season's.
 
@@ -31,6 +31,10 @@
      tools/recruiting.js and used only as an ingredient, never shown.
    - `espn`, his ESPN id, and `photo: true` when ESPN has his headshot. The
      page asks ESPN's image server for it, like the opponents' logos.
+   - `left: true` for a player who went on to play somewhere else. ESPN
+     keeps only a player's latest number and headshot, so his are the new
+     school's, and EGE.rosterFor lets the teammates who stayed keep theirs
+     first when two clash.
 
    Hand edits are fine afterwards (a walk-on quarterback nobody wants to see
    in the QB Connection list can just be deleted) but a re-run writes over
@@ -55,7 +59,7 @@ const OUT = path.join(__dirname, '..', 'data', 'rosters.js');
 const CORE = 'https://sports.core.api.espn.com/v2/sports/football/leagues/college-football';
 
 /* The number a room is ordered by, from the category that position is
-   judged on, and the line shown beside the name. */
+   judged on, which also feeds the overall. */
 const LEADERS = { QB: 'passingYards', RB: 'rushingYards', WR: 'receivingYards', TE: 'receivingYards' };
 /* The same categories' full lines -- 280/395, 3862 YDS, 38 TD, 5 INT --
    which ESPN gives for a room's top few. Anybody below them gets his yards. */
@@ -154,6 +158,22 @@ function leaderLines(season, espnId) {
   return lines;
 }
 
+/* Whether a player went on to play somewhere else within three seasons.
+   ESPN keeps one number and one headshot per player, his latest, so for a
+   player who transferred out they are the new school's -- Jahleel
+   Billingsley is #9 on ESPN, for Texas, but Bryce Young was Alabama's 9. */
+function leftAfter(id, season, espnId) {
+  const urls = [1, 2, 3].map(function (ahead) {
+    return CORE + '/seasons/' + (season + ahead) + '/athletes/' + id + '/eventlog';
+  });
+  const got = fetchAll(urls);
+  return urls.some(function (url) {
+    const log = got.get(url);
+    return Boolean(log && log.events && log.events.count && log.teams &&
+      !log.teams[String(espnId)]);
+  });
+}
+
 function rosterFor(season, espnId, school, index, fcs) {
   const list = fetchAll([CORE + '/seasons/' + season + '/teams/' + espnId + '/athletes?limit=400'])
     .values().next().value;
@@ -207,6 +227,7 @@ function rosterFor(season, espnId, school, index, fcs) {
       height: inches(body.displayHeight),
       weight: body.weight ? Math.round(body.weight) : null,
       year: year,
+      left: leftAfter(ids[i], season, espnId),
       overall: overallFor(position, recruit, year, output(ids[i]), fcs),
       value: line ? line.value : 0,
       line: line ? line.text : null
@@ -243,7 +264,7 @@ function main() {
   out.push('');
   out.push('   The skill players on each of the six\'s college teams, by season and by');
   out.push('   the team\'s key in EGE.teams: every quarterback, back, receiver and tight');
-  out.push('   end, best first, with the season\'s line beside anybody who had one.');
+  out.push('   end, best first.');
   out.push('   `year` is his year of college that season (1 a freshman, 5 a');
   out.push('   fifth-year), `overall` his overall on the six\'s scale (how it is worked');
   out.push('   out is at the top of the tool), `espn` his ESPN id and `photo` whether');
@@ -272,7 +293,7 @@ function main() {
             'year: ' + row.year, 'overall: ' + row.overall,
             'height: ' + row.height, 'weight: ' + row.weight, 'espn: ' + row.espn];
           if (row.photo) { parts.push('photo: true'); }
-          if (row.line) { parts.push('line: ' + quote(row.line)); }
+          if (row.left) { parts.push('left: true'); }
           out.push('      { ' + parts.join(', ') + ' }' + (i < rooms[position].length - 1 ? ',' : ''));
         });
         out.push('    ]' + (p < POSITIONS.length - 1 ? ',' : ''));

@@ -249,16 +249,16 @@ top to jump to each. A panel holds:
 
 - **Record** and **Conference** — the team's record and streak, and its
   conference record and place in its division.
-- **The six on it** — a card each, with headshot, position, number and
-  overall, through to their page.
 - **The rundown** — every quarterback, back, receiver and tight end on the
   real roster that season, a room each, **best overall first**, so a room
   reads as a depth chart and the six land wherever their overall puts them
-  (*2nd of 5 in the room*). Each player has his ESPN headshot (initials
-  where ESPN has none), number, **class** (FR, SO, JR, SR, or GR for a
-  fifth year), height and weight, his season's line, and an **overall** in
-  the same box the six's is drawn in. Four show and the rest fold away
-  behind *N more*, but never past one of the six. From `data/rosters.js`,
+  (*2nd of 5 in the room*). Every player is a card — a big headshot (ESPN's,
+  or initials where ESPN has none), name, number, **class** (FR, SO, JR,
+  SR, or GR for a fifth year), height and weight, and an **overall** in the
+  same box the six's is drawn in. One of the six is picked out in orange and
+  goes through to his page. No season stats are shown; they are in the
+  overall. Four show and the rest fold away behind *N more*, but never past
+  one of the six. From `data/rosters.js`,
   which `tools/build-rosters.js` writes; `EGE.rosterFor` in `data/games.js`
   puts the six in. A season with no roster yet borrows the latest one.
 
@@ -268,8 +268,12 @@ top to jump to each. A panel holds:
   tight end the 80s first, a back the 20s to 40s, a quarterback or
   receiver the teens): Andrew is Alabama's 87, so Miller Forristall is
   their 85. Every real player's own number is kept before anybody is
-  moved, so moving one never moves another. The number he really wore is
-  on the tooltip.
+  moved, so moving one never moves another. ESPN only keeps a player's
+  latest number and headshot, so for a player who later transferred out
+  (`left: true`) they are his next school's; a teammate who stayed keeps a
+  shared number before him — Bryce Young is Alabama's 9, and Jahleel
+  Billingsley, whose 9 is from Texas, moves. The number ESPN has is on the
+  tooltip.
 
   **The overalls.** Nobody publishes a rating for every college player, so
   one is worked out for each, on the six's scale but **topping out at 84**
