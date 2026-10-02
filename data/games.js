@@ -176,16 +176,20 @@ EGE.conferenceOf = function (school, season) {
    published; the six's own come from the season files once they are final,
    exactly as the schedule shows them. Ohio State's are there twice over (two
    players) and Ohio State-Illinois from both sides, so each game is kept
-   once. Conference title games are not standings games. */
-EGE.conferenceResults = function (conference, season) {
+   once. Conference title games are not standings games.
+
+   `through`, when given, stops at that week -- how the table looked then,
+   which is what the week-on-week movement is measured against. */
+EGE.conferenceResults = function (conference, season, through) {
   var year = season || EGE.currentSeason;
+  var upTo = typeof through === 'number' ? through : Infinity;
   var members = {};
   Object.keys(conference.divisions).forEach(function (division) {
     conference.divisions[division].forEach(function (school) { members[school] = true; });
   });
 
   var results = conference.games.filter(function (game) {
-    return EGE.isPublished(year, game.week);
+    return EGE.isPublished(year, game.week) && game.week <= upTo;
   });
 
   var seen = {};
@@ -194,6 +198,7 @@ EGE.conferenceResults = function (conference, season) {
     if (!team || !members[team.school]) { return; }
     EGE.gamesPlayed(player, year).forEach(function (game) {
       if (!game.conference || game.playoff || !members[game.opponent]) { return; }
+      if (game.week > upTo) { return; }
       var key = game.week + '|' + [team.school, game.opponent].sort().join('|');
       if (seen[key]) { return; }
       seen[key] = true;
@@ -214,16 +219,20 @@ EGE.conferenceResults = function (conference, season) {
    yet to play counts as .500), then more wins, then fewer losses. Schools
    still level are split on their games against each other, then on
    conference point differential, then alphabetically so the order never
-   flickers between loads. */
-EGE.divisionTable = function (school, season) {
+   flickers between loads.
+
+   Each row also carries its conference `streak` -- { won, count, text:
+   'W3' }, or null before a game -- and, with `through`, the table is the
+   one as it stood after that week. */
+EGE.divisionTable = function (school, season, through) {
   var year = season || EGE.currentSeason;
   var found = EGE.conferenceOf(school, year);
   if (!found) { return null; }
 
-  var results = EGE.conferenceResults(found.conference, year);
+  var results = EGE.conferenceResults(found.conference, year, through);
   var rows = {};
   found.conference.divisions[found.division].forEach(function (name) {
-    rows[name] = { school: name, wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0 };
+    rows[name] = { school: name, wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0, games: [] };
   });
 
   results.forEach(function (game) {
@@ -234,7 +243,20 @@ EGE.divisionTable = function (school, season) {
       if (side[1] > side[2]) { row.wins += 1; } else { row.losses += 1; }
       row.pointsFor += side[1];
       row.pointsAgainst += side[2];
+      row.games.push({ week: game.week, won: side[1] > side[2] });
     });
+  });
+
+  /* The run each school is on in conference play, counted back from its
+     latest conference game. */
+  Object.keys(rows).forEach(function (name) {
+    var games = rows[name].games.sort(function (a, b) { return a.week - b.week; });
+    delete rows[name].games;
+    if (!games.length) { rows[name].streak = null; return; }
+    var latest = games[games.length - 1].won;
+    var count = 0;
+    for (var i = games.length - 1; i >= 0 && games[i].won === latest; i -= 1) { count += 1; }
+    rows[name].streak = { won: latest, count: count, text: (latest ? 'W' : 'L') + count };
   });
 
   function pct(row) {
@@ -720,8 +742,13 @@ EGE.quarterbacksFor = function (player, season) {
 
 /* The whole conference a school plays in that season, a division table at a
    time, the school's own division first:
-     { conference: 'Big Ten', school, tables: [divisionTable, ...] }
-   Null for a school with no race in data/conferences.js. */
+     { conference: 'Big Ten', school, week, tables: [divisionTable, ...] }
+   Null for a school with no race in data/conferences.js.
+
+   Each row carries `change`: how many places it has moved since the week
+   before the latest one published -- 2 up, -1 down, 0 for none -- or null
+   while there is no earlier table with conference games in it to move
+   from. */
 EGE.conferenceTables = function (school, season) {
   var year = season || EGE.currentSeason;
   var found = EGE.conferenceOf(school, year);
@@ -730,11 +757,31 @@ EGE.conferenceTables = function (school, season) {
   divisions.sort(function (a, b) {
     return (b === found.division) - (a === found.division);
   });
+
+  var published = (EGE.publishedWeeks[year] || []).slice().sort(function (a, b) { return a - b; });
+  var latest = published.length ? published[published.length - 1] : null;
+  var before = published.length > 1 ? published[published.length - 2] : null;
+
+  function started(table) {
+    return table.rows.some(function (row) { return row.wins + row.losses; });
+  }
+
   return {
     conference: found.conference.name,
     school: school,
+    week: latest,
     tables: divisions.map(function (division) {
-      return EGE.divisionTable(found.conference.divisions[division][0], year);
+      var first = found.conference.divisions[division][0];
+      var table = EGE.divisionTable(first, year);
+      var then = before !== null ? EGE.divisionTable(first, year, before) : null;
+      var places = {};
+      if (then && started(then)) {
+        then.rows.forEach(function (row, i) { places[row.school] = i + 1; });
+      }
+      table.rows.forEach(function (row, i) {
+        row.change = started(table) && places[row.school] ? places[row.school] - (i + 1) : null;
+      });
+      return table;
     })
   };
 };

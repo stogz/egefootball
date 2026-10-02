@@ -196,8 +196,14 @@ holds:
   His team's row is picked out in orange so who is above it and who is
   below it reads at a glance, and any other school one of the six plays for
   is tinted and names them. Conference games only, as of the published
-  weeks — W-L, points for and against, and the differential (points fold
-  into the differential on a phone). It folds away like the rest.
+  weeks — W-L, the conference streak (**Strk**, *W3* in green or *L1* in
+  red), points for and against, the differential, and **Chg**: how many
+  places a school has moved since the week before the latest one
+  published, a green ▲ up or a red ▼ down (a dash for no move, or before
+  there is a week to move from). On a phone the points and differential
+  drop out. It folds away like the rest. `EGE.conferenceTables` in
+  `data/games.js` works out the movement by drawing the table as it stood
+  a week earlier.
 
   The bracket is two-sided: the two halves of
   the draw work inwards from the edges to the championship in the middle,
@@ -245,19 +251,27 @@ nothing else.
 
 A tab beside Players, public like the player pages: one panel for every
 school one of the six plays for in the live season, with buttons across the
-top to jump to each. A panel holds:
+top to jump to each.
+
+The school and its mark sit in the middle of the panel's head, its league
+under them. A panel holds:
 
 - **Record** and **Conference** — the team's record and streak, and its
   conference record and place in its division.
 - **The rundown** — every quarterback, back, receiver and tight end on the
   real roster that season, a room each, **best overall first**, so a room
-  reads as a depth chart and the six land wherever their overall puts them
-  (*2nd of 5 in the room*). Every player is a card — a big headshot (ESPN's,
+  reads as a depth chart and the six land wherever their overall puts them.
+  The rooms run two across (one on a phone), so every name fits on one
+  line. Every player is a card — a big headshot (ESPN's,
   or initials where ESPN has none), name, number, **class** (FR, SO, JR,
   SR, or GR for a fifth year), height and weight, and an **overall** in the
   same box the six's is drawn in. One of the six is picked out in orange and
   goes through to his page. No season stats are shown; they are in the
-  overall. Four show and the rest fold away behind *N more*, but never past
+  overall. **An 80 or better is a diamond**: the overall box is cut as a
+  faceted blue gem with a band of light sweeping across it and a sparkle in
+  the corner (still, for anybody who asks for less motion) — on the Teams
+  page and on the six's roster cards alike, so it means the same thing
+  everywhere. Four show and the rest fold away behind *N more*, but never past
   one of the six. From `data/rosters.js`,
   which `tools/build-rosters.js` writes; `EGE.rosterFor` in `data/games.js`
   puts the six in. A season with no roster yet borrows the latest one.
@@ -299,7 +313,8 @@ top to jump to each. A panel holds:
   about 70; DeVonta Smith's 2020 and Bryce Young's 2021 are 84s, C.J.
   Stroud's 2021 an 82. The constants are at the top of
   `tools/build-rosters.js`.
-- **The division table**, the same one the player page shows.
+- **The division table**, the same one the player page shows, streaks and
+  week-on-week movement included.
 
 The quarterback rooms are also where a QB Connection is picked from (see
 the shop).

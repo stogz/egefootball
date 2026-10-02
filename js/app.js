@@ -100,11 +100,15 @@
   /* One element for every place an overall is shown, so the number reads the
      same on a card as it does on a page. The site's own dark chip: the word
      in the accent orange, the number under it in cream. */
+  var DIAMOND = 80;
+
   function overallBox(overall, modifier) {
     if (typeof overall !== 'number') { return null; }
 
-    var box = el('div', 'ege-ovrbox' + (modifier ? ' ' + modifier : ''));
-    box.title = overall + ' overall';
+    /* 80 and up is a blue diamond. */
+    var box = el('div', 'ege-ovrbox' + (modifier ? ' ' + modifier : '') +
+      (overall >= DIAMOND ? ' ege-ovrbox--diamond' : ''));
+    box.title = overall + ' overall' + (overall >= DIAMOND ? ' \u2014 diamond' : '');
     box.appendChild(el('span', 'ege-ovrbox__label', 'OVR'));
     box.appendChild(el('span', 'ege-ovrbox__value', String(overall)));
     return box;
@@ -1362,8 +1366,8 @@
     var scroller = el('div', 'fb-tablewrap');
     var t = el('table', 'fb-table ege-standings__table');
     var head = el('tr');
-    [['#', 'num'], ['Team', null], ['W-L', 'num'], ['PF', 'num ege-standings__pts'],
-     ['PA', 'num ege-standings__pts'], ['Diff', 'num']]
+    [['#', 'num'], ['Team', null], ['W-L', 'num'], ['Strk', 'num'], ['PF', 'num ege-standings__pts'],
+     ['PA', 'num ege-standings__pts'], ['Diff', 'num ege-standings__pts'], ['Chg', 'num']]
       .forEach(function (col) { head.appendChild(el('th', col[1], col[0])); });
     var thead = el('thead');
     thead.appendChild(head);
@@ -1391,11 +1395,40 @@
       tr.appendChild(name);
 
       tr.appendChild(el('td', 'num', row.wins + '-' + row.losses));
+
+      /* The run it is on in conference play, green for wins, red for losses. */
+      var streakCell = el('td', 'num');
+      if (row.streak) {
+        var run = el('span', 'ege-streak ege-streak--' + (row.streak.won ? 'win' : 'loss'), row.streak.text);
+        run.title = row.streak.count + ' conference ' + (row.streak.won ? 'win' : 'loss') +
+          (row.streak.count === 1 ? '' : (row.streak.won ? 's' : 'es')) + ' in a row';
+        streakCell.appendChild(run);
+      } else {
+        streakCell.appendChild(el('span', 'ege-schedule__pending', '\u2013'));
+      }
+      tr.appendChild(streakCell);
+
       tr.appendChild(el('td', 'num ege-standings__pts', String(row.pointsFor)));
       tr.appendChild(el('td', 'num ege-standings__pts', String(row.pointsAgainst)));
       var diff = row.pointsFor - row.pointsAgainst;
-      tr.appendChild(el('td', 'num ege-standings__diff' +
+      tr.appendChild(el('td', 'num ege-standings__pts ege-standings__diff' +
         (diff > 0 ? ' is-up' : diff < 0 ? ' is-down' : ''), (diff > 0 ? '+' : '') + diff));
+
+      /* How many places it has moved since the week before: a green arrow up,
+         a red one down, a dash for none. */
+      var change = el('td', 'num ege-standings__change');
+      if (row.change > 0 || row.change < 0) {
+        var up = row.change > 0;
+        change.classList.add(up ? 'is-up' : 'is-down');
+        change.appendChild(el('span', 'ege-standings__arrow', up ? '\u25b2' : '\u25bc'));
+        change.appendChild(document.createTextNode(String(Math.abs(row.change))));
+        change.title = (up ? 'Up ' : 'Down ') + Math.abs(row.change) +
+          (Math.abs(row.change) === 1 ? ' place' : ' places') + ' since last week';
+      } else {
+        change.appendChild(el('span', 'ege-schedule__pending', '\u2013'));
+        if (row.change === 0) { change.title = 'No change since last week'; }
+      }
+      tr.appendChild(change);
       body.appendChild(tr);
     });
     t.appendChild(body);
@@ -1421,7 +1454,8 @@
     });
     setLegend('standingsFoot', 'standingsLegend',
       conference.conference + ' games only, as of the published weeks. Level teams split on ' +
-      'head to head, then point differential.');
+      'head to head, then point differential. Strk is the conference streak; Chg is the ' +
+      'move since last week.');
   }
 
   /* --- the teams page --------------------------------------------------------
@@ -1471,9 +1505,9 @@
   /* One player in a room, as a card: his picture, his name, his number,
      class, height and weight, and his overall in the same box the six's is
      drawn in. One of the six is a way through to his page and is picked out
-     in orange, with where he stands in the room; everybody else is the same
+     in orange; everybody else is the same
      card with nowhere to go. No season numbers -- the overall says it. */
-  function rosterLine(row, at, of) {
+  function rosterLine(row) {
     var item = el('li', 'ege-room__player');
     var card = el(row.player ? 'a' : 'div', 'ege-teamchip' + (row.player ? ' is-six' : ''));
     if (row.player) { card.href = '#' + row.player.slug; }
@@ -1499,10 +1533,6 @@
     var size = [EGE.heightText(row), row.weight ? row.weight + ' lbs' : null]
       .filter(Boolean).join(' \u00b7 ');
     if (size) { text.appendChild(el('span', 'ege-teamchip__meta', size)); }
-    if (row.player) {
-      text.appendChild(el('span', 'ege-teamchip__place',
-        EGE.ordinal(at + 1).toLowerCase() + ' of ' + of + ' in the room'));
-    }
     card.appendChild(text);
 
     var box = overallBox(row.overall, 'ege-ovrbox--chip');
@@ -1524,7 +1554,7 @@
     rows.forEach(function (row, i) { if (row.player) { shown = Math.max(shown, i + 1); } });
 
     var list = el('ol', 'ege-room__list');
-    rows.slice(0, shown).forEach(function (row, i) { list.appendChild(rosterLine(row, i, rows.length)); });
+    rows.slice(0, shown).forEach(function (row) { list.appendChild(rosterLine(row)); });
     box.appendChild(list);
 
     if (rows.length > shown) {
@@ -1532,8 +1562,8 @@
       more.appendChild(el('summary', null, (rows.length - shown) + ' more'));
       var rest = el('ol', 'ege-room__list');
       rest.start = shown + 1;
-      rows.slice(shown).forEach(function (row, i) {
-        rest.appendChild(rosterLine(row, shown + i, rows.length));
+      rows.slice(shown).forEach(function (row) {
+        rest.appendChild(rosterLine(row));
       });
       more.appendChild(rest);
       box.appendChild(more);
@@ -1545,6 +1575,8 @@
     var panel = el('section', 'fb-panel ege-team');
     panel.id = 'team-' + entry.key;
 
+    /* The school and its mark in the middle of the head, its league under
+       them. */
     var head = el('div', 'fb-panel__head ege-team__head');
     var title = el('div', 'ege-team__title');
     if (entry.team.logo) {
@@ -1555,7 +1587,7 @@
     }
     title.appendChild(el('h3', null, entry.team.school));
     head.appendChild(title);
-    head.appendChild(el('span', 'fb-meta', entry.team.league || ''));
+    if (entry.team.league) { head.appendChild(el('span', 'fb-meta ege-team__league', entry.team.league)); }
     panel.appendChild(head);
 
     var body = el('div', 'fb-panel__body fb-stack fb-stack--lg');
@@ -1586,11 +1618,9 @@
       var grid = el('div', 'ege-rooms');
       ROOMS.forEach(function (room) { grid.appendChild(roomEl(room, rooms[room.key] || [])); });
       body.appendChild(grid);
-      body.appendChild(el('p', 'fb-meta ege-rooms__note',
-        'Each room best first. Overalls for everybody outside the six are worked out from ' +
-        'their real season, their year of college and how highly they were recruited, and ' +
-        'top out at 84.' +
-        (rooms.season !== season ? ' Roster as of ' + rooms.season + '.' : '')));
+      if (rooms.season !== season) {
+        body.appendChild(el('p', 'fb-meta', 'Roster as of ' + rooms.season + '.'));
+      }
     }
 
     var conference = EGE.tierFor(season) === 'college'
