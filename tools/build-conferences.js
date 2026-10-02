@@ -578,8 +578,13 @@ function realSeason(EGE, conf) {
       const notes = ((game.notes || [])[0] || {}).headline || '';
       const status = ((game.status || {}).type || {});
       if (/championship/i.test(notes) || !status.completed) { return; }
+      /* A score is an object with a value, or a bare number. Not `value ||`:
+         a shutout's 0 is falsy, and every game somebody was held scoreless in
+         used to drop out of the schedule -- Penn State's wins over Indiana and
+         Rutgers in 2021 among them. */
       const sides = game.competitors.map(function (c) {
-        return { name: c.team.location, home: c.homeAway === 'home', score: Number((c.score || {}).value || c.score) };
+        const score = c.score && typeof c.score === 'object' ? c.score.value : c.score;
+        return { name: c.team.location, home: c.homeAway === 'home', score: Number(score) };
       });
       const us = sides.filter((x) => x.name === school)[0];
       const them = sides.filter((x) => x !== us)[0];
