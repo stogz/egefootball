@@ -1959,7 +1959,7 @@ body::before {
 
 .ege-gamelog tfoot td {
   border-top: var(--fb-border) solid var(--fb-ink);
-  background: var(--fb-tint-sage);
+  background: #fff;
 }
 
 /* --- sorting the game log --------------------------------------------------
@@ -2004,7 +2004,7 @@ body::before {
    of the column, at the faintest shade that still reads as one block on both
    the plain rows and the shaded ones. */
 .ege-gamelog td.is-sorted-cell { background: rgba(229, 110, 40, .12); }
-.ege-gamelog tfoot td.is-sorted-cell { background: var(--fb-tint-sage-2); }
+.ege-gamelog tfoot td.is-sorted-cell { background: rgba(229, 110, 40, .12); }
 
 /* The multiplier that was riding on a game, beside the opponent. */
 .ege-gamelog__boost {
@@ -3449,17 +3449,28 @@ button.ege-owned__item { cursor: pointer; }
 
 /* --- conference standings ------------------------------------------------- */
 
-/* Every division of the conference, the team's own first, on a team's
-   page. The team's row is picked out in the accent, and that is all. */
+/* The whole conference in one table on a team's page: the dark row of
+   headings once at the top, then each division under a cream band with its
+   name, the team's own first. The team's row is picked out in the accent,
+   and that is all. */
 .ege-standings { display: grid; gap: 0; }
-.ege-standings__division + .ege-standings__division { border-top: var(--fb-border) solid var(--fb-ink); }
-.ege-standings__title {
-  margin: 0;
+.ege-standings__table tbody tr.ege-standings__band,
+.ege-standings__table tbody tr.ege-standings__band:hover { background: var(--fb-surface); }
+.ege-standings__table th.ege-standings__title {
+  width: auto;
   padding: 10px 16px;
-  font-size: .8125rem;
-  letter-spacing: .08em;
-  text-transform: uppercase;
   background: var(--fb-surface);
+  color: var(--fb-ink);
+  font-family: var(--fb-font-display);
+  font-size: .8125rem;
+  font-weight: 400;
+  letter-spacing: .08em;
+  text-align: left;
+  text-transform: uppercase;
+}
+/* A division after the first starts under a rule of its own. */
+.ege-standings__table tbody + tbody tr.ege-standings__band th {
+  border-top: var(--fb-border-thin) solid rgba(29, 36, 22, .35);
 }
 .ege-standings__table { min-width: 0; width: 100%; }
 .ege-standings__table th:first-child,
@@ -3488,10 +3499,11 @@ button.ege-owned__item { cursor: pointer; }
    mark on the left where a headshot would be, and beside it the name, the
    record and conference place, the faces of the six who play there and
    the way in. Above it, the season switcher. */
+/* The full width of the page, as the bar over a team's page is. */
 .ege-teamsbar {
   flex: none;
-  width: min(100%, 420px);
-  margin: 0 auto 22px;
+  width: 100%;
+  margin: 0 0 22px;
 }
 .ege-teamgrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
 .ege-teamcard { flex-direction: row; }

@@ -1382,10 +1382,11 @@
     return logo;
   }
 
-  function standingsTable(table, school, season) {
+  /* The whole conference as one table: one row of headings at the top, then
+     each division under a band with its name, so the columns line up all
+     the way down and the dark heading row is there once. */
+  function standingsTable(tables, school, season) {
     var wrap = el('div', 'ege-standings__division');
-    wrap.appendChild(el('h4', 'ege-standings__title', table.division));
-
     var scroller = el('div', 'fb-tablewrap');
     var t = el('table', 'fb-table ege-standings__table');
     var head = el('tr');
@@ -1396,58 +1397,66 @@
     thead.appendChild(head);
     t.appendChild(thead);
 
-    var started = table.rows.some(function (row) { return row.wins + row.losses; });
-    var body = el('tbody');
-    table.rows.forEach(function (row, i) {
-      var tr = el('tr');
-      if (row.school === school) { tr.classList.add('is-ours'); }
+    tables.forEach(function (table) {
+      var started = table.rows.some(function (row) { return row.wins + row.losses; });
+      var body = el('tbody');
+      var band = el('tr', 'ege-standings__band');
+      var title = el('th', 'ege-standings__title', table.division);
+      title.colSpan = 8;
+      title.scope = 'colgroup';
+      band.appendChild(title);
+      body.appendChild(band);
+      table.rows.forEach(function (row, i) {
+        var tr = el('tr');
+        if (row.school === school) { tr.classList.add('is-ours'); }
 
-      tr.appendChild(el('td', 'num ege-standings__place', started ? String(i + 1) : '–'));
+        tr.appendChild(el('td', 'num ege-standings__place', started ? String(i + 1) : '–'));
 
-      var name = el('td', 'ege-standings__team');
-      var mark = schoolMark(row.school);
-      if (mark) { name.appendChild(mark); }
-      name.appendChild(el('span', 'fb-name', row.school));
-      tr.appendChild(name);
+        var name = el('td', 'ege-standings__team');
+        var mark = schoolMark(row.school);
+        if (mark) { name.appendChild(mark); }
+        name.appendChild(el('span', 'fb-name', row.school));
+        tr.appendChild(name);
 
-      tr.appendChild(el('td', 'num', row.wins + '-' + row.losses));
+        tr.appendChild(el('td', 'num', row.wins + '-' + row.losses));
 
-      /* The run it is on in conference play, green for wins, red for losses. */
-      var streakCell = el('td', 'num');
-      if (row.streak) {
-        var run = el('span', 'ege-streak ege-streak--' + (row.streak.won ? 'win' : 'loss'), row.streak.text);
-        run.title = row.streak.count + ' conference ' + (row.streak.won ? 'win' : 'loss') +
-          (row.streak.count === 1 ? '' : (row.streak.won ? 's' : 'es')) + ' in a row';
-        streakCell.appendChild(run);
-      } else {
-        streakCell.appendChild(el('span', 'ege-schedule__pending', '\u2013'));
-      }
-      tr.appendChild(streakCell);
+        /* The run it is on in conference play, green for wins, red for losses. */
+        var streakCell = el('td', 'num');
+        if (row.streak) {
+          var run = el('span', 'ege-streak ege-streak--' + (row.streak.won ? 'win' : 'loss'), row.streak.text);
+          run.title = row.streak.count + ' conference ' + (row.streak.won ? 'win' : 'loss') +
+            (row.streak.count === 1 ? '' : (row.streak.won ? 's' : 'es')) + ' in a row';
+          streakCell.appendChild(run);
+        } else {
+          streakCell.appendChild(el('span', 'ege-schedule__pending', '\u2013'));
+        }
+        tr.appendChild(streakCell);
 
-      tr.appendChild(el('td', 'num ege-standings__pts', String(row.pointsFor)));
-      tr.appendChild(el('td', 'num ege-standings__pts', String(row.pointsAgainst)));
-      var diff = row.pointsFor - row.pointsAgainst;
-      tr.appendChild(el('td', 'num ege-standings__pts ege-standings__diff' +
-        (diff > 0 ? ' is-up' : diff < 0 ? ' is-down' : ''), (diff > 0 ? '+' : '') + diff));
+        tr.appendChild(el('td', 'num ege-standings__pts', String(row.pointsFor)));
+        tr.appendChild(el('td', 'num ege-standings__pts', String(row.pointsAgainst)));
+        var diff = row.pointsFor - row.pointsAgainst;
+        tr.appendChild(el('td', 'num ege-standings__pts ege-standings__diff' +
+          (diff > 0 ? ' is-up' : diff < 0 ? ' is-down' : ''), (diff > 0 ? '+' : '') + diff));
 
-      /* How many places it has moved since the week before: a green arrow up,
-         a red one down, a dash for none. */
-      var change = el('td', 'num ege-standings__change');
-      if (row.change > 0 || row.change < 0) {
-        var up = row.change > 0;
-        change.classList.add(up ? 'is-up' : 'is-down');
-        change.appendChild(el('span', 'ege-standings__arrow', up ? '\u25b2' : '\u25bc'));
-        change.appendChild(document.createTextNode(String(Math.abs(row.change))));
-        change.title = (up ? 'Up ' : 'Down ') + Math.abs(row.change) +
-          (Math.abs(row.change) === 1 ? ' place' : ' places') + ' since last week';
-      } else {
-        change.appendChild(el('span', 'ege-schedule__pending', '\u2013'));
-        if (row.change === 0) { change.title = 'No change since last week'; }
-      }
-      tr.appendChild(change);
-      body.appendChild(tr);
+        /* How many places it has moved since the week before: a green arrow up,
+           a red one down, a dash for none. */
+        var change = el('td', 'num ege-standings__change');
+        if (row.change > 0 || row.change < 0) {
+          var up = row.change > 0;
+          change.classList.add(up ? 'is-up' : 'is-down');
+          change.appendChild(el('span', 'ege-standings__arrow', up ? '\u25b2' : '\u25bc'));
+          change.appendChild(document.createTextNode(String(Math.abs(row.change))));
+          change.title = (up ? 'Up ' : 'Down ') + Math.abs(row.change) +
+            (Math.abs(row.change) === 1 ? ' place' : ' places') + ' since last week';
+        } else {
+          change.appendChild(el('span', 'ege-schedule__pending', '\u2013'));
+          if (row.change === 0) { change.title = 'No change since last week'; }
+        }
+        tr.appendChild(change);
+        body.appendChild(tr);
+      });
+      t.appendChild(body);
     });
-    t.appendChild(body);
     scroller.appendChild(t);
     wrap.appendChild(scroller);
     return wrap;
@@ -1515,10 +1524,10 @@
       if (row.realJersey) { number.title = 'Wears #' + row.realJersey + ' in real life'; }
       meta.appendChild(number);
     }
-    var klass = EGE.CLASSES[row.year];
+    var klass = row.redshirting ? { short: 'RS', name: 'Redshirt' } : EGE.CLASSES[row.year];
     if (klass) {
-      var chip = el('abbr', 'ege-room__class', (row.redshirt ? 'RS ' : '') + klass.short);
-      chip.title = (row.redshirt ? 'Redshirt ' : '') + klass.name;
+      var chip = el('abbr', 'ege-room__class', klass.short);
+      chip.title = klass.name;
       meta.appendChild(chip);
     }
     text.appendChild(meta);
@@ -1815,12 +1824,7 @@
     body.innerHTML = '';
     panel.hidden = !conference;
     if (!conference) { return; }
-    conference.tables.forEach(function (table) {
-      body.appendChild(standingsTable(table, entry.team.school, season));
-    });
-    setLegend('teamStandingsFoot', 'teamStandingsLegend',
-      conference.conference + ' games only, as of the published weeks. Strk is the conference ' +
-      'streak; Chg is the move since last week.');
+    body.appendChild(standingsTable(conference.tables, entry.team.school, season));
   }
 
   /* The team's games as everybody can see them: the same fixtures, the same

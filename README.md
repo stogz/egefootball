@@ -77,10 +77,11 @@ player takes instead of declaring; it pushes that player to the 2024 draft.
 
 **Redshirts.** The ladder's class is what a season is for a player who never
 redshirts. **Isaac redshirted his freshman year** (`redshirt: 2020` in
-`data/players.js`): 2020 used no eligibility, so it reads *Freshman Year ·
-Redshirt*, and from then on he is a year behind everybody else — *Redshirt
-Freshman Year* in 2021, *Redshirt Sophomore Year* in 2022. `EGE.classFor`
-works it out, and his Teams card says *RS FR* in 2021 rather than *SO*.
+`data/players.js`): 2020 used no eligibility, so it reads simply *Redshirt*,
+and from then on he is the year of eligibility he is in, a year behind
+everybody else — *Freshman Year* in 2021, *Sophomore Year* in 2022.
+`EGE.classFor` works it out, and his Teams card says *RS* in 2020 and *FR*
+in 2021.
 
 So **a class is only ever named on a player's own page** — the strip across
 his header and his season switcher, both his own. Everywhere else a season
@@ -209,7 +210,8 @@ holds:
   schools have no grade and no column. `EGE.defenseGrade` in
   `data/games.js`, from `data/defenses.js`.
 - **Game log** — per-game stats for that player, with the stat lines driven by
-  their position (see below), and a totals row for the season.
+  their position (see below), and a totals row for the season, on white
+  under a hard rule.
 - **Ratings** — three tiers, top to bottom:
   - **The overall**, on a dark band across the panel: the word in orange, the
     number in white, and a green stock ticker after them — an arrow and the
@@ -242,8 +244,9 @@ them. **College only** — the high schools are on the player pages.
 on the left, on the school's own colour (`ground` in `EGE.teams` — Alabama
 crimson with the A in white, USC cardinal, NDSU green, Illinois orange,
 Ohio State white; the team page's header uses the same), then its record and place in its division, the faces of the
-six who play there, and *View team →*. Above them is a season switcher —
-every college season, with ‹ and ›, starting on the live one.
+six who play there, and *View team →*. Above them is a season switcher
+across the full width of the page, as on a team's page — every college
+season, with ‹ and ›, starting on the live one.
 
 **A team's page, `#teams/{school}`** — `#teams/ohio-state` — has what a
 player page has above it: *← All Teams* and the season switcher, a
@@ -314,8 +317,9 @@ Under the bar:
   about 70; DeVonta Smith's 2020 and Bryce Young's 2021 are 84s, C.J.
   Stroud's 2021 an 82. The constants are at the top of
   `tools/build-rosters.js`.
-- **Conference Standings** — the whole conference, a table a division:
-  W-L, the conference streak (**Strk**, *W3* in green or *L1* in red),
+- **Conference Standings** — the whole conference as one table: the dark
+  row of headings once at the top, then each division under a cream band
+  with its name, the school's own first. W-L, the conference streak (**Strk**, *W3* in green or *L1* in red),
   points for and against, the differential, and **Chg**, how many places a
   school has moved since the week before the latest one published — a green
   ▲ up or a red ▼ down. The school's own row is picked out in orange and

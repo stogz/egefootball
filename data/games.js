@@ -720,7 +720,7 @@ EGE.rosterFor = function (teamKey, season) {
     }).map(function (player) {
       return { name: player.name, jersey: player.jersey, height: player.height,
                weight: player.weight, year: EGE.collegeYearFor(player, year),
-               redshirt: EGE.redshirtedBy(player, year),
+               redshirting: Boolean(player.redshirt === year),
                overall: EGE.overallFor(player), player: player };
     }).concat(real[position]).sort(function (a, b) {
       return ((b.overall || 0) - (a.overall || 0)) || (b.player ? 1 : 0) - (a.player ? 1 : 0);

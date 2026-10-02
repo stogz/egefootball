@@ -208,8 +208,8 @@ EGE.players = [
     position: 'QB',
     jersey: 8,
     /* Redshirted his freshman year: 2020 used no eligibility, so from 2021
-       his class runs a year behind everybody else's -- a redshirt freshman
-       while they are sophomores (see EGE.classFor). */
+       his class runs a year behind everybody else's -- a freshman while
+       they are sophomores (see EGE.classFor). */
     redshirt: 2020,
     height: 69,               // inches
     weight: 185,              // pounds
@@ -289,9 +289,9 @@ EGE.teamFor = function (player, season) {
 /* A player's class in a season, as his own page says it: Junior Year,
    Freshman Year. The ladder's `class` is what it is for a player who never
    redshirts. A player with `redshirt: {year}` sits that college season out
-   without using a year of eligibility: that season reads 'Freshman Year ·
-   Redshirt', and every one after it is a year behind and says so --
-   'Redshirt Freshman Year'. Only the player pages say a class this way;
+   without using a year of eligibility: that season reads 'Redshirt', and
+   every one after it is the year of eligibility he is in, a year behind
+   everybody else -- Isaac is a 'Freshman Year' in 2021. Only the player pages say a class this way;
    everywhere else a season is a year and a level, since the six are not all
    in the same class. */
 var COLLEGE_CLASSES = ['Freshman Year', 'Sophomore Year', 'Junior Year', 'Senior Year', 'Fifth Year'];
@@ -302,11 +302,11 @@ EGE.classFor = function (player, season) {
   if (!found) { return null; }
   if (found.tier !== 'college') { return found.class; }
 
+  /* The redshirt year itself is just that; after it, the class is the
+     year of eligibility he is in -- a freshman again the year after. */
+  if (player && player.redshirt === year) { return 'Redshirt'; }
   var eligibility = EGE.eligibilityYearFor(player, year);
-  var name = COLLEGE_CLASSES[Math.min(eligibility, COLLEGE_CLASSES.length) - 1];
-  if (player && player.redshirt === year) { return name + ' \u00b7 Redshirt'; }
-  if (player && player.redshirt && player.redshirt < year) { return 'Redshirt ' + name; }
-  return name;
+  return COLLEGE_CLASSES[Math.min(eligibility, COLLEGE_CLASSES.length) - 1];
 };
 
 /* Which year of eligibility a player is in that college season, 1 to 5:
