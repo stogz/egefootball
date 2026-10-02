@@ -63,10 +63,10 @@ EGE.stats[2021] = {
         opponent: 'Miami', home: false, conference: false, neutral: true,
         result: { teamScore: 52, opponentScore: 21 }, booster: null,
         stats: {
-          receptions: 1, receivingYards: 1, receivingYac: 0,
-          receivingTd: 1, receivingLong: 1, targets: 3, carries: 0,
+          receptions: 5, receivingYards: 68, receivingYac: 27,
+          receivingTd: 1, receivingLong: 40, targets: 7, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 1, totalYards: 1, totalTd: 1
+          receivingAvg: 13.6, totalYards: 68, totalTd: 1
         },
         bigPlays: [
           '1 yard receiving touchdown'
@@ -75,113 +75,113 @@ EGE.stats[2021] = {
         opponent: 'Mercer', home: true, conference: false,
         result: { teamScore: 52, opponentScore: 14 }, booster: null,
         stats: {
-          receptions: 1, receivingYards: 11, receivingYac: 2,
-          receivingTd: 0, receivingLong: 11, targets: 3, carries: 0,
+          receptions: 4, receivingYards: 50, receivingYac: 19,
+          receivingTd: 0, receivingLong: 24, targets: 6, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 11, totalYards: 11, totalTd: 0
+          receivingAvg: 12.5, totalYards: 50, totalTd: 0
         } },
       { week:  3, date: '2021-09-18', kickoff: '2:30pm',
         opponent: 'Florida', home: false, conference: true,
         result: { teamScore: 38, opponentScore: 9 }, booster: null,
         stats: {
-          receptions: 5, receivingYards: 45, receivingYac: 23,
-          receivingTd: 1, receivingLong: 13, targets: 5, carries: 0,
+          receptions: 5, receivingYards: 64, receivingYac: 32,
+          receivingTd: 0, receivingLong: 32, targets: 6, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 9, totalYards: 45, totalTd: 1
-        },
-        bigPlays: [
-          '4 yard receiving touchdown'
-        ] },
+          receivingAvg: 12.8, totalYards: 64, totalTd: 0
+        } },
       { week:  4, date: '2021-09-25', kickoff: '6:30pm',
         opponent: 'Southern Miss', home: true, conference: false,
         result: { teamScore: 44, opponentScore: 0 }, booster: null,
         stats: {
-          receptions: 0, receivingYards: 0, receivingYac: 0,
-          receivingTd: 0, receivingLong: 0, targets: 3, carries: 0,
+          receptions: 2, receivingYards: 11, receivingYac: 3,
+          receivingTd: 2, receivingLong: 8, targets: 3, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          totalYards: 0, totalTd: 0
-        } },
+          receivingAvg: 5.5, totalYards: 11, totalTd: 2
+        },
+        bigPlays: [
+          '8 yard receiving touchdown',
+          '3 yard receiving touchdown'
+        ] },
       { week:  5, date: '2021-10-02', kickoff: '2:30pm',
         opponent: 'Ole Miss', home: true, conference: true,
         result: { teamScore: 51, opponentScore: 0 }, booster: null,
         stats: {
-          receptions: 3, receivingYards: 37, receivingYac: 16,
-          receivingTd: 0, receivingLong: 22, targets: 3, carries: 0,
+          receptions: 4, receivingYards: 40, receivingYac: 12,
+          receivingTd: 1, receivingLong: 20, targets: 5, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 12.3, totalYards: 37, totalTd: 0
-        } },
+          receivingAvg: 10, totalYards: 40, totalTd: 1
+        },
+        bigPlays: [
+          '1 yard receiving touchdown'
+        ] },
       { week:  6, date: '2021-10-09', kickoff: '7:00pm',
         opponent: 'Texas A&M', home: false, conference: true,
         result: { teamScore: 10, opponentScore: 28 }, booster: null,
         stats: {
-          receptions: 3, receivingYards: 43, receivingYac: 18,
-          receivingTd: 0, receivingLong: 29, targets: 5, carries: 0,
+          receptions: 12, receivingYards: 145, receivingYac: 63,
+          receivingTd: 0, receivingLong: 38, targets: 14, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 14.3, totalYards: 43, totalTd: 0
+          receivingAvg: 12.1, totalYards: 145, totalTd: 0
         } },
       { week:  7, date: '2021-10-16', kickoff: '6:00pm',
         opponent: 'Mississippi State', home: false, conference: true,
         result: { teamScore: 31, opponentScore: 17 }, booster: null,
         stats: {
-          receptions: 2, receivingYards: 38, receivingYac: 17,
-          receivingTd: 0, receivingLong: 28, targets: 3, carries: 0,
+          receptions: 3, receivingYards: 26, receivingYac: 12,
+          receivingTd: 0, receivingLong: 14, targets: 5, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 19, totalYards: 38, totalTd: 0
+          receivingAvg: 8.7, totalYards: 26, totalTd: 0
         } },
       { week:  8, date: '2021-10-23', kickoff: '6:00pm',
         opponent: 'Tennessee', home: true, conference: true,
         result: { teamScore: 45, opponentScore: 34 }, booster: null,
         stats: {
-          receptions: 2, receivingYards: 57, receivingYac: 25,
-          receivingTd: 1, receivingLong: 49, targets: 2, carries: 0,
+          receptions: 2, receivingYards: 9, receivingYac: 5,
+          receivingTd: 1, receivingLong: 7, targets: 5, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 28.5, totalYards: 57, totalTd: 1
+          receivingAvg: 4.5, totalYards: 9, totalTd: 1
         },
         bigPlays: [
-          '8 yard receiving touchdown'
+          '2 yard receiving touchdown'
         ] },
       { week: 10, date: '2021-11-06', kickoff: '6:00pm',
         opponent: 'LSU', home: true, conference: true,
         result: { teamScore: 49, opponentScore: 20 }, booster: null,
         stats: {
-          receptions: 5, receivingYards: 32, receivingYac: 14,
-          receivingTd: 1, receivingLong: 8, targets: 7, carries: 0,
+          receptions: 2, receivingYards: 33, receivingYac: 13,
+          receivingTd: 0, receivingLong: 18, targets: 6, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 6.4, totalYards: 32, totalTd: 1
-        },
-        bigPlays: [
-          '4 yard receiving touchdown'
-        ] },
+          receivingAvg: 16.5, totalYards: 33, totalTd: 0
+        } },
       { week: 11, date: '2021-11-13', kickoff: '11:00am',
         opponent: 'New Mexico State', home: true, conference: false,
         result: { teamScore: 64, opponentScore: 7 }, booster: null,
         stats: {
-          receptions: 3, receivingYards: 8, receivingYac: 3,
-          receivingTd: 2, receivingLong: 5, targets: 4, carries: 0,
+          receptions: 3, receivingYards: 79, receivingYac: 21,
+          receivingTd: 0, receivingLong: 56, targets: 4, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 2.7, totalYards: 8, totalTd: 2
-        },
-        bigPlays: [
-          '2 yard receiving touchdown',
-          '1 yard receiving touchdown'
-        ] },
+          receivingAvg: 26.3, totalYards: 79, totalTd: 0
+        } },
       { week: 12, date: '2021-11-20', kickoff: '2:30pm',
         opponent: 'Arkansas', home: true, conference: true,
         result: { teamScore: 53, opponentScore: 21 }, booster: null,
         stats: {
-          receptions: 5, receivingYards: 63, receivingYac: 23,
-          receivingTd: 0, receivingLong: 18, targets: 7, carries: 0,
+          receptions: 5, receivingYards: 70, receivingYac: 25,
+          receivingTd: 1, receivingLong: 23, targets: 7, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 12.6, totalYards: 63, totalTd: 0
-        } },
+          receivingAvg: 14, totalYards: 70, totalTd: 1
+        },
+        bigPlays: [
+          '23 yard receiving touchdown'
+        ] },
       { week: 13, date: '2021-11-27', kickoff: '2:30pm',
         opponent: 'Auburn', home: false, conference: true,
         result: { teamScore: 37, opponentScore: 17 }, booster: null,
         stats: {
-          receptions: 5, receivingYards: 70, receivingYac: 36,
-          receivingTd: 0, receivingLong: 19, targets: 7, carries: 0,
+          receptions: 7, receivingYards: 44, receivingYac: 17,
+          receivingTd: 0, receivingLong: 11, targets: 10, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 14, totalYards: 70, totalTd: 0
+          receivingAvg: 6.3, totalYards: 44, totalTd: 0
         } },
     ],
 
@@ -315,122 +315,133 @@ EGE.stats[2021] = {
         opponent: 'Albany', home: true, conference: false,
         result: { teamScore: 41, opponentScore: 0 }, booster: null,
         stats: {
-          receptions: 3, receivingYards: 64, receivingYac: 30,
-          receivingTd: 0, receivingLong: 34, targets: 3, carries: 1,
-          rushingYards: 6, rushingTd: 0, rushingLong: 6, fumbles: 0,
-          rushingAvg: 6, receivingAvg: 21.3, totalYards: 70, totalTd: 0
-        } },
+          receptions: 3, receivingYards: 54, receivingYac: 14,
+          receivingTd: 2, receivingLong: 41, targets: 5, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 18, totalYards: 54, totalTd: 2
+        },
+        bigPlays: [
+          '41 yard receiving touchdown',
+          '5 yard receiving touchdown'
+        ] },
       { week:  2, date: '2021-09-11', kickoff: '2:30pm',
         opponent: 'Valparaiso', home: true, conference: false,
         result: { teamScore: 44, opponentScore: 23 }, booster: null,
         stats: {
-          receptions: 7, receivingYards: 155, receivingYac: 65,
-          receivingTd: 2, receivingLong: 43, targets: 9, carries: 1,
-          rushingYards: 4, rushingTd: 0, rushingLong: 4, fumbles: 0,
-          rushingAvg: 4, receivingAvg: 22.1, totalYards: 159, totalTd: 2
+          receptions: 7, receivingYards: 167, receivingYac: 64,
+          receivingTd: 1, receivingLong: 60, targets: 10, carries: 1,
+          rushingYards: 40, rushingTd: 0, rushingLong: 40, fumbles: 0,
+          rushingAvg: 40, receivingAvg: 23.9, totalYards: 207, totalTd: 1
         },
         bigPlays: [
-          '27 yard receiving touchdown',
-          '20 yard receiving touchdown'
+          '35 yard receiving touchdown'
         ] },
       { week:  3, date: '2021-09-18', kickoff: '5:00pm',
         opponent: 'Towson', home: false, conference: false,
         result: { teamScore: 29, opponentScore: 0 }, booster: null,
         stats: {
-          receptions: 3, receivingYards: 93, receivingYac: 37,
-          receivingTd: 0, receivingLong: 45, targets: 7, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 31, totalYards: 93, totalTd: 0
-        } },
+          receptions: 7, receivingYards: 156, receivingYac: 56,
+          receivingTd: 1, receivingLong: 44, targets: 12, carries: 1,
+          rushingYards: 3, rushingTd: 0, rushingLong: 3, fumbles: 0,
+          rushingAvg: 3, receivingAvg: 22.3, totalYards: 159, totalTd: 1
+        },
+        bigPlays: [
+          '39 yard receiving touchdown'
+        ] },
       { week:  5, date: '2021-10-02', kickoff: '2:00pm',
         opponent: 'North Dakota', home: false, conference: true,
         result: { teamScore: 40, opponentScore: 10 }, booster: null,
         stats: {
-          receptions: 5, receivingYards: 43, receivingYac: 19,
-          receivingTd: 1, receivingLong: 13, targets: 5, carries: 0,
+          receptions: 4, receivingYards: 45, receivingYac: 17,
+          receivingTd: 1, receivingLong: 22, targets: 5, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 8.6, totalYards: 43, totalTd: 1
+          receivingAvg: 11.3, totalYards: 45, totalTd: 1
         },
         bigPlays: [
-          '4 yard receiving touchdown'
+          '1 yard receiving touchdown'
         ] },
       { week:  6, date: '2021-10-09', kickoff: '1:00pm',
         opponent: 'Northern Iowa', home: true, conference: true,
         result: { teamScore: 21, opponentScore: 24 }, booster: null,
         stats: {
-          receptions: 4, receivingYards: 112, receivingYac: 38,
-          receivingTd: 0, receivingLong: 53, targets: 4, carries: 1,
-          rushingYards: 4, rushingTd: 0, rushingLong: 4, fumbles: 0,
-          rushingAvg: 4, receivingAvg: 28, totalYards: 116, totalTd: 0
-        } },
+          receptions: 3, receivingYards: 36, receivingYac: 15,
+          receivingTd: 1, receivingLong: 14, targets: 7, carries: 1,
+          rushingYards: 8, rushingTd: 0, rushingLong: 8, fumbles: 0,
+          rushingAvg: 8, receivingAvg: 12, totalYards: 44, totalTd: 1
+        },
+        bigPlays: [
+          '8 yard receiving touchdown'
+        ] },
       { week:  7, date: '2021-10-16', kickoff: '2:00pm',
         opponent: 'Illinois State', home: false, conference: true,
         result: { teamScore: 41, opponentScore: 14 }, booster: null,
         stats: {
-          receptions: 5, receivingYards: 76, receivingYac: 26,
-          receivingTd: 3, receivingLong: 45, targets: 7, carries: 1,
-          rushingYards: 7, rushingTd: 0, rushingLong: 7, fumbles: 0,
-          rushingAvg: 7, receivingAvg: 15.2, totalYards: 83, totalTd: 3
+          receptions: 9, receivingYards: 210, receivingYac: 68,
+          receivingTd: 1, receivingLong: 51, targets: 11, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 23.3, totalYards: 210, totalTd: 1
         },
         bigPlays: [
-          '45 yard receiving touchdown',
-          '11 yard receiving touchdown',
-          '1 yard receiving touchdown'
+          '21 yard receiving touchdown'
         ] },
       { week:  8, date: '2021-10-23', kickoff: '2:30pm',
         opponent: 'Missouri State', home: true, conference: true,
         result: { teamScore: 44, opponentScore: 10 }, booster: null,
         stats: {
-          receptions: 6, receivingYards: 111, receivingYac: 61,
-          receivingTd: 1, receivingLong: 28, targets: 8, carries: 0,
+          receptions: 9, receivingYards: 199, receivingYac: 68,
+          receivingTd: 2, receivingLong: 52, targets: 12, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 18.5, totalYards: 111, totalTd: 1
+          receivingAvg: 22.1, totalYards: 199, totalTd: 2
         },
         bigPlays: [
-          '11 yard receiving touchdown'
+          '36 yard receiving touchdown',
+          '29 yard receiving touchdown'
         ] },
       { week:  9, date: '2021-10-30', kickoff: '2:30pm',
         opponent: 'Indiana State', home: true, conference: true,
         result: { teamScore: 50, opponentScore: 0 }, booster: null,
         stats: {
-          receptions: 3, receivingYards: 47, receivingYac: 10,
-          receivingTd: 1, receivingLong: 37, targets: 3, carries: 1,
-          rushingYards: 5, rushingTd: 0, rushingLong: 5, fumbles: 0,
-          rushingAvg: 5, receivingAvg: 15.7, totalYards: 52, totalTd: 1
+          receptions: 4, receivingYards: 65, receivingYac: 30,
+          receivingTd: 1, receivingLong: 29, targets: 5, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 16.3, totalYards: 65, totalTd: 1
         },
         bigPlays: [
-          '3 yard receiving touchdown'
+          '29 yard receiving touchdown'
         ] },
       { week: 10, date: '2021-11-06', kickoff: '2:00pm',
         opponent: 'South Dakota State', home: false, conference: true,
         result: { teamScore: 23, opponentScore: 28 }, booster: null,
         stats: {
-          receptions: 5, receivingYards: 159, receivingYac: 55,
-          receivingTd: 0, receivingLong: 77, targets: 8, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 31.8, totalYards: 159, totalTd: 0
+          receptions: 6, receivingYards: 102, receivingYac: 37,
+          receivingTd: 0, receivingLong: 34, targets: 8, carries: 1,
+          rushingYards: -3, rushingTd: 0, rushingLong: -3, fumbles: 0,
+          rushingAvg: -3, receivingAvg: 17, totalYards: 99, totalTd: 0
         } },
       { week: 11, date: '2021-11-13', kickoff: '11:00am',
         opponent: 'Youngstown State', home: false, conference: true,
         result: { teamScore: 35, opponentScore: 14 }, booster: null,
         stats: {
-          receptions: 6, receivingYards: 94, receivingYac: 41,
-          receivingTd: 0, receivingLong: 38, targets: 7, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 15.7, totalYards: 94, totalTd: 0
-        } },
+          receptions: 6, receivingYards: 93, receivingYac: 42,
+          receivingTd: 2, receivingLong: 44, targets: 10, carries: 1,
+          rushingYards: 10, rushingTd: 0, rushingLong: 10, fumbles: 0,
+          rushingAvg: 10, receivingAvg: 15.5, totalYards: 103, totalTd: 2
+        },
+        bigPlays: [
+          '3 yard receiving touchdown',
+          '2 yard receiving touchdown'
+        ] },
       { week: 12, date: '2021-11-20', kickoff: '2:30pm',
         opponent: 'South Dakota', home: true, conference: true,
         result: { teamScore: 44, opponentScore: 28 }, booster: null,
         stats: {
-          receptions: 7, receivingYards: 90, receivingYac: 25,
-          receivingTd: 2, receivingLong: 36, targets: 7, carries: 0,
+          receptions: 7, receivingYards: 148, receivingYac: 63,
+          receivingTd: 1, receivingLong: 44, targets: 8, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 12.9, totalYards: 90, totalTd: 2
+          receivingAvg: 21.1, totalYards: 148, totalTd: 1
         },
         bigPlays: [
-          '2 yard receiving touchdown',
-          '2 yard receiving touchdown'
+          '44 yard receiving touchdown'
         ] },
     ],
 
@@ -565,146 +576,144 @@ EGE.stats[2021] = {
         opponent: 'Minnesota', home: false, conference: true,
         result: { teamScore: 27, opponentScore: 21 }, booster: null,
         stats: {
-          carries: 15, rushingYards: 148, rushingTd: 1, rushingLong: 48,
-          receptions: 2, receivingYards: 9, receivingYac: 7,
-          receivingTd: 1, receivingLong: 5, targets: 3, fumbles: 0,
-          rushingAvg: 9.9, receivingAvg: 4.5, totalYards: 157, totalTd: 2
+          carries: 15, rushingYards: 114, rushingTd: 1, rushingLong: 31,
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 1, fumbles: 1,
+          rushingAvg: 7.6, totalYards: 114, totalTd: 1
         },
         bigPlays: [
-          '48 yard rushing touchdown',
-          '5 yard receiving touchdown'
+          '31 yard rushing touchdown'
         ] },
       { week:  2, date: '2021-09-11', kickoff: '12:00pm',
         opponent: 'Oregon', home: true, conference: false,
         result: { teamScore: 47, opponentScore: 30 }, booster: null,
         stats: {
-          carries: 22, rushingYards: 186, rushingTd: 1, rushingLong: 30,
-          receptions: 2, receivingYards: 12, receivingYac: 10,
-          receivingTd: 1, receivingLong: 6, targets: 2, fumbles: 0,
-          rushingAvg: 8.5, receivingAvg: 6, totalYards: 198, totalTd: 2
-        },
-        bigPlays: [
-          '6 yard receiving touchdown',
-          '1 yard rushing touchdown'
-        ] },
+          carries: 22, rushingYards: 100, rushingTd: 0, rushingLong: 13,
+          receptions: 1, receivingYards: 9, receivingYac: 8,
+          receivingTd: 0, receivingLong: 9, targets: 1, fumbles: 0,
+          rushingAvg: 4.5, receivingAvg: 9, totalYards: 109, totalTd: 0
+        } },
       { week:  3, date: '2021-09-18', kickoff: '3:30pm',
         opponent: 'Tulsa', home: true, conference: false,
         result: { teamScore: 48, opponentScore: 21 }, booster: null,
         stats: {
-          carries: 15, rushingYards: 81, rushingTd: 1, rushingLong: 11,
+          carries: 15, rushingYards: 73, rushingTd: 2, rushingLong: 11,
           receptions: 0, receivingYards: 0, receivingYac: 0,
-          receivingTd: 0, receivingLong: 0, targets: 1, fumbles: 0,
-          rushingAvg: 5.4, totalYards: 81, totalTd: 1
+          receivingTd: 0, receivingLong: 0, targets: 2, fumbles: 0,
+          rushingAvg: 4.9, totalYards: 73, totalTd: 2
         },
         bigPlays: [
-          '6 yard rushing touchdown'
+          '1 yard rushing touchdown',
+          '1 yard rushing touchdown'
         ] },
       { week:  4, date: '2021-09-25', kickoff: '7:30pm',
         opponent: 'Akron', home: true, conference: false,
         result: { teamScore: 69, opponentScore: 0 }, booster: null,
         stats: {
-          carries: 8, rushingYards: 55, rushingTd: 1, rushingLong: 13,
-          receptions: 2, receivingYards: 24, receivingYac: 22,
-          receivingTd: 0, receivingLong: 16, targets: 2, fumbles: 0,
-          rushingAvg: 6.9, receivingAvg: 12, totalYards: 79, totalTd: 1
+          carries: 8, rushingYards: 55, rushingTd: 1, rushingLong: 15,
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 1, fumbles: 0,
+          rushingAvg: 6.9, totalYards: 55, totalTd: 1
         },
         bigPlays: [
-          '2 yard rushing touchdown'
+          '1 yard rushing touchdown'
         ] },
       { week:  5, date: '2021-10-02', kickoff: '3:30pm',
         opponent: 'Rutgers', home: false, conference: true,
         result: { teamScore: 34, opponentScore: 21 }, booster: null,
         stats: {
-          carries: 18, rushingYards: 135, rushingTd: 1, rushingLong: 28,
-          receptions: 3, receivingYards: 11, receivingYac: 8,
-          receivingTd: 0, receivingLong: 5, targets: 3, fumbles: 0,
-          rushingAvg: 7.5, receivingAvg: 3.7, totalYards: 146, totalTd: 1
+          carries: 18, rushingYards: 116, rushingTd: 1, rushingLong: 32,
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
+          rushingAvg: 6.4, totalYards: 116, totalTd: 1
         },
         bigPlays: [
-          '1 yard rushing touchdown'
+          '11 yard rushing touchdown'
         ] },
       { week:  6, date: '2021-10-09', kickoff: '12:00pm',
         opponent: 'Maryland', home: true, conference: true,
         result: { teamScore: 41, opponentScore: 31 }, booster: null,
         stats: {
-          carries: 15, rushingYards: 78, rushingTd: 0, rushingLong: 10,
-          receptions: 1, receivingYards: 1, receivingYac: 1,
-          receivingTd: 0, receivingLong: 1, targets: 2, fumbles: 0,
-          rushingAvg: 5.2, receivingAvg: 1, totalYards: 79, totalTd: 0
-        } },
+          carries: 15, rushingYards: 100, rushingTd: 1, rushingLong: 11,
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 1, fumbles: 0,
+          rushingAvg: 6.7, totalYards: 100, totalTd: 1
+        },
+        bigPlays: [
+          '2 yard rushing touchdown'
+        ] },
       { week:  8, date: '2021-10-23', kickoff: '7:30pm',
         opponent: 'Indiana', home: false, conference: true,
         result: { teamScore: 43, opponentScore: 7 }, booster: null,
         stats: {
-          carries: 19, rushingYards: 155, rushingTd: 2, rushingLong: 31,
-          receptions: 2, receivingYards: 32, receivingYac: 25,
-          receivingTd: 0, receivingLong: 22, targets: 2, fumbles: 0,
-          rushingAvg: 8.2, receivingAvg: 16, totalYards: 187, totalTd: 2
+          carries: 19, rushingYards: 115, rushingTd: 2, rushingLong: 16,
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
+          rushingAvg: 6.1, totalYards: 115, totalTd: 2
         },
         bigPlays: [
-          '11 yard rushing touchdown',
-          '6 yard rushing touchdown'
+          '4 yard rushing touchdown',
+          '2 yard rushing touchdown'
         ] },
       { week:  9, date: '2021-10-30', kickoff: '7:30pm',
         opponent: 'Penn State', home: true, conference: true,
         result: { teamScore: 31, opponentScore: 38 }, booster: null,
         stats: {
-          carries: 18, rushingYards: 87, rushingTd: 3, rushingLong: 11,
-          receptions: 1, receivingYards: 4, receivingYac: 2,
-          receivingTd: 0, receivingLong: 4, targets: 2, fumbles: 0,
-          rushingAvg: 4.8, receivingAvg: 4, totalYards: 91, totalTd: 3
+          carries: 18, rushingYards: 123, rushingTd: 3, rushingLong: 31,
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 1, fumbles: 0,
+          rushingAvg: 6.8, totalYards: 123, totalTd: 3
         },
         bigPlays: [
+          '31 yard rushing touchdown',
           '11 yard rushing touchdown',
-          '3 yard rushing touchdown',
-          '1 yard rushing touchdown'
+          '5 yard rushing touchdown'
         ] },
       { week: 10, date: '2021-11-06', kickoff: '12:00pm',
         opponent: 'Nebraska', home: false, conference: true,
         result: { teamScore: 41, opponentScore: 29 }, booster: null,
         stats: {
-          carries: 12, rushingYards: 94, rushingTd: 2, rushingLong: 23,
-          receptions: 1, receivingYards: 15, receivingYac: 11,
-          receivingTd: 0, receivingLong: 15, targets: 1, fumbles: 1,
-          rushingAvg: 7.8, receivingAvg: 15, totalYards: 109, totalTd: 2
+          carries: 12, rushingYards: 88, rushingTd: 2, rushingLong: 19,
+          receptions: 1, receivingYards: 2, receivingYac: 2,
+          receivingTd: 0, receivingLong: 2, targets: 1, fumbles: 0,
+          rushingAvg: 7.3, receivingAvg: 2, totalYards: 90, totalTd: 2
         },
         bigPlays: [
-          '6 yard rushing touchdown',
-          '5 yard rushing touchdown'
+          '4 yard rushing touchdown',
+          '3 yard rushing touchdown'
         ] },
       { week: 11, date: '2021-11-13', kickoff: '3:30pm',
         opponent: 'Purdue', home: true, conference: true,
         result: { teamScore: 44, opponentScore: 36 }, booster: null,
         stats: {
-          carries: 21, rushingYards: 143, rushingTd: 1, rushingLong: 36,
+          carries: 21, rushingYards: 224, rushingTd: 1, rushingLong: 82,
           receptions: 0, receivingYards: 0, receivingYac: 0,
-          receivingTd: 0, receivingLong: 0, targets: 2, fumbles: 0,
-          rushingAvg: 6.8, totalYards: 143, totalTd: 1
+          receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
+          rushingAvg: 10.7, totalYards: 224, totalTd: 1
         },
         bigPlays: [
-          '36 yard rushing touchdown'
+          '1 yard rushing touchdown'
         ] },
       { week: 12, date: '2021-11-20', kickoff: '12:00pm',
         opponent: 'Michigan State', home: true, conference: true,
         result: { teamScore: 51, opponentScore: 20 }, booster: null,
         stats: {
-          carries: 14, rushingYards: 60, rushingTd: 1, rushingLong: 10,
-          receptions: 1, receivingYards: 23, receivingYac: 18,
-          receivingTd: 1, receivingLong: 23, targets: 2, fumbles: 0,
-          rushingAvg: 4.3, receivingAvg: 23, totalYards: 83, totalTd: 2
+          carries: 14, rushingYards: 84, rushingTd: 1, rushingLong: 19,
+          receptions: 2, receivingYards: 32, receivingYac: 25,
+          receivingTd: 0, receivingLong: 18, targets: 2, fumbles: 0,
+          rushingAvg: 6, receivingAvg: 16, totalYards: 116, totalTd: 1
         },
         bigPlays: [
-          '23 yard receiving touchdown',
-          '2 yard rushing touchdown'
+          '1 yard rushing touchdown'
         ] },
       { week: 13, date: '2021-11-27', kickoff: '12:00pm',
         opponent: 'Michigan', home: false, conference: true,
         result: { teamScore: 43, opponentScore: 24 }, booster: null,
         stats: {
-          carries: 22, rushingYards: 124, rushingTd: 0, rushingLong: 17,
-          receptions: 1, receivingYards: 6, receivingYac: 4,
-          receivingTd: 0, receivingLong: 6, targets: 2, fumbles: 0,
-          rushingAvg: 5.6, receivingAvg: 6, totalYards: 130, totalTd: 0
+          carries: 22, rushingYards: 170, rushingTd: 0, rushingLong: 58,
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
+          rushingAvg: 7.7, totalYards: 170, totalTd: 0
         } },
     ],
 
