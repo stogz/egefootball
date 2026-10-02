@@ -318,12 +318,14 @@ Under the bar:
   Stroud's 2021 an 82. The constants are at the top of
   `tools/build-rosters.js`.
 - **Conference Standings** — the whole conference as one table: the dark
-  row of headings once at the top, then each division under a cream band
-  with its name, the school's own first. W-L, the conference streak (**Strk**, *W3* in green or *L1* in red),
+  row of headings once at the top, and each division's name running up the
+  left of its schools in a cream column, the school's own division first,
+  with a rule between divisions. W-L, the conference streak (**Strk**, *W3* in green or *L1* in red),
   points for and against, the differential, and **Chg**, how many places a
   school has moved since the week before the latest one published — a green
   ▲ up or a red ▼ down. The school's own row is picked out in orange and
-  nothing else is marked. On a phone the points and differential drop out.
+  nothing else is marked. On a phone the points and differential drop out
+  and a long school name is cut short, so the table fits the screen.
   `EGE.conferenceTables` in `data/games.js` works out the movement by
   drawing the table as it stood a week earlier.
 - **Schedule** — the team's games as anybody can see them, with results as

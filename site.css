@@ -3450,35 +3450,45 @@ button.ege-owned__item { cursor: pointer; }
 /* --- conference standings ------------------------------------------------- */
 
 /* The whole conference in one table on a team's page: the dark row of
-   headings once at the top, then each division under a cream band with its
-   name, the team's own first. The team's row is picked out in the accent,
-   and that is all. */
+   headings once at the top, and each division's name running up the left
+   of its schools in a cream column, the team's own division first. The
+   team's row is picked out in the accent, and that is all. */
 .ege-standings { display: grid; gap: 0; }
-.ege-standings__table tbody tr.ege-standings__band,
-.ege-standings__table tbody tr.ege-standings__band:hover { background: var(--fb-surface); }
-.ege-standings__table th.ege-standings__title {
-  width: auto;
-  padding: 10px 16px;
+.ege-standings__table th.ege-standings__divhead { width: 1%; padding: 0; }
+.ege-standings__table th.ege-standings__div {
+  width: 1%;
+  padding: 10px 8px;
   background: var(--fb-surface);
+  border-right: var(--fb-border-thin) solid rgba(29, 36, 22, .35);
   color: var(--fb-ink);
+  text-align: center;
+  vertical-align: middle;
+}
+.ege-standings__divname {
+  display: inline-block;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
   font-family: var(--fb-font-display);
   font-size: .8125rem;
   font-weight: 400;
-  letter-spacing: .08em;
-  text-align: left;
+  letter-spacing: .1em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
-/* A division after the first starts under a rule of its own. */
-.ege-standings__table tbody + tbody tr.ege-standings__band th {
-  border-top: var(--fb-border-thin) solid rgba(29, 36, 22, .35);
+/* A division after the first starts under a rule across the whole table. */
+.ege-standings__table tbody + tbody tr:first-child > * {
+  border-top: var(--fb-border-thin) solid rgba(29, 36, 22, .45);
 }
 .ege-standings__table { min-width: 0; width: 100%; }
 .ege-standings__table th:first-child,
 .ege-standings__place { width: 1%; white-space: nowrap; font-family: var(--fb-font-display); }
 .ege-standings__team { white-space: nowrap; }
 .ege-standings__table tbody tr { cursor: default; }
-.ege-standings__table tbody tr.is-ours,
-.ege-standings__table tbody tr.is-ours:hover { background: var(--fb-tint-clay); box-shadow: inset 4px 0 0 var(--fb-accent); }
+/* The orange row: the accent bar on its first cell rather than the row, so
+   it sits beside the place and not on the division's column. */
+.ege-standings__table tbody tr.is-ours > td,
+.ege-standings__table tbody tr.is-ours:hover > td { background: var(--fb-tint-clay); }
+.ege-standings__table tbody tr.is-ours > td:first-of-type { box-shadow: inset 4px 0 0 var(--fb-accent); }
 .ege-standings__diff.is-up { color: var(--fb-grass); }
 .ege-standings__diff.is-down { color: var(--fb-accent-deep); }
 /* Places moved since last week: green up, red down -- the streak's colours. */
@@ -3491,6 +3501,16 @@ button.ege-owned__item { cursor: pointer; }
   .ege-standings__table th, .ege-standings__table td { padding-left: 8px; padding-right: 8px; }
   /* Points for and against fold into the differential on a phone. */
   .ege-standings__pts { display: none; }
+  /* The division's column as narrow as its name, and a long school name
+     cut short rather than pushing the last column off the screen. */
+  .ege-standings__table th.ege-standings__div { padding: 8px 4px; }
+  .ege-standings__team .fb-name {
+    display: inline-block;
+    max-width: 8.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: bottom;
+  }
 }
 
 /* --- the teams ---------------------------------------------------------------

@@ -1382,14 +1382,18 @@
     return logo;
   }
 
-  /* The whole conference as one table: one row of headings at the top, then
-     each division under a band with its name, so the columns line up all
-     the way down and the dark heading row is there once. */
+  /* The whole conference as one table: one row of headings at the top, and
+     each division's schools under it with the division's name running up
+     the left of them, so the columns line up all the way down and the dark
+     heading row is there once. */
   function standingsTable(tables, school, season) {
     var wrap = el('div', 'ege-standings__division');
     var scroller = el('div', 'fb-tablewrap');
     var t = el('table', 'fb-table ege-standings__table');
     var head = el('tr');
+    var divHead = el('th', 'ege-standings__divhead');
+    divHead.setAttribute('aria-label', 'Division');
+    head.appendChild(divHead);
     [['#', 'num'], ['Team', null], ['W-L', 'num'], ['Strk', 'num'], ['PF', 'num ege-standings__pts'],
      ['PA', 'num ege-standings__pts'], ['Diff', 'num ege-standings__pts'], ['Chg', 'num']]
       .forEach(function (col) { head.appendChild(el('th', col[1], col[0])); });
@@ -1400,15 +1404,18 @@
     tables.forEach(function (table) {
       var started = table.rows.some(function (row) { return row.wins + row.losses; });
       var body = el('tbody');
-      var band = el('tr', 'ege-standings__band');
-      var title = el('th', 'ege-standings__title', table.division);
-      title.colSpan = 8;
-      title.scope = 'colgroup';
-      band.appendChild(title);
-      body.appendChild(band);
       table.rows.forEach(function (row, i) {
         var tr = el('tr');
         if (row.school === school) { tr.classList.add('is-ours'); }
+
+        /* The division's name, once, down the left of all its schools. */
+        if (i === 0) {
+          var division = el('th', 'ege-standings__div');
+          division.rowSpan = table.rows.length;
+          division.scope = 'rowgroup';
+          division.appendChild(el('span', 'ege-standings__divname', table.division));
+          tr.appendChild(division);
+        }
 
         tr.appendChild(el('td', 'num ege-standings__place', started ? String(i + 1) : '–'));
 
