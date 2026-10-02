@@ -22,8 +22,9 @@
      fifth-year. Counted from his recruiting class (a junior college
      recruit arrives as a junior), or for a walk-on nobody ranked, from the
      first season ESPN has him in a game log.
-   - `overall`, on the same 1-99 scale as the six's, so a room can be read
-     the way the six are. Nobody publishes one for every college player, so
+   - `overall`, on the six's scale, topping out at 84 for a Heisman season
+     and mostly between 50 and 75, so a room can be read the way the six
+     are. Nobody publishes one for every college player, so
      it is worked out here from three things (see overallFor below): the
      season he had, how far into college he is, and how highly he was
      recruited -- the 247Sports Composite rating, read by
@@ -62,24 +63,33 @@ const LINES = { passingYards: 'passingLeader', rushingYards: 'rushingLeader', re
 
 /* --- the overall -----------------------------------------------------------
 
-     overall = 45 + 24 x talent + 8 x experience + 24 x production
+     overall = 50 + 34 x (0.25 x talent + 0.10 x experience + 0.75 x production)
+
+   kept within 40-84. A Heisman season is an 84 and nothing goes past it;
+   most players land between 50 and 75.
 
    talent      the Composite rating coming out of school, 80 and under as
                nothing and 100 as everything; nothing for anybody unranked.
    experience  his year of college, a freshman nothing and a fifth-year all.
    production  his season, as scrimmage yards plus 20 a touchdown, against
-               what a very good season at his position comes to (PAR below),
-               and no more than all of it. The season before counts at four
-               fifths when it was better -- a player is no worse for a quiet
-               year, and the FCS played its 2020 in the spring, which ESPN
-               does not carry, so Trey Lance's 2019 is his 2020 here.
+               what a Heisman-calibre season at his position comes to (PAR
+               below), and no more than all of it. The season before counts
+               at four fifths when it was better -- a player is no worse for
+               a quiet year, and the FCS played its 2020 in the spring, which
+               ESPN does not carry, so Trey Lance's 2019 is his 2020 here.
 
-   An FCS team's numbers are three-quarters as good, since the yards came
-   against FCS defenses. It comes out on the six's scale: a five-star
-   freshman who has not played is about 69 (Jaykeb is 72), a walk-on senior
-   in the low 50s, and C.J. Stroud's 2021 a 92. Kept within 40-99. */
-const PAR = { QB: 4500, RB: 1500, WR: 1200, TE: 750 };
-const FCS = 0.75;
+   Production carries most of it: the weights add up to more than one, so a
+   Heisman season reaches the 84 whether or not he was a five-star, and
+   nobody gets there on recruiting alone. An FCS school's score counts 85%,
+   since its yards came against FCS defenses. On this scale a walk-on
+   freshman is a 50, a five-star freshman who has not played about 58, a
+   good starter about 70, and DeVonta Smith's 2020 or Bryce Young's 2021
+   an 83 or 84. */
+const PAR = { QB: 5000, RB: 2000, WR: 1800, TE: 1000 };
+const FCS = 0.85;
+const BASE = 50;
+const SPAN = 34;
+const CAP = 84;
 
 function clamp01(n) { return Math.max(0, Math.min(1, n)); }
 
@@ -87,8 +97,8 @@ function overallFor(position, recruit, year, output, fcs) {
   const talent = recruit && typeof recruit.rating === 'number' ? clamp01((recruit.rating - 80) / 20) : 0;
   const experience = clamp01((year - 1) / 4);
   const production = clamp01(output / PAR[position]);
-  const rest = 24 * talent + 8 * experience + 24 * production;
-  return Math.max(40, Math.min(99, Math.round(45 + (fcs ? FCS : 1) * rest)));
+  const score = 0.25 * talent + 0.10 * experience + 0.75 * production;
+  return Math.max(40, Math.min(CAP, Math.round(BASE + SPAN * (fcs ? FCS : 1) * score)));
 }
 
 /* The touchdowns in a leader line: '167 CAR, 1172 YDS, 15 TD' is 15. */

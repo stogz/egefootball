@@ -272,25 +272,29 @@ top to jump to each. A panel holds:
   on the tooltip.
 
   **The overalls.** Nobody publishes a rating for every college player, so
-  one is worked out for each, on the six's 1–99 scale:
+  one is worked out for each, on the six's scale but **topping out at 84**
+  — a Heisman season — with most players between 50 and 75:
 
   ```
-  overall = 45 + 24 × talent + 8 × experience + 24 × production
+  overall = 50 + 34 × (0.25 × talent + 0.10 × experience + 0.75 × production)
   ```
 
-  *Talent* is how highly he was recruited — the 247Sports Composite rating
-  out of school, 80 and under counting nothing and 100 everything, nothing
-  for a walk-on. It is only an ingredient; no recruiting number is shown.
-  *Experience* is his year of college, a freshman nothing and a fifth-year
-  all of it. *Production* is his season — scrimmage yards plus 20 a
-  touchdown, against a very good season at his position (4,500 for a
-  quarterback, 1,500 a back, 1,200 a receiver, 750 a tight end) and no
-  more than all of it — or four fifths of the season before when that was
-  better, since a quiet year does not make anybody worse (and the FCS's
-  spring 2020 is not on ESPN). An FCS school's numbers count three-quarters.
-  It lands where it should: a five-star freshman who has not played is
-  about 69 (Jaykeb is 72), a walk-on senior low 50s, C.J. Stroud's 2021 a
-  92, Najee Harris's 2020 a 99.
+  kept within 40–84. *Production* carries most of it: his season —
+  scrimmage yards plus 20 a touchdown — against a Heisman-calibre one at
+  his position (5,000 for a quarterback, 2,000 a back, 1,800 a receiver,
+  1,000 a tight end), no more than all of it, or four fifths of the season
+  before when that was better, since a quiet year does not make anybody
+  worse (and the FCS's spring 2020 is not on ESPN). *Talent* is how highly
+  he was recruited — the 247Sports Composite rating out of school, 80 and
+  under counting nothing and 100 everything, nothing for a walk-on. It is
+  only an ingredient; no recruiting number is shown. *Experience* is his
+  year of college. The weights add up to more than one, so a Heisman season
+  reaches 84 whether or not he was a five-star, and nobody gets near it on
+  recruiting alone. An FCS school's score counts 85%. A walk-on freshman is
+  a 50, a five-star freshman who has not played about 58, a good starter
+  about 70; DeVonta Smith's 2020 and Bryce Young's 2021 are 84s, C.J.
+  Stroud's 2021 an 82. The constants are at the top of
+  `tools/build-rosters.js`.
 - **The division table**, the same one the player page shows.
 
 The quarterback rooms are also where a QB Connection is picked from (see
