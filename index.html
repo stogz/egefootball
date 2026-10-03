@@ -61,11 +61,11 @@
     <!-- ===== home: player select ====================================== -->
     <section id="view-home">
 
-      <header class="fb-hero fb-hero--centred" style="padding: 44px 0 30px;">
+      <header class="fb-hero fb-hero--centred">
         <div class="fb-hero__col">
           <!-- The live season, written in by js/app.js from data/season.js. -->
           <span class="fb-kicker" id="homeSeasonLabel">2019 &middot; Senior Year &middot; High School Varsity</span>
-          <h1 class="fb-hero__title" style="margin: 14px 0 0;">EGE Football</h1>
+          <h1 class="fb-hero__title">EGE Football</h1>
         </div>
       </header>
 
@@ -98,10 +98,10 @@
          plays for this season, each opening that school's own page. College
          seasons only. Public, like the player pages. Built in app.js. -->
     <section id="view-teams" hidden>
-      <header class="fb-hero fb-hero--centred" style="padding: 44px 0 30px;">
+      <header class="fb-hero fb-hero--centred">
         <div class="fb-hero__col">
           <span class="fb-kicker" id="teamsSeasonLabel"></span>
-          <h1 class="fb-hero__title" style="margin: 14px 0 0;">Teams</h1>
+          <h1 class="fb-hero__title">Teams</h1>
         </div>
       </header>
       <!-- Which season, the same switcher a team's page has; the pick is
@@ -134,14 +134,14 @@
 
       <div class="fb-panel" id="teamMissing" hidden>
         <div class="fb-panel__body">
-          <p class="ege-note" style="margin: 0;">No team here. <a href="#teams">See every team.</a></p>
+          <p class="ege-note">No team here. <a href="#teams">See every team.</a></p>
         </div>
       </div>
 
       <div id="teamContent">
         <div class="fb-panel ege-teamhead">
           <div class="fb-panel__strip">
-            <span class="fb-eyebrow" style="color: var(--fb-ink);" id="teamStripLabel"></span>
+            <span class="fb-eyebrow" id="teamStripLabel"></span>
           </div>
           <div class="fb-panel__body ege-teamhead__body">
             <div class="ege-teamhead__logo" id="teamLogo"></div>
@@ -196,19 +196,19 @@
 
       <!-- Centred, and with nothing under it: what the shop is for is the
            shop, and the balance is in the nav and again on the panel below. -->
-      <header class="fb-hero fb-hero--centred" style="padding: 44px 0 30px;">
+      <header class="fb-hero fb-hero--centred">
         <div class="fb-hero__col">
           <span class="fb-kicker">Offseason</span>
-          <h1 class="fb-hero__title" style="margin: 14px 0 0;">Shop</h1>
+          <h1 class="fb-hero__title">Shop</h1>
         </div>
       </header>
 
       <div class="fb-panel" id="shopLocked" hidden>
         <div class="fb-panel__strip">
-          <span class="fb-eyebrow" style="color: var(--fb-ink);">Players only</span>
+          <span class="fb-eyebrow">Players only</span>
         </div>
         <div class="fb-panel__body fb-stack">
-          <p style="margin: 0;">
+          <p>
             The shop is part of your portal. Sign in to see what your credits buy.
           </p>
           <button class="fb-btn fb-btn--primary" id="shopLoginBtn" type="button">Log In</button>
@@ -278,19 +278,19 @@
          from data/cards.js. -->
     <section id="view-cards" hidden>
 
-      <header class="fb-hero fb-hero--centred" style="padding: 44px 0 30px;">
+      <header class="fb-hero fb-hero--centred">
         <div class="fb-hero__col">
           <span class="fb-kicker">Collect them all</span>
-          <h1 class="fb-hero__title" style="margin: 14px 0 0;">Cards</h1>
+          <h1 class="fb-hero__title">Cards</h1>
         </div>
       </header>
 
       <div class="fb-panel" id="cardsLocked" hidden>
         <div class="fb-panel__strip">
-          <span class="fb-eyebrow" style="color: var(--fb-ink);">Players only</span>
+          <span class="fb-eyebrow">Players only</span>
         </div>
         <div class="fb-panel__body fb-stack">
-          <p style="margin: 0;">
+          <p>
             Cards are part of your portal. Sign in to rip packs and build your collection.
           </p>
           <button class="fb-btn fb-btn--primary" id="cardsLoginBtn" type="button">Log In</button>
@@ -353,7 +353,7 @@
                   aria-expanded="true" aria-label="Hide the library"></button>
         </div>
         <div class="fb-panel__body fb-stack fb-stack--lg">
-          <p class="fb-meta" style="margin: 0;">
+          <p class="fb-meta">
             Put a set together and claim its reward once. A card counts toward
             every set it fits, and nothing is used up.
           </p>
@@ -368,7 +368,7 @@
           <span class="fb-meta">How cards are graded and how often each pulls</span>
         </summary>
         <div class="fb-panel__body fb-stack">
-          <p class="fb-meta" style="margin: 0;">
+          <p class="fb-meta">
             The number in a card's corner is its fantasy score, half PPR, the
             same scoring a game pays credits on. A play is scored as the one
             play. Rarity is graded from that score against the position, so a
@@ -377,7 +377,7 @@
             touchdown pass grades with a 60 yard touchdown catch, and go-ahead,
             game-tying and game-winning plays grade a little higher.
           </p>
-          <p class="fb-meta" style="margin: 0;">
+          <p class="fb-meta">
             Each card in a pack rolls its rarity first, at the chance below,
             then is drawn from every card of that rarity that is out.
           </p>
@@ -403,10 +403,10 @@
     <!-- ===== admin ==================================================== -->
     <section id="view-admin" hidden>
 
-      <header class="fb-hero" style="padding: 44px 0 30px;">
+      <header class="fb-hero fb-hero--centred">
         <div class="fb-hero__col">
           <span class="fb-kicker">Commissioner</span>
-          <h1 class="fb-hero__title" style="margin: 14px 0 12px;">Admin</h1>
+          <h1 class="fb-hero__title">Admin</h1>
           <p class="fb-hero__lede">
             Every account's credits and inventory, the credits the season has
             paid out so far, and the files that put a finished season into the
@@ -417,10 +417,10 @@
 
       <div class="fb-panel" id="adminLocked" hidden>
         <div class="fb-panel__strip">
-          <span class="fb-eyebrow" style="color: var(--fb-ink);">Not for you</span>
+          <span class="fb-eyebrow">Not for you</span>
         </div>
         <div class="fb-panel__body fb-stack">
-          <p style="margin: 0;" id="adminLockedNote">
+          <p id="adminLockedNote">
             This page is the commissioner's. Nothing here is yours to change.
           </p>
           <a class="fb-btn fb-btn--primary" href="#">All Players</a>
@@ -439,14 +439,14 @@
         </div>
         <div class="fb-panel__body fb-stack fb-stack--lg">
 
-          <p class="fb-meta" style="margin: 0;">
+          <p class="fb-meta">
             The season file holds every result of the year, and nobody sees any
             of it until you put a week out. Publishing shows the scores and the
             stat lines, moves the records, pays the game credits and posts
             the week to Discord — one button. Pulling a week back is one click
             too, as often as you like.
           </p>
-          <p class="fb-meta" style="margin: 0;">
+          <p class="fb-meta">
             Correcting a stat line after its week is out is fine: Pay credits
             works out what everybody is owed again and pays the difference. It
             never pays the same game twice, and it never takes credits
@@ -482,7 +482,7 @@
             </table>
           </div>
 
-          <p class="fb-meta" style="margin: 0;" id="discordNote"></p>
+          <p class="fb-meta" id="discordNote"></p>
         </div>
       </div>
 
@@ -494,7 +494,7 @@
         </div>
         <div class="fb-panel__body fb-stack fb-stack--lg">
 
-          <p class="fb-meta" style="margin: 0;">
+          <p class="fb-meta">
             Every game in a week, as it stands in
             <code id="editorFile">stats/2018.js</code>. Change a score, a stat
             or the booster that was on a game, then download the file and
@@ -586,7 +586,7 @@
             </table>
           </div>
 
-          <p class="fb-meta" style="margin: 0;">
+          <p class="fb-meta">
             <strong>Clear library</strong> takes every card out of the
             collection, empties the showcase, cancels open trades and resets
             the goals, so the player starts the Library over.
@@ -619,7 +619,7 @@
         </div>
         <div class="fb-panel__body fb-stack fb-stack--lg">
 
-          <p class="fb-meta" style="margin: 0;">
+          <p class="fb-meta">
             Four steps, in this order. Nothing is cleared until the file that
             replaces it is in the repository, so a step out of order costs
             nobody their season.
@@ -764,7 +764,7 @@
 
       <div class="fb-panel ege-detail">
         <div class="fb-panel__strip">
-          <span class="fb-eyebrow" style="color: var(--fb-ink);" id="playerStripLabel"></span>
+          <span class="fb-eyebrow" id="playerStripLabel"></span>
         </div>
         <div class="fb-panel__body">
           <!-- Four areas, placed by CSS: the picture, the school, the name
@@ -893,7 +893,7 @@
         </div>
 
         <div class="fb-panel__body" id="scheduleEmpty" hidden>
-          <p class="ege-note" style="margin: 0;">No schedule yet — this player has no school.</p>
+          <p class="ege-note">No schedule yet — this player has no school.</p>
         </div>
 
         <div class="fb-panel__foot" id="scheduleFoot" hidden>
@@ -984,7 +984,7 @@
         <select class="fb-select" id="loginPlayer"></select>
       </label>
 
-      <p class="fb-meta" style="margin: 0;" id="authLead" hidden></p>
+      <p class="fb-meta" id="authLead" hidden></p>
 
       <form class="fb-stack" id="authForm" hidden>
         <label class="ege-field">

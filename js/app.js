@@ -1215,6 +1215,17 @@
     if (game.name) { cell.appendChild(el('span', 'ege-schedule__event', game.name)); }
   }
 
+  /* A played game's score as the result pill -- W 38-9, L 21-24/OT -- or a
+     dash for one still to be played. The same on a player's schedule, a
+     team's and the game log. */
+  function resultTag(game) {
+    if (!EGE.isFinal(game)) { return el('span', 'ege-schedule__pending', '—'); }
+    var won = game.result.teamScore > game.result.opponentScore;
+    return el('span', 'fb-tag fb-tag--num ege-result ' + (won ? 'fb-tag--sage' : 'fb-tag--clay'),
+      (won ? 'W ' : 'L ') + game.result.teamScore + '–' + game.result.opponentScore +
+      (game.overtime ? '/OT' : ''));
+  }
+
   /* A high school's postseason is its playoffs; a college's is title games
      and bowls as much as a bracket. */
   function postseasonWord(season) {
@@ -1223,7 +1234,6 @@
 
   function scheduleRow(game, opensPlayoffs) {
     var row = el('tr');
-    var played = EGE.isFinal(game);
 
     /* The first postseason row carries the line that divides the two halves
        of the year. */
@@ -1274,14 +1284,7 @@
     }
 
     var result = el('td', 'num ege-schedule__result');
-    if (played) {
-      var won = game.result.teamScore > game.result.opponentScore;
-      result.appendChild(el('span', 'fb-tag fb-tag--num ' + (won ? 'fb-tag--sage' : 'fb-tag--clay'),
-        (won ? 'W ' : 'L ') + game.result.teamScore + '–' + game.result.opponentScore +
-        (game.overtime ? '/OT' : '')));
-    } else {
-      result.appendChild(el('span', 'ege-schedule__pending', '—'));
-    }
+    result.appendChild(resultTag(game));
     row.appendChild(result);
 
     /* What the game paid. Only his own, and an admin's — a balance is nobody
@@ -1882,14 +1885,19 @@
         ? (standing.place ? EGE.ordinal(standing.place) + ' in ' : '') + standing.league
         : (entry.team.league || ''))));
 
+    /* The six who play there: a face each, with the name beside it where
+       there is room for one. */
     var faces = el('span', 'ege-teamcard__ours');
     entry.players.forEach(function (player) {
+      var who = el('span', 'ege-teamcard__player');
+      who.title = player.name;
       var face = el('img', 'ege-teamcard__face');
       face.src = player.headshot;
-      face.alt = player.name;
-      face.title = player.name;
+      face.alt = '';
       face.loading = 'lazy';
-      faces.appendChild(face);
+      who.appendChild(face);
+      who.appendChild(el('span', 'ege-teamcard__who', player.name));
+      faces.appendChild(who);
     });
     text.appendChild(faces);
     text.appendChild(el('span', 'ege-card__go', 'View team →'));
@@ -2045,14 +2053,7 @@
       row.appendChild(opponent);
 
       var result = el('td', 'num ege-schedule__result');
-      if (EGE.isFinal(game)) {
-        var won = game.result.teamScore > game.result.opponentScore;
-        result.appendChild(el('span', 'fb-tag fb-tag--num ' + (won ? 'fb-tag--sage' : 'fb-tag--clay'),
-          (won ? 'W ' : 'L ') + game.result.teamScore + '–' + game.result.opponentScore +
-          (game.overtime ? '/OT' : '')));
-      } else {
-        result.appendChild(el('span', 'ege-schedule__pending', '—'));
-      }
+      result.appendChild(resultTag(game));
       row.appendChild(result);
       body.appendChild(row);
     });
@@ -2710,11 +2711,8 @@
       eventName(opponent, game);
       row.appendChild(opponent);
 
-      var won = game.result.teamScore > game.result.opponentScore;
       var result = el('td', 'num');
-      result.appendChild(el('span', 'fb-tag fb-tag--num ' + (won ? 'fb-tag--sage' : 'fb-tag--clay'),
-        (won ? 'W ' : 'L ') + game.result.teamScore + '–' + game.result.opponentScore +
-        (game.overtime ? '/OT' : '')));
+      result.appendChild(resultTag(game));
       row.appendChild(result);
 
       var stats = EGE.statline.complete(player.position, game.stats) || {};
@@ -2875,7 +2873,9 @@
       var start = typeof attr.start === 'number' ? attr.start : attr.value;
       var change = attr.value - start;
 
-      row.appendChild(el('span', 'ege-attr__label', attr.label));
+      var label = el('span', 'ege-attr__label', attr.label);
+      label.title = attr.label;
+      row.appendChild(label);
 
       /* The bar is where the number stood when the season began, and the
          climb since then is laid on the end of it in orange -- the season's
@@ -4043,17 +4043,21 @@
       select.appendChild(option);
     });
 
-    /* Open on the first week that still needs numbers. */
+    /* Open on the first week that still needs numbers, or the first week
+       when they all have them. Week 0 is a week like any other -- a season
+       that opens in August has one -- so it is looked for, not tested for
+       truth, or a season with every week filled in opened on nothing. */
     var next = weeks.filter(function (week) {
       return EGE.gamesInWeek(week, season).some(function (entry) {
         return !entry.game.bye && !EGE.hasResult(entry.game);
       });
     })[0];
-    select.value = next || weeks[0] || '';
+    var start = next !== undefined ? next : weeks[0];
+    select.value = start !== undefined ? String(start) : '';
 
     document.getElementById('editorFile').textContent = 'stats/' + season + '.js';
     document.getElementById('editorNote').textContent = 'stats/' + season + '.js';
-    return Number(select.value) || weeks[0];
+    return start;
   }
 
   function numberField(label, value, onChange) {
@@ -4099,6 +4103,7 @@
        stops -- a form offering all three would only invite a result for a
        game that was never played. */
     if (game.bye) {
+      box.appendChild(head);
       box.appendChild(el('span', 'ege-note', 'Bye week \u2014 nothing to enter.'));
       return box;
     }

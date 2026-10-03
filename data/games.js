@@ -76,21 +76,6 @@ EGE.gamesInWeek = function (week, season) {
   }).filter(Boolean);
 };
 
-/* How many weeks the season runs to, across every player. */
-EGE.lastWeek = function (season) {
-  var year = season || EGE.currentSeason;
-  var forSeason = EGE.stats[year];
-  if (!forSeason) { return 0; }
-
-  var last = 0;
-  Object.keys(forSeason.games).forEach(function (slug) {
-    forSeason.games[slug].forEach(function (game) {
-      if (game.week > last) { last = game.week; }
-    });
-  });
-  return last;
-};
-
 /* Every week that has a game in it, in order. */
 EGE.weeksIn = function (season) {
   var year = season || EGE.currentSeason;
@@ -436,16 +421,10 @@ EGE.scheduleFor = function (player, season) {
   });
 };
 
-/* Whether the player's postseason is in sight yet: a playoff game on the
-   schedule they can see. Until it is there is no bracket to show them
-   either, because a draw with their school in it says they made it. */
-EGE.postseasonInSight = function (player, season) {
-  return EGE.scheduleFor(player, season).some(function (game) { return game.playoff; });
-};
-
 /* Whether the player's bracket can be shown yet: a game of that tournament
-   on the schedule they can see. For a high school draw that is the same as
-   the postseason being in sight, because the playoffs are the whole of it.
+   on the schedule they can see -- a draw with their school in it says they
+   made it, so it waits. For a high school draw that is the first playoff
+   game on the schedule, because the playoffs are the whole of it.
    A college postseason starts before its bracket does -- Ohio State's
    conference title game is a playoff game, and the College Football Playoff
    is picked after it -- so a draw with the school in it waits for a game in
