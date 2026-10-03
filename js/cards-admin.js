@@ -2,8 +2,8 @@
    EGE Football — the card game, on the admin page
    Who has how many cards, what they have claimed and traded, and the two
    resets: Clear library (every card out of a collection, its showcase
-   emptied, its open trades cancelled) and Reset goals (every Library set
-   claimable again, cards kept). Either for one player or for everybody,
+   emptied, its open trades cancelled and its goals reset) and Reset goals
+   (every Library set claimable again, cards kept). Either for one player or for everybody,
    and only once RESET is typed.
 
    The resets are database functions that refuse anybody who is not in the
@@ -119,7 +119,7 @@ EGE.cardsAdmin = (function () {
       if (!armed()) { return; }
       run(this, EGE.cardStore.clearLibrary, function (count, whom) {
         return 'Library cleared for ' + whom + ': ' + count +
-          (count === 1 ? ' kind of card' : ' kinds of card') + ' taken out.';
+          (count === 1 ? ' kind of card' : ' kinds of card') + ' taken out, and the goals reset.';
       });
     });
   }

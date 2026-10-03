@@ -3941,8 +3941,10 @@ html.ege-noscroll body { overflow: hidden; }
   display: flex;
   align-items: baseline;
   gap: 1.6cqw;
-  padding: 8cqw 3cqw 1.6cqw;
-  background: linear-gradient(to bottom, transparent, rgba(12, 16, 9, .82));
+  padding: 9cqw 3cqw 1.6cqw;
+  /* Dark enough under the numbers that a pink or red one still reads over a
+     red jersey. */
+  background: linear-gradient(to bottom, transparent, rgba(12, 16, 9, .7) 45%, rgba(12, 16, 9, .94));
   color: #fff;
 }
 .ege-tcard__yards b {
@@ -3958,6 +3960,9 @@ html.ege-noscroll body { overflow: hidden; }
   font-weight: 800;
   letter-spacing: .1em;
 }
+/* A game's two numbers sit a size down, so both fit across the picture. */
+.ege-tcard__yards--game b { font-size: 14.5cqw; }
+.ege-tcard__yards--game small + b { margin-left: 2.4cqw; }
 
 .ege-tcard__plate {
   padding: 1.4cqw 3cqw 1.6cqw;

@@ -1225,8 +1225,9 @@ revoke all on function public.prune_showcase(text) from public, anon, authentica
 -- ---------------------------------------------------------------------------
 -- The admin's two resets, one player or everybody (p_email null).
 --
--- Clear library: every card out of the collection, the showcase emptied and
--- open trades cancelled. Claimed sets stay claimed and credits stay spent.
+-- Clear library: every card out of the collection, the showcase emptied,
+-- open trades cancelled and the goals reset, so the player starts the
+-- Library over from nothing. Credits stay spent and rewards stay paid.
 --
 -- Reset goals: every library set can be claimed again. Cards are kept, and
 -- the rewards already paid stay paid.
@@ -1251,6 +1252,8 @@ begin
   get diagnostics v_count = row_count;
 
   delete from public.card_showcases where p_email is null or lower(email) = lower(p_email);
+
+  delete from public.card_set_claims where p_email is null or lower(email) = lower(p_email);
 
   update public.card_trades set status = 'cancelled', resolved_at = now()
    where status = 'open'

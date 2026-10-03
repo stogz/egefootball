@@ -36,6 +36,9 @@
    60 yard touchdown pass grades with a 60 yard touchdown catch; a play
    called go-ahead, game-tying or game-winning grades a little higher.
 
+   Grading stops at Mystic. Iconic is only ever a handful of moments picked
+   by hand (ICONIC below), whatever anything else scored.
+
    Pulling
    -------
    Each card in a pack rolls its rarity on PULL_ODDS first, then is drawn
@@ -56,15 +59,26 @@ EGE.cards = (function () {
 
   /* Hardest to pull last. `odds` is the chance of each card in a pack
      coming up this rarity, in percent. `performance` and `play` are the
-     lowest graded score that reaches it. */
+     lowest graded score that reaches it.
+
+     Iconic is not graded at all: it is the few cards in ICONIC below,
+     picked by hand, and nothing else reaches it however big the game. */
   var RARITIES = [
-    { key: 'common',    name: 'Common',    color: '#8b9097', odds: 46,  performance: 0,   play: 0 },
+    { key: 'common',    name: 'Common',    color: '#8b9097', odds: 46.15, performance: 0,   play: 0 },
     { key: 'uncommon',  name: 'Uncommon',  color: '#3e9a4b', odds: 26,  performance: 6.5, play: 7.1 },
     { key: 'rare',      name: 'Rare',      color: '#e8812a', odds: 14,  performance: 11,  play: 8.6 },
     { key: 'epic',      name: 'Epic',      color: '#d5392b', odds: 8,   performance: 16,  play: 9.6 },
     { key: 'legendary', name: 'Legendary', color: '#8a4fd8', odds: 4,   performance: 20,  play: 11.1 },
     { key: 'mystic',    name: 'Mystic',    color: '#e0ad25', odds: 1.6, performance: 24,  play: 12.1 },
-    { key: 'iconic',    name: 'Iconic',    color: '#ec5fa8', odds: 0.4, performance: 28,  play: 13 }
+    { key: 'iconic',    name: 'Iconic',    color: '#ec5fa8', odds: 0.25, performance: null, play: null }
+  ];
+
+  /* The Iconic cards. A moment has to be one of these to be Iconic; every
+     other card tops out at Mystic. Add an id here to make another. */
+  var ICONIC = [
+    'p:2019:sam-stogsdill:9',     /* Sam's five touchdowns against Centennial */
+    'p:2020:paxon-hatch:19',      /* Paxon's two touchdowns in the FCS Championship */
+    'h:2019:cooper-clark:15:0'    /* Cooper's 80 yard touchdown against Helix */
   ];
 
   var RANK = {};
@@ -171,8 +185,26 @@ EGE.cards = (function () {
 
   function gradeFor(score, kind) {
     var found = RARITIES[0];
-    RARITIES.forEach(function (r) { if (score >= r[kind]) { found = r; } });
+    RARITIES.forEach(function (r) {
+      if (typeof r[kind] === 'number' && score >= r[kind]) { found = r; }
+    });
     return found.key;
+  }
+
+  function rarityOf(id, score, kind) {
+    return ICONIC.indexOf(id) !== -1 ? 'iconic' : gradeFor(score, kind);
+  }
+
+  /* The two numbers a performance card prints big across its picture: the
+     yards its stat line leads with -- passing for a quarterback, rushing for
+     a back who carried it, receiving for everyone else -- and every
+     touchdown. */
+  function bigStats(position, s) {
+    function n(key) { return typeof s[key] === 'number' ? s[key] : 0; }
+    var td = n('passingTd') + n('rushingTd') + n('receivingTd');
+    if (position === 'QB') { return { yards: n('passingYards'), td: td }; }
+    if (position === 'RB' && n('carries') > 0) { return { yards: n('rushingYards'), td: td }; }
+    return { yards: n('receivingYards'), td: td };
   }
 
   /* The short line a performance card prints. */
@@ -256,7 +288,8 @@ EGE.cards = (function () {
           perf.kind = 'performance';
           perf.points = points;
           perf.grade = round2(points * EGE.economy.fantasyShareFor(player.position));
-          perf.rarity = gradeFor(perf.grade, 'performance');
+          perf.rarity = rarityOf(perf.id, perf.grade, 'performance');
+          perf.big = bigStats(player.position, game.stats);
           perf.headline = perf.versus;
           perf.line = statSummary(player.position, game.stats);
           catalogue[perf.id] = perf;
@@ -271,7 +304,7 @@ EGE.cards = (function () {
             play.text = text;
             play.points = read.points;
             play.grade = read.grade;
-            play.rarity = gradeFor(read.grade, 'play');
+            play.rarity = rarityOf(play.id, read.grade, 'play');
             play.headline = playHeadline(read);
             play.line = text;
             catalogue[play.id] = play;
@@ -543,6 +576,7 @@ EGE.cards = (function () {
 
   return {
     RARITIES: RARITIES,
+    ICONIC: ICONIC,
     PACKS: PACKS,
     BOOSTER: BOOSTER,
     rarity: rarity,

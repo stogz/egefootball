@@ -154,6 +154,17 @@ EGE.cardsView = (function () {
         big.appendChild(el('small', null, 'YD' + (card.play.touchdown ? ' TD' : '')));
       }
       art.appendChild(big);
+    } else if (card.big) {
+      /* A performance prints its yards and its touchdowns as big as a play
+         prints its yardage. */
+      var stats = el('div', 'ege-tcard__yards ege-tcard__yards--game');
+      stats.appendChild(el('b', null, String(card.big.yards)));
+      stats.appendChild(el('small', null, 'YDS'));
+      if (card.big.td) {
+        stats.appendChild(el('b', null, String(card.big.td)));
+        stats.appendChild(el('small', null, 'TD'));
+      }
+      art.appendChild(stats);
     }
     face.appendChild(art);
 

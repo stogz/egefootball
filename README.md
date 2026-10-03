@@ -1063,17 +1063,27 @@ pyramid, and each rarity has its own pull odds:
 
 | Rarity | Colour | Chance per card | Game from | Play from | In the files |
 | --- | --- | --- | --- | --- | --- |
-| Common | gray | 46% | — | — | 250 |
+| Common | gray | 46.15% | — | — | 250 |
 | Uncommon | green | 26% | 6.5 | 7.1 | 128 |
-| Rare | orange | 14% | 11 | 8.6 | 103 |
+| Rare | orange | 14% | 11 | 8.6 | 102 |
 | Epic | red | 8% | 16 | 9.6 | 58 |
 | Legendary | purple | 4% | 20 | 11.1 | 37 |
-| Mystic | gold | 1.6% | 24 | 12.1 | 19 |
-| Iconic | pink | 0.4% | 28 | 13 | 12 |
+| Mystic | gold | 1.6% | 24 | 12.1 | 29 |
+| Iconic | pink | 0.25% | picked | picked | 3 |
+
+**Iconic is picked by hand, not graded.** Grading stops at Mystic, and only
+the moments in `ICONIC` at the top of `data/cards.js` are Iconic: Sam's five
+touchdowns against Centennial (2019), Paxon's two touchdowns in the FCS
+Championship (2020) and Cooper's 80 yard touchdown against Helix (2019). Add
+an id there to make another. With three of them at 0.25% a card, about one
+Base Pack in 130 has an Iconic in it.
 
 From Rare up the frame catches the light: a still sheen on Rare, a moving one
 on Epic and Legendary, gold foil on Mystic and holographic on Iconic, the
 same foils as the booster stickers.
+
+Across the bottom of the picture, a play card prints its yardage big (*44
+YD TD*) and a performance card its yards and touchdowns (*312 YDS 5 TD*).
 
 ### Packs
 
@@ -1135,7 +1145,8 @@ Packs, a player gets back roughly 30–50% of what they spend on packs
 first. Cards are a place to spend credits for fun, never a way to make them.
 Rough cost of each set in Base Packs: Starting Six about 25 credits, a
 player or Highlight Reel 50–115, Hall of Fame about 75, a past season about
-200, Full Spectrum about 275. The live season's set is about 65 through
+200, Full Spectrum about 500 (it needs one of the three Iconics). The live
+season's set is about 65 through
 Season Packs.
 
 **A reward booster is an ordinary booster.** It lands on the same stacked
@@ -1188,10 +1199,12 @@ cards, sets claimed, open trades and showcase, with two resets for one
 player or for everybody:
 
 - **Clear library** takes every card out of the collection, empties the
-  showcase and cancels open trades. Claimed sets stay claimed and credits
-  stay spent.
-- **Reset goals** lets every Library set be claimed again. Cards are kept,
-  and rewards already paid stay paid.
+  showcase, cancels open trades and resets the goals, so the player starts
+  the Library over from nothing. Credits stay spent.
+- **Reset goals** only lets every Library set be claimed again. Cards are
+  kept.
+
+Rewards already paid stay paid either way.
 
 Neither runs until RESET is typed, and neither can be undone. Both are
 database functions that refuse anybody who is not in `admins`.
