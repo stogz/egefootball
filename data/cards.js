@@ -77,8 +77,12 @@ EGE.cards = (function () {
 
   /* `size` cards each. `seasonOnly` keeps a pack to the live season, which
      is what fills up a week at a time. `floor` on the pack is the rarity its
-     last card is guaranteed to reach. Prices and sizes are charged by
-     open_card_pack in supabase/schema.sql. */
+     last card is guaranteed to reach. `booster` is a shop booster that comes
+     in the pack as well, into the shop inventory. Prices, sizes and the
+     booster are all handed out by open_card_pack in supabase/schema.sql.
+
+     The Pro Pack costs what a 1.5x Booster does in the shop, so it is never
+     the cheaper way to buy one -- the cards come on top. */
   var PACKS = [
     {
       key: 'base',
@@ -100,10 +104,12 @@ EGE.cards = (function () {
     {
       key: 'pro',
       name: 'Pro Pack',
-      credits: 10,
+      credits: 15,
       size: 5,
       floor: 'rare',
-      blurb: 'Five cards from any season, the last one Rare or better.'
+      booster: 'boost-1-5',
+      blurb: 'Five cards from any season, the last one Rare or better, and a ' +
+             '1.5x Booster for your games.'
     }
   ];
 
@@ -182,7 +188,7 @@ EGE.cards = (function () {
       if (n('rushingYards') >= 20 || n('rushingTd')) {
         parts.push(n('rushingYards') + ' RUSH' + (n('rushingTd') ? ' ' + n('rushingTd') + ' TD' : ''));
       }
-      return parts.join(' · ');
+      return parts.join(' \u00b7 ');
     }
 
     var rushing = n('carries') > 0;
@@ -193,7 +199,7 @@ EGE.cards = (function () {
       if (n('rushingTd')) { parts.push(n('rushingTd') + ' TD'); }
       if (catching) { parts.push(n('receptions') + ' REC ' + n('receivingYards') + ' YDS'); }
       if (n('receivingTd')) { parts.push(n('receivingTd') + ' REC TD'); }
-      return parts.join(' · ');
+      return parts.join(' \u00b7 ');
     }
 
     parts.push(n('receptions') + ' REC');
@@ -201,7 +207,7 @@ EGE.cards = (function () {
     if (n('receivingTd')) { parts.push(n('receivingTd') + ' TD'); }
     if (n('rushingYards')) { parts.push(n('rushingYards') + ' RUSH'); }
     if (n('rushingTd')) { parts.push(n('rushingTd') + ' RUSH TD'); }
-    return parts.join(' · ');
+    return parts.join(' \u00b7 ');
   }
 
   function versus(game) {

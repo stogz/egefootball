@@ -24,6 +24,7 @@ EGE.cardsView = (function () {
     credits: null,
     loaded: false,
     fresh: {},          /* ids pulled since the page loaded, for the New badge */
+    trades: [],         /* every trade this player is on either side of */
     filter: { rarity: 'all', kind: 'all', player: 'all', sort: 'rarity' }
   };
 
@@ -79,7 +80,7 @@ EGE.cardsView = (function () {
 
   function points(n) {
     var shown = Math.round(n * 10) / 10;
-    return (shown < 0 ? '−' : '') + Math.abs(shown).toFixed(1);
+    return (shown < 0 ? '\u2212' : '') + Math.abs(shown).toFixed(1);
   }
 
   /* Tells the rest of the page the balance has moved, and that the
@@ -159,7 +160,7 @@ EGE.cardsView = (function () {
     var plate = el('div', 'ege-tcard__plate');
     plate.appendChild(el('div', 'ege-tcard__name', card.player.name));
     plate.appendChild(el('div', 'ege-tcard__meta',
-      [card.position, team.school].filter(Boolean).join(' · ')));
+      [card.position, team.school].filter(Boolean).join(' \u00b7 ')));
     face.appendChild(plate);
 
     var body = el('div', 'ege-tcard__body');
@@ -175,12 +176,12 @@ EGE.cardsView = (function () {
     var foot = el('div', 'ege-tcard__foot');
     foot.appendChild(el('span', 'ege-tcard__rarity', r.name));
     foot.appendChild(el('span', 'ege-tcard__when',
-      (card.event ? card.event : 'Wk ' + card.week) + ' · ' + card.season));
+      (card.event ? card.event : 'Wk ' + card.week) + ' \u00b7 ' + card.season));
     face.appendChild(foot);
 
     node.appendChild(face);
 
-    if (opts.count > 1) { node.appendChild(el('span', 'ege-tcard__count', '×' + opts.count)); }
+    if (opts.count > 1) { node.appendChild(el('span', 'ege-tcard__count', '\u00d7' + opts.count)); }
     if (opts.isNew) { node.appendChild(el('span', 'ege-tcard__new', 'New')); }
 
     return node;
@@ -208,7 +209,8 @@ EGE.cardsView = (function () {
     body.appendChild(el('span', 'ege-pack__brand', 'EGE Football'));
     body.appendChild(el('span', 'ege-pack__name', pack.name.replace(/ Pack$/, '')));
     body.appendChild(el('span', 'ege-pack__count',
-      pack.size + ' cards' + (pack.seasonOnly ? ' · ' + EGE.currentSeason : '')));
+      pack.size + ' cards' + (pack.booster ? ' + booster' : '') +
+      (pack.seasonOnly ? ' \u00b7 ' + EGE.currentSeason : '')));
     art.appendChild(body);
     return art;
   }
@@ -228,7 +230,7 @@ EGE.cardsView = (function () {
       var pool = EGE.cards.pullable(pack.key);
       var buy = el('button', 'fb-btn fb-btn--primary fb-btn--block ege-packtile__buy');
       buy.type = 'button';
-      buy.appendChild(document.createTextNode('Buy & Rip · '));
+      buy.appendChild(document.createTextNode('Buy & Rip \u00b7 '));
       buy.appendChild(price(pack.credits));
 
       var why = null;
@@ -248,7 +250,7 @@ EGE.cardsView = (function () {
       holder.appendChild(tile);
     });
 
-    byId('cardsBalance').textContent = state.credits === null ? '—' : state.credits;
+    byId('cardsBalance').textContent = state.credits === null ? '\u2014' : state.credits;
   }
 
   function buyPack(pack, button) {
@@ -279,7 +281,8 @@ EGE.cardsView = (function () {
       walletChanged(res.credits);
       renderAll();
 
-      openRip({ pack: pack, cards: res.cards, isNew: isNew });
+      openRip({ pack: pack, cards: res.cards, isNew: isNew,
+                extras: res.booster ? ['A 1.5x Booster is in your shop inventory'] : [] });
     });
   }
 
@@ -349,7 +352,7 @@ EGE.cardsView = (function () {
 
     var best = options.cards.slice().sort(EGE.cards.compare)[0];
     var fresh = options.isNew.filter(Boolean).length;
-    rip.summary = (options.extras && options.extras.length ? options.extras.join(' · ') + '. ' : '') +
+    rip.summary = (options.extras && options.extras.length ? options.extras.join(' \u00b7 ') + '. ' : '') +
       (best && options.cards.length > 1 ? 'Best pull: ' + EGE.cards.rarity(best.rarity).name + ' ' + best.player.first + '. ' : '') +
       (options.cards.length > 1 ? fresh + ' new to your collection.' : (fresh ? 'New to your collection.' : 'One you had already.'));
 
@@ -357,7 +360,7 @@ EGE.cardsView = (function () {
 
     var head = el('div', 'ege-rip__head');
     head.appendChild(el('h2', 'ege-rip__title', options.title || (options.pack && options.pack.name)));
-    var close = el('button', 'fb-modal__close ege-rip__close', '×');
+    var close = el('button', 'fb-modal__close ege-rip__close', '\u00d7');
     close.type = 'button';
     close.setAttribute('aria-label', 'Close');
     close.addEventListener('click', closeRip);
@@ -410,7 +413,7 @@ EGE.cardsView = (function () {
       var again = el('button', 'fb-btn ege-rip__again');
       again.type = 'button';
       again.hidden = true;
-      again.appendChild(document.createTextNode('Another · '));
+      again.appendChild(document.createTextNode('Another \u00b7 '));
       again.appendChild(price(options.pack.credits));
       again.addEventListener('click', function () {
         var pack = options.pack;
@@ -438,22 +441,39 @@ EGE.cardsView = (function () {
     }
   }
 
-  /* --- a card up close -------------------------------------------------- */
+  /* --- the overlay, for anything else ----------------------------------- */
 
-  function zoom(card) {
+  /* The same dark overlay a pack opens in, with a title and a close, for a
+     card up close, the trade builder and the showcase picker. Hands back the
+     stage to fill. */
+  function openOverlay(title, modifier) {
     var node = byId('cardRip');
     node.innerHTML = '';
     rip = { node: node, pack: null, returnTo: document.activeElement };
 
-    var stage = el('div', 'ege-rip__stage ege-rip__stage--zoom');
+    var stage = el('div', 'ege-rip__stage' + (modifier ? ' ' + modifier : ''));
     var head = el('div', 'ege-rip__head');
-    head.appendChild(el('h2', 'ege-rip__title', card.player.name));
-    var close = el('button', 'fb-modal__close ege-rip__close', '×');
+    head.appendChild(el('h2', 'ege-rip__title', title));
+    var close = el('button', 'fb-modal__close ege-rip__close', '\u00d7');
     close.type = 'button';
     close.setAttribute('aria-label', 'Close');
     close.addEventListener('click', closeRip);
     head.appendChild(close);
     stage.appendChild(head);
+
+    node.appendChild(stage);
+    node.hidden = false;
+    document.documentElement.classList.add('ege-noscroll');
+    return stage;
+  }
+
+  /* --- a card up close -------------------------------------------------- */
+
+  /* `owned`, when given, is how many the viewer has -- left off for somebody
+     else's card, on a showcase or in a trade. */
+  function zoom(card, options) {
+    var opts = options || {};
+    var stage = openOverlay(card.player.name, 'ege-rip__stage--zoom');
 
     var row = el('div', 'ege-rip__cards ege-rip__cards--1');
     var holder = el('div', 'ege-zoom__card');
@@ -467,17 +487,17 @@ EGE.cardsView = (function () {
       facts.appendChild(el('dt', null, label));
       facts.appendChild(el('dd', null, value));
     }
-    fact('Rarity', r.name + ' · ' + r.odds + '% of pulls');
+    fact('Rarity', r.name + ' \u00b7 ' + r.odds + '% of pulls');
     fact('Fantasy', points(card.points) + ' points');
-    fact('Game', card.versus + ' · ' + (card.event || 'Week ' + card.week) + ', ' + card.season +
-      (card.game.result ? ' · ' + card.game.result.teamScore + '–' + card.game.result.opponentScore : ''));
+    fact('Game', card.versus + ' \u00b7 ' + (card.event || 'Week ' + card.week) + ', ' + card.season +
+      (card.game.result ? ' \u00b7 ' + card.game.result.teamScore + '\u2013' + card.game.result.opponentScore : ''));
     if (card.kind === 'play') {
       fact('The play', card.text);
       fact('That game', EGE.cards.statSummary(card.player.position, card.game.stats));
     } else {
       fact('Line', card.line);
     }
-    fact('Owned', String(state.owned[card.id] || 0));
+    if (typeof opts.owned === 'number') { fact('Owned', String(opts.owned)); }
     stage.appendChild(facts);
 
     var actions = el('div', 'ege-rip__actions');
@@ -486,10 +506,6 @@ EGE.cardsView = (function () {
     done.addEventListener('click', closeRip);
     actions.appendChild(done);
     stage.appendChild(actions);
-
-    node.appendChild(stage);
-    node.hidden = false;
-    document.documentElement.classList.add('ege-noscroll');
     done.focus({ preventScroll: true });
   }
 
@@ -591,20 +607,320 @@ EGE.cardsView = (function () {
     shown.forEach(function (card) {
       var node = cardEl(card, { count: state.owned[card.id], isNew: state.fresh[card.id] });
       pressable(node, describe(card) + (state.owned[card.id] > 1 ? ', ' + state.owned[card.id] + ' owned' : ''),
-        function () { zoom(card); });
+        function () { zoom(card, { owned: state.owned[card.id] || 0 }); });
       grid.appendChild(node);
     });
 
     var out = EGE.cards.pullable(null).length;
     byId('collectionCount').textContent = state.loaded
-      ? cardCount() + (cardCount() === 1 ? ' card' : ' cards') + ' · ' + mine.length + ' of ' + out + ' different'
-      : 'Loading…';
+      ? cardCount() + (cardCount() === 1 ? ' card' : ' cards') + ' \u00b7 ' + mine.length + ' of ' + out + ' different'
+      : 'Loading\u2026';
 
     var empty = byId('collectionEmpty');
     empty.hidden = !state.loaded || shown.length > 0;
     empty.textContent = mine.length
       ? 'Nothing you own matches that. Try another filter.'
       : 'No cards yet. Rip a pack and they land here.';
+  }
+
+  /* --- trades ----------------------------------------------------------- */
+
+  var MAX_SIDE = 6;   /* the most cards either side of one offer; schema.sql agrees */
+
+  function me() { return state.player ? state.player.email.toLowerCase() : ''; }
+
+  function playerByEmail(email) {
+    var e = String(email || '').toLowerCase();
+    return EGE.players.filter(function (p) { return p.email && p.email.toLowerCase() === e; })[0] || null;
+  }
+
+  function firstName(email) {
+    var p = playerByEmail(email);
+    return p ? p.first : email;
+  }
+
+  /* Who there is to trade with: everybody else with an account. */
+  function partners() {
+    return EGE.playersWithAccounts().filter(function (p) { return p.email.toLowerCase() !== me(); });
+  }
+
+  function whenText(iso) {
+    if (!iso) { return ''; }
+    var d = new Date(iso);
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+
+  /* A row of cards, small, each one tappable to see it up close. */
+  function cardStrip(ids, emptyText) {
+    var strip = el('div', 'ege-trade__cards');
+    var cards = (ids || []).map(EGE.cards.byId).filter(Boolean);
+    if (!cards.length) {
+      strip.appendChild(el('span', 'ege-trade__nothing', emptyText || 'Nothing'));
+      return strip;
+    }
+    cards.forEach(function (card) {
+      var node = cardEl(card, {});
+      pressable(node, describe(card), function () { zoom(card, { owned: state.owned[card.id] || 0 }); });
+      strip.appendChild(node);
+    });
+    return strip;
+  }
+
+  var STATUS_TEXT = { accepted: 'Done', declined: 'Declined', cancelled: 'Taken back', expired: 'Expired' };
+
+  function tradeRow(t) {
+    var mine = t.from_email.toLowerCase() === me();
+    var other = mine ? t.to_email : t.from_email;
+    var row = el('article', 'ege-trade ege-trade--' + t.status);
+
+    var head = el('div', 'ege-trade__head');
+    var who = el('div', 'ege-trade__who');
+    var them = playerByEmail(other);
+    if (them) {
+      var face = el('img', 'ege-avatar ege-avatar--sm');
+      face.src = them.headshot;
+      face.alt = '';
+      who.appendChild(face);
+    }
+    who.appendChild(el('strong', null, (mine ? 'To ' : 'From ') + (them ? them.name : other)));
+    who.appendChild(el('span', 'fb-meta', whenText(t.created_at)));
+    head.appendChild(who);
+    if (t.status !== 'open') {
+      head.appendChild(el('span', 'fb-tag' + (t.status === 'accepted' ? ' fb-tag--sage' : ' fb-tag--outline'),
+        STATUS_TEXT[t.status] || t.status));
+    }
+    row.appendChild(head);
+
+    /* Always from the reader's side: what you give, what you get. */
+    var youGive = mine ? t.give : t.take;
+    var youGet = mine ? t.take : t.give;
+    var sides = el('div', 'ege-trade__sides');
+    var give = el('div', 'ege-trade__side');
+    give.appendChild(el('span', 'ege-trade__label', 'You give'));
+    give.appendChild(cardStrip(youGive, 'Nothing \u2014 a gift to you'));
+    var get = el('div', 'ege-trade__side');
+    get.appendChild(el('span', 'ege-trade__label', 'You get'));
+    get.appendChild(cardStrip(youGet, mine ? 'Nothing \u2014 a gift from you' : 'Nothing'));
+    sides.appendChild(give);
+    sides.appendChild(el('span', 'ege-trade__swap', '\u21c4'));
+    sides.appendChild(get);
+    row.appendChild(sides);
+
+    if (t.status === 'open') {
+      var actions = el('div', 'fb-row fb-row--wrap ege-trade__actions');
+      if (mine) {
+        actions.appendChild(el('span', 'fb-meta', 'Waiting on ' + firstName(other) + '.'));
+        actions.appendChild(actionButton('Take it back', '', function (b) { answer(t, 'cancel', b); }));
+      } else {
+        actions.appendChild(actionButton('Accept', 'fb-btn--primary', function (b) { answer(t, 'accept', b); }));
+        actions.appendChild(actionButton('Decline', '', function (b) { answer(t, 'decline', b); }));
+      }
+      row.appendChild(actions);
+    }
+    return row;
+  }
+
+  function actionButton(label, modifier, onClick) {
+    var b = el('button', 'fb-btn fb-btn--sm ' + (modifier || ''), label);
+    b.type = 'button';
+    b.addEventListener('click', function () { onClick(b); });
+    return b;
+  }
+
+  function answer(t, what, button) {
+    button.disabled = true;
+    say('', false);
+    var call = what === 'cancel' ? EGE.cardStore.cancelTrade(t.id)
+      : EGE.cardStore.respondTrade(t.id, what === 'accept');
+
+    call.then(function (res) {
+      if (!res.ok) { say(res.message, true); button.disabled = false; return; }
+      if (res.status === 'accepted') {
+        say('Trade done with ' + firstName(t.from_email) + '. The cards are in your collection.', false);
+      } else if (res.status === 'expired') {
+        say('That trade cannot go through any more: one of you no longer has a card it was for.', true);
+      } else if (res.status === 'declined') {
+        say('Declined.', false);
+      } else {
+        say('Offer taken back.', false);
+      }
+      if (EGE.showcase) { EGE.showcase.forget(); }
+      refresh();
+    });
+  }
+
+  function renderTrades() {
+    var holder = byId('tradeList');
+    holder.innerHTML = '';
+    var trades = state.trades;
+
+    var incoming = trades.filter(function (t) { return t.status === 'open' && t.to_email.toLowerCase() === me(); });
+    var outgoing = trades.filter(function (t) { return t.status === 'open' && t.from_email.toLowerCase() === me(); });
+    var done = trades.filter(function (t) { return t.status !== 'open'; }).slice(0, 6);
+
+    [['Offers to you', incoming], ['Your offers', outgoing], ['Recent', done]].forEach(function (group) {
+      if (!group[1].length) { return; }
+      var section = el('section', 'ege-library__group');
+      section.appendChild(el('h4', 'ege-library__title', group[0]));
+      var list = el('div', 'ege-trades');
+      group[1].forEach(function (t) { list.appendChild(tradeRow(t)); });
+      section.appendChild(list);
+      holder.appendChild(section);
+    });
+
+    if (!trades.length) {
+      holder.appendChild(el('p', 'fb-meta', state.loaded
+        ? 'No trades yet. Offer some of your cards for some of somebody else\u2019s, or give one away.'
+        : 'Loading\u2026'));
+    }
+
+    byId('tradesCount').textContent = incoming.length
+      ? incoming.length + (incoming.length === 1 ? ' offer waiting on you' : ' offers waiting on you')
+      : '';
+    byId('tradeNew').disabled = !state.loaded || !partners().length;
+    setBadge(incoming.length);
+  }
+
+  /* --- the trade builder ------------------------------------------------- */
+
+  function openTradeBuilder() {
+    var build = { to: null, give: [], take: [], theirs: null, filterMine: 'all', filterTheirs: 'all' };
+    var stage = openOverlay('Propose a trade', 'ege-rip__stage--trade');
+    var panel = el('div', 'fb-panel ege-tradebuilder');
+    stage.appendChild(panel);
+
+    var head = el('div', 'fb-panel__head');
+    var pickLabel = el('label', 'ege-field ege-field--inline');
+    pickLabel.appendChild(el('span', 'fb-eyebrow', 'Trade with'));
+    var pick = el('select', 'fb-select');
+    partners().forEach(function (p) { pick.appendChild(new Option(p.name, p.email)); });
+    pickLabel.appendChild(pick);
+    head.appendChild(pickLabel);
+    panel.appendChild(head);
+
+    var cols = el('div', 'ege-tradecols');
+    var mineCol = el('div', 'ege-tradecol');
+    var theirsCol = el('div', 'ege-tradecol');
+    cols.appendChild(mineCol);
+    cols.appendChild(theirsCol);
+    panel.appendChild(cols);
+
+    var foot = el('div', 'fb-panel__foot');
+    var summary = el('span', 'fb-meta');
+    var send = el('button', 'fb-btn fb-btn--primary', 'Send the offer');
+    send.type = 'button';
+    foot.appendChild(summary);
+    foot.appendChild(send);
+    panel.appendChild(foot);
+
+    function column(holder, title, owned, picked, filterKey, note) {
+      holder.innerHTML = '';
+      var top = el('div', 'ege-tradecol__head');
+      top.appendChild(el('h4', 'ege-item__name', title));
+      top.appendChild(el('span', 'fb-tag fb-tag--num', picked.length + ' / ' + MAX_SIDE));
+      holder.appendChild(top);
+
+      if (owned === null) {
+        holder.appendChild(el('p', 'fb-meta', 'Loading\u2026'));
+        return;
+      }
+
+      var filter = el('select', 'fb-select ege-filterselect');
+      filter.setAttribute('aria-label', 'Rarity');
+      filter.appendChild(new Option('Every rarity', 'all'));
+      EGE.cards.RARITIES.forEach(function (r) { filter.appendChild(new Option(r.name, r.key)); });
+      filter.value = build[filterKey];
+      filter.addEventListener('change', function () { build[filterKey] = filter.value; draw(); });
+      holder.appendChild(filter);
+
+      var cards = Object.keys(owned).map(EGE.cards.byId).filter(function (c) {
+        return c && (build[filterKey] === 'all' || c.rarity === build[filterKey]);
+      }).sort(EGE.cards.compare);
+
+      var grid = el('div', 'ege-tradegrid');
+      cards.forEach(function (card) {
+        var on = picked.indexOf(card.id) !== -1;
+        var node = cardEl(card, { count: owned[card.id] });
+        if (on) { node.classList.add('is-picked'); }
+        node.setAttribute('aria-pressed', on ? 'true' : 'false');
+        pressable(node, describe(card) + (on ? ', in the offer' : ''), function () {
+          var at = picked.indexOf(card.id);
+          if (at !== -1) { picked.splice(at, 1); }
+          else if (picked.length < MAX_SIDE) { picked.push(card.id); }
+          draw();
+        });
+        grid.appendChild(node);
+      });
+      if (!cards.length) { grid.appendChild(el('p', 'fb-meta', note)); }
+      holder.appendChild(grid);
+    }
+
+    function draw() {
+      var name = firstName(build.to);
+      column(mineCol, 'You give', state.owned, build.give, 'filterMine', 'No cards of yours to offer here.');
+      column(theirsCol, 'You get from ' + name, build.theirs, build.take, 'filterTheirs',
+        name + ' has no cards here.');
+      summary.textContent = build.give.length
+        ? 'You give ' + build.give.length + ', you get ' + build.take.length +
+          (build.take.length ? '.' : ' \u2014 a gift.')
+        : 'Pick at least one of your cards to offer.';
+      send.disabled = !build.give.length || build.theirs === null;
+    }
+
+    function choose(email) {
+      build.to = email;
+      build.take = [];
+      build.theirs = null;
+      draw();
+      EGE.cardStore.collectionFor(email).then(function (got) {
+        if (build.to !== email) { return; }
+        build.theirs = got ? got.owned : {};
+        draw();
+      });
+    }
+
+    pick.addEventListener('change', function () { choose(pick.value); });
+
+    send.addEventListener('click', function () {
+      send.disabled = true;
+      EGE.cardStore.proposeTrade(build.to, build.give.slice(), build.take.slice()).then(function (res) {
+        if (!res.ok) {
+          summary.textContent = res.message;
+          send.disabled = false;
+          return;
+        }
+        closeRip();
+        say('Offer sent to ' + firstName(build.to) + '.', false);
+        refresh();
+      });
+    });
+
+    choose(pick.value);
+    pick.focus({ preventScroll: true });
+  }
+
+  /* --- the nav badge ----------------------------------------------------- */
+
+  /* How many offers are waiting on this player, on the Cards tab in the nav,
+     so a trade does not sit unanswered because nobody opened the tab. */
+  function setBadge(count) {
+    var badge = byId('navCardsBadge');
+    if (!badge) { return; }
+    badge.textContent = count;
+    badge.hidden = !count;
+    var link = byId('navCards');
+    if (link) {
+      link.setAttribute('aria-label', count ? 'Cards, ' + count + ' trade offer' + (count === 1 ? '' : 's') + ' waiting' : 'Cards');
+    }
+  }
+
+  function refreshBadge() {
+    var player = EGE.auth.currentPlayer();
+    if (!player) { setBadge(0); return Promise.resolve(); }
+    return EGE.cardStore.tradesFor(player.email).then(function (trades) {
+      var e = player.email.toLowerCase();
+      setBadge(trades.filter(function (t) { return t.status === 'open' && t.to_email.toLowerCase() === e; }).length);
+    });
   }
 
   /* --- the library ------------------------------------------------------ */
@@ -619,7 +935,7 @@ EGE.cardsView = (function () {
       var item = EGE.shopItem ? EGE.shopItem(rw.booster) : null;
       parts.push(item ? item.name : '1.5x Booster');
     }
-    return parts.join(' · ');
+    return parts.join(' \u00b7 ');
   }
 
   /* Slots that want the same thing are one line with a pip each, so "ten
@@ -642,7 +958,7 @@ EGE.cardsView = (function () {
         var pip = el('span', 'ege-set__pip' + (s.card ? ' is-filled' : ''));
         if (s.card) {
           pip.style.background = EGE.cards.rarity(s.card.rarity).color;
-          pip.title = s.card.player.name + ' · ' + s.card.headline + ' · ' + s.card.season;
+          pip.title = s.card.player.name + ' \u00b7 ' + s.card.headline + ' \u00b7 ' + s.card.season;
         }
         pips.appendChild(pip);
       });
@@ -688,7 +1004,7 @@ EGE.cardsView = (function () {
         line.appendChild(document.createTextNode('Pulled '));
         var name = el('button', 'ege-linkbtn', EGE.cards.rarity(got.rarity).name + ' ' + got.player.first + ', ' + got.headline);
         name.type = 'button';
-        name.addEventListener('click', function () { zoom(got); });
+        name.addEventListener('click', function () { zoom(got, { owned: state.owned[got.id] || 0 }); });
         line.appendChild(name);
         tile.appendChild(line);
       }
@@ -764,7 +1080,7 @@ EGE.cardsView = (function () {
       return !state.claims[set.key] && EGE.cards.fill(set, ownedIds()).complete;
     }).length;
     byId('libraryCount').textContent = claimed + ' of ' + sets.length + ' claimed' +
-      (ready ? ' · ' + ready + ' ready to claim' : '');
+      (ready ? ' \u00b7 ' + ready + ' ready to claim' : '');
   }
 
   /* --- the odds, said out loud ------------------------------------------ */
@@ -795,6 +1111,7 @@ EGE.cardsView = (function () {
   function renderAll() {
     renderPacks();
     renderCollection();
+    renderTrades();
     renderLibrary();
     renderOdds();
   }
@@ -803,6 +1120,7 @@ EGE.cardsView = (function () {
     if (built) { return; }
     built = true;
     renderFilters();
+    byId('tradeNew').addEventListener('click', openTradeBuilder);
   }
 
   function refresh() {
@@ -812,7 +1130,8 @@ EGE.cardsView = (function () {
     return Promise.all([
       EGE.cardStore.collectionFor(player.email),
       EGE.cardStore.claimsFor(player.email),
-      EGE.wallet.creditsFor(player.email)
+      EGE.wallet.creditsFor(player.email),
+      EGE.cardStore.tradesFor(player.email)
     ]).then(function (all) {
       if (state.player !== player) { return; }
       if (all[0] === null) {
@@ -823,6 +1142,7 @@ EGE.cardsView = (function () {
       }
       state.claims = all[1];
       state.credits = all[2];
+      state.trades = all[3];
       state.loaded = all[0] !== null;
       renderAll();
     });
@@ -854,7 +1174,20 @@ EGE.cardsView = (function () {
     state.credits = null;
     state.loaded = false;
     state.fresh = {};
+    state.trades = [];
+    setBadge(0);
   }
 
-  return { render: render, reset: reset };
+  /* What the showcase on a player page and the admin panel draw with. */
+  return {
+    render: render,
+    reset: reset,
+    refreshBadge: refreshBadge,
+    cardEl: cardEl,
+    describe: describe,
+    pressable: pressable,
+    zoom: zoom,
+    openOverlay: openOverlay,
+    closeOverlay: closeRip
+  };
 })();

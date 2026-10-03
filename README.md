@@ -1081,7 +1081,11 @@ same foils as the booster stickers.
 | --- | --- | --- | --- |
 | Base | 5 | 3 | any season |
 | Season | 6 | 3 | the live season only, the last card Uncommon or better |
-| Pro | 10 | 5 | any season, the last card Rare or better |
+| Pro | 15 | 5 | any season, the last card Rare or better, **plus a 1.5x Booster** |
+
+The Pro Pack's booster goes straight into the shop inventory like a bought
+one, and it costs what a 1.5x Booster does in the shop, so it is never the
+cheap way to buy a booster: the cards come on top.
 
 Each card rolls its rarity on the odds first, then is drawn from every
 published card of that rarity the pack can hold. A rarity with nothing out
@@ -1093,8 +1097,9 @@ the sealed pack comes up, a tap tears it open, the cards are dealt face down,
 and each one turns over on a tap with a flash of its colour from Rare up.
 Cards a player has never had before say *New*.
 
-The price and size are charged by `open_card_pack()` in
-`supabase/schema.sql`, not by the page. **Change both together.** Which cards
+The price, the size and the Pro Pack's booster are handed out by
+`open_card_pack()` in `supabase/schema.sql`, not by the page. **Change both
+together.** Which cards
 are in a pack the page decides, because the season files are not in
 Postgres. That is the same trust the credit awards run on, with the easy half
 closed the same way: a pack has to hold exactly its size of real-looking ids,
@@ -1105,7 +1110,7 @@ and it costs what it costs.
 Every card owned, rarest first by default, with how many of each (`×2`).
 Filter by rarity, by kind and by player; sort by rarity, score, newest pull
 or game. Tap a card to hold it up close with the game it came from.
-Duplicates are kept; nothing uses them yet.
+Duplicates are kept, and are what trades are made of.
 
 ### The library
 
@@ -1143,14 +1148,66 @@ every card the set was completed with is really in the collection, that the
 set has not been claimed before, and, for anybody but an admin, holds the
 reward to 20 credits and the 1.5x.
 
+### Trades
+
+The Trades panel on the Cards tab. **Propose a trade** opens a builder: pick
+who with, tap up to six of your cards to give and up to six of theirs you
+want, and send it. Asking for nothing makes it a gift. Every signed-in player
+can see every collection, so you can look through somebody's cards to choose
+from them; signed out, nobody can.
+
+Nothing moves until the other player accepts. Then both sides move in one
+transaction, after a check that both of you still have what was put up. A
+card can be in several offers at once, and only the first one accepted gets
+it; the rest come back **Expired** when they are answered. The player who
+offered can take an open offer back, and the other can decline it.
+
+Offers waiting on a player show as a count on the Cards link in the nav, so
+one does not sit unanswered because nobody opened the tab. Sets are still
+claimed once per player, so cards passed around can help more than one
+player finish a set.
+
+`propose_card_trade()`, `respond_card_trade()` and `cancel_card_trade()` in
+`supabase/schema.sql` do the work, and check that the cards are really
+there, that only the player an offer is to can answer it, and that nobody
+has more than ten offers out at once.
+
+### The showcase
+
+Up to five cards a player picks to show off, on their own player page under
+the header. Anybody can see it, signed in or not. On your own page,
+**Edit** turns each slot into Replace and Remove, and an empty slot into
+**+ Add a card**, which opens your collection to pick from; **Save** puts it
+up. Only cards you own can go up, and a card traded away comes down on its
+own. A player with nothing up has no Showcase panel for anybody else.
+
+### Admin controls
+
+The Cards panel on the admin page shows every player's cards, different
+cards, sets claimed, open trades and showcase, with two resets for one
+player or for everybody:
+
+- **Clear library** takes every card out of the collection, empties the
+  showcase and cancels open trades. Claimed sets stay claimed and credits
+  stay spent.
+- **Reset goals** lets every Library set be claimed again. Cards are kept,
+  and rewards already paid stay paid.
+
+Neither runs until RESET is typed, and neither can be undone. Both are
+database functions that refuse anybody who is not in `admins`.
+
 ### In the database
 
-`player_cards` (who owns which ids and how many), `card_packs` (every pack
-opened and what was in it) and `card_set_claims`. All three are readable by
-their owner and an admin. None has an insert, update or delete policy: cards
-only arrive through `open_card_pack()` and `claim_card_set()`, each one
-transaction, so a pack is never paid for without arriving and a reward is
-never paid twice. **Re-run `supabase/schema.sql` after pulling this change**,
+`player_cards` (who owns which ids and how many, readable by any signed-in
+player), `card_packs` (every pack opened and what was in it),
+`card_set_claims`, `card_trades` (readable by the two players in it) and
+`card_showcases` (public). None has an insert, update or delete policy:
+cards only move through `open_card_pack()`, `claim_card_set()`, the trade
+functions and the admin's two resets, each one transaction, so a pack is
+never paid for without arriving, a trade never half happens and a reward is
+never paid twice. The small helpers those share (`give_card`, `take_card`,
+`give_booster`, `owns_cards`, `prune_showcase`) are taken back from the
+browser's roles, since they do no checking of their own. **Re-run `supabase/schema.sql` after pulling this change**,
 or the tab says it cannot load the cards.
 
 ---
@@ -1564,6 +1621,10 @@ the earnings table — a salary or an honour, which all stack. An award is added
 straight onto the balance and not logged anywhere; the offseason 60 is not in
 the list, because it pays itself.
 
+**Cards** — who has how many cards, sets claimed, open trades and showcase,
+and the two resets, **Clear library** and **Reset goals**, for one player or
+everybody. See *Cards → Admin controls*.
+
 **Credits Earned** — what the season has paid out so far, by player: the
 touchdowns or fantasy points scored, what the games paid, and the allowance.
 Awards handed out by hand are not counted.
@@ -1708,8 +1769,10 @@ Built so far:
   rarities and their odds, the packs, and the library's sets. See *Cards*.
 - `js/cards.js` — the card collection in Supabase: owned cards, set claims,
   opening a pack and claiming a set.
-- `js/cards-view.js` — the Cards tab: packs, the rip, the collection and the
-  library.
+- `js/cards-view.js` — the Cards tab: packs, the rip, the collection, trades
+  and the library.
+- `js/showcase.js` — the showcase on a player page, and editing your own.
+- `js/cards-admin.js` — the Cards panel on the admin page and its two resets.
 - `data/economy.js` — every number about credits in one place: what a rating
   point costs, how much overall a point is worth, what a touchdown pays, and
   the tuning behind all of it. Nothing else in the site invents a price.

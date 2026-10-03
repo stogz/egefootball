@@ -4590,6 +4590,151 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-odds { min-width: 0; }
 .ege-odds tbody tr { cursor: default; }
 
+/* --- trades --------------------------------------------------------------- */
+
+/* How many offers are waiting, on the Cards link in the nav. */
+.ege-navbadge {
+  display: inline-block;
+  min-width: 18px;
+  margin-left: 6px;
+  padding: 1px 5px;
+  background: var(--fb-accent);
+  color: var(--fb-ink);
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.4;
+  text-align: center;
+  vertical-align: 1px;
+}
+.ege-navbadge[hidden] { display: none; }
+
+.ege-trades { display: flex; flex-direction: column; gap: 14px; }
+.ege-trade {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: #fff;
+}
+.ege-trade--open { background: var(--fb-tint-wash); }
+.ege-trade--declined,
+.ege-trade--cancelled,
+.ege-trade--expired { opacity: .72; }
+.ege-trade__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ege-trade__who { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ege-trade__sides {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+}
+.ege-trade__side { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ege-trade__label {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-accent-deep);
+}
+.ege-trade__cards { display: flex; flex-wrap: wrap; gap: 10px; }
+.ege-trade__cards > .ege-tcard { width: 92px; cursor: pointer; }
+.ege-trade__nothing { font-size: .8125rem; font-weight: 600; color: var(--fb-muted); }
+.ege-trade__swap {
+  align-self: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--fb-accent-deep);
+}
+.ege-trade__actions { justify-content: flex-end; }
+.ege-trade__actions .fb-meta { margin-right: auto; }
+
+/* The builder: what you give on the left, what you get on the right, each a
+   grid of cards to tap in and out of the offer. */
+.ege-rip__stage--trade,
+.ege-rip__stage--picker { align-items: stretch; }
+.ege-tradebuilder { width: 100%; }
+.ege-tradecols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.ege-tradecol {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px 18px;
+}
+.ege-tradecol + .ege-tradecol { border-left: var(--fb-border) solid var(--fb-ink); }
+.ege-tradecol__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ege-tradecol .ege-filterselect { align-self: flex-start; }
+.ege-tradegrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+  max-height: 440px;
+  overflow-y: auto;
+  padding: 6px 8px 10px 6px;
+}
+.ege-tradegrid--tall { max-height: none; }
+.ege-tradegrid > .ege-tcard { cursor: pointer; }
+.ege-tradegrid > .ege-tcard:focus-visible { outline: 3px solid var(--fb-accent); outline-offset: 3px; }
+.ege-tradegrid > .ege-tcard.is-picked {
+  outline: 4px solid var(--fb-accent);
+  outline-offset: 2px;
+}
+.ege-tradegrid > .ege-tcard.is-picked::before {
+  content: '\2713';
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  z-index: 6;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  background: var(--fb-accent);
+  border: 2px solid var(--fb-ink);
+  font-weight: 800;
+  color: var(--fb-ink);
+}
+
+/* --- the showcase on a player page ------------------------------------------ */
+
+.ege-showcase__grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 18px;
+  max-width: 1000px;
+}
+.ege-showcase__grid > .ege-tcard { cursor: pointer; }
+.ege-showcase__slot { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ege-showcase__add {
+  aspect-ratio: 5 / 7;
+  width: 100%;
+  border: var(--fb-border-thin) dashed var(--fb-ink);
+  background: repeating-linear-gradient(-45deg, rgba(29, 36, 22, .05) 0 6px, transparent 6px 12px);
+  font-weight: 800;
+  font-size: .8125rem;
+  color: var(--fb-accent-deep);
+  cursor: pointer;
+}
+.ege-showcase__add:hover { background-color: var(--fb-tint-wash); }
+.ege-showcase__slotactions { display: flex; gap: 6px; }
+.ege-showcase__slotactions .fb-btn { flex: 1 1 0; padding-left: 4px; padding-right: 4px; }
+.ege-showcase__actions { margin-top: 18px; }
+.ege-showcase__empty { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+.ege-showcase__empty .fb-meta { margin: 0; }
+
+.ege-cardsadmin { min-width: 0; }
+.ege-cardsadmin tbody tr { cursor: default; }
+
 /* --- on a phone ----------------------------------------------------------- */
 
 @media (max-width: 620px) {
@@ -4604,6 +4749,17 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-rip__cards > .ege-flip { width: calc((100% - 20px) / 3); }
   .ege-rip__cards--1 > .ege-flip,
   .ege-zoom__card { width: min(260px, 70vw); }
+
+  .ege-trade__sides { grid-template-columns: minmax(0, 1fr); }
+  .ege-trade__swap { transform: rotate(90deg); justify-self: center; }
+  .ege-trade__cards > .ege-tcard { width: 84px; }
+
+  .ege-tradecols { grid-template-columns: minmax(0, 1fr); }
+  .ege-tradecol { padding: 14px; }
+  .ege-tradecol + .ege-tradecol { border-left: 0; border-top: var(--fb-border) solid var(--fb-ink); }
+  .ege-tradegrid { grid-template-columns: repeat(3, minmax(0, 1fr)); max-height: 340px; gap: 10px; }
+
+  .ege-showcase__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

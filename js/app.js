@@ -271,6 +271,9 @@
     renderSchedule(player);
     renderGameLog(player);
     renderRatings(player);
+
+    /* The cards this player has picked to show off -- not tied to a season. */
+    EGE.showcase.render(player);
   }
 
   /* --- the injury report ----------------------------------------------------
@@ -4476,6 +4479,8 @@
       'If it is not deployed the week still goes out, and the scheduled bot ' +
       'posts it on its next run.';
 
+    EGE.cardsAdmin.render();
+
     return refreshAdminView().then(function () {
       fillEditorWeeks();
       renderEditor();
@@ -4996,6 +5001,7 @@
             sayShop('The season paid you ' + paid.paid + ' credits since you were ' +
                     'last here.', false);
           }
+          EGE.cardsView.refreshBadge();
           return refreshShop();
         })
         .then(route)
@@ -5182,6 +5188,8 @@
         if (window.location.hash === '#cards') { EGE.cardsView.render(); }
       }
       updateNavCreditsFromServer();
+      /* An offer may have come in while the page was put away. */
+      EGE.cardsView.refreshBadge();
     }).then(function () { refreshing = false; }, function () { refreshing = false; });
   }
 
