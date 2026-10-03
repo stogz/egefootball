@@ -210,8 +210,8 @@ holds:
   schools have no grade and no column. `EGE.defenseGrade` in
   `data/games.js`, from `data/defenses.js`.
 - **Game log** — per-game stats for that player, with the stat lines driven by
-  their position (see below), and a totals row for the season, on sand
-  (`#f5ead8`) under a hard rule.
+  their position (see below), and a totals row for the season, on the
+  panel's own cream under a hard rule.
 - **Ratings** — three tiers, top to bottom:
   - **The overall**, on a dark band across the panel: the word in orange, the
     number in white, and a green stock ticker after them — an arrow and the
