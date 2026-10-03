@@ -2013,13 +2013,13 @@ body::before {
 
 .ege-gamelog__opponent { min-width: 150px; }
 
-/* The season's totals on white under a hard rule: set apart from the games
-   above by the line and the bold, but light, so the only dark band on the
-   table is its heading. The label is the deep orange, which is what reads on
-   a light ground. */
+/* The season's totals on a warm sand under a hard rule: set apart from the
+   games above by the line, the bold and a shade of their own, but light, so
+   the only dark band on the table is its heading. The label is the deep
+   orange, which is what reads on a light ground. */
 .ege-gamelog tfoot td {
   border-top: var(--fb-border) solid var(--fb-ink);
-  background: #fff;
+  background: #f5ead8;
   color: var(--fb-ink);
   font-weight: 800;
 }
@@ -2087,9 +2087,9 @@ body::before {
   .ege-gamelog tr.is-spotlit td { animation: none; }
 }
 /* The sorted column's shade carries on through the totals, laid over their
-   white rather than replacing it. */
+   sand rather than replacing it. */
 .ege-gamelog tfoot td.is-sorted-cell {
-  background: linear-gradient(rgba(229, 110, 40, .12), rgba(229, 110, 40, .12)), #fff;
+  background: linear-gradient(rgba(229, 110, 40, .12), rgba(229, 110, 40, .12)), #f5ead8;
 }
 
 /* The multiplier that was riding on a game, beside the opponent. */
