@@ -99,7 +99,7 @@ EGE.cardStore = (function () {
       p_cards: cards.map(function (card) { return card.id; })
     }).then(function (res) {
       if (res.error) { return { ok: false, message: said(res.error) }; }
-      return { ok: true, cards: cards, credits: Number(res.data), booster: pack.booster || null };
+      return { ok: true, cards: cards, credits: Number(res.data) };
     }).catch(function (error) {
       return { ok: false, message: said(error) };
     });

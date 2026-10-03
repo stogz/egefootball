@@ -1091,11 +1091,7 @@ YD TD*) and a performance card its yards and touchdowns (*312 YDS 5 TD*).
 | --- | --- | --- | --- |
 | Base | 5 | 3 | any season |
 | Season | 6 | 3 | the live season only, the last card Uncommon or better |
-| Pro | 15 | 5 | any season, the last card Rare or better, **plus a 1.5x Booster** |
-
-The Pro Pack's booster goes straight into the shop inventory like a bought
-one, and it costs what a 1.5x Booster does in the shop, so it is never the
-cheap way to buy a booster: the cards come on top.
+| Pro | 10 | 5 | any season, the last card Rare or better |
 
 Each card rolls its rarity on the odds first, then is drawn from every
 published card of that rarity the pack can hold. A rarity with nothing out
@@ -1105,11 +1101,13 @@ a week at a time.
 **Buy & Rip** rolls the cards, pays for them and opens the pack in one go:
 the sealed pack comes up, a tap tears it open, the cards are dealt face down,
 and each one turns over on a tap with a flash of its colour from Rare up.
-Cards a player has never had before say *New*.
+Cards a player has never had before say *New*. Nothing from the pack shows
+in the collection, the library or the counts until it is put away with
+**Done**, so nothing behind it gives the pack away; a set's reward card works
+the same way.
 
-The price, the size and the Pro Pack's booster are handed out by
-`open_card_pack()` in `supabase/schema.sql`, not by the page. **Change both
-together.** Which cards
+The price and size are charged by `open_card_pack()` in
+`supabase/schema.sql`, not by the page. **Change both together.** Which cards
 are in a pack the page decides, because the season files are not in
 Postgres. That is the same trust the credit awards run on, with the easy half
 closed the same way: a pack has to hold exactly its size of real-looking ids,
@@ -1119,7 +1117,9 @@ and it costs what it costs.
 
 Every card owned, rarest first by default, with how many of each (`×2`).
 Filter by rarity, by kind and by player; sort by rarity, score, newest pull
-or game. Tap a card to hold it up close with the game it came from.
+or game. Tap a card to hold it up close with the game it came from; the
+**Game log →** button beside its stat line opens that player's page on the
+card's season and picks the game out in the game log.
 Duplicates are kept, and are what trades are made of.
 
 ### The library

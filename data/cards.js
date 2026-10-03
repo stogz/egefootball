@@ -91,12 +91,8 @@ EGE.cards = (function () {
 
   /* `size` cards each. `seasonOnly` keeps a pack to the live season, which
      is what fills up a week at a time. `floor` on the pack is the rarity its
-     last card is guaranteed to reach. `booster` is a shop booster that comes
-     in the pack as well, into the shop inventory. Prices, sizes and the
-     booster are all handed out by open_card_pack in supabase/schema.sql.
-
-     The Pro Pack costs what a 1.5x Booster does in the shop, so it is never
-     the cheaper way to buy one -- the cards come on top. */
+     last card is guaranteed to reach. Prices and sizes are charged by
+     open_card_pack in supabase/schema.sql. */
   var PACKS = [
     {
       key: 'base',
@@ -118,12 +114,10 @@ EGE.cards = (function () {
     {
       key: 'pro',
       name: 'Pro Pack',
-      credits: 15,
+      credits: 10,
       size: 5,
       floor: 'rare',
-      booster: 'boost-1-5',
-      blurb: 'Five cards from any season, the last one Rare or better, and a ' +
-             '1.5x Booster for your games.'
+      blurb: 'Five cards from any season, the last one Rare or better.'
     }
   ];
 

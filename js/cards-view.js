@@ -25,6 +25,7 @@ EGE.cardsView = (function () {
     loaded: false,
     fresh: {},          /* ids pulled since the page loaded, for the New badge */
     trades: [],         /* every trade this player is on either side of */
+    hold: false,        /* a pack is open: show nothing it holds until Done */
     filter: { rarity: 'all', kind: 'all', player: 'all', sort: 'rarity' }
   };
 
@@ -220,7 +221,7 @@ EGE.cardsView = (function () {
     body.appendChild(el('span', 'ege-pack__brand', 'EGE Football'));
     body.appendChild(el('span', 'ege-pack__name', pack.name.replace(/ Pack$/, '')));
     body.appendChild(el('span', 'ege-pack__count',
-      pack.size + ' cards' + (pack.booster ? ' + booster' : '') +
+      pack.size + ' cards' +
       (pack.seasonOnly ? ' \u00b7 ' + EGE.currentSeason : '')));
     art.appendChild(body);
     return art;
@@ -285,15 +286,15 @@ EGE.cardsView = (function () {
         return first;
       });
 
-      res.cards.forEach(function (card, i) {
-        state.owned[card.id] = (state.owned[card.id] || 0) + 1;
-        if (isNew[i]) { state.fresh[card.id] = true; state.first[card.id] = new Date().toISOString(); }
-      });
+      /* The cards are the player's now, but the collection, the library
+         and the counts stay as they were until the pack is put away --
+         otherwise they give the pack away before a card is turned over. */
+      state.hold = true;
       walletChanged(res.credits);
-      renderAll();
+      renderPacks();
 
       openRip({ pack: pack, cards: res.cards, isNew: isNew,
-                extras: res.booster ? ['A 1.5x Booster is in your shop inventory'] : [] });
+                onClose: function () { reveal(res.cards, isNew); } });
     });
   }
 
@@ -307,8 +308,19 @@ EGE.cardsView = (function () {
     rip.node.innerHTML = '';
     document.documentElement.classList.remove('ege-noscroll');
     var back = rip.returnTo;
+    var after = rip.onClose;
     rip = null;
     if (back && back.focus) { back.focus(); }
+    if (after) { after(); }
+  }
+
+  /* The pack is put away: what was in it goes into the collection. Read
+     back from the server rather than added on here, so nothing is counted
+     twice if the page was refreshed while the pack was open. */
+  function reveal(cards, isNew) {
+    cards.forEach(function (card, i) { if (isNew[i]) { state.fresh[card.id] = true; } });
+    state.hold = false;
+    refresh();
   }
 
   function flipCard(flip) {
@@ -359,7 +371,8 @@ EGE.cardsView = (function () {
   function openRip(options) {
     var node = byId('cardRip');
     node.innerHTML = '';
-    rip = { node: node, pack: options.pack || null, returnTo: document.activeElement };
+    rip = { node: node, pack: options.pack || null, returnTo: document.activeElement,
+            onClose: options.onClose || null };
 
     var best = options.cards.slice().sort(EGE.cards.compare)[0];
     var fresh = options.isNew.filter(Boolean).length;
@@ -498,15 +511,32 @@ EGE.cardsView = (function () {
       facts.appendChild(el('dt', null, label));
       facts.appendChild(el('dd', null, value));
     }
+
+    /* The stat line, and beside it a button to the game itself: the
+       player's page, on this card's season, at this game in the log. */
+    function lineFact(label, value) {
+      facts.appendChild(el('dt', null, label));
+      var dd = el('dd', 'ege-zoom__line');
+      dd.appendChild(el('span', null, value));
+      var go = el('button', 'fb-btn fb-btn--sm ege-zoom__go', 'Game log \u2192');
+      go.type = 'button';
+      go.title = 'Open ' + card.player.first + '\u2019s page at this game';
+      go.addEventListener('click', function () {
+        closeRip();
+        EGE.goToGame(card.slug, card.season, card.week);
+      });
+      dd.appendChild(go);
+      facts.appendChild(dd);
+    }
     fact('Rarity', r.name + ' \u00b7 ' + r.odds + '% of pulls');
     fact('Fantasy', points(card.points) + ' points');
     fact('Game', card.versus + ' \u00b7 ' + (card.event || 'Week ' + card.week) + ', ' + card.season +
       (card.game.result ? ' \u00b7 ' + card.game.result.teamScore + '\u2013' + card.game.result.opponentScore : ''));
     if (card.kind === 'play') {
       fact('The play', card.text);
-      fact('That game', EGE.cards.statSummary(card.player.position, card.game.stats));
+      lineFact('That game', EGE.cards.statSummary(card.player.position, card.game.stats));
     } else {
-      fact('Line', card.line);
+      lineFact('Line', card.line);
     }
     if (typeof opts.owned === 'number') { fact('Owned', String(opts.owned)); }
     stage.appendChild(facts);
@@ -780,7 +810,7 @@ EGE.cardsView = (function () {
 
     if (!trades.length) {
       holder.appendChild(el('p', 'fb-meta', state.loaded
-        ? 'No trades yet. Offer some of your cards for some of somebody else\u2019s, or give one away.'
+        ? 'No trades yet.'
         : 'Loading\u2026'));
     }
 
@@ -1040,25 +1070,22 @@ EGE.cardsView = (function () {
       }
 
       var isNew = res.card ? !state.owned[res.card.id] : false;
-      if (res.card) {
-        state.owned[res.card.id] = (state.owned[res.card.id] || 0) + 1;
-        if (isNew) { state.fresh[res.card.id] = true; state.first[res.card.id] = new Date().toISOString(); }
-      }
-      state.claims[set.key] = {
-        set_key: set.key,
-        reward: { card: res.card ? res.card.id : null, credits: set.reward.credits, booster: set.reward.booster || null }
-      };
-      walletChanged(res.credits);
-      renderAll();
-
       var extras = [];
       if (set.reward.credits) { extras.push('+' + set.reward.credits + ' credits'); }
       if (set.reward.booster) { extras.push('a 1.5x Booster in your shop inventory'); }
 
+      /* Like a pack: the reward card stays face down, and out of the
+         collection and the library, until it is put away. */
       if (res.card) {
-        openRip({ title: set.name + ' complete', cards: [res.card], isNew: [isNew], extras: extras });
+        state.hold = true;
+        walletChanged(res.credits);
+        renderPacks();
+        openRip({ title: set.name + ' complete', cards: [res.card], isNew: [isNew], extras: extras,
+                  onClose: function () { reveal([res.card], [isNew]); } });
       } else {
+        walletChanged(res.credits);
         say(set.name + ' complete: ' + extras.join(', ') + '.', false);
+        refresh();
       }
     });
   }
@@ -1120,6 +1147,7 @@ EGE.cardsView = (function () {
 
   function renderAll() {
     renderPacks();
+    if (state.hold) { return; }
     renderCollection();
     renderTrades();
     renderLibrary();
@@ -1185,6 +1213,7 @@ EGE.cardsView = (function () {
     state.loaded = false;
     state.fresh = {};
     state.trades = [];
+    state.hold = false;
     setBadge(0);
   }
 

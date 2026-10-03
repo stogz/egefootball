@@ -830,7 +830,7 @@ begin
     raise exception 'sign in first';
   end if;
 
-  v_price := case p_pack when 'base' then 5 when 'season' then 6 when 'pro' then 15 end;
+  v_price := case p_pack when 'base' then 5 when 'season' then 6 when 'pro' then 10 end;
   v_size  := case p_pack when 'base' then 3 when 'season' then 3 when 'pro' then 5 end;
   if v_price is null then
     raise exception 'There is no % pack.', p_pack;
@@ -861,12 +861,6 @@ begin
   foreach v_card in array p_cards loop
     perform public.give_card(v_email, v_card);
   end loop;
-
-  -- A Pro Pack has a 1.5x booster in it as well, on the same stacked row a
-  -- bought one lands on.
-  if p_pack = 'pro' then
-    perform public.give_booster(v_email, 'boost-1-5');
-  end if;
 
   insert into public.card_packs (email, pack_key, credits, cards)
   values (v_email, p_pack, v_price, p_cards);

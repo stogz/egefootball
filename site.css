@@ -2010,6 +2010,20 @@ body::before {
    of the column, at the faintest shade that still reads as one block on both
    the plain rows and the shaded ones. */
 .ege-gamelog td.is-sorted-cell { background: rgba(229, 110, 40, .12); }
+
+/* The game a card's button landed on, picked out until the log is redrawn. */
+.ege-gamelog tr.is-spotlit td {
+  background: var(--fb-tint-clay);
+  animation: ege-spotlit 1.6s ease-out 2;
+}
+.ege-gamelog tr.is-spotlit td:first-child { box-shadow: inset 4px 0 0 var(--fb-accent); }
+@keyframes ege-spotlit {
+  0%   { background: var(--fb-tint-clay-2); }
+  100% { background: var(--fb-tint-clay); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ege-gamelog tr.is-spotlit td { animation: none; }
+}
 .ege-gamelog tfoot td.is-sorted-cell { background: rgba(229, 110, 40, .12); }
 
 /* The multiplier that was riding on a game, beside the opponent. */
@@ -4461,6 +4475,9 @@ html.ege-noscroll body { overflow: hidden; }
   padding-top: 2px;
 }
 .ege-zoom__facts dd { margin: 0; font-weight: 600; }
+/* The stat line, with the button to its game beside it. */
+.ege-zoom__line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.ege-zoom__go { padding: 5px 9px; white-space: nowrap; }
 
 /* --- the collection -------------------------------------------------------- */
 

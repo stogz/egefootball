@@ -614,6 +614,39 @@
   document.getElementById('seasonPick').addEventListener('change', function (e) {
     showSeason(Number(e.target.value));
   });
+
+  /* --- straight to one game ---------------------------------------------
+
+     What a card's game button does: open the player's page on the card's
+     season and land on that game in the game log, picked out. The season is
+     set before the page is drawn, so the switcher does not throw it back to
+     the live one on the way in. */
+  var spotlight = null;
+
+  EGE.goToGame = function (slug, season, week) {
+    if (!EGE.playerBySlug(slug)) { return; }
+    spotlight = { slug: slug, season: season, week: Number(week) };
+    seasonFor = slug;
+    viewedSeason = season === EGE.currentSeason ? null : season;
+    if (window.location.hash.replace(/^#/, '') === slug) { route(); }
+    else { window.location.hash = slug; }
+  };
+
+  function spotlightGame(player) {
+    if (!spotlight || spotlight.slug !== player.slug || spotlight.season !== shownSeason()) { return; }
+    var week = spotlight.week;
+    spotlight = null;
+
+    var panel = document.getElementById('gameLogPanel');
+    if (panel.hidden) { return; }
+    if (panel.classList.contains('is-collapsed')) {
+      panel.querySelector('.ege-collapse').click();
+    }
+    var row = panel.querySelector('tbody tr[data-week="' + week + '"]');
+    if (!row) { return; }
+    row.classList.add('is-spotlit');
+    row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
   document.getElementById('seasonPrev').addEventListener('click', function () { stepSeason(-1); });
   document.getElementById('seasonNext').addEventListener('click', function () { stepSeason(1); });
 
@@ -2659,6 +2692,7 @@
 
     order.forEach(function (game) {
       var row = el('tr');
+      row.dataset.week = game.week;
       row.appendChild(el('td', 'ege-schedule__week', game.week));
 
       var opponent = el('td', 'ege-gamelog__opponent');
@@ -4713,6 +4747,9 @@
        and doing it then threw whoever was halfway down a game log back up
        to the header. */
     if (moved) { window.scrollTo(0, 0); }
+
+    /* After the jump to the top, so a card's game button lands on its game. */
+    if (player) { spotlightGame(player); }
   }
 
   /* --- portal: shared bits ---------------------------------------------- */
