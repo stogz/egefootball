@@ -1965,17 +1965,10 @@ body::before {
 
 .ege-gamelog tfoot td {
   border-top: var(--fb-border) solid var(--fb-ink);
-  /* The season's totals in the ink of the table's own heading, so the log
-     is closed off top and bottom the same way. */
-  background: var(--fb-ink);
-  color: var(--fb-cream);
+  /* The panel's own cream, set off from the games above by the rule. */
+  background: var(--fb-cream);
+  color: var(--fb-ink);
   font-weight: 800;
-}
-.ege-gamelog tfoot td:first-child {
-  color: var(--fb-accent);
-  font-size: var(--fb-label);
-  letter-spacing: .12em;
-  text-transform: uppercase;
 }
 
 /* --- sorting the game log --------------------------------------------------
@@ -2034,7 +2027,7 @@ body::before {
 @media (prefers-reduced-motion: reduce) {
   .ege-gamelog tr.is-spotlit td { animation: none; }
 }
-.ege-gamelog tfoot td.is-sorted-cell { background: #4a321f; }
+.ege-gamelog tfoot td.is-sorted-cell { background: rgba(229, 110, 40, .12); }
 
 /* The multiplier that was riding on a game, beside the opponent. */
 .ege-gamelog__boost {

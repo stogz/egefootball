@@ -1379,12 +1379,6 @@
       legend += (legend ? ' · ' : '') + '** ' + postseasonWord(season).toLowerCase() + ' game';
     }
 
-    if (showGrades) {
-      legend += (legend ? ' · ' : '') + 'ODEF: their ' +
-        (EGE.defenseSide(EGE.positionFor(player, season)) === 'rush' ? 'run' : 'pass') +
-        ' defense, A toughest to F softest';
-    }
-
     if (showScouts) {
       var scouted = EGE.scoutedGames(player, season).length;
       legend += (legend ? ' · ' : '') + 'Intel: scouts at ' + scouted + ' games this season';
