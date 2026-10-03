@@ -526,15 +526,9 @@ EGE.cardsView = (function () {
 
   /* --- the collection --------------------------------------------------- */
 
-  function chip(label, active, onPick, color) {
-    var b = el('button', 'fb-chip' + (active ? ' is-active' : ''));
+  function chip(label, active, onPick) {
+    var b = el('button', 'fb-chip' + (active ? ' is-active' : ''), label);
     b.type = 'button';
-    if (color) {
-      var dot = el('span', 'ege-chipdot');
-      dot.style.background = color;
-      b.appendChild(dot);
-    }
-    b.appendChild(document.createTextNode(label));
     b.setAttribute('aria-pressed', active ? 'true' : 'false');
     b.addEventListener('click', onPick);
     return b;
@@ -551,16 +545,13 @@ EGE.cardsView = (function () {
     bar.innerHTML = '';
     var f = state.filter;
 
-    var rarities = el('div', 'ege-filterrow');
-    rarities.appendChild(chip('All', f.rarity === 'all', function () { pick('rarity', 'all'); }));
-    EGE.cards.RARITIES.forEach(function (r) {
-      rarities.appendChild(chip(r.name, f.rarity === r.key, function () { pick('rarity', r.key); }, r.color));
-    });
-    bar.appendChild(rarities);
-
+    /* One line: the three kinds as buttons the height of the drop-downs
+       beside them, then who, the order, and the rarity. */
     var rest = el('div', 'ege-filterrow');
-    [['all', 'Both kinds'], ['performance', 'Performances'], ['play', 'Plays']].forEach(function (k) {
-      rest.appendChild(chip(k[1], f.kind === k[0], function () { pick('kind', k[0]); }));
+    [['all', 'All'], ['performance', 'Performances'], ['play', 'Plays']].forEach(function (k) {
+      var b = chip(k[1], f.kind === k[0], function () { pick('kind', k[0]); });
+      b.classList.add('ege-filterchip');
+      rest.appendChild(b);
     });
 
     var who = el('select', 'fb-select ege-filterselect');
@@ -578,6 +569,14 @@ EGE.cardsView = (function () {
     sort.value = f.sort;
     sort.addEventListener('change', function () { pick('sort', sort.value); });
     rest.appendChild(sort);
+
+    var rarity = el('select', 'fb-select ege-filterselect');
+    rarity.setAttribute('aria-label', 'Rarity');
+    rarity.appendChild(new Option('All rarities', 'all'));
+    EGE.cards.RARITIES.forEach(function (r) { rarity.appendChild(new Option(r.name, r.key)); });
+    rarity.value = f.rarity;
+    rarity.addEventListener('change', function () { pick('rarity', rarity.value); });
+    rest.appendChild(rarity);
 
     bar.appendChild(rest);
   }
