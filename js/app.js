@@ -13,6 +13,7 @@
   var roster     = document.getElementById('roster');
   var viewHome   = document.getElementById('view-home');
   var viewShop   = document.getElementById('view-shop');
+  var viewCards  = document.getElementById('view-cards');
   var viewPlayer = document.getElementById('view-player');
   var viewAdmin  = document.getElementById('view-admin');
   var viewTeams  = document.getElementById('view-teams');
@@ -4638,12 +4639,14 @@
     document.getElementById('navPlayers').classList.toggle('is-active', active === 'players');
     document.getElementById('navTeams').classList.toggle('is-active', active === 'teams');
     document.getElementById('navShop').classList.toggle('is-active', active === 'shop');
+    document.getElementById('navCards').classList.toggle('is-active', active === 'cards');
     document.getElementById('navAdmin').classList.toggle('is-active', active === 'admin');
   }
 
   function show(view) {
     viewHome.hidden   = view !== viewHome;
     viewShop.hidden   = view !== viewShop;
+    viewCards.hidden  = view !== viewCards;
     viewPlayer.hidden = view !== viewPlayer;
     viewAdmin.hidden  = view !== viewAdmin;
     viewTeams.hidden  = view !== viewTeams;
@@ -4674,6 +4677,11 @@
       show(viewShop);
       setNav('shop');
       document.title = 'Shop \u2014 EGE Football';
+    } else if (hash === 'cards') {
+      show(viewCards);
+      EGE.cardsView.render();
+      setNav('cards');
+      document.title = 'Cards \u2014 EGE Football';
     } else if (hash === 'admin') {
       renderAdminView();
       show(viewAdmin);
@@ -4877,12 +4885,26 @@
     openLogin();
   });
 
+  document.getElementById('cardsLoginBtn').addEventListener('click', function () {
+    openLogin();
+  });
+
+  /* The Cards tab spends credits and a library set can pay out a booster,
+     so the balance in the nav and the shop's inventory -- which the sticker
+     drawer reads -- are brought up to date when it says so. */
+  document.addEventListener('ege:wallet', function (event) {
+    var credits = event.detail && event.detail.credits;
+    if (typeof credits === 'number') { updateNavCredits(credits); }
+    refreshShop();
+  });
+
   function showSignedOutNav() {
     loginBtn.className = 'fb-btn fb-btn--inverse';
     loginBtn.textContent = 'Log In';
     loginBtn.removeAttribute('title');
     loginBtn.setAttribute('aria-label', 'Open the player portal');
     document.getElementById('navShop').hidden = true;
+    document.getElementById('navCards').hidden = true;
     document.getElementById('navAdmin').hidden = true;
     document.getElementById('navCredits').hidden = true;
   }
@@ -4898,6 +4920,7 @@
     loginBtn.setAttribute('aria-label', 'Open ' + player.name + '’s portal');
 
     document.getElementById('navShop').hidden = false;
+    document.getElementById('navCards').hidden = false;
 
     document.getElementById('navCredits').hidden = false;
     updateNavCredits(null);
@@ -5155,6 +5178,8 @@
       if (liveState() !== before) {
         redrawRatings();
         refreshScoutMarks();
+        /* A week out since is a week of new cards in the packs. */
+        if (window.location.hash === '#cards') { EGE.cardsView.render(); }
       }
       updateNavCreditsFromServer();
     }).then(function () { refreshing = false; }, function () { refreshing = false; });

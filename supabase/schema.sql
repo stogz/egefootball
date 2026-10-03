@@ -643,3 +643,267 @@ create policy "published weeks removed by an admin"
 -- ---------------------------------------------------------------------------
 
 notify pgrst, 'reload schema';
+
+-- ===========================================================================
+-- Cards
+--
+-- The card game on the Cards tab (data/cards.js). It sits beside the
+-- simulation rather than in it: nothing here touches a rating, a stat line or
+-- a result, and a player who never opens a pack loses nothing by it.
+--
+-- A card is an id that names a game or one of its big plays --
+-- 'p:2021:sam-stogsdill:5', 'h:2021:sam-stogsdill:5:0' -- and everything
+-- printed on it is read from the season file, so all this stores is who owns
+-- which ids and how many of each.
+--
+-- No insert, update or delete policy on any of the three tables. Cards only
+-- ever arrive through open_card_pack() and claim_card_set() below, which
+-- take the credits in the same transaction, so a pack is never paid for
+-- without arriving or the other way round.
+-- ===========================================================================
+
+create table if not exists public.player_cards (
+  email           text        not null,
+  card_id         text        not null,
+  quantity        integer     not null default 1,
+  first_pulled_at timestamptz not null default now(),
+  primary key (email, card_id)
+);
+
+alter table public.player_cards enable row level security;
+
+-- A collection is its owner's, and an admin's.
+drop policy if exists "cards readable by owner or admin" on public.player_cards;
+create policy "cards readable by owner or admin"
+  on public.player_cards for select to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin());
+
+-- Every pack opened, with what was in it. The rip on the page is drawn from
+-- what comes back, and the admin can see what the shop has taken.
+create table if not exists public.card_packs (
+  id        uuid primary key default gen_random_uuid(),
+  email     text        not null,
+  pack_key  text        not null,
+  credits   integer     not null,
+  cards     text[]      not null,
+  opened_at timestamptz not null default now()
+);
+
+create index if not exists card_packs_email_idx
+  on public.card_packs (email, opened_at desc);
+
+alter table public.card_packs enable row level security;
+
+drop policy if exists "card packs readable by owner or admin" on public.card_packs;
+create policy "card packs readable by owner or admin"
+  on public.card_packs for select to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin());
+
+-- A library set can be claimed once per player, ever.
+create table if not exists public.card_set_claims (
+  email      text        not null,
+  set_key    text        not null,
+  reward     jsonb       not null default '{}'::jsonb,
+  claimed_at timestamptz not null default now(),
+  primary key (email, set_key)
+);
+
+alter table public.card_set_claims enable row level security;
+
+drop policy if exists "card set claims readable by owner or admin" on public.card_set_claims;
+create policy "card set claims readable by owner or admin"
+  on public.card_set_claims for select to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin());
+
+-- What a card id looks like. Anything else is refused at the door.
+create or replace function public.is_card_id(p_id text)
+returns boolean
+language sql
+immutable
+as $$
+  select p_id ~ '^(p:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}|h:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}:[0-9]{1,2})$';
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Opening a pack
+--
+-- The price and the size are decided here, not by the page: the same numbers
+-- as PACKS in data/cards.js, and the two are changed together. Which cards
+-- are in it the page rolls, because the season files that say what a card is
+-- are not in Postgres -- the same trust the credit awards run on, and with
+-- the same easy half closed: a pack holds exactly its size of real-looking
+-- ids, and costs what it costs.
+--
+-- The balance is taken under lock, so two packs opened at once from two tabs
+-- cannot both spend the same credits.
+--
+-- Returns the balance left.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.open_card_pack(p_pack text, p_cards text[])
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  v_price integer;
+  v_size  integer;
+  v_have  integer;
+  v_card  text;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+
+  v_price := case p_pack when 'base' then 5 when 'season' then 6 when 'pro' then 10 end;
+  v_size  := case p_pack when 'base' then 3 when 'season' then 3 when 'pro' then 5 end;
+  if v_price is null then
+    raise exception 'There is no % pack.', p_pack;
+  end if;
+
+  if coalesce(array_length(p_cards, 1), 0) <> v_size then
+    raise exception 'That pack holds % cards.', v_size;
+  end if;
+  foreach v_card in array p_cards loop
+    if not public.is_card_id(v_card) then
+      raise exception 'Not a card: %', v_card;
+    end if;
+  end loop;
+
+  select credits into v_have
+    from public.player_credits
+   where email = v_email
+     for update;
+
+  if coalesce(v_have, 0) < v_price then
+    raise exception 'Not enough credits: that pack costs %, you have %.', v_price, coalesce(v_have, 0);
+  end if;
+
+  update public.player_credits
+     set credits = credits - v_price, updated_at = now()
+   where email = v_email;
+
+  foreach v_card in array p_cards loop
+    insert into public.player_cards as pc (email, card_id)
+    values (v_email, v_card)
+    on conflict (email, card_id) do update set quantity = pc.quantity + 1;
+  end loop;
+
+  insert into public.card_packs (email, pack_key, credits, cards)
+  values (v_email, p_pack, v_price, p_cards);
+
+  return v_have - v_price;
+end;
+$$;
+
+revoke all on function public.open_card_pack(text, text[]) from public;
+grant execute on function public.open_card_pack(text, text[]) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Claiming a library set
+--
+-- Which cards make a set is in data/cards.js, so the page says which of the
+-- player's cards it was completed with, and this checks they are all really
+-- theirs. The reward is one more card, a few credits and, on the harder
+-- sets, a 1.5x booster -- held here to 20 credits and to the 1.5x for
+-- anybody but an admin, so the most a forged claim can do is pay out a
+-- small, real reward once.
+--
+-- The booster lands on the same stacked inventory row a bought one does, and
+-- goes on games under the same five-a-season trigger, so a full library
+-- never means more boosters on a season than anybody else can have.
+--
+-- Returns the balance after.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.claim_card_set(
+  p_set         text,
+  p_cards       text[],
+  p_reward_card text,
+  p_credits     integer,
+  p_booster     text
+) returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email   text := auth.jwt() ->> 'email';
+  v_admin   boolean := public.is_admin();
+  v_needed  integer;
+  v_owned   integer;
+  v_credits integer := greatest(coalesce(p_credits, 0), 0);
+  v_balance integer;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  if p_set is null or p_set !~ '^[a-z0-9-]{1,60}$' then
+    raise exception 'Not a set: %', p_set;
+  end if;
+  if coalesce(array_length(p_cards, 1), 0) = 0 then
+    raise exception 'A set is made of cards.';
+  end if;
+  if p_reward_card is not null and not public.is_card_id(p_reward_card) then
+    raise exception 'Not a card: %', p_reward_card;
+  end if;
+  if p_booster is not null and p_booster not in ('boost-1-5', 'boost-2-0', 'boost-2-5') then
+    raise exception 'Not a booster: %', p_booster;
+  end if;
+  if not v_admin and (v_credits > 20 or (p_booster is not null and p_booster <> 'boost-1-5')) then
+    raise exception 'That is more than a set pays.';
+  end if;
+
+  -- Every card it was made with has to be in the collection.
+  select count(distinct c) into v_needed from unnest(p_cards) as c;
+  select count(*) into v_owned
+    from public.player_cards
+   where email = v_email and card_id = any(p_cards) and quantity > 0;
+  if v_owned < v_needed then
+    raise exception 'Some of those cards are not in your collection.';
+  end if;
+
+  insert into public.card_set_claims (email, set_key, reward)
+  values (v_email, p_set, jsonb_build_object(
+    'card', p_reward_card, 'credits', v_credits, 'booster', p_booster, 'cards', to_jsonb(p_cards)))
+  on conflict (email, set_key) do nothing;
+  if not found then
+    raise exception 'That set has already been claimed.';
+  end if;
+
+  if p_reward_card is not null then
+    insert into public.player_cards as pc (email, card_id)
+    values (v_email, p_reward_card)
+    on conflict (email, card_id) do update set quantity = pc.quantity + 1;
+  end if;
+
+  insert into public.player_credits as cr (email, credits, updated_at)
+  values (v_email, v_credits, now())
+  on conflict (email) do update
+    set credits = cr.credits + v_credits, updated_at = now()
+  returning credits into v_balance;
+
+  if p_booster is not null then
+    insert into public.player_inventory as inv
+      (email, item_key, item_name, target, quantity, credits, effects, consumable, season, active)
+    values
+      (v_email, p_booster,
+       case p_booster when 'boost-2-5' then '2.5x Booster'
+                      when 'boost-2-0' then '2.0x Booster'
+                      else '1.5x Booster' end,
+       null, 1, 0, '{}'::jsonb, true, null, false)
+    on conflict (email, item_key, coalesce(target, ''))
+      where item_key = 'upgrade' or consumable
+    do update set quantity = inv.quantity + 1;
+  end if;
+
+  return v_balance;
+end;
+$$;
+
+revoke all on function public.claim_card_set(text, text[], text, integer, text) from public;
+grant execute on function public.claim_card_set(text, text[], text, integer, text) to authenticated;
+
+notify pgrst, 'reload schema';

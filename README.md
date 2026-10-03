@@ -1011,6 +1011,150 @@ so changing those is free.
 
 ---
 
+## Cards
+
+A tab of its own, at `#cards`, beside the shop and **visible only to a
+signed-in player**. It is a collectible card game that sits next to the
+simulation rather than in it: nothing on it changes a rating, a stat line, a
+result or what a game pays. A player who never opens a pack is not behind
+anybody at anything. The offseason has the shop; this is something to do
+while the weeks are going out.
+
+The catalogue, the grading, the packs and the library are in
+`data/cards.js`; the Supabase side is `js/cards.js`; the tab is
+`js/cards-view.js`.
+
+### Where the cards come from
+
+The season files. Every game with a stat line is a **performance card**, and
+every line in its `bigPlays` is a **play card**, so publishing a week puts that
+week's cards into the packs and nothing is drawn up by hand. A week that is
+not published is in no pack. A game a player was hurt for, or one where his
+line is nothing but zeros (Isaac's redshirt year), makes no card.
+
+A card's id names the game it is, and that is all the database stores:
+
+```
+p:2021:sam-stogsdill:5        Sam's week 5 game in 2021
+h:2021:sam-stogsdill:5:0      the first of that game's big plays
+```
+
+Correct a stat line and the card corrects with it. Reordering a game's
+`bigPlays` swaps its play cards round, so add new ones at the end.
+
+### Grading
+
+The number in a card's top right is its **fantasy score**, the same half-PPR
+scoring a game is paid on. A play is scored as the one play: a 44 yard
+receiving touchdown is 4.4 + 6 + 0.5 = 10.9.
+
+The **rarity** comes from that score, graded against the position:
+
+- A performance is graded on its fantasy points times the position's credit
+  share (the number that makes a breakout game pay 15 credits whatever the
+  position), so a tight end's big night is as rare as a quarterback's.
+- A play is graded as though every play were carried or caught (yards / 10,
+  +6 a touchdown, +0.5 a catch), so a 60 yard touchdown pass grades with a 60
+  yard touchdown catch. Go-ahead and game-tying plays grade 1.5 higher,
+  game-winning 3.
+
+The thresholds were set from the 2018–2021 files so the catalogue is a
+pyramid, and each rarity has its own pull odds:
+
+| Rarity | Colour | Chance per card | Game from | Play from | In the files |
+| --- | --- | --- | --- | --- | --- |
+| Common | gray | 46% | — | — | 250 |
+| Uncommon | green | 26% | 6.5 | 7.1 | 128 |
+| Rare | orange | 14% | 11 | 8.6 | 103 |
+| Epic | red | 8% | 16 | 9.6 | 58 |
+| Legendary | purple | 4% | 20 | 11.1 | 37 |
+| Mystic | gold | 1.6% | 24 | 12.1 | 19 |
+| Iconic | pink | 0.4% | 28 | 13 | 12 |
+
+From Rare up the frame catches the light: a still sheen on Rare, a moving one
+on Epic and Legendary, gold foil on Mystic and holographic on Iconic, the
+same foils as the booster stickers.
+
+### Packs
+
+| Pack | Credits | Cards | |
+| --- | --- | --- | --- |
+| Base | 5 | 3 | any season |
+| Season | 6 | 3 | the live season only, the last card Uncommon or better |
+| Pro | 10 | 5 | any season, the last card Rare or better |
+
+Each card rolls its rarity on the odds first, then is drawn from every
+published card of that rarity the pack can hold. A rarity with nothing out
+yet falls to the nearest one below it. The Season Pack is the one that grows
+a week at a time.
+
+**Buy & Rip** rolls the cards, pays for them and opens the pack in one go:
+the sealed pack comes up, a tap tears it open, the cards are dealt face down,
+and each one turns over on a tap with a flash of its colour from Rare up.
+Cards a player has never had before say *New*.
+
+The price and size are charged by `open_card_pack()` in
+`supabase/schema.sql`, not by the page. **Change both together.** Which cards
+are in a pack the page decides, because the season files are not in
+Postgres. That is the same trust the credit awards run on, with the easy half
+closed the same way: a pack has to hold exactly its size of real-looking ids,
+and it costs what it costs.
+
+### The collection
+
+Every card owned, rarest first by default, with how many of each (`×2`).
+Filter by rarity, by kind and by player; sort by rarity, score, newest pull
+or game. Tap a card to hold it up close with the game it came from.
+Duplicates are kept; nothing uses them yet.
+
+### The library
+
+Sets to put together, each claimed once. A set is a list of slots, each
+wanting one card. No card fills two slots of the same set, but a card counts
+toward every set it fits, and claiming uses nothing up.
+
+| Set | Needs | Reward |
+| --- | --- | --- |
+| The Starting Six | a card of each of the six | Rare+ card · 3 credits |
+| Bloomington Connection | 4 Isaac + 4 Paxon, 2018–19 | Rare+ card · 3 credits |
+| Buckeye Backfield | 4 Sam + 4 Jaykeb, 2020 on | Rare+ card · 3 credits |
+| Highlight Reel | 15 different play cards | Epic+ play card · 5 credits |
+| Full Spectrum | one of every rarity | Legendary+ card · 10 credits · 1.5x Booster |
+| Hall of Fame | 3 Legendary-or-better | Mystic+ card · 10 credits · 1.5x Booster |
+| *Player* (×6) | 8 different cards of him | Rare+ card of him · 3 credits |
+| *Year* Season (each season) | a performance card of everyone who played | Epic+ card from that year · 5 credits · 1.5x Booster |
+
+**The rewards are kept small on purpose.** Measured by simulation with Base
+Packs, a player gets back roughly 30–50% of what they spend on packs
+(counting a booster at its 15-credit shop price), and the early sets come
+first. Cards are a place to spend credits for fun, never a way to make them.
+Rough cost of each set in Base Packs: Starting Six about 25 credits, a
+player or Highlight Reel 50–115, Hall of Fame about 75, a past season about
+200, Full Spectrum about 275. The live season's set is about 65 through
+Season Packs.
+
+**A reward booster is an ordinary booster.** It lands on the same stacked
+inventory row a bought one does, and goes on games under the same
+five-a-season trigger, so a full library never means more stickers on a
+season than anybody else can have.
+
+`claim_card_set()` in `supabase/schema.sql` pays the reward. It checks that
+every card the set was completed with is really in the collection, that the
+set has not been claimed before, and, for anybody but an admin, holds the
+reward to 20 credits and the 1.5x.
+
+### In the database
+
+`player_cards` (who owns which ids and how many), `card_packs` (every pack
+opened and what was in it) and `card_set_claims`. All three are readable by
+their owner and an admin. None has an insert, update or delete policy: cards
+only arrive through `open_card_pack()` and `claim_card_set()`, each one
+transaction, so a pack is never paid for without arriving and a reward is
+never paid twice. **Re-run `supabase/schema.sql` after pulling this change**,
+or the tab says it cannot load the cards.
+
+---
+
 ## Seasons, and putting a week out
 
 ### One file per season
@@ -1512,7 +1656,9 @@ Each of the six gets an account and a private portal.
   spends workouts as boosts to raise specific attributes. Workouts are a limited
   resource, so choices have a cost.
 - **Interactive layer** — beyond workouts, the portal is meant to be something a
-  player actually plays with between games. Scope TBD; workouts come first.
+  player actually plays with between games. The Cards tab is that: packs,
+  a collection and a library of sets, built from the season files (see
+  *Cards*).
 - **Credits and inventory** — 60 an offseason plus what a season earns, spent
   in the shop, with what was bought kept per account. Every player starts on 0.
 
@@ -1548,9 +1694,9 @@ Built so far:
 - `bot/` — the Discord scores bot (see below).
 - `supabase/schema.sql` — every table and policy: accounts, credits,
   inventory, admins, the stickers stuck on games (and the trigger holding
-  them to five a season), the credit awards a season pays out, and which
-  weeks are published. **Re-run it after pulling this change** so the
-  booster limit is in the database as well as on the page.
+  them to five a season), the credit awards a season pays out, which
+  weeks are published, and the card collection. **Re-run it after pulling
+  this change** so the card tables and functions are in the database.
 - `js/discord-config.js` — the channel webhook URL, if you are happy for it to
   be public. Blank by default.
 - `supabase/functions/post-week/` — the other way: an edge function that holds
@@ -1558,6 +1704,12 @@ Built so far:
   again, and it must be re-run after pulling a change that adds a table.
 - `js/supabase-config.js` — your Supabase URL and anon key. Blank by default.
 - `data/shop.js` — the shop catalogue: credit earnings and everything on sale.
+- `data/cards.js` — the card game: what a card is, how it is graded, the
+  rarities and their odds, the packs, and the library's sets. See *Cards*.
+- `js/cards.js` — the card collection in Supabase: owned cards, set claims,
+  opening a pack and claiming a set.
+- `js/cards-view.js` — the Cards tab: packs, the rip, the collection and the
+  library.
 - `data/economy.js` — every number about credits in one place: what a rating
   point costs, how much overall a point is worth, what a touchdown pays, and
   the tuning behind all of it. Nothing else in the site invents a price.
@@ -1772,7 +1924,8 @@ One thing at a time, in this order:
 10. **Playing the season** — a hardcoded file per season, published a week at
     a time from the admin page, with the Discord post on the same click. ✅
     `stats/{year}.js`, `data/games.js`, `js/discord-post.js`.
-11. **Extra interactive layer** — scope defined once the above is working.
+11. **Extra interactive layer** — the Cards tab: packs, a collection and a
+    library of sets, built from the season files. ✅ See *Cards*.
 
 ---
 
