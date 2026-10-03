@@ -1965,7 +1965,17 @@ body::before {
 
 .ege-gamelog tfoot td {
   border-top: var(--fb-border) solid var(--fb-ink);
-  background: #fff;
+  /* The season's totals in the ink of the table's own heading, so the log
+     is closed off top and bottom the same way. */
+  background: var(--fb-ink);
+  color: var(--fb-cream);
+  font-weight: 800;
+}
+.ege-gamelog tfoot td:first-child {
+  color: var(--fb-accent);
+  font-size: var(--fb-label);
+  letter-spacing: .12em;
+  text-transform: uppercase;
 }
 
 /* --- sorting the game log --------------------------------------------------
@@ -2010,7 +2020,21 @@ body::before {
    of the column, at the faintest shade that still reads as one block on both
    the plain rows and the shaded ones. */
 .ege-gamelog td.is-sorted-cell { background: rgba(229, 110, 40, .12); }
-.ege-gamelog tfoot td.is-sorted-cell { background: rgba(229, 110, 40, .12); }
+
+/* The game a card's button landed on, picked out until the log is redrawn. */
+.ege-gamelog tr.is-spotlit td {
+  background: var(--fb-tint-clay);
+  animation: ege-spotlit 1.6s ease-out 2;
+}
+.ege-gamelog tr.is-spotlit td:first-child { box-shadow: inset 4px 0 0 var(--fb-accent); }
+@keyframes ege-spotlit {
+  0%   { background: var(--fb-tint-clay-2); }
+  100% { background: var(--fb-tint-clay); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ege-gamelog tr.is-spotlit td { animation: none; }
+}
+.ege-gamelog tfoot td.is-sorted-cell { background: #4a321f; }
 
 /* The multiplier that was riding on a game, beside the opponent. */
 .ege-gamelog__boost {
@@ -2787,8 +2811,9 @@ body {
   .ege-gamelog__boost { font-size: var(--fb-label); }
 
   /* The nav was taking 129px of an 844px screen — a sixth of it, before any
-     football. The brand keeps its own line; the links, the balance and the
-     face share the next one. */
+     football. The brand shares the top line with the balance and the face,
+     and the links get the whole of the line under them: with Cards beside
+     Shop there are too many to share a line with anything. */
   .fb-nav__inner {
     padding-top: 6px;
     padding-bottom: 6px;
@@ -2798,12 +2823,13 @@ body {
 
   .fb-brand {
     font-size: 1.1875rem;
-    flex: 1 1 100%;
+    flex: 1 1 auto;
+    margin-right: auto;
   }
   .fb-brand img,
   .fb-brand svg { transform: scale(.82); transform-origin: left center; }
 
-  .fb-nav__links { gap: 2px; margin-right: auto; }
+  .fb-nav__links { gap: 2px; order: 3; flex: 1 1 100%; margin: 0 0 0 -9px; }
   .fb-navlink { padding-left: 9px; padding-right: 9px; font-size: .875rem; }
 
   .ege-credits { padding: 4px 9px; }
@@ -3811,4 +3837,1006 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 @media (prefers-reduced-motion: reduce) {
   .ege-ovrbox--diamond::before { animation: none; left: 30%; opacity: .5; }
   .ege-ovrbox--diamond::after { animation: none; opacity: .9; }
+}
+
+/* ==========================================================================
+   Cards
+   The card game on its own tab: packs, the collection and the library. A
+   card is drawn at whatever width it is given -- every measurement inside
+   one is in container units -- so the binder's thumbnails and a card held up
+   out of a pack are the same markup at two sizes.
+   ========================================================================== */
+
+/* The page behind an open pack does not scroll under it. */
+html.ege-noscroll,
+html.ege-noscroll body { overflow: hidden; }
+
+/* --- one card ------------------------------------------------------------ */
+
+.ege-tcard {
+  --rarity: #8b9097;
+  --on-rarity: var(--fb-ink);
+  --ground: #2f4a2b;
+
+  position: relative;
+  container-type: inline-size;
+  aspect-ratio: 5 / 7;
+  width: 100%;
+  background: var(--rarity);
+  border: 2px solid var(--fb-ink);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, .35);
+  isolation: isolate;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Dark lettering where the rarity is light, white where it is dark: the red
+   and the purple do not carry ink at small sizes. */
+.ege-tcard--epic,
+.ege-tcard--legendary { --on-rarity: #fff; }
+
+.ege-tcard__face {
+  position: absolute;
+  inset: 3.4cqw;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--fb-cream);
+  border: .8cqw solid var(--fb-ink);
+}
+
+.ege-tcard__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2cqw;
+  padding: 1.6cqw 0 1.6cqw 3cqw;
+  background: var(--fb-ink);
+}
+.ege-tcard__kind {
+  font-size: 4.6cqw;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-cream);
+}
+/* The fantasy score, top right, on a tab of the rarity's colour. */
+.ege-tcard__score {
+  display: flex;
+  align-items: baseline;
+  gap: 1cqw;
+  padding: .8cqw 2.6cqw .8cqw 2.6cqw;
+  margin: -1.6cqw 0;
+  align-self: stretch;
+  background: var(--rarity);
+  color: var(--on-rarity);
+  border-left: .8cqw solid var(--fb-ink);
+}
+.ege-tcard__points {
+  font-family: var(--fb-font-display);
+  font-size: 9.4cqw;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.ege-tcard__fpts {
+  font-size: 3.6cqw;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.ege-tcard__art {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 28%, rgba(255, 255, 255, .34), transparent 62%),
+    var(--ground);
+  border-top: .8cqw solid var(--fb-ink);
+  border-bottom: .8cqw solid var(--fb-ink);
+}
+.ege-tcard__photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 18%;
+}
+.ege-tcard__logo {
+  position: absolute;
+  top: 3cqw;
+  left: 3cqw;
+  z-index: 2;
+  width: 15cqw;
+  height: 15cqw;
+  object-fit: contain;
+  filter: drop-shadow(0 .6cqw .8cqw rgba(0, 0, 0, .45));
+}
+.ege-tcard__logo--white { filter: brightness(0) invert(1) drop-shadow(0 .6cqw .8cqw rgba(0, 0, 0, .45)); }
+
+/* A play card says how far, big, across the bottom of the picture. */
+.ege-tcard__yards {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: baseline;
+  gap: 1.6cqw;
+  padding: 9cqw 3cqw 1.6cqw;
+  /* Dark enough under the numbers that a pink or red one still reads over a
+     red jersey. */
+  background: linear-gradient(to bottom, transparent, rgba(12, 16, 9, .7) 45%, rgba(12, 16, 9, .94));
+  color: #fff;
+}
+.ege-tcard__yards b {
+  font-family: var(--fb-font-display);
+  font-weight: 400;
+  font-size: 18cqw;
+  line-height: .9;
+  color: var(--rarity);
+  text-shadow: .8cqw .8cqw 0 var(--fb-ink);
+}
+.ege-tcard__yards small {
+  font-size: 5.4cqw;
+  font-weight: 800;
+  letter-spacing: .1em;
+}
+/* A game's two numbers sit a size down, so both fit across the picture. */
+.ege-tcard__yards--game b { font-size: 14.5cqw; }
+.ege-tcard__yards--game small + b { margin-left: 2.4cqw; }
+
+.ege-tcard__plate {
+  padding: 1.4cqw 3cqw 1.6cqw;
+  background: var(--rarity);
+  color: var(--on-rarity);
+  border-bottom: .8cqw solid var(--fb-ink);
+}
+.ege-tcard__name,
+.ege-tcard__meta,
+.ege-tcard__headline {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ege-tcard__name {
+  font-family: var(--fb-font-display);
+  font-size: 7.8cqw;
+  line-height: 1.1;
+}
+.ege-tcard__meta {
+  font-size: 4.2cqw;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  opacity: .85;
+}
+
+.ege-tcard__body {
+  display: flex;
+  flex-direction: column;
+  gap: .6cqw;
+  padding: 2cqw 3cqw;
+  min-height: 20cqw;
+}
+.ege-tcard__headline {
+  font-size: 5.4cqw;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.ege-tcard__line {
+  font-size: 4.4cqw;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--fb-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ege-tcard__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2cqw;
+  margin-top: auto;
+  padding: 1.4cqw 3cqw;
+  background: var(--fb-ink);
+  color: var(--fb-cream);
+  font-size: 3.9cqw;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.ege-tcard__rarity { color: var(--rarity); }
+.ege-tcard__rarity::before { content: '\25C6\00a0'; }
+.ege-tcard__when { overflow: hidden; text-overflow: ellipsis; }
+
+/* How many, and whether it is new -- outside the card, hanging off its
+   corners, so they never cover anything printed on it. */
+.ege-tcard__count,
+.ege-tcard__new {
+  position: absolute;
+  z-index: 5;
+  padding: 2px 6px;
+  border: 2px solid var(--fb-ink);
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .06em;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+.ege-tcard__count { right: -7px; bottom: -7px; background: var(--fb-accent); color: var(--fb-ink); }
+.ege-tcard__new {
+  left: -7px;
+  top: -7px;
+  background: var(--fb-gold);
+  color: var(--fb-ink);
+  text-transform: uppercase;
+}
+
+/* --- what each rarity looks like ------------------------------------------
+
+   The colour is the frame, the score tab and the nameplate. From Rare up the
+   frame starts to catch the light: a still sheen on Rare, a moving one on
+   Epic and Legendary, gold foil on Mystic and holographic on Iconic -- the
+   same foils the booster stickers are printed in. */
+
+.ege-tcard--rare {
+  background: linear-gradient(135deg, #c96614 0%, #f4a65c 30%, #e8812a 50%, #ffc58f 72%, #c96614 100%);
+}
+
+.ege-tcard--epic::after,
+.ege-tcard--legendary::after,
+.ege-tcard--mystic::after,
+.ege-tcard--iconic::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+  background: linear-gradient(115deg,
+    transparent 20%, rgba(255, 255, 255, .55) 38%, transparent 52%,
+    rgba(255, 255, 255, .35) 68%, transparent 80%);
+  background-size: 260% 260%;
+  animation: ege-sheen 5.5s ease-in-out infinite;
+}
+
+.ege-tcard--legendary {
+  background: linear-gradient(135deg, #5d2ea6 0%, #a77cf0 32%, #8a4fd8 52%, #c6a6ff 74%, #5d2ea6 100%);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, .35), 0 0 14px rgba(138, 79, 216, .55);
+}
+
+.ege-tcard--mystic {
+  background:
+    radial-gradient(circle at 25% 25%, rgba(255, 242, 168, .95) 0%, rgba(255, 242, 168, 0) 50%),
+    radial-gradient(circle at 72% 70%, rgba(150, 96, 12, .6) 0%, rgba(150, 96, 12, 0) 52%),
+    linear-gradient(120deg, #9c6410 0%, #d89b28 15%, #ffe392 30%, #c98917 43%,
+                    #f4c653 56%, #fff0a8 68%, #d79a27 82%, #a76a10 100%);
+  background-size: 150% 150%, 150% 150%, 220% 220%;
+  animation: ege-metal-flow 7s ease-in-out infinite;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, .35), 0 0 16px rgba(240, 184, 42, .6);
+}
+
+.ege-tcard--iconic {
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255, 170, 214, .95) 0%, rgba(255, 170, 214, 0) 45%),
+    radial-gradient(circle at 78% 18%, rgba(214, 202, 255, .95) 0%, rgba(214, 202, 255, 0) 48%),
+    radial-gradient(circle at 30% 75%, rgba(194, 228, 255, .95) 0%, rgba(194, 228, 255, 0) 50%),
+    radial-gradient(circle at 72% 70%, rgba(255, 190, 225, .95) 0%, rgba(255, 190, 225, 0) 45%),
+    linear-gradient(135deg, #ec5fa8 0%, #d5cdf3 18%, #ffb3d9 35%, #cfe4f8 52%,
+                    #f07fbc 68%, #f0d6ce 84%, #ec5fa8 100%);
+  background-size: 140% 140%, 150% 150%, 145% 145%, 150% 150%, 200% 200%;
+  animation: ege-holo-flow 8s ease-in-out infinite;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, .35), 0 0 18px rgba(236, 95, 168, .65);
+}
+/* The holo runs over the picture too, faintly, the way a real one does. */
+.ege-tcard--iconic .ege-tcard__art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: .32;
+  background: linear-gradient(125deg, #ffb3d9, #cfe4f8 30%, #d2edcd 50%, #dfd1f3 70%, #ffb3d9);
+  background-size: 220% 220%;
+  animation: ege-sheen 6s ease-in-out infinite;
+}
+
+/* --- the back ------------------------------------------------------------ */
+
+.ege-tcard--back { background: var(--fb-accent); }
+.ege-tcard--back .ege-tcard__face {
+  align-items: center;
+  justify-content: center;
+  gap: 5cqw;
+  background:
+    repeating-linear-gradient(-45deg, #26301d 0 7cqw, var(--fb-ink) 7cqw 14cqw);
+}
+/* The ball, the site's one round shape. */
+.ege-tcard__backmark {
+  width: 40cqw;
+  height: 26cqw;
+  display: grid;
+  place-items: center;
+  background: var(--fb-accent);
+  border: 1.4cqw solid var(--fb-cream);
+  border-radius: 50% / 50% !important;
+}
+.ege-tcard__backmark::after {
+  content: '';
+  width: 18cqw;
+  height: 1.4cqw;
+  background: var(--fb-cream);
+}
+.ege-tcard__backword {
+  font-family: var(--fb-font-display);
+  font-size: 9cqw;
+  color: var(--fb-cream);
+}
+.ege-tcard__backword em { font-style: normal; color: var(--fb-accent); }
+
+/* --- packs --------------------------------------------------------------- */
+
+.ege-packs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+  gap: 20px;
+}
+.ege-packtile {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: #fff;
+}
+.ege-packtile > .ege-pack { width: 104px; flex: none; }
+.ege-packtile__words {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ege-packtile__buy { margin-top: 4px; }
+
+/* A foil pouch, crimped top and bottom. The top strip is its own piece so
+   it can come away when the pack is torn. */
+.ege-pack {
+  --foil: linear-gradient(135deg, #24572a 0%, #5da45f 22%, #b9e0b0 38%, #3d8a43 55%,
+                          #9fd394 74%, #24572a 100%);
+  --pack-ink: var(--fb-cream);
+
+  position: relative;
+  container-type: inline-size;
+  aspect-ratio: 5 / 7.4;
+  filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35));
+}
+.ege-pack--season {
+  --foil: linear-gradient(135deg, #8a3a10 0%, #e56e28 22%, #ffd27a 38%, #d8741f 55%,
+                          #f8b54a 74%, #8a3a10 100%);
+  --pack-ink: var(--fb-ink);
+}
+.ege-pack--pro {
+  --foil: linear-gradient(135deg, #1d2416 0%, #3a2a55 20%, #ec5fa8 34%, #8a4fd8 48%,
+                          #49b6d6 62%, #f0b82a 78%, #1d2416 100%);
+}
+
+.ege-pack__top,
+.ege-pack__body {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: var(--foil);
+  background-size: 200% 200%;
+}
+.ege-pack__top {
+  top: 0;
+  height: 12%;
+  clip-path: polygon(0% 100%, 0% 34%, 3.57% 0%, 7.14% 34%, 10.71% 0%, 14.29% 34%, 17.86% 0%,
+    21.43% 34%, 25% 0%, 28.57% 34%, 32.14% 0%, 35.71% 34%, 39.29% 0%, 42.86% 34%, 46.43% 0%,
+    50% 34%, 53.57% 0%, 57.14% 34%, 60.71% 0%, 64.29% 34%, 67.86% 0%, 71.43% 34%, 75% 0%,
+    78.57% 34%, 82.14% 0%, 85.71% 34%, 89.29% 0%, 92.86% 34%, 96.43% 0%, 100% 34%, 100% 100%);
+  /* the tear line */
+  box-shadow: inset 0 -.8cqw 0 rgba(0, 0, 0, .3);
+}
+.ege-pack__body {
+  top: 11.6%;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3cqw;
+  padding: 6cqw;
+  text-align: center;
+  color: var(--pack-ink);
+  clip-path: polygon(0% 0%, 100% 0%, 100% 97%, 96.43% 100%, 92.86% 97%, 89.29% 100%, 85.71% 97%,
+    82.14% 100%, 78.57% 97%, 75% 100%, 71.43% 97%, 67.86% 100%, 64.29% 97%, 60.71% 100%,
+    57.14% 97%, 53.57% 100%, 50% 97%, 46.43% 100%, 42.86% 97%, 39.29% 100%, 35.71% 97%,
+    32.14% 100%, 28.57% 97%, 25% 100%, 21.43% 97%, 17.86% 100%, 14.29% 97%, 10.71% 100%,
+    7.14% 97%, 3.57% 100%, 0% 97%);
+  animation: ege-metal-flow 9s ease-in-out infinite;
+}
+/* A band across the middle for the name to sit on. */
+.ege-pack__body::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 34%;
+  height: 34%;
+  background: rgba(29, 36, 22, .22);
+  border-top: 1cqw solid rgba(255, 255, 255, .35);
+  border-bottom: 1cqw solid rgba(0, 0, 0, .25);
+}
+.ege-pack--season .ege-pack__body::before { background: rgba(255, 255, 255, .25); }
+.ege-pack__brand,
+.ege-pack__name,
+.ege-pack__count { position: relative; }
+.ege-pack__brand {
+  font-size: 7.5cqw;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.ege-pack__name {
+  font-family: var(--fb-font-display);
+  font-size: 22cqw;
+  line-height: 1;
+  text-shadow: 1.2cqw 1.2cqw 0 rgba(0, 0, 0, .35);
+}
+.ege-pack__count {
+  font-size: 7cqw;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+/* --- ripping one open ------------------------------------------------------ */
+
+.ege-rip {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: grid;
+  place-items: center;
+  padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+           max(28px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background:
+    radial-gradient(circle at 50% 40%, rgba(240, 184, 42, .16), transparent 55%),
+    rgba(14, 18, 10, .92);
+  animation: fb-rise .18s ease-out;
+}
+.ege-rip[hidden] { display: none; }
+
+.ege-rip__stage {
+  width: min(1040px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+.ege-rip__head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.ege-rip__title {
+  font-size: clamp(1.5rem, 4vw, 2.25rem);
+  color: var(--fb-cream);
+  text-shadow: 3px 3px 0 var(--fb-ink);
+}
+.ege-rip__close { flex: none; width: 40px; height: 40px; font-size: 1.125rem; }
+
+.ege-rip__pack {
+  position: relative;
+  width: min(230px, 54vw);
+  cursor: pointer;
+  animation: ege-pack-idle 2.4s ease-in-out infinite;
+}
+.ege-rip__pack > .ege-pack { width: 100%; }
+.ege-rip__tear {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 14px);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--fb-gold);
+}
+.ege-rip__pack.is-torn { animation: none; cursor: default; }
+.ege-rip__pack.is-torn .ege-rip__tear { opacity: 0; }
+.ege-rip__pack.is-torn .ege-pack__top { animation: ege-tear .5s cubic-bezier(.3, .7, .4, 1) forwards; }
+.ege-rip__pack.is-torn .ege-pack__body { animation: ege-spill .55s .12s ease-in forwards; }
+
+@keyframes ege-pack-idle {
+  0%, 100% { transform: rotate(-2deg); }
+  50%      { transform: rotate(2deg) translateY(-6px); }
+}
+@keyframes ege-tear {
+  to { transform: translate(40%, -140%) rotate(24deg); opacity: 0; }
+}
+@keyframes ege-spill {
+  to { transform: translateY(40%) scale(.92); opacity: 0; }
+}
+
+.ege-rip__cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+}
+.ege-rip__cards[hidden] { display: none; }
+.ege-rip__cards > .ege-flip { width: clamp(150px, 17vw, 190px); }
+.ege-rip__cards--1 > .ege-flip,
+.ege-zoom__card { width: min(290px, 72vw); }
+
+.ege-rip__hint {
+  margin: 0;
+  min-height: 1.4em;
+  max-width: 560px;
+  text-align: center;
+  font-size: .875rem;
+  font-weight: 700;
+  color: var(--fb-sand);
+}
+.ege-rip__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.ege-rip__actions .fb-btn:not(.fb-btn--primary) {
+  border-color: var(--fb-cream);
+  color: var(--fb-cream);
+  background: transparent;
+}
+.ege-rip__actions .fb-btn:not(.fb-btn--primary):hover { background: var(--fb-cream); color: var(--fb-ink); }
+
+/* A card face down, dealt in, and turned over on a tap. */
+.ege-flip {
+  position: relative;
+  perspective: 1400px;
+  cursor: pointer;
+  animation: ege-deal .42s calc(var(--i, 0) * 90ms) cubic-bezier(.2, .8, .3, 1) both;
+}
+.ege-flip:focus-visible { outline: 3px solid var(--fb-gold); outline-offset: 6px; }
+.ege-flip__inner {
+  display: grid;
+  transform-style: preserve-3d;
+  transition: transform .62s cubic-bezier(.2, .8, .3, 1);
+}
+.ege-flip__side {
+  grid-area: 1 / 1;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.ege-flip__side--front { transform: rotateY(180deg); }
+.ege-flip:not(.is-flipped):hover .ege-flip__inner { transform: translateY(-6px) rotate(-1deg); }
+.ege-flip.is-flipped { cursor: default; }
+.ege-flip.is-flipped .ege-flip__inner { transform: rotateY(180deg); }
+
+/* From Rare up, the turn lets out a flash of the rarity's colour. */
+.ege-flip::before {
+  content: '';
+  position: absolute;
+  inset: -18%;
+  z-index: -1;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(circle, var(--glow) 0%, transparent 62%);
+}
+.ege-flip--rare.is-flipped::before,
+.ege-flip--epic.is-flipped::before { animation: ege-burst 1s .3s ease-out both; }
+.ege-flip--legendary.is-flipped::before,
+.ege-flip--mystic.is-flipped::before,
+.ege-flip--iconic.is-flipped::before { animation: ege-burst-hold 1.4s .3s ease-out both; }
+
+@keyframes ege-deal {
+  from { opacity: 0; transform: translateY(40px) scale(.9); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes ege-burst {
+  0%   { opacity: 0; transform: scale(.6); }
+  35%  { opacity: .95; }
+  100% { opacity: 0; transform: scale(1.25); }
+}
+@keyframes ege-burst-hold {
+  0%   { opacity: 0; transform: scale(.6); }
+  35%  { opacity: 1; }
+  100% { opacity: .55; transform: scale(1.12); }
+}
+
+/* A card held up close: the facts about it under the card. */
+.ege-zoom__facts {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 16px;
+  width: min(460px, 100%);
+  margin: 0;
+  padding: 14px 16px;
+  background: var(--fb-cream);
+  border: var(--fb-border) solid var(--fb-ink);
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, .35);
+  font-size: .875rem;
+}
+.ege-zoom__facts dt {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-accent-deep);
+  padding-top: 2px;
+}
+.ege-zoom__facts dd { margin: 0; font-weight: 600; }
+/* The stat line, with the button to its game beside it. */
+.ege-zoom__line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.ege-zoom__go {
+  width: 26px;
+  height: 22px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  font-size: .875rem;
+  line-height: 1;
+}
+
+/* --- the collection -------------------------------------------------------- */
+
+.ege-cardfilters { align-items: stretch; }
+.ege-filterrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ege-cardfilters .ege-filterrow { align-items: stretch; }
+.ege-filterselect { width: auto; min-width: 0; }
+/* All, Performances and Plays, sized like the drop-downs beside them rather
+   than like the kit's small chips. */
+.ege-filterchip {
+  padding: 11px 14px;
+  font-size: .8125rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.ege-chipdot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 6px;
+  border: 1px solid var(--fb-ink);
+  vertical-align: -1px;
+}
+
+.ege-binder {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+  gap: 20px;
+  /* Held to three rows by js/cards-view.js (fitBinder); the rest scrolls in
+     here. The padding is room for the badges that hang off a card's corners
+     and for a card lifting on hover, which the scroll box would clip. */
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-color: var(--fb-accent) var(--fb-surface);
+  padding: 10px 12px 12px 10px;
+  margin: -10px -12px -12px -10px;
+}
+.ege-binder > .ege-tcard {
+  cursor: pointer;
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+.ege-binder > .ege-tcard:hover {
+  transform: translate(-2px, -3px) rotate(-.6deg);
+  box-shadow: 7px 8px 0 rgba(0, 0, 0, .35);
+}
+.ege-binder > .ege-tcard:focus-visible { outline: 3px solid var(--fb-accent); outline-offset: 4px; }
+.ege-binder__empty { margin: 0; }
+
+/* --- the library ------------------------------------------------------------ */
+
+.ege-library { display: flex; flex-direction: column; gap: 28px; }
+.ege-library__title {
+  margin: 0 0 12px;
+  padding-bottom: 6px;
+  border-bottom: var(--fb-border-thin) dashed rgba(29, 36, 22, .28);
+  font-family: var(--fb-font-body);
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--fb-accent-deep);
+}
+.ege-library__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 18px;
+}
+
+.ege-set {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: #fff;
+}
+.ege-set.is-complete {
+  border-color: var(--fb-accent);
+  background: var(--fb-tint-wash);
+  box-shadow: 4px 4px 0 var(--fb-accent);
+}
+.ege-set.is-claimed { background: var(--fb-tint-sage); }
+.ege-set__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ege-set .fb-meter { height: 10px; }
+.ege-set .fb-btn { margin-top: auto; }
+
+.ege-set__needs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ege-set__need {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: .8125rem;
+  font-weight: 600;
+}
+.ege-set__need.is-done .ege-set__label { color: var(--fb-muted-2); text-decoration: line-through; }
+.ege-set__pips { display: flex; flex-wrap: wrap; gap: 3px; flex: none; max-width: 55%; }
+.ege-set__pip {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--fb-ink);
+  background: transparent;
+}
+.ege-set__label { min-width: 0; }
+/* A long row of pips gets the line to itself, under what it is counting. */
+.ege-set__need--many { flex-wrap: wrap; }
+.ege-set__need--many .ege-set__pips { order: 3; flex-basis: 100%; max-width: none; }
+.ege-set__tally {
+  margin-left: auto;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--fb-muted);
+}
+.ege-set__reward,
+.ege-set__got {
+  margin: 0;
+  font-size: .8125rem;
+  line-height: 1.45;
+}
+.ege-set__reward strong {
+  font-size: var(--fb-label);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-accent-deep);
+}
+
+.ege-linkbtn {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 800;
+  color: var(--fb-accent-deep);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ege-odds { min-width: 0; }
+.ege-odds tbody tr { cursor: default; }
+
+/* --- trades --------------------------------------------------------------- */
+
+/* How many offers are waiting, on the Cards link in the nav. */
+.ege-navbadge {
+  display: inline-block;
+  min-width: 18px;
+  margin-left: 6px;
+  padding: 1px 5px;
+  background: var(--fb-accent);
+  color: var(--fb-ink);
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.4;
+  text-align: center;
+  vertical-align: 1px;
+}
+.ege-navbadge[hidden] { display: none; }
+
+.ege-trades { display: flex; flex-direction: column; gap: 14px; }
+.ege-trade {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: #fff;
+}
+.ege-trade--open { background: var(--fb-tint-wash); }
+.ege-trade--declined,
+.ege-trade--cancelled,
+.ege-trade--expired { opacity: .72; }
+.ege-trade__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ege-trade__who { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ege-trade__sides {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+}
+.ege-trade__side { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ege-trade__label {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-accent-deep);
+}
+.ege-trade__cards { display: flex; flex-wrap: wrap; gap: 10px; }
+.ege-trade__cards > .ege-tcard { width: 92px; cursor: pointer; }
+.ege-trade__nothing { font-size: .8125rem; font-weight: 600; color: var(--fb-muted); }
+.ege-trade__swap {
+  align-self: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--fb-accent-deep);
+}
+.ege-trade__actions { justify-content: flex-end; }
+.ege-trade__actions .fb-meta { margin-right: auto; }
+
+/* The builder: what you give on the left, what you get on the right, each a
+   grid of cards to tap in and out of the offer. */
+.ege-rip__stage--trade,
+.ege-rip__stage--picker { align-items: stretch; }
+.ege-tradebuilder { width: 100%; }
+.ege-tradebuilder:focus { outline: none; }
+.ege-tradecols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.ege-tradecol {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px 18px;
+}
+.ege-tradecol + .ege-tradecol { border-left: var(--fb-border) solid var(--fb-ink); }
+.ege-tradecol__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ege-tradecol .ege-filterselect { align-self: flex-start; }
+.ege-tradegrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+  max-height: 440px;
+  overflow-y: auto;
+  padding: 6px 8px 10px 6px;
+}
+.ege-tradegrid--tall { max-height: none; }
+.ege-tradegrid > .ege-tcard { cursor: pointer; }
+.ege-tradegrid > .ege-tcard:focus-visible { outline: 3px solid var(--fb-accent); outline-offset: 3px; }
+.ege-tradegrid > .ege-tcard.is-picked {
+  outline: 4px solid var(--fb-accent);
+  outline-offset: 2px;
+}
+.ege-tradegrid > .ege-tcard.is-picked::before {
+  content: '\2713';
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  z-index: 6;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  background: var(--fb-accent);
+  border: 2px solid var(--fb-ink);
+  font-weight: 800;
+  color: var(--fb-ink);
+}
+
+/* --- the showcase on a player page ------------------------------------------ */
+
+.ege-showcase__grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 18px;
+  max-width: 1000px;
+}
+.ege-showcase__grid > .ege-tcard { cursor: pointer; }
+.ege-showcase__slot { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ege-showcase__add {
+  aspect-ratio: 5 / 7;
+  width: 100%;
+  border: var(--fb-border-thin) dashed var(--fb-ink);
+  background: repeating-linear-gradient(-45deg, rgba(29, 36, 22, .05) 0 6px, transparent 6px 12px);
+  font-weight: 800;
+  font-size: .8125rem;
+  color: var(--fb-accent-deep);
+  cursor: pointer;
+}
+.ege-showcase__add:hover { background-color: var(--fb-tint-wash); }
+.ege-showcase__slotactions { display: flex; gap: 6px; }
+.ege-showcase__slotactions .fb-btn { flex: 1 1 0; padding-left: 4px; padding-right: 4px; }
+.ege-showcase__actions { margin-top: 18px; }
+.ege-showcase__empty { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+.ege-showcase__empty .fb-meta { margin: 0; }
+
+.ege-cardsadmin { min-width: 0; }
+.ege-cardsadmin tbody tr { cursor: default; }
+
+/* --- on a phone ----------------------------------------------------------- */
+
+@media (max-width: 620px) {
+  .ege-packtile { padding: 14px; gap: 14px; }
+  .ege-packtile > .ege-pack { width: 84px; }
+
+  /* Six controls do not fit across a phone: the three kinds share one line,
+     as tall as the drop-downs, and the drop-downs each take a line under
+     them. 47px is what a drop-down measures here at its 16px type. */
+  .ege-filterchip { flex: 1 1 0; min-height: 47px; padding: 8px 6px; }
+  .ege-cardfilters .ege-filterselect { flex: 1 1 100%; }
+
+  /* Two across: a card narrower than this has type too small to read. */
+  .ege-binder { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+
+  .ege-rip__stage { gap: 16px; }
+  .ege-rip__cards { gap: 10px; }
+  .ege-rip__cards > .ege-flip { width: calc((100% - 20px) / 3); }
+  .ege-rip__cards--1 > .ege-flip,
+  .ege-zoom__card { width: min(260px, 70vw); }
+
+  .ege-trade__sides { grid-template-columns: minmax(0, 1fr); }
+  .ege-trade__swap { transform: rotate(90deg); justify-self: center; }
+  .ege-trade__cards > .ege-tcard { width: 84px; }
+
+  .ege-tradecols { grid-template-columns: minmax(0, 1fr); }
+  .ege-tradecol { padding: 14px; }
+  .ege-tradecol + .ege-tradecol { border-left: 0; border-top: var(--fb-border) solid var(--fb-ink); }
+  .ege-tradegrid { grid-template-columns: repeat(3, minmax(0, 1fr)); max-height: 340px; gap: 10px; }
+
+  .ege-showcase__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ege-tcard::after,
+  .ege-tcard--mystic,
+  .ege-tcard--iconic,
+  .ege-tcard--iconic .ege-tcard__art::after,
+  .ege-pack__body,
+  .ege-rip,
+  .ege-rip__pack,
+  .ege-flip { animation: none; }
+  .ege-flip__inner { transition: none; }
+  .ege-flip::before { animation: none !important; }
+  .ege-rip__pack.is-torn .ege-pack__top,
+  .ege-rip__pack.is-torn .ege-pack__body { animation: none; opacity: 0; }
 }

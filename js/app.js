@@ -13,6 +13,7 @@
   var roster     = document.getElementById('roster');
   var viewHome   = document.getElementById('view-home');
   var viewShop   = document.getElementById('view-shop');
+  var viewCards  = document.getElementById('view-cards');
   var viewPlayer = document.getElementById('view-player');
   var viewAdmin  = document.getElementById('view-admin');
   var viewTeams  = document.getElementById('view-teams');
@@ -270,6 +271,9 @@
     renderSchedule(player);
     renderGameLog(player);
     renderRatings(player);
+
+    /* The cards this player has picked to show off -- not tied to a season. */
+    EGE.showcase.render(player);
   }
 
   /* --- the injury report ----------------------------------------------------
@@ -610,6 +614,39 @@
   document.getElementById('seasonPick').addEventListener('change', function (e) {
     showSeason(Number(e.target.value));
   });
+
+  /* --- straight to one game ---------------------------------------------
+
+     What a card's game button does: open the player's page on the card's
+     season and land on that game in the game log, picked out. The season is
+     set before the page is drawn, so the switcher does not throw it back to
+     the live one on the way in. */
+  var spotlight = null;
+
+  EGE.goToGame = function (slug, season, week) {
+    if (!EGE.playerBySlug(slug)) { return; }
+    spotlight = { slug: slug, season: season, week: Number(week) };
+    seasonFor = slug;
+    viewedSeason = season === EGE.currentSeason ? null : season;
+    if (window.location.hash.replace(/^#/, '') === slug) { route(); }
+    else { window.location.hash = slug; }
+  };
+
+  function spotlightGame(player) {
+    if (!spotlight || spotlight.slug !== player.slug || spotlight.season !== shownSeason()) { return; }
+    var week = spotlight.week;
+    spotlight = null;
+
+    var panel = document.getElementById('gameLogPanel');
+    if (panel.hidden) { return; }
+    if (panel.classList.contains('is-collapsed')) {
+      panel.querySelector('.ege-collapse').click();
+    }
+    var row = panel.querySelector('tbody tr[data-week="' + week + '"]');
+    if (!row) { return; }
+    row.classList.add('is-spotlit');
+    row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
   document.getElementById('seasonPrev').addEventListener('click', function () { stepSeason(-1); });
   document.getElementById('seasonNext').addEventListener('click', function () { stepSeason(1); });
 
@@ -2655,6 +2692,7 @@
 
     order.forEach(function (game) {
       var row = el('tr');
+      row.dataset.week = game.week;
       row.appendChild(el('td', 'ege-schedule__week', game.week));
 
       var opponent = el('td', 'ege-gamelog__opponent');
@@ -4475,6 +4513,8 @@
       'If it is not deployed the week still goes out, and the scheduled bot ' +
       'posts it on its next run.';
 
+    EGE.cardsAdmin.render();
+
     return refreshAdminView().then(function () {
       fillEditorWeeks();
       renderEditor();
@@ -4638,12 +4678,14 @@
     document.getElementById('navPlayers').classList.toggle('is-active', active === 'players');
     document.getElementById('navTeams').classList.toggle('is-active', active === 'teams');
     document.getElementById('navShop').classList.toggle('is-active', active === 'shop');
+    document.getElementById('navCards').classList.toggle('is-active', active === 'cards');
     document.getElementById('navAdmin').classList.toggle('is-active', active === 'admin');
   }
 
   function show(view) {
     viewHome.hidden   = view !== viewHome;
     viewShop.hidden   = view !== viewShop;
+    viewCards.hidden  = view !== viewCards;
     viewPlayer.hidden = view !== viewPlayer;
     viewAdmin.hidden  = view !== viewAdmin;
     viewTeams.hidden  = view !== viewTeams;
@@ -4674,6 +4716,11 @@
       show(viewShop);
       setNav('shop');
       document.title = 'Shop \u2014 EGE Football';
+    } else if (hash === 'cards') {
+      show(viewCards);
+      EGE.cardsView.render();
+      setNav('cards');
+      document.title = 'Cards \u2014 EGE Football';
     } else if (hash === 'admin') {
       renderAdminView();
       show(viewAdmin);
@@ -4700,6 +4747,9 @@
        and doing it then threw whoever was halfway down a game log back up
        to the header. */
     if (moved) { window.scrollTo(0, 0); }
+
+    /* After the jump to the top, so a card's game button lands on its game. */
+    if (player) { spotlightGame(player); }
   }
 
   /* --- portal: shared bits ---------------------------------------------- */
@@ -4877,12 +4927,26 @@
     openLogin();
   });
 
+  document.getElementById('cardsLoginBtn').addEventListener('click', function () {
+    openLogin();
+  });
+
+  /* The Cards tab spends credits and a library set can pay out a booster,
+     so the balance in the nav and the shop's inventory -- which the sticker
+     drawer reads -- are brought up to date when it says so. */
+  document.addEventListener('ege:wallet', function (event) {
+    var credits = event.detail && event.detail.credits;
+    if (typeof credits === 'number') { updateNavCredits(credits); }
+    refreshShop();
+  });
+
   function showSignedOutNav() {
     loginBtn.className = 'fb-btn fb-btn--inverse';
     loginBtn.textContent = 'Log In';
     loginBtn.removeAttribute('title');
     loginBtn.setAttribute('aria-label', 'Open the player portal');
     document.getElementById('navShop').hidden = true;
+    document.getElementById('navCards').hidden = true;
     document.getElementById('navAdmin').hidden = true;
     document.getElementById('navCredits').hidden = true;
   }
@@ -4898,6 +4962,7 @@
     loginBtn.setAttribute('aria-label', 'Open ' + player.name + '’s portal');
 
     document.getElementById('navShop').hidden = false;
+    document.getElementById('navCards').hidden = false;
 
     document.getElementById('navCredits').hidden = false;
     updateNavCredits(null);
@@ -4973,6 +5038,7 @@
             sayShop('The season paid you ' + paid.paid + ' credits since you were ' +
                     'last here.', false);
           }
+          EGE.cardsView.refreshBadge();
           return refreshShop();
         })
         .then(route)
@@ -5155,8 +5221,12 @@
       if (liveState() !== before) {
         redrawRatings();
         refreshScoutMarks();
+        /* A week out since is a week of new cards in the packs. */
+        if (window.location.hash === '#cards') { EGE.cardsView.render(); }
       }
       updateNavCreditsFromServer();
+      /* An offer may have come in while the page was put away. */
+      EGE.cardsView.refreshBadge();
     }).then(function () { refreshing = false; }, function () { refreshing = false; });
   }
 

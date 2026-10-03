@@ -44,6 +44,7 @@
         <a class="fb-navlink is-active" href="#" id="navPlayers">Players</a>
         <a class="fb-navlink" href="#teams" id="navTeams">Teams</a>
         <a class="fb-navlink" href="#shop" id="navShop" hidden>Shop</a>
+        <a class="fb-navlink" href="#cards" id="navCards" hidden>Cards<span class="ege-navbadge" id="navCardsBadge" hidden></span></a>
         <a class="fb-navlink" href="#admin" id="navAdmin" hidden>Admin</a>
       </div>
 
@@ -269,6 +270,136 @@
 
     </section>
 
+    <!-- ===== cards ==================================================== -->
+    <!-- The card game: packs to rip, the collection they fill and the
+         library of sets to put together. Its own tab, apart from the
+         simulation -- nothing here changes a rating, a result or a season.
+         Signed-in players only, like the shop. Drawn by js/cards-view.js
+         from data/cards.js. -->
+    <section id="view-cards" hidden>
+
+      <header class="fb-hero fb-hero--centred" style="padding: 44px 0 30px;">
+        <div class="fb-hero__col">
+          <span class="fb-kicker">Collect them all</span>
+          <h1 class="fb-hero__title" style="margin: 14px 0 0;">Cards</h1>
+        </div>
+      </header>
+
+      <div class="fb-panel" id="cardsLocked" hidden>
+        <div class="fb-panel__strip">
+          <span class="fb-eyebrow" style="color: var(--fb-ink);">Players only</span>
+        </div>
+        <div class="fb-panel__body fb-stack">
+          <p style="margin: 0;">
+            Cards are part of your portal. Sign in to rip packs and build your collection.
+          </p>
+          <button class="fb-btn fb-btn--primary" id="cardsLoginBtn" type="button">Log In</button>
+        </div>
+      </div>
+
+      <div id="cardsContent">
+
+      <p class="ege-note" id="cardsMessage" role="alert" hidden></p>
+
+      <!-- what can be bought -->
+      <div class="fb-panel" id="packsPanel">
+        <div class="fb-panel__head">
+          <h3>Packs</h3>
+          <div class="ege-ovr ege-ovr--head">
+            <span class="ege-ovr__label">Credits</span>
+            <span class="ege-ovr__value" id="cardsBalance">&mdash;</span>
+          </div>
+        </div>
+        <div class="fb-panel__body">
+          <div class="ege-packs" id="cardPacks"></div>
+        </div>
+      </div>
+
+      <!-- what has been pulled -->
+      <div class="fb-panel ege-section-gap" id="collectionPanel">
+        <div class="fb-panel__head">
+          <h3>Your Collection</h3>
+          <span class="fb-meta" id="collectionCount"></span>
+          <button class="ege-collapse" type="button"
+                  data-collapses="collectionPanel" aria-controls="collectionPanel"
+                  aria-expanded="true" aria-label="Hide your collection"></button>
+        </div>
+        <div class="fb-filters ege-cardfilters" id="collectionFilters"></div>
+        <div class="fb-panel__body">
+          <div class="ege-binder" id="collectionGrid"></div>
+          <p class="fb-meta ege-binder__empty" id="collectionEmpty" hidden></p>
+        </div>
+      </div>
+
+      <!-- trading with the others -->
+      <div class="fb-panel ege-section-gap" id="tradesPanel">
+        <div class="fb-panel__head">
+          <h3>Trades</h3>
+          <span class="fb-meta" id="tradesCount"></span>
+          <button class="fb-btn fb-btn--sm fb-btn--primary" id="tradeNew" type="button">Propose a trade</button>
+        </div>
+        <div class="fb-panel__body">
+          <div class="ege-library" id="tradeList"></div>
+        </div>
+      </div>
+
+      <!-- sets to put together -->
+      <div class="fb-panel ege-section-gap" id="libraryPanel">
+        <div class="fb-panel__head">
+          <h3>Library</h3>
+          <span class="fb-meta" id="libraryCount"></span>
+          <button class="ege-collapse" type="button"
+                  data-collapses="libraryPanel" aria-controls="libraryPanel"
+                  aria-expanded="true" aria-label="Hide the library"></button>
+        </div>
+        <div class="fb-panel__body fb-stack fb-stack--lg">
+          <p class="fb-meta" style="margin: 0;">
+            Put a set together and claim its reward once. A card counts toward
+            every set it fits, and nothing is used up.
+          </p>
+          <div class="ege-library" id="librarySets"></div>
+        </div>
+      </div>
+
+      <!-- how hard each rarity is, out of the way until wanted -->
+      <details class="fb-panel ege-section-gap ege-details" id="oddsDetails">
+        <summary class="fb-panel__head ege-details__summary">
+          <h3>Rarity &amp; Odds</h3>
+          <span class="fb-meta">How cards are graded and how often each pulls</span>
+        </summary>
+        <div class="fb-panel__body fb-stack">
+          <p class="fb-meta" style="margin: 0;">
+            The number in a card's corner is its fantasy score, half PPR, the
+            same scoring a game pays credits on. A play is scored as the one
+            play. Rarity is graded from that score against the position, so a
+            tight end's big night is as rare as a quarterback's. A play is
+            graded as if every play were carried or caught, so a 60 yard
+            touchdown pass grades with a 60 yard touchdown catch, and go-ahead,
+            game-tying and game-winning plays grade a little higher.
+          </p>
+          <p class="fb-meta" style="margin: 0;">
+            Each card in a pack rolls its rarity first, at the chance below,
+            then is drawn from every card of that rarity that is out.
+          </p>
+        </div>
+        <div class="fb-tablewrap">
+          <table class="fb-table ege-odds">
+            <thead>
+              <tr>
+                <th>Rarity</th>
+                <th class="num">Chance per card</th>
+                <th class="num">Cards out</th>
+              </tr>
+            </thead>
+            <tbody id="cardOdds"></tbody>
+          </table>
+        </div>
+      </details>
+
+      </div><!-- /cardsContent -->
+
+    </section>
+
     <!-- ===== admin ==================================================== -->
     <section id="view-admin" hidden>
 
@@ -429,6 +560,54 @@
         <div class="fb-panel__body fb-stack fb-stack--lg" id="adminAccounts"></div>
         <div class="fb-panel__foot">
           <span class="fb-meta">Changes save straight away.</span>
+        </div>
+      </div>
+
+      <!-- the card game: who has what, and the two resets -->
+      <div class="fb-panel ege-section-gap" id="cardsAdminPanel">
+        <div class="fb-panel__head">
+          <h3>Cards</h3>
+          <span class="fb-meta" id="cardsAdminNote"></span>
+        </div>
+        <div class="fb-panel__body fb-stack fb-stack--lg">
+          <div class="fb-tablewrap">
+            <table class="fb-table ege-cardsadmin">
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th class="num">Cards</th>
+                  <th class="num">Different</th>
+                  <th class="num">Sets claimed</th>
+                  <th class="num">Open trades</th>
+                  <th class="num">Showcase</th>
+                </tr>
+              </thead>
+              <tbody id="cardsAdminRows"></tbody>
+            </table>
+          </div>
+
+          <p class="fb-meta" style="margin: 0;">
+            <strong>Clear library</strong> takes every card out of the
+            collection, empties the showcase, cancels open trades and resets
+            the goals, so the player starts the Library over.
+            <strong>Reset goals</strong> only lets every Library set be
+            claimed again; cards are kept. Rewards already paid stay paid
+            either way, and neither can be undone.
+          </p>
+
+          <div class="fb-row fb-row--wrap ege-weekbar">
+            <label class="ege-field ege-field--inline">
+              <span class="fb-eyebrow">Who</span>
+              <select class="fb-select" id="cardsAdminWho"></select>
+            </label>
+            <label class="ege-field ege-field--inline">
+              <span class="fb-eyebrow">Type RESET to confirm</span>
+              <input class="fb-input" id="cardsAdminConfirm" type="text"
+                     autocomplete="off" spellcheck="false" placeholder="RESET">
+            </label>
+            <button class="fb-btn" id="cardsAdminGoals" type="button" disabled>Reset goals</button>
+            <button class="fb-btn fb-btn--primary" id="cardsAdminClear" type="button" disabled>Clear library</button>
+          </div>
         </div>
       </div>
 
@@ -640,6 +819,22 @@
         </div>
       </div>
 
+      <!-- The cards this player has picked to show off. Public, like the
+           page; only the player can change it. Built in js/showcase.js. -->
+      <div class="fb-panel ege-section-gap" id="showcasePanel" hidden>
+        <div class="fb-panel__head">
+          <h3>Showcase</h3>
+          <span class="fb-meta" id="showcaseNote"></span>
+          <button class="fb-btn fb-btn--sm" id="showcaseEdit" type="button" hidden>Edit</button>
+          <button class="ege-collapse" type="button"
+                  data-collapses="showcasePanel" aria-controls="showcasePanel"
+                  aria-expanded="true" aria-label="Hide the showcase"></button>
+        </div>
+        <div class="fb-panel__body">
+          <div class="ege-showcase" id="showcaseCards"></div>
+        </div>
+      </div>
+
       <div class="fb-panel ege-section-gap" id="schedulePanel" hidden>
         <div class="fb-panel__head">
           <h3>Schedule</h3>
@@ -770,6 +965,10 @@
   </div><!-- /fb-wrap -->
 </div><!-- /fb-shell -->
 
+<!-- ===== a pack being ripped, or a card up close ===================== -->
+<!-- Built in js/cards-view.js each time it opens. -->
+<div class="ege-rip" id="cardRip" role="dialog" aria-modal="true" aria-label="Cards" hidden></div>
+
 <!-- ===== player portal =============================================== -->
 <div class="fb-backdrop" id="loginModal" hidden>
   <div class="fb-modal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
@@ -864,8 +1063,13 @@
 <script src="js/site-data.js"></script>
 
 <script src="data/games.js"></script>
+<script src="data/cards.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/wallet.js"></script>
+<script src="js/cards.js"></script>
+<script src="js/cards-view.js"></script>
+<script src="js/showcase.js"></script>
+<script src="js/cards-admin.js"></script>
 <script src="js/discord-post.js"></script>
 <script src="js/exports.js"></script>
 <script src="js/app.js"></script>

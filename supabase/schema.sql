@@ -643,3 +643,650 @@ create policy "published weeks removed by an admin"
 -- ---------------------------------------------------------------------------
 
 notify pgrst, 'reload schema';
+
+-- ===========================================================================
+-- Cards
+--
+-- The card game on the Cards tab (data/cards.js). It sits beside the
+-- simulation rather than in it: nothing here touches a rating, a stat line or
+-- a result, and a player who never opens a pack loses nothing by it.
+--
+-- A card is an id that names a game or one of its big plays --
+-- 'p:2021:sam-stogsdill:5', 'h:2021:sam-stogsdill:5:0' -- and everything
+-- printed on it is read from the season file, so all this stores is who owns
+-- which ids and how many of each.
+--
+-- No insert, update or delete policy on any of the card tables. Cards only
+-- ever move through the functions below -- opening a pack, claiming a set,
+-- a trade, the admin's resets -- each one transaction, so a pack is never
+-- paid for without arriving and a trade never half happens.
+-- ===========================================================================
+
+create table if not exists public.player_cards (
+  email           text        not null,
+  card_id         text        not null,
+  quantity        integer     not null default 1,
+  first_pulled_at timestamptz not null default now(),
+  primary key (email, card_id)
+);
+
+alter table public.player_cards enable row level security;
+
+-- Any signed-in player can see anybody's collection: a trade means picking
+-- what you want out of somebody else's. Nobody signed out can.
+drop policy if exists "cards readable by owner or admin" on public.player_cards;
+drop policy if exists "cards readable by players" on public.player_cards;
+create policy "cards readable by players"
+  on public.player_cards for select to authenticated
+  using (true);
+
+-- Every pack opened, with what was in it. The rip on the page is drawn from
+-- what comes back, and the admin can see what the shop has taken.
+create table if not exists public.card_packs (
+  id        uuid primary key default gen_random_uuid(),
+  email     text        not null,
+  pack_key  text        not null,
+  credits   integer     not null,
+  cards     text[]      not null,
+  opened_at timestamptz not null default now()
+);
+
+create index if not exists card_packs_email_idx
+  on public.card_packs (email, opened_at desc);
+
+alter table public.card_packs enable row level security;
+
+drop policy if exists "card packs readable by owner or admin" on public.card_packs;
+create policy "card packs readable by owner or admin"
+  on public.card_packs for select to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin());
+
+-- A library set can be claimed once per player, ever.
+create table if not exists public.card_set_claims (
+  email      text        not null,
+  set_key    text        not null,
+  reward     jsonb       not null default '{}'::jsonb,
+  claimed_at timestamptz not null default now(),
+  primary key (email, set_key)
+);
+
+alter table public.card_set_claims enable row level security;
+
+drop policy if exists "card set claims readable by owner or admin" on public.card_set_claims;
+create policy "card set claims readable by owner or admin"
+  on public.card_set_claims for select to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin());
+
+-- What a card id looks like. Anything else is refused at the door.
+create or replace function public.is_card_id(p_id text)
+returns boolean
+language sql
+immutable
+as $$
+  select p_id ~ '^(p:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}|h:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}:[0-9]{1,2})$';
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Helpers the functions below share. Not callable from the browser: they do
+-- no checking of their own, and every caller has done it already.
+-- ---------------------------------------------------------------------------
+
+-- One booster into somebody's inventory, on the stacked row a bought one
+-- lands on.
+create or replace function public.give_booster(p_email text, p_booster text)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  insert into public.player_inventory as inv
+    (email, item_key, item_name, target, quantity, credits, effects, consumable, season, active)
+  values
+    (p_email, p_booster,
+     case p_booster when 'boost-2-5' then '2.5x Booster'
+                    when 'boost-2-0' then '2.0x Booster'
+                    else '1.5x Booster' end,
+     null, 1, 0, '{}'::jsonb, true, null, false)
+  on conflict (email, item_key, coalesce(target, ''))
+    where item_key = 'upgrade' or consumable
+  do update set quantity = inv.quantity + 1;
+$$;
+
+-- One copy of a card into a collection.
+create or replace function public.give_card(p_email text, p_card text)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  insert into public.player_cards as pc (email, card_id)
+  values (p_email, p_card)
+  on conflict (email, card_id) do update set quantity = pc.quantity + 1;
+$$;
+
+-- One copy of a card out of a collection; the row goes with the last one.
+create or replace function public.take_card(p_email text, p_card text)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  update public.player_cards set quantity = quantity - 1
+   where email = p_email and card_id = p_card;
+  delete from public.player_cards
+   where email = p_email and card_id = p_card and quantity <= 0;
+$$;
+
+-- Does this collection hold at least one of every card in the list?
+create or replace function public.owns_cards(p_email text, p_cards text[])
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select (select count(*) from public.player_cards
+           where email = p_email and card_id = any(p_cards) and quantity > 0)
+       = (select count(distinct c) from unnest(p_cards) as c);
+$$;
+
+-- Supabase grants every new function to the browser's roles by default, so
+-- these are taken back explicitly.
+revoke all on function public.give_booster(text, text) from public, anon, authenticated;
+revoke all on function public.give_card(text, text) from public, anon, authenticated;
+revoke all on function public.take_card(text, text) from public, anon, authenticated;
+revoke all on function public.owns_cards(text, text[]) from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Opening a pack
+--
+-- The price and the size are decided here, not by the page: the same numbers
+-- as PACKS in data/cards.js, and the two are changed together. Which cards
+-- are in it the page rolls, because the season files that say what a card is
+-- are not in Postgres -- the same trust the credit awards run on, and with
+-- the same easy half closed: a pack holds exactly its size of real-looking
+-- ids, and costs what it costs.
+--
+-- The balance is taken under lock, so two packs opened at once from two tabs
+-- cannot both spend the same credits.
+--
+-- Returns the balance left.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.open_card_pack(p_pack text, p_cards text[])
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  v_price integer;
+  v_size  integer;
+  v_have  integer;
+  v_card  text;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+
+  v_price := case p_pack when 'base' then 5 when 'season' then 6 when 'pro' then 10 end;
+  v_size  := case p_pack when 'base' then 3 when 'season' then 3 when 'pro' then 5 end;
+  if v_price is null then
+    raise exception 'There is no % pack.', p_pack;
+  end if;
+
+  if coalesce(array_length(p_cards, 1), 0) <> v_size then
+    raise exception 'That pack holds % cards.', v_size;
+  end if;
+  foreach v_card in array p_cards loop
+    if not public.is_card_id(v_card) then
+      raise exception 'Not a card: %', v_card;
+    end if;
+  end loop;
+
+  select credits into v_have
+    from public.player_credits
+   where email = v_email
+     for update;
+
+  if coalesce(v_have, 0) < v_price then
+    raise exception 'Not enough credits: that pack costs %, you have %.', v_price, coalesce(v_have, 0);
+  end if;
+
+  update public.player_credits
+     set credits = credits - v_price, updated_at = now()
+   where email = v_email;
+
+  foreach v_card in array p_cards loop
+    perform public.give_card(v_email, v_card);
+  end loop;
+
+  insert into public.card_packs (email, pack_key, credits, cards)
+  values (v_email, p_pack, v_price, p_cards);
+
+  return v_have - v_price;
+end;
+$$;
+
+revoke all on function public.open_card_pack(text, text[]) from public;
+grant execute on function public.open_card_pack(text, text[]) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Claiming a library set
+--
+-- Which cards make a set is in data/cards.js, so the page says which of the
+-- player's cards it was completed with, and this checks they are all really
+-- theirs. The reward is one more card, a few credits and, on the harder
+-- sets, a 1.5x booster -- held here to 20 credits and to the 1.5x for
+-- anybody but an admin, so the most a forged claim can do is pay out a
+-- small, real reward once.
+--
+-- The booster lands on the same stacked inventory row a bought one does, and
+-- goes on games under the same five-a-season trigger, so a full library
+-- never means more boosters on a season than anybody else can have.
+--
+-- Returns the balance after.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.claim_card_set(
+  p_set         text,
+  p_cards       text[],
+  p_reward_card text,
+  p_credits     integer,
+  p_booster     text
+) returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email   text := auth.jwt() ->> 'email';
+  v_admin   boolean := public.is_admin();
+  v_credits integer := greatest(coalesce(p_credits, 0), 0);
+  v_balance integer;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  if p_set is null or p_set !~ '^[a-z0-9-]{1,60}$' then
+    raise exception 'Not a set: %', p_set;
+  end if;
+  if coalesce(array_length(p_cards, 1), 0) = 0 then
+    raise exception 'A set is made of cards.';
+  end if;
+  if p_reward_card is not null and not public.is_card_id(p_reward_card) then
+    raise exception 'Not a card: %', p_reward_card;
+  end if;
+  if p_booster is not null and p_booster not in ('boost-1-5', 'boost-2-0', 'boost-2-5') then
+    raise exception 'Not a booster: %', p_booster;
+  end if;
+  if not v_admin and (v_credits > 20 or (p_booster is not null and p_booster <> 'boost-1-5')) then
+    raise exception 'That is more than a set pays.';
+  end if;
+
+  -- Every card it was made with has to be in the collection.
+  if not public.owns_cards(v_email, p_cards) then
+    raise exception 'Some of those cards are not in your collection.';
+  end if;
+
+  insert into public.card_set_claims (email, set_key, reward)
+  values (v_email, p_set, jsonb_build_object(
+    'card', p_reward_card, 'credits', v_credits, 'booster', p_booster, 'cards', to_jsonb(p_cards)))
+  on conflict (email, set_key) do nothing;
+  if not found then
+    raise exception 'That set has already been claimed.';
+  end if;
+
+  if p_reward_card is not null then
+    perform public.give_card(v_email, p_reward_card);
+  end if;
+
+  insert into public.player_credits as cr (email, credits, updated_at)
+  values (v_email, v_credits, now())
+  on conflict (email) do update
+    set credits = cr.credits + v_credits, updated_at = now()
+  returning credits into v_balance;
+
+  if p_booster is not null then
+    perform public.give_booster(v_email, p_booster);
+  end if;
+
+  return v_balance;
+end;
+$$;
+
+revoke all on function public.claim_card_set(text, text[], text, integer, text) from public;
+grant execute on function public.claim_card_set(text, text[], text, integer, text) to authenticated;
+
+notify pgrst, 'reload schema';
+
+-- ---------------------------------------------------------------------------
+-- Trades
+--
+-- One player offers some of their cards for some of another's. The other
+-- accepts or declines; the one who offered can take it back while it is
+-- open. Nothing moves until it is accepted, and then both sides move in one
+-- transaction, after checking that both players still have what they put
+-- up -- a card can be in two offers at once, and only the first accepted
+-- gets it. An offer that can no longer go through is marked expired rather
+-- than half done.
+--
+-- `give` is what the offering player hands over, `take` what they get back.
+-- A trade with nothing to take is a gift.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.card_trades (
+  id          uuid primary key default gen_random_uuid(),
+  from_email  text        not null,
+  to_email    text        not null,
+  give        text[]      not null,
+  take        text[]      not null default '{}',
+  status      text        not null default 'open'
+              check (status in ('open', 'accepted', 'declined', 'cancelled', 'expired')),
+  created_at  timestamptz not null default now(),
+  resolved_at timestamptz
+);
+
+create index if not exists card_trades_from_idx on public.card_trades (from_email, status);
+create index if not exists card_trades_to_idx on public.card_trades (to_email, status);
+
+alter table public.card_trades enable row level security;
+
+-- The two players in it, and an admin.
+drop policy if exists "card trades readable by either side or admin" on public.card_trades;
+create policy "card trades readable by either side or admin"
+  on public.card_trades for select to authenticated
+  using (lower(from_email) = lower(auth.jwt() ->> 'email')
+         or lower(to_email) = lower(auth.jwt() ->> 'email')
+         or public.is_admin());
+
+-- Showcases: up to five cards a player puts on their own player page. Set
+-- below, pruned here.
+create table if not exists public.card_showcases (
+  email      text primary key,
+  cards      text[]      not null default '{}',
+  updated_at timestamptz not null default now()
+);
+
+alter table public.card_showcases enable row level security;
+
+drop policy if exists "card showcases are public" on public.card_showcases;
+create policy "card showcases are public"
+  on public.card_showcases for select
+  using (true);
+
+-- A card that has left a collection leaves its owner's showcase too.
+create or replace function public.prune_showcase(p_email text)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  update public.card_showcases s
+     set cards = coalesce(array(
+           select c from unnest(s.cards) with ordinality as t(c, n)
+            where exists (select 1 from public.player_cards pc
+                           where pc.email = s.email and pc.card_id = t.c and pc.quantity > 0)
+            order by t.n), '{}'),
+         updated_at = now()
+   where s.email = p_email;
+$$;
+
+create or replace function public.propose_card_trade(p_to text, p_give text[], p_take text[])
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  v_take  text[] := coalesce(p_take, '{}');
+  v_card  text;
+  v_id    uuid;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  if p_to is null or lower(p_to) = lower(v_email) then
+    raise exception 'Pick somebody else to trade with.';
+  end if;
+  if coalesce(array_length(p_give, 1), 0) not between 1 and 6 then
+    raise exception 'Offer between one and six of your cards.';
+  end if;
+  if coalesce(array_length(v_take, 1), 0) > 6 then
+    raise exception 'Ask for six cards at most.';
+  end if;
+  foreach v_card in array p_give || v_take loop
+    if not public.is_card_id(v_card) then
+      raise exception 'Not a card: %', v_card;
+    end if;
+  end loop;
+  if (select count(distinct c) from unnest(p_give) c) <> array_length(p_give, 1)
+     or (select count(distinct c) from unnest(v_take) c) <> coalesce(array_length(v_take, 1), 0) then
+    raise exception 'Each card goes in once.';
+  end if;
+  if not public.owns_cards(v_email, p_give) then
+    raise exception 'You do not have all of those cards.';
+  end if;
+  if not public.owns_cards(p_to, v_take) then
+    raise exception 'They do not have all of those cards.';
+  end if;
+  if (select count(*) from public.card_trades
+       where lower(from_email) = lower(v_email) and status = 'open') >= 10 then
+    raise exception 'You have ten offers out already. Wait for an answer or take one back.';
+  end if;
+
+  insert into public.card_trades (from_email, to_email, give, take)
+  values (v_email, p_to, p_give, v_take)
+  returning id into v_id;
+  return v_id;
+end;
+$$;
+
+-- Returns what became of it: accepted, declined or expired.
+create or replace function public.respond_card_trade(p_trade uuid, p_accept boolean)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  t       public.card_trades;
+  v_card  text;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+
+  select * into t from public.card_trades where id = p_trade for update;
+  if t.id is null then
+    raise exception 'There is no such trade.';
+  end if;
+  if lower(t.to_email) <> lower(v_email) then
+    raise exception 'That offer is not yours to answer.';
+  end if;
+  if t.status <> 'open' then
+    raise exception 'That offer has already been %.', t.status;
+  end if;
+
+  if not p_accept then
+    update public.card_trades set status = 'declined', resolved_at = now() where id = t.id;
+    return 'declined';
+  end if;
+
+  -- Both collections, under lock, before anything is checked.
+  perform 1 from public.player_cards
+    where email in (t.from_email, t.to_email) and card_id = any(t.give || t.take)
+    for update;
+
+  if not public.owns_cards(t.from_email, t.give) or not public.owns_cards(t.to_email, t.take) then
+    update public.card_trades set status = 'expired', resolved_at = now() where id = t.id;
+    return 'expired';
+  end if;
+
+  foreach v_card in array t.give loop
+    perform public.take_card(t.from_email, v_card);
+    perform public.give_card(t.to_email, v_card);
+  end loop;
+  foreach v_card in array t.take loop
+    perform public.take_card(t.to_email, v_card);
+    perform public.give_card(t.from_email, v_card);
+  end loop;
+
+  perform public.prune_showcase(t.from_email);
+  perform public.prune_showcase(t.to_email);
+
+  update public.card_trades set status = 'accepted', resolved_at = now() where id = t.id;
+  return 'accepted';
+end;
+$$;
+
+create or replace function public.cancel_card_trade(p_trade uuid)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  t       public.card_trades;
+begin
+  select * into t from public.card_trades where id = p_trade for update;
+  if t.id is null then
+    raise exception 'There is no such trade.';
+  end if;
+  if lower(t.from_email) <> lower(coalesce(v_email, '')) and not public.is_admin() then
+    raise exception 'Only the player who offered it can take it back.';
+  end if;
+  if t.status <> 'open' then
+    raise exception 'That offer has already been %.', t.status;
+  end if;
+  update public.card_trades set status = 'cancelled', resolved_at = now() where id = t.id;
+  return 'cancelled';
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Showcases
+--
+-- Up to five cards a player picks to show on their own player page. Public,
+-- like the page: anybody can see them, signed in or not. Only cards the
+-- player owns can go up, and a card traded away comes down on its own.
+-- ---------------------------------------------------------------------------
+
+-- The table itself is created with the trades, which prune it.
+
+create or replace function public.set_card_showcase(p_cards text[])
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  v_cards text[] := coalesce(p_cards, '{}');
+  v_card  text;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  if coalesce(array_length(v_cards, 1), 0) > 5 then
+    raise exception 'A showcase holds five cards.';
+  end if;
+  foreach v_card in array v_cards loop
+    if not public.is_card_id(v_card) then
+      raise exception 'Not a card: %', v_card;
+    end if;
+  end loop;
+  if (select count(distinct c) from unnest(v_cards) c) <> coalesce(array_length(v_cards, 1), 0) then
+    raise exception 'Each card goes up once.';
+  end if;
+  if not public.owns_cards(v_email, v_cards) then
+    raise exception 'You can only show cards you have.';
+  end if;
+
+  insert into public.card_showcases (email, cards, updated_at)
+  values (v_email, v_cards, now())
+  on conflict (email) do update set cards = excluded.cards, updated_at = now();
+end;
+$$;
+
+-- prune_showcase is internal, like the helpers.
+revoke all on function public.prune_showcase(text) from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- The admin's two resets, one player or everybody (p_email null).
+--
+-- Clear library: every card out of the collection, the showcase emptied,
+-- open trades cancelled and the goals reset, so the player starts the
+-- Library over from nothing. Credits stay spent and rewards stay paid.
+--
+-- Reset goals: every library set can be claimed again. Cards are kept, and
+-- the rewards already paid stay paid.
+--
+-- Each returns how many rows it took away.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.admin_clear_card_library(p_email text)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_count integer;
+begin
+  if not public.is_admin() then
+    raise exception 'Only an admin can do that.';
+  end if;
+
+  delete from public.player_cards where p_email is null or lower(email) = lower(p_email);
+  get diagnostics v_count = row_count;
+
+  delete from public.card_showcases where p_email is null or lower(email) = lower(p_email);
+
+  delete from public.card_set_claims where p_email is null or lower(email) = lower(p_email);
+
+  update public.card_trades set status = 'cancelled', resolved_at = now()
+   where status = 'open'
+     and (p_email is null or lower(from_email) = lower(p_email) or lower(to_email) = lower(p_email));
+
+  return v_count;
+end;
+$$;
+
+create or replace function public.admin_reset_card_goals(p_email text)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_count integer;
+begin
+  if not public.is_admin() then
+    raise exception 'Only an admin can do that.';
+  end if;
+
+  delete from public.card_set_claims where p_email is null or lower(email) = lower(p_email);
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
+revoke all on function public.propose_card_trade(text, text[], text[]) from public, anon;
+revoke all on function public.respond_card_trade(uuid, boolean) from public, anon;
+revoke all on function public.cancel_card_trade(uuid) from public, anon;
+revoke all on function public.set_card_showcase(text[]) from public, anon;
+revoke all on function public.admin_clear_card_library(text) from public, anon;
+revoke all on function public.admin_reset_card_goals(text) from public, anon;
+grant execute on function public.propose_card_trade(text, text[], text[]) to authenticated;
+grant execute on function public.respond_card_trade(uuid, boolean) to authenticated;
+grant execute on function public.cancel_card_trade(uuid) to authenticated;
+grant execute on function public.set_card_showcase(text[]) to authenticated;
+grant execute on function public.admin_clear_card_library(text) to authenticated;
+grant execute on function public.admin_reset_card_goals(text) to authenticated;
+
+notify pgrst, 'reload schema';
