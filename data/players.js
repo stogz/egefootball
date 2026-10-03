@@ -322,11 +322,6 @@ EGE.eligibilityYearFor = function (player, season) {
   return Math.max(1, count);
 };
 
-/* Whether a player has a redshirt year behind him that season. */
-EGE.redshirtedBy = function (player, season) {
-  return Boolean(player && player.redshirt && player.redshirt < (season || EGE.currentSeason));
-};
-
 /* The accounts allowed to sign in. */
 EGE.playersWithAccounts = function () {
   return EGE.players.filter(function (p) { return Boolean(p.email); });

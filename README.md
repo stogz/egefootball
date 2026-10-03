@@ -210,8 +210,8 @@ holds:
   schools have no grade and no column. `EGE.defenseGrade` in
   `data/games.js`, from `data/defenses.js`.
 - **Game log** — per-game stats for that player, with the stat lines driven by
-  their position (see below), and a totals row for the season, on white
-  under a hard rule.
+  their position (see below), and a totals row for the season, on the
+  panel's own cream under a hard rule.
 - **Ratings** — three tiers, top to bottom:
   - **The overall**, on a dark band across the panel: the word in orange, the
     number in white, and a green stock ticker after them — an arrow and the
@@ -244,7 +244,11 @@ them. **College only** — the high schools are on the player pages.
 on the left, on the school's own colour (`ground` in `EGE.teams` — Alabama
 crimson with the A in white, USC cardinal (#9D2235), NDSU green, Illinois orange,
 Ohio State white; the team page's header uses the same), then its record and place in its division, the faces of the
-six who play there, and *View team →*. Above them is a season switcher
+six who play there, and *View team →*. On a wide screen those run across
+the row — the name and record on the left, each of the six as a face with
+his name beside it in a column of its own, so they line up from card to
+card, and *View team →* on the right edge; narrower, they stack under the
+name and the faces go without the names. Above them is a season switcher
 across the full width of the page, as on a team's page — every college
 season, with ‹ and ›, starting on the live one.
 
