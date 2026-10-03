@@ -1063,20 +1063,20 @@ pyramid, and each rarity has its own pull odds:
 
 | Rarity | Colour | Chance per card | Game from | Play from | In the files |
 | --- | --- | --- | --- | --- | --- |
-| Common | gray | 46.15% | — | — | 250 |
+| Common | gray | 46.35% | — | — | 250 |
 | Uncommon | green | 26% | 6.5 | 7.1 | 128 |
 | Rare | orange | 14% | 11 | 8.6 | 102 |
 | Epic | red | 8% | 16 | 9.6 | 58 |
 | Legendary | purple | 4% | 20 | 11.1 | 37 |
 | Mystic | gold | 1.6% | 24 | 12.1 | 29 |
-| Iconic | pink | 0.25% | picked | picked | 3 |
+| Iconic | pink | 0.05% | picked | picked | 3 |
 
 **Iconic is picked by hand, not graded.** Grading stops at Mystic, and only
 the moments in `ICONIC` at the top of `data/cards.js` are Iconic: Sam's five
 touchdowns against Centennial (2019), Paxon's two touchdowns in the FCS
 Championship (2020) and Cooper's 80 yard touchdown against Helix (2019). Add
-an id there to make another. With three of them at 0.25% a card, about one
-Base Pack in 130 has an Iconic in it.
+an id there to make another. With three of them at 0.05% a card, about one
+Base Pack in 670 has an Iconic in it.
 
 From Rare up the frame catches the light: a still sheen on Rare, a moving one
 on Epic and Legendary, gold foil on Mystic and holographic on Iconic, the
@@ -1117,9 +1117,10 @@ and it costs what it costs.
 
 Every card owned, rarest first by default, with how many of each (`×2`).
 Filter by rarity, by kind and by player; sort by rarity, score, newest pull
-or game. Tap a card to hold it up close with the game it came from; the
-**Game log →** button beside its stat line opens that player's page on the
-card's season and picks the game out in the game log.
+or game. Three rows of cards show at a time and the rest scroll inside the
+panel, so the page below is never far away. Tap a card to hold it up close
+with the game it came from; the **→** button beside its stat line opens that
+player's page on the card's season and picks the game out in the game log.
 Duplicates are kept, and are what trades are made of.
 
 ### The library
@@ -1130,11 +1131,11 @@ toward every set it fits, and claiming uses nothing up.
 
 | Set | Needs | Reward |
 | --- | --- | --- |
-| The Starting Six | a card of each of the six | Rare+ card · 3 credits |
+| The EGE | a card of each of the six | Rare+ card · 3 credits |
 | Bloomington Connection | 4 Isaac + 4 Paxon, 2018–19 | Rare+ card · 3 credits |
 | Buckeye Backfield | 4 Sam + 4 Jaykeb, 2020 on | Rare+ card · 3 credits |
 | Highlight Reel | 15 different play cards | Epic+ play card · 5 credits |
-| Full Spectrum | one of every rarity | Legendary+ card · 10 credits · 1.5x Booster |
+| Collector | one of every rarity | Legendary+ card · 10 credits · 1.5x Booster |
 | Hall of Fame | 3 Legendary-or-better | Mystic+ card · 10 credits · 1.5x Booster |
 | *Player* (×6) | 8 different cards of him | Rare+ card of him · 3 credits |
 | *Year* Season (each season) | a performance card of everyone who played | Epic+ card from that year · 5 credits · 1.5x Booster |
@@ -1143,9 +1144,10 @@ toward every set it fits, and claiming uses nothing up.
 Packs, a player gets back roughly 30–50% of what they spend on packs
 (counting a booster at its 15-credit shop price), and the early sets come
 first. Cards are a place to spend credits for fun, never a way to make them.
-Rough cost of each set in Base Packs: Starting Six about 25 credits, a
+Rough cost of each set in Base Packs: The EGE about 25 credits, a
 player or Highlight Reel 50–115, Hall of Fame about 75, a past season about
-200, Full Spectrum about 500 (it needs one of the three Iconics). The live
+200, Collector about 2,400 (it needs one of the three Iconics, so it is
+mostly finished by trading for one). The live
 season's set is about 65 through
 Season Packs.
 

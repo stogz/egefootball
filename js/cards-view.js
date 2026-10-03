@@ -518,9 +518,10 @@ EGE.cardsView = (function () {
       facts.appendChild(el('dt', null, label));
       var dd = el('dd', 'ege-zoom__line');
       dd.appendChild(el('span', null, value));
-      var go = el('button', 'fb-btn fb-btn--sm ege-zoom__go', 'Game log \u2192');
+      var go = el('button', 'fb-btn fb-btn--sm ege-zoom__go', '\u2192');
       go.type = 'button';
-      go.title = 'Open ' + card.player.first + '\u2019s page at this game';
+      go.title = 'Open ' + card.player.first + '\u2019s game log at this game';
+      go.setAttribute('aria-label', go.title);
       go.addEventListener('click', function () {
         closeRip();
         EGE.goToGame(card.slug, card.season, card.week);
@@ -656,11 +657,41 @@ EGE.cardsView = (function () {
       ? cardCount() + (cardCount() === 1 ? ' card' : ' cards') + ' \u00b7 ' + mine.length + ' of ' + out + ' different'
       : 'Loading\u2026';
 
+    fitBinder();
+
     var empty = byId('collectionEmpty');
     empty.hidden = !state.loaded || shown.length > 0;
     empty.textContent = mine.length
       ? 'Nothing you own matches that. Try another filter.'
       : 'No cards yet. Rip a pack and they land here.';
+  }
+
+  /* Three rows of cards and no more: past that the collection scrolls in
+     its own box, so the rest of the page is never a long way down. How tall
+     three rows are depends on how wide the cards came out, so it is measured
+     off a card, and measured again whenever the width changes. */
+  var BINDER_ROWS = 3;
+  var binderWatch = null;
+
+  function fitBinder() {
+    var grid = byId('collectionGrid');
+    var card = grid.querySelector('.ege-tcard');
+    if (!card || !card.offsetHeight) { grid.style.maxHeight = ''; }
+    else {
+      var css = window.getComputedStyle(grid);
+      var gap = parseFloat(css.rowGap) || 0;
+      var pad = (parseFloat(css.paddingTop) || 0) + (parseFloat(css.paddingBottom) || 0);
+      grid.style.maxHeight = Math.ceil(card.offsetHeight * BINDER_ROWS + gap * (BINDER_ROWS - 1) + pad) + 'px';
+    }
+    if (!binderWatch && window.ResizeObserver) {
+      var width = grid.clientWidth;
+      binderWatch = new window.ResizeObserver(function () {
+        if (grid.clientWidth === width) { return; }
+        width = grid.clientWidth;
+        fitBinder();
+      });
+      binderWatch.observe(grid);
+    }
   }
 
   /* --- trades ----------------------------------------------------------- */
@@ -936,7 +967,10 @@ EGE.cardsView = (function () {
     });
 
     choose(pick.value);
-    pick.focus({ preventScroll: true });
+    /* Focus goes on the builder, not the drop-down: a phone opens a
+       focused drop-down's picker straight away. */
+    panel.tabIndex = -1;
+    panel.focus({ preventScroll: true });
   }
 
   /* --- the nav badge ----------------------------------------------------- */

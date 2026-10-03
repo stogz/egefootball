@@ -64,13 +64,13 @@ EGE.cards = (function () {
      Iconic is not graded at all: it is the few cards in ICONIC below,
      picked by hand, and nothing else reaches it however big the game. */
   var RARITIES = [
-    { key: 'common',    name: 'Common',    color: '#8b9097', odds: 46.15, performance: 0,   play: 0 },
+    { key: 'common',    name: 'Common',    color: '#8b9097', odds: 46.35, performance: 0,   play: 0 },
     { key: 'uncommon',  name: 'Uncommon',  color: '#3e9a4b', odds: 26,  performance: 6.5, play: 7.1 },
     { key: 'rare',      name: 'Rare',      color: '#e8812a', odds: 14,  performance: 11,  play: 8.6 },
     { key: 'epic',      name: 'Epic',      color: '#d5392b', odds: 8,   performance: 16,  play: 9.6 },
     { key: 'legendary', name: 'Legendary', color: '#8a4fd8', odds: 4,   performance: 20,  play: 11.1 },
     { key: 'mystic',    name: 'Mystic',    color: '#e0ad25', odds: 1.6, performance: 24,  play: 12.1 },
-    { key: 'iconic',    name: 'Iconic',    color: '#ec5fa8', odds: 0.25, performance: null, play: null }
+    { key: 'iconic',    name: 'Iconic',    color: '#ec5fa8', odds: 0.05, performance: null, play: null }
   ];
 
   /* The Iconic cards. A moment has to be one of these to be Iconic; every
@@ -446,7 +446,7 @@ EGE.cards = (function () {
 
     out.push({
       key: 'starting-six',
-      name: 'The Starting Six',
+      name: 'The EGE',
       blurb: 'A card of each of the six, from any season.',
       slots: EGE.players.map(function (player) {
         return slot(player.name, ofPlayer(player.slug));
@@ -494,7 +494,7 @@ EGE.cards = (function () {
 
     out.push({
       key: 'full-spectrum',
-      name: 'Full Spectrum',
+      name: 'Collector',
       blurb: 'One card of every rarity, Common to Iconic.',
       slots: RARITIES.map(function (r) {
         return slot(r.name, function (c) { return c.rarity === r.key; });

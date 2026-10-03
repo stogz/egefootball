@@ -1965,7 +1965,17 @@ body::before {
 
 .ege-gamelog tfoot td {
   border-top: var(--fb-border) solid var(--fb-ink);
-  background: #fff;
+  /* The season's totals in the ink of the table's own heading, so the log
+     is closed off top and bottom the same way. */
+  background: var(--fb-ink);
+  color: var(--fb-cream);
+  font-weight: 800;
+}
+.ege-gamelog tfoot td:first-child {
+  color: var(--fb-accent);
+  font-size: var(--fb-label);
+  letter-spacing: .12em;
+  text-transform: uppercase;
 }
 
 /* --- sorting the game log --------------------------------------------------
@@ -2024,7 +2034,7 @@ body::before {
 @media (prefers-reduced-motion: reduce) {
   .ege-gamelog tr.is-spotlit td { animation: none; }
 }
-.ege-gamelog tfoot td.is-sorted-cell { background: rgba(229, 110, 40, .12); }
+.ege-gamelog tfoot td.is-sorted-cell { background: #4a321f; }
 
 /* The multiplier that was riding on a game, beside the opponent. */
 .ege-gamelog__boost {
@@ -4477,7 +4487,15 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-zoom__facts dd { margin: 0; font-weight: 600; }
 /* The stat line, with the button to its game beside it. */
 .ege-zoom__line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
-.ege-zoom__go { padding: 5px 9px; white-space: nowrap; }
+.ege-zoom__go {
+  width: 26px;
+  height: 22px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  font-size: .875rem;
+  line-height: 1;
+}
 
 /* --- the collection -------------------------------------------------------- */
 
@@ -4506,6 +4524,14 @@ html.ege-noscroll body { overflow: hidden; }
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
   gap: 20px;
+  /* Held to three rows by js/cards-view.js (fitBinder); the rest scrolls in
+     here. The padding is room for the badges that hang off a card's corners
+     and for a card lifting on hover, which the scroll box would clip. */
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-color: var(--fb-accent) var(--fb-surface);
+  padding: 10px 12px 12px 10px;
+  margin: -10px -12px -12px -10px;
 }
 .ege-binder > .ege-tcard {
   cursor: pointer;
@@ -4691,6 +4717,7 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-rip__stage--trade,
 .ege-rip__stage--picker { align-items: stretch; }
 .ege-tradebuilder { width: 100%; }
+.ege-tradebuilder:focus { outline: none; }
 .ege-tradecols {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
