@@ -865,10 +865,10 @@ EGE.stats[2021] = {
         opponent: 'Michigan State', home: true, conference: true,
         result: { teamScore: 51, opponentScore: 20 }, booster: null,
         stats: {
-          completions: 13, attempts: 20, passingYards: 180,
-          passingYac: 101, passingTd: 2, interceptions: 1, carries: 4,
+          completions: 22, attempts: 29, passingYards: 274,
+          passingYac: 101, passingTd: 4, interceptions: 1, carries: 4,
           rushingYards: 0, rushingTd: 0, rushingLong: 4, sacks: 1,
-          fumbles: 0, passingAvg: 13.8, rating: 106.3, rushingAvg: 0
+          fumbles: 0, passingAvg: 12.5, rating: 129.9, rushingAvg: 0
         },
         bigPlays: [
           '22 yard passing touchdown',
