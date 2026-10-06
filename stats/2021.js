@@ -872,6 +872,8 @@ EGE.stats[2021] = {
         },
         bigPlays: [
           '22 yard passing touchdown',
+          '12 yard passing touchdown',
+          '10 yard passing touchdown',
           '2 yard passing touchdown'
         ] },
       { week: 13, date: '2021-11-27', kickoff: '12:00pm',
