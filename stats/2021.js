@@ -71,7 +71,7 @@ EGE.stats[2021] = {
     ],
 
     northDakotaState: [
-      { week: 13, results: [
+      { week: 15, results: [
         null,
         ['Stephen F. Austin', 41, 28],
         null,
@@ -89,7 +89,7 @@ EGE.stats[2021] = {
         null,
         ['South Dakota', 34, 20],
       ] },
-      { week: 14, results: [
+      { week: 15, results: [
         ['Sam Houston', 30, 23],
         ['Missouri State', 45, 38],
         ['Sacred Heart', 17, 14],
@@ -99,13 +99,13 @@ EGE.stats[2021] = {
         null,
         ['East Tennessee State', 30, 6],
       ] },
-      { week: 15, results: [
+      { week: 16, results: [
         ['Sam Houston', 40, 24],
         ['Sacramento State', 28, 0],
         ['James Madison', 35, 26],
         null,
       ] },
-      { week: 16, results: [
+      { week: 17, results: [
         ['Sam Houston', 50, 20],
         null,
       ] },
@@ -243,7 +243,7 @@ EGE.stats[2021] = {
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
           receivingAvg: 6.3, totalYards: 44, totalTd: 0
         } },
-      { week: 14, date: '2021-12-04', kickoff: null,
+      { week: 15, date: '2021-12-04', kickoff: null,
         name: 'SEC Championship',
         opponent: 'Georgia', home: false, conference: false, neutral: true, playoff: true,
         result: { teamScore: 14, opponentScore: 30 }, booster: null,
@@ -387,7 +387,7 @@ EGE.stats[2021] = {
           receivingTd: 0, receivingLong: 4, targets: 4, fumbles: 0,
           rushingAvg: 4.1, receivingAvg: 3.3, totalYards: 46, totalTd: 0
         } },
-      { week: 16, date: '2021-12-18', kickoff: null,
+      { week: 17, date: '2021-12-18', kickoff: null,
         name: 'LA Bowl',
         opponent: 'Utah State', home: false, conference: false, neutral: true, playoff: true,
         result: { teamScore: 38, opponentScore: 17 }, booster: null,
@@ -533,7 +533,7 @@ EGE.stats[2021] = {
         bigPlays: [
           '44 yard receiving touchdown'
         ] },
-      { week: 14, date: '2021-12-04', kickoff: null,
+      { week: 15, date: '2021-12-04', kickoff: null,
         name: 'FCS Second Round',
         opponent: 'Kennesaw State', home: true, conference: false, playoff: true,
         result: { teamScore: 27, opponentScore: 6 }, booster: null,
@@ -547,7 +547,7 @@ EGE.stats[2021] = {
           '3 yard receiving touchdown',
           '1 yard receiving touchdown'
         ] },
-      { week: 15, date: '2021-12-11', kickoff: null,
+      { week: 16, date: '2021-12-11', kickoff: null,
         name: 'FCS Quarterfinal',
         opponent: 'East Tennessee State', home: false, conference: false, playoff: true,
         result: { teamScore: 27, opponentScore: 6 }, booster: null,
@@ -560,7 +560,7 @@ EGE.stats[2021] = {
         bigPlays: [
           '4 yard receiving touchdown'
         ] },
-      { week: 16, date: '2021-12-18', kickoff: null,
+      { week: 17, date: '2021-12-18', kickoff: null,
         name: 'FCS Semifinal',
         opponent: 'James Madison', home: false, conference: false, playoff: true,
         result: { teamScore: 41, opponentScore: 24 }, booster: null,
@@ -861,7 +861,7 @@ EGE.stats[2021] = {
           receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
           rushingAvg: 7.7, totalYards: 170, totalTd: 0
         } },
-      { week: 14, date: '2021-12-04', kickoff: null,
+      { week: 15, date: '2021-12-04', kickoff: null,
         name: 'Big Ten Championship',
         opponent: 'Iowa', home: false, conference: false, neutral: true, playoff: true,
         result: { teamScore: 24, opponentScore: 16 }, booster: null,
@@ -1073,7 +1073,7 @@ EGE.stats[2021] = {
           '6 yard passing touchdown',
           '2 yard passing touchdown'
         ] },
-      { week: 14, date: '2021-12-04', kickoff: null,
+      { week: 15, date: '2021-12-04', kickoff: null,
         name: 'Big Ten Championship',
         opponent: 'Iowa', home: false, conference: false, neutral: true, playoff: true,
         result: { teamScore: 24, opponentScore: 16 }, booster: null,
