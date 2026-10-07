@@ -365,37 +365,40 @@ window.EGE = window.EGE || {};
 
   /* College. The College Football Playoff is four teams, drawn the way the
      committee drew them on selection day: one against four in the semifinal
-     the top seed chose, two against three in the other. Ohio State and
-     Alabama are both in it, so it is written once and handed to both, each
-     with its own school as `us`. */
-  function cfp(us) {
+     the top seed chose, two against three in the other. When two of the six's
+     schools are in it, it is written once and handed to both, each with its
+     own school as `us`. `draw` is the year's: the two semifinals, each named
+     for its bowl, and the dates. */
+  function cfp(us, draw) {
     return {
       title: 'College Football Playoff',
       us: us,
       rounds: [
-        { label: 'Semifinal', date: 'Jan 1' }
+        { label: 'Semifinal', date: draw.semifinal }
       ],
-      final: { label: 'National Championship', date: 'Jan 11' },
+      final: { label: 'National Championship', date: draw.final },
       left: [
-        { label: 'Sugar Bowl', games: [
-          m(1, 'Ohio State', 4, 'Notre Dame')
-        ] }
+        { label: draw.left.bowl, games: [draw.left.game] }
       ],
       right: [
-        { label: 'Rose Bowl', games: [
-          m(2, 'Alabama', 3, 'Clemson')
-        ] }
+        { label: draw.right.bowl, games: [draw.right.game] }
       ]
     };
   }
 
+  var CFP_2020 = {
+    semifinal: 'Jan 1', final: 'Jan 11',
+    left: { bowl: 'Sugar Bowl', game: m(1, 'Ohio State', 4, 'Notre Dame') },
+    right: { bowl: 'Rose Bowl', game: m(2, 'Alabama', 3, 'Clemson') }
+  };
+
   EGE.brackets[2020] = {
 
     /* --- Sam Stogsdill, Jaykeb Stewart ------------------------------------ */
-    ohioState: cfp('Ohio State'),
+    ohioState: cfp('Ohio State', CFP_2020),
 
     /* --- Andrew Parr ------------------------------------------------------ */
-    alabama: cfp('Alabama'),
+    alabama: cfp('Alabama', CFP_2020),
 
     /* --- Paxon Hatch ------------------------------------------------------ */
     /* The FCS playoffs: twenty-four teams, the eight seeds off in the first
@@ -434,6 +437,65 @@ window.EGE = window.EGE || {};
           m(null, 'Wofford', null, 'Kennesaw State'),
           bye(6, 'Montana'),
           m(null, 'SE Louisiana', null, 'Villanova')
+        ] }
+      ]
+    }
+  };
+
+  /* 2021. Georgia is the top seed and takes the Orange Bowl, the nearer
+     semifinal; Ohio State, the Big Ten champion, is second and meets
+     Cincinnati, unbeaten, in the Cotton. Alabama lost the SEC title game
+     to Georgia and is out of the four, so it has no bracket this year --
+     a bowl is a game, not a draw. */
+  var CFP_2021 = {
+    semifinal: 'Dec 31', final: 'Jan 10',
+    left: { bowl: 'Orange Bowl', game: m(1, 'Georgia', 4, 'Notre Dame') },
+    right: { bowl: 'Cotton Bowl', game: m(2, 'Ohio State', 3, 'Cincinnati') }
+  };
+
+  EGE.brackets[2021] = {
+
+    /* --- Sam Stogsdill, Jaykeb Stewart ------------------------------------ */
+    ohioState: cfp('Ohio State', CFP_2021),
+
+    /* --- Paxon Hatch ------------------------------------------------------ */
+    /* The FCS playoffs: twenty-four teams, the eight seeds off in the first
+       round and at home to its winners in the second. The field is the real
+       2021 one, except that NDSU, 9-2 here with losses to Northern Iowa and
+       South Dakota State, is the No. 7 seed, and East Tennessee State (10-1)
+       moves up to No. 2 in its place. */
+    northDakotaState: {
+      title: 'NCAA Division I FCS Playoffs',
+      us: 'North Dakota State',
+      rounds: [
+        { label: 'First Round', date: 'Nov 27' },
+        { label: 'Second Round', date: 'Dec 4' },
+        { label: 'Quarterfinal', date: 'Dec 11' },
+        { label: 'Semifinal', date: 'Dec 18' }
+      ],
+      final: { label: 'National Championship', date: 'Jan 8' },
+      left: [
+        { label: null, games: [
+          bye(1, 'Sam Houston'),
+          m(null, 'Stephen F. Austin', null, 'Incarnate Word'),
+          bye(8, 'Montana State'),
+          m(null, 'UT Martin', null, 'Missouri State'),
+          bye(5, 'Villanova'),
+          m(null, 'Sacred Heart', null, 'Holy Cross'),
+          bye(4, 'Sacramento State'),
+          m(null, 'UC Davis', null, 'South Dakota State')
+        ] }
+      ],
+      right: [
+        { label: null, games: [
+          bye(3, 'James Madison'),
+          m(null, 'Florida A&M', null, 'SE Louisiana'),
+          bye(6, 'Montana'),
+          m(null, 'Northern Iowa', null, 'Eastern Washington'),
+          bye(7, 'North Dakota State'),
+          m(null, 'Davidson', null, 'Kennesaw State'),
+          bye(2, 'East Tennessee State'),
+          m(null, 'Southern Illinois', null, 'South Dakota')
         ] }
       ]
     }
