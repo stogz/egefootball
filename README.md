@@ -708,6 +708,13 @@ On sale:
   Connection — C.J. Stroud*, with the name in `target`, and the buy call
   refuses a name that is not in the room. A quarterback's O-Line Connection
   has nobody to pick. An admin granting one picks the quarterback too.
+  **Buying it again with the same quarterback levels it up** — one row per
+  quarterback, with the level kept in `quantity`, shown in Roman numerals
+  from II (*QB Connection III — C.J. Stroud*). The price follows the level
+  (`creditsLadder: [20, 20]`, `creditsStep: 10` — 20, 20, 30, 40, 50…), and a
+  different quarterback starts again at the first level. An admin-disabled
+  connection cannot be built up. `EGE.priceFor` reads any `creditsLadder`,
+  which is also what makes the chamber's 35 / 45 / 60 / 75… real.
   In **Your Inventory** the connection shows the quarterback's headshot
   (`EGE.quarterbackPhoto` — one of the six's own, or ESPN's for a roster
   quarterback) and his name beside the icon. **Only an admin can turn it on or

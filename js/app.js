@@ -3038,14 +3038,44 @@
      them: an offseason workout costs twice what the last one did. */
   var stackedCards = [];
 
+  /* Cards for a thing that levels up, priced off where the chosen
+     quarterback's connection stands: the card is redrawn when he is picked
+     and after every purchase. */
+  var levelCards = [];
+
+  function refreshLevelPrices() {
+    levelCards.forEach(function (card) {
+      var target = card.picker ? card.picker.value || null : null;
+      var held = EGE.levelOf(shopState.inventory, card.item.key, target);
+      var fresh = creditTag(EGE.priceFor(card.item, held));
+      card.head.replaceChild(fresh, card.tag);
+      card.tag = fresh;
+
+      if (card.picker && !target) {
+        card.note.textContent = 'Buy it again with the same quarterback to level it up.';
+      } else if (!held) {
+        card.note.textContent = 'Buy it again to level it up \u2014 from the third level on, each costs more.';
+      } else {
+        card.note.textContent = 'Level ' + EGE.roman(held) + (target ? ' with ' + target : '') +
+          '. ' + EGE.roman(held + 1) + ' costs ' + EGE.priceFor(card.item, held) + '.';
+      }
+    });
+  }
+
   function buildShopItem(item) {
     var card = el('div', 'ege-item');
 
     var head = el('div', 'ege-item__head');
     head.appendChild(el('h4', 'ege-item__name', EGE.itemName(item, shopState.player)));
-    var tag = creditTag(EGE.priceFor(item, ownedNow(item)));
+    var tag = creditTag(EGE.priceFor(item, item.levels ? 0 : ownedNow(item)));
     head.appendChild(tag);
     card.appendChild(head);
+
+    var levelNote = null;
+    if (item.levels) {
+      levelNote = el('p', 'fb-meta ege-item__stack');
+      card.appendChild(levelNote);
+    }
 
     /* What the next one will cost, and why. Written from the item rather
        than into its description, so the prose and the price can never drift
@@ -3108,6 +3138,12 @@
       });
       field.appendChild(picker);
       card.appendChild(field);
+    }
+
+    if (levelNote) {
+      levelCards.push({ item: item, tag: tag, note: levelNote, head: head, picker: picker });
+      if (picker) { picker.addEventListener('change', refreshLevelPrices); }
+      refreshLevelPrices();
     }
 
     var buy = el('button', 'fb-btn fb-btn--primary fb-btn--block',
@@ -3433,8 +3469,9 @@
       icon.alt = '';
       title.appendChild(icon);
     }
-    title.appendChild(el('h4', 'ege-item__name',
-      row.item_name + (!isUpgrade && quantity > 1 ? ' \u00d7' + quantity : '')));
+    title.appendChild(el('h4', 'ege-item__name', item && item.levels
+      ? EGE.connectionName(item, options.player, EGE.connectionQuarterback(row), quantity)
+      : row.item_name + (!isUpgrade && quantity > 1 ? ' \u00d7' + quantity : '')));
     head.appendChild(title);
     if (state) {
       head.appendChild(el('span', 'fb-tag fb-tag--num ' +
@@ -3611,14 +3648,16 @@
     var switchable = !isWorkout(row) && !lapsed && playerMaySwitch(row);
     var off = switchable && !row.active;
     var count = rows.reduce(function (sum, one) { return sum + EGE.wallet.quantityOf(one); }, 0);
+    var leveled = Boolean(item && item.levels);
 
     var disabled = !lapsed && !isWorkout(row) && !row.active && !switchable;
 
     var thing = el(switchable ? 'button' : 'div',
       'ege-owned__thing ege-owned__item' + (who ? ' ege-owned__item--qb' : '') +
       (lapsed ? ' is-expired' : ((off || disabled) ? ' is-off' : '')));
-    var label = row.item_name +
-      (count > 1 ? ' \u00d7' + count : '') +
+    var label = (leveled
+        ? EGE.connectionName(item, shopState.player, EGE.connectionQuarterback(row), count)
+        : row.item_name + (count > 1 ? ' \u00d7' + count : '')) +
       (lapsed ? ' \u2014 expired' : '') +
       (switchable ? (row.active ? ' \u2014 on, tap to turn off' : ' \u2014 off, tap to turn on') : '') +
       (disabled ? ' \u2014 turned off by an admin' : '');
@@ -3634,7 +3673,10 @@
       thing.appendChild(el('span', 'ege-owned__word', row.item_name));
     }
     if (who) { thing.appendChild(who); }
-    if (count > 1) { thing.appendChild(el('span', 'ege-shelf__count', count + 'X')); }
+    /* A connection counts in levels, not in copies. */
+    if (count > 1) {
+      thing.appendChild(el('span', 'ege-shelf__count', leveled ? EGE.roman(count) : count + 'X'));
+    }
     if (off || disabled || lapsed) {
       thing.appendChild(el('span', 'ege-owned__flag', lapsed ? 'Expired' : 'Off'));
     }
@@ -4686,6 +4728,7 @@
       shopState.inventory = all[1];
       renderInventory();
       refreshStackedPrices();
+      refreshLevelPrices();
       refreshUpgrades();
       redrawRatings();
       refreshScoutMarks();
@@ -4755,6 +4798,7 @@
     if (shopState.built) { return; }
     shopState.built = true;
     stackedCards = [];
+    levelCards = [];
 
     buildEarnings();
 

@@ -152,6 +152,13 @@ EGE.shop = {
           name: 'QB Connection',
           nameByPosition: { QB: 'O-Line Connection' },
           credits: 20,
+          /* Buying it again with the same quarterback makes the connection
+             better, one level a time (Roman numerals from II). The first two
+             cost 20 each; after that every level costs 10 more than the one
+             before. See EGE.priceFor. */
+          levels: true,
+          creditsLadder: [20, 20],
+          creditsStep: 10,
           note: 'College and later',
           tiers: ['college', 'nfl'],
           /* A receiver or a back names which quarterback it is with, from
@@ -160,12 +167,15 @@ EGE.shop = {
           pickQuarterback: true,
           description: 'The whole offseason spent with your quarterback, learning his ' +
                        'routes and calls. Chemistry resets if they are injured, ' +
-                       'traded or otherwise leave. Better chemistry can mean more targets.',
+                       'traded or otherwise leave. Better chemistry can mean more targets. ' +
+                       'Buy it again with the same quarterback to level it up (II, III and ' +
+                       'so on); the first two cost 20, then each level costs 10 more.',
           descriptionByPosition: {
             QB: 'The whole offseason spent with your offensive line, learning their ' +
                 'protections and calls. Chemistry resets if they are injured, ' +
                 'traded or otherwise leave. Better chemistry means a lower chance ' +
-                'of being sacked.'
+                'of being sacked. Buy it again to level it up (II, III and so on); ' +
+                'the first two cost 20, then each level costs 10 more.'
           }
         },
         {
@@ -212,10 +222,33 @@ EGE.needsQuarterback = function (item, player) {
   return Boolean(item && item.pickQuarterback && player && player.position !== 'QB');
 };
 
-/* What an inventory row is called once the quarterback is named:
-   QB Connection — C.J. Stroud. */
-EGE.connectionName = function (item, player, quarterback) {
+/* 1 to 3999 as Roman numerals. */
+EGE.roman = function (n) {
+  var table = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'],
+               [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
+  var left = Math.max(0, Math.floor(n) || 0);
+  var out = '';
+  table.forEach(function (pair) {
+    while (left >= pair[0]) { out += pair[1]; left -= pair[0]; }
+  });
+  return out;
+};
+
+/* How good a connection is: the quantity on its row. Only a row for the same
+   quarterback counts, so a new quarterback starts again at the bottom. */
+EGE.levelOf = function (rows, itemKey, target) {
+  var row = (rows || []).filter(function (one) {
+    return one.item_key === itemKey && (one.target || null) === (target || null);
+  })[0];
+  return row ? (typeof row.quantity === 'number' ? row.quantity : 1) : 0;
+};
+
+/* What an inventory row is called once the quarterback is named, and once it
+   has been bought up a level: QB Connection II \u2014 C.J. Stroud. The first
+   level carries no numeral; it is what the item is called. */
+EGE.connectionName = function (item, player, quarterback, level) {
   var name = EGE.itemName(item, player);
+  if (item && item.levels && level > 1) { name += ' ' + EGE.roman(level); }
   return quarterback ? name + ' \u2014 ' + quarterback : name;
 };
 
@@ -251,6 +284,14 @@ EGE.itemDescription = function (item, player) {
 EGE.priceFor = function (item, owned) {
   if (!item) { return 0; }
   var times = owned || 0;
+
+  /* A ladder is the first few prices written out, and then `creditsStep`
+     more each time: [20, 20] with a step of 10 is 20, 20, 30, 40, 50. */
+  if (item.creditsLadder) {
+    var ladder = item.creditsLadder;
+    if (times < ladder.length) { return ladder[times]; }
+    return ladder[ladder.length - 1] + (item.creditsStep || 0) * (times - ladder.length + 1);
+  }
   if (!item.creditsStack || times < 1) { return item.credits; }
   return Math.round(item.credits * Math.pow(item.creditsStack, times));
 };

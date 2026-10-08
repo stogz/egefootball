@@ -3584,11 +3584,9 @@ button.ege-owned__item { cursor: pointer; }
 .ege-item__title { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .ege-item__mini { width: 28px; height: 28px; object-fit: contain; flex: 0 0 auto; }
 
-/* The workouts, under the rating points in the same panel. */
-.ege-items--joined {
-  padding-top: 18px;
-  border-top: var(--fb-border-thin) solid var(--fb-ink);
-}
+/* The workouts, under the rating points in the same panel. No rule between
+   the two: the stack's own gap is the separation. */
+.ege-items--joined { padding-top: 0; }
 
 /* --- conference standings ------------------------------------------------- */
 

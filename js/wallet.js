@@ -240,7 +240,14 @@ EGE.wallet = (function () {
       var rows = both[1];
       if (balance === null) { return { ok: false, message: offline() }; }
 
-      var price = EGE.priceFor(item, EGE.timesBought(rows, item.key));
+      /* A level-based connection is priced off how far it already is with
+         this quarterback, not off everything the player has ever bought. */
+      var held = item.levels ? stackedRow(rows, item.key, quarterback) : null;
+      if (held && !held.active) {
+        return { ok: false, message: 'An admin turned that connection off, so it cannot be built up.' };
+      }
+      var level = held ? quantityOf(held) : 0;
+      var price = EGE.priceFor(item, item.levels ? level : EGE.timesBought(rows, item.key));
       if (balance < price) {
         return { ok: false, message: 'Not enough credits — that costs ' + price + ', you have ' + balance + '.' };
       }
@@ -248,10 +255,15 @@ EGE.wallet = (function () {
       var effects = item.needsTarget ? effectsForTarget(item, target) : rollEffects(item);
 
       return Promise.resolve().then(function () {
-        var existing = item.consumable ? stackedRow(rows, item.key, null) : null;
+        var existing = item.levels ? held
+                     : (item.consumable ? stackedRow(rows, item.key, null) : null);
 
         var write = existing
-          ? c.from(INVENTORY).update({
+          ? c.from(INVENTORY).update(item.levels ? {
+              quantity: level + 1,
+              credits: (existing.credits || 0) + price,
+              item_name: EGE.connectionName(item, player, quarterback, level + 1)
+            } : {
               quantity: quantityOf(existing) + 1,
               credits: (existing.credits || 0) + price
             }).eq('id', existing.id)
@@ -275,7 +287,7 @@ EGE.wallet = (function () {
             return {
               ok: true,
               effects: effects,
-              message: 'Bought ' + EGE.connectionName(item, player, quarterback) + ' for ' + price +
+              message: 'Bought ' + EGE.connectionName(item, player, quarterback, level + 1) + ' for ' + price +
                        ' credits.' + rollMessage(item),
               credits: spent.credits
             };
@@ -862,6 +874,10 @@ EGE.wallet = (function () {
       patch.effects = {};
       patch.effects[row.target] = left;
     }
+    var leveled = EGE.shopItem(row.item_key);
+    if (leveled && leveled.levels) {
+      patch.item_name = EGE.connectionName(leveled, playerByEmail(row.email), row.target, left);
+    }
 
     return c.from(INVENTORY).update(patch).eq('id', row.id).then(function (res) {
       if (res.error) { return { ok: false, message: res.error.message }; }
@@ -869,33 +885,51 @@ EGE.wallet = (function () {
     });
   }
 
-  /* Hands an item over without charging for it. */
+  function playerByEmail(email) {
+    return EGE.players.filter(function (p) {
+      return p.email && email && p.email.toLowerCase() === String(email).toLowerCase();
+    })[0];
+  }
+
+  /* Hands an item over without charging for it. A level-based connection
+     that is already there goes up a level instead of doubling. */
   function grant(email, item, target) {
     var c = client();
     if (!c) { return fail(offline()); }
 
-    var player = EGE.players.filter(function (p) {
-      return p.email && email && p.email.toLowerCase() === String(email).toLowerCase();
-    })[0];
+    var player = playerByEmail(email);
     var quarterback = EGE.needsQuarterback(item, player) ? (target || null) : null;
     if (EGE.needsQuarterback(item, player) && !quarterback) {
       return fail('Choose which quarterback the connection is with.');
     }
 
-    return c.from(INVENTORY).insert({
-      email: email,
-      item_key: item.key,
-      item_name: quarterback ? EGE.connectionName(item, player, quarterback) : item.name,
-      target: target || null,
-      effects: item.needsTarget ? effectsForTarget(item, target) : rollEffects(item),
-      credits: 0,
-      consumable: Boolean(item.consumable),
-      season: item.seasonBound ? EGE.currentSeason : null,
-      active: !item.consumable
-    }).then(function (res) {
-      if (res.error) { return { ok: false, message: res.error.message }; }
-      return { ok: true, message: item.name + ' granted.' };
-    });
+    function insert(rows) {
+      var held = item.levels ? stackedRow(rows, item.key, quarterback) : null;
+      if (held) {
+        var next = quantityOf(held) + 1;
+        return c.from(INVENTORY).update({
+          quantity: next,
+          item_name: EGE.connectionName(item, player, quarterback, next)
+        }).eq('id', held.id);
+      }
+      return c.from(INVENTORY).insert({
+        email: email,
+        item_key: item.key,
+        item_name: quarterback ? EGE.connectionName(item, player, quarterback, 1) : item.name,
+        target: target || null,
+        effects: item.needsTarget ? effectsForTarget(item, target) : rollEffects(item),
+        credits: 0,
+        consumable: Boolean(item.consumable),
+        season: item.seasonBound ? EGE.currentSeason : null,
+        active: !item.consumable
+      });
+    }
+
+    return (item.levels ? inventoryFor(email) : Promise.resolve([])).then(insert)
+      .then(function (res) {
+        if (res.error) { return { ok: false, message: res.error.message }; }
+        return { ok: true, message: item.name + ' granted.' };
+      });
   }
 
   /* A season-bound row is spent the moment the season turns over. */
