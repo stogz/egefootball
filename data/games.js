@@ -730,6 +730,21 @@ EGE.quarterbacksFor = function (player, season) {
   }).map(function (row) { return row.name; });
 };
 
+/* The picture for a quarterback named in a QB Connection: one of the six's own
+   headshots, or ESPN's for a roster quarterback. Null where there is none --
+   a quarterback who has since left the room, say -- and the caller shows the
+   name alone. */
+EGE.quarterbackPhoto = function (player, season, name) {
+  if (!player || !name) { return null; }
+  var key = EGE.teamKeyFor(player, season);
+  var rooms = key ? EGE.rosterFor(key, season) : null;
+  var row = rooms ? rooms.QB.filter(function (one) { return one.name === name; })[0] : null;
+  if (row) { return row.player ? row.player.headshot : EGE.rosterPhoto(row); }
+
+  var own = EGE.players.filter(function (one) { return one.name === name; })[0];
+  return own ? own.headshot : null;
+};
+
 /* A school's whole record, every game it has played that is out: its
    conference games (EGE.conferenceResults), the games outside the league it
    really played (the season's `nonConference` list in data/conferences.js),

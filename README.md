@@ -688,7 +688,14 @@ On sale:
   2.0x and four 1.5x**. They are stickers: holographic, gold and silver
   sunbursts you stick on a game.
 - **Rating points** — bought straight into an attribute, priced by how close
-  that attribute already is to 99. Cheap early, dear late.
+  that attribute already is to 99. Cheap early, dear late. A **Sort by** drop-down
+  sits above the table: best value (the default — overall gained per credit),
+  most OVR impact, cheapest, most expensive, highest rating, lowest rating,
+  group, and A–Z. Beside it, **group buttons** (All, Carrying, Passing,
+  Blocking, Receiving…) narrow the table to one group — and only the groups
+  that player's position is judged on get one, so a running back has no
+  Passing. A maxed attribute has no next point, so it sinks to the bottom of
+  the price sorts.
 - **Offseason training** — strength (8) or cardio (8), each with a downside
   rolled when you buy it, or overall (12) for a smaller gain spread wider with
   nothing to lose. Cheap to start and **twice the price every time you buy
@@ -701,6 +708,22 @@ On sale:
   Connection — C.J. Stroud*, with the name in `target`, and the buy call
   refuses a name that is not in the room. A quarterback's O-Line Connection
   has nobody to pick. An admin granting one picks the quarterback too.
+  **Buying it again with the same quarterback levels it up** — one row per
+  quarterback, with the level kept in `quantity`, shown in Roman numerals
+  from II (*QB Connection III — C.J. Stroud*). The price follows the level
+  (`creditsLadder: [20, 20]`, `creditsStep: 10` — 20, 20, 30, 40, 50…), and a
+  different quarterback starts again at the first level. An admin-disabled
+  connection cannot be built up. `EGE.priceFor` reads any `creditsLadder`,
+  which is also what makes the chamber's 35 / 45 / 60 / 75… real.
+  In **Your Inventory** the connection shows the quarterback's headshot
+  (`EGE.quarterbackPhoto` — one of the six's own, or ESPN's for a roster
+  quarterback) and his name beside the icon. **Only an admin can turn it on or
+  off** — when the quarterback is traded or retires, the admin switches it off
+  on the admin page and it greys out with an *Off* flag on the player's page.
+  The player gets no switch for it, `EGE.wallet.setActive` refuses, and a
+  trigger in `supabase/schema.sql` (`guard_qb_connection_switch`) refuses the
+  same change straight to the database — **re-run `supabase/schema.sql`** to
+  install it.
   **Hyperbaric Chamber** (35, then 45, then 60, then
   15 more each time), **Intel** (15).
 

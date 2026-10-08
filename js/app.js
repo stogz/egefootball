@@ -3038,14 +3038,44 @@
      them: an offseason workout costs twice what the last one did. */
   var stackedCards = [];
 
+  /* Cards for a thing that levels up, priced off where the chosen
+     quarterback's connection stands: the card is redrawn when he is picked
+     and after every purchase. */
+  var levelCards = [];
+
+  function refreshLevelPrices() {
+    levelCards.forEach(function (card) {
+      var target = card.picker ? card.picker.value || null : null;
+      var held = EGE.levelOf(shopState.inventory, card.item.key, target);
+      var fresh = creditTag(EGE.priceFor(card.item, held));
+      card.head.replaceChild(fresh, card.tag);
+      card.tag = fresh;
+
+      if (card.picker && !target) {
+        card.note.textContent = 'Buy it again with the same quarterback to level it up.';
+      } else if (!held) {
+        card.note.textContent = 'Buy it again to level it up \u2014 from the third level on, each costs more.';
+      } else {
+        card.note.textContent = 'Level ' + EGE.roman(held) + (target ? ' with ' + target : '') +
+          '. ' + EGE.roman(held + 1) + ' costs ' + EGE.priceFor(card.item, held) + '.';
+      }
+    });
+  }
+
   function buildShopItem(item) {
     var card = el('div', 'ege-item');
 
     var head = el('div', 'ege-item__head');
     head.appendChild(el('h4', 'ege-item__name', EGE.itemName(item, shopState.player)));
-    var tag = creditTag(EGE.priceFor(item, ownedNow(item)));
+    var tag = creditTag(EGE.priceFor(item, item.levels ? 0 : ownedNow(item)));
     head.appendChild(tag);
     card.appendChild(head);
+
+    var levelNote = null;
+    if (item.levels) {
+      levelNote = el('p', 'fb-meta ege-item__stack');
+      card.appendChild(levelNote);
+    }
 
     /* What the next one will cost, and why. Written from the item rather
        than into its description, so the prose and the price can never drift
@@ -3108,6 +3138,12 @@
       });
       field.appendChild(picker);
       card.appendChild(field);
+    }
+
+    if (levelNote) {
+      levelCards.push({ item: item, tag: tag, note: levelNote, head: head, picker: picker });
+      if (picker) { picker.addEventListener('change', refreshLevelPrices); }
+      refreshLevelPrices();
     }
 
     var buy = el('button', 'fb-btn fb-btn--primary fb-btn--block',
@@ -3235,8 +3271,118 @@
     return tr;
   }
 
+  /* The ways the points table can be ordered, in a drop-down above it. A
+     maxed attribute has no next point, so it sinks to the bottom of anything
+     ordered by price. */
+  function priceOrder(direction) {
+    return function (a, b) {
+      if (a.cost === null || b.cost === null) {
+        return (a.cost === null ? 1 : 0) - (b.cost === null ? 1 : 0);
+      }
+      return direction * (a.cost - b.cost);
+    };
+  }
+
+  var UPGRADE_SORTS = [
+    { key: 'value',  label: 'Best value',      title: 'Most overall for the credits',
+      compare: function (a, b) { return b.value_ - a.value_; } },
+    { key: 'impact', label: 'Most OVR impact', title: 'Biggest gain to your overall per point',
+      compare: function (a, b) { return b.gain - a.gain; } },
+    { key: 'cheap',  label: 'Cheapest',        title: 'Cheapest next point first',
+      compare: priceOrder(1) },
+    { key: 'dear',   label: 'Most expensive',  title: 'Dearest next point first',
+      compare: priceOrder(-1) },
+    { key: 'high',   label: 'Highest rating',  title: 'Highest rating to lowest',
+      compare: function (a, b) { return b.value - a.value; } },
+    { key: 'low',    label: 'Lowest rating',   title: 'Lowest rating to highest',
+      compare: function (a, b) { return a.value - b.value; } },
+    { key: 'group',  label: 'Group',           title: 'By group, then best value',
+      compare: function (a, b) { return a.group.localeCompare(b.group); } },
+    { key: 'name',   label: 'A\u2013Z',         title: 'Attribute name, A to Z',
+      compare: function (a, b) { return a.label.localeCompare(b.label); } }
+  ];
+
+  var upgradeSort = 'value';
+
+  var upgradeGroup = '';      /* '' is every group */
+  var groupHolder = null;
+  var sortPick = null;
+
+  function sortedPlan(plan) {
+    var chosen = UPGRADE_SORTS.filter(function (sort) { return sort.key === upgradeSort; })[0];
+    return plan.filter(function (row) {
+      return !upgradeGroup || row.groupKey === upgradeGroup;
+    }).sort(function (a, b) {
+      return chosen.compare(a, b) ||
+        (b.value_ - a.value_) ||
+        a.label.localeCompare(b.label);
+    });
+  }
+
+  /* The sorts are one drop-down; the buttons beside it narrow the table to
+     one group of attributes. Only the groups this position is judged on get a
+     button -- a running back has no Passing -- so they are drawn from the
+     player's own plan rather than from a fixed list. */
+  function buildUpgradeSorter() {
+    var bar = el('div', 'fb-row fb-row--wrap ege-sortbar');
+
+    var field = el('label', 'ege-sortbar__sort');
+    field.appendChild(el('span', 'fb-eyebrow', 'Sort by'));
+    sortPick = el('select', 'fb-select');
+    UPGRADE_SORTS.forEach(function (sort) {
+      var option = el('option', null, sort.label);
+      option.value = sort.key;
+      option.title = sort.title;
+      sortPick.appendChild(option);
+    });
+    sortPick.value = upgradeSort;
+    sortPick.addEventListener('change', function () {
+      upgradeSort = sortPick.value;
+      refreshUpgrades();
+    });
+    field.appendChild(sortPick);
+    bar.appendChild(field);
+
+    groupHolder = el('div', 'fb-row fb-row--wrap ege-sortbar__groups');
+    groupHolder.setAttribute('role', 'group');
+    groupHolder.setAttribute('aria-label', 'Show one group of attributes');
+    bar.appendChild(groupHolder);
+    return bar;
+  }
+
+  function drawGroupButtons(plan) {
+    if (!groupHolder) { return; }
+    groupHolder.innerHTML = '';
+
+    var groups = [];
+    plan.forEach(function (row) {
+      if (!groups.some(function (g) { return g.key === row.groupKey; })) {
+        groups.push({ key: row.groupKey, label: row.group });
+      }
+    });
+    /* Another player's groups can be gone from this one's. */
+    if (!groups.some(function (g) { return g.key === upgradeGroup; })) { upgradeGroup = ''; }
+    if (groups.length < 2) { return; }
+
+    [{ key: '', label: 'All' }].concat(groups).forEach(function (group) {
+      var on = group.key === upgradeGroup;
+      var button = el('button', 'fb-chip' + (on ? ' is-active' : ''), group.label);
+      button.type = 'button';
+      button.setAttribute('aria-pressed', on ? 'true' : 'false');
+      button.addEventListener('click', function () {
+        upgradeGroup = group.key;
+        refreshUpgrades();
+      });
+      groupHolder.appendChild(button);
+    });
+  }
+
   function buildUpgrades() {
-    var wrap = el('div', 'fb-tablewrap');
+    var box = el('div', 'fb-stack');
+    box.appendChild(buildUpgradeSorter());
+
+    var wrap = el('div', 'fb-tablewrap ege-upgrades-wrap');
+    box.appendChild(wrap);
     var table = el('table', 'fb-table ege-upgrades');
 
     var head = el('thead');
@@ -3253,7 +3399,7 @@
     wrap.appendChild(table);
 
     refreshUpgrades();
-    return wrap;
+    return box;
   }
 
   /* How many of this item the player is holding right now. */
@@ -3288,7 +3434,9 @@
   function refreshUpgrades() {
     if (!upgradesBody || !shopState.player) { return; }
     upgradesBody.innerHTML = '';
-    EGE.economy.upgradePlan(shopState.player).forEach(function (row) {
+    var plan = EGE.economy.upgradePlan(shopState.player);
+    drawGroupButtons(plan);
+    sortedPlan(plan).forEach(function (row) {
       upgradesBody.appendChild(upgradeRow(row));
     });
   }
@@ -3321,14 +3469,18 @@
       icon.alt = '';
       title.appendChild(icon);
     }
-    title.appendChild(el('h4', 'ege-item__name',
-      row.item_name + (!isUpgrade && quantity > 1 ? ' \u00d7' + quantity : '')));
+    title.appendChild(el('h4', 'ege-item__name', item && item.levels
+      ? EGE.connectionName(item, options.player, EGE.connectionQuarterback(row), quantity)
+      : row.item_name + (!isUpgrade && quantity > 1 ? ' \u00d7' + quantity : '')));
     head.appendChild(title);
     if (state) {
       head.appendChild(el('span', 'fb-tag fb-tag--num ' +
         (lapsed ? 'fb-tag--clay' : 'fb-tag--outline'), state));
     }
     card.appendChild(head);
+
+    var cardWho = connectionWho(row, options.player);
+    if (cardWho) { card.appendChild(cardWho); }
 
     if (typeof row.season === 'number') {
       card.appendChild(el('p', 'ege-item__text', lapsed
@@ -3374,7 +3526,7 @@
       var where = el('span', 'fb-meta ege-item__where',
         'Use it on your player page \u2014 the + beside a game on your schedule.');
       actions.appendChild(where);
-    } else if (!lapsed && !workout) {
+    } else if (!lapsed && !workout && (options.admin || playerMaySwitch(row))) {
       var toggle = el('button', 'fb-btn', row.active ? 'Turn off' : 'Turn on');
       toggle.type = 'button';
       toggle.addEventListener('click', function () {
@@ -3462,20 +3614,53 @@
     });
   }
 
+  /* Who a QB Connection is with, as a headshot and a name. Null for a
+     connection with nobody named (a quarterback's own, with his line). */
+  function connectionWho(row, player) {
+    var name = EGE.connectionQuarterback(row);
+    if (!name) { return null; }
+
+    var who = el('span', 'ege-qb');
+    var photo = EGE.quarterbackPhoto(player, EGE.currentSeason, name);
+    if (photo) {
+      var face = el('img', 'ege-qb__photo');
+      face.src = photo;
+      face.alt = '';
+      face.loading = 'lazy';
+      who.appendChild(face);
+    }
+    who.appendChild(el('span', 'ege-qb__name', name));
+    return who;
+  }
+
+  /* A QB Connection is switched by an admin only. A quarterback who is
+     traded or retires ends the connection, and that is not the player's call
+     to make -- or to undo. */
+  function playerMaySwitch(row) {
+    return row.item_key !== 'qb-connection' || isAdmin();
+  }
+
   function ownedThing(rows) {
     var row = rows[0];
     var item = EGE.shopItem(row.item_key);
     var lapsed = EGE.wallet.lapsed(row);
-    var switchable = !isWorkout(row) && !lapsed;
+    var who = connectionWho(row, shopState.player);
+    var switchable = !isWorkout(row) && !lapsed && playerMaySwitch(row);
     var off = switchable && !row.active;
     var count = rows.reduce(function (sum, one) { return sum + EGE.wallet.quantityOf(one); }, 0);
+    var leveled = Boolean(item && item.levels);
+
+    var disabled = !lapsed && !isWorkout(row) && !row.active && !switchable;
 
     var thing = el(switchable ? 'button' : 'div',
-      'ege-owned__thing ege-owned__item' + (lapsed ? ' is-expired' : (off ? ' is-off' : '')));
-    var label = row.item_name +
-      (count > 1 ? ' \u00d7' + count : '') +
+      'ege-owned__thing ege-owned__item' + (who ? ' ege-owned__item--qb' : '') +
+      (lapsed ? ' is-expired' : ((off || disabled) ? ' is-off' : '')));
+    var label = (leveled
+        ? EGE.connectionName(item, shopState.player, EGE.connectionQuarterback(row), count)
+        : row.item_name + (count > 1 ? ' \u00d7' + count : '')) +
       (lapsed ? ' \u2014 expired' : '') +
-      (switchable ? (row.active ? ' \u2014 on, tap to turn off' : ' \u2014 off, tap to turn on') : '');
+      (switchable ? (row.active ? ' \u2014 on, tap to turn off' : ' \u2014 off, tap to turn on') : '') +
+      (disabled ? ' \u2014 turned off by an admin' : '');
     thing.title = label;
     thing.setAttribute('aria-label', label);
 
@@ -3487,8 +3672,14 @@
     } else {
       thing.appendChild(el('span', 'ege-owned__word', row.item_name));
     }
-    if (count > 1) { thing.appendChild(el('span', 'ege-shelf__count', count + 'X')); }
-    if (off || lapsed) { thing.appendChild(el('span', 'ege-owned__flag', lapsed ? 'Expired' : 'Off')); }
+    if (who) { thing.appendChild(who); }
+    /* A connection counts in levels, not in copies. */
+    if (count > 1) {
+      thing.appendChild(el('span', 'ege-shelf__count', leveled ? EGE.roman(count) : count + 'X'));
+    }
+    if (off || disabled || lapsed) {
+      thing.appendChild(el('span', 'ege-owned__flag', lapsed ? 'Expired' : 'Off'));
+    }
 
     if (switchable) {
       thing.type = 'button';
@@ -3666,7 +3857,8 @@
     } else {
       var grid = el('div', 'ege-items');
       rows.forEach(function (row) {
-        grid.appendChild(inventoryCard(row, { admin: true, report: sayAdmin, refresh: refreshAdminView }));
+        grid.appendChild(inventoryCard(row, { admin: true, player: player, report: sayAdmin,
+                                              refresh: refreshAdminView }));
       });
       box.appendChild(grid);
     }
@@ -4536,6 +4728,7 @@
       shopState.inventory = all[1];
       renderInventory();
       refreshStackedPrices();
+      refreshLevelPrices();
       refreshUpgrades();
       redrawRatings();
       refreshScoutMarks();
@@ -4605,6 +4798,7 @@
     if (shopState.built) { return; }
     shopState.built = true;
     stackedCards = [];
+    levelCards = [];
 
     buildEarnings();
 
