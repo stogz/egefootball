@@ -823,6 +823,13 @@ EGE.wallet = (function () {
     var c = client();
     if (!c) { return fail(offline()); }
 
+    /* A QB Connection ends when the quarterback is traded or retires, which
+       only an admin decides. The database refuses a player's change too (see
+       supabase/schema.sql); this just says so before asking. */
+    if (row.item_key === 'qb-connection' && !isAdmin) {
+      return fail('Only an admin can turn a QB Connection on or off.');
+    }
+
     return c.from(INVENTORY).update({ active: Boolean(active) }).eq('id', row.id)
       .then(function (res) {
         if (res.error) { return { ok: false, message: res.error.message }; }

@@ -219,6 +219,17 @@ EGE.connectionName = function (item, player, quarterback) {
   return quarterback ? name + ' \u2014 ' + quarterback : name;
 };
 
+/* Which quarterback an inventory row's connection is with, or null for a row
+   that is not one (or an O-Line Connection, which has nobody to name). The
+   name is kept in `target`; a row from before that was filled in only has it
+   after the dash in its title. */
+EGE.connectionQuarterback = function (row) {
+  if (!row || row.item_key !== 'qb-connection') { return null; }
+  if (row.target) { return row.target; }
+  var parts = String(row.item_name || '').split(' \u2014 ');
+  return parts.length > 1 ? parts.slice(1).join(' \u2014 ') : null;
+};
+
 /* What an item says it does for this player, on the same terms as its name. */
 EGE.itemDescription = function (item, player) {
   if (!item) { return ''; }

@@ -248,6 +248,30 @@ create policy "inventory rating changes are public"
     or public.is_admin()
   );
 
+-- A QB Connection is switched on and off by an admin only. When the quarterback
+-- is traded or retires the connection is over, and that is not for the player
+-- to decide -- or to turn back on afterwards. The update policy above lets an
+-- owner change their own rows, so this is what stops them changing this one
+-- column on this one item. Everything else about their rows stays theirs.
+create or replace function public.guard_qb_connection_switch()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.item_key = 'qb-connection'
+     and new.active is distinct from old.active
+     and not public.is_admin() then
+    raise exception 'Only an admin can turn a QB Connection on or off.';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists player_inventory_qb_connection_switch on public.player_inventory;
+create trigger player_inventory_qb_connection_switch
+  before update on public.player_inventory
+  for each row execute function public.guard_qb_connection_switch();
+
 -- Repeat purchases of the same thing are one row with a quantity, not a row
 -- each: a player buying eighty rating points should leave a handful of rows,
 -- not eighty. Training stays one row per purchase, because each carries its

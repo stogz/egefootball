@@ -938,6 +938,12 @@ body::before {
 @media (min-width: 900px) {
   #scheduleTableWrap { overflow: visible; }
 }
+/* The sort buttons above the rating points table. */
+.ege-sortbar { gap: 8px; align-items: center; }
+.ege-sortbar .fb-chip { min-height: 32px; }
+@media (max-width: 620px) {
+  .ege-sortbar .fb-chip { min-height: 40px; padding: 8px 12px; }
+}
 .ege-upgrade__moved { font-weight: 800; color: var(--fb-accent-deep); }
 .ege-upgrade__per { font-weight: 800; color: var(--fb-muted); font-variant-numeric: tabular-nums; }
 /* The button says what it buys and what it costs. The coin is what tells the
@@ -3528,6 +3534,34 @@ button.ege-owned__item { cursor: pointer; }
 }
 .ege-owned__item.is-off .ege-owned__icon,
 .ege-owned__item.is-expired .ege-owned__icon { opacity: .4; }
+
+/* A QB Connection is the icon, then who it is with: his headshot and name. The
+   tile grows to fit rather than keeping the square the other icons share. */
+.ege-owned__item--qb {
+  width: auto;
+  min-width: 56px;
+  gap: 10px;
+  padding-right: 10px;
+  text-align: left;
+}
+.ege-owned__item--qb .ege-owned__icon { width: 56px; flex: 0 0 auto; }
+.ege-owned__item--qb.is-off .ege-qb { opacity: .4; }
+.ege-qb { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.ege-qb__photo {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  object-fit: cover;
+  object-position: top center;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-tint-sage);
+}
+.ege-qb__name {
+  font-size: .75rem;
+  font-weight: 800;
+  line-height: 1.15;
+  max-width: 9rem;
+}
 
 /* The admin's inventory cards carry the same icons, small, beside the name. */
 .ege-item__title { display: flex; align-items: center; gap: 10px; min-width: 0; }
