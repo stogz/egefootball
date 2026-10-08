@@ -939,7 +939,9 @@ body::before {
   #scheduleTableWrap { overflow: visible; }
 }
 /* The sort buttons above the rating points table. */
-.ege-sortbar { gap: 8px; align-items: center; }
+.ege-sortbar { gap: 10px 18px; align-items: center; }
+.ege-sortbar__sort { display: inline-flex; align-items: center; gap: 8px; }
+.ege-sortbar__groups { gap: 8px; align-items: center; }
 .ege-sortbar .fb-chip { min-height: 32px; }
 @media (max-width: 620px) {
   .ege-sortbar .fb-chip { min-height: 40px; padding: 8px 12px; }

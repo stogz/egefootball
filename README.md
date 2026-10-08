@@ -688,11 +688,14 @@ On sale:
   2.0x and four 1.5x**. They are stickers: holographic, gold and silver
   sunbursts you stick on a game.
 - **Rating points** — bought straight into an attribute, priced by how close
-  that attribute already is to 99. Cheap early, dear late. A row of **sort
-  buttons** sits above the table: best value (the default — overall gained per
-  credit), most OVR impact, cheapest, most expensive, highest rating, lowest
-  rating, group, and A–Z. A maxed attribute has no next point, so it sinks to
-  the bottom of the price sorts.
+  that attribute already is to 99. Cheap early, dear late. A **Sort by** drop-down
+  sits above the table: best value (the default — overall gained per credit),
+  most OVR impact, cheapest, most expensive, highest rating, lowest rating,
+  group, and A–Z. Beside it, **group buttons** (All, Carrying, Passing,
+  Blocking, Receiving…) narrow the table to one group — and only the groups
+  that player's position is judged on get one, so a running back has no
+  Passing. A maxed attribute has no next point, so it sinks to the bottom of
+  the price sorts.
 - **Offseason training** — strength (8) or cardio (8), each with a downside
   rolled when you buy it, or overall (12) for a smaller gain spread wider with
   nothing to lose. Cheap to start and **twice the price every time you buy

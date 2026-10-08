@@ -3235,10 +3235,9 @@
     return tr;
   }
 
-  /* The ways the points table can be ordered. Each is a button above it, so
-     "cheapest first" or "most overall for the credits" is one tap rather
-     than a hunt down the column. A maxed attribute has no next point, so it
-     sinks to the bottom of anything ordered by price. */
+  /* The ways the points table can be ordered, in a drop-down above it. A
+     maxed attribute has no next point, so it sinks to the bottom of anything
+     ordered by price. */
   function priceOrder(direction) {
     return function (a, b) {
       if (a.cost === null || b.cost === null) {
@@ -3268,42 +3267,77 @@
   ];
 
   var upgradeSort = 'value';
-  var sortButtons = [];
+
+  var upgradeGroup = '';      /* '' is every group */
+  var groupHolder = null;
+  var sortPick = null;
 
   function sortedPlan(plan) {
     var chosen = UPGRADE_SORTS.filter(function (sort) { return sort.key === upgradeSort; })[0];
-    return plan.slice().sort(function (a, b) {
+    return plan.filter(function (row) {
+      return !upgradeGroup || row.groupKey === upgradeGroup;
+    }).sort(function (a, b) {
       return chosen.compare(a, b) ||
         (b.value_ - a.value_) ||
         a.label.localeCompare(b.label);
     });
   }
 
+  /* The sorts are one drop-down; the buttons beside it narrow the table to
+     one group of attributes. Only the groups this position is judged on get a
+     button -- a running back has no Passing -- so they are drawn from the
+     player's own plan rather than from a fixed list. */
   function buildUpgradeSorter() {
     var bar = el('div', 'fb-row fb-row--wrap ege-sortbar');
-    bar.setAttribute('role', 'group');
-    bar.setAttribute('aria-label', 'Sort rating points');
-    bar.appendChild(el('span', 'fb-eyebrow', 'Sort by'));
 
-    sortButtons = UPGRADE_SORTS.map(function (sort) {
-      var button = el('button', 'fb-chip', sort.label);
-      button.type = 'button';
-      button.title = sort.title;
-      button.addEventListener('click', function () {
-        upgradeSort = sort.key;
-        refreshUpgrades();
-      });
-      bar.appendChild(button);
-      return { key: sort.key, node: button };
+    var field = el('label', 'ege-sortbar__sort');
+    field.appendChild(el('span', 'fb-eyebrow', 'Sort by'));
+    sortPick = el('select', 'fb-select');
+    UPGRADE_SORTS.forEach(function (sort) {
+      var option = el('option', null, sort.label);
+      option.value = sort.key;
+      option.title = sort.title;
+      sortPick.appendChild(option);
     });
+    sortPick.value = upgradeSort;
+    sortPick.addEventListener('change', function () {
+      upgradeSort = sortPick.value;
+      refreshUpgrades();
+    });
+    field.appendChild(sortPick);
+    bar.appendChild(field);
+
+    groupHolder = el('div', 'fb-row fb-row--wrap ege-sortbar__groups');
+    groupHolder.setAttribute('role', 'group');
+    groupHolder.setAttribute('aria-label', 'Show one group of attributes');
+    bar.appendChild(groupHolder);
     return bar;
   }
 
-  function markSortButtons() {
-    sortButtons.forEach(function (button) {
-      var on = button.key === upgradeSort;
-      button.node.classList.toggle('is-active', on);
-      button.node.setAttribute('aria-pressed', on ? 'true' : 'false');
+  function drawGroupButtons(plan) {
+    if (!groupHolder) { return; }
+    groupHolder.innerHTML = '';
+
+    var groups = [];
+    plan.forEach(function (row) {
+      if (!groups.some(function (g) { return g.key === row.groupKey; })) {
+        groups.push({ key: row.groupKey, label: row.group });
+      }
+    });
+    /* Another player's groups can be gone from this one's. */
+    if (!groups.some(function (g) { return g.key === upgradeGroup; })) { upgradeGroup = ''; }
+    if (groups.length < 2) { return; }
+
+    [{ key: '', label: 'All' }].concat(groups).forEach(function (group) {
+      var on = group.key === upgradeGroup;
+      var button = el('button', 'fb-chip' + (on ? ' is-active' : ''), group.label);
+      button.type = 'button';
+      button.setAttribute('aria-pressed', on ? 'true' : 'false');
+      button.addEventListener('click', function () {
+        upgradeGroup = group.key;
+        refreshUpgrades();
+      });
+      groupHolder.appendChild(button);
     });
   }
 
@@ -3364,8 +3398,9 @@
   function refreshUpgrades() {
     if (!upgradesBody || !shopState.player) { return; }
     upgradesBody.innerHTML = '';
-    markSortButtons();
-    sortedPlan(EGE.economy.upgradePlan(shopState.player)).forEach(function (row) {
+    var plan = EGE.economy.upgradePlan(shopState.player);
+    drawGroupButtons(plan);
+    sortedPlan(plan).forEach(function (row) {
       upgradesBody.appendChild(upgradeRow(row));
     });
   }

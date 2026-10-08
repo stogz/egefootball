@@ -72,6 +72,7 @@ EGE.economy = (function () {
         key: attr.key,
         label: attr.label,
         group: attr.group,
+        groupKey: attr.groupKey,
         value: value,
         base: (EGE.ratings[player.slug] || {})[attr.key],
         cost: cost,
