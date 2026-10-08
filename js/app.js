@@ -3345,7 +3345,7 @@
     var box = el('div', 'fb-stack');
     box.appendChild(buildUpgradeSorter());
 
-    var wrap = el('div', 'fb-tablewrap');
+    var wrap = el('div', 'fb-tablewrap ege-upgrades-wrap');
     box.appendChild(wrap);
     var table = el('table', 'fb-table ege-upgrades');
 

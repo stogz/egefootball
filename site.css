@@ -913,6 +913,13 @@ body::before {
 }
 
 /* The rating points table: one row per attribute this position is judged on. */
+/* The points themselves sit on white, so the table reads as its own card
+   against the panel's theme colour around it. */
+.ege-upgrades-wrap {
+  background: #fff;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+}
+.ege-upgrades { background: #fff; }
 .ege-upgrades tbody tr { cursor: default; }
 .ege-upgrades td { vertical-align: middle; }
 .ege-upgrades .fb-meter { width: 120px; }
