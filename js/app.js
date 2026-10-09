@@ -1209,13 +1209,6 @@
     cell.appendChild(el('span', 'fb-name', name));
   }
 
-  /* What a postseason game is called -- SEC Championship, Rose Bowl, FCS
-     Quarterfinal -- on a line of its own under the opponent. A high school
-     playoff round has no name in the file and gets no line. */
-  function eventName(cell, game) {
-    if (game.name) { cell.appendChild(el('span', 'ege-schedule__event', game.name)); }
-  }
-
   /* A played game's score as the result pill -- W 38-9, L 21-24/OT -- or a
      dash for one still to be played. The same on a player's schedule, a
      team's and the game log. */
@@ -1268,7 +1261,6 @@
       opponent.appendChild(post);
     }
     if (showScouts && game.scouts) { opponent.appendChild(scoutMark()); }
-    eventName(opponent, game);
     row.appendChild(opponent);
 
     /* The defense across the way, graded for what this player does. */
@@ -2044,7 +2036,6 @@
         post.title = postseasonWord(game.season) + ' game';
         opponent.appendChild(post);
       }
-      eventName(opponent, game);
       row.appendChild(opponent);
 
       var result = el('td', 'num ege-schedule__result');
@@ -2703,7 +2694,6 @@
         mark.title = booster.name + ' was on this game';
         opponent.appendChild(mark);
       }
-      eventName(opponent, game);
       row.appendChild(opponent);
 
       var result = el('td', 'num');
@@ -2993,7 +2983,7 @@
 
      Under the ratings: a wooden cabinet holding every trophy he has won, from
      the `trophies` list on his entry in data/players.js. A shelf holds as
-     many as fit across it -- five or so on a computer, fewer on a phone --
+     many as fit across it -- six or so on a computer, three on a phone --
      and the next one goes on a new shelf under it, so the cabinet grows a
      shelf at a time. With nothing won yet it is one bare shelf. The shelf
      itself is drawn in site.css; this only decides what goes on which. */

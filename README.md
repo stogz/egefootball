@@ -170,9 +170,8 @@ holds:
   not show it. The Credits and Booster columns are only drawn on your own
   schedule, or on anyone's for an admin. A silhouette marks a game scouts will attend,
   for a player holding Intel for that season. Postseason games are marked with
-  two asterisks, a named one — SEC Championship, Rose Bowl — CFP
-  Semifinal, FCS Quarterfinal — carries its `name` on a line under the
-  opponent, and a school in a bracket gets a **Games | Tournament** switch
+  two asterisks (a game's `name` in the file, SEC Championship or Rose
+  Bowl, is not shown on the page), and a school in a bracket gets a **Games | Tournament** switch
   beside the fold-away arrow.
 
   **The postseason only shows as far as the next game.** The regular season is
@@ -229,11 +228,12 @@ holds:
 
 - **Trophy case** — under the ratings, on every player page: a cabinet
   running the full width of its panel, drawn entirely in `site.css` with no
-  image and in the site's colours (an ink frame, a dark field-green back, a
-  sand shelf floor in perspective with an orange front lip). It holds the
+  image and in the site's colours, with no frame: the shelves stacked are
+  the box (sand side walls, a dark field-green back, a sand shelf floor in
+  perspective with an orange front lip). It holds the
   trophies in the optional `trophies` list on the player's entry in
   `data/players.js`, each `{ name, season }`, shown as a gold cup over a
-  brass plate. A shelf holds as many as fit across it (five on a computer,
+  brass plate. A shelf holds as many as fit across it (six on a computer,
   three on a phone) and a full shelf gets a new one under it; the shelves
   are dealt out again when the width changes. Nobody has won one yet, so
   every case is one bare shelf.

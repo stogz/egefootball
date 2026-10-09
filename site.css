@@ -1600,20 +1600,6 @@ body::before {
   font-weight: 800;
   text-decoration: none;
 }
-/* A postseason game's name -- SEC Championship, Rose Bowl -- under the
-   opponent, lined up past the vs/at. */
-.ege-schedule__event {
-  display: block;
-  margin: 1px 0 0 20px;
-  font-size: .6875rem;
-  font-weight: 800;
-  letter-spacing: .02em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--fb-accent-deep);
-}
 
 /* --- ratings ------------------------------------------------------------ */
 
@@ -5001,7 +4987,7 @@ html.ege-noscroll body { overflow: hidden; }
 /* --- the trophy case --------------------------------------------------------
 
    A cabinet under the ratings, drawn without a picture and in the site's own
-   colours: the ink of every panel's border for the frame, the field's green
+   colours, with no frame: the shelves are the box. The field's green
    darkened for the back, and on each shelf a sand floor seen in perspective,
    the side walls running down into its back corners and a seam angling out
    to the front ones. Every shelf is one element and all of that is its
@@ -5010,8 +4996,6 @@ html.ege-noscroll body { overflow: hidden; }
    --trophy-slot and the gap between slots are what app.js measures to decide
    how many trophies a shelf holds. */
 .ege-trophies {
-  --case-frame: var(--fb-ink);
-  --case-edge: var(--fb-ink);
   --case-back: #2c4a28;                    /* --fb-grass, a shade off black */
   --case-wood: var(--fb-sand);
   --case-seam: #b9a88c;
@@ -5019,9 +5003,6 @@ html.ege-noscroll body { overflow: hidden; }
   --case-floor: 28px;
 
   display: grid;
-  gap: 10px;                               /* the rail between shelves */
-  padding: 10px;
-  background: var(--case-frame);
 }
 
 .ege-shelf {
@@ -5103,8 +5084,6 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-trophies {
     --case-wall: 14px;
     --case-floor: 20px;
-    gap: 8px;
-    padding: 8px;
   }
   .ege-shelf { min-height: 136px; }
   .ege-shelf__items {
