@@ -3004,13 +3004,17 @@
   /* A trophy with a picture of its own (`image`, a path under
      icon/trophies/) is shown as that picture; one without gets the gold cup
      and his name for it on a brass plate under it, the season after it.
-     Either way, pointing at it -- or tapping it on a phone -- lifts it and
-     says what it is, from `about` if the entry has one. */
+     Either way, pointing at it lifts it and says what it is, from `about` if
+     the entry has one, and clicking it -- or tapping it on a phone -- opens
+     it up close in the same overlay a card does. */
+  function trophyAbout(trophy) {
+    return trophy.about || (trophy.name + (trophy.season ? ' \u00b7 ' + trophy.season : ''));
+  }
+
   function trophyEl(trophy) {
     var item = el('li', 'ege-trophy');
-    var about = trophy.about || (trophy.name + (trophy.season ? ' \u00b7 ' + trophy.season : ''));
-    item.tabIndex = 0;
-    item.setAttribute('aria-label', about);
+    var about = trophyAbout(trophy);
+    EGE.cardsView.pressable(item, about, function () { zoomTrophy(trophy, art); });
 
     var art = el('span', 'ege-trophy__art');
     if (trophy.image) {
@@ -3035,6 +3039,27 @@
     tip.setAttribute('aria-hidden', 'true');
     item.appendChild(tip);
     return item;
+  }
+
+  /* A trophy up close: the card overlay -- the page blurred and dark behind
+     it, its name across the top and the close at the top right -- with the
+     trophy as big as the screen allows and what it is under it. */
+  function zoomTrophy(trophy, art) {
+    var stage = EGE.cardsView.openOverlay(
+      trophy.name + (trophy.season ? ' \u00b7 ' + trophy.season : ''), 'ege-rip__stage--trophy');
+
+    var holder = el('div', 'ege-trophyzoom');
+    holder.appendChild(art.cloneNode(true));
+    stage.appendChild(holder);
+    stage.appendChild(el('p', 'ege-trophyzoom__about', trophyAbout(trophy)));
+
+    var actions = el('div', 'ege-rip__actions');
+    var done = el('button', 'fb-btn fb-btn--primary', 'Done');
+    done.type = 'button';
+    done.addEventListener('click', EGE.cardsView.closeOverlay);
+    actions.appendChild(done);
+    stage.appendChild(actions);
+    done.focus({ preventScroll: true });
   }
 
   function shelfEl() {

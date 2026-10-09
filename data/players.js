@@ -172,7 +172,10 @@ EGE.players = [
     trophies: [
       { name: 'Regional Champion', season: 2018,
         image: 'icon/trophies/parr-2018-regional.webp',
-        about: 'Andrew Parr \u2014 2018 North Carolina Class 4A Regional Champion, Wake Forest High School' }
+        about: 'Andrew Parr \u2014 2018 North Carolina Class 4A Regional Champion, Wake Forest High School' },
+      { name: 'Regional Champion', season: 2019,
+        image: 'icon/trophies/parr-2019-regional.webp',
+        about: 'Andrew Parr \u2014 2019 North Carolina Class 4A Regional Champion, Wake Forest High School' }
     ]
   },
   {

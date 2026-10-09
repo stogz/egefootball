@@ -5070,18 +5070,24 @@ html.ege-noscroll body { overflow: hidden; }
 /* A trophy with a picture of its own, a plaque say, stood on the shelf. */
 .ege-trophy__img {
   display: block;
-  width: 104px;
-  height: auto;
-  filter: drop-shadow(0 4px 3px rgba(0, 0, 0, .4));
+  width: auto;
+  max-width: 100%;
+  height: 124px;
+  filter: drop-shadow(0 0 10px rgba(0, 0, 0, .55));
 }
 
-/* Pointed at, or tapped on a phone: it lifts, and a tag under it says what
-   it is. In front of its neighbours, which it now overlaps. */
-.ege-trophy:hover,
-.ege-trophy:focus { z-index: 2; }
-.ege-trophy:hover .ege-trophy__art,
-.ege-trophy:focus .ege-trophy__art { transform: scale(1.5); }
+/* Pointed at, or reached with the keyboard: it lifts, and a tag under it
+   says what it is. In front of its neighbours, which it now overlaps. Only
+   where there is a pointer to hover with -- on a phone a tap opens it up
+   close instead, and that says the same. */
+.ege-trophy { cursor: zoom-in; }
+.ege-trophy:focus-visible { z-index: 2; }
+.ege-trophy:focus-visible .ege-trophy__art { transform: scale(1.5); }
 .ege-trophy:focus-visible .ege-trophy__art { outline: 2px solid var(--fb-accent); outline-offset: 4px; }
+@media (hover: hover) {
+  .ege-trophy:hover { z-index: 2; }
+  .ege-trophy:hover .ege-trophy__art { transform: scale(1.5); }
+}
 
 .ege-trophy__tip {
   position: absolute;
@@ -5105,13 +5111,49 @@ html.ege-noscroll body { overflow: hidden; }
   transition: opacity .15s ease, transform .15s ease, visibility .15s;
   pointer-events: none;
 }
-.ege-trophy:hover .ege-trophy__tip,
-.ege-trophy:focus .ege-trophy__tip {
+.ege-trophy:focus-visible .ege-trophy__tip {
   opacity: 1;
   visibility: visible;
   transform: translate(-50%, 0);
 }
-.ege-trophy__cup { display: block; width: 72px; filter: drop-shadow(0 3px 2px rgba(0, 0, 0, .35)); }
+@media (hover: hover) {
+  .ege-trophy:hover .ege-trophy__tip {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* Up close, in the card overlay -- but with the page behind blurred as
+   well as darkened, and the trophy as big as the screen allows. */
+.ege-rip:has(.ege-rip__stage--trophy) {
+  background:
+    radial-gradient(circle at 50% 40%, rgba(240, 184, 42, .14), transparent 55%),
+    rgba(14, 18, 10, .72);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.ege-trophyzoom { display: flex; justify-content: center; max-width: 100%; }
+.ege-trophyzoom .ege-trophy__art { gap: 10px; }
+.ege-trophyzoom .ege-trophy__img {
+  height: min(62vh, 560px);
+  max-width: 88vw;
+  object-fit: contain;
+  filter: drop-shadow(0 0 30px rgba(0, 0, 0, .65));
+}
+.ege-trophyzoom .ege-trophy__cup { width: min(220px, 50vw); filter: drop-shadow(0 0 24px rgba(0, 0, 0, .6)); }
+.ege-trophyzoom .ege-trophy__plate { max-width: none; padding: 8px 16px; font-size: 1.125rem; }
+.ege-trophyzoom__about {
+  margin: 0;
+  max-width: 520px;
+  color: var(--fb-cream);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+}
+/* Every shadow sits straight behind its trophy, not dropped under it. */
+.ege-trophy__cup { display: block; width: 72px; filter: drop-shadow(0 0 8px rgba(0, 0, 0, .5)); }
 .ege-trophy__cup svg { display: block; width: 100%; height: auto; }
 
 /* Brass, with his name for it engraved and the season under it. */
@@ -5145,7 +5187,7 @@ html.ege-noscroll body { overflow: hidden; }
   }
   .ege-trophy__cup { width: 42px; }
   .ege-trophy__plate { padding: 3px 3px; letter-spacing: -.01em; }
-  .ege-trophy__img { width: 64px; }
+  .ege-trophy__img { height: 76px; }
 
   /* The tag sits across the foot of the screen instead, rather than hung
      off a trophy near the edge where it would run off the side. */
@@ -5159,8 +5201,8 @@ html.ege-noscroll body { overflow: hidden; }
     max-width: none;
     transform: translateY(4px);
   }
-  .ege-trophy:hover .ege-trophy__tip,
-  .ege-trophy:focus .ege-trophy__tip { transform: none; }
+  .ege-trophy:focus-visible .ege-trophy__tip,
+  .ege-trophy:hover .ege-trophy__tip { transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .ege-trophy__art,
