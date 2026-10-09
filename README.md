@@ -45,8 +45,8 @@ keeps its own copy of any image a post links to and goes by the address, so
 the Discord posts only pick up a new picture once that version (on the end of
 the address) changes. School marks live in
 `icon/`, keyed by school: `carlsbad.png`, `bloomington.png`, `normal.png`,
-`naples.png`, `wake.png`. The colleges use the marks already cut for their
-offer stickers in `icon/offers/`. A team without a mark renders its school line
+`naples.png`, `wake.png`. The colleges use the marks in `icon/offers/`, cut
+down to 160 pixels on their long side so a page of them loads fast. A team without a mark renders its school line
 without it.
 
 ---
@@ -141,11 +141,9 @@ holds:
   The pair runs the full height of the header. On a phone they are a band
   across the panel under the picture and the name, the overall on the left
   and the progression on the right. Both wait for
-  the shop's boosts to land before they show. The top right holds the
-  college offers, as stickers — again on the high school seasons only. Once
-  he has signed, the corner is empty.
-  The marks on them are cut down to 160 pixels on their long side, which is
-  more than twice the size they are drawn at, so a page of them loads fast.
+  the shop's boosts to land before they show. The college offers are no
+  longer drawn on the header; who offered whom is still recorded in
+  `data/offers.js`.
 - **Injury report** — a red band across the foot of the header panel, only
   while the week being played (the first week of the live season not yet
   published) is one the season file marks him `injured: true` for: OUT, what
@@ -1880,7 +1878,8 @@ Built so far:
 - `data/games.js` — how everything else gets at those games, and the one place
   that decides what "played" means.
 - `data/offers.js` — who has offered whom, each school's sticker colour
-  and mark, and each player's recruiting stars, 247 rating and state rank. Adding a key to a player's list puts the sticker on his header.
+  and mark, and each player's recruiting stars, 247 rating and state rank. The
+  offers themselves are kept as a record but are not drawn anywhere.
 - `data/brackets.js` — the playoff bracket each school is in, a season at a
   time, as the field was drawn: every first-round matchup and seed, and
   nothing else. No results — those live in `stats/{year}.js` like any other

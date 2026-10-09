@@ -282,7 +282,6 @@
     renderStars(player);
     renderVitals(player);
     renderInjury(player, season);
-    renderOffers(player);
     renderTally(player, season);
 
     renderSchedule(player);
@@ -427,10 +426,10 @@
     }
   }
 
-  /* Whether the season on show is one of the recruiting years. The stars and
-     the offer stickers are what a high school player is -- once he has signed
-     somewhere they are history, so they stay on 2018 and 2019 and are not
-     carried into college. */
+  /* Whether the season on show is one of the recruiting years. The stars are
+     what a high school player is -- once he has signed somewhere they are
+     history, so they stay on 2018 and 2019 and are not carried into
+     college. */
   function recruitingSeason() {
     return EGE.tierFor(shownSeason()) === 'highSchool';
   }
@@ -710,262 +709,27 @@
     return sticker;
   }
 
-  /* --- college offers ------------------------------------------------------
-
-     One sticker per offer, stuck in the top corner of the header. They are
-     laid on a loose grid and then knocked off it -- position, tilt and all --
-     so a row of them reads as stickers somebody pressed on rather than as
-     icons in a line.
-
-     Every bit of that comes out of the same hash the boosters use, seeded on
-     the player and the school. So a sticker lands in the same place and at
-     the same angle on every draw, on every device, for good: it is a thing
-     stuck to the page, and a thing that moves when you reload is not stuck to
-     anything. */
-
-  var OFFER_SIZE = 92;      /* the die-cut, in pixels */
-
-  /* Two across up to four of them, three across beyond that. Three offers on
-     a three-wide grid is a row, and a row is the one thing a handful of
-     stickers never looks like. */
-  function offerCols(count) { return count > 4 ? 3 : 2; }
-
-  /* Where one sticker goes, and how far off square. The grid is tighter than
-     the sticker is wide, so they overlap the way a handful of stickers on a
-     folder do; the jitter is what stops the overlap looking like a pattern. */
-  function offerPlacing(seed, at, size, cols, stepX) {
-    var hash = 2166136261;
-    String(seed).split('').forEach(function (ch) {
-      hash ^= ch.charCodeAt(0);
-      hash = (hash * 16777619) >>> 0;
-    });
-
-    var stepY = size * 0.80;
-    var jitter = size * 0.22;
-
-    return {
-      x: (at % cols) * stepX + ((hash % 101) / 100 - 0.5) * 2 * jitter,
-      y: Math.floor(at / cols) * stepY +
-         (((hash >>> 9) % 101) / 100 - 0.5) * 2 * jitter,
-      tilt: ((hash >>> 17) % 33) - 16         /* -16deg .. +16deg */
-    };
-  }
-
-  /* How far along a row one sticker is from the next, when nothing asks for
-     more room than that. */
-  var OFFER_STEP = OFFER_SIZE * 0.82;
-
-  /* How wide the box is for a grid this many across. */
-  function offerSpan(cols, step) {
-    return (cols - 1) * step + OFFER_SIZE * 1.10;
-  }
-
-  /* The width the stickers can have in the corner: from the right edge they
-     hang over, back to the end of the longest line of words beside the
-     picture -- the name, nearly always, but the school and the facts are
-     counted too so a sticker never lands on a word. Measured with the box
-     out of the grid, so the words are where they sit with no stickers taking
-     room off them. The jitter comes off as well, since a sticker nudged left
-     can reach that far past the box. */
-  function offerRoom(box) {
-    var top = box.parentNode;
-    var reach = parseFloat(window.getComputedStyle(box).getPropertyValue('--offers-reach')) || 0;
-    var gap = parseFloat(window.getComputedStyle(top).columnGap) || 0;
-
-    /* The text itself, one run at a time: the blocks it sits in are the
-       full width of the column and would say the words run to the edge. */
-    var words = 0;
-    [document.getElementById('playerSchool'), document.getElementById('playerName'),
-     document.getElementById('playerStars'), top.querySelector('.ege-detail__list')].forEach(function (node) {
-      if (!node) { return; }
-      var walk = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
-      var range = document.createRange();
-      while (walk.nextNode()) {
-        if (!walk.currentNode.nodeValue.trim()) { continue; }
-        range.selectNodeContents(walk.currentNode);
-        words = Math.max(words, range.getBoundingClientRect().right);
-      }
-    });
-
-    return top.getBoundingClientRect().right + reach - words - gap - OFFER_SIZE * 0.22;
-  }
-
-  /* How many across, and how far apart. A handful keeps the grid above. A
-     pile that grid would stack more than two deep is let out sideways
-     instead, rather than running down past the facts: as many across as fit
-     between the name and the edge, so long as the last row is at least half
-     full -- a lone sticker trailing under a long row reads as one that fell
-     off. Then the row is spaced out to use the room it was given, never so
-     far apart that the stickers stop overlapping.
-
-     In the corner the room is what the words leave; where the offers are a
-     band of their own under the header, it is the band's whole width. */
-  function offerLayout(box, count) {
-    var plain = offerCols(count);
-    var layout = { cols: plain, step: OFFER_STEP };
-    if (Math.ceil(count / plain) <= 2) { return layout; }
-
-    /* Where the offers are a band of their own under the header, the band
-       is the panel's whole width, so a big pile spreads across it rather
-       than running down the page three at a time. */
-    var band = window.matchMedia('(max-width: 1000px)').matches;
-    var room = band ? box.parentNode.getBoundingClientRect().width : offerRoom(box);
-    function fits(cols) {
-      var last = count - (Math.ceil(count / cols) - 1) * cols;
-      return cols < count && last * 2 >= cols && offerSpan(cols, OFFER_STEP) <= room;
-    }
-    for (var cols = count - 1; cols > plain; cols -= 1) {
-      if (fits(cols)) { layout.cols = cols; break; }
-    }
-    if (layout.cols > plain) {
-      layout.step = Math.min(OFFER_SIZE * 0.88,
-        Math.max(OFFER_STEP, (room - OFFER_SIZE * 1.10) / (layout.cols - 1)));
-    }
-    return layout;
-  }
-
-  /* The school's mark, or its short name until the mark has been added. A
-     file that is not there yet is not an error: icon/offers/{logo}.png lands
-     whenever it lands and the sticker picks it up with no change here. */
-  function offerFace(college, sticker) {
-    var abbr = el('span', 'ege-sticker__abbr', college.short);
-
-    if (!college.logo) { return abbr; }
-
-    var logo = el('img', 'ege-sticker__logo');
-    logo.src = 'icon/offers/' + college.logo + '.png';
-    logo.alt = '';                   /* the sticker's own label says it */
-    logo.loading = 'lazy';
-    logo.addEventListener('error', function () {
-      if (logo.parentNode) { logo.parentNode.replaceChild(abbr, logo); }
-    });
-    return logo;
-  }
-
-  /* Where one sticker sits and how far off square. Set on a sticker that
-     already exists as readily as on a new one, which is what lets a re-fit
-     move the stickers rather than build them all again. */
-  function placeSticker(slot, player, entry, at, cols, step) {
-    var place = offerPlacing(player.slug + '-' + entry.key, at, OFFER_SIZE, cols, step);
-    slot.style.setProperty('--at-x', Math.round(place.x) + 'px');
-    slot.style.setProperty('--at-y', Math.round(place.y) + 'px');
-    slot.firstChild.style.setProperty('--tilt', place.tilt + 'deg');
-  }
-
-  function offerSticker(player, entry, at, cols, step) {
-    var college = entry.college;
-    var slot = el('div', 'ege-offers__sticker');
-
-    var sticker = el('span', 'ege-sticker ege-sticker--offer');
-    sticker.style.setProperty('--sticker-size', OFFER_SIZE + 'px');
-    sticker.style.setProperty('--team-ground', college.ground);
-    sticker.style.setProperty('--team-ink', college.ink);
-    sticker.title = college.name + ' have offered';
-
-    var face = el('span', 'ege-sticker__face');
-    sticker.appendChild(face);
-    sticker.appendChild(offerFace(college, sticker));
-
-    slot.appendChild(sticker);
-    placeSticker(slot, player, entry, at, cols, step);
-    return slot;
-  }
-
-  var offersPlayer = null;
-
-  /* High school seasons only, like the stars. A college season draws none,
-     and the corner is left empty. */
-  function renderOffers(player) {
-    var box = document.getElementById('playerOffers');
-    var offers = recruitingSeason() ? EGE.offersFor(player) : [];
-    offersPlayer = player;
-
-    /* The same stickers as are already up -- a re-fit, or the page redrawn
-       once the published weeks land -- are moved rather than made again.
-       Making them again swapped every logo for a fresh <img> that had to
-       decode before it showed, so the whole pile blinked; on a phone that
-       was every time the address bar slid in or out. */
-    var key = player.slug + ':' + offers.map(function (one) { return one.key; }).join(',');
-    var reuse = box.getAttribute('data-offers') === key &&
-                box.children.length === offers.length;
-    if (!reuse) {
-      box.innerHTML = '';
-      box.setAttribute('data-offers', key);
-    }
-
-    /* Out of the grid while the room is measured, then back in. */
-    box.hidden = true;
-    if (!offers.length) { return; }
-
-    var layout = offerLayout(box, offers.length);
-    var cols = layout.cols;
-    box.hidden = false;
-    offers.forEach(function (entry, at) {
-      if (reuse) {
-        placeSticker(box.children[at], player, entry, at, cols, layout.step);
-      } else {
-        box.appendChild(offerSticker(player, entry, at, cols, layout.step));
-      }
-    });
-
-    /* The box is only as big as the stickers in it, so a player with three
-       does not reserve room for five. The last row is as wide as it is.
-
-       It is deliberately a little narrower than the stickers can reach. The
-       box is what the grid reserves and what the page measures for a
-       scrollbar; the stickers inside it are out of the flow and are allowed
-       past its edge, which is how the outermost of them end up hanging over
-       the panel border without the page growing a sideways scroll. Room for
-       the jitter is on the height, where there is nothing to overflow. */
-    var rows = Math.ceil(offers.length / cols);
-    cols = Math.min(offers.length, cols);
-    box.style.setProperty('--offers-width', Math.round(offerSpan(cols, layout.step)) + 'px');
-    box.style.setProperty('--offers-height',
-      Math.round((rows - 1) * OFFER_SIZE * 0.80 + OFFER_SIZE * 1.34) + 'px');
-
-    box.setAttribute('aria-label', offers.length +
-      (offers.length === 1 ? ' college offer: ' : ' college offers: ') +
-      offers.map(function (one) { return one.college.name; }).join(', '));
-  }
-
-  /* Laid out again when the width changes, and when the webfont lands: both
-     move where the name ends, which is what the room is measured to. */
-  function refitOffers() {
-    var box = document.getElementById('playerOffers');
-    if (offersPlayer && box.offsetParent !== null) { renderOffers(offersPlayer); }
-  }
-
-  /* Only a change of width can move where the words end. A phone fires
-     `resize` every time its address bar slides in or out as you scroll,
-     which changes the height and nothing else -- re-fitting then was work
-     for nothing, done in the middle of a scroll. */
+  /* Width only. A phone fires `resize` every time its address bar slides in
+     or out as you scroll, which changes the height and nothing else --
+     re-fitting then was work for nothing, done in the middle of a scroll. */
   var windowWidth = window.innerWidth;
   window.addEventListener('resize', function () {
     if (window.innerWidth === windowWidth) { return; }
     windowWidth = window.innerWidth;
-    refitOffers();
     refitTally();
     drawBracketLines();
   });
 
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(refitOffers);
-    if (document.fonts.addEventListener) {
-      document.fonts.addEventListener('loadingdone', refitOffers);
-    }
-  }
-
   /* And whenever the header itself changes width without the window doing
      so -- a scrollbar arriving as the schedule fills the page under it is
-     the usual one. Width only: laying the stickers out changes the header's
-     height, and reacting to that would go round in a circle. */
+     the usual one. Width only: re-fitting can change the header's height,
+     and reacting to that would go round in a circle. */
   if (window.ResizeObserver) {
     var headerWidth = 0;
     new window.ResizeObserver(function (entries) {
       var width = Math.round(entries[0].contentRect.width);
       if (!width || width === headerWidth) { return; }
       headerWidth = width;
-      refitOffers();
       refitTally();
       drawBracketLines();
     }).observe(document.querySelector('.ege-detail'));
@@ -5079,11 +4843,10 @@
       setNav('admin');
       document.title = 'Admin \u2014 EGE Football';
     } else if (player) {
-      /* Shown first, then drawn. The stickers and the season totals are
-         laid out by measuring the page, and a hidden page measures as
-         nothing -- drawn the other way round, the offers all piled up in
-         the corner and a long number spilled out of its cell until a
-         refresh redrew them. */
+      /* Shown first, then drawn. The season totals and the trophy shelves
+         are laid out by measuring the page, and a hidden page measures as
+         nothing -- drawn the other way round, a long number spilled out of
+         its cell until a refresh redrew it. */
       show(viewPlayer);
       renderPlayer(player);
       setNav('players');
