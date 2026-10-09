@@ -5095,7 +5095,7 @@ html.ege-noscroll body { overflow: hidden; }
   left: 50%;
   z-index: 3;
   width: max-content;
-  max-width: 240px;
+  max-width: 340px;
   padding: 7px 10px;
   border: 2px solid var(--fb-ink);
   background: var(--fb-cream);
@@ -5105,6 +5105,7 @@ html.ege-noscroll body { overflow: hidden; }
   font-weight: 700;
   line-height: 1.3;
   text-align: center;
+  white-space: pre-line;                    /* `about` can run to two lines */
   opacity: 0;
   visibility: hidden;
   transform: translate(-50%, -4px);
@@ -5133,6 +5134,9 @@ html.ege-noscroll body { overflow: hidden; }
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 }
+/* Anywhere but the trophy closes it, so the rest says so. */
+.ege-rip:has(.ege-rip__stage--trophy) { cursor: zoom-out; }
+.ege-trophyzoom .ege-trophy__art { cursor: default; }
 .ege-trophyzoom { display: flex; justify-content: center; max-width: 100%; }
 .ege-trophyzoom .ege-trophy__art { gap: 10px; }
 .ege-trophyzoom .ege-trophy__img {
@@ -5151,6 +5155,7 @@ html.ege-noscroll body { overflow: hidden; }
   font-weight: 700;
   line-height: 1.4;
   text-align: center;
+  white-space: pre-line;
 }
 /* Every shadow sits straight behind its trophy, not dropped under it. */
 .ege-trophy__cup { display: block; width: 72px; filter: drop-shadow(0 0 8px rgba(0, 0, 0, .5)); }

@@ -3053,14 +3053,17 @@
     stage.appendChild(holder);
     stage.appendChild(el('p', 'ege-trophyzoom__about', trophyAbout(trophy)));
 
-    var actions = el('div', 'ege-rip__actions');
-    var done = el('button', 'fb-btn fb-btn--primary', 'Done');
-    done.type = 'button';
-    done.addEventListener('click', EGE.cardsView.closeOverlay);
-    actions.appendChild(done);
-    stage.appendChild(actions);
-    done.focus({ preventScroll: true });
+    var close = stage.querySelector('.ege-rip__close');
+    if (close) { close.focus({ preventScroll: true }); }
   }
+
+  /* A click anywhere but on the trophy itself puts it away. The overlay is
+     the cards' too, so this only acts while a trophy is what is in it. */
+  document.getElementById('cardRip').addEventListener('click', function (e) {
+    if (!this.querySelector('.ege-rip__stage--trophy')) { return; }
+    if (e.target.closest('.ege-trophyzoom .ege-trophy__art')) { return; }
+    EGE.cardsView.closeOverlay();
+  });
 
   function shelfEl() {
     var shelf = el('div', 'ege-shelf');

@@ -23,7 +23,7 @@
    `{ name, season, image, about }`. `image` is a picture of it under
    icon/trophies/ (without one it is drawn as a gold cup with `name` and
    `season` on a plate) and `about` is what the tag says when it is pointed
-   at. Leave it out for a player who has not won anything yet.
+   at (a \n starts a new line). Leave it out for a player who has not won anything yet.
 
    `email` is the address that player signs in with. Only the six listed
    here can hold an account; a null email means their portal is not open
@@ -172,10 +172,10 @@ EGE.players = [
     trophies: [
       { name: 'Regional Champion', season: 2018,
         image: 'icon/trophies/parr-2018-regional.webp',
-        about: 'Andrew Parr \u2014 2018 North Carolina Class 4A Regional Champion, Wake Forest High School' },
+        about: '2018 North Carolina Class 4A Regional Champion\nWake Forest High School' },
       { name: 'Regional Champion', season: 2019,
         image: 'icon/trophies/parr-2019-regional.webp',
-        about: 'Andrew Parr \u2014 2019 North Carolina Class 4A Regional Champion, Wake Forest High School' }
+        about: '2019 North Carolina Class 4A Regional Champion\nWake Forest High School' }
     ]
   },
   {
