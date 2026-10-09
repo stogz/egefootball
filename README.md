@@ -232,11 +232,17 @@ holds:
   the box (sand side walls, a dark field-green back, a sand shelf floor in
   perspective with an orange front lip). It holds the
   trophies in the optional `trophies` list on the player's entry in
-  `data/players.js`, each `{ name, season }`, shown as a gold cup over a
-  brass plate. A shelf holds as many as fit across it (six on a computer,
+  `data/players.js`, each `{ name, season, image, about }`. One with an
+  `image` (a picture under `icon/trophies/`, cut down to 360 pixels wide)
+  is shown as that picture; one without is a gold cup over a brass plate
+  with its name and season. Pointing at a trophy, or tapping it on a phone,
+  lifts it to half again its size and shows a tag saying what it is, from
+  `about` (under the trophy on a computer, across the foot of the screen on
+  a phone). A shelf holds as many as fit across it (six on a computer,
   three on a phone) and a full shelf gets a new one under it; the shelves
-  are dealt out again when the width changes. Nobody has won one yet, so
-  every case is one bare shelf.
+  are dealt out again when the width changes. Andrew Parr's 2018 North
+  Carolina Class 4A Regional Champion plaque (Wake Forest High School) is
+  the first trophy in; everyone else's case is one bare shelf.
 
 The schedule, the game log, the ratings and the trophy case each fold away
 behind an arrow in their heading.

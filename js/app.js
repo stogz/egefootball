@@ -3001,16 +3001,39 @@
     '<path d="M14 7h3v12c-2-1-3-4-3-7z" fill="#fff" opacity=".35"/>' +
     '</svg>';
 
+  /* A trophy with a picture of its own (`image`, a path under
+     icon/trophies/) is shown as that picture; one without gets the gold cup
+     and his name for it on a brass plate under it, the season after it.
+     Either way, pointing at it -- or tapping it on a phone -- lifts it and
+     says what it is, from `about` if the entry has one. */
   function trophyEl(trophy) {
     var item = el('li', 'ege-trophy');
-    item.title = trophy.name + (trophy.season ? ' · ' + trophy.season : '');
-    var cup = el('span', 'ege-trophy__cup');
-    cup.innerHTML = CUP_SVG;
-    item.appendChild(cup);
-    /* His name for it on a brass plate under the cup, the season after it. */
-    var plate = el('span', 'ege-trophy__plate', trophy.name);
-    if (trophy.season) { plate.appendChild(el('span', 'ege-trophy__season', String(trophy.season))); }
-    item.appendChild(plate);
+    var about = trophy.about || (trophy.name + (trophy.season ? ' \u00b7 ' + trophy.season : ''));
+    item.tabIndex = 0;
+    item.setAttribute('aria-label', about);
+
+    var art = el('span', 'ege-trophy__art');
+    if (trophy.image) {
+      var img = el('img', 'ege-trophy__img');
+      img.src = trophy.image;
+      img.alt = '';                   /* the label on the item says it */
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      art.appendChild(img);
+      item.classList.add('ege-trophy--pictured');
+    } else {
+      var cup = el('span', 'ege-trophy__cup');
+      cup.innerHTML = CUP_SVG;
+      art.appendChild(cup);
+      var plate = el('span', 'ege-trophy__plate', trophy.name);
+      if (trophy.season) { plate.appendChild(el('span', 'ege-trophy__season', String(trophy.season))); }
+      art.appendChild(plate);
+    }
+    item.appendChild(art);
+
+    var tip = el('span', 'ege-trophy__tip', about);
+    tip.setAttribute('aria-hidden', 'true');
+    item.appendChild(tip);
     return item;
   }
 

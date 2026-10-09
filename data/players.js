@@ -19,6 +19,12 @@
    both as keys in EGE.teams below. Which one a season shows is its tier on
    the ladder -- see EGE.teamFor.
 
+   `trophies` is what is in his trophy case on his page, oldest first:
+   `{ name, season, image, about }`. `image` is a picture of it under
+   icon/trophies/ (without one it is drawn as a gold cup with `name` and
+   `season` on a plate) and `about` is what the tag says when it is pointed
+   at. Leave it out for a player who has not won anything yet.
+
    `email` is the address that player signs in with. Only the six listed
    here can hold an account; a null email means their portal is not open
    yet. These are sign-in identifiers, not contact details.
@@ -162,7 +168,12 @@ EGE.players = [
     weight: 265,              // pounds
     email: 'daikrotlr@gmail.com',
     credits: 0,
-    headshot: 'headshot/parr.png'
+    headshot: 'headshot/parr.png',
+    trophies: [
+      { name: 'Regional Champion', season: 2018,
+        image: 'icon/trophies/parr-2018-regional.webp',
+        about: 'Andrew Parr \u2014 2018 North Carolina Class 4A Regional Champion, Wake Forest High School' }
+    ]
   },
   {
     slug: 'cooper-clark',
