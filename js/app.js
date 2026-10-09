@@ -2995,7 +2995,7 @@
      the `trophies` list on his entry in data/players.js. A shelf holds as
      many as fit across it -- five or so on a computer, fewer on a phone --
      and the next one goes on a new shelf under it, so the cabinet grows a
-     shelf at a time. With nothing won yet it is one empty shelf. The shelf
+     shelf at a time. With nothing won yet it is one bare shelf. The shelf
      itself is drawn in site.css; this only decides what goes on which. */
   var trophyPanel = document.getElementById('trophyPanel');
   var trophyCase = document.getElementById('trophyCase');
@@ -3060,9 +3060,6 @@
         list.appendChild(trophyEl(trophy));
       });
       trophyCase.appendChild(shelf);
-    }
-    if (!items.length) {
-      trophyCase.firstChild.appendChild(el('p', 'ege-trophies__empty', 'No trophies yet'));
     }
   }
 

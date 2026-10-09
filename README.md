@@ -227,15 +227,16 @@ holds:
     attribute that moved carries a smaller ticker, and the season's gain is
     drawn in orange on the end of each bar.
 
-- **Trophy case** — under the ratings, on every player page: a wooden
-  cabinet (orange-brown frame, dark back, a lighter shelf floor in
-  perspective) drawn entirely in `site.css`, no image. It holds the
+- **Trophy case** — under the ratings, on every player page: a cabinet
+  running the full width of its panel, drawn entirely in `site.css` with no
+  image and in the site's colours (an ink frame, a dark field-green back, a
+  sand shelf floor in perspective with an orange front lip). It holds the
   trophies in the optional `trophies` list on the player's entry in
   `data/players.js`, each `{ name, season }`, shown as a gold cup over a
   brass plate. A shelf holds as many as fit across it (five on a computer,
   three on a phone) and a full shelf gets a new one under it; the shelves
   are dealt out again when the width changes. Nobody has won one yet, so
-  every case is one empty shelf reading *No trophies yet*.
+  every case is one bare shelf.
 
 The schedule, the game log, the ratings and the trophy case each fold away
 behind an arrow in their heading.
