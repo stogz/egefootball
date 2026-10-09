@@ -5072,7 +5072,7 @@ html.ege-noscroll body { overflow: hidden; }
   display: block;
   width: auto;
   max-width: 100%;
-  height: 124px;
+  height: calc(124px * var(--trophy-scale, 1));
   filter: drop-shadow(0 0 10px rgba(0, 0, 0, .55));
 }
 
@@ -5192,7 +5192,7 @@ html.ege-noscroll body { overflow: hidden; }
   }
   .ege-trophy__cup { width: 42px; }
   .ege-trophy__plate { padding: 3px 3px; letter-spacing: -.01em; }
-  .ege-trophy__img { height: 76px; }
+  .ege-trophy__img { height: calc(76px * var(--trophy-scale, 1)); }
 
   /* The tag sits across the foot of the screen instead, rather than hung
      off a trophy near the edge where it would run off the side. */

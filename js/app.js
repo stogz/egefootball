@@ -3025,6 +3025,8 @@
       img.decoding = 'async';
       art.appendChild(img);
       item.classList.add('ege-trophy--pictured');
+      /* A bigger honour stands taller than the rest; see `scale`. */
+      if (typeof trophy.scale === 'number') { item.style.setProperty('--trophy-scale', trophy.scale); }
     } else {
       var cup = el('span', 'ege-trophy__cup');
       cup.innerHTML = CUP_SVG;

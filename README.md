@@ -232,7 +232,8 @@ holds:
   the box (sand side walls, a dark field-green back, a sand shelf floor in
   perspective with an orange front lip). It holds the
   trophies in the optional `trophies` list on the player's entry in
-  `data/players.js`, each `{ name, season, image, about }`. One with an
+  `data/players.js`, each `{ name, season, image, about, scale }` (`scale`
+  stands a bigger honour taller than the rest on the shelf). One with an
   `image` (a picture under `icon/trophies/`)
   is shown as that picture (cut down to 720 pixels wide, so it holds up
   full screen); one without is a gold cup over a brass plate with its name
@@ -249,7 +250,8 @@ holds:
   a full shelf gets a new one under it; the shelves
   are dealt out again when the width changes. Andrew Parr has his 2018 and
   2019 North Carolina Class 4A Regional Champion plaques (Wake Forest High
-  School) in; everyone else's case is one bare shelf.
+  School) and, a third again as tall, the 2020 College Football National
+  Championship trophy (Alabama); everyone else's case is one bare shelf.
 
 The schedule, the game log, the ratings and the trophy case each fold away
 behind an arrow in their heading.
