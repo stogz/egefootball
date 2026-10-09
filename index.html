@@ -773,7 +773,7 @@
                the bottom one, because a school name has nowhere to break and
                nothing else in here is that long.
 
-               The top right is where the college offers are stuck. -->
+               The overall stands on the right of them. -->
           <div class="ege-detail__top">
             <div class="ege-detail__figure">
               <div class="ege-detail__photo">
@@ -792,9 +792,10 @@
                  his position in his state. From data/offers.js. -->
             <div class="ege-detail__stars ege-stars" id="playerStars" hidden></div>
 
-            <!-- The offers on the table, as stickers. Built in app.js from
-                 data/offers.js; the corner is empty for a player with none. -->
-            <div class="ege-offers" id="playerOffers" hidden></div>
+            <!-- The overall, in its tier's box, and under it how far it has
+                 climbed this season. Written in app.js once the boosts have
+                 landed, like the ratings it is worked out from. -->
+            <div class="ege-detail__ovr" id="playerOverall" hidden></div>
 
             <dl class="ege-detail__list">
               <dt>Position</dt><dd id="playerPosition"></dd>
@@ -937,20 +938,10 @@
                   aria-expanded="true" aria-label="Hide the ratings"></button>
         </div>
 
-        <!-- The one place the overall is shown on a player page: with the
-             ratings it is worked out from, on a dark band of its own, and
-             under it his three best attributes. Both wait for the shop's
-             boosts to land rather than showing the base numbers and then
-             changing them under whoever is reading. -->
+        <!-- His three best attributes. They wait for the shop's boosts to
+             land rather than showing the base numbers and then changing
+             them under whoever is reading. -->
         <div class="ege-ratings__top" id="ratingsTop">
-          <div class="ege-ovrband">
-            <span class="ege-ovrband__label">Overall</span>
-            <span class="ege-ovrband__value" id="ratingsOverall"></span>
-            <!-- How far the overall has climbed since the live season began,
-                 like a stock ticker. Written in app.js. -->
-            <span class="ege-ticker ege-ticker--lg" id="ratingsTicker" hidden></span>
-          </div>
-
           <!-- Best first, so that is the order it is read in; the stylesheet
                stands them second, first, third. Written in app.js. -->
           <ol class="ege-podium" id="ratingsPodium" aria-label="Best three attributes"></ol>
@@ -959,6 +950,21 @@
         <div class="fb-panel__body">
           <div class="ege-groups" id="ratingsGroups"></div>
         </div>
+      </div>
+
+      <!-- Every trophy he has won, on the shelves of a wooden cabinet. One
+           shelf to start with; a full one gets another under it. The
+           shelves are drawn in site.css and filled in app.js. -->
+      <div class="fb-panel ege-section-gap" id="trophyPanel" hidden>
+        <div class="fb-panel__head">
+          <h3>Trophy Case</h3>
+          <button class="ege-collapse" type="button"
+                  data-collapses="trophyPanel" aria-controls="trophyPanel"
+                  aria-expanded="true" aria-label="Hide the trophy case"></button>
+        </div>
+        <!-- Straight in the panel, not in a body, so the cabinet runs to its
+             edges. -->
+        <div class="ege-trophies" id="trophyCase"></div>
       </div>
     </section>
 

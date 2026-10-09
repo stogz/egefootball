@@ -103,17 +103,34 @@
   /* --- the overall box ---------------------------------------------------- */
 
   /* One element for every place an overall is shown, so the number reads the
-     same on a card as it does on a page. The site's own dark chip: the word
-     in the accent orange, the number under it in cream. */
-  var DIAMOND = 80;
+     same on a card as it does on a page. Under 75 it is the site's own dark
+     chip: the word in the accent orange, the number under it in cream. From
+     75 up the box is cut from something better, a tier at a time. */
+  var OVERALL_TIERS = [
+    { from: 99, key: 'galaxy',  name: 'galaxy' },
+    { from: 95, key: 'pink',    name: 'pink diamond' },
+    { from: 90, key: 'diamond', name: 'diamond' },
+    { from: 85, key: 'gold',    name: 'gold' },
+    { from: 80, key: 'silver',  name: 'silver' },
+    { from: 75, key: 'bronze',  name: 'bronze' }
+  ];
+
+  function overallTier(overall) {
+    for (var i = 0; i < OVERALL_TIERS.length; i++) {
+      if (overall >= OVERALL_TIERS[i].from) { return OVERALL_TIERS[i]; }
+    }
+    return null;
+  }
 
   function overallBox(overall, modifier) {
     if (typeof overall !== 'number') { return null; }
 
-    /* 80 and up is a blue diamond. */
-    var box = el('div', 'ege-ovrbox' + (modifier ? ' ' + modifier : '') +
-      (overall >= DIAMOND ? ' ege-ovrbox--diamond' : ''));
-    box.title = overall + ' overall' + (overall >= DIAMOND ? ' \u2014 diamond' : '');
+    /* A pink diamond is the diamond in another colour, so it carries both. */
+    var tier = overallTier(overall);
+    var tierClass = !tier ? '' :
+      ' ege-ovrbox--tier ege-ovrbox--' + tier.key + (tier.key === 'pink' ? ' ege-ovrbox--diamond' : '');
+    var box = el('div', 'ege-ovrbox' + (modifier ? ' ' + modifier : '') + tierClass);
+    box.title = overall + ' overall' + (tier ? ' \u2014 ' + tier.name : '');
     box.appendChild(el('span', 'ege-ovrbox__label', 'OVR'));
     box.appendChild(el('span', 'ege-ovrbox__value', String(overall)));
     return box;
@@ -265,12 +282,12 @@
     renderStars(player);
     renderVitals(player);
     renderInjury(player, season);
-    renderOffers(player);
     renderTally(player, season);
 
     renderSchedule(player);
     renderGameLog(player);
     renderRatings(player);
+    renderTrophies(player);
 
     /* The cards this player has picked to show off -- not tied to a season. */
     EGE.showcase.render(player);
@@ -409,10 +426,10 @@
     }
   }
 
-  /* Whether the season on show is one of the recruiting years. The stars and
-     the offer stickers are what a high school player is -- once he has signed
-     somewhere they are history, so they stay on 2018 and 2019 and are not
-     carried into college. */
+  /* Whether the season on show is one of the recruiting years. The stars are
+     what a high school player is -- once he has signed somewhere they are
+     history, so they stay on 2018 and 2019 and are not carried into
+     college. */
   function recruitingSeason() {
     return EGE.tierFor(shownSeason()) === 'highSchool';
   }
@@ -692,262 +709,27 @@
     return sticker;
   }
 
-  /* --- college offers ------------------------------------------------------
-
-     One sticker per offer, stuck in the top corner of the header. They are
-     laid on a loose grid and then knocked off it -- position, tilt and all --
-     so a row of them reads as stickers somebody pressed on rather than as
-     icons in a line.
-
-     Every bit of that comes out of the same hash the boosters use, seeded on
-     the player and the school. So a sticker lands in the same place and at
-     the same angle on every draw, on every device, for good: it is a thing
-     stuck to the page, and a thing that moves when you reload is not stuck to
-     anything. */
-
-  var OFFER_SIZE = 92;      /* the die-cut, in pixels */
-
-  /* Two across up to four of them, three across beyond that. Three offers on
-     a three-wide grid is a row, and a row is the one thing a handful of
-     stickers never looks like. */
-  function offerCols(count) { return count > 4 ? 3 : 2; }
-
-  /* Where one sticker goes, and how far off square. The grid is tighter than
-     the sticker is wide, so they overlap the way a handful of stickers on a
-     folder do; the jitter is what stops the overlap looking like a pattern. */
-  function offerPlacing(seed, at, size, cols, stepX) {
-    var hash = 2166136261;
-    String(seed).split('').forEach(function (ch) {
-      hash ^= ch.charCodeAt(0);
-      hash = (hash * 16777619) >>> 0;
-    });
-
-    var stepY = size * 0.80;
-    var jitter = size * 0.22;
-
-    return {
-      x: (at % cols) * stepX + ((hash % 101) / 100 - 0.5) * 2 * jitter,
-      y: Math.floor(at / cols) * stepY +
-         (((hash >>> 9) % 101) / 100 - 0.5) * 2 * jitter,
-      tilt: ((hash >>> 17) % 33) - 16         /* -16deg .. +16deg */
-    };
-  }
-
-  /* How far along a row one sticker is from the next, when nothing asks for
-     more room than that. */
-  var OFFER_STEP = OFFER_SIZE * 0.82;
-
-  /* How wide the box is for a grid this many across. */
-  function offerSpan(cols, step) {
-    return (cols - 1) * step + OFFER_SIZE * 1.10;
-  }
-
-  /* The width the stickers can have in the corner: from the right edge they
-     hang over, back to the end of the longest line of words beside the
-     picture -- the name, nearly always, but the school and the facts are
-     counted too so a sticker never lands on a word. Measured with the box
-     out of the grid, so the words are where they sit with no stickers taking
-     room off them. The jitter comes off as well, since a sticker nudged left
-     can reach that far past the box. */
-  function offerRoom(box) {
-    var top = box.parentNode;
-    var reach = parseFloat(window.getComputedStyle(box).getPropertyValue('--offers-reach')) || 0;
-    var gap = parseFloat(window.getComputedStyle(top).columnGap) || 0;
-
-    /* The text itself, one run at a time: the blocks it sits in are the
-       full width of the column and would say the words run to the edge. */
-    var words = 0;
-    [document.getElementById('playerSchool'), document.getElementById('playerName'),
-     document.getElementById('playerStars'), top.querySelector('.ege-detail__list')].forEach(function (node) {
-      if (!node) { return; }
-      var walk = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
-      var range = document.createRange();
-      while (walk.nextNode()) {
-        if (!walk.currentNode.nodeValue.trim()) { continue; }
-        range.selectNodeContents(walk.currentNode);
-        words = Math.max(words, range.getBoundingClientRect().right);
-      }
-    });
-
-    return top.getBoundingClientRect().right + reach - words - gap - OFFER_SIZE * 0.22;
-  }
-
-  /* How many across, and how far apart. A handful keeps the grid above. A
-     pile that grid would stack more than two deep is let out sideways
-     instead, rather than running down past the facts: as many across as fit
-     between the name and the edge, so long as the last row is at least half
-     full -- a lone sticker trailing under a long row reads as one that fell
-     off. Then the row is spaced out to use the room it was given, never so
-     far apart that the stickers stop overlapping.
-
-     In the corner the room is what the words leave; where the offers are a
-     band of their own under the header, it is the band's whole width. */
-  function offerLayout(box, count) {
-    var plain = offerCols(count);
-    var layout = { cols: plain, step: OFFER_STEP };
-    if (Math.ceil(count / plain) <= 2) { return layout; }
-
-    /* Where the offers are a band of their own under the header, the band
-       is the panel's whole width, so a big pile spreads across it rather
-       than running down the page three at a time. */
-    var band = window.matchMedia('(max-width: 1000px)').matches;
-    var room = band ? box.parentNode.getBoundingClientRect().width : offerRoom(box);
-    function fits(cols) {
-      var last = count - (Math.ceil(count / cols) - 1) * cols;
-      return cols < count && last * 2 >= cols && offerSpan(cols, OFFER_STEP) <= room;
-    }
-    for (var cols = count - 1; cols > plain; cols -= 1) {
-      if (fits(cols)) { layout.cols = cols; break; }
-    }
-    if (layout.cols > plain) {
-      layout.step = Math.min(OFFER_SIZE * 0.88,
-        Math.max(OFFER_STEP, (room - OFFER_SIZE * 1.10) / (layout.cols - 1)));
-    }
-    return layout;
-  }
-
-  /* The school's mark, or its short name until the mark has been added. A
-     file that is not there yet is not an error: icon/offers/{logo}.png lands
-     whenever it lands and the sticker picks it up with no change here. */
-  function offerFace(college, sticker) {
-    var abbr = el('span', 'ege-sticker__abbr', college.short);
-
-    if (!college.logo) { return abbr; }
-
-    var logo = el('img', 'ege-sticker__logo');
-    logo.src = 'icon/offers/' + college.logo + '.png';
-    logo.alt = '';                   /* the sticker's own label says it */
-    logo.loading = 'lazy';
-    logo.addEventListener('error', function () {
-      if (logo.parentNode) { logo.parentNode.replaceChild(abbr, logo); }
-    });
-    return logo;
-  }
-
-  /* Where one sticker sits and how far off square. Set on a sticker that
-     already exists as readily as on a new one, which is what lets a re-fit
-     move the stickers rather than build them all again. */
-  function placeSticker(slot, player, entry, at, cols, step) {
-    var place = offerPlacing(player.slug + '-' + entry.key, at, OFFER_SIZE, cols, step);
-    slot.style.setProperty('--at-x', Math.round(place.x) + 'px');
-    slot.style.setProperty('--at-y', Math.round(place.y) + 'px');
-    slot.firstChild.style.setProperty('--tilt', place.tilt + 'deg');
-  }
-
-  function offerSticker(player, entry, at, cols, step) {
-    var college = entry.college;
-    var slot = el('div', 'ege-offers__sticker');
-
-    var sticker = el('span', 'ege-sticker ege-sticker--offer');
-    sticker.style.setProperty('--sticker-size', OFFER_SIZE + 'px');
-    sticker.style.setProperty('--team-ground', college.ground);
-    sticker.style.setProperty('--team-ink', college.ink);
-    sticker.title = college.name + ' have offered';
-
-    var face = el('span', 'ege-sticker__face');
-    sticker.appendChild(face);
-    sticker.appendChild(offerFace(college, sticker));
-
-    slot.appendChild(sticker);
-    placeSticker(slot, player, entry, at, cols, step);
-    return slot;
-  }
-
-  var offersPlayer = null;
-
-  /* High school seasons only, like the stars. A college season draws none,
-     and the corner is left empty. */
-  function renderOffers(player) {
-    var box = document.getElementById('playerOffers');
-    var offers = recruitingSeason() ? EGE.offersFor(player) : [];
-    offersPlayer = player;
-
-    /* The same stickers as are already up -- a re-fit, or the page redrawn
-       once the published weeks land -- are moved rather than made again.
-       Making them again swapped every logo for a fresh <img> that had to
-       decode before it showed, so the whole pile blinked; on a phone that
-       was every time the address bar slid in or out. */
-    var key = player.slug + ':' + offers.map(function (one) { return one.key; }).join(',');
-    var reuse = box.getAttribute('data-offers') === key &&
-                box.children.length === offers.length;
-    if (!reuse) {
-      box.innerHTML = '';
-      box.setAttribute('data-offers', key);
-    }
-
-    /* Out of the grid while the room is measured, then back in. */
-    box.hidden = true;
-    if (!offers.length) { return; }
-
-    var layout = offerLayout(box, offers.length);
-    var cols = layout.cols;
-    box.hidden = false;
-    offers.forEach(function (entry, at) {
-      if (reuse) {
-        placeSticker(box.children[at], player, entry, at, cols, layout.step);
-      } else {
-        box.appendChild(offerSticker(player, entry, at, cols, layout.step));
-      }
-    });
-
-    /* The box is only as big as the stickers in it, so a player with three
-       does not reserve room for five. The last row is as wide as it is.
-
-       It is deliberately a little narrower than the stickers can reach. The
-       box is what the grid reserves and what the page measures for a
-       scrollbar; the stickers inside it are out of the flow and are allowed
-       past its edge, which is how the outermost of them end up hanging over
-       the panel border without the page growing a sideways scroll. Room for
-       the jitter is on the height, where there is nothing to overflow. */
-    var rows = Math.ceil(offers.length / cols);
-    cols = Math.min(offers.length, cols);
-    box.style.setProperty('--offers-width', Math.round(offerSpan(cols, layout.step)) + 'px');
-    box.style.setProperty('--offers-height',
-      Math.round((rows - 1) * OFFER_SIZE * 0.80 + OFFER_SIZE * 1.34) + 'px');
-
-    box.setAttribute('aria-label', offers.length +
-      (offers.length === 1 ? ' college offer: ' : ' college offers: ') +
-      offers.map(function (one) { return one.college.name; }).join(', '));
-  }
-
-  /* Laid out again when the width changes, and when the webfont lands: both
-     move where the name ends, which is what the room is measured to. */
-  function refitOffers() {
-    var box = document.getElementById('playerOffers');
-    if (offersPlayer && box.offsetParent !== null) { renderOffers(offersPlayer); }
-  }
-
-  /* Only a change of width can move where the words end. A phone fires
-     `resize` every time its address bar slides in or out as you scroll,
-     which changes the height and nothing else -- re-fitting then was work
-     for nothing, done in the middle of a scroll. */
+  /* Width only. A phone fires `resize` every time its address bar slides in
+     or out as you scroll, which changes the height and nothing else --
+     re-fitting then was work for nothing, done in the middle of a scroll. */
   var windowWidth = window.innerWidth;
   window.addEventListener('resize', function () {
     if (window.innerWidth === windowWidth) { return; }
     windowWidth = window.innerWidth;
-    refitOffers();
     refitTally();
     drawBracketLines();
   });
 
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(refitOffers);
-    if (document.fonts.addEventListener) {
-      document.fonts.addEventListener('loadingdone', refitOffers);
-    }
-  }
-
   /* And whenever the header itself changes width without the window doing
      so -- a scrollbar arriving as the schedule fills the page under it is
-     the usual one. Width only: laying the stickers out changes the header's
-     height, and reacting to that would go round in a circle. */
+     the usual one. Width only: re-fitting can change the header's height,
+     and reacting to that would go round in a circle. */
   if (window.ResizeObserver) {
     var headerWidth = 0;
     new window.ResizeObserver(function (entries) {
       var width = Math.round(entries[0].contentRect.width);
       if (!width || width === headerWidth) { return; }
       headerWidth = width;
-      refitOffers();
       refitTally();
       drawBracketLines();
     }).observe(document.querySelector('.ege-detail'));
@@ -1208,13 +990,6 @@
     cell.appendChild(el('span', 'fb-name', name));
   }
 
-  /* What a postseason game is called -- SEC Championship, Rose Bowl, FCS
-     Quarterfinal -- on a line of its own under the opponent. A high school
-     playoff round has no name in the file and gets no line. */
-  function eventName(cell, game) {
-    if (game.name) { cell.appendChild(el('span', 'ege-schedule__event', game.name)); }
-  }
-
   /* A played game's score as the result pill -- W 38-9, L 21-24/OT -- or a
      dash for one still to be played. The same on a player's schedule, a
      team's and the game log. */
@@ -1267,7 +1042,6 @@
       opponent.appendChild(post);
     }
     if (showScouts && game.scouts) { opponent.appendChild(scoutMark()); }
-    eventName(opponent, game);
     row.appendChild(opponent);
 
     /* The defense across the way, graded for what this player does. */
@@ -2043,7 +1817,6 @@
         post.title = postseasonWord(game.season) + ' game';
         opponent.appendChild(post);
       }
-      eventName(opponent, game);
       row.appendChild(opponent);
 
       var result = el('td', 'num ege-schedule__result');
@@ -2702,7 +2475,6 @@
         mark.title = booster.name + ' was on this game';
         opponent.appendChild(mark);
       }
-      eventName(opponent, game);
       row.appendChild(opponent);
 
       var result = el('td', 'num');
@@ -2958,34 +2730,185 @@
     list.hidden = !list.children.length;
   }
 
+  /* The overall in the header, on the right of the name and the facts: the
+     tiered box the home page and the team rosters draw, made big, and joined
+     under it the way the height and weight hang off the picture, how far it
+     has climbed since the live season began. */
+  function renderOverall(ratings) {
+    var holder = document.getElementById('playerOverall');
+    holder.innerHTML = '';
+
+    var box = ratings && overallBox(ratings.overall, 'ege-ovrbox--hero');
+    holder.hidden = !box;
+    if (!box) { return; }
+    holder.appendChild(box);
+
+    if (typeof ratings.overallStart !== 'number') { return; }
+    var change = ratings.overall - ratings.overallStart;
+    var progress = el('div', 'ege-ovrprog');
+    progress.title = tickerTitle(change, ratings.overallStart, ratings.overall);
+    progress.appendChild(el('span', 'ege-ovrprog__label', 'This season'));
+    progress.appendChild(tickerEl(change, 'ege-ticker--lg'));
+    holder.appendChild(progress);
+  }
+
   function renderRatings(player) {
     var ratings = EGE.ratingsFor(player);
     var holder = document.getElementById('ratingsGroups');
     holder.innerHTML = '';
 
-    if (!ratings) { ratingsPanel.hidden = true; return; }
+    if (!ratings) { ratingsPanel.hidden = true; renderOverall(null); return; }
 
-    document.getElementById('ratingsOverall').textContent =
-      ratings.overall === null ? '\u2014' : ratings.overall;
-
+    renderOverall(ratings);
     renderPodium(ratings);
-
-    /* The ticker beside the overall: its climb over the live season. */
-    var slot = document.getElementById('ratingsTicker');
-    slot.innerHTML = '';
-    var canTick = typeof ratings.overall === 'number' && typeof ratings.overallStart === 'number';
-    slot.hidden = !canTick;
-    if (canTick) {
-      var change = ratings.overall - ratings.overallStart;
-      var ticker = tickerEl(change);
-      slot.className = ticker.className + ' ege-ticker--lg';
-      while (ticker.firstChild) { slot.appendChild(ticker.firstChild); }
-      slot.appendChild(el('span', 'ege-ticker__since', 'This season'));
-      slot.title = tickerTitle(change, ratings.overallStart, ratings.overall);
-    }
 
     ratings.groups.forEach(function (group) { holder.appendChild(buildGroup(group)); });
     ratingsPanel.hidden = false;
+  }
+
+  /* --- the trophy case ----------------------------------------------------
+
+     Under the ratings: a wooden cabinet holding every trophy he has won, from
+     the `trophies` list on his entry in data/players.js. A shelf holds as
+     many as fit across it -- eight or so on a computer, four on a phone --
+     and the next one goes on a new shelf under it, so the cabinet grows a
+     shelf at a time. With nothing won yet it is one bare shelf. The shelf
+     itself is drawn in site.css; this only decides what goes on which. */
+  var trophyPanel = document.getElementById('trophyPanel');
+  var trophyCase = document.getElementById('trophyCase');
+  var trophyShown = { items: [], perShelf: 0 };
+
+  /* A gold cup on a dark plinth. */
+  var CUP_SVG = '<svg viewBox="0 0 40 52" aria-hidden="true">' +
+    '<path d="M9 4h22v10c0 8-5 14-11 14S9 22 9 14z" fill="#f0b82a" stroke="#8a5a0b" stroke-width="1.2"/>' +
+    '<path d="M9 8H4c0 7 3 11 7 12M31 8h5c0 7-3 11-7 12" fill="none" stroke="#c98f12" stroke-width="2.4"/>' +
+    '<path d="M17 28h6v7h-6z" fill="#d9a21d"/>' +
+    '<path d="M12 35h16v4H12z" fill="#f0b82a" stroke="#8a5a0b" stroke-width="1"/>' +
+    '<path d="M9 39h22v9H9z" fill="#3a2414"/>' +
+    '<path d="M14 7h3v12c-2-1-3-4-3-7z" fill="#fff" opacity=".35"/>' +
+    '</svg>';
+
+  /* A trophy with a picture of its own (`image`, a path under
+     icon/trophies/) is shown as that picture; one without gets the gold cup
+     and his name for it on a brass plate under it, the season after it.
+     Either way, pointing at it lifts it and says what it is, from `about` if
+     the entry has one, and clicking it -- or tapping it on a phone -- opens
+     it up close in the same overlay a card does. */
+  function trophyAbout(trophy) {
+    return trophy.about || (trophy.name + (trophy.season ? ' \u00b7 ' + trophy.season : ''));
+  }
+
+  function trophyEl(trophy) {
+    var item = el('li', 'ege-trophy');
+    var about = trophyAbout(trophy);
+    EGE.cardsView.pressable(item, about, function () { zoomTrophy(trophy, art); });
+
+    var art = el('span', 'ege-trophy__art');
+    if (trophy.image) {
+      var img = el('img', 'ege-trophy__img');
+      img.src = trophy.image;
+      img.alt = '';                   /* the label on the item says it */
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      art.appendChild(img);
+      item.classList.add('ege-trophy--pictured');
+      /* A bigger honour stands taller than the rest; see `scale`. */
+      if (typeof trophy.scale === 'number') { item.style.setProperty('--trophy-scale', trophy.scale); }
+    } else {
+      var cup = el('span', 'ege-trophy__cup');
+      cup.innerHTML = CUP_SVG;
+      art.appendChild(cup);
+      var plate = el('span', 'ege-trophy__plate', trophy.name);
+      if (trophy.season) { plate.appendChild(el('span', 'ege-trophy__season', String(trophy.season))); }
+      art.appendChild(plate);
+    }
+    item.appendChild(art);
+
+    var tip = el('span', 'ege-trophy__tip', about);
+    tip.setAttribute('aria-hidden', 'true');
+    item.appendChild(tip);
+    return item;
+  }
+
+  /* A trophy up close: the card overlay -- the page blurred and dark behind
+     it, its name across the top and the close at the top right -- with the
+     trophy as big as the screen allows and what it is under it. */
+  function zoomTrophy(trophy, art) {
+    var stage = EGE.cardsView.openOverlay(
+      trophy.name + (trophy.season ? ' \u00b7 ' + trophy.season : ''), 'ege-rip__stage--trophy');
+
+    var holder = el('div', 'ege-trophyzoom');
+    holder.appendChild(art.cloneNode(true));
+    stage.appendChild(holder);
+    stage.appendChild(el('p', 'ege-trophyzoom__about', trophyAbout(trophy)));
+
+    var close = stage.querySelector('.ege-rip__close');
+    if (close) { close.focus({ preventScroll: true }); }
+  }
+
+  /* A click anywhere but on the trophy itself puts it away. The overlay is
+     the cards' too, so this only acts while a trophy is what is in it. */
+  document.getElementById('cardRip').addEventListener('click', function (e) {
+    if (!this.querySelector('.ege-rip__stage--trophy')) { return; }
+    if (e.target.closest('.ege-trophyzoom .ege-trophy__art')) { return; }
+    EGE.cardsView.closeOverlay();
+  });
+
+  function shelfEl() {
+    var shelf = el('div', 'ege-shelf');
+    shelf.appendChild(el('ul', 'ege-shelf__items'));
+    return shelf;
+  }
+
+  /* How many trophies fit across one shelf at the width it is drawn at:
+     the slot and the gap between slots are set in site.css. */
+  function trophiesPerShelf() {
+    var list = trophyCase.querySelector('.ege-shelf__items');
+    if (!list || !list.clientWidth) { return 0; }
+    var style = window.getComputedStyle(list);
+    var room = list.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    var slot = parseFloat(style.getPropertyValue('--trophy-slot')) || 96;
+    var gap = parseFloat(style.columnGap) || 0;
+    return Math.max(1, Math.floor((room + gap) / (slot + gap)));
+  }
+
+  function drawTrophyShelves(force) {
+    if (!trophyCase.firstChild) { trophyCase.appendChild(shelfEl()); }
+    var perShelf = trophiesPerShelf();
+    /* Folded away or not on screen: nothing to measure, so leave it be. */
+    if (!perShelf) { return; }
+    if (!force && perShelf === trophyShown.perShelf) { return; }
+    trophyShown.perShelf = perShelf;
+
+    var items = trophyShown.items;
+    var shelves = Math.max(1, Math.ceil(items.length / perShelf));
+    trophyCase.innerHTML = '';
+    for (var i = 0; i < shelves; i += 1) {
+      var shelf = shelfEl();
+      var list = shelf.firstChild;
+      items.slice(i * perShelf, (i + 1) * perShelf).forEach(function (trophy) {
+        list.appendChild(trophyEl(trophy));
+      });
+      trophyCase.appendChild(shelf);
+    }
+  }
+
+  function renderTrophies(player) {
+    trophyShown.items = (player.trophies || []).slice();
+    /* Forget the last player's shelves, so if this page is not on screen
+       yet the first measure once it is deals his out. */
+    trophyShown.perShelf = 0;
+    trophyCase.innerHTML = '';
+    trophyPanel.hidden = false;
+    drawTrophyShelves(true);
+  }
+
+  /* A shelf that was full at one width may not be at another, so the shelves
+     are dealt out again whenever the cabinet changes width. */
+  if (window.ResizeObserver) {
+    new window.ResizeObserver(function () { drawTrophyShelves(false); }).observe(trophyCase);
+  } else {
+    window.addEventListener('resize', function () { drawTrophyShelves(false); });
   }
 
   /* --- shop ------------------------------------------------------------- */
@@ -4920,11 +4843,10 @@
       setNav('admin');
       document.title = 'Admin \u2014 EGE Football';
     } else if (player) {
-      /* Shown first, then drawn. The stickers and the season totals are
-         laid out by measuring the page, and a hidden page measures as
-         nothing -- drawn the other way round, the offers all piled up in
-         the corner and a long number spilled out of its cell until a
-         refresh redrew them. */
+      /* Shown first, then drawn. The season totals and the trophy shelves
+         are laid out by measuring the page, and a hidden page measures as
+         nothing -- drawn the other way round, a long number spilled out of
+         its cell until a refresh redrew it. */
       show(viewPlayer);
       renderPlayer(player);
       setNav('players');
@@ -5205,6 +5127,7 @@
     if (!booted) { booted = true; loaded(); }
     roster.classList.remove('is-waiting');
     document.getElementById('ratingsTop').classList.remove('is-waiting');
+    document.getElementById('playerOverall').classList.remove('is-waiting');
   }
 
   /* A slow network should not mean a blank page for ever, whatever happens
@@ -5377,6 +5300,7 @@
 
   roster.classList.add('is-waiting');
   document.getElementById('ratingsTop').classList.add('is-waiting');
+  document.getElementById('playerOverall').classList.add('is-waiting');
 
   renderRoster();
   renderInstallGuide();
