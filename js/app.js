@@ -2983,7 +2983,7 @@
 
      Under the ratings: a wooden cabinet holding every trophy he has won, from
      the `trophies` list on his entry in data/players.js. A shelf holds as
-     many as fit across it -- six or so on a computer, three on a phone --
+     many as fit across it -- six or so on a computer, four on a phone --
      and the next one goes on a new shelf under it, so the cabinet grows a
      shelf at a time. With nothing won yet it is one bare shelf. The shelf
      itself is drawn in site.css; this only decides what goes on which. */

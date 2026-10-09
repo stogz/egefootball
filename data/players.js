@@ -178,6 +178,9 @@ EGE.players = [
       { name: 'Regional Champion', season: 2019,
         image: 'icon/trophies/parr-2019-regional.webp',
         about: '2019 North Carolina Class 4A Regional Champion\nWake Forest High School' },
+      { name: 'Regional Tournament MVP', season: 2019,
+        image: 'icon/trophies/parr-2019-regional-mvp.webp',
+        about: '2019 North Carolina Class 4A Regional Tournament MVP\nWake Forest High School' },
       { name: 'CFB National Championship', season: 2020, scale: 1.35,
         image: 'icon/trophies/parr-2020-cfp-national-championship.webp',
         about: '2020 College Football National Champion\nAlabama' }

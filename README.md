@@ -246,11 +246,12 @@ holds:
   blurred and darkened behind it, its name and season across the top, the
   × at the top right and the `about` line under it. A click or tap anywhere
   but the trophy itself, the × or Escape puts it away. A shelf
-  holds as many as fit across it (six on a computer, three on a phone) and
+  holds as many as fit across it (six on a computer, four on a phone) and
   a full shelf gets a new one under it; the shelves
   are dealt out again when the width changes. Andrew Parr has his 2018 and
   2019 North Carolina Class 4A Regional Champion plaques (Wake Forest High
-  School) and, a third again as tall, the 2020 College Football National
+  School), his 2019 Class 4A Regional Tournament MVP plaque and, a third
+  again as tall, the 2020 College Football National
   Championship trophy (Alabama); everyone else's case is one bare shelf.
 
 The schedule, the game log, the ratings and the trophy case each fold away
