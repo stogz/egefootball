@@ -227,8 +227,18 @@ holds:
     attribute that moved carries a smaller ticker, and the season's gain is
     drawn in orange on the end of each bar.
 
-The schedule, the game log and the ratings each fold away behind an arrow in
-their heading.
+- **Trophy case** — under the ratings, on every player page: a wooden
+  cabinet (orange-brown frame, dark back, a lighter shelf floor in
+  perspective) drawn entirely in `site.css`, no image. It holds the
+  trophies in the optional `trophies` list on the player's entry in
+  `data/players.js`, each `{ name, season }`, shown as a gold cup over a
+  brass plate. A shelf holds as many as fit across it (five on a computer,
+  three on a phone) and a full shelf gets a new one under it; the shelves
+  are dealt out again when the width changes. Nobody has won one yet, so
+  every case is one empty shelf reading *No trophies yet*.
+
+The schedule, the game log, the ratings and the trophy case each fold away
+behind an arrow in their heading.
 
 The season shown is the live one. There is one season on the ladder so far, so
 there is nothing to switch between; `shownSeason()` in `js/app.js` is the one

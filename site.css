@@ -4997,3 +4997,135 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-rip__pack.is-torn .ege-pack__top,
   .ege-rip__pack.is-torn .ege-pack__body { animation: none; opacity: 0; }
 }
+
+/* --- the trophy case --------------------------------------------------------
+
+   A wooden cabinet under the ratings, drawn without a picture: an orange-brown
+   frame, a dark back, and on each shelf a lighter floor seen in perspective,
+   the side walls running down into its back corners and a seam angling out
+   to the front ones. Every shelf is one element and all of that is its
+   backgrounds, so app.js only has to add another one when a shelf fills.
+
+   --trophy-slot and the gap between slots are what app.js measures to decide
+   how many trophies a shelf holds. */
+.ege-trophies {
+  --case-frame: #a9572c;
+  --case-edge: #7a2e14;
+  --case-back: #6b3510;
+  --case-wood: #d47c45;
+  --case-seam: #8a3a18;
+  --case-wall: 22px;
+  --case-floor: 28px;
+
+  display: grid;
+  gap: 16px;                               /* the rail between shelves */
+  padding: 16px 16px 20px;
+  background: var(--case-frame);
+  border: 2px solid var(--case-edge);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, .12), 0 2px 0 rgba(0, 0, 0, .12);
+}
+
+.ege-shelf {
+  position: relative;
+  min-height: 156px;
+  box-shadow: 0 0 0 1.5px var(--case-edge);
+  background:
+    /* where the left wall meets the floor */
+    linear-gradient(to bottom right,
+      var(--case-wood) calc(50% - .75px), var(--case-seam) calc(50% - .75px),
+      var(--case-seam) calc(50% + .75px), var(--case-wood) calc(50% + .75px))
+      left bottom / var(--case-wall) var(--case-floor) no-repeat,
+    /* and the right */
+    linear-gradient(to bottom left,
+      var(--case-wood) calc(50% - .75px), var(--case-seam) calc(50% - .75px),
+      var(--case-seam) calc(50% + .75px), var(--case-wood) calc(50% + .75px))
+      right bottom / var(--case-wall) var(--case-floor) no-repeat,
+    /* the back edge of the floor */
+    linear-gradient(var(--case-seam), var(--case-seam))
+      left var(--case-wall) bottom var(--case-floor) / calc(100% - 2 * var(--case-wall)) 1.5px no-repeat,
+    /* the floor */
+    linear-gradient(var(--case-wood), var(--case-wood))
+      left bottom / 100% var(--case-floor) no-repeat,
+    /* the two side walls, each with a seam where it meets the back */
+    linear-gradient(to right,
+      var(--case-wood) var(--case-wall), var(--case-seam) var(--case-wall),
+      var(--case-seam) calc(var(--case-wall) + 1.5px), transparent calc(var(--case-wall) + 1.5px),
+      transparent calc(100% - var(--case-wall) - 1.5px), var(--case-seam) calc(100% - var(--case-wall) - 1.5px),
+      var(--case-seam) calc(100% - var(--case-wall)), var(--case-wood) calc(100% - var(--case-wall))),
+    /* the shadow the rail above throws on the back */
+    linear-gradient(rgba(0, 0, 0, .28), transparent 18px),
+    var(--case-back);
+}
+
+.ege-shelf__items {
+  --trophy-slot: 170px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 24px;
+  min-height: inherit;
+  margin: 0;
+  padding: 18px calc(var(--case-wall) + 10px) calc(var(--case-floor) * .45);
+  list-style: none;
+}
+
+.ege-trophy {
+  display: flex;
+  flex: 0 0 var(--trophy-slot);
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.ege-trophy__cup { display: block; width: 72px; filter: drop-shadow(0 3px 2px rgba(0, 0, 0, .35)); }
+.ege-trophy__cup svg { display: block; width: 100%; height: auto; }
+
+/* Brass, with his name for it engraved and the season under it. */
+.ege-trophy__plate {
+  display: block;
+  max-width: min(100%, 140px);
+  padding: 3px 6px;
+  border-radius: 2px;
+  background: linear-gradient(#f3cf6d, #c9932a);
+  box-shadow: 0 0 0 1px #7a5410;
+  color: #3a2414;
+  font-size: var(--fb-label);
+  font-weight: 800;
+  line-height: 1.15;
+  text-align: center;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+.ege-trophy__season { display: block; font-weight: 600; }
+
+/* An empty case says so, faintly, on the back of its one shelf. */
+.ege-trophies__empty {
+  position: absolute;
+  inset: 0 var(--case-wall) var(--case-floor);
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: rgba(251, 244, 230, .55);
+  font-size: var(--fb-small);
+  font-weight: 800;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 620px) {
+  .ege-trophies {
+    --case-wall: 14px;
+    --case-floor: 20px;
+    gap: 12px;
+    padding: 12px 12px 16px;
+  }
+  .ege-shelf { min-height: 128px; }
+  .ege-shelf__items {
+    --trophy-slot: 68px;
+    gap: 6px;
+    padding: 12px calc(var(--case-wall) + 6px) calc(var(--case-floor) * .45);
+  }
+  .ege-trophy__cup { width: 42px; }
+  .ege-trophy__plate { padding: 3px 3px; letter-spacing: -.01em; }
+}

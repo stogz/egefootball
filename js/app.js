@@ -271,6 +271,7 @@
     renderSchedule(player);
     renderGameLog(player);
     renderRatings(player);
+    renderTrophies(player);
 
     /* The cards this player has picked to show off -- not tied to a season. */
     EGE.showcase.render(player);
@@ -2986,6 +2987,101 @@
 
     ratings.groups.forEach(function (group) { holder.appendChild(buildGroup(group)); });
     ratingsPanel.hidden = false;
+  }
+
+  /* --- the trophy case ----------------------------------------------------
+
+     Under the ratings: a wooden cabinet holding every trophy he has won, from
+     the `trophies` list on his entry in data/players.js. A shelf holds as
+     many as fit across it -- five or so on a computer, fewer on a phone --
+     and the next one goes on a new shelf under it, so the cabinet grows a
+     shelf at a time. With nothing won yet it is one empty shelf. The shelf
+     itself is drawn in site.css; this only decides what goes on which. */
+  var trophyPanel = document.getElementById('trophyPanel');
+  var trophyCase = document.getElementById('trophyCase');
+  var trophyShown = { items: [], perShelf: 0 };
+
+  /* A gold cup on a dark plinth. */
+  var CUP_SVG = '<svg viewBox="0 0 40 52" aria-hidden="true">' +
+    '<path d="M9 4h22v10c0 8-5 14-11 14S9 22 9 14z" fill="#f0b82a" stroke="#8a5a0b" stroke-width="1.2"/>' +
+    '<path d="M9 8H4c0 7 3 11 7 12M31 8h5c0 7-3 11-7 12" fill="none" stroke="#c98f12" stroke-width="2.4"/>' +
+    '<path d="M17 28h6v7h-6z" fill="#d9a21d"/>' +
+    '<path d="M12 35h16v4H12z" fill="#f0b82a" stroke="#8a5a0b" stroke-width="1"/>' +
+    '<path d="M9 39h22v9H9z" fill="#3a2414"/>' +
+    '<path d="M14 7h3v12c-2-1-3-4-3-7z" fill="#fff" opacity=".35"/>' +
+    '</svg>';
+
+  function trophyEl(trophy) {
+    var item = el('li', 'ege-trophy');
+    item.title = trophy.name + (trophy.season ? ' · ' + trophy.season : '');
+    var cup = el('span', 'ege-trophy__cup');
+    cup.innerHTML = CUP_SVG;
+    item.appendChild(cup);
+    /* His name for it on a brass plate under the cup, the season after it. */
+    var plate = el('span', 'ege-trophy__plate', trophy.name);
+    if (trophy.season) { plate.appendChild(el('span', 'ege-trophy__season', String(trophy.season))); }
+    item.appendChild(plate);
+    return item;
+  }
+
+  function shelfEl() {
+    var shelf = el('div', 'ege-shelf');
+    shelf.appendChild(el('ul', 'ege-shelf__items'));
+    return shelf;
+  }
+
+  /* How many trophies fit across one shelf at the width it is drawn at:
+     the slot and the gap between slots are set in site.css. */
+  function trophiesPerShelf() {
+    var list = trophyCase.querySelector('.ege-shelf__items');
+    if (!list || !list.clientWidth) { return 0; }
+    var style = window.getComputedStyle(list);
+    var room = list.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    var slot = parseFloat(style.getPropertyValue('--trophy-slot')) || 96;
+    var gap = parseFloat(style.columnGap) || 0;
+    return Math.max(1, Math.floor((room + gap) / (slot + gap)));
+  }
+
+  function drawTrophyShelves(force) {
+    if (!trophyCase.firstChild) { trophyCase.appendChild(shelfEl()); }
+    var perShelf = trophiesPerShelf();
+    /* Folded away or not on screen: nothing to measure, so leave it be. */
+    if (!perShelf) { return; }
+    if (!force && perShelf === trophyShown.perShelf) { return; }
+    trophyShown.perShelf = perShelf;
+
+    var items = trophyShown.items;
+    var shelves = Math.max(1, Math.ceil(items.length / perShelf));
+    trophyCase.innerHTML = '';
+    for (var i = 0; i < shelves; i += 1) {
+      var shelf = shelfEl();
+      var list = shelf.firstChild;
+      items.slice(i * perShelf, (i + 1) * perShelf).forEach(function (trophy) {
+        list.appendChild(trophyEl(trophy));
+      });
+      trophyCase.appendChild(shelf);
+    }
+    if (!items.length) {
+      trophyCase.firstChild.appendChild(el('p', 'ege-trophies__empty', 'No trophies yet'));
+    }
+  }
+
+  function renderTrophies(player) {
+    trophyShown.items = (player.trophies || []).slice();
+    /* Forget the last player's shelves, so if this page is not on screen
+       yet the first measure once it is deals his out. */
+    trophyShown.perShelf = 0;
+    trophyCase.innerHTML = '';
+    trophyPanel.hidden = false;
+    drawTrophyShelves(true);
+  }
+
+  /* A shelf that was full at one width may not be at another, so the shelves
+     are dealt out again whenever the cabinet changes width. */
+  if (window.ResizeObserver) {
+    new window.ResizeObserver(function () { drawTrophyShelves(false); }).observe(trophyCase);
+  } else {
+    window.addEventListener('resize', function () { drawTrophyShelves(false); });
   }
 
   /* --- shop ------------------------------------------------------------- */
