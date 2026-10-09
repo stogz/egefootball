@@ -378,20 +378,31 @@ body::before {
 
 .ege-detail__top {
   display: grid;
-  grid-template-columns: 210px minmax(0, 1fr) auto;
+  grid-template-columns: 210px minmax(0, 1fr) auto auto;
   grid-template-areas:
-    "figure school offers"
-    "figure name   offers"
-    "figure stars  offers"
-    "figure list   offers";
+    "figure school ovr offers"
+    "figure name   ovr offers"
+    "figure stars  ovr offers"
+    "figure list   ovr offers";
   align-content: start;
   gap: 0 22px;
+}
+/* No offers, no corner: the overall is the last column, so it does not sit
+   a gap's width in from the edge for a column with nothing in it. */
+.ege-detail__top:has(> .ege-offers[hidden]) {
+  grid-template-columns: 210px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "figure school ovr"
+    "figure name   ovr"
+    "figure stars  ovr"
+    "figure list   ovr";
 }
 .ege-detail__figure { grid-area: figure; }
 .ege-detail__school { grid-area: school; min-width: 0; }
 .ege-detail__name { grid-area: name; }
 .ege-detail__stars { grid-area: stars; }
 .ege-detail__list { grid-area: list; }
+.ege-detail__ovr { grid-area: ovr; }
 
 .ege-detail__photo {
   /* The figure's full width, whatever the grid gave it. */
@@ -506,6 +517,64 @@ body::before {
   line-height: 1;
   white-space: nowrap;
 }
+/* --- the overall, in the header ------------------------------------------
+
+   On the right of the name and the facts: the overall in its tier's box,
+   drawn big, and joined to the foot of it the way the height and weight
+   hang off the picture -- same width, one shared edge, the same ink and
+   orange -- how far it has climbed since the live season began.
+
+   Both wait for the shop's boosts to land, like the ratings they come from,
+   and keep their space while they do, so nothing beside them moves. */
+.ege-detail__ovr {
+  display: flex;
+  flex-direction: column;
+  width: 158px;
+  transition: opacity .2s ease;
+}
+.ege-detail__ovr.is-waiting { opacity: 0; }
+
+.ege-ovrbox--hero {
+  width: 100%;
+  gap: 4px;
+  padding: 16px 10px 18px;
+}
+.ege-ovrbox--hero .ege-ovrbox__label { font-size: .875rem; letter-spacing: .22em; }
+.ege-ovrbox--hero .ege-ovrbox__value { font-size: 4.5rem; line-height: .9; }
+.ege-ovrbox--hero.ege-ovrbox--tier::after { top: 5px; right: 7px; font-size: 1.125rem; }
+
+.ege-ovrprog {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 6px 11px;
+  background: var(--fb-ink);
+  border: var(--fb-border) solid var(--fb-ink);
+  border-top: 0;
+  color: var(--fb-cream);
+  text-align: center;
+}
+/* Under the plain ink chip the two would run together, so a hairline in the
+   cream marks where one ends, the way it splits the height and weight. A
+   tier's own rim already does that. */
+.ege-ovrbox:not(.ege-ovrbox--tier) + .ege-ovrprog {
+  border-top: var(--fb-border-thin) solid rgba(251, 244, 230, .22);
+}
+.ege-ovrprog__label {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--fb-accent);
+}
+/* The ticker's own green and deep orange are picked for cream and all but
+   vanish on the ink, so here it takes the light end of each. All three
+   clear 7:1. */
+.ege-ovrprog .ege-ticker--up   { --ticker-ink: #8fd694; }
+.ege-ovrprog .ege-ticker--down { --ticker-ink: var(--fb-accent-hover); }
+.ege-ovrprog .ege-ticker--flat { --ticker-ink: #c9c1b1; }
+
 .ege-detail__list {
   margin: 0;
   display: grid;
@@ -1254,15 +1323,18 @@ body::before {
    viewport, so a wider window asks for more room at the same time as it
    offers it. */
 @media (max-width: 1000px) {
-  .ege-detail__top {
-    grid-template-columns: 210px minmax(0, 1fr);
+  .ege-detail__top,
+  .ege-detail__top:has(> .ege-offers[hidden]) {
+    grid-template-columns: 210px minmax(0, 1fr) auto;
     grid-template-areas:
-      "figure school"
-      "figure name"
-      "figure stars"
-      "figure list"
-      "offers offers";
+      "figure school ovr"
+      "figure name   ovr"
+      "figure stars  ovr"
+      "figure list   ovr"
+      "offers offers offers";
   }
+  .ege-detail__ovr { width: 140px; }
+  .ege-ovrbox--hero .ege-ovrbox__value { font-size: 3.75rem; }
   /* A band has nothing above it to ride up onto and no corner to hang off. */
   .ege-offers {
     justify-self: center;
@@ -1629,49 +1701,13 @@ body::before {
 .ege-ovr--head { margin-top: 0; padding: 6px 12px; }
 .ege-ovr--head .ege-ovr__value { font-size: 1.5rem; }
 
-/* --- the top of the ratings: the overall, and the best three ---------------
+/* --- the top of the ratings: the best three --------------------------------
 
    Drawn once from the base ratings and again once everything bought has
-   landed, which can change the overall and reorder the best three -- so the
-   first draw is invisible and the second is what anybody sees. The band
-   itself stays dark the whole time; only what is written on it waits, so
-   the panel does not flash cream and then turn dark. */
-.ege-ovrband > *,
+   landed, which can reorder the best three -- so the first draw is invisible
+   and the second is what anybody sees. */
 .ege-podium { transition: opacity .2s ease; }
-.ege-ratings__top.is-waiting .ege-ovrband > *,
 .ege-ratings__top.is-waiting .ege-podium { opacity: 0; }
-
-/* The overall on a band of its own, the width of the panel: the word in the
-   accent orange, the number in white, the season's ticker after them. */
-.ege-ovrband {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  padding: 14px 18px;
-  background: var(--fb-ink);
-  color: #fff;
-}
-.ege-ovrband__label {
-  font-size: .8125rem;
-  font-weight: 800;
-  letter-spacing: .18em;
-  text-transform: uppercase;
-  color: var(--fb-accent);                /* 5.0:1 on the ink */
-}
-.ege-ovrband__value {
-  font-family: var(--fb-font-display);
-  font-size: 2.5rem;
-  line-height: 1;
-}
-
-/* The ticker's own green and deep orange are picked for cream and all but
-   vanish on the ink, so on the band it takes the light end of each. All
-   three clear 7:1. */
-.ege-ovrband .ege-ticker--up   { --ticker-ink: #8fd694; }
-.ege-ovrband .ege-ticker--down { --ticker-ink: var(--fb-accent-hover); }
-.ege-ovrband .ege-ticker--flat { --ticker-ink: #c9c1b1; }
 
 /* His three best attributes, stood the way a podium stands them -- second,
    first, third -- without drawing the podium. The size says the place: the
@@ -2971,16 +3007,19 @@ body {
        it without being cut, which is what sets the floor. */
     --figure: clamp(124px, 34vw, 168px);
   }
-  .ege-detail__top {
+  .ege-detail__top,
+  .ege-detail__top:has(> .ege-offers[hidden]) {
     grid-template-columns: var(--figure) minmax(0, 1fr);
-    /* The name and the stars sit in the middle of the picture's height: the
-       empty rows either side of them take whatever the picture has over. */
-    grid-template-rows: auto 1fr auto auto 1fr auto auto;
+    /* The name, the stars and the overall sit in the middle of the picture's
+       height: the empty rows either side of them take whatever the picture
+       has over. */
+    grid-template-rows: auto 1fr auto auto auto 1fr auto auto;
     grid-template-areas:
       "school school"
       "figure ."
       "figure name"
       "figure stars"
+      "figure ovr"
       "figure ."
       "list   list"
       "offers offers";
@@ -3014,6 +3053,17 @@ body {
 
   .ege-detail__name { margin: 0; }
   .ege-stars { margin: 6px 0 0; }
+
+  /* Under the name rather than out on the right, where a phone has no room
+     beside the facts: a smaller box, the same two parts. */
+  .ege-detail__ovr { width: 104px; margin-top: 10px; }
+  .ege-ovrbox--hero { padding: 8px 6px 10px; gap: 2px; }
+  .ege-ovrbox--hero .ege-ovrbox__label { font-size: var(--fb-label); letter-spacing: .16em; }
+  .ege-ovrbox--hero .ege-ovrbox__value { font-size: 2.625rem; }
+  .ege-ovrbox--hero.ege-ovrbox--tier::after { top: 3px; right: 4px; font-size: .75rem; }
+  .ege-ovrprog { padding: 6px 3px 7px; gap: 2px; }
+  .ege-ovrprog__label { letter-spacing: .06em; }
+  .ege-ovrprog .ege-ticker--lg .ege-ticker__num { font-size: 1.125rem; }
   .ege-stars__row { font-size: 1.0625rem; }
   .ege-stars__rank { letter-spacing: .06em; }
 
@@ -3915,15 +3965,73 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-hurtrow__what { flex: 1 1 200px; }
 .ege-hurtrow > .ege-statfield:last-child { flex: 0 0 110px; }
 
-/* --- the diamond overall -------------------------------------------------------
+/* --- the overall tiers ----------------------------------------------------
 
-   80 and up: the overall box cut as a princess-cut blue diamond -- a
-   steel-blue frame, a band of triangular facets running in from the
-   corners, and a pale square table in the middle with its own four-way
-   cut, drawn as an SVG stretched to the box. The number sits on the table
-   in deep navy. A band of light sweeps across it every few seconds and a
-   sparkle twinkles in the corner; both stay still for anybody who has
-   asked for less motion. */
+   Under 75 the overall box is the plain ink chip. From there it is cut from
+   something better, a tier at a time, and it is the same on the home page,
+   the team rosters and a player's own header, so a colour means the same
+   number everywhere:
+
+     75-79 bronze   80-84 silver   85-89 gold   90-94 diamond
+     95-98 pink diamond            99 galaxy
+
+   Every tier gets a band of light sweeping across it every few seconds; the
+   diamonds and the galaxy sparkle in the corner as well. Both stay still for
+   anybody who has asked for less motion. */
+.ege-ovrbox--tier {
+  position: relative;
+  overflow: hidden;
+}
+.ege-ovrbox--tier .ege-ovrbox__label,
+.ege-ovrbox--tier .ege-ovrbox__value {
+  position: relative;
+  z-index: 1;
+}
+.ege-ovrbox--tier::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -120%;
+  width: 45%;
+  height: 200%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .6), transparent);
+  transform: rotate(20deg);
+  animation: ege-diamond-shine 3.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Metal: a brushed gradient, light catching the top left, a darker rim of
+   the same metal, and the number stamped in its darkest shade. */
+.ege-ovrbox--bronze {
+  border-color: #5a2f10;
+  background: linear-gradient(150deg, #f3c89a 0%, #c98a4f 28%, #8f5124 55%, #c07a3f 78%, #e9b27a 100%);
+  color: #2e1606;
+}
+.ege-ovrbox--silver {
+  border-color: #5c636b;
+  background: linear-gradient(150deg, #ffffff 0%, #d5dae0 25%, #9aa2ab 52%, #c9cfd6 76%, #f2f4f6 100%);
+  color: #1c2228;
+}
+.ege-ovrbox--gold {
+  border-color: #7a5300;
+  background: linear-gradient(150deg, #fff4b8 0%, #f5cf45 26%, #c18f0b 54%, #e8b723 78%, #fff0a0 100%);
+  color: #3a2600;
+  box-shadow: 0 0 8px rgba(242, 190, 40, .5);
+}
+.ege-ovrbox--bronze .ege-ovrbox__label,
+.ege-ovrbox--silver .ege-ovrbox__label,
+.ege-ovrbox--gold .ege-ovrbox__label { color: inherit; }
+.ege-ovrbox--bronze .ege-ovrbox__value,
+.ege-ovrbox--bronze .ege-ovrbox__label { text-shadow: 0 1px 0 rgba(255, 226, 190, .55); }
+.ege-ovrbox--silver .ege-ovrbox__value,
+.ege-ovrbox--silver .ege-ovrbox__label { text-shadow: 0 1px 0 rgba(255, 255, 255, .8); }
+.ege-ovrbox--gold .ege-ovrbox__value,
+.ege-ovrbox--gold .ege-ovrbox__label { text-shadow: 0 1px 0 rgba(255, 248, 210, .8); }
+
+/* The diamond: a princess-cut blue diamond -- a steel-blue frame, a band of
+   triangular facets running in from the corners, and a pale square table in
+   the middle with its own four-way cut, drawn as an SVG stretched to the
+   box. The number sits on the table in deep navy. */
 .ege-ovrbox--diamond {
   position: relative;
   overflow: hidden;
@@ -3977,9 +4085,62 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
   0%, 100% { opacity: .35; transform: scale(.8); }
   50%      { opacity: 1;   transform: scale(1.15); }
 }
+
+/* The pink diamond: the same stone, turned pink -- the facets, the frame,
+   the glow and the navy number all move round the colour wheel together. */
+.ege-ovrbox--pink { filter: hue-rotate(125deg) saturate(1.2); }
+
+/* The galaxy: deep space, a pink and a blue nebula, a scatter of stars, and
+   the number in white with the nebulae glowing round it. */
+.ege-ovrbox--galaxy {
+  border-color: #3b1a6e;
+  color: #fff;
+  background:
+    radial-gradient(circle at 14% 22%, #fff 0 1px, transparent 1.6px),
+    radial-gradient(circle at 82% 16%, #fff 0 1px, transparent 1.6px),
+    radial-gradient(circle at 70% 64%, #fff 0 .8px, transparent 1.4px),
+    radial-gradient(circle at 26% 78%, #fff 0 1.2px, transparent 1.8px),
+    radial-gradient(circle at 48% 40%, #ffe6ff 0 .7px, transparent 1.3px),
+    radial-gradient(circle at 90% 86%, #d9e8ff 0 .9px, transparent 1.5px),
+    radial-gradient(circle at 8% 60%, #fff 0 .7px, transparent 1.3px),
+    radial-gradient(ellipse 70% 55% at 28% 30%, rgba(255, 84, 196, .6), transparent 70%),
+    radial-gradient(ellipse 70% 60% at 76% 74%, rgba(74, 132, 255, .65), transparent 70%),
+    radial-gradient(ellipse 50% 40% at 62% 26%, rgba(160, 96, 255, .5), transparent 70%),
+    linear-gradient(140deg, #0a0420, #1d0a45 45%, #071338);
+  box-shadow: 0 0 12px rgba(170, 100, 255, .75), 0 0 4px rgba(255, 110, 210, .6);
+  animation: ege-galaxy-glow 4s ease-in-out infinite;
+}
+.ege-ovrbox--galaxy .ege-ovrbox__label {
+  color: #ffc4ef;
+  text-shadow: 0 0 6px rgba(255, 90, 200, .9);
+}
+.ege-ovrbox--galaxy .ege-ovrbox__value {
+  color: #fff;
+  text-shadow: 0 0 6px rgba(190, 140, 255, .95), 0 0 14px rgba(90, 150, 255, .8);
+}
+.ege-ovrbox--galaxy::after {
+  content: '\2726';
+  position: absolute;
+  top: 1px;
+  right: 3px;
+  z-index: 1;
+  font-size: .625rem;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 0 4px #ff9be6, 0 0 8px #9fc0ff;
+  animation: ege-diamond-twinkle 1.6s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes ege-galaxy-glow {
+  0%, 100% { box-shadow: 0 0 10px rgba(170, 100, 255, .65), 0 0 4px rgba(255, 110, 210, .5); }
+  50%      { box-shadow: 0 0 16px rgba(110, 150, 255, .8), 0 0 6px rgba(255, 110, 210, .7); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .ege-ovrbox--diamond::before { animation: none; left: 30%; opacity: .5; }
-  .ege-ovrbox--diamond::after { animation: none; opacity: .9; }
+  .ege-ovrbox--tier::before { animation: none; left: 30%; opacity: .5; }
+  .ege-ovrbox--diamond::after,
+  .ege-ovrbox--galaxy::after { animation: none; opacity: .9; }
+  .ege-ovrbox--galaxy { animation: none; }
 }
 
 /* ==========================================================================

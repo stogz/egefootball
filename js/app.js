@@ -103,17 +103,34 @@
   /* --- the overall box ---------------------------------------------------- */
 
   /* One element for every place an overall is shown, so the number reads the
-     same on a card as it does on a page. The site's own dark chip: the word
-     in the accent orange, the number under it in cream. */
-  var DIAMOND = 80;
+     same on a card as it does on a page. Under 75 it is the site's own dark
+     chip: the word in the accent orange, the number under it in cream. From
+     75 up the box is cut from something better, a tier at a time. */
+  var OVERALL_TIERS = [
+    { from: 99, key: 'galaxy',  name: 'galaxy' },
+    { from: 95, key: 'pink',    name: 'pink diamond' },
+    { from: 90, key: 'diamond', name: 'diamond' },
+    { from: 85, key: 'gold',    name: 'gold' },
+    { from: 80, key: 'silver',  name: 'silver' },
+    { from: 75, key: 'bronze',  name: 'bronze' }
+  ];
+
+  function overallTier(overall) {
+    for (var i = 0; i < OVERALL_TIERS.length; i++) {
+      if (overall >= OVERALL_TIERS[i].from) { return OVERALL_TIERS[i]; }
+    }
+    return null;
+  }
 
   function overallBox(overall, modifier) {
     if (typeof overall !== 'number') { return null; }
 
-    /* 80 and up is a blue diamond. */
-    var box = el('div', 'ege-ovrbox' + (modifier ? ' ' + modifier : '') +
-      (overall >= DIAMOND ? ' ege-ovrbox--diamond' : ''));
-    box.title = overall + ' overall' + (overall >= DIAMOND ? ' \u2014 diamond' : '');
+    /* A pink diamond is the diamond in another colour, so it carries both. */
+    var tier = overallTier(overall);
+    var tierClass = !tier ? '' :
+      ' ege-ovrbox--tier ege-ovrbox--' + tier.key + (tier.key === 'pink' ? ' ege-ovrbox--diamond' : '');
+    var box = el('div', 'ege-ovrbox' + (modifier ? ' ' + modifier : '') + tierClass);
+    box.title = overall + ' overall' + (tier ? ' \u2014 ' + tier.name : '');
     box.appendChild(el('span', 'ege-ovrbox__label', 'OVR'));
     box.appendChild(el('span', 'ege-ovrbox__value', String(overall)));
     return box;
@@ -2949,31 +2966,37 @@
     list.hidden = !list.children.length;
   }
 
+  /* The overall in the header, on the right of the name and the facts: the
+     tiered box the home page and the team rosters draw, made big, and joined
+     under it the way the height and weight hang off the picture, how far it
+     has climbed since the live season began. */
+  function renderOverall(ratings) {
+    var holder = document.getElementById('playerOverall');
+    holder.innerHTML = '';
+
+    var box = ratings && overallBox(ratings.overall, 'ege-ovrbox--hero');
+    holder.hidden = !box;
+    if (!box) { return; }
+    holder.appendChild(box);
+
+    if (typeof ratings.overallStart !== 'number') { return; }
+    var change = ratings.overall - ratings.overallStart;
+    var progress = el('div', 'ege-ovrprog');
+    progress.title = tickerTitle(change, ratings.overallStart, ratings.overall);
+    progress.appendChild(el('span', 'ege-ovrprog__label', 'This season'));
+    progress.appendChild(tickerEl(change, 'ege-ticker--lg'));
+    holder.appendChild(progress);
+  }
+
   function renderRatings(player) {
     var ratings = EGE.ratingsFor(player);
     var holder = document.getElementById('ratingsGroups');
     holder.innerHTML = '';
 
-    if (!ratings) { ratingsPanel.hidden = true; return; }
+    if (!ratings) { ratingsPanel.hidden = true; renderOverall(null); return; }
 
-    document.getElementById('ratingsOverall').textContent =
-      ratings.overall === null ? '\u2014' : ratings.overall;
-
+    renderOverall(ratings);
     renderPodium(ratings);
-
-    /* The ticker beside the overall: its climb over the live season. */
-    var slot = document.getElementById('ratingsTicker');
-    slot.innerHTML = '';
-    var canTick = typeof ratings.overall === 'number' && typeof ratings.overallStart === 'number';
-    slot.hidden = !canTick;
-    if (canTick) {
-      var change = ratings.overall - ratings.overallStart;
-      var ticker = tickerEl(change);
-      slot.className = ticker.className + ' ege-ticker--lg';
-      while (ticker.firstChild) { slot.appendChild(ticker.firstChild); }
-      slot.appendChild(el('span', 'ege-ticker__since', 'This season'));
-      slot.title = tickerTitle(change, ratings.overallStart, ratings.overall);
-    }
 
     ratings.groups.forEach(function (group) { holder.appendChild(buildGroup(group)); });
     ratingsPanel.hidden = false;
@@ -5341,6 +5364,7 @@
     if (!booted) { booted = true; loaded(); }
     roster.classList.remove('is-waiting');
     document.getElementById('ratingsTop').classList.remove('is-waiting');
+    document.getElementById('playerOverall').classList.remove('is-waiting');
   }
 
   /* A slow network should not mean a blank page for ever, whatever happens
@@ -5513,6 +5537,7 @@
 
   roster.classList.add('is-waiting');
   document.getElementById('ratingsTop').classList.add('is-waiting');
+  document.getElementById('playerOverall').classList.add('is-waiting');
 
   renderRoster();
   renderInstallGuide();

@@ -133,10 +133,15 @@ holds:
   game still has a bowl to come) — or, for a school that missed the
   playoffs, once their first week is out. The season, his class (see
   *Redshirts*) and the level are across the
-  orange strip at the top of the panel. The overall is not up
-  here: it lives with the ratings it is worked out from, at the foot of the
-  page. The top right holds the college offers, as stickers — again on the
-  high school seasons only. Once he has signed, the corner is empty.
+  orange strip at the top of the panel. **The overall** is on the right of
+  the name and the facts, in its tier's box (see *Overall tiers* below)
+  drawn big, and joined under it the way the height and weight hang off the
+  picture — the same ink and orange — **This season**: a stock ticker, an
+  arrow and the points the overall has climbed since the live season began.
+  On a phone the two sit under the name, beside the picture. Both wait for
+  the shop's boosts to land before they show. The top right holds the
+  college offers, as stickers — again on the high school seasons only. Once
+  he has signed, the corner is empty.
   The marks on them are cut down to 160 pixels on their long side, which is
   more than twice the size they are drawn at, so a page of them loads fast.
 - **Injury report** — a red band across the foot of the header panel, only
@@ -211,10 +216,7 @@ holds:
 - **Game log** — per-game stats for that player, with the stat lines driven by
   their position (see below), and a totals row for the season, on the
   panel's own cream under a hard rule.
-- **Ratings** — three tiers, top to bottom:
-  - **The overall**, on a dark band across the panel: the word in orange, the
-    number in white, and a green stock ticker after them — an arrow and the
-    number of points the overall has climbed since the live season began.
+- **Ratings** — two tiers, top to bottom (the overall is in the header):
   - **His three best attributes**, stood like a podium without the podium:
     the best in the middle and biggest, the second on the left a size down,
     the third on the right a size down again. They are ranked among the
@@ -300,13 +302,8 @@ Under the bar:
   SR, or GR for a fifth year), height and weight, and an **overall** in the
   same box the six's is drawn in. One of the six is picked out in orange and
   goes through to his page. No season stats are shown; they are in the
-  overall. **An 80 or better is a diamond**: the overall box is a
-  princess-cut blue diamond — a steel-blue frame, a band of triangular
-  facets running in from the corners, a pale square table in the middle
-  with the number on it in deep navy — drawn as an SVG, with a band of
-  light sweeping across it and a sparkle in the corner (still, for anybody
-  who asks for less motion). It is the same on the Teams page and the six's
-  roster cards, so it means the same thing everywhere. Four show and the rest fold away behind *N more*, but never past
+  overall, in the same tiered box as everywhere else (see *Overall tiers*).
+  Four show and the rest fold away behind *N more*, but never past
   one of the six. From `data/rosters.js`,
   which `tools/build-rosters.js` writes; `EGE.rosterFor` in `data/games.js`
   puts the six in. A season with no roster yet borrows the latest one.
@@ -395,6 +392,27 @@ Only the TE set is required for the first build. The rest get filled in as
 positions are confirmed.
 
 ---
+
+## Overall tiers
+
+Every overall box on the site — the six's cards on the home page, the team
+rosters, and the big one in a player's header — is drawn by `overallBox` in
+`js/app.js`, cut from whatever its number has earned:
+
+| Overall | Tier | Looks like |
+|---|---|---|
+| 0–74 | Basic | the site's dark chip: OVR in orange, the number in cream |
+| 75–79 | Bronze | brushed bronze, the number in dark brown |
+| 80–84 | Silver | brushed silver, the number in near-black |
+| 85–89 | Gold | brushed gold with a soft glow |
+| 90–94 | Diamond | a princess-cut blue diamond drawn as an SVG, the number in navy |
+| 95–98 | Pink Diamond | the same stone turned pink |
+| 99 | Galaxy | deep space with pink and blue nebulae and stars, the number glowing white |
+
+Every tier from bronze up has a band of light sweeping across it every few
+seconds; the diamonds and the galaxy also sparkle in the corner, and the
+galaxy's glow breathes. All of it stays still for anybody who asks for less
+motion. The colours are in `site.css` under *the overall tiers*.
 
 ## Ratings
 

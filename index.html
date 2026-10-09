@@ -773,7 +773,8 @@
                the bottom one, because a school name has nowhere to break and
                nothing else in here is that long.
 
-               The top right is where the college offers are stuck. -->
+               The overall stands on the right of them, and the top right
+               corner is where the college offers are stuck. -->
           <div class="ege-detail__top">
             <div class="ege-detail__figure">
               <div class="ege-detail__photo">
@@ -795,6 +796,11 @@
             <!-- The offers on the table, as stickers. Built in app.js from
                  data/offers.js; the corner is empty for a player with none. -->
             <div class="ege-offers" id="playerOffers" hidden></div>
+
+            <!-- The overall, in its tier's box, and under it how far it has
+                 climbed this season. Written in app.js once the boosts have
+                 landed, like the ratings it is worked out from. -->
+            <div class="ege-detail__ovr" id="playerOverall" hidden></div>
 
             <dl class="ege-detail__list">
               <dt>Position</dt><dd id="playerPosition"></dd>
@@ -937,20 +943,10 @@
                   aria-expanded="true" aria-label="Hide the ratings"></button>
         </div>
 
-        <!-- The one place the overall is shown on a player page: with the
-             ratings it is worked out from, on a dark band of its own, and
-             under it his three best attributes. Both wait for the shop's
-             boosts to land rather than showing the base numbers and then
-             changing them under whoever is reading. -->
+        <!-- His three best attributes. They wait for the shop's boosts to
+             land rather than showing the base numbers and then changing
+             them under whoever is reading. -->
         <div class="ege-ratings__top" id="ratingsTop">
-          <div class="ege-ovrband">
-            <span class="ege-ovrband__label">Overall</span>
-            <span class="ege-ovrband__value" id="ratingsOverall"></span>
-            <!-- How far the overall has climbed since the live season began,
-                 like a stock ticker. Written in app.js. -->
-            <span class="ege-ticker ege-ticker--lg" id="ratingsTicker" hidden></span>
-          </div>
-
           <!-- Best first, so that is the order it is read in; the stylesheet
                stands them second, first, third. Written in app.js. -->
           <ol class="ege-podium" id="ratingsPodium" aria-label="Best three attributes"></ol>
