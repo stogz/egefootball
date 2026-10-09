@@ -237,7 +237,7 @@ holds:
   `image` (a picture under `icon/trophies/`)
   is shown as that picture (cut down to 720 pixels wide, so it holds up
   full screen); one without is a gold cup over a brass plate with its name
-  and season. Every trophy's shadow sits straight behind it. Pointing at a
+  and season. Pointing at a
   trophy lifts it to half again its size and shows a tag under it saying
   what it is, from `about` (a `\n` in it starts a second line, so
   Andrew's read *2018 North Carolina Class 4A Regional Champion* over
@@ -246,7 +246,7 @@ holds:
   blurred and darkened behind it, its name and season across the top, the
   × at the top right and the `about` line under it. A click or tap anywhere
   but the trophy itself, the × or Escape puts it away. A shelf
-  holds as many as fit across it (six on a computer, four on a phone) and
+  holds as many as fit across it (eight on a computer, four on a phone) and
   a full shelf gets a new one under it; the shelves
   are dealt out again when the width changes. Andrew Parr has his 2018 and
   2019 North Carolina Class 4A Regional Champion plaques (Wake Forest High

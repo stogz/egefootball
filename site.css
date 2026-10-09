@@ -5039,12 +5039,12 @@ html.ege-noscroll body { overflow: hidden; }
 }
 
 .ege-shelf__items {
-  --trophy-slot: 170px;
+  --trophy-slot: 132px;
   position: relative;
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  gap: 24px;
+  gap: 12px;
   min-height: inherit;
   margin: 0;
   padding: 18px calc(var(--case-wall) + 10px) calc(var(--case-floor) * .45);
@@ -5073,7 +5073,6 @@ html.ege-noscroll body { overflow: hidden; }
   width: auto;
   max-width: 100%;
   height: calc(124px * var(--trophy-scale, 1));
-  filter: drop-shadow(0 0 10px rgba(0, 0, 0, .55));
 }
 
 /* Pointed at, or reached with the keyboard: it lifts, and a tag under it
@@ -5143,9 +5142,8 @@ html.ege-noscroll body { overflow: hidden; }
   height: min(62vh, 560px);
   max-width: 88vw;
   object-fit: contain;
-  filter: drop-shadow(0 0 30px rgba(0, 0, 0, .65));
 }
-.ege-trophyzoom .ege-trophy__cup { width: min(220px, 50vw); filter: drop-shadow(0 0 24px rgba(0, 0, 0, .6)); }
+.ege-trophyzoom .ege-trophy__cup { width: min(220px, 50vw); }
 .ege-trophyzoom .ege-trophy__plate { max-width: none; padding: 8px 16px; font-size: 1.125rem; }
 .ege-trophyzoom__about {
   margin: 0;
@@ -5157,8 +5155,7 @@ html.ege-noscroll body { overflow: hidden; }
   text-align: center;
   white-space: pre-line;
 }
-/* Every shadow sits straight behind its trophy, not dropped under it. */
-.ege-trophy__cup { display: block; width: 72px; filter: drop-shadow(0 0 8px rgba(0, 0, 0, .5)); }
+.ege-trophy__cup { display: block; width: 72px; }
 .ege-trophy__cup svg { display: block; width: 100%; height: auto; }
 
 /* Brass, with his name for it engraved and the season under it. */
@@ -5186,8 +5183,8 @@ html.ege-noscroll body { overflow: hidden; }
   }
   .ege-shelf { min-height: 136px; }
   .ege-shelf__items {
-    --trophy-slot: 68px;
-    gap: 6px;
+    --trophy-slot: 62px;
+    gap: 4px;
     padding: 12px calc(var(--case-wall) + 6px) calc(var(--case-floor) * .45);
   }
   .ege-trophy__cup { width: 42px; }
