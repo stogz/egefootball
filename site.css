@@ -522,19 +522,24 @@ body::before {
    On the right of the name and the facts: the overall in its tier's box,
    drawn big, and joined to the foot of it the way the height and weight
    hang off the picture -- same width, one shared edge, the same ink and
-   orange -- how far it has climbed since the live season began.
+   orange -- how far it has climbed since the live season began. The pair
+   runs the full height of the header, top level with the top of the
+   picture and bottom level with the foot of the height and weight; the
+   overall takes whatever height the progression leaves.
 
    Both wait for the shop's boosts to land, like the ratings they come from,
    and keep their space while they do, so nothing beside them moves. */
 .ege-detail__ovr {
   display: flex;
   flex-direction: column;
+  align-self: stretch;
   width: 158px;
   transition: opacity .2s ease;
 }
 .ege-detail__ovr.is-waiting { opacity: 0; }
 
 .ege-ovrbox--hero {
+  flex: 1 1 auto;
   width: 100%;
   gap: 4px;
   padding: 16px 10px 18px;
@@ -3010,17 +3015,16 @@ body {
   .ege-detail__top,
   .ege-detail__top:has(> .ege-offers[hidden]) {
     grid-template-columns: var(--figure) minmax(0, 1fr);
-    /* The name, the stars and the overall sit in the middle of the picture's
-       height: the empty rows either side of them take whatever the picture
-       has over. */
-    grid-template-rows: auto 1fr auto auto auto 1fr auto auto;
+    /* The name and the stars sit in the middle of the picture's height: the
+       empty rows either side of them take whatever the picture has over. */
+    grid-template-rows: auto 1fr auto auto 1fr auto auto auto;
     grid-template-areas:
       "school school"
       "figure ."
       "figure name"
       "figure stars"
-      "figure ovr"
       "figure ."
+      "ovr    ovr"
       "list   list"
       "offers offers";
     justify-items: start;
@@ -3054,16 +3058,28 @@ body {
   .ege-detail__name { margin: 0; }
   .ege-stars { margin: 6px 0 0; }
 
-  /* Under the name rather than out on the right, where a phone has no room
-     beside the facts: a smaller box, the same two parts. */
-  .ege-detail__ovr { width: 104px; margin-top: 10px; }
-  .ege-ovrbox--hero { padding: 8px 6px 10px; gap: 2px; }
+  /* A band across the panel under the picture and the name, where a phone
+     has no room beside the facts: the overall on the left half, the
+     progression on the right, sharing the edge between them. */
+  .ege-detail__ovr {
+    flex-direction: row;
+    width: 100%;
+    margin-top: 14px;
+  }
+  .ege-ovrbox--hero { flex: 1 1 0; width: auto; padding: 8px 6px 10px; gap: 2px; }
   .ege-ovrbox--hero .ege-ovrbox__label { font-size: var(--fb-label); letter-spacing: .16em; }
   .ege-ovrbox--hero .ege-ovrbox__value { font-size: 2.625rem; }
-  .ege-ovrbox--hero.ege-ovrbox--tier::after { top: 3px; right: 4px; font-size: .75rem; }
-  .ege-ovrprog { padding: 6px 3px 7px; gap: 2px; }
-  .ege-ovrprog__label { letter-spacing: .06em; }
-  .ege-ovrprog .ege-ticker--lg .ege-ticker__num { font-size: 1.125rem; }
+  .ege-ovrbox--hero.ege-ovrbox--tier::after { top: 4px; right: 6px; font-size: .875rem; }
+  .ege-ovrprog {
+    flex: 1 1 0;
+    justify-content: center;
+    border-top: var(--fb-border) solid var(--fb-ink);
+    border-left: 0;
+  }
+  .ege-ovrbox:not(.ege-ovrbox--tier) + .ege-ovrprog {
+    border-top: var(--fb-border) solid var(--fb-ink);
+    border-left: var(--fb-border-thin) solid rgba(251, 244, 230, .22);
+  }
   .ege-stars__row { font-size: 1.0625rem; }
   .ege-stars__rank { letter-spacing: .06em; }
 

@@ -138,7 +138,9 @@ holds:
   drawn big, and joined under it the way the height and weight hang off the
   picture — the same ink and orange — **This season**: a stock ticker, an
   arrow and the points the overall has climbed since the live season began.
-  On a phone the two sit under the name, beside the picture. Both wait for
+  The pair runs the full height of the header. On a phone they are a band
+  across the panel under the picture and the name, the overall on the left
+  and the progression on the right. Both wait for
   the shop's boosts to land before they show. The top right holds the
   college offers, as stickers — again on the high school seasons only. Once
   he has signed, the corner is empty.
