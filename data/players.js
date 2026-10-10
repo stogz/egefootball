@@ -227,7 +227,10 @@ EGE.players = [
     trophies: [
       { name: 'FCS National Championship', season: 2020, scale: 1.35,
         image: 'icon/trophies/hatch-2020-fcs-national-championship.webp',
-        about: '2020 FCS National Champion\nNorth Dakota State' }
+        about: '2020 FCS National Champion\nNorth Dakota State' },
+      { name: 'FCS National Championship', season: 2021, scale: 1.35,
+        image: 'icon/trophies/hatch-2021-fcs-national-championship.webp',
+        about: '2021 FCS National Champion\nNorth Dakota State' }
     ]
   },
   {
