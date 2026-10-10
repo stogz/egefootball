@@ -199,7 +199,12 @@ EGE.players = [
     weight: 175,              // pounds
     email: 'cooperclrk@gmail.com',
     credits: 0,
-    headshot: 'headshot/clark.png'
+    headshot: 'headshot/clark.png',
+    trophies: [
+      { name: 'CIF-SDS Open Division Championship', season: 2019, scale: 1.35,
+        image: 'icon/trophies/clark-2019-cif-sds-open-division.webp',
+        about: '2019 CIF San Diego Section Open Division Champion\nCarlsbad High School' }
+    ]
   },
   {
     slug: 'paxon-hatch',

@@ -256,8 +256,9 @@ holds:
   again as tall, the 2020 College Football National
   Championship trophy (Alabama). Jaykeb Stewart has the 2019 Florida Class
   6A State Championship trophy (Naples High School) and Paxon Hatch the 2020
-  FCS National Championship trophy (North Dakota State), both a third again
-  as tall. A player with no trophies has no trophy case at all: the panel
+  FCS National Championship trophy (North Dakota State), and Cooper Clark
+  the 2019 CIF San Diego Section Open Division Championship trophy (Carlsbad
+  High School), all three a third again as tall. A player with no trophies has no trophy case at all: the panel
   only shows once there is at least one.
 
 The schedule, the game log, the ratings and the trophy case each fold away
