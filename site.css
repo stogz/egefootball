@@ -388,7 +388,14 @@ body::before {
   gap: 0 22px;
 }
 .ege-detail__figure { grid-area: figure; }
-.ege-detail__school { grid-area: school; min-width: 0; }
+.ege-detail__school {
+  grid-area: school;
+  min-width: 0;
+  /* Flex, so a college season's link sits as a box rather than on a line of
+     text -- on a line it carried a descender's worth of space under it and
+     made the header taller than a high school season's. */
+  display: flex;
+}
 .ege-detail__name { grid-area: name; }
 .ege-detail__stars { grid-area: stars; }
 .ege-detail__list { grid-area: list; }
@@ -424,6 +431,17 @@ body::before {
   min-width: 0;
 }
 .ege-detail__figure .ege-detail__photo { border-bottom: 0; }
+/* Beside the picture the words can run a little taller than it does; the
+   picture takes up the difference rather than leaving a gap under the
+   height and weight, so the figure, the words and the overall all end on
+   one line. 4:3 is still the least it will be. */
+@media (min-width: 621px) {
+  .ege-detail__photo {
+    flex: 1 1 auto;
+    aspect-ratio: auto;
+    min-height: calc((210px - 2 * var(--fb-border)) * 3 / 4);
+  }
+}
 
 .ege-detail__name {
   font-family: var(--fb-font-display);
@@ -448,6 +466,8 @@ body::before {
   gap: 4px 10px;
   margin: -8px 0 14px;
 }
+/* A college season's: there, so it keeps its line, but not seen. */
+.ege-stars.is-blank { visibility: hidden; }
 .ege-stars__row {
   display: inline-flex;
   gap: 1px;
@@ -2934,6 +2954,17 @@ body {
   /* The panel's own padding is most of a narrow screen otherwise. */
   .ege-detail > .fb-panel__body { padding: 14px; }
   .ege-detail .fb-panel__strip { padding: 8px 14px; }
+  /* One line, always: "2021 · Sophomore Year · College Football" broke onto
+     a second line where "High School Varsity" did not, and the header grew
+     a line taller between one season and the next. Tighter tracking fits the
+     longest of them across a 360-point screen. */
+  .ege-detail .fb-panel__strip .fb-eyebrow {
+    display: block;
+    letter-spacing: .05em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
   /* The season editor's number fields, two up instead of one. */
   .ege-statgrid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
@@ -5086,6 +5117,10 @@ html.ege-noscroll body { overflow: hidden; }
   width: auto;
   max-width: 100%;
   height: calc(124px * var(--trophy-scale, 1));
+  /* A wide trophy in a narrow slot (a phone's) shrinks to fit rather than
+     being squeezed, and still stands on the shelf. */
+  object-fit: contain;
+  object-position: center bottom;
 }
 
 /* Pointed at, or reached with the keyboard: it lifts, and a tag under it

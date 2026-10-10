@@ -117,12 +117,12 @@ holds:
   opened on the same season. Where the team stands in its conference is on
   the team page, not here. Under the name is the recruiting line: 247-style stars out
   of five and his rank at his position in his state and nationally
-  (**★★★★☆ #1 RB in Illinois · #5 nationally**), from `EGE.recruiting` in `data/offers.js` — on the high school seasons only; a college season has no recruiting line. Under that, three facts: **Position**, **Record**
+  (**★★★★☆ #1 RB in Illinois · #5 nationally**), from `EGE.recruiting` in `data/offers.js` — on the high school seasons only; a college season keeps the line's space empty, so nothing under it moves. Under that, four facts: **Position**, **Record**
   (the team's wins and losses over the season on show, 0-0 until the first
   result is out, followed by the current run — **6-1 · W4 Streak**, green for
-  wins and red for losses — until the team's season is over) and **Jersey**.
-  A college season puts a fourth between Record and Jersey, in the room the
-  recruiting line leaves: **Conference**, where the team stands in its
+  wins and red for losses — until the team's season is over), **Conference**
+  and **Jersey**. In high school Conference is just the league's name
+  (*Avocado League*); in college it is where the team stands in its
   division as of the published weeks — **3RD in SEC West** — and TBD until
   the team has played a conference game. It moves week by week: the six's
   own games come from the season file, and everybody else's from
@@ -138,7 +138,10 @@ holds:
   drawn big, and joined under it the way the height and weight hang off the
   picture — the same ink and orange — **This season**: a stock ticker, an
   arrow and the points the overall has climbed since the live season began.
-  The pair runs the full height of the header. On a phone they are a band
+  The pair runs the full height of the header. **The header is the same size in
+  every season**, high school or college: the recruiting line's space is kept
+  in college, both kinds of season have the four facts, the picture grows to
+  meet the words beside it, and on a phone the orange strip holds one line. On a phone they are a band
   across the panel under the picture and the name, the overall on the left
   and the progression on the right. Both wait for
   the shop's boosts to land before they show. The college offers are no
@@ -254,7 +257,12 @@ holds:
   2019 North Carolina Class 4A Regional Champion plaques (Wake Forest High
   School), his 2019 Class 4A Regional Tournament MVP plaque and, a third
   again as tall, the 2020 College Football National
-  Championship trophy (Alabama); everyone else's case is one bare shelf.
+  Championship trophy (Alabama). Jaykeb Stewart has the 2019 Florida Class
+  6A State Championship trophy (Naples High School) and Paxon Hatch the 2020
+  FCS National Championship trophy (North Dakota State), and Cooper Clark
+  the 2019 CIF San Diego Section Open Division Championship trophy (Carlsbad
+  High School), all three a third again as tall. A player with no trophies has no trophy case at all: the panel
+  only shows once there is at least one.
 
 The schedule, the game log, the ratings and the trophy case each fold away
 behind an arrow in their heading.
