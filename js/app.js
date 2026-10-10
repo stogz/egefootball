@@ -435,13 +435,24 @@
   }
 
   /* Where his team stands in its division -- 3RD in SEC West -- in the
-     college seasons, which is where the recruiting stars were. Worked out
-     from the published weeks, so it moves as they come out. TBD until the
-     team has played a conference game. */
+     college seasons. Worked out from the published weeks, so it moves as
+     they come out. TBD until the team has played a conference game. */
   function renderConference(player, season) {
     var label = document.getElementById('playerConferenceLabel');
     var box = document.getElementById('playerConference');
-    var standing = recruitingSeason() ? null : EGE.standingFor(player, season);
+
+    /* A high school season has no table to be placed in, so it gets the
+       league's name on its own -- and the row is there either way, so the
+       header is the same size whatever season is on show. */
+    if (recruitingSeason()) {
+      var team = EGE.teamFor(player, season);
+      label.hidden = box.hidden = !(team && team.league);
+      box.textContent = team && team.league ? team.league : '';
+      box.title = '';
+      return;
+    }
+
+    var standing = EGE.standingFor(player, season);
     label.hidden = box.hidden = !standing;
     if (!standing) { return; }
     box.textContent = (standing.place ? EGE.ordinal(standing.place) : TBD) +
@@ -457,8 +468,18 @@
     var box = document.getElementById('playerStars');
     box.innerHTML = '';
     var recruit = recruitingSeason() ? (EGE.recruiting || {})[player.slug] : null;
-    box.hidden = !recruit;
-    if (!recruit) { return; }
+
+    /* No recruiting line in college, but its line is kept, empty and unseen,
+       so the facts under it stay where they were and the header is the same
+       size whatever season is on show. */
+    box.hidden = false;
+    box.classList.toggle('is-blank', !recruit);
+    box.setAttribute('aria-hidden', recruit ? 'false' : 'true');
+    box.removeAttribute('title');
+    if (!recruit) {
+      box.appendChild(el('span', 'ege-stars__row', '\u2605'));
+      return;
+    }
 
     var row = el('span', 'ege-stars__row');
     row.setAttribute('role', 'img');
