@@ -254,7 +254,11 @@ holds:
   2019 North Carolina Class 4A Regional Champion plaques (Wake Forest High
   School), his 2019 Class 4A Regional Tournament MVP plaque and, a third
   again as tall, the 2020 College Football National
-  Championship trophy (Alabama); everyone else's case is one bare shelf.
+  Championship trophy (Alabama). Jaykeb Stewart has the 2019 Florida Class
+  6A State Championship trophy (Naples High School) and Paxon Hatch the 2020
+  FCS National Championship trophy (North Dakota State), both a third again
+  as tall. A player with no trophies has no trophy case at all: the panel
+  only shows once there is at least one.
 
 The schedule, the game log, the ratings and the trophy case each fold away
 behind an arrow in their heading.

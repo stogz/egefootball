@@ -218,7 +218,12 @@ EGE.players = [
     weight: 265,              // pounds
     email: 'paxonhatch@gmail.com',
     credits: 0,
-    headshot: 'headshot/hatch.png'
+    headshot: 'headshot/hatch.png',
+    trophies: [
+      { name: 'FCS National Championship', season: 2020, scale: 1.35,
+        image: 'icon/trophies/hatch-2020-fcs-national-championship.webp',
+        about: '2020 FCS National Champion\nNorth Dakota State' }
+    ]
   },
   {
     slug: 'isaac-vitel',
@@ -267,7 +272,12 @@ EGE.players = [
     weight: 185,              // pounds
     email: 'jkeb.stew@gmail.com',
     credits: 0,
-    headshot: 'headshot/stewart.png'
+    headshot: 'headshot/stewart.png',
+    trophies: [
+      { name: 'State Championship', season: 2019, scale: 1.35,
+        image: 'icon/trophies/stewart-2019-fhsaa-6a-state-championship.webp',
+        about: '2019 Florida Class 6A State Champion\nNaples High School' }
+    ]
   }
 ];
 

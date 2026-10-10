@@ -2772,7 +2772,7 @@
      the `trophies` list on his entry in data/players.js. A shelf holds as
      many as fit across it -- eight or so on a computer, four on a phone --
      and the next one goes on a new shelf under it, so the cabinet grows a
-     shelf at a time. With nothing won yet it is one bare shelf. The shelf
+     shelf at a time. With nothing won yet there is no cabinet at all. The shelf
      itself is drawn in site.css; this only decides what goes on which. */
   var trophyPanel = document.getElementById('trophyPanel');
   var trophyCase = document.getElementById('trophyCase');
@@ -2873,6 +2873,7 @@
   }
 
   function drawTrophyShelves(force) {
+    if (!trophyShown.items.length) { return; }
     if (!trophyCase.firstChild) { trophyCase.appendChild(shelfEl()); }
     var perShelf = trophiesPerShelf();
     /* Folded away or not on screen: nothing to measure, so leave it be. */
@@ -2899,7 +2900,10 @@
        yet the first measure once it is deals his out. */
     trophyShown.perShelf = 0;
     trophyCase.innerHTML = '';
-    trophyPanel.hidden = false;
+
+    /* No trophies, no cabinet: it only shows once he has won something. */
+    trophyPanel.hidden = !trophyShown.items.length;
+    if (trophyPanel.hidden) { return; }
     drawTrophyShelves(true);
   }
 

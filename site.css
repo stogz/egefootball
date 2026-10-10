@@ -5086,6 +5086,10 @@ html.ege-noscroll body { overflow: hidden; }
   width: auto;
   max-width: 100%;
   height: calc(124px * var(--trophy-scale, 1));
+  /* A wide trophy in a narrow slot (a phone's) shrinks to fit rather than
+     being squeezed, and still stands on the shelf. */
+  object-fit: contain;
+  object-position: center bottom;
 }
 
 /* Pointed at, or reached with the keyboard: it lifts, and a tag under it
