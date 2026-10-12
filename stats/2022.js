@@ -108,31 +108,34 @@ EGE.stats[2022] = {
         result: { teamScore: 63, opponentScore: 6 }, booster: null,
         stats: {
           receptions: 4, receivingYards: 51, receivingYac: 18,
-          receivingTd: 4, receivingLong: 49, targets: 6, carries: 0,
+          receivingTd: 4, receivingLong: 25, targets: 6, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
           receivingAvg: 12.8, totalYards: 51, totalTd: 4
         },
         bigPlays: [
-          '20 yard receiving touchdown',
-          '9 yard receiving touchdown',
-          '8 yard receiving touchdown',
-          '4 yard receiving touchdown'
+          '25 yard receiving touchdown',
+          '11 yard receiving touchdown',
+          '10 yard receiving touchdown',
+          '5 yard receiving touchdown'
         ] },
       { week:  4, date: '2022-09-24', kickoff: '6:30pm',
         opponent: 'Vanderbilt', home: true, conference: true,
         result: { teamScore: 56, opponentScore: 3 }, booster: null,
         stats: {
           receptions: 4, receivingYards: 98, receivingYac: 40,
-          receivingTd: 0, receivingLong: 67, targets: 5, carries: 0,
+          receivingTd: 1, receivingLong: 67, targets: 5, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 24.5, totalYards: 98, totalTd: 0
-        } },
+          receivingAvg: 24.5, totalYards: 98, totalTd: 1
+        },
+        bigPlays: [
+          '5 yard receiving touchdown'
+        ] },
       { week:  5, date: '2022-10-01', kickoff: '2:30pm',
         opponent: 'Arkansas', home: false, conference: true,
         result: { teamScore: 56, opponentScore: 17 }, booster: null,
         stats: {
           receptions: 4, receivingYards: 52, receivingYac: 24,
-          receivingTd: 1, receivingLong: 41, targets: 6, carries: 0,
+          receivingTd: 1, receivingLong: 25, targets: 6, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
           receivingAvg: 13, totalYards: 52, totalTd: 1
         },
@@ -153,10 +156,13 @@ EGE.stats[2022] = {
         result: { teamScore: 42, opponentScore: 59 }, booster: null,
         stats: {
           receptions: 7, receivingYards: 92, receivingYac: 19,
-          receivingTd: 0, receivingLong: 25, targets: 9, carries: 0,
+          receivingTd: 1, receivingLong: 25, targets: 9, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 13.1, totalYards: 92, totalTd: 0
-        } },
+          receivingAvg: 13.1, totalYards: 92, totalTd: 1
+        },
+        bigPlays: [
+          '8 yard receiving touchdown'
+        ] },
       { week:  8, date: '2022-10-22', kickoff: '6:00pm',
         opponent: 'Mississippi State', home: true, conference: true,
         result: { teamScore: 35, opponentScore: 0 }, booster: null,
@@ -174,7 +180,7 @@ EGE.stats[2022] = {
         result: { teamScore: 38, opponentScore: 24 }, booster: null,
         stats: {
           receptions: 6, receivingYards: 153, receivingYac: 64,
-          receivingTd: 3, receivingLong: 65, targets: 7, carries: 0,
+          receivingTd: 3, receivingLong: 54, targets: 7, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
           receivingAvg: 25.5, totalYards: 153, totalTd: 3
         },
@@ -287,7 +293,7 @@ EGE.stats[2022] = {
         stats: {
           carries: 15, rushingYards: 66, rushingTd: 1, rushingLong: 57,
           receptions: 3, receivingYards: 50, receivingYac: 38,
-          receivingTd: 1, receivingLong: 41, targets: 3, fumbles: 0,
+          receivingTd: 1, receivingLong: 32, targets: 3, fumbles: 0,
           rushingAvg: 4.4, receivingAvg: 16.7, totalYards: 116, totalTd: 2
         },
         bigPlays: [
@@ -405,164 +411,159 @@ EGE.stats[2022] = {
         opponent: 'Florida A&M', home: true, conference: false,
         result: { teamScore: 66, opponentScore: 14 }, booster: null,
         stats: {
-          receptions: 3, receivingYards: 78, receivingYac: 37,
-          receivingTd: 2, receivingLong: 78, targets: 5, carries: 8,
-          rushingYards: 83, rushingTd: 3, rushingLong: 34, fumbles: 0,
-          rushingAvg: 10.4, receivingAvg: 26, totalYards: 161, totalTd: 5
+          receptions: 5, receivingYards: 110, receivingYac: 61,
+          receivingTd: 2, receivingLong: 79, targets: 8, carries: 1,
+          rushingYards: 7, rushingTd: 0, rushingLong: 7, fumbles: 0,
+          rushingAvg: 7, receivingAvg: 22, totalYards: 117, totalTd: 2
         },
         bigPlays: [
-          '34 yard rushing touchdown',
-          '9 yard rushing touchdown',
-          '8 yard rushing touchdown',
           '24 yard receiving touchdown',
-          '18 yard receiving touchdown'
+          '5 yard receiving touchdown'
         ] },
       { week:  1, date: '2022-09-03', kickoff: '12:00pm',
         opponent: 'App State', home: false, conference: false,
         result: { teamScore: 61, opponentScore: 63 }, booster: null,
         stats: {
-          receptions: 5, receivingYards: 64, receivingYac: 19,
-          receivingTd: 1, receivingLong: 26, targets: 7, carries: 9,
-          rushingYards: 92, rushingTd: 1, rushingLong: 31, fumbles: 0,
-          rushingAvg: 10.2, receivingAvg: 12.8, totalYards: 156,
-          totalTd: 2
-        },
-        bigPlays: [
-          '11 yard rushing touchdown',
-          '26 yard receiving touchdown'
-        ] },
+          receptions: 4, receivingYards: 20, receivingYac: 6,
+          receivingTd: 0, receivingLong: 11, targets: 5, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 5, totalYards: 20, totalTd: 0
+        } },
       { week:  2, date: '2022-09-10', kickoff: '12:00pm',
         opponent: 'Georgia State', home: false, conference: false,
         result: { teamScore: 33, opponentScore: 30 }, booster: null,
         stats: {
-          receptions: 3, receivingYards: 46, receivingYac: 23,
-          receivingTd: 0, receivingLong: 40, targets: 4, carries: 8,
-          rushingYards: 66, rushingTd: 1, rushingLong: 24, fumbles: 0,
-          rushingAvg: 8.3, receivingAvg: 15.3, totalYards: 112, totalTd: 1
-        },
-        bigPlays: [
-          '8 yard rushing touchdown'
-        ] },
+          receptions: 2, receivingYards: 35, receivingYac: 14,
+          receivingTd: 0, receivingLong: 35, targets: 4, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 17.5, totalYards: 35, totalTd: 0
+        } },
       { week:  4, date: '2022-09-24', kickoff: '3:30pm',
         opponent: 'Notre Dame', home: true, conference: false, scouts: true,
         result: { teamScore: 35, opponentScore: 42 }, booster: null,
         stats: {
-          receptions: 4, receivingYards: 41, receivingYac: 18,
-          receivingTd: 0, receivingLong: 36, targets: 5, carries: 9,
-          rushingYards: 42, rushingTd: 0, rushingLong: 11, fumbles: 0,
-          rushingAvg: 4.7, receivingAvg: 10.3, totalYards: 83, totalTd: 0
-        } },
+          receptions: 5, receivingYards: 37, receivingYac: 11,
+          receivingTd: 1, receivingLong: 20, targets: 6, carries: 1,
+          rushingYards: 3, rushingTd: 0, rushingLong: 3, fumbles: 0,
+          rushingAvg: 3, receivingAvg: 7.4, totalYards: 40, totalTd: 1
+        },
+        bigPlays: [
+          '20 yard receiving touchdown'
+        ] },
       { week:  5, date: '2022-10-01', kickoff: '3:30pm',
         opponent: 'Virginia Tech', home: true, conference: true,
         result: { teamScore: 45, opponentScore: 6 }, booster: null,
         stats: {
-          receptions: 3, receivingYards: 43, receivingYac: 25,
-          receivingTd: 1, receivingLong: 27, targets: 5, carries: 9,
-          rushingYards: 81, rushingTd: 2, rushingLong: 30, fumbles: 0,
-          rushingAvg: 9, receivingAvg: 14.3, totalYards: 124, totalTd: 3
+          receptions: 4, receivingYards: 124, receivingYac: 63,
+          receivingTd: 3, receivingLong: 73, targets: 6, carries: 1,
+          rushingYards: 3, rushingTd: 0, rushingLong: 3, fumbles: 0,
+          rushingAvg: 3, receivingAvg: 31, totalYards: 127, totalTd: 3
         },
         bigPlays: [
-          '7 yard rushing touchdown',
-          '2 yard rushing touchdown',
-          '14 yard receiving touchdown'
+          '73 yard receiving touchdown',
+          '20 yard receiving touchdown',
+          '13 yard receiving touchdown'
         ] },
       { week:  6, date: '2022-10-08', kickoff: '4:00pm',
         opponent: 'Miami', home: false, conference: true,
         result: { teamScore: 31, opponentScore: 20 }, booster: null,
         stats: {
-          receptions: 3, receivingYards: 56, receivingYac: 22,
-          receivingTd: 0, receivingLong: 56, targets: 6, carries: 13,
-          rushingYards: 128, rushingTd: 0, rushingLong: 35, fumbles: 0,
-          rushingAvg: 9.8, receivingAvg: 18.7, totalYards: 184, totalTd: 0
+          receptions: 7, receivingYards: 48, receivingYac: 24,
+          receivingTd: 0, receivingLong: 16, targets: 10, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 6.9, totalYards: 48, totalTd: 0
         } },
       { week:  7, date: '2022-10-15', kickoff: '8:00pm',
         opponent: 'Duke', home: false, conference: true,
         result: { teamScore: 49, opponentScore: 23 }, booster: null,
         stats: {
-          receptions: 5, receivingYards: 44, receivingYac: 15,
-          receivingTd: 0, receivingLong: 19, targets: 6, carries: 11,
-          rushingYards: 53, rushingTd: 1, rushingLong: 18, fumbles: 0,
-          rushingAvg: 4.8, receivingAvg: 8.8, totalYards: 97, totalTd: 1
-        },
-        bigPlays: [
-          '5 yard rushing touchdown'
-        ] },
+          receptions: 2, receivingYards: 24, receivingYac: 11,
+          receivingTd: 0, receivingLong: 24, targets: 4, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 12, totalYards: 24, totalTd: 0
+        } },
       { week:  9, date: '2022-10-29', kickoff: '8:00pm',
         opponent: 'Pittsburgh', home: true, conference: true, scouts: true,
         result: { teamScore: 42, opponentScore: 23 }, booster: null,
         stats: {
-          receptions: 2, receivingYards: 23, receivingYac: 8,
-          receivingTd: 0, receivingLong: 23, targets: 3, carries: 8,
-          rushingYards: 40, rushingTd: 0, rushingLong: 14, fumbles: 0,
-          rushingAvg: 5, receivingAvg: 11.5, totalYards: 63, totalTd: 0
-        } },
+          receptions: 5, receivingYards: 176, receivingYac: 72,
+          receivingTd: 3, receivingLong: 75, targets: 8, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 35.2, totalYards: 176, totalTd: 3
+        },
+        bigPlays: [
+          '75 yard receiving touchdown',
+          '22 yard receiving touchdown',
+          '19 yard receiving touchdown'
+        ] },
       { week: 10, date: '2022-11-05', kickoff: '12:00pm',
         opponent: 'Virginia', home: false, conference: true,
         result: { teamScore: 30, opponentScore: 28 }, booster: null,
         stats: {
-          receptions: 3, receivingYards: 27, receivingYac: 13,
-          receivingTd: 0, receivingLong: 26, targets: 6, carries: 9,
-          rushingYards: 65, rushingTd: 1, rushingLong: 12, fumbles: 0,
-          rushingAvg: 7.2, receivingAvg: 9, totalYards: 92, totalTd: 1
+          receptions: 8, receivingYards: 64, receivingYac: 13,
+          receivingTd: 1, receivingLong: 64, targets: 13, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 8, totalYards: 64, totalTd: 1
         },
         bigPlays: [
-          '6 yard rushing touchdown'
+          '64 yard receiving touchdown'
         ] },
       { week: 11, date: '2022-11-12', kickoff: '7:30pm',
         opponent: 'Wake Forest', home: false, conference: true, scouts: true,
         result: { teamScore: 37, opponentScore: 33 }, booster: null,
         stats: {
-          receptions: 4, receivingYards: 87, receivingYac: 33,
-          receivingTd: 2, receivingLong: 52, targets: 6, carries: 12,
-          rushingYards: 55, rushingTd: 0, rushingLong: 18, fumbles: 0,
-          rushingAvg: 4.6, receivingAvg: 21.8, totalYards: 142, totalTd: 2
+          receptions: 3, receivingYards: 35, receivingYac: 21,
+          receivingTd: 1, receivingLong: 25, targets: 5, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 11.7, totalYards: 35, totalTd: 1
         },
         bigPlays: [
-          '27 yard receiving touchdown',
-          '20 yard receiving touchdown'
+          '4 yard receiving touchdown'
         ] },
       { week: 12, date: '2022-11-19', kickoff: '5:30pm',
         opponent: 'Georgia Tech', home: true, conference: true,
         result: { teamScore: 14, opponentScore: 24 }, booster: null,
         stats: {
-          receptions: 4, receivingYards: 34, receivingYac: 14,
-          receivingTd: 0, receivingLong: 32, targets: 6, carries: 6,
-          rushingYards: 43, rushingTd: 0, rushingLong: 28, fumbles: 0,
-          rushingAvg: 7.2, receivingAvg: 8.5, totalYards: 77, totalTd: 0
-        } },
+          receptions: 4, receivingYards: 45, receivingYac: 29,
+          receivingTd: 1, receivingLong: 20, targets: 5, carries: 1,
+          rushingYards: 9, rushingTd: 0, rushingLong: 9, fumbles: 0,
+          rushingAvg: 9, receivingAvg: 11.3, totalYards: 54, totalTd: 1
+        },
+        bigPlays: [
+          '20 yard receiving touchdown'
+        ] },
       { week: 13, date: '2022-11-25', kickoff: '3:30pm',
         opponent: 'NC State', home: true, conference: true, scouts: true,
         result: { teamScore: 30, opponentScore: 27 }, booster: null,
         stats: {
-          receptions: 2, receivingYards: 30, receivingYac: 8,
-          receivingTd: 0, receivingLong: 30, targets: 4, carries: 9,
-          rushingYards: 51, rushingTd: 2, rushingLong: 20, fumbles: 1,
-          rushingAvg: 5.7, receivingAvg: 15, totalYards: 81, totalTd: 2
-        },
-        bigPlays: [
-          '11 yard rushing touchdown',
-          '9 yard rushing touchdown'
-        ] },
+          receptions: 4, receivingYards: 43, receivingYac: 12,
+          receivingTd: 0, receivingLong: 26, targets: 8, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 10.8, totalYards: 43, totalTd: 0
+        } },
       { week: 15, date: '2022-12-03', kickoff: null,
         name: 'ACC Championship',
         opponent: 'Clemson', home: false, conference: false, neutral: true, playoff: true,
         result: { teamScore: 21, opponentScore: 34 }, booster: null,
         stats: {
-          receptions: 5, receivingYards: 83, receivingYac: 30,
-          receivingTd: 0, receivingLong: 51, targets: 8, carries: 12,
-          rushingYards: 67, rushingTd: 0, rushingLong: 23, fumbles: 0,
-          rushingAvg: 5.6, receivingAvg: 16.6, totalYards: 150, totalTd: 0
+          receptions: 4, receivingYards: 64, receivingYac: 31,
+          receivingTd: 0, receivingLong: 54, targets: 6, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 16, totalYards: 64, totalTd: 0
         } },
       { week: 18, date: '2022-12-28', kickoff: null,
         name: 'Holiday Bowl',
         opponent: 'Oregon', home: false, conference: false, neutral: true, playoff: true,
         result: { teamScore: 30, opponentScore: 38 }, booster: null,
         stats: {
-          receptions: 6, receivingYards: 89, receivingYac: 40,
-          receivingTd: 0, receivingLong: 53, targets: 8, carries: 11,
-          rushingYards: 62, rushingTd: 0, rushingLong: 23, fumbles: 0,
-          rushingAvg: 5.6, receivingAvg: 14.8, totalYards: 151, totalTd: 0
-        } },
+          receptions: 7, receivingYards: 103, receivingYac: 23,
+          receivingTd: 1, receivingLong: 45, targets: 9, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 1,
+          receivingAvg: 14.7, totalYards: 103, totalTd: 1
+        },
+        bigPlays: [
+          '8 yard receiving touchdown'
+        ] },
     ],
 
     /* Isaac Vitel — Texas */
@@ -815,7 +816,7 @@ EGE.stats[2022] = {
         bigPlays: [
           '76 yard rushing touchdown',
           '1 yard rushing touchdown',
-          '4 yard receiving touchdown'
+          '11 yard receiving touchdown'
         ] },
       { week:  6, date: '2022-10-08', kickoff: '4:00pm',
         opponent: 'Michigan State', home: false, conference: true,
@@ -845,15 +846,16 @@ EGE.stats[2022] = {
         ] },
       { week:  9, date: '2022-10-29', kickoff: '12:00pm',
         opponent: 'Penn State', home: false, conference: true, scouts: true,
-        result: { teamScore: 54, opponentScore: 21 }, booster: null,
+        result: { teamScore: 44, opponentScore: 31 }, booster: null,
         stats: {
-          carries: 20, rushingYards: 138, rushingTd: 2, rushingLong: 17,
+          carries: 24, rushingYards: 151, rushingTd: 3, rushingLong: 17,
           receptions: 1, receivingYards: 11, receivingYac: 6,
           receivingTd: 0, receivingLong: 11, targets: 1, fumbles: 0,
-          rushingAvg: 6.9, receivingAvg: 11, totalYards: 149, totalTd: 2
+          rushingAvg: 6.3, receivingAvg: 11, totalYards: 162, totalTd: 3
         },
         bigPlays: [
           '8 yard rushing touchdown',
+          '5 yard rushing touchdown',
           '1 yard rushing touchdown'
         ] },
       { week: 10, date: '2022-11-05', kickoff: '12:00pm',
@@ -999,7 +1001,7 @@ EGE.stats[2022] = {
           '31 yard passing touchdown',
           '23 yard passing touchdown',
           '18 yard passing touchdown',
-          '12 yard passing touchdown',
+          '11 yard passing touchdown',
           '47 yard rushing touchdown'
         ] },
       { week:  6, date: '2022-10-08', kickoff: '4:00pm',
@@ -1022,34 +1024,24 @@ EGE.stats[2022] = {
         opponent: 'Iowa', home: true, conference: true, scouts: true,
         result: { teamScore: 59, opponentScore: 6 }, booster: null,
         stats: {
-          completions: 32, attempts: 42, passingYards: 309,
-          passingYac: 144, passingTd: 4, interceptions: 1, carries: 7,
-          rushingYards: 29, rushingTd: 1, rushingLong: 15, sacks: 3,
-          fumbles: 0, passingAvg: 9.7, rating: 118.1, rushingAvg: 4.1
+          completions: 15, attempts: 20, passingYards: 150,
+          passingYac: 70, passingTd: 2, interceptions: 0, carries: 3,
+          rushingYards: 14, rushingTd: 1, rushingLong: 8, sacks: 1,
+          fumbles: 0, passingAvg: 10, rating: 129.2, rushingAvg: 4.7
         },
         bigPlays: [
-          '20 yard passing touchdown',
-          '16 yard passing touchdown',
           '9 yard passing touchdown',
           '7 yard passing touchdown',
           '6 yard rushing touchdown'
         ] },
       { week:  9, date: '2022-10-29', kickoff: '12:00pm',
-        opponent: 'Penn State', home: false, conference: true, scouts: true,
-        result: { teamScore: 54, opponentScore: 21 }, booster: null,
+        opponent: 'Penn State', home: false, conference: true, scouts: true, injured: true, injury: 'Hamstring Strain', health: 64,
+        result: { teamScore: 44, opponentScore: 31 }, booster: null,
         stats: {
-          completions: 26, attempts: 35, passingYards: 267,
-          passingYac: 127, passingTd: 5, interceptions: 0, carries: 8,
-          rushingYards: 15, rushingTd: 0, rushingLong: 6, sacks: 1,
-          fumbles: 0, passingAvg: 10.3, rating: 135.4, rushingAvg: 1.9
-        },
-        bigPlays: [
-          '38 yard passing touchdown',
-          '29 yard passing touchdown',
-          '20 yard passing touchdown',
-          '17 yard passing touchdown',
-          '7 yard passing touchdown'
-        ] },
+          completions: 0, attempts: 0, passingYards: 0, passingYac: 0,
+          passingTd: 0, interceptions: 0, carries: 0, rushingYards: 0,
+          rushingTd: 0, rushingLong: 0, sacks: 0, fumbles: 0
+        } },
       { week: 10, date: '2022-11-05', kickoff: '12:00pm',
         opponent: 'Northwestern', home: false, conference: true,
         result: { teamScore: 38, opponentScore: 0 }, booster: null,

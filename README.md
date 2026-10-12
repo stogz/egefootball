@@ -1488,6 +1488,13 @@ end-of-season Elo in the cfbfastR schedules), with the defense he faces
 counted in, run or pass. They are all regular-season games, so Intel shows
 all four from week 1 and each one can still take a booster.
 
+Paxon is a receiver and nothing else in 2022, with four carries all season,
+and Andrew finishes with 14 touchdown catches. The season has one injury,
+drawn at random with each player's chance going up as his injury rating
+goes down: Jaykeb strains a hamstring against Iowa in week 8 and misses the
+trip to Penn State, which Ohio State still wins 44–31 with Sam carrying more
+of it.
+
 ### Conference standings
 
 The Conference line on a college season's header is the team's place in its
