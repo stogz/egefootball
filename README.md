@@ -714,8 +714,9 @@ anywhere.
 
 A tab next to Players, at `#shop`, **visible only to a signed-in player**.
 Signed out, the tab isn't there and the page says to sign in. Signed in, the
-nav carries the player's credit balance beside their headshot. Everyone starts
-on 0 and earns from there. The catalogue lives in `data/shop.js`.
+nav carries the player's credit balance beside their headshot, with their
+diamond balance (see *Cards → Diamonds*) beside it; on a phone the two stack.
+Everyone starts on 0 and earns from there. The catalogue lives in `data/shop.js`.
 
 Items with a picture name it as `icon`. The originals are in `icon/shop` at
 1254px; the site loads 256px copies from `icon/shop/small`, about 115KB for
@@ -1078,7 +1079,7 @@ owed as *waiting*, and it lands in full the first time they log in.
 the credits follow: an award already on the ledger that is now worth more pays
 the difference and nothing more, so the same week can be settled as often as
 you like. It reaches a player the next time they open the site, and **Pay
-credits** on the admin page pushes it to everyone at once without republishing
+out** on the admin page pushes it to everyone at once without republishing
 anything — which is what that button is for once every week is already out.
 
 The one thing it will not do is take credits back. An award that is now worth
@@ -1108,6 +1109,46 @@ while the weeks are going out.
 The catalogue, the grading, the packs and the library are in
 `data/cards.js`; the Supabase side is `js/cards.js`; the tab is
 `js/cards-view.js`.
+
+### Diamonds
+
+The card game has its own money. **Packs cost diamonds, never credits**, so a
+pack is never bought with something that could have gone on a player — which
+is what kept anybody from buying them. Library sets pay diamonds too. Nothing
+in the simulation takes or gives them.
+
+**Every game pays them**, on top of its credits and off the same numbers: the
+game's fantasy points times the position's share, rounded up. Then **the
+booster on the game multiplies them** — a 1.5x Booster pays 1.5 times the
+diamonds, a 2.0x twice, a 2.5x two and a half times, rounded up again. A
+15-credit game with a 2.5x Booster on it is 15 credits and 38 diamonds. The
+multiplier is the booster's own `multiplier` in `data/shop.js`, and the
+booster is read through `EGE.boosterOn`, so a week still in Supabase and a
+week already written into the season file pay the same.
+
+Diamonds start with **2022** (`EGE.economy.DIAMONDS_FROM`). The seasons before
+it were paid in credits as they went, and four seasons of diamonds at once
+would fill every binder on the first day. A full 2022 pays about 145–225
+diamonds a player before boosters.
+
+**Credits buy diamonds, two for every credit**, from the Buy Diamonds box under
+the packs (`DIAMONDS_PER_CREDIT` in `data/economy.js`, charged by
+`buy_diamonds()` in `supabase/schema.sql` — change both together). At that
+rate a pack costs in credits exactly what it did before diamonds existed.
+**Nothing turns diamonds back into credits** — which is also why the library
+pays diamonds rather than credits now.
+
+They are paid the way credits are: `diamond_awards` is a ledger keyed
+`game-w{week}`, `pay_diamond_awards()` pays what is new and tops up what has
+grown, in one transaction, on every sign-in and every publish. For anybody but
+an admin an award has to carry that key and be no more than 300 (the 120 a
+game's credits are held to, times 2.5). Each game's diamonds show beside its
+credits on the player's own schedule.
+
+Unlike credits, **a player cannot write their own diamond balance**:
+`player_diamonds` has an insert and update policy for an admin only, and a
+player's diamonds move only through paying a game, buying diamonds, opening a
+pack and claiming a set.
 
 ### Where the cards come from
 
@@ -1172,11 +1213,13 @@ YD TD*) and a performance card its yards and touchdowns (*312 YDS 5 TD*).
 
 ### Packs
 
-| Pack | Credits | Cards | |
+| Pack | Diamonds | Cards | |
 | --- | --- | --- | --- |
-| Base | 5 | 3 | any season |
-| Season | 6 | 3 | the live season only, the last card Uncommon or better |
-| Pro | 10 | 5 | any season, the last card Rare or better |
+| Base | 10 | 3 | any season |
+| Season | 12 | 3 | the live season only, the last card Uncommon or better |
+| Pro | 20 | 5 | any season, the last card Rare or better |
+
+Twice what they were in credits, because a credit buys two diamonds.
 
 Each card rolls its rarity on the odds first, then is drawn from every
 published card of that rarity the pack can hold. A rarity with nothing out
@@ -1196,7 +1239,9 @@ The price and size are charged by `open_card_pack()` in
 are in a pack the page decides, because the season files are not in
 Postgres. That is the same trust the credit awards run on, with the easy half
 closed the same way: a pack has to hold exactly its size of real-looking ids,
-and it costs what it costs.
+and it costs what it costs. It is paid from the diamond balance, taken under
+lock, and `card_packs` records it in `diamonds`; its `credits` column is what
+a pack opened before diamonds cost.
 
 ### The collection
 
@@ -1216,25 +1261,25 @@ toward every set it fits, and claiming uses nothing up.
 
 | Set | Needs | Reward |
 | --- | --- | --- |
-| The EGE | a card of each of the six | Rare+ card · 3 credits |
-| Bloomington Connection | 4 Isaac + 4 Paxon, 2018–19 | Rare+ card · 3 credits |
-| Buckeye Backfield | 4 Sam + 4 Jaykeb, 2020 on | Rare+ card · 3 credits |
-| Highlight Reel | 15 different play cards | Epic+ play card · 5 credits |
-| Collector | one of every rarity | Legendary+ card · 10 credits · 1.5x Booster |
-| Hall of Fame | 3 Legendary-or-better | Mystic+ card · 10 credits · 1.5x Booster |
-| *Player* (×6) | 8 different cards of him | Rare+ card of him · 3 credits |
-| *Year* Season (each season) | a performance card of everyone who played | Epic+ card from that year · 5 credits · 1.5x Booster |
+| The EGE | a card of each of the six | Rare+ card · 6 diamonds |
+| Bloomington Connection | 4 Isaac + 4 Paxon, 2018–19 | Rare+ card · 6 diamonds |
+| Buckeye Backfield | 4 Sam + 4 Jaykeb, 2020 on | Rare+ card · 6 diamonds |
+| Highlight Reel | 15 different play cards | Epic+ play card · 10 diamonds |
+| Collector | one of every rarity | Legendary+ card · 20 diamonds · 1.5x Booster |
+| Hall of Fame | 3 Legendary-or-better | Mystic+ card · 20 diamonds · 1.5x Booster |
+| *Player* (×6) | 8 different cards of him | Rare+ card of him · 6 diamonds |
+| *Year* Season (each season) | a performance card of everyone who played | Epic+ card from that year · 10 diamonds · 1.5x Booster |
 
 **The rewards are kept small on purpose.** Measured by simulation with Base
 Packs, a player gets back roughly 30–50% of what they spend on packs
-(counting a booster at its 15-credit shop price), and the early sets come
-first. Cards are a place to spend credits for fun, never a way to make them.
-Rough cost of each set in Base Packs: The EGE about 25 credits, a
-player or Highlight Reel 50–115, Hall of Fame about 75, a past season about
-200, Collector about 2,400 (it needs one of the three Iconics, so it is
-mostly finished by trading for one). The live
-season's set is about 65 through
-Season Packs.
+(counting a booster at its 15-credit shop price, 30 diamonds at the swap
+rate), and the early sets come first. Cards are a place to spend diamonds for
+fun, never a way to make credits. Rough cost of each set in Base Packs: The
+EGE about 50 diamonds, a player or Highlight Reel 100–230, Hall of Fame about
+150, a past season about 400, Collector about 4,800 (it needs one of the
+Iconics, so it is mostly finished by trading for one). The live season's set
+is about 130 through Season Packs. The rewards and the costs both doubled
+with the packs, so these are the same proportions as before.
 
 **A reward booster is an ordinary booster.** It lands on the same stacked
 inventory row a bought one does, and goes on games under the same
@@ -1244,7 +1289,9 @@ season than anybody else can have.
 `claim_card_set()` in `supabase/schema.sql` pays the reward. It checks that
 every card the set was completed with is really in the collection, that the
 set has not been claimed before, and, for anybody but an admin, holds the
-reward to 20 credits and the 1.5x.
+reward to 40 diamonds and the 1.5x. It was `p_credits` before diamonds, and
+Postgres will not rename an argument, so the schema drops the old function
+and creates it again.
 
 ### Trades
 
@@ -1287,7 +1334,7 @@ player or for everybody:
 
 - **Clear library** takes every card out of the collection, empties the
   showcase, cancels open trades and resets the goals, so the player starts
-  the Library over from nothing. Credits stay spent.
+  the Library over from nothing. Diamonds stay spent.
 - **Reset goals** only lets every Library set be claimed again. Cards are
   kept.
 
@@ -1298,8 +1345,10 @@ database functions that refuse anybody who is not in `admins`.
 
 ### In the database
 
-`player_cards` (who owns which ids and how many, readable by any signed-in
-player), `card_packs` (every pack opened and what was in it),
+`player_diamonds` and `diamond_awards` (see *Diamonds* above, readable by
+their owner and an admin), `player_cards` (who owns which ids and how many,
+readable by any signed-in player), `card_packs` (every pack opened and what
+was in it),
 `card_set_claims`, `card_trades` (readable by the two players in it) and
 `card_showcases` (public). None has an insert, update or delete policy:
 cards only move through `open_card_pack()`, `claim_card_set()`, the trade
@@ -1636,7 +1685,7 @@ many have numbers in the file, whether Discord has had it, and a button.
 
 - the scores and stat lines appear on the player pages
 - the records move
-- everybody is paid their touchdown credits, and the credits show on the
+- everybody is paid their game credits and diamonds, and both show on the
   schedule row that earned them
 - the week goes to Discord, with a link back to the site
 
@@ -1739,8 +1788,10 @@ whole way down so the eye can follow it.
 The season totals row is the season, so it stays the same line however the
 games above it are ordered.
 
-A **credits marker** on the row says what the game paid — visible to the
-player and to an admin, nobody else, the same rule the boosters follow.
+A **credits marker** on the row says what the game paid, and a blue
+**diamonds marker** beside it what it paid in diamonds — more than the credits
+when a booster was on the game. Visible to the player and to an admin, nobody
+else, the same rule the boosters follow. The column is headed *Paid*.
 
 ---
 
@@ -1750,19 +1801,28 @@ player and to an admin, nobody else, the same rule the boosters follow.
 else. It holds everything Sam used to do from the shop page, plus the two
 things that end a season.
 
-**Accounts** — every balance and everything each player owns. Set a balance,
-hand an item over without charging for it, remove anything, or pay an award off
-the earnings table — a salary or an honour, which all stack. An award is added
-straight onto the balance and not logged anywhere; the offseason 60 is not in
-the list, because it pays itself.
+**Accounts** — every balance and everything each player owns. Set a player's
+credits or diamonds (each box has its coin or diamond after it, and Save
+writes only the one that was changed, so it never puts back a number a game
+has paid into since), hand an item over without charging for it, remove
+anything, or pay an award off the earnings table — a salary or an honour,
+which all stack. An award is added straight onto the balance and not logged
+anywhere; the offseason 60 is not in the list, because it pays itself.
+
+Above the six, **everybody at once**: a number, credits or diamonds, and
+**Add** (on top of every balance; a minus number takes it off, never below
+nothing) or **Set** (every balance becomes that number, after a confirm,
+since nothing keeps the old ones). Every player with a sign-in, one at a time,
+read then written; a balance that cannot be read is left alone and named.
 
 **Cards** — who has how many cards, sets claimed, open trades and showcase,
 and the two resets, **Clear library** and **Reset goals**, for one player or
 everybody. See *Cards → Admin controls*.
 
-**Credits Earned** — what the season has paid out so far, by player: the
-touchdowns or fantasy points scored, what the games paid, and the allowance.
-Awards handed out by hand are not counted.
+**Credits & Diamonds Earned** — what the season has paid out so far, by
+player: the touchdowns or fantasy points scored, what the games paid, the
+allowance, and the diamonds the games paid. Awards handed out by hand are not
+counted.
 
 **End of Season** — four steps, in this order, because the order is the only
 thing keeping anybody's season safe:
@@ -1871,8 +1931,9 @@ Built so far:
 - `js/app.js` — renders the six cards and routes `#{slug}` to a player view.
 - `data/players.js` — the six players and the season ladder. Source of truth.
 - `js/auth.js` — Supabase auth: sign in, the one-time password, session state.
-- `js/wallet.js` — credits and inventory: balances, buying, using, and the
-  admin's reach across every account.
+- `js/wallet.js` — credits, diamonds and inventory: balances, buying, using,
+  paying out a season, swapping credits for diamonds, and the admin's reach
+  across every account (one balance or everybody's at once).
 - `data/ratings.js` — the attribute list, the per-position weights, every
   player's ratings, and the maths that turns them into an overall.
 
@@ -1890,9 +1951,10 @@ Built so far:
 - `bot/` — the Discord scores bot (see below).
 - `supabase/schema.sql` — every table and policy: accounts, credits,
   inventory, admins, the stickers stuck on games (and the trigger holding
-  them to five a season), the credit awards a season pays out, which
-  weeks are published, and the card collection. **Re-run it after pulling
-  this change** so the card tables and functions are in the database.
+  them to five a season), the credit awards a season pays out, diamonds and
+  their awards, which weeks are published, and the card collection.
+  **Re-run it after pulling this change** so the diamond tables and the
+  diamond-priced pack and set functions are in the database.
 - `js/discord-config.js` — the channel webhook URL, if you are happy for it to
   be public. Blank by default.
 - `supabase/functions/post-week/` — the other way: an edge function that holds
@@ -1904,13 +1966,16 @@ Built so far:
   rarities and their odds, the packs, and the library's sets. See *Cards*.
 - `js/cards.js` — the card collection in Supabase: owned cards, set claims,
   opening a pack and claiming a set.
-- `js/cards-view.js` — the Cards tab: packs, the rip, the collection, trades
-  and the library.
+- `js/cards-view.js` — the Cards tab: packs, buying diamonds, the rip, the
+  collection, trades and the library.
 - `js/showcase.js` — the showcase on a player page, and editing your own.
 - `js/cards-admin.js` — the Cards panel on the admin page and its two resets.
 - `data/economy.js` — every number about credits in one place: what a rating
   point costs, how much overall a point is worth, what a touchdown pays, and
-  the tuning behind all of it. Nothing else in the site invents a price.
+  the tuning behind all of it. Nothing else in the site invents a price. What
+  a game pays in diamonds, and what a credit buys of them, are here too.
+- `icon/diamond.svg` — the diamond beside a diamond balance, used as a mask
+  the way `icon/coin.png` is.
 - `data/season.js` — which season is live, and which seasons have had their
   ratings locked. Small on purpose: the admin portal rewrites this whole file
   when a season is rolled over.

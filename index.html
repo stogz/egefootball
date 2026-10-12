@@ -48,10 +48,17 @@
         <a class="fb-navlink" href="#admin" id="navAdmin" hidden>Admin</a>
       </div>
 
-      <span class="ege-credits" id="navCredits" hidden>
-        <span class="ege-credits__value" id="navCreditsValue">0</span>
-        <span class="ege-coin ege-credits__coin" role="img" aria-label="credits"></span>
-      </span>
+      <!-- the two balances: side by side, and stacked on a phone -->
+      <div class="ege-balances">
+        <span class="ege-credits" id="navCredits" hidden>
+          <span class="ege-credits__value" id="navCreditsValue">0</span>
+          <span class="ege-coin ege-credits__coin" role="img" aria-label="credits"></span>
+        </span>
+        <a class="ege-credits ege-credits--diamonds" id="navDiamonds" href="#cards" hidden>
+          <span class="ege-credits__value" id="navDiamondsValue">0</span>
+          <span class="ege-gem ege-credits__coin" role="img" aria-label="diamonds"></span>
+        </a>
+      </div>
       <button class="fb-btn fb-btn--inverse" id="loginBtn" type="button">Log In</button>
     </div>
   </nav>
@@ -305,13 +312,36 @@
       <div class="fb-panel" id="packsPanel">
         <div class="fb-panel__head">
           <h3>Packs</h3>
-          <div class="ege-ovr ege-ovr--head">
-            <span class="ege-ovr__label">Credits</span>
+          <div class="ege-ovr ege-ovr--head ege-ovr--diamonds">
+            <span class="ege-ovr__label">Diamonds</span>
             <span class="ege-ovr__value" id="cardsBalance">&mdash;</span>
           </div>
         </div>
-        <div class="fb-panel__body">
+        <div class="fb-panel__body fb-stack fb-stack--lg">
           <div class="ege-packs" id="cardPacks"></div>
+
+          <!-- credits into diamonds, one way only -->
+          <div class="ege-swap" id="diamondSwap">
+            <div class="ege-swap__words">
+              <h4 class="ege-item__name">Buy Diamonds</h4>
+              <p class="ege-item__text">
+                Packs are bought with diamonds, never credits. Every game you
+                play pays diamonds on top of its credits: as many as the
+                credits, times the booster on it. Want more? Swap credits for
+                them, <span id="swapRate">2</span> diamonds a credit.
+                Diamonds never turn back into credits.
+              </p>
+            </div>
+            <div class="ege-swap__form">
+              <label class="ege-field ege-field--inline">
+                <span class="fb-eyebrow">Credits</span>
+                <input class="fb-input ege-swap__input" id="swapCredits" type="number"
+                       min="1" step="1" value="5" inputmode="numeric">
+              </label>
+              <button class="fb-btn fb-btn--primary" id="swapBuy" type="button">Buy</button>
+              <span class="fb-meta ege-swap__have" id="swapHave"></span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -370,7 +400,7 @@
         <div class="fb-panel__body fb-stack">
           <p class="fb-meta">
             The number in a card's corner is its fantasy score, half PPR, the
-            same scoring a game pays credits on. A play is scored as the one
+            same scoring a game pays credits and diamonds on. A play is scored as the one
             play. Rarity is graded from that score against the position, so a
             tight end's big night is as rare as a quarterback's. A play is
             graded as if every play were carried or caught, so a 60 yard
@@ -408,8 +438,8 @@
           <span class="fb-kicker">Commissioner</span>
           <h1 class="fb-hero__title">Admin</h1>
           <p class="fb-hero__lede">
-            Every account's credits and inventory, the credits the season has
-            paid out so far, and the files that put a finished season into the
+            Every account's credits, diamonds and inventory, what the season
+            has paid out so far, and the files that put a finished season into the
             repository for good.
           </p>
         </div>
@@ -442,16 +472,16 @@
           <p class="fb-meta">
             The season file holds every result of the year, and nobody sees any
             of it until you put a week out. Publishing shows the scores and the
-            stat lines, moves the records, pays the game credits and posts
-            the week to Discord — one button. Pulling a week back is one click
+            stat lines, moves the records, pays the game credits and diamonds
+            and posts the week to Discord — one button. Pulling a week back is one click
             too, as often as you like.
           </p>
           <p class="fb-meta">
-            Correcting a stat line after its week is out is fine: Pay credits
+            Correcting a stat line after its week is out is fine: Pay out
             works out what everybody is owed again and pays the difference. It
-            never pays the same game twice, and it never takes credits
-            back from a number that went down — adjust a balance by hand for
-            that.
+            never pays the same game twice, and it never takes credits or
+            diamonds back from a number that went down — adjust a balance by
+            hand for that.
           </p>
 
           <div class="fb-row fb-row--wrap ege-weekbar">
@@ -461,8 +491,8 @@
             </label>
             <span class="fb-meta" id="weekSummary"></span>
             <button class="fb-btn fb-btn--sm" id="payCredits" type="button"
-                    title="Pay anything the published weeks owe that has not gone out yet">
-              Pay credits
+                    title="Pay any credits and diamonds the published weeks owe that have not gone out yet">
+              Pay out
             </button>
           </div>
 
@@ -527,7 +557,7 @@
       <!-- what the season has paid out so far -->
       <div class="fb-panel ege-section-gap" id="awardsPanel">
         <div class="fb-panel__head">
-          <h3>Credits Earned</h3>
+          <h3>Credits &amp; Diamonds Earned</h3>
           <span class="fb-meta" id="awardsNote"></span>
         </div>
         <div class="fb-panel__body">
@@ -540,6 +570,7 @@
                   <th>From games</th>
                   <th>Allowance</th>
                   <th>Earned</th>
+                  <th>Diamonds</th>
                 </tr>
               </thead>
               <tbody id="awardsBody"></tbody>
@@ -555,8 +586,32 @@
       <div class="fb-panel ege-section-gap" id="adminPanel">
         <div class="fb-panel__head">
           <h3>Accounts</h3>
-          <span class="fb-meta">Credits, awards and everything bought</span>
+          <span class="fb-meta">Credits, diamonds, awards and everything bought</span>
         </div>
+
+        <!-- every balance at once -->
+        <div class="fb-panel__body fb-stack ege-everyone">
+          <p class="fb-meta">
+            Everybody at once. <strong>Add</strong> puts the number on top of
+            every balance (a minus number takes it off, never below nothing);
+            <strong>Set</strong> makes every balance that number. One player's
+            balance is set on their own card below.
+          </p>
+          <div class="fb-row fb-row--wrap ege-everyone__form">
+            <label class="ege-field ege-field--inline">
+              <span class="fb-eyebrow">Everybody</span>
+              <input class="fb-input ege-account__credits" id="everyoneAmount" type="number"
+                     step="1" value="10" inputmode="numeric" aria-label="How many">
+            </label>
+            <select class="fb-select" id="everyoneCurrency" aria-label="Credits or diamonds">
+              <option value="credits">credits</option>
+              <option value="diamonds">diamonds</option>
+            </select>
+            <button class="fb-btn fb-btn--primary" id="everyoneAdd" type="button">Add</button>
+            <button class="fb-btn" id="everyoneSet" type="button">Set</button>
+          </div>
+        </div>
+
         <div class="fb-panel__body fb-stack fb-stack--lg" id="adminAccounts"></div>
         <div class="fb-panel__foot">
           <span class="fb-meta">Changes save straight away.</span>
@@ -885,7 +940,7 @@
                 <th class="ege-schedule__gradehead" id="scheduleGradeHead"
                     title="The opponent's defense against what you do: the run for a back, the pass for everyone else. A is the toughest, F the softest.">ODEF</th>
                 <th class="num">Result</th>
-                <th class="num" id="scheduleCreditsHead">Credits</th>
+                <th class="num" id="scheduleCreditsHead">Paid</th>
                 <th class="num" id="scheduleBoosterHead">Booster</th>
               </tr>
             </thead>

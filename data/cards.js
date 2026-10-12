@@ -46,8 +46,10 @@
    a rarity hard to pull; how many cards of it exist only decides how many
    different ones there are to find.
 
-   Prices and pack sizes are repeated in supabase/schema.sql
-   (open_card_pack), which charges for them. Change both together.
+   Packs are bought with diamonds, the card game's own money (see
+   data/economy.js), never with credits. Prices and pack sizes are repeated
+   in supabase/schema.sql (open_card_pack), which charges for them. Change
+   both together.
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -90,22 +92,26 @@ EGE.cards = (function () {
 
   /* --- packs ------------------------------------------------------------- */
 
-  /* `size` cards each. `seasonOnly` keeps a pack to the live season, which
-     is what fills up a week at a time. `floor` on the pack is the rarity its
-     last card is guaranteed to reach. Prices and sizes are charged by
-     open_card_pack in supabase/schema.sql. */
+  /* `size` cards each, for `diamonds`. `seasonOnly` keeps a pack to the live
+     season, which is what fills up a week at a time. `floor` on the pack is
+     the rarity its last card is guaranteed to reach. Prices and sizes are
+     charged by open_card_pack in supabase/schema.sql.
+
+     Twice what they were in credits, because a credit buys two diamonds: a
+     Base Pack is still five credits for anybody who would rather swap than
+     wait for a game to pay. */
   var PACKS = [
     {
       key: 'base',
       name: 'Base Pack',
-      credits: 5,
+      diamonds: 10,
       size: 3,
       blurb: 'Three cards from any season, any player.'
     },
     {
       key: 'season',
       name: 'Season Pack',
-      credits: 6,
+      diamonds: 12,
       size: 3,
       seasonOnly: true,
       floor: 'uncommon',
@@ -115,7 +121,7 @@ EGE.cards = (function () {
     {
       key: 'pro',
       name: 'Pro Pack',
-      credits: 10,
+      diamonds: 20,
       size: 5,
       floor: 'rare',
       blurb: 'Five cards from any season, the last one Rare or better.'
@@ -408,13 +414,16 @@ EGE.cards = (function () {
      for every other.
 
      The reward is one more card (rolled at or above `reward.floor`, from
-     `reward.from` when the set names a pool), a few credits, and on the
+     `reward.from` when the set names a pool), a few diamonds, and on the
      harder sets a 1.5x booster. The booster still goes on games under the
      same five-a-season rule as any other, so a full library is never more
      stickers on a season than anybody else can have.
 
-     Credits and the booster are held to 20 and to the 1.5x by
-     claim_card_set in supabase/schema.sql. */
+     Diamonds rather than credits, because packs are bought with diamonds
+     and a set paying credits would turn them back into credits. They are
+     twice what the credits were, the same as the packs. Diamonds and the
+     booster are held to 40 and to the 1.5x by claim_card_set in
+     supabase/schema.sql. */
   var BOOSTER = 'boost-1-5';
 
   function slot(label, test) { return { label: label, test: test }; }
@@ -452,7 +461,7 @@ EGE.cards = (function () {
       slots: EGE.players.map(function (player) {
         return slot(player.name, ofPlayer(player.slug));
       }),
-      reward: { floor: 'rare', credits: 3 }
+      reward: { floor: 'rare', diamonds: 6 }
     });
 
     EGE.players.forEach(function (player) {
@@ -462,7 +471,7 @@ EGE.cards = (function () {
         blurb: 'Eight different ' + player.first + ' cards.',
         group: 'Players',
         slots: times(8, player.first + ' card', ofPlayer(player.slug)),
-        reward: { floor: 'rare', credits: 3, from: ofPlayer(player.slug), fromText: player.first }
+        reward: { floor: 'rare', diamonds: 6, from: ofPlayer(player.slug), fromText: player.first }
       });
     });
 
@@ -472,7 +481,7 @@ EGE.cards = (function () {
       blurb: 'Four Isaac and four Paxon cards from their Bloomington years, 2018 and 2019.',
       slots: times(4, 'Isaac, 2018\u201319', function (c) { return c.slug === 'isaac-vitel' && c.season <= 2019; })
         .concat(times(4, 'Paxon, 2018\u201319', function (c) { return c.slug === 'paxon-hatch' && c.season <= 2019; })),
-      reward: { floor: 'rare', credits: 3 }
+      reward: { floor: 'rare', diamonds: 6 }
     });
 
     out.push({
@@ -481,7 +490,7 @@ EGE.cards = (function () {
       blurb: 'Four Sam and four Jaykeb cards from Ohio State, 2020 on.',
       slots: times(4, 'Sam, Ohio State', function (c) { return c.slug === 'sam-stogsdill' && c.season >= 2020; })
         .concat(times(4, 'Jaykeb, Ohio State', function (c) { return c.slug === 'jaykeb-stewart' && c.season >= 2020; })),
-      reward: { floor: 'rare', credits: 3 }
+      reward: { floor: 'rare', diamonds: 6 }
     });
 
     out.push({
@@ -489,7 +498,7 @@ EGE.cards = (function () {
       name: 'Highlight Reel',
       blurb: 'Fifteen different play cards.',
       slots: times(15, 'Play card', function (c) { return c.kind === 'play'; }),
-      reward: { floor: 'epic', credits: 5,
+      reward: { floor: 'epic', diamonds: 10,
                 from: function (c) { return c.kind === 'play'; }, fromText: 'a play' }
     });
 
@@ -500,7 +509,7 @@ EGE.cards = (function () {
       slots: RARITIES.map(function (r) {
         return slot(r.name, function (c) { return c.rarity === r.key; });
       }),
-      reward: { floor: 'legendary', credits: 10, booster: BOOSTER }
+      reward: { floor: 'legendary', diamonds: 20, booster: BOOSTER }
     });
 
     seasonsWithCards().forEach(function (season) {
@@ -514,7 +523,7 @@ EGE.cards = (function () {
             return c.kind === 'performance' && c.season === season && c.slug === player.slug;
           });
         }),
-        reward: { floor: 'epic', credits: 5, booster: BOOSTER,
+        reward: { floor: 'epic', diamonds: 10, booster: BOOSTER,
                   from: function (c) { return c.season === season; }, fromText: String(season) }
       });
     });
@@ -524,7 +533,7 @@ EGE.cards = (function () {
       name: 'Hall of Fame',
       blurb: 'Three different Legendary-or-better cards.',
       slots: times(3, 'Legendary+', function (c) { return rankOf(c.rarity) >= rankOf('legendary'); }),
-      reward: { floor: 'mystic', credits: 10, booster: BOOSTER }
+      reward: { floor: 'mystic', diamonds: 20, booster: BOOSTER }
     });
 
     setsCache = out;

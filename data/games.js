@@ -483,6 +483,14 @@ EGE.creditsFromGame = function (player, game) {
   return EGE.economy.gameCredits(player, game.stats, game.season);
 };
 
+/* And the diamonds, which are the same credits times the booster that was
+   riding on the game. */
+EGE.diamondsFromGame = function (player, game) {
+  if (!EGE.isFinal(game)) { return 0; }
+  var booster = EGE.boosterOn(player, game);
+  return EGE.economy.gameDiamonds(player, game.stats, game.season, booster && booster.multiplier);
+};
+
 /* --- how good the defense across the way is ------------------------------
 
    Every opponent's defense, graded A to F for the player looking at it: a

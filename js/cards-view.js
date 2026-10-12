@@ -5,6 +5,10 @@
    it changes a rating, a result or a season, so somebody who never opens it
    is not behind anybody at anything.
 
+   Packs are bought with diamonds, the card game's own money, and library
+   sets pay them out. Credits only come into it one way: a player can swap
+   them for diamonds under the packs, and nothing swaps them back.
+
    Signed-in players only, like the shop. js/app.js routes #cards here and
    calls render(); everything else on the page is drawn from in here.
 
@@ -21,7 +25,8 @@ EGE.cardsView = (function () {
     owned: {},          /* card id -> how many */
     first: {},          /* card id -> when it was first pulled */
     claims: {},         /* set key -> the claim row */
-    credits: null,
+    credits: null,      /* only for swapping into diamonds */
+    diamonds: null,     /* what packs are bought with */
     loaded: false,
     fresh: {},          /* ids pulled since the page loaded, for the New badge */
     trades: [],         /* every trade this player is on either side of */
@@ -56,7 +61,21 @@ EGE.cardsView = (function () {
     return c;
   }
 
-  function price(credits) {
+  function gem() {
+    var g = el('span', 'ege-gem');
+    g.setAttribute('role', 'img');
+    g.setAttribute('aria-label', 'diamonds');
+    return g;
+  }
+
+  /* What something costs in diamonds -- every price on this tab. */
+  function price(diamonds) {
+    var box = el('span', 'ege-price', String(diamonds));
+    box.appendChild(gem());
+    return box;
+  }
+
+  function creditPrice(credits) {
     var box = el('span', 'ege-price', String(credits));
     box.appendChild(coin());
     return box;
@@ -84,12 +103,15 @@ EGE.cardsView = (function () {
     return (shown < 0 ? '\u2212' : '') + Math.abs(shown).toFixed(1);
   }
 
-  /* Tells the rest of the page the balance has moved, and that the
+  /* Tells the rest of the page the balances have moved, and that the
      inventory may have too (a set can pay out a booster). js/app.js
-     redraws the nav and the shop from it. */
-  function walletChanged(credits) {
+     redraws the nav and the shop from it. Either may be left out. */
+  function walletChanged(credits, diamonds) {
     if (typeof credits === 'number' && !isNaN(credits)) { state.credits = credits; }
-    document.dispatchEvent(new window.CustomEvent('ege:wallet', { detail: { credits: state.credits } }));
+    if (typeof diamonds === 'number' && !isNaN(diamonds)) { state.diamonds = diamonds; }
+    document.dispatchEvent(new window.CustomEvent('ege:wallet', {
+      detail: { credits: state.credits, diamonds: state.diamonds }
+    }));
   }
 
   function ownedIds() { return Object.keys(state.owned); }
@@ -243,15 +265,15 @@ EGE.cardsView = (function () {
       var buy = el('button', 'fb-btn fb-btn--primary fb-btn--block ege-packtile__buy');
       buy.type = 'button';
       buy.appendChild(document.createTextNode('Buy & Rip \u00b7 '));
-      buy.appendChild(price(pack.credits));
+      buy.appendChild(price(pack.diamonds));
 
       var why = null;
       if (pool.length < pack.size) {
         why = pack.seasonOnly
           ? 'Opens once the first week of ' + EGE.currentSeason + ' is out.'
           : 'Opens once there are games out to put in it.';
-      } else if (state.credits !== null && state.credits < pack.credits) {
-        why = 'Not enough credits yet.';
+      } else if (state.diamonds !== null && state.diamonds < pack.diamonds) {
+        why = 'Not enough diamonds yet.';
       }
       buy.disabled = Boolean(why) || !state.loaded;
       if (why) { words.appendChild(el('p', 'ege-item__blocked', why)); }
@@ -262,7 +284,59 @@ EGE.cardsView = (function () {
       holder.appendChild(tile);
     });
 
-    byId('cardsBalance').textContent = state.credits === null ? '\u2014' : state.credits;
+    byId('cardsBalance').textContent = state.diamonds === null ? '\u2014' : state.diamonds;
+    renderSwap();
+  }
+
+  /* --- swapping credits for diamonds -------------------------------------
+
+     One way only, at EGE.economy.DIAMONDS_PER_CREDIT. buy_diamonds in
+     supabase/schema.sql takes the credits and adds the diamonds in one go,
+     and charges the rate itself. */
+
+  function swapAmount() {
+    var n = Math.floor(Number(byId('swapCredits').value));
+    return n > 0 ? n : 0;
+  }
+
+  function renderSwap() {
+    var rate = EGE.economy.DIAMONDS_PER_CREDIT;
+    var spend = swapAmount();
+    byId('swapRate').textContent = rate;
+
+    var button = byId('swapBuy');
+    button.innerHTML = '';
+    button.appendChild(document.createTextNode('Get '));
+    button.appendChild(price(spend * rate));
+    button.disabled = !state.loaded || !spend || state.credits === null || state.credits < spend;
+
+    var have = byId('swapHave');
+    have.innerHTML = '';
+    if (state.credits === null) { return; }
+    have.appendChild(document.createTextNode('You have '));
+    have.appendChild(creditPrice(state.credits));
+    have.appendChild(document.createTextNode(spend > state.credits
+      ? '. That is more than you have.'
+      : '. This costs ' + spend + (spend === 1 ? ' credit.' : ' credits.')));
+  }
+
+  function buySwap() {
+    var spend = swapAmount();
+    var button = byId('swapBuy');
+    if (!spend) { return; }
+    button.disabled = true;
+    say('', false);
+
+    EGE.wallet.buyDiamonds(spend).then(function (res) {
+      if (!res.ok) {
+        say(res.message, true);
+        renderSwap();
+        return;
+      }
+      walletChanged(res.credits, res.diamonds);
+      say(res.message, false);
+      renderPacks();
+    });
   }
 
   function buyPack(pack, button) {
@@ -290,7 +364,7 @@ EGE.cardsView = (function () {
          and the counts stay as they were until the pack is put away --
          otherwise they give the pack away before a card is turned over. */
       state.hold = true;
-      walletChanged(res.credits);
+      walletChanged(null, res.diamonds);
       renderPacks();
 
       openRip({ pack: pack, cards: res.cards, isNew: isNew,
@@ -336,7 +410,7 @@ EGE.cardsView = (function () {
     rip.node.querySelector('.ege-rip__done').hidden = false;
     var again = rip.node.querySelector('.ege-rip__again');
     if (again && rip.pack) {
-      var affordable = state.credits !== null && state.credits >= rip.pack.credits &&
+      var affordable = state.diamonds !== null && state.diamonds >= rip.pack.diamonds &&
         EGE.cards.pullable(rip.pack.key).length >= rip.pack.size;
       again.hidden = !affordable;
     }
@@ -438,7 +512,7 @@ EGE.cardsView = (function () {
       again.type = 'button';
       again.hidden = true;
       again.appendChild(document.createTextNode('Another \u00b7 '));
-      again.appendChild(price(options.pack.credits));
+      again.appendChild(price(options.pack.diamonds));
       again.addEventListener('click', function () {
         var pack = options.pack;
         closeRip();
@@ -1004,7 +1078,7 @@ EGE.cardsView = (function () {
     var floor = EGE.cards.rarity(rw.floor).name;
     var parts = [(/^[AEIOU]/.test(floor) ? 'An ' : 'A ') + floor + '-or-better card' +
       (rw.fromText ? ' (' + rw.fromText + ')' : '')];
-    if (rw.credits) { parts.push(rw.credits + ' credits'); }
+    if (rw.diamonds) { parts.push(rw.diamonds + ' diamonds'); }
     if (rw.booster) {
       var item = EGE.shopItem ? EGE.shopItem(rw.booster) : null;
       parts.push(item ? item.name : '1.5x Booster');
@@ -1105,19 +1179,19 @@ EGE.cardsView = (function () {
 
       var isNew = res.card ? !state.owned[res.card.id] : false;
       var extras = [];
-      if (set.reward.credits) { extras.push('+' + set.reward.credits + ' credits'); }
+      if (set.reward.diamonds) { extras.push('+' + set.reward.diamonds + ' diamonds'); }
       if (set.reward.booster) { extras.push('a 1.5x Booster in your shop inventory'); }
 
       /* Like a pack: the reward card stays face down, and out of the
          collection and the library, until it is put away. */
       if (res.card) {
         state.hold = true;
-        walletChanged(res.credits);
+        walletChanged(null, res.diamonds);
         renderPacks();
         openRip({ title: set.name + ' complete', cards: [res.card], isNew: [isNew], extras: extras,
                   onClose: function () { reveal([res.card], [isNew]); } });
       } else {
-        walletChanged(res.credits);
+        walletChanged(null, res.diamonds);
         say(set.name + ' complete: ' + extras.join(', ') + '.', false);
         refresh();
       }
@@ -1193,6 +1267,8 @@ EGE.cardsView = (function () {
     built = true;
     renderFilters();
     byId('tradeNew').addEventListener('click', openTradeBuilder);
+    byId('swapCredits').addEventListener('input', renderSwap);
+    byId('swapBuy').addEventListener('click', buySwap);
   }
 
   function refresh() {
@@ -1203,7 +1279,8 @@ EGE.cardsView = (function () {
       EGE.cardStore.collectionFor(player.email),
       EGE.cardStore.claimsFor(player.email),
       EGE.wallet.creditsFor(player.email),
-      EGE.cardStore.tradesFor(player.email)
+      EGE.cardStore.tradesFor(player.email),
+      EGE.wallet.diamondsFor(player.email)
     ]).then(function (all) {
       if (state.player !== player) { return; }
       if (all[0] === null) {
@@ -1215,7 +1292,11 @@ EGE.cardsView = (function () {
       state.claims = all[1];
       state.credits = all[2];
       state.trades = all[3];
+      state.diamonds = all[4];
       state.loaded = all[0] !== null;
+      if (all[4] === null && all[0] !== null) {
+        say('Your diamonds could not be loaded. Run supabase/schema.sql to set up the diamond tables, then reload.', true);
+      }
       renderAll();
     });
   }
@@ -1244,6 +1325,7 @@ EGE.cardsView = (function () {
     state.first = {};
     state.claims = {};
     state.credits = null;
+    state.diamonds = null;
     state.loaded = false;
     state.fresh = {};
     state.trades = [];

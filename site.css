@@ -41,6 +41,11 @@
 
   --fb-gold: #f0b82a;               /* new: season / year chips */
 
+  /* Diamonds, the card game's money: ice blue on the dark nav, and a deeper
+     blue wherever it sits on cream, which the light one does not clear. */
+  --fb-diamond: #7fdcf5;
+  --fb-diamond-deep: #17698f;       /* on cream: 5.55:1 */
+
   /* Two floors the fluid type scale below is not allowed to cross. A
      small-caps label stops shrinking at 11px, which is what the mobile audit
      holds every label to, and small print made of sentences stops at 11.5.
@@ -788,7 +793,35 @@ body::before {
 }
 .ege-price .ege-coin { margin-left: .34em; }
 
+/* The diamond: the card game's money, drawn the way the coin is -- a mask
+   filled with the colour of the text around it, as tall as a digit and
+   standing on the baseline -- so a diamond price and a credit price line up
+   with each other. icon/diamond.svg is drawn tight to its edges for the same
+   reason the coin is cropped. */
+.ege-gem {
+  --coin-height: .71em;                  /* Figtree digits */
+
+  display: inline-block;
+  vertical-align: baseline;
+  height: var(--coin-height);
+  aspect-ratio: 100 / 88;                /* icon/diamond.svg */
+  background-color: currentColor;
+  -webkit-mask: url('icon/diamond.svg') center / contain no-repeat;
+  mask: url('icon/diamond.svg') center / contain no-repeat;
+}
+.ege-price .ege-gem { margin-left: .34em; }
+
 /* --- credits in the nav ------------------------------------------------- */
+
+/* Credits and diamonds, side by side. Holds nothing while signed out, and
+   then takes no room either. */
+.ege-balances {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+.ege-balances:not(:has(> :not([hidden]))) { display: none; }
 
 .ege-credits {
   display: inline-flex;
@@ -811,6 +844,14 @@ body::before {
 }
 /* The balance is set in the display face, whose digits are shorter. */
 .ege-credits__coin { --coin-height: .67em; }
+
+/* The diamond balance beside it: the same chip in ice blue. */
+.ege-credits--diamonds {
+  border-color: var(--fb-diamond);
+  color: var(--fb-diamond);
+  text-decoration: none;               /* it is a way to the Cards tab */
+}
+.ege-credits--diamonds:hover { background: rgba(127, 220, 245, .12); }
 
 /* --- signed-in avatar --------------------------------------------------- */
 
@@ -988,6 +1029,22 @@ body::before {
    rather than run straight into the end of it. */
 .ege-editcard .ege-who .fb-meta { display: block; margin-top: 2px; }
 .ege-account__credits { width: 96px; }
+/* A balance box with its coin or diamond after it, so two boxes side by side
+   say which is which without a label each. */
+.ege-account__balances { align-items: center; gap: 10px 14px; }
+.ege-account__balance {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 1rem;
+}
+.ege-account__balance .ege-coin { color: var(--fb-ink); }
+.ege-account__balance .ege-gem { color: var(--fb-diamond-deep); }
+
+/* The everybody-at-once form above the six accounts. */
+.ege-everyone { border-bottom: var(--fb-border-thin) solid var(--fb-ink); }
+.ege-everyone__form { align-items: center; gap: 10px 12px; }
+.ege-everyone .ege-account__credits { width: 96px; }
 .ege-avatar--sm {
   width: 38px;
   height: 38px;
@@ -2555,6 +2612,13 @@ body::before {
   font-size: .75rem;
   font-weight: 800;
 }
+/* The diamonds a game paid, beside its credits, in the diamond's blue. */
+.ege-schedule__paid--gem {
+  margin-left: 4px;
+  color: var(--fb-diamond-deep);
+  background: #e3f5fb;
+}
+.ege-schedule__paid--gem .ege-gem { margin-left: .2em; }
 
 /* The season editor: a lot of small number fields in a tidy grid. */
 .ege-statgrid {
@@ -2806,6 +2870,19 @@ body {
   .fb-navlink { padding-left: 9px; padding-right: 9px; font-size: .875rem; }
 
   .ege-credits { padding: 4px 9px; }
+
+  /* Two balances side by side push the face onto a line of its own, so on a
+     phone they stack, the pair as tall as the face beside it. */
+  .ege-balances {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 3px;
+  }
+  .ege-balances .ege-credits {
+    justify-content: flex-end;
+    padding: 1px 7px;
+    font-size: .9375rem;
+  }
   /* 44 and no smaller: it is the way into the portal, and Apple's floor. */
   .ege-avatarbtn { width: 44px; height: 44px; }
   .ege-avatarbtn .ege-avatar { width: 100%; height: 100%; }
@@ -4396,6 +4473,38 @@ html.ege-noscroll body { overflow: hidden; }
   min-width: 0;
 }
 .ege-packtile__buy { margin-top: auto; }
+
+/* Swapping credits for diamonds, under the packs: what it is on the left,
+   the form on the right, and the form under the words once there is no room
+   beside them. Dashed, so it reads as a side door rather than a fourth pack. */
+.ege-swap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 28px;
+  padding: 16px;
+  border: var(--fb-border-thin) dashed var(--fb-ink);
+  background: var(--fb-tint-wash);
+}
+.ege-swap__words {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 320px;
+  min-width: 0;
+}
+.ege-swap__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+}
+/* Narrow, against the full width .ege-field gives an input. */
+.ege-swap .ege-swap__input { width: 6.5em; }
+.ege-swap__have { flex-basis: 100%; }
+
+/* The diamond balance at the head of the Packs panel. */
+.ege-ovr--diamonds .ege-ovr__label { color: var(--fb-diamond); }
 
 /* A foil pouch, crimped top and bottom. The top strip is its own piece so
    it can come away when the pack is torn. */

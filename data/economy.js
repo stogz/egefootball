@@ -18,6 +18,9 @@
    to 100 when the overall moved to key attributes, since a point in one of
    those is now worth about twice what it was. Retune it by
    changing this number and re-running the numbers in the README.
+
+   Diamonds, the card game's money, are worked out here too, because a game
+   pays them off the same numbers it pays credits on.
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -269,6 +272,67 @@ EGE.economy = (function () {
     return out;
   }
 
+  /* --- diamonds ----------------------------------------------------------
+
+     The card game's own money. Packs cost diamonds and nothing else, so a
+     pack is never bought with something that could have gone on a player,
+     and nothing in the simulation takes or gives them.
+
+     A game pays the diamonds it would pay in credits -- the same fantasy
+     points times the same position share, rounded up -- and then the
+     booster riding on it multiplies them: a 1.5x Booster pays 1.5 times the
+     diamonds, a 2.0x twice and a 2.5x two and a half times, rounded up
+     again. The multiplier is the booster's own (`multiplier` in
+     data/shop.js), so the two can never disagree.
+
+     They start with the 2022 season. Every season before it was paid in
+     credits as it went, and handing out four seasons of diamonds at once
+     would fill everybody's binder on the first day.
+
+     Credits buy diamonds, two for every credit, and nothing buys credits
+     back. At that rate a pack costs in credits exactly what it did before
+     diamonds existed. buy_diamonds in supabase/schema.sql charges it, so the
+     two numbers change together. */
+  var DIAMONDS_FROM = 2022;
+  var DIAMONDS_PER_CREDIT = 2;
+
+  function paysDiamonds(season) {
+    return (season || EGE.currentSeason) >= DIAMONDS_FROM;
+  }
+
+  function gameDiamonds(player, stats, season, multiplier) {
+    if (!stats || !paysDiamonds(season)) { return 0; }
+    var credits = gameCredits(player, stats, season);
+    var times = typeof multiplier === 'number' && multiplier > 0 ? multiplier : 1;
+    return Math.ceil(Math.round(credits * times * 100) / 100);
+  }
+
+  /* Every game's diamonds for a season, keyed game-w{week}, which is the key
+     pay_diamond_awards in supabase/schema.sql accepts from a player's own
+     browser. The booster on a game is read through EGE.boosterOn, so a week
+     still in Supabase and a week already written into the season file pay
+     the same. js/wallet.js does the paying. */
+  function diamondAwardsEarned(player, season) {
+    var year = season || EGE.currentSeason;
+    var out = [];
+    if (!player || !paysDiamonds(year)) { return out; }
+
+    EGE.gamesPlayed(player, year).forEach(function (game) {
+      var booster = EGE.boosterOn ? EGE.boosterOn(player, game) : null;
+      var diamonds = gameDiamonds(player, game.stats, year, booster && booster.multiplier);
+      if (!diamonds) { return; }
+      out.push({
+        key: 'game-w' + game.week,
+        diamonds: diamonds,
+        note: fantasyPoints(game.stats) + ' fantasy points' +
+              (booster ? ' with a ' + booster.name : '') +
+              ' in week ' + game.week + ' v ' + game.opponent
+      });
+    });
+
+    return out;
+  }
+
   return {
     UPGRADE_BASE: UPGRADE_BASE,
     MAX_RATING: MAX_RATING,
@@ -292,6 +356,11 @@ EGE.economy = (function () {
     paysFantasy: paysFantasy,
     gameCredits: gameCredits,
     rateText: rateText,
-    awardsEarned: awardsEarned
+    awardsEarned: awardsEarned,
+    DIAMONDS_FROM: DIAMONDS_FROM,
+    DIAMONDS_PER_CREDIT: DIAMONDS_PER_CREDIT,
+    paysDiamonds: paysDiamonds,
+    gameDiamonds: gameDiamonds,
+    diamondAwardsEarned: diamondAwardsEarned
   };
 })();

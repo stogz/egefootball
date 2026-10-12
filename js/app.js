@@ -1092,6 +1092,18 @@
         var tag = el('span', 'ege-schedule__paid', '+' + earned);
         tag.title = earned + ' credits for this game';
         credits.appendChild(tag);
+
+        /* And its diamonds beside them: the same number, or more when a
+           booster was riding on the game. */
+        var gems = EGE.diamondsFromGame(schedulePlayer, game);
+        if (gems) {
+          var gemTag = el('span', 'ege-schedule__paid ege-schedule__paid--gem', '+' + gems);
+          var mark = el('span', 'ege-gem');
+          mark.setAttribute('aria-hidden', 'true');
+          gemTag.appendChild(mark);
+          gemTag.title = gems + ' diamonds for this game';
+          credits.appendChild(gemTag);
+        }
       } else {
         credits.appendChild(el('span', 'ege-schedule__pending', '—'));
       }
@@ -3695,13 +3707,33 @@
   /* --- admin ------------------------------------------------------------- */
 
   var sayAdmin = reporter('adminMessage');
-  var adminState = { credits: [], inventory: [], awards: [], ratingsDownloaded: false };
+  var adminState = { credits: [], diamonds: null, inventory: [], awards: [], diamondAwards: [],
+                     ratingsDownloaded: false };
 
   function isAdmin() { return EGE.wallet.admin(); }
 
+  /* A balance to type over, with its coin or its diamond after it. */
+  function balanceField(value, label, icon) {
+    var field = el('label', 'ege-account__balance');
+    var input = el('input', 'fb-input ege-account__credits');
+    input.type = 'number';
+    input.min = '0';
+    input.value = value === null ? '' : value;
+    input.setAttribute('aria-label', label);
+    field.appendChild(input);
+    var mark = el('span', icon);
+    mark.setAttribute('aria-hidden', 'true');
+    field.appendChild(mark);
+    return { field: field, input: input };
+  }
+
   /* One account: what it holds, what it has been paid, and the two things an
-     admin does to it by hand — set a balance, or hand something over. */
-  function adminAccount(player, credits, rows) {
+     admin does to it by hand — set its balances, or hand something over.
+
+     `diamonds` is null when the diamond table could not be read, and then
+     that box is shut rather than offering to write a number over one
+     nobody has seen. */
+  function adminAccount(player, credits, diamonds, rows) {
     var box = el('div', 'ege-account');
 
     var head = el('div', 'ege-account__head');
@@ -3713,21 +3745,40 @@
     who.appendChild(el('span', 'ege-account__name', player.name));
     head.appendChild(who);
 
-    var editor = el('div', 'fb-row');
-    var input = el('input', 'fb-input ege-account__credits');
-    input.type = 'number';
-    input.min = '0';
-    input.value = credits;
-    input.setAttribute('aria-label', 'Credits for ' + player.name);
-    editor.appendChild(input);
+    var editor = el('div', 'fb-row fb-row--wrap ege-account__balances');
+    var creditBox = balanceField(credits, 'Credits for ' + player.name, 'ege-coin');
+    var gemBox = balanceField(diamonds, 'Diamonds for ' + player.name, 'ege-gem');
+    gemBox.input.disabled = diamonds === null;
+    if (diamonds === null) { gemBox.input.placeholder = '\u2014'; }
+    editor.appendChild(creditBox.field);
+    editor.appendChild(gemBox.field);
 
+    /* Only what was changed is written. Saving a credit balance must not put
+       back a diamond number that a game has paid into since the page was
+       drawn, and the other way round. */
     var save = el('button', 'fb-btn fb-btn--primary', 'Save');
     save.type = 'button';
     save.addEventListener('click', function () {
+      var jobs = [];
+      if (String(creditBox.input.value) !== String(credits)) {
+        jobs.push(EGE.wallet.setCredits(player.email, creditBox.input.value).then(function (res) {
+          return res.ok ? { ok: true, text: res.credits + ' credits' } : res;
+        }));
+      }
+      if (diamonds !== null && String(gemBox.input.value) !== String(diamonds)) {
+        jobs.push(EGE.wallet.setDiamonds(player.email, gemBox.input.value).then(function (res) {
+          return res.ok ? { ok: true, text: res.diamonds + ' diamonds' } : res;
+        }));
+      }
+      if (!jobs.length) { sayAdmin('Nothing changed for ' + player.first + '.', false); return; }
+
       save.disabled = true;
-      EGE.wallet.setCredits(player.email, input.value).then(function (res) {
+      Promise.all(jobs).then(function (all) {
         save.disabled = false;
-        sayAdmin(res.ok ? player.first + ' now has ' + res.credits + ' credits.' : res.message, !res.ok);
+        var bad = all.filter(function (res) { return !res.ok; })[0];
+        sayAdmin(bad ? bad.message
+                     : player.first + ' now has ' + all.map(function (res) { return res.text; }).join(' and ') + '.',
+                 Boolean(bad));
         refreshAdminView();
       });
     });
@@ -3820,10 +3871,38 @@
 
     EGE.playersWithAccounts().forEach(function (player) {
       var row = adminState.credits.filter(function (c) { return c.email === player.email; })[0];
+      var gems = adminState.diamonds === null ? null
+        : adminState.diamonds.filter(function (d) { return d.email === player.email; })[0];
       var owned = adminState.inventory.filter(function (i) { return i.email === player.email; });
       holder.appendChild(adminAccount(player, row ? row.credits : EGE.shop.startingCredits,
+                                     adminState.diamonds === null ? null : (gems ? gems.diamonds : 0),
                                      owned));
     });
+  }
+
+  /* Every balance at once: add the number to all of them, or set all of
+     them to it, in credits or in diamonds. Set asks first, since it writes
+     over six numbers nobody has written down. */
+  function wireEveryone() {
+    function run(mode, button) {
+      var amount = document.getElementById('everyoneAmount').value;
+      var currency = document.getElementById('everyoneCurrency').value;
+      if (mode === 'set' && !window.confirm('Set every balance to ' + amount + ' ' + currency +
+                                            '? What each player has now is not kept anywhere.')) {
+        return;
+      }
+      button.disabled = true;
+      EGE.wallet.adjustEveryone(currency, mode, amount).then(function (res) {
+        button.disabled = false;
+        sayAdmin(res.message, !res.ok);
+        refreshAdminView();
+        updateNavCreditsFromServer();
+      });
+    }
+    var add = document.getElementById('everyoneAdd');
+    var set = document.getElementById('everyoneSet');
+    add.addEventListener('click', function () { run('add', add); });
+    set.addEventListener('click', function () { run('set', set); });
   }
 
   /* --- what the season has paid out --------------------------------------- */
@@ -3838,7 +3917,7 @@
     var body = document.getElementById('awardsBody');
     body.innerHTML = '';
 
-    var totals = { all: 0, touchdowns: 0, games: 0, waiting: 0 };
+    var totals = { all: 0, touchdowns: 0, games: 0, waiting: 0, diamonds: 0 };
     var fantasySeason = EGE.economy.paysFantasy(EGE.currentSeason);
     document.getElementById('awardsScored').textContent = fantasySeason ? 'Fantasy pts' : 'Touchdowns';
 
@@ -3890,6 +3969,13 @@
       tr.appendChild(name);
       tr.appendChild(el('td', 'num', String(touchdowns)));
 
+      /* What the games have paid in diamonds, off their own ledger. */
+      var gems = adminState.diamondAwards.filter(function (a) {
+        return player.email && a.email &&
+               a.email.toLowerCase() === player.email.toLowerCase();
+      }).reduce(function (sum, a) { return sum + a.diamonds; }, 0);
+      totals.diamonds += gems;
+
       if (player.email) {
         [sums.td, sums.offseason].forEach(function (value) {
           tr.appendChild(el('td', 'num', String(value)));
@@ -3897,10 +3983,12 @@
         var total = el('td', 'num');
         total.appendChild(el('strong', null, String(all)));
         tr.appendChild(total);
+        tr.appendChild(el('td', 'num', EGE.economy.paysDiamonds(season) ? String(gems) : '—'));
       } else {
         /* Nothing can be paid into an account that does not exist yet. What
            the touchdowns are worth shows as waiting, not as earned. */
         tr.appendChild(el('td', 'num', owed ? owed + ' waiting' : '—'));
+        tr.appendChild(el('td', 'num', '—'));
         tr.appendChild(el('td', 'num', '—'));
         tr.appendChild(el('td', 'num', '—'));
         tr.appendChild(el('td', 'num', '—'));
@@ -3917,7 +4005,8 @@
 
     document.getElementById('awardsFoot').textContent = fantasySeason
       ? (totals.games
-          ? totals.games + ' games played, ' + totals.all + ' credits paid out' + waiting
+          ? totals.games + ' games played, ' + totals.all + ' credits' +
+            (totals.diamonds ? ' and ' + totals.diamonds + ' diamonds' : '') + ' paid out' + waiting
           : 'No games posted yet. Every game pays its fantasy points (half PPR), ' +
             'rounded up, at ' + shares.QB + ' for a quarterback, ' + shares.RB +
             ' for a back and ' + shares.TE + ' for a tight end or receiver.')
@@ -4093,33 +4182,60 @@
     });
   }
 
-  /* Everyone's touchdown credits for the season, now that a week has landed.
+  /* Everyone's game credits and diamonds for the season, now that a week
+     has landed.
 
      Every player, and every week, not just the one going out: paying is keyed
      on what earned it, so a week that is already square costs one call and
      pays nothing, and a stat line corrected since it was published pays the
-     difference. That is what makes this safe to run as often as you like. */
+     difference. That is what makes this safe to run as often as you like.
+
+     The stickers on the season's games are loaded once, before any diamonds
+     are worked out, since a booster multiplies them. */
   function payTheWeek(season) {
-    return Promise.all(EGE.playersWithAccounts().map(function (player) {
-      return EGE.wallet.syncAwards(player, season).then(function (res) {
-        return { player: player, paid: res.paid || 0, problem: res.message || null };
-      });
-    })).then(function (all) {
-      var paid = all.filter(function (one) { return one.paid > 0; });
+    var boosters = season === EGE.currentSeason
+      ? EGE.wallet.loadGameBoosters(season)
+      : Promise.resolve();
+
+    return boosters.then(function () {
+      return Promise.all(EGE.playersWithAccounts().map(function (player) {
+        return Promise.all([
+          EGE.wallet.syncAwards(player, season),
+          EGE.wallet.syncDiamonds(player, season, true)
+        ]).then(function (both) {
+          return {
+            player: player,
+            paid: both[0].paid || 0,
+            diamonds: both[1].paid || 0,
+            problem: both[0].message || both[1].message || null
+          };
+        });
+      }));
+    }).then(function (all) {
+      function tally(key, word) {
+        var paid = all.filter(function (one) { return one[key] > 0; });
+        return {
+          total: paid.reduce(function (sum, one) { return sum + one[key]; }, 0),
+          names: paid.map(function (one) { return one.player.first + ' +' + one[key]; }),
+          word: word
+        };
+      }
       return {
-        credits: paid.reduce(function (sum, one) { return sum + one.paid; }, 0),
-        names: paid.map(function (one) { return one.player.first + ' +' + one.paid; }),
+        credits: tally('paid', 'credits'),
+        diamonds: tally('diamonds', 'diamonds'),
         missed: all.filter(function (one) { return one.problem; })
                    .map(function (one) { return one.player.first; })
       };
     });
   }
 
-  /* What to tell the admin about the credits, which is never nothing. */
+  /* What to tell the admin about the payout, which is never nothing. */
   function creditLine(paid) {
-    var line = paid.credits
-      ? paid.credits + ' credits paid \u2014 ' + paid.names.join(', ') + '.'
-      : 'No credits were owed.';
+    var parts = [paid.credits, paid.diamonds].filter(function (one) { return one.total; })
+      .map(function (one) {
+        return one.total + ' ' + one.word + ' paid \u2014 ' + one.names.join(', ') + '.';
+      });
+    var line = parts.length ? parts.join(' ') : 'No credits or diamonds were owed.';
     if (paid.missed.length) {
       line += ' ' + paid.missed.join(', ') + ' could not be paid.';
     }
@@ -4614,12 +4730,20 @@
       EGE.wallet.allAwards(EGE.currentSeason),
       EGE.wallet.loadBoosts(),
       EGE.wallet.loadPublishedWeeks(),
-      EGE.wallet.publishedRows()
+      EGE.wallet.publishedRows(),
+      EGE.wallet.diamondsFor(EGE.auth.currentPlayer() && EGE.auth.currentPlayer().email),
+      EGE.wallet.allDiamonds(),
+      EGE.wallet.allDiamondAwards(EGE.currentSeason)
     ]).then(function (all) {
       adminState.credits = all[0];
       adminState.inventory = all[1];
       adminState.awards = all[2];
       weekState.published = all[5];
+      /* Whether the diamond table is there at all is the admin's own balance
+         answering: a missing table is an error there, where an empty list
+         from allDiamonds could just mean nobody has any yet. */
+      adminState.diamonds = all[6] === null ? null : all[7];
+      adminState.diamondAwards = all[8];
       renderAccounts();
       renderAwards();
       renderLockPreview();
@@ -4644,6 +4768,7 @@
                                           EGE.currentSeason);
       wireSeasonPanel();
       wireWeekPanel();
+      wireEveryone();
     }
     sayAdmin('', false);
 
@@ -4670,10 +4795,12 @@
       EGE.wallet.creditsFor(player.email),
       EGE.wallet.inventoryFor(player.email),
       EGE.wallet.loadBoosts(),
-      EGE.wallet.loadGameBoosters(EGE.currentSeason)
+      EGE.wallet.loadGameBoosters(EGE.currentSeason),
+      EGE.wallet.diamondsFor(player.email)
     ]).then(function (all) {
       shopState.credits = all[0] === null ? EGE.shop.startingCredits : all[0];
       shopState.inventory = all[1];
+      updateNavDiamonds(all[4]);
       renderInventory();
       refreshStackedPrices();
       refreshLevelPrices();
@@ -4784,6 +4911,7 @@
     var player = EGE.auth.currentPlayer();
     if (!player) { return; }
     EGE.wallet.creditsFor(player.email).then(updateNavCredits);
+    EGE.wallet.diamondsFor(player.email).then(updateNavDiamonds);
   }
 
   /* Boosts land after a page may already have been drawn — the roster's
@@ -5071,12 +5199,15 @@
     openLogin();
   });
 
-  /* The Cards tab spends credits and a library set can pay out a booster,
-     so the balance in the nav and the shop's inventory -- which the sticker
-     drawer reads -- are brought up to date when it says so. */
+  /* The Cards tab spends diamonds, swaps credits for them, and a library
+     set can pay out a booster, so the balances in the nav and the shop's
+     inventory -- which the sticker drawer reads -- are brought up to date
+     when it says so. */
   document.addEventListener('ege:wallet', function (event) {
     var credits = event.detail && event.detail.credits;
+    var diamonds = event.detail && event.detail.diamonds;
     if (typeof credits === 'number') { updateNavCredits(credits); }
+    if (typeof diamonds === 'number') { updateNavDiamonds(diamonds); }
     refreshShop();
   });
 
@@ -5089,6 +5220,7 @@
     document.getElementById('navCards').hidden = true;
     document.getElementById('navAdmin').hidden = true;
     document.getElementById('navCredits').hidden = true;
+    document.getElementById('navDiamonds').hidden = true;
   }
 
   function showSignedInNav(player) {
@@ -5105,8 +5237,11 @@
     document.getElementById('navCards').hidden = false;
 
     document.getElementById('navCredits').hidden = false;
+    document.getElementById('navDiamonds').hidden = false;
     updateNavCredits(null);
+    updateNavDiamonds(null);
     EGE.wallet.creditsFor(player.email).then(updateNavCredits);
+    EGE.wallet.diamondsFor(player.email).then(updateNavDiamonds);
   }
 
   /* The nav shows what is really in the account, once Supabase answers. */
@@ -5115,6 +5250,15 @@
     var shown = credits === null || credits === undefined ? EGE.shop.startingCredits : credits;
     document.getElementById('navCreditsValue').textContent = shown;
     box.title = shown + ' credits to spend in the shop';
+  }
+
+  /* Diamonds beside them, for the Cards tab. A balance that could not be
+     read shows a dash rather than a zero nobody has. */
+  function updateNavDiamonds(diamonds) {
+    var box = document.getElementById('navDiamonds');
+    var known = typeof diamonds === 'number' && !isNaN(diamonds);
+    document.getElementById('navDiamondsValue').textContent = known ? diamonds : '\u2014';
+    box.title = known ? diamonds + ' diamonds to spend on packs' : 'Diamonds, for packs';
   }
 
   /* Two things decide what a visitor sees before anybody signs in, so both
@@ -5170,13 +5314,21 @@
         .then(function (admin) {
           document.getElementById('navAdmin').hidden = !admin;
           /* Anything the season owes this player is paid on the way in, so a
-             result posted since their last visit is already credits by the
-             time they reach the shop. */
-          return EGE.wallet.syncAwards(player, EGE.currentSeason);
+             result posted since their last visit is already credits and
+             diamonds by the time they reach the shop. */
+          return Promise.all([
+            EGE.wallet.syncAwards(player, EGE.currentSeason),
+            EGE.wallet.syncDiamonds(player, EGE.currentSeason)
+          ]);
         })
-        .then(function (paid) {
-          if (paid && paid.paid) {
-            sayShop('The season paid you ' + paid.paid + ' credits since you were ' +
+        .then(function (both) {
+          var credits = (both[0] && both[0].paid) || 0;
+          var diamonds = (both[1] && both[1].paid) || 0;
+          var parts = [];
+          if (credits) { parts.push(credits + ' credits'); }
+          if (diamonds) { parts.push(diamonds + ' diamonds'); }
+          if (parts.length) {
+            sayShop('The season paid you ' + parts.join(' and ') + ' since you were ' +
                     'last here.', false);
           }
           EGE.cardsView.refreshBadge();

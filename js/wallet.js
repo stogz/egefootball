@@ -1,7 +1,9 @@
 /* ==========================================================================
-   EGE Football — credits and inventory
-   A balance per player and a row per thing they own, both in Supabase (see
-   supabase/schema.sql). The table's policies do the real enforcing: a player
+   EGE Football — credits, diamonds and inventory
+   Two balances per player and a row per thing they own, all in Supabase (see
+   supabase/schema.sql). Credits are the simulation's money; diamonds are the
+   card game's, and only ever move one way: credits buy diamonds, nothing
+   buys credits back. The table's policies do the real enforcing: a player
    reads and writes only their own, an admin reads and writes everyone's.
    Nothing here is a security boundary — it is the shape of the UI.
 
@@ -18,6 +20,8 @@ EGE.wallet = (function () {
   var ADMINS = 'admins';
   var GAME_BOOSTERS = 'game_boosters';
   var AWARDS = 'credit_awards';
+  var DIAMONDS = 'player_diamonds';
+  var DIAMOND_AWARDS = 'diamond_awards';
   var PUBLISHED = 'published_weeks';
 
   var isAdmin = false;
@@ -75,6 +79,76 @@ EGE.wallet = (function () {
         if (res.error) { return { ok: false, message: res.error.message }; }
         return { ok: true, credits: amount };
       });
+  }
+
+  /* --- diamonds ----------------------------------------------------------
+
+     Read like credits, but not written like them: a player's diamonds only
+     move through database functions (paying a game, buying diamonds, opening
+     a pack, claiming a set), so the one straight write here is the admin's.
+     Null when the balance could not be read, so a page never mistakes
+     "unreachable" for "has none". */
+  function diamondsFor(email) {
+    var c = client();
+    if (!c || !email) { return Promise.resolve(null); }
+
+    return c.from(DIAMONDS).select('diamonds').eq('email', email).maybeSingle()
+      .then(function (res) {
+        if (res.error) { return null; }
+        return res.data ? res.data.diamonds : 0;
+      })
+      .catch(function () { return null; });
+  }
+
+  function allDiamonds() {
+    var c = client();
+    if (!c) { return Promise.resolve([]); }
+
+    return c.from(DIAMONDS).select('*')
+      .then(function (res) { return res.error ? [] : (res.data || []); })
+      .catch(function () { return []; });
+  }
+
+  /* Admin only: the table's policies refuse anybody else. */
+  function setDiamonds(email, diamonds) {
+    var c = client();
+    if (!c) { return fail(offline()); }
+
+    var amount = Math.max(0, Math.round(Number(diamonds) || 0));
+    return c.from(DIAMONDS)
+      .upsert({ email: email, diamonds: amount, updated_at: new Date().toISOString() },
+              { onConflict: 'email' })
+      .then(function (res) {
+        if (res.error) { return { ok: false, message: res.error.message }; }
+        return { ok: true, diamonds: amount };
+      });
+  }
+
+  /* Credits into diamonds, at EGE.economy.DIAMONDS_PER_CREDIT. Both balances
+     move in one transaction in buy_diamonds (supabase/schema.sql), which
+     also charges the rate, so the page is only asking. */
+  function buyDiamonds(credits) {
+    var c = client();
+    if (!c) { return fail(offline()); }
+
+    var spend = Math.round(Number(credits) || 0);
+    if (spend < 1) { return fail('Spend at least one credit.'); }
+
+    return c.rpc('buy_diamonds', { p_credits: spend }).then(function (res) {
+      if (res.error) {
+        return { ok: false, message: String(res.error.message || '').replace(/\s*CONTEXT:.*$/, '') };
+      }
+      var after = res.data || {};
+      var got = spend * EGE.economy.DIAMONDS_PER_CREDIT;
+      return {
+        ok: true,
+        credits: Number(after.credits),
+        diamonds: Number(after.diamonds),
+        message: got + ' diamonds for ' + spend + (spend === 1 ? ' credit.' : ' credits.')
+      };
+    }).catch(function (error) {
+      return { ok: false, message: error.message };
+    });
   }
 
   /* --- inventory --------------------------------------------------------- */
@@ -447,6 +521,56 @@ EGE.wallet = (function () {
     }).catch(function () { return { paid: 0 }; });
   }
 
+  /* Every game's diamonds this player is owed and has not had yet: the same
+     games the credits are paid for, times the booster on each.
+
+     The stickers have to be in before the sums are done, or a boosted game
+     would be paid as a plain one until the next visit (the ledger would top
+     it up then, but there is no reason to wait). A week already written up
+     carries its booster in the season file; one still to be written up has
+     it in Supabase, which is what loading them for the live season is for.
+     Pass `boostersLoaded` when they already are -- the admin paying all six
+     loads them once. */
+  function syncDiamonds(player, season, boostersLoaded) {
+    var c = client();
+    if (!c || !player || !player.email) { return Promise.resolve({ paid: 0 }); }
+
+    var year = season || EGE.currentSeason;
+    if (!EGE.economy.paysDiamonds(year)) { return Promise.resolve({ paid: 0 }); }
+
+    var ready = boostersLoaded || year !== EGE.currentSeason
+      ? Promise.resolve()
+      : loadGameBoosters(year);
+
+    return ready.then(function () {
+      var owed = EGE.economy.diamondAwardsEarned(player, year);
+      if (!owed.length) { return { paid: 0 }; }
+
+      return c.rpc('pay_diamond_awards', {
+        p_email: player.email,
+        p_season: year,
+        p_awards: owed
+      }).then(function (res) {
+        if (res.error) { return { paid: 0, message: res.error.message }; }
+        return { paid: Number(res.data) || 0 };
+      });
+    }).catch(function () { return { paid: 0 }; });
+  }
+
+  /* Every game's diamonds for a season, across every account an admin can
+     see. */
+  function allDiamondAwards(season) {
+    var c = client();
+    if (!c) { return Promise.resolve([]); }
+
+    var query = c.from(DIAMOND_AWARDS).select('*');
+    if (season) { query = query.eq('season', season); }
+
+    return query.order('awarded_at', { ascending: false })
+      .then(function (res) { return res.error ? [] : (res.data || []); })
+      .catch(function () { return []; });
+  }
+
   /* Hands out credits an admin has decided on — a salary, a Pro Bowl,
      whatever the earnings table calls it. Added straight onto the balance
      and not logged anywhere: the credits are the point, not a record of
@@ -470,6 +594,53 @@ EGE.wallet = (function () {
         return { ok: true, credits: res.credits,
                  message: amount + ' credits added \u2014 ' + res.credits + ' now.' };
       });
+    });
+  }
+
+  /* Everybody's balance at once, from the admin page: `add` puts the amount
+     on top of what each player has (a negative amount takes it off, never
+     below nothing), `set` makes every balance that number. Credits or
+     diamonds, every player with a sign-in.
+
+     One player at a time, read then written, like an award. A balance that
+     cannot be read is left alone rather than treated as nothing, and is
+     named in what comes back. */
+  function adjustEveryone(currency, mode, amount) {
+    var diamonds = currency === 'diamonds';
+    var read = diamonds ? diamondsFor : creditsFor;
+    var write = diamonds ? setDiamonds : setCredits;
+    var word = diamonds ? 'diamonds' : 'credits';
+
+    var value = Math.round(Number(amount));
+    if (isNaN(value)) { return fail('Type a number first.'); }
+    if (mode === 'set' && value < 0) { return fail('A balance cannot go below nothing.'); }
+    if (mode !== 'set' && !value) { return fail('Adding nothing changes nothing.'); }
+
+    return Promise.all(EGE.playersWithAccounts().map(function (player) {
+      var next = mode === 'set'
+        ? Promise.resolve(value)
+        : read(player.email).then(function (have) {
+            return have === null ? null : Math.max(0, have + value);
+          });
+      return next.then(function (to) {
+        if (to === null) { return { player: player, ok: false }; }
+        return write(player.email, to).then(function (res) {
+          return { player: player, ok: res.ok };
+        });
+      });
+    })).then(function (all) {
+      var missed = all.filter(function (one) { return !one.ok; })
+                      .map(function (one) { return one.player.first; });
+      var done = all.length - missed.length;
+      var what = mode === 'set'
+        ? 'Everybody now has ' + value + ' ' + word + '.'
+        : (value > 0 ? value + ' ' + word + ' added to' : (-value) + ' ' + word + ' taken off') +
+          ' every balance.';
+      if (!done) { return { ok: false, message: 'No balance could be changed.' }; }
+      return {
+        ok: !missed.length,
+        message: what + (missed.length ? ' ' + missed.join(', ') + ' could not be changed.' : '')
+      };
     });
   }
 
@@ -953,6 +1124,13 @@ EGE.wallet = (function () {
     admin: admin,
     creditsFor: creditsFor,
     setCredits: setCredits,
+    diamondsFor: diamondsFor,
+    allDiamonds: allDiamonds,
+    setDiamonds: setDiamonds,
+    buyDiamonds: buyDiamonds,
+    syncDiamonds: syncDiamonds,
+    allDiamondAwards: allDiamondAwards,
+    adjustEveryone: adjustEveryone,
     inventoryFor: inventoryFor,
     allInventory: allInventory,
     allCredits: allCredits,

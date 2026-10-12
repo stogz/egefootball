@@ -2,9 +2,9 @@
    EGE Football — the card collection, in Supabase
    Who owns which cards and which library sets they have claimed (see the
    Cards section of supabase/schema.sql). Cards only ever arrive through two
-   database functions, each one transaction: opening a pack takes the credits
-   and hands over the cards together, and claiming a set pays its reward and
-   marks it claimed together. Neither can half happen.
+   database functions, each one transaction: opening a pack takes the
+   diamonds and hands over the cards together, and claiming a set pays its
+   reward and marks it claimed together. Neither can half happen.
 
    What a card *is* comes from data/cards.js; all that is stored is its id.
 
@@ -99,7 +99,7 @@ EGE.cardStore = (function () {
       p_cards: cards.map(function (card) { return card.id; })
     }).then(function (res) {
       if (res.error) { return { ok: false, message: said(res.error) }; }
-      return { ok: true, cards: cards, credits: Number(res.data) };
+      return { ok: true, cards: cards, diamonds: Number(res.data) };
     }).catch(function (error) {
       return { ok: false, message: said(error) };
     });
@@ -118,11 +118,11 @@ EGE.cardStore = (function () {
       p_set: set.key,
       p_cards: filled.slots.map(function (one) { return one.card.id; }),
       p_reward_card: reward ? reward.id : null,
-      p_credits: set.reward.credits || 0,
+      p_diamonds: set.reward.diamonds || 0,
       p_booster: set.reward.booster || null
     }).then(function (res) {
       if (res.error) { return { ok: false, message: said(res.error) }; }
-      return { ok: true, card: reward, credits: Number(res.data) };
+      return { ok: true, card: reward, diamonds: Number(res.data) };
     }).catch(function (error) {
       return { ok: false, message: said(error) };
     });
