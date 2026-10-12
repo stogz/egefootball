@@ -345,10 +345,24 @@
         </div>
       </div>
 
-      <!-- what has been pulled -->
+      <!-- the last packs opened, newest first -->
+      <div class="fb-panel ege-section-gap" id="recentPanel">
+        <div class="fb-panel__head">
+          <h3>Recent Pulls</h3>
+          <button class="ege-collapse" type="button"
+                  data-collapses="recentPanel" aria-controls="recentPanel"
+                  aria-expanded="true" aria-label="Hide your recent pulls"></button>
+        </div>
+        <div class="fb-panel__body fb-stack">
+          <div class="ege-recent" id="recentList"></div>
+          <button class="fb-btn fb-btn--sm ege-recent__more" id="recentMore" type="button" hidden>Show more</button>
+        </div>
+      </div>
+
+      <!-- what has been pulled: yours, or anybody else's -->
       <div class="fb-panel ege-section-gap" id="collectionPanel">
         <div class="fb-panel__head">
-          <h3>Your Collection</h3>
+          <h3 id="collectionTitle">Your Collection</h3>
           <span class="fb-meta" id="collectionCount"></span>
           <button class="ege-collapse" type="button"
                   data-collapses="collectionPanel" aria-controls="collectionPanel"
@@ -419,6 +433,7 @@
                 <th>Rarity</th>
                 <th class="num">Chance per card</th>
                 <th class="num">Cards out</th>
+                <th class="num">Quick sell</th>
               </tr>
             </thead>
             <tbody id="cardOdds"></tbody>
@@ -639,6 +654,33 @@
               </thead>
               <tbody id="cardsAdminRows"></tbody>
             </table>
+          </div>
+
+          <!-- practice rips: nothing paid, nothing kept -->
+          <div class="ege-demo">
+            <h4 class="ege-item__name">Demo a pack</h4>
+            <p class="fb-meta">
+              Rips a pack here to try the openings out. Nothing is paid and
+              nothing goes into anybody's collection. Pick a best card to see
+              the Legendary, Mystic and Iconic pulls without waiting on the odds.
+            </p>
+            <div class="fb-row fb-row--wrap ege-weekbar">
+              <label class="ege-field ege-field--inline">
+                <span class="fb-eyebrow">Pack</span>
+                <select class="fb-select" id="cardsDemoPack"></select>
+              </label>
+              <label class="ege-field ege-field--inline">
+                <span class="fb-eyebrow">Best card</span>
+                <select class="fb-select" id="cardsDemoBest">
+                  <option value="">As it rolls</option>
+                  <option value="legendary">Legendary</option>
+                  <option value="mystic">Mystic</option>
+                  <option value="iconic">Iconic</option>
+                </select>
+              </label>
+              <button class="fb-btn fb-btn--primary" id="cardsDemoRip" type="button">Rip a demo</button>
+              <span class="fb-meta" id="cardsDemoNote" role="status"></span>
+            </div>
           </div>
 
           <p class="fb-meta">

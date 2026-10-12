@@ -132,6 +132,19 @@ EGE.cards = (function () {
     return PACKS.filter(function (p) { return p.key === key; })[0] || null;
   }
 
+  /* --- quick selling ------------------------------------------------------ */
+
+  /* What one copy of a card sells back for, in diamonds, by its rarity. An
+     Iconic is not on the list: it cannot be quick sold at all. Paid by
+     quick_sell_card in supabase/schema.sql, which holds the same numbers.
+     Change both together. */
+  var QUICK_SELL = { common: 1, uncommon: 1, rare: 2, epic: 2, legendary: 3, mystic: 10 };
+
+  /* Null for a card that cannot be sold. */
+  function sellPrice(card) {
+    return card && QUICK_SELL[card.rarity] ? QUICK_SELL[card.rarity] : null;
+  }
+
   /* --- scoring a play ---------------------------------------------------- */
 
   var F = EGE.economy.FANTASY;
@@ -582,10 +595,12 @@ EGE.cards = (function () {
     RARITIES: RARITIES,
     ICONIC: ICONIC,
     PACKS: PACKS,
+    QUICK_SELL: QUICK_SELL,
     BOOSTER: BOOSTER,
     rarity: rarity,
     rankOf: rankOf,
     pack: pack,
+    sellPrice: sellPrice,
     readPlay: readPlay,
     statSummary: statSummary,
     all: all,

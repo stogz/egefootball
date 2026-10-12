@@ -7,7 +7,8 @@
 
    Packs are bought with diamonds, the card game's own money, and library
    sets pay them out. Credits only come into it one way: a player can swap
-   them for diamonds under the packs, and nothing swaps them back.
+   them for diamonds under the packs, and nothing swaps them back. A card
+   can be quick sold for a few diamonds, never for credits.
 
    Signed-in players only, like the shop. js/app.js routes #cards here and
    calls render(); everything else on the page is drawn from in here.
@@ -31,6 +32,10 @@ EGE.cardsView = (function () {
     fresh: {},          /* ids pulled since the page loaded, for the New badge */
     trades: [],         /* every trade this player is on either side of */
     hold: false,        /* a pack is open: show nothing it holds until Done */
+    view: null,         /* whose collection the binder shows: null for yours, else their email */
+    other: null,        /* that player's { owned, first }; null while it loads */
+    recent: null,       /* the last packs opened, newest first; null until read */
+    recentShown: 4,     /* how many recent pulls are drawn */
     filter: { rarity: 'all', kind: 'all', player: 'all', sort: 'rarity' }
   };
 
@@ -115,10 +120,6 @@ EGE.cardsView = (function () {
   }
 
   function ownedIds() { return Object.keys(state.owned); }
-
-  function cardCount() {
-    return ownedIds().reduce(function (sum, id) { return sum + state.owned[id]; }, 0);
-  }
 
   /* --- one card --------------------------------------------------------- */
 
@@ -380,6 +381,7 @@ EGE.cardsView = (function () {
     if (!rip) { return; }
     rip.node.hidden = true;
     rip.node.innerHTML = '';
+    delete rip.node.dataset.fx;
     document.documentElement.classList.remove('ege-noscroll');
     var back = rip.returnTo;
     var after = rip.onClose;
@@ -397,12 +399,110 @@ EGE.cardsView = (function () {
     refresh();
   }
 
+  /* --- the big pulls ------------------------------------------------------
+
+     Legendary and up hold back before they turn over: the card lifts,
+     shakes and glows in its colour, then turns in a burst of light. The
+     rarer, the longer -- `BUILDUP` is how long it holds back, `SHOW` how
+     long the burst after it runs. Mystic adds sparks and a flash of gold;
+     Iconic dims everything else, fills the screen with its colours and
+     puts ICONIC across the top, the longest of the three. None of it runs
+     with reduced motion: the card just turns. */
+  var BUILDUP = { legendary: 900, mystic: 1700, iconic: 2800 };
+  var SHOW = { legendary: 1600, mystic: 2400, iconic: 3600 };
+  var SPARKS = { legendary: 8, mystic: 16, iconic: 32 };
+  var RINGS = { legendary: 1, mystic: 1, iconic: 2 };
+
+  function isBig(flip) { return Boolean(BUILDUP[flip.dataset.rarity]); }
+
+  /* Runs `then` after `ms`, unless the overlay it belongs to has gone. */
+  function later(ms, then) {
+    var mine = rip;
+    window.setTimeout(function () { if (rip && rip === mine) { then(); } }, ms);
+  }
+
   function flipCard(flip) {
-    if (flip.classList.contains('is-flipped')) { return; }
+    if (flip.classList.contains('is-flipped') || flip.classList.contains('is-charging')) { return; }
+    if (!isBig(flip) || reducedMotion()) { turnOver(flip); return; }
+
+    var rarity = flip.dataset.rarity;
+    flip.style.setProperty('--charge', BUILDUP[rarity] + 'ms');
+    flip.style.setProperty('--show', SHOW[rarity] + 'ms');
+    flip.classList.add('is-charging', 'is-big');
+    if (rarity !== 'legendary') { rip.node.dataset.fx = rarity; }
+    if (rarity === 'iconic') { flip.appendChild(rays(flip)); }
+    later(BUILDUP[rarity], function () {
+      flip.classList.remove('is-charging');
+      turnOver(flip);
+      burst(flip);
+    });
+  }
+
+  function turnOver(flip) {
     flip.classList.add('is-flipped');
     flip.setAttribute('aria-label', flip.dataset.label);
     var left = rip.node.querySelectorAll('.ege-flip:not(.is-flipped)').length;
     if (!left) { finishRip(); }
+  }
+
+  function rays(flip) {
+    var back = flip.querySelector('.ege-flip__fx');
+    if (back) { return back; }
+    back = el('span', 'ege-flip__fx');
+    back.setAttribute('aria-hidden', 'true');
+    back.appendChild(el('span', 'ege-flip__rays'));
+    return back;
+  }
+
+  /* The burst as the card turns: rays turning behind it, a ring going out,
+     sparks flying off it, and for Mystic and Iconic a flash over everything.
+     Taken away again once it has run, so nothing keeps animating. */
+  function burst(flip) {
+    var rarity = flip.dataset.rarity;
+    var back = rays(flip);
+    for (var r = 0; r < RINGS[rarity]; r += 1) {
+      var ring = el('span', 'ege-flip__ring');
+      ring.style.animationDelay = (r * 260) + 'ms';
+      back.appendChild(ring);
+    }
+    flip.appendChild(back);
+
+    var sparks = el('span', 'ege-flip__sparks');
+    sparks.setAttribute('aria-hidden', 'true');
+    var count = SPARKS[rarity];
+    var reach = flip.offsetWidth || 180;
+    for (var i = 0; i < count; i += 1) {
+      var spark = el('span', 'ege-flip__spark');
+      spark.style.setProperty('--a', Math.round(i * 360 / count + Math.random() * 10) + 'deg');
+      spark.style.setProperty('--d', Math.round(reach * (0.55 + Math.random() * (rarity === 'iconic' ? 0.9 : 0.5))) + 'px');
+      spark.style.setProperty('--t', Math.round(Math.random() * (rarity === 'iconic' ? 700 : 260)) + 'ms');
+      sparks.appendChild(spark);
+    }
+    flip.appendChild(sparks);
+
+    if (rarity !== 'legendary') {
+      var flash = el('div', 'ege-rip__flash ege-rip__flash--' + rarity);
+      flash.setAttribute('aria-hidden', 'true');
+      rip.node.appendChild(flash);
+      later(1000, function () { flash.remove(); });
+    }
+
+    if (rarity === 'iconic') {
+      var banner = el('div', 'ege-rip__banner');
+      banner.setAttribute('aria-hidden', 'true');
+      banner.appendChild(el('span', null, 'Iconic'));
+      rip.node.appendChild(banner);
+      later(SHOW.iconic, function () { banner.remove(); });
+    }
+
+    later(SHOW[rarity], function () {
+      back.remove();
+      sparks.remove();
+      flip.classList.add('is-landed');
+      if (rip.node.dataset.fx === rarity && !rip.node.querySelector('.ege-flip.is-charging')) {
+        delete rip.node.dataset.fx;
+      }
+    });
   }
 
   function finishRip() {
@@ -412,7 +512,7 @@ EGE.cardsView = (function () {
     if (again && rip.pack) {
       var affordable = state.diamonds !== null && state.diamonds >= rip.pack.diamonds &&
         EGE.cards.pullable(rip.pack.key).length >= rip.pack.size;
-      again.hidden = !affordable;
+      again.hidden = rip.again ? false : !affordable;
     }
     rip.node.querySelector('.ege-rip__hint').textContent = rip.summary || '';
   }
@@ -441,18 +541,23 @@ EGE.cardsView = (function () {
 
   /* The overlay. With a pack, it opens on the sealed pack and the cards come
      out when it is torn; without one -- a set's reward -- it opens on the
-     cards face down. */
+     cards face down. `demo` is the admin's practice rip: nothing was paid
+     and nothing goes anywhere, and `again` rips another one. */
   function openRip(options) {
     var node = byId('cardRip');
     node.innerHTML = '';
+    delete node.dataset.fx;
     rip = { node: node, pack: options.pack || null, returnTo: document.activeElement,
-            onClose: options.onClose || null };
+            onClose: options.onClose || null, again: options.again || null };
 
     var best = options.cards.slice().sort(EGE.cards.compare)[0];
     var fresh = options.isNew.filter(Boolean).length;
-    rip.summary = (options.extras && options.extras.length ? options.extras.join(' \u00b7 ') + '. ' : '') +
-      (best && options.cards.length > 1 ? 'Best pull: ' + EGE.cards.rarity(best.rarity).name + ' ' + best.player.first + '. ' : '') +
-      (options.cards.length > 1 ? fresh + ' new to your collection.' : (fresh ? 'New to your collection.' : 'One you had already.'));
+    var bestText = best && options.cards.length > 1
+      ? 'Best pull: ' + EGE.cards.rarity(best.rarity).name + ' ' + best.player.first + '. ' : '';
+    rip.summary = options.demo
+      ? bestText + 'A demo: nothing went into anybody\u2019s collection.'
+      : (options.extras && options.extras.length ? options.extras.join(' \u00b7 ') + '. ' : '') + bestText +
+        (options.cards.length > 1 ? fresh + ' new to your collection.' : (fresh ? 'New to your collection.' : 'One you had already.'));
 
     var stage = el('div', 'ege-rip__stage');
 
@@ -467,6 +572,12 @@ EGE.cardsView = (function () {
 
     if (options.pack) {
       var packNode = pressable(el('div', 'ege-rip__pack'), 'Tear the pack open', tearOpen);
+      /* A pack with a Legendary or better in it lets out a little of its
+         light as it tears. */
+      if (best && EGE.cards.rankOf(best.rarity) >= EGE.cards.rankOf('legendary')) {
+        packNode.classList.add('has-glow');
+        packNode.style.setProperty('--glow', EGE.cards.rarity(best.rarity).color);
+      }
       packNode.appendChild(packArt(options.pack));
       packNode.appendChild(el('span', 'ege-rip__tear', 'Tap to rip'));
       stage.appendChild(packNode);
@@ -479,6 +590,7 @@ EGE.cardsView = (function () {
       var flip = el('div', 'ege-flip ege-flip--' + card.rarity);
       flip.style.setProperty('--i', i);
       flip.style.setProperty('--glow', r.color);
+      flip.dataset.rarity = card.rarity;
       flip.dataset.label = describe(card) + (options.isNew[i] ? ', new' : '');
       pressable(flip, 'Card ' + (i + 1) + ', face down. Turn it over.', function () { flipCard(flip); });
 
@@ -501,7 +613,7 @@ EGE.cardsView = (function () {
     flipAll.type = 'button';
     flipAll.hidden = true;
     flipAll.addEventListener('click', function () {
-      Array.prototype.forEach.call(row.querySelectorAll('.ege-flip:not(.is-flipped)'), function (flip, i) {
+      Array.prototype.forEach.call(row.querySelectorAll('.ege-flip:not(.is-flipped):not(.is-charging)'), function (flip, i) {
         window.setTimeout(function () { if (rip) { flipCard(flip); } }, reducedMotion() ? 0 : i * 140);
       });
     });
@@ -511,12 +623,17 @@ EGE.cardsView = (function () {
       var again = el('button', 'fb-btn ege-rip__again');
       again.type = 'button';
       again.hidden = true;
-      again.appendChild(document.createTextNode('Another \u00b7 '));
-      again.appendChild(price(options.pack.diamonds));
+      if (options.again) {
+        again.textContent = 'Another demo';
+      } else {
+        again.appendChild(document.createTextNode('Another \u00b7 '));
+        again.appendChild(price(options.pack.diamonds));
+      }
       again.addEventListener('click', function () {
         var pack = options.pack;
+        var next = options.again;
         closeRip();
-        buyPack(pack, null);
+        if (next) { next(); } else { buyPack(pack, null); }
       });
       actions.appendChild(again);
     }
@@ -547,6 +664,7 @@ EGE.cardsView = (function () {
   function openOverlay(title, modifier) {
     var node = byId('cardRip');
     node.innerHTML = '';
+    delete node.dataset.fx;
     rip = { node: node, pack: null, returnTo: document.activeElement };
 
     var stage = el('div', 'ege-rip__stage' + (modifier ? ' ' + modifier : ''));
@@ -568,7 +686,9 @@ EGE.cardsView = (function () {
   /* --- a card up close -------------------------------------------------- */
 
   /* `owned`, when given, is how many the viewer has -- left off for somebody
-     else's card, on a showcase or in a trade. */
+     else's card, on a showcase or in a trade. `theirs` is { name, count }
+     when it is from somebody else's collection, and `sell` offers a quick
+     sale of one copy when it is from your own. */
   function zoom(card, options) {
     var opts = options || {};
     var stage = openOverlay(card.player.name, 'ege-rip__stage--zoom');
@@ -583,7 +703,7 @@ EGE.cardsView = (function () {
     var facts = el('dl', 'ege-zoom__facts');
     function fact(label, value) {
       facts.appendChild(el('dt', null, label));
-      facts.appendChild(el('dd', null, value));
+      return facts.appendChild(el('dd', null, value));
     }
 
     /* The stat line, and beside it a button to the game itself: the
@@ -613,16 +733,95 @@ EGE.cardsView = (function () {
     } else {
       lineFact('Line', card.line);
     }
-    if (typeof opts.owned === 'number') { fact('Owned', String(opts.owned)); }
+    var ownedNode = typeof opts.owned === 'number' ? fact(opts.theirs ? 'You have' : 'Owned', String(opts.owned)) : null;
+    if (opts.theirs) { fact(opts.theirs.name + ' has', String(opts.theirs.count)); }
     stage.appendChild(facts);
 
+    var status = el('p', 'ege-rip__hint ege-zoom__status');
+    status.setAttribute('role', 'status');
+    stage.appendChild(status);
+
     var actions = el('div', 'ege-rip__actions');
+    if (opts.sell && opts.owned > 0) {
+      actions.appendChild(sellControl(card, { holder: holder, owned: ownedNode, status: status }));
+    }
     var done = el('button', 'fb-btn fb-btn--primary', 'Done');
     done.type = 'button';
     done.addEventListener('click', closeRip);
     actions.appendChild(done);
     stage.appendChild(actions);
     done.focus({ preventScroll: true });
+  }
+
+  /* --- quick selling -----------------------------------------------------
+
+     One copy of a card from your own collection back for a few diamonds,
+     by rarity (EGE.cards.QUICK_SELL). Two taps: the first says what it
+     pays, the second sells, so a stray tap never costs anybody a card. An
+     Iconic gets a line saying it cannot be sold instead of a button. */
+  function sellControl(card, parts) {
+    var pays = EGE.cards.sellPrice(card);
+    if (!pays) { return el('span', 'ege-zoom__nosell', 'Iconic cards cannot be quick sold.'); }
+
+    var button = el('button', 'fb-btn ege-zoom__sell');
+    button.type = 'button';
+    var armed = false;
+    var timer = null;
+
+    function label(text) {
+      button.innerHTML = '';
+      button.appendChild(document.createTextNode(text));
+      button.appendChild(price(pays));
+    }
+    function disarm() {
+      armed = false;
+      button.classList.remove('is-armed');
+      label('Quick sell \u00b7 ');
+    }
+    disarm();
+
+    button.addEventListener('click', function () {
+      if (!armed) {
+        armed = true;
+        button.classList.add('is-armed');
+        label('Tap again to sell \u00b7 ');
+        parts.status.textContent = '';
+        timer = window.setTimeout(disarm, 4000);
+        return;
+      }
+      window.clearTimeout(timer);
+      button.disabled = true;
+
+      EGE.cardStore.quickSell(card).then(function (res) {
+        button.disabled = false;
+        disarm();
+        if (!res.ok) { parts.status.textContent = res.message; return; }
+
+        /* Taken off here straight away, so the binder behind is right
+           before the refresh comes back with the same thing. */
+        var left = Math.max(0, (state.owned[card.id] || 0) - 1);
+        if (left) {
+          state.owned[card.id] = left;
+        } else {
+          delete state.owned[card.id];
+          delete state.first[card.id];
+          delete state.fresh[card.id];
+        }
+        walletChanged(null, res.diamonds);
+        renderPacks();
+
+        if (parts.owned) { parts.owned.textContent = String(left); }
+        parts.status.textContent = 'Sold for ' + pays + (pays === 1 ? ' diamond. ' : ' diamonds. ') +
+          (left ? 'You have ' + left + ' left.' : 'That was your last one.');
+        if (!left) {
+          button.hidden = true;
+          parts.holder.classList.add('is-sold');
+        }
+        if (EGE.showcase) { EGE.showcase.forget(); }
+        refresh();
+      });
+    });
+    return button;
   }
 
   document.addEventListener('keydown', function (e) {
@@ -645,19 +844,58 @@ EGE.cardsView = (function () {
     renderCollection();
   }
 
+  /* Whose collection the binder shows. Anybody signed in can read anybody's
+     cards (a trade is picking from somebody else's), so somebody else's is
+     read when it is picked and again on every refresh. */
+  function pickView(email) {
+    state.view = email || null;
+    state.other = null;
+    renderFilters();
+    renderCollection();
+    loadOther();
+  }
+
+  function loadOther() {
+    var email = state.view;
+    if (!email) { return Promise.resolve(); }
+    return EGE.cardStore.collectionFor(email).then(function (got) {
+      if (state.view !== email) { return; }
+      state.other = got || { owned: {}, first: {}, failed: true };
+      if (!state.hold) { renderCollection(); }
+    });
+  }
+
+  /* The collection the binder is showing: yours, or the one picked. */
+  function viewed() {
+    if (!state.view) {
+      return { mine: true, owned: state.owned, first: state.first, loaded: state.loaded };
+    }
+    var other = state.other;
+    return { mine: false, name: firstName(state.view), owned: other ? other.owned : {},
+             first: other ? other.first : {}, loaded: Boolean(other), failed: Boolean(other && other.failed) };
+  }
+
   function renderFilters() {
     var bar = byId('collectionFilters');
     bar.innerHTML = '';
     var f = state.filter;
 
     /* One line: the three kinds as buttons the height of the drop-downs
-       beside them, then who, the order, and the rarity. */
+       beside them, then whose, who, the order, and the rarity. */
     var rest = el('div', 'ege-filterrow');
     [['all', 'All'], ['performance', 'Performances'], ['play', 'Plays']].forEach(function (k) {
       var b = chip(k[1], f.kind === k[0], function () { pick('kind', k[0]); });
       b.classList.add('ege-filterchip');
       rest.appendChild(b);
     });
+
+    var whose = el('select', 'fb-select ege-filterselect');
+    whose.setAttribute('aria-label', 'Whose collection');
+    whose.appendChild(new Option('My collection', ''));
+    partners().forEach(function (p) { whose.appendChild(new Option(p.first + '’s collection', p.email)); });
+    whose.value = state.view || '';
+    whose.addEventListener('change', function () { pickView(whose.value); });
+    rest.appendChild(whose);
 
     var who = el('select', 'fb-select ege-filterselect');
     who.setAttribute('aria-label', 'Player');
@@ -669,7 +907,8 @@ EGE.cardsView = (function () {
 
     var sort = el('select', 'fb-select ege-filterselect');
     sort.setAttribute('aria-label', 'Sort');
-    [['rarity', 'Rarest first'], ['points', 'Highest score'], ['newest', 'Newest pulls'], ['game', 'By game']]
+    [['rarity', 'Rarest first'], ['points', 'Highest score'], ['newest', 'Newest pulls'],
+     ['year', 'By year'], ['game', 'By game']]
       .forEach(function (s) { sort.appendChild(new Option(s[1], s[0])); });
     sort.value = f.sort;
     sort.addEventListener('change', function () { pick('sort', sort.value); });
@@ -686,16 +925,22 @@ EGE.cardsView = (function () {
     bar.appendChild(rest);
   }
 
-  function sorter(how) {
+  /* `first` is when each card was first pulled, for Newest pulls. */
+  function sorter(how, first) {
     if (how === 'points') {
       return function (a, b) { return b.points - a.points || EGE.cards.compare(a, b); };
     }
     if (how === 'newest') {
       return function (a, b) {
-        var x = state.first[a.id] || '';
-        var y = state.first[b.id] || '';
+        var x = first[a.id] || '';
+        var y = first[b.id] || '';
         return x < y ? 1 : x > y ? -1 : EGE.cards.compare(a, b);
       };
+    }
+    /* The newest season first, rarest first inside it. The binder puts the
+       year above each one. */
+    if (how === 'year') {
+      return function (a, b) { return b.season - a.season || EGE.cards.compare(a, b); };
     }
     if (how === 'game') {
       return function (a, b) {
@@ -709,35 +954,129 @@ EGE.cardsView = (function () {
 
   function renderCollection() {
     var grid = byId('collectionGrid');
-    grid.innerHTML = '';
     var f = state.filter;
+    var v = viewed();
 
-    var mine = ownedIds().map(EGE.cards.byId).filter(Boolean);
+    var mine = Object.keys(v.owned).map(EGE.cards.byId).filter(Boolean);
     var shown = mine.filter(function (card) {
       return (f.rarity === 'all' || card.rarity === f.rarity) &&
         (f.kind === 'all' || card.kind === f.kind) &&
         (f.player === 'all' || card.slug === f.player);
-    }).sort(sorter(f.sort));
+    }).sort(sorter(f.sort, v.first));
 
-    shown.forEach(function (card) {
-      var node = cardEl(card, { count: state.owned[card.id], isNew: state.fresh[card.id] });
-      pressable(node, describe(card) + (state.owned[card.id] > 1 ? ', ' + state.owned[card.id] + ' owned' : ''),
-        function () { zoom(card, { owned: state.owned[card.id] || 0 }); });
-      grid.appendChild(node);
-    });
+    fillBinder(grid, shown, v);
 
+    byId('collectionTitle').textContent = v.mine ? 'Your Collection' : v.name + '’s Collection';
+
+    var copies = Object.keys(v.owned).reduce(function (sum, id) { return sum + v.owned[id]; }, 0);
     var out = EGE.cards.pullable(null).length;
-    byId('collectionCount').textContent = state.loaded
-      ? cardCount() + (cardCount() === 1 ? ' card' : ' cards') + ' \u00b7 ' + mine.length + ' of ' + out + ' different'
-      : 'Loading\u2026';
+    byId('collectionCount').textContent = v.loaded && !v.failed
+      ? copies + (copies === 1 ? ' card' : ' cards') + ' · ' + mine.length + ' of ' + out + ' different'
+      : v.failed ? '' : 'Loading…';
 
     fitBinder();
 
     var empty = byId('collectionEmpty');
-    empty.hidden = !state.loaded || shown.length > 0;
-    empty.textContent = mine.length
-      ? 'Nothing you own matches that. Try another filter.'
-      : 'No cards yet. Rip a pack and they land here.';
+    empty.hidden = !v.loaded || shown.length > 0;
+    if (v.mine) {
+      empty.textContent = mine.length
+        ? 'Nothing you own matches that. Try another filter.'
+        : 'No cards yet. Rip a pack and they land here.';
+    } else {
+      empty.textContent = v.failed ? v.name + '’s cards could not be loaded.'
+        : mine.length ? 'Nothing of ' + v.name + '’s matches that. Try another filter.'
+        : v.name + ' has no cards yet.';
+    }
+  }
+
+  /* --- the binder, a few rows at a time -----------------------------------
+
+     Drawing every card at once is a lot of foil for a phone to run, so the
+     binder draws its first few rows and adds more as it is scrolled: an
+     empty marker sits after the last card drawn, and when it comes within a
+     couple of rows of the bottom of the binder the next rows go in. Drawing
+     the same view again -- after a sale, a pack, a refresh -- keeps as many
+     cards as were drawn and the place it was scrolled to. */
+  var binder = { key: null, cards: [], view: null, drawn: 0, season: null, marker: null, watch: null };
+
+  /* How many cards fit across, read off the grid itself. */
+  function perRow(grid) {
+    var cols = window.getComputedStyle(grid).gridTemplateColumns;
+    var n = cols && cols !== 'none' ? cols.trim().split(/\s+/).length : 0;
+    return n || 5;
+  }
+
+  function fillBinder(grid, cards, v) {
+    var f = state.filter;
+    var key = [state.view || '', f.kind, f.player, f.sort, f.rarity].join('|');
+    var same = key === binder.key;
+    var keep = same ? binder.drawn : 0;
+    var top = same ? grid.scrollTop : 0;
+
+    if (binder.watch && binder.marker) { binder.watch.unobserve(binder.marker); }
+    grid.innerHTML = '';
+    binder.key = key;
+    binder.cards = cards;
+    binder.view = v;
+    binder.drawn = 0;
+    binder.season = null;
+
+    drawMore(grid, Math.max(keep, perRow(grid) * 4));
+    grid.scrollTop = top;
+  }
+
+  function drawMore(grid, count) {
+    var v = binder.view;
+    var byYear = state.filter.sort === 'year';
+    var upto = Math.min(binder.cards.length, binder.drawn + count);
+    var batch = document.createDocumentFragment();
+
+    for (var i = binder.drawn; i < upto; i += 1) {
+      var card = binder.cards[i];
+      if (byYear && card.season !== binder.season) {
+        binder.season = card.season;
+        batch.appendChild(el('h4', 'ege-binder__year', String(card.season)));
+      }
+      batch.appendChild(binderCard(card, v));
+    }
+    binder.drawn = upto;
+
+    if (binder.marker) { binder.marker.remove(); }
+    grid.appendChild(batch);
+    if (binder.drawn < binder.cards.length) { watchEnd(grid); }
+  }
+
+  function watchEnd(grid) {
+    if (!window.IntersectionObserver) { drawMore(grid, binder.cards.length); return; }
+    if (!binder.marker) {
+      binder.marker = el('div', 'ege-binder__more');
+      binder.marker.setAttribute('aria-hidden', 'true');
+    }
+    if (!binder.watch) {
+      binder.watch = new window.IntersectionObserver(function (entries) {
+        var near = entries.some(function (e) { return e.isIntersecting && e.target === binder.marker; });
+        if (near && binder.marker.isConnected) { drawMore(grid, perRow(grid) * 3); }
+      }, { root: grid, rootMargin: '0px 0px 480px 0px' });
+    }
+    grid.appendChild(binder.marker);
+    /* Watched afresh each time it moves, so it is checked again straight
+       away: still in reach means another few rows. */
+    binder.watch.unobserve(binder.marker);
+    binder.watch.observe(binder.marker);
+  }
+
+  function binderCard(card, v) {
+    var count = v.owned[card.id] || 0;
+    var node = cardEl(card, { count: count, isNew: v.mine && state.fresh[card.id] });
+    pressable(node, describe(card) + (count > 1 ? ', ' + count + ' owned' : ''), function () {
+      if (v.mine) {
+        zoom(card, { owned: state.owned[card.id] || 0, sell: true });
+      } else {
+        zoom(card, { owned: state.owned[card.id] || 0,
+                     theirs: { name: v.name, count: (state.other && state.other.owned[card.id]) || 0 } });
+      }
+    });
+    return node;
   }
 
   /* Three rows of cards and no more: past that the collection scrolls in
@@ -766,6 +1105,80 @@ EGE.cardsView = (function () {
       });
       binderWatch.observe(grid);
     }
+  }
+
+  /* --- recent pulls -------------------------------------------------------
+
+     The last packs opened and set rewards pulled, newest first, so a pull
+     can be found again once the pack is put away. Packs come from
+     card_packs, which only the player and an admin can read; rewards from
+     the claims already loaded. Like the collection, held back while a pack
+     is open. */
+  var RECENT_STEP = 4;
+  var RECENT_MAX = 20;
+
+  function pulls() {
+    var list = (state.recent || []).map(function (row) {
+      var pack = EGE.cards.pack(row.pack_key);
+      return { title: pack ? pack.name : 'Pack', when: row.opened_at, cards: row.cards || [] };
+    });
+    var sets = EGE.cards.sets();
+    Object.keys(state.claims).forEach(function (key) {
+      var claim = state.claims[key];
+      var card = claim.reward && claim.reward.card;
+      if (!card) { return; }
+      var set = sets.filter(function (one) { return one.key === key; })[0];
+      list.push({ title: (set ? set.name : 'Library') + ' reward', when: claim.claimed_at, cards: [card] });
+    });
+    return list.sort(function (a, b) {
+      return a.when < b.when ? 1 : a.when > b.when ? -1 : 0;
+    }).slice(0, RECENT_MAX);
+  }
+
+  function agoText(iso) {
+    var then = new Date(iso).getTime();
+    if (isNaN(then)) { return ''; }
+    var mins = Math.floor((Date.now() - then) / 60000);
+    if (mins < 1) { return 'Just now'; }
+    if (mins < 60) { return mins + ' min ago'; }
+    var hours = Math.floor(mins / 60);
+    if (hours < 24) { return hours + (hours === 1 ? ' hour ago' : ' hours ago'); }
+    return whenText(iso);
+  }
+
+  function renderRecent() {
+    var holder = byId('recentList');
+    holder.innerHTML = '';
+    var list = pulls();
+
+    list.slice(0, state.recentShown).forEach(function (pull) {
+      var tile = el('article', 'ege-pull');
+      var head = el('div', 'ege-pull__head');
+      head.appendChild(el('strong', 'ege-pull__title', pull.title));
+      head.appendChild(el('span', 'fb-meta', agoText(pull.when)));
+      tile.appendChild(head);
+
+      var strip = el('div', 'ege-pull__cards');
+      pull.cards.map(EGE.cards.byId).filter(Boolean).forEach(function (card) {
+        var have = state.owned[card.id] || 0;
+        var node = cardEl(card, {});
+        if (!have) { node.classList.add('is-gone'); }
+        pressable(node, describe(card) + (have ? '' : ', no longer in your collection'), function () {
+          zoom(card, { owned: state.owned[card.id] || 0, sell: true });
+        });
+        strip.appendChild(node);
+      });
+      tile.appendChild(strip);
+      holder.appendChild(tile);
+    });
+
+    if (!list.length) {
+      holder.appendChild(el('p', 'fb-meta', state.recent === null
+        ? (state.loaded ? 'Your recent pulls could not be loaded.' : 'Loading…')
+        : 'Nothing pulled yet. Rip a pack and it shows up here.'));
+    }
+
+    byId('recentMore').hidden = list.length <= state.recentShown;
   }
 
   /* --- trades ----------------------------------------------------------- */
@@ -1247,6 +1660,10 @@ EGE.cardsView = (function () {
       tr.appendChild(name);
       tr.appendChild(el('td', 'num', r.odds + '%'));
       tr.appendChild(el('td', 'num', String(perf[r.key] + play[r.key])));
+      var sells = el('td', 'num');
+      var pays = EGE.cards.QUICK_SELL[r.key];
+      sells.appendChild(pays ? price(pays) : document.createTextNode('Never'));
+      tr.appendChild(sells);
       body.appendChild(tr);
     });
   }
@@ -1256,6 +1673,7 @@ EGE.cardsView = (function () {
   function renderAll() {
     renderPacks();
     if (state.hold) { return; }
+    renderRecent();
     renderCollection();
     renderTrades();
     renderLibrary();
@@ -1269,6 +1687,10 @@ EGE.cardsView = (function () {
     byId('tradeNew').addEventListener('click', openTradeBuilder);
     byId('swapCredits').addEventListener('input', renderSwap);
     byId('swapBuy').addEventListener('click', buySwap);
+    byId('recentMore').addEventListener('click', function () {
+      state.recentShown += RECENT_STEP;
+      renderRecent();
+    });
   }
 
   function refresh() {
@@ -1280,7 +1702,9 @@ EGE.cardsView = (function () {
       EGE.cardStore.claimsFor(player.email),
       EGE.wallet.creditsFor(player.email),
       EGE.cardStore.tradesFor(player.email),
-      EGE.wallet.diamondsFor(player.email)
+      EGE.wallet.diamondsFor(player.email),
+      EGE.cardStore.recentPacks(player.email, RECENT_MAX),
+      loadOther()
     ]).then(function (all) {
       if (state.player !== player) { return; }
       if (all[0] === null) {
@@ -1293,6 +1717,7 @@ EGE.cardsView = (function () {
       state.credits = all[2];
       state.trades = all[3];
       state.diamonds = all[4];
+      state.recent = all[5];
       state.loaded = all[0] !== null;
       if (all[4] === null && all[0] !== null) {
         say('Your diamonds could not be loaded. Run supabase/schema.sql to set up the diamond tables, then reload.', true);
@@ -1313,6 +1738,7 @@ EGE.cardsView = (function () {
       state.player = player;
     }
     build();
+    renderFilters();
     renderAll();
     refresh();
   }
@@ -1330,7 +1756,49 @@ EGE.cardsView = (function () {
     state.fresh = {};
     state.trades = [];
     state.hold = false;
+    state.view = null;
+    state.other = null;
+    state.recent = null;
+    state.recentShown = RECENT_STEP;
+    binder.key = null;
     setBadge(0);
+  }
+
+  /* --- the admin's demo packs -------------------------------------------
+
+     A pack ripped on the admin page to try the openings out: rolled the
+     way a real one is, opened in the same overlay, and nothing else --
+     nothing is paid and nothing goes into anybody's collection. `best`
+     makes the last card a Legendary, Mystic or Iconic, so the big pulls can
+     be seen without waiting for the odds. Hands back { ok, message }. */
+  function demoPack(packKey, best) {
+    var pack = EGE.cards.pack(packKey);
+    if (!pack) { return { ok: false, message: 'There is no such pack.' }; }
+    var cards = EGE.cards.rollPack(packKey);
+    if (cards.length !== pack.size) {
+      return { ok: false, message: 'Not enough cards are out yet to fill a ' + pack.name + '.' };
+    }
+
+    var message = '';
+    if (best) {
+      var pool = EGE.cards.pullable(packKey).filter(function (c) { return c.rarity === best; });
+      if (!pool.length) { pool = EGE.cards.pullable(null).filter(function (c) { return c.rarity === best; }); }
+      if (pool.length) {
+        cards[cards.length - 1] = pool[Math.floor(Math.random() * pool.length)];
+      } else {
+        message = 'No ' + EGE.cards.rarity(best).name + ' card is out yet, so this pack came out as it rolled.';
+      }
+    }
+
+    openRip({
+      pack: pack,
+      cards: cards,
+      isNew: cards.map(function () { return false; }),
+      title: pack.name + ' (demo)',
+      demo: true,
+      again: function () { demoPack(packKey, best); }
+    });
+    return { ok: true, message: message };
   }
 
   /* What the showcase on a player page and the admin panel draw with. */
@@ -1343,6 +1811,7 @@ EGE.cardsView = (function () {
     pressable: pressable,
     zoom: zoom,
     openOverlay: openOverlay,
-    closeOverlay: closeRip
+    closeOverlay: closeRip,
+    demoPack: demoPack
   };
 })();
