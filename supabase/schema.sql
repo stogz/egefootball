@@ -669,6 +669,229 @@ create policy "published weeks removed by an admin"
 notify pgrst, 'reload schema';
 
 -- ===========================================================================
+-- Diamonds
+--
+-- The card game's own money, kept apart from credits so that a pack is never
+-- bought with something that could have gone on a player. Packs cost
+-- diamonds and library sets pay them; nothing in the simulation takes or
+-- gives them.
+--
+-- A game pays diamonds the way it pays credits -- the same fantasy points
+-- times the same position share, rounded up -- and then the booster riding
+-- on it multiplies them: 1.5x, 2.0x or 2.5x (data/economy.js). Credits can
+-- be swapped for diamonds, two for every credit, and there is no way back.
+--
+-- Unlike credits, a player cannot write their own balance. It only moves
+-- through the functions below -- the games paying out, buying diamonds,
+-- opening a pack, claiming a set -- and by an admin's hand.
+-- ===========================================================================
+
+create table if not exists public.player_diamonds (
+  email      text primary key,
+  diamonds   integer     not null default 0,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.player_diamonds enable row level security;
+
+drop policy if exists "diamonds readable by owner or admin" on public.player_diamonds;
+create policy "diamonds readable by owner or admin"
+  on public.player_diamonds for select to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin());
+
+-- An admin sets anybody's balance from the admin page. Nobody else writes
+-- one straight: their diamonds move through the functions below.
+drop policy if exists "diamonds inserted by an admin" on public.player_diamonds;
+create policy "diamonds inserted by an admin"
+  on public.player_diamonds for insert to authenticated
+  with check (public.is_admin());
+
+drop policy if exists "diamonds updated by an admin" on public.player_diamonds;
+create policy "diamonds updated by an admin"
+  on public.player_diamonds for update to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+
+-- The ledger of every game's diamonds, the same shape and the same rules as
+-- credit_awards: one row per game per player per season, so paying on every
+-- page load is safe and a corrected stat line pays the difference.
+create table if not exists public.diamond_awards (
+  id         uuid primary key default gen_random_uuid(),
+  email      text        not null,
+  season     integer     not null,
+  award_key  text        not null,
+  diamonds   integer     not null,
+  note       text,
+  awarded_at timestamptz not null default now(),
+  unique (email, season, award_key)
+);
+
+create index if not exists diamond_awards_email_idx
+  on public.diamond_awards (email, season);
+
+alter table public.diamond_awards enable row level security;
+
+drop policy if exists "diamond awards readable by owner or admin" on public.diamond_awards;
+create policy "diamond awards readable by owner or admin"
+  on public.diamond_awards for select to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin());
+
+-- No insert, update or delete policy: awards are only written through
+-- pay_diamond_awards() below.
+
+-- ---------------------------------------------------------------------------
+-- Paying a game's diamonds
+--
+-- pay_credit_awards() over again, for the other ledger and the other
+-- balance. The same trust: what a game is worth comes from the browser,
+-- because the season files are not in Postgres, and for anybody who is not
+-- an admin an award has to look like one the site issues (game-w{week}) and
+-- be no bigger than one could honestly be -- 300, the 120 a game's credits
+-- are held to times the 2.5x booster.
+--
+-- Returns what it actually paid.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.pay_diamond_awards(
+  p_email  text,
+  p_season integer,
+  p_awards jsonb            -- [{ "key": "game-w4", "diamonds": 23, "note": "..." }, ...]
+) returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_caller text := auth.jwt() ->> 'email';
+  v_admin  boolean := public.is_admin();
+  v_paid   integer := 0;
+  v_have   integer;
+  r        record;
+begin
+  if v_caller is null then
+    raise exception 'sign in first';
+  end if;
+  if lower(v_caller) <> lower(p_email) and not v_admin then
+    raise exception 'that is not your account';
+  end if;
+  if p_awards is null or jsonb_typeof(p_awards) <> 'array' then
+    return 0;
+  end if;
+
+  -- One at a time and under lock, for the same reason as the credits: the
+  -- admin publishing a week and the player opening the site in the same
+  -- second must not both pay the same difference.
+  for r in
+    select
+      a ->> 'key'                              as award_key,
+      coalesce((a ->> 'diamonds')::integer, 0) as diamonds,
+      a ->> 'note'                             as note
+    from jsonb_array_elements(p_awards) as a
+  loop
+    continue when r.award_key is null or r.diamonds <= 0;
+    continue when not (
+      v_admin
+      or (r.award_key ~ '^game-w[0-9]{1,2}$' and r.diamonds <= 300)
+    );
+
+    select diamonds into v_have
+      from public.diamond_awards
+     where email = p_email and season = p_season and award_key = r.award_key
+     for update;
+
+    if v_have is null then
+      insert into public.diamond_awards (email, season, award_key, diamonds, note)
+      values (p_email, p_season, r.award_key, r.diamonds, r.note)
+      on conflict (email, season, award_key) do nothing;
+      if found then
+        v_paid := v_paid + r.diamonds;
+      end if;
+
+    elsif r.diamonds > v_have then
+      update public.diamond_awards
+         set diamonds = r.diamonds, note = r.note, awarded_at = now()
+       where email = p_email and season = p_season and award_key = r.award_key;
+      v_paid := v_paid + (r.diamonds - v_have);
+    end if;
+
+    v_have := null;
+  end loop;
+
+  if v_paid > 0 then
+    insert into public.player_diamonds as pd (email, diamonds, updated_at)
+    values (p_email, v_paid, now())
+    on conflict (email) do update
+      set diamonds = pd.diamonds + v_paid,
+          updated_at = now();
+  end if;
+
+  return v_paid;
+end;
+$$;
+
+revoke all on function public.pay_diamond_awards(text, integer, jsonb) from public, anon;
+grant execute on function public.pay_diamond_awards(text, integer, jsonb) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Buying diamonds with credits
+--
+-- Two diamonds for every credit -- DIAMONDS_PER_CREDIT in data/economy.js,
+-- and the two are changed together. At that rate a pack costs in credits
+-- exactly what it did before diamonds existed. One way only: nothing turns
+-- diamonds back into credits.
+--
+-- Both balances are taken under lock and moved in the one transaction, so a
+-- swap is never half done. Returns both balances after.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.buy_diamonds(p_credits integer)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email    text := auth.jwt() ->> 'email';
+  v_rate     constant integer := 2;
+  v_have     integer;
+  v_diamonds integer;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  if p_credits is null or p_credits < 1 then
+    raise exception 'Spend at least one credit.';
+  end if;
+
+  select credits into v_have
+    from public.player_credits
+   where email = v_email
+     for update;
+
+  if coalesce(v_have, 0) < p_credits then
+    raise exception 'Not enough credits: that costs %, you have %.', p_credits, coalesce(v_have, 0);
+  end if;
+
+  update public.player_credits
+     set credits = credits - p_credits, updated_at = now()
+   where email = v_email;
+
+  insert into public.player_diamonds as pd (email, diamonds, updated_at)
+  values (v_email, p_credits * v_rate, now())
+  on conflict (email) do update
+    set diamonds = pd.diamonds + p_credits * v_rate,
+        updated_at = now()
+  returning diamonds into v_diamonds;
+
+  return jsonb_build_object('credits', v_have - p_credits, 'diamonds', v_diamonds);
+end;
+$$;
+
+revoke all on function public.buy_diamonds(integer) from public, anon;
+grant execute on function public.buy_diamonds(integer) to authenticated;
+
+notify pgrst, 'reload schema';
+
+-- ===========================================================================
 -- Cards
 --
 -- The card game on the Cards tab (data/cards.js). It sits beside the
@@ -717,6 +940,10 @@ create table if not exists public.card_packs (
 
 create index if not exists card_packs_email_idx
   on public.card_packs (email, opened_at desc);
+
+-- Packs are bought with diamonds now. `credits` is what a pack opened before
+-- that cost, and 0 since; `diamonds` is what it cost after.
+alter table public.card_packs add column if not exists diamonds integer not null default 0;
 
 alter table public.card_packs enable row level security;
 
@@ -831,10 +1058,11 @@ revoke all on function public.owns_cards(text, text[]) from public, anon, authen
 -- the same easy half closed: a pack holds exactly its size of real-looking
 -- ids, and costs what it costs.
 --
--- The balance is taken under lock, so two packs opened at once from two tabs
--- cannot both spend the same credits.
+-- Paid in diamonds, never credits. The diamond balance is taken under lock,
+-- so two packs opened at once from two tabs cannot both spend the same
+-- diamonds.
 --
--- Returns the balance left.
+-- Returns the diamonds left.
 -- ---------------------------------------------------------------------------
 
 create or replace function public.open_card_pack(p_pack text, p_cards text[])
@@ -854,7 +1082,7 @@ begin
     raise exception 'sign in first';
   end if;
 
-  v_price := case p_pack when 'base' then 5 when 'season' then 6 when 'pro' then 10 end;
+  v_price := case p_pack when 'base' then 10 when 'season' then 12 when 'pro' then 20 end;
   v_size  := case p_pack when 'base' then 3 when 'season' then 3 when 'pro' then 5 end;
   if v_price is null then
     raise exception 'There is no % pack.', p_pack;
@@ -869,25 +1097,25 @@ begin
     end if;
   end loop;
 
-  select credits into v_have
-    from public.player_credits
+  select diamonds into v_have
+    from public.player_diamonds
    where email = v_email
      for update;
 
   if coalesce(v_have, 0) < v_price then
-    raise exception 'Not enough credits: that pack costs %, you have %.', v_price, coalesce(v_have, 0);
+    raise exception 'Not enough diamonds: that pack costs %, you have %.', v_price, coalesce(v_have, 0);
   end if;
 
-  update public.player_credits
-     set credits = credits - v_price, updated_at = now()
+  update public.player_diamonds
+     set diamonds = diamonds - v_price, updated_at = now()
    where email = v_email;
 
   foreach v_card in array p_cards loop
     perform public.give_card(v_email, v_card);
   end loop;
 
-  insert into public.card_packs (email, pack_key, credits, cards)
-  values (v_email, p_pack, v_price, p_cards);
+  insert into public.card_packs (email, pack_key, credits, diamonds, cards)
+  values (v_email, p_pack, 0, v_price, p_cards);
 
   return v_have - v_price;
 end;
@@ -901,23 +1129,31 @@ grant execute on function public.open_card_pack(text, text[]) to authenticated;
 --
 -- Which cards make a set is in data/cards.js, so the page says which of the
 -- player's cards it was completed with, and this checks they are all really
--- theirs. The reward is one more card, a few credits and, on the harder
--- sets, a 1.5x booster -- held here to 20 credits and to the 1.5x for
+-- theirs. The reward is one more card, a few diamonds and, on the harder
+-- sets, a 1.5x booster -- held here to 40 diamonds and to the 1.5x for
 -- anybody but an admin, so the most a forged claim can do is pay out a
 -- small, real reward once.
+--
+-- Diamonds, not credits: packs are bought with diamonds, and a set paying
+-- credits would be a way of turning diamonds back into credits, which
+-- nothing is allowed to be.
 --
 -- The booster lands on the same stacked inventory row a bought one does, and
 -- goes on games under the same five-a-season trigger, so a full library
 -- never means more boosters on a season than anybody else can have.
 --
--- Returns the balance after.
+-- Returns the diamond balance after.
 -- ---------------------------------------------------------------------------
+
+-- The fourth argument was p_credits. Postgres will not rename an argument in
+-- place, so the old one goes first; re-running this drops and recreates it.
+drop function if exists public.claim_card_set(text, text[], text, integer, text);
 
 create or replace function public.claim_card_set(
   p_set         text,
   p_cards       text[],
   p_reward_card text,
-  p_credits     integer,
+  p_diamonds    integer,
   p_booster     text
 ) returns integer
 language plpgsql
@@ -925,10 +1161,10 @@ security definer
 set search_path = public
 as $$
 declare
-  v_email   text := auth.jwt() ->> 'email';
-  v_admin   boolean := public.is_admin();
-  v_credits integer := greatest(coalesce(p_credits, 0), 0);
-  v_balance integer;
+  v_email    text := auth.jwt() ->> 'email';
+  v_admin    boolean := public.is_admin();
+  v_diamonds integer := greatest(coalesce(p_diamonds, 0), 0);
+  v_balance  integer;
 begin
   if v_email is null then
     raise exception 'sign in first';
@@ -945,7 +1181,7 @@ begin
   if p_booster is not null and p_booster not in ('boost-1-5', 'boost-2-0', 'boost-2-5') then
     raise exception 'Not a booster: %', p_booster;
   end if;
-  if not v_admin and (v_credits > 20 or (p_booster is not null and p_booster <> 'boost-1-5')) then
+  if not v_admin and (v_diamonds > 40 or (p_booster is not null and p_booster <> 'boost-1-5')) then
     raise exception 'That is more than a set pays.';
   end if;
 
@@ -956,7 +1192,7 @@ begin
 
   insert into public.card_set_claims (email, set_key, reward)
   values (v_email, p_set, jsonb_build_object(
-    'card', p_reward_card, 'credits', v_credits, 'booster', p_booster, 'cards', to_jsonb(p_cards)))
+    'card', p_reward_card, 'diamonds', v_diamonds, 'booster', p_booster, 'cards', to_jsonb(p_cards)))
   on conflict (email, set_key) do nothing;
   if not found then
     raise exception 'That set has already been claimed.';
@@ -966,11 +1202,11 @@ begin
     perform public.give_card(v_email, p_reward_card);
   end if;
 
-  insert into public.player_credits as cr (email, credits, updated_at)
-  values (v_email, v_credits, now())
+  insert into public.player_diamonds as pd (email, diamonds, updated_at)
+  values (v_email, v_diamonds, now())
   on conflict (email) do update
-    set credits = cr.credits + v_credits, updated_at = now()
-  returning credits into v_balance;
+    set diamonds = pd.diamonds + v_diamonds, updated_at = now()
+  returning diamonds into v_balance;
 
   if p_booster is not null then
     perform public.give_booster(v_email, p_booster);
@@ -980,7 +1216,7 @@ begin
 end;
 $$;
 
-revoke all on function public.claim_card_set(text, text[], text, integer, text) from public;
+revoke all on function public.claim_card_set(text, text[], text, integer, text) from public, anon;
 grant execute on function public.claim_card_set(text, text[], text, integer, text) to authenticated;
 
 notify pgrst, 'reload schema';
@@ -1245,7 +1481,7 @@ revoke all on function public.prune_showcase(text) from public, anon, authentica
 --
 -- Clear library: every card out of the collection, the showcase emptied,
 -- open trades cancelled and the goals reset, so the player starts the
--- Library over from nothing. Credits stay spent and rewards stay paid.
+-- Library over from nothing. Diamonds stay spent and rewards stay paid.
 --
 -- Reset goals: every library set can be claimed again. Cards are kept, and
 -- the rewards already paid stay paid.

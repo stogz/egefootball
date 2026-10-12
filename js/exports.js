@@ -259,7 +259,9 @@ EGE.exports = (function () {
           } : null,
           touchdowns: EGE.economy.touchdownsIn(game.stats),
           fantasyPoints: EGE.economy.fantasyPoints(game.stats),
-          creditsEarned: EGE.economy.gameCredits(player, game.stats, season)
+          creditsEarned: EGE.economy.gameCredits(player, game.stats, season),
+          diamondsEarned: EGE.economy.gameDiamonds(player, game.stats, season,
+                                                   booster && booster.multiplier)
         };
       }),
 
