@@ -1482,6 +1482,12 @@ could not be reached when they were written; the tools still read ESPN.
 It shows once the season is rolled over and its weeks published, the same
 as 2021.
 
+Scouts are at four of each player's 2022 games, the four toughest on his
+regular season: the strongest opponents by where they finished 2022 (their
+end-of-season Elo in the cfbfastR schedules), with the defense he faces
+counted in, run or pass. They are all regular-season games, so Intel shows
+all four from week 1 and each one can still take a booster.
+
 ### Conference standings
 
 The Conference line on a college season's header is the team's place in its
