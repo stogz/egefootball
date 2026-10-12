@@ -40,7 +40,7 @@ const { fetchAll, teamNames, refIds } = require('./espn');
 
 /* The seasons the site grades. Each needs the one before it fetched too, for
    the schools that barely played. */
-const SEASONS = [2020, 2021];
+const SEASONS = [2020, 2021, 2022];
 const MIN_GAMES = 4;
 const LEVELS = { FBS: 80, FCS: 81 };
 const OUT = path.join(__dirname, '..', 'data', 'defenses.js');

@@ -50,7 +50,7 @@ const { fetchAll, refIds } = require('./espn');
 const recruiting = require('./recruiting');
 const { loadSiteData } = require('../bot/site-data');
 
-const SEASONS = [2020, 2021];
+const SEASONS = [2020, 2021, 2022];
 const POSITIONS = ['QB', 'RB', 'WR', 'TE'];
 /* ESPN files a fullback on his own; on the page he is a back. */
 const FOLD = { FB: 'RB' };
@@ -62,6 +62,9 @@ const CORE = 'https://sports.core.api.espn.com/v2/sports/football/leagues/colleg
    timeline changed and they went somewhere else, so they are left off
    every roster, every season. */
 const NOT_HERE = ['C.J. Stroud', 'TreVeyon Henderson', 'Keaontay Ingram'];
+/* And the ones who are only missing from one school: Quinn Ewers took
+   Texas's job in 2022, which Isaac has here, so he went somewhere else. */
+const NOT_HERE_AT = { texas: ['Quinn Ewers'] };
 
 /* The number a room is ordered by, from the category that position is
    judged on, which also feeds the overall. */
@@ -99,6 +102,9 @@ const FCS = 0.85;
 const BASE = 50;
 const SPAN = 34;
 const CAP = 84;
+/* The one season the cap does not hold: Bryce Young's 2022 is an 86, the
+   only overall on any roster above a Heisman season's 84. */
+const OVERRIDES = { 2022: { 'Bryce Young': 86 } };
 
 function clamp01(n) { return Math.max(0, Math.min(1, n)); }
 
@@ -179,7 +185,7 @@ function leftAfter(id, season, espnId) {
   });
 }
 
-function rosterFor(season, espnId, school, index, fcs) {
+function rosterFor(season, espnId, school, index, fcs, key) {
   const list = fetchAll([CORE + '/seasons/' + season + '/teams/' + espnId + '/athletes?limit=400'])
     .values().next().value;
   const ids = refIds(list && list.items, /athletes\/(\d+)/);
@@ -218,6 +224,7 @@ function rosterFor(season, espnId, school, index, fcs) {
     const body = got.get(url);
     if (!body || !wasThere(url, body)) { return; }
     if (NOT_HERE.indexOf(body.fullName) !== -1) { return; }
+    if ((NOT_HERE_AT[key] || []).indexOf(body.fullName) !== -1) { return; }
     const abbr = body.position && body.position.abbreviation;
     const position = FOLD[abbr] || abbr;
     if (!rooms[position]) { return; }
@@ -234,7 +241,8 @@ function rosterFor(season, espnId, school, index, fcs) {
       weight: body.weight ? Math.round(body.weight) : null,
       year: year,
       left: leftAfter(ids[i], season, espnId),
-      overall: overallFor(position, recruit, year, output(ids[i]), fcs),
+      overall: (OVERRIDES[season] || {})[body.fullName] ||
+        overallFor(position, recruit, year, output(ids[i]), fcs),
       value: line ? line.value : 0,
       line: line ? line.text : null
     });
@@ -256,7 +264,11 @@ function main() {
   vm.createContext(sandbox);
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'data', 'logos.js'), 'utf8'), sandbox);
 
-  const colleges = [...new Set(EGE.players.map(function (p) { return p.college; }).filter(Boolean))];
+  /* Each season's schools: a transfer is at a different one from the
+     season he moved. */
+  function collegesIn(season) {
+    return [...new Set(EGE.players.map(function (p) { return EGE.teamKeyFor(p, season); }).filter(Boolean))];
+  }
 
   /* Six years of classes before the first season reaches every fifth-year
      on its roster, and a sixth for anybody given an extra year. */
@@ -285,12 +297,13 @@ function main() {
   SEASONS.forEach(function (season) {
     out.push('');
     out.push('EGE.rosters[' + season + '] = {');
+    const colleges = collegesIn(season);
     colleges.forEach(function (key, c) {
       const school = EGE.teams[key].school;
       const espnId = sandbox.EGE.espnIds[school];
       /* The Valley is the FCS; everybody else here is FBS. */
       const fcs = EGE.teams[key].league === 'Missouri Valley';
-      const rooms = rosterFor(season, espnId, school, index, fcs);
+      const rooms = rosterFor(season, espnId, school, index, fcs, key);
       out.push('  ' + key + ': {');
       POSITIONS.forEach(function (position, p) {
         out.push('    ' + position + ': [');
