@@ -17,7 +17,9 @@
 
    `team` is the high school a player played for and `college` the college,
    both as keys in EGE.teams below. Which one a season shows is its tier on
-   the ladder -- see EGE.teamFor.
+   the ladder -- see EGE.teamFor. A player who transferred has `transfers`
+   as well, `{ 2022: 'texas' }`: the school he is at from that season on,
+   so his earlier seasons still say where he was then.
 
    `trophies` is what is in his trophy case on his page, oldest first:
    `{ name, season, image, about, scale }`. `image` is a picture of it under
@@ -146,6 +148,25 @@ EGE.teams = {
     logo: 'icon/offers/Illinois.png',
     ground: '#FF5F05',
     zone: 'America/Chicago'
+  },
+  /* Isaac's school from 2022. There is no Texas mark in icon/offers/ yet, so
+     it is ESPN's, which the opponents' logos already come from; drop a
+     cut-down icon/offers/Texas.png in and point this at it whenever. */
+  texas: {
+    school: 'Texas',
+    league: 'Big 12',
+    logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/251.png',
+    ground: '#BF5700',
+    whiteMark: true,
+    zone: 'America/Chicago'
+  },
+  /* Paxon's school from 2022. */
+  northCarolina: {
+    school: 'North Carolina',
+    league: 'ACC',
+    logo: 'icon/offers/UNC.png',
+    ground: '#13294B',
+    zone: 'America/New_York'
   }
 };
 
@@ -213,6 +234,7 @@ EGE.players = [
     last: 'Hatch',
     team: 'bloomington',
     college: 'northDakotaState', // from 2020
+    transfers: { 2022: 'northCarolina' },
     position: 'WR',
     /* A tight end in high school, a receiver full-time from 2020. Only the
        header of an old season's page says so; everything else -- his
@@ -240,6 +262,7 @@ EGE.players = [
     last: 'Vitel',
     team: 'bloomington',
     college: 'illinois',      // from 2020
+    transfers: { 2022: 'texas' },
     position: 'QB',
     jersey: 8,
     /* Redshirted his freshman year: 2020 used no eligibility, so from 2021
@@ -303,11 +326,20 @@ EGE.weightText = function (player) {
 };
 
 /* Which school a player was at in a season, as its key in EGE.teams: `team`
-   through the high school years, `college` from the first college one. A
-   season left out means the live one. Null while a school is unknown. */
+   through the high school years, `college` from the first college one, and
+   after a transfer the school he moved to (`transfers`, from the season he
+   got there). A season left out means the live one. Null while a school is
+   unknown. */
 EGE.teamKeyFor = function (player, season) {
   if (!player) { return null; }
-  var key = EGE.tierFor(season) === 'college' ? player.college : player.team;
+  var year = season || EGE.currentSeason;
+  if (EGE.tierFor(year) !== 'college') { return player.team || null; }
+  var key = player.college;
+  Object.keys(player.transfers || {}).map(Number).sort(function (a, b) {
+    return a - b;
+  }).forEach(function (from) {
+    if (from <= year) { key = player.transfers[from]; }
+  });
   return key || null;
 };
 

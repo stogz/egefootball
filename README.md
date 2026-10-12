@@ -18,8 +18,8 @@ and in what order.
 | --- | --- | --- | --- | --- | --- | --- |
 | Andrew Parr | Wake Forest High School | Northern 4A | Alabama | SEC | TE | a complete tight end |
 | Cooper Clark | Carlsbad High School | Avocado League | USC | Pac-12 | RB | a receiving back |
-| Paxon Hatch | Bloomington High School | Big Twelve | North Dakota State | Missouri Valley | WR (TE through 2019) | a full-time receiver |
-| Isaac Vitel | Bloomington High School | Big Twelve | Illinois | Big Ten | QB | a deep thrower |
+| Paxon Hatch | Bloomington High School | Big Twelve | North Dakota State (2020–21), North Carolina (2022–) | Missouri Valley, then ACC | WR (TE through 2019) | a full-time receiver |
+| Isaac Vitel | Bloomington High School | Big Twelve | Illinois (2020–21), Texas (2022–) | Big Ten, then Big 12 | QB | a deep thrower |
 | Sam Stogsdill | Normal Community High School | Big Twelve | Ohio State | Big Ten | RB | a power back |
 | Jaykeb Stewart | Naples High School | 6A District 12 | Ohio State | Big Ten | QB | a pocket passer |
 
@@ -33,7 +33,10 @@ rule holds for them from 2020.
 A player's school is `team` (the high school) and `college` in
 `data/players.js`, both keys into `EGE.teams`; `EGE.teamFor(player, season)`
 picks one by the season's tier on the ladder, so a 2019 page still says Wake
-Forest High School after Andrew has gone to Alabama.
+Forest High School after Andrew has gone to Alabama. A transfer is
+`transfers`, the school he moved to keyed by the season he got there —
+Isaac's `{ 2022: 'texas' }`, Paxon's `{ 2022: 'northCarolina' }` — so his
+2021 page still says Illinois or North Dakota State.
 
 Everything marked TBD is genuinely unknown right now and should stay TBD in code
 and data until it is confirmed — no placeholder guesses that later read as facts.
@@ -280,7 +283,8 @@ them. **College only** — the high schools are on the player pages.
 **The index, `#teams`**, is a stack of cards, one school to a row: its mark
 on the left, on the school's own colour (`ground` in `EGE.teams` — Alabama
 crimson with the A in white, USC cardinal (#9D2235), NDSU green, Illinois orange,
-Ohio State white; the team page's header uses the same), then its record and place in its division, the faces of the
+Ohio State white, Texas burnt orange with the longhorn in white, North
+Carolina navy; the team page's header uses the same), then its record and place in its division, the faces of the
 six who play there, and *View team →*. On a wide screen those run across
 the row — the name and record on the left, each of the six as a face with
 his name beside it in a column of its own, so they line up from card to
@@ -351,8 +355,9 @@ Under the bar:
   recruiting alone. An FCS school's score counts 85%. A walk-on freshman is
   a 50, a five-star freshman who has not played about 58, a good starter
   about 70; DeVonta Smith's 2020 and Bryce Young's 2021 are 84s, C.J.
-  Stroud's 2021 an 82. The constants are at the top of
-  `tools/build-rosters.js`.
+  Stroud's 2021 an 82. The one exception is Bryce Young's 2022, set by
+  hand to an 86 — the only overall on any roster above 84. The constants
+  are at the top of `tools/build-rosters.js`.
 - **Conference Standings** — the whole conference as one table: the dark
   row of headings once at the top and every school under it, the school's
   own division first, a rule where the next division starts, and the
@@ -1457,6 +1462,25 @@ no game is marked for scouts yet. The year is in `SEASONS` in
 everybody once **Roll the season over** points `data/season.js` at it.
 Rosters (`data/rosters.js`), defense grades (`data/defenses.js`) and the
 conference races (`data/conferences.js`) all have 2021 in already.
+
+**2022** is in, played out in full and waiting to be published. The
+fixtures are each school's real 2022 regular season — Isaac's at Texas and
+Paxon's at North Carolina now — and Alabama and Texas meet in week 2, so
+Andrew's and Isaac's files carry the same game from both sides. The results
+are the real margins moved by what the six bring to their teams and a
+game's worth of luck, and the postseason follows from them: Alabama beats
+Georgia for the SEC title, Texas wins the Big 12, USC loses the Pac-12 title
+game to Washington and UNC the ACC's to Clemson, and the College Football
+Playoff is Michigan v Ohio State in the Fiesta and Georgia v Alabama in the
+Peach (`EGE.brackets[2022]`). Every stat line was worked out from each
+player's season, with each game's share moved by the opponent's 2022
+defense and how the game went. The rosters, defense grades and the five
+conference races (the Big 12 and the ACC are new, and the Pac-12 and Big 12
+have no divisions) are in for 2022 too. Those were built from the
+cfbfastR mirrors of ESPN's 2022 data on GitHub, since ESPN and 247Sports
+could not be reached when they were written; the tools still read ESPN.
+It shows once the season is rolled over and its weeks published, the same
+as 2021.
 
 ### Conference standings
 

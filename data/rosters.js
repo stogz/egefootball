@@ -12,6 +12,15 @@
    ESPN has his headshot. Jersey numbers are ESPN's; EGE.rosterFor moves
    anybody wearing one of the six's. The six are not listed -- they are
    put into their rooms by EGE.rosterFor in data/games.js.
+
+   2022 was worked out the same way, by the same formula, from the
+   cfbfastR copies of ESPN's 2022 rosters and play-by-play, since ESPN
+   itself could not be reached when it was written. Where there was no
+   2021 line here to read a player's recruiting rating back from (all of
+   Texas and North Carolina, the transfers and the freshmen), the
+   Composite rating was put in by hand for the players who matter and
+   taken as a low three-star for the rest. Bryce Young's 86 is set by
+   hand: the only overall above 84.
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -330,6 +339,157 @@ EGE.rosters[2021] = {
       { name: 'Joe Royer', jersey: 11, year: 2, overall: 55, height: 77, weight: 250, espn: 4565859, photo: true, left: true },
       { name: 'Cade Stover', jersey: 8, year: 3, overall: 54, height: 76, weight: 251, espn: 4426496, photo: true },
       { name: 'Mitch Rossi', jersey: 34, year: 3, overall: 52, height: 73, weight: 250, espn: 4257374, photo: true }
+    ]
+  }
+};
+
+EGE.rosters[2022] = {
+  alabama: {
+    QB: [
+      { name: 'Bryce Young', jersey: 9, year: 3, overall: 86, height: 72, weight: 194, espn: 4685720, photo: true },
+      { name: 'Jalen Milroe', jersey: 4, year: 2, overall: 62, height: 74, weight: 225, espn: 4432734, photo: true },
+      { name: 'Ty Simpson', jersey: 15, year: 1, overall: 58, height: 74, weight: 208, espn: 4685522, photo: true }
+    ],
+    RB: [
+      { name: 'Jahmyr Gibbs', jersey: 1, year: 3, overall: 76, height: 71, weight: 200, espn: 4429795, photo: true },
+      { name: 'Jase McClellan', jersey: 2, year: 3, overall: 71, height: 71, weight: 212, espn: 4429001, photo: true },
+      { name: 'Roydell Williams', jersey: 5, year: 3, overall: 64, height: 70, weight: 221, espn: 4685723, photo: true, left: true },
+      { name: 'Trey Sanders', jersey: 2, year: 4, overall: 64, height: 72, weight: 215, espn: 107494, photo: true, left: true },
+      { name: 'Jam Miller', jersey: 26, year: 1, overall: 54, height: 70, weight: 221, espn: 4685477, photo: true },
+      { name: 'Jonathan Bennett', jersey: 27, year: 3, overall: 54, height: 70, weight: 180, espn: 4695287, photo: true, left: true }
+    ],
+    WR: [
+      { name: 'Ja\'Corey Brooks', jersey: 1, year: 2, overall: 69, height: 75, weight: 195, espn: 4431506, photo: true, left: true },
+      { name: 'Jermaine Burton', jersey: 3, year: 3, overall: 69, height: 72, weight: 194, espn: 4429033, photo: true },
+      { name: 'Traeshon Holden', jersey: 1, year: 3, overall: 63, height: 75, weight: 215, espn: 4429172, photo: true, left: true },
+      { name: 'JoJo Earle', jersey: 11, year: 2, overall: 62, height: 70, weight: 185, espn: 4432694, photo: true, left: true },
+      { name: 'Christian Leary', jersey: 1, year: 2, overall: 59, height: 70, weight: 180, espn: 4587702, photo: true, left: true },
+      { name: 'Thaiu Jones-Bell', jersey: 14, year: 3, overall: 58, height: 72, weight: 198, espn: 4430823, photo: true },
+      { name: 'Kobe Prentice', jersey: 16, year: 1, overall: 57, height: 71, weight: 190, espn: 4869965, photo: true, left: true },
+      { name: 'Isaiah Bond', jersey: 7, year: 1, overall: 57, height: 71, weight: 180, espn: 4808839, photo: true, left: true },
+      { name: 'Tyler Harrell', jersey: 15, year: 5, overall: 56, height: 72, weight: 200, espn: 4360818, photo: true, left: true },
+      { name: 'Emmanuel Henderson Jr.', jersey: 2, year: 1, overall: 54, height: 73, weight: 190, espn: 4685381, photo: true, left: true },
+      { name: 'Kendrick Law', jersey: 1, year: 1, overall: 53, height: 72, weight: 205, espn: 4685441, photo: true, left: true }
+    ],
+    TE: [
+      { name: 'Cameron Latu', jersey: 81, year: 5, overall: 63, height: 77, weight: 244, espn: 4372026, photo: true },
+      { name: 'Robbie Ouzts', jersey: 45, year: 2, overall: 55, height: 76, weight: 270, espn: 4691688, photo: true },
+      { name: 'Amari Niblack', jersey: 84, year: 1, overall: 53, height: 75, weight: 235, espn: 4869534, photo: true, left: true },
+      { name: 'Miles Kitselman', jersey: 87, year: 1, overall: 52, height: 77, weight: 255, espn: 5089453, photo: true, left: true }
+    ]
+  },
+  usc: {
+    QB: [
+      { name: 'Caleb Williams', jersey: 13, year: 2, overall: 84, height: 73, weight: 215, espn: 4431611, photo: true },
+      { name: 'Miller Moss', jersey: 7, year: 2, overall: 59, height: 74, weight: 210, espn: 4431580, photo: true, left: true }
+    ],
+    RB: [
+      { name: 'Travis Dye', jersey: 26, year: 5, overall: 72, height: 70, weight: 200, espn: 4360691, photo: true },
+      { name: 'Austin Jones', jersey: 6, year: 4, overall: 68, height: 70, weight: 200, espn: 4569330, photo: true },
+      { name: 'Raleek Brown', jersey: 0, year: 1, overall: 62, height: 69, weight: 193, espn: 4685268, photo: true, left: true },
+      { name: 'Darwin Barlow', jersey: 24, year: 4, overall: 60, height: 72, weight: 220, espn: 4426635, photo: true, left: true }
+    ],
+    WR: [
+      { name: 'Jordan Addison', jersey: 3, year: 3, overall: 72, height: 72, weight: 175, espn: 4429205, photo: true },
+      { name: 'Gary Bryant Jr.', jersey: 2, year: 3, overall: 68, height: 71, weight: 191, espn: 4429125, photo: true, left: true },
+      { name: 'Kyle Ford', jersey: 81, year: 4, overall: 67, height: 73, weight: 225, espn: 4426357, photo: true, left: true },
+      { name: 'Tahj Washington', jersey: 16, year: 4, overall: 66, height: 70, weight: 175, espn: 4567506, photo: true },
+      { name: 'Mario Williams', jersey: 4, year: 2, overall: 66, height: 69, weight: 178, espn: 4431618, photo: true, left: true },
+      { name: 'Brenden Rice', jersey: 2, year: 3, overall: 62, height: 75, weight: 210, espn: 4686781, photo: true },
+      { name: 'Michael Jackson III', jersey: 2, year: 2, overall: 60, height: 72, weight: 205, espn: 4592573, photo: true, left: true },
+      { name: 'Terrell Bynum', jersey: null, year: 5, overall: 57, height: 73, weight: 190, espn: 4243319, photo: true },
+      { name: 'Kyron Hudson', jersey: 10, year: 1, overall: 54, height: 73, weight: 200, espn: 5085025, photo: true },
+      { name: 'C.J. Williams', jersey: 3, year: 1, overall: 52, height: 73, weight: 205, espn: 5085024, photo: true, left: true }
+    ],
+    TE: [
+      { name: 'Malcolm Epps', jersey: 7, year: 5, overall: 62, height: 78, weight: 255, espn: 4362110, photo: true, left: true },
+      { name: 'Lake McRee', jersey: 87, year: 2, overall: 58, height: 76, weight: 250, espn: 4566198, photo: true },
+      { name: 'Josh Falo', jersey: 83, year: 5, overall: 57, height: 78, weight: 255, espn: 4259648, photo: true }
+    ]
+  },
+  northCarolina: {
+    QB: [
+      { name: 'Drake Maye', jersey: 10, year: 2, overall: 83, height: 76, weight: 230, espn: 4431452, photo: true },
+      { name: 'Jacolby Criswell', jersey: 6, year: 3, overall: 57, height: 73, weight: 230, espn: 4429463, photo: true, left: true }
+    ],
+    RB: [
+      { name: 'Elijah Green', jersey: 21, year: 3, overall: 64, height: 71, weight: 210, espn: 4688817, photo: true, left: true },
+      { name: 'Omarion Hampton', jersey: 28, year: 1, overall: 64, height: 72, weight: 220, espn: 4685382, photo: true },
+      { name: 'Caleb Hood', jersey: 4, year: 2, overall: 59, height: 72, weight: 220, espn: 4595341, photo: true },
+      { name: 'DJ Jones', jersey: 26, year: 3, overall: 57, height: 71, weight: 207, espn: 4688818, photo: true, left: true },
+      { name: 'George Pettaway', jersey: 6, year: 1, overall: 57, height: 70, weight: 200, espn: 4685494, photo: true, left: true }
+    ],
+    WR: [
+      { name: 'Josh Downs', jersey: 11, year: 3, overall: 71, height: 70, weight: 175, espn: 4688813, photo: true },
+      { name: 'Antoine Green', jersey: 3, year: 5, overall: 70, height: 74, weight: 200, espn: 4373266, photo: true },
+      { name: 'J.J. Jones', jersey: 5, year: 2, overall: 61, height: 74, weight: 210, espn: 4596596, photo: true },
+      { name: 'Kobe Paysour', jersey: 8, year: 2, overall: 58, height: 73, weight: 190, espn: 4431505, photo: true },
+      { name: 'Gavin Blackwell', jersey: 6, year: 2, overall: 57, height: 71, weight: 185, espn: 4432664, photo: true, left: true },
+      { name: 'Justin Olson', jersey: 4, year: 4, overall: 56, height: 75, weight: 210, espn: 4428167, photo: true, left: true }
+    ],
+    TE: [
+      { name: 'Bryson Nesbit', jersey: 18, year: 2, overall: 67, height: 77, weight: 235, espn: 4602969, photo: true },
+      { name: 'Kamari Morales', jersey: 88, year: 4, overall: 66, height: 75, weight: 249, espn: 4428050, photo: true, left: true },
+      { name: 'John Copenhaver', jersey: 81, year: 3, overall: 58, height: 75, weight: 240, espn: 4431045, photo: true }
+    ]
+  },
+  texas: {
+    QB: [
+      { name: 'Hudson Card', jersey: 1, year: 3, overall: 63, height: 75, weight: 210, espn: 4429032, photo: true, left: true }
+    ],
+    RB: [
+      { name: 'Bijan Robinson', jersey: 5, year: 3, overall: 84, height: 72, weight: 220, espn: 4430807, photo: true },
+      { name: 'Roschon Johnson', jersey: 2, year: 4, overall: 68, height: 74, weight: 223, espn: 4426386, photo: true },
+      { name: 'Keilan Robinson', jersey: 7, year: 4, overall: 62, height: 69, weight: 188, espn: 4567095, photo: true },
+      { name: 'Jonathon Brooks', jersey: 24, year: 2, overall: 59, height: 72, weight: 207, espn: 4678008, photo: true },
+      { name: 'Jaydon Blue', jersey: 23, year: 1, overall: 56, height: 72, weight: 200, espn: 4685279, photo: true },
+      { name: 'Savion Red', jersey: 0, year: 1, overall: 53, height: 70, weight: 233, espn: 4690811, photo: true, left: true }
+    ],
+    WR: [
+      { name: 'Xavier Worthy', jersey: 1, year: 2, overall: 69, height: 73, weight: 172, espn: 4683062, photo: true },
+      { name: 'Jordan Whittington', jersey: 13, year: 4, overall: 69, height: 73, weight: 204, espn: 4569382, photo: true },
+      { name: 'Agiye Hall', jersey: 15, year: 2, overall: 59, height: 75, weight: 194, espn: 4567774, photo: true },
+      { name: 'Tarique Milton', jersey: 16, year: 5, overall: 56, height: 70, weight: 192, espn: 4259197, photo: true },
+      { name: 'Troy Omeire', jersey: 5, year: 3, overall: 56, height: 77, weight: 226, espn: 4430827, photo: true, left: true },
+      { name: 'Brenen Thompson', jersey: 0, year: 1, overall: 55, height: 69, weight: 170, espn: 4685553, photo: true, left: true },
+      { name: 'Casey Cain', jersey: 2, year: 1, overall: 54, height: 75, weight: 200, espn: 4603190, photo: true, left: true },
+      { name: 'Gabe Sulser', jersey: 83, year: 4, overall: 54, height: 69, weight: 167, espn: 4364649, photo: true }
+    ],
+    TE: [
+      { name: 'Ja\'Tavion Sanders', jersey: null, year: 2, overall: 75, height: 76, weight: 243, espn: 4431588, photo: true },
+      { name: 'Jahleel Billingsley', jersey: 9, year: 4, overall: 58, height: 76, weight: 219, espn: 4567105, photo: true },
+      { name: 'Gunnar Helm', jersey: 85, year: 2, overall: 55, height: 77, weight: 250, espn: 4686728, photo: true }
+    ]
+  },
+  ohioState: {
+    QB: [
+      { name: 'Kyle McCord', jersey: 6, year: 2, overall: 60, height: 75, weight: 220, espn: 4433971, photo: true, left: true },
+      { name: 'Devin Brown', jersey: 33, year: 1, overall: 57, height: 75, weight: 215, espn: 4695709, photo: true, left: true }
+    ],
+    RB: [
+      { name: 'Miyan Williams', jersey: 3, year: 3, overall: 69, height: 69, weight: 226, espn: 4432637, photo: true },
+      { name: 'Dallan Hayden', jersey: 7, year: 1, overall: 62, height: 71, weight: 208, espn: 4698727, photo: true, left: true },
+      { name: 'Chip Trayanum', jersey: 1, year: 3, overall: 55, height: 71, weight: 227, espn: 4430893, photo: true, left: true },
+      { name: 'Cayden Saunders', jersey: 26, year: 2, overall: 53, height: 69, weight: 188, espn: 4875585, photo: true },
+      { name: 'TC Caffey', jersey: 20, year: 1, overall: 52, height: 70, weight: 215, espn: 5081809, photo: true, left: true }
+    ],
+    WR: [
+      { name: 'Emeka Egbuka', jersey: 2, year: 2, overall: 76, height: 73, weight: 205, espn: 4567750, photo: true },
+      { name: 'Marvin Harrison Jr.', jersey: 18, year: 2, overall: 75, height: 76, weight: 205, espn: 4432708, photo: true },
+      { name: 'Jaxon Smith-Njigba', jersey: 11, year: 3, overall: 75, height: 73, weight: 200, espn: 4430878, photo: true },
+      { name: 'Julian Fleming', jersey: 3, year: 3, overall: 68, height: 74, weight: 206, espn: 4430800, photo: true, left: true },
+      { name: 'Jayden Ballard', jersey: 4, year: 2, overall: 60, height: 74, weight: 205, espn: 4431498, photo: true, left: true },
+      { name: 'Kamryn Babb', jersey: null, year: 5, overall: 60, height: 72, weight: 210, espn: 4361347, photo: true },
+      { name: 'Xavier Johnson', jersey: null, year: 5, overall: 59, height: 73, weight: 210, espn: 4385430, photo: true },
+      { name: 'Kaleb Brown', jersey: 8, year: 1, overall: 56, height: 70, weight: 200, espn: 4685283, photo: true, left: true },
+      { name: 'Kyion Grayes', jersey: 6, year: 1, overall: 55, height: 72, weight: 190, espn: 4688541, photo: true, left: true },
+      { name: 'Reis Stocksdale', jersey: 86, year: 2, overall: 53, height: 70, weight: 185, espn: 4875583, photo: true, left: true }
+    ],
+    TE: [
+      { name: 'Cade Stover', jersey: 8, year: 4, overall: 66, height: 76, weight: 251, espn: 4426496, photo: true },
+      { name: 'Gee Scott Jr.', jersey: 88, year: 3, overall: 60, height: 75, weight: 243, espn: 4429115, photo: true },
+      { name: 'Joe Royer', jersey: 11, year: 3, overall: 56, height: 77, weight: 250, espn: 4565859, photo: true, left: true },
+      { name: 'Mitch Rossi', jersey: 34, year: 4, overall: 54, height: 73, weight: 250, espn: 4257374, photo: true }
     ]
   }
 };
