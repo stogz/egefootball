@@ -95,7 +95,7 @@ EGE.stats[2022] = {
           receivingAvg: 8.6, totalYards: 60, totalTd: 0
         } },
       { week:  2, date: '2022-09-10', kickoff: '11:00am',
-        opponent: 'Texas', home: false, conference: false,
+        opponent: 'Texas', home: false, conference: false, scouts: true,
         result: { teamScore: 27, opponentScore: 13 }, booster: null,
         stats: {
           receptions: 10, receivingYards: 84, receivingYac: 29,
@@ -140,7 +140,7 @@ EGE.stats[2022] = {
           '25 yard receiving touchdown'
         ] },
       { week:  6, date: '2022-10-08', kickoff: '7:00pm',
-        opponent: 'Texas A&M', home: true, conference: true,
+        opponent: 'Texas A&M', home: true, conference: true, scouts: true,
         result: { teamScore: 19, opponentScore: 24 }, booster: null,
         stats: {
           receptions: 3, receivingYards: 47, receivingYac: 12,
@@ -149,7 +149,7 @@ EGE.stats[2022] = {
           receivingAvg: 15.7, totalYards: 47, totalTd: 0
         } },
       { week:  7, date: '2022-10-15', kickoff: '2:30pm',
-        opponent: 'Tennessee', home: false, conference: true,
+        opponent: 'Tennessee', home: false, conference: true, scouts: true,
         result: { teamScore: 42, opponentScore: 59 }, booster: null,
         stats: {
           receptions: 7, receivingYards: 92, receivingYac: 19,
@@ -170,7 +170,7 @@ EGE.stats[2022] = {
           '6 yard receiving touchdown'
         ] },
       { week: 10, date: '2022-11-05', kickoff: '6:00pm',
-        opponent: 'LSU', home: false, conference: true,
+        opponent: 'LSU', home: false, conference: true, scouts: true,
         result: { teamScore: 38, opponentScore: 24 }, booster: null,
         stats: {
           receptions: 6, receivingYards: 153, receivingYac: 64,
@@ -273,7 +273,7 @@ EGE.stats[2022] = {
           '20 yard rushing touchdown'
         ] },
       { week:  4, date: '2022-09-24', kickoff: '6:30pm',
-        opponent: 'Oregon State', home: false, conference: true,
+        opponent: 'Oregon State', home: false, conference: true, scouts: true,
         result: { teamScore: 19, opponentScore: 13 }, booster: null,
         stats: {
           carries: 14, rushingYards: 64, rushingTd: 0, rushingLong: 15,
@@ -304,7 +304,7 @@ EGE.stats[2022] = {
           rushingAvg: 2.9, receivingAvg: 7.5, totalYards: 61, totalTd: 0
         } },
       { week:  7, date: '2022-10-15', kickoff: '5:00pm',
-        opponent: 'Utah', home: false, conference: true, overtime: true,
+        opponent: 'Utah', home: false, conference: true, scouts: true, overtime: true,
         result: { teamScore: 45, opponentScore: 42 }, booster: null,
         stats: {
           carries: 16, rushingYards: 123, rushingTd: 2, rushingLong: 31,
@@ -352,7 +352,7 @@ EGE.stats[2022] = {
           rushingAvg: 6.2, receivingAvg: 15, totalYards: 117, totalTd: 0
         } },
       { week: 12, date: '2022-11-19', kickoff: '5:00pm',
-        opponent: 'UCLA', home: false, conference: true,
+        opponent: 'UCLA', home: false, conference: true, scouts: true,
         result: { teamScore: 56, opponentScore: 35 }, booster: null,
         stats: {
           carries: 15, rushingYards: 106, rushingTd: 2, rushingLong: 15,
@@ -365,7 +365,7 @@ EGE.stats[2022] = {
           '5 yard rushing touchdown'
         ] },
       { week: 13, date: '2022-11-26', kickoff: '4:30pm',
-        opponent: 'Notre Dame', home: true, conference: false,
+        opponent: 'Notre Dame', home: true, conference: false, scouts: true,
         result: { teamScore: 42, opponentScore: 23 }, booster: null,
         stats: {
           carries: 17, rushingYards: 113, rushingTd: 2, rushingLong: 63,
@@ -444,7 +444,7 @@ EGE.stats[2022] = {
           '8 yard rushing touchdown'
         ] },
       { week:  4, date: '2022-09-24', kickoff: '3:30pm',
-        opponent: 'Notre Dame', home: true, conference: false,
+        opponent: 'Notre Dame', home: true, conference: false, scouts: true,
         result: { teamScore: 35, opponentScore: 42 }, booster: null,
         stats: {
           receptions: 4, receivingYards: 41, receivingYac: 18,
@@ -488,7 +488,7 @@ EGE.stats[2022] = {
           '5 yard rushing touchdown'
         ] },
       { week:  9, date: '2022-10-29', kickoff: '8:00pm',
-        opponent: 'Pittsburgh', home: true, conference: true,
+        opponent: 'Pittsburgh', home: true, conference: true, scouts: true,
         result: { teamScore: 42, opponentScore: 23 }, booster: null,
         stats: {
           receptions: 2, receivingYards: 23, receivingYac: 8,
@@ -509,7 +509,7 @@ EGE.stats[2022] = {
           '6 yard rushing touchdown'
         ] },
       { week: 11, date: '2022-11-12', kickoff: '7:30pm',
-        opponent: 'Wake Forest', home: false, conference: true,
+        opponent: 'Wake Forest', home: false, conference: true, scouts: true,
         result: { teamScore: 37, opponentScore: 33 }, booster: null,
         stats: {
           receptions: 4, receivingYards: 87, receivingYac: 33,
@@ -531,7 +531,7 @@ EGE.stats[2022] = {
           rushingAvg: 7.2, receivingAvg: 8.5, totalYards: 77, totalTd: 0
         } },
       { week: 13, date: '2022-11-25', kickoff: '3:30pm',
-        opponent: 'NC State', home: true, conference: true,
+        opponent: 'NC State', home: true, conference: true, scouts: true,
         result: { teamScore: 30, opponentScore: 27 }, booster: null,
         stats: {
           receptions: 2, receivingYards: 30, receivingYac: 8,
@@ -580,7 +580,7 @@ EGE.stats[2022] = {
           '35 yard passing touchdown'
         ] },
       { week:  2, date: '2022-09-10', kickoff: '11:00am',
-        opponent: 'Alabama', home: true, conference: false,
+        opponent: 'Alabama', home: true, conference: false, scouts: true,
         result: { teamScore: 13, opponentScore: 27 }, booster: null,
         stats: {
           completions: 25, attempts: 36, passingYards: 269,
@@ -675,7 +675,7 @@ EGE.stats[2022] = {
           '4 yard passing touchdown'
         ] },
       { week: 10, date: '2022-11-05', kickoff: '6:00pm',
-        opponent: 'Kansas State', home: false, conference: true,
+        opponent: 'Kansas State', home: false, conference: true, scouts: true,
         result: { teamScore: 41, opponentScore: 20 }, booster: null,
         stats: {
           completions: 18, attempts: 29, passingYards: 209,
@@ -689,7 +689,7 @@ EGE.stats[2022] = {
           '3 yard passing touchdown'
         ] },
       { week: 11, date: '2022-11-12', kickoff: '6:30pm',
-        opponent: 'TCU', home: true, conference: true,
+        opponent: 'TCU', home: true, conference: true, scouts: true,
         result: { teamScore: 14, opponentScore: 13 }, booster: null,
         stats: {
           completions: 19, attempts: 36, passingYards: 370,
@@ -710,7 +710,7 @@ EGE.stats[2022] = {
           '79 yard passing touchdown'
         ] },
       { week: 13, date: '2022-11-25', kickoff: '11:00am',
-        opponent: 'Baylor', home: true, conference: true,
+        opponent: 'Baylor', home: true, conference: true, scouts: true,
         result: { teamScore: 44, opponentScore: 21 }, booster: null,
         stats: {
           completions: 21, attempts: 32, passingYards: 310,
@@ -764,7 +764,7 @@ EGE.stats[2022] = {
     /* Sam Stogsdill — Ohio State */
     'sam-stogsdill': [
       { week:  1, date: '2022-09-03', kickoff: '7:30pm',
-        opponent: 'Notre Dame', home: true, conference: false,
+        opponent: 'Notre Dame', home: true, conference: false, scouts: true,
         result: { teamScore: 34, opponentScore: 0 }, booster: null,
         stats: {
           carries: 16, rushingYards: 166, rushingTd: 0, rushingLong: 33,
@@ -795,7 +795,7 @@ EGE.stats[2022] = {
           '3 yard rushing touchdown'
         ] },
       { week:  4, date: '2022-09-24', kickoff: '7:30pm',
-        opponent: 'Wisconsin', home: true, conference: true,
+        opponent: 'Wisconsin', home: true, conference: true, scouts: true,
         result: { teamScore: 49, opponentScore: 23 }, booster: null,
         stats: {
           carries: 16, rushingYards: 57, rushingTd: 0, rushingLong: 13,
@@ -844,7 +844,7 @@ EGE.stats[2022] = {
           '17 yard rushing touchdown'
         ] },
       { week:  9, date: '2022-10-29', kickoff: '12:00pm',
-        opponent: 'Penn State', home: false, conference: true,
+        opponent: 'Penn State', home: false, conference: true, scouts: true,
         result: { teamScore: 54, opponentScore: 21 }, booster: null,
         stats: {
           carries: 20, rushingYards: 138, rushingTd: 2, rushingLong: 17,
@@ -899,7 +899,7 @@ EGE.stats[2022] = {
           '5 yard rushing touchdown'
         ] },
       { week: 13, date: '2022-11-26', kickoff: '12:00pm',
-        opponent: 'Michigan', home: true, conference: true,
+        opponent: 'Michigan', home: true, conference: true, scouts: true,
         result: { teamScore: 31, opponentScore: 35 }, booster: null,
         stats: {
           carries: 27, rushingYards: 91, rushingTd: 0, rushingLong: 9,
@@ -925,7 +925,7 @@ EGE.stats[2022] = {
     /* Jaykeb Stewart — Ohio State */
     'jaykeb-stewart': [
       { week:  1, date: '2022-09-03', kickoff: '7:30pm',
-        opponent: 'Notre Dame', home: true, conference: false,
+        opponent: 'Notre Dame', home: true, conference: false, scouts: true,
         result: { teamScore: 34, opponentScore: 0 }, booster: null,
         stats: {
           completions: 25, attempts: 36, passingYards: 263,
@@ -1019,7 +1019,7 @@ EGE.stats[2022] = {
           '14 yard passing touchdown'
         ] },
       { week:  8, date: '2022-10-22', kickoff: '12:00pm',
-        opponent: 'Iowa', home: true, conference: true,
+        opponent: 'Iowa', home: true, conference: true, scouts: true,
         result: { teamScore: 59, opponentScore: 6 }, booster: null,
         stats: {
           completions: 32, attempts: 42, passingYards: 309,
@@ -1035,7 +1035,7 @@ EGE.stats[2022] = {
           '6 yard rushing touchdown'
         ] },
       { week:  9, date: '2022-10-29', kickoff: '12:00pm',
-        opponent: 'Penn State', home: false, conference: true,
+        opponent: 'Penn State', home: false, conference: true, scouts: true,
         result: { teamScore: 54, opponentScore: 21 }, booster: null,
         stats: {
           completions: 26, attempts: 35, passingYards: 267,
@@ -1089,7 +1089,7 @@ EGE.stats[2022] = {
           '45 yard passing touchdown'
         ] },
       { week: 13, date: '2022-11-26', kickoff: '12:00pm',
-        opponent: 'Michigan', home: true, conference: true,
+        opponent: 'Michigan', home: true, conference: true, scouts: true,
         result: { teamScore: 31, opponentScore: 35 }, booster: null,
         stats: {
           completions: 36, attempts: 53, passingYards: 494,
