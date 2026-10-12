@@ -65,7 +65,7 @@ EGE.stats[2022] = {
         null,
         ['Georgia', 21, 13],
       ] },
-      { week: 19, results: [
+      { week: 18, results: [
         ['Michigan', 31, 23],
       ] },
     ],
@@ -75,7 +75,7 @@ EGE.stats[2022] = {
         ['Michigan', 35, 21],
         null,
       ] },
-      { week: 19, results: [
+      { week: 18, results: [
         ['Michigan', 31, 23],
       ] },
     ],
