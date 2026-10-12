@@ -78,7 +78,7 @@ EGE.cards = (function () {
   var ICONIC = [
     'p:2019:sam-stogsdill:9',     /* Sam's five touchdowns against Centennial */
     'p:2020:paxon-hatch:19',      /* Paxon's two touchdowns in the FCS Championship */
-    'h:2019:cooper-clark:15:0'    /* Cooper's 80 yard touchdown against Helix */
+    'h:2019:cooper-clark:15:0',    /* Cooper's 80 yard touchdown against Helix */
     'p:2022:jaykeb-stewart:4'     /* Jaykeb Stewart 7TD Masterclass */
   ];
 
