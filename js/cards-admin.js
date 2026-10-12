@@ -1,7 +1,8 @@
 /* ==========================================================================
    EGE Football — the card game, on the admin page
-   Who has how many cards, what they have claimed and traded, and the two
-   resets: Clear library (every card out of a collection, its showcase
+   Who has how many cards, what they have claimed and traded, a demo pack
+   to try the openings out on (js/cards-view.js rips it; nothing is paid
+   and nothing is kept), and the two resets: Clear library (every card out of a collection, its showcase
    emptied, its open trades cancelled and its goals reset) and Reset goals
    (every Library set claimable again, cards kept). Either for one player or for everybody,
    and only once RESET is typed.
@@ -11,7 +12,7 @@
 
    js/app.js calls render() when it draws the admin page.
 
-   Depends on: js/cards.js, data/cards.js.
+   Depends on: js/cards.js, js/cards-view.js, data/cards.js.
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -106,6 +107,13 @@ EGE.cardsAdmin = (function () {
     EGE.playersWithAccounts().forEach(function (p) { who.appendChild(new Option(p.name, p.email)); });
 
     byId('cardsAdminConfirm').addEventListener('input', sync);
+
+    var pack = byId('cardsDemoPack');
+    EGE.cards.PACKS.forEach(function (p) { pack.appendChild(new Option(p.name, p.key)); });
+    byId('cardsDemoRip').addEventListener('click', function () {
+      var res = EGE.cardsView.demoPack(pack.value, byId('cardsDemoBest').value || null);
+      byId('cardsDemoNote').textContent = res.message || '';
+    });
 
     byId('cardsAdminGoals').addEventListener('click', function () {
       if (!armed()) { return; }

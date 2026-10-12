@@ -1114,8 +1114,8 @@ The catalogue, the grading, the packs and the library are in
 
 The card game has its own money. **Packs cost diamonds, never credits**, so a
 pack is never bought with something that could have gone on a player — which
-is what kept anybody from buying them. Library sets pay diamonds too. Nothing
-in the simulation takes or gives them.
+is what kept anybody from buying them. Library sets pay diamonds too, and so
+does quick selling a card. Nothing in the simulation takes or gives them.
 
 **Every game pays them**, on top of its credits and off the same numbers: the
 game's fantasy points times the position's share, rounded up. Then **the
@@ -1148,7 +1148,7 @@ credits on the player's own schedule.
 Unlike credits, **a player cannot write their own diamond balance**:
 `player_diamonds` has an insert and update policy for an admin only, and a
 player's diamonds move only through paying a game, buying diamonds, opening a
-pack and claiming a set.
+pack, claiming a set and quick selling a card.
 
 ### Where the cards come from
 
@@ -1230,9 +1230,24 @@ a week at a time.
 the sealed pack comes up, a tap tears it open, the cards are dealt face down,
 and each one turns over on a tap with a flash of its colour from Rare up.
 Cards a player has never had before say *New*. Nothing from the pack shows
-in the collection, the library or the counts until it is put away with
-**Done**, so nothing behind it gives the pack away; a set's reward card works
-the same way.
+in the collection, the library, the recent pulls or the counts until it is
+put away with **Done**, so nothing behind it gives the pack away; a set's
+reward card works the same way.
+
+**The big pulls have their own openings**, longer the rarer they are. A pack
+with a Legendary or better in it lets a little of that card's colour out as
+it tears. Then the card holds back before it turns over: it lifts, shakes
+and glows in its colour, and turns in a burst of rays, a ring and sparks.
+
+| Rarity | Holds back | Then |
+| --- | --- | --- |
+| Legendary | 0.9 s | purple rays, a ring and sparks, 1.6 s |
+| Mystic | 1.7 s | the overlay washes gold, a flash, more sparks, 2.4 s |
+| Iconic | 2.8 s | the other cards dim, the screen goes pink, a flash, two rings, a shower of sparks and **ICONIC** across the top, 3.6 s |
+
+The timings are `BUILDUP` and `SHOW` in `js/cards-view.js`. With reduced
+motion turned on in the phone or computer's settings, none of it runs and the
+card just turns over.
 
 The price and size are charged by `open_card_pack()` in
 `supabase/schema.sql`, not by the page. **Change both together.** Which cards
@@ -1246,12 +1261,59 @@ a pack opened before diamonds cost.
 ### The collection
 
 Every card owned, rarest first by default, with how many of each (`×2`).
-Filter by rarity, by kind and by player; sort by rarity, score, newest pull
-or game. Three rows of cards show at a time and the rest scroll inside the
-panel, so the page below is never far away. Tap a card to hold it up close
-with the game it came from; the **→** button beside its stat line opens that
-player's page on the card's season and picks the game out in the game log.
-Duplicates are kept, and are what trades are made of.
+Filter by rarity, by kind and by player; sort by rarity, score, newest pull,
+**year** (the newest season first, each under its year) or game. Five cards
+go across (four, three and two on smaller screens), three rows show at a time
+and the rest scroll inside the panel, so the page below is never far away.
+
+**Only the first few rows are drawn.** More are added as the binder is
+scrolled toward its end, a few rows at a time, so a big collection is not
+hundreds of foil cards for a phone to run at once. Selling a card, ripping a
+pack or a refresh keeps the binder where it was scrolled to.
+
+Tap a card to hold it up close with the game it came from; the **→** button
+beside its stat line opens that player's page on the card's season and picks
+the game out in the game log. Duplicates are kept, and are what trades are
+made of.
+
+**Anybody's collection can be looked through.** The first drop-down switches
+from *My collection* to any other player's, with the same filters and sorts.
+Their cards up close say how many they have and how many you have. It is the
+same reading a trade already does: any signed-in player can see anybody's
+cards.
+
+### Quick sell
+
+A card of your own up close has **Quick sell**, which sells one copy back for
+diamonds. The first tap turns the button red and says the price; the second
+sells. With copies left, the overlay stays open and counts down; the last copy
+is stamped *Sold*. It comes off the showcase if it was up, and an open trade
+it was in can no longer be accepted (it expires, the same as a card traded
+away).
+
+| Rarity | Sells for |
+| --- | --- |
+| Common, Uncommon | 1 diamond |
+| Rare, Epic | 2 diamonds |
+| Legendary | 3 diamonds |
+| Mystic | 10 diamonds |
+| Iconic | cannot be sold |
+
+The prices are `QUICK_SELL` in `data/cards.js` and are paid by
+`quick_sell_card()` in `supabase/schema.sql`. **Change both together.** The
+page says what rarity the card is, since the grading is done from the season
+files, the same trust a pack's contents run on; the database keeps the
+prices, refuses Iconic, takes the copy under lock so it cannot be sold twice,
+and writes every sale to `card_sales`. A card only ever sells for diamonds.
+The Rarity & Odds table lists the prices too.
+
+### Recent pulls
+
+Under the packs: the packs you opened and the set rewards you pulled, newest
+first, four at a time with **Show more** for up to twenty. Tap a card to see
+it up close (and quick sell it from there). A card that has since been sold
+or traded away is shown faded. The packs are read from `card_packs`, which
+only the player and an admin can read.
 
 ### The library
 
@@ -1329,8 +1391,16 @@ own. A player with nothing up has no Showcase panel for anybody else.
 ### Admin controls
 
 The Cards panel on the admin page shows every player's cards, different
-cards, sets claimed, open trades and showcase, with two resets for one
-player or for everybody:
+cards, sets claimed, open trades and showcase.
+
+**Demo a pack** rips a pack right there in the same overlay a real one opens
+in, to try the openings out. Nothing is paid and nothing goes into anybody's
+collection, the recent pulls or `card_packs`: it never touches Supabase.
+**Best card** makes the last card a Legendary, Mystic or Iconic so those
+openings can be seen without waiting on the odds, and **Another demo** rips
+the same again.
+
+Under it are two resets for one player or for everybody:
 
 - **Clear library** takes every card out of the collection, empties the
   showcase, cancels open trades and resets the goals, so the player starts
@@ -1348,13 +1418,14 @@ database functions that refuse anybody who is not in `admins`.
 `player_diamonds` and `diamond_awards` (see *Diamonds* above, readable by
 their owner and an admin), `player_cards` (who owns which ids and how many,
 readable by any signed-in player), `card_packs` (every pack opened and what
-was in it),
+was in it), `card_sales` (every quick sale, readable by the seller and an
+admin),
 `card_set_claims`, `card_trades` (readable by the two players in it) and
 `card_showcases` (public). None has an insert, update or delete policy:
-cards only move through `open_card_pack()`, `claim_card_set()`, the trade
-functions and the admin's two resets, each one transaction, so a pack is
-never paid for without arriving, a trade never half happens and a reward is
-never paid twice. The small helpers those share (`give_card`, `take_card`,
+cards only move through `open_card_pack()`, `claim_card_set()`,
+`quick_sell_card()`, the trade functions and the admin's two resets, each one
+transaction, so a pack is never paid for without arriving, a trade never half
+happens, a card is never sold twice and a reward is never paid twice. The small helpers those share (`give_card`, `take_card`,
 `give_booster`, `owns_cards`, `prune_showcase`) are taken back from the
 browser's roles, since they do no checking of their own. **Re-run `supabase/schema.sql` after pulling this change**,
 or the tab says it cannot load the cards.
@@ -1816,8 +1887,9 @@ since nothing keeps the old ones). Every player with a sign-in, one at a time,
 read then written; a balance that cannot be read is left alone and named.
 
 **Cards** — who has how many cards, sets claimed, open trades and showcase,
-and the two resets, **Clear library** and **Reset goals**, for one player or
-everybody. See *Cards → Admin controls*.
+**Demo a pack** to try the pack openings out without paying or keeping
+anything, and the two resets, **Clear library** and **Reset goals**, for one
+player or everybody. See *Cards → Admin controls*.
 
 **Credits & Diamonds Earned** — what the season has paid out so far, by
 player: the touchdowns or fantasy points scored, what the games paid, the

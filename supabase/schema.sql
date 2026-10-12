@@ -1550,3 +1550,108 @@ grant execute on function public.admin_clear_card_library(text) to authenticated
 grant execute on function public.admin_reset_card_goals(text) to authenticated;
 
 notify pgrst, 'reload schema';
+
+-- ---------------------------------------------------------------------------
+-- Quick selling a card
+--
+-- One copy of a card back for a few diamonds, by its rarity: Common and
+-- Uncommon 1, Rare and Epic 2, Legendary 3, Mystic 10. An Iconic cannot be
+-- sold at all. The same numbers as QUICK_SELL in data/cards.js; change both
+-- together.
+--
+-- The rarity comes from the page, which grades a card from the season files
+-- the same way it decides what is in a pack -- the same trust, with the
+-- prices kept here, so a sale can never pay more than a Mystic does.
+-- Diamonds only: nothing here, or anywhere, pays credits for a card.
+--
+-- The copy is taken under lock, so the same last copy cannot be sold twice
+-- from two tabs. If it was the last one it comes off the showcase, and an
+-- open trade it was in can no longer go through (accepting it marks it
+-- expired, the same as a card traded away). Every sale is kept in
+-- card_sales.
+--
+-- Returns the diamond balance after.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.card_sales (
+  id       uuid primary key default gen_random_uuid(),
+  email    text        not null,
+  card_id  text        not null,
+  rarity   text        not null,
+  diamonds integer     not null,
+  sold_at  timestamptz not null default now()
+);
+
+create index if not exists card_sales_email_idx
+  on public.card_sales (email, sold_at desc);
+
+alter table public.card_sales enable row level security;
+
+drop policy if exists "card sales readable by owner or admin" on public.card_sales;
+create policy "card sales readable by owner or admin"
+  on public.card_sales for select to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin());
+
+create or replace function public.quick_sell_card(p_card text, p_rarity text)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email   text := auth.jwt() ->> 'email';
+  v_price   integer;
+  v_have    integer;
+  v_balance integer;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  if p_card is null or not public.is_card_id(p_card) then
+    raise exception 'Not a card: %', p_card;
+  end if;
+  if p_rarity = 'iconic' then
+    raise exception 'An Iconic card cannot be quick sold.';
+  end if;
+
+  v_price := case p_rarity
+               when 'common'    then 1
+               when 'uncommon'  then 1
+               when 'rare'      then 2
+               when 'epic'      then 2
+               when 'legendary' then 3
+               when 'mystic'    then 10
+             end;
+  if v_price is null then
+    raise exception 'Not a rarity: %', p_rarity;
+  end if;
+
+  select quantity into v_have
+    from public.player_cards
+   where email = v_email and card_id = p_card
+     for update;
+
+  if coalesce(v_have, 0) < 1 then
+    raise exception 'That card is not in your collection.';
+  end if;
+
+  perform public.take_card(v_email, p_card);
+  perform public.prune_showcase(v_email);
+
+  insert into public.player_diamonds as pd (email, diamonds, updated_at)
+  values (v_email, v_price, now())
+  on conflict (email) do update
+    set diamonds = pd.diamonds + v_price, updated_at = now()
+  returning diamonds into v_balance;
+
+  insert into public.card_sales (email, card_id, rarity, diamonds)
+  values (v_email, p_card, p_rarity, v_price);
+
+  return v_balance;
+end;
+$$;
+
+revoke all on function public.quick_sell_card(text, text) from public, anon;
+grant execute on function public.quick_sell_card(text, text) to authenticated;
+
+notify pgrst, 'reload schema';

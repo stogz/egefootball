@@ -8,9 +8,10 @@
 
    What a card *is* comes from data/cards.js; all that is stored is its id.
 
-   Trades, showcases and the admin's resets go through database functions
-   too: a trade moves both sides at once or not at all, a showcase only
-   takes cards its player owns, and only an admin can reset anything.
+   Trades, quick sales, showcases and the admin's resets go through
+   database functions too: a trade moves both sides at once or not at all, a
+   sale takes the card and pays the diamonds together, a showcase only takes
+   cards its player owns, and only an admin can reset anything.
 
    Depends on: js/auth.js, data/cards.js.
    ========================================================================== */
@@ -24,6 +25,7 @@ EGE.cardStore = (function () {
   var CLAIMS = 'card_set_claims';
   var TRADES = 'card_trades';
   var SHOWCASES = 'card_showcases';
+  var PACKS = 'card_packs';
 
   function client() {
     return EGE.auth.supabaseClient ? EGE.auth.supabaseClient() : null;
@@ -128,6 +130,28 @@ EGE.cardStore = (function () {
     });
   }
 
+  /* The last packs this player opened, newest first: { pack_key, cards,
+     opened_at }. Only the player and an admin can read them. Null when they
+     could not be read. */
+  function recentPacks(email, limit) {
+    var c = client();
+    if (!c || !email) { return Promise.resolve(null); }
+
+    return c.from(PACKS).select('pack_key, cards, opened_at').eq('email', email)
+      .order('opened_at', { ascending: false }).limit(limit || 20)
+      .then(function (res) { return res.error ? null : (res.data || []); })
+      .catch(function () { return null; });
+  }
+
+  /* Sells one copy of a card back for diamonds. The price is by rarity and
+     is charged by quick_sell_card in supabase/schema.sql; an Iconic is
+     refused there as well as here. */
+  function quickSell(card) {
+    if (!card || !EGE.cards.sellPrice(card)) { return fail('An Iconic card cannot be quick sold.'); }
+    return call('quick_sell_card', { p_card: card.id, p_rarity: card.rarity },
+      function (n) { return { ok: true, diamonds: Number(n), price: EGE.cards.sellPrice(card) }; });
+  }
+
   /* --- trades ------------------------------------------------------------ */
 
   /* Every trade this player is on either side of, newest first. Only those
@@ -225,6 +249,8 @@ EGE.cardStore = (function () {
     claimsFor: claimsFor,
     openPack: openPack,
     claimSet: claimSet,
+    recentPacks: recentPacks,
+    quickSell: quickSell,
     tradesFor: tradesFor,
     proposeTrade: proposeTrade,
     respondTrade: respondTrade,

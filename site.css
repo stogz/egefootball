@@ -4618,6 +4618,8 @@ html.ege-noscroll body { overflow: hidden; }
 }
 
 .ege-rip__stage {
+  position: relative;
+  z-index: 1;
   width: min(1040px, 100%);
   display: flex;
   flex-direction: column;
@@ -4658,6 +4660,23 @@ html.ege-noscroll body { overflow: hidden; }
   color: var(--fb-gold);
 }
 .ege-rip__pack.is-torn { animation: none; cursor: default; }
+/* A pack holding a Legendary or better lets out a little of its light as
+   it tears (js/cards-view.js sets --glow to the best card's colour). */
+.ege-rip__pack.has-glow::before {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(circle, var(--glow) 0%, transparent 60%);
+}
+.ege-rip__pack.has-glow.is-torn::before { animation: ege-leak .62s ease-out forwards; }
+@keyframes ege-leak {
+  0%   { opacity: 0; scale: .5; }
+  60%  { opacity: 1; scale: 1.2; }
+  100% { opacity: .85; scale: 1.45; }
+}
 .ege-rip__pack.is-torn .ege-rip__tear { opacity: 0; }
 .ege-rip__pack.is-torn .ege-pack__top { animation: ege-tear .5s cubic-bezier(.3, .7, .4, 1) forwards; }
 .ege-rip__pack.is-torn .ege-pack__body { animation: ege-spill .55s .12s ease-in forwards; }
@@ -4717,7 +4736,7 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-flip__inner {
   display: grid;
   transform-style: preserve-3d;
-  transition: transform .62s cubic-bezier(.2, .8, .3, 1);
+  transition: transform .62s cubic-bezier(.2, .8, .3, 1), translate .7s ease, scale .7s ease;
 }
 .ege-flip__side {
   grid-area: 1 / 1;
@@ -4760,6 +4779,229 @@ html.ege-noscroll body { overflow: hidden; }
   100% { opacity: .55; transform: scale(1.12); }
 }
 
+/* --- the big pulls ---------------------------------------------------------
+
+   Legendary, Mystic and Iconic hold back before they turn over, for
+   js/cards-view.js's BUILDUP (--charge): the card lifts, grows and shakes,
+   its back glowing in its colour. Then it turns in a burst that runs for
+   SHOW (--show): rays turning behind it, a ring going out, sparks, and for
+   Mystic and Iconic a flash and a wash of colour over the whole overlay.
+   Iconic also dims the other cards and puts ICONIC across the top. The
+   rarer, the bigger and the longer. */
+.ege-flip--legendary { --lift: -10px; --grow: 1.04; --shake: 1.2deg; }
+.ege-flip--mystic    { --lift: -16px; --grow: 1.07; --shake: 2deg; }
+.ege-flip--iconic    { --lift: -24px; --grow: 1.12; --shake: 3deg; }
+
+.ege-flip.is-charging,
+.ege-flip.is-big { z-index: 2; }
+.ege-flip.is-charging { cursor: default; }
+.ege-flip.is-charging .ege-flip__inner {
+  animation:
+    ege-shake .12s linear infinite,
+    ege-rise var(--charge, 1s) cubic-bezier(.45, 0, .7, .3) forwards;
+}
+.ege-flip.is-charging .ege-flip__side--back .ege-tcard {
+  animation: ege-charge-glow var(--charge, 1s) ease-in forwards;
+}
+/* Turned over, it stays up while its burst runs, then settles. */
+.ege-flip.is-big.is-flipped:not(.is-landed) .ege-flip__inner {
+  translate: 0 var(--lift);
+  scale: var(--grow);
+}
+
+@keyframes ege-shake {
+  0%, 100% { rotate: 0deg; }
+  25%      { rotate: calc(var(--shake) * -1); }
+  75%      { rotate: var(--shake); }
+}
+@keyframes ege-rise {
+  from { translate: 0 0; scale: 1; }
+  to   { translate: 0 var(--lift); scale: var(--grow); }
+}
+@keyframes ege-charge-glow {
+  from { box-shadow: 4px 4px 0 rgba(0, 0, 0, .35), 0 0 0 0 var(--glow); }
+  to   { box-shadow: 4px 4px 0 rgba(0, 0, 0, .35), 0 0 30px 8px var(--glow); }
+}
+
+/* Behind the card: the rays and the rings. */
+.ege-flip__fx {
+  position: absolute;
+  inset: -45%;
+  z-index: -1;
+  pointer-events: none;
+}
+.ege-flip__rays,
+.ege-flip__ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  aspect-ratio: 1;
+  border-radius: 50% !important;   /* the kit squares every corner */
+}
+.ege-flip__rays {
+  width: 100%;
+  opacity: 0;
+  background: repeating-conic-gradient(var(--glow) 0deg 7deg, transparent 7deg 22deg);
+  -webkit-mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, .55) 30%, transparent 68%);
+  mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, .55) 30%, transparent 68%);
+  animation: ege-spin 9s linear infinite, ege-rays var(--show, 2s) ease-out forwards;
+}
+.ege-flip.is-charging .ege-flip__rays {
+  animation: ege-spin 9s linear infinite, ege-rays-in var(--charge, 1s) ease-in forwards;
+}
+.ege-flip--mystic .ege-flip__rays {
+  background: repeating-conic-gradient(#ffe392 0deg 6deg, transparent 6deg 20deg);
+}
+.ege-flip--iconic .ege-flip__rays {
+  background: repeating-conic-gradient(
+    #ffb3d9 0deg 6deg, transparent 6deg 15deg,
+    #cfe4f8 15deg 21deg, transparent 21deg 30deg,
+    #e2d4ff 30deg 36deg, transparent 36deg 45deg);
+}
+.ege-flip__ring {
+  width: 56%;
+  border: 4px solid var(--glow);
+  box-shadow: 0 0 18px var(--glow), inset 0 0 18px var(--glow);
+  opacity: 0;
+  animation: ege-ring .9s ease-out both;
+}
+.ege-flip--iconic .ege-flip__ring { border-color: #fff; animation-duration: 1.2s; }
+
+@keyframes ege-spin { to { rotate: 360deg; } }
+@keyframes ege-rays-in {
+  from { opacity: 0; scale: .6; }
+  to   { opacity: .6; scale: .85; }
+}
+@keyframes ege-rays {
+  0%   { opacity: .6; scale: .85; }
+  15%  { opacity: 1; scale: 1.05; }
+  70%  { opacity: .75; scale: 1.1; }
+  100% { opacity: 0; scale: 1.2; }
+}
+@keyframes ege-ring {
+  0%   { opacity: 1; scale: .3; }
+  100% { opacity: 0; scale: 2.6; }
+}
+
+/* Over the card: sparks flying off it, each along its own angle (--a) for
+   its own distance (--d), a beat apart (--t). */
+.ege-flip__sparks {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.ege-flip__spark {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  background: var(--glow);
+  box-shadow: 0 0 8px var(--glow);
+  rotate: var(--a);
+  opacity: 0;
+  animation: ege-spark 1.1s var(--t, 0ms) cubic-bezier(.15, .7, .3, 1) both;
+}
+.ege-flip--mystic .ege-flip__spark { background: #ffe392; box-shadow: 0 0 8px #f0b82a; }
+.ege-flip--iconic .ege-flip__spark { width: 11px; height: 11px; animation-duration: 1.7s; }
+.ege-flip--iconic .ege-flip__spark:nth-child(4n+1) { background: #ffb3d9; box-shadow: 0 0 10px #ec5fa8; }
+.ege-flip--iconic .ege-flip__spark:nth-child(4n+2) { background: #cfe4f8; box-shadow: 0 0 10px #7fb6f0; }
+.ege-flip--iconic .ege-flip__spark:nth-child(4n+3) { background: #e2d4ff; box-shadow: 0 0 10px #a98cf0; }
+.ege-flip--iconic .ege-flip__spark:nth-child(4n)   { background: #fff;    box-shadow: 0 0 10px #ffb3d9; }
+
+@keyframes ege-spark {
+  0%   { opacity: 1; transform: translateX(0) scale(1.2) rotate(45deg); }
+  100% { opacity: 0; transform: translateX(var(--d)) scale(.2) rotate(225deg); }
+}
+
+/* Over everything: the overlay washes gold for a Mystic and pink for an
+   Iconic while one is coming, with a flash as it turns. */
+.ege-rip::before,
+.ege-rip::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .9s ease;
+}
+.ege-rip::before {
+  background: radial-gradient(circle at 50% 45%, rgba(240, 184, 42, .34), rgba(240, 184, 42, .08) 45%, transparent 70%);
+}
+.ege-rip::after {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(236, 95, 168, .45), rgba(150, 120, 230, .24) 40%, transparent 72%),
+    rgba(30, 10, 30, .35);
+}
+.ege-rip[data-fx="mystic"]::before,
+.ege-rip[data-fx="iconic"]::after { opacity: 1; }
+
+.ege-flip .ege-tcard { transition: opacity .6s ease; }
+.ege-rip[data-fx="iconic"] .ege-flip:not(.ege-flip--iconic) .ege-tcard { opacity: .28; }
+
+.ege-rip__flash {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 45%, rgba(255, 255, 255, .9), rgba(255, 227, 146, .45) 35%, transparent 72%);
+  animation: ege-flash-soft .9s ease-out forwards;
+}
+.ege-rip__flash--iconic {
+  background: radial-gradient(circle at 50% 45%, #fff, rgba(255, 179, 217, .8) 30%, rgba(207, 228, 248, .45) 55%, transparent 82%);
+  animation: ege-flash .9s ease-out forwards;
+}
+@keyframes ege-flash {
+  0%   { opacity: 0; }
+  12%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes ege-flash-soft {
+  0%   { opacity: 0; }
+  15%  { opacity: .7; }
+  100% { opacity: 0; }
+}
+
+.ege-rip__banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: max(8vh, 40px);
+  z-index: 5;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  animation: ege-banner 3.6s cubic-bezier(.2, .8, .3, 1) forwards;
+}
+.ege-rip__banner span {
+  font-family: var(--fb-font-display);
+  font-size: clamp(2.75rem, 12vw, 6.5rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: transparent;
+  background: linear-gradient(100deg, #ffb3d9, #fff 22%, #cfe4f8 42%, #e2d4ff 62%, #ffb3d9 82%, #fff);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-stroke: 2px var(--fb-ink);
+  filter: drop-shadow(4px 4px 0 var(--fb-ink)) drop-shadow(0 0 22px rgba(236, 95, 168, .85));
+  animation: ege-holo-text 1.4s linear infinite;
+}
+@keyframes ege-banner {
+  0%   { opacity: 0; scale: 2.6; }
+  9%   { opacity: 1; scale: .94; }
+  14%  { scale: 1; }
+  82%  { opacity: 1; scale: 1.04; }
+  100% { opacity: 0; scale: 1.1; translate: 0 -16px; }
+}
+@keyframes ege-holo-text { to { background-position: -200% 0; } }
+
 /* A card held up close: the facts about it under the card. */
 .ege-zoom__facts {
   display: grid;
@@ -4794,6 +5036,42 @@ html.ege-noscroll body { overflow: hidden; }
   line-height: 1;
 }
 
+/* Quick sell, under a card of your own up close: a first tap arms it (red),
+   a second sells. */
+.ege-zoom__status:empty { display: none; }
+.ege-rip__actions .ege-zoom__sell.is-armed,
+.ege-rip__actions .ege-zoom__sell.is-armed:hover {
+  background: #d5392b;
+  border-color: #d5392b;
+  color: #fff;
+}
+.ege-zoom__nosell {
+  align-self: center;
+  font-size: .875rem;
+  font-weight: 700;
+  color: var(--fb-sand);
+}
+.ege-zoom__card { position: relative; }
+.ege-zoom__card.is-sold .ege-tcard { filter: grayscale(.85) brightness(.7); transition: filter .4s ease; }
+.ege-zoom__card.is-sold::after {
+  content: 'Sold';
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  z-index: 5;
+  translate: -50% -50%;
+  rotate: -14deg;
+  padding: 6px 18px;
+  border: 4px solid #d5392b;
+  background: rgba(251, 244, 230, .94);
+  color: #d5392b;
+  font-family: var(--fb-font-display);
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
 /* --- the collection -------------------------------------------------------- */
 
 .ege-cardfilters { align-items: stretch; }
@@ -4819,11 +5097,12 @@ html.ege-noscroll body { overflow: hidden; }
 
 .ege-binder {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 20px;
   /* Held to three rows by js/cards-view.js (fitBinder); the rest scrolls in
-     here. The padding is room for the badges that hang off a card's corners
-     and for a card lifting on hover, which the scroll box would clip. */
+     here, drawn a few rows at a time as it comes near. The padding is room
+     for the badges that hang off a card's corners and for a card lifting on
+     hover, which the scroll box would clip. */
   overflow-y: auto;
   scrollbar-gutter: stable;
   scrollbar-color: var(--fb-accent) var(--fb-surface);
@@ -4840,6 +5119,60 @@ html.ege-noscroll body { overflow: hidden; }
 }
 .ege-binder > .ege-tcard:focus-visible { outline: 3px solid var(--fb-accent); outline-offset: 4px; }
 .ege-binder__empty { margin: 0; }
+/* Each season's heading, across the binder, when it is sorted by year. */
+.ege-binder__year {
+  grid-column: 1 / -1;
+  margin: 6px 0 -8px;
+  padding-bottom: 6px;
+  border-bottom: var(--fb-border-thin) dashed rgba(29, 36, 22, .28);
+  font-size: 1.125rem;
+}
+.ege-binder__year:first-child { margin-top: 0; }
+/* After the last card drawn; coming near it draws the next rows. */
+.ege-binder__more { grid-column: 1 / -1; height: 1px; }
+
+@media (max-width: 900px) {
+  .ege-binder { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .ege-binder { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* --- recent pulls ---------------------------------------------------------- */
+
+.ege-recent {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr));
+  gap: 14px;
+}
+.ege-pull {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: #fff;
+}
+.ege-pull__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.ege-pull__title { font-size: .9375rem; }
+.ege-pull__cards { display: flex; flex-wrap: wrap; gap: 10px; }
+.ege-pull__cards > .ege-tcard { width: 76px; cursor: pointer; transition: transform .16s ease; }
+.ege-pull__cards > .ege-tcard:hover { transform: translateY(-3px); }
+.ege-pull__cards > .ege-tcard:focus-visible { outline: 3px solid var(--fb-accent); outline-offset: 3px; }
+/* Sold or traded away since. */
+.ege-pull__cards > .ege-tcard.is-gone { opacity: .45; }
+.ege-recent__more { align-self: flex-start; }
+
+/* The admin's demo packs, above the resets. */
+.ege-demo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 18px;
+  border-bottom: var(--fb-border-thin) dashed rgba(29, 36, 22, .28);
+}
+.ege-demo .fb-meta { margin: 0; }
 
 /* --- the library ------------------------------------------------------------ */
 
@@ -5095,7 +5428,7 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-packtile { padding: 14px; gap: 14px; }
   .ege-packtile > .ege-pack { width: 84px; }
 
-  /* Six controls do not fit across a phone: the three kinds share one line,
+  /* Seven controls do not fit across a phone: the three kinds share one line,
      as tall as the drop-downs, and the drop-downs each take a line under
      them. 47px is what a drop-down measures here at its 16px type. */
   .ege-filterchip { flex: 1 1 0; min-height: 47px; padding: 8px 6px; }
@@ -5113,6 +5446,12 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-trade__sides { grid-template-columns: minmax(0, 1fr); }
   .ege-trade__swap { transform: rotate(90deg); justify-self: center; }
   .ege-trade__cards > .ege-tcard { width: 84px; }
+
+  .ege-pull { padding: 10px 12px; }
+  .ege-pull__cards { gap: 8px; }
+  .ege-pull__cards > .ege-tcard { width: calc((100% - 32px) / 5); }
+
+  .ege-rip__banner span { -webkit-text-stroke-width: 1.5px; }
 
   .ege-tradecols { grid-template-columns: minmax(0, 1fr); }
   .ege-tradecol { padding: 14px; }
@@ -5133,6 +5472,11 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-flip { animation: none; }
   .ege-flip__inner { transition: none; }
   .ege-flip::before { animation: none !important; }
+  .ege-flip__fx,
+  .ege-flip__sparks,
+  .ege-rip__flash,
+  .ege-rip__banner { display: none; }
+  .ege-rip__pack.has-glow::before { animation: none; }
   .ege-rip__pack.is-torn .ege-pack__top,
   .ege-rip__pack.is-torn .ege-pack__body { animation: none; opacity: 0; }
 }
