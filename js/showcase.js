@@ -52,6 +52,7 @@ EGE.showcase = (function () {
     return hit.players.players.map(EGE.playerBySlug).filter(Boolean).map(function (p) {
       var pc = EGE.cards.playerCard(p, hit.players.cards);
       pc.earned = earned ? (earned[p.slug] || 0) : null;
+      pc.photo = (hit.players.photos || {})[p.slug] || null;
       return pc;
     }).filter(function (pc) { return pc.copies > 0; });
   }
@@ -59,7 +60,7 @@ EGE.showcase = (function () {
   function playerCardRow(pcs) {
     var row = el('div', 'ege-showcase__players');
     pcs.forEach(function (pc) {
-      var face = EGE.cardsView.playerCardFace(pc, pc.earned);
+      var face = EGE.cardsView.playerCardFace(pc, pc.earned, pc.photo);
       face.setAttribute('role', 'img');
       face.setAttribute('aria-label', pc.player.name + ' Player Card, ' +
         (pc.rank ? pc.rank.name : 'unranked') + ', ' + Math.round(pc.points) + ' fantasy points collected');

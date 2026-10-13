@@ -4751,6 +4751,11 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-rip__cards > .ege-flip { width: clamp(150px, 17vw, 190px); }
 .ege-rip__cards--1 > .ege-flip,
 .ege-zoom__card { width: min(290px, 72vw); }
+/* An account's Player Card photos on the admin's card table. */
+.ege-cardsadmin__photos { white-space: nowrap; }
+.ege-cardsadmin__photos .fb-btn { margin-left: 10px; }
+/* A Player Card with a new photo on it, before it is kept. */
+.ege-photoprev { width: min(260px, 66vw); margin: 0 auto; }
 
 .ege-rip__hint {
   margin: 0;
@@ -5572,12 +5577,15 @@ html.ege-noscroll body { overflow: hidden; }
 /* Each Player Card with what you can do with it underneath. */
 .ege-pcards {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 26px 22px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 26px 20px;
 }
-/* All six across one row when there is room for it. */
-@media (min-width: 1180px) {
-  .ege-pcards { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 26px 16px; }
+/* The same widths as the binder's cards at every size. */
+@media (max-width: 900px) {
+  .ege-pcards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .ege-pcards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 .ege-pcard {
   display: flex;
@@ -5593,6 +5601,7 @@ html.ege-noscroll body { overflow: hidden; }
 }
 .ege-pcard__actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .ege-pcard__actions > .fb-btn { flex: 1 1 auto; }
+.ege-pcard__actions > .ege-pcard__unphoto { flex: none; padding: 0 14px; font-size: 18px; line-height: 1; }
 
 /* --- a Player Card's face ------------------------------------------------------
 
@@ -5664,16 +5673,7 @@ html.ege-noscroll body { overflow: hidden; }
   object-fit: cover;
   object-position: center top;
 }
-.ege-plcard__logo {
-  position: absolute;
-  top: 3cqw;
-  left: 3cqw;
-  width: 15cqw;
-  height: 15cqw;
-  object-fit: contain;
-  filter: drop-shadow(0 .6cqw 0 rgba(0, 0, 0, .35));
-}
-.ege-plcard__logo--white { filter: brightness(0) invert(1) drop-shadow(0 .6cqw 0 rgba(0, 0, 0, .35)); }
+.ege-plcard__logo { width: 6.4cqw; height: 6.4cqw; object-fit: contain; flex: none; }
 .ege-plcard__plate {
   display: flex;
   flex-direction: column;
@@ -5684,17 +5684,21 @@ html.ege-noscroll body { overflow: hidden; }
   font-family: var(--fb-font-display);
   font-size: 10cqw;
   line-height: 1;
+  text-align: center;
 }
 .ege-plcard__team {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6cqw;
+  min-width: 0;
   font-size: 4.6cqw;
   font-weight: 800;
   letter-spacing: .1em;
   text-transform: uppercase;
   color: var(--fb-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
+.ege-plcard__team span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ege-plcard__earn {
   display: flex;
   align-items: center;
@@ -5766,13 +5770,15 @@ html.ege-noscroll body { overflow: hidden; }
 }
 
 /* Player Cards on a player's own page, above the showcase cards. */
+/* The same grid as the showcase cards under them, so a Player Card is as
+   wide as a card beside it. */
 .ege-showcase__players {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 18px;
+  max-width: 1000px;
   margin-bottom: 22px;
 }
-.ege-showcase__players > .ege-plcard { width: min(210px, calc((100% - 36px) / 3)); }
 
 /* The bin at the end of the collection's filters: resets them all. */
 .ege-filterclear {
@@ -5864,9 +5870,9 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-binder { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .ege-daily,
   .ege-market__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-  .ege-pcards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 14px; }
+  .ege-pcards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px; }
   .ege-filterclear { flex: 0 0 auto; min-height: 47px; }
-  .ege-showcase__players > .ege-plcard { width: calc((100% - 36px) / 3); }
+  .ege-showcase__players { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 
   /* Five pages across a phone: smaller words, and Achievements shortened
      by its letter spacing rather than its name. */

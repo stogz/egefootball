@@ -1536,6 +1536,11 @@ begin
      where status = 'open' and (p_email is null or lower(email) = lower(p_email));
   end if;
 
+  -- And the photos on their Player Cards, which have no cards behind them now.
+  if to_regclass('public.card_photos') is not null then
+    delete from public.card_photos where p_email is null or lower(email) = lower(p_email);
+  end if;
+
   return v_count;
 end;
 $$;
@@ -2207,11 +2212,108 @@ begin
 end;
 $$;
 
+-- ===========================================================================
+-- Custom photos on Player Cards. A player can put a picture of their own on
+-- any Player Card they hold a card of, in place of the headshot, on their
+-- own copy only. One per account per player, so six accounts and six
+-- players make 36 at the very most. The page crops it square and shrinks it
+-- to a small WebP (about 30-60 KB) before it comes here, and it is kept as
+-- a data URL in the row itself: 36 of them are a few megabytes, and that
+-- needs no storage bucket. Anybody can see them, signed out too, like the
+-- cards on a player's page; they are only written through set_card_photo
+-- and clear_card_photo.
+-- ===========================================================================
+
+create table if not exists public.card_photos (
+  email      text        not null,
+  slug       text        not null,
+  photo      text        not null,
+  updated_at timestamptz not null default now(),
+  primary key (email, slug)
+);
+
+alter table public.card_photos enable row level security;
+
+drop policy if exists "card photos readable by anybody" on public.card_photos;
+create policy "card photos readable by anybody"
+  on public.card_photos for select to anon, authenticated
+  using (true);
+
+create or replace function public.set_card_photo(p_slug text, p_photo text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  if p_slug is null or p_slug !~ '^[a-z]+(-[a-z]+)*$' then
+    raise exception 'Not a player: %', p_slug;
+  end if;
+  if not exists (select 1 from public.player_cards
+                  where email = v_email and quantity > 0 and split_part(card_id, ':', 3) = p_slug) then
+    raise exception 'You need a card of that player to put a photo on his Player Card.';
+  end if;
+  if p_photo is null or p_photo !~ '^data:image/(webp|jpeg|png);base64,[A-Za-z0-9+/]+={0,2}$' then
+    raise exception 'That is not a picture the page can show.';
+  end if;
+  -- About 100 KB of picture; the page sends a third of that.
+  if length(p_photo) > 140000 then
+    raise exception 'That picture is too big. Try a smaller one.';
+  end if;
+
+  insert into public.card_photos (email, slug, photo, updated_at)
+  values (v_email, p_slug, p_photo, now())
+  on conflict (email, slug) do update set photo = excluded.photo, updated_at = now();
+end;
+$$;
+
+-- Takes a photo down: your own, or anybody's for an admin (p_email). With
+-- p_slug null an admin takes down every photo that account has up.
+create or replace function public.clear_card_photo(p_slug text, p_email text default null)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  v_count integer;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  if p_email is not null and lower(p_email) <> lower(v_email) then
+    if not public.is_admin() then
+      raise exception 'Only an admin can take down somebody else''s photo.';
+    end if;
+    v_email := p_email;
+  elsif p_slug is null then
+    raise exception 'Which Player Card?';
+  end if;
+
+  delete from public.card_photos
+   where lower(email) = lower(v_email) and (p_slug is null or slug = p_slug);
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
+revoke all on function public.set_card_photo(text, text) from public, anon;
+revoke all on function public.clear_card_photo(text, text) from public, anon;
+grant execute on function public.set_card_photo(text, text) to authenticated;
+grant execute on function public.clear_card_photo(text, text) to authenticated;
+
 -- { "players": [slug, ...], "cards": { card_id: quantity },
---   "earned": { slug: diamonds } } for the players this account has put
--- up, and nothing else of its collection or its awards. "earned" is what
--- each of those Player Cards has paid it, every season, which the card
--- prints.
+--   "earned": { slug: diamonds }, "photos": { slug: data url } } for the
+-- players this account has put up, and nothing else of its collection or
+-- its awards. "earned" is what each of those Player Cards has paid it,
+-- every season, which the card prints; "photos" the custom pictures on
+-- them (card_photos, further down).
 create or replace function public.showcased_player_cards(p_email text)
 returns jsonb
 language sql
@@ -2233,7 +2335,11 @@ as $$
                 from public.diamond_awards da
                where da.email = s.email and da.award_key ~ '^pc-.+-w[0-9]+$'
                group by 1) e
-       where e.slug = any(s.player_cards)), '{}'::jsonb))
+       where e.slug = any(s.player_cards)), '{}'::jsonb),
+    'photos', coalesce((
+      select jsonb_object_agg(ph.slug, ph.photo)
+        from public.card_photos ph
+       where ph.email = s.email and ph.slug = any(s.player_cards)), '{}'::jsonb))
     from (select p_email as email,
                  (select player_cards from public.card_showcases where email = p_email) as player_cards) s;
 $$;

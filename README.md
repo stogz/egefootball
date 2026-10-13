@@ -1518,7 +1518,27 @@ rank's colour:
 gives about what that is a game. On a player's own page the earned figure
 comes from `showcased_player_cards()`, which adds it for the cards put up.
 Before any card of his, the card is grey and the bar runs to Uncommon. The
-face is `playerCardFace()` in `js/cards-view.js`.
+bar is the colour of the rank held. The face is `playerCardFace()` in
+`js/cards-view.js`, and the Player Cards sit in the same grid as the binder
+(and the showcase's), so one is exactly as wide as a regular card.
+
+**Your own photo on a Player Card.** **Add photo** under a Player Card picks
+a picture from the phone or computer. The page crops it square (a little
+above the middle on a tall picture, where a face usually is), shrinks it to
+480×480 and saves it as a WebP of about 20–60 KB, then shows the card with
+it before **Use this photo** keeps it. Redrawing it that way also leaves the
+camera's location data behind. It replaces the headshot on your copy of that
+Player Card only, on the Players page and on your own page; **×** takes it
+down. One photo per account per player, so 36 at most across the site.
+
+They are rows in `card_photos` (`set_card_photo()`, `clear_card_photo()`),
+each picture kept as a data URL in the row: 36 small pictures are a few
+megabytes, so there is no storage bucket to set up. `set_card_photo()` turns
+away anything that is not an image or is over about 100 KB, and anybody
+without a card of that player. Anybody can see them, signed out too, the
+same as a player's page. On the admin page the card table counts each
+account's photos with a **Remove** that takes them all down, and Clear
+library takes them down too.
 **Up to three can go on the player's own page**, above their showcase, from
 "Show on your page" on the Players page (`set_player_card_showcase()`). Anybody
 can see them, signed out too: `showcased_player_cards()` hands over only the

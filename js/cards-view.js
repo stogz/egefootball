@@ -44,6 +44,7 @@ EGE.cardsView = (function () {
     shop: null,         /* today's shelf from card_shop_today; null until read */
     market: null,       /* { open, mine } listings; null until read */
     showPlayers: [],    /* the Player Cards this account has on its page */
+    photos: null,       /* this account's Player Card photos, { slug: data url } */
     filter: { rarity: 'all', kind: 'all', player: 'all', sort: 'rarity' }
   };
 
@@ -1950,10 +1951,11 @@ EGE.cardsView = (function () {
      card has earned you with its bonus beside it, a bar to the next rank
      with how far there is to go, and the rank along the foot. Framed in
      the rank's colour like the binder's cards. `earned` is the diamonds
-     it has paid in all, or null where that is not known. Drawn here for
+     it has paid in all, or null where that is not known; `custom` the
+     photo its owner put on it, in place of the headshot. Drawn here for
      the Players page and by js/showcase.js for a player's own page. Not
      ranked yet, it is a grey card. */
-  function playerCardFace(pc, earned) {
+  function playerCardFace(pc, earned, custom) {
     var player = pc.player;
     var rank = pc.rank;
     var key = rank ? rank.key : 'unranked';
@@ -1977,25 +1979,27 @@ EGE.cardsView = (function () {
 
     var frame = el('div', 'ege-plcard__photo');
     var photo = el('img');
-    photo.src = player.headshot;
+    photo.src = custom || player.headshot;
     photo.alt = '';
     photo.loading = 'lazy';
     photo.decoding = 'async';
     frame.appendChild(photo);
-    if (team.logo) {
-      var logo = el('img', 'ege-plcard__logo' + (team.whiteMark ? ' ege-plcard__logo--white' : ''));
-      logo.src = team.logo;
-      logo.alt = '';
-      logo.loading = 'lazy';
-      logo.addEventListener('error', function () { logo.remove(); });
-      frame.appendChild(logo);
-    }
     node.appendChild(frame);
 
     var plate = el('div', 'ege-plcard__plate');
     plate.appendChild(el('div', 'ege-plcard__name', player.name));
-    plate.appendChild(el('div', 'ege-plcard__team',
-      [team.school, EGE.positionFor ? EGE.positionFor(player) : player.position].filter(Boolean).join(' · ')));
+    var where = el('div', 'ege-plcard__team');
+    if (team.logo) {
+      var logo = el('img', 'ege-plcard__logo');
+      logo.src = team.logo;
+      logo.alt = '';
+      logo.loading = 'lazy';
+      logo.addEventListener('error', function () { logo.remove(); });
+      where.appendChild(logo);
+    }
+    where.appendChild(el('span', null,
+      [team.school, EGE.positionFor ? EGE.positionFor(player) : player.position].filter(Boolean).join(' \u00b7 ')));
+    plate.appendChild(where);
 
     var earn = el('div', 'ege-plcard__earn');
     earn.appendChild(document.createTextNode('Earned '));
@@ -2003,7 +2007,7 @@ EGE.cardsView = (function () {
       earn.appendChild(el('b', null, whole(earned)));
       earn.appendChild(gem());
     } else {
-      earn.appendChild(el('b', null, '—'));
+      earn.appendChild(el('b', null, '\u2014'));
     }
     earn.appendChild(document.createTextNode(' · '));
     earn.appendChild(el('b', 'ege-plcard__pct', (rank && rank.bonus ? '+' : '') + pctText(rank ? rank.bonus : 0)));
@@ -2019,7 +2023,6 @@ EGE.cardsView = (function () {
     fill.style.width = (next
       ? Math.max(0, Math.min(100, (pc.points - from) / Math.max(1, next.points - from) * 100))
       : 100) + '%';
-    if (next) { fill.style.background = next.color; }
     bar.appendChild(fill);
     plate.appendChild(bar);
     plate.appendChild(el('div', 'ege-plcard__togo', next
@@ -2046,7 +2049,8 @@ EGE.cardsView = (function () {
   function playerCardEl(pc) {
     var player = pc.player;
     var node = el('article', 'ege-pcard');
-    node.appendChild(playerCardFace(pc, earnedFrom(player.slug)));
+    var mine = state.photos && state.photos[player.slug];
+    node.appendChild(playerCardFace(pc, earnedFrom(player.slug), mine));
 
     var body = el('div', 'ege-pcard__body');
 
@@ -2074,8 +2078,139 @@ EGE.cardsView = (function () {
     row.appendChild(show);
     body.appendChild(row);
 
+    /* A photo of your own on it, in place of his headshot. */
+    var photoRow = el('div', 'ege-pcard__actions');
+    var pick = el('button', 'fb-btn fb-btn--sm ege-pcard__photo', mine ? 'Change photo' : 'Add photo');
+    pick.type = 'button';
+    pick.disabled = !pc.copies || state.photos === null;
+    pick.title = state.photos === null ? 'Photos could not be loaded. Run supabase/schema.sql.'
+      : !pc.copies ? 'Collect a ' + player.first + ' card first.' : '';
+    pick.addEventListener('click', function () { choosePhoto(pc); });
+    photoRow.appendChild(pick);
+    if (mine) {
+      var drop = el('button', 'fb-btn fb-btn--sm ege-pcard__unphoto', '\u00d7');
+      drop.type = 'button';
+      drop.title = 'Remove your photo';
+      drop.setAttribute('aria-label', 'Remove your photo from ' + player.first + '\u2019s Player Card');
+      drop.addEventListener('click', function () { removePhoto(player, drop); });
+      photoRow.appendChild(drop);
+    }
+    body.appendChild(photoRow);
+
     node.appendChild(body);
     return node;
+  }
+
+  /* --- photos on Player Cards ---------------------------------------------
+
+     Picked from the phone or computer, cropped square (a little above the
+     middle, where a face usually is, on a tall picture) and shrunk to
+     PHOTO_SIZE pixels as a WebP before it goes anywhere, so a 4 MB phone
+     photo goes up as about 30-60 KB, and redrawing it on a canvas leaves its
+     location and the rest of what the camera wrote behind. set_card_photo
+     refuses anything over about 100 KB; PHOTO_MAX keeps under it. One per
+     Player Card per account, 36 at most across the site. */
+  var PHOTO_SIZE = 480;
+  var PHOTO_MAX = 130000;
+
+  function shrinkPhoto(file) {
+    return new Promise(function (resolve, reject) {
+      if (!file || !/^image\//.test(file.type)) { reject(new Error('That is not a picture.')); return; }
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onerror = function () {
+        URL.revokeObjectURL(url);
+        reject(new Error('That picture could not be opened. Try a JPEG or PNG.'));
+      };
+      img.onload = function () {
+        URL.revokeObjectURL(url);
+        var w = img.naturalWidth;
+        var h = img.naturalHeight;
+        var side = Math.min(w, h);
+        var canvas = document.createElement('canvas');
+        canvas.width = PHOTO_SIZE;
+        canvas.height = PHOTO_SIZE;
+        canvas.getContext('2d').drawImage(img, (w - side) / 2, (h - side) * 0.3, side, side,
+          0, 0, PHOTO_SIZE, PHOTO_SIZE);
+        var out = '';
+        [0.82, 0.7, 0.55, 0.4].some(function (quality) {
+          out = canvas.toDataURL('image/webp', quality);
+          /* A browser that cannot write WebP hands back a PNG. */
+          if (out.indexOf('data:image/webp') !== 0) { out = canvas.toDataURL('image/jpeg', quality); }
+          return out.length <= PHOTO_MAX;
+        });
+        if (out.length > PHOTO_MAX) { reject(new Error('That picture is too big. Try a smaller one.')); return; }
+        resolve(out);
+      };
+      img.src = url;
+    });
+  }
+
+  function choosePhoto(pc) {
+    var input = el('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.addEventListener('change', function () {
+      var file = input.files && input.files[0];
+      if (!file) { return; }
+      shrinkPhoto(file).then(function (photo) { previewPhoto(pc, photo); },
+        function (error) { say(error.message, true); });
+    });
+    input.click();
+  }
+
+  /* The card with the new photo on it, before it is kept. */
+  function previewPhoto(pc, photo) {
+    var player = pc.player;
+    var stage = openOverlay(player.first + '\u2019s card photo', 'ege-rip__stage--zoom');
+    var holder = el('div', 'ege-photoprev');
+    holder.appendChild(playerCardFace(pc, earnedFrom(player.slug), photo));
+    stage.appendChild(holder);
+
+    var status = el('p', 'ege-rip__hint', 'Only your ' + player.first + ' card shows it, here and on your page.');
+    status.setAttribute('role', 'status');
+    stage.appendChild(status);
+
+    var actions = el('div', 'ege-rip__actions');
+    var again = el('button', 'fb-btn', 'Pick another');
+    again.type = 'button';
+    again.addEventListener('click', function () { closeRip(); choosePhoto(pc); });
+    var keep = el('button', 'fb-btn fb-btn--primary', 'Use this photo');
+    keep.type = 'button';
+    keep.addEventListener('click', function () {
+      keep.disabled = true;
+      again.disabled = true;
+      status.textContent = 'Saving\u2026';
+      EGE.cardStore.setCardPhoto(player.slug, photo).then(function (res) {
+        if (!res.ok) {
+          status.textContent = res.message;
+          keep.disabled = false;
+          again.disabled = false;
+          return;
+        }
+        state.photos = state.photos || {};
+        state.photos[player.slug] = photo;
+        if (EGE.showcase) { EGE.showcase.forget(); }
+        closeRip();
+        say('Your ' + player.first + ' Player Card has your photo on it now.', false);
+        renderPlayerCards();
+      });
+    });
+    actions.appendChild(again);
+    actions.appendChild(keep);
+    stage.appendChild(actions);
+    keep.focus({ preventScroll: true });
+  }
+
+  function removePhoto(player, button) {
+    button.disabled = true;
+    EGE.cardStore.clearCardPhoto(player.slug).then(function (res) {
+      if (!res.ok) { say(res.message, true); button.disabled = false; return; }
+      if (state.photos) { delete state.photos[player.slug]; }
+      if (EGE.showcase) { EGE.showcase.forget(); }
+      say('Your ' + player.first + ' Player Card is back to his headshot.', false);
+      renderPlayerCards();
+    });
   }
 
   function toggleShown(player, button) {
@@ -2464,7 +2599,8 @@ EGE.cardsView = (function () {
       EGE.cardStore.playerCardAwards(player.email),
       EGE.cardStore.shopToday(),
       EGE.cardStore.market(player.email),
-      EGE.cardStore.showcasePlayersFor(player.email)
+      EGE.cardStore.showcasePlayersFor(player.email),
+      EGE.cardStore.cardPhotos(player.email)
     ]).then(function (all) {
       if (state.player !== player) { return; }
       if (all[0] === null) {
@@ -2482,6 +2618,7 @@ EGE.cardsView = (function () {
       state.shop = all[8];
       state.market = all[9];
       state.showPlayers = all[10].players;
+      state.photos = all[11];
       state.loaded = all[0] !== null;
       if (all[4] === null && all[0] !== null) {
         say('Your diamonds could not be loaded. Run supabase/schema.sql to set up the diamond tables, then reload.', true);
@@ -2530,6 +2667,7 @@ EGE.cardsView = (function () {
     state.shop = null;
     state.market = null;
     state.showPlayers = [];
+    state.photos = null;
     binder.key = null;
     setBadge(0);
   }

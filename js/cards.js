@@ -227,14 +227,44 @@ EGE.cardStore = (function () {
      showcase: { players: [slug], cards: { id: quantity } }. */
   function showcasePlayersFor(email) {
     var c = client();
-    if (!c || !email) { return Promise.resolve({ players: [], cards: {}, earned: null }); }
+    if (!c || !email) { return Promise.resolve({ players: [], cards: {}, earned: null, photos: {} }); }
     return c.rpc('showcased_player_cards', { p_email: email })
       .then(function (res) {
         var d = res.error ? null : res.data;
         return { players: (d && d.players) || [], cards: (d && d.cards) || {},
-                 earned: (d && d.earned) || null };
+                 earned: (d && d.earned) || null, photos: (d && d.photos) || {} };
       })
-      .catch(function () { return { players: [], cards: {}, earned: null }; });
+      .catch(function () { return { players: [], cards: {}, earned: null, photos: {} }; });
+  }
+
+  /* --- photos on Player Cards ---------------------------------------------- */
+
+  /* This player's custom Player Card photos: { slug: data url }. Null when
+     they could not be read (before the schema has card_photos). */
+  function cardPhotos(email) {
+    var c = client();
+    if (!c || !email) { return Promise.resolve(null); }
+    return c.from('card_photos').select('slug, photo').eq('email', email)
+      .then(function (res) {
+        if (res.error) { return null; }
+        var map = {};
+        (res.data || []).forEach(function (row) { map[row.slug] = row.photo; });
+        return map;
+      })
+      .catch(function () { return null; });
+  }
+
+  /* Puts a photo, already cropped and shrunk to a data URL, on this
+     player's Player Card of `slug`; set_card_photo checks they hold a card
+     of his and that it is small enough. */
+  function setCardPhoto(slug, photo) {
+    return call('set_card_photo', { p_slug: slug, p_photo: photo }, function () { return { ok: true }; });
+  }
+
+  /* Takes one down. An admin passes `email` (and no slug for all of them). */
+  function clearCardPhoto(slug, email) {
+    return call('clear_card_photo', { p_slug: slug || null, p_email: email || null },
+      function (n) { return { ok: true, count: Number(n) || 0 }; });
   }
 
   function setShowcasePlayers(slugs) {
@@ -350,11 +380,13 @@ EGE.cardStore = (function () {
       c.from(CARDS).select('email, card_id, quantity'),
       c.from(CLAIMS).select('email, set_key'),
       c.from(TRADES).select('from_email, to_email, status'),
-      c.from(SHOWCASES).select('email, cards')
+      c.from(SHOWCASES).select('email, cards'),
+      c.from('card_photos').select('email, slug')
     ]).then(function (all) {
-      if (all.some(function (res) { return res.error; })) { return null; }
+      if (all.slice(0, 4).some(function (res) { return res.error; })) { return null; }
       return { cards: all[0].data || [], claims: all[1].data || [],
-               trades: all[2].data || [], showcases: all[3].data || [] };
+               trades: all[2].data || [], showcases: all[3].data || [],
+               photos: all[4].error ? null : (all[4].data || []) };
     }).catch(function () { return null; });
   }
 
@@ -377,6 +409,9 @@ EGE.cardStore = (function () {
     recentPacks: recentPacks,
     quickSell: quickSell,
     recentOpens: recentOpens,
+    cardPhotos: cardPhotos,
+    setCardPhoto: setCardPhoto,
+    clearCardPhoto: clearCardPhoto,
     tradesFor: tradesFor,
     proposeTrade: proposeTrade,
     respondTrade: respondTrade,
