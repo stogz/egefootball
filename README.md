@@ -1221,12 +1221,15 @@ YD TD*) and a performance card its yards and touchdowns (*312 YDS 5 TD*).
 | Season, a past year | 14 | 3 | that one past season only, the last card Uncommon or better |
 
 Base, Season and Pro are twice what they were in credits, because a credit
-buys two diamonds. **The Season Pack has a year under it with arrows either
-side:** the previous-year arrow steps it back to 2021, 2020 and so on, each
-a `year-{season}` pack at 14 diamonds (`YEAR_PACK_PRICE` in
-`data/cards.js`), and the other arrow steps forward to the live season. A
-past year has its own gold foil. A new year joins the arrows when the site
-rolls to a new season.
+buys two diamonds.
+
+Each pack's tile is centred, top to bottom: the pack, its name, what is in
+it, and **Buy & Rip**. **The Season Pack has an arrow either side of its
+Buy button:** the left one steps it back to 2021, 2020 and so on, each a
+`year-{season}` pack at 14 diamonds (`YEAR_PACK_PRICE` in `data/cards.js`),
+and the right one steps forward to the live season. A past year is a
+darker bronze with white words. A new year joins the arrows when the site
+rolls to a new season. The Pro Pack glows a little purple.
 
 Each card rolls its rarity on the odds first, then is drawn from every
 published card of that rarity the pack can hold. A rarity with nothing out
@@ -1324,11 +1327,13 @@ The Rarity & Odds table lists the prices too.
 
 ### Recent pulls
 
-Under the packs: the packs you opened and the set rewards you pulled, newest
-first, four at a time with **Show more** for up to twenty. Tap a card to see
-it up close (and quick sell it from there). A card that has since been sold
-or traded away is shown faded. The packs are read from `card_packs`, which
-only the player and an admin can read.
+Under the packs: the last packs **anybody** opened, newest first, each with
+who opened it. Four at a time, and **Show more** goes back three times, so
+sixteen at most. Tap a card to see it up close; on your own pulls you can
+sell it from there, and a card of yours that has since been sold or traded
+away is shown faded. `card_packs` stays readable by its owner and an admin
+only, so these come through `recent_card_opens()`, which hands over who,
+which pack, the cards and when, never the price.
 
 ### The library
 
@@ -1529,6 +1534,11 @@ diamonds go to the seller), and comes back when taken down or after 24 hours.
 Three listings a day each, counted over the last 24 hours whatever became of
 them (`list_card_for_sale()`, `MARKET` in `data/cards.js`). Clear library
 takes a player's listings down with nothing returned.
+
+A card can go up two ways: **Sell a card** on the Market, which picks from
+the collection, or **Sell** beside Quick sell on any card of yours up close
+in the Cards page, which opens a price and **Put it up**. That Sell button
+is greyed out once the day's three listings are used.
 
 ## Seasons, and putting a week out
 

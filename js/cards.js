@@ -143,6 +143,17 @@ EGE.cardStore = (function () {
       .catch(function () { return null; });
   }
 
+  /* The last packs anybody opened, newest first: { email, pack_key, cards,
+     opened_at }. Through recent_card_opens, since card_packs itself is
+     only readable by its owner. Null when they could not be read. */
+  function recentOpens(limit) {
+    var c = client();
+    if (!c) { return Promise.resolve(null); }
+    return c.rpc('recent_card_opens', { p_limit: limit || 16 })
+      .then(function (res) { return res.error ? null : (res.data || []); })
+      .catch(function () { return null; });
+  }
+
   /* Sells one copy of a card back for diamonds. The price is by rarity and
      is charged by quick_sell_card in supabase/schema.sql; an Iconic is
      refused there as well as here. */
@@ -364,6 +375,7 @@ EGE.cardStore = (function () {
     claimSet: claimSet,
     recentPacks: recentPacks,
     quickSell: quickSell,
+    recentOpens: recentOpens,
     tradesFor: tradesFor,
     proposeTrade: proposeTrade,
     respondTrade: respondTrade,

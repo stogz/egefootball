@@ -2231,4 +2231,27 @@ revoke all on function public.set_player_card_showcase(text[]) from public, anon
 grant execute on function public.set_player_card_showcase(text[]) to authenticated;
 grant execute on function public.showcased_player_cards(text) to anon, authenticated;
 
+-- ===========================================================================
+-- Recent opens: the last packs anybody opened, for the Shop's Recent Pulls.
+-- card_packs itself stays readable by its owner and an admin only; this
+-- hands any signed-in player who opened what, and when, and nothing of what
+-- it cost. At most 16 (four a page, three clicks back).
+-- ===========================================================================
+
+create or replace function public.recent_card_opens(p_limit integer default 16)
+returns table (email text, pack_key text, cards text[], opened_at timestamptz)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select cp.email, cp.pack_key, cp.cards, cp.opened_at
+    from public.card_packs cp
+   order by cp.opened_at desc
+   limit least(greatest(coalesce(p_limit, 16), 1), 16);
+$$;
+
+revoke all on function public.recent_card_opens(integer) from public, anon;
+grant execute on function public.recent_card_opens(integer) to authenticated;
+
 notify pgrst, 'reload schema';

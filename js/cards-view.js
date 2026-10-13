@@ -69,13 +69,6 @@ EGE.cardsView = (function () {
     node.className = 'ege-note' + (isError ? ' ege-note--error' : ' ege-note--ok');
   }
 
-  function coin() {
-    var c = el('span', 'ege-coin');
-    c.setAttribute('role', 'img');
-    c.setAttribute('aria-label', 'credits');
-    return c;
-  }
-
   function gem() {
     var g = el('span', 'ege-gem');
     g.setAttribute('role', 'img');
@@ -87,12 +80,6 @@ EGE.cardsView = (function () {
   function price(diamonds) {
     var box = el('span', 'ege-price', String(diamonds));
     box.appendChild(gem());
-    return box;
-  }
-
-  function creditPrice(credits) {
-    var box = el('span', 'ege-price', String(credits));
-    box.appendChild(coin());
     return box;
   }
 
@@ -272,24 +259,19 @@ EGE.cardsView = (function () {
     });
   }
 
-  function seasonStepper(list, at) {
-    var row = el('div', 'ege-packstep');
-    function arrow(label, to, glyph) {
-      var b = el('button', 'ege-packstep__arrow', glyph);
-      b.type = 'button';
-      b.setAttribute('aria-label', label);
-      b.disabled = to < 0 || to >= list.length;
-      b.addEventListener('click', function () {
-        state.seasonPack = list[to].key;
-        renderPacks();
-      });
-      return b;
-    }
-    var pack = list[at];
-    row.appendChild(arrow('Previous year', at + 1, '\u2039'));
-    row.appendChild(el('span', 'ege-packstep__year', String(pack.season || EGE.currentSeason)));
-    row.appendChild(arrow('Next year', at - 1, '\u203a'));
-    return row;
+  /* The arrow either side of the Season Pack's Buy button: to the year
+     before or the year after. */
+  function seasonArrow(list, to, label, glyph) {
+    var b = el('button', 'fb-btn ege-packtile__arrow', glyph);
+    b.type = 'button';
+    b.setAttribute('aria-label', label);
+    b.disabled = to < 0 || to >= list.length;
+    if (!b.disabled) { b.title = list[to].name; }
+    b.addEventListener('click', function () {
+      state.seasonPack = list[to].key;
+      renderPacks();
+    });
+    return b;
   }
 
   function renderPacks() {
@@ -299,29 +281,20 @@ EGE.cardsView = (function () {
     var seasons = seasonPacks();
     var at = Math.max(0, seasons.map(function (p) { return p.key; }).indexOf(state.seasonPack));
 
+    /* Each pack top to bottom, centred: the pack, its name, what is in it,
+       and the Buy button, with the Season Pack's year arrows either side. */
     EGE.cards.PACKS.forEach(function (pack) {
       if (pack.season) { return; }
-      var stepper = null;
-      if (pack.seasonOnly && seasons.length > 1) {
-        pack = seasons[at];
-        stepper = seasonStepper(seasons, at);
-      }
-      var tile = el('div', 'ege-packtile');
-      if (stepper) {
-        var side = el('div', 'ege-packtile__art');
-        side.appendChild(packArt(pack));
-        side.appendChild(stepper);
-        tile.appendChild(side);
-      } else {
-        tile.appendChild(packArt(pack));
-      }
+      var stepping = pack.seasonOnly && seasons.length > 1;
+      if (stepping) { pack = seasons[at]; }
 
-      var words = el('div', 'ege-packtile__words');
-      words.appendChild(el('h4', 'ege-item__name', pack.name));
-      words.appendChild(el('p', 'ege-item__text', pack.blurb));
+      var tile = el('div', 'ege-packtile');
+      tile.appendChild(packArt(pack));
+      tile.appendChild(el('h4', 'ege-item__name', pack.name));
+      tile.appendChild(el('p', 'ege-item__text', pack.blurb));
 
       var pool = EGE.cards.pullable(pack.key);
-      var buy = el('button', 'fb-btn fb-btn--primary fb-btn--block ege-packtile__buy');
+      var buy = el('button', 'fb-btn fb-btn--primary ege-packtile__buy');
       buy.type = 'button';
       buy.appendChild(document.createTextNode('Buy & Rip \u00b7 '));
       buy.appendChild(price(pack.diamonds));
@@ -335,11 +308,14 @@ EGE.cardsView = (function () {
         why = 'Not enough diamonds yet.';
       }
       buy.disabled = Boolean(why) || !state.loaded;
-      if (why) { words.appendChild(el('p', 'ege-item__blocked', why)); }
-
+      if (why) { tile.appendChild(el('p', 'ege-item__blocked', why)); }
       buy.addEventListener('click', function () { buyPack(pack, buy); });
-      words.appendChild(buy);
-      tile.appendChild(words);
+
+      var row = el('div', 'ege-packtile__row');
+      if (stepping) { row.appendChild(seasonArrow(seasons, at + 1, 'Previous year', '\u2039')); }
+      row.appendChild(buy);
+      if (stepping) { row.appendChild(seasonArrow(seasons, at - 1, 'Next year', '\u203a')); }
+      tile.appendChild(row);
       holder.appendChild(tile);
     });
 
@@ -370,14 +346,6 @@ EGE.cardsView = (function () {
     button.appendChild(price(spend * rate));
     button.disabled = !state.loaded || !spend || state.credits === null || state.credits < spend;
 
-    var have = byId('swapHave');
-    have.innerHTML = '';
-    if (state.credits === null) { return; }
-    have.appendChild(document.createTextNode('You have '));
-    have.appendChild(creditPrice(state.credits));
-    have.appendChild(document.createTextNode(spend > state.credits
-      ? '. That is more than you have.'
-      : '. This costs ' + spend + (spend === 1 ? ' credit.' : ' credits.')));
   }
 
   function buySwap() {
@@ -922,6 +890,7 @@ EGE.cardsView = (function () {
     var actions = el('div', 'ege-rip__actions');
     if (opts.sell && opts.owned > 0) {
       actions.appendChild(sellControl(card, { holder: holder, owned: ownedNode, status: status }));
+      actions.appendChild(marketControl(card, { status: status }));
     }
     var done = el('button', 'fb-btn fb-btn--primary', 'Done');
     done.type = 'button';
@@ -929,6 +898,63 @@ EGE.cardsView = (function () {
     actions.appendChild(done);
     stage.appendChild(actions);
     done.focus({ preventScroll: true });
+  }
+
+  /* Sell, beside Quick sell under a card of your own up close: puts it on
+     the Market at a price you pick, the same as the Market's own Sell
+     button. The first tap opens the price; Put it up lists it. Greyed out
+     once the day's listings (EGE.cards.MARKET.perDay) are used. */
+  function marketControl(card, parts) {
+    var wrap = el('span', 'ege-zoom__market');
+    var left = state.market ? listingsLeft() : 0;
+    var button = el('button', 'fb-btn ege-zoom__list', 'Sell');
+    button.type = 'button';
+    button.disabled = !left;
+    button.title = !state.market ? 'The Market could not be loaded.'
+      : left ? left + ' of ' + EGE.cards.MARKET.perDay + ' listings left today'
+      : 'You have used your ' + EGE.cards.MARKET.perDay + ' listings for today.';
+    wrap.appendChild(button);
+
+    button.addEventListener('click', function () {
+      wrap.innerHTML = '';
+      var input = el('input', 'fb-input ege-zoom__price');
+      input.type = 'number';
+      input.min = String(EGE.cards.MARKET.minPrice);
+      input.max = String(EGE.cards.MARKET.maxPrice);
+      input.step = '1';
+      input.inputMode = 'numeric';
+      input.value = String(EGE.cards.shopPrice(card.rarity) || 30);
+      input.setAttribute('aria-label', 'Price in diamonds');
+      var put = el('button', 'fb-btn ege-zoom__list', 'Put it up');
+      put.type = 'button';
+      wrap.appendChild(input);
+      wrap.appendChild(gem());
+      wrap.appendChild(put);
+      parts.status.textContent = 'Your price, ' + EGE.cards.MARKET.minPrice + ' to ' +
+        EGE.cards.MARKET.maxPrice + ' diamonds. ' + left + ' of ' + EGE.cards.MARKET.perDay +
+        ' listings left today.';
+      input.focus();
+
+      function amount() {
+        var n = Math.floor(Number(input.value));
+        return n >= EGE.cards.MARKET.minPrice && n <= EGE.cards.MARKET.maxPrice ? n : 0;
+      }
+      input.addEventListener('input', function () { put.disabled = !amount(); });
+      put.addEventListener('click', function () {
+        var n = amount();
+        if (!n) { return; }
+        put.disabled = true;
+        EGE.cardStore.listCard(card, n).then(function (res) {
+          if (!res.ok) { parts.status.textContent = res.message; put.disabled = false; return; }
+          closeRip();
+          say('Your ' + EGE.cards.rarity(card.rarity).name + ' ' + card.player.first + ' card (' + card.headline +
+              ') is up for ' + n + (n === 1 ? ' diamond.' : ' diamonds.'), false);
+          if (EGE.showcase) { EGE.showcase.forget(); }
+          refresh();
+        });
+      });
+    });
+    return wrap;
   }
 
   /* --- quick selling -----------------------------------------------------
@@ -1278,29 +1304,17 @@ EGE.cardsView = (function () {
 
   /* --- recent pulls -------------------------------------------------------
 
-     The last packs opened and set rewards pulled, newest first, so a pull
-     can be found again once the pack is put away. Packs come from
-     card_packs, which only the player and an admin can read; rewards from
-     the claims already loaded. Like the collection, held back while a pack
-     is open. */
+     The last packs anybody opened, newest first, with who opened them:
+     four to a page, and Show more goes back three times, sixteen in all.
+     Read through recent_card_opens, since card_packs is only readable by
+     its owner. Like the collection, held back while a pack is open. */
   var RECENT_STEP = 4;
-  var RECENT_MAX = 20;
+  var RECENT_MAX = 16;
 
   function pulls() {
-    var list = (state.recent || []).map(function (row) {
+    return (state.recent || []).map(function (row) {
       var pack = EGE.cards.pack(row.pack_key);
-      return { title: pack ? pack.name : 'Pack', when: row.opened_at, cards: row.cards || [] };
-    });
-    var sets = EGE.cards.sets();
-    Object.keys(state.claims).forEach(function (key) {
-      var claim = state.claims[key];
-      var card = claim.reward && claim.reward.card;
-      if (!card) { return; }
-      var set = sets.filter(function (one) { return one.key === key; })[0];
-      list.push({ title: (set ? set.name : 'Library') + ' reward', when: claim.claimed_at, cards: [card] });
-    });
-    return list.sort(function (a, b) {
-      return a.when < b.when ? 1 : a.when > b.when ? -1 : 0;
+      return { title: pack ? pack.name : 'Pack', email: row.email, when: row.opened_at, cards: row.cards || [] };
     }).slice(0, RECENT_MAX);
   }
 
@@ -1323,7 +1337,18 @@ EGE.cardsView = (function () {
     list.slice(0, state.recentShown).forEach(function (pull) {
       var tile = el('article', 'ege-pull');
       var head = el('div', 'ege-pull__head');
-      head.appendChild(el('strong', 'ege-pull__title', pull.title));
+      var opener = playerByEmail(pull.email);
+      var mine = String(pull.email || '').toLowerCase() === me();
+      var who = el('div', 'ege-pull__who');
+      if (opener) {
+        var face = el('img', 'ege-avatar ege-avatar--sm');
+        face.src = opener.headshot;
+        face.alt = '';
+        who.appendChild(face);
+      }
+      who.appendChild(el('strong', 'ege-pull__title',
+        (mine ? 'You' : opener ? opener.first : 'Somebody') + ' \u00b7 ' + pull.title));
+      head.appendChild(who);
       head.appendChild(el('span', 'fb-meta', agoText(pull.when)));
       tile.appendChild(head);
 
@@ -1331,9 +1356,9 @@ EGE.cardsView = (function () {
       pull.cards.map(EGE.cards.byId).filter(Boolean).forEach(function (card) {
         var have = state.owned[card.id] || 0;
         var node = cardEl(card, {});
-        if (!have) { node.classList.add('is-gone'); }
-        pressable(node, describe(card) + (have ? '' : ', no longer in your collection'), function () {
-          zoom(card, { owned: state.owned[card.id] || 0, sell: true });
+        if (mine && !have) { node.classList.add('is-gone'); }
+        pressable(node, describe(card) + (mine && !have ? ', no longer in your collection' : ''), function () {
+          zoom(card, { owned: state.owned[card.id] || 0, sell: mine });
         });
         strip.appendChild(node);
       });
@@ -1343,8 +1368,8 @@ EGE.cardsView = (function () {
 
     if (!list.length) {
       holder.appendChild(el('p', 'fb-meta', state.recent === null
-        ? (state.loaded ? 'Your recent pulls could not be loaded.' : 'Loading…')
-        : 'Nothing pulled yet. Rip a pack and it shows up here.'));
+        ? (state.loaded ? 'The recent pulls could not be loaded.' : 'Loading\u2026')
+        : 'Nobody has opened a pack yet.'));
     }
 
     byId('recentMore').hidden = list.length <= state.recentShown;
@@ -2413,7 +2438,7 @@ EGE.cardsView = (function () {
       EGE.wallet.creditsFor(player.email),
       EGE.cardStore.tradesFor(player.email),
       EGE.wallet.diamondsFor(player.email),
-      EGE.cardStore.recentPacks(player.email, RECENT_MAX),
+      EGE.cardStore.recentOpens(RECENT_MAX),
       loadOther(),
       EGE.cardStore.playerCardAwards(player.email),
       EGE.cardStore.shopToday(),

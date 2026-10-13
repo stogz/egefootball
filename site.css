@@ -4453,62 +4453,39 @@ html.ege-noscroll body { overflow: hidden; }
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
   gap: 20px;
 }
-/* The words start at the top of the tile and the button sits on its foot, so
-   three packs side by side put three names on one line and three buttons on
-   another, however long each one's description runs. */
+/* A pack top to bottom, all centred: the pack, its name, what is in it,
+   then the Buy button on the tile's foot, so packs side by side put their
+   buttons on one line however long each description runs. The Season
+   Pack's year arrows sit either side of its button. */
 .ege-packtile {
-  display: flex;
-  align-items: stretch;
-  gap: 18px;
-  padding: 16px;
-  border: var(--fb-border-thin) solid var(--fb-ink);
-  background: #fff;
-}
-.ege-packtile > .ege-pack { width: 104px; flex: none; align-self: center; }
-.ege-packtile__words {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex: 1 1 auto;
-  min-width: 0;
-}
-.ege-packtile__buy { margin-top: auto; }
-
-/* The Season Pack's pouch with its year under it, and an arrow either side
-   to step back through the seasons before the live one. */
-.ege-packtile__art {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  width: 104px;
-  flex: none;
-  align-self: center;
-}
-.ege-packtile__art > .ege-pack { width: 100%; }
-.ege-packstep {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-}
-.ege-packstep__year {
-  font-family: var(--fb-font-display);
-  font-size: 1.05rem;
-}
-.ege-packstep__arrow {
-  width: 30px;
-  height: 30px;
-  padding: 0;
+  padding: 22px 18px 18px;
   border: var(--fb-border-thin) solid var(--fb-ink);
   background: #fff;
-  color: var(--fb-ink);
-  font-size: 1.3rem;
-  line-height: 1;
-  cursor: pointer;
+  text-align: center;
 }
-.ege-packstep__arrow:hover:not(:disabled) { background: var(--fb-tint-wash); }
-.ege-packstep__arrow:disabled { opacity: .3; cursor: default; }
+.ege-packtile > .ege-pack { width: 128px; margin-bottom: 8px; }
+.ege-packtile > .ege-item__text { max-width: 30ch; }
+.ege-packtile__row {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 6px;
+}
+.ege-packtile__buy { flex: 0 1 auto; }
+.ege-packtile__arrow {
+  flex: none;
+  min-width: 44px;
+  padding: 0 10px;
+  font-size: 1.5rem;
+  line-height: 1;
+}
 
 /* Swapping credits for diamonds, under the packs: what it is on the left,
    the form on the right, and the form under the words once there is no room
@@ -4537,7 +4514,6 @@ html.ege-noscroll body { overflow: hidden; }
 }
 /* Narrow, against the full width .ege-field gives an input. */
 .ege-swap .ege-swap__input { width: 6.5em; }
-.ege-swap__have { flex-basis: 100%; }
 
 /* The diamond balance at the head of the Packs panel. */
 .ege-ovr--diamonds .ege-ovr__label { color: var(--fb-diamond); }
@@ -4559,10 +4535,26 @@ html.ege-noscroll body { overflow: hidden; }
                           #f8b54a 74%, #8a3a10 100%);
   --pack-ink: var(--fb-ink);
 }
+/* A past season: bronze, darker than the live Season Pack so the white
+   words read on it. */
 .ege-pack--year {
-  --foil: linear-gradient(135deg, #3b2a14 0%, #9a6b2f 22%, #f3dca4 38%, #b58640 55%,
-                          #e8c77e 74%, #3b2a14 100%);
-  --pack-ink: var(--fb-ink);
+  --foil: linear-gradient(135deg, #2a1c0b 0%, #6b4519 22%, #b0803f 38%, #7a5020 55%,
+                          #a0723a 74%, #2a1c0b 100%);
+  --pack-ink: #fff;
+}
+.ege-pack--year .ege-pack__brand,
+.ege-pack--year .ege-pack__count { text-shadow: 0 .8cqw 0 rgba(0, 0, 0, .45); }
+/* The Pro Pack glows a little purple. */
+.ege-pack--pro {
+  filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 10px rgba(156, 84, 232, .75));
+  animation: ege-pro-glow 3.2s ease-in-out infinite;
+}
+@keyframes ege-pro-glow {
+  0%, 100% { filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 8px rgba(156, 84, 232, .6)); }
+  50%      { filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 16px rgba(156, 84, 232, .9)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ege-pack--pro { animation: none; }
 }
 .ege-pack--pro {
   --foil: linear-gradient(135deg, #1d2416 0%, #3a2a55 20%, #ec5fa8 34%, #8a4fd8 48%,
@@ -5095,6 +5087,11 @@ html.ege-noscroll body { overflow: hidden; }
   border-color: #d5392b;
   color: #fff;
 }
+/* Sell on the Market: the button, then the price and Put it up in its
+   place. */
+.ege-zoom__market { display: inline-flex; align-items: center; gap: 8px; }
+.ege-zoom__market .ege-gem { flex: none; }
+.ege-rip__actions .ege-zoom__price { width: 5.5em; min-height: 0; height: 100%; text-align: center; }
 .ege-zoom__nosell {
   align-self: center;
   font-size: .875rem;
@@ -5197,7 +5194,8 @@ html.ege-noscroll body { overflow: hidden; }
   border: var(--fb-border-thin) solid var(--fb-ink);
   background: #fff;
 }
-.ege-pull__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.ege-pull__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ege-pull__who { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .ege-pull__title { font-size: .9375rem; }
 .ege-pull__cards { display: flex; flex-wrap: wrap; gap: 10px; }
 .ege-pull__cards > .ege-tcard { width: 76px; cursor: pointer; transition: transform .16s ease; }
@@ -5794,8 +5792,8 @@ html.ege-noscroll body { overflow: hidden; }
 /* --- on a phone ----------------------------------------------------------- */
 
 @media (max-width: 620px) {
-  .ege-packtile { padding: 14px; gap: 14px; }
-  .ege-packtile > .ege-pack, .ege-packtile__art { width: 84px; }
+  .ege-packtile { padding: 18px 14px 14px; }
+  .ege-packtile > .ege-pack { width: 110px; }
 
   /* Seven controls do not fit across a phone: the three kinds share one line,
      as tall as the drop-downs, and the drop-downs each take a line under
