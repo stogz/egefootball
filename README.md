@@ -1189,20 +1189,25 @@ pyramid, and each rarity has its own pull odds:
 
 | Rarity | Colour | Chance per card | Game from | Play from | In the files |
 | --- | --- | --- | --- | --- | --- |
-| Common | gray | 46.35% | — | — | 250 |
-| Uncommon | green | 26% | 6.5 | 7.1 | 128 |
-| Rare | orange | 14% | 11 | 8.6 | 102 |
-| Epic | red | 8% | 16 | 9.6 | 58 |
-| Legendary | purple | 4% | 20 | 11.1 | 37 |
-| Mystic | gold | 1.6% | 24 | 12.1 | 29 |
-| Iconic | pink | 0.05% | picked | picked | 3 |
+| Common | gray | 46.7% | — | — | 325 |
+| Uncommon | green | 26% | 6.5 | 7.1 | 215 |
+| Rare | orange | 14% | 11 | 8.6 | 145 |
+| Epic | red | 8% | 16 | 9.6 | 94 |
+| Legendary | purple | 4% | 20.5 | 11.2 | 77 |
+| Mystic | gold | 1% | 28.5 | 13.3 | 10 |
+| Iconic | pink | 0.3% | picked | picked | 4 |
+
+Counts are the 2018–2022 files. Mystic was 24 / 12.1 until Sam asked for it
+to be closer to 10 cards than 35 (2026-10-13): the 30 that fell out became
+Legendary, and Legendary moved up from 20 / 11.1, so its six lowest became
+Epic.
 
 **Iconic is picked by hand, not graded.** Grading stops at Mystic, and only
 the moments in `ICONIC` at the top of `data/cards.js` are Iconic: Sam's five
 touchdowns against Centennial (2019), Paxon's two touchdowns in the FCS
-Championship (2020) and Cooper's 80 yard touchdown against Helix (2019). Add
-an id there to make another. With three of them at 0.05% a card, about one
-Base Pack in 670 has an Iconic in it.
+Championship (2020), Cooper's 80 yard touchdown against Helix (2019) and
+Jaykeb's seven touchdowns (2022). Add an id there to make another. At 0.3% a
+card, about one Base Pack in 110 has an Iconic in it.
 
 From Rare up the frame catches the light: a still sheen on Rare, a moving one
 on Epic and Legendary, gold foil on Mystic and holographic on Iconic, the
@@ -1220,7 +1225,7 @@ YD TD*) and a performance card its yards and touchdowns (*312 YDS 5 TD*).
 | --- | --- | --- | --- |
 | Base | 10 | 3 | any season |
 | Season | 12 | 3 | the live season only, the last card Uncommon or better |
-| Pro | 20 | 5 | any season, the last card Rare or better |
+| Pro | 20 | 5 | any season, the last card Rare or better, 1.5x odds on Legendary and up |
 | Season, a past year | 14 | 3 | that one past season only, the last card Uncommon or better |
 
 Base, Season and Pro are twice what they were in credits, because a credit
@@ -1240,6 +1245,14 @@ Each card rolls its rarity on the odds first, then is drawn from every
 published card of that rarity the pack can hold. A rarity with nothing out
 yet falls to the nearest one below it. The Season Pack is the one that grows
 a week at a time.
+
+**A pack holds at most one card above Legendary** (`PACK_CAP` in
+`data/cards.js`): once a Mystic or Iconic is in it, every card after it
+rolls Legendary or lower. **A Pro Pack has 1.5x the odds of Legendary and
+up** (`boost` on the pack): Legendary 6%, Mystic 1.5%, Iconic 0.45% a card,
+with Common at 44.05% making up the difference. **The cards are laid out worst to best, left to
+right** (`packOrder`), in the opening and in Recent Pulls, so the best card
+is always the last one turned.
 
 **Buy & Rip** brings up the sealed pack. **Nothing is paid until it is
 torn:** the tap that tears it is what calls `open_card_pack()`, and closing
@@ -1319,7 +1332,7 @@ away).
 | Common, Uncommon | 1 diamond |
 | Rare, Epic | 2 diamonds |
 | Legendary | 3 diamonds |
-| Mystic | 10 diamonds |
+| Mystic | 30 diamonds |
 | Iconic | cannot be sold |
 
 The prices are `QUICK_SELL` in `data/cards.js` and are paid by

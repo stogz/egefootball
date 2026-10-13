@@ -1595,7 +1595,7 @@ notify pgrst, 'reload schema';
 -- Quick selling a card
 --
 -- One copy of a card back for a few diamonds, by its rarity: Common and
--- Uncommon 1, Rare and Epic 2, Legendary 3, Mystic 10. An Iconic cannot be
+-- Uncommon 1, Rare and Epic 2, Legendary 3, Mystic 30. An Iconic cannot be
 -- sold at all. The same numbers as QUICK_SELL in data/cards.js; change both
 -- together.
 --
@@ -1660,7 +1660,7 @@ begin
                when 'rare'      then 2
                when 'epic'      then 2
                when 'legendary' then 3
-               when 'mystic'    then 10
+               when 'mystic'    then 30
              end;
   if v_price is null then
     raise exception 'Not a rarity: %', p_rarity;

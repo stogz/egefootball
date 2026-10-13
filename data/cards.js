@@ -66,13 +66,13 @@ EGE.cards = (function () {
      Iconic is not graded at all: it is the few cards in ICONIC below,
      picked by hand, and nothing else reaches it however big the game. */
   var RARITIES = [
-    { key: 'common',    name: 'Common',    color: '#8b9097', odds: 46.35, performance: 0,   play: 0 },
+    { key: 'common',    name: 'Common',    color: '#8b9097', odds: 46.7, performance: 0,   play: 0 },
     { key: 'uncommon',  name: 'Uncommon',  color: '#3e9a4b', odds: 26,  performance: 6.5, play: 7.1 },
     { key: 'rare',      name: 'Rare',      color: '#e8812a', odds: 14,  performance: 11,  play: 8.6 },
     { key: 'epic',      name: 'Epic',      color: '#d5392b', odds: 8,   performance: 16,  play: 9.6 },
-    { key: 'legendary', name: 'Legendary', color: '#8a4fd8', odds: 4,   performance: 20,  play: 11.1 },
-    { key: 'mystic',    name: 'Mystic',    color: '#e0ad25', odds: 1.6, performance: 24,  play: 12.1 },
-    { key: 'iconic',    name: 'Iconic',    color: '#ec5fa8', odds: 0.05, performance: null, play: null }
+    { key: 'legendary', name: 'Legendary', color: '#8a4fd8', odds: 4,   performance: 20.5, play: 11.2 },
+    { key: 'mystic',    name: 'Mystic',    color: '#e0ad25', odds: 1,   performance: 28.5, play: 13.3 },
+    { key: 'iconic',    name: 'Iconic',    color: '#ec5fa8', odds: 0.3, performance: null, play: null }
   ];
 
   /* The Iconic cards. A moment has to be one of these to be Iconic; every
@@ -124,7 +124,9 @@ EGE.cards = (function () {
       diamonds: 20,
       size: 5,
       floor: 'rare',
-      blurb: 'Five cards from any season, the last one Rare or better.'
+      boost: 1.5,
+      blurb: 'Five cards from any season, the last one Rare or better, and ' +
+             '1.5x the odds of a Legendary, Mystic or Iconic.'
     }
   ];
 
@@ -159,7 +161,7 @@ EGE.cards = (function () {
      Iconic is not on the list: it cannot be quick sold at all. Paid by
      quick_sell_card in supabase/schema.sql, which holds the same numbers.
      Change both together. */
-  var QUICK_SELL = { common: 1, uncommon: 1, rare: 2, epic: 2, legendary: 3, mystic: 10 };
+  var QUICK_SELL = { common: 1, uncommon: 1, rare: 2, epic: 2, legendary: 3, mystic: 30 };
 
   /* Null for a card that cannot be sold. */
   function sellPrice(card) {
@@ -385,28 +387,47 @@ EGE.cards = (function () {
 
   /* --- rolling ----------------------------------------------------------- */
 
-  /* A rarity, on the odds, at or above `floor`. */
-  function rollRarity(rng, floor) {
-    var from = rankOf(floor || 'common');
-    var tiers = RARITIES.slice(from);
-    var total = tiers.reduce(function (sum, r) { return sum + r.odds; }, 0);
-    var at = rng() * total;
-    for (var i = 0; i < tiers.length; i += 1) {
-      at -= tiers[i].odds;
-      if (at < 0) { return tiers[i].key; }
+  /* A pack with a `boost` multiplies the odds of Legendary and up by it,
+     and Common gives up the difference: a Pro Pack's 1.5 makes Iconic
+     0.45% a card rather than 0.3%. */
+  var BOOSTED_FROM = 'legendary';
+
+  function oddsWith(boost) {
+    var odds = RARITIES.map(function (r) {
+      return boost && rankOf(r.key) >= rankOf(BOOSTED_FROM) ? r.odds * boost : r.odds;
+    });
+    if (boost) {
+      odds[0] = 100 - odds.slice(1).reduce(function (sum, n) { return sum + n; }, 0);
     }
-    return tiers[tiers.length - 1].key;
+    return odds;
+  }
+
+  /* A rarity, on the odds, at or above `floor` and no higher than
+     `ceiling`, with a pack's `boost` if it has one. */
+  function rollRarity(rng, floor, ceiling, boost) {
+    var from = rankOf(floor || 'common');
+    var to = ceiling ? Math.max(rankOf(ceiling), from) : RARITIES.length - 1;
+    var odds = oddsWith(boost);
+    var total = 0;
+    for (var r = from; r <= to; r += 1) { total += odds[r]; }
+    var at = rng() * total;
+    for (r = from; r <= to; r += 1) {
+      at -= odds[r];
+      if (at < 0) { return RARITIES[r].key; }
+    }
+    return RARITIES[to].key;
   }
 
   /* One card from `pool` of the rolled rarity. A rarity the pool has none of
      yet -- early in a season there may be no Iconic anything -- falls to the
      nearest one below it that has something, and only climbs if there is
      nothing below either. Never below `floor` while anything above it
-     exists. */
-  function drawOne(pool, rng, floor) {
+     exists, and never above `ceiling` while anything at or under it does. */
+  function drawOne(pool, rng, floor, ceiling, boost) {
     if (!pool.length) { return null; }
-    var wanted = rankOf(rollRarity(rng, floor));
+    var wanted = rankOf(rollRarity(rng, floor, ceiling, boost));
     var low = rankOf(floor || 'common');
+    var high = ceiling ? Math.max(rankOf(ceiling), low) : RARITIES.length - 1;
 
     function at(rank) {
       return pool.filter(function (card) { return rankOf(card.rarity) === rank; });
@@ -414,8 +435,9 @@ EGE.cards = (function () {
 
     var order = [];
     for (var r = wanted; r >= low; r -= 1) { order.push(r); }
-    for (r = wanted + 1; r < RARITIES.length; r += 1) { order.push(r); }
+    for (r = wanted + 1; r <= high; r += 1) { order.push(r); }
     for (r = low - 1; r >= 0; r -= 1) { order.push(r); }
+    for (r = high + 1; r < RARITIES.length; r += 1) { order.push(r); }
 
     for (var i = 0; i < order.length; i += 1) {
       var tier = at(order[i]);
@@ -424,20 +446,34 @@ EGE.cards = (function () {
     return null;
   }
 
+  /* At most one card in a pack is above Legendary: once a Mystic or an
+     Iconic is in it, every card after it rolls Legendary or lower. */
+  var PACK_CAP = 'legendary';
+
+  /* Worst first, so a pack reads left to right from its worst card to its
+     best. */
+  function packOrder(cards) {
+    return cards.slice().sort(function (a, b) { return compare(b, a); });
+  }
+
   /* What a pack has in it. Decided before it is paid for, so what is charged
-     for and what is shown are the same cards. */
+     for and what is shown are the same cards, worst to best. */
   function rollPack(packKey, rng) {
     var p = pack(packKey);
     if (!p) { return []; }
     var random = rng || Math.random;
     var pool = pullable(packKey);
     var out = [];
+    var big = false;
     for (var i = 0; i < p.size; i += 1) {
       var last = i === p.size - 1;
-      var card = drawOne(pool, random, last ? p.floor : null);
-      if (card) { out.push(card); }
+      var card = drawOne(pool, random, last ? p.floor : null, big ? PACK_CAP : null, p.boost);
+      if (card) {
+        out.push(card);
+        if (rankOf(card.rarity) > rankOf(PACK_CAP)) { big = true; }
+      }
     }
-    return out;
+    return packOrder(out);
   }
 
   /* --- the library ------------------------------------------------------- */
@@ -832,6 +868,7 @@ EGE.cards = (function () {
     ICONIC: ICONIC,
     PACKS: PACKS,
     QUICK_SELL: QUICK_SELL,
+    packOrder: packOrder,
     BOOSTER: BOOSTER,
     rarity: rarity,
     rankOf: rankOf,
@@ -844,6 +881,7 @@ EGE.cards = (function () {
     pullable: pullable,
     compare: compare,
     rollRarity: rollRarity,
+    oddsWith: oddsWith,
     rollPack: rollPack,
     sets: sets,
     fill: fill,

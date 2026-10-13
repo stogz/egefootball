@@ -1362,7 +1362,8 @@ EGE.cardsView = (function () {
   function pulls() {
     return (state.recent || []).map(function (row) {
       var pack = EGE.cards.pack(row.pack_key);
-      return { title: pack ? pack.name : 'Pack', email: row.email, when: row.opened_at, cards: row.cards || [] };
+      var cards = EGE.cards.packOrder((row.cards || []).map(EGE.cards.byId).filter(Boolean));
+      return { title: pack ? pack.name : 'Pack', email: row.email, when: row.opened_at, cards: cards };
     }).slice(0, RECENT_MAX);
   }
 
@@ -1401,7 +1402,7 @@ EGE.cardsView = (function () {
       tile.appendChild(head);
 
       var strip = el('div', 'ege-pull__cards');
-      pull.cards.map(EGE.cards.byId).filter(Boolean).forEach(function (card) {
+      pull.cards.forEach(function (card) {
         var have = state.owned[card.id] || 0;
         var node = cardEl(card, {});
         if (mine && !have) { node.classList.add('is-gone'); }
@@ -2987,7 +2988,12 @@ EGE.cardsView = (function () {
       var pool = EGE.cards.pullable(packKey).filter(function (c) { return c.rarity === best; });
       if (!pool.length) { pool = EGE.cards.pullable(null).filter(function (c) { return c.rarity === best; }); }
       if (pool.length) {
-        cards[cards.length - 1] = pool[Math.floor(Math.random() * pool.length)];
+        /* Still one card above Legendary at most, and still worst to
+           best, with the chosen one last. */
+        cards = cards.slice(0, -1).map(function (c) {
+          return EGE.cards.rankOf(c.rarity) > EGE.cards.rankOf('legendary') ? EGE.cards.rollPack(packKey)[0] : c;
+        }).filter(Boolean);
+        cards = EGE.cards.packOrder(cards).concat([pool[Math.floor(Math.random() * pool.length)]]);
       } else {
         message = 'No ' + EGE.cards.rarity(best).name + ' card is out yet, so this pack came out as it rolled.';
       }
