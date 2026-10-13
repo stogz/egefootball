@@ -5574,39 +5574,53 @@ html.ege-noscroll body { overflow: hidden; }
 
 /* --- player cards ------------------------------------------------------------ */
 
-/* Each Player Card with what you can do with it underneath. */
+/* Each Player Card with what it means beside it: his name, how far to the
+   next rank, what it has earned and pays, and its buttons. Three rows of
+   two, one a row once that gets narrow, and the card itself always as
+   wide as a card in the binder (five across, then four, then two). */
 .ege-pcards {
+  container-type: inline-size;
   display: grid;
-  /* Three rows of two, each column as wide as a column of the binder
-     (five across, then four and three as the screen narrows). */
-  --binder-cols: 5;
-  grid-template-columns: repeat(2, calc((100% - (var(--binder-cols) - 1) * 20px) / var(--binder-cols)));
-  justify-content: center;
-  gap: 26px 20px;
-}
-@media (max-width: 900px) {
-  .ege-pcards { --binder-cols: 4; }
-}
-@media (max-width: 760px) {
-  .ege-pcards { --binder-cols: 3; }
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px 24px;
 }
 .ege-pcard {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  --card-w: calc((100cqw - 80px) / 5);
+  display: grid;
+  grid-template-columns: var(--card-w) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
   min-width: 0;
 }
+@media (max-width: 900px) {
+  .ege-pcards { grid-template-columns: minmax(0, 1fr); }
+  .ege-pcard { --card-w: calc((100cqw - 60px) / 4); }
+}
+.ege-pcards__who { align-self: flex-start; max-width: 100%; }
 .ege-pcard__body {
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-width: 0;
+  padding-top: 4px;
 }
-.ege-pcard__actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.ege-pcard__actions > .fb-btn { flex: 1 1 auto; }
-/* The photo button and its × stay on one line, however narrow the card. */
-.ege-pcard__actions--photo { flex-wrap: nowrap; }
-.ege-pcard__actions--photo > .ege-pcard__photo { min-width: 0; }
+.ege-pcard__body > .ege-item__name { margin: 0; font-size: 1.375rem; }
+.ege-pcard__meter { height: 12px; }
+.ege-pcard__next,
+.ege-pcard__bonus { margin: 0; font-size: .875rem; line-height: 1.45; }
+.ege-pcard__next { color: var(--fb-muted); }
+.ege-pcard__bonus .ege-gem { vertical-align: -2px; }
+.ege-pcard__rate {
+  display: inline-block;
+  margin-right: 2px;
+  padding: 0 6px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  border-radius: 4px;
+  background: var(--fb-accent);
+  font-family: var(--fb-font-display);
+}
+.ege-pcard__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.ege-pcard__actions > .fb-btn { flex: 0 1 auto; }
 .ege-pcard__actions > .ege-pcard__unphoto { flex: none; padding: 0 14px; font-size: 18px; line-height: 1; }
 
 /* --- a Player Card's face ------------------------------------------------------
@@ -5768,6 +5782,11 @@ html.ege-noscroll body { overflow: hidden; }
   margin-bottom: 22px;
 }
 
+/* The showcase picker: Player Cards first, then cards, each under a heading. */
+.ege-showcase__pickhead { margin: 18px 0 10px; font-size: 1rem; }
+.ege-showcase__pickhead:first-child { margin-top: 0; }
+.ege-plcard.is-off { opacity: .4; filter: grayscale(.6); cursor: default; }
+
 /* The bin at the end of the collection's filters: resets them all. */
 .ege-filterclear {
   display: inline-grid;
@@ -5858,7 +5877,10 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-binder { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .ege-daily,
   .ege-market__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-  .ege-pcards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px; }  /* the binder is two across here too */
+  .ege-pcard { --card-w: calc((100cqw - 16px) / 2); gap: 12px; }  /* the binder is two across here too */
+  .ege-pcard__body > .ege-item__name { font-size: 1.125rem; }
+  .ege-pcard__next,
+  .ege-pcard__bonus { font-size: .8125rem; }
   .ege-filterclear { flex: 0 0 auto; min-height: 47px; }
   .ege-showcase__players { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 

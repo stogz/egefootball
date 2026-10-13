@@ -1523,8 +1523,19 @@ bar is the colour of the rank held. The face is `playerCardFace()` in
 Card is exactly the height and width of a play or performance card and gets
 the same effects for its rank: Rare's orange foil, the sheen from Epic up,
 Legendary's purple glow, Mystic's moving gold and Iconic's holo. The Players
-page lays the six out in three rows of two, each column as wide as one of
-the binder's.
+page lays the six out in three rows of two (one a row once the screen
+narrows), each card as wide as one in the binder, with what it means beside
+it: his name, FPTS and how many cards (and how many different) make them, a
+bar and how many more FPTS reach the next rank and what that pays, what the
+card has earned so far with its bonus now and about how much that is a game,
+then **See his cards** (the collection filtered to him) and **Add photo**.
+
+**Somebody else's Player Cards.** The drop-down above them switches to any
+other account's six. Their cards come from their collection, which anybody
+signed in can read; what theirs have earned comes from
+`player_card_earnings()`, which hands over the Player Card totals from
+`diamond_awards` and nothing else of it. **See his cards** opens their
+collection filtered to that player. Photos can only be changed on your own.
 
 **Your own photo on a Player Card.** **Add photo** under a Player Card picks
 a picture from the phone or computer. The page crops it square (a little
@@ -1543,8 +1554,12 @@ without a card of that player. Anybody can see them, signed out too, the
 same as a player's page. On the admin page the card table counts each
 account's photos with a **Remove** that takes them all down, and Clear
 library takes them down too.
-**Up to three can go on the player's own page**, above their showcase, from
-"Show on your page" on the Players page (`set_player_card_showcase()`). Anybody
+
+
+**Up to three can go on the player's own page**, above their showcase. They
+are picked like the cards: **Edit** the showcase, **+ Add a card**, and the
+picker lists your Player Cards first, then your cards. Saving puts them up
+(`set_player_card_showcase()`). Anybody
 can see them, signed out too: `showcased_player_cards()` hands over only the
 cards of the players put up, which is what their rank is worked out from.
 

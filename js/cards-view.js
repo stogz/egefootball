@@ -43,8 +43,9 @@ EGE.cardsView = (function () {
     pcAwards: null,     /* what the Player Cards have paid, diamond_awards rows */
     shop: null,         /* today's shelf from card_shop_today; null until read */
     market: null,       /* { open, mine } listings; null until read */
-    showPlayers: [],    /* the Player Cards this account has on its page */
     photos: null,       /* this account's Player Card photos, { slug: data url } */
+    pcView: null,       /* whose Player Cards the Players page shows; null is yours */
+    pcOther: null,      /* theirs once read: { owned, photos, earned, failed } */
     filter: { rarity: 'all', kind: 'all', player: 'all', sort: 'rarity' }
   };
 
@@ -2037,68 +2038,141 @@ EGE.cardsView = (function () {
     return outer;
   }
 
-  /* What a Player Card has paid this account, every season. */
-  function earnedFrom(slug) {
+  /* What each Player Card has paid this account, every season:
+     { slug: diamonds }, or null before the awards are read. */
+  function earnedTotals() {
     if (!state.pcAwards) { return null; }
-    var prefix = 'pc-' + slug + '-w';
-    return state.pcAwards.filter(function (row) {
-      return row.award_key.indexOf(prefix) === 0;
-    }).reduce(function (sum, row) { return sum + (row.diamonds || 0); }, 0);
+    var totals = {};
+    state.pcAwards.forEach(function (row) {
+      var m = /^pc-(.+)-w\d+$/.exec(row.award_key);
+      if (m) { totals[m[1]] = (totals[m[1]] || 0) + (row.diamonds || 0); }
+    });
+    return totals;
   }
 
-  function playerCardEl(pc) {
+  function earnedFrom(slug) {
+    var totals = earnedTotals();
+    return totals ? totals[slug] || 0 : null;
+  }
+
+  /* A Player Card and, beside it, what it means: his name, how far it is
+     to the next rank, what it has earned and pays a game, and the buttons
+     to see his cards and (on your own) put a photo on it. `whose` is the
+     account the cards belong to: { mine, first, email, earned, photos }. */
+  function playerCardEl(pc, whose) {
     var player = pc.player;
+    var rank = pc.rank;
+    var earned = whose.earned ? (whose.earned[player.slug] || 0) : null;
+    var photo = whose.photos ? whose.photos[player.slug] || null : null;
     var node = el('article', 'ege-pcard');
-    var mine = state.photos && state.photos[player.slug];
-    node.appendChild(playerCardFace(pc, earnedFrom(player.slug), mine));
+    node.appendChild(playerCardFace(pc, earned, photo));
 
     var body = el('div', 'ege-pcard__body');
+    body.appendChild(el('h4', 'ege-item__name', player.name));
+    body.appendChild(el('span', 'fb-meta', pc.copies
+      ? whole(pc.points) + ' FPTS from ' + pc.copies + (pc.copies === 1 ? ' card' : ' cards') +
+        ' · ' + pc.distinct + ' different'
+      : (whose.mine ? 'No cards of his yet.' : whose.first + ' has no cards of his yet.')));
 
+    /* Progress to the next rank, in the colour of the one held. */
+    var next = rank ? pc.next : pc.ladder[1];
+    var from = rank ? rank.points : 0;
+    var meter = el('div', 'fb-meter ege-pcard__meter');
+    var fill = el('div', 'fb-meter__fill');
+    fill.style.width = (next ? Math.max(0, Math.min(100, (pc.points - from) / Math.max(1, next.points - from) * 100)) : 100) + '%';
+    fill.style.background = rank ? rank.color : '#8b9097';
+    meter.appendChild(fill);
+    body.appendChild(meter);
+    body.appendChild(el('p', 'ege-pcard__next', !pc.copies
+      ? 'One ' + player.first + ' card starts it, and ' + whole(next.points) + ' FPTS makes it ' + next.name + '.'
+      : next ? whole(Math.max(0, Math.ceil(next.points - pc.points))) + ' more FPTS to ' + next.name +
+               ' (' + whole(next.points) + '), which pays +' + pctText(next.bonus) + '.'
+      : 'Iconic. As high as it goes.'));
+
+    /* What it has earned, and what it pays now. */
+    var pays = el('p', 'ege-pcard__bonus');
+    if (earned !== null) {
+      pays.appendChild(document.createTextNode('Earned '));
+      pays.appendChild(el('strong', null, whole(earned)));
+      pays.appendChild(gem());
+      pays.appendChild(document.createTextNode(' so far. '));
+    }
+    if (rank && rank.bonus) {
+      var about = typicalBonus(player, rank.key);
+      pays.appendChild(el('strong', 'ege-pcard__rate', '+' + pctText(rank.bonus)));
+      pays.appendChild(document.createTextNode(' of his game diamonds' +
+        (about !== null ? ', about ' + about + ' a game.' : '.')));
+    } else {
+      pays.appendChild(document.createTextNode('No bonus until Uncommon.'));
+    }
+    body.appendChild(pays);
+
+    var row = el('div', 'ege-pcard__actions');
     var see = el('button', 'fb-btn fb-btn--sm ege-pcard__see', 'See his cards');
     see.type = 'button';
+    see.disabled = !pc.copies;
     see.addEventListener('click', function () {
-      state.view = null;
       state.filter.player = player.slug;
-      renderFilters();
       setTab('cards');
-      renderCollection();
+      if ((state.view || null) !== (whose.mine ? null : whose.email)) {
+        pickView(whose.mine ? null : whose.email);
+      } else {
+        renderFilters();
+        renderCollection();
+      }
     });
-
-    /* Up to three go on the player's own page, beside the showcase. */
-    var up = state.showPlayers.indexOf(player.slug) !== -1;
-    var show = el('button', 'fb-btn fb-btn--sm ege-pcard__show' + (up ? ' fb-btn--primary' : ''),
-      up ? 'On your page \u2713' : 'Show on your page');
-    show.type = 'button';
-    show.setAttribute('aria-pressed', up ? 'true' : 'false');
-    show.disabled = !pc.copies || (!up && state.showPlayers.length >= 3);
-    if (!up && pc.copies && state.showPlayers.length >= 3) { show.title = 'Your page shows three at most.'; }
-    show.addEventListener('click', function () { toggleShown(player, show); });
-    var row = el('div', 'ege-pcard__actions');
     row.appendChild(see);
-    row.appendChild(show);
-    body.appendChild(row);
 
-    /* A photo of your own on it, in place of his headshot. */
-    var photoRow = el('div', 'ege-pcard__actions ege-pcard__actions--photo');
-    var pick = el('button', 'fb-btn fb-btn--sm ege-pcard__photo', mine ? 'Change photo' : 'Add photo');
-    pick.type = 'button';
-    pick.disabled = !pc.copies || state.photos === null;
-    pick.title = state.photos === null ? 'Photos could not be loaded. Run supabase/schema.sql.'
-      : !pc.copies ? 'Collect a ' + player.first + ' card first.' : '';
-    pick.addEventListener('click', function () { choosePhoto(pc); });
-    photoRow.appendChild(pick);
-    if (mine) {
-      var drop = el('button', 'fb-btn fb-btn--sm ege-pcard__unphoto', '\u00d7');
-      drop.type = 'button';
-      drop.title = 'Remove your photo';
-      drop.setAttribute('aria-label', 'Remove your photo from ' + player.first + '\u2019s Player Card');
-      drop.addEventListener('click', function () { removePhoto(player, drop); });
-      photoRow.appendChild(drop);
+    /* Your own: a photo of yours on it, in place of his headshot. */
+    if (whose.mine) {
+      var pick = el('button', 'fb-btn fb-btn--sm ege-pcard__photo', photo ? 'Change photo' : 'Add photo');
+      pick.type = 'button';
+      pick.disabled = !pc.copies || state.photos === null;
+      pick.title = state.photos === null ? 'Photos could not be loaded. Run supabase/schema.sql.'
+        : !pc.copies ? 'Collect a ' + player.first + ' card first.' : '';
+      pick.addEventListener('click', function () { choosePhoto(pc); });
+      row.appendChild(pick);
+      if (photo) {
+        var drop = el('button', 'fb-btn fb-btn--sm ege-pcard__unphoto', '×');
+        drop.type = 'button';
+        drop.title = 'Remove your photo';
+        drop.setAttribute('aria-label', 'Remove your photo from ' + player.first + '’s Player Card');
+        drop.addEventListener('click', function () { removePhoto(player, drop); });
+        row.appendChild(drop);
+      }
     }
-    body.appendChild(photoRow);
+    body.appendChild(row);
 
     node.appendChild(body);
     return node;
+  }
+
+  /* --- somebody else's Player Cards ----------------------------------------
+
+     Picked above the Player Cards. Their cards are readable by anybody
+     signed in, the same as their collection; their photos are public; and
+     what their cards have earned comes from player_card_earnings, since
+     diamond_awards itself is theirs alone. */
+  function pickPcView(email) {
+    state.pcView = email || null;
+    state.pcOther = null;
+    renderPlayerCards();
+    loadPcOther();
+  }
+
+  function loadPcOther() {
+    var email = state.pcView;
+    if (!email) { return Promise.resolve(); }
+    return Promise.all([
+      EGE.cardStore.collectionFor(email),
+      EGE.cardStore.cardPhotos(email),
+      EGE.cardStore.playerCardEarnings(email)
+    ]).then(function (all) {
+      if (state.pcView !== email) { return; }
+      state.pcOther = { owned: all[0] ? all[0].owned : {}, failed: !all[0], photos: all[1] || {},
+                        earned: all[2] };
+      if (!state.hold) { renderPlayerCards(); }
+    });
   }
 
   /* --- photos on Player Cards ---------------------------------------------
@@ -2213,29 +2287,36 @@ EGE.cardsView = (function () {
     });
   }
 
-  function toggleShown(player, button) {
-    button.disabled = true;
-    var next = state.showPlayers.filter(function (slug) { return slug !== player.slug; });
-    var adding = next.length === state.showPlayers.length;
-    if (adding) { next.push(player.slug); }
-    EGE.cardStore.setShowcasePlayers(next).then(function (res) {
-      if (!res.ok) { say(res.message, true); renderPlayerCards(); return; }
-      state.showPlayers = next;
-      if (EGE.showcase) { EGE.showcase.forget(); }
-      say(adding ? player.first + '\u2019s Player Card is on your page now.'
-                 : player.first + '\u2019s Player Card is off your page.', false);
-      renderPlayerCards();
-    });
-  }
-
   function renderPlayerCards() {
+    var who = byId('playerCardsWho');
+    if (!who.options.length) {
+      who.appendChild(new Option('My Player Cards', ''));
+      partners().forEach(function (p) { who.appendChild(new Option(p.first + '\u2019s Player Cards', p.email)); });
+      who.addEventListener('change', function () { pickPcView(who.value); });
+    }
+    who.value = state.pcView || '';
+
     var holder = byId('playerCards');
     holder.innerHTML = '';
+    var other = state.pcView ? playerByEmail(state.pcView) : null;
+    var whose = state.pcView
+      ? { mine: false, email: state.pcView, first: other ? other.first : state.pcView,
+          earned: state.pcOther && state.pcOther.earned, photos: state.pcOther && state.pcOther.photos }
+      : { mine: true, earned: earnedTotals(), photos: state.photos };
+    if (state.pcView && !state.pcOther) {
+      holder.appendChild(el('p', 'fb-meta', 'Loading ' + whose.first + '\u2019s Player Cards\u2026'));
+      return;
+    }
+    if (state.pcView && state.pcOther.failed) {
+      holder.appendChild(el('p', 'fb-meta', whose.first + '\u2019s cards could not be loaded.'));
+      return;
+    }
+    var owned = state.pcView ? state.pcOther.owned : state.owned;
     EGE.players.forEach(function (player) {
-      holder.appendChild(playerCardEl(EGE.cards.playerCard(player, state.owned)));
+      holder.appendChild(playerCardEl(EGE.cards.playerCard(player, owned), whose));
     });
 
-    var total = (state.pcAwards || []).filter(function (row) { return row.season === EGE.currentSeason; })
+    var total = state.pcView ? 0 : (state.pcAwards || []).filter(function (row) { return row.season === EGE.currentSeason; })
       .reduce(function (sum, row) { return sum + (row.diamonds || 0); }, 0);
     var earned = byId('playerCardsEarned');
     earned.innerHTML = '';
@@ -2599,8 +2680,8 @@ EGE.cardsView = (function () {
       EGE.cardStore.playerCardAwards(player.email),
       EGE.cardStore.shopToday(),
       EGE.cardStore.market(player.email),
-      EGE.cardStore.showcasePlayersFor(player.email),
-      EGE.cardStore.cardPhotos(player.email)
+      EGE.cardStore.cardPhotos(player.email),
+      loadPcOther()
     ]).then(function (all) {
       if (state.player !== player) { return; }
       if (all[0] === null) {
@@ -2617,8 +2698,7 @@ EGE.cardsView = (function () {
       state.pcAwards = all[7];
       state.shop = all[8];
       state.market = all[9];
-      state.showPlayers = all[10].players;
-      state.photos = all[11];
+      state.photos = all[10];
       state.loaded = all[0] !== null;
       if (all[4] === null && all[0] !== null) {
         say('Your diamonds could not be loaded. Run supabase/schema.sql to set up the diamond tables, then reload.', true);
@@ -2666,8 +2746,9 @@ EGE.cardsView = (function () {
     state.pcAwards = null;
     state.shop = null;
     state.market = null;
-    state.showPlayers = [];
     state.photos = null;
+    state.pcView = null;
+    state.pcOther = null;
     binder.key = null;
     setBadge(0);
   }

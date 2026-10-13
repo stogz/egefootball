@@ -254,6 +254,17 @@ EGE.cardStore = (function () {
       .catch(function () { return null; });
   }
 
+  /* What each of this player's Player Cards has paid them, every season:
+     { slug: diamonds }. Anybody signed in can read it; null when it could
+     not be (before the schema has player_card_earnings). */
+  function playerCardEarnings(email) {
+    var c = client();
+    if (!c || !email) { return Promise.resolve(null); }
+    return c.rpc('player_card_earnings', { p_email: email })
+      .then(function (res) { return res.error ? null : (res.data || {}); })
+      .catch(function () { return null; });
+  }
+
   /* Puts a photo, already cropped and shrunk to a data URL, on this
      player's Player Card of `slug`; set_card_photo checks they hold a card
      of his and that it is small enough. */
@@ -410,6 +421,7 @@ EGE.cardStore = (function () {
     quickSell: quickSell,
     recentOpens: recentOpens,
     cardPhotos: cardPhotos,
+    playerCardEarnings: playerCardEarnings,
     setCardPhoto: setCardPhoto,
     clearCardPhoto: clearCardPhoto,
     tradesFor: tradesFor,

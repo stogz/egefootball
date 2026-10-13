@@ -2348,6 +2348,28 @@ revoke all on function public.set_player_card_showcase(text[]) from public, anon
 grant execute on function public.set_player_card_showcase(text[]) to authenticated;
 grant execute on function public.showcased_player_cards(text) to anon, authenticated;
 
+-- What each of an account's Player Cards has paid it, every season:
+-- { slug: diamonds }, for the Players page when it shows somebody else's
+-- Player Cards. diamond_awards itself stays readable by its owner alone;
+-- this hands over the Player Card totals and nothing else.
+create or replace function public.player_card_earnings(p_email text)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(jsonb_object_agg(e.slug, e.total), '{}'::jsonb)
+    from (select regexp_replace(da.award_key, '^pc-(.+)-w[0-9]+$', '\1') as slug,
+                 sum(da.diamonds) as total
+            from public.diamond_awards da
+           where da.email = p_email and da.award_key ~ '^pc-.+-w[0-9]+$'
+           group by 1) e;
+$$;
+
+revoke all on function public.player_card_earnings(text) from public, anon;
+grant execute on function public.player_card_earnings(text) to authenticated;
+
 -- ===========================================================================
 -- Recent opens: the last packs anybody opened, for the Shop's Recent Pulls.
 -- card_packs itself stays readable by its owner and an admin only; this
