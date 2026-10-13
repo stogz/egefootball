@@ -5368,19 +5368,23 @@ html.ege-noscroll body { overflow: hidden; }
 
 /* How many offers are waiting, on the Cards link in the nav. */
 .ege-navbadge {
-  display: inline-block;
-  min-width: 18px;
+  /* New trade offers: a red circle with the count in white. */
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
   margin-left: 6px;
-  padding: 1px 5px;
-  background: var(--fb-accent);
-  color: var(--fb-ink);
-  font-size: var(--fb-label);
+  padding: 0 6px;
+  border-radius: 999px !important;   /* the kit squares every corner */
+  background: #d92b2b;
+  color: #fff;
+  font-size: .75rem;
   font-weight: 800;
   letter-spacing: 0;
-  line-height: 1.4;
-  text-align: center;
-  vertical-align: 1px;
+  line-height: 1;
+  vertical-align: 2px;
 }
+.ege-navbadge[hidden] { display: none; }
 
 .ege-trades { display: flex; flex-direction: column; gap: 14px; }
 .ege-trade {
@@ -5594,7 +5598,21 @@ html.ege-noscroll body { overflow: hidden; }
   font-size: .6875rem;
   letter-spacing: 0;
 }
+/* New trade offers on the Trades button: red with white, like the nav. */
+#tabTradesBadge { border-radius: 999px !important; background: #d92b2b; color: #fff; border-color: #d92b2b; }
 .ege-cardtab__badge[hidden] { display: none; }
+
+/* An offer seen for the first time on this visit. */
+.ege-trade__new {
+  padding: 1px 7px;
+  border-radius: 999px !important;
+  background: #d92b2b;
+  color: #fff;
+  font-size: .6875rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
 
 /* The collection: the filters stay under the nav while the page scrolls. */
 .ege-collection__head { border-bottom: 0; padding-bottom: 6px; }

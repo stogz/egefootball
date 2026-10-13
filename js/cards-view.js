@@ -32,6 +32,7 @@ EGE.cardsView = (function () {
     diamonds: null,     /* what packs are bought with */
     loaded: false,
     fresh: {},          /* ids pulled since the page loaded, for the New badge */
+    newTrades: {},      /* offers marked seen on this visit, still tagged New */
     trades: [],         /* every trade this player is on either side of */
     hold: false,        /* a pack is open: show nothing it holds until Done */
     view: null,         /* whose collection the binder shows: null for yours, else their email */
@@ -1453,6 +1454,9 @@ EGE.cardsView = (function () {
     }
     who.appendChild(el('strong', null, (mine ? 'To ' : 'From ') + (them ? them.name : other)));
     who.appendChild(el('span', 'fb-meta', whenText(t.created_at)));
+    if (t.status === 'open' && !mine && (isNewTrade(t) || state.newTrades[t.id])) {
+      who.appendChild(el('span', 'ege-trade__new', 'New'));
+    }
     head.appendChild(who);
     if (t.status !== 'open') {
       head.appendChild(el('span', 'fb-tag' + (t.status === 'accepted' ? ' fb-tag--sage' : ' fb-tag--outline'),
@@ -1547,8 +1551,36 @@ EGE.cardsView = (function () {
       ? incoming.length + (incoming.length === 1 ? ' offer waiting on you' : ' offers waiting on you')
       : '';
     byId('tradeNew').disabled = !state.loaded || !partners().length;
-    setBadge(incoming.length);
-    tabBadge('tabTradesBadge', incoming.length);
+    var fresh = incoming.filter(isNewTrade).length;
+    setBadge(fresh);
+    tabBadge('tabTradesBadge', fresh);
+    seeTrades();
+  }
+
+  /* Coming back to a page left open on Trades sees what came in meanwhile. */
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && state.player) { seeTrades(); }
+  });
+
+  /* An offer to this player they have not had on screen yet. */
+  function isNewTrade(t) {
+    return t.status === 'open' && t.to_email.toLowerCase() === me() && !t.seen_at;
+  }
+
+  /* With the Trades page on screen, the new offers on it are seen: they
+     stop counting on the nav and the page button (here and on any other
+     device), and keep their New tag until the page is left. */
+  function seeTrades() {
+    if (state.tab !== 'trades' || !state.loaded || document.visibilityState === 'hidden' ||
+        !/^#cards\/trades\b/.test(window.location.hash)) { return; }
+    var fresh = state.trades.filter(isNewTrade);
+    if (!fresh.length) { return; }
+    var ids = fresh.map(function (t) { return t.id; });
+    var now = new Date().toISOString();
+    fresh.forEach(function (t) { state.newTrades[t.id] = true; t.seen_at = now; });
+    setBadge(0);
+    tabBadge('tabTradesBadge', 0);
+    EGE.cardStore.markTradesSeen(ids);
   }
 
   /* --- the trade builder ------------------------------------------------- */
@@ -1674,8 +1706,9 @@ EGE.cardsView = (function () {
 
   /* --- the nav badge ----------------------------------------------------- */
 
-  /* How many offers are waiting on this player, on the Cards tab in the nav,
-     so a trade does not sit unanswered because nobody opened the tab. */
+  /* How many new offers this player has, a red count on Cards in the nav,
+     so a trade does not sit unanswered because nobody opened the tab. It
+     goes once the Trades page has been open with them on it (seeTrades). */
   function setBadge(count) {
     var badge = byId('navCardsBadge');
     if (!badge) { return; }
@@ -1683,7 +1716,7 @@ EGE.cardsView = (function () {
     badge.hidden = !count;
     var link = byId('navCards');
     if (link) {
-      link.setAttribute('aria-label', count ? 'Cards, ' + count + ' trade offer' + (count === 1 ? '' : 's') + ' waiting' : 'Cards');
+      link.setAttribute('aria-label', count ? 'Cards, ' + count + ' new trade offer' + (count === 1 ? '' : 's') : 'Cards');
     }
   }
 
@@ -1700,7 +1733,9 @@ EGE.cardsView = (function () {
     if (!player) { setBadge(0); return Promise.resolve(); }
     return EGE.cardStore.tradesFor(player.email).then(function (trades) {
       var e = player.email.toLowerCase();
-      setBadge(trades.filter(function (t) { return t.status === 'open' && t.to_email.toLowerCase() === e; }).length);
+      setBadge(trades.filter(function (t) {
+        return t.status === 'open' && t.to_email.toLowerCase() === e && !t.seen_at;
+      }).length);
     });
   }
 
@@ -1904,6 +1939,7 @@ EGE.cardsView = (function () {
                      achievements: 'Achievements' };
 
   function setTab(tab, fromRoute) {
+    tab = String(tab || '').replace(/\/+$/, '');        /* #cards/trades/ too */
     var next = TABS.indexOf(tab) === -1 ? 'cards' : tab;
     var moved = next !== state.tab;
     state.tab = next;
@@ -1926,6 +1962,12 @@ EGE.cardsView = (function () {
     /* The binder measures itself to draw its first rows, and a hidden page
        measures as nothing. */
     if (moved && next === 'cards' && state.loaded && !state.hold) { renderCollection(); }
+    /* Leaving the Trades page drops the New tags of the offers seen on it. */
+    if (moved && next !== 'trades' && Object.keys(state.newTrades).length) {
+      state.newTrades = {};
+      if (state.loaded) { renderTrades(); }
+    }
+    if (next === 'trades') { seeTrades(); }
   }
 
   /* --- player cards ------------------------------------------------------ */
@@ -2867,6 +2909,7 @@ EGE.cardsView = (function () {
     state.diamonds = null;
     state.loaded = false;
     state.fresh = {};
+    state.newTrades = {};
     state.trades = [];
     state.hold = false;
     state.view = null;

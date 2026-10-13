@@ -1391,8 +1391,13 @@ card can be in several offers at once, and only the first one accepted gets
 it; the rest come back **Expired** when they are answered. The player who
 offered can take an open offer back, and the other can decline it.
 
-Offers waiting on a player show as a count on the Cards link in the nav, so
-one does not sit unanswered because nobody opened the tab. Sets are still
+**New offers** show as a red circle with the count in white on the Cards link
+in the nav (and on the Trades page button), so one does not sit unanswered
+because nobody opened the tab. An offer stops counting once its player has
+had the Trades page (`#cards/trades`) open with it on screen: the page marks
+it seen (`mark_trades_seen()`, which sets `card_trades.seen_at`), so it is
+seen on every device, and it keeps a red **New** tag until they leave the
+page. Sets are still
 claimed once per player, so cards passed around can help more than one
 player finish a set.
 
@@ -1473,7 +1478,7 @@ so on, swapped in place so switching reloads nothing.
 - **Shop** — packs and Buy Diamonds, Today's Cards, the Market, Recent Pulls
   and the odds.
 - **Trades** — offers to you, your offers, recent ones. The page button
-  counts the offers waiting on you.
+  counts the new offers to you, in red, until the page has been opened.
 - **Achievements** — the library of sets. The page button counts sets ready
   to claim.
 
