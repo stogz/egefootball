@@ -1218,11 +1218,14 @@ YD TD*) and a performance card its yards and touchdowns (*312 YDS 5 TD*).
 | Base | 10 | 3 | any season |
 | Season | 12 | 3 | the live season only, the last card Uncommon or better |
 | Pro | 20 | 5 | any season, the last card Rare or better |
-| 2018, 2019, … | 14 | 3 | that one past season only, the last card Uncommon or better |
+| Season, a past year | 14 | 3 | that one past season only, the last card Uncommon or better |
 
 Base, Season and Pro are twice what they were in credits, because a credit
-buys two diamonds. There is a year pack for every season before the live
-one (`YEAR_PACK_PRICE` in `data/cards.js`); a new one appears when the site
+buys two diamonds. **The Season Pack has a year under it with arrows either
+side:** the previous-year arrow steps it back to 2021, 2020 and so on, each
+a `year-{season}` pack at 14 diamonds (`YEAR_PACK_PRICE` in
+`data/cards.js`), and the other arrow steps forward to the live season. A
+past year has its own gold foil. A new year joins the arrows when the site
 rolls to a new season.
 
 Each card rolls its rarity on the odds first, then is drawn from every
@@ -1489,8 +1492,20 @@ The first time an account is paid, every game already out goes in at 0 (a
 `pc-start` row marks it), so Player Cards pay from the next game on. A game's
 bonus is held to 400. The ladder is `PLAYER_RANKS` in `data/cards.js`.
 
-A Player Card is drawn as a card like the rest of the binder: the rank across
-the picture, a ladder of seven pips lit to the rank, career FPTS in the corner.
+A Player Card is laid out the way Sam drew it, framed in the rank's colour:
+
+```
+[ RANK        ] [ FPTS ]
+his picture
+Name
+(team logo) Team · Position
+Earnings · +10%
+[■■■■■     354 / 400  Rare ]   <- to the next rank
+```
+
+Earnings is the rank's bonus; hovering it gives about what that is a game.
+Before any card of his, the card is grey and the bar runs to Uncommon. The
+face is `playerCardFace()` in `js/cards-view.js`.
 **Up to three can go on the player's own page**, above their showcase, from
 "Show on your page" on the Players page (`set_player_card_showcase()`). Anybody
 can see them, signed out too: `showcased_player_cards()` hands over only the

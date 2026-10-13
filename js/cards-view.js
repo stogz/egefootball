@@ -39,6 +39,7 @@ EGE.cardsView = (function () {
     recent: null,       /* the last packs opened, newest first; null until read */
     recentShown: 4,     /* how many recent pulls are drawn */
     tab: 'cards',       /* which of the five pages is showing */
+    seasonPack: null,   /* which year the Season Pack tile is turned to */
     pcAwards: null,     /* what the Player Cards have paid, diamond_awards rows */
     shop: null,         /* today's shelf from card_shop_today; null until read */
     market: null,       /* { open, mine } listings; null until read */
@@ -251,21 +252,69 @@ EGE.cardsView = (function () {
     art.appendChild(el('span', 'ege-pack__top'));
     var body = el('span', 'ege-pack__body');
     body.appendChild(el('span', 'ege-pack__brand', 'EGE Football'));
-    body.appendChild(el('span', 'ege-pack__name', pack.name.replace(/ Pack$/, '')));
+    body.appendChild(el('span', 'ege-pack__name',
+      pack.season ? 'Season' : pack.name.replace(/ Pack$/, '')));
     body.appendChild(el('span', 'ege-pack__count',
       pack.size + ' cards' +
-      (pack.seasonOnly ? ' \u00b7 ' + EGE.currentSeason : '')));
+      (pack.seasonOnly ? ' \u00b7 ' + EGE.currentSeason : '') +
+      (pack.season ? ' \u00b7 ' + pack.season : '')));
     art.appendChild(body);
     return art;
+  }
+
+  /* The live Season Pack, then one for each season before it, newest
+     first. They share one tile and the arrows step through them. */
+  function seasonPacks() {
+    return EGE.cards.PACKS.filter(function (p) {
+      return p.seasonOnly || p.season;
+    }).sort(function (a, b) {
+      return (b.season || EGE.currentSeason) - (a.season || EGE.currentSeason);
+    });
+  }
+
+  function seasonStepper(list, at) {
+    var row = el('div', 'ege-packstep');
+    function arrow(label, to, glyph) {
+      var b = el('button', 'ege-packstep__arrow', glyph);
+      b.type = 'button';
+      b.setAttribute('aria-label', label);
+      b.disabled = to < 0 || to >= list.length;
+      b.addEventListener('click', function () {
+        state.seasonPack = list[to].key;
+        renderPacks();
+      });
+      return b;
+    }
+    var pack = list[at];
+    row.appendChild(arrow('Previous year', at + 1, '\u2039'));
+    row.appendChild(el('span', 'ege-packstep__year', String(pack.season || EGE.currentSeason)));
+    row.appendChild(arrow('Next year', at - 1, '\u203a'));
+    return row;
   }
 
   function renderPacks() {
     var holder = byId('cardPacks');
     holder.innerHTML = '';
 
+    var seasons = seasonPacks();
+    var at = Math.max(0, seasons.map(function (p) { return p.key; }).indexOf(state.seasonPack));
+
     EGE.cards.PACKS.forEach(function (pack) {
+      if (pack.season) { return; }
+      var stepper = null;
+      if (pack.seasonOnly && seasons.length > 1) {
+        pack = seasons[at];
+        stepper = seasonStepper(seasons, at);
+      }
       var tile = el('div', 'ege-packtile');
-      tile.appendChild(packArt(pack));
+      if (stepper) {
+        var side = el('div', 'ege-packtile__art');
+        side.appendChild(packArt(pack));
+        side.appendChild(stepper);
+        tile.appendChild(side);
+      } else {
+        tile.appendChild(packArt(pack));
+      }
 
       var words = el('div', 'ege-packtile__words');
       words.appendChild(el('h4', 'ege-item__name', pack.name));
@@ -1862,118 +1911,91 @@ EGE.cardsView = (function () {
     }).reduce(function (sum, row) { return sum + (row.diamonds || 0); }, 0);
   }
 
-  /* A Player Card's face: the same card as every other in the binder, in
-     the rank's colours, with a ladder of seven pips under the name -- one
-     for each rank, lit up to the one held. Drawn here for the Players page
-     and by js/showcase.js for a player's own page. Not ranked yet, it is a
-     grey card. */
+  /* A Player Card's face, in Sam's layout: the rank and the FPTS held
+     along the top, his picture, his name, his current team's logo, team
+     and position, what the card adds to his games, and a bar to the next
+     rank with the numbers on it. Framed in the rank's colour. Drawn here
+     for the Players page and by js/showcase.js for a player's own page.
+     Not ranked yet, it is a grey card. */
+  function whole(n) { return Math.floor(n).toLocaleString('en-US'); }
+
   function playerCardFace(pc) {
     var player = pc.player;
     var rank = pc.rank;
-    var key = rank ? rank.key : 'common';
+    var key = rank ? rank.key : 'unranked';
     var team = EGE.teamFor(player, EGE.currentSeason) || {};
 
-    var node = el('div', 'ege-tcard ege-tcard--player ege-tcard--' + key + (rank ? '' : ' ege-tcard--unranked'));
-    node.style.setProperty('--rarity', rank ? rank.color : '#8b9097');
-    node.style.setProperty('--ground', team.ground || '#2f4a2b');
+    var outer = el('div', 'ege-plcard ege-plcard--' + key);
+    outer.style.setProperty('--rarity', rank ? rank.color : '#8b9097');
+    outer.style.setProperty('--ground', team.ground || '#2f4a2b');
+    var node = el('div', 'ege-plcard__face');
+    outer.appendChild(node);
 
-    var face = el('div', 'ege-tcard__face');
-    var top = el('div', 'ege-tcard__top');
-    top.appendChild(el('span', 'ege-tcard__kind', 'Player Card'));
-    var score = el('span', 'ege-tcard__score');
-    score.appendChild(el('span', 'ege-tcard__points', String(Math.round(pc.points))));
-    score.appendChild(el('span', 'ege-tcard__fpts', 'FPTS'));
-    top.appendChild(score);
-    face.appendChild(top);
+    var top = el('div', 'ege-plcard__top');
+    top.appendChild(el('span', 'ege-plcard__rank', rank ? rank.name : 'Unranked'));
+    var fpts = el('span', 'ege-plcard__fpts');
+    fpts.appendChild(el('b', null, whole(pc.points)));
+    fpts.appendChild(document.createTextNode(' FPTS'));
+    top.appendChild(fpts);
+    node.appendChild(top);
 
-    var art = el('div', 'ege-tcard__art');
-    var photo = el('img', 'ege-tcard__photo');
+    var frame = el('div', 'ege-plcard__photo');
+    var photo = el('img');
     photo.src = player.headshot;
     photo.alt = '';
     photo.loading = 'lazy';
     photo.decoding = 'async';
-    art.appendChild(photo);
+    frame.appendChild(photo);
+    node.appendChild(frame);
+
+    node.appendChild(el('div', 'ege-plcard__name', player.name));
+
+    var where = el('div', 'ege-plcard__team');
     if (team.logo) {
-      var logo = el('img', 'ege-tcard__logo' + (team.whiteMark ? ' ege-tcard__logo--white' : ''));
+      var logo = el('img', 'ege-plcard__logo');
       logo.src = team.logo;
       logo.alt = '';
       logo.loading = 'lazy';
       logo.addEventListener('error', function () { logo.remove(); });
-      art.appendChild(logo);
+      where.appendChild(logo);
     }
-    var big = el('div', 'ege-tcard__yards ege-tcard__yards--rank');
-    big.appendChild(el('b', null, rank ? rank.name : 'Unranked'));
-    art.appendChild(big);
-    face.appendChild(art);
+    where.appendChild(el('span', null,
+      [team.school, EGE.positionFor ? EGE.positionFor(player) : player.position].filter(Boolean).join(' · ')));
+    node.appendChild(where);
 
-    var plate = el('div', 'ege-tcard__plate');
-    plate.appendChild(el('div', 'ege-tcard__name', player.name));
-    plate.appendChild(el('div', 'ege-tcard__meta', [player.position, team.school].filter(Boolean).join(' \u00b7 ')));
-    face.appendChild(plate);
+    var earn = el('div', 'ege-plcard__earn');
+    earn.appendChild(document.createTextNode('Earnings · '));
+    earn.appendChild(el('b', null, (rank && rank.bonus ? '+' : '') + pctText(rank ? rank.bonus : 0)));
+    var about = rank && rank.bonus ? typicalBonus(player, rank.key) : null;
+    if (about !== null) { earn.title = 'About ' + about + ' diamonds on each of his games'; }
+    node.appendChild(earn);
 
-    var body = el('div', 'ege-tcard__body');
-    var pips = el('div', 'ege-tcard__pips');
-    var at = rank ? EGE.cards.rankOf(rank.key) : -1;
-    pc.ladder.forEach(function (r, i) {
-      var pip = el('span', 'ege-tcard__pip' + (i <= at ? ' is-lit' : ''));
-      pip.style.setProperty('--pip', r.color);
-      pip.title = r.name;
-      pips.appendChild(pip);
-    });
-    body.appendChild(pips);
-    body.appendChild(el('div', 'ege-tcard__line', rank && rank.bonus
-      ? '+' + pctText(rank.bonus) + ' diamonds on every game'
-      : pc.copies ? 'Bonuses start at Uncommon' : 'No cards of his yet'));
-    face.appendChild(body);
-
-    var foot = el('div', 'ege-tcard__foot');
-    foot.appendChild(el('span', 'ege-tcard__rarity', rank ? rank.name : 'Unranked'));
-    foot.appendChild(el('span', 'ege-tcard__when', pc.copies + (pc.copies === 1 ? ' card' : ' cards') + ' \u00b7 Career'));
-    face.appendChild(foot);
-
-    node.appendChild(face);
-    return node;
+    /* To the next rank; before any card, to the first one that pays. */
+    var next = rank ? pc.next : pc.ladder[1];
+    var from = rank ? rank.points : 0;
+    var bar = el('div', 'ege-plcard__bar');
+    var fill = el('span', 'ege-plcard__fill');
+    fill.style.width = (next
+      ? Math.max(0, Math.min(100, (pc.points - from) / Math.max(1, next.points - from) * 100))
+      : 100) + '%';
+    if (next) { fill.style.background = next.color; }
+    bar.appendChild(fill);
+    var nums = el('span', 'ege-plcard__nums');
+    nums.appendChild(el('span', null, next
+      ? whole(pc.points) + ' / ' + whole(next.points)
+      : whole(pc.points)));
+    nums.appendChild(el('span', null, next ? next.name : 'Max'));
+    bar.appendChild(nums);
+    node.appendChild(bar);
+    return outer;
   }
 
   function playerCardEl(pc) {
     var player = pc.player;
-    var rank = pc.rank;
     var node = el('article', 'ege-pcard');
     node.appendChild(playerCardFace(pc));
 
     var body = el('div', 'ege-pcard__body');
-    body.appendChild(el('h4', 'ege-item__name', player.name));
-    body.appendChild(el('span', 'fb-meta', points(pc.points) + ' FPTS from ' + pc.copies +
-      (pc.copies === 1 ? ' card' : ' cards') + ' \u00b7 ' + pc.distinct + ' different'));
-
-    var next = pc.next;
-    var from = rank ? rank.points : 0;
-    var meter = el('div', 'fb-meter ege-pcard__meter');
-    var fill = el('div', 'fb-meter__fill');
-    fill.style.width = (next ? Math.max(0, Math.min(100, Math.round((pc.points - from) / Math.max(1, next.points - from) * 100))) : 100) + '%';
-    fill.style.background = next ? next.color : rank.color;
-    meter.appendChild(fill);
-    body.appendChild(meter);
-
-    var toNext = next ? Math.max(0, Math.ceil(next.points - pc.points)) : 0;
-    body.appendChild(el('p', 'ege-pcard__next', !pc.copies
-      ? 'Collect a ' + player.first + ' card to start his Player Card.'
-      : next ? toNext + ' more FPTS to ' + next.name + ' (' + next.points + ').'
-      : 'Iconic. As high as it goes.'));
-
-    var bonus = el('p', 'ege-pcard__bonus');
-    if (rank && rank.bonus) {
-      var about = typicalBonus(player, rank.key);
-      bonus.appendChild(el('strong', null, '+' + pctText(rank.bonus)));
-      bonus.appendChild(document.createTextNode(' of his game diamonds' +
-        (about !== null ? ', about ' + about + ' a game.' : '.')));
-    } else {
-      bonus.appendChild(document.createTextNode(next
-        ? 'No bonus yet. ' + next.name + ' pays +' + pctText(next.bonus) + ' of his game diamonds.'
-        : ''));
-    }
-    body.appendChild(bonus);
-
     var paid = paidThisSeason(player.slug);
     if (paid) {
       var line = el('p', 'fb-meta ege-pcard__paid');

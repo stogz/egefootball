@@ -128,22 +128,24 @@ EGE.cards = (function () {
     }
   ];
 
-  /* A pack for every season before the live one: three cards from that
-     year only, the last one Uncommon or better. open_card_pack charges 14
-     for any year-{season} pack and checks every card in it is from that
-     season. */
+  /* A Season Pack for every season before the live one: three cards from
+     that year only, the last one Uncommon or better. The shop shows them on
+     the Season Pack's tile, behind its previous-year arrow, not as packs of
+     their own. open_card_pack charges 14 for any year-{season} pack and
+     checks every card in it is from that season. */
   var YEAR_PACK_PRICE = 14;
   (EGE.seasonsPlayed ? EGE.seasonsPlayed() : []).filter(function (year) {
     return year < EGE.currentSeason;
   }).forEach(function (year) {
     PACKS.push({
       key: 'year-' + year,
-      name: year + ' Pack',
+      name: year + ' Season Pack',
       diamonds: YEAR_PACK_PRICE,
       size: 3,
       season: year,
       floor: 'uncommon',
-      blurb: 'Three cards from ' + year + ' only, the last one Uncommon or better.'
+      blurb: 'Three cards from the ' + year + ' season only, the last one ' +
+             'Uncommon or better.'
     });
   });
 

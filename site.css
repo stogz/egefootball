@@ -4474,6 +4474,42 @@ html.ege-noscroll body { overflow: hidden; }
 }
 .ege-packtile__buy { margin-top: auto; }
 
+/* The Season Pack's pouch with its year under it, and an arrow either side
+   to step back through the seasons before the live one. */
+.ege-packtile__art {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 104px;
+  flex: none;
+  align-self: center;
+}
+.ege-packtile__art > .ege-pack { width: 100%; }
+.ege-packstep {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.ege-packstep__year {
+  font-family: var(--fb-font-display);
+  font-size: 1.05rem;
+}
+.ege-packstep__arrow {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: #fff;
+  color: var(--fb-ink);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.ege-packstep__arrow:hover:not(:disabled) { background: var(--fb-tint-wash); }
+.ege-packstep__arrow:disabled { opacity: .3; cursor: default; }
+
 /* Swapping credits for diamonds, under the packs: what it is on the left,
    the form on the right, and the form under the words once there is no room
    beside them. Dashed, so it reads as a side door rather than a fourth pack. */
@@ -5528,56 +5564,137 @@ html.ege-noscroll body { overflow: hidden; }
 
 /* --- player cards ------------------------------------------------------------ */
 
+/* Each Player Card with what you can do with it underneath. */
 .ege-pcards {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 22px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 26px 22px;
+}
+/* All six across one row when there is room for it. */
+@media (min-width: 1180px) {
+  .ege-pcards { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 26px 16px; }
 }
 .ege-pcard {
-  display: grid;
-  grid-template-columns: minmax(150px, 230px) minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-  padding: 14px;
-  background: #fff;
-  border: var(--fb-border) solid var(--fb-ink);
-  box-shadow: 5px 5px 0 rgba(0, 0, 0, .3);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   min-width: 0;
 }
+.ege-pcard__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.ege-pcard__paid { display: flex; align-items: center; gap: 4px; margin: 0; font-size: .875rem; }
+.ege-pcard__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.ege-pcard__actions > .fb-btn { flex: 1 1 auto; }
 
 /* --- a Player Card's face ------------------------------------------------------
 
-   The binder's card, with what makes it a Player Card: a second frame
-   inside the first, the rank written big across the picture, and a ladder
-   of seven pips lit up to the rank held. Mystic and Iconic get a sheen
-   that runs across them. */
-.ege-tcard--player .ege-tcard__face {
-  box-shadow: inset 0 0 0 1.2cqw var(--rarity), inset 0 0 0 2cqw var(--fb-ink);
+   Sam's layout, top to bottom: [ RANK ] [ FPTS ], his picture, his name,
+   his team's logo with team and position, Earnings with the bonus, and a
+   bar to the next rank with the numbers on it. A thick frame in the rank's
+   colour. Sized in cqw so it draws the same on the Players page and on a
+   player's own page. Mystic and Iconic get a sheen across the picture. */
+.ege-plcard { container-type: inline-size; min-width: 0; }
+.ege-plcard__face {
+  display: flex;
+  flex-direction: column;
+  gap: 3cqw;
+  padding: 5cqw;
+  background: #fff;
+  border: 3.4cqw solid var(--rarity);
+  outline: 2px solid var(--fb-ink);
+  box-shadow: 5px 6px 0 rgba(0, 0, 0, .35);
+  color: var(--fb-ink);
 }
-.ege-tcard--player .ege-tcard__top { background: var(--fb-ink); }
-.ege-tcard--player .ege-tcard__kind { color: var(--rarity); }
-.ege-tcard--unranked { filter: grayscale(1); }
-.ege-tcard--unranked .ege-tcard__photo { opacity: .55; }
-.ege-tcard__yards--rank b {
-  font-size: 13cqw;
+.ege-plcard__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 3cqw;
+}
+.ege-plcard__rank,
+.ege-plcard__fpts {
+  display: flex;
+  align-items: center;
+  gap: .3em;
+  padding: 1.6cqw 3.4cqw;
+  border: 1cqw solid var(--fb-ink);
+  font-size: 5.4cqw;
+  font-weight: 800;
+  letter-spacing: .06em;
   text-transform: uppercase;
-  letter-spacing: .02em;
+  line-height: 1.1;
+  white-space: nowrap;
 }
-.ege-tcard__pips { display: flex; gap: 1.6cqw; padding-top: .6cqw; }
-.ege-tcard__pip {
-  flex: 1 1 0;
-  height: 3.4cqw;
-  background: rgba(29, 36, 22, .12);
-  border: .5cqw solid rgba(29, 36, 22, .35);
-  transform: skewX(-18deg);
+.ege-plcard__rank { flex: 1 1 auto; background: var(--rarity); color: #fff; text-shadow: 0 1px 0 rgba(0, 0, 0, .45); }
+.ege-plcard__fpts { background: var(--fb-ink); color: var(--fb-cream); }
+.ege-plcard__fpts b { line-height: 1; font-family: var(--fb-font-display); font-weight: 400; font-size: 6.4cqw; }
+.ege-plcard__photo {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+  background: var(--ground);
+  border: 1cqw solid var(--fb-ink);
 }
-.ege-tcard__pip.is-lit { background: var(--pip); border-color: var(--fb-ink); }
-.ege-tcard--player.ege-tcard--mystic .ege-tcard__art::after,
-.ege-tcard--player.ege-tcard--iconic .ege-tcard__art::after {
+.ege-plcard__photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+.ege-plcard__name {
+  font-family: var(--fb-font-display);
+  font-size: 10cqw;
+  line-height: 1;
+  margin-top: 1cqw;
+}
+.ege-plcard__team {
+  display: flex;
+  align-items: center;
+  gap: 2.4cqw;
+  font-size: 5.6cqw;
+  font-weight: 700;
+  color: var(--fb-muted);
+  min-width: 0;
+}
+.ege-plcard__team span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ege-plcard__logo { width: 8cqw; height: 8cqw; object-fit: contain; flex: none; }
+.ege-plcard__earn { font-size: 5.8cqw; font-weight: 700; }
+.ege-plcard__earn b { color: var(--fb-diamond-deep); }
+.ege-plcard__bar {
+  position: relative;
+  height: 10cqw;
+  background: rgba(29, 36, 22, .1);
+  border: 1cqw solid var(--fb-ink);
+  overflow: hidden;
+}
+.ege-plcard__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--rarity);
+}
+.ege-plcard__nums {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2.6cqw;
+  font-size: 5cqw;
+  font-weight: 800;
+  color: var(--fb-ink);
+  text-shadow: 0 0 2px #fff, 0 0 2px #fff;
+}
+.ege-plcard--unranked { filter: grayscale(1); }
+.ege-plcard--unranked .ege-plcard__photo img { opacity: .55; }
+.ege-plcard--mystic .ege-plcard__photo::after,
+.ege-plcard--iconic .ege-plcard__photo::after {
   content: '';
   position: absolute;
   inset: 0;
-  z-index: 3;
   pointer-events: none;
   background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .45) 45%, transparent 58%);
   background-size: 260% 100%;
@@ -5588,7 +5705,7 @@ html.ege-noscroll body { overflow: hidden; }
   50%      { background-position: -20% 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ege-tcard--player .ege-tcard__art::after { animation: none; }
+  .ege-plcard__photo::after { animation: none; }
 }
 
 /* Player Cards on a player's own page, above the showcase cards. */
@@ -5598,31 +5715,7 @@ html.ege-noscroll body { overflow: hidden; }
   gap: 18px;
   margin-bottom: 22px;
 }
-.ege-showcase__players > .ege-tcard { width: min(210px, calc((100% - 36px) / 3)); }
-
-.ege-pcard__body {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-width: 0;
-}
-.ege-pcard__nums { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
-.ege-pcard__pts b { font-family: var(--fb-font-display); font-size: 1.75rem; font-weight: 400; }
-.ege-pcard__pts small {
-  margin-left: 6px;
-  font-size: var(--fb-label);
-  font-weight: 800;
-  letter-spacing: .1em;
-  color: var(--fb-muted);
-}
-.ege-pcard__nums .fb-meta { margin: 0; }
-.ege-pcard__next,
-.ege-pcard__bonus,
-.ege-pcard__paid { margin: 0; font-size: .875rem; }
-.ege-pcard__bonus strong { color: var(--fb-diamond-deep); }
-.ege-pcard__paid { display: flex; align-items: center; gap: 4px; }
-.ege-pcard__body > .fb-meta { margin: 0; }
-.ege-pcard__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.ege-showcase__players > .ege-plcard { width: min(210px, calc((100% - 36px) / 3)); }
 
 /* The bin at the end of the collection's filters: resets them all. */
 .ege-filterclear {
@@ -5697,15 +5790,12 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-daily,
   .ege-market__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-@media (max-width: 760px) {
-  .ege-pcards { grid-template-columns: minmax(0, 1fr); }
-}
 
 /* --- on a phone ----------------------------------------------------------- */
 
 @media (max-width: 620px) {
   .ege-packtile { padding: 14px; gap: 14px; }
-  .ege-packtile > .ege-pack { width: 84px; }
+  .ege-packtile > .ege-pack, .ege-packtile__art { width: 84px; }
 
   /* Seven controls do not fit across a phone: the three kinds share one line,
      as tall as the drop-downs, and the drop-downs each take a line under
@@ -5717,9 +5807,9 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-binder { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .ege-daily,
   .ege-market__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-  .ege-pcard { grid-template-columns: minmax(0, 44%) minmax(0, 1fr); gap: 12px; padding: 10px; }
+  .ege-pcards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 14px; }
   .ege-filterclear { flex: 0 0 auto; min-height: 47px; }
-  .ege-showcase__players > .ege-tcard { width: calc((100% - 36px) / 3); }
+  .ege-showcase__players > .ege-plcard { width: calc((100% - 36px) / 3); }
 
   /* Five pages across a phone: smaller words, and Achievements shortened
      by its letter spacing rather than its name. */
