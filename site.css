@@ -5099,15 +5099,8 @@ html.ege-noscroll body { overflow: hidden; }
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 20px;
-  /* Held to three rows by js/cards-view.js (fitBinder); the rest scrolls in
-     here, drawn a few rows at a time as it comes near. The padding is room
-     for the badges that hang off a card's corners and for a card lifting on
-     hover, which the scroll box would clip. */
-  overflow-y: auto;
-  scrollbar-gutter: stable;
-  scrollbar-color: var(--fb-accent) var(--fb-surface);
-  padding: 10px 12px 12px 10px;
-  margin: -10px -12px -12px -10px;
+  /* No box of its own: the Cards page is the binder, so the page scrolls it,
+     drawn a few rows at a time as the bottom comes near (js/cards-view.js). */
 }
 .ege-binder > .ege-tcard {
   cursor: pointer;
@@ -5422,6 +5415,280 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-cardsadmin { min-width: 0; }
 .ege-cardsadmin tbody tr { cursor: default; }
 
+/* --- the cards pages --------------------------------------------------------
+
+   Five pages under one tab, picked from a bar fixed along the bottom of the
+   screen. The section keeps room under its last panel so the bar never sits
+   on top of anything. */
+
+#view-cards { padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
+
+.ege-cardshead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin: 30px 0 22px;
+}
+.ege-cardshead .fb-kicker { color: var(--fb-cream); }
+.ege-cardshead__title {
+  font-size: clamp(2.25rem, 5vw, 3.25rem);
+  color: var(--fb-cream);
+  text-shadow: 4px 4px 0 var(--fb-ink);
+}
+.ege-cardshead .ege-ovr { margin: 0; }
+
+.ege-cardtabs {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 25;
+  background: var(--fb-ink);
+  border-top: 5px solid var(--fb-accent);
+  box-shadow: 0 -6px 0 rgba(0, 0, 0, .18);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.ege-cardtabs__inner {
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex;
+}
+.ege-cardtab {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  cursor: pointer;
+}
+.ege-cardtab input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.ege-cardtab > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 60px;
+  padding: 0 6px;
+  border-bottom: 4px solid transparent;
+  font-size: .8125rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(245, 234, 216, .62);
+  white-space: nowrap;
+}
+.ege-cardtab:hover > span { color: var(--fb-cream); }
+.ege-cardtab input:checked + span {
+  color: var(--fb-ink);
+  background: var(--fb-accent);
+  border-bottom-color: var(--fb-cream);
+}
+.ege-cardtab input:focus-visible + span { outline: 3px solid var(--fb-cream); outline-offset: -5px; }
+.ege-cardtab__badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: inline-grid;
+  place-items: center;
+  background: var(--fb-cream);
+  color: var(--fb-ink);
+  border: 2px solid var(--fb-ink);
+  font-size: .6875rem;
+  letter-spacing: 0;
+}
+.ege-cardtab__badge[hidden] { display: none; }
+
+/* The collection: the filters stay under the nav while the page scrolls. */
+.ege-collection__head { border-bottom: 0; padding-bottom: 6px; }
+.ege-collection .ege-cardfilters {
+  position: sticky;
+  top: 73px;
+  z-index: 6;
+  background: var(--fb-cream);
+  border-bottom: var(--fb-border) solid var(--fb-ink);
+}
+
+/* --- player cards ------------------------------------------------------------ */
+
+.ege-pcards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+}
+.ege-pcard {
+  --rarity: #5c5a52;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: var(--fb-border) solid var(--fb-ink);
+  box-shadow: 5px 5px 0 rgba(0, 0, 0, .3);
+  min-width: 0;
+}
+.ege-pcard__face {
+  position: relative;
+  height: 190px;
+  overflow: hidden;
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, .28), transparent 45%),
+    var(--rarity);
+  border-bottom: var(--fb-border) solid var(--fb-ink);
+}
+.ege-pcard--none .ege-pcard__face { filter: grayscale(1); opacity: .8; }
+.ege-pcard--mystic .ege-pcard__face,
+.ege-pcard--iconic .ege-pcard__face {
+  background:
+    linear-gradient(115deg, transparent 20%, rgba(255, 255, 255, .55) 38%, transparent 52%),
+    var(--rarity);
+  background-size: 250% 100%, auto;
+  animation: ege-pcard-shine 4.5s ease-in-out infinite;
+}
+.ege-pcard--iconic .ege-pcard__face {
+  background:
+    linear-gradient(115deg, transparent 20%, rgba(255, 255, 255, .6) 38%, transparent 52%),
+    linear-gradient(135deg, #ffb3d9, #ec5fa8 35%, #a98cf0 70%, #7fb6f0);
+  background-size: 250% 100%, auto;
+}
+@keyframes ege-pcard-shine {
+  0%, 100% { background-position: 120% 0, 0 0; }
+  50%      { background-position: -20% 0, 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ege-pcard__face { animation: none !important; }
+}
+.ege-pcard__photo {
+  position: absolute;
+  right: 4%;
+  bottom: 0;
+  height: 96%;
+  width: auto;
+  max-width: 70%;
+  object-fit: contain;
+  object-position: bottom;
+  filter: drop-shadow(4px 4px 0 rgba(0, 0, 0, .3));
+}
+.ege-pcard__rank {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  background: var(--fb-ink);
+  color: #fff;
+  border: 2px solid #fff;
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.ege-pcard__plate {
+  position: absolute;
+  left: 0;
+  bottom: 12px;
+  max-width: 64%;
+  padding: 6px 12px 6px 12px;
+  background: var(--fb-ink);
+  color: var(--fb-cream);
+}
+.ege-pcard__name { font-family: var(--fb-font-display); font-size: 1.125rem; line-height: 1.1; }
+.ege-pcard__meta {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--fb-accent-hover);
+}
+.ege-pcard__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 16px;
+  flex: 1 1 auto;
+}
+.ege-pcard__nums { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.ege-pcard__pts b { font-family: var(--fb-font-display); font-size: 1.75rem; font-weight: 400; }
+.ege-pcard__pts small {
+  margin-left: 6px;
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .1em;
+  color: var(--fb-muted);
+}
+.ege-pcard__nums .fb-meta { margin: 0; }
+.ege-pcard__next,
+.ege-pcard__bonus,
+.ege-pcard__paid { margin: 0; font-size: .875rem; }
+.ege-pcard__bonus strong { color: var(--fb-diamond-deep); }
+.ege-pcard__paid { display: flex; align-items: center; gap: 4px; }
+.ege-pcard__see { align-self: flex-start; margin-top: auto; }
+
+/* --- the shop's daily cards ------------------------------------------------- */
+
+.ege-daily {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 18px;
+}
+.ege-daily__item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.ege-daily__item > .ege-tcard { cursor: pointer; }
+.ege-daily__item.is-sold > .ege-tcard { filter: grayscale(.85); opacity: .5; }
+.ege-daily__sold {
+  position: absolute;
+  top: 34%;
+  left: 50%;
+  z-index: 7;
+  transform: translate(-50%, -50%) rotate(-14deg);
+  padding: 6px 14px;
+  background: var(--fb-cream);
+  border: 3px solid #b3261e;
+  color: #b3261e;
+  font-family: var(--fb-font-display);
+  font-size: 1.5rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+.ege-daily__buy { padding-left: 4px; padding-right: 4px; }
+
+/* --- the market -------------------------------------------------------------- */
+
+.ege-market { display: flex; flex-direction: column; gap: 22px; }
+.ege-market__grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 18px;
+}
+.ege-market__grid > .fb-meta { grid-column: 1 / -1; margin: 0; }
+.ege-listing { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ege-listing > .ege-tcard { cursor: pointer; }
+.ege-listing__who { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; font-size: .875rem; }
+.ege-listing__who .fb-meta { margin: 0; white-space: nowrap; }
+.ege-listing__price { display: flex; align-items: center; gap: 6px; font-size: .875rem; font-weight: 700; }
+.ege-listing .fb-btn { padding-left: 4px; padding-right: 4px; }
+.ege-sellpick { display: flex; flex-direction: column; gap: 12px; }
+.ege-sellpick .ege-filterselect { align-self: flex-start; }
+
+@media (max-width: 400px) {
+  .ege-cardtab > span { font-size: .625rem; letter-spacing: 0; }
+}
+@media (max-width: 1100px) {
+  .ege-daily,
+  .ege-market__grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .ege-pcards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ege-daily,
+  .ege-market__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
 /* --- on a phone ----------------------------------------------------------- */
 
 @media (max-width: 620px) {
@@ -5436,6 +5703,20 @@ html.ege-noscroll body { overflow: hidden; }
 
   /* Two across: a card narrower than this has type too small to read. */
   .ege-binder { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .ege-daily,
+  .ege-market__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .ege-pcards { grid-template-columns: minmax(0, 1fr); }
+
+  /* Five pages across a phone: smaller words, and Achievements shortened
+     by its letter spacing rather than its name. */
+  .ege-cardtab > span { height: 54px; padding: 0 2px; font-size: .6875rem; letter-spacing: .02em; }
+  .ege-cardtab__badge { position: absolute; top: 4px; right: 4px; min-width: 16px; height: 16px; font-size: .625rem; }
+  .ege-cardtab > span { overflow: hidden; text-overflow: ellipsis; }
+  .ege-odds td.num { white-space: nowrap; }
+
+  /* On a phone the filters take several lines; pinned they would cover the
+     cards, so they scroll away with the page. */
+  .ege-collection .ege-cardfilters { position: static; }
 
   .ege-rip__stage { gap: 16px; }
   .ege-rip__cards { gap: 10px; }

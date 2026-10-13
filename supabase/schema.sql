@@ -1513,6 +1513,13 @@ begin
    where status = 'open'
      and (p_email is null or lower(from_email) = lower(p_email) or lower(to_email) = lower(p_email));
 
+  -- Cards up on the market are part of the collection being cleared: the
+  -- listings come down and nothing goes back.
+  if to_regclass('public.card_listings') is not null then
+    update public.card_listings set status = 'cancelled', resolved_at = now()
+     where status = 'open' and (p_email is null or lower(email) = lower(p_email));
+  end if;
+
   return v_count;
 end;
 $$;
@@ -1653,5 +1660,485 @@ $$;
 
 revoke all on function public.quick_sell_card(text, text) from public, anon;
 grant execute on function public.quick_sell_card(text, text) to authenticated;
+
+notify pgrst, 'reload schema';
+
+-- ===========================================================================
+-- Player Cards
+--
+-- A Player Card is how much of one of the six an account has collected:
+-- the fantasy points on every copy of his cards it holds, graded Common to
+-- Iconic (PLAYER_RANKS in data/cards.js). Nothing about it is stored -- the
+-- page reads it off the collection -- except what it has paid.
+--
+-- Every game a player plays pays each account a bonus by its rank on his
+-- card: the game's diamonds before any booster, times the rank's bonus. It
+-- goes in diamond_awards under pc-{slug}-w{week}, beside the account's own
+-- games, and unlike those it is paid once and never topped up: the game is
+-- settled at the rank held when it was first paid, so a climb later in the
+-- season does not back-pay the weeks before it. A game at Common goes in at
+-- nothing for the same reason.
+--
+-- The first time an account is paid at all, every game already out goes in
+-- at nothing too (and a pc-start row marks that it has happened), so Player
+-- Cards pay from the next game on rather than handing out the season so
+-- far at whatever rank a big collection already has.
+--
+-- The same trust as a game's own diamonds: the page works out what is owed
+-- from the season files and the collection, and this holds a key to the
+-- shape the page issues and a game's bonus to 400 -- the 120 a game's
+-- credits are held to, at the Iconic 3x, and a little over.
+--
+-- Returns what it actually paid.
+-- ===========================================================================
+
+create or replace function public.pay_player_card_bonuses(p_season integer, p_awards jsonb)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  v_first boolean;
+  v_paid  integer := 0;
+  v_pay   integer;
+  r       record;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  if p_awards is null or jsonb_typeof(p_awards) <> 'array' then
+    return 0;
+  end if;
+
+  -- Under lock on the balance row, so two tabs paying at once cannot both
+  -- decide this is the first time.
+  insert into public.player_diamonds (email, diamonds, updated_at)
+  values (v_email, 0, now())
+  on conflict (email) do nothing;
+  perform 1 from public.player_diamonds where email = v_email for update;
+
+  v_first := not exists (
+    select 1 from public.diamond_awards where email = v_email and award_key = 'pc-start');
+  if v_first then
+    insert into public.diamond_awards (email, season, award_key, diamonds, note)
+    values (v_email, p_season, 'pc-start', 0, 'Player Cards start paying from here')
+    on conflict (email, season, award_key) do nothing;
+  end if;
+
+  for r in
+    select
+      a ->> 'key'                              as award_key,
+      coalesce((a ->> 'diamonds')::integer, 0) as diamonds,
+      a ->> 'note'                             as note
+    from jsonb_array_elements(p_awards) as a
+  loop
+    continue when r.award_key is null
+      or r.award_key !~ '^pc-[a-z]+(-[a-z]+)*-w[0-9]{1,2}$'
+      or r.diamonds < 0 or r.diamonds > 400;
+
+    v_pay := case when v_first then 0 else r.diamonds end;
+
+    insert into public.diamond_awards (email, season, award_key, diamonds, note)
+    values (v_email, p_season, r.award_key, v_pay,
+            case when v_first then 'Out before your Player Cards: ' || coalesce(r.note, '') else r.note end)
+    on conflict (email, season, award_key) do nothing;
+    if found then
+      v_paid := v_paid + v_pay;
+    end if;
+  end loop;
+
+  if v_paid > 0 then
+    update public.player_diamonds
+       set diamonds = diamonds + v_paid, updated_at = now()
+     where email = v_email;
+  end if;
+
+  return v_paid;
+end;
+$$;
+
+revoke all on function public.pay_player_card_bonuses(integer, jsonb) from public, anon;
+grant execute on function public.pay_player_card_bonuses(integer, jsonb) to authenticated;
+
+-- ===========================================================================
+-- The Shop's daily cards
+--
+-- Six cards a day, the same six for everybody, and each can be bought once:
+-- a card bought is SOLD for everybody else until the shelf turns over at
+-- midnight Eastern. The page rolls the shelf (rollShop in data/cards.js,
+-- seeded by the date, so everybody proposes the same six) and the first
+-- proposal of the day is kept -- the same trust a pack's contents run on,
+-- with the shape held here: six real-looking cards, one Legendary at most
+-- and nothing above it.
+--
+-- Prices by rarity, the same numbers as SHOP_PRICES in data/cards.js:
+-- Common 10, Uncommon 12, Rare 15, Epic 20, Legendary 25 diamonds. Change
+-- both together.
+-- ===========================================================================
+
+create table if not exists public.card_shop_days (
+  day        date primary key,
+  cards      jsonb       not null,       -- [{ "card": "p:2022:...", "rarity": "epic" }, ...]
+  created_at timestamptz not null default now()
+);
+
+alter table public.card_shop_days enable row level security;
+
+drop policy if exists "card shop days readable by players" on public.card_shop_days;
+create policy "card shop days readable by players"
+  on public.card_shop_days for select to authenticated
+  using (true);
+
+create table if not exists public.card_shop_buys (
+  day      date        not null,
+  slot     integer     not null,
+  email    text        not null,
+  card_id  text        not null,
+  rarity   text        not null,
+  diamonds integer     not null,
+  bought_at timestamptz not null default now(),
+  primary key (day, slot)
+);
+
+alter table public.card_shop_buys enable row level security;
+
+-- Everybody sees what is gone, which is the whole of SOLD.
+drop policy if exists "card shop buys readable by players" on public.card_shop_buys;
+create policy "card shop buys readable by players"
+  on public.card_shop_buys for select to authenticated
+  using (true);
+
+-- The shop's day: midnight to midnight, Eastern.
+create or replace function public.card_shop_day()
+returns date
+language sql
+stable
+as $$
+  select (now() at time zone 'America/New_York')::date;
+$$;
+
+-- Today's shelf, with what has sold. Keeps the proposal when there is no
+-- shelf yet today; otherwise ignores it.
+create or replace function public.card_shop_today(p_cards jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_day   date := public.card_shop_day();
+  v_cards jsonb;
+  v_ok    boolean;
+begin
+  if auth.jwt() ->> 'email' is null then
+    raise exception 'sign in first';
+  end if;
+
+  select cards into v_cards from public.card_shop_days where day = v_day;
+
+  if v_cards is null and p_cards is not null and jsonb_typeof(p_cards) = 'array' then
+    select jsonb_array_length(p_cards) between 1 and 6
+       and bool_and(public.is_card_id(c ->> 'card')
+                    and c ->> 'rarity' in ('common', 'uncommon', 'rare', 'epic', 'legendary'))
+       and count(*) filter (where c ->> 'rarity' = 'legendary') <= 1
+       and count(distinct c ->> 'card') = count(*)
+      into v_ok
+      from jsonb_array_elements(p_cards) as c;
+
+    if coalesce(v_ok, false) then
+      insert into public.card_shop_days (day, cards)
+      values (v_day, p_cards)
+      on conflict (day) do nothing;
+      select cards into v_cards from public.card_shop_days where day = v_day;
+    end if;
+  end if;
+
+  return jsonb_build_object(
+    'day', v_day,
+    'resets_at', ((v_day + 1)::timestamp at time zone 'America/New_York'),
+    'cards', coalesce(v_cards, '[]'::jsonb),
+    'sold', coalesce((select jsonb_agg(slot order by slot)
+                        from public.card_shop_buys where day = v_day), '[]'::jsonb));
+end;
+$$;
+
+-- Buys slot p_slot (counted from 0) off today's shelf. Returns the diamonds
+-- left.
+create or replace function public.buy_shop_card(p_slot integer)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email  text := auth.jwt() ->> 'email';
+  v_day    date := public.card_shop_day();
+  v_cards  jsonb;
+  v_card   text;
+  v_rarity text;
+  v_price  integer;
+  v_have   integer;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+
+  select cards into v_cards from public.card_shop_days where day = v_day for update;
+  if v_cards is null or p_slot is null or p_slot < 0 or p_slot >= jsonb_array_length(v_cards) then
+    raise exception 'That card is not in the shop today.';
+  end if;
+
+  v_card := v_cards -> p_slot ->> 'card';
+  v_rarity := v_cards -> p_slot ->> 'rarity';
+  v_price := case v_rarity
+               when 'common'    then 10
+               when 'uncommon'  then 12
+               when 'rare'      then 15
+               when 'epic'      then 20
+               when 'legendary' then 25
+             end;
+  if v_price is null then
+    raise exception 'That card is not for sale.';
+  end if;
+
+  if exists (select 1 from public.card_shop_buys where day = v_day and slot = p_slot) then
+    raise exception 'Sold. Somebody got there first.';
+  end if;
+
+  select diamonds into v_have from public.player_diamonds where email = v_email for update;
+  if coalesce(v_have, 0) < v_price then
+    raise exception 'Not enough diamonds: that card costs %, you have %.', v_price, coalesce(v_have, 0);
+  end if;
+
+  insert into public.card_shop_buys (day, slot, email, card_id, rarity, diamonds)
+  values (v_day, p_slot, v_email, v_card, v_rarity, v_price);
+
+  update public.player_diamonds
+     set diamonds = diamonds - v_price, updated_at = now()
+   where email = v_email;
+
+  perform public.give_card(v_email, v_card);
+  return v_have - v_price;
+end;
+$$;
+
+revoke all on function public.card_shop_day() from public, anon;
+revoke all on function public.card_shop_today(jsonb) from public, anon;
+revoke all on function public.buy_shop_card(integer) from public, anon;
+grant execute on function public.card_shop_day() to authenticated;
+grant execute on function public.card_shop_today(jsonb) to authenticated;
+grant execute on function public.buy_shop_card(integer) to authenticated;
+
+-- ===========================================================================
+-- The market
+--
+-- Players sell cards to each other for diamonds, at a price they pick. A
+-- card put up comes out of the collection straight away -- so it cannot be
+-- traded, quick sold or put up twice while it waits -- and goes to the
+-- buyer when it sells, or back to its owner when they take it down or it
+-- has been up 24 hours. Three listings a day each (counted over the last
+-- 24 hours, whatever became of them). The same numbers as MARKET in
+-- data/cards.js.
+--
+-- The buyer's diamonds go to the seller: diamonds only, never credits.
+--
+-- A listing that has run out is put back the next time anybody reads the
+-- market, lists, buys or takes one down (expire_card_listings).
+-- ===========================================================================
+
+create table if not exists public.card_listings (
+  id          uuid primary key default gen_random_uuid(),
+  email       text        not null,
+  card_id     text        not null,
+  rarity      text        not null,
+  price       integer     not null check (price between 1 and 999),
+  status      text        not null default 'open'
+              check (status in ('open', 'sold', 'cancelled', 'expired')),
+  buyer_email text,
+  created_at  timestamptz not null default now(),
+  expires_at  timestamptz not null default now() + interval '24 hours',
+  resolved_at timestamptz
+);
+
+create index if not exists card_listings_open_idx on public.card_listings (status, expires_at);
+create index if not exists card_listings_email_idx on public.card_listings (email, created_at desc);
+
+alter table public.card_listings enable row level security;
+
+drop policy if exists "card listings readable by players" on public.card_listings;
+create policy "card listings readable by players"
+  on public.card_listings for select to authenticated
+  using (true);
+
+-- Everything past its 24 hours goes back to its owner. Returns how many.
+create or replace function public.expire_card_listings()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  l       public.card_listings;
+  v_count integer := 0;
+begin
+  for l in
+    select * from public.card_listings
+     where status = 'open' and expires_at <= now()
+     for update skip locked
+  loop
+    perform public.give_card(l.email, l.card_id);
+    update public.card_listings set status = 'expired', resolved_at = now() where id = l.id;
+    v_count := v_count + 1;
+  end loop;
+  return v_count;
+end;
+$$;
+
+create or replace function public.list_card_for_sale(p_card text, p_rarity text, p_price integer)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  v_have  integer;
+  v_id    uuid;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  if p_card is null or not public.is_card_id(p_card) then
+    raise exception 'Not a card: %', p_card;
+  end if;
+  if p_rarity is null or p_rarity not in ('common', 'uncommon', 'rare', 'epic', 'legendary', 'mystic', 'iconic') then
+    raise exception 'Not a rarity: %', p_rarity;
+  end if;
+  if p_price is null or p_price < 1 or p_price > 999 then
+    raise exception 'Pick a price from 1 to 999 diamonds.';
+  end if;
+
+  perform public.expire_card_listings();
+
+  -- Under the balance row's lock, so two tabs cannot both list a third.
+  insert into public.player_diamonds (email, diamonds, updated_at)
+  values (v_email, 0, now())
+  on conflict (email) do nothing;
+  perform 1 from public.player_diamonds where email = v_email for update;
+
+  if (select count(*) from public.card_listings
+       where lower(email) = lower(v_email) and created_at > now() - interval '24 hours') >= 3 then
+    raise exception 'That is three listings in a day already. Try again tomorrow.';
+  end if;
+
+  select quantity into v_have
+    from public.player_cards
+   where email = v_email and card_id = p_card
+     for update;
+  if coalesce(v_have, 0) < 1 then
+    raise exception 'That card is not in your collection.';
+  end if;
+
+  perform public.take_card(v_email, p_card);
+  perform public.prune_showcase(v_email);
+
+  insert into public.card_listings (email, card_id, rarity, price)
+  values (v_email, p_card, p_rarity, p_price)
+  returning id into v_id;
+  return v_id;
+end;
+$$;
+
+-- Taken down by its owner (or an admin): the card goes back.
+create or replace function public.cancel_card_listing(p_listing uuid)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  l       public.card_listings;
+begin
+  select * into l from public.card_listings where id = p_listing for update;
+  if l.id is null then
+    raise exception 'There is no such listing.';
+  end if;
+  if lower(l.email) <> lower(coalesce(v_email, '')) and not public.is_admin() then
+    raise exception 'Only the player who listed it can take it down.';
+  end if;
+  if l.status <> 'open' then
+    raise exception 'That listing has already been %.', l.status;
+  end if;
+
+  perform public.give_card(l.email, l.card_id);
+  update public.card_listings set status = 'cancelled', resolved_at = now() where id = l.id;
+  return 'cancelled';
+end;
+$$;
+
+-- Bought: the buyer's diamonds to the seller, the card to the buyer.
+-- Returns the buyer's diamonds left.
+create or replace function public.buy_card_listing(p_listing uuid)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  l       public.card_listings;
+  v_have  integer;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+
+  perform public.expire_card_listings();
+
+  select * into l from public.card_listings where id = p_listing for update;
+  if l.id is null then
+    raise exception 'There is no such listing.';
+  end if;
+  if l.status <> 'open' then
+    raise exception 'That card is no longer for sale.';
+  end if;
+  if lower(l.email) = lower(v_email) then
+    raise exception 'That is your own listing.';
+  end if;
+
+  select diamonds into v_have from public.player_diamonds where email = v_email for update;
+  if coalesce(v_have, 0) < l.price then
+    raise exception 'Not enough diamonds: that card costs %, you have %.', l.price, coalesce(v_have, 0);
+  end if;
+
+  update public.player_diamonds
+     set diamonds = diamonds - l.price, updated_at = now()
+   where email = v_email;
+
+  insert into public.player_diamonds as pd (email, diamonds, updated_at)
+  values (l.email, l.price, now())
+  on conflict (email) do update
+    set diamonds = pd.diamonds + l.price, updated_at = now();
+
+  perform public.give_card(v_email, l.card_id);
+  update public.card_listings
+     set status = 'sold', buyer_email = v_email, resolved_at = now()
+   where id = l.id;
+
+  return v_have - l.price;
+end;
+$$;
+
+revoke all on function public.expire_card_listings() from public, anon;
+revoke all on function public.list_card_for_sale(text, text, integer) from public, anon;
+revoke all on function public.cancel_card_listing(uuid) from public, anon;
+revoke all on function public.buy_card_listing(uuid) from public, anon;
+grant execute on function public.expire_card_listings() to authenticated;
+grant execute on function public.list_card_for_sale(text, text, integer) to authenticated;
+grant execute on function public.cancel_card_listing(uuid) to authenticated;
+grant execute on function public.buy_card_listing(uuid) to authenticated;
 
 notify pgrst, 'reload schema';

@@ -215,6 +215,101 @@ EGE.cardStore = (function () {
     return call('set_card_showcase', { p_cards: ids }, function () { return { ok: true }; });
   }
 
+  /* --- player cards -------------------------------------------------------- */
+
+  /* Pays what this account's Player Cards are owed for the season's games:
+     its collection decides the rank on each of the six, data/cards.js what
+     each game pays at it, and pay_player_card_bonuses what is new. Safe to
+     call on every load, like the other awards. */
+  function syncPlayerCards(player, season) {
+    var c = client();
+    if (!c || !player || !player.email) { return Promise.resolve({ paid: 0 }); }
+    var year = season || EGE.currentSeason;
+    if (!EGE.economy.paysDiamonds(year)) { return Promise.resolve({ paid: 0 }); }
+
+    return collectionFor(player.email).then(function (got) {
+      /* A collection that could not be read is not an empty one: paying on
+         it would settle every game at nothing. */
+      if (!got) { return { paid: 0 }; }
+      return c.rpc('pay_player_card_bonuses', {
+        p_season: year,
+        p_awards: EGE.cards.playerBonusesEarned(got.owned, year)
+      }).then(function (res) {
+        if (res.error) { return { paid: 0, message: res.error.message }; }
+        return { paid: Number(res.data) || 0 };
+      });
+    }).catch(function () { return { paid: 0 }; });
+  }
+
+  /* What this account's Player Cards have paid, as diamond_awards rows. */
+  function playerCardAwards(email) {
+    var c = client();
+    if (!c || !email) { return Promise.resolve(null); }
+    return c.from('diamond_awards').select('season, award_key, diamonds, note, awarded_at')
+      .eq('email', email).like('award_key', 'pc-%')
+      .order('awarded_at', { ascending: false })
+      .then(function (res) { return res.error ? null : (res.data || []); })
+      .catch(function () { return null; });
+  }
+
+  /* --- the shop's daily cards ------------------------------------------------ */
+
+  /* Today's shelf: { day, resets_at, cards: [{ card, rarity }], sold: [slot] }.
+     The page proposes the day's six, rolled from the date, and the database
+     keeps whichever proposal came first. Null when it cannot be read. */
+  function shopToday() {
+    var c = client();
+    if (!c) { return Promise.resolve(null); }
+    var seed = new Date().toISOString().slice(0, 10);
+    return c.rpc('card_shop_today', { p_cards: EGE.cards.rollShop(seed) })
+      .then(function (res) { return res.error ? null : res.data; })
+      .catch(function () { return null; });
+  }
+
+  function buyShopCard(slot) {
+    return call('buy_shop_card', { p_slot: slot },
+      function (n) { return { ok: true, diamonds: Number(n) }; });
+  }
+
+  /* --- the market ------------------------------------------------------------ */
+
+  var LISTINGS = 'card_listings';
+
+  /* Everything up for sale now, oldest first, and this account's own
+     listings from the last day (to count against the three). Anything that
+     has run out is put back first. */
+  function market(email) {
+    var c = client();
+    if (!c) { return Promise.resolve(null); }
+    var since = new Date(Date.now() - EGE.cards.MARKET.hours * 3600 * 1000).toISOString();
+
+    return c.rpc('expire_card_listings').then(function () {
+      return Promise.all([
+        c.from(LISTINGS).select('*').eq('status', 'open').order('created_at', { ascending: true }),
+        email ? c.from(LISTINGS).select('*').eq('email', email).gt('created_at', since)
+          .order('created_at', { ascending: false }) : Promise.resolve({ data: [] })
+      ]);
+    }).then(function (both) {
+      if (both[0].error) { return null; }
+      return { open: both[0].data || [], mine: both[1].error ? [] : (both[1].data || []) };
+    }).catch(function () { return null; });
+  }
+
+  function listCard(card, price) {
+    return call('list_card_for_sale', { p_card: card.id, p_rarity: card.rarity, p_price: price },
+      function (id) { return { ok: true, id: id }; });
+  }
+
+  function cancelListing(id) {
+    return call('cancel_card_listing', { p_listing: id },
+      function () { return { ok: true }; });
+  }
+
+  function buyListing(id) {
+    return call('buy_card_listing', { p_listing: id },
+      function (n) { return { ok: true, diamonds: Number(n) }; });
+  }
+
   /* --- the admin's resets -------------------------------------------------- */
 
   /* Every collection, claim and trade -- what an admin's policies return. */
@@ -257,6 +352,14 @@ EGE.cardStore = (function () {
     cancelTrade: cancelTrade,
     showcaseFor: showcaseFor,
     setShowcase: setShowcase,
+    syncPlayerCards: syncPlayerCards,
+    playerCardAwards: playerCardAwards,
+    shopToday: shopToday,
+    buyShopCard: buyShopCard,
+    market: market,
+    listCard: listCard,
+    cancelListing: cancelListing,
+    buyListing: buyListing,
     everything: everything,
     clearLibrary: clearLibrary,
     resetGoals: resetGoals

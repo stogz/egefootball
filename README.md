@@ -1432,6 +1432,67 @@ or the tab says it cannot load the cards.
 
 ---
 
+### The five pages
+
+The tab is five pages, picked from a radio bar fixed along the bottom of the
+screen; the page goes into the address as `#cards/players`, `#cards/shop` and
+so on, swapped in place so switching reloads nothing.
+
+- **Cards** — the collection and nothing else. The page itself scrolls it (no
+  box inside the page), drawn a few rows at a time, with the filters pinned
+  under the nav on a desktop.
+- **Players** — the six Player Cards (below).
+- **Shop** — packs and Buy Diamonds, Today's Cards, the Market, Recent Pulls
+  and the odds.
+- **Trades** — offers to you, your offers, recent ones. The page button
+  counts the offers waiting on you.
+- **Achievements** — the library of sets. The page button counts sets ready
+  to claim.
+
+### Player Cards
+
+Every account has a **Player Card for each of the six**, for their whole
+career. It is the fantasy points printed on every copy of every one of his
+cards the account holds — duplicates count again; a card sold, traded or up
+on the market takes its points with it — graded on the card ladder:
+
+| Rank | WR / RB | TE | QB | Bonus a game |
+|---|---|---|---|---|
+| Common | 1 card | 1 card | 1 card | — |
+| Uncommon | 150 | 135 | 113 | +10% |
+| Rare | 400 | 360 | 300 | +25% |
+| Epic | 800 | 720 | 600 | +50% |
+| Legendary | 1400 | 1260 | 1050 | +80% |
+| Mystic | 2200 | 1980 | 1650 | +125% |
+| Iconic | 3500 | 3150 | 2625 | +300% |
+
+A quarterback's average card scores about 9.6, a back's or receiver's 13.4 and
+a tight end's 11.9, so their rungs are ×0.75 and ×0.9 of a receiver's
+(`RANK_SCALE`). **Every game the player plays pays the account a bonus**: the
+game's diamonds before any booster, times the rank's bonus, rounded up. It
+goes in `diamond_awards` as `pc-{slug}-w{week}` through
+`pay_player_card_bonuses()`, on sign-in. Each game is paid once, at the rank
+held when it is first paid, and never topped up; games at Common go in at 0.
+The first time an account is paid, every game already out goes in at 0 (a
+`pc-start` row marks it), so Player Cards pay from the next game on. A game's
+bonus is held to 400. The ladder is `PLAYER_RANKS` in `data/cards.js`.
+
+### Today's Cards and the Market
+
+**Today's Cards**: six cards a day, the same six for everybody — one
+Legendary and five rolled on the pack odds up to Epic. Common 10, Uncommon 12,
+Rare 15, Epic 20, Legendary 25 diamonds (`SHOP_PRICES`, and
+`buy_shop_card()` — change both). A card bought shows **SOLD** for everybody.
+The shelf turns over at midnight Eastern: the first visitor of the day
+proposes it (rolled from the date) and `card_shop_today()` keeps that one.
+
+**The Market**: a player puts a card up at a price of 1–999 diamonds. It
+leaves their collection while listed, goes to the buyer when bought (the
+diamonds go to the seller), and comes back when taken down or after 24 hours.
+Three listings a day each, counted over the last 24 hours whatever became of
+them (`list_card_for_sale()`, `MARKET` in `data/cards.js`). Clear library
+takes a player's listings down with nothing returned.
+
 ## Seasons, and putting a week out
 
 ### One file per season
