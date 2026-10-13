@@ -5577,15 +5577,18 @@ html.ege-noscroll body { overflow: hidden; }
 /* Each Player Card with what you can do with it underneath. */
 .ege-pcards {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  /* Three rows of two, each column as wide as a column of the binder
+     (five across, then four and three as the screen narrows). */
+  --binder-cols: 5;
+  grid-template-columns: repeat(2, calc((100% - (var(--binder-cols) - 1) * 20px) / var(--binder-cols)));
+  justify-content: center;
   gap: 26px 20px;
 }
-/* The same widths as the binder's cards at every size. */
 @media (max-width: 900px) {
-  .ege-pcards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .ege-pcards { --binder-cols: 4; }
 }
 @media (max-width: 760px) {
-  .ege-pcards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ege-pcards { --binder-cols: 3; }
 }
 .ege-pcard {
   display: flex;
@@ -5601,6 +5604,9 @@ html.ege-noscroll body { overflow: hidden; }
 }
 .ege-pcard__actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .ege-pcard__actions > .fb-btn { flex: 1 1 auto; }
+/* The photo button and its × stay on one line, however narrow the card. */
+.ege-pcard__actions--photo { flex-wrap: nowrap; }
+.ege-pcard__actions--photo > .ege-pcard__photo { min-width: 0; }
 .ege-pcard__actions > .ege-pcard__unphoto { flex: none; padding: 0 14px; font-size: 18px; line-height: 1; }
 
 /* --- a Player Card's face ------------------------------------------------------
@@ -5611,25 +5617,7 @@ html.ege-noscroll body { overflow: hidden; }
    the foot. The frame is the rank's colour. Sized in cqw so it draws the
    same on the Players page and on a player's own page. Mystic and Iconic
    get a sheen across the picture. */
-.ege-plcard {
-  --on-rarity: var(--fb-ink);
-  container-type: inline-size;
-  min-width: 0;
-}
-.ege-plcard__frame {
-  padding: 3.4cqw;
-  background: var(--rarity);
-  border: 2px solid var(--fb-ink);
-  box-shadow: 5px 6px 0 rgba(0, 0, 0, .3);
-}
-.ege-plcard__face {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--fb-cream);
-  border: .8cqw solid var(--fb-ink);
-  color: var(--fb-ink);
-}
+.ege-plcard__face { color: var(--fb-ink); }
 .ege-plcard__top {
   display: flex;
   align-items: stretch;
@@ -5659,10 +5647,12 @@ html.ege-noscroll body { overflow: hidden; }
   letter-spacing: .08em;
 }
 .ege-plcard__fpts b { font-family: var(--fb-font-display); font-weight: 400; font-size: 7cqw; letter-spacing: 0; line-height: 1; }
+/* The picture takes whatever height the card has left after the words. */
 .ege-plcard__photo {
   position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden;
-  aspect-ratio: 1 / 1;
   background: var(--ground);
   border-bottom: .8cqw solid var(--fb-ink);
 }
@@ -5677,8 +5667,8 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-plcard__plate {
   display: flex;
   flex-direction: column;
-  gap: 1.6cqw;
-  padding: 3.4cqw 4.4cqw 3.6cqw;
+  gap: 1.4cqw;
+  padding: 2.8cqw 4.4cqw 3cqw;
 }
 .ege-plcard__name {
   font-family: var(--fb-font-display);
@@ -5704,7 +5694,7 @@ html.ege-noscroll body { overflow: hidden; }
   align-items: center;
   flex-wrap: wrap;
   gap: 0 1.2cqw;
-  margin-top: 1.6cqw;
+  margin-top: .8cqw;
   font-size: 4.8cqw;
   font-weight: 800;
   letter-spacing: .08em;
@@ -5751,25 +5741,23 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-plcard__rank::before { content: '\25C6\00a0'; }
 .ege-plcard--unranked { filter: grayscale(1); }
 .ege-plcard--unranked .ege-plcard__photo img { opacity: .55; }
-.ege-plcard--mystic .ege-plcard__photo::after,
-.ege-plcard--iconic .ege-plcard__photo::after {
+/* An Iconic's holo runs faintly over the picture too, as on a binder card. */
+.ege-plcard.ege-tcard--iconic .ege-plcard__photo::after {
   content: '';
   position: absolute;
   inset: 0;
+  z-index: 1;
   pointer-events: none;
-  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .45) 45%, transparent 58%);
-  background-size: 260% 100%;
-  animation: ege-pcard-shine 4.5s ease-in-out infinite;
-}
-@keyframes ege-pcard-shine {
-  0%, 100% { background-position: 120% 0; }
-  50%      { background-position: -20% 0; }
+  mix-blend-mode: screen;
+  opacity: .32;
+  background: linear-gradient(125deg, #ffb3d9, #cfe4f8 30%, #d2edcd 50%, #dfd1f3 70%, #ffb3d9);
+  background-size: 220% 220%;
+  animation: ege-sheen 6s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .ege-plcard__photo::after { animation: none; }
+  .ege-plcard.ege-tcard--iconic .ege-plcard__photo::after { animation: none; }
 }
 
-/* Player Cards on a player's own page, above the showcase cards. */
 /* The same grid as the showcase cards under them, so a Player Card is as
    wide as a card beside it. */
 .ege-showcase__players {
@@ -5870,7 +5858,7 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-binder { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .ege-daily,
   .ege-market__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-  .ege-pcards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px; }
+  .ege-pcards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px; }  /* the binder is two across here too */
   .ege-filterclear { flex: 0 0 auto; min-height: 47px; }
   .ege-showcase__players { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 

@@ -1519,8 +1519,12 @@ gives about what that is a game. On a player's own page the earned figure
 comes from `showcased_player_cards()`, which adds it for the cards put up.
 Before any card of his, the card is grey and the bar runs to Uncommon. The
 bar is the colour of the rank held. The face is `playerCardFace()` in
-`js/cards-view.js`, and the Player Cards sit in the same grid as the binder
-(and the showcase's), so one is exactly as wide as a regular card.
+`js/cards-view.js`. It is drawn on a binder card (`.ege-tcard`), so a Player
+Card is exactly the height and width of a play or performance card and gets
+the same effects for its rank: Rare's orange foil, the sheen from Epic up,
+Legendary's purple glow, Mystic's moving gold and Iconic's holo. The Players
+page lays the six out in three rows of two, each column as wide as one of
+the binder's.
 
 **Your own photo on a Player Card.** **Add photo** under a Player Card picks
 a picture from the phone or computer. The page crops it square (a little

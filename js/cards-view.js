@@ -1950,7 +1950,7 @@ EGE.cardsView = (function () {
      across the top, his picture, his name and team · position, what the
      card has earned you with its bonus beside it, a bar to the next rank
      with how far there is to go, and the rank along the foot. Framed in
-     the rank's colour like the binder's cards. `earned` is the diamonds
+     the rank's colour, the size of a binder card and with its effects. `earned` is the diamonds
      it has paid in all, or null where that is not known; `custom` the
      photo its owner put on it, in place of the headshot. Drawn here for
      the Players page and by js/showcase.js for a player's own page. Not
@@ -1961,13 +1961,13 @@ EGE.cardsView = (function () {
     var key = rank ? rank.key : 'unranked';
     var team = EGE.teamFor(player, EGE.currentSeason) || {};
 
-    var outer = el('div', 'ege-plcard ege-plcard--' + key);
+    /* A binder card underneath (.ege-tcard): the same size as a play or
+       performance card, and the same foil, sheen and glow for its rank. */
+    var outer = el('div', 'ege-tcard ege-tcard--' + key + ' ege-plcard ege-plcard--' + key);
     outer.style.setProperty('--rarity', rank ? rank.color : '#8b9097');
     outer.style.setProperty('--ground', team.ground || '#2f4a2b');
-    var frameBox = el('div', 'ege-plcard__frame');
-    var node = el('div', 'ege-plcard__face');
-    frameBox.appendChild(node);
-    outer.appendChild(frameBox);
+    var node = el('div', 'ege-tcard__face ege-plcard__face');
+    outer.appendChild(node);
 
     var top = el('div', 'ege-plcard__top');
     top.appendChild(el('span', 'ege-plcard__kind', 'Player'));
@@ -2079,7 +2079,7 @@ EGE.cardsView = (function () {
     body.appendChild(row);
 
     /* A photo of your own on it, in place of his headshot. */
-    var photoRow = el('div', 'ege-pcard__actions');
+    var photoRow = el('div', 'ege-pcard__actions ege-pcard__actions--photo');
     var pick = el('button', 'fb-btn fb-btn--sm ege-pcard__photo', mine ? 'Change photo' : 'Add photo');
     pick.type = 'button';
     pick.disabled = !pc.copies || state.photos === null;
