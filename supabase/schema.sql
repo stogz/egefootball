@@ -2142,3 +2142,77 @@ grant execute on function public.cancel_card_listing(uuid) to authenticated;
 grant execute on function public.buy_card_listing(uuid) to authenticated;
 
 notify pgrst, 'reload schema';
+
+-- ===========================================================================
+-- Player Cards on the showcase
+--
+-- A player can put up to three of their Player Cards on their own page,
+-- beside the showcase. A Player Card is worked out from the collection, and
+-- a collection is only readable signed in, so showcased_player_cards hands
+-- anybody -- signed out too -- just the cards of the players put up, which
+-- is what the owner chose to show. Picked on the Players page.
+-- ===========================================================================
+
+alter table public.card_showcases add column if not exists player_cards text[] not null default '{}';
+
+create or replace function public.set_player_card_showcase(p_slugs text[])
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  v_slugs text[] := coalesce(p_slugs, '{}');
+  v_slug  text;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  if coalesce(array_length(v_slugs, 1), 0) > 3 then
+    raise exception 'Your page shows three Player Cards at most.';
+  end if;
+  if (select count(distinct s) from unnest(v_slugs) s) <> coalesce(array_length(v_slugs, 1), 0) then
+    raise exception 'Each Player Card goes up once.';
+  end if;
+  foreach v_slug in array v_slugs loop
+    if v_slug !~ '^[a-z]+(-[a-z]+)*$' then
+      raise exception 'Not a player: %', v_slug;
+    end if;
+    if not exists (select 1 from public.player_cards
+                    where email = v_email and quantity > 0 and split_part(card_id, ':', 3) = v_slug) then
+      raise exception 'You need a card of that player to show his Player Card.';
+    end if;
+  end loop;
+
+  insert into public.card_showcases (email, player_cards, updated_at)
+  values (v_email, v_slugs, now())
+  on conflict (email) do update set player_cards = excluded.player_cards, updated_at = now();
+end;
+$$;
+
+-- { "players": [slug, ...], "cards": { card_id: quantity } } for the
+-- players this account has put up, and nothing else of its collection.
+create or replace function public.showcased_player_cards(p_email text)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'players', to_jsonb(coalesce(s.player_cards, '{}')),
+    'cards', coalesce((
+      select jsonb_object_agg(pc.card_id, pc.quantity)
+        from public.player_cards pc
+       where pc.email = s.email and pc.quantity > 0
+         and split_part(pc.card_id, ':', 3) = any(s.player_cards)), '{}'::jsonb))
+    from (select p_email as email,
+                 (select player_cards from public.card_showcases where email = p_email) as player_cards) s;
+$$;
+
+revoke all on function public.set_player_card_showcase(text[]) from public, anon;
+grant execute on function public.set_player_card_showcase(text[]) to authenticated;
+grant execute on function public.showcased_player_cards(text) to anon, authenticated;
+
+notify pgrst, 'reload schema';

@@ -42,8 +42,11 @@ EGE.cardsView = (function () {
     pcAwards: null,     /* what the Player Cards have paid, diamond_awards rows */
     shop: null,         /* today's shelf from card_shop_today; null until read */
     market: null,       /* { open, mine } listings; null until read */
+    showPlayers: [],    /* the Player Cards this account has on its page */
     filter: { rarity: 'all', kind: 'all', player: 'all', sort: 'rarity' }
   };
+
+  var DEFAULT_FILTER = { rarity: 'all', kind: 'all', player: 'all', sort: 'rarity' };
 
   var built = false;
 
@@ -929,6 +932,25 @@ EGE.cardsView = (function () {
     rarity.addEventListener('change', function () { pick('rarity', rarity.value); });
     rest.appendChild(rarity);
 
+    /* Last, a bin that puts every one of them back: all cards, my
+       collection, every player, rarest first. */
+    var f0 = DEFAULT_FILTER;
+    var changed = Boolean(state.view) || Object.keys(f0).some(function (k) { return f[k] !== f0[k]; });
+    var clear = el('button', 'fb-btn ege-filterclear');
+    clear.type = 'button';
+    clear.title = 'Reset the filters and sort';
+    clear.setAttribute('aria-label', 'Reset the filters and sort');
+    clear.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">' +
+      '<path fill="currentColor" d="M9 3h6l1 2h4v2H4V5h4l1-2zm-3 6h12l-1 12H7L6 9zm4 2v8h2v-8h-2zm4 0v8h2v-8h-2z"/></svg>';
+    clear.disabled = !changed;
+    clear.addEventListener('click', function () {
+      state.filter = Object.assign({}, DEFAULT_FILTER);
+      if (state.view) { pickView(null); return; }
+      renderFilters();
+      renderCollection();
+    });
+    rest.appendChild(clear);
+
     bar.appendChild(rest);
   }
 
@@ -1721,35 +1743,89 @@ EGE.cardsView = (function () {
     }).reduce(function (sum, row) { return sum + (row.diamonds || 0); }, 0);
   }
 
-  function playerCardEl(pc) {
+  /* A Player Card's face: the same card as every other in the binder, in
+     the rank's colours, with a ladder of seven pips under the name -- one
+     for each rank, lit up to the one held. Drawn here for the Players page
+     and by js/showcase.js for a player's own page. Not ranked yet, it is a
+     grey card. */
+  function playerCardFace(pc) {
     var player = pc.player;
     var rank = pc.rank;
-    var node = el('article', 'ege-pcard ege-pcard--' + (rank ? rank.key : 'none'));
-    node.style.setProperty('--rarity', rank ? rank.color : '#5c5a52');
+    var key = rank ? rank.key : 'common';
+    var team = EGE.teamFor(player, EGE.currentSeason) || {};
 
-    var face = el('div', 'ege-pcard__face');
-    var photo = el('img', 'ege-pcard__photo');
+    var node = el('div', 'ege-tcard ege-tcard--player ege-tcard--' + key + (rank ? '' : ' ege-tcard--unranked'));
+    node.style.setProperty('--rarity', rank ? rank.color : '#8b9097');
+    node.style.setProperty('--ground', team.ground || '#2f4a2b');
+
+    var face = el('div', 'ege-tcard__face');
+    var top = el('div', 'ege-tcard__top');
+    top.appendChild(el('span', 'ege-tcard__kind', 'Player Card'));
+    var score = el('span', 'ege-tcard__score');
+    score.appendChild(el('span', 'ege-tcard__points', String(Math.round(pc.points))));
+    score.appendChild(el('span', 'ege-tcard__fpts', 'FPTS'));
+    top.appendChild(score);
+    face.appendChild(top);
+
+    var art = el('div', 'ege-tcard__art');
+    var photo = el('img', 'ege-tcard__photo');
     photo.src = player.headshot;
     photo.alt = '';
     photo.loading = 'lazy';
-    face.appendChild(photo);
-    var tag = el('span', 'ege-pcard__rank', rank ? rank.name : 'Unranked');
-    face.appendChild(tag);
-    var plate = el('div', 'ege-pcard__plate');
-    plate.appendChild(el('div', 'ege-pcard__name', player.name));
-    plate.appendChild(el('div', 'ege-pcard__meta', player.position + ' · Player Card'));
+    photo.decoding = 'async';
+    art.appendChild(photo);
+    if (team.logo) {
+      var logo = el('img', 'ege-tcard__logo' + (team.whiteMark ? ' ege-tcard__logo--white' : ''));
+      logo.src = team.logo;
+      logo.alt = '';
+      logo.loading = 'lazy';
+      logo.addEventListener('error', function () { logo.remove(); });
+      art.appendChild(logo);
+    }
+    var big = el('div', 'ege-tcard__yards ege-tcard__yards--rank');
+    big.appendChild(el('b', null, rank ? rank.name : 'Unranked'));
+    art.appendChild(big);
+    face.appendChild(art);
+
+    var plate = el('div', 'ege-tcard__plate');
+    plate.appendChild(el('div', 'ege-tcard__name', player.name));
+    plate.appendChild(el('div', 'ege-tcard__meta', [player.position, team.school].filter(Boolean).join(' \u00b7 ')));
     face.appendChild(plate);
+
+    var body = el('div', 'ege-tcard__body');
+    var pips = el('div', 'ege-tcard__pips');
+    var at = rank ? EGE.cards.rankOf(rank.key) : -1;
+    pc.ladder.forEach(function (r, i) {
+      var pip = el('span', 'ege-tcard__pip' + (i <= at ? ' is-lit' : ''));
+      pip.style.setProperty('--pip', r.color);
+      pip.title = r.name;
+      pips.appendChild(pip);
+    });
+    body.appendChild(pips);
+    body.appendChild(el('div', 'ege-tcard__line', rank && rank.bonus
+      ? '+' + pctText(rank.bonus) + ' diamonds on every game'
+      : pc.copies ? 'Bonuses start at Uncommon' : 'No cards of his yet'));
+    face.appendChild(body);
+
+    var foot = el('div', 'ege-tcard__foot');
+    foot.appendChild(el('span', 'ege-tcard__rarity', rank ? rank.name : 'Unranked'));
+    foot.appendChild(el('span', 'ege-tcard__when', pc.copies + (pc.copies === 1 ? ' card' : ' cards') + ' \u00b7 Career'));
+    face.appendChild(foot);
+
     node.appendChild(face);
+    return node;
+  }
+
+  function playerCardEl(pc) {
+    var player = pc.player;
+    var rank = pc.rank;
+    var node = el('article', 'ege-pcard');
+    node.appendChild(playerCardFace(pc));
 
     var body = el('div', 'ege-pcard__body');
-    var nums = el('div', 'ege-pcard__nums');
-    var pts = el('div', 'ege-pcard__pts');
-    pts.appendChild(el('b', null, points(pc.points)));
-    pts.appendChild(el('small', null, 'FPTS collected'));
-    nums.appendChild(pts);
-    nums.appendChild(el('span', 'fb-meta', pc.copies + (pc.copies === 1 ? ' card' : ' cards') +
-      ' · ' + pc.distinct + ' different'));
-    body.appendChild(nums);
+    body.appendChild(el('h4', 'ege-item__name', player.name));
+    body.appendChild(el('span', 'fb-meta', points(pc.points) + ' FPTS from ' + pc.copies +
+      (pc.copies === 1 ? ' card' : ' cards') + ' \u00b7 ' + pc.distinct + ' different'));
 
     var next = pc.next;
     var from = rank ? rank.points : 0;
@@ -1796,10 +1872,38 @@ EGE.cardsView = (function () {
       setTab('cards');
       renderCollection();
     });
-    body.appendChild(see);
+
+    /* Up to three go on the player's own page, beside the showcase. */
+    var up = state.showPlayers.indexOf(player.slug) !== -1;
+    var show = el('button', 'fb-btn fb-btn--sm ege-pcard__show' + (up ? ' fb-btn--primary' : ''),
+      up ? 'On your page \u2713' : 'Show on your page');
+    show.type = 'button';
+    show.setAttribute('aria-pressed', up ? 'true' : 'false');
+    show.disabled = !pc.copies || (!up && state.showPlayers.length >= 3);
+    if (!up && pc.copies && state.showPlayers.length >= 3) { show.title = 'Your page shows three at most.'; }
+    show.addEventListener('click', function () { toggleShown(player, show); });
+    var row = el('div', 'ege-pcard__actions');
+    row.appendChild(see);
+    row.appendChild(show);
+    body.appendChild(row);
 
     node.appendChild(body);
     return node;
+  }
+
+  function toggleShown(player, button) {
+    button.disabled = true;
+    var next = state.showPlayers.filter(function (slug) { return slug !== player.slug; });
+    var adding = next.length === state.showPlayers.length;
+    if (adding) { next.push(player.slug); }
+    EGE.cardStore.setShowcasePlayers(next).then(function (res) {
+      if (!res.ok) { say(res.message, true); renderPlayerCards(); return; }
+      state.showPlayers = next;
+      if (EGE.showcase) { EGE.showcase.forget(); }
+      say(adding ? player.first + '\u2019s Player Card is on your page now.'
+                 : player.first + '\u2019s Player Card is off your page.', false);
+      renderPlayerCards();
+    });
   }
 
   function renderPlayerCards() {
@@ -2172,7 +2276,8 @@ EGE.cardsView = (function () {
       loadOther(),
       EGE.cardStore.playerCardAwards(player.email),
       EGE.cardStore.shopToday(),
-      EGE.cardStore.market(player.email)
+      EGE.cardStore.market(player.email),
+      EGE.cardStore.showcasePlayersFor(player.email)
     ]).then(function (all) {
       if (state.player !== player) { return; }
       if (all[0] === null) {
@@ -2189,6 +2294,7 @@ EGE.cardsView = (function () {
       state.pcAwards = all[7];
       state.shop = all[8];
       state.market = all[9];
+      state.showPlayers = all[10].players;
       state.loaded = all[0] !== null;
       if (all[4] === null && all[0] !== null) {
         say('Your diamonds could not be loaded. Run supabase/schema.sql to set up the diamond tables, then reload.', true);
@@ -2236,6 +2342,7 @@ EGE.cardsView = (function () {
     state.pcAwards = null;
     state.shop = null;
     state.market = null;
+    state.showPlayers = [];
     binder.key = null;
     setBadge(0);
   }
@@ -2283,6 +2390,7 @@ EGE.cardsView = (function () {
     reset: reset,
     refreshBadge: refreshBadge,
     cardEl: cardEl,
+    playerCardFace: playerCardFace,
     describe: describe,
     pressable: pressable,
     zoom: zoom,

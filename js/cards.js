@@ -211,6 +211,24 @@ EGE.cardStore = (function () {
       .catch(function () { return []; });
   }
 
+  /* The Player Cards a player has put on their page, and the cards of
+     those players their rank is worked out from. Public, like the
+     showcase: { players: [slug], cards: { id: quantity } }. */
+  function showcasePlayersFor(email) {
+    var c = client();
+    if (!c || !email) { return Promise.resolve({ players: [], cards: {} }); }
+    return c.rpc('showcased_player_cards', { p_email: email })
+      .then(function (res) {
+        var d = res.error ? null : res.data;
+        return { players: (d && d.players) || [], cards: (d && d.cards) || {} };
+      })
+      .catch(function () { return { players: [], cards: {} }; });
+  }
+
+  function setShowcasePlayers(slugs) {
+    return call('set_player_card_showcase', { p_slugs: slugs }, function () { return { ok: true }; });
+  }
+
   function setShowcase(ids) {
     return call('set_card_showcase', { p_cards: ids }, function () { return { ok: true }; });
   }
@@ -352,6 +370,8 @@ EGE.cardStore = (function () {
     cancelTrade: cancelTrade,
     showcaseFor: showcaseFor,
     setShowcase: setShowcase,
+    showcasePlayersFor: showcasePlayersFor,
+    setShowcasePlayers: setShowcasePlayers,
     syncPlayerCards: syncPlayerCards,
     playerCardAwards: playerCardAwards,
     shopToday: shopToday,

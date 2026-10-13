@@ -5516,96 +5516,81 @@ html.ege-noscroll body { overflow: hidden; }
 
 .ege-pcards {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 22px;
 }
 .ege-pcard {
-  --rarity: #5c5a52;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(150px, 230px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  padding: 14px;
   background: #fff;
   border: var(--fb-border) solid var(--fb-ink);
   box-shadow: 5px 5px 0 rgba(0, 0, 0, .3);
   min-width: 0;
 }
-.ege-pcard__face {
-  position: relative;
-  height: 190px;
-  overflow: hidden;
-  background:
-    linear-gradient(160deg, rgba(255, 255, 255, .28), transparent 45%),
-    var(--rarity);
-  border-bottom: var(--fb-border) solid var(--fb-ink);
+
+/* --- a Player Card's face ------------------------------------------------------
+
+   The binder's card, with what makes it a Player Card: a second frame
+   inside the first, the rank written big across the picture, and a ladder
+   of seven pips lit up to the rank held. Mystic and Iconic get a sheen
+   that runs across them. */
+.ege-tcard--player .ege-tcard__face {
+  box-shadow: inset 0 0 0 1.2cqw var(--rarity), inset 0 0 0 2cqw var(--fb-ink);
 }
-.ege-pcard--none .ege-pcard__face { filter: grayscale(1); opacity: .8; }
-.ege-pcard--mystic .ege-pcard__face,
-.ege-pcard--iconic .ege-pcard__face {
-  background:
-    linear-gradient(115deg, transparent 20%, rgba(255, 255, 255, .55) 38%, transparent 52%),
-    var(--rarity);
-  background-size: 250% 100%, auto;
+.ege-tcard--player .ege-tcard__top { background: var(--fb-ink); }
+.ege-tcard--player .ege-tcard__kind { color: var(--rarity); }
+.ege-tcard--unranked { filter: grayscale(1); }
+.ege-tcard--unranked .ege-tcard__photo { opacity: .55; }
+.ege-tcard__yards--rank b {
+  font-size: 13cqw;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+}
+.ege-tcard__pips { display: flex; gap: 1.6cqw; padding-top: .6cqw; }
+.ege-tcard__pip {
+  flex: 1 1 0;
+  height: 3.4cqw;
+  background: rgba(29, 36, 22, .12);
+  border: .5cqw solid rgba(29, 36, 22, .35);
+  transform: skewX(-18deg);
+}
+.ege-tcard__pip.is-lit { background: var(--pip); border-color: var(--fb-ink); }
+.ege-tcard--player.ege-tcard--mystic .ege-tcard__art::after,
+.ege-tcard--player.ege-tcard--iconic .ege-tcard__art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .45) 45%, transparent 58%);
+  background-size: 260% 100%;
   animation: ege-pcard-shine 4.5s ease-in-out infinite;
 }
-.ege-pcard--iconic .ege-pcard__face {
-  background:
-    linear-gradient(115deg, transparent 20%, rgba(255, 255, 255, .6) 38%, transparent 52%),
-    linear-gradient(135deg, #ffb3d9, #ec5fa8 35%, #a98cf0 70%, #7fb6f0);
-  background-size: 250% 100%, auto;
-}
 @keyframes ege-pcard-shine {
-  0%, 100% { background-position: 120% 0, 0 0; }
-  50%      { background-position: -20% 0, 0 0; }
+  0%, 100% { background-position: 120% 0; }
+  50%      { background-position: -20% 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ege-pcard__face { animation: none !important; }
+  .ege-tcard--player .ege-tcard__art::after { animation: none; }
 }
-.ege-pcard__photo {
-  position: absolute;
-  right: 4%;
-  bottom: 0;
-  height: 96%;
-  width: auto;
-  max-width: 70%;
-  object-fit: contain;
-  object-position: bottom;
-  filter: drop-shadow(4px 4px 0 rgba(0, 0, 0, .3));
+
+/* Player Cards on a player's own page, above the showcase cards. */
+.ege-showcase__players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-bottom: 22px;
 }
-.ege-pcard__rank {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  padding: 4px 10px;
-  background: var(--fb-ink);
-  color: #fff;
-  border: 2px solid #fff;
-  font-size: var(--fb-label);
-  font-weight: 800;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-}
-.ege-pcard__plate {
-  position: absolute;
-  left: 0;
-  bottom: 12px;
-  max-width: 64%;
-  padding: 6px 12px 6px 12px;
-  background: var(--fb-ink);
-  color: var(--fb-cream);
-}
-.ege-pcard__name { font-family: var(--fb-font-display); font-size: 1.125rem; line-height: 1.1; }
-.ege-pcard__meta {
-  font-size: var(--fb-label);
-  font-weight: 800;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--fb-accent-hover);
-}
+.ege-showcase__players > .ege-tcard { width: min(210px, calc((100% - 36px) / 3)); }
+
 .ege-pcard__body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 14px 16px 16px;
-  flex: 1 1 auto;
+  min-width: 0;
 }
 .ege-pcard__nums { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
 .ege-pcard__pts b { font-family: var(--fb-font-display); font-size: 1.75rem; font-weight: 400; }
@@ -5622,7 +5607,18 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-pcard__paid { margin: 0; font-size: .875rem; }
 .ege-pcard__bonus strong { color: var(--fb-diamond-deep); }
 .ege-pcard__paid { display: flex; align-items: center; gap: 4px; }
-.ege-pcard__see { align-self: flex-start; margin-top: auto; }
+.ege-pcard__body > .fb-meta { margin: 0; }
+.ege-pcard__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* The bin at the end of the collection's filters: resets them all. */
+.ege-filterclear {
+  display: inline-grid;
+  place-items: center;
+  min-width: 47px;
+  padding: 0 12px;
+  align-self: stretch;
+}
+.ege-filterclear:disabled { opacity: .4; cursor: default; }
 
 /* --- the shop's daily cards ------------------------------------------------- */
 
@@ -5684,9 +5680,11 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-market__grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 @media (max-width: 900px) {
-  .ege-pcards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ege-daily,
   .ege-market__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .ege-pcards { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* --- on a phone ----------------------------------------------------------- */
@@ -5705,7 +5703,9 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-binder { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .ege-daily,
   .ege-market__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-  .ege-pcards { grid-template-columns: minmax(0, 1fr); }
+  .ege-pcard { grid-template-columns: minmax(0, 44%) minmax(0, 1fr); gap: 12px; padding: 10px; }
+  .ege-filterclear { flex: 0 0 auto; min-height: 47px; }
+  .ege-showcase__players > .ege-tcard { width: calc((100% - 36px) / 3); }
 
   /* Five pages across a phone: smaller words, and Achievements shortened
      by its letter spacing rather than its name. */

@@ -42,6 +42,29 @@ EGE.showcase = (function () {
     return hit ? hit.ids : [];
   }
 
+  /* The Player Cards they have put up (picked on the Cards tab's Players
+     page), worked out from the cards of those players they hold. One with
+     no cards left behind it is not shown. */
+  function savedPlayerCards(player) {
+    var hit = cache[player.email];
+    if (!hit || !hit.players) { return []; }
+    return hit.players.players.map(EGE.playerBySlug).filter(Boolean).map(function (p) {
+      return EGE.cards.playerCard(p, hit.players.cards);
+    }).filter(function (pc) { return pc.copies > 0; });
+  }
+
+  function playerCardRow(pcs) {
+    var row = el('div', 'ege-showcase__players');
+    pcs.forEach(function (pc) {
+      var face = EGE.cardsView.playerCardFace(pc);
+      face.setAttribute('role', 'img');
+      face.setAttribute('aria-label', pc.player.name + ' Player Card, ' +
+        (pc.rank ? pc.rank.name : 'unranked') + ', ' + Math.round(pc.points) + ' fantasy points collected');
+      row.appendChild(face);
+    });
+    return row;
+  }
+
   /* --- drawing ----------------------------------------------------------- */
 
   function draw() {
@@ -54,9 +77,10 @@ EGE.showcase = (function () {
     var loaded = Boolean(cache[player.email]);
     var ids = editing || savedIds(player);
     var cards = ids.map(EGE.cards.byId).filter(Boolean);
+    var pcs = savedPlayerCards(player);
 
     /* Somebody else's page with nothing up has no panel at all. */
-    panel.hidden = !mine && !cards.length;
+    panel.hidden = !mine && !cards.length && !pcs.length;
     if (panel.hidden) { return; }
 
     var note = byId('showcaseNote');
@@ -70,6 +94,7 @@ EGE.showcase = (function () {
     var holder = byId('showcaseCards');
     holder.innerHTML = '';
     var grid = el('div', 'ege-showcase__grid');
+    if (pcs.length && !editing) { holder.appendChild(playerCardRow(pcs)); }
 
     if (editing) {
       for (var i = 0; i < SIZE; i += 1) { grid.appendChild(editSlot(i)); }
@@ -147,7 +172,7 @@ EGE.showcase = (function () {
           draw();
           return;
         }
-        cache[shown.email] = { ids: ids, at: Date.now() };
+        cache[shown.email] = { ids: ids, players: (cache[shown.email] || {}).players, at: Date.now() };
         editing = null;
         message = '';
         draw();
@@ -227,8 +252,11 @@ EGE.showcase = (function () {
     var hit = cache[player.email];
     if (hit && Date.now() - hit.at < STALE_AFTER) { return; }
 
-    EGE.cardStore.showcaseFor(player.email).then(function (ids) {
-      cache[player.email] = { ids: ids, at: Date.now() };
+    Promise.all([
+      EGE.cardStore.showcaseFor(player.email),
+      EGE.cardStore.showcasePlayersFor(player.email)
+    ]).then(function (both) {
+      cache[player.email] = { ids: both[0], players: both[1], at: Date.now() };
       if (shown === player) { draw(); }
     });
   }

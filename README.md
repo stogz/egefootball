@@ -1477,6 +1477,16 @@ The first time an account is paid, every game already out goes in at 0 (a
 `pc-start` row marks it), so Player Cards pay from the next game on. A game's
 bonus is held to 400. The ladder is `PLAYER_RANKS` in `data/cards.js`.
 
+A Player Card is drawn as a card like the rest of the binder: the rank across
+the picture, a ladder of seven pips lit to the rank, career FPTS in the corner.
+**Up to three can go on the player's own page**, above their showcase, from
+"Show on your page" on the Players page (`set_player_card_showcase()`). Anybody
+can see them, signed out too: `showcased_player_cards()` hands over only the
+cards of the players put up, which is what their rank is worked out from.
+
+The collection's filter row ends in a bin that resets every filter and the
+sort, and goes back to your own collection.
+
 ### Today's Cards and the Market
 
 **Today's Cards**: six cards a day, the same six for everybody — one
