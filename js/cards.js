@@ -205,6 +205,15 @@ EGE.cardStore = (function () {
       function (status) { return { ok: true, status: status }; });
   }
 
+  /* Marks offers made to this player as seen, so they stop counting as new. */
+  function markTradesSeen(ids) {
+    var c = client();
+    if (!c || !ids.length) { return Promise.resolve(false); }
+    return c.rpc('mark_trades_seen', { p_ids: ids })
+      .then(function (res) { return !res.error; })
+      .catch(function () { return false; });
+  }
+
   function cancelTrade(id) {
     return call('cancel_card_trade', { p_trade: id },
       function () { return { ok: true, status: 'cancelled' }; });
@@ -425,6 +434,7 @@ EGE.cardStore = (function () {
     proposeTrade: proposeTrade,
     respondTrade: respondTrade,
     cancelTrade: cancelTrade,
+    markTradesSeen: markTradesSeen,
     showcaseFor: showcaseFor,
     setShowcase: setShowcase,
     showcasePlayersFor: showcasePlayersFor,

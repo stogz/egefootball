@@ -2384,3 +2384,40 @@ revoke all on function public.recent_card_opens(integer) from public, anon;
 grant execute on function public.recent_card_opens(integer) to authenticated;
 
 notify pgrst, 'reload schema';
+
+-- ===========================================================================
+-- New trades: the red count on Cards in the nav. An offer is new to the
+-- player it is made to until they have had the Trades page open with it on
+-- screen; the page then marks it seen here. Seen on one device, it is seen
+-- on all of them. Offers already open when this first runs count as new.
+-- ===========================================================================
+
+alter table public.card_trades add column if not exists seen_at timestamptz;
+
+create or replace function public.mark_trades_seen(p_ids uuid[])
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  v_count integer;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  update public.card_trades
+     set seen_at = now()
+   where id = any(coalesce(p_ids, '{}'))
+     and lower(to_email) = lower(v_email)
+     and seen_at is null;
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
+revoke all on function public.mark_trades_seen(uuid[]) from public, anon;
+grant execute on function public.mark_trades_seen(uuid[]) to authenticated;
+
+notify pgrst, 'reload schema';
