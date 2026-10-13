@@ -48,15 +48,18 @@ EGE.showcase = (function () {
   function savedPlayerCards(player) {
     var hit = cache[player.email];
     if (!hit || !hit.players) { return []; }
+    var earned = hit.players.earned;
     return hit.players.players.map(EGE.playerBySlug).filter(Boolean).map(function (p) {
-      return EGE.cards.playerCard(p, hit.players.cards);
+      var pc = EGE.cards.playerCard(p, hit.players.cards);
+      pc.earned = earned ? (earned[p.slug] || 0) : null;
+      return pc;
     }).filter(function (pc) { return pc.copies > 0; });
   }
 
   function playerCardRow(pcs) {
     var row = el('div', 'ege-showcase__players');
     pcs.forEach(function (pc) {
-      var face = EGE.cardsView.playerCardFace(pc);
+      var face = EGE.cardsView.playerCardFace(pc, pc.earned);
       face.setAttribute('role', 'img');
       face.setAttribute('aria-label', pc.player.name + ' Player Card, ' +
         (pc.rank ? pc.rank.name : 'unranked') + ', ' + Math.round(pc.points) + ' fantasy points collected');

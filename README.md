@@ -1229,7 +1229,9 @@ Buy button:** the left one steps it back to 2021, 2020 and so on, each a
 `year-{season}` pack at 14 diamonds (`YEAR_PACK_PRICE` in `data/cards.js`),
 and the right one steps forward to the live season. A past year is a
 darker bronze with white words. A new year joins the arrows when the site
-rolls to a new season. The Pro Pack glows a little purple.
+rolls to a new season. The arrows only redraw the Season Pack, and every
+pack's shimmer keeps time with the clock (`--phase`), so redrawing the packs
+never starts their shimmer over. The Pro Pack glows a little purple.
 
 Each card rolls its rarity on the odds first, then is drawn from every
 published card of that rarity the pack can hold. A rarity with nothing out
@@ -1497,18 +1499,24 @@ The first time an account is paid, every game already out goes in at 0 (a
 `pc-start` row marks it), so Player Cards pay from the next game on. A game's
 bonus is held to 400. The ladder is `PLAYER_RANKS` in `data/cards.js`.
 
-A Player Card is laid out the way Sam drew it, framed in the rank's colour:
+A Player Card follows Sam's sketch, in the binder card's frame in the
+rank's colour:
 
 ```
-[ RANK        ] [ FPTS ]
-his picture
-Name
-(team logo) Team · Position
-Earnings · +10%
-[■■■■■     354 / 400  Rare ]   <- to the next rank
+[ PLAYER           | 354 FPTS ]
+  his picture (team logo in the corner)
+  Andrew Parr
+  ALABAMA · TE
+  EARNED 200 💎 · +10%
+  [■■■■■■■             ]
+        46 TO RARE
+[ ◆ UNCOMMON          CAREER ]
 ```
 
-Earnings is the rank's bonus; hovering it gives about what that is a game.
+**Earned** is every diamond that Player Card has paid you, all seasons (its
+`pc-` rows in `diamond_awards`), and beside it the rank's bonus; hovering it
+gives about what that is a game. On a player's own page the earned figure
+comes from `showcased_player_cards()`, which adds it for the cards put up.
 Before any card of his, the card is grey and the bar runs to Uncommon. The
 face is `playerCardFace()` in `js/cards-view.js`.
 **Up to three can go on the player's own page**, above their showcase, from

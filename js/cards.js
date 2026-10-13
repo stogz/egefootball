@@ -227,13 +227,14 @@ EGE.cardStore = (function () {
      showcase: { players: [slug], cards: { id: quantity } }. */
   function showcasePlayersFor(email) {
     var c = client();
-    if (!c || !email) { return Promise.resolve({ players: [], cards: {} }); }
+    if (!c || !email) { return Promise.resolve({ players: [], cards: {}, earned: null }); }
     return c.rpc('showcased_player_cards', { p_email: email })
       .then(function (res) {
         var d = res.error ? null : res.data;
-        return { players: (d && d.players) || [], cards: (d && d.cards) || {} };
+        return { players: (d && d.players) || [], cards: (d && d.cards) || {},
+                 earned: (d && d.earned) || null };
       })
-      .catch(function () { return { players: [], cards: {} }; });
+      .catch(function () { return { players: [], cards: {}, earned: null }; });
   }
 
   function setShowcasePlayers(slugs) {

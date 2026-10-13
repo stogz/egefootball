@@ -236,6 +236,12 @@ EGE.cardsView = (function () {
 
   function packArt(pack) {
     var art = el('div', 'ege-pack ege-pack--' + (pack.season ? 'year' : pack.key));
+    /* Every pack's shimmer and glow keep time with the clock, so redrawing
+       the packs (a new balance, the Season Pack's arrows) carries on where
+       they were instead of starting them all over at once. */
+    var now = Date.now();
+    art.style.setProperty('--phase', -(now % 9000) + 'ms');
+    art.style.setProperty('--glow-phase', -(now % 3200) + 'ms');
     art.appendChild(el('span', 'ege-pack__top'));
     var body = el('span', 'ege-pack__body');
     body.appendChild(el('span', 'ege-pack__brand', 'EGE Football'));
@@ -267,56 +273,65 @@ EGE.cardsView = (function () {
     b.setAttribute('aria-label', label);
     b.disabled = to < 0 || to >= list.length;
     if (!b.disabled) { b.title = list[to].name; }
+    /* Only the Season Pack's tile is swapped: redrawing every pack would
+       start every pack's shimmer over and make the row flicker. */
     b.addEventListener('click', function () {
       state.seasonPack = list[to].key;
-      renderPacks();
+      var tile = b.closest('.ege-packtile');
+      var next = packTile(EGE.cards.pack('season'));
+      tile.parentNode.replaceChild(next, tile);
+      var same = next.querySelector('[aria-label="' + label + '"]');
+      (same && !same.disabled ? same : next.querySelector('.ege-packtile__buy')).focus({ preventScroll: true });
     });
     return b;
+  }
+
+  /* Each pack top to bottom, centred: the pack, its name, what is in it,
+     and the Buy button, with the Season Pack's year arrows either side. */
+  function packTile(pack) {
+    var seasons = seasonPacks();
+    var at = Math.max(0, seasons.map(function (p) { return p.key; }).indexOf(state.seasonPack));
+    var stepping = pack.seasonOnly && seasons.length > 1;
+    if (stepping) { pack = seasons[at]; }
+
+    var tile = el('div', 'ege-packtile');
+    tile.appendChild(packArt(pack));
+    tile.appendChild(el('h4', 'ege-item__name', pack.name));
+    tile.appendChild(el('p', 'ege-item__text', pack.blurb));
+
+    var pool = EGE.cards.pullable(pack.key);
+    var buy = el('button', 'fb-btn fb-btn--primary ege-packtile__buy');
+    buy.type = 'button';
+    buy.appendChild(document.createTextNode('Buy & Rip \u00b7 '));
+    buy.appendChild(price(pack.diamonds));
+
+    var why = null;
+    if (pool.length < pack.size) {
+      why = pack.seasonOnly
+        ? 'Opens once the first week of ' + EGE.currentSeason + ' is out.'
+        : 'Opens once there are games out to put in it.';
+    } else if (state.diamonds !== null && state.diamonds < pack.diamonds) {
+      why = 'Not enough diamonds yet.';
+    }
+    buy.disabled = Boolean(why) || !state.loaded;
+    if (why) { tile.appendChild(el('p', 'ege-item__blocked', why)); }
+    buy.addEventListener('click', function () { buyPack(pack, buy); });
+
+    var row = el('div', 'ege-packtile__row');
+    if (stepping) { row.appendChild(seasonArrow(seasons, at + 1, 'Previous year', '\u2039')); }
+    row.appendChild(buy);
+    if (stepping) { row.appendChild(seasonArrow(seasons, at - 1, 'Next year', '\u203a')); }
+    tile.appendChild(row);
+    return tile;
   }
 
   function renderPacks() {
     var holder = byId('cardPacks');
     holder.innerHTML = '';
 
-    var seasons = seasonPacks();
-    var at = Math.max(0, seasons.map(function (p) { return p.key; }).indexOf(state.seasonPack));
-
-    /* Each pack top to bottom, centred: the pack, its name, what is in it,
-       and the Buy button, with the Season Pack's year arrows either side. */
     EGE.cards.PACKS.forEach(function (pack) {
       if (pack.season) { return; }
-      var stepping = pack.seasonOnly && seasons.length > 1;
-      if (stepping) { pack = seasons[at]; }
-
-      var tile = el('div', 'ege-packtile');
-      tile.appendChild(packArt(pack));
-      tile.appendChild(el('h4', 'ege-item__name', pack.name));
-      tile.appendChild(el('p', 'ege-item__text', pack.blurb));
-
-      var pool = EGE.cards.pullable(pack.key);
-      var buy = el('button', 'fb-btn fb-btn--primary ege-packtile__buy');
-      buy.type = 'button';
-      buy.appendChild(document.createTextNode('Buy & Rip \u00b7 '));
-      buy.appendChild(price(pack.diamonds));
-
-      var why = null;
-      if (pool.length < pack.size) {
-        why = pack.seasonOnly
-          ? 'Opens once the first week of ' + EGE.currentSeason + ' is out.'
-          : 'Opens once there are games out to put in it.';
-      } else if (state.diamonds !== null && state.diamonds < pack.diamonds) {
-        why = 'Not enough diamonds yet.';
-      }
-      buy.disabled = Boolean(why) || !state.loaded;
-      if (why) { tile.appendChild(el('p', 'ege-item__blocked', why)); }
-      buy.addEventListener('click', function () { buyPack(pack, buy); });
-
-      var row = el('div', 'ege-packtile__row');
-      if (stepping) { row.appendChild(seasonArrow(seasons, at + 1, 'Previous year', '\u2039')); }
-      row.appendChild(buy);
-      if (stepping) { row.appendChild(seasonArrow(seasons, at - 1, 'Next year', '\u203a')); }
-      tile.appendChild(row);
-      holder.appendChild(tile);
+      holder.appendChild(packTile(pack));
     });
 
     byId('cardsBalance').textContent = state.diamonds === null ? '\u2014' : state.diamonds;
@@ -1928,23 +1943,17 @@ EGE.cardsView = (function () {
     return Math.round(games.reduce(function (a, b) { return a + b; }, 0) / games.length);
   }
 
-  /* What his card has paid this account this season. */
-  function paidThisSeason(slug) {
-    var prefix = 'pc-' + slug + '-w';
-    return (state.pcAwards || []).filter(function (row) {
-      return row.season === EGE.currentSeason && row.award_key.indexOf(prefix) === 0;
-    }).reduce(function (sum, row) { return sum + (row.diamonds || 0); }, 0);
-  }
-
-  /* A Player Card's face, in Sam's layout: the rank and the FPTS held
-     along the top, his picture, his name, his current team's logo, team
-     and position, what the card adds to his games, and a bar to the next
-     rank with the numbers on it. Framed in the rank's colour. Drawn here
-     for the Players page and by js/showcase.js for a player's own page.
-     Not ranked yet, it is a grey card. */
   function whole(n) { return Math.floor(n).toLocaleString('en-US'); }
 
-  function playerCardFace(pc) {
+  /* A Player Card's face, from Sam's sketch: PLAYER and the FPTS held
+     across the top, his picture, his name and team · position, what the
+     card has earned you with its bonus beside it, a bar to the next rank
+     with how far there is to go, and the rank along the foot. Framed in
+     the rank's colour like the binder's cards. `earned` is the diamonds
+     it has paid in all, or null where that is not known. Drawn here for
+     the Players page and by js/showcase.js for a player's own page. Not
+     ranked yet, it is a grey card. */
+  function playerCardFace(pc, earned) {
     var player = pc.player;
     var rank = pc.rank;
     var key = rank ? rank.key : 'unranked';
@@ -1953,11 +1962,13 @@ EGE.cardsView = (function () {
     var outer = el('div', 'ege-plcard ege-plcard--' + key);
     outer.style.setProperty('--rarity', rank ? rank.color : '#8b9097');
     outer.style.setProperty('--ground', team.ground || '#2f4a2b');
+    var frameBox = el('div', 'ege-plcard__frame');
     var node = el('div', 'ege-plcard__face');
-    outer.appendChild(node);
+    frameBox.appendChild(node);
+    outer.appendChild(frameBox);
 
     var top = el('div', 'ege-plcard__top');
-    top.appendChild(el('span', 'ege-plcard__rank', rank ? rank.name : 'Unranked'));
+    top.appendChild(el('span', 'ege-plcard__kind', 'Player'));
     var fpts = el('span', 'ege-plcard__fpts');
     fpts.appendChild(el('b', null, whole(pc.points)));
     fpts.appendChild(document.createTextNode(' FPTS'));
@@ -1971,29 +1982,34 @@ EGE.cardsView = (function () {
     photo.loading = 'lazy';
     photo.decoding = 'async';
     frame.appendChild(photo);
-    node.appendChild(frame);
-
-    node.appendChild(el('div', 'ege-plcard__name', player.name));
-
-    var where = el('div', 'ege-plcard__team');
     if (team.logo) {
-      var logo = el('img', 'ege-plcard__logo');
+      var logo = el('img', 'ege-plcard__logo' + (team.whiteMark ? ' ege-plcard__logo--white' : ''));
       logo.src = team.logo;
       logo.alt = '';
       logo.loading = 'lazy';
       logo.addEventListener('error', function () { logo.remove(); });
-      where.appendChild(logo);
+      frame.appendChild(logo);
     }
-    where.appendChild(el('span', null,
+    node.appendChild(frame);
+
+    var plate = el('div', 'ege-plcard__plate');
+    plate.appendChild(el('div', 'ege-plcard__name', player.name));
+    plate.appendChild(el('div', 'ege-plcard__team',
       [team.school, EGE.positionFor ? EGE.positionFor(player) : player.position].filter(Boolean).join(' · ')));
-    node.appendChild(where);
 
     var earn = el('div', 'ege-plcard__earn');
-    earn.appendChild(document.createTextNode('Earnings · '));
-    earn.appendChild(el('b', null, (rank && rank.bonus ? '+' : '') + pctText(rank ? rank.bonus : 0)));
+    earn.appendChild(document.createTextNode('Earned '));
+    if (earned !== null && earned !== undefined) {
+      earn.appendChild(el('b', null, whole(earned)));
+      earn.appendChild(gem());
+    } else {
+      earn.appendChild(el('b', null, '—'));
+    }
+    earn.appendChild(document.createTextNode(' · '));
+    earn.appendChild(el('b', 'ege-plcard__pct', (rank && rank.bonus ? '+' : '') + pctText(rank ? rank.bonus : 0)));
     var about = rank && rank.bonus ? typicalBonus(player, rank.key) : null;
     if (about !== null) { earn.title = 'About ' + about + ' diamonds on each of his games'; }
-    node.appendChild(earn);
+    plate.appendChild(earn);
 
     /* To the next rank; before any card, to the first one that pays. */
     var next = rank ? pc.next : pc.ladder[1];
@@ -2005,29 +2021,34 @@ EGE.cardsView = (function () {
       : 100) + '%';
     if (next) { fill.style.background = next.color; }
     bar.appendChild(fill);
-    var nums = el('span', 'ege-plcard__nums');
-    nums.appendChild(el('span', null, next
-      ? whole(pc.points) + ' / ' + whole(next.points)
-      : whole(pc.points)));
-    nums.appendChild(el('span', null, next ? next.name : 'Max'));
-    bar.appendChild(nums);
-    node.appendChild(bar);
+    plate.appendChild(bar);
+    plate.appendChild(el('div', 'ege-plcard__togo', next
+      ? whole(Math.max(0, Math.ceil(next.points - pc.points))) + ' to ' + next.name
+      : 'As high as it goes'));
+    node.appendChild(plate);
+
+    var foot = el('div', 'ege-plcard__foot');
+    foot.appendChild(el('span', 'ege-plcard__rank', rank ? rank.name : 'Unranked'));
+    foot.appendChild(el('span', null, 'Career'));
+    node.appendChild(foot);
     return outer;
+  }
+
+  /* What a Player Card has paid this account, every season. */
+  function earnedFrom(slug) {
+    if (!state.pcAwards) { return null; }
+    var prefix = 'pc-' + slug + '-w';
+    return state.pcAwards.filter(function (row) {
+      return row.award_key.indexOf(prefix) === 0;
+    }).reduce(function (sum, row) { return sum + (row.diamonds || 0); }, 0);
   }
 
   function playerCardEl(pc) {
     var player = pc.player;
     var node = el('article', 'ege-pcard');
-    node.appendChild(playerCardFace(pc));
+    node.appendChild(playerCardFace(pc, earnedFrom(player.slug)));
 
     var body = el('div', 'ege-pcard__body');
-    var paid = paidThisSeason(player.slug);
-    if (paid) {
-      var line = el('p', 'fb-meta ege-pcard__paid');
-      line.appendChild(document.createTextNode('Paid you ' + paid + ' in ' + EGE.currentSeason + ' '));
-      line.appendChild(gem());
-      body.appendChild(line);
-    }
 
     var see = el('button', 'fb-btn fb-btn--sm ege-pcard__see', 'See his cards');
     see.type = 'button';

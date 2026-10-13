@@ -2207,8 +2207,11 @@ begin
 end;
 $$;
 
--- { "players": [slug, ...], "cards": { card_id: quantity } } for the
--- players this account has put up, and nothing else of its collection.
+-- { "players": [slug, ...], "cards": { card_id: quantity },
+--   "earned": { slug: diamonds } } for the players this account has put
+-- up, and nothing else of its collection or its awards. "earned" is what
+-- each of those Player Cards has paid it, every season, which the card
+-- prints.
 create or replace function public.showcased_player_cards(p_email text)
 returns jsonb
 language sql
@@ -2222,7 +2225,15 @@ as $$
       select jsonb_object_agg(pc.card_id, pc.quantity)
         from public.player_cards pc
        where pc.email = s.email and pc.quantity > 0
-         and split_part(pc.card_id, ':', 3) = any(s.player_cards)), '{}'::jsonb))
+         and split_part(pc.card_id, ':', 3) = any(s.player_cards)), '{}'::jsonb),
+    'earned', coalesce((
+      select jsonb_object_agg(e.slug, e.total)
+        from (select regexp_replace(da.award_key, '^pc-(.+)-w[0-9]+$', '\1') as slug,
+                     sum(da.diamonds) as total
+                from public.diamond_awards da
+               where da.email = s.email and da.award_key ~ '^pc-.+-w[0-9]+$'
+               group by 1) e
+       where e.slug = any(s.player_cards)), '{}'::jsonb))
     from (select p_email as email,
                  (select player_cards from public.card_showcases where email = p_email) as player_cards) s;
 $$;
