@@ -715,7 +715,7 @@ EGE.cardsView = (function () {
     rip.sellable = Boolean(options.sellable);
     rip.picked = [];
 
-    var stage = el('div', 'ege-rip__stage');
+    var stage = el('div', 'ege-rip__stage ege-rip__stage--pack');
 
     var head = el('div', 'ege-rip__head');
     head.appendChild(el('h2', 'ege-rip__title', options.title || (options.pack && options.pack.name)));

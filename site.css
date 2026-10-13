@@ -4348,16 +4348,22 @@ html.ege-noscroll body { overflow: hidden; }
    The colour is the frame, the score tab and the nameplate. From Rare up the
    frame starts to catch the light: a still sheen on Rare, a moving one on
    Epic and Legendary, gold foil on Mystic and holographic on Iconic -- the
-   same foils the booster stickers are printed in. */
+   same foils the booster stickers are printed in.
+
+   The moving shine is only drawn where a card is the thing being looked at:
+   in a pack being opened and in a card up close. Everywhere else (the
+   binder, the shop, trades, showcases) a card keeps its frame colours but
+   holds still, because dozens of animated, blended layers at once made the
+   site lag. */
 
 .ege-tcard--rare {
   background: linear-gradient(135deg, #c96614 0%, #f4a65c 30%, #e8812a 50%, #ffc58f 72%, #c96614 100%);
 }
 
-.ege-tcard--epic::after,
-.ege-tcard--legendary::after,
-.ege-tcard--mystic::after,
-.ege-tcard--iconic::after {
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--epic::after,
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--legendary::after,
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--mystic::after,
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--iconic::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -4383,9 +4389,9 @@ html.ege-noscroll body { overflow: hidden; }
     linear-gradient(120deg, #9c6410 0%, #d89b28 15%, #ffe392 30%, #c98917 43%,
                     #f4c653 56%, #fff0a8 68%, #d79a27 82%, #a76a10 100%);
   background-size: 150% 150%, 150% 150%, 220% 220%;
-  animation: ege-metal-flow 7s ease-in-out infinite;
   box-shadow: 4px 4px 0 rgba(0, 0, 0, .35), 0 0 16px rgba(240, 184, 42, .6);
 }
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--mystic { animation: ege-metal-flow 7s ease-in-out infinite; }
 
 .ege-tcard--iconic {
   background:
@@ -4396,11 +4402,11 @@ html.ege-noscroll body { overflow: hidden; }
     linear-gradient(135deg, #ec5fa8 0%, #d5cdf3 18%, #ffb3d9 35%, #cfe4f8 52%,
                     #f07fbc 68%, #f0d6ce 84%, #ec5fa8 100%);
   background-size: 140% 140%, 150% 150%, 145% 145%, 150% 150%, 200% 200%;
-  animation: ege-holo-flow 8s ease-in-out infinite;
   box-shadow: 4px 4px 0 rgba(0, 0, 0, .35), 0 0 18px rgba(236, 95, 168, .65);
 }
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--iconic { animation: ege-holo-flow 8s ease-in-out infinite; }
 /* The holo runs over the picture too, faintly, the way a real one does. */
-.ege-tcard--iconic .ege-tcard__art::after {
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--iconic .ege-tcard__art::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -5859,8 +5865,9 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-plcard__rank::before { content: '\25C6\00a0'; }
 .ege-plcard--unranked { filter: grayscale(1); }
 .ege-plcard--unranked .ege-plcard__photo img { opacity: .55; }
-/* An Iconic's holo runs faintly over the picture too, as on a binder card. */
-.ege-plcard.ege-tcard--iconic .ege-plcard__photo::after {
+/* An Iconic's holo runs faintly over the picture too, as on a binder card
+   (only up close, like the binder card's). */
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-plcard.ege-tcard--iconic .ege-plcard__photo::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -5873,7 +5880,7 @@ html.ege-noscroll body { overflow: hidden; }
   animation: ege-sheen 6s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .ege-plcard.ege-tcard--iconic .ege-plcard__photo::after { animation: none; }
+  .ege-rip__stage .ege-plcard.ege-tcard--iconic .ege-plcard__photo::after { animation: none; }
 }
 
 /* The showcase picker: Player Cards first, then cards, each under a heading. */
@@ -6005,10 +6012,10 @@ html.ege-noscroll body { overflow: hidden; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ege-tcard::after,
-  .ege-tcard--mystic,
-  .ege-tcard--iconic,
-  .ege-tcard--iconic .ege-tcard__art::after,
+  .ege-rip__stage .ege-tcard::after,
+  .ege-rip__stage .ege-tcard--mystic,
+  .ege-rip__stage .ege-tcard--iconic,
+  .ege-rip__stage .ege-tcard--iconic .ege-tcard__art::after,
   .ege-pack__body,
   .ege-rip,
   .ege-rip__pack,

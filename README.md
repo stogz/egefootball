@@ -1206,7 +1206,10 @@ Base Pack in 670 has an Iconic in it.
 
 From Rare up the frame catches the light: a still sheen on Rare, a moving one
 on Epic and Legendary, gold foil on Mystic and holographic on Iconic, the
-same foils as the booster stickers.
+same foils as the booster stickers. The moving shine (the sheen, the flowing
+gold and holo) only plays in a pack being opened and on a card up close;
+everywhere else cards hold still in their frame colours so a full binder does
+not lag (Sam, 2026-10-13).
 
 Across the bottom of the picture, a play card prints its yardage big (*44
 YD TD*) and a performance card its yards and touchdowns (*312 YDS 5 TD*).
