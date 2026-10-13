@@ -286,14 +286,12 @@
          from data/cards.js. -->
     <section id="view-cards" hidden>
 
-      <header class="ege-cardshead">
-        <div>
+      <!-- Centred like every other page's title. The diamond balance is in
+           the nav, so it is not repeated here. -->
+      <header class="fb-hero fb-hero--centred">
+        <div class="fb-hero__col">
           <span class="fb-kicker">Collect them all</span>
-          <h1 class="ege-cardshead__title" id="cardsTitle">Cards</h1>
-        </div>
-        <div class="ege-ovr ege-ovr--head ege-ovr--diamonds" id="cardsBalanceBox" hidden>
-          <span class="ege-ovr__label">Diamonds</span>
-          <span class="ege-ovr__value" id="cardsBalance">&mdash;</span>
+          <h1 class="fb-hero__title" id="cardsTitle">Cards</h1>
         </div>
       </header>
 
@@ -528,14 +526,15 @@
         </div>
       </div>
 
-      <!-- the five pages, along the bottom of the screen -->
+      <!-- the five pages, on an island along the bottom of the screen -->
       <nav class="ege-cardtabs" aria-label="Cards pages">
         <div class="ege-cardtabs__inner" role="radiogroup" aria-label="Cards pages" id="cardTabs">
-          <label class="ege-cardtab"><input type="radio" name="cardTab" value="cards" checked><span>Cards</span></label>
-          <label class="ege-cardtab"><input type="radio" name="cardTab" value="players"><span>Players</span></label>
-          <label class="ege-cardtab"><input type="radio" name="cardTab" value="shop"><span>Shop</span></label>
-          <label class="ege-cardtab"><input type="radio" name="cardTab" value="trades"><span>Trades<b class="ege-cardtab__badge" id="tabTradesBadge" hidden></b></span></label>
-          <label class="ege-cardtab"><input type="radio" name="cardTab" value="achievements"><span>Achievements<b class="ege-cardtab__badge" id="tabSetsBadge" hidden></b></span></label>
+          <label class="ege-cardtab is-active" title="Cards"><input type="radio" name="cardTab" value="cards" checked><span class="ege-cardtab__icon ege-cardtab__icon--cards" aria-hidden="true"></span><span class="ege-visually-hidden">Cards</span></label>
+          <label class="ege-cardtab" title="Players"><input type="radio" name="cardTab" value="players"><span class="ege-cardtab__icon ege-cardtab__icon--players" aria-hidden="true"></span><span class="ege-visually-hidden">Players</span></label>
+          <label class="ege-cardtab" title="Shop"><input type="radio" name="cardTab" value="shop"><span class="ege-cardtab__icon ege-cardtab__icon--shop" aria-hidden="true"></span><span class="ege-visually-hidden">Shop</span></label>
+          <label class="ege-cardtab" title="Trades"><input type="radio" name="cardTab" value="trades"><span class="ege-cardtab__icon ege-cardtab__icon--trades" aria-hidden="true"></span><span class="ege-visually-hidden">Trades</span><b class="ege-cardtab__badge" id="tabTradesBadge" hidden></b></label>
+          <label class="ege-cardtab" title="Achievements"><input type="radio" name="cardTab" value="achievements"><span class="ege-cardtab__icon ege-cardtab__icon--achievements" aria-hidden="true"></span><span class="ege-visually-hidden">Achievements</span><b class="ege-cardtab__badge" id="tabSetsBadge" hidden></b></label>
+          <div class="ege-cardtabs__slider" aria-hidden="true"></div>
         </div>
       </nav>
 

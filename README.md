@@ -1206,7 +1206,10 @@ Base Pack in 670 has an Iconic in it.
 
 From Rare up the frame catches the light: a still sheen on Rare, a moving one
 on Epic and Legendary, gold foil on Mystic and holographic on Iconic, the
-same foils as the booster stickers.
+same foils as the booster stickers. The moving shine (the sheen, the flowing
+gold and holo) only plays in a pack being opened and on a card up close;
+everywhere else cards hold still in their frame colours so a full binder does
+not lag (Sam, 2026-10-13).
 
 Across the bottom of the picture, a play card prints its yardage big (*44
 YD TD*) and a performance card its yards and touchdowns (*312 YDS 5 TD*).
@@ -1467,8 +1470,10 @@ or the tab says it cannot load the cards.
 
 ### The five pages
 
-The tab is five pages, picked from a radio bar fixed along the bottom of the
-screen; the page goes into the address as `#cards/players`, `#cards/shop` and
+The tab is five pages, picked from a floating island of five icons near the
+bottom of the screen (Sam's glyphs in `icon/cardtabs/`, after the Uiverse
+"liquid" radio group): an orange slider glides under the picked icon, and each
+icon keeps its page name as a hover title and for screen readers. The page goes into the address as `#cards/players`, `#cards/shop` and
 so on, swapped in place so switching reloads nothing.
 
 - **Cards** — the collection and nothing else. The page itself scrolls it (no
