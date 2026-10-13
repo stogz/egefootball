@@ -128,6 +128,27 @@ EGE.cards = (function () {
     }
   ];
 
+  /* A Season Pack for every season before the live one: three cards from
+     that year only, the last one Uncommon or better. The shop shows them on
+     the Season Pack's tile, behind its previous-year arrow, not as packs of
+     their own. open_card_pack charges 14 for any year-{season} pack and
+     checks every card in it is from that season. */
+  var YEAR_PACK_PRICE = 14;
+  (EGE.seasonsPlayed ? EGE.seasonsPlayed() : []).filter(function (year) {
+    return year < EGE.currentSeason;
+  }).forEach(function (year) {
+    PACKS.push({
+      key: 'year-' + year,
+      name: year + ' Season Pack',
+      diamonds: YEAR_PACK_PRICE,
+      size: 3,
+      season: year,
+      floor: 'uncommon',
+      blurb: 'Three cards from the ' + year + ' season only, the last one ' +
+             'Uncommon or better.'
+    });
+  });
+
   function pack(key) {
     return PACKS.filter(function (p) { return p.key === key; })[0] || null;
   }
@@ -349,6 +370,7 @@ EGE.cards = (function () {
     return all().filter(function (card) {
       if (!EGE.isPublished(card.season, card.week)) { return false; }
       if (p && p.seasonOnly && card.season !== EGE.currentSeason) { return false; }
+      if (p && p.season && card.season !== p.season) { return false; }
       return true;
     });
   }
@@ -581,6 +603,220 @@ EGE.cards = (function () {
     return drawOne(pool, rng || Math.random, set.reward.floor);
   }
 
+  /* --- player cards -------------------------------------------------------
+
+     Every account has a Player Card for each of the six, for their whole
+     career. It is not a card in the binder: it is how much of that player
+     the account has collected, and it climbs the same ladder the cards do,
+     Common to Iconic.
+
+     What counts is the fantasy points printed on every copy of every one of
+     his cards you hold -- a duplicate counts again, which is what a second
+     copy is good for now. A card that leaves the collection (sold, traded,
+     up for sale on the market) takes its points with it.
+
+     The ladder is written for a receiver and scaled by position, because a
+     card does not score alike everywhere: a quarterback's average card is
+     about 9.6 points (passing plays score 1 a 25 yards and 4 a touchdown),
+     a back's or a receiver's about 13.4 and a tight end's about 11.9, so a
+     quarterback's rungs are three quarters of a receiver's and a tight
+     end's nine tenths. Sam's own example sets the first rung: 150 points of
+     Paxon makes him Uncommon.
+
+     Every game the player plays after that pays the account a bonus on top
+     of anything else: the game's diamonds before any booster (the same
+     fantasy points times the same position share a game is paid on) times
+     the rank's `bonus`, rounded up. Common pays nothing yet. Each game pays
+     once, at the rank held when it is first paid, and the games already
+     out when an account first has Player Cards are skipped, so ranking up
+     later never back-pays a season. pay_player_card_bonuses in
+     supabase/schema.sql pays it and holds a game's bonus to 400.
+
+     How hard and how much, for a receiver (the PR that added this has the
+     working):
+
+       rank       points   bonus   a 13-credit game   a 14-game season
+       Common     1 card    0          0                 0
+       Uncommon     150    10%         2                28
+       Rare         400    25%         4                56
+       Epic         800    50%         7                98
+       Legendary   1400    80%        11               154
+       Mystic      2200   125%        17               238
+       Iconic      3500   300%        39               546
+
+     An account earns about 200 diamonds a season from its own games, and
+     random packs bring in about half a point of any one player per diamond
+     spent. */
+  var PLAYER_RANKS = [
+    { key: 'common',    points: 0,    bonus: 0 },
+    { key: 'uncommon',  points: 150,  bonus: 0.10 },
+    { key: 'rare',      points: 400,  bonus: 0.25 },
+    { key: 'epic',      points: 800,  bonus: 0.50 },
+    { key: 'legendary', points: 1400, bonus: 0.80 },
+    { key: 'mystic',    points: 2200, bonus: 1.25 },
+    { key: 'iconic',    points: 3500, bonus: 3.00 }
+  ];
+
+  /* How far a position's rungs are from a receiver's. */
+  var RANK_SCALE = { QB: 0.75, RB: 1, WR: 1, TE: 0.9 };
+
+  function rankScale(player) {
+    var s = RANK_SCALE[player && player.position];
+    return typeof s === 'number' ? s : 1;
+  }
+
+  /* The ladder for one player, in his own points. */
+  function ladderFor(player) {
+    var scale = rankScale(player);
+    return PLAYER_RANKS.map(function (r) {
+      return { key: r.key, name: rarity(r.key).name, color: rarity(r.key).color,
+               points: Math.round(r.points * scale), bonus: r.bonus };
+    });
+  }
+
+  /* Where `owned` ({ card id: quantity }) puts the account on one player's
+     ladder. Null rank while there is not a card of him yet. A play that
+     lost points (a pick-six) counts as nothing rather than taking any off. */
+  function playerCard(player, owned) {
+    var ladder = ladderFor(player);
+    var points = 0;
+    var copies = 0;
+    var distinct = 0;
+    Object.keys(owned || {}).forEach(function (id) {
+      var card = byId(id);
+      var n = owned[id] || 0;
+      if (!card || card.slug !== player.slug || n <= 0) { return; }
+      points += Math.max(0, card.points) * n;
+      copies += n;
+      distinct += 1;
+    });
+    points = round2(points);
+
+    var at = -1;
+    if (copies > 0) {
+      ladder.forEach(function (r, i) { if (points >= r.points) { at = i; } });
+    }
+    return {
+      player: player,
+      points: points,
+      copies: copies,
+      distinct: distinct,
+      ladder: ladder,
+      rank: at === -1 ? null : ladder[at],
+      next: at + 1 < ladder.length ? ladder[at + 1] : null
+    };
+  }
+
+  /* The bonus one game pays at a rank. */
+  function playerBonus(player, stats, season, rankKey) {
+    var r = PLAYER_RANKS.filter(function (one) { return one.key === rankKey; })[0];
+    if (!r || !r.bonus || !stats) { return 0; }
+    var base = EGE.economy.gameCredits(player, stats, season);
+    return Math.ceil(Math.round(base * r.bonus * 100) / 100);
+  }
+
+  /* Every game this season's Player Cards owe the account holding `owned`,
+     keyed pc-{slug}-w{week}. Games at Common go in at 0, so the game is
+     settled at the rank held when it was played and a later climb does not
+     reopen it. */
+  function playerBonusesEarned(owned, season) {
+    var year = season || EGE.currentSeason;
+    var out = [];
+    if (!EGE.economy.paysDiamonds(year)) { return out; }
+    EGE.players.forEach(function (player) {
+      var pc = playerCard(player, owned);
+      EGE.gamesPlayed(player, year).forEach(function (game) {
+        if (!game.stats || game.injured || game.bye) { return; }
+        var rankKey = pc.rank ? pc.rank.key : null;
+        var diamonds = rankKey ? playerBonus(player, game.stats, year, rankKey) : 0;
+        out.push({
+          key: 'pc-' + player.slug + '-w' + game.week,
+          diamonds: diamonds,
+          note: (pc.rank ? pc.rank.name : 'No') + ' ' + player.first + ' Player Card, week ' +
+                game.week + ' v ' + game.opponent
+        });
+      });
+    });
+    return out;
+  }
+
+  /* --- the shop's daily cards ----------------------------------------------
+
+     Six cards a day, the same six for everybody: one Legendary and five
+     more, each rolled on the pack odds but never past Epic. Bought one at a
+     time, and a card bought is gone for everybody until the next day.
+     Prices are Sam's, by rarity, and charged by buy_shop_card in
+     supabase/schema.sql, which holds the same numbers.
+
+     The page rolls the day's six from a seed made of the date, so whoever
+     opens the shop first proposes the same six anybody else would; the
+     database keeps the first proposal for the day and everybody reads that
+     one back, so a week published halfway through the day does not change
+     the shelf. */
+  var SHOP_PRICES = { common: 10, uncommon: 12, rare: 15, epic: 20, legendary: 25 };
+  var SHOP_SIZE = 6;
+
+  function shopPrice(rarityKey) { return SHOP_PRICES[rarityKey] || null; }
+
+  /* A small seeded generator, so a seed always rolls the same cards. */
+  function seeded(seed) {
+    var h = 1779033703 ^ String(seed).length;
+    for (var i = 0; i < String(seed).length; i += 1) {
+      h = Math.imul(h ^ String(seed).charCodeAt(i), 3432918353);
+      h = (h << 13) | (h >>> 19);
+    }
+    var a = h >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  /* The day's shelf, Legendary first: [{ card, rarity }], no card twice. */
+  function rollShop(seed) {
+    var rng = seeded('shop:' + seed);
+    var pool = pullable(null);
+    var out = [];
+    var used = {};
+
+    function from(list) {
+      var left = list.filter(function (c) { return !used[c.id]; });
+      if (!left.length) { return null; }
+      var card = left[Math.floor(rng() * left.length)];
+      used[card.id] = true;
+      return card;
+    }
+
+    var top = from(pool.filter(function (c) { return c.rarity === 'legendary'; }));
+    if (top) { out.push({ card: top.id, rarity: top.rarity }); }
+
+    var below = RARITIES.filter(function (r) { return SHOP_PRICES[r.key] && r.key !== 'legendary'; });
+    var total = below.reduce(function (sum, r) { return sum + r.odds; }, 0);
+    var tries = 0;
+    while (out.length < SHOP_SIZE && tries < 60) {
+      tries += 1;
+      var at = rng() * total;
+      var pickKey = below[below.length - 1].key;
+      for (var i = 0; i < below.length; i += 1) {
+        at -= below[i].odds;
+        if (at < 0) { pickKey = below[i].key; break; }
+      }
+      var card = from(pool.filter(function (c) { return c.rarity === pickKey; }));
+      if (card) { out.push({ card: card.id, rarity: card.rarity }); }
+    }
+    return out;
+  }
+
+  /* --- the market ----------------------------------------------------------
+
+     Players sell cards to each other for diamonds. A card put up comes out
+     of the collection until it sells, is taken down or runs out, and then
+     goes to the buyer or back. Three listings a day each, up for a day.
+     list_card_for_sale in supabase/schema.sql holds all of it. */
+  var MARKET = { perDay: 3, hours: 24, minPrice: 1, maxPrice: 999 };
+
   /* --- odds, said out loud ------------------------------------------------ */
 
   /* How many of each rarity exist right now, for the odds table. */
@@ -613,6 +849,17 @@ EGE.cards = (function () {
     fill: fill,
     rollReward: rollReward,
     counts: counts,
+    PLAYER_RANKS: PLAYER_RANKS,
+    RANK_SCALE: RANK_SCALE,
+    ladderFor: ladderFor,
+    playerCard: playerCard,
+    playerBonus: playerBonus,
+    playerBonusesEarned: playerBonusesEarned,
+    SHOP_PRICES: SHOP_PRICES,
+    SHOP_SIZE: SHOP_SIZE,
+    shopPrice: shopPrice,
+    rollShop: rollShop,
+    MARKET: MARKET,
     rebuild: function () { catalogue = null; setsCache = null; }
   };
 })();

@@ -1218,25 +1218,45 @@ YD TD*) and a performance card its yards and touchdowns (*312 YDS 5 TD*).
 | Base | 10 | 3 | any season |
 | Season | 12 | 3 | the live season only, the last card Uncommon or better |
 | Pro | 20 | 5 | any season, the last card Rare or better |
+| Season, a past year | 14 | 3 | that one past season only, the last card Uncommon or better |
 
-Twice what they were in credits, because a credit buys two diamonds.
+Base, Season and Pro are twice what they were in credits, because a credit
+buys two diamonds.
+
+Each pack's tile is centred, top to bottom: the pack, its name, what is in
+it, and **Buy & Rip**. **The Season Pack has an arrow either side of its
+Buy button:** the left one steps it back to 2021, 2020 and so on, each a
+`year-{season}` pack at 14 diamonds (`YEAR_PACK_PRICE` in `data/cards.js`),
+and the right one steps forward to the live season. A past year is a
+darker bronze with white words. A new year joins the arrows when the site
+rolls to a new season. The arrows only redraw the Season Pack, and every
+pack's shimmer keeps time with the clock (`--phase`), so redrawing the packs
+never starts their shimmer over. The Pro Pack glows a little purple.
 
 Each card rolls its rarity on the odds first, then is drawn from every
 published card of that rarity the pack can hold. A rarity with nothing out
 yet falls to the nearest one below it. The Season Pack is the one that grows
 a week at a time.
 
-**Buy & Rip** rolls the cards, pays for them and opens the pack in one go:
-the sealed pack comes up, a tap tears it open, the cards are dealt face down,
-and each one turns over on a tap with a flash of its colour from Rare up.
-Cards a player has never had before say *New*. Nothing from the pack shows
-in the collection, the library, the recent pulls or the counts until it is
+**Buy & Rip** brings up the sealed pack. **Nothing is paid until it is
+torn:** the tap that tears it is what calls `open_card_pack()`, and closing
+the overlay with the pack still sealed costs nothing and adds nothing. The
+sealed pack gives nothing away either, with no words under it and no glow of
+what is inside. Once torn, the cards are dealt face down and each one turns
+over on a tap with a flash of its colour from Rare up. Cards a player has
+never had before say *New*.
+
+**Quick sell out of the pack:** once every card is turned, tapping a card
+picks it (tap again to put it back), and **Quick sell N** sells all the
+picked ones at the quick-sell prices before the next pack. Iconic cards
+can't be picked.
+
+Nothing from the pack shows in the collection, the library, the recent pulls or the counts until it is
 put away with **Done**, so nothing behind it gives the pack away; a set's
 reward card works the same way.
 
-**The big pulls have their own openings**, longer the rarer they are. A pack
-with a Legendary or better in it lets a little of that card's colour out as
-it tears. Then the card holds back before it turns over: it lifts, shakes
+**The big pulls have their own openings**, longer the rarer they are. A
+Legendary or better holds back before it turns over: it lifts, shakes
 and glows in its colour, and turns in a burst of rays, a ring and sparks.
 
 | Rarity | Holds back | Then |
@@ -1309,11 +1329,13 @@ The Rarity & Odds table lists the prices too.
 
 ### Recent pulls
 
-Under the packs: the packs you opened and the set rewards you pulled, newest
-first, four at a time with **Show more** for up to twenty. Tap a card to see
-it up close (and quick sell it from there). A card that has since been sold
-or traded away is shown faded. The packs are read from `card_packs`, which
-only the player and an admin can read.
+Under the packs: the last packs **anybody** opened, newest first, each with
+who opened it. Four at a time, and **Show more** goes back three times, so
+sixteen at most. Tap a card to see it up close; on your own pulls you can
+sell it from there, and a card of yours that has since been sold or traded
+away is shown faded. `card_packs` stays readable by its owner and an admin
+only, so these come through `recent_card_opens()`, which hands over who,
+which pack, the cards and when, never the price.
 
 ### The library
 
@@ -1431,6 +1453,139 @@ browser's roles, since they do no checking of their own. **Re-run `supabase/sche
 or the tab says it cannot load the cards.
 
 ---
+
+### The five pages
+
+The tab is five pages, picked from a radio bar fixed along the bottom of the
+screen; the page goes into the address as `#cards/players`, `#cards/shop` and
+so on, swapped in place so switching reloads nothing.
+
+- **Cards** — the collection and nothing else. The page itself scrolls it (no
+  box inside the page), drawn a few rows at a time, with the filters pinned
+  under the nav on a desktop.
+- **Players** — the six Player Cards (below).
+- **Shop** — packs and Buy Diamonds, Today's Cards, the Market, Recent Pulls
+  and the odds.
+- **Trades** — offers to you, your offers, recent ones. The page button
+  counts the offers waiting on you.
+- **Achievements** — the library of sets. The page button counts sets ready
+  to claim.
+
+### Player Cards
+
+Every account has a **Player Card for each of the six**, for their whole
+career. It is the fantasy points printed on every copy of every one of his
+cards the account holds — duplicates count again; a card sold, traded or up
+on the market takes its points with it — graded on the card ladder:
+
+| Rank | WR / RB | TE | QB | Bonus a game |
+|---|---|---|---|---|
+| Common | 1 card | 1 card | 1 card | — |
+| Uncommon | 150 | 135 | 113 | +10% |
+| Rare | 400 | 360 | 300 | +25% |
+| Epic | 800 | 720 | 600 | +50% |
+| Legendary | 1400 | 1260 | 1050 | +80% |
+| Mystic | 2200 | 1980 | 1650 | +125% |
+| Iconic | 3500 | 3150 | 2625 | +300% |
+
+A quarterback's average card scores about 9.6, a back's or receiver's 13.4 and
+a tight end's 11.9, so their rungs are ×0.75 and ×0.9 of a receiver's
+(`RANK_SCALE`). **Every game the player plays pays the account a bonus**: the
+game's diamonds before any booster, times the rank's bonus, rounded up. It
+goes in `diamond_awards` as `pc-{slug}-w{week}` through
+`pay_player_card_bonuses()`, on sign-in. Each game is paid once, at the rank
+held when it is first paid, and never topped up; games at Common go in at 0.
+The first time an account is paid, every game already out goes in at 0 (a
+`pc-start` row marks it), so Player Cards pay from the next game on. A game's
+bonus is held to 400. The ladder is `PLAYER_RANKS` in `data/cards.js`.
+
+A Player Card follows Sam's sketch, in the binder card's frame in the
+rank's colour:
+
+```
+[ PLAYER           | 354 FPTS ]
+  his picture (team logo in the corner)
+  Andrew Parr
+  ALABAMA · TE
+  EARNED 200 💎 · +10%
+  [■■■■■■■             ]
+        46 TO RARE
+[ ◆ UNCOMMON          CAREER ]
+```
+
+**Earned** is every diamond that Player Card has paid you, all seasons (its
+`pc-` rows in `diamond_awards`), and beside it the rank's bonus; hovering it
+gives about what that is a game. On a player's own page the earned figure
+comes from `showcased_player_cards()`, which adds it for the cards put up.
+Before any card of his, the card is grey and the bar runs to Uncommon. The
+bar is the colour of the rank held. The face is `playerCardFace()` in
+`js/cards-view.js`. It is drawn on a binder card (`.ege-tcard`), so a Player
+Card is exactly the height and width of a play or performance card and gets
+the same effects for its rank: Rare's orange foil, the sheen from Epic up,
+Legendary's purple glow, Mystic's moving gold and Iconic's holo. The Players
+page lays the six out in three rows of two (one a row once the screen
+narrows), each card as wide as one in the binder, with what it means beside
+it: his name, FPTS and how many cards (and how many different) make them, a
+bar and how many more FPTS reach the next rank and what that pays, what the
+card has earned so far with its bonus now and about how much that is a game,
+then **See his cards** (the collection filtered to him) and **Add photo**.
+
+**Somebody else's Player Cards.** The drop-down above them switches to any
+other account's six. Their cards come from their collection, which anybody
+signed in can read; what theirs have earned comes from
+`player_card_earnings()`, which hands over the Player Card totals from
+`diamond_awards` and nothing else of it. **See his cards** opens their
+collection filtered to that player. Photos can only be changed on your own.
+
+**Your own photo on a Player Card.** **Add photo** under a Player Card picks
+a picture from the phone or computer. The page crops it square (a little
+above the middle on a tall picture, where a face usually is), shrinks it to
+480×480 and saves it as a WebP of about 20–60 KB, then shows the card with
+it before **Use this photo** keeps it. Redrawing it that way also leaves the
+camera's location data behind. It replaces the headshot on your copy of that
+Player Card only, on the Players page and on your own page; **×** takes it
+down. One photo per account per player, so 36 at most across the site.
+
+They are rows in `card_photos` (`set_card_photo()`, `clear_card_photo()`),
+each picture kept as a data URL in the row: 36 small pictures are a few
+megabytes, so there is no storage bucket to set up. `set_card_photo()` turns
+away anything that is not an image or is over about 100 KB, and anybody
+without a card of that player. Anybody can see them, signed out too, the
+same as a player's page. On the admin page the card table counts each
+account's photos with a **Remove** that takes them all down, and Clear
+library takes them down too.
+
+
+**Up to three can go on the player's own page**, above their showcase. They
+are picked like the cards: **Edit** the showcase, **+ Add a card**, and the
+picker lists your Player Cards first, then your cards. Saving puts them up
+(`set_player_card_showcase()`). Anybody
+can see them, signed out too: `showcased_player_cards()` hands over only the
+cards of the players put up, which is what their rank is worked out from.
+
+The collection's filter row ends in a bin that resets every filter and the
+sort, and goes back to your own collection.
+
+### Today's Cards and the Market
+
+**Today's Cards**: six cards a day, the same six for everybody — one
+Legendary and five rolled on the pack odds up to Epic. Common 10, Uncommon 12,
+Rare 15, Epic 20, Legendary 25 diamonds (`SHOP_PRICES`, and
+`buy_shop_card()` — change both). A card bought shows **SOLD** for everybody.
+The shelf turns over at midnight Eastern: the first visitor of the day
+proposes it (rolled from the date) and `card_shop_today()` keeps that one.
+
+**The Market**: a player puts a card up at a price of 1–999 diamonds. It
+leaves their collection while listed, goes to the buyer when bought (the
+diamonds go to the seller), and comes back when taken down or after 24 hours.
+Three listings a day each, counted over the last 24 hours whatever became of
+them (`list_card_for_sale()`, `MARKET` in `data/cards.js`). Clear library
+takes a player's listings down with nothing returned.
+
+A card can go up two ways: **Sell a card** on the Market, which picks from
+the collection, or **Sell** beside Quick sell on any card of yours up close
+in the Cards page, which opens a price and **Put it up**. That Sell button
+is greyed out once the day's three listings are used.
 
 ## Seasons, and putting a week out
 

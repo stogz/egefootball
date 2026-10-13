@@ -4985,9 +4985,9 @@
       show(viewShop);
       setNav('shop');
       document.title = 'Shop \u2014 EGE Football';
-    } else if (hash === 'cards') {
+    } else if (hash === 'cards' || hash.indexOf('cards/') === 0) {
       show(viewCards);
-      EGE.cardsView.render();
+      EGE.cardsView.render(hash.slice(6) || null);
       setNav('cards');
       document.title = 'Cards \u2014 EGE Football';
     } else if (hash === 'admin') {
@@ -5318,12 +5318,13 @@
              diamonds by the time they reach the shop. */
           return Promise.all([
             EGE.wallet.syncAwards(player, EGE.currentSeason),
-            EGE.wallet.syncDiamonds(player, EGE.currentSeason)
+            EGE.wallet.syncDiamonds(player, EGE.currentSeason),
+            EGE.cardStore.syncPlayerCards(player, EGE.currentSeason)
           ]);
         })
         .then(function (both) {
           var credits = (both[0] && both[0].paid) || 0;
-          var diamonds = (both[1] && both[1].paid) || 0;
+          var diamonds = ((both[1] && both[1].paid) || 0) + ((both[2] && both[2].paid) || 0);
           var parts = [];
           if (credits) { parts.push(credits + ' credits'); }
           if (diamonds) { parts.push(diamonds + ' diamonds'); }
@@ -5516,7 +5517,7 @@
         redrawRatings();
         refreshScoutMarks();
         /* A week out since is a week of new cards in the packs. */
-        if (window.location.hash === '#cards') { EGE.cardsView.render(); }
+        if (/^#cards(\/|$)/.test(window.location.hash)) { EGE.cardsView.render(); }
       }
       updateNavCreditsFromServer();
       /* An offer may have come in while the page was put away. */

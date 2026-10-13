@@ -81,18 +81,18 @@ EGE.cardStore = (function () {
       .catch(function () { return {}; });
   }
 
-  /* Rolls a pack and pays for it. The cards are decided first, so what the
-     database charges for and what the rip shows are the same cards; if the
-     payment is refused, nothing was opened. */
-  function openPack(packKey) {
+  /* Pays for a pack whose cards were rolled when it was put in front of the
+     player (EGE.cards.rollPack), which is the moment it is torn open: a
+     pack closed without tearing is never charged and its cards never
+     arrive. What the database charges for and what the rip shows are the
+     same cards. */
+  function openPack(packKey, cards) {
     var c = client();
     if (!c) { return fail(offline()); }
 
     var pack = EGE.cards.pack(packKey);
     if (!pack) { return fail('There is no such pack.'); }
-
-    var cards = EGE.cards.rollPack(packKey);
-    if (cards.length !== pack.size) {
+    if (!cards || cards.length !== pack.size) {
       return fail('Not enough cards are out yet to fill a ' + pack.name + '.');
     }
 
@@ -139,6 +139,17 @@ EGE.cardStore = (function () {
 
     return c.from(PACKS).select('pack_key, cards, opened_at').eq('email', email)
       .order('opened_at', { ascending: false }).limit(limit || 20)
+      .then(function (res) { return res.error ? null : (res.data || []); })
+      .catch(function () { return null; });
+  }
+
+  /* The last packs anybody opened, newest first: { email, pack_key, cards,
+     opened_at }. Through recent_card_opens, since card_packs itself is
+     only readable by its owner. Null when they could not be read. */
+  function recentOpens(limit) {
+    var c = client();
+    if (!c) { return Promise.resolve(null); }
+    return c.rpc('recent_card_opens', { p_limit: limit || 16 })
       .then(function (res) { return res.error ? null : (res.data || []); })
       .catch(function () { return null; });
   }
@@ -211,8 +222,163 @@ EGE.cardStore = (function () {
       .catch(function () { return []; });
   }
 
+  /* The Player Cards a player has put on their page, and the cards of
+     those players their rank is worked out from. Public, like the
+     showcase: { players: [slug], cards: { id: quantity } }. */
+  function showcasePlayersFor(email) {
+    var c = client();
+    if (!c || !email) { return Promise.resolve({ players: [], cards: {}, earned: null, photos: {} }); }
+    return c.rpc('showcased_player_cards', { p_email: email })
+      .then(function (res) {
+        var d = res.error ? null : res.data;
+        return { players: (d && d.players) || [], cards: (d && d.cards) || {},
+                 earned: (d && d.earned) || null, photos: (d && d.photos) || {} };
+      })
+      .catch(function () { return { players: [], cards: {}, earned: null, photos: {} }; });
+  }
+
+  /* --- photos on Player Cards ---------------------------------------------- */
+
+  /* This player's custom Player Card photos: { slug: data url }. Null when
+     they could not be read (before the schema has card_photos). */
+  function cardPhotos(email) {
+    var c = client();
+    if (!c || !email) { return Promise.resolve(null); }
+    return c.from('card_photos').select('slug, photo').eq('email', email)
+      .then(function (res) {
+        if (res.error) { return null; }
+        var map = {};
+        (res.data || []).forEach(function (row) { map[row.slug] = row.photo; });
+        return map;
+      })
+      .catch(function () { return null; });
+  }
+
+  /* What each of this player's Player Cards has paid them, every season:
+     { slug: diamonds }. Anybody signed in can read it; null when it could
+     not be (before the schema has player_card_earnings). */
+  function playerCardEarnings(email) {
+    var c = client();
+    if (!c || !email) { return Promise.resolve(null); }
+    return c.rpc('player_card_earnings', { p_email: email })
+      .then(function (res) { return res.error ? null : (res.data || {}); })
+      .catch(function () { return null; });
+  }
+
+  /* Puts a photo, already cropped and shrunk to a data URL, on this
+     player's Player Card of `slug`; set_card_photo checks they hold a card
+     of his and that it is small enough. */
+  function setCardPhoto(slug, photo) {
+    return call('set_card_photo', { p_slug: slug, p_photo: photo }, function () { return { ok: true }; });
+  }
+
+  /* Takes one down. An admin passes `email` (and no slug for all of them). */
+  function clearCardPhoto(slug, email) {
+    return call('clear_card_photo', { p_slug: slug || null, p_email: email || null },
+      function (n) { return { ok: true, count: Number(n) || 0 }; });
+  }
+
+  function setShowcasePlayers(slugs) {
+    return call('set_player_card_showcase', { p_slugs: slugs }, function () { return { ok: true }; });
+  }
+
   function setShowcase(ids) {
     return call('set_card_showcase', { p_cards: ids }, function () { return { ok: true }; });
+  }
+
+  /* --- player cards -------------------------------------------------------- */
+
+  /* Pays what this account's Player Cards are owed for the season's games:
+     its collection decides the rank on each of the six, data/cards.js what
+     each game pays at it, and pay_player_card_bonuses what is new. Safe to
+     call on every load, like the other awards. */
+  function syncPlayerCards(player, season) {
+    var c = client();
+    if (!c || !player || !player.email) { return Promise.resolve({ paid: 0 }); }
+    var year = season || EGE.currentSeason;
+    if (!EGE.economy.paysDiamonds(year)) { return Promise.resolve({ paid: 0 }); }
+
+    return collectionFor(player.email).then(function (got) {
+      /* A collection that could not be read is not an empty one: paying on
+         it would settle every game at nothing. */
+      if (!got) { return { paid: 0 }; }
+      return c.rpc('pay_player_card_bonuses', {
+        p_season: year,
+        p_awards: EGE.cards.playerBonusesEarned(got.owned, year)
+      }).then(function (res) {
+        if (res.error) { return { paid: 0, message: res.error.message }; }
+        return { paid: Number(res.data) || 0 };
+      });
+    }).catch(function () { return { paid: 0 }; });
+  }
+
+  /* What this account's Player Cards have paid, as diamond_awards rows. */
+  function playerCardAwards(email) {
+    var c = client();
+    if (!c || !email) { return Promise.resolve(null); }
+    return c.from('diamond_awards').select('season, award_key, diamonds, note, awarded_at')
+      .eq('email', email).like('award_key', 'pc-%')
+      .order('awarded_at', { ascending: false })
+      .then(function (res) { return res.error ? null : (res.data || []); })
+      .catch(function () { return null; });
+  }
+
+  /* --- the shop's daily cards ------------------------------------------------ */
+
+  /* Today's shelf: { day, resets_at, cards: [{ card, rarity }], sold: [slot] }.
+     The page proposes the day's six, rolled from the date, and the database
+     keeps whichever proposal came first. Null when it cannot be read. */
+  function shopToday() {
+    var c = client();
+    if (!c) { return Promise.resolve(null); }
+    var seed = new Date().toISOString().slice(0, 10);
+    return c.rpc('card_shop_today', { p_cards: EGE.cards.rollShop(seed) })
+      .then(function (res) { return res.error ? null : res.data; })
+      .catch(function () { return null; });
+  }
+
+  function buyShopCard(slot) {
+    return call('buy_shop_card', { p_slot: slot },
+      function (n) { return { ok: true, diamonds: Number(n) }; });
+  }
+
+  /* --- the market ------------------------------------------------------------ */
+
+  var LISTINGS = 'card_listings';
+
+  /* Everything up for sale now, oldest first, and this account's own
+     listings from the last day (to count against the three). Anything that
+     has run out is put back first. */
+  function market(email) {
+    var c = client();
+    if (!c) { return Promise.resolve(null); }
+    var since = new Date(Date.now() - EGE.cards.MARKET.hours * 3600 * 1000).toISOString();
+
+    return c.rpc('expire_card_listings').then(function () {
+      return Promise.all([
+        c.from(LISTINGS).select('*').eq('status', 'open').order('created_at', { ascending: true }),
+        email ? c.from(LISTINGS).select('*').eq('email', email).gt('created_at', since)
+          .order('created_at', { ascending: false }) : Promise.resolve({ data: [] })
+      ]);
+    }).then(function (both) {
+      if (both[0].error) { return null; }
+      return { open: both[0].data || [], mine: both[1].error ? [] : (both[1].data || []) };
+    }).catch(function () { return null; });
+  }
+
+  function listCard(card, price) {
+    return call('list_card_for_sale', { p_card: card.id, p_rarity: card.rarity, p_price: price },
+      function (id) { return { ok: true, id: id }; });
+  }
+
+  function cancelListing(id) {
+    return call('cancel_card_listing', { p_listing: id },
+      function () { return { ok: true }; });
+  }
+
+  function buyListing(id) {
+    return call('buy_card_listing', { p_listing: id },
+      function (n) { return { ok: true, diamonds: Number(n) }; });
   }
 
   /* --- the admin's resets -------------------------------------------------- */
@@ -225,11 +391,13 @@ EGE.cardStore = (function () {
       c.from(CARDS).select('email, card_id, quantity'),
       c.from(CLAIMS).select('email, set_key'),
       c.from(TRADES).select('from_email, to_email, status'),
-      c.from(SHOWCASES).select('email, cards')
+      c.from(SHOWCASES).select('email, cards'),
+      c.from('card_photos').select('email, slug')
     ]).then(function (all) {
-      if (all.some(function (res) { return res.error; })) { return null; }
+      if (all.slice(0, 4).some(function (res) { return res.error; })) { return null; }
       return { cards: all[0].data || [], claims: all[1].data || [],
-               trades: all[2].data || [], showcases: all[3].data || [] };
+               trades: all[2].data || [], showcases: all[3].data || [],
+               photos: all[4].error ? null : (all[4].data || []) };
     }).catch(function () { return null; });
   }
 
@@ -251,12 +419,27 @@ EGE.cardStore = (function () {
     claimSet: claimSet,
     recentPacks: recentPacks,
     quickSell: quickSell,
+    recentOpens: recentOpens,
+    cardPhotos: cardPhotos,
+    playerCardEarnings: playerCardEarnings,
+    setCardPhoto: setCardPhoto,
+    clearCardPhoto: clearCardPhoto,
     tradesFor: tradesFor,
     proposeTrade: proposeTrade,
     respondTrade: respondTrade,
     cancelTrade: cancelTrade,
     showcaseFor: showcaseFor,
     setShowcase: setShowcase,
+    showcasePlayersFor: showcasePlayersFor,
+    setShowcasePlayers: setShowcasePlayers,
+    syncPlayerCards: syncPlayerCards,
+    playerCardAwards: playerCardAwards,
+    shopToday: shopToday,
+    buyShopCard: buyShopCard,
+    market: market,
+    listCard: listCard,
+    cancelListing: cancelListing,
+    buyListing: buyListing,
     everything: everything,
     clearLibrary: clearLibrary,
     resetGoals: resetGoals

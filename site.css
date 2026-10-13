@@ -4453,26 +4453,44 @@ html.ege-noscroll body { overflow: hidden; }
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
   gap: 20px;
 }
-/* The words start at the top of the tile and the button sits on its foot, so
-   three packs side by side put three names on one line and three buttons on
-   another, however long each one's description runs. */
+/* A pack top to bottom, all centred: the pack, its name, what is in it,
+   then the Buy button on the tile's foot, so packs side by side put their
+   buttons on one line however long each description runs. The Season
+   Pack's year arrows sit either side of its button. */
 .ege-packtile {
   display: flex;
-  align-items: stretch;
-  gap: 18px;
-  padding: 16px;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 22px 18px 18px;
   border: var(--fb-border-thin) solid var(--fb-ink);
   background: #fff;
+  text-align: center;
 }
-.ege-packtile > .ege-pack { width: 104px; flex: none; align-self: center; }
-.ege-packtile__words {
+.ege-packtile > .ege-pack { width: 128px; margin-bottom: 8px; }
+.ege-packtile > .ege-item__text { max-width: 30ch; }
+.ege-packtile__row {
   display: flex;
-  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
   gap: 8px;
-  flex: 1 1 auto;
-  min-width: 0;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 6px;
 }
-.ege-packtile__buy { margin-top: auto; }
+.ege-packtile__buy { flex: 0 1 auto; }
+/* The same block shadow and press as the Buy button between them. */
+.ege-packtile__arrow {
+  flex: none;
+  min-width: 44px;
+  padding: 0 10px;
+  background: #fff;
+  font-size: 1.5rem;
+  line-height: 1;
+  box-shadow: 4px 4px 0 var(--fb-ink);
+}
+.ege-packtile__arrow:active:not(:disabled) { box-shadow: 1px 1px 0 var(--fb-ink); transform: translate(3px, 3px); }
+.ege-packtile__arrow:disabled { box-shadow: none; }
 
 /* Swapping credits for diamonds, under the packs: what it is on the left,
    the form on the right, and the form under the words once there is no room
@@ -4501,7 +4519,6 @@ html.ege-noscroll body { overflow: hidden; }
 }
 /* Narrow, against the full width .ege-field gives an input. */
 .ege-swap .ege-swap__input { width: 6.5em; }
-.ege-swap__have { flex-basis: 100%; }
 
 /* The diamond balance at the head of the Packs panel. */
 .ege-ovr--diamonds .ege-ovr__label { color: var(--fb-diamond); }
@@ -4522,6 +4539,27 @@ html.ege-noscroll body { overflow: hidden; }
   --foil: linear-gradient(135deg, #8a3a10 0%, #e56e28 22%, #ffd27a 38%, #d8741f 55%,
                           #f8b54a 74%, #8a3a10 100%);
   --pack-ink: var(--fb-ink);
+}
+/* A past season: bronze, darker than the live Season Pack so the white
+   words read on it. */
+.ege-pack--year {
+  --foil: linear-gradient(135deg, #2a1c0b 0%, #6b4519 22%, #b0803f 38%, #7a5020 55%,
+                          #a0723a 74%, #2a1c0b 100%);
+  --pack-ink: #fff;
+}
+.ege-pack--year .ege-pack__brand,
+.ege-pack--year .ege-pack__count { text-shadow: 0 .8cqw 0 rgba(0, 0, 0, .45); }
+/* The Pro Pack glows a little purple. */
+.ege-pack--pro {
+  filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 10px rgba(156, 84, 232, .75));
+  animation: ege-pro-glow 3.2s ease-in-out var(--glow-phase, 0s) infinite;
+}
+@keyframes ege-pro-glow {
+  0%, 100% { filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 8px rgba(156, 84, 232, .6)); }
+  50%      { filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 16px rgba(156, 84, 232, .9)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ege-pack--pro { animation: none; }
 }
 .ege-pack--pro {
   --foil: linear-gradient(135deg, #1d2416 0%, #3a2a55 20%, #ec5fa8 34%, #8a4fd8 48%,
@@ -4562,7 +4600,9 @@ html.ege-noscroll body { overflow: hidden; }
     57.14% 97%, 53.57% 100%, 50% 97%, 46.43% 100%, 42.86% 97%, 39.29% 100%, 35.71% 97%,
     32.14% 100%, 28.57% 97%, 25% 100%, 21.43% 97%, 17.86% 100%, 14.29% 97%, 10.71% 100%,
     7.14% 97%, 3.57% 100%, 0% 97%);
-  animation: ege-metal-flow 9s ease-in-out infinite;
+  /* --phase is set by the page from the clock, so a pack drawn again picks
+     up its shimmer where it was rather than starting over. */
+  animation: ege-metal-flow 9s ease-in-out var(--phase, 0s) infinite;
 }
 /* A band across the middle for the name to sit on. */
 .ege-pack__body::before {
@@ -4638,6 +4678,44 @@ html.ege-noscroll body { overflow: hidden; }
   color: var(--fb-cream);
   text-shadow: 3px 3px 0 var(--fb-ink);
 }
+/* Picking cards to quick sell once a pack is over. */
+.ege-flip.is-flipped { cursor: pointer; }
+.ege-flip.is-picked .ege-tcard { outline: 4px solid #b3261e; outline-offset: 3px; }
+.ege-flip.is-picked::after {
+  content: 'Sell';
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  z-index: 8;
+  padding: 2px 8px;
+  background: #b3261e;
+  color: #fff;
+  border: 2px solid var(--fb-ink);
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.ege-flip.is-sold { cursor: default; }
+.ege-flip.is-sold .ege-tcard { filter: grayscale(1); opacity: .35; }
+.ege-flip.is-sold::after {
+  content: 'Sold';
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  z-index: 8;
+  transform: translate(-50%, -50%) rotate(-14deg);
+  padding: 4px 12px;
+  background: var(--fb-cream);
+  border: 3px solid #b3261e;
+  color: #b3261e;
+  font-family: var(--fb-font-display);
+  font-size: 1.25rem;
+  text-transform: uppercase;
+}
+.ege-rip__sell { align-self: center; background: #fbe3df; }
+.ege-rip__sell[hidden] { display: none; }
+
 .ege-rip__close { flex: none; width: 40px; height: 40px; font-size: 1.125rem; }
 
 .ege-rip__pack {
@@ -4647,37 +4725,8 @@ html.ege-noscroll body { overflow: hidden; }
   animation: ege-pack-idle 2.4s ease-in-out infinite;
 }
 .ege-rip__pack > .ege-pack { width: 100%; }
-.ege-rip__tear {
-  position: absolute;
-  left: 50%;
-  top: calc(100% + 14px);
-  transform: translateX(-50%);
-  white-space: nowrap;
-  font-size: var(--fb-label);
-  font-weight: 800;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: var(--fb-gold);
-}
 .ege-rip__pack.is-torn { animation: none; cursor: default; }
-/* A pack holding a Legendary or better lets out a little of its light as
-   it tears (js/cards-view.js sets --glow to the best card's colour). */
-.ege-rip__pack.has-glow::before {
-  content: '';
-  position: absolute;
-  inset: -40%;
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0;
-  background: radial-gradient(circle, var(--glow) 0%, transparent 60%);
-}
-.ege-rip__pack.has-glow.is-torn::before { animation: ege-leak .62s ease-out forwards; }
-@keyframes ege-leak {
-  0%   { opacity: 0; scale: .5; }
-  60%  { opacity: 1; scale: 1.2; }
-  100% { opacity: .85; scale: 1.45; }
-}
-.ege-rip__pack.is-torn .ege-rip__tear { opacity: 0; }
+.ege-rip__pack.is-paying { animation: none; opacity: .7; cursor: progress; }
 .ege-rip__pack.is-torn .ege-pack__top { animation: ege-tear .5s cubic-bezier(.3, .7, .4, 1) forwards; }
 .ege-rip__pack.is-torn .ege-pack__body { animation: ege-spill .55s .12s ease-in forwards; }
 
@@ -4702,6 +4751,11 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-rip__cards > .ege-flip { width: clamp(150px, 17vw, 190px); }
 .ege-rip__cards--1 > .ege-flip,
 .ege-zoom__card { width: min(290px, 72vw); }
+/* An account's Player Card photos on the admin's card table. */
+.ege-cardsadmin__photos { white-space: nowrap; }
+.ege-cardsadmin__photos .fb-btn { margin-left: 10px; }
+/* A Player Card with a new photo on it, before it is kept. */
+.ege-photoprev { width: min(260px, 66vw); margin: 0 auto; }
 
 .ege-rip__hint {
   margin: 0;
@@ -5045,6 +5099,11 @@ html.ege-noscroll body { overflow: hidden; }
   border-color: #d5392b;
   color: #fff;
 }
+/* Sell on the Market: the button, then the price and Put it up in its
+   place. */
+.ege-zoom__market { display: inline-flex; align-items: center; gap: 8px; }
+.ege-zoom__market .ege-gem { flex: none; }
+.ege-rip__actions .ege-zoom__price { width: 5.5em; min-height: 0; height: 100%; text-align: center; }
 .ege-zoom__nosell {
   align-self: center;
   font-size: .875rem;
@@ -5099,15 +5158,8 @@ html.ege-noscroll body { overflow: hidden; }
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 20px;
-  /* Held to three rows by js/cards-view.js (fitBinder); the rest scrolls in
-     here, drawn a few rows at a time as it comes near. The padding is room
-     for the badges that hang off a card's corners and for a card lifting on
-     hover, which the scroll box would clip. */
-  overflow-y: auto;
-  scrollbar-gutter: stable;
-  scrollbar-color: var(--fb-accent) var(--fb-surface);
-  padding: 10px 12px 12px 10px;
-  margin: -10px -12px -12px -10px;
+  /* No box of its own: the Cards page is the binder, so the page scrolls it,
+     drawn a few rows at a time as the bottom comes near (js/cards-view.js). */
 }
 .ege-binder > .ege-tcard {
   cursor: pointer;
@@ -5154,7 +5206,8 @@ html.ege-noscroll body { overflow: hidden; }
   border: var(--fb-border-thin) solid var(--fb-ink);
   background: #fff;
 }
-.ege-pull__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.ege-pull__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ege-pull__who { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .ege-pull__title { font-size: .9375rem; }
 .ege-pull__cards { display: flex; flex-wrap: wrap; gap: 10px; }
 .ege-pull__cards > .ege-tcard { width: 76px; cursor: pointer; transition: transform .16s ease; }
@@ -5422,11 +5475,397 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-cardsadmin { min-width: 0; }
 .ege-cardsadmin tbody tr { cursor: default; }
 
+/* --- the cards pages --------------------------------------------------------
+
+   Five pages under one tab, picked from a bar fixed along the bottom of the
+   screen. The section keeps room under its last panel so the bar never sits
+   on top of anything. */
+
+#view-cards { padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
+
+.ege-cardshead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin: 30px 0 22px;
+}
+.ege-cardshead .fb-kicker { color: var(--fb-cream); }
+.ege-cardshead__title {
+  font-size: clamp(2.25rem, 5vw, 3.25rem);
+  color: var(--fb-cream);
+  text-shadow: 4px 4px 0 var(--fb-ink);
+}
+.ege-cardshead .ege-ovr { margin: 0; }
+
+.ege-cardtabs {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 25;
+  background: var(--fb-ink);
+  border-top: 5px solid var(--fb-accent);
+  box-shadow: 0 -6px 0 rgba(0, 0, 0, .18);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.ege-cardtabs__inner {
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex;
+}
+.ege-cardtab {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  cursor: pointer;
+}
+.ege-cardtab input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.ege-cardtab > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 60px;
+  padding: 0 6px;
+  border-bottom: 4px solid transparent;
+  font-size: .8125rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(245, 234, 216, .62);
+  white-space: nowrap;
+}
+.ege-cardtab:hover > span { color: var(--fb-cream); }
+.ege-cardtab input:checked + span {
+  color: var(--fb-ink);
+  background: var(--fb-accent);
+  border-bottom-color: var(--fb-cream);
+}
+.ege-cardtab input:focus-visible + span { outline: 3px solid var(--fb-cream); outline-offset: -5px; }
+.ege-cardtab__badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: inline-grid;
+  place-items: center;
+  background: var(--fb-cream);
+  color: var(--fb-ink);
+  border: 2px solid var(--fb-ink);
+  font-size: .6875rem;
+  letter-spacing: 0;
+}
+.ege-cardtab__badge[hidden] { display: none; }
+
+/* The collection: the filters stay under the nav while the page scrolls. */
+.ege-collection__head { border-bottom: 0; padding-bottom: 6px; }
+.ege-collection .ege-cardfilters {
+  position: sticky;
+  top: 73px;
+  z-index: 6;
+  background: var(--fb-cream);
+  border-bottom: var(--fb-border) solid var(--fb-ink);
+}
+
+/* --- player cards ------------------------------------------------------------ */
+
+/* Each Player Card with what it means beside it: his name, how far to the
+   next rank, what it has earned and pays, and its buttons. Three rows of
+   two, one a row once that gets narrow, and the card itself always as
+   wide as a card in the binder (five across, then four, then two). */
+.ege-pcards {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px 24px;
+}
+.ege-pcard {
+  --card-w: calc((100cqw - 80px) / 5);
+  display: grid;
+  grid-template-columns: var(--card-w) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  min-width: 0;
+}
+@media (max-width: 900px) {
+  .ege-pcards { grid-template-columns: minmax(0, 1fr); }
+  .ege-pcard { --card-w: calc((100cqw - 60px) / 4); }
+}
+.ege-pcards__who { align-self: flex-start; max-width: 100%; }
+.ege-pcard__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding-top: 4px;
+}
+.ege-pcard__body > .ege-item__name { margin: 0; font-size: 1.375rem; }
+.ege-pcard__meter { height: 12px; }
+.ege-pcard__next,
+.ege-pcard__bonus { margin: 0; font-size: .875rem; line-height: 1.45; }
+.ege-pcard__next { color: var(--fb-muted); }
+.ege-pcard__bonus .ege-gem { vertical-align: -2px; }
+.ege-pcard__rate {
+  display: inline-block;
+  margin-right: 2px;
+  padding: 0 6px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  border-radius: 4px;
+  background: var(--fb-accent);
+  font-family: var(--fb-font-display);
+}
+.ege-pcard__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.ege-pcard__actions > .fb-btn { flex: 0 1 auto; }
+.ege-pcard__actions > .ege-pcard__unphoto { flex: none; padding: 0 14px; font-size: 18px; line-height: 1; }
+
+/* --- a Player Card's face ------------------------------------------------------
+
+   From Sam's sketch, in the binder card's frame: PLAYER and the FPTS across
+   the top, his picture, then his name, team and position, Earned with the
+   bonus, a bar to the next rank with how far is left, and the rank along
+   the foot. The frame is the rank's colour. Sized in cqw so it draws the
+   same on the Players page and on a player's own page. Mystic and Iconic
+   get a sheen across the picture. */
+.ege-plcard__face { color: var(--fb-ink); }
+.ege-plcard__top {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  background: var(--fb-ink);
+  color: var(--fb-cream);
+}
+.ege-plcard__kind {
+  display: flex;
+  align-items: center;
+  padding: 1.8cqw 3.4cqw;
+  font-size: 5cqw;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.ege-plcard__fpts {
+  display: flex;
+  align-items: baseline;
+  gap: .3em;
+  padding: 1.6cqw 3.4cqw;
+  background: var(--rarity);
+  color: var(--on-rarity);
+  border-left: .8cqw solid var(--fb-ink);
+  font-size: 4.4cqw;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+.ege-plcard__fpts b { font-family: var(--fb-font-display); font-weight: 400; font-size: 7cqw; letter-spacing: 0; line-height: 1; }
+/* The picture takes whatever height the card has left after the words. */
+.ege-plcard__photo {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--ground);
+  border-bottom: .8cqw solid var(--fb-ink);
+}
+.ege-plcard__photo > img:first-child {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+.ege-plcard__logo { width: 6.4cqw; height: 6.4cqw; object-fit: contain; flex: none; }
+.ege-plcard__plate {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4cqw;
+  padding: 2.8cqw 4.4cqw 3cqw;
+}
+.ege-plcard__name {
+  font-family: var(--fb-font-display);
+  font-size: 10cqw;
+  line-height: 1;
+  text-align: center;
+}
+.ege-plcard__team {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6cqw;
+  min-width: 0;
+  font-size: 4.6cqw;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--fb-muted);
+}
+.ege-plcard__team span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ege-plcard__earn {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 1.2cqw;
+  margin-top: .8cqw;
+  font-size: 4.8cqw;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.ege-plcard__earn b { font-family: var(--fb-font-display); font-weight: 400; font-size: 6.4cqw; letter-spacing: 0; }
+.ege-plcard__earn .ege-gem { width: 1em; height: 1em; }
+.ege-plcard__pct { color: var(--fb-diamond-deep); }
+.ege-plcard__bar {
+  position: relative;
+  height: 5.6cqw;
+  background: rgba(29, 36, 22, .1);
+  border: .8cqw solid var(--fb-ink);
+  overflow: hidden;
+}
+.ege-plcard__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--rarity);
+  background-image: repeating-linear-gradient(-45deg, rgba(0, 0, 0, .14) 0 1.4cqw, transparent 1.4cqw 2.8cqw);
+}
+.ege-plcard__togo {
+  text-align: center;
+  font-size: 4.4cqw;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.ege-plcard__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2cqw;
+  margin-top: auto;
+  padding: 1.8cqw 3.4cqw;
+  background: var(--fb-ink);
+  color: var(--fb-cream);
+  font-size: 4.4cqw;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.ege-plcard__rank { color: var(--rarity); }
+.ege-plcard__rank::before { content: '\25C6\00a0'; }
+.ege-plcard--unranked { filter: grayscale(1); }
+.ege-plcard--unranked .ege-plcard__photo img { opacity: .55; }
+/* An Iconic's holo runs faintly over the picture too, as on a binder card. */
+.ege-plcard.ege-tcard--iconic .ege-plcard__photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: .32;
+  background: linear-gradient(125deg, #ffb3d9, #cfe4f8 30%, #d2edcd 50%, #dfd1f3 70%, #ffb3d9);
+  background-size: 220% 220%;
+  animation: ege-sheen 6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ege-plcard.ege-tcard--iconic .ege-plcard__photo::after { animation: none; }
+}
+
+/* The same grid as the showcase cards under them, so a Player Card is as
+   wide as a card beside it. */
+.ege-showcase__players {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 18px;
+  max-width: 1000px;
+  margin-bottom: 22px;
+}
+
+/* The showcase picker: Player Cards first, then cards, each under a heading. */
+.ege-showcase__pickhead { margin: 18px 0 10px; font-size: 1rem; }
+.ege-showcase__pickhead:first-child { margin-top: 0; }
+.ege-plcard.is-off { opacity: .4; filter: grayscale(.6); cursor: default; }
+
+/* The bin at the end of the collection's filters: resets them all. */
+.ege-filterclear {
+  display: inline-grid;
+  place-items: center;
+  min-width: 47px;
+  padding: 0 12px;
+  align-self: stretch;
+}
+.ege-filterclear:disabled { opacity: .4; cursor: default; }
+
+/* --- the shop's daily cards ------------------------------------------------- */
+
+.ege-daily {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 18px;
+}
+.ege-daily__item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.ege-daily__item > .ege-tcard { cursor: pointer; }
+.ege-daily__item.is-sold > .ege-tcard { filter: grayscale(.85); opacity: .5; }
+.ege-daily__sold {
+  position: absolute;
+  top: 34%;
+  left: 50%;
+  z-index: 7;
+  transform: translate(-50%, -50%) rotate(-14deg);
+  padding: 6px 14px;
+  background: var(--fb-cream);
+  border: 3px solid #b3261e;
+  color: #b3261e;
+  font-family: var(--fb-font-display);
+  font-size: 1.5rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+.ege-daily__buy { padding-left: 4px; padding-right: 4px; }
+
+/* --- the market -------------------------------------------------------------- */
+
+.ege-market { display: flex; flex-direction: column; gap: 22px; }
+.ege-market__grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 18px;
+}
+.ege-market__grid > .fb-meta { grid-column: 1 / -1; margin: 0; }
+.ege-listing { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ege-listing > .ege-tcard { cursor: pointer; }
+.ege-listing__who { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; font-size: .875rem; }
+.ege-listing__who .fb-meta { margin: 0; white-space: nowrap; }
+.ege-listing__price { display: flex; align-items: center; gap: 6px; font-size: .875rem; font-weight: 700; }
+.ege-listing .fb-btn { padding-left: 4px; padding-right: 4px; }
+.ege-sellpick { display: flex; flex-direction: column; gap: 12px; }
+.ege-sellpick .ege-filterselect { align-self: flex-start; }
+
+@media (max-width: 400px) {
+  .ege-cardtab > span { font-size: .625rem; letter-spacing: 0; }
+}
+@media (max-width: 1100px) {
+  .ege-daily,
+  .ege-market__grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .ege-daily,
+  .ege-market__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
 /* --- on a phone ----------------------------------------------------------- */
 
 @media (max-width: 620px) {
-  .ege-packtile { padding: 14px; gap: 14px; }
-  .ege-packtile > .ege-pack { width: 84px; }
+  .ege-packtile { padding: 18px 14px 14px; }
+  .ege-packtile > .ege-pack { width: 110px; }
 
   /* Seven controls do not fit across a phone: the three kinds share one line,
      as tall as the drop-downs, and the drop-downs each take a line under
@@ -5436,6 +5875,25 @@ html.ege-noscroll body { overflow: hidden; }
 
   /* Two across: a card narrower than this has type too small to read. */
   .ege-binder { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .ege-daily,
+  .ege-market__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .ege-pcard { --card-w: calc((100cqw - 16px) / 2); gap: 12px; }  /* the binder is two across here too */
+  .ege-pcard__body > .ege-item__name { font-size: 1.125rem; }
+  .ege-pcard__next,
+  .ege-pcard__bonus { font-size: .8125rem; }
+  .ege-filterclear { flex: 0 0 auto; min-height: 47px; }
+  .ege-showcase__players { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+
+  /* Five pages across a phone: smaller words, and Achievements shortened
+     by its letter spacing rather than its name. */
+  .ege-cardtab > span { height: 54px; padding: 0 2px; font-size: .6875rem; letter-spacing: .02em; }
+  .ege-cardtab__badge { position: absolute; top: 4px; right: 4px; min-width: 16px; height: 16px; font-size: .625rem; }
+  .ege-cardtab > span { overflow: hidden; text-overflow: ellipsis; }
+  .ege-odds td.num { white-space: nowrap; }
+
+  /* On a phone the filters take several lines; pinned they would cover the
+     cards, so they scroll away with the page. */
+  .ege-collection .ege-cardfilters { position: static; }
 
   .ege-rip__stage { gap: 16px; }
   .ege-rip__cards { gap: 10px; }
@@ -5476,7 +5934,6 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-flip__sparks,
   .ege-rip__flash,
   .ege-rip__banner { display: none; }
-  .ege-rip__pack.has-glow::before { animation: none; }
   .ege-rip__pack.is-torn .ege-pack__top,
   .ege-rip__pack.is-torn .ege-pack__body { animation: none; opacity: 0; }
 }

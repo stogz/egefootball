@@ -21,6 +21,9 @@ EGE.showcase = (function () {
   var cache = {};                   /* email -> { ids, at } */
   var shown = null;                 /* the player on screen */
   var editing = null;               /* the ids being arranged, while editing */
+  var editingPlayers = null;        /* and the Player Cards (slugs), up to PLAYERS */
+  var ownCards = null;              /* the editor's own collection, once read */
+  var PLAYERS = 3;                  /* set_player_card_showcase holds to the same */
   var message = '';
 
   function el(tag, className, text) {
@@ -42,6 +45,58 @@ EGE.showcase = (function () {
     return hit ? hit.ids : [];
   }
 
+  /* The Player Cards they have put up (picked with + Add a card while
+     editing the showcase), worked out from the cards of those players they hold. One with
+     no cards left behind it is not shown. */
+  function savedPlayerCards(player) {
+    var hit = cache[player.email];
+    if (!hit || !hit.players) { return []; }
+    var earned = hit.players.earned;
+    return hit.players.players.map(EGE.playerBySlug).filter(Boolean).map(function (p) {
+      var pc = EGE.cards.playerCard(p, hit.players.cards);
+      pc.earned = earned ? (earned[p.slug] || 0) : null;
+      pc.photo = (hit.players.photos || {})[p.slug] || null;
+      return pc;
+    }).filter(function (pc) { return pc.copies > 0; });
+  }
+
+  function playerCardRow(pcs, removable) {
+    var row = el('div', 'ege-showcase__players');
+    pcs.forEach(function (pc) {
+      var face = EGE.cardsView.playerCardFace(pc, pc.earned, pc.photo);
+      face.setAttribute('role', 'img');
+      face.setAttribute('aria-label', pc.player.name + ' Player Card, ' +
+        (pc.rank ? pc.rank.name : 'unranked') + ', ' + Math.round(pc.points) + ' fantasy points collected');
+      if (!removable) { row.appendChild(face); return; }
+      var slot = el('div', 'ege-showcase__slot');
+      slot.appendChild(face);
+      var drop = el('button', 'fb-btn fb-btn--sm', 'Remove');
+      drop.type = 'button';
+      drop.addEventListener('click', function () {
+        editingPlayers = editingPlayers.filter(function (slug) { return slug !== pc.player.slug; });
+        draw();
+      });
+      var actions = el('div', 'ege-showcase__slotactions');
+      actions.appendChild(drop);
+      slot.appendChild(actions);
+      row.appendChild(slot);
+    });
+    return row;
+  }
+
+  /* The Player Cards being arranged, from the editor's own collection once
+     it has been read (a newly added one has no cards in the cache yet). */
+  function editingPlayerCards() {
+    var hit = cache[shown.email] || {};
+    var saved = hit.players || {};
+    return editingPlayers.map(EGE.playerBySlug).filter(Boolean).map(function (p) {
+      var pc = EGE.cards.playerCard(p, ownCards || saved.cards || {});
+      pc.earned = saved.earned ? (saved.earned[p.slug] || 0) : null;
+      pc.photo = (saved.photos || {})[p.slug] || null;
+      return pc;
+    });
+  }
+
   /* --- drawing ----------------------------------------------------------- */
 
   function draw() {
@@ -54,14 +109,15 @@ EGE.showcase = (function () {
     var loaded = Boolean(cache[player.email]);
     var ids = editing || savedIds(player);
     var cards = ids.map(EGE.cards.byId).filter(Boolean);
+    var pcs = savedPlayerCards(player);
 
     /* Somebody else's page with nothing up has no panel at all. */
-    panel.hidden = !mine && !cards.length;
+    panel.hidden = !mine && !cards.length && !pcs.length;
     if (panel.hidden) { return; }
 
     var note = byId('showcaseNote');
     note.textContent = message || (editing
-      ? 'Pick up to ' + SIZE + ' of your cards.'
+      ? 'Pick up to ' + SIZE + ' of your cards and ' + PLAYERS + ' Player Cards.'
       : mine && !cards.length ? '' : cards.length + ' of ' + SIZE);
 
     var edit = byId('showcaseEdit');
@@ -70,6 +126,8 @@ EGE.showcase = (function () {
     var holder = byId('showcaseCards');
     holder.innerHTML = '';
     var grid = el('div', 'ege-showcase__grid');
+    if (pcs.length && !editing) { holder.appendChild(playerCardRow(pcs)); }
+    if (editing && editingPlayers.length) { holder.appendChild(playerCardRow(editingPlayerCards(), true)); }
 
     if (editing) {
       for (var i = 0; i < SIZE; i += 1) { grid.appendChild(editSlot(i)); }
@@ -78,7 +136,7 @@ EGE.showcase = (function () {
       return;
     }
 
-    if (!cards.length) {
+    if (!cards.length && !pcs.length) {
       var empty = el('div', 'ege-showcase__empty');
       empty.appendChild(el('p', 'fb-meta', loaded
         ? 'Put your favourite cards here for everybody to see on your page.'
@@ -140,23 +198,34 @@ EGE.showcase = (function () {
     save.addEventListener('click', function () {
       save.disabled = true;
       var ids = editing.slice();
+      var slugs = editingPlayers.slice();
+      var before = ((cache[shown.email] || {}).players || {}).players || [];
+      var samePlayers = before.length === slugs.length &&
+        before.every(function (slug, i) { return slug === slugs[i]; });
+      /* The cards, then the Player Cards if they changed. */
       EGE.cardStore.setShowcase(ids).then(function (res) {
+        if (!res.ok || samePlayers) { return res; }
+        return EGE.cardStore.setShowcasePlayers(slugs);
+      }).then(function (res) {
         if (!res.ok) {
           message = res.message;
           save.disabled = false;
           draw();
           return;
         }
-        cache[shown.email] = { ids: ids, at: Date.now() };
         editing = null;
+        editingPlayers = null;
         message = '';
-        draw();
+        /* Read back, so the Player Cards come with their earnings and photos. */
+        delete cache[shown.email];
+        render(shown);
       });
     });
     var cancel = el('button', 'fb-btn', 'Cancel');
     cancel.type = 'button';
     cancel.addEventListener('click', function () {
       editing = null;
+      editingPlayers = null;
       message = '';
       draw();
     });
@@ -167,6 +236,8 @@ EGE.showcase = (function () {
 
   function startEditing() {
     editing = savedIds(shown).slice();
+    editingPlayers = ((((cache[shown.email] || {}).players) || {}).players || []).slice();
+    ownCards = null;
     message = '';
     draw();
   }
@@ -184,13 +255,46 @@ EGE.showcase = (function () {
     panel.appendChild(body);
     stage.appendChild(panel);
 
-    EGE.cardStore.collectionFor(player.email).then(function (got) {
+    Promise.all([EGE.cardStore.collectionFor(player.email), EGE.cardStore.cardPhotos(player.email)])
+    .then(function (all) {
+      var got = all[0];
+      var photos = all[1] || {};
       if (!editing || shown !== player) { return; }
       body.innerHTML = '';
       var owned = got ? got.owned : {};
+      if (got) { ownCards = owned; }
       var cards = Object.keys(owned).map(EGE.cards.byId).filter(function (card) {
         return card && editing.indexOf(card.id) === -1;
       }).sort(EGE.cards.compare);
+
+      /* Your Player Cards first: picking one puts it in the row above the
+         cards, beside the slots rather than in one. */
+      var pcs = EGE.players.map(function (p) { return EGE.cards.playerCard(p, owned); })
+        .filter(function (pc) { return pc.copies > 0 && editingPlayers.indexOf(pc.player.slug) === -1; });
+      if (pcs.length) {
+        body.appendChild(el('h4', 'ege-showcase__pickhead', 'Player Cards'));
+        var full = editingPlayers.length >= PLAYERS;
+        if (full) {
+          body.appendChild(el('p', 'fb-meta', 'Your page shows ' + PLAYERS +
+            ' Player Cards at most. Remove one to put up another.'));
+        }
+        var pgrid = el('div', 'ege-tradegrid ege-tradegrid--tall');
+        pcs.forEach(function (pc) {
+          var face = EGE.cardsView.playerCardFace(pc, null, photos[pc.player.slug] || null);
+          if (full) {
+            face.classList.add('is-off');
+          } else {
+            EGE.cardsView.pressable(face, 'Put up ' + pc.player.name + '\u2019s Player Card', function () {
+              editingPlayers.push(pc.player.slug);
+              EGE.cardsView.closeOverlay();
+              draw();
+            });
+          }
+          pgrid.appendChild(face);
+        });
+        body.appendChild(pgrid);
+        body.appendChild(el('h4', 'ege-showcase__pickhead', 'Cards'));
+      }
 
       if (!cards.length) {
         body.appendChild(el('p', 'fb-meta', got
@@ -227,8 +331,11 @@ EGE.showcase = (function () {
     var hit = cache[player.email];
     if (hit && Date.now() - hit.at < STALE_AFTER) { return; }
 
-    EGE.cardStore.showcaseFor(player.email).then(function (ids) {
-      cache[player.email] = { ids: ids, at: Date.now() };
+    Promise.all([
+      EGE.cardStore.showcaseFor(player.email),
+      EGE.cardStore.showcasePlayersFor(player.email)
+    ]).then(function (both) {
+      cache[player.email] = { ids: both[0], players: both[1], at: Date.now() };
       if (shown === player) { draw(); }
     });
   }

@@ -54,7 +54,7 @@
           <span class="ege-credits__value" id="navCreditsValue">0</span>
           <span class="ege-coin ege-credits__coin" role="img" aria-label="credits"></span>
         </span>
-        <a class="ege-credits ege-credits--diamonds" id="navDiamonds" href="#cards" hidden>
+        <a class="ege-credits ege-credits--diamonds" id="navDiamonds" href="#cards/shop" hidden>
           <span class="ege-credits__value" id="navDiamondsValue">0</span>
           <span class="ege-gem ege-credits__coin" role="img" aria-label="diamonds"></span>
         </a>
@@ -278,17 +278,22 @@
     </section>
 
     <!-- ===== cards ==================================================== -->
-    <!-- The card game: packs to rip, the collection they fill and the
-         library of sets to put together. Its own tab, apart from the
+    <!-- The card game, in five pages picked from the bar along the bottom of
+         the screen: the collection, the Player Cards, the shop and market,
+         trades, and the library of sets. Its own tab, apart from the
          simulation -- nothing here changes a rating, a result or a season.
          Signed-in players only, like the shop. Drawn by js/cards-view.js
          from data/cards.js. -->
     <section id="view-cards" hidden>
 
-      <header class="fb-hero fb-hero--centred">
-        <div class="fb-hero__col">
+      <header class="ege-cardshead">
+        <div>
           <span class="fb-kicker">Collect them all</span>
-          <h1 class="fb-hero__title">Cards</h1>
+          <h1 class="ege-cardshead__title" id="cardsTitle">Cards</h1>
+        </div>
+        <div class="ege-ovr ege-ovr--head ege-ovr--diamonds" id="cardsBalanceBox" hidden>
+          <span class="ege-ovr__label">Diamonds</span>
+          <span class="ege-ovr__value" id="cardsBalance">&mdash;</span>
         </div>
       </header>
 
@@ -308,138 +313,231 @@
 
       <p class="ege-note" id="cardsMessage" role="alert" hidden></p>
 
-      <!-- what can be bought -->
-      <div class="fb-panel" id="packsPanel">
-        <div class="fb-panel__head">
-          <h3>Packs</h3>
-          <div class="ege-ovr ege-ovr--head ege-ovr--diamonds">
-            <span class="ege-ovr__label">Diamonds</span>
-            <span class="ege-ovr__value" id="cardsBalance">&mdash;</span>
+      <!-- ===== Cards: the collection, the whole screen ===== -->
+      <div class="ege-cardpage" id="cardPageCards" data-page="cards">
+        <div class="fb-panel ege-collection" id="collectionPanel">
+          <div class="fb-panel__head ege-collection__head">
+            <h3 id="collectionTitle">Your Collection</h3>
+            <span class="fb-meta" id="collectionCount"></span>
           </div>
-        </div>
-        <div class="fb-panel__body fb-stack fb-stack--lg">
-          <div class="ege-packs" id="cardPacks"></div>
-
-          <!-- credits into diamonds, one way only -->
-          <div class="ege-swap" id="diamondSwap">
-            <div class="ege-swap__words">
-              <h4 class="ege-item__name">Buy Diamonds</h4>
-              <p class="ege-item__text">
-                Packs are bought with diamonds, never credits. Every game you
-                play pays diamonds on top of its credits: as many as the
-                credits, times the booster on it. Want more? Swap credits for
-                them, <span id="swapRate">2</span> diamonds a credit.
-                Diamonds never turn back into credits.
-              </p>
-            </div>
-            <div class="ege-swap__form">
-              <label class="ege-field ege-field--inline">
-                <span class="fb-eyebrow">Credits</span>
-                <input class="fb-input ege-swap__input" id="swapCredits" type="number"
-                       min="1" step="1" value="5" inputmode="numeric">
-              </label>
-              <button class="fb-btn fb-btn--primary" id="swapBuy" type="button">Buy</button>
-              <span class="fb-meta ege-swap__have" id="swapHave"></span>
-            </div>
+          <div class="fb-filters ege-cardfilters" id="collectionFilters"></div>
+          <div class="fb-panel__body">
+            <div class="ege-binder" id="collectionGrid"></div>
+            <p class="fb-meta ege-binder__empty" id="collectionEmpty" hidden></p>
           </div>
         </div>
       </div>
 
-      <!-- the last packs opened, newest first -->
-      <div class="fb-panel ege-section-gap" id="recentPanel">
-        <div class="fb-panel__head">
-          <h3>Recent Pulls</h3>
-          <button class="ege-collapse" type="button"
-                  data-collapses="recentPanel" aria-controls="recentPanel"
-                  aria-expanded="true" aria-label="Hide your recent pulls"></button>
+      <!-- ===== Players: the six Player Cards ===== -->
+      <div class="ege-cardpage" id="cardPagePlayers" data-page="players" hidden>
+        <div class="fb-panel" id="playerCardsPanel">
+          <div class="fb-panel__head">
+            <h3>Player Cards</h3>
+            <span class="fb-meta" id="playerCardsEarned"></span>
+          </div>
+          <div class="fb-panel__body fb-stack fb-stack--lg">
+            <p class="fb-meta">
+              Every card you hold of a player puts its fantasy points on his
+              Player Card, duplicates too. Collect enough and the card ranks
+              up, Common to Iconic, and every game he plays after that pays
+              you bonus diamonds on top of everything else, for his whole
+              career. A card that leaves your collection takes its points with it.
+            </p>
+            <select class="fb-select ege-filterselect ege-pcards__who" id="playerCardsWho" aria-label="Whose Player Cards"></select>
+            <div class="ege-pcards" id="playerCards"></div>
+          </div>
         </div>
-        <div class="fb-panel__body fb-stack">
-          <div class="ege-recent" id="recentList"></div>
-          <button class="fb-btn fb-btn--sm ege-recent__more" id="recentMore" type="button" hidden>Show more</button>
+        <details class="fb-panel ege-section-gap ege-details" id="ranksDetails">
+          <summary class="fb-panel__head ege-details__summary">
+            <h3>Ranks &amp; Bonuses</h3>
+            <span class="fb-meta">What each rank takes and what it pays</span>
+          </summary>
+          <div class="fb-panel__body fb-stack">
+            <p class="fb-meta">
+              A rank's bonus is a share of the diamonds the game would pay
+              its own player before any booster, rounded up. Quarterbacks'
+              cards score lower, so their ranks take three quarters of the
+              points; tight ends' nine tenths. A game pays at the rank you
+              hold when it goes out.
+            </p>
+          </div>
+          <div class="fb-tablewrap">
+            <table class="fb-table ege-odds">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th class="num">WR / RB</th>
+                  <th class="num">TE</th>
+                  <th class="num">QB</th>
+                  <th class="num">Bonus a game</th>
+                </tr>
+              </thead>
+              <tbody id="rankTable"></tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+
+      <!-- ===== Shop: packs, today's cards, the market ===== -->
+      <div class="ege-cardpage" id="cardPageShop" data-page="shop" hidden>
+
+        <div class="fb-panel" id="packsPanel">
+          <div class="fb-panel__head">
+            <h3>Packs</h3>
+          </div>
+          <div class="fb-panel__body fb-stack fb-stack--lg">
+            <div class="ege-packs" id="cardPacks"></div>
+
+            <!-- credits into diamonds, one way only -->
+            <div class="ege-swap" id="diamondSwap">
+              <div class="ege-swap__words">
+                <h4 class="ege-item__name">Buy Diamonds</h4>
+                <p class="ege-item__text">
+                  Packs are bought with diamonds, never credits. Every game you
+                  play pays diamonds on top of its credits: as many as the
+                  credits, times the booster on it. Want more? Swap credits for
+                  them, <span id="swapRate">2</span> diamonds a credit.
+                  Diamonds never turn back into credits.
+                </p>
+              </div>
+              <div class="ege-swap__form">
+                <label class="ege-field ege-field--inline">
+                  <span class="fb-eyebrow">Credits</span>
+                  <input class="fb-input ege-swap__input" id="swapCredits" type="number"
+                         min="1" step="1" value="5" inputmode="numeric">
+                </label>
+                <button class="fb-btn fb-btn--primary" id="swapBuy" type="button">Buy</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- six cards a day, the same for everybody -->
+        <div class="fb-panel ege-section-gap" id="dailyPanel">
+          <div class="fb-panel__head">
+            <h3>Today&rsquo;s Cards</h3>
+            <span class="fb-meta" id="dailyResets"></span>
+          </div>
+          <div class="fb-panel__body fb-stack">
+            <p class="fb-meta">
+              Six cards a day, the same six for everybody, topped by a
+              Legendary. Buy one and it is gone for everybody else. New
+              cards at midnight Eastern.
+            </p>
+            <div class="ege-daily" id="dailyCards"></div>
+          </div>
+        </div>
+
+        <!-- players selling to each other -->
+        <div class="fb-panel ege-section-gap" id="marketPanel">
+          <div class="fb-panel__head">
+            <h3>Market</h3>
+            <span class="fb-meta" id="marketCount"></span>
+            <button class="fb-btn fb-btn--sm fb-btn--primary" id="marketSell" type="button">Sell a card</button>
+          </div>
+          <div class="fb-panel__body fb-stack fb-stack--lg">
+            <p class="fb-meta">
+              Put a card up at your own price. It comes out of your collection
+              while it is listed and comes back if you take it down or nobody
+              buys it within a day. Three listings a day each.
+            </p>
+            <div class="ege-market" id="marketList"></div>
+          </div>
+        </div>
+
+        <!-- the last packs opened, newest first -->
+        <div class="fb-panel ege-section-gap" id="recentPanel">
+          <div class="fb-panel__head">
+            <h3>Recent Pulls</h3>
+            <button class="ege-collapse" type="button"
+                    data-collapses="recentPanel" aria-controls="recentPanel"
+                    aria-expanded="true" aria-label="Hide the recent pulls"></button>
+          </div>
+          <div class="fb-panel__body fb-stack">
+            <div class="ege-recent" id="recentList"></div>
+            <button class="fb-btn fb-btn--sm ege-recent__more" id="recentMore" type="button" hidden>Show more</button>
+          </div>
+        </div>
+
+        <!-- how hard each rarity is, out of the way until wanted -->
+        <details class="fb-panel ege-section-gap ege-details" id="oddsDetails">
+          <summary class="fb-panel__head ege-details__summary">
+            <h3>Rarity &amp; Odds</h3>
+            <span class="fb-meta">How cards are graded and how often each pulls</span>
+          </summary>
+          <div class="fb-panel__body fb-stack">
+            <p class="fb-meta">
+              The number in a card's corner is its fantasy score, half PPR, the
+              same scoring a game pays credits and diamonds on. A play is scored as the one
+              play. Rarity is graded from that score against the position, so a
+              tight end's big night is as rare as a quarterback's. A play is
+              graded as if every play were carried or caught, so a 60 yard
+              touchdown pass grades with a 60 yard touchdown catch, and go-ahead,
+              game-tying and game-winning plays grade a little higher.
+            </p>
+            <p class="fb-meta">
+              Each card in a pack rolls its rarity first, at the chance below,
+              then is drawn from every card of that rarity that is out.
+            </p>
+          </div>
+          <div class="fb-tablewrap">
+            <table class="fb-table ege-odds">
+              <thead>
+                <tr>
+                  <th>Rarity</th>
+                  <th class="num">Chance per card</th>
+                  <th class="num">Cards out</th>
+                  <th class="num">Shop</th>
+                  <th class="num">Quick sell</th>
+                </tr>
+              </thead>
+              <tbody id="cardOdds"></tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+
+      <!-- ===== Trades ===== -->
+      <div class="ege-cardpage" id="cardPageTrades" data-page="trades" hidden>
+        <div class="fb-panel" id="tradesPanel">
+          <div class="fb-panel__head">
+            <h3>Trades</h3>
+            <span class="fb-meta" id="tradesCount"></span>
+            <button class="fb-btn fb-btn--sm fb-btn--primary" id="tradeNew" type="button">Propose a trade</button>
+          </div>
+          <div class="fb-panel__body">
+            <div class="ege-library" id="tradeList"></div>
+          </div>
         </div>
       </div>
 
-      <!-- what has been pulled: yours, or anybody else's -->
-      <div class="fb-panel ege-section-gap" id="collectionPanel">
-        <div class="fb-panel__head">
-          <h3 id="collectionTitle">Your Collection</h3>
-          <span class="fb-meta" id="collectionCount"></span>
-          <button class="ege-collapse" type="button"
-                  data-collapses="collectionPanel" aria-controls="collectionPanel"
-                  aria-expanded="true" aria-label="Hide your collection"></button>
-        </div>
-        <div class="fb-filters ege-cardfilters" id="collectionFilters"></div>
-        <div class="fb-panel__body">
-          <div class="ege-binder" id="collectionGrid"></div>
-          <p class="fb-meta ege-binder__empty" id="collectionEmpty" hidden></p>
-        </div>
-      </div>
-
-      <!-- trading with the others -->
-      <div class="fb-panel ege-section-gap" id="tradesPanel">
-        <div class="fb-panel__head">
-          <h3>Trades</h3>
-          <span class="fb-meta" id="tradesCount"></span>
-          <button class="fb-btn fb-btn--sm fb-btn--primary" id="tradeNew" type="button">Propose a trade</button>
-        </div>
-        <div class="fb-panel__body">
-          <div class="ege-library" id="tradeList"></div>
+      <!-- ===== Achievements: sets to put together ===== -->
+      <div class="ege-cardpage" id="cardPageAchievements" data-page="achievements" hidden>
+        <div class="fb-panel" id="libraryPanel">
+          <div class="fb-panel__head">
+            <h3>Library</h3>
+            <span class="fb-meta" id="libraryCount"></span>
+          </div>
+          <div class="fb-panel__body fb-stack fb-stack--lg">
+            <p class="fb-meta">
+              Put a set together and claim its reward once. A card counts toward
+              every set it fits, and nothing is used up.
+            </p>
+            <div class="ege-library" id="librarySets"></div>
+          </div>
         </div>
       </div>
 
-      <!-- sets to put together -->
-      <div class="fb-panel ege-section-gap" id="libraryPanel">
-        <div class="fb-panel__head">
-          <h3>Library</h3>
-          <span class="fb-meta" id="libraryCount"></span>
-          <button class="ege-collapse" type="button"
-                  data-collapses="libraryPanel" aria-controls="libraryPanel"
-                  aria-expanded="true" aria-label="Hide the library"></button>
+      <!-- the five pages, along the bottom of the screen -->
+      <nav class="ege-cardtabs" aria-label="Cards pages">
+        <div class="ege-cardtabs__inner" role="radiogroup" aria-label="Cards pages" id="cardTabs">
+          <label class="ege-cardtab"><input type="radio" name="cardTab" value="cards" checked><span>Cards</span></label>
+          <label class="ege-cardtab"><input type="radio" name="cardTab" value="players"><span>Players</span></label>
+          <label class="ege-cardtab"><input type="radio" name="cardTab" value="shop"><span>Shop</span></label>
+          <label class="ege-cardtab"><input type="radio" name="cardTab" value="trades"><span>Trades<b class="ege-cardtab__badge" id="tabTradesBadge" hidden></b></span></label>
+          <label class="ege-cardtab"><input type="radio" name="cardTab" value="achievements"><span>Achievements<b class="ege-cardtab__badge" id="tabSetsBadge" hidden></b></span></label>
         </div>
-        <div class="fb-panel__body fb-stack fb-stack--lg">
-          <p class="fb-meta">
-            Put a set together and claim its reward once. A card counts toward
-            every set it fits, and nothing is used up.
-          </p>
-          <div class="ege-library" id="librarySets"></div>
-        </div>
-      </div>
-
-      <!-- how hard each rarity is, out of the way until wanted -->
-      <details class="fb-panel ege-section-gap ege-details" id="oddsDetails">
-        <summary class="fb-panel__head ege-details__summary">
-          <h3>Rarity &amp; Odds</h3>
-          <span class="fb-meta">How cards are graded and how often each pulls</span>
-        </summary>
-        <div class="fb-panel__body fb-stack">
-          <p class="fb-meta">
-            The number in a card's corner is its fantasy score, half PPR, the
-            same scoring a game pays credits and diamonds on. A play is scored as the one
-            play. Rarity is graded from that score against the position, so a
-            tight end's big night is as rare as a quarterback's. A play is
-            graded as if every play were carried or caught, so a 60 yard
-            touchdown pass grades with a 60 yard touchdown catch, and go-ahead,
-            game-tying and game-winning plays grade a little higher.
-          </p>
-          <p class="fb-meta">
-            Each card in a pack rolls its rarity first, at the chance below,
-            then is drawn from every card of that rarity that is out.
-          </p>
-        </div>
-        <div class="fb-tablewrap">
-          <table class="fb-table ege-odds">
-            <thead>
-              <tr>
-                <th>Rarity</th>
-                <th class="num">Chance per card</th>
-                <th class="num">Cards out</th>
-                <th class="num">Quick sell</th>
-              </tr>
-            </thead>
-            <tbody id="cardOdds"></tbody>
-          </table>
-        </div>
-      </details>
+      </nav>
 
       </div><!-- /cardsContent -->
 
@@ -650,6 +748,7 @@
                   <th class="num">Sets claimed</th>
                   <th class="num">Open trades</th>
                   <th class="num">Showcase</th>
+                  <th class="num">Photos</th>
                 </tr>
               </thead>
               <tbody id="cardsAdminRows"></tbody>

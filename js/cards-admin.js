@@ -5,7 +5,8 @@
    and nothing is kept), and the two resets: Clear library (every card out of a collection, its showcase
    emptied, its open trades cancelled and its goals reset) and Reset goals
    (every Library set claimable again, cards kept). Either for one player or for everybody,
-   and only once RESET is typed.
+   and only once RESET is typed. Each account's row also counts its Player
+   Card photos, with a Remove that takes them all down.
 
    The resets are database functions that refuse anybody who is not in the
    admins table (supabase/schema.sql), whatever this page lets through.
@@ -54,6 +55,29 @@ EGE.cardsAdmin = (function () {
        (shelf ? shelf.cards.length : 0) + ' / 5'].forEach(function (value) {
         tr.appendChild(el('td', 'num', String(value)));
       });
+
+      /* Their Player Card photos, and a button to take them all down. */
+      var photos = all.photos ? all.photos.filter(function (r) { return same(r.email, player.email); }).length : null;
+      var cell = el('td', 'num ege-cardsadmin__photos');
+      cell.appendChild(document.createTextNode(photos === null ? '\u2014' : photos + ' / 6'));
+      if (photos) {
+        var drop = el('button', 'fb-btn fb-btn--sm', 'Remove');
+        drop.type = 'button';
+        drop.title = 'Take down every photo ' + player.first + ' has on a Player Card';
+        drop.addEventListener('click', function () {
+          if (!window.confirm('Take down all of ' + player.name + '\u2019s Player Card photos?')) { return; }
+          drop.disabled = true;
+          EGE.cardStore.clearCardPhoto(null, player.email).then(function (res) {
+            if (!res.ok) { note(res.message); drop.disabled = false; return; }
+            refresh().then(function () {
+              note('Took down ' + res.count + ' of ' + player.name + '\u2019s Player Card ' +
+                   (res.count === 1 ? 'photo.' : 'photos.'));
+            });
+          });
+        });
+        cell.appendChild(drop);
+      }
+      tr.appendChild(cell);
       body.appendChild(tr);
     });
   }
