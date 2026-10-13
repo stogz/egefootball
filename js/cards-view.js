@@ -2093,13 +2093,16 @@ EGE.cardsView = (function () {
     var pays = el('p', 'ege-pcard__bonus');
     if (earned !== null) {
       pays.appendChild(document.createTextNode('Earned '));
-      pays.appendChild(el('strong', null, whole(earned)));
-      pays.appendChild(gem());
+      var amount = el('strong', 'ege-pcard__amount', whole(earned));
+      amount.appendChild(gem());
+      pays.appendChild(amount);
       pays.appendChild(document.createTextNode(' so far. '));
     }
     if (rank && rank.bonus) {
       var about = typicalBonus(player, rank.key);
-      pays.appendChild(el('strong', 'ege-pcard__rate', '+' + pctText(rank.bonus)));
+      var rate = el('span', 'ege-pcard__rate', '+' + pctText(rank.bonus));
+      rate.appendChild(gem());
+      pays.appendChild(rate);
       pays.appendChild(document.createTextNode(' of his game diamonds' +
         (about !== null ? ', about ' + about + ' a game.' : '.')));
     } else {
@@ -2177,17 +2180,20 @@ EGE.cardsView = (function () {
 
   /* --- photos on Player Cards ---------------------------------------------
 
-     Picked from the phone or computer, cropped square (a little above the
-     middle, where a face usually is, on a tall picture) and shrunk to
-     PHOTO_SIZE pixels as a WebP before it goes anywhere, so a 4 MB phone
-     photo goes up as about 30-60 KB, and redrawing it on a canvas leaves its
-     location and the rest of what the camera wrote behind. set_card_photo
-     refuses anything over about 100 KB; PHOTO_MAX keeps under it. One per
-     Player Card per account, 36 at most across the site. */
-  var PHOTO_SIZE = 480;
+     Picked from the phone or computer, then cropped: the picture sits in a
+     frame the shape of the card's photo, dragged to move it and zoomed with
+     the slider, a pinch or the mouse wheel. What is in the frame is drawn
+     PHOTO_W by PHOTO_H on a canvas and saved as a WebP, so a 4 MB phone
+     photo goes up as about 20-50 KB, and redrawing it leaves its location
+     and the rest of what the camera wrote behind. set_card_photo refuses
+     anything over about 100 KB; PHOTO_MAX keeps under it. One per Player
+     Card per account, 36 at most across the site. */
+  var PHOTO_W = 480;
+  var PHOTO_H = 310;          /* the card's photo is about 0.65 as tall as wide */
   var PHOTO_MAX = 130000;
+  var ZOOM_MAX = 4;
 
-  function shrinkPhoto(file) {
+  function loadPhoto(file) {
     return new Promise(function (resolve, reject) {
       if (!file || !/^image\//.test(file.type)) { reject(new Error('That is not a picture.')); return; }
       var url = URL.createObjectURL(file);
@@ -2196,28 +2202,25 @@ EGE.cardsView = (function () {
         URL.revokeObjectURL(url);
         reject(new Error('That picture could not be opened. Try a JPEG or PNG.'));
       };
-      img.onload = function () {
-        URL.revokeObjectURL(url);
-        var w = img.naturalWidth;
-        var h = img.naturalHeight;
-        var side = Math.min(w, h);
-        var canvas = document.createElement('canvas');
-        canvas.width = PHOTO_SIZE;
-        canvas.height = PHOTO_SIZE;
-        canvas.getContext('2d').drawImage(img, (w - side) / 2, (h - side) * 0.3, side, side,
-          0, 0, PHOTO_SIZE, PHOTO_SIZE);
-        var out = '';
-        [0.82, 0.7, 0.55, 0.4].some(function (quality) {
-          out = canvas.toDataURL('image/webp', quality);
-          /* A browser that cannot write WebP hands back a PNG. */
-          if (out.indexOf('data:image/webp') !== 0) { out = canvas.toDataURL('image/jpeg', quality); }
-          return out.length <= PHOTO_MAX;
-        });
-        if (out.length > PHOTO_MAX) { reject(new Error('That picture is too big. Try a smaller one.')); return; }
-        resolve(out);
-      };
+      img.onload = function () { resolve({ img: img, url: url }); };
       img.src = url;
     });
+  }
+
+  /* The frame's part of the picture as a data URL, or null if too big. */
+  function cropToDataUrl(img, view) {
+    var canvas = document.createElement('canvas');
+    canvas.width = PHOTO_W;
+    canvas.height = PHOTO_H;
+    canvas.getContext('2d').drawImage(img, view.sx, view.sy, view.sw, view.sh, 0, 0, PHOTO_W, PHOTO_H);
+    var out = '';
+    [0.82, 0.7, 0.55, 0.4].some(function (quality) {
+      out = canvas.toDataURL('image/webp', quality);
+      /* A browser that cannot write WebP hands back a PNG. */
+      if (out.indexOf('data:image/webp') !== 0) { out = canvas.toDataURL('image/jpeg', quality); }
+      return out.length <= PHOTO_MAX;
+    });
+    return out.length <= PHOTO_MAX ? out : null;
   }
 
   function choosePhoto(pc) {
@@ -2227,16 +2230,138 @@ EGE.cardsView = (function () {
     input.addEventListener('change', function () {
       var file = input.files && input.files[0];
       if (!file) { return; }
-      shrinkPhoto(file).then(function (photo) { previewPhoto(pc, photo); },
+      loadPhoto(file).then(function (loaded) { cropPhoto(pc, loaded, null); },
         function (error) { say(error.message, true); });
     });
     input.click();
   }
 
+  /* The crop: the picture in a frame the card photo's shape. `start` is
+     where it was left, coming back from the preview. */
+  function cropPhoto(pc, loaded, start) {
+    var img = loaded.img;
+    var iw = img.naturalWidth;
+    var ih = img.naturalHeight;
+    var stage = openOverlay('Crop your photo', 'ege-rip__stage--zoom');
+    rip.onClose = function () { if (!loaded.keep) { URL.revokeObjectURL(loaded.url); } };
+
+    var frame = el('div', 'ege-crop');
+    frame.style.aspectRatio = PHOTO_W + ' / ' + PHOTO_H;
+    var pic = el('img', 'ege-crop__img');
+    pic.src = loaded.url;
+    pic.alt = '';
+    pic.draggable = false;
+    frame.appendChild(pic);
+    stage.appendChild(frame);
+
+    var zoomRow = el('label', 'ege-crop__zoom');
+    zoomRow.appendChild(el('span', null, 'Zoom'));
+    var slider = el('input');
+    slider.type = 'range';
+    slider.min = '1';
+    slider.max = String(ZOOM_MAX);
+    slider.step = '0.01';
+    zoomRow.appendChild(slider);
+    stage.appendChild(zoomRow);
+    stage.appendChild(el('p', 'ege-rip__hint', 'Drag the picture to move it. Pinch, scroll or slide to zoom.'));
+
+    /* The view in the picture's own pixels: the centre and the zoom, where
+       zoom 1 is the whole frame filled with as much picture as fits. */
+    var aspect = PHOTO_W / PHOTO_H;
+    var fitW = Math.min(iw, ih * aspect);         /* the frame's width at zoom 1 */
+    var view = start ? { cx: start.cx, cy: start.cy, z: start.z }
+      : { cx: iw / 2, cy: Math.min(ih - fitW / aspect / 2, Math.max(fitW / aspect / 2, ih * 0.38)), z: 1 };
+
+    function rect() {
+      var sw = fitW / view.z;
+      var sh = sw / aspect;
+      view.cx = Math.min(iw - sw / 2, Math.max(sw / 2, view.cx));
+      view.cy = Math.min(ih - sh / 2, Math.max(sh / 2, view.cy));
+      return { sx: view.cx - sw / 2, sy: view.cy - sh / 2, sw: sw, sh: sh };
+    }
+
+    function paint() {
+      var r = rect();
+      var box = frame.getBoundingClientRect();
+      var k = box.width / r.sw;                    /* screen px per picture px */
+      pic.style.width = (iw * k) + 'px';
+      pic.style.height = (ih * k) + 'px';
+      pic.style.transform = 'translate(' + (-r.sx * k) + 'px,' + (-r.sy * k) + 'px)';
+      slider.value = String(view.z);
+    }
+
+    function zoomTo(z) {
+      view.z = Math.min(ZOOM_MAX, Math.max(1, z));
+      paint();
+    }
+
+    slider.addEventListener('input', function () { zoomTo(Number(slider.value)); });
+    frame.addEventListener('wheel', function (event) {
+      event.preventDefault();
+      zoomTo(view.z * Math.exp(-event.deltaY / 400));
+    }, { passive: false });
+
+    /* Dragging with one finger or the mouse; pinching with two. */
+    var pointers = {};
+    var pinch = null;
+    function spread() {
+      var ps = Object.keys(pointers).map(function (id) { return pointers[id]; });
+      return Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y);
+    }
+    frame.addEventListener('pointerdown', function (event) {
+      frame.setPointerCapture(event.pointerId);
+      pointers[event.pointerId] = { x: event.clientX, y: event.clientY };
+      if (Object.keys(pointers).length === 2) { pinch = { d: spread(), z: view.z }; }
+    });
+    frame.addEventListener('pointermove', function (event) {
+      var last = pointers[event.pointerId];
+      if (!last) { return; }
+      var now = { x: event.clientX, y: event.clientY };
+      pointers[event.pointerId] = now;
+      if (pinch && Object.keys(pointers).length === 2) {
+        zoomTo(pinch.z * spread() / Math.max(1, pinch.d));
+        return;
+      }
+      var k = frame.getBoundingClientRect().width / rect().sw;
+      view.cx -= (now.x - last.x) / k;
+      view.cy -= (now.y - last.y) / k;
+      paint();
+    });
+    function lift(event) {
+      delete pointers[event.pointerId];
+      if (Object.keys(pointers).length < 2) { pinch = null; }
+    }
+    frame.addEventListener('pointerup', lift);
+    frame.addEventListener('pointercancel', lift);
+
+    var actions = el('div', 'ege-rip__actions');
+    var again = el('button', 'fb-btn', 'Pick another');
+    again.type = 'button';
+    again.addEventListener('click', function () { closeRip(); choosePhoto(pc); });
+    var next = el('button', 'fb-btn fb-btn--primary', 'Crop');
+    next.type = 'button';
+    next.addEventListener('click', function () {
+      var photo = cropToDataUrl(img, rect());
+      if (!photo) { say('That picture is too big. Try a smaller one.', true); return; }
+      loaded.keep = true;
+      closeRip();
+      loaded.keep = false;
+      previewPhoto(pc, photo, loaded, { cx: view.cx, cy: view.cy, z: view.z });
+    });
+    actions.appendChild(again);
+    actions.appendChild(next);
+    stage.appendChild(actions);
+
+    if (img.decode) { img.decode().then(paint, paint); } else { paint(); }
+    requestAnimationFrame(paint);
+    next.focus({ preventScroll: true });
+  }
+
   /* The card with the new photo on it, before it is kept. */
-  function previewPhoto(pc, photo) {
+  function previewPhoto(pc, photo, loaded, view) {
     var player = pc.player;
-    var stage = openOverlay(player.first + '\u2019s card photo', 'ege-rip__stage--zoom');
+    var stage = openOverlay(player.first + '’s card photo', 'ege-rip__stage--zoom');
+    rip.onClose = function () { if (!loaded.keep) { URL.revokeObjectURL(loaded.url); } };
     var holder = el('div', 'ege-photoprev');
     holder.appendChild(playerCardFace(pc, earnedFrom(player.slug), photo));
     stage.appendChild(holder);
@@ -2246,15 +2371,20 @@ EGE.cardsView = (function () {
     stage.appendChild(status);
 
     var actions = el('div', 'ege-rip__actions');
-    var again = el('button', 'fb-btn', 'Pick another');
+    var again = el('button', 'fb-btn', 'Crop again');
     again.type = 'button';
-    again.addEventListener('click', function () { closeRip(); choosePhoto(pc); });
+    again.addEventListener('click', function () {
+      loaded.keep = true;
+      closeRip();
+      loaded.keep = false;
+      cropPhoto(pc, loaded, view);
+    });
     var keep = el('button', 'fb-btn fb-btn--primary', 'Use this photo');
     keep.type = 'button';
     keep.addEventListener('click', function () {
       keep.disabled = true;
       again.disabled = true;
-      status.textContent = 'Saving\u2026';
+      status.textContent = 'Saving…';
       EGE.cardStore.setCardPhoto(player.slug, photo).then(function (res) {
         if (!res.ok) {
           status.textContent = res.message;

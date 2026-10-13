@@ -1410,6 +1410,12 @@ the header. Anybody can see it, signed in or not. On your own page,
 up. Only cards you own can go up, and a card traded away comes down on its
 own. A player with nothing up has no Showcase panel for anybody else.
 
+Any of the five slots can hold one of your Player Cards instead: the picker
+lists your Player Cards first, then your cards, and either goes in the slot
+the same way, with the same Replace and Remove. A Player Card is kept as
+`pc:{slug}` among the showcase's ids, can go up once you hold a card of that
+player, and comes down on its own once you hold none.
+
 ### Admin controls
 
 The Cards panel on the admin page shows every player's cards, different
@@ -1537,11 +1543,13 @@ signed in can read; what theirs have earned comes from
 `diamond_awards` and nothing else of it. **See his cards** opens their
 collection filtered to that player. Photos can only be changed on your own.
 
-**Your own photo on a Player Card.** **Add photo** under a Player Card picks
-a picture from the phone or computer. The page crops it square (a little
-above the middle on a tall picture, where a face usually is), shrinks it to
-480×480 and saves it as a WebP of about 20–60 KB, then shows the card with
-it before **Use this photo** keeps it. Redrawing it that way also leaves the
+**Your own photo on a Player Card.** **Add photo** beside a Player Card picks
+a picture from the phone or computer, then opens the crop: the picture in a
+frame the shape of the card's photo, dragged to move it and zoomed with the
+slider, a pinch or the mouse wheel. **Crop** draws what is in the frame at
+480×310 as a WebP of about 10–50 KB and shows the card with it; **Crop
+again** goes back to the frame as it was left, and **Use this photo** keeps
+it. Redrawing it that way also leaves the
 camera's location data behind. It replaces the headshot on your copy of that
 Player Card only, on the Players page and on your own page; **×** takes it
 down. One photo per account per player, so 36 at most across the site.
@@ -1555,13 +1563,12 @@ same as a player's page. On the admin page the card table counts each
 account's photos with a **Remove** that takes them all down, and Clear
 library takes them down too.
 
-
-**Up to three can go on the player's own page**, above their showcase. They
-are picked like the cards: **Edit** the showcase, **+ Add a card**, and the
-picker lists your Player Cards first, then your cards. Saving puts them up
-(`set_player_card_showcase()`). Anybody
-can see them, signed out too: `showcased_player_cards()` hands over only the
-cards of the players put up, which is what their rank is worked out from.
+**Player Cards can go in the showcase** on the player's own page, in the
+same five slots as cards (see The showcase). Anybody can see them, signed
+out too: `showcased_player_cards()` hands over only the cards of the players
+put up, which is what their rank is worked out from. Player Cards that were
+in the old row of their own (`card_showcases.player_cards`) move into the
+slots, first, as many as fit, when the schema is re-run.
 
 The collection's filter row ends in a bin that resets every filter and the
 sort, and goes back to your own collection.

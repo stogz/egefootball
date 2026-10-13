@@ -1292,7 +1292,9 @@ create policy "card showcases are public"
   on public.card_showcases for select
   using (true);
 
--- A card that has left a collection leaves its owner's showcase too.
+-- A card that has left a collection leaves its owner's showcase too, and a
+-- Player Card ('pc:{slug}', which shares the five slots) once no card of
+-- that player is left.
 create or replace function public.prune_showcase(p_email text)
 returns void
 language sql
@@ -1303,7 +1305,9 @@ as $$
      set cards = coalesce(array(
            select c from unnest(s.cards) with ordinality as t(c, n)
             where exists (select 1 from public.player_cards pc
-                           where pc.email = s.email and pc.card_id = t.c and pc.quantity > 0)
+                           where pc.email = s.email and pc.quantity > 0
+                             and (pc.card_id = t.c
+                                  or (t.c like 'pc:%' and split_part(pc.card_id, ':', 3) = substr(t.c, 4))))
             order by t.n), '{}'),
          updated_at = now()
    where s.email = p_email;
@@ -1450,6 +1454,8 @@ $$;
 -- Up to five cards a player picks to show on their own player page. Public,
 -- like the page: anybody can see them, signed in or not. Only cards the
 -- player owns can go up, and a card traded away comes down on its own.
+-- A slot can hold a Player Card instead, as 'pc:{slug}', for any player
+-- they hold a card of.
 -- ---------------------------------------------------------------------------
 
 -- The table itself is created with the trades, which prune it.
@@ -1472,14 +1478,20 @@ begin
     raise exception 'A showcase holds five cards.';
   end if;
   foreach v_card in array v_cards loop
-    if not public.is_card_id(v_card) then
+    if v_card ~ '^pc:[a-z]+(-[a-z]+)*$' then
+      if not exists (select 1 from public.player_cards
+                      where email = v_email and quantity > 0
+                        and split_part(card_id, ':', 3) = substr(v_card, 4)) then
+        raise exception 'You need a card of that player to show his Player Card.';
+      end if;
+    elsif not public.is_card_id(v_card) then
       raise exception 'Not a card: %', v_card;
     end if;
   end loop;
   if (select count(distinct c) from unnest(v_cards) c) <> coalesce(array_length(v_cards, 1), 0) then
     raise exception 'Each card goes up once.';
   end if;
-  if not public.owns_cards(v_email, v_cards) then
+  if not public.owns_cards(v_email, array(select c from unnest(v_cards) c where c not like 'pc:%')) then
     raise exception 'You can only show cards you have.';
   end if;
 
@@ -2167,50 +2179,28 @@ notify pgrst, 'reload schema';
 -- ===========================================================================
 -- Player Cards on the showcase
 --
--- A player can put up to three of their Player Cards on their own page,
--- beside the showcase. A Player Card is worked out from the collection, and
+-- A player's Player Cards can go on their own page too, in the same five
+-- showcase slots as their cards ('pc:{slug}' in card_showcases.cards; see
+-- set_card_showcase). A Player Card is worked out from the collection, and
 -- a collection is only readable signed in, so showcased_player_cards hands
 -- anybody -- signed out too -- just the cards of the players put up, which
--- is what the owner chose to show. Picked on the Players page.
+-- is what the owner chose to show.
+--
+-- Player Cards used to sit in a row of their own (card_showcases.
+-- player_cards, set by set_player_card_showcase). Any still there move into
+-- the slots, first, as many as fit in five; the column stays, empty.
 -- ===========================================================================
 
 alter table public.card_showcases add column if not exists player_cards text[] not null default '{}';
 
-create or replace function public.set_player_card_showcase(p_slugs text[])
-returns void
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  v_email text := auth.jwt() ->> 'email';
-  v_slugs text[] := coalesce(p_slugs, '{}');
-  v_slug  text;
-begin
-  if v_email is null then
-    raise exception 'sign in first';
-  end if;
-  if coalesce(array_length(v_slugs, 1), 0) > 3 then
-    raise exception 'Your page shows three Player Cards at most.';
-  end if;
-  if (select count(distinct s) from unnest(v_slugs) s) <> coalesce(array_length(v_slugs, 1), 0) then
-    raise exception 'Each Player Card goes up once.';
-  end if;
-  foreach v_slug in array v_slugs loop
-    if v_slug !~ '^[a-z]+(-[a-z]+)*$' then
-      raise exception 'Not a player: %', v_slug;
-    end if;
-    if not exists (select 1 from public.player_cards
-                    where email = v_email and quantity > 0 and split_part(card_id, ':', 3) = v_slug) then
-      raise exception 'You need a card of that player to show his Player Card.';
-    end if;
-  end loop;
+update public.card_showcases
+   set cards = (array(select 'pc:' || p from unnest(player_cards) with ordinality as t(p, n)
+                       where not ('pc:' || p = any(cards)) order by n) || cards)[1:5],
+       player_cards = '{}',
+       updated_at = now()
+ where cardinality(player_cards) > 0;
 
-  insert into public.card_showcases (email, player_cards, updated_at)
-  values (v_email, v_slugs, now())
-  on conflict (email) do update set player_cards = excluded.player_cards, updated_at = now();
-end;
-$$;
+drop function if exists public.set_player_card_showcase(text[]);
 
 -- ===========================================================================
 -- Custom photos on Player Cards. A player can put a picture of their own on
@@ -2322,7 +2312,7 @@ security definer
 set search_path = public
 as $$
   select jsonb_build_object(
-    'players', to_jsonb(coalesce(s.player_cards, '{}')),
+    'players', to_jsonb(s.player_cards),
     'cards', coalesce((
       select jsonb_object_agg(pc.card_id, pc.quantity)
         from public.player_cards pc
@@ -2341,11 +2331,11 @@ as $$
         from public.card_photos ph
        where ph.email = s.email and ph.slug = any(s.player_cards)), '{}'::jsonb))
     from (select p_email as email,
-                 (select player_cards from public.card_showcases where email = p_email) as player_cards) s;
+                 coalesce((select array(select substr(c, 4) from unnest(cs.cards) with ordinality as t(c, n)
+                                         where c like 'pc:%' order by n)
+                             from public.card_showcases cs where cs.email = p_email), '{}') as player_cards) s;
 $$;
 
-revoke all on function public.set_player_card_showcase(text[]) from public, anon;
-grant execute on function public.set_player_card_showcase(text[]) to authenticated;
 grant execute on function public.showcased_player_cards(text) to anon, authenticated;
 
 -- What each of an account's Player Cards has paid it, every season:

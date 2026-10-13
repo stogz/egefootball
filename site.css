@@ -4757,6 +4757,40 @@ html.ege-noscroll body { overflow: hidden; }
 /* A Player Card with a new photo on it, before it is kept. */
 .ege-photoprev { width: min(260px, 66vw); margin: 0 auto; }
 
+/* Cropping a photo: the picture behind a frame the shape of the card's
+   photo, moved by dragging it and zoomed with the slider. */
+.ege-crop {
+  position: relative;
+  width: min(420px, 86vw);
+  margin: 0 auto;
+  overflow: hidden;
+  border: var(--fb-border) solid var(--fb-cream);
+  background: #111;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.ege-crop:active { cursor: grabbing; }
+.ege-crop__img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: none;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+.ege-crop__zoom {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(420px, 86vw);
+  margin: 0 auto;
+  font-size: .875rem;
+  font-weight: 700;
+  color: var(--fb-cream);
+}
+.ege-crop__zoom > input { flex: 1; accent-color: var(--fb-accent); }
+
 .ege-rip__hint {
   margin: 0;
   min-height: 1.4em;
@@ -5609,16 +5643,13 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-pcard__next,
 .ege-pcard__bonus { margin: 0; font-size: .875rem; line-height: 1.45; }
 .ege-pcard__next { color: var(--fb-muted); }
-.ege-pcard__bonus .ege-gem { vertical-align: -2px; }
-.ege-pcard__rate {
-  display: inline-block;
-  margin-right: 2px;
-  padding: 0 6px;
-  border: var(--fb-border-thin) solid var(--fb-ink);
-  border-radius: 4px;
-  background: var(--fb-accent);
-  font-family: var(--fb-font-display);
-}
+/* "Earned 10 💎" and "+10% 💎": the diamond a little apart from the
+   number, standing on its baseline the way a price's does. */
+.ege-pcard__amount,
+.ege-pcard__rate { white-space: nowrap; }
+.ege-pcard__amount .ege-gem,
+.ege-pcard__rate .ege-gem { margin-left: .28em; }
+.ege-pcard__rate { font-weight: 800; color: var(--fb-diamond-deep); }
 .ege-pcard__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 .ege-pcard__actions > .fb-btn { flex: 0 1 auto; }
 .ege-pcard__actions > .ege-pcard__unphoto { flex: none; padding: 0 14px; font-size: 18px; line-height: 1; }
@@ -5772,16 +5803,6 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-plcard.ege-tcard--iconic .ege-plcard__photo::after { animation: none; }
 }
 
-/* The same grid as the showcase cards under them, so a Player Card is as
-   wide as a card beside it. */
-.ege-showcase__players {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 18px;
-  max-width: 1000px;
-  margin-bottom: 22px;
-}
-
 /* The showcase picker: Player Cards first, then cards, each under a heading. */
 .ege-showcase__pickhead { margin: 18px 0 10px; font-size: 1rem; }
 .ege-showcase__pickhead:first-child { margin-top: 0; }
@@ -5882,7 +5903,6 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-pcard__next,
   .ege-pcard__bonus { font-size: .8125rem; }
   .ege-filterclear { flex: 0 0 auto; min-height: 47px; }
-  .ege-showcase__players { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 
   /* Five pages across a phone: smaller words, and Achievements shortened
      by its letter spacing rather than its name. */
