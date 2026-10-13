@@ -124,7 +124,9 @@ EGE.cards = (function () {
       diamonds: 20,
       size: 5,
       floor: 'rare',
-      blurb: 'Five cards from any season, the last one Rare or better.'
+      boost: 1.5,
+      blurb: 'Five cards from any season, the last one Rare or better, and ' +
+             '1.5x the odds of a Legendary, Mystic or Iconic.'
     }
   ];
 
@@ -385,19 +387,35 @@ EGE.cards = (function () {
 
   /* --- rolling ----------------------------------------------------------- */
 
+  /* A pack with a `boost` multiplies the odds of Legendary and up by it,
+     and Common gives up the difference: a Pro Pack's 1.5 makes Iconic
+     0.45% a card rather than 0.3%. */
+  var BOOSTED_FROM = 'legendary';
+
+  function oddsWith(boost) {
+    var odds = RARITIES.map(function (r) {
+      return boost && rankOf(r.key) >= rankOf(BOOSTED_FROM) ? r.odds * boost : r.odds;
+    });
+    if (boost) {
+      odds[0] = 100 - odds.slice(1).reduce(function (sum, n) { return sum + n; }, 0);
+    }
+    return odds;
+  }
+
   /* A rarity, on the odds, at or above `floor` and no higher than
-     `ceiling`. */
-  function rollRarity(rng, floor, ceiling) {
+     `ceiling`, with a pack's `boost` if it has one. */
+  function rollRarity(rng, floor, ceiling, boost) {
     var from = rankOf(floor || 'common');
     var to = ceiling ? Math.max(rankOf(ceiling), from) : RARITIES.length - 1;
-    var tiers = RARITIES.slice(from, to + 1);
-    var total = tiers.reduce(function (sum, r) { return sum + r.odds; }, 0);
+    var odds = oddsWith(boost);
+    var total = 0;
+    for (var r = from; r <= to; r += 1) { total += odds[r]; }
     var at = rng() * total;
-    for (var i = 0; i < tiers.length; i += 1) {
-      at -= tiers[i].odds;
-      if (at < 0) { return tiers[i].key; }
+    for (r = from; r <= to; r += 1) {
+      at -= odds[r];
+      if (at < 0) { return RARITIES[r].key; }
     }
-    return tiers[tiers.length - 1].key;
+    return RARITIES[to].key;
   }
 
   /* One card from `pool` of the rolled rarity. A rarity the pool has none of
@@ -405,9 +423,9 @@ EGE.cards = (function () {
      nearest one below it that has something, and only climbs if there is
      nothing below either. Never below `floor` while anything above it
      exists, and never above `ceiling` while anything at or under it does. */
-  function drawOne(pool, rng, floor, ceiling) {
+  function drawOne(pool, rng, floor, ceiling, boost) {
     if (!pool.length) { return null; }
-    var wanted = rankOf(rollRarity(rng, floor, ceiling));
+    var wanted = rankOf(rollRarity(rng, floor, ceiling, boost));
     var low = rankOf(floor || 'common');
     var high = ceiling ? Math.max(rankOf(ceiling), low) : RARITIES.length - 1;
 
@@ -449,7 +467,7 @@ EGE.cards = (function () {
     var big = false;
     for (var i = 0; i < p.size; i += 1) {
       var last = i === p.size - 1;
-      var card = drawOne(pool, random, last ? p.floor : null, big ? PACK_CAP : null);
+      var card = drawOne(pool, random, last ? p.floor : null, big ? PACK_CAP : null, p.boost);
       if (card) {
         out.push(card);
         if (rankOf(card.rarity) > rankOf(PACK_CAP)) { big = true; }
@@ -863,6 +881,7 @@ EGE.cards = (function () {
     pullable: pullable,
     compare: compare,
     rollRarity: rollRarity,
+    oddsWith: oddsWith,
     rollPack: rollPack,
     sets: sets,
     fill: fill,

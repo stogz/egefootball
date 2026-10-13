@@ -1225,7 +1225,7 @@ YD TD*) and a performance card its yards and touchdowns (*312 YDS 5 TD*).
 | --- | --- | --- | --- |
 | Base | 10 | 3 | any season |
 | Season | 12 | 3 | the live season only, the last card Uncommon or better |
-| Pro | 20 | 5 | any season, the last card Rare or better |
+| Pro | 20 | 5 | any season, the last card Rare or better, 1.5x odds on Legendary and up |
 | Season, a past year | 14 | 3 | that one past season only, the last card Uncommon or better |
 
 Base, Season and Pro are twice what they were in credits, because a credit
@@ -1248,7 +1248,9 @@ a week at a time.
 
 **A pack holds at most one card above Legendary** (`PACK_CAP` in
 `data/cards.js`): once a Mystic or Iconic is in it, every card after it
-rolls Legendary or lower. **The cards are laid out worst to best, left to
+rolls Legendary or lower. **A Pro Pack has 1.5x the odds of Legendary and
+up** (`boost` on the pack): Legendary 6%, Mystic 1.5%, Iconic 0.45% a card,
+with Common at 44.05% making up the difference. **The cards are laid out worst to best, left to
 right** (`packOrder`), in the opening and in Recent Pulls, so the best card
 is always the last one turned.
 
