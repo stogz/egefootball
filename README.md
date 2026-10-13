@@ -1218,25 +1218,37 @@ YD TD*) and a performance card its yards and touchdowns (*312 YDS 5 TD*).
 | Base | 10 | 3 | any season |
 | Season | 12 | 3 | the live season only, the last card Uncommon or better |
 | Pro | 20 | 5 | any season, the last card Rare or better |
+| 2018, 2019, … | 14 | 3 | that one past season only, the last card Uncommon or better |
 
-Twice what they were in credits, because a credit buys two diamonds.
+Base, Season and Pro are twice what they were in credits, because a credit
+buys two diamonds. There is a year pack for every season before the live
+one (`YEAR_PACK_PRICE` in `data/cards.js`); a new one appears when the site
+rolls to a new season.
 
 Each card rolls its rarity on the odds first, then is drawn from every
 published card of that rarity the pack can hold. A rarity with nothing out
 yet falls to the nearest one below it. The Season Pack is the one that grows
 a week at a time.
 
-**Buy & Rip** rolls the cards, pays for them and opens the pack in one go:
-the sealed pack comes up, a tap tears it open, the cards are dealt face down,
-and each one turns over on a tap with a flash of its colour from Rare up.
-Cards a player has never had before say *New*. Nothing from the pack shows
-in the collection, the library, the recent pulls or the counts until it is
+**Buy & Rip** brings up the sealed pack. **Nothing is paid until it is
+torn:** the tap that tears it is what calls `open_card_pack()`, and closing
+the overlay with the pack still sealed costs nothing and adds nothing. The
+sealed pack gives nothing away either, with no words under it and no glow of
+what is inside. Once torn, the cards are dealt face down and each one turns
+over on a tap with a flash of its colour from Rare up. Cards a player has
+never had before say *New*.
+
+**Quick sell out of the pack:** once every card is turned, tapping a card
+picks it (tap again to put it back), and **Quick sell N** sells all the
+picked ones at the quick-sell prices before the next pack. Iconic cards
+can't be picked.
+
+Nothing from the pack shows in the collection, the library, the recent pulls or the counts until it is
 put away with **Done**, so nothing behind it gives the pack away; a set's
 reward card works the same way.
 
-**The big pulls have their own openings**, longer the rarer they are. A pack
-with a Legendary or better in it lets a little of that card's colour out as
-it tears. Then the card holds back before it turns over: it lifts, shakes
+**The big pulls have their own openings**, longer the rarer they are. A
+Legendary or better holds back before it turns over: it lifts, shakes
 and glows in its colour, and turns in a burst of rays, a ring and sparks.
 
 | Rarity | Holds back | Then |

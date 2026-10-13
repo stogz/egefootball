@@ -81,18 +81,18 @@ EGE.cardStore = (function () {
       .catch(function () { return {}; });
   }
 
-  /* Rolls a pack and pays for it. The cards are decided first, so what the
-     database charges for and what the rip shows are the same cards; if the
-     payment is refused, nothing was opened. */
-  function openPack(packKey) {
+  /* Pays for a pack whose cards were rolled when it was put in front of the
+     player (EGE.cards.rollPack), which is the moment it is torn open: a
+     pack closed without tearing is never charged and its cards never
+     arrive. What the database charges for and what the rip shows are the
+     same cards. */
+  function openPack(packKey, cards) {
     var c = client();
     if (!c) { return fail(offline()); }
 
     var pack = EGE.cards.pack(packKey);
     if (!pack) { return fail('There is no such pack.'); }
-
-    var cards = EGE.cards.rollPack(packKey);
-    if (cards.length !== pack.size) {
+    if (!cards || cards.length !== pack.size) {
       return fail('Not enough cards are out yet to fill a ' + pack.name + '.');
     }
 

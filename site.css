@@ -4523,6 +4523,11 @@ html.ege-noscroll body { overflow: hidden; }
                           #f8b54a 74%, #8a3a10 100%);
   --pack-ink: var(--fb-ink);
 }
+.ege-pack--year {
+  --foil: linear-gradient(135deg, #3b2a14 0%, #9a6b2f 22%, #f3dca4 38%, #b58640 55%,
+                          #e8c77e 74%, #3b2a14 100%);
+  --pack-ink: var(--fb-ink);
+}
 .ege-pack--pro {
   --foil: linear-gradient(135deg, #1d2416 0%, #3a2a55 20%, #ec5fa8 34%, #8a4fd8 48%,
                           #49b6d6 62%, #f0b82a 78%, #1d2416 100%);
@@ -4638,6 +4643,44 @@ html.ege-noscroll body { overflow: hidden; }
   color: var(--fb-cream);
   text-shadow: 3px 3px 0 var(--fb-ink);
 }
+/* Picking cards to quick sell once a pack is over. */
+.ege-flip.is-flipped { cursor: pointer; }
+.ege-flip.is-picked .ege-tcard { outline: 4px solid #b3261e; outline-offset: 3px; }
+.ege-flip.is-picked::after {
+  content: 'Sell';
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  z-index: 8;
+  padding: 2px 8px;
+  background: #b3261e;
+  color: #fff;
+  border: 2px solid var(--fb-ink);
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.ege-flip.is-sold { cursor: default; }
+.ege-flip.is-sold .ege-tcard { filter: grayscale(1); opacity: .35; }
+.ege-flip.is-sold::after {
+  content: 'Sold';
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  z-index: 8;
+  transform: translate(-50%, -50%) rotate(-14deg);
+  padding: 4px 12px;
+  background: var(--fb-cream);
+  border: 3px solid #b3261e;
+  color: #b3261e;
+  font-family: var(--fb-font-display);
+  font-size: 1.25rem;
+  text-transform: uppercase;
+}
+.ege-rip__sell { align-self: center; background: #fbe3df; }
+.ege-rip__sell[hidden] { display: none; }
+
 .ege-rip__close { flex: none; width: 40px; height: 40px; font-size: 1.125rem; }
 
 .ege-rip__pack {
@@ -4647,37 +4690,8 @@ html.ege-noscroll body { overflow: hidden; }
   animation: ege-pack-idle 2.4s ease-in-out infinite;
 }
 .ege-rip__pack > .ege-pack { width: 100%; }
-.ege-rip__tear {
-  position: absolute;
-  left: 50%;
-  top: calc(100% + 14px);
-  transform: translateX(-50%);
-  white-space: nowrap;
-  font-size: var(--fb-label);
-  font-weight: 800;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: var(--fb-gold);
-}
 .ege-rip__pack.is-torn { animation: none; cursor: default; }
-/* A pack holding a Legendary or better lets out a little of its light as
-   it tears (js/cards-view.js sets --glow to the best card's colour). */
-.ege-rip__pack.has-glow::before {
-  content: '';
-  position: absolute;
-  inset: -40%;
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0;
-  background: radial-gradient(circle, var(--glow) 0%, transparent 60%);
-}
-.ege-rip__pack.has-glow.is-torn::before { animation: ege-leak .62s ease-out forwards; }
-@keyframes ege-leak {
-  0%   { opacity: 0; scale: .5; }
-  60%  { opacity: 1; scale: 1.2; }
-  100% { opacity: .85; scale: 1.45; }
-}
-.ege-rip__pack.is-torn .ege-rip__tear { opacity: 0; }
+.ege-rip__pack.is-paying { animation: none; opacity: .7; cursor: progress; }
 .ege-rip__pack.is-torn .ege-pack__top { animation: ege-tear .5s cubic-bezier(.3, .7, .4, 1) forwards; }
 .ege-rip__pack.is-torn .ege-pack__body { animation: ege-spill .55s .12s ease-in forwards; }
 
@@ -5757,7 +5771,6 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-flip__sparks,
   .ege-rip__flash,
   .ege-rip__banner { display: none; }
-  .ege-rip__pack.has-glow::before { animation: none; }
   .ege-rip__pack.is-torn .ege-pack__top,
   .ege-rip__pack.is-torn .ege-pack__body { animation: none; opacity: 0; }
 }

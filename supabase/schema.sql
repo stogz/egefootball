@@ -1062,6 +1062,9 @@ revoke all on function public.owns_cards(text, text[]) from public, anon, authen
 -- so two packs opened at once from two tabs cannot both spend the same
 -- diamonds.
 --
+-- Nothing is charged until the pack is torn open on the page: closing a
+-- pack before tearing it never reaches here.
+--
 -- Returns the diamonds left.
 -- ---------------------------------------------------------------------------
 
@@ -1084,6 +1087,19 @@ begin
 
   v_price := case p_pack when 'base' then 10 when 'season' then 12 when 'pro' then 20 end;
   v_size  := case p_pack when 'base' then 3 when 'season' then 3 when 'pro' then 5 end;
+
+  -- A past season's pack, year-{season}: 14 diamonds, three cards, every
+  -- one of them from that season.
+  if p_pack ~ '^year-[0-9]{4}$' then
+    v_price := 14;
+    v_size := 3;
+    foreach v_card in array coalesce(p_cards, '{}') loop
+      if split_part(v_card, ':', 2) <> substr(p_pack, 6) then
+        raise exception 'A % holds cards from that season only.', p_pack;
+      end if;
+    end loop;
+  end if;
+
   if v_price is null then
     raise exception 'There is no % pack.', p_pack;
   end if;

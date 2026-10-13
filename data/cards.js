@@ -128,6 +128,25 @@ EGE.cards = (function () {
     }
   ];
 
+  /* A pack for every season before the live one: three cards from that
+     year only, the last one Uncommon or better. open_card_pack charges 14
+     for any year-{season} pack and checks every card in it is from that
+     season. */
+  var YEAR_PACK_PRICE = 14;
+  (EGE.seasonsPlayed ? EGE.seasonsPlayed() : []).filter(function (year) {
+    return year < EGE.currentSeason;
+  }).forEach(function (year) {
+    PACKS.push({
+      key: 'year-' + year,
+      name: year + ' Pack',
+      diamonds: YEAR_PACK_PRICE,
+      size: 3,
+      season: year,
+      floor: 'uncommon',
+      blurb: 'Three cards from ' + year + ' only, the last one Uncommon or better.'
+    });
+  });
+
   function pack(key) {
     return PACKS.filter(function (p) { return p.key === key; })[0] || null;
   }
@@ -349,6 +368,7 @@ EGE.cards = (function () {
     return all().filter(function (card) {
       if (!EGE.isPublished(card.season, card.week)) { return false; }
       if (p && p.seasonOnly && card.season !== EGE.currentSeason) { return false; }
+      if (p && p.season && card.season !== p.season) { return false; }
       return true;
     });
   }

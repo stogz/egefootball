@@ -247,7 +247,7 @@ EGE.cardsView = (function () {
   /* --- packs ------------------------------------------------------------ */
 
   function packArt(pack) {
-    var art = el('div', 'ege-pack ege-pack--' + pack.key);
+    var art = el('div', 'ege-pack ege-pack--' + (pack.season ? 'year' : pack.key));
     art.appendChild(el('span', 'ege-pack__top'));
     var body = el('span', 'ege-pack__body');
     body.appendChild(el('span', 'ege-pack__brand', 'EGE Football'));
@@ -350,36 +350,48 @@ EGE.cardsView = (function () {
     });
   }
 
+  /* Puts a sealed pack in front of the player. Its cards are rolled now
+     but nothing is paid until it is torn open (tearOpen pays through
+     `pay`); closing it sealed costs nothing and hands nothing over. */
   function buyPack(pack, button) {
-    if (button) { button.disabled = true; }
     say('', false);
-    var before = Object.assign({}, state.owned);
+    if (state.diamonds !== null && state.diamonds < pack.diamonds) {
+      say('Not enough diamonds for a ' + pack.name + '.', true);
+      return;
+    }
+    var cards = EGE.cards.rollPack(pack.key);
+    if (cards.length !== pack.size) {
+      say('Not enough cards are out yet to fill a ' + pack.name + '.', true);
+      return;
+    }
 
-    return EGE.cardStore.openPack(pack.key).then(function (res) {
-      if (!res.ok) {
-        say(res.message, true);
-        renderPacks();
-        return;
-      }
+    /* New is the first of a card ever, so a pack with two of something
+       new calls only the first one new. */
+    var seen = Object.assign({}, state.owned);
+    var isNew = cards.map(function (card) {
+      var first = !seen[card.id];
+      seen[card.id] = (seen[card.id] || 0) + 1;
+      return first;
+    });
+    var paid = false;
 
-      /* New is the first of a card ever, so a pack with two of something
-         new calls only the first one new. */
-      var seen = Object.assign({}, before);
-      var isNew = res.cards.map(function (card) {
-        var first = !seen[card.id];
-        seen[card.id] = (seen[card.id] || 0) + 1;
-        return first;
-      });
-
-      /* The cards are the player's now, but the collection, the library
-         and the counts stay as they were until the pack is put away --
-         otherwise they give the pack away before a card is turned over. */
-      state.hold = true;
-      walletChanged(null, res.diamonds);
-      renderPacks();
-
-      openRip({ pack: pack, cards: res.cards, isNew: isNew,
-                onClose: function () { reveal(res.cards, isNew); } });
+    openRip({
+      pack: pack, cards: cards, isNew: isNew, sellable: true,
+      pay: function () {
+        return EGE.cardStore.openPack(pack.key, cards).then(function (res) {
+          if (!res.ok) { return res; }
+          /* The cards are the player's now, but the collection, the
+             library and the counts stay as they were until the pack is
+             put away -- otherwise they give the pack away before a card
+             is turned over. */
+          paid = true;
+          state.hold = true;
+          walletChanged(null, res.diamonds);
+          renderPacks();
+          return res;
+        });
+      },
+      onClose: function () { if (paid) { reveal(cards, isNew); } }
     });
   }
 
@@ -389,6 +401,9 @@ EGE.cardsView = (function () {
 
   function closeRip() {
     if (!rip) { return; }
+    /* Not while a pack is being paid for: the answer decides whether it
+       was bought at all. */
+    if (rip.node.querySelector('.ege-rip__pack.is-paying')) { return; }
     rip.node.hidden = true;
     rip.node.innerHTML = '';
     delete rip.node.dataset.fx;
@@ -524,7 +539,82 @@ EGE.cardsView = (function () {
         EGE.cards.pullable(rip.pack.key).length >= rip.pack.size;
       again.hidden = rip.again ? false : !affordable;
     }
-    rip.node.querySelector('.ege-rip__hint').textContent = rip.summary || '';
+    rip.node.querySelector('.ege-rip__hint').textContent = rip.summary ||
+      (rip.sellable ? 'Tap any you don\u2019t want to quick sell them.' : '');
+    rip.done = true;
+    drawSell();
+  }
+
+  /* --- quick selling out of a pack ------------------------------------- */
+
+  function pickToSell(flip) {
+    if (!rip || !rip.sellable || !rip.done || flip.classList.contains('is-sold') || rip.selling) { return; }
+    if (!EGE.cards.sellPrice(flip.card)) {
+      rip.node.querySelector('.ege-rip__hint').textContent = 'Iconic cards cannot be quick sold.';
+      return;
+    }
+    var at = rip.picked.indexOf(flip);
+    if (at === -1) { rip.picked.push(flip); } else { rip.picked.splice(at, 1); }
+    flip.classList.toggle('is-picked', at === -1);
+    flip.setAttribute('aria-pressed', at === -1 ? 'true' : 'false');
+    drawSell();
+  }
+
+  function drawSell() {
+    var button = rip && rip.node.querySelector('.ege-rip__sell');
+    if (!button) { return; }
+    var total = rip.picked.reduce(function (sum, flip) { return sum + EGE.cards.sellPrice(flip.card); }, 0);
+    button.hidden = !rip.picked.length;
+    button.innerHTML = '';
+    button.appendChild(document.createTextNode('Quick sell ' + rip.picked.length + ' \u00b7 '));
+    button.appendChild(price(total));
+  }
+
+  /* One sale at a time, so each card's copy is taken and paid for on its
+     own; a refusal stops there and leaves the rest picked. */
+  function sellPicked(mine, button) {
+    if (!mine.picked.length || mine.selling) { return; }
+    mine.selling = true;
+    button.disabled = true;
+    var sold = 0;
+    var got = 0;
+
+    function next() {
+      if (rip !== mine) { return; }
+      var flip = mine.picked[0];
+      if (!flip) { return done(''); }
+      EGE.cardStore.quickSell(flip.card).then(function (res) {
+        if (rip !== mine) { return; }
+        if (!res.ok) { return done(res.message); }
+        sold += 1;
+        got += res.price;
+        mine.picked.shift();
+        flip.classList.remove('is-picked');
+        flip.classList.add('is-sold');
+        walletChanged(null, res.diamonds);
+        next();
+      });
+    }
+
+    function done(problem) {
+      mine.selling = false;
+      button.disabled = false;
+      renderPacks();
+      drawSell();
+      mine.node.querySelector('.ege-rip__hint').textContent = problem ||
+        ('Sold ' + sold + (sold === 1 ? ' card' : ' cards') + ' for ' + got + (got === 1 ? ' diamond.' : ' diamonds.'));
+      if (sold && EGE.showcase) { EGE.showcase.forget(); }
+      /* The Another button checks the balance the sales just added to. */
+      if (mine.pack && !mine.again) {
+        var again = mine.node.querySelector('.ege-rip__again');
+        if (again) {
+          again.hidden = !(state.diamonds !== null && state.diamonds >= mine.pack.diamonds &&
+            EGE.cards.pullable(mine.pack.key).length >= mine.pack.size);
+        }
+      }
+    }
+
+    next();
   }
 
   function dealCards() {
@@ -538,7 +628,29 @@ EGE.cardsView = (function () {
 
   function tearOpen() {
     var packNode = rip.node.querySelector('.ege-rip__pack');
-    if (!packNode || packNode.classList.contains('is-torn')) { return; }
+    if (!packNode || packNode.classList.contains('is-torn') || packNode.classList.contains('is-paying')) { return; }
+
+    /* A bought pack is paid for here, as it tears, and only tears once the
+       diamonds have gone. Refused, it stays sealed and nothing is taken. */
+    if (rip.pay) {
+      var mine = rip;
+      var pay = rip.pay;
+      packNode.classList.add('is-paying');
+      mine.node.querySelector('.ege-rip__hint').textContent = 'Opening\u2026';
+      pay().then(function (res) {
+        if (rip !== mine) { return; }
+        packNode.classList.remove('is-paying');
+        if (!res.ok) {
+          mine.node.querySelector('.ege-rip__hint').textContent = res.message;
+          return;
+        }
+        mine.pay = null;
+        mine.node.querySelector('.ege-rip__hint').textContent = '';
+        tearOpen();
+      });
+      return;
+    }
+
     packNode.classList.add('is-torn');
     packNode.setAttribute('aria-hidden', 'true');
     packNode.tabIndex = -1;
@@ -559,15 +671,14 @@ EGE.cardsView = (function () {
     delete node.dataset.fx;
     rip = { node: node, pack: options.pack || null, returnTo: document.activeElement,
             onClose: options.onClose || null, again: options.again || null };
+    var mineRip = rip;
 
-    var best = options.cards.slice().sort(EGE.cards.compare)[0];
-    var fresh = options.isNew.filter(Boolean).length;
-    var bestText = best && options.cards.length > 1
-      ? 'Best pull: ' + EGE.cards.rarity(best.rarity).name + ' ' + best.player.first + '. ' : '';
-    rip.summary = options.demo
-      ? bestText + 'A demo: nothing went into anybody\u2019s collection.'
-      : (options.extras && options.extras.length ? options.extras.join(' \u00b7 ') + '. ' : '') + bestText +
-        (options.cards.length > 1 ? fresh + ' new to your collection.' : (fresh ? 'New to your collection.' : 'One you had already.'));
+    /* Once the cards are over, the only words are what a set paid on top
+       of its card. */
+    rip.summary = options.extras && options.extras.length ? options.extras.join(' \u00b7 ') + '.' : '';
+    rip.pay = options.pay || null;
+    rip.sellable = Boolean(options.sellable);
+    rip.picked = [];
 
     var stage = el('div', 'ege-rip__stage');
 
@@ -581,15 +692,10 @@ EGE.cardsView = (function () {
     stage.appendChild(head);
 
     if (options.pack) {
+      /* Nothing about the pack gives away what is in it: no glow, no
+         colour, until a card is turned over. */
       var packNode = pressable(el('div', 'ege-rip__pack'), 'Tear the pack open', tearOpen);
-      /* A pack with a Legendary or better in it lets out a little of its
-         light as it tears. */
-      if (best && EGE.cards.rankOf(best.rarity) >= EGE.cards.rankOf('legendary')) {
-        packNode.classList.add('has-glow');
-        packNode.style.setProperty('--glow', EGE.cards.rarity(best.rarity).color);
-      }
       packNode.appendChild(packArt(options.pack));
-      packNode.appendChild(el('span', 'ege-rip__tear', 'Tap to rip'));
       stage.appendChild(packNode);
     }
 
@@ -602,7 +708,10 @@ EGE.cardsView = (function () {
       flip.style.setProperty('--glow', r.color);
       flip.dataset.rarity = card.rarity;
       flip.dataset.label = describe(card) + (options.isNew[i] ? ', new' : '');
-      pressable(flip, 'Card ' + (i + 1) + ', face down. Turn it over.', function () { flipCard(flip); });
+      flip.card = card;
+      pressable(flip, 'Card ' + (i + 1) + ', face down. Turn it over.', function () {
+        if (flip.classList.contains('is-flipped')) { pickToSell(flip); } else { flipCard(flip); }
+      });
 
       var inner = el('div', 'ege-flip__inner');
       var back = el('div', 'ege-flip__side ege-flip__side--back');
@@ -616,7 +725,17 @@ EGE.cardsView = (function () {
     });
     stage.appendChild(row);
 
-    stage.appendChild(el('p', 'ege-rip__hint', options.pack ? 'Tap the pack to tear it open.' : ''));
+    stage.appendChild(el('p', 'ege-rip__hint', ''));
+
+    /* Quick selling straight out of the pack: once every card is over,
+       tap the ones you do not want and sell them together. */
+    if (options.sellable) {
+      var sellBtn = el('button', 'fb-btn ege-rip__sell');
+      sellBtn.type = 'button';
+      sellBtn.hidden = true;
+      sellBtn.addEventListener('click', function () { sellPicked(mineRip, sellBtn); });
+      stage.appendChild(sellBtn);
+    }
 
     var actions = el('div', 'ege-rip__actions');
     var flipAll = el('button', 'fb-btn ege-rip__flipall', 'Turn them all over');
