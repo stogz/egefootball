@@ -5573,7 +5573,6 @@ html.ege-noscroll body { overflow: hidden; }
   background: var(--fb-ink);
   border: 1px solid rgba(251, 244, 230, .12);
   border-radius: var(--radius) !important;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, .35), 0 2px 0 rgba(0, 0, 0, .25);
   overflow: hidden;
   pointer-events: auto;
 }
@@ -5898,6 +5897,32 @@ html.ege-noscroll body { overflow: hidden; }
 }
 .ege-filterclear:disabled { opacity: .4; cursor: default; }
 
+/* The phone's Sort button and the Done inside its menu; a desktop has the
+   whole row out and needs neither. */
+.ege-filtertoggle,
+.ege-filterdone { display: none; }
+.ege-filtertoggle {
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 47px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.ege-filtertoggle__count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px !important;
+  background: var(--fb-accent);
+  color: var(--fb-ink);
+  font-size: .75rem;
+  letter-spacing: 0;
+}
+
 /* --- the shop's daily cards ------------------------------------------------- */
 
 .ege-daily {
@@ -5983,9 +6008,34 @@ html.ege-noscroll body { overflow: hidden; }
 
   .ege-odds td.num { white-space: nowrap; }
 
-  /* On a phone the filters take several lines; pinned they would cover the
-     cards, so they scroll away with the page. */
-  .ege-collection .ege-cardfilters { position: static; }
+  /* On a phone the filters scroll away with the page rather than pinning,
+     and are the anchor the Sort menu opens under. */
+  .ege-collection .ege-cardfilters { position: relative; top: auto; }
+
+  /* Everything folds behind the Sort button and pops open under it. */
+  .ege-filtertoggle { display: flex; }
+  .ege-cardfilters .ege-filterrow { display: none; }
+  .ege-cardfilters.is-open .ege-filterrow {
+    display: flex;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% - 4px);
+    z-index: 20;
+    padding: 14px;
+    background: var(--fb-cream);
+    border: var(--fb-border) solid var(--fb-ink);
+    box-shadow: 5px 5px 0 var(--fb-ink);
+  }
+  .ege-cardfilters.is-open .ege-filtertoggle { background: var(--fb-ink); color: var(--fb-cream); }
+  /* Two drop-downs a line, so the menu stays short of the island. */
+  .ege-cardfilters.is-open .ege-filterselect {
+    flex: 1 1 calc(50% - 4px);
+    padding-left: 10px;
+    font-size: .875rem;
+    letter-spacing: .04em;
+  }
+  .ege-filterdone { display: block; flex: 1 1 auto; min-height: 47px; }
 
   .ege-rip__stage { gap: 16px; }
   .ege-rip__cards { gap: 10px; }

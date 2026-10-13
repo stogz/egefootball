@@ -1163,7 +1163,39 @@ EGE.cardsView = (function () {
     });
     rest.appendChild(clear);
 
+    /* On a phone the whole row folds into a menu behind one Sort button
+       (with a count of what is changed from the defaults), so the binder
+       starts near the top. It stays open while things are picked, and Done,
+       a tap outside it or Escape closes it. On a desktop the row is always
+       out and the button is hidden. */
+    var changes = (state.view ? 1 : 0) +
+      Object.keys(f0).filter(function (k) { return f[k] !== f0[k]; }).length;
+    var toggle = el('button', 'fb-btn ege-filtertoggle');
+    toggle.type = 'button';
+    toggle.setAttribute('aria-controls', 'collectionFilterMenu');
+    toggle.setAttribute('aria-expanded', state.filtersOpen ? 'true' : 'false');
+    toggle.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">' +
+      '<path fill="currentColor" d="M3 6h11v2H3V6zm15 0h3v2h-3v2h-2V4h2v2zM3 16h3v-2h2v6H6v-2H3v-2zm7 0h11v2H10v-2z"/></svg>' +
+      '<span>Sort</span>' + (changes ? '<b class="ege-filtertoggle__count">' + changes + '</b>' : '');
+    toggle.addEventListener('click', function () { openFilters(!state.filtersOpen); });
+    bar.appendChild(toggle);
+
+    var done = el('button', 'fb-btn fb-btn--primary ege-filterdone', 'Done');
+    done.type = 'button';
+    done.addEventListener('click', function () { openFilters(false); });
+    rest.appendChild(done);
+
+    rest.id = 'collectionFilterMenu';
+    bar.classList.toggle('is-open', Boolean(state.filtersOpen));
     bar.appendChild(rest);
+  }
+
+  function openFilters(open) {
+    state.filtersOpen = open;
+    var bar = byId('collectionFilters');
+    bar.classList.toggle('is-open', open);
+    var toggle = bar.querySelector('.ege-filtertoggle');
+    if (toggle) { toggle.setAttribute('aria-expanded', open ? 'true' : 'false'); }
   }
 
   /* `first` is when each card was first pulled, for Newest pulls. */
@@ -2825,6 +2857,15 @@ EGE.cardsView = (function () {
     if (built) { return; }
     built = true;
     renderFilters();
+    /* A tap outside the phone's Sort menu closes it. A pick inside it redraws
+       the menu, so a tap on something no longer in the page was inside. */
+    document.addEventListener('click', function (event) {
+      if (!state.filtersOpen || !event.target.isConnected) { return; }
+      if (!byId('collectionFilters').contains(event.target)) { openFilters(false); }
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && state.filtersOpen) { openFilters(false); }
+    });
     byId('tradeNew').addEventListener('click', openTradeBuilder);
     byId('marketSell').addEventListener('click', openSellPicker);
     Array.prototype.forEach.call(document.querySelectorAll('#cardTabs input'), function (input) {
