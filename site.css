@@ -5515,11 +5515,11 @@ html.ege-noscroll body { overflow: hidden; }
 
 /* --- the cards pages --------------------------------------------------------
 
-   Five pages under one tab, picked from a bar fixed along the bottom of the
-   screen. The section keeps room under its last panel so the bar never sits
-   on top of anything. */
+   Five pages under one tab, picked from an island fixed near the bottom of
+   the screen. The section keeps room under its last panel so the island never
+   sits on top of anything. */
 
-#view-cards { padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
+#view-cards { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 
 .ege-cardshead {
   display: flex;
@@ -5537,56 +5537,109 @@ html.ege-noscroll body { overflow: hidden; }
 }
 .ege-cardshead .ege-ovr { margin: 0; }
 
+/* The island: five icons on a dark pill floating over the foot of the
+   screen, after the Uiverse "liquid" radio group. The picked page sits on an
+   orange slider that glides from icon to icon; the inputs stay real radios
+   (hidden, but keyboard and screen reader reachable). */
 .ege-cardtabs {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: calc(14px + env(safe-area-inset-bottom));
   z-index: 25;
-  background: var(--fb-ink);
-  border-top: 5px solid var(--fb-accent);
-  box-shadow: 0 -6px 0 rgba(0, 0, 0, .18);
-  padding-bottom: env(safe-area-inset-bottom);
+  display: flex;
+  justify-content: center;
+  padding: 0 12px;
+  pointer-events: none;            /* only the island itself takes taps */
 }
 .ege-cardtabs__inner {
-  max-width: 760px;
-  margin: 0 auto;
-  display: flex;
+  --gap: 6px;
+  --radius: 20px;
+  --speed: .55s;
+  --ease: cubic-bezier(.22, .9, .25, 1);
+  --tab: 0;
+
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  width: min(100%, 400px);
+  padding: var(--gap);
+  background: var(--fb-ink);
+  border: 1px solid rgba(251, 244, 230, .12);
+  border-radius: var(--radius) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .35), 0 2px 0 rgba(0, 0, 0, .25);
+  overflow: hidden;
+  pointer-events: auto;
 }
 .ege-cardtab {
   position: relative;
-  flex: 1 1 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  height: 52px;
   min-width: 0;
+  color: rgba(251, 244, 230, .5);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color .35s ease, transform .2s ease;
 }
 .ege-cardtab input {
   position: absolute;
   opacity: 0;
   pointer-events: none;
 }
-.ege-cardtab > span {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 60px;
-  padding: 0 6px;
-  border-bottom: 4px solid transparent;
-  font-size: .8125rem;
-  font-weight: 800;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: rgba(245, 234, 216, .62);
-  white-space: nowrap;
+.ege-cardtab:hover { color: rgba(251, 244, 230, .85); }
+.ege-cardtab:active { transform: scale(.94); }
+.ege-cardtab.is-active { color: #fff; }
+.ege-cardtab:has(input:focus-visible) { outline: 2px solid var(--fb-cream); outline-offset: -4px; border-radius: calc(var(--radius) - 6px) !important; }
+
+/* Sam's white glyphs, used as masks so they take the label's colour. */
+.ege-cardtab__icon {
+  width: 26px;
+  height: 26px;
+  background: currentColor;
+  -webkit-mask: var(--icon) center / contain no-repeat;
+  mask: var(--icon) center / contain no-repeat;
+  transition: transform var(--speed) var(--ease);
 }
-.ege-cardtab:hover > span { color: var(--fb-cream); }
-.ege-cardtab input:checked + span {
-  color: var(--fb-ink);
+.ege-cardtab.is-active .ege-cardtab__icon { transform: scale(1.08); }
+.ege-cardtab__icon--cards        { --icon: url("icon/cardtabs/cards.png"); }
+.ege-cardtab__icon--players      { --icon: url("icon/cardtabs/players.png"); }
+.ege-cardtab__icon--shop         { --icon: url("icon/cardtabs/shop.png"); }
+.ege-cardtab__icon--trades       { --icon: url("icon/cardtabs/trades.png"); }
+.ege-cardtab__icon--achievements { --icon: url("icon/cardtabs/achievements.png"); }
+
+/* The liquid slider: exactly one column wide, moved a column per page. */
+.ege-cardtabs__slider {
+  position: absolute;
+  top: var(--gap);
+  bottom: var(--gap);
+  left: var(--gap);
+  width: calc((100% - 2 * var(--gap)) / 5);
+  z-index: 1;
   background: var(--fb-accent);
-  border-bottom-color: var(--fb-cream);
+  border-radius: calc(var(--radius) - 6px) !important;
+  transform: translateX(calc(var(--tab) * 100%));
+  transition: transform var(--speed) var(--ease), background .3s ease;
 }
-.ege-cardtab input:focus-visible + span { outline: 3px solid var(--fb-cream); outline-offset: -5px; }
+.ege-cardtabs__slider::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit !important;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, .28),
+    inset 0 -2px 3px rgba(0, 0, 0, .3);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ege-cardtabs__slider, .ege-cardtab__icon { transition: none; }
+}
+
 .ege-cardtab__badge {
+  position: absolute;
+  top: 3px;
+  right: calc(50% - 24px);
+  z-index: 3;
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
@@ -5595,11 +5648,13 @@ html.ege-noscroll body { overflow: hidden; }
   background: var(--fb-cream);
   color: var(--fb-ink);
   border: 2px solid var(--fb-ink);
+  border-radius: 999px !important;
   font-size: .6875rem;
-  letter-spacing: 0;
+  font-weight: 800;
+  line-height: 1;
 }
 /* New trade offers on the Trades button: red with white, like the nav. */
-#tabTradesBadge { border-radius: 999px !important; background: #d92b2b; color: #fff; border-color: #d92b2b; }
+#tabTradesBadge { background: #d92b2b; color: #fff; }
 .ege-cardtab__badge[hidden] { display: none; }
 
 /* An offer seen for the first time on this visit. */
@@ -5888,9 +5943,6 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-sellpick { display: flex; flex-direction: column; gap: 12px; }
 .ege-sellpick .ege-filterselect { align-self: flex-start; }
 
-@media (max-width: 400px) {
-  .ege-cardtab > span { font-size: .625rem; letter-spacing: 0; }
-}
 @media (max-width: 1100px) {
   .ege-daily,
   .ege-market__grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -5922,11 +5974,6 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-pcard__bonus { font-size: .8125rem; }
   .ege-filterclear { flex: 0 0 auto; min-height: 47px; }
 
-  /* Five pages across a phone: smaller words, and Achievements shortened
-     by its letter spacing rather than its name. */
-  .ege-cardtab > span { height: 54px; padding: 0 2px; font-size: .6875rem; letter-spacing: .02em; }
-  .ege-cardtab__badge { position: absolute; top: 4px; right: 4px; min-width: 16px; height: 16px; font-size: .625rem; }
-  .ege-cardtab > span { overflow: hidden; text-overflow: ellipsis; }
   .ege-odds td.num { white-space: nowrap; }
 
   /* On a phone the filters take several lines; pinned they would cover the

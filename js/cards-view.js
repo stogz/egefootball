@@ -1951,6 +1951,8 @@ EGE.cardsView = (function () {
       input.checked = input.value === next;
       input.parentNode.classList.toggle('is-active', input.checked);
     });
+    /* The slider glides under the picked icon, one fifth of the island per page. */
+    byId('cardTabs').style.setProperty('--tab', TABS.indexOf(next));
     byId('cardsTitle').textContent = TAB_TITLES[next];
     document.title = TAB_TITLES[next] + ' — EGE Football';
 

@@ -1467,8 +1467,10 @@ or the tab says it cannot load the cards.
 
 ### The five pages
 
-The tab is five pages, picked from a radio bar fixed along the bottom of the
-screen; the page goes into the address as `#cards/players`, `#cards/shop` and
+The tab is five pages, picked from a floating island of five icons near the
+bottom of the screen (Sam's glyphs in `icon/cardtabs/`, after the Uiverse
+"liquid" radio group): an orange slider glides under the picked icon, and each
+icon keeps its page name as a hover title and for screen readers. The page goes into the address as `#cards/players`, `#cards/shop` and
 so on, swapped in place so switching reloads nothing.
 
 - **Cards** — the collection and nothing else. The page itself scrolls it (no
