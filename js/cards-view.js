@@ -337,8 +337,6 @@ EGE.cardsView = (function () {
       holder.appendChild(packTile(pack));
     });
 
-    byId('cardsBalance').textContent = state.diamonds === null ? '\u2014' : state.diamonds;
-    byId('cardsBalanceBox').hidden = false;
     renderSwap();
   }
 
