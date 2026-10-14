@@ -4586,6 +4586,14 @@ html.ege-noscroll body { overflow: hidden; }
   --pack-deep: #1c2f55;
   --pack-hi: #c9d6f2;
 }
+/* Alabama, for Andrew's 2020 pack: the deep crimson of the script A, which
+   goes on it in white as Alabama wears it, and houndstooth across the foot. */
+.ege-pack.ege-pack--bama {
+  --foil: linear-gradient(135deg, #2c020d 0%, #740522 18%, #b30838 34%, #8a0629 50%,
+                          #c0173f 66%, #740522 82%, #2c020d 100%);
+  --pack-deep: #3e0516;
+  --pack-hi: #f3e6ea;
+}
 /* Ohio State, for Jaykeb's 2021 pack: red foil in the scarlet of his
    jersey in the photo, a dark scarlet for the bars, lined in the helmet's
    silver, and the helmet stripe across the foot. */
@@ -4793,6 +4801,18 @@ html.ege-noscroll body { overflow: hidden; }
   height: 5cqw;
   background:
     conic-gradient(from 45deg, #fff 25%, #88a7e6 0 50%, #fff 0 75%, #88a7e6 0) 0 0 / 5cqw 5cqw;
+  border-top: .5cqw solid var(--pack-deep);
+}
+/* Alabama's houndstooth, above the foot band (the weave: a 2/2 twill of
+   four crimson and four white threads each way). */
+.ege-pack--bama .ege-pack__foot::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + .9cqw);
+  height: 5cqw;
+  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges' fill='%239e1b32'><path d='M0 0h4v2H0zM6 0h2v1H6zM5 1h2v1H5zM0 2h6v1H0zM0 3h5v1H0zM7 3h1v1H7zM0 4h2v1H0zM0 5h1v1H0zM3 5h1v1H3zM2 6h2v1H2zM1 7h2v1H1z'/></svg>") 0 0 / 5cqw 5cqw, #fff;
   border-top: .5cqw solid var(--pack-deep);
 }
 /* Ohio State's helmet stripe, laid across above the foot band: silver,

@@ -1255,8 +1255,9 @@ run behind the name, which sits a little above the trim. 2022 has Paxon at
 North Carolina in the blues of his jersey in the photo (cooler than the
 official Carolina blue), the NC behind him and an argyle strip (Sam,
 2026-10-14). 2021 has Jaykeb at Ohio State in the scarlet of his jersey,
-the block O behind him and the helmet stripe across the foot (Sam,
-2026-10-14). A cover
+the block O behind him and the helmet stripe across the foot, and 2020 Andrew
+at Alabama in the deep crimson of the script A, the A behind him in white and
+houndstooth across the foot (Sam, 2026-10-14). A cover
 follows its season: on the live Season Pack while it is that season, then on
 that year's pack behind the arrows. A season with no cover gets the plain
 pack, its name in the middle.
