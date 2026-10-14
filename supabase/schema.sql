@@ -1277,7 +1277,7 @@ create policy "card trades readable by either side or admin"
          or lower(to_email) = lower(auth.jwt() ->> 'email')
          or public.is_admin());
 
--- Showcases: up to five cards a player puts on their own player page. Set
+-- Showcases: up to six cards a player puts on their own player page. Set
 -- below, pruned here.
 create table if not exists public.card_showcases (
   email      text primary key,
@@ -1293,7 +1293,7 @@ create policy "card showcases are public"
   using (true);
 
 -- A card that has left a collection leaves its owner's showcase too, and a
--- Player Card ('pc:{slug}', which shares the five slots) once no card of
+-- Player Card ('pc:{slug}', which shares the six slots) once no card of
 -- that player is left.
 create or replace function public.prune_showcase(p_email text)
 returns void
@@ -1451,7 +1451,7 @@ $$;
 -- ---------------------------------------------------------------------------
 -- Showcases
 --
--- Up to five cards a player picks to show on their own player page. Public,
+-- Up to six cards a player picks to show on their own player page. Public,
 -- like the page: anybody can see them, signed in or not. Only cards the
 -- player owns can go up, and a card traded away comes down on its own.
 -- A slot can hold a Player Card instead, as 'pc:{slug}', for any player
@@ -1474,8 +1474,8 @@ begin
   if v_email is null then
     raise exception 'sign in first';
   end if;
-  if coalesce(array_length(v_cards, 1), 0) > 5 then
-    raise exception 'A showcase holds five cards.';
+  if coalesce(array_length(v_cards, 1), 0) > 6 then
+    raise exception 'A showcase holds six cards.';
   end if;
   foreach v_card in array v_cards loop
     if v_card ~ '^pc:[a-z]+(-[a-z]+)*$' then
@@ -2188,14 +2188,14 @@ notify pgrst, 'reload schema';
 --
 -- Player Cards used to sit in a row of their own (card_showcases.
 -- player_cards, set by set_player_card_showcase). Any still there move into
--- the slots, first, as many as fit in five; the column stays, empty.
+-- the slots, first, as many as fit in six; the column stays, empty.
 -- ===========================================================================
 
 alter table public.card_showcases add column if not exists player_cards text[] not null default '{}';
 
 update public.card_showcases
    set cards = (array(select 'pc:' || p from unnest(player_cards) with ordinality as t(p, n)
-                       where not ('pc:' || p = any(cards)) order by n) || cards)[1:5],
+                       where not ('pc:' || p = any(cards)) order by n) || cards)[1:6],
        player_cards = '{}',
        updated_at = now()
  where cardinality(player_cards) > 0;

@@ -1,7 +1,7 @@
 /* ==========================================================================
    EGE Football — the showcase on a player page
-   Up to five cards a player picks out of their collection to show off on
-   their own page; any of the five can be one of their Player Cards instead
+   Up to six cards a player picks out of their collection to show off on
+   their own page; any of the six can be one of their Player Cards instead
    ('pc:{slug}' among the ids). Anybody can see it, signed in or not; only the player can
    change it, and only with cards they own. A card traded away comes down on
    its own (supabase/schema.sql prunes it when the trade goes through).
@@ -16,7 +16,7 @@ window.EGE = window.EGE || {};
 EGE.showcase = (function () {
   'use strict';
 
-  var SIZE = 5;                     /* set_card_showcase holds to the same */
+  var SIZE = 6;                     /* set_card_showcase holds to the same */
   var STALE_AFTER = 20 * 1000;
 
   var cache = {};                   /* email -> { ids, at } */
@@ -83,7 +83,7 @@ EGE.showcase = (function () {
     if (!mine) { editing = null; }
     var loaded = Boolean(cache[player.email]);
     var ids = editing || savedIds(player);
-    /* Cards and Player Cards share the five slots, in the order picked. */
+    /* Cards and Player Cards share the six slots, in the order picked. */
     var items = ids.map(function (id) {
       var pc = slotPlayerCard(id);
       if (pc) { return { pc: pc }; }
