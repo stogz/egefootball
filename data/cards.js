@@ -161,11 +161,13 @@ EGE.cards = (function () {
      is a pack colourway in site.css (.ege-pack--{theme}); `image` a cut-out
      on a clear background in icon/packs/, and `logo` the team's, large
      behind him; `zoom` makes him bigger than the usual size (1.2 is 20%
-     bigger), his helmet staying where it is. A season not here gets a plain
+     bigger), his helmet staying where it is, and `drop` moves him down that
+     % of the pack, for a helmet that would cover the EGE Football letters. A season not here gets a plain
      pack in the Season Pack's own colours. */
   var PACK_COVERS = {
     2019: { player: 'sam-stogsdill', image: 'icon/packs/2019-sam-stogsdill.webp',
-            logo: 'icon/packs/2019-normal-logo.webp', theme: 'ironmen', zoom: 1.2 },
+            logo: 'icon/packs/2019-normal-logo.webp', theme: 'ironmen', zoom: 1.2,
+            drop: 2 },
     2020: { player: 'andrew-parr', image: 'icon/packs/2020-andrew-parr.webp',
             logo: 'icon/packs/2020-alabama-logo.webp', theme: 'bama', zoom: 1.2 },
     2021: { player: 'jaykeb-stewart', image: 'icon/packs/2021-jaykeb-stewart.webp',

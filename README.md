@@ -1258,8 +1258,10 @@ official Carolina blue), the NC behind him and an argyle strip (Sam,
 the block O behind him and the helmet stripe across the foot, and 2020 Andrew
 at Alabama in the deep crimson of the script A, a darker A behind him and
 Greek laurel leaves across the foot, and Andrew 20% bigger than the others
-(a cover's `zoom`); 2019 has Sam at Normal Community, 20% bigger, on black foil
-lined in the Ironmen's orange, the N behind him as only its orange outline,
+(a cover's `zoom`); 2019 has Sam at Normal Community, 20% bigger and a touch
+lower (a cover's `drop`, so his helmet clears the EGE letters), on
+near-black foil with darkened seals and a dimmer prizm, lined in the
+Ironmen's orange, the N behind him as only its orange outline,
 and a black sword on an orange band across the foot (Sam, 2026-10-14). A cover
 follows its season: on the live Season Pack while it is that season, then on
 that year's pack behind the arrows. A season with no cover gets the plain
