@@ -4651,14 +4651,28 @@ html.ege-noscroll body { overflow: hidden; }
   50%      { background-position: 0 0, 0 0, 0 100%; }
 }
 
+/* His team's logo, large behind him, under the prizm. */
+.ege-pack__logo {
+  position: absolute;
+  left: 50%;
+  top: 15%;
+  width: 96cqw;
+  height: auto;
+  max-width: none;
+  transform: translateX(-50%);
+  pointer-events: none;
+  user-select: none;
+}
+
 /* The season's player, cut out, standing in front of the prizm with a
-   white edge and his feet behind the name. */
+   white edge: his helmet up over the maker's bar, his legs behind the
+   name. */
 .ege-pack__player {
   position: absolute;
-  z-index: 1;
+  z-index: 3;
   left: 50%;
-  top: 8%;
-  height: 87%;          /* to just under the top of the foot band */
+  top: 2%;
+  height: 90%;          /* feet behind the name and the trim */
   width: auto;
   max-width: none;
   transform: translateX(-50%);
@@ -4699,7 +4713,7 @@ html.ege-noscroll body { overflow: hidden; }
    plain pack, low across the player's legs on one with a cover. */
 .ege-pack__name {
   position: absolute;
-  z-index: 3;
+  z-index: 4;
   left: 0;
   right: 0;
   top: 44%;
@@ -4722,7 +4736,7 @@ html.ege-noscroll body { overflow: hidden; }
           drop-shadow(1cqw 1.4cqw 1cqw rgba(0, 0, 0, .4));
   transform: skewX(-9deg);
 }
-.ege-pack--cover .ege-pack__name { top: auto; bottom: 17%; font-size: 19cqw; }
+.ege-pack--cover .ege-pack__name { top: auto; bottom: 21%; font-size: 19cqw; }
 
 /* Along the foot: the count and the year on the pack's dark. */
 .ege-pack__foot {

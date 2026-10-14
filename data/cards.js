@@ -159,10 +159,12 @@ EGE.cards = (function () {
      printed in (Sam's pictures, 2026-10-14): the live Season Pack while it
      is that season, and that year's pack behind the arrows after. `theme`
      is a pack colourway in site.css (.ege-pack--{theme}); `image` a cut-out
-     on a clear background in icon/packs/. A season not here gets a plain
-     pack in the Season Pack's own colours. */
+     on a clear background in icon/packs/, and `logo` the team's, large
+     behind him. A season not here gets a plain pack in the Season Pack's
+     own colours. */
   var PACK_COVERS = {
-    2022: { player: 'paxon-hatch', image: 'icon/packs/2022-paxon-hatch.webp', theme: 'unc' }
+    2022: { player: 'paxon-hatch', image: 'icon/packs/2022-paxon-hatch.webp',
+            logo: 'icon/packs/2022-unc-logo.webp', theme: 'unc' }
   };
 
   /* The cover for a pack, or null. */

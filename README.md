@@ -1245,10 +1245,13 @@ The packs look like a Panini Prizm pack: a crimped foil pouch with a dark
 **EGE Football** bar across the top, the prizm (a burst of fine rays and a
 band of colour that slides across them) behind, the pack's name in tilted
 chrome, and a foot band with the count and the year. A season can have a
-**cover**: a player cut out on the front and a colourway of its own
-(`PACK_COVERS` in `data/cards.js`, pictures in `icon/packs/`, colourways as
-`.ege-pack--{theme}` in `site.css`). 2022 has Paxon at North Carolina in
-Carolina blue and navy with an argyle strip (Sam, 2026-10-14). A cover
+**cover**: a player cut out on the front, his team's logo large behind him,
+and a colourway of its own (`PACK_COVERS` in `data/cards.js`, pictures in
+`icon/packs/`, colourways as `.ege-pack--{theme}` in `site.css`). The player's
+helmet comes up over the EGE Football bar and his legs run behind the name,
+which sits a little above the trim. 2022 has Paxon at North Carolina in
+Carolina blue and navy, the NC behind him and an argyle strip (Sam,
+2026-10-14). A cover
 follows its season: on the live Season Pack while it is that season, then on
 that year's pack behind the arrows. A season with no cover gets the plain
 pack, its name in the middle.

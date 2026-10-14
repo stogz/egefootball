@@ -255,6 +255,17 @@ EGE.cardsView = (function () {
     art.appendChild(el('span', 'ege-pack__top'));
 
     var body = el('span', 'ege-pack__body');
+    /* The team's logo goes under the prizm, so the rays run across it as
+       if it were printed in the foil. */
+    if (cover && cover.logo) {
+      var logo = el('img', 'ege-pack__logo');
+      logo.src = cover.logo;
+      logo.alt = '';
+      logo.decoding = 'async';
+      logo.draggable = false;
+      logo.addEventListener('error', function () { logo.remove(); });
+      body.appendChild(logo);
+    }
     body.appendChild(el('span', 'ege-pack__prizm'));
     if (cover) {
       var photo = el('img', 'ege-pack__player');
