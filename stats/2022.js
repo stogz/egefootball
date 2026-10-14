@@ -508,14 +508,15 @@ EGE.stats[2022] = {
         opponent: 'Pittsburgh', home: true, conference: true, scouts: true,
         result: { teamScore: 42, opponentScore: 23 }, booster: null,
         stats: {
-          receptions: 11, receivingYards: 140, receivingYac: 58,
-          receivingTd: 3, receivingLong: 66, targets: 14, carries: 0,
+          receptions: 14, receivingYards: 224, receivingYac: 109,
+          receivingTd: 3, receivingLong: 66, targets: 17, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 12.7, totalYards: 140, totalTd: 3
+          receivingAvg: 16, totalYards: 224, totalTd: 3
         },
         bigPlays: [
           '66 yard receiving touchdown',
-          '8 yard receiving touchdown'
+          '8 yard receiving touchdown',
+          '6 yard receiving touchdown'
         ] },
       { week: 10, date: '2022-11-05', kickoff: '12:00pm',
         opponent: 'Virginia', home: false, conference: true,
