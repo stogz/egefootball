@@ -166,16 +166,17 @@ EGE.cards = (function () {
      pack in the Season Pack's own colours. */
   var PACK_COVERS = {
     2018: { player: 'cooper-clark', image: 'icon/packs/2018-cooper-clark.webp',
-            logo: 'icon/packs/2018-carlsbad-logo.webp', theme: 'carlsbad', drop: 1.5 },
+            logo: 'icon/packs/2018-carlsbad-logo.webp', theme: 'carlsbad', zoom: 1.2,
+            drop: 1.5 },
     2019: { player: 'sam-stogsdill', image: 'icon/packs/2019-sam-stogsdill.webp',
             logo: 'icon/packs/2019-normal-logo.webp', theme: 'ironmen', zoom: 1.2,
             drop: 2 },
     2020: { player: 'andrew-parr', image: 'icon/packs/2020-andrew-parr.webp',
             logo: 'icon/packs/2020-alabama-logo.webp', theme: 'bama', zoom: 1.2 },
     2021: { player: 'jaykeb-stewart', image: 'icon/packs/2021-jaykeb-stewart.webp',
-            logo: 'icon/packs/2021-osu-logo.webp', theme: 'osu' },
+            logo: 'icon/packs/2021-osu-logo.webp', theme: 'osu', zoom: 1.2, drop: 2.5 },
     2022: { player: 'paxon-hatch', image: 'icon/packs/2022-paxon-hatch.webp',
-            logo: 'icon/packs/2022-unc-logo.webp', theme: 'unc' }
+            logo: 'icon/packs/2022-unc-logo.webp', theme: 'unc', zoom: 1.2, drop: 1.5 }
   };
 
   /* The cover for a pack, or null. */

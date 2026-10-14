@@ -1265,7 +1265,9 @@ Ironmen's orange, the N behind him as only its orange outline,
 and a black sword on an orange band across the foot; and 2018 has Cooper
 at Carlsbad on purple foil, the Lancers' C behind him as only its outline in
 white, and a royal stripe of black, white and purple across the foot (Sam,
-2026-10-14). Every season now has a cover. A cover
+2026-10-14). Every season now has a cover, every player 20% bigger than the
+first cut (`zoom: 1.2`), some lowered a touch (`drop`) so no helmet covers
+the EGE Football letters. A cover
 follows its season: on the live Season Pack while it is that season, then on
 that year's pack behind the arrows. A season with no cover gets the plain
 pack, its name in the middle.
