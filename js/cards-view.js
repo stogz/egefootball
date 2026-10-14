@@ -270,6 +270,7 @@ EGE.cardsView = (function () {
     if (cover) {
       var photo = el('img', 'ege-pack__player');
       photo.src = cover.image;
+      if (cover.zoom) { photo.style.setProperty('--zoom', cover.zoom); }
       photo.alt = '';
       photo.decoding = 'async';
       photo.draggable = false;

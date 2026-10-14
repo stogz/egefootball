@@ -160,11 +160,12 @@ EGE.cards = (function () {
      is that season, and that year's pack behind the arrows after. `theme`
      is a pack colourway in site.css (.ege-pack--{theme}); `image` a cut-out
      on a clear background in icon/packs/, and `logo` the team's, large
-     behind him. A season not here gets a plain pack in the Season Pack's
-     own colours. */
+     behind him; `zoom` makes him bigger than the usual size (1.2 is 20%
+     bigger), his helmet staying where it is. A season not here gets a plain
+     pack in the Season Pack's own colours. */
   var PACK_COVERS = {
     2020: { player: 'andrew-parr', image: 'icon/packs/2020-andrew-parr.webp',
-            logo: 'icon/packs/2020-alabama-logo.webp', theme: 'bama' },
+            logo: 'icon/packs/2020-alabama-logo.webp', theme: 'bama', zoom: 1.2 },
     2021: { player: 'jaykeb-stewart', image: 'icon/packs/2021-jaykeb-stewart.webp',
             logo: 'icon/packs/2021-osu-logo.webp', theme: 'osu' },
     2022: { player: 'paxon-hatch', image: 'icon/packs/2022-paxon-hatch.webp',
