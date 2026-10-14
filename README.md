@@ -1189,13 +1189,13 @@ pyramid, and each rarity has its own pull odds:
 
 | Rarity | Colour | Chance per card | Game from | Play from | In the files |
 | --- | --- | --- | --- | --- | --- |
-| Common | gray | 47.05% | — | — | 325 |
+| Common | gray | 47.4% | — | — | 325 |
 | Uncommon | green | 26% | 6.5 | 7.1 | 215 |
 | Rare | orange | 14% | 11 | 8.6 | 145 |
 | Epic | red | 8% | 16 | 9.6 | 94 |
 | Legendary | purple | 4% | 20.5 | 11.2 | 77 |
-| Mystic | gold | 0.75% | 28.5 | 13.3 | 10 |
-| Iconic | pink | 0.2% | picked | picked | 4 |
+| Mystic | gold | 0.5% | 28.5 | 13.3 | 10 |
+| Iconic | pink | 0.1% | picked | picked | 4 |
 
 Counts are the 2018–2022 files. Mystic was 24 / 12.1 until Sam asked for it
 to be closer to 10 cards than 35 (2026-10-13): the 30 that fell out became
@@ -1206,8 +1206,8 @@ Epic.
 the moments in `ICONIC` at the top of `data/cards.js` are Iconic: Sam's five
 touchdowns against Centennial (2019), Paxon's two touchdowns in the FCS
 Championship (2020), Cooper's 80 yard touchdown against Helix (2019) and
-Jaykeb's seven touchdowns (2022). Add an id there to make another. At 0.2% a
-card, about one Base Pack in 170 has an Iconic in it.
+Jaykeb's seven touchdowns (2022). Add an id there to make another. At 0.1% a
+card, about one Base Pack in 330 has an Iconic in it.
 
 From Rare up the frame catches the light: a still sheen on Rare, a moving one
 on Epic and Legendary, gold foil on Mystic and holographic on Iconic, the
@@ -1241,6 +1241,37 @@ rolls to a new season. The arrows only redraw the Season Pack, and every
 pack's shimmer keeps time with the clock (`--phase`), so redrawing the packs
 never starts their shimmer over. The Pro Pack glows a little purple.
 
+The packs look like a Panini Prizm pack: a foil pouch whose crimped seals,
+top and bottom, are photos of a real pack's (`icon/packs/crimp-*.webp`, Sam,
+2026-10-14) washed in the pack's colour, with a dark **EGE Football** bar
+across the top, the prizm (a burst of fine rays and a
+band of colour that slides across them) behind, the pack's name in tilted
+chrome, and a foot band with the count and the year. A season can have a
+**cover**: a player cut out on the front, his team's logo large behind him,
+and a colourway of its own (`PACK_COVERS` in `data/cards.js`, pictures in
+`icon/packs/`, colourways as `.ege-pack--{theme}` in `site.css`). The player's
+helmet just touches the bottom of the EGE Football lettering and his legs
+run behind the name, which sits a little above the trim. 2022 has Paxon at
+North Carolina in the blues of his jersey in the photo (cooler than the
+official Carolina blue), the NC behind him and an argyle strip (Sam,
+2026-10-14). 2021 has Jaykeb at Ohio State in the scarlet of his jersey,
+the block O behind him and the helmet stripe across the foot, and 2020 Andrew
+at Alabama in the deep crimson of the script A, a darker A behind him and
+Greek laurel leaves across the foot, and Andrew 20% bigger than the others
+(a cover's `zoom`); 2019 has Sam at Normal Community, 20% bigger and a touch
+lower (a cover's `drop`, so his helmet clears the EGE letters), on
+near-black foil with darkened seals and a dimmer prizm, lined in the
+Ironmen's orange, the N behind him as only its orange outline,
+and a black sword on an orange band across the foot; and 2018 has Cooper
+at Carlsbad on purple foil, the Lancers' C behind him as only its outline in
+white, and a royal stripe of black, white and purple across the foot (Sam,
+2026-10-14). Every season now has a cover, every player 20% bigger than the
+first cut (`zoom: 1.2`; Cooper, in a tall standing pose, 1.44), some lowered a touch (`drop`) so no helmet covers
+the EGE Football letters. A cover
+follows its season: on the live Season Pack while it is that season, then on
+that year's pack behind the arrows. A season with no cover gets the plain
+pack, its name in the middle.
+
 Each card rolls its rarity on the odds first, then is drawn from every
 published card of that rarity the pack can hold. A rarity with nothing out
 yet falls to the nearest one below it. The Season Pack is the one that grows
@@ -1249,8 +1280,8 @@ a week at a time.
 **A pack holds at most one card above Legendary** (`PACK_CAP` in
 `data/cards.js`): once a Mystic or Iconic is in it, every card after it
 rolls Legendary or lower. **A Pro Pack has 1.5x the odds of Legendary and
-up** (`boost` on the pack): Legendary 6%, Mystic 1.125%, Iconic 0.3% a card,
-with Common at 44.575% making up the difference. **The cards are laid out worst to best, left to
+up** (`boost` on the pack): Legendary 6%, Mystic 0.75%, Iconic 0.15% a card,
+with Common at 45.1% making up the difference. **The cards are laid out worst to best, left to
 right** (`packOrder`), in the opening and in Recent Pulls, so the best card
 is always the last one turned.
 

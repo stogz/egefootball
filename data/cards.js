@@ -66,13 +66,13 @@ EGE.cards = (function () {
      Iconic is not graded at all: it is the few cards in ICONIC below,
      picked by hand, and nothing else reaches it however big the game. */
   var RARITIES = [
-    { key: 'common',    name: 'Common',    color: '#8b9097', odds: 47.05, performance: 0,   play: 0 },
+    { key: 'common',    name: 'Common',    color: '#8b9097', odds: 47.4,  performance: 0,   play: 0 },
     { key: 'uncommon',  name: 'Uncommon',  color: '#3e9a4b', odds: 26,  performance: 6.5, play: 7.1 },
     { key: 'rare',      name: 'Rare',      color: '#e8812a', odds: 14,  performance: 11,  play: 8.6 },
     { key: 'epic',      name: 'Epic',      color: '#d5392b', odds: 8,   performance: 16,  play: 9.6 },
     { key: 'legendary', name: 'Legendary', color: '#8a4fd8', odds: 4,   performance: 20.5, play: 11.2 },
-    { key: 'mystic',    name: 'Mystic',    color: '#e0ad25', odds: 0.75, performance: 28.5, play: 13.3 },
-    { key: 'iconic',    name: 'Iconic',    color: '#ec5fa8', odds: 0.2, performance: null, play: null }
+    { key: 'mystic',    name: 'Mystic',    color: '#e0ad25', odds: 0.5,  performance: 28.5, play: 13.3 },
+    { key: 'iconic',    name: 'Iconic',    color: '#ec5fa8', odds: 0.1,  performance: null, play: null }
   ];
 
   /* The Iconic cards. A moment has to be one of these to be Iconic; every
@@ -153,6 +153,36 @@ EGE.cards = (function () {
 
   function pack(key) {
     return PACKS.filter(function (p) { return p.key === key; })[0] || null;
+  }
+
+  /* The player on the front of a season's packs and the colours they are
+     printed in (Sam's pictures, 2026-10-14): the live Season Pack while it
+     is that season, and that year's pack behind the arrows after. `theme`
+     is a pack colourway in site.css (.ege-pack--{theme}); `image` a cut-out
+     on a clear background in icon/packs/, and `logo` the team's, large
+     behind him; `zoom` makes him bigger than the usual size (1.2 is 20%
+     bigger), his helmet staying where it is, and `drop` moves him down that
+     % of the pack, for a helmet that would cover the EGE Football letters. A season not here gets a plain
+     pack in the Season Pack's own colours. */
+  var PACK_COVERS = {
+    2018: { player: 'cooper-clark', image: 'icon/packs/2018-cooper-clark.webp',
+            logo: 'icon/packs/2018-carlsbad-logo.webp', theme: 'carlsbad', zoom: 1.44,
+            drop: 1.5 },
+    2019: { player: 'sam-stogsdill', image: 'icon/packs/2019-sam-stogsdill.webp',
+            logo: 'icon/packs/2019-normal-logo.webp', theme: 'ironmen', zoom: 1.2,
+            drop: 2 },
+    2020: { player: 'andrew-parr', image: 'icon/packs/2020-andrew-parr.webp',
+            logo: 'icon/packs/2020-alabama-logo.webp', theme: 'bama', zoom: 1.2 },
+    2021: { player: 'jaykeb-stewart', image: 'icon/packs/2021-jaykeb-stewart.webp',
+            logo: 'icon/packs/2021-osu-logo.webp', theme: 'osu', zoom: 1.2, drop: 2.5 },
+    2022: { player: 'paxon-hatch', image: 'icon/packs/2022-paxon-hatch.webp',
+            logo: 'icon/packs/2022-unc-logo.webp', theme: 'unc', zoom: 1.2, drop: 1.5 }
+  };
+
+  /* The cover for a pack, or null. */
+  function packCover(p) {
+    var year = p && (p.season || (p.seasonOnly ? EGE.currentSeason : null));
+    return (year && PACK_COVERS[year]) || null;
   }
 
   /* --- quick selling ------------------------------------------------------ */
@@ -389,7 +419,7 @@ EGE.cards = (function () {
 
   /* A pack with a `boost` multiplies the odds of Legendary and up by it,
      and Common gives up the difference: a Pro Pack's 1.5 makes Iconic
-     0.3% a card rather than 0.2%. */
+     0.15% a card rather than 0.1%. */
   var BOOSTED_FROM = 'legendary';
 
   function oddsWith(boost) {
@@ -873,6 +903,7 @@ EGE.cards = (function () {
     rarity: rarity,
     rankOf: rankOf,
     pack: pack,
+    packCover: packCover,
     sellPrice: sellPrice,
     readPlay: readPlay,
     statSummary: statSummary,

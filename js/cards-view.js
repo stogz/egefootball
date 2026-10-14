@@ -237,8 +237,15 @@ EGE.cardsView = (function () {
 
   /* --- packs ------------------------------------------------------------ */
 
+  /* A pack's front, after a Panini Prizm pack: a dark brand bar, the
+     prizm (a burst of fine rays that catches the light), the season's
+     player cut out over it when it has one (EGE.cards.packCover), the
+     pack's name in chrome, and a foot band with the count and the year. */
   function packArt(pack) {
-    var art = el('div', 'ege-pack ege-pack--' + (pack.season ? 'year' : pack.key));
+    var cover = EGE.cards.packCover(pack);
+    var year = pack.season || (pack.seasonOnly ? EGE.currentSeason : null);
+    var art = el('div', 'ege-pack ege-pack--' + (pack.season ? 'year' : pack.key) +
+      (cover ? ' ege-pack--' + cover.theme + ' ege-pack--cover' : ''));
     /* Every pack's shimmer and glow keep time with the clock, so redrawing
        the packs (a new balance, the Season Pack's arrows) carries on where
        they were instead of starting them all over at once. */
@@ -246,15 +253,51 @@ EGE.cardsView = (function () {
     art.style.setProperty('--phase', -(now % 9000) + 'ms');
     art.style.setProperty('--glow-phase', -(now % 3200) + 'ms');
     art.appendChild(el('span', 'ege-pack__top'));
+
     var body = el('span', 'ege-pack__body');
-    body.appendChild(el('span', 'ege-pack__brand', 'EGE Football'));
+    /* The team's logo goes under the prizm, so the rays run across it as
+       if it were printed in the foil. */
+    if (cover && cover.logo) {
+      var logo = el('img', 'ege-pack__logo');
+      logo.src = cover.logo;
+      logo.alt = '';
+      logo.decoding = 'async';
+      logo.draggable = false;
+      logo.addEventListener('error', function () { logo.remove(); });
+      body.appendChild(logo);
+    }
+    body.appendChild(el('span', 'ege-pack__prizm'));
+    if (cover) {
+      var photo = el('img', 'ege-pack__player');
+      photo.src = cover.image;
+      if (cover.zoom) { photo.style.setProperty('--zoom', cover.zoom); }
+      if (cover.drop) { photo.style.setProperty('--drop', cover.drop + '%'); }
+      photo.alt = '';
+      photo.decoding = 'async';
+      photo.draggable = false;
+      /* A picture that will not load leaves the plain pack, not a hole. */
+      photo.addEventListener('error', function () {
+        photo.remove();
+        art.classList.remove('ege-pack--cover');
+      });
+      body.appendChild(photo);
+    }
+
+    var brand = el('span', 'ege-pack__brand');
+    brand.appendChild(el('b', null, 'EGE'));
+    brand.appendChild(document.createTextNode(' Football'));
+    body.appendChild(brand);
+
     body.appendChild(el('span', 'ege-pack__name',
       pack.season ? 'Season' : pack.name.replace(/ Pack$/, '')));
-    body.appendChild(el('span', 'ege-pack__count',
-      pack.size + ' cards' +
-      (pack.seasonOnly ? ' \u00b7 ' + EGE.currentSeason : '') +
-      (pack.season ? ' \u00b7 ' + pack.season : '')));
+
+    var foot = el('span', 'ege-pack__foot');
+    foot.appendChild(el('span', 'ege-pack__count', pack.size + ' cards'));
+    if (year) { foot.appendChild(el('span', 'ege-pack__year', String(year))); }
+    body.appendChild(foot);
+
     art.appendChild(body);
+    art.appendChild(el('span', 'ege-pack__bottom'));
     return art;
   }
 

@@ -4473,7 +4473,7 @@ html.ege-noscroll body { overflow: hidden; }
   background: #fff;
   text-align: center;
 }
-.ege-packtile > .ege-pack { width: 128px; margin-bottom: 8px; }
+.ege-packtile > .ege-pack { width: 150px; margin-bottom: 8px; }
 .ege-packtile > .ege-item__text { max-width: 30ch; }
 .ege-packtile__row {
   display: flex;
@@ -4529,32 +4529,35 @@ html.ege-noscroll body { overflow: hidden; }
 /* The diamond balance at the head of the Packs panel. */
 .ege-ovr--diamonds .ege-ovr__label { color: var(--fb-diamond); }
 
-/* A foil pouch, crimped top and bottom. The top strip is its own piece so
-   it can come away when the pack is torn. */
+/* A foil pouch after a Panini Prizm pack, crimped top and bottom. The top
+   strip is its own piece so it can come away when the pack is torn. Each
+   pack is a colourway: --foil the metal, --pack-deep its dark (the brand
+   bar, the foot band, the outline on the chrome name), --pack-hi the line
+   along the bars. */
 .ege-pack {
   --foil: linear-gradient(135deg, #24572a 0%, #5da45f 22%, #b9e0b0 38%, #3d8a43 55%,
                           #9fd394 74%, #24572a 100%);
-  --pack-ink: var(--fb-cream);
+  --pack-deep: #13301a;
+  --pack-hi: #b9e0b0;
 
   position: relative;
   container-type: inline-size;
-  aspect-ratio: 5 / 7.4;
+  aspect-ratio: 5 / 7.8;
   filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35));
 }
 .ege-pack--season {
   --foil: linear-gradient(135deg, #8a3a10 0%, #e56e28 22%, #ffd27a 38%, #d8741f 55%,
                           #f8b54a 74%, #8a3a10 100%);
-  --pack-ink: var(--fb-ink);
+  --pack-deep: #4a1d06;
+  --pack-hi: #ffd27a;
 }
-/* A past season: bronze, darker than the live Season Pack so the white
-   words read on it. */
+/* A past season: bronze, darker than the live Season Pack. */
 .ege-pack--year {
   --foil: linear-gradient(135deg, #2a1c0b 0%, #6b4519 22%, #b0803f 38%, #7a5020 55%,
                           #a0723a 74%, #2a1c0b 100%);
-  --pack-ink: #fff;
+  --pack-deep: #1c1208;
+  --pack-hi: #d9a862;
 }
-.ege-pack--year .ege-pack__brand,
-.ege-pack--year .ege-pack__count { text-shadow: 0 .8cqw 0 rgba(0, 0, 0, .45); }
 /* The Pro Pack glows a little purple. */
 .ege-pack--pro {
   filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 10px rgba(156, 84, 232, .75));
@@ -4570,79 +4573,303 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-pack--pro {
   --foil: linear-gradient(135deg, #1d2416 0%, #3a2a55 20%, #ec5fa8 34%, #8a4fd8 48%,
                           #49b6d6 62%, #f0b82a 78%, #1d2416 100%);
+  --pack-deep: #1a1030;
+  --pack-hi: #ec5fa8;
+}
+/* North Carolina, for Paxon's 2022 pack: the blues of his jersey in the
+   photo (cooler than the official Carolina blue), its shadows for the bars,
+   and the argyle off the side of it. A colourway wins over the pack's own,
+   live season or past. */
+.ege-pack.ege-pack--unc {
+  --foil: linear-gradient(135deg, #1c2f55 0%, #6689cd 18%, #d9e2f7 34%, #88a7e6 50%,
+                          #f3f5fb 66%, #6689cd 82%, #1c2f55 100%);
+  --pack-deep: #1c2f55;
+  --pack-hi: #c9d6f2;
+}
+/* Carlsbad, for Cooper's 2018 pack: purple foil from the Lancers' C, the C
+   behind him only its outline, in white, and a royal stripe of black, white
+   and purple across the foot. */
+.ege-pack.ege-pack--carlsbad {
+  --foil: linear-gradient(135deg, #170b2e 0%, #3d2470 18%, #7a5cc0 34%, #4b2c84 50%,
+                          #9a80d8 66%, #3d2470 82%, #170b2e 100%);
+  --pack-deep: #1d0f38;
+  --pack-hi: #d9cdf5;
+}
+/* Normal Community, for Sam's 2019 pack: near-black foil with the prizm
+   turned down and the crimped seals darkened to match, lined in the Ironmen
+   orange, the N behind him only its orange outline, and a black sword on
+   an orange band across the foot. */
+.ege-pack.ege-pack--ironmen {
+  --foil: linear-gradient(135deg, #020202 0%, #0c0c0d 18%, #1f1f22 34%, #09090a 50%,
+                          #19191b 66%, #0c0c0d 82%, #020202 100%);
+  --pack-deep: #0d0d0e;
+  --pack-hi: #f26901;
+}
+.ege-pack--ironmen .ege-pack__prizm { opacity: .5; }
+.ege-pack--ironmen .ege-pack__top,
+.ege-pack--ironmen .ege-pack__bottom { filter: brightness(.4); }
+/* Alabama, for Andrew's 2020 pack: the deep crimson of the script A, the A
+   itself darker still behind him, and laurel leaves across the foot. */
+.ege-pack.ege-pack--bama {
+  --foil: linear-gradient(135deg, #2c020d 0%, #740522 18%, #b30838 34%, #8a0629 50%,
+                          #c0173f 66%, #740522 82%, #2c020d 100%);
+  --pack-deep: #3e0516;
+  --pack-hi: #f3e6ea;
+}
+/* Ohio State, for Jaykeb's 2021 pack: red foil in the scarlet of his
+   jersey in the photo, a dark scarlet for the bars, lined in the helmet's
+   silver, and the helmet stripe across the foot. */
+.ege-pack.ege-pack--osu {
+  --foil: linear-gradient(135deg, #3d070b 0%, #a30b14 18%, #e3343d 34%, #b8101b 50%,
+                          #f25a61 66%, #a30b14 82%, #3d070b 100%);
+  --pack-deep: #4a0a0f;
+  --pack-hi: #d2d1d8;
 }
 
 .ege-pack__top,
-.ege-pack__body {
+.ege-pack__body,
+.ege-pack__bottom {
   position: absolute;
   left: 0;
   right: 0;
+}
+/* The crimped seals top and bottom are photographs of a real pack's (Sam's,
+   2026-10-14), each at its own shape, washed a little in the pack's colour. */
+.ege-pack__top,
+.ege-pack__bottom {
+  background: var(--crimp) 0 0 / 100% 100% no-repeat;
+}
+.ege-pack__top::after,
+.ege-pack__bottom::after {
+  content: '';
+  position: absolute;
+  inset: 0;
   background: var(--foil);
-  background-size: 200% 200%;
+  mix-blend-mode: color;
+  opacity: .5;
+  -webkit-mask: var(--crimp) 0 0 / 100% 100% no-repeat;
+  mask: var(--crimp) 0 0 / 100% 100% no-repeat;
 }
 .ege-pack__top {
+  --crimp: url('icon/packs/crimp-top.webp');
   top: 0;
-  height: 12%;
-  clip-path: polygon(0% 100%, 0% 34%, 3.57% 0%, 7.14% 34%, 10.71% 0%, 14.29% 34%, 17.86% 0%,
-    21.43% 34%, 25% 0%, 28.57% 34%, 32.14% 0%, 35.71% 34%, 39.29% 0%, 42.86% 34%, 46.43% 0%,
-    50% 34%, 53.57% 0%, 57.14% 34%, 60.71% 0%, 64.29% 34%, 67.86% 0%, 71.43% 34%, 75% 0%,
-    78.57% 34%, 82.14% 0%, 85.71% 34%, 89.29% 0%, 92.86% 34%, 96.43% 0%, 100% 34%, 100% 100%);
-  /* the tear line */
-  box-shadow: inset 0 -.8cqw 0 rgba(0, 0, 0, .3);
+  height: 11.3cqw;
+}
+.ege-pack__bottom {
+  --crimp: url('icon/packs/crimp-bottom.webp');
+  bottom: 0;
+  height: 13.6cqw;
 }
 .ege-pack__body {
-  top: 11.6%;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3cqw;
-  padding: 6cqw;
-  text-align: center;
-  color: var(--pack-ink);
-  clip-path: polygon(0% 0%, 100% 0%, 100% 97%, 96.43% 100%, 92.86% 97%, 89.29% 100%, 85.71% 97%,
-    82.14% 100%, 78.57% 97%, 75% 100%, 71.43% 97%, 67.86% 100%, 64.29% 97%, 60.71% 100%,
-    57.14% 97%, 53.57% 100%, 50% 97%, 46.43% 100%, 42.86% 97%, 39.29% 100%, 35.71% 97%,
-    32.14% 100%, 28.57% 97%, 25% 100%, 21.43% 97%, 17.86% 100%, 14.29% 97%, 10.71% 100%,
-    7.14% 97%, 3.57% 100%, 0% 97%);
+  top: 11cqw;
+  bottom: 13.2cqw;
+  overflow: hidden;
+  background: var(--foil);
+  background-size: 200% 200%;
   /* --phase is set by the page from the clock, so a pack drawn again picks
      up its shimmer where it was rather than starting over. */
   animation: ege-metal-flow 9s ease-in-out var(--phase, 0s) infinite;
 }
-/* A band across the middle for the name to sit on. */
-.ege-pack__body::before {
+/* The pouch itself, over everything printed on it: the sides rolling away
+   into the seams, a sheen along the top, and one streak of gloss. */
+.ege-pack__body::after {
   content: '';
   position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background:
+    linear-gradient(100deg, transparent 14%, rgba(255, 255, 255, .26) 19%, transparent 25%),
+    linear-gradient(90deg, rgba(0, 0, 0, .34), transparent 9%, transparent 91%, rgba(0, 0, 0, .34)),
+    linear-gradient(180deg, rgba(255, 255, 255, .16), transparent 14%);
+}
+
+/* The prizm: fine rays out from behind the player, and a band of colour
+   that slides across them as the foil does. */
+.ege-pack__prizm {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 44%, rgba(255, 255, 255, .55), rgba(255, 255, 255, 0) 24%),
+    repeating-conic-gradient(from 0deg at 50% 44%,
+      rgba(255, 255, 255, .26) 0deg 1.1deg, rgba(255, 255, 255, 0) 1.1deg 4.2deg),
+    linear-gradient(115deg, transparent 22%, rgba(255, 92, 196, .3) 36%, rgba(92, 220, 255, .32) 50%,
+                    rgba(255, 238, 120, .3) 64%, transparent 78%);
+  background-size: 100% 100%, 100% 100%, 280% 280%;
+  mix-blend-mode: overlay;
+  animation: ege-prizm 9s ease-in-out var(--phase, 0s) infinite;
+}
+@keyframes ege-prizm {
+  0%, 100% { background-position: 0 0, 0 0, 100% 0; }
+  50%      { background-position: 0 0, 0 0, 0 100%; }
+}
+
+/* His team's logo, large behind him, under the prizm. */
+.ege-pack__logo {
+  position: absolute;
+  left: 50%;
+  top: 17%;
+  width: auto;          /* as wide as fits, short of the name */
+  height: auto;
+  max-width: 96cqw;
+  max-height: 60%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* The season's player, cut out, standing in front of the prizm with a
+   white edge: the top of his helmet just over the bottom of the maker's
+   name, his legs behind the pack's. */
+.ege-pack__player {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: calc(5.3% + var(--drop, 0%));
+  height: calc(88% * var(--zoom, 1));   /* feet behind the name and the trim */
+  width: auto;
+  max-width: none;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 0 .7cqw rgba(255, 255, 255, .95)) drop-shadow(1.6cqw 2cqw 1.6cqw rgba(0, 0, 0, .45));
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Across the top, the maker's bar. */
+.ege-pack__brand {
+  position: absolute;
+  z-index: 2;
+  top: 0;
   left: 0;
   right: 0;
-  top: 34%;
-  height: 34%;
-  background: rgba(29, 36, 22, .22);
-  border-top: 1cqw solid rgba(255, 255, 255, .35);
-  border-bottom: 1cqw solid rgba(0, 0, 0, .25);
+  height: 11%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .3em;
+  background: var(--pack-deep);
+  border-bottom: .9cqw solid var(--pack-hi);
+  color: #fff;
+  font-size: 6.4cqw;
+  font-weight: 800;
+  letter-spacing: .2em;
+  text-transform: uppercase;
 }
-.ege-pack--season .ege-pack__body::before { background: rgba(255, 255, 255, .25); }
-.ege-pack__brand,
-.ege-pack__name,
-.ege-pack__count { position: relative; }
-.ege-pack__brand {
-  font-size: 7.5cqw;
+.ege-pack__brand b {
+  padding: .05em .3em .05em .5em;
+  background: #fff;
+  color: var(--pack-deep);
+  font-style: italic;
+  letter-spacing: .12em;
+}
+
+/* The name in chrome, tilted like the Prizm wordmark: in the middle of a
+   plain pack, low across the player's legs on one with a cover. */
+.ege-pack__name {
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  right: 0;
+  top: 44%;
+  padding: 0 4cqw;
+  font-family: var(--fb-font-body);
+  font-size: 21cqw;
+  font-weight: 800;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: -.02em;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #eef2f5;
+  background: linear-gradient(180deg, #fff 0%, #eef3f6 36%, #8d9ba7 50%, #fbfdff 60%, #c6d1d9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 .5cqw 0 var(--pack-deep)) drop-shadow(0 0 .5cqw var(--pack-deep))
+          drop-shadow(1cqw 1.4cqw 1cqw rgba(0, 0, 0, .4));
+  transform: skewX(-9deg);
+}
+.ege-pack--cover .ege-pack__name { top: auto; bottom: 17%; font-size: 19cqw; }
+
+/* Along the foot: the count and the year on the pack's dark. */
+.ege-pack__foot {
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 10%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2.4em;
+  background: var(--pack-deep);
+  border-top: .9cqw solid var(--pack-hi);
+  color: #fff;
+  font-size: 6cqw;
   font-weight: 800;
   letter-spacing: .14em;
   text-transform: uppercase;
 }
-.ege-pack__name {
-  font-family: var(--fb-font-display);
-  font-size: 22cqw;
-  line-height: 1;
-  text-shadow: 1.2cqw 1.2cqw 0 rgba(0, 0, 0, .35);
+.ege-pack__year { color: var(--pack-hi); }
+/* North Carolina's argyle, a strip above the foot band. */
+.ege-pack--unc .ege-pack__foot::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + .9cqw);
+  height: 5cqw;
+  background:
+    conic-gradient(from 45deg, #fff 25%, #88a7e6 0 50%, #fff 0 75%, #88a7e6 0) 0 0 / 5cqw 5cqw;
+  border-top: .5cqw solid var(--pack-deep);
 }
-.ege-pack__count {
-  font-size: 7cqw;
-  font-weight: 800;
-  letter-spacing: .1em;
-  text-transform: uppercase;
+/* Carlsbad's royal stripe above the foot band: black, white, purple, white,
+   black. */
+.ege-pack--carlsbad .ege-pack__foot::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + .9cqw);
+  height: 5cqw;
+  background: linear-gradient(180deg, #0d0a12 0 16%, #fff 16% 30%, #4b2c84 30% 70%,
+                              #fff 70% 84%, #0d0a12 84%);
+}
+/* An Ironman's sword, in black on an orange band above the foot band. */
+.ege-pack--ironmen .ege-pack__foot::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + .9cqw);
+  height: 7cqw;
+  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 7' fill='%23111'><path d='M15 2.5h78l6.2 1-6.2 1H15zM4.6 2.6h8.6v1.8H4.6zM13 .8h2.2l-.3.9v3.6l.3.9H13l.3-.9V1.7z'/><circle cx='3.4' cy='3.5' r='1.25'/></svg>") 0 0 / 100% 100% no-repeat, #f26901;
+  border-top: .5cqw solid var(--pack-deep);
+}
+/* A band of Greek laurel leaves above the foot band, on Alabama's pack. */
+.ege-pack--bama .ege-pack__foot::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + .9cqw);
+  height: 5cqw;
+  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 5' fill='%239e1b32'><path d='M0 2.37h10v.26H0z'/><path d='M0.3 2.4Q2.53 2.45 3.9 0.7Q1.67 0.65 0.3 2.4zM0.3 2.6Q1.67 4.35 3.9 4.3Q2.53 2.55 0.3 2.6zM5.3 2.4Q7.53 2.45 8.9 0.7Q6.67 0.65 5.3 2.4zM5.3 2.6Q6.67 4.35 8.9 4.3Q7.53 2.55 5.3 2.6z'/></svg>") 0 0 / 10cqw 5cqw, #fff;
+  border-top: .5cqw solid var(--pack-deep);
+}
+/* Ohio State's helmet stripe, laid across above the foot band: silver,
+   black, white, scarlet, white, black, silver. */
+.ege-pack--osu .ege-pack__foot::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + .9cqw);
+  height: 5cqw;
+  background: linear-gradient(180deg, #c9c8cf 0 12%, #151115 12% 22%, #fff 22% 36%,
+                              #c81a24 36% 64%, #fff 64% 78%, #151115 78% 88%, #c9c8cf 88%);
 }
 
 /* --- ripping one open ------------------------------------------------------ */
@@ -4735,6 +4962,12 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-rip__pack.is-paying { animation: none; opacity: .7; cursor: progress; }
 .ege-rip__pack.is-torn .ege-pack__top { animation: ege-tear .5s cubic-bezier(.3, .7, .4, 1) forwards; }
 .ege-rip__pack.is-torn .ege-pack__body { animation: ege-spill .55s .12s ease-in forwards; }
+/* The bottom seal falls with the body: turned about the body's centre and
+   moved the body's distance (40% of its 131.8cqw). */
+.ege-rip__pack.is-torn .ege-pack__bottom {
+  transform-origin: 50% -65.9cqw;
+  animation: ege-spill-seal .55s .12s ease-in forwards;
+}
 
 @keyframes ege-pack-idle {
   0%, 100% { transform: rotate(-2deg); }
@@ -4745,6 +4978,9 @@ html.ege-noscroll body { overflow: hidden; }
 }
 @keyframes ege-spill {
   to { transform: translateY(40%) scale(.92); opacity: 0; }
+}
+@keyframes ege-spill-seal {
+  to { transform: translateY(52.7cqw) scale(.92); opacity: 0; }
 }
 
 .ege-rip__cards {
@@ -5977,7 +6213,7 @@ html.ege-noscroll body { overflow: hidden; }
 
 @media (max-width: 620px) {
   .ege-packtile { padding: 18px 14px 14px; }
-  .ege-packtile > .ege-pack { width: 110px; }
+  .ege-packtile > .ege-pack { width: 136px; }
 
   /* Seven controls do not fit across a phone: the three kinds share one line,
      as tall as the drop-downs, and the drop-downs each take a line under
@@ -6058,6 +6294,7 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-rip__stage .ege-tcard--iconic,
   .ege-rip__stage .ege-tcard--iconic .ege-tcard__art::after,
   .ege-pack__body,
+  .ege-pack__prizm,
   .ege-rip,
   .ege-rip__pack,
   .ege-flip { animation: none; }
@@ -6068,7 +6305,8 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-rip__flash,
   .ege-rip__banner { display: none; }
   .ege-rip__pack.is-torn .ege-pack__top,
-  .ege-rip__pack.is-torn .ege-pack__body { animation: none; opacity: 0; }
+  .ege-rip__pack.is-torn .ege-pack__body,
+  .ege-rip__pack.is-torn .ege-pack__bottom { animation: none; opacity: 0; }
 }
 
 /* --- the trophy case --------------------------------------------------------
