@@ -66,13 +66,13 @@ EGE.cards = (function () {
      Iconic is not graded at all: it is the few cards in ICONIC below,
      picked by hand, and nothing else reaches it however big the game. */
   var RARITIES = [
-    { key: 'common',    name: 'Common',    color: '#8b9097', odds: 47.05, performance: 0,   play: 0 },
+    { key: 'common',    name: 'Common',    color: '#8b9097', odds: 47.4,  performance: 0,   play: 0 },
     { key: 'uncommon',  name: 'Uncommon',  color: '#3e9a4b', odds: 26,  performance: 6.5, play: 7.1 },
     { key: 'rare',      name: 'Rare',      color: '#e8812a', odds: 14,  performance: 11,  play: 8.6 },
     { key: 'epic',      name: 'Epic',      color: '#d5392b', odds: 8,   performance: 16,  play: 9.6 },
     { key: 'legendary', name: 'Legendary', color: '#8a4fd8', odds: 4,   performance: 20.5, play: 11.2 },
-    { key: 'mystic',    name: 'Mystic',    color: '#e0ad25', odds: 0.75, performance: 28.5, play: 13.3 },
-    { key: 'iconic',    name: 'Iconic',    color: '#ec5fa8', odds: 0.2, performance: null, play: null }
+    { key: 'mystic',    name: 'Mystic',    color: '#e0ad25', odds: 0.5,  performance: 28.5, play: 13.3 },
+    { key: 'iconic',    name: 'Iconic',    color: '#ec5fa8', odds: 0.1,  performance: null, play: null }
   ];
 
   /* The Iconic cards. A moment has to be one of these to be Iconic; every
@@ -419,7 +419,7 @@ EGE.cards = (function () {
 
   /* A pack with a `boost` multiplies the odds of Legendary and up by it,
      and Common gives up the difference: a Pro Pack's 1.5 makes Iconic
-     0.3% a card rather than 0.2%. */
+     0.15% a card rather than 0.1%. */
   var BOOSTED_FROM = 'legendary';
 
   function oddsWith(boost) {

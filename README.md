@@ -1189,13 +1189,13 @@ pyramid, and each rarity has its own pull odds:
 
 | Rarity | Colour | Chance per card | Game from | Play from | In the files |
 | --- | --- | --- | --- | --- | --- |
-| Common | gray | 47.05% | — | — | 325 |
+| Common | gray | 47.4% | — | — | 325 |
 | Uncommon | green | 26% | 6.5 | 7.1 | 215 |
 | Rare | orange | 14% | 11 | 8.6 | 145 |
 | Epic | red | 8% | 16 | 9.6 | 94 |
 | Legendary | purple | 4% | 20.5 | 11.2 | 77 |
-| Mystic | gold | 0.75% | 28.5 | 13.3 | 10 |
-| Iconic | pink | 0.2% | picked | picked | 4 |
+| Mystic | gold | 0.5% | 28.5 | 13.3 | 10 |
+| Iconic | pink | 0.1% | picked | picked | 4 |
 
 Counts are the 2018–2022 files. Mystic was 24 / 12.1 until Sam asked for it
 to be closer to 10 cards than 35 (2026-10-13): the 30 that fell out became
@@ -1206,8 +1206,8 @@ Epic.
 the moments in `ICONIC` at the top of `data/cards.js` are Iconic: Sam's five
 touchdowns against Centennial (2019), Paxon's two touchdowns in the FCS
 Championship (2020), Cooper's 80 yard touchdown against Helix (2019) and
-Jaykeb's seven touchdowns (2022). Add an id there to make another. At 0.2% a
-card, about one Base Pack in 170 has an Iconic in it.
+Jaykeb's seven touchdowns (2022). Add an id there to make another. At 0.1% a
+card, about one Base Pack in 330 has an Iconic in it.
 
 From Rare up the frame catches the light: a still sheen on Rare, a moving one
 on Epic and Legendary, gold foil on Mystic and holographic on Iconic, the
@@ -1280,8 +1280,8 @@ a week at a time.
 **A pack holds at most one card above Legendary** (`PACK_CAP` in
 `data/cards.js`): once a Mystic or Iconic is in it, every card after it
 rolls Legendary or lower. **A Pro Pack has 1.5x the odds of Legendary and
-up** (`boost` on the pack): Legendary 6%, Mystic 1.125%, Iconic 0.3% a card,
-with Common at 44.575% making up the difference. **The cards are laid out worst to best, left to
+up** (`boost` on the pack): Legendary 6%, Mystic 0.75%, Iconic 0.15% a card,
+with Common at 45.1% making up the difference. **The cards are laid out worst to best, left to
 right** (`packOrder`), in the opening and in Recent Pulls, so the best card
 is always the last one turned.
 
