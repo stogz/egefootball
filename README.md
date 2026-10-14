@@ -1241,6 +1241,18 @@ rolls to a new season. The arrows only redraw the Season Pack, and every
 pack's shimmer keeps time with the clock (`--phase`), so redrawing the packs
 never starts their shimmer over. The Pro Pack glows a little purple.
 
+The packs look like a Panini Prizm pack: a crimped foil pouch with a dark
+**EGE Football** bar across the top, the prizm (a burst of fine rays and a
+band of colour that slides across them) behind, the pack's name in tilted
+chrome, and a foot band with the count and the year. A season can have a
+**cover**: a player cut out on the front and a colourway of its own
+(`PACK_COVERS` in `data/cards.js`, pictures in `icon/packs/`, colourways as
+`.ege-pack--{theme}` in `site.css`). 2022 has Paxon at North Carolina in
+Carolina blue and navy with an argyle strip (Sam, 2026-10-14). A cover
+follows its season: on the live Season Pack while it is that season, then on
+that year's pack behind the arrows. A season with no cover gets the plain
+pack, its name in the middle.
+
 Each card rolls its rarity on the odds first, then is drawn from every
 published card of that rarity the pack can hold. A rarity with nothing out
 yet falls to the nearest one below it. The Season Pack is the one that grows

@@ -155,6 +155,22 @@ EGE.cards = (function () {
     return PACKS.filter(function (p) { return p.key === key; })[0] || null;
   }
 
+  /* The player on the front of a season's packs and the colours they are
+     printed in (Sam's pictures, 2026-10-14): the live Season Pack while it
+     is that season, and that year's pack behind the arrows after. `theme`
+     is a pack colourway in site.css (.ege-pack--{theme}); `image` a cut-out
+     on a clear background in icon/packs/. A season not here gets a plain
+     pack in the Season Pack's own colours. */
+  var PACK_COVERS = {
+    2022: { player: 'paxon-hatch', image: 'icon/packs/2022-paxon-hatch.webp', theme: 'unc' }
+  };
+
+  /* The cover for a pack, or null. */
+  function packCover(p) {
+    var year = p && (p.season || (p.seasonOnly ? EGE.currentSeason : null));
+    return (year && PACK_COVERS[year]) || null;
+  }
+
   /* --- quick selling ------------------------------------------------------ */
 
   /* What one copy of a card sells back for, in diamonds, by its rarity. An
@@ -873,6 +889,7 @@ EGE.cards = (function () {
     rarity: rarity,
     rankOf: rankOf,
     pack: pack,
+    packCover: packCover,
     sellPrice: sellPrice,
     readPlay: readPlay,
     statSummary: statSummary,
