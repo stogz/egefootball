@@ -4542,7 +4542,7 @@ html.ege-noscroll body { overflow: hidden; }
 
   position: relative;
   container-type: inline-size;
-  aspect-ratio: 5 / 7.4;
+  aspect-ratio: 5 / 7.8;
   filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35));
 }
 .ege-pack--season {
@@ -4576,43 +4576,57 @@ html.ege-noscroll body { overflow: hidden; }
   --pack-deep: #1a1030;
   --pack-hi: #ec5fa8;
 }
-/* North Carolina, for Paxon's 2022 pack: Carolina blue foil, navy, and the
-   argyle off the side of the jersey. A colourway wins over the pack's own,
+/* North Carolina, for Paxon's 2022 pack: the blues of his jersey in the
+   photo (cooler than the official Carolina blue), its shadows for the bars,
+   and the argyle off the side of it. A colourway wins over the pack's own,
    live season or past. */
 .ege-pack.ege-pack--unc {
-  --foil: linear-gradient(135deg, #13294b 0%, #4b9cd3 18%, #d6ecfa 34%, #7bafd4 50%,
-                          #eef8ff 66%, #4b9cd3 82%, #13294b 100%);
-  --pack-deep: #13294b;
-  --pack-hi: #cfe8f8;
+  --foil: linear-gradient(135deg, #1c2f55 0%, #6689cd 18%, #d9e2f7 34%, #88a7e6 50%,
+                          #f3f5fb 66%, #6689cd 82%, #1c2f55 100%);
+  --pack-deep: #1c2f55;
+  --pack-hi: #c9d6f2;
 }
 
 .ege-pack__top,
-.ege-pack__body {
+.ege-pack__body,
+.ege-pack__bottom {
   position: absolute;
   left: 0;
   right: 0;
+}
+/* The crimped seals top and bottom are photographs of a real pack's (Sam's,
+   2026-10-14), each at its own shape, washed a little in the pack's colour. */
+.ege-pack__top,
+.ege-pack__bottom {
+  background: var(--crimp) 0 0 / 100% 100% no-repeat;
+}
+.ege-pack__top::after,
+.ege-pack__bottom::after {
+  content: '';
+  position: absolute;
+  inset: 0;
   background: var(--foil);
-  background-size: 200% 200%;
+  mix-blend-mode: color;
+  opacity: .5;
+  -webkit-mask: var(--crimp) 0 0 / 100% 100% no-repeat;
+  mask: var(--crimp) 0 0 / 100% 100% no-repeat;
 }
 .ege-pack__top {
+  --crimp: url('icon/packs/crimp-top.webp');
   top: 0;
-  height: 12%;
-  clip-path: polygon(0% 100%, 0% 34%, 3.57% 0%, 7.14% 34%, 10.71% 0%, 14.29% 34%, 17.86% 0%,
-    21.43% 34%, 25% 0%, 28.57% 34%, 32.14% 0%, 35.71% 34%, 39.29% 0%, 42.86% 34%, 46.43% 0%,
-    50% 34%, 53.57% 0%, 57.14% 34%, 60.71% 0%, 64.29% 34%, 67.86% 0%, 71.43% 34%, 75% 0%,
-    78.57% 34%, 82.14% 0%, 85.71% 34%, 89.29% 0%, 92.86% 34%, 96.43% 0%, 100% 34%, 100% 100%);
-  /* the tear line */
-  box-shadow: inset 0 -.8cqw 0 rgba(0, 0, 0, .3);
+  height: 11.3cqw;
+}
+.ege-pack__bottom {
+  --crimp: url('icon/packs/crimp-bottom.webp');
+  bottom: 0;
+  height: 13.6cqw;
 }
 .ege-pack__body {
-  top: 11.6%;
-  bottom: 0;
+  top: 11cqw;
+  bottom: 13.2cqw;
   overflow: hidden;
-  clip-path: polygon(0% 0%, 100% 0%, 100% 97%, 96.43% 100%, 92.86% 97%, 89.29% 100%, 85.71% 97%,
-    82.14% 100%, 78.57% 97%, 75% 100%, 71.43% 97%, 67.86% 100%, 64.29% 97%, 60.71% 100%,
-    57.14% 97%, 53.57% 100%, 50% 97%, 46.43% 100%, 42.86% 97%, 39.29% 100%, 35.71% 97%,
-    32.14% 100%, 28.57% 97%, 25% 100%, 21.43% 97%, 17.86% 100%, 14.29% 97%, 10.71% 100%,
-    7.14% 97%, 3.57% 100%, 0% 97%);
+  background: var(--foil);
+  background-size: 200% 200%;
   /* --phase is set by the page from the clock, so a pack drawn again picks
      up its shimmer where it was rather than starting over. */
   animation: ege-metal-flow 9s ease-in-out var(--phase, 0s) infinite;
@@ -4655,7 +4669,7 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-pack__logo {
   position: absolute;
   left: 50%;
-  top: 15%;
+  top: 17%;
   width: 96cqw;
   height: auto;
   max-width: none;
@@ -4665,14 +4679,14 @@ html.ege-noscroll body { overflow: hidden; }
 }
 
 /* The season's player, cut out, standing in front of the prizm with a
-   white edge: his helmet up over the maker's bar, his legs behind the
-   name. */
+   white edge: the top of his helmet just over the bottom of the maker's
+   name, his legs behind the pack's. */
 .ege-pack__player {
   position: absolute;
   z-index: 3;
   left: 50%;
-  top: 2%;
-  height: 90%;          /* feet behind the name and the trim */
+  top: 5.3%;
+  height: 88%;          /* feet behind the name and the trim */
   width: auto;
   max-width: none;
   transform: translateX(-50%);
@@ -4736,7 +4750,7 @@ html.ege-noscroll body { overflow: hidden; }
           drop-shadow(1cqw 1.4cqw 1cqw rgba(0, 0, 0, .4));
   transform: skewX(-9deg);
 }
-.ege-pack--cover .ege-pack__name { top: auto; bottom: 21%; font-size: 19cqw; }
+.ege-pack--cover .ege-pack__name { top: auto; bottom: 17%; font-size: 19cqw; }
 
 /* Along the foot: the count and the year on the pack's dark. */
 .ege-pack__foot {
@@ -4744,7 +4758,7 @@ html.ege-noscroll body { overflow: hidden; }
   z-index: 4;
   left: 0;
   right: 0;
-  bottom: 4.5%;
+  bottom: 0;
   height: 10%;
   display: flex;
   align-items: center;
@@ -4768,8 +4782,8 @@ html.ege-noscroll body { overflow: hidden; }
   bottom: calc(100% + .9cqw);
   height: 5cqw;
   background:
-    conic-gradient(from 45deg, #fff 25%, #7bafd4 0 50%, #fff 0 75%, #7bafd4 0) 0 0 / 5cqw 5cqw;
-  border-top: .5cqw solid #13294b;
+    conic-gradient(from 45deg, #fff 25%, #88a7e6 0 50%, #fff 0 75%, #88a7e6 0) 0 0 / 5cqw 5cqw;
+  border-top: .5cqw solid var(--pack-deep);
 }
 
 /* --- ripping one open ------------------------------------------------------ */
@@ -4862,6 +4876,12 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-rip__pack.is-paying { animation: none; opacity: .7; cursor: progress; }
 .ege-rip__pack.is-torn .ege-pack__top { animation: ege-tear .5s cubic-bezier(.3, .7, .4, 1) forwards; }
 .ege-rip__pack.is-torn .ege-pack__body { animation: ege-spill .55s .12s ease-in forwards; }
+/* The bottom seal falls with the body: turned about the body's centre and
+   moved the body's distance (40% of its 131.8cqw). */
+.ege-rip__pack.is-torn .ege-pack__bottom {
+  transform-origin: 50% -65.9cqw;
+  animation: ege-spill-seal .55s .12s ease-in forwards;
+}
 
 @keyframes ege-pack-idle {
   0%, 100% { transform: rotate(-2deg); }
@@ -4872,6 +4892,9 @@ html.ege-noscroll body { overflow: hidden; }
 }
 @keyframes ege-spill {
   to { transform: translateY(40%) scale(.92); opacity: 0; }
+}
+@keyframes ege-spill-seal {
+  to { transform: translateY(52.7cqw) scale(.92); opacity: 0; }
 }
 
 .ege-rip__cards {
@@ -6196,7 +6219,8 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-rip__flash,
   .ege-rip__banner { display: none; }
   .ege-rip__pack.is-torn .ege-pack__top,
-  .ege-rip__pack.is-torn .ege-pack__body { animation: none; opacity: 0; }
+  .ege-rip__pack.is-torn .ege-pack__body,
+  .ege-rip__pack.is-torn .ege-pack__bottom { animation: none; opacity: 0; }
 }
 
 /* --- the trophy case --------------------------------------------------------

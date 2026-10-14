@@ -295,6 +295,7 @@ EGE.cardsView = (function () {
     body.appendChild(foot);
 
     art.appendChild(body);
+    art.appendChild(el('span', 'ege-pack__bottom'));
     return art;
   }
 
