@@ -165,6 +165,8 @@ EGE.cards = (function () {
      % of the pack, for a helmet that would cover the EGE Football letters. A season not here gets a plain
      pack in the Season Pack's own colours. */
   var PACK_COVERS = {
+    2018: { player: 'cooper-clark', image: 'icon/packs/2018-cooper-clark.webp',
+            logo: 'icon/packs/2018-carlsbad-logo.webp', theme: 'carlsbad', drop: 1.5 },
     2019: { player: 'sam-stogsdill', image: 'icon/packs/2019-sam-stogsdill.webp',
             logo: 'icon/packs/2019-normal-logo.webp', theme: 'ironmen', zoom: 1.2,
             drop: 2 },

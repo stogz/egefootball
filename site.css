@@ -4586,6 +4586,15 @@ html.ege-noscroll body { overflow: hidden; }
   --pack-deep: #1c2f55;
   --pack-hi: #c9d6f2;
 }
+/* Carlsbad, for Cooper's 2018 pack: purple foil from the Lancers' C, the C
+   behind him only its outline, in white, and a royal stripe of black, white
+   and purple across the foot. */
+.ege-pack.ege-pack--carlsbad {
+  --foil: linear-gradient(135deg, #170b2e 0%, #3d2470 18%, #7a5cc0 34%, #4b2c84 50%,
+                          #9a80d8 66%, #3d2470 82%, #170b2e 100%);
+  --pack-deep: #1d0f38;
+  --pack-hi: #d9cdf5;
+}
 /* Normal Community, for Sam's 2019 pack: near-black foil with the prizm
    turned down and the crimped seals darkened to match, lined in the Ironmen
    orange, the N behind him only its orange outline, and a black sword on
@@ -4815,6 +4824,18 @@ html.ege-noscroll body { overflow: hidden; }
   background:
     conic-gradient(from 45deg, #fff 25%, #88a7e6 0 50%, #fff 0 75%, #88a7e6 0) 0 0 / 5cqw 5cqw;
   border-top: .5cqw solid var(--pack-deep);
+}
+/* Carlsbad's royal stripe above the foot band: black, white, purple, white,
+   black. */
+.ege-pack--carlsbad .ege-pack__foot::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + .9cqw);
+  height: 5cqw;
+  background: linear-gradient(180deg, #0d0a12 0 16%, #fff 16% 30%, #4b2c84 30% 70%,
+                              #fff 70% 84%, #0d0a12 84%);
 }
 /* An Ironman's sword, in black on an orange band above the foot band. */
 .ege-pack--ironmen .ege-pack__foot::before {
