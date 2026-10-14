@@ -1487,7 +1487,21 @@ The tab is five pages, picked from a floating island of five icons near the
 bottom of the screen (Sam's glyphs in `icon/cardtabs/`, after the Uiverse
 "liquid" radio group): an orange slider glides under the picked icon, and each
 icon keeps its page name as a hover title and for screen readers. The page goes into the address as `#cards/players`, `#cards/shop` and
-so on, swapped in place so switching reloads nothing.
+so on, swapped in place so switching reloads nothing. A page not showing is
+*parked* rather than hidden (`content-visibility: hidden`, falling back to
+hiding it where a browser lacks that): it is not drawn, but it keeps its layout,
+so going back to a binder of a couple of hundred cards is instant instead of
+laying every card out again. The binder is also left alone when what it would
+draw is what it already shows.
+
+While a Cards page is on screen it checks in every twenty seconds, quietly:
+where each trade stands (`tradeStates`) and the diamond balance, and on the Shop
+page every other check the shelf, the market and the recent pulls. A new
+offer, a card sold off the shelf, somebody's pack or a listing of yours sold
+shows up without a reload, and only the part that changed is redrawn. Nothing
+is redrawn while a pack or card is open, the trade builder or crop tool is up,
+the phone's Sort menu is out, a box is being typed in, or within a few seconds
+of a tap (`poll()` and `busy()` in `js/cards-view.js`).
 
 - **Cards** — the collection and nothing else. The page itself scrolls it (no
   box inside the page), drawn a few rows at a time, with the filters pinned
@@ -1522,7 +1536,9 @@ a tight end's 11.9, so their rungs are ×0.75 and ×0.9 of a receiver's
 (`RANK_SCALE`). **Every game the player plays pays the account a bonus**: the
 game's diamonds before any booster, times the rank's bonus, rounded up. It
 goes in `diamond_awards` as `pc-{slug}-w{week}` through
-`pay_player_card_bonuses()`, on sign-in. Each game is paid once, at the rank
+`pay_player_card_bonuses()`, on sign-in, when the admin publishes (their own
+account; Postgres pays a Player Card only to whoever is signed in), and on any
+open page within a minute of a week going out. Each game is paid once, at the rank
 held when it is first paid, and never topped up; games at Common go in at 0.
 The first time an account is paid, every game already out goes in at 0 (a
 `pc-start` row marks it), so Player Cards pay from the next game on. A game's
@@ -1894,6 +1910,16 @@ tab it put away, or the home-screen app when it is opened again. So coming
 back to the page after 30 seconds or more asks Supabase for the published
 weeks and the ratings again, and redraws in place, keeping your scroll
 position, if anything changed.
+
+And a page left open keeps up by itself: once a minute while it is on screen
+it asks the same again, along with the balances in the nav and the count of
+new trade offers. A week gone out since pays the signed-in player there and
+then (credits, game diamonds and their Player Cards' share) and redraws, so
+nobody has to reload after a publish. The redraw waits while somebody is in
+the middle of something: the portal or a card open, a sticker picked up or its
+drawer out, a box being typed in, or a tap a moment ago. Nothing is asked while
+the page is put away. All told an open page asks Supabase for about five small
+things a minute, ten on a Cards page and under twenty on the Shop page.
 
 **Why `document.write`, of all things.** Because these have to be in place
 *before* `js/app.js` runs, exactly as they always were. `document.write` from

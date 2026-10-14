@@ -1270,7 +1270,7 @@ EGE.cardsView = (function () {
      next rows go in. Drawing
      the same view again -- after a sale, a pack, a refresh -- keeps as many
      cards as were drawn and the place it was scrolled to. */
-  var binder = { key: null, cards: [], view: null, drawn: 0, season: null, marker: null, watch: null };
+  var binder = { key: null, sig: null, cards: [], view: null, drawn: 0, season: null, marker: null, watch: null };
 
   /* How many cards fit across, read off the grid itself. */
   function perRow(grid) {
@@ -1282,6 +1282,15 @@ EGE.cardsView = (function () {
   function fillBinder(grid, cards, v) {
     var f = state.filter;
     var key = [state.view || '', f.kind, f.player, f.sort, f.rarity].join('|');
+    /* The binder as it stands, card for card. Coming back to the page, or a
+       refresh that changed nothing, used to throw every card away and draw
+       it again -- the lag going back to Cards, worse the further it had
+       been scrolled. The same binder is left as it is. */
+    var sig = key + '#' + cards.map(function (card) {
+      return card.id + 'x' + (v.owned[card.id] || 0) + (v.mine && state.fresh[card.id] ? 'n' : '');
+    }).join(',');
+    if (sig === binder.sig && grid.childElementCount) { return; }
+    binder.sig = sig;
     var same = key === binder.key;
     var keep = same ? binder.drawn : 0;
 
@@ -1762,7 +1771,9 @@ EGE.cardsView = (function () {
   function refreshBadge() {
     var player = EGE.auth.currentPlayer();
     if (!player) { setBadge(0); return Promise.resolve(); }
-    return EGE.cardStore.tradesFor(player.email).then(function (trades) {
+    return EGE.cardStore.tradeStates(player.email).then(function (trades) {
+      /* Left as it is when the trades could not be read. */
+      if (!trades || EGE.auth.currentPlayer() !== player) { return; }
       var e = player.email.toLowerCase();
       setBadge(trades.filter(function (t) {
         return t.status === 'open' && t.to_email.toLowerCase() === e && !t.seen_at;
@@ -1969,6 +1980,12 @@ EGE.cardsView = (function () {
   var TAB_TITLES = { cards: 'Cards', players: 'Player Cards', shop: 'Shop', trades: 'Trades',
                      achievements: 'Achievements' };
 
+  /* A page not showing is parked rather than taken out of the page: its
+     contents skip drawing (content-visibility: hidden, in site.css) but keep
+     their layout, so coming back to a page full of cards does not lay every
+     one of them out again. Browsers without it hide the page as before. */
+  var PARK = Boolean(window.CSS && window.CSS.supports && window.CSS.supports('content-visibility', 'hidden'));
+
   function setTab(tab, fromRoute) {
     tab = String(tab || '').replace(/\/+$/, '');        /* #cards/trades/ too */
     var next = TABS.indexOf(tab) === -1 ? 'cards' : tab;
@@ -1976,7 +1993,14 @@ EGE.cardsView = (function () {
     state.tab = next;
 
     Array.prototype.forEach.call(document.querySelectorAll('#cardsContent .ege-cardpage'), function (page) {
-      page.hidden = page.dataset.page !== next;
+      var off = page.dataset.page !== next;
+      if (PARK) {
+        page.hidden = false;
+        page.classList.toggle('is-parked', off);
+        page.inert = off;
+      } else {
+        page.hidden = off;
+      }
     });
     Array.prototype.forEach.call(document.querySelectorAll('#cardTabs input'), function (input) {
       input.checked = input.value === next;
@@ -2883,6 +2907,7 @@ EGE.cardsView = (function () {
     var player = state.player;
     if (!player) { return Promise.resolve(); }
 
+    refreshing += 1;
     return Promise.all([
       EGE.cardStore.collectionFor(player.email),
       EGE.cardStore.claimsFor(player.email),
@@ -2918,7 +2943,116 @@ EGE.cardsView = (function () {
         say('Your diamonds could not be loaded. Run supabase/schema.sql to set up the diamond tables, then reload.', true);
       }
       renderAll();
-    });
+    }).then(function () { refreshing -= 1; }, function () { refreshing -= 1; });
+  }
+
+  /* --- keeping up in the background --------------------------------------
+
+     js/app.js calls poll() every so often while a Cards page is on screen,
+     so an offer, a card sold off the shelf or the market, somebody else's
+     pack, or diamonds from a sale turn up without a reload. It asks for a
+     little -- where each trade stands and the balance, and on the Shop page
+     the shelf, the market and the recent pulls -- and redraws only the part
+     that is different, so a check that finds nothing new touches nothing.
+
+     Nothing is redrawn while it would be pulled out from under somebody: a
+     pack, a card up close, the trade builder or the crop tool (anything in
+     the overlay), the phone's Sort menu, a box being typed in, a refresh
+     already on its way, or a tap in the last few seconds that may still be
+     waiting on its answer. The next check tries again. `full` reads
+     everything again, for a week just out; held over to the next check
+     when now is not the moment. */
+  var refreshing = 0;
+  var polling = false;
+  var touched = 0;
+  var owedFull = false;
+  var TOUCH_QUIET = 4000;
+
+  ['pointerdown', 'keydown'].forEach(function (type) {
+    document.addEventListener(type, function () { touched = Date.now(); }, true);
+  });
+
+  function busy() {
+    if (state.hold || rip || state.filtersOpen || refreshing || polling) { return true; }
+    if (Date.now() - touched < TOUCH_QUIET) { return true; }
+    var a = document.activeElement;
+    return Boolean(a && (a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' ||
+      (a.tagName === 'INPUT' && !/^(radio|checkbox|button|submit)$/.test(a.type))));
+  }
+
+  /* Where each trade stands, as one string: a new offer, an answer, or an
+     offer seen on another device all change it. */
+  function tradeSig(trades) {
+    return (trades || []).map(function (t) {
+      return t.id + ':' + t.status + (t.seen_at ? ':seen' : '');
+    }).sort().join(',');
+  }
+
+  var pollCount = 0;
+
+  function poll(full) {
+    var player = state.player;
+    if (!player || !state.loaded || !/^#cards(\/|$)/.test(window.location.hash)) { return Promise.resolve(); }
+    if (full) { owedFull = true; }
+    if (busy()) { return Promise.resolve(); }
+    if (owedFull) {
+      owedFull = false;
+      return refresh();
+    }
+
+    /* The shelf, the market and the recent pulls only on the Shop page,
+       and every other check: they are what changes least often. */
+    pollCount += 1;
+    var shop = state.tab === 'shop' && pollCount % 2 === 0;
+    polling = true;
+    return Promise.all([
+      EGE.cardStore.tradeStates(player.email),
+      EGE.wallet.diamondsFor(player.email),
+      shop ? EGE.cardStore.shopToday() : null,
+      shop ? EGE.cardStore.market(player.email) : null,
+      shop ? EGE.cardStore.recentOpens(RECENT_MAX) : null
+    ]).then(function (got) {
+      polling = false;
+      if (state.player !== player || busy()) { return; }
+
+      /* A trade moved: read them all again, and the collection with them
+         when one went through, since that changed what is in it. */
+      if (got[0] && tradeSig(got[0]) !== tradeSig(state.trades)) {
+        var done = got[0].some(function (t) {
+          return t.status === 'accepted' && !state.trades.some(function (old) {
+            return old.id === t.id && old.status === 'accepted';
+          });
+        });
+        return done ? refresh() : EGE.cardStore.tradesFor(player.email).then(function (trades) {
+          /* An empty answer to a non-empty check is a read that failed. */
+          if (state.player !== player || busy() || (!trades.length && got[0].length)) { return; }
+          state.trades = trades;
+          renderTrades();
+        });
+      }
+
+      /* The balance moved on its own -- a listing sold, a game paid out:
+         the nav, and every price it decides can be paid. */
+      if (typeof got[1] === 'number' && got[1] !== state.diamonds) {
+        walletChanged(null, got[1]);
+        renderPacks();
+        renderDaily();
+        renderMarket();
+      }
+
+      if (got[2] && JSON.stringify(got[2]) !== JSON.stringify(state.shop)) {
+        state.shop = got[2];
+        renderDaily();
+      }
+      if (got[3] && JSON.stringify(got[3]) !== JSON.stringify(state.market)) {
+        state.market = got[3];
+        renderMarket();
+      }
+      if (got[4] && JSON.stringify(got[4]) !== JSON.stringify(state.recent)) {
+        state.recent = got[4];
+        renderRecent();
+      }
+    }, function () { polling = false; });
   }
 
   /* Called by js/app.js whenever #cards is shown; `tab` is the page from
@@ -2937,6 +3071,7 @@ EGE.cardsView = (function () {
     setTab(tab || state.tab, true);
     renderFilters();
     renderAll();
+    owedFull = false;
     refresh();
   }
 
@@ -2965,6 +3100,7 @@ EGE.cardsView = (function () {
     state.pcView = null;
     state.pcOther = null;
     binder.key = null;
+    binder.sig = null;
     setBadge(0);
   }
 
@@ -3014,6 +3150,7 @@ EGE.cardsView = (function () {
   return {
     render: render,
     reset: reset,
+    poll: poll,
     refreshBadge: refreshBadge,
     cardEl: cardEl,
     playerCardFace: playerCardFace,

@@ -5527,6 +5527,10 @@ html.ege-noscroll body { overflow: hidden; }
 
 #view-cards { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 
+/* A page not showing (setTab in js/cards-view.js): nothing in it is drawn
+   and it takes no room, but its layout is kept for when it comes back. */
+.ege-cardpage.is-parked { content-visibility: hidden; }
+
 
 /* The island: five icons on a dark pill floating over the foot of the
    screen, after the Uiverse "liquid" radio group. The picked page sits on an
