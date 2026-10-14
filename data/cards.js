@@ -163,6 +163,8 @@ EGE.cards = (function () {
      behind him. A season not here gets a plain pack in the Season Pack's
      own colours. */
   var PACK_COVERS = {
+    2021: { player: 'jaykeb-stewart', image: 'icon/packs/2021-jaykeb-stewart.webp',
+            logo: 'icon/packs/2021-osu-logo.webp', theme: 'osu' },
     2022: { player: 'paxon-hatch', image: 'icon/packs/2022-paxon-hatch.webp',
             logo: 'icon/packs/2022-unc-logo.webp', theme: 'unc' }
   };

@@ -4586,6 +4586,15 @@ html.ege-noscroll body { overflow: hidden; }
   --pack-deep: #1c2f55;
   --pack-hi: #c9d6f2;
 }
+/* Ohio State, for Jaykeb's 2021 pack: red foil in the scarlet of his
+   jersey in the photo, a dark scarlet for the bars, lined in the helmet's
+   silver, and the helmet stripe across the foot. */
+.ege-pack.ege-pack--osu {
+  --foil: linear-gradient(135deg, #3d070b 0%, #a30b14 18%, #e3343d 34%, #b8101b 50%,
+                          #f25a61 66%, #a30b14 82%, #3d070b 100%);
+  --pack-deep: #4a0a0f;
+  --pack-hi: #d2d1d8;
+}
 
 .ege-pack__top,
 .ege-pack__body,
@@ -4670,9 +4679,10 @@ html.ege-noscroll body { overflow: hidden; }
   position: absolute;
   left: 50%;
   top: 17%;
-  width: 96cqw;
+  width: auto;          /* as wide as fits, short of the name */
   height: auto;
-  max-width: none;
+  max-width: 96cqw;
+  max-height: 60%;
   transform: translateX(-50%);
   pointer-events: none;
   user-select: none;
@@ -4784,6 +4794,18 @@ html.ege-noscroll body { overflow: hidden; }
   background:
     conic-gradient(from 45deg, #fff 25%, #88a7e6 0 50%, #fff 0 75%, #88a7e6 0) 0 0 / 5cqw 5cqw;
   border-top: .5cqw solid var(--pack-deep);
+}
+/* Ohio State's helmet stripe, laid across above the foot band: silver,
+   black, white, scarlet, white, black, silver. */
+.ege-pack--osu .ege-pack__foot::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + .9cqw);
+  height: 5cqw;
+  background: linear-gradient(180deg, #c9c8cf 0 12%, #151115 12% 22%, #fff 22% 36%,
+                              #c81a24 36% 64%, #fff 64% 78%, #151115 78% 88%, #c9c8cf 88%);
 }
 
 /* --- ripping one open ------------------------------------------------------ */

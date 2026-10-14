@@ -1254,6 +1254,8 @@ helmet just touches the bottom of the EGE Football lettering and his legs
 run behind the name, which sits a little above the trim. 2022 has Paxon at
 North Carolina in the blues of his jersey in the photo (cooler than the
 official Carolina blue), the NC behind him and an argyle strip (Sam,
+2026-10-14). 2021 has Jaykeb at Ohio State in the scarlet of his jersey,
+the block O behind him and the helmet stripe across the foot (Sam,
 2026-10-14). A cover
 follows its season: on the live Season Pack while it is that season, then on
 that year's pack behind the arrows. A season with no cover gets the plain
