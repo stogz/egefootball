@@ -1189,13 +1189,13 @@ pyramid, and each rarity has its own pull odds:
 
 | Rarity | Colour | Chance per card | Game from | Play from | In the files |
 | --- | --- | --- | --- | --- | --- |
-| Common | gray | 46.7% | — | — | 325 |
+| Common | gray | 47.05% | — | — | 325 |
 | Uncommon | green | 26% | 6.5 | 7.1 | 215 |
 | Rare | orange | 14% | 11 | 8.6 | 145 |
 | Epic | red | 8% | 16 | 9.6 | 94 |
 | Legendary | purple | 4% | 20.5 | 11.2 | 77 |
-| Mystic | gold | 1% | 28.5 | 13.3 | 10 |
-| Iconic | pink | 0.3% | picked | picked | 4 |
+| Mystic | gold | 0.75% | 28.5 | 13.3 | 10 |
+| Iconic | pink | 0.2% | picked | picked | 4 |
 
 Counts are the 2018–2022 files. Mystic was 24 / 12.1 until Sam asked for it
 to be closer to 10 cards than 35 (2026-10-13): the 30 that fell out became
@@ -1206,8 +1206,8 @@ Epic.
 the moments in `ICONIC` at the top of `data/cards.js` are Iconic: Sam's five
 touchdowns against Centennial (2019), Paxon's two touchdowns in the FCS
 Championship (2020), Cooper's 80 yard touchdown against Helix (2019) and
-Jaykeb's seven touchdowns (2022). Add an id there to make another. At 0.3% a
-card, about one Base Pack in 110 has an Iconic in it.
+Jaykeb's seven touchdowns (2022). Add an id there to make another. At 0.2% a
+card, about one Base Pack in 170 has an Iconic in it.
 
 From Rare up the frame catches the light: a still sheen on Rare, a moving one
 on Epic and Legendary, gold foil on Mystic and holographic on Iconic, the
@@ -1249,8 +1249,8 @@ a week at a time.
 **A pack holds at most one card above Legendary** (`PACK_CAP` in
 `data/cards.js`): once a Mystic or Iconic is in it, every card after it
 rolls Legendary or lower. **A Pro Pack has 1.5x the odds of Legendary and
-up** (`boost` on the pack): Legendary 6%, Mystic 1.5%, Iconic 0.45% a card,
-with Common at 44.05% making up the difference. **The cards are laid out worst to best, left to
+up** (`boost` on the pack): Legendary 6%, Mystic 1.125%, Iconic 0.3% a card,
+with Common at 44.575% making up the difference. **The cards are laid out worst to best, left to
 right** (`packOrder`), in the opening and in Recent Pulls, so the best card
 is always the last one turned.
 
@@ -1424,14 +1424,14 @@ has more than ten offers out at once.
 
 ### The showcase
 
-Up to five cards a player picks to show off, on their own player page under
+Up to six cards a player picks to show off, in one row, on their own player page under
 the header. Anybody can see it, signed in or not. On your own page,
 **Edit** turns each slot into Replace and Remove, and an empty slot into
 **+ Add a card**, which opens your collection to pick from; **Save** puts it
 up. Only cards you own can go up, and a card traded away comes down on its
 own. A player with nothing up has no Showcase panel for anybody else.
 
-Any of the five slots can hold one of your Player Cards instead: the picker
+Any of the six slots can hold one of your Player Cards instead: the picker
 lists your Player Cards first, then your cards, and either goes in the slot
 the same way, with the same Replace and Remove. A Player Card is kept as
 `pc:{slug}` among the showcase's ids, can go up once you hold a card of that
@@ -1587,7 +1587,7 @@ account's photos with a **Remove** that takes them all down, and Clear
 library takes them down too.
 
 **Player Cards can go in the showcase** on the player's own page, in the
-same five slots as cards (see The showcase). Anybody can see them, signed
+same six slots as cards (see The showcase). Anybody can see them, signed
 out too: `showcased_player_cards()` hands over only the cards of the players
 put up, which is what their rank is worked out from. Player Cards that were
 in the old row of their own (`card_showcases.player_cards`) move into the
