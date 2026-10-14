@@ -165,7 +165,7 @@ EGE.cards = (function () {
      pack in the Season Pack's own colours. */
   var PACK_COVERS = {
     2019: { player: 'sam-stogsdill', image: 'icon/packs/2019-sam-stogsdill.webp',
-            logo: 'icon/packs/2019-normal-logo.webp', theme: 'ironmen' },
+            logo: 'icon/packs/2019-normal-logo.webp', theme: 'ironmen', zoom: 1.2 },
     2020: { player: 'andrew-parr', image: 'icon/packs/2020-andrew-parr.webp',
             logo: 'icon/packs/2020-alabama-logo.webp', theme: 'bama', zoom: 1.2 },
     2021: { player: 'jaykeb-stewart', image: 'icon/packs/2021-jaykeb-stewart.webp',

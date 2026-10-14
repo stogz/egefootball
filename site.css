@@ -4586,15 +4586,14 @@ html.ege-noscroll body { overflow: hidden; }
   --pack-deep: #1c2f55;
   --pack-hi: #c9d6f2;
 }
-/* Normal Community, for Sam's 2019 pack: the orange of the Ironmen jersey
-   in the photo and its black for the bars. The N behind him is only its
-   black outline, so the orange shows through it. A sword lies across the
-   foot. */
+/* Normal Community, for Sam's 2019 pack: black foil, lined in the Ironmen
+   orange, the N behind him only its orange outline, and a black sword on
+   an orange band across the foot. */
 .ege-pack.ege-pack--ironmen {
-  --foil: linear-gradient(135deg, #4a1404 0%, #c43c0c 18%, #ff7a33 34%, #eb4a1b 50%,
-                          #ff9a5c 66%, #c43c0c 82%, #4a1404 100%);
-  --pack-deep: #18161a;
-  --pack-hi: #ff6a26;
+  --foil: linear-gradient(135deg, #070708 0%, #1f1f22 18%, #4d4d53 34%, #161618 50%,
+                          #3e3e43 66%, #1f1f22 82%, #070708 100%);
+  --pack-deep: #0d0d0e;
+  --pack-hi: #f26901;
 }
 /* Alabama, for Andrew's 2020 pack: the deep crimson of the script A, the A
    itself darker still behind him, and laurel leaves across the foot. */
@@ -4813,16 +4812,16 @@ html.ege-noscroll body { overflow: hidden; }
     conic-gradient(from 45deg, #fff 25%, #88a7e6 0 50%, #fff 0 75%, #88a7e6 0) 0 0 / 5cqw 5cqw;
   border-top: .5cqw solid var(--pack-deep);
 }
-/* An Ironman's sword, laid across above the foot band. */
+/* An Ironman's sword, in black on an orange band above the foot band. */
 .ege-pack--ironmen .ege-pack__foot::before {
   content: '';
   position: absolute;
   left: 0;
   right: 0;
-  bottom: calc(100% + 1.2cqw);
-  height: 6cqw;
-  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 6'><defs><linearGradient id='b' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23f6f8fa'/><stop offset='.46' stop-color='%23cdd2d8'/><stop offset='.54' stop-color='%238a9199'/><stop offset='1' stop-color='%23dde1e6'/></linearGradient></defs><g stroke='%23111' stroke-width='.22' stroke-linejoin='round'><path d='M15 1.9h78l6.2 1.1-6.2 1.1H15z' fill='url(%23b)'/><path d='M4.6 2.1h8.6v1.8H4.6z' fill='%2318161a'/><path d='M13 .3h2.2l-.3.9v3.6l.3.9H13l.3-.9V1.2z' fill='%23eb4a1b'/><circle cx='3.4' cy='3' r='1.25' fill='%23eb4a1b'/></g><path d='M16.5 2.84h66v.32h-66z' fill='%237d858e'/><path d='M5.6 2.15l.9 1.7M7.2 2.15l.9 1.7M8.8 2.15l.9 1.7M10.4 2.15l.9 1.7M12 2.15l.9 1.7' stroke='%23eb4a1b' stroke-width='.3'/><circle cx='3.4' cy='3' r='.45' fill='%2318161a'/></svg>") 0 0 / 100% 100% no-repeat;
-  filter: drop-shadow(0 .5cqw .4cqw rgba(0, 0, 0, .45));
+  bottom: calc(100% + .9cqw);
+  height: 7cqw;
+  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 7' fill='%23111'><path d='M15 2.5h78l6.2 1-6.2 1H15zM4.6 2.6h8.6v1.8H4.6zM13 .8h2.2l-.3.9v3.6l.3.9H13l.3-.9V1.7z'/><circle cx='3.4' cy='3.5' r='1.25'/></svg>") 0 0 / 100% 100% no-repeat, #f26901;
+  border-top: .5cqw solid var(--pack-deep);
 }
 /* A band of Greek laurel leaves above the foot band, on Alabama's pack. */
 .ege-pack--bama .ege-pack__foot::before {
