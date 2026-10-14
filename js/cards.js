@@ -182,6 +182,25 @@ EGE.cardStore = (function () {
       .catch(function () { return []; });
   }
 
+  /* Just where each of those trades stands -- id, status, whether it has
+     been seen, and who it is to -- for checking in the background whether
+     anything has moved before reading them all again. Null when it could
+     not be read. */
+  function tradeStates(email) {
+    var c = client();
+    if (!c || !email) { return Promise.resolve(null); }
+    var me = email.toLowerCase();
+
+    return c.from(TRADES).select('id, status, seen_at, from_email, to_email')
+      .then(function (res) {
+        if (res.error) { return null; }
+        return (res.data || []).filter(function (t) {
+          return t.from_email.toLowerCase() === me || t.to_email.toLowerCase() === me;
+        });
+      })
+      .catch(function () { return null; });
+  }
+
   function call(fn, args, done) {
     var c = client();
     if (!c) { return fail(offline()); }
@@ -431,6 +450,7 @@ EGE.cardStore = (function () {
     setCardPhoto: setCardPhoto,
     clearCardPhoto: clearCardPhoto,
     tradesFor: tradesFor,
+    tradeStates: tradeStates,
     proposeTrade: proposeTrade,
     respondTrade: respondTrade,
     cancelTrade: cancelTrade,

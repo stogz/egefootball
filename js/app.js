@@ -4196,8 +4196,19 @@
     var boosters = season === EGE.currentSeason
       ? EGE.wallet.loadGameBoosters(season)
       : Promise.resolve();
+    var cards = { paid: 0 };
 
     return boosters.then(function () {
+      /* The admin's own Player Cards too. They used to wait for the next
+         load, so the week's game diamonds landed in the nav and the cards'
+         share of it only after a reload. Only your own: Postgres pays a
+         Player Card to whoever is signed in, so everybody else's are paid
+         when their page next checks in (see "staying current" below). */
+      var me = EGE.auth.currentPlayer();
+      return me && season === EGE.currentSeason
+        ? EGE.cardStore.syncPlayerCards(me, season).then(function (res) { cards = res; })
+        : null;
+    }).then(function () {
       return Promise.all(EGE.playersWithAccounts().map(function (player) {
         return Promise.all([
           EGE.wallet.syncAwards(player, season),
@@ -4223,6 +4234,7 @@
       return {
         credits: tally('paid', 'credits'),
         diamonds: tally('diamonds', 'diamonds'),
+        cards: cards.paid || 0,
         missed: all.filter(function (one) { return one.problem; })
                    .map(function (one) { return one.player.first; })
       };
@@ -4235,6 +4247,7 @@
       .map(function (one) {
         return one.total + ' ' + one.word + ' paid \u2014 ' + one.names.join(', ') + '.';
       });
+    if (paid.cards) { parts.push('Your Player Cards paid ' + paid.cards + ' diamonds.'); }
     var line = parts.length ? parts.join(' ') : 'No credits or diamonds were owed.';
     if (paid.missed.length) {
       line += ' ' + paid.missed.join(', ') + ' could not be paid.';
@@ -5316,22 +5329,9 @@
           /* Anything the season owes this player is paid on the way in, so a
              result posted since their last visit is already credits and
              diamonds by the time they reach the shop. */
-          return Promise.all([
-            EGE.wallet.syncAwards(player, EGE.currentSeason),
-            EGE.wallet.syncDiamonds(player, EGE.currentSeason),
-            EGE.cardStore.syncPlayerCards(player, EGE.currentSeason)
-          ]);
+          return payWhatIsOwed(player);
         })
-        .then(function (both) {
-          var credits = (both[0] && both[0].paid) || 0;
-          var diamonds = ((both[1] && both[1].paid) || 0) + ((both[2] && both[2].paid) || 0);
-          var parts = [];
-          if (credits) { parts.push(credits + ' credits'); }
-          if (diamonds) { parts.push(diamonds + ' diamonds'); }
-          if (parts.length) {
-            sayShop('The season paid you ' + parts.join(' and ') + ' since you were ' +
-                    'last here.', false);
-          }
+        .then(function () {
           EGE.cardsView.refreshBadge();
           return refreshShop();
         })
@@ -5353,6 +5353,30 @@
     }
     route();          /* the shop appears and disappears with the session */
   });
+
+  /* Everything the live season owes the signed-in player and has not paid:
+     touchdown credits, the games' diamonds, and what their Player Cards
+     earn on those games. Each is keyed on what earned it, so running it
+     again pays nothing twice. Said on the shop page when it paid anything,
+     unless `quietly`: a page left open just shows the new balance. */
+  function payWhatIsOwed(player, quietly) {
+    return Promise.all([
+      EGE.wallet.syncAwards(player, EGE.currentSeason),
+      EGE.wallet.syncDiamonds(player, EGE.currentSeason),
+      EGE.cardStore.syncPlayerCards(player, EGE.currentSeason)
+    ]).then(function (all) {
+      var credits = (all[0] && all[0].paid) || 0;
+      var diamonds = ((all[1] && all[1].paid) || 0) + ((all[2] && all[2].paid) || 0);
+      var parts = [];
+      if (credits) { parts.push(credits + ' credits'); }
+      if (diamonds) { parts.push(diamonds + ' diamonds'); }
+      if (parts.length && !quietly) {
+        sayShop('The season paid you ' + parts.join(' and ') + ' since you were ' +
+                'last here.', false);
+      }
+      return { credits: credits, diamonds: diamonds };
+    });
+  }
 
   /* --- portal: open and close ------------------------------------------- */
 
@@ -5496,16 +5520,58 @@
 
      So coming back to the page after a while asks Supabase again, and only
      if the answer is different does anything get redrawn -- in place, with
-     the page left where you had it. */
+     the page left where you had it.
+
+     And while the page is on screen it checks in by itself, so nobody has
+     to keep reloading: every twenty seconds on a Cards page (trades, the
+     balance, the shop -- EGE.cardsView.poll), and once a minute anywhere for
+     a week gone out, a rating bought, the balances in the nav and the trade
+     count. A week out pays the signed-in player what it owes them there and
+     then -- touchdown credits, game diamonds and their Player Cards' share
+     -- rather than on the next load. Nothing is checked while the page is
+     put away, and a redraw waits while somebody is in the middle of
+     something (pageBusy). */
   var AWAY_BEFORE_REFRESH = 30 * 1000;
+  var TICK = 20 * 1000;
+  var LIVE_EVERY = 3;                /* ticks between looks at the weeks: a minute */
   var hiddenSince = null;
   var refreshing = false;
+  var redrawOwed = false;
+  var ticks = 0;
+  var touched = 0;
 
+  /* Keys in order, so the same weeks and purchases read the same whichever
+     order Postgres hands the rows back in -- checked every minute now, a
+     reshuffle must not pass for a change. */
   function liveState() {
-    return JSON.stringify([EGE.publishedWeeks, EGE.appliedBoosts]);
+    return JSON.stringify([EGE.publishedWeeks, EGE.appliedBoosts], function (key, value) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) { return value; }
+      return Object.keys(value).sort().reduce(function (out, k) { out[k] = value[k]; return out; }, {});
+    });
   }
 
-  function refreshLive() {
+  function onCards() { return /^#cards(\/|$)/.test(window.location.hash); }
+
+  ['pointerdown', 'keydown'].forEach(function (type) {
+    document.addEventListener(type, function () { touched = Date.now(); }, true);
+  });
+
+  /* Something a redraw would pull out from under somebody: the portal or the
+     card overlay open, a sticker picked up or its drawer out, a box being
+     typed in, or a tap a moment ago that may still be waiting on its answer. */
+  function pageBusy() {
+    if (Date.now() - touched < 4000) { return true; }
+    if (armedSticker || drawer) { return true; }
+    if (!document.getElementById('loginModal').hidden) { return true; }
+    if (document.documentElement.classList.contains('ege-noscroll')) { return true; }
+    var a = document.activeElement;
+    return Boolean(a && (a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' ||
+      (a.tagName === 'INPUT' && !/^(radio|checkbox|button|submit)$/.test(a.type))));
+  }
+
+  /* `background` is the minute's check, made while somebody may be reading:
+     then a redraw waits until they are not in the middle of anything. */
+  function refreshLive(background) {
     if (refreshing) { return; }
     refreshing = true;
     var before = liveState();
@@ -5513,22 +5579,42 @@
       EGE.wallet.loadPublishedWeeks(),
       EGE.wallet.loadBoosts()
     ]).then(function () {
-      if (liveState() !== before) {
+      var moved = liveState() !== before;
+      if (moved) { redrawOwed = true; }
+      /* A week out since is credits and diamonds owed: paid now, before the
+         balances below are read. */
+      var player = EGE.auth.currentPlayer();
+      return moved && player ? payWhatIsOwed(player, background) : null;
+    }).then(function () {
+      if (redrawOwed && !(background && pageBusy())) {
+        redrawOwed = false;
         redrawRatings();
         refreshScoutMarks();
-        /* A week out since is a week of new cards in the packs. */
-        if (/^#cards(\/|$)/.test(window.location.hash)) { EGE.cardsView.render(); }
+        /* A week out since is a week of new cards in the packs, and new
+           Player Card earnings. */
+        if (onCards()) { EGE.cardsView.poll(true); }
       }
       updateNavCreditsFromServer();
-      /* An offer may have come in while the page was put away. */
-      EGE.cardsView.refreshBadge();
+      /* An offer may have come in while the page was put away. On a Cards
+         page the poll keeps the count itself. */
+      if (!onCards()) { EGE.cardsView.refreshBadge(); }
     }).then(function () { refreshing = false; }, function () { refreshing = false; });
   }
+
+  function tick() {
+    if (document.hidden || navigator.onLine === false) { return; }
+    ticks += 1;
+    if (onCards()) { EGE.cardsView.poll(); }
+    if (ticks % LIVE_EVERY === 0) { refreshLive(true); }
+  }
+
+  window.setInterval(tick, TICK);
 
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) { hiddenSince = Date.now(); return; }
     if (hiddenSince !== null && Date.now() - hiddenSince >= AWAY_BEFORE_REFRESH) {
       refreshLive();
+      if (onCards()) { EGE.cardsView.poll(); }
     }
     hiddenSince = null;
   });
