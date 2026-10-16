@@ -379,8 +379,8 @@
       <!-- ===== Shop: the daily spin, packs, today's cards, the market ===== -->
       <div class="ege-cardpage" id="cardPageShop" data-page="shop" hidden>
 
-        <!-- one free spin a day, from 7:00 AM Central -->
-        <div class="fb-panel" id="spinPanel">
+        <!-- one free spin a day, from 7:00 AM Central; gone once it is spun -->
+        <div class="fb-panel" id="spinPanel" hidden>
           <div class="fb-panel__head">
             <h3>Daily Spin</h3>
             <span class="fb-meta" id="spinResets"></span>
@@ -393,15 +393,8 @@
                 <span class="ege-spin__hub" aria-hidden="true"><b>EGE</b></span>
               </div>
               <div class="ege-spin__side">
-                <p class="ege-item__text">
-                  One free spin a day. Land an Uncommon card at worst, or a few
-                  diamonds, a Rare card or a Base Pack, and if it is your day,
-                  a Legendary card or a Pro Pack. A new spin opens every day
-                  at 7:00 AM Central.
-                </p>
                 <button class="fb-btn fb-btn--primary ege-spin__go" id="spinGo" type="button" disabled>Spin</button>
                 <p class="ege-spin__result" id="spinResult" role="status"></p>
-                <div class="ege-spin__won" id="spinWon"></div>
               </div>
             </div>
           </div>
@@ -445,11 +438,6 @@
             <span class="fb-meta" id="dailyResets"></span>
           </div>
           <div class="fb-panel__body fb-stack">
-            <p class="fb-meta">
-              Six cards a day, the same six for everybody, topped by a
-              Legendary. Buy one and it is gone for everybody else. New
-              cards at midnight Eastern.
-            </p>
             <div class="ege-daily" id="dailyCards"></div>
           </div>
         </div>
@@ -485,52 +473,6 @@
           </div>
         </div>
 
-        <!-- how hard each rarity is, out of the way until wanted -->
-        <details class="fb-panel ege-section-gap ege-details" id="oddsDetails">
-          <summary class="fb-panel__head ege-details__summary">
-            <h3>Rarity &amp; Odds</h3>
-            <span class="fb-meta">How cards are graded and how often each pulls</span>
-          </summary>
-          <div class="fb-panel__body fb-stack">
-            <p class="fb-meta">
-              The number in a card's corner is its fantasy score, half PPR, the
-              same scoring a game pays credits and diamonds on. A play is scored as the one
-              play. Rarity is graded from that score against the position, so a
-              tight end's big night is as rare as a quarterback's. A play is
-              graded as if every play were carried or caught, so a 60 yard
-              touchdown pass grades with a 60 yard touchdown catch, and go-ahead,
-              game-tying and game-winning plays grade a little higher.
-            </p>
-            <p class="fb-meta">
-              Each card in a pack rolls its rarity first, at the chance below,
-              then is drawn from every card of that rarity that is out. A Pro
-              Pack has 1.5x the chance of a Legendary; Mystic and Iconic stay
-              the same. A pack holds one Mystic or Iconic at most, and at most
-              two Legendary-or-better cards in a five-card pack, one in a
-              three-card pack.
-            </p>
-            <p class="fb-meta">
-              Three copies of one card merge into a holo: one holographic
-              card with all three cards' fantasy points, which cannot be split
-              back up. Open a card you have three of to merge them.
-            </p>
-          </div>
-          <div class="fb-tablewrap">
-            <table class="fb-table ege-odds">
-              <thead>
-                <tr>
-                  <th>Rarity</th>
-                  <th class="num">Chance per card</th>
-                  <th class="num">Pro Pack</th>
-                  <th class="num">Cards out</th>
-                  <th class="num">Shop</th>
-                  <th class="num">Quick sell</th>
-                </tr>
-              </thead>
-              <tbody id="cardOdds"></tbody>
-            </table>
-          </div>
-        </details>
       </div>
 
       <!-- ===== Trades ===== -->

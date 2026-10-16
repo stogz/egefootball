@@ -67,11 +67,16 @@ EGE.cardsView = (function () {
 
   function byId(id) { return document.getElementById(id); }
 
+  /* The banner over the Cards pages is for problems only. Anything that
+     went through (an offer sent or taken back, a sale, a buy) shows in the
+     page itself, so a non-error just clears whatever was there (Sam,
+     2026-10-16). */
   function say(text, isError) {
     var node = byId('cardsMessage');
-    node.textContent = text || '';
-    node.hidden = !text;
-    node.className = 'ege-note' + (isError ? ' ege-note--error' : ' ege-note--ok');
+    var shown = isError ? text || '' : '';
+    node.textContent = shown;
+    node.hidden = !shown;
+    node.className = 'ege-note ege-note--error';
   }
 
   function gem() {
@@ -435,7 +440,6 @@ EGE.cardsView = (function () {
         return;
       }
       walletChanged(res.credits, res.diamonds);
-      say(res.message, false);
       renderPacks();
     });
   }
@@ -772,6 +776,7 @@ EGE.cardsView = (function () {
     rip.picked = [];
 
     var stage = el('div', 'ege-rip__stage ege-rip__stage--pack');
+    stage.style.setProperty('--n', options.cards.length);
 
     var head = el('div', 'ege-rip__head');
     head.appendChild(el('h2', 'ege-rip__title', options.title || (options.pack && options.pack.name)));
@@ -927,21 +932,23 @@ EGE.cardsView = (function () {
       return facts.appendChild(el('dd', null, value));
     }
 
-    /* The stat line, and beside it a button to the game itself: the
-       player's page, on this card's season, at this game in the log. */
+    /* The stat line is itself the way to the game, like a school on a
+       player's page is the way to its team: the player's page, on this
+       card's season, at this game in the log. */
     function lineFact(label, value) {
       facts.appendChild(el('dt', null, label));
-      var dd = el('dd', 'ege-zoom__line');
-      dd.appendChild(el('span', null, value));
-      var go = el('button', 'fb-btn fb-btn--sm ege-zoom__go', '\u2192');
-      go.type = 'button';
-      go.title = 'Open ' + card.player.first + '\u2019s game log at this game';
-      go.setAttribute('aria-label', go.title);
-      go.addEventListener('click', function () {
+      var dd = el('dd');
+      var link = el('a', 'ege-zoom__line');
+      link.href = '#' + card.slug;
+      link.title = 'Open ' + card.player.first + '\u2019s game log at this game';
+      link.appendChild(el('span', 'ege-zoom__linetext', value));
+      link.appendChild(el('span', 'ege-zoom__go', '\u2192'));
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
         closeRip();
         EGE.goToGame(card.slug, card.season, card.week);
       });
-      dd.appendChild(go);
+      dd.appendChild(link);
       facts.appendChild(dd);
     }
     if (card.holo) {
@@ -1034,8 +1041,7 @@ EGE.cardsView = (function () {
         EGE.cardStore.listCard(card, n).then(function (res) {
           if (!res.ok) { parts.status.textContent = res.message; put.disabled = false; return; }
           closeRip();
-          say('Your ' + EGE.cards.rarity(card.rarity).name + ' ' + card.player.first + ' card (' + card.headline +
-              ') is up for ' + n + (n === 1 ? ' diamond.' : ' diamonds.'), false);
+          say('', false);
           if (EGE.showcase) { EGE.showcase.forget(); }
           refresh();
         });
@@ -1243,10 +1249,10 @@ EGE.cardsView = (function () {
     bar.innerHTML = '';
     var f = state.filter;
 
-    /* One line: the kinds (and the holos) as buttons the height of the
-       drop-downs beside them, then whose, who, the order, and the rarity. */
+    /* One line: the kinds as buttons the height of the drop-downs beside
+       them, then whose, who, the order, and the rarity (holos last in it). */
     var rest = el('div', 'ege-filterrow');
-    [['all', 'All'], ['performance', 'Performances'], ['play', 'Plays'], ['holo', 'Holo']].forEach(function (k) {
+    [['all', 'All'], ['performance', 'Performances'], ['play', 'Plays']].forEach(function (k) {
       var b = chip(k[1], f.kind === k[0], function () { pick('kind', k[0]); });
       b.classList.add('ege-filterchip');
       rest.appendChild(b);
@@ -1281,6 +1287,7 @@ EGE.cardsView = (function () {
     rarity.setAttribute('aria-label', 'Rarity');
     rarity.appendChild(new Option('All rarities', 'all'));
     EGE.cards.RARITIES.forEach(function (r) { rarity.appendChild(new Option(r.name, r.key)); });
+    rarity.appendChild(new Option('Holo', 'holo'));
     rarity.value = f.rarity;
     rarity.addEventListener('change', function () { pick('rarity', rarity.value); });
     rest.appendChild(rarity);
@@ -1373,8 +1380,8 @@ EGE.cardsView = (function () {
 
     var mine = Object.keys(v.owned).map(EGE.cards.byId).filter(Boolean);
     var shown = mine.filter(function (card) {
-      return (f.rarity === 'all' || card.rarity === f.rarity) &&
-        (f.kind === 'all' || (f.kind === 'holo' ? card.holo : card.kind === f.kind)) &&
+      return (f.rarity === 'all' || (f.rarity === 'holo' ? card.holo : card.rarity === f.rarity)) &&
+        (f.kind === 'all' || card.kind === f.kind) &&
         (f.player === 'all' || card.slug === f.player);
     }).sort(sorter(f.sort, v.first));
 
@@ -1401,7 +1408,7 @@ EGE.cardsView = (function () {
     empty.hidden = !v.loaded || shown.length > 0;
     if (v.mine) {
       empty.textContent = mine.length
-        ? (f.kind === 'holo' && !holos
+        ? (f.rarity === 'holo' && !holos
           ? 'No holos yet. Get three of one card, then open it and merge them.'
           : 'Nothing you own matches that. Try another filter.')
         : 'No cards yet. Rip a pack and they land here.';
@@ -1705,14 +1712,8 @@ EGE.cardsView = (function () {
 
     call.then(function (res) {
       if (!res.ok) { say(res.message, true); button.disabled = false; return; }
-      if (res.status === 'accepted') {
-        say('Trade done with ' + firstName(t.from_email) + '. The cards are in your collection.', false);
-      } else if (res.status === 'expired') {
+      if (res.status === 'expired') {
         say('That trade cannot go through any more: one of you no longer has a card it was for.', true);
-      } else if (res.status === 'declined') {
-        say('Declined.', false);
-      } else {
-        say('Offer taken back.', false);
       }
       if (EGE.showcase) { EGE.showcase.forget(); }
       refresh();
@@ -1889,7 +1890,6 @@ EGE.cardsView = (function () {
           return;
         }
         closeRip();
-        say('Offer sent to ' + firstName(build.to) + '.', false);
         refresh();
       });
     });
@@ -2059,7 +2059,6 @@ EGE.cardsView = (function () {
                   onClose: function () { reveal([res.card], [isNew]); } });
       } else {
         walletChanged(null, res.diamonds);
-        say(set.name + ' complete: ' + extras.join(', ') + '.', false);
         refresh();
       }
     });
@@ -2094,40 +2093,6 @@ EGE.cardsView = (function () {
     byId('libraryCount').textContent = claimed + ' of ' + sets.length + ' claimed' +
       (ready ? ' \u00b7 ' + ready + ' ready to claim' : '');
     tabBadge('tabSetsBadge', ready);
-  }
-
-  /* --- the odds, said out loud ------------------------------------------ */
-
-  function renderOdds() {
-    var body = byId('cardOdds');
-    body.innerHTML = '';
-    var out = EGE.cards.pullable(null);
-    var perf = EGE.cards.counts(out.filter(function (c) { return c.kind === 'performance'; }));
-    var play = EGE.cards.counts(out.filter(function (c) { return c.kind === 'play'; }));
-    var pro = EGE.cards.pack('pro');
-    var proOdds = EGE.cards.oddsWith(pro && pro.boost);
-
-    EGE.cards.RARITIES.forEach(function (r, i) {
-      var tr = el('tr');
-      var name = el('td');
-      var dot = el('span', 'ege-chipdot');
-      dot.style.background = r.color;
-      name.appendChild(dot);
-      name.appendChild(el('strong', null, r.name));
-      tr.appendChild(name);
-      tr.appendChild(el('td', 'num', r.odds + '%'));
-      tr.appendChild(el('td', 'num', Math.round(proOdds[i] * 100) / 100 + '%'));
-      tr.appendChild(el('td', 'num', String(perf[r.key] + play[r.key])));
-      var shopCell = el('td', 'num');
-      var cost = EGE.cards.shopPrice(r.key);
-      shopCell.appendChild(cost ? price(cost) : document.createTextNode('\u2014'));
-      tr.appendChild(shopCell);
-      var sells = el('td', 'num');
-      var pays = EGE.cards.QUICK_SELL[r.key];
-      sells.appendChild(pays ? price(pays) : document.createTextNode('Never'));
-      tr.appendChild(sells);
-      body.appendChild(tr);
-    });
   }
 
   /* --- the five pages ----------------------------------------------------
@@ -2655,7 +2620,7 @@ EGE.cardsView = (function () {
         state.photos[player.slug] = photo;
         if (EGE.showcase) { EGE.showcase.forget(); }
         closeRip();
-        say('Your ' + player.first + ' Player Card has your photo on it now.', false);
+        say('', false);
         renderPlayerCards();
       });
     });
@@ -2671,7 +2636,7 @@ EGE.cardsView = (function () {
       if (!res.ok) { say(res.message, true); button.disabled = false; return; }
       if (state.photos) { delete state.photos[player.slug]; }
       if (EGE.showcase) { EGE.showcase.forget(); }
-      say('Your ' + player.first + ' Player Card is back to his headshot.', false);
+      say('', false);
       renderPlayerCards();
     });
   }
@@ -2748,7 +2713,7 @@ EGE.cardsView = (function () {
      The slices are sized for the eye, not to the odds -- at their real
      size the two jackpots would be slivers too thin to read -- and the odds
      are not shown on the page (Sam, 2026-10-16). Once today's spin is spun
-     the wheel goes, leaving what it won, until the next one. */
+     the whole panel goes until the next one opens (Sam, 2026-10-16). */
   var WHEEL = [
     { prize: 'uncommon', deg: 60 },
     { prize: 'diamonds', deg: 44 },
@@ -2773,8 +2738,8 @@ EGE.cardsView = (function () {
   };
   var SPIN_MS = 5200;
 
-  /* `keep` is when the wheel may go after a spin, once it has shown where
-     it stopped. */
+  /* `keep` is when the panel may go after a spin, once the wheel has shown
+     where it stopped. */
   var wheel = { drawn: false, turn: 0, prize: null, keep: 0 };
 
   function polar(r, deg) {
@@ -2853,82 +2818,44 @@ EGE.cardsView = (function () {
     return { spin: over ? null : s.spin, nextAt: over ? null : s.next_at };
   }
 
-  function prizeText(spin) {
-    var prize = EGE.cards.spinPrize(spin.prize);
-    if (!prize) { return 'a prize'; }
-    if (spin.prize === 'diamonds') { return (spin.diamonds || EGE.cards.SPIN.diamonds) + ' diamonds'; }
-    return (/^[AEIOU]/.test(prize.name) ? 'an ' : 'a ') + prize.name;
-  }
-
-  function nextSpinText(iso) {
-    var ms = new Date(iso).getTime() - Date.now();
-    if (isNaN(ms)) { return ''; }
-    if (ms <= 0) { return 'Next spin any minute'; }
-    var mins = Math.ceil(ms / 60000);
-    var hours = Math.floor(mins / 60);
-    return 'Next spin in ' + (hours ? hours + 'h ' : '') + (mins % 60) + 'm';
-  }
-
-  /* What today's spin paid, small, each card tappable to see up close. */
-  function drawSpinWon(spin) {
-    var holder = byId('spinWon');
-    var sig = spin ? (spin.cards || []).join(',') : '';
-    if (holder.dataset.sig === sig && (holder.childElementCount || !sig)) { return; }
-    holder.dataset.sig = sig;
-    holder.innerHTML = '';
-    var cards = spin ? EGE.cards.packOrder((spin.cards || []).map(EGE.cards.byId).filter(Boolean)) : [];
-    cards.forEach(function (card) {
-      var node = cardEl(card, {});
-      pressable(node, describe(card), function () {
-        zoom(card, { owned: state.owned[card.id] || 0, sell: true });
-      });
-      holder.appendChild(node);
-    });
-  }
-
   function renderSpin() {
     drawWheel();
     if (state.spinning) { return; }
-    var box = byId('spinBox');
+    var panel = byId('spinPanel');
     var go = byId('spinGo');
     var result = byId('spinResult');
     var resets = byId('spinResets');
     var now = spinNow();
 
+    /* Out of sight until today's spin is known, so it never shows for a
+       moment to somebody who has spun already; if it cannot be read, the
+       panel says so. */
     if (!now) {
+      panel.hidden = !state.loaded;
       go.disabled = true;
       go.textContent = 'Spin';
       resets.textContent = '';
-      result.textContent = state.loaded
-        ? 'The daily spin could not be loaded. Run supabase/schema.sql to set it up, then reload.'
-        : 'Loading…';
-      box.classList.remove('is-spun');
-      drawSpinWon(null);
+      result.textContent = 'The daily spin could not be loaded. Run supabase/schema.sql to set it up, then reload.';
       tabBadge('tabShopBadge', 0);
       return;
     }
 
+    /* Spun: the wheel stays long enough to show where it stopped, then the
+       panel goes until the next spin opens. */
     if (now.spin) {
-      go.disabled = true;
-      go.textContent = 'Spun today';
-      resets.textContent = nextSpinText(now.nextAt);
-      result.textContent = 'Today’s spin won you ' + prizeText(now.spin) + '.';
-      turnTo(now.spin.prize, false);
-      drawSpinWon(now.spin);
       tabBadge('tabShopBadge', 0);
       var left = wheel.keep - Date.now();
-      box.classList.toggle('is-spun', left <= 0);
+      panel.hidden = left <= 0;
       if (left > 0) { window.setTimeout(renderSpin, left + 20); }
       return;
     }
 
     var enough = EGE.cards.pullable(null).length >= EGE.cards.pack('pro').size;
+    panel.hidden = false;
     go.disabled = !state.loaded || !enough;
     go.textContent = 'Spin';
     resets.textContent = enough ? 'Ready' : '';
     result.textContent = enough ? 'Your free spin is ready.' : 'The wheel opens once there are cards out.';
-    box.classList.remove('is-spun');
-    drawSpinWon(null);
     tabBadge('tabShopBadge', enough && state.loaded ? 1 : 0);
   }
 
@@ -2991,7 +2918,6 @@ EGE.cardsView = (function () {
     renderPacks();
 
     if (!res.cards.length) {
-      say('Daily spin: +' + res.won + ' diamonds.', false);
       renderDaily();
       renderMarket();
       return;
@@ -3169,7 +3095,6 @@ EGE.cardsView = (function () {
     say('', false);
     EGE.cardStore.cancelListing(row.id).then(function (res) {
       if (!res.ok) { say(res.message, true); button.disabled = false; return; }
-      say('Taken down. The card is back in your collection.', false);
       refresh();
     });
   }
@@ -3277,8 +3202,7 @@ EGE.cardsView = (function () {
       EGE.cardStore.listCard(card, amount()).then(function (res) {
         if (!res.ok) { summary.textContent = res.message; send.disabled = false; return; }
         closeRip();
-        say('Your ' + EGE.cards.rarity(card.rarity).name + ' ' + card.player.first + ' card (' + card.headline +
-            ') is up for ' + amount() + ' diamonds.', false);
+        say('', false);
         if (EGE.showcase) { EGE.showcase.forget(); }
         refresh();
       });
@@ -3302,7 +3226,6 @@ EGE.cardsView = (function () {
     renderMarket();
     renderTrades();
     renderLibrary();
-    renderOdds();
   }
 
   function build() {

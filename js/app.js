@@ -2950,7 +2950,7 @@
 
   /* --- shop ------------------------------------------------------------- */
 
-  var sayShop = reporter('shopMessage');
+  var sayShop = reporter('shopMessage', true);
   var shopState = { player: null, credits: 0, inventory: [], built: false };
 
   /* Scouts are in the schedule data all along; Intel is what lets a player
@@ -3118,7 +3118,7 @@
     }
     buy.addEventListener('click', function () {
       buy.disabled = true;
-      sayShop('Buying\u2026', false);
+      sayShop('', false);
       EGE.wallet.buy(shopState.player.email, item, picker ? picker.value || null : null,
                      shopState.player)
         .then(function (res) {
@@ -3217,7 +3217,7 @@
         : row.label + ' ' + row.value + ' \u2192 ' + (row.value + buying) + ' for ' + price + ' credits';
       buy.addEventListener('click', function () {
         buy.disabled = true;
-        sayShop('Buying\u2026', false);
+        sayShop('', false);
         EGE.wallet.buyUpgrade(shopState.player.email, shopState.player, row.key, points)
           .then(function (res) {
             sayShop(res.message, !res.ok);
@@ -5047,12 +5047,15 @@
   var confirmField = document.getElementById('confirmField');
   var modeSwitch   = document.getElementById('modeSwitch');
 
-  /* Writes into one of the modal's message slots. */
-  function reporter(id) {
+  /* Writes into one of the page's message slots. With `problemsOnly` only
+     errors show: a buy or a switch that went through needs no banner to
+     say so, and anything else just clears it (Sam, 2026-10-16). */
+  function reporter(id, problemsOnly) {
     var node = document.getElementById(id);
     return function (text, isError) {
-      node.textContent = text || '';
-      node.hidden = !text;
+      var shown = problemsOnly && !isError ? '' : text || '';
+      node.textContent = shown;
+      node.hidden = !shown;
       node.className = 'ege-note' + (isError ? ' ege-note--error' : ' ege-note--ok');
     };
   }
@@ -5357,9 +5360,8 @@
   /* Everything the live season owes the signed-in player and has not paid:
      touchdown credits, the games' diamonds, and what their Player Cards
      earn on those games. Each is keyed on what earned it, so running it
-     again pays nothing twice. Said on the shop page when it paid anything,
-     unless `quietly`: a page left open just shows the new balance. */
-  function payWhatIsOwed(player, quietly) {
+     again pays nothing twice. Nothing is said: the balances show it. */
+  function payWhatIsOwed(player) {
     return Promise.all([
       EGE.wallet.syncAwards(player, EGE.currentSeason),
       EGE.wallet.syncDiamonds(player, EGE.currentSeason),
@@ -5367,13 +5369,6 @@
     ]).then(function (all) {
       var credits = (all[0] && all[0].paid) || 0;
       var diamonds = ((all[1] && all[1].paid) || 0) + ((all[2] && all[2].paid) || 0);
-      var parts = [];
-      if (credits) { parts.push(credits + ' credits'); }
-      if (diamonds) { parts.push(diamonds + ' diamonds'); }
-      if (parts.length && !quietly) {
-        sayShop('The season paid you ' + parts.join(' and ') + ' since you were ' +
-                'last here.', false);
-      }
       return { credits: credits, diamonds: diamonds };
     });
   }
@@ -5584,7 +5579,7 @@
       /* A week out since is credits and diamonds owed: paid now, before the
          balances below are read. */
       var player = EGE.auth.currentPlayer();
-      return moved && player ? payWhatIsOwed(player, background) : null;
+      return moved && player ? payWhatIsOwed(player) : null;
     }).then(function () {
       if (redrawOwed && !(background && pageBusy())) {
         redrawOwed = false;

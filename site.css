@@ -5093,6 +5093,17 @@ html.ege-noscroll body { overflow: hidden; }
   align-items: center;
   gap: 20px;
 }
+/* The title and the close sit over what is shown, not out at the screen's
+   edges (Sam, 2026-10-16): a card up close is as wide as its facts panel,
+   and a pack as wide as its row of cards (--n of them, set on the stage),
+   never narrower than a card up close. */
+.ege-rip__stage--zoom { width: min(460px, 100%); }
+/* Its buttons may run wider than that rather than wrap one onto a line of
+   its own, as far as the screen allows. */
+.ege-rip__stage--zoom > .ege-rip__actions { width: max-content; max-width: calc(100vw - 32px); }
+.ege-rip__stage--pack {
+  width: min(max(460px, calc(var(--n, 5) * clamp(150px, 17vw, 190px) + (var(--n, 5) - 1) * 16px)), 100%);
+}
 .ege-rip__head {
   width: 100%;
   display: flex;
@@ -5548,17 +5559,20 @@ html.ege-noscroll body { overflow: hidden; }
   padding-top: 2px;
 }
 .ege-zoom__facts dd { margin: 0; font-weight: 600; }
-/* The stat line, with the button to its game beside it. */
-.ege-zoom__line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+/* The stat line is a link to its game, styled like the school on a player
+   page: underlined on hover, with an arrow that nudges along. */
+.ege-zoom__line { color: inherit; text-decoration: none; }
+.ege-zoom__linetext { text-underline-offset: 3px; }
+.ege-zoom__line:hover .ege-zoom__linetext,
+.ege-zoom__line:focus-visible .ege-zoom__linetext { text-decoration: underline; }
 .ege-zoom__go {
-  width: 26px;
-  height: 22px;
-  padding: 0;
-  display: inline-grid;
-  place-items: center;
-  font-size: .875rem;
-  line-height: 1;
+  display: inline-block;
+  margin-left: 8px;
+  font-weight: 800;
+  color: var(--fb-accent-deep);
+  transition: transform .12s ease;
 }
+.ege-zoom__line:hover .ege-zoom__go { transform: translateX(3px); }
 
 /* Quick sell, under a card of your own up close: a first tap arms it (red),
    a second sells. */
@@ -6346,8 +6360,10 @@ html.ege-noscroll body { overflow: hidden; }
 
    The wheel on the Shop page: an SVG drawn once by js/cards-view.js and
    turned with a transform, a pointer at the top, and the EGE hub in the
-   middle. The odds, the Spin button and what today's spin won sit beside
-   it, under it on a phone. */
+   middle. The Spin button sits beside it, under it on a phone. Once today's
+   spin is spun the whole panel is hidden until the next one, and the Packs
+   panel moves up to the top. */
+#spinPanel[hidden] + .ege-section-gap { margin-top: 0; }
 
 .ege-spin {
   display: grid;
@@ -6439,16 +6455,11 @@ html.ege-noscroll body { overflow: hidden; }
   66%      { box-shadow: 0 0 0 5px #f1ff86, 0 0 36px rgba(241, 255, 134, .9); }
 }
 
-/* Then it fades away, and once today's spin is spun the wheel and its
-   button are gone until the next one, leaving what it won. */
+/* Then it fades away, just before the panel goes. */
 .ege-spin__wheelwrap { transition: opacity .45s ease, scale .45s ease; }
 .ege-spin__wheelwrap.is-leaving { opacity: 0; scale: .9; }
-.ege-spin.is-spun { grid-template-columns: minmax(0, 1fr); }
-.ege-spin.is-spun :is(.ege-spin__wheelwrap, .ege-spin__go) { display: none; }
-.ege-spin.is-spun .ege-spin__won > .ege-tcard { width: 110px; }
 
 .ege-spin__side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-.ege-spin__side .ege-item__text { margin: 0; }
 .ege-spin__go { align-self: flex-start; min-width: 180px; font-size: 1.0625rem; letter-spacing: .1em; text-transform: uppercase; }
 .ege-spin__go:not(:disabled) { animation: ege-spin-ready 1.8s ease-in-out infinite; }
 @keyframes ege-spin-ready {
@@ -6457,17 +6468,11 @@ html.ege-noscroll body { overflow: hidden; }
 }
 .ege-spin__result { margin: 0; font-weight: 700; }
 .ege-spin__result:empty { display: none; }
-.ege-spin__won { display: flex; flex-wrap: wrap; gap: 10px; }
-.ege-spin__won:empty { display: none; }
-.ege-spin__won > .ege-tcard { width: 84px; cursor: pointer; transition: transform .16s ease; }
-.ege-spin__won > .ege-tcard:hover { transform: translateY(-3px); }
-.ege-spin__won > .ege-tcard:focus-visible { outline: 3px solid var(--fb-accent); outline-offset: 3px; }
 
 @media (max-width: 760px) {
   .ege-spin { grid-template-columns: minmax(0, 1fr); gap: 22px; }
   .ege-spin__wheelwrap { max-width: 300px; }
   .ege-spin__go { align-self: stretch; }
-  .ege-spin.is-spun .ege-spin__won > .ege-tcard { width: 84px; }
 }
 
 /* --- the shop's daily cards ------------------------------------------------- */
