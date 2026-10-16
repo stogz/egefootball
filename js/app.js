@@ -3951,7 +3951,7 @@
          more, and the few from before that change are not worth a column. */
       var all = sums.td + sums.offseason;
       var owed = games.reduce(function (sum, game) {
-        return sum + EGE.economy.gameCredits(player, game.stats, season);
+        return sum + EGE.economy.gameCredits(player, game.stats, season, game.playoff);
       }, 0);
       totals.all += all;
       totals.touchdowns += touchdowns;

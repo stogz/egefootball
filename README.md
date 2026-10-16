@@ -521,9 +521,10 @@ The postseason counts from one again:
 {one embed per player playing that week}
 ```
 
-A college season heads it `## Postseason Week One`, since its weeks are
-conference title games and bowls as much as playoff rounds, and each embed
-names its game beside the opponent: `W 36-34 vs. Florida · SEC Championship`.
+A college season is headed the same way, `## Playoffs Week One` and on,
+though its weeks are conference title games and bowls as much as playoff
+rounds: each embed names its game beside the opponent,
+`W 36-34 vs. Florida · SEC Championship`.
 
 Which weeks those are is read off the games — `EGE.playoffWeeks` in
 `data/games.js` is every week with a `playoff: true` game in it, and a week's
@@ -899,7 +900,8 @@ unused booster carries over.
 drawer on across a regular season you can see all of; the postseason is not
 planned, it is whatever the bracket hands you. A game with `playoff: true`
 grows no +, the drawer never opens on it, and `applyBooster` in `js/wallet.js`
-refuses the week even if it is called directly.
+refuses the week even if it is called directly. A playoff game pays more
+on its own instead: 1.25 times the credits and twice the diamonds.
 
 **Stickers are private.** Only the player who stuck one on — and Sam, as
 admin — can see what is riding on which game. That is in the policy on
@@ -1051,6 +1053,15 @@ have paid nothing.
 Credits are **always rounded up** — there is no half a credit — and a game
 played never pays less than 1.
 
+**A playoff game pays 1.25 times the credits** — any game with
+`playoff: true`, the conference title games and bowls included. The fantasy
+points times the share times 1.25 are rounded up once, so a line worth
+exactly 15 credits in the regular season pays 19 in the playoffs. That starts with **2022**
+(`EGE.economy.PLAYOFF_FROM`): the seasons before it were paid as they went,
+and the ledger would top every one of their playoff games up the next time a
+week was published. A playoff game also pays twice the diamonds (see
+*Diamonds*).
+
 **2018 stays on touchdowns.** It was paid as it went, 10 a touchdown for a
 back or tight end and 5 for a quarterback, and the ledger tops up any award
 that has grown, so re-scoring it would pay every player a second time for a
@@ -1125,6 +1136,12 @@ diamonds, a 2.0x twice, a 2.5x two and a half times, rounded up again. A
 multiplier is the booster's own `multiplier` in `data/shop.js`, and the
 booster is read through `EGE.boosterOn`, so a week still in Supabase and a
 week already written into the season file pay the same.
+
+**A playoff game pays twice the diamonds** (`PLAYOFF_DIAMONDS` in
+`data/economy.js`): the game's plain credits times two, not its playoff
+1.25x credits doubled again. No booster can go on a playoff game, so the two
+never stack, and that 15-credit line is 19 credits and 30 diamonds in the
+playoffs.
 
 Diamonds start with **2022** (`EGE.economy.DIAMONDS_FROM`). The seasons before
 it were paid in credits as they went, and four seasons of diamonds at once
@@ -1607,7 +1624,8 @@ account; Postgres pays a Player Card only to whoever is signed in), and on any
 open page within a minute of a week going out. Each game is paid once, at the rank
 held when it is first paid, and never topped up; games at Common go in at 0.
 The first time an account is paid, every game already out goes in at 0 (a
-`pc-start` row marks it), so Player Cards pay from the next game on. A game's
+`pc-start` row marks it), so Player Cards pay from the next game on. A playoff
+game's bonus is twice it, the same 2x as the game's own diamonds. A game's
 bonus is held to 400. The ladder is `PLAYER_RANKS` in `data/cards.js`.
 
 A Player Card follows Sam's sketch, in the binder card's frame in the
@@ -1863,9 +1881,13 @@ Andrew's and Isaac's files carry the same game from both sides. The results
 are the real margins moved by what the six bring to their teams and a
 game's worth of luck, and the postseason follows from them: Alabama beats
 Georgia for the SEC title, Texas wins the Big 12, USC loses the Pac-12 title
-game to Washington and UNC the ACC's to Clemson, and the College Football
-Playoff is Michigan v Ohio State in the Fiesta and Georgia v Alabama in the
-Peach (`EGE.brackets[2022]`). Every stat line was worked out from each
+game to Washington and UNC the ACC's to Clemson. The College Football
+Playoff is the real four with the seeds moved (`EGE.brackets[2022]`):
+Michigan v Ohio State in the Fiesta and Georgia v TCU in the Peach, Ohio
+State beats Michigan, Georgia beats TCU 65-7, and Georgia wins the title
+42-41 over Ohio State in week 19. Alabama, SEC champion but the first team
+out, beats Texas in the Sugar Bowl. Postseason weeks 15, 18 and 19 are
+Playoffs Week One, Two and Three. Every stat line was worked out from each
 player's season, with each game's share moved by the opponent's 2022
 defense and how the game went. The rosters, defense grades and the five
 conference races (the Big 12 and the ACC are new, and the Pac-12 and Big 12

@@ -63,20 +63,10 @@ EGE.stats[2022] = {
     ohioState: [
       { week: 18, results: [
         null,
-        ['Georgia', 21, 13],
+        ['Georgia', 65, 7],
       ] },
-      { week: 18, results: [
-        ['Michigan', 31, 23],
-      ] },
-    ],
-
-    alabama: [
-      { week: 18, results: [
-        ['Michigan', 35, 21],
+      { week: 19, results: [
         null,
-      ] },
-      { week: 18, results: [
-        ['Michigan', 31, 23],
       ] },
     ],
   },
@@ -238,17 +228,18 @@ EGE.stats[2022] = {
           receivingAvg: 9.4, totalYards: 85, totalTd: 0
         } },
       { week: 18, date: '2022-12-31', kickoff: null,
-        name: 'Peach Bowl — CFP Semifinal',
-        opponent: 'Georgia', home: false, conference: false, neutral: true, playoff: true,
-        result: { teamScore: 13, opponentScore: 21 }, booster: null,
+        name: 'Sugar Bowl',
+        opponent: 'Texas', home: false, conference: false, neutral: true, playoff: true,
+        result: { teamScore: 45, opponentScore: 20 }, booster: null,
         stats: {
-          receptions: 6, receivingYards: 96, receivingYac: 44,
-          receivingTd: 1, receivingLong: 32, targets: 6, carries: 0,
+          receptions: 8, receivingYards: 107, receivingYac: 41,
+          receivingTd: 2, receivingLong: 34, targets: 11, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 16, totalYards: 96, totalTd: 1
+          receivingAvg: 13.4, totalYards: 107, totalTd: 2
         },
         bigPlays: [
-          '13 yard receiving touchdown'
+          '22 yard receiving touchdown',
+          '9 yard receiving touchdown'
         ] },
     ],
 
@@ -769,21 +760,17 @@ EGE.stats[2022] = {
         ] },
       { week: 18, date: '2022-12-31', kickoff: null,
         name: 'Sugar Bowl',
-        opponent: 'Tennessee', home: false, conference: false, neutral: true, playoff: true,
-        result: { teamScore: 51, opponentScore: 21 }, booster: null,
+        opponent: 'Alabama', home: false, conference: false, neutral: true, playoff: true,
+        result: { teamScore: 20, opponentScore: 45 }, booster: null,
         stats: {
-          completions: 17, attempts: 30, passingYards: 356,
-          passingYac: 132, passingTd: 5, interceptions: 3, carries: 3,
-          rushingYards: 11, rushingTd: 1, rushingLong: 8, sacks: 1,
-          fumbles: 0, passingAvg: 20.9, rating: 98.7, rushingAvg: 3.7
+          completions: 19, attempts: 37, passingYards: 251,
+          passingYac: 103, passingTd: 2, interceptions: 2, carries: 4,
+          rushingYards: 11, rushingTd: 0, rushingLong: 6, sacks: 3,
+          fumbles: 0, passingAvg: 13.2, rating: 68.6, rushingAvg: 2.8
         },
         bigPlays: [
-          '54 yard passing touchdown',
-          '51 yard passing touchdown',
-          '40 yard passing touchdown',
-          '9 yard passing touchdown',
-          '3 yard passing touchdown',
-          '8 yard rushing touchdown'
+          '68 yard passing touchdown',
+          '41 yard passing touchdown'
         ] },
     ],
 
@@ -943,13 +930,30 @@ EGE.stats[2022] = {
       { week: 18, date: '2022-12-31', kickoff: null,
         name: 'Fiesta Bowl — CFP Semifinal',
         opponent: 'Michigan', home: false, conference: false, neutral: true, playoff: true,
-        result: { teamScore: 21, opponentScore: 35 }, booster: null,
+        result: { teamScore: 51, opponentScore: 45 }, booster: null,
         stats: {
-          carries: 21, rushingYards: 169, rushingTd: 0, rushingLong: 32,
-          receptions: 0, receivingYards: 0, receivingYac: 0,
-          receivingTd: 0, receivingLong: 0, targets: 1, fumbles: 0,
-          rushingAvg: 8, totalYards: 169, totalTd: 0
-        } },
+          carries: 26, rushingYards: 168, rushingTd: 2, rushingLong: 34,
+          receptions: 1, receivingYards: 6, receivingYac: 5,
+          receivingTd: 0, receivingLong: 6, targets: 1, fumbles: 0,
+          rushingAvg: 6.5, receivingAvg: 6, totalYards: 174, totalTd: 2
+        },
+        bigPlays: [
+          '34 yard rushing touchdown',
+          '3 yard rushing touchdown'
+        ] },
+      { week: 19, date: '2023-01-09', kickoff: null,
+        name: 'CFP National Championship',
+        opponent: 'Georgia', home: false, conference: false, neutral: true, playoff: true,
+        result: { teamScore: 41, opponentScore: 42 }, booster: null,
+        stats: {
+          carries: 21, rushingYards: 109, rushingTd: 1, rushingLong: 27,
+          receptions: 1, receivingYards: 8, receivingYac: 6,
+          receivingTd: 0, receivingLong: 8, targets: 2, fumbles: 0,
+          rushingAvg: 5.2, receivingAvg: 8, totalYards: 117, totalTd: 1
+        },
+        bigPlays: [
+          '2 yard rushing touchdown'
+        ] },
     ],
 
     /* Jaykeb Stewart — Ohio State */
@@ -1126,16 +1130,34 @@ EGE.stats[2022] = {
       { week: 18, date: '2022-12-31', kickoff: null,
         name: 'Fiesta Bowl — CFP Semifinal',
         opponent: 'Michigan', home: false, conference: false, neutral: true, playoff: true,
-        result: { teamScore: 21, opponentScore: 35 }, booster: null,
+        result: { teamScore: 51, opponentScore: 45 }, booster: null,
         stats: {
-          completions: 30, attempts: 48, passingYards: 321,
-          passingYac: 137, passingTd: 2, interceptions: 0, carries: 6,
-          rushingYards: 26, rushingTd: 0, rushingLong: 13, sacks: 4,
-          fumbles: 0, passingAvg: 10.7, rating: 95.9, rushingAvg: 4.3
+          completions: 27, attempts: 38, passingYards: 352,
+          passingYac: 151, passingTd: 3, interceptions: 1, carries: 6,
+          rushingYards: 31, rushingTd: 1, rushingLong: 12, sacks: 2,
+          fumbles: 0, passingAvg: 13, rating: 115.2, rushingAvg: 5.2
         },
         bigPlays: [
-          '38 yard passing touchdown',
-          '10 yard passing touchdown'
+          '47 yard passing touchdown',
+          '18 yard passing touchdown',
+          '6 yard passing touchdown',
+          '4 yard rushing touchdown'
+        ] },
+      { week: 19, date: '2023-01-09', kickoff: null,
+        name: 'CFP National Championship',
+        opponent: 'Georgia', home: false, conference: false, neutral: true, playoff: true,
+        result: { teamScore: 41, opponentScore: 42 }, booster: null,
+        stats: {
+          completions: 26, attempts: 39, passingYards: 341,
+          passingYac: 144, passingTd: 4, interceptions: 1, carries: 4,
+          rushingYards: 15, rushingTd: 0, rushingLong: 9, sacks: 2,
+          fumbles: 0, passingAvg: 13.1, rating: 117.6, rushingAvg: 3.8
+        },
+        bigPlays: [
+          '52 yard passing touchdown',
+          '24 yard passing touchdown',
+          '11 yard passing touchdown',
+          '5 yard passing touchdown'
         ] },
     ],
   }
