@@ -4613,6 +4613,119 @@ html.ege-noscroll body { overflow: hidden; }
   background: var(--fb-ink);
 }
 
+/* --- the Gold Rush ---------------------------------------------------------
+
+   A Gold Rush card is the card again with a gold GOLD RUSH sticker on it,
+   top right in the picture, just under the score, tilted a little the way
+   a sticker goes on (Sam, 2026-10-16). On a Gold Rush holo the HOLO seal
+   moves down under it. Held still everywhere, like the frames. */
+.ege-tcard__sticker {
+  position: absolute;
+  top: 3cqw;
+  right: 3cqw;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.1cqw 2.2cqw 1cqw;
+  border: .8cqw solid var(--fb-ink);
+  border-radius: 1.6cqw !important;
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, .7) 0%, rgba(255, 255, 255, 0) 38%),
+    linear-gradient(120deg, #a76a10 0%, #f4c653 28%, #fff0a8 46%, #d89b28 64%, #ffe392 82%, #b57712 100%);
+  color: #2a1a02;
+  font-size: 4.1cqw;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  box-shadow: .6cqw .6cqw 0 rgba(0, 0, 0, .45);
+  transform: rotate(4deg);
+}
+.ege-tcard--gold .ege-tcard__holo { top: 18cqw; }
+
+/* A card printed from Sam's art is the picture and nothing else; its
+   sticker goes in the same place, under the score printed on it. */
+.ege-tcard--art { overflow: hidden; }
+.ege-tcard__print {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+.ege-tcard--art .ege-tcard__sticker { top: 13.6%; right: 5.4%; }
+
+/* The GOLD RUSH card until its art is in: gold rays on black and the
+   event's name in gold. */
+.ege-tcard__face--reward {
+  background:
+    radial-gradient(circle at 50% 46%, rgba(255, 214, 106, .55), rgba(255, 214, 106, 0) 46%),
+    repeating-conic-gradient(from 0deg at 50% 46%,
+      rgba(255, 214, 106, .22) 0deg 3deg, rgba(255, 214, 106, 0) 3deg 9deg),
+    #17120a;
+}
+.ege-tcard__rush {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1cqw;
+  text-align: center;
+}
+.ege-tcard__rushword {
+  font-family: var(--fb-font-display);
+  font-size: 24cqw;
+  line-height: .92;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, #fff6c8 0%, #ffd34f 40%, #b07a12 58%, #ffe392 78%, #d89b28 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(.8cqw .8cqw 0 #000);
+}
+.ege-tcard__rushline {
+  margin-top: 3cqw;
+  font-size: 4.4cqw;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--fb-cream);
+}
+
+/* A Gold Rush card traded in the last 48 hours, none of whose copies can
+   go again yet: a padlock and the time left, off its bottom left corner. */
+.ege-tcard__lock {
+  position: absolute;
+  z-index: 5;
+  left: -7px;
+  bottom: -7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border: 2px solid var(--fb-ink);
+  background: var(--fb-ink);
+  color: var(--fb-gold);
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .06em;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+.ege-tcard__lock::before {
+  content: '';
+  width: .8em;
+  height: .95em;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 12'><path d='M2 5V3.5a3 3 0 0 1 6 0V5h1v7H1V5h1zm1.4 0h3.2V3.5a1.6 1.6 0 0 0-3.2 0V5z'/></svg>") center / contain no-repeat;
+  mask: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 12'><path d='M2 5V3.5a3 3 0 0 1 6 0V5h1v7H1V5h1zm1.4 0h3.2V3.5a1.6 1.6 0 0 0-3.2 0V5z'/></svg>") center / contain no-repeat;
+}
+.ege-tradegrid > .ege-tcard.is-locked { cursor: not-allowed; opacity: .55; }
+
 /* --- the back ------------------------------------------------------------ */
 
 .ege-tcard--back { background: var(--fb-accent); }
@@ -4679,6 +4792,23 @@ html.ege-noscroll body { overflow: hidden; }
   padding-top: 6px;
 }
 .ege-packtile__buy { flex: 0 1 auto; }
+/* An event's pack: a gold edge along the top, and the time it has left. */
+.ege-packtile--event {
+  background: linear-gradient(180deg, #fff6d6, #fff 46%);
+  box-shadow: inset 0 6px 0 var(--fb-gold);
+}
+.ege-packtile__ends {
+  margin: 0;
+  padding: 2px 10px;
+  border: 2px solid var(--fb-ink);
+  background: var(--fb-gold);
+  color: var(--fb-ink);
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
 /* The same block shadow and press as the Buy button between them. */
 .ege-packtile__arrow {
   flex: none;
@@ -4810,6 +4940,42 @@ html.ege-noscroll body { overflow: hidden; }
   --pack-deep: #3e0516;
   --pack-hi: #f3e6ea;
 }
+/* The Gold Rush Pack: gold foil, Cooper and Sam side by side on it, a
+   dark gold for the bars, and it glows gold the way the Pro Pack glows
+   purple. */
+.ege-pack.ege-pack--goldrush {
+  --foil: linear-gradient(135deg, #5a3a06 0%, #c58a17 18%, #ffe392 34%, #d89b28 50%,
+                          #fff0a8 66%, #b57712 82%, #5a3a06 100%);
+  --pack-deep: #251703;
+  --pack-hi: #ffd76a;
+  filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 10px rgba(240, 184, 42, .75));
+  animation: ege-gold-glow 3.2s ease-in-out var(--glow-phase, 0s) infinite;
+}
+@keyframes ege-gold-glow {
+  0%, 100% { filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 8px rgba(240, 184, 42, .6)); }
+  50%      { filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 18px rgba(255, 210, 90, .95)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ege-pack.ege-pack--goldrush { animation: none; }
+}
+/* Two players, each standing where his `--left` says. */
+.ege-pack__player.ege-pack__player--duo { left: var(--left, 50%); }
+/* Two words across the pack, a size down. */
+.ege-pack--goldrush.ege-pack--cover .ege-pack__name { font-size: 15cqw; }
+/* Gold nuggets on a dark band above the foot band. */
+.ege-pack--goldrush .ege-pack__foot::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + .9cqw);
+  height: 5cqw;
+  background:
+    radial-gradient(circle at 50% 50%, #fff0a8 0 18%, #f0b82a 22% 36%, #8a5a0c 40% 46%, transparent 50%) 0 0 / 5cqw 5cqw,
+    #251703;
+  border-top: .5cqw solid var(--pack-hi);
+}
+
 /* Ohio State, for Jaykeb's 2021 pack: red foil in the scarlet of his
    jersey in the photo, a dark scarlet for the bars, lined in the helmet's
    silver, and the helmet stripe across the foot. */
@@ -5799,6 +5965,82 @@ html.ege-noscroll body { overflow: hidden; }
   text-transform: uppercase;
   color: var(--fb-accent-deep);
 }
+
+/* --- the Limited Time Event ------------------------------------------------ */
+
+/* Over the Library while the Gold Rush is on: a gold-on-black banner with
+   its name, the time it has left and how it works, then its sets. */
+.ege-event {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background:
+    radial-gradient(circle at 88% 0%, rgba(255, 214, 106, .4), rgba(255, 214, 106, 0) 46%),
+    repeating-linear-gradient(115deg, rgba(255, 214, 106, .07) 0 10px, rgba(255, 214, 106, 0) 10px 22px),
+    #17120a;
+  box-shadow: 4px 4px 0 var(--fb-gold);
+  color: var(--fb-cream);
+}
+.ege-event__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 14px;
+}
+.ege-event__name {
+  font-family: var(--fb-font-display);
+  font-size: clamp(1.9rem, 6vw, 2.6rem);
+  line-height: 1;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, #fff6c8 0%, #ffd34f 42%, #b07a12 60%, #ffe392 82%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.ege-event__when {
+  padding: 3px 10px;
+  border: 2px solid var(--fb-gold);
+  color: var(--fb-gold);
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+.ege-event__text {
+  margin: 0;
+  max-width: 72ch;
+  font-size: .875rem;
+  line-height: 1.5;
+}
+
+/* Its sets are edged in gold; a set ready to lock in glows gold rather
+   than the Library's orange. */
+.ege-set--event { border-color: var(--fb-ink); box-shadow: inset 0 4px 0 var(--fb-gold); }
+.ege-set--event.is-complete {
+  border-color: #b57712;
+  background: #fff8dc;
+  box-shadow: inset 0 4px 0 var(--fb-gold), 4px 4px 0 var(--fb-gold);
+}
+/* The last set shows the card it pays beside the six it needs. */
+.ege-set__final {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.ege-set__final > .ege-tcard { flex: none; width: 92px; cursor: pointer; }
+.ege-set__final > .ege-tcard:focus-visible { outline: 3px solid var(--fb-accent); outline-offset: 3px; }
+.ege-set__finalwords {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.ege-set__finalwords .ege-set__needs { gap: 4px; }
 
 .ege-linkbtn {
   padding: 0;

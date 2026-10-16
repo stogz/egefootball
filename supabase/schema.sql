@@ -977,16 +977,43 @@ as $$
   select p_id ~ '^(p:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}|h:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}:[0-9]{1,2})$';
 $$;
 
+-- A Gold Rush card (the Gold Rush, at the end of this file): a card's id
+-- with ':gr' on the end, one of the two card-art cards ('a:...:gr'), or the
+-- GOLD RUSH card the event pays ('r:gold-rush:gr'). Only the Gold Rush Pack
+-- and the event's reward give these out; every standard way in keeps to
+-- is_card_id.
+create or replace function public.is_event_card_id(p_id text)
+returns boolean
+language sql
+immutable
+as $$
+  select coalesce(p_id ~ '^(p:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}|h:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}:[0-9]{1,2}|a:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}|r:gold-rush):gr$', false);
+$$;
+
 -- A holographic card: a card's id with ':holo' on the end. Only ever made
 -- by merging three copies (merge_holo_card, further down), never pulled, so
 -- the pack, the shop and the set rewards keep to is_card_id; trades,
--- showcases, quick sales and the market take either.
+-- showcases, quick sales and the market take either. A Gold Rush card has
+-- a holo too ('...:gr:holo'), but the card art and the GOLD RUSH card do not.
 create or replace function public.is_holo_id(p_id text)
 returns boolean
 language sql
 immutable
 as $$
-  select coalesce(p_id like '%:holo' and public.is_card_id(left(p_id, -5)), false);
+  select coalesce(p_id like '%:holo'
+                  and (public.is_card_id(left(p_id, -5))
+                       or (public.is_event_card_id(left(p_id, -5)) and left(p_id, 2) in ('p:', 'h:'))),
+                  false);
+$$;
+
+-- Anything a collection can hold: a card, a Gold Rush card, or a holo of
+-- either. What trades, showcases, quick sales and the market take.
+create or replace function public.is_any_card_id(p_id text)
+returns boolean
+language sql
+immutable
+as $$
+  select public.is_card_id(p_id) or public.is_event_card_id(p_id) or public.is_holo_id(p_id);
 $$;
 
 -- ---------------------------------------------------------------------------
@@ -1100,6 +1127,17 @@ begin
   v_price := case p_pack when 'base' then 10 when 'season' then 12 when 'pro' then 20 end;
   v_size  := case p_pack when 'base' then 3 when 'season' then 3 when 'pro' then 5 end;
 
+  -- The Gold Rush Pack: 15 diamonds, five Gold Rush cards, and only while
+  -- the Gold Rush is on. Never the GOLD RUSH card, which only finishing the
+  -- event pays.
+  if p_pack = 'gold-rush' then
+    if not public.card_event_live('gold-rush') then
+      raise exception 'The Gold Rush is not on, so its packs are not for sale.';
+    end if;
+    v_price := 15;
+    v_size := 5;
+  end if;
+
   -- A past season's pack, year-{season}: 14 diamonds, three cards, every
   -- one of them from that season.
   if p_pack ~ '^year-[0-9]{4}$' then
@@ -1120,7 +1158,11 @@ begin
     raise exception 'That pack holds % cards.', v_size;
   end if;
   foreach v_card in array p_cards loop
-    if not public.is_card_id(v_card) then
+    if p_pack = 'gold-rush' then
+      if not public.is_event_card_id(v_card) or v_card like 'r:%' then
+        raise exception 'Not a Gold Rush card: %', v_card;
+      end if;
+    elsif not public.is_card_id(v_card) then
       raise exception 'Not a card: %', v_card;
     end if;
   end loop;
@@ -1350,8 +1392,11 @@ begin
     raise exception 'Ask for six cards at most.';
   end if;
   foreach v_card in array p_give || v_take loop
-    if not (public.is_card_id(v_card) or public.is_holo_id(v_card)) then
+    if not public.is_any_card_id(v_card) then
       raise exception 'Not a card: %', v_card;
+    end if;
+    if v_card like 'r:%' then
+      raise exception 'The GOLD RUSH card stays with whoever earned it.';
     end if;
   end loop;
   if (select count(distinct c) from unnest(p_give) c) <> array_length(p_give, 1)
@@ -1363,6 +1408,13 @@ begin
   end if;
   if not public.owns_cards(p_to, v_take) then
     raise exception 'They do not have all of those cards.';
+  end if;
+  -- A Gold Rush card traded in the last 48 hours cannot go again yet.
+  if not public.cards_free(v_email, p_give) then
+    raise exception 'A Gold Rush card can be traded once every 48 hours, and one of yours was traded too recently.';
+  end if;
+  if not public.cards_free(p_to, v_take) then
+    raise exception 'A Gold Rush card can be traded once every 48 hours, and one of theirs was traded too recently.';
   end if;
   if (select count(*) from public.card_trades
        where lower(from_email) = lower(v_email) and status = 'open') >= 10 then
@@ -1413,18 +1465,23 @@ begin
     where email in (t.from_email, t.to_email) and card_id = any(t.give || t.take)
     for update;
 
-  if not public.owns_cards(t.from_email, t.give) or not public.owns_cards(t.to_email, t.take) then
+  if not public.owns_cards(t.from_email, t.give) or not public.owns_cards(t.to_email, t.take)
+     or not public.cards_free(t.from_email, t.give) or not public.cards_free(t.to_email, t.take) then
     update public.card_trades set status = 'expired', resolved_at = now() where id = t.id;
     return 'expired';
   end if;
 
+  -- A Gold Rush card that changes hands cools down for 48 hours with its
+  -- new owner (lock_traded_card does nothing to any other card).
   foreach v_card in array t.give loop
     perform public.take_card(t.from_email, v_card);
     perform public.give_card(t.to_email, v_card);
+    perform public.lock_traded_card(t.to_email, v_card);
   end loop;
   foreach v_card in array t.take loop
     perform public.take_card(t.to_email, v_card);
     perform public.give_card(t.from_email, v_card);
+    perform public.lock_traded_card(t.from_email, v_card);
   end loop;
 
   perform public.prune_showcase(t.from_email);
@@ -1496,7 +1553,7 @@ begin
                         and split_part(card_id, ':', 3) = substr(v_card, 4)) then
         raise exception 'You need a card of that player to show his Player Card.';
       end if;
-    elsif not (public.is_card_id(v_card) or public.is_holo_id(v_card)) then
+    elsif not public.is_any_card_id(v_card) then
       raise exception 'Not a card: %', v_card;
     end if;
   end loop;
@@ -1565,6 +1622,14 @@ begin
     delete from public.card_photos where p_email is null or lower(email) = lower(p_email);
   end if;
 
+  -- And the Gold Rush sets they locked in and the cooldowns on their cards.
+  if to_regclass('public.card_event_claims') is not null then
+    delete from public.card_event_claims where p_email is null or lower(email) = lower(p_email);
+  end if;
+  if to_regclass('public.card_trade_locks') is not null then
+    delete from public.card_trade_locks where p_email is null or lower(email) = lower(p_email);
+  end if;
+
   return v_count;
 end;
 $$;
@@ -1584,6 +1649,11 @@ begin
 
   delete from public.card_set_claims where p_email is null or lower(email) = lower(p_email);
   get diagnostics v_count = row_count;
+
+  -- The Gold Rush's sets too: locked in again from the cards still held.
+  if to_regclass('public.card_event_claims') is not null then
+    delete from public.card_event_claims where p_email is null or lower(email) = lower(p_email);
+  end if;
   return v_count;
 end;
 $$;
@@ -1659,10 +1729,10 @@ begin
   if v_email is null then
     raise exception 'sign in first';
   end if;
-  if p_card is null or not (public.is_card_id(p_card) or public.is_holo_id(p_card)) then
+  if p_card is null or not public.is_any_card_id(p_card) then
     raise exception 'Not a card: %', p_card;
   end if;
-  if p_rarity = 'iconic' then
+  if p_rarity = 'iconic' or p_card like 'r:%' then
     raise exception 'An Iconic card cannot be quick sold.';
   end if;
 
@@ -1692,6 +1762,7 @@ begin
   end if;
 
   perform public.take_card(v_email, p_card);
+  perform public.trim_card_locks(v_email, p_card);
   perform public.prune_showcase(v_email);
 
   insert into public.player_diamonds as pd (email, diamonds, updated_at)
@@ -2059,8 +2130,11 @@ begin
   if v_email is null then
     raise exception 'sign in first';
   end if;
-  if p_card is null or not (public.is_card_id(p_card) or public.is_holo_id(p_card)) then
+  if p_card is null or not public.is_any_card_id(p_card) then
     raise exception 'Not a card: %', p_card;
+  end if;
+  if p_card like 'r:%' then
+    raise exception 'The GOLD RUSH card stays with whoever earned it.';
   end if;
   if p_rarity is null or p_rarity not in ('common', 'uncommon', 'rare', 'epic', 'legendary', 'mystic', 'iconic') then
     raise exception 'Not a rarity: %', p_rarity;
@@ -2088,6 +2162,10 @@ begin
      for update;
   if coalesce(v_have, 0) < 1 then
     raise exception 'That card is not in your collection.';
+  end if;
+  -- A sale is a trade: a Gold Rush card traded in the last 48 hours waits.
+  if public.card_copies_free(v_email, p_card) < 1 then
+    raise exception 'A Gold Rush card can be traded once every 48 hours, and that one was traded too recently.';
   end if;
 
   perform public.take_card(v_email, p_card);
@@ -2173,6 +2251,7 @@ begin
     set diamonds = pd.diamonds + l.price, updated_at = now();
 
   perform public.give_card(v_email, l.card_id);
+  perform public.lock_traded_card(v_email, l.card_id);
   update public.card_listings
      set status = 'sold', buyer_email = v_email, resolved_at = now()
    where id = l.id;
@@ -2476,17 +2555,23 @@ security definer
 set search_path = public
 as $$
 declare
-  v_email text := auth.jwt() ->> 'email';
-  v_holo  text;
-  v_have  integer;
+  v_email  text := auth.jwt() ->> 'email';
+  v_holo   text;
+  v_have   integer;
+  v_locked integer;
+  v_until  timestamptz;
 begin
   if v_email is null then
     raise exception 'sign in first';
   end if;
-  if p_card is null or not public.is_card_id(p_card) then
+  if p_card is null or not public.is_any_card_id(p_card) or public.is_holo_id(p_card) then
     raise exception 'Only a card can be merged into a holo: %', p_card;
   end if;
   v_holo := p_card || ':holo';
+  -- The card art and the GOLD RUSH card have no holo.
+  if not public.is_holo_id(v_holo) then
+    raise exception 'That card has no holo.';
+  end if;
 
   -- Under lock, so the same three copies cannot be merged twice from two
   -- tabs, or sold or traded away while they are being merged.
@@ -2504,6 +2589,19 @@ begin
   delete from public.player_cards
    where email = v_email and card_id = p_card and quantity <= 0;
   perform public.give_card(v_email, v_holo);
+
+  -- Gold Rush copies still cooling down from a trade that went into it
+  -- take their cooldown into the holo, so merging cannot skip one.
+  if p_card like '%:gr' then
+    select count(*), max(locked_until) into v_locked, v_until
+      from public.card_trade_locks
+     where lower(email) = lower(v_email) and card_id = p_card and locked_until > now();
+    if v_locked > v_have - 3 then
+      insert into public.card_trade_locks (email, card_id, locked_until)
+      values (lower(v_email), v_holo, v_until);
+      perform public.trim_card_locks(v_email, p_card);
+    end if;
+  end if;
 
   -- The last copies merged: if the card was up on the showcase, its holo
   -- goes up in its place.
@@ -2718,5 +2816,328 @@ grant execute on function public.card_spin_day() to authenticated;
 grant execute on function public.card_spin_ends(date) to authenticated;
 grant execute on function public.card_spin_today() to authenticated;
 grant execute on function public.spin_card_wheel(jsonb) to authenticated;
+
+notify pgrst, 'reload schema';
+
+-- ===========================================================================
+-- The Gold Rush (Sam, 2026-10-16): a limited-time event, seven days from
+-- when an admin starts it on the admin page.
+--
+-- While it is on the shop sells a Gold Rush Pack (open_card_pack, 15
+-- diamonds for five cards) of Sam's and Cooper's cards and every rushing
+-- touchdown, each one a Gold Rush card: the card's id with ':gr' on the
+-- end, a card of its own that never stacks with the standard copies. The
+-- pack can also hold one of Sam's two card-art cards ('a:...:gr').
+--
+-- The event has six sets (data/cards.js, eventSets), filled only with Gold
+-- Rush cards. Each is locked in once, with every card it was made with in
+-- the collection (claim_event_set); all six locked in before the event ends
+-- pays the Iconic GOLD RUSH card ('r:gold-rush:gr', claim_event_reward),
+-- which no pack holds and which cannot be traded, listed or sold.
+--
+-- Gold Rush cards trade, but a copy that changes hands -- a trade or a
+-- market sale -- cannot be traded or listed again for 48 hours
+-- (card_trade_locks), so one set of cards cannot be passed round to finish
+-- everybody's sets. The cooldown is per copy: the others of that card a
+-- player already had trade as before.
+-- ===========================================================================
+
+create table if not exists public.card_events (
+  key        text primary key,
+  name       text        not null,
+  days       integer     not null,
+  sets       text[]      not null,
+  reward     text        not null,
+  starts_at  timestamptz,
+  ends_at    timestamptz,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.card_events enable row level security;
+
+drop policy if exists "card events are readable" on public.card_events;
+create policy "card events are readable"
+  on public.card_events for select to anon, authenticated
+  using (true);
+
+-- The Gold Rush itself: its sets (the same keys as eventSets in
+-- data/cards.js) and its reward. Re-running this leaves when it runs alone.
+insert into public.card_events (key, name, days, sets, reward)
+values ('gold-rush', 'Gold Rush', 7,
+        array['cooper-clark', 'sam-stogsdill', 'marathon', 'red-zone-rushes', 'triple', 'card-art'],
+        'r:gold-rush:gr')
+on conflict (key) do update
+  set name = excluded.name, days = excluded.days, sets = excluded.sets, reward = excluded.reward;
+
+-- Whether an event is on right now.
+create or replace function public.card_event_live(p_key text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce((select starts_at is not null and now() >= starts_at and now() < ends_at
+                     from public.card_events where key = p_key), false);
+$$;
+
+grant execute on function public.card_event_live(text) to anon, authenticated;
+
+-- The sets each player has locked in, and the reward (set_key = the
+-- event's own key) once it is claimed.
+create table if not exists public.card_event_claims (
+  email      text        not null,
+  event_key  text        not null,
+  set_key    text        not null,
+  cards      text[]      not null default '{}',
+  claimed_at timestamptz not null default now(),
+  primary key (email, event_key, set_key)
+);
+
+alter table public.card_event_claims enable row level security;
+
+drop policy if exists "card event claims readable by owner or admin" on public.card_event_claims;
+create policy "card event claims readable by owner or admin"
+  on public.card_event_claims for select to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin());
+
+-- One row per Gold Rush copy that changed hands, until it can go again.
+-- Readable by any signed-in player, since the trade builder shows which of
+-- the other player's cards are cooling down.
+create table if not exists public.card_trade_locks (
+  id           bigint generated always as identity primary key,
+  email        text        not null,
+  card_id      text        not null,
+  locked_until timestamptz not null,
+  created_at   timestamptz not null default now()
+);
+
+create index if not exists card_trade_locks_card_idx
+  on public.card_trade_locks (email, card_id, locked_until);
+
+alter table public.card_trade_locks enable row level security;
+
+drop policy if exists "card trade locks readable by players" on public.card_trade_locks;
+create policy "card trade locks readable by players"
+  on public.card_trade_locks for select to authenticated
+  using (true);
+
+-- How many copies of a card a collection can trade right now: all it has,
+-- less the Gold Rush copies still cooling down.
+create or replace function public.card_copies_free(p_email text, p_card text)
+returns integer
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select greatest(0,
+    coalesce((select quantity from public.player_cards where email = p_email and card_id = p_card), 0)
+    - (select count(*)::integer from public.card_trade_locks
+        where lower(email) = lower(p_email) and card_id = p_card and locked_until > now()));
+$$;
+
+-- Whether every card in the list can be traded now (each is in a trade once).
+create or replace function public.cards_free(p_email text, p_cards text[])
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select not exists (select 1 from unnest(coalesce(p_cards, '{}')) as c
+                      where public.card_copies_free(p_email, c) < 1);
+$$;
+
+-- A copy that has just changed hands: 48 hours before it can go again, if
+-- it is a Gold Rush card. Old cooldowns are cleared out on the way.
+create or replace function public.lock_traded_card(p_email text, p_card text)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  delete from public.card_trade_locks where locked_until < now() - interval '1 day';
+  insert into public.card_trade_locks (email, card_id, locked_until)
+  select lower(p_email), p_card, now() + interval '48 hours'
+   where p_card ~ ':gr(:holo)?$';
+$$;
+
+-- No more cooldowns on a card than copies of it left (a sale, a merge):
+-- the ones that run out soonest go first.
+create or replace function public.trim_card_locks(p_email text, p_card text)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  delete from public.card_trade_locks
+   where id in (
+     select id from public.card_trade_locks
+      where lower(email) = lower(p_email) and card_id = p_card and locked_until > now()
+      order by locked_until asc
+      limit greatest(0,
+        (select count(*)::integer from public.card_trade_locks
+          where lower(email) = lower(p_email) and card_id = p_card and locked_until > now())
+        - coalesce((select quantity from public.player_cards where email = p_email and card_id = p_card), 0)));
+$$;
+
+revoke all on function public.card_copies_free(text, text) from public, anon;
+revoke all on function public.cards_free(text, text[]) from public, anon;
+revoke all on function public.lock_traded_card(text, text) from public, anon, authenticated;
+revoke all on function public.trim_card_locks(text, text) from public, anon, authenticated;
+grant execute on function public.card_copies_free(text, text) to authenticated;
+grant execute on function public.cards_free(text, text[]) to authenticated;
+
+-- An admin starts an event: it runs its days from now. Refused while it is
+-- already on. Returns the row.
+create or replace function public.start_card_event(p_key text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  e public.card_events;
+begin
+  if not public.is_admin() then
+    raise exception 'Only an admin can do that.';
+  end if;
+  if public.card_event_live(p_key) then
+    raise exception 'That event is already on.';
+  end if;
+  update public.card_events
+     set starts_at = now(), ends_at = now() + make_interval(days => days), updated_at = now()
+   where key = p_key
+  returning * into e;
+  if e.key is null then
+    raise exception 'There is no such event.';
+  end if;
+  return to_jsonb(e);
+end;
+$$;
+
+-- An admin ends an event early, now.
+create or replace function public.end_card_event(p_key text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  e public.card_events;
+begin
+  if not public.is_admin() then
+    raise exception 'Only an admin can do that.';
+  end if;
+  if not public.card_event_live(p_key) then
+    raise exception 'That event is not on.';
+  end if;
+  update public.card_events set ends_at = now(), updated_at = now()
+   where key = p_key
+  returning * into e;
+  return to_jsonb(e);
+end;
+$$;
+
+-- Locks in one of an event's sets: the page says which Gold Rush cards it
+-- was made with, and they all have to be in the collection. Only while the
+-- event is on, and once. Returns how many of the event's sets this player
+-- has locked in.
+create or replace function public.claim_event_set(p_event text, p_set text, p_cards text[])
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  e       public.card_events;
+  v_card  text;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  select * into e from public.card_events where key = p_event;
+  if e.key is null then
+    raise exception 'There is no such event.';
+  end if;
+  if not public.card_event_live(p_event) then
+    raise exception 'The % is not on.', e.name;
+  end if;
+  if p_set is null or not (p_set = any(e.sets)) then
+    raise exception 'Not a % set: %', e.name, p_set;
+  end if;
+  if coalesce(array_length(p_cards, 1), 0) = 0 then
+    raise exception 'A set is made of cards.';
+  end if;
+  foreach v_card in array p_cards loop
+    if v_card !~ ':gr(:holo)?$' or v_card like 'r:%' or not public.is_any_card_id(v_card) then
+      raise exception 'Only % cards count for its sets: %', e.name, v_card;
+    end if;
+  end loop;
+  if not public.owns_cards(v_email, p_cards) then
+    raise exception 'Some of those cards are not in your collection.';
+  end if;
+
+  insert into public.card_event_claims (email, event_key, set_key, cards)
+  values (v_email, p_event, p_set, p_cards)
+  on conflict (email, event_key, set_key) do nothing;
+  if not found then
+    raise exception 'That set is already locked in.';
+  end if;
+
+  return (select count(*) from public.card_event_claims
+           where email = v_email and event_key = p_event and set_key = any(e.sets));
+end;
+$$;
+
+-- Every set locked in before the event ends: the event's reward card,
+-- once. Returns its id.
+create or replace function public.claim_event_reward(p_event text)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  e       public.card_events;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  select * into e from public.card_events where key = p_event;
+  if e.key is null then
+    raise exception 'There is no such event.';
+  end if;
+  if not public.card_event_live(p_event) then
+    raise exception 'The % is over.', e.name;
+  end if;
+  if (select count(*) from public.card_event_claims
+       where email = v_email and event_key = p_event and set_key = any(e.sets)) < cardinality(e.sets) then
+    raise exception 'Lock in every % set first.', e.name;
+  end if;
+
+  insert into public.card_event_claims (email, event_key, set_key)
+  values (v_email, p_event, p_event)
+  on conflict (email, event_key, set_key) do nothing;
+  if not found then
+    raise exception 'You already have the % card.', e.name;
+  end if;
+
+  perform public.give_card(v_email, e.reward);
+  return e.reward;
+end;
+$$;
+
+revoke all on function public.start_card_event(text) from public, anon;
+revoke all on function public.end_card_event(text) from public, anon;
+revoke all on function public.claim_event_set(text, text, text[]) from public, anon;
+revoke all on function public.claim_event_reward(text) from public, anon;
+grant execute on function public.start_card_event(text) to authenticated;
+grant execute on function public.end_card_event(text) to authenticated;
+grant execute on function public.claim_event_set(text, text, text[]) to authenticated;
+grant execute on function public.claim_event_reward(text) to authenticated;
 
 notify pgrst, 'reload schema';
