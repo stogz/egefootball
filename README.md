@@ -1347,7 +1347,19 @@ made of.
 from *My collection* to any other player's, with the same filters and sorts.
 Their cards up close say how many they have and how many you have. It is the
 same reading a trade already does: any signed-in player can see anybody's
-cards.
+cards. A card of theirs up close also has **Trade for it**, which goes to the
+Trades page with the trade builder open to them and that card already asked
+for; you pick what you give and send it as usual. A card on somebody else's
+showcase or in their recent pulls has the same button, signed in. If they
+no longer have it, the builder says so and asks for nothing.
+
+**Who else has it.** Signed in, any card up close (from the collection, a
+pack's recent pulls, a trade, the shop, the market or a showcase) lists who
+else holds it, with each account's face, first name and count, biggest pile
+first, plus any copies up on the Market. Anybody already counted above it
+(you, or the player whose collection or showcase it is) is left out. It reads
+`player_cards` for that card id, which any signed-in player can already read
+(`ownersOf()` in `js/cards.js`), so it needed no schema change.
 
 ### Quick sell
 
@@ -1366,6 +1378,18 @@ away).
 | Mystic | 30 diamonds |
 | Iconic | cannot be sold |
 
+**Quick sell several at once.** A price-tag button beside the bin at the end
+of the collection's filters (beside the Sort button on a phone) turns the
+binder into a picker: a tap picks a card to sell or puts it back, and a card
+held more than once gets − and + for how many copies go. A bar over the page
+buttons keeps the count and what it all pays, **Extras** picks every copy
+past the first of the cards showing (as filtered), and **Quick sell** sells
+them on a second tap, one copy at a time through `quick_sell_card()`, so a
+refusal stops there and leaves the rest picked. Iconic cards grey out and
+cannot be picked. **Cancel** (or **Done**) leaves it; so does going to
+another page or another player's collection. Nothing in the background
+redraws the binder while it is on.
+
 The prices are `QUICK_SELL` in `data/cards.js` and are paid by
 `quick_sell_card()` in `supabase/schema.sql`. **Change both together.** The
 page says what rarity the card is, since the grading is done from the season
@@ -1378,8 +1402,8 @@ and writes every sale to `card_sales`. A card only ever sells for diamonds.
 Under the packs: the last packs **anybody** opened, newest first, each with
 who opened it. Four at a time, and **Show more** goes back three times, so
 sixteen at most. Tap a card to see it up close; on your own pulls you can
-sell it from there, and a card of yours that has since been sold or traded
-away is shown faded. `card_packs` stays readable by its owner and an admin
+sell it from there, on somebody else's there is **Trade for it**, and a card
+of yours that has since been sold or traded away is shown faded. `card_packs` stays readable by its owner and an admin
 only, so these come through `recent_card_opens()`, which hands over who,
 which pack, the cards and when, never the price.
 
@@ -1427,7 +1451,12 @@ and creates it again.
 
 The Trades panel on the Cards tab. **Propose a trade** opens a builder: pick
 who with, tap up to six of your cards to give and up to six of theirs you
-want, and send it. Asking for nothing makes it a gift. Every signed-in player
+want, and send it. Asking for nothing makes it a gift. Each side has a
+**Sort** button over its cards, and under it a search box (any of a player,
+school, opponent, play, season or rarity, every word matching) with the
+kinds, the player, the season, the rarity (holos last) and the order: rarest
+first, highest score, newest pulls, by year or by game. The button counts
+what is changed, and the bin puts it all back. Every signed-in player
 can see every collection, so you can look through somebody's cards to choose
 from them; signed out, nobody can.
 
@@ -1466,6 +1495,12 @@ lists your Player Cards first, then your cards, and either goes in the slot
 the same way, with the same Replace and Remove. A Player Card is kept as
 `pc:{slug}` among the showcase's ids, can go up once you hold a card of that
 player, and comes down on its own once you hold none.
+
+**Anything on a showcase opens up close.** A card opens the way it does in
+the collection, with who else has it. A Player Card opens as big as a card up
+close, with whose it is, its rank and what that pays, the points and cards
+behind it, how far it is to the next rank, what it has earned and about what
+it pays a game (`zoomPlayer()` in `js/cards-view.js`).
 
 ### Admin controls
 

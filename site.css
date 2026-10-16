@@ -5901,7 +5901,36 @@ html.ege-noscroll body { overflow: hidden; }
 }
 .ege-tradecol + .ege-tradecol { border-left: var(--fb-border) solid var(--fb-ink); }
 .ege-tradecol__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.ege-tradecol .ege-filterselect { align-self: flex-start; }
+
+/* Each side's Sort button, and under it the search box and the sorts (Sam,
+   2026-10-16): shut, only the button shows, with a count of what is
+   changed; open, the menu sits between it and the cards. */
+.ege-finder { display: flex; flex-direction: column; gap: 10px; }
+.ege-finder .ege-finder__toggle {
+  display: flex;
+  width: auto;
+  min-height: 42px;
+  align-self: flex-start;
+  padding: 0 16px;
+}
+.ege-finder.is-open .ege-finder__toggle { background: var(--fb-ink); color: var(--fb-cream); }
+.ege-finder__menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  background: var(--fb-cream);
+  border: var(--fb-border) solid var(--fb-ink);
+  box-shadow: 4px 4px 0 var(--fb-ink);
+}
+.ege-finder__menu[hidden] { display: none; }
+.ege-finder__search { flex: 1 1 100%; min-width: 0; }
+.ege-finder__kinds { display: flex; gap: 8px; flex: 1 1 100%; }
+.ege-finder__kinds .ege-filterchip { flex: 1 1 0; min-width: 0; padding: 10px 4px; }
+.ege-finder__menu .ege-filterselect { flex: 1 1 calc(50% - 4px); }
+.ege-finder__foot { display: flex; gap: 8px; flex: 1 1 100%; }
+.ege-finder__foot .ege-filterclear { min-height: 42px; }
+.ege-finder__done { flex: 1 1 auto; }
 .ege-tradegrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
@@ -6330,6 +6359,135 @@ html.ege-noscroll body { overflow: hidden; }
 }
 .ege-filterclear:disabled { opacity: .4; cursor: default; }
 
+/* Quick sell, a price tag beside the bin and the same size: into picking
+   cards to sell together and out again, dark while it is on. A phone has
+   its own beside the Sort button, with its name on it. */
+.ege-filtersell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 47px;
+  min-height: 47px;
+  padding: 0 12px;
+  align-self: stretch;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.ege-filtersell__word { display: none; }
+.ege-filtersell.is-on { background: var(--fb-ink); color: var(--fb-cream); border-color: var(--fb-ink); }
+.ege-filtersell:disabled { opacity: .4; cursor: default; }
+.ege-filtersell--phone { display: none; }
+
+/* Picking: a tap picks rather than opens. A picked card is ringed in red
+   with SELL on its corner; one held more than once has − and + over its
+   foot for how many of it go. An Iconic cannot be picked and greys out. */
+.ege-collection.is-selling .ege-binder > .ege-tcard.is-nosell { opacity: .38; filter: grayscale(.7); cursor: not-allowed; }
+.ege-collection.is-selling .ege-binder > .ege-tcard:hover { transform: none; }
+.ege-binder > .ege-tcard.is-picked { outline: 4px solid #d5392b; outline-offset: 3px; }
+.ege-salepick { position: absolute; inset: 0; z-index: 7; pointer-events: none; }
+.ege-salepick__tag {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  padding: 2px 8px;
+  background: #d5392b;
+  color: #fff;
+  border: 2px solid var(--fb-ink);
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.ege-salepick__step {
+  position: absolute;
+  left: 50%;
+  bottom: 7%;
+  translate: -50% 0;
+  display: flex;
+  align-items: stretch;
+  background: var(--fb-ink);
+  border: 2px solid var(--fb-ink);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, .35);
+  pointer-events: auto;
+  white-space: nowrap;
+}
+.ege-salepick__btn {
+  width: 32px;
+  min-height: 32px;
+  border: 0;
+  background: var(--fb-cream);
+  color: var(--fb-ink);
+  font-size: 1.125rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+.ege-salepick__btn:hover { background: var(--fb-accent); }
+.ege-salepick__btn:disabled { opacity: .35; cursor: default; background: var(--fb-cream); }
+.ege-salepick__n {
+  display: grid;
+  place-items: center;
+  padding: 0 9px;
+  color: var(--fb-cream);
+  font-size: .75rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The bar over the page buttons while picking: what is picked and what it
+   pays, Extras, Cancel and Quick sell (red once armed, like a single one). */
+.ege-sellbar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(92px + env(safe-area-inset-bottom));
+  z-index: 24;
+  translate: -50% 0;
+  width: min(660px, calc(100% - 24px));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  padding: 10px 12px 10px 16px;
+  background: var(--fb-cream);
+  border: var(--fb-border) solid var(--fb-ink);
+  box-shadow: 5px 5px 0 var(--fb-ink);
+}
+.ege-sellbar[hidden] { display: none; }
+.ege-sellbar__text { margin: 0; flex: 1 1 200px; font-size: .9375rem; font-weight: 600; }
+.ege-sellbar__text .ege-price { font-weight: 800; }
+.ege-sellbar__actions { display: flex; gap: 8px; flex: none; }
+.ege-sellbar__go.is-armed,
+.ege-sellbar__go.is-armed:hover { background: #d5392b; border-color: #d5392b; color: #fff; }
+/* Room under the binder, so the bar never sits on its last row. */
+.ege-collection.is-selling .fb-panel__body { padding-bottom: 120px; }
+
+/* Who else has a card, up close: a face, a first name and a count each. */
+.ege-zoom__owners { display: flex; flex-wrap: wrap; gap: 6px; }
+.ege-owner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px 2px 2px;
+  background: #fff;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  font-size: .8125rem;
+  white-space: nowrap;
+}
+.ege-owner__face {
+  width: 22px;
+  height: 22px;
+  object-fit: cover;
+  border-radius: 999px !important;
+  border: 1px solid var(--fb-ink);
+  background: var(--fb-sand);
+}
+.ege-owner__n { font-variant-numeric: tabular-nums; color: var(--fb-accent-deep); }
+.ege-owner--market { padding-left: 8px; }
+.ege-owner--market .ege-gem { color: var(--fb-diamond-deep, #2a8fb0); }
+
 /* The phone's Sort button and the Done inside its menu; a desktop has the
    whole row out and needs neither. */
 .ege-filtertoggle,
@@ -6589,6 +6747,18 @@ html.ege-noscroll body { overflow: hidden; }
   }
   .ege-filterdone { display: block; flex: 1 1 auto; min-height: 47px; }
 
+  /* Quick sell beside the Sort button, not in its menu. */
+  .ege-cardfilters { flex-wrap: nowrap; }
+  .ege-cardfilters > .ege-filtertoggle { flex: 1 1 auto; width: auto; }
+  .ege-filtersell--phone { display: inline-flex; flex: none; padding: 0 14px; }
+  .ege-filtersell--phone .ege-filtersell__word { display: inline; }
+  .ege-filterrow .ege-filtersell { display: none; }
+  .ege-sellbar { padding: 10px; }
+  .ege-sellbar__text { flex-basis: 100%; font-size: .875rem; }
+  .ege-sellbar__actions { flex: 1 1 100%; }
+  .ege-sellbar__actions .fb-btn { flex: 1 1 auto; padding-left: 8px; padding-right: 8px; }
+  .ege-sellbar__go { flex-grow: 2; }
+
   .ege-rip__stage { gap: 16px; }
   .ege-rip__cards { gap: 10px; }
   .ege-rip__cards > .ege-flip { width: calc((100% - 20px) / 3); }
@@ -6609,6 +6779,10 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-tradecol { padding: 14px; }
   .ege-tradecol + .ege-tradecol { border-left: 0; border-top: var(--fb-border) solid var(--fb-ink); }
   .ege-tradegrid { grid-template-columns: repeat(3, minmax(0, 1fr)); max-height: 340px; gap: 10px; }
+  /* The trade builder's Sort menu is narrower than the collection's. */
+  .ege-finder__menu { padding: 10px; }
+  .ege-finder__kinds .ege-filterchip { font-size: .6875rem; letter-spacing: .02em; min-height: 44px; }
+  .ege-finder__menu .ege-filterselect { padding-left: 10px; font-size: .8125rem; letter-spacing: .02em; }
 
   .ege-showcase__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
   .ege-showcase__slotactions { flex-direction: column; gap: 4px; }

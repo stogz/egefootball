@@ -68,6 +68,17 @@ EGE.cardStore = (function () {
       .catch(function () { return null; });
   }
 
+  /* Who has a card and how many: [{ email, quantity }]. Any signed-in
+     player can read every collection (a trade is picking out of somebody
+     else's), so this is everybody's. Null when it could not be read. */
+  function ownersOf(cardId) {
+    var c = client();
+    if (!c || !cardId) { return Promise.resolve(null); }
+    return c.from(CARDS).select('email, quantity').eq('card_id', cardId).gt('quantity', 0)
+      .then(function (res) { return res.error ? null : (res.data || []); })
+      .catch(function () { return null; });
+  }
+
   /* Which sets this player has claimed, keyed by set. */
   function claimsFor(email) {
     var c = client();
@@ -483,6 +494,7 @@ EGE.cardStore = (function () {
 
   return {
     collectionFor: collectionFor,
+    ownersOf: ownersOf,
     claimsFor: claimsFor,
     openPack: openPack,
     claimSet: claimSet,
