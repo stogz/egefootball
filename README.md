@@ -1372,7 +1372,6 @@ page says what rarity the card is, since the grading is done from the season
 files, the same trust a pack's contents run on; the database keeps the
 prices, refuses Iconic, takes the copy under lock so it cannot be sold twice,
 and writes every sale to `card_sales`. A card only ever sells for diamonds.
-The Rarity & Odds table lists the prices too.
 
 ### Recent pulls
 
@@ -1538,8 +1537,9 @@ of a tap (`poll()` and `busy()` in `js/cards-view.js`).
   box inside the page), drawn a few rows at a time, with the filters pinned
   under the nav on a desktop.
 - **Players** — the six Player Cards (below).
-- **Shop** — packs and Buy Diamonds, Today's Cards, the Market, Recent Pulls
-  and the odds.
+- **Shop** — the Daily Spin (gone once it is spun, until the next one),
+  packs and Buy Diamonds, Today's Cards, the Market and Recent Pulls. The
+  odds are not shown on the page.
 - **Trades** — offers to you, your offers, recent ones. The page button
   counts the new offers to you, in red, until the page has been opened.
 - **Achievements** — the library of sets. The page button counts sets ready
@@ -1641,7 +1641,13 @@ in the old row of their own (`card_showcases.player_cards`) move into the
 slots, first, as many as fit, when the schema is re-run.
 
 The collection's filter row ends in a bin that resets every filter and the
-sort, and goes back to your own collection.
+sort, and goes back to your own collection. Holos are picked from the rarity
+drop-down, after Iconic.
+
+Only problems show in the banner over the Cards pages and the Shop: an offer
+sent or taken back, a sale, a buy or a listing that went through shows in
+the page itself, with no green banner to say so. The admin page keeps its
+banners, which carry the next step to take.
 
 ### Today's Cards and the Market
 
