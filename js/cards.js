@@ -13,7 +13,9 @@
    sides at once or not at all, a sale takes the card and pays the diamonds
    together, a merge takes three copies and hands over the holo together, a
    spin is once a day, a showcase only takes cards its player owns, and only
-   an admin can reset anything.
+   an admin can reset anything. The Gold Rush's sets are locked in and its
+   reward claimed the same way, and a Gold Rush card that changes hands
+   waits 48 hours before the database lets it go again.
 
    Depends on: js/auth.js, data/cards.js.
    ========================================================================== */
@@ -417,6 +419,7 @@ EGE.cardStore = (function () {
      the holo and how many copies of the card are left. */
   function mergeHolo(card) {
     if (!card || card.holo) { return fail('Only a card can be merged into a holo.'); }
+    if (card.art || card.reward) { return fail('That card has no holo.'); }
     return call('merge_holo_card', { p_card: card.id }, function (left) {
       return { ok: true, holo: EGE.cards.byId(EGE.cards.holoIdOf(card.id)), left: Number(left) || 0 };
     });
@@ -459,6 +462,90 @@ EGE.cardStore = (function () {
   function buyListing(id) {
     return call('buy_card_listing', { p_listing: id },
       function (n) { return { ok: true, diamonds: Number(n) }; });
+  }
+
+  /* --- limited-time events (the Gold Rush) ----------------------------------- */
+
+  /* An event's card_events row: { key, name, days, sets, reward, starts_at,
+     ends_at }, starts_at null until an admin starts it. Readable signed out
+     too. Null when it could not be read (before the schema has it). */
+  function eventFor(key) {
+    var c = client();
+    if (!c || !key) { return Promise.resolve(null); }
+    return c.from('card_events').select('*').eq('key', key).maybeSingle()
+      .then(function (res) { return res.error ? null : (res.data || null); })
+      .catch(function () { return null; });
+  }
+
+  /* Which of an event's sets this player has locked in, keyed by set, and
+     the event's own key once its reward is claimed. */
+  function eventClaims(email, key) {
+    var c = client();
+    if (!c || !email || !key) { return Promise.resolve({}); }
+    return c.from('card_event_claims').select('set_key, cards, claimed_at, reward')
+      .eq('email', email).eq('event_key', key)
+      .then(function (res) {
+        var out = {};
+        if (res.error) { return out; }
+        (res.data || []).forEach(function (row) { out[row.set_key] = row; });
+        return out;
+      })
+      .catch(function () { return {}; });
+  }
+
+  /* Locks in one of an event's sets with the cards it was made with;
+     claim_event_set checks they are all Gold Rush cards in the collection,
+     and pays the reward: the card rolled here, and the set's diamonds and
+     booster, which it holds itself. */
+  function claimEventSet(set, filled) {
+    if (!filled.complete) { return fail('That set is not complete yet.'); }
+    var reward = set.reward ? EGE.cards.rollReward(set) : null;
+    return call('claim_event_set', {
+      p_event: set.event,
+      p_set: set.key,
+      p_cards: filled.slots.map(function (one) { return one.card.id; }),
+      p_reward_card: reward ? reward.id : null
+    }, function (out) {
+      out = out || {};
+      return { ok: true, claimed: Number(out.claimed) || 0, card: reward,
+               diamonds: out.diamonds == null ? null : Number(out.diamonds) };
+    });
+  }
+
+  /* Every set locked in: the event's reward card. */
+  function claimEventReward(key) {
+    return call('claim_event_reward', { p_event: key }, function (id) {
+      return { ok: true, card: EGE.cards.byId(id) };
+    });
+  }
+
+  /* The Gold Rush copies of this player's still cooling down after a trade
+     or a market sale: { card id: [when each can go again] }, soonest
+     first. Null when they could not be read. */
+  function tradeLocks(email) {
+    var c = client();
+    if (!c || !email) { return Promise.resolve(null); }
+    return c.from('card_trade_locks').select('card_id, locked_until')
+      .eq('email', email.toLowerCase()).gt('locked_until', new Date().toISOString())
+      .order('locked_until', { ascending: true })
+      .then(function (res) {
+        if (res.error) { return null; }
+        var out = {};
+        (res.data || []).forEach(function (row) {
+          (out[row.card_id] = out[row.card_id] || []).push(row.locked_until);
+        });
+        return out;
+      })
+      .catch(function () { return null; });
+  }
+
+  /* The admin's start (its days from now) and early end. */
+  function startEvent(key) {
+    return call('start_card_event', { p_key: key }, function (row) { return { ok: true, event: row }; });
+  }
+
+  function endEvent(key) {
+    return call('end_card_event', { p_key: key }, function (row) { return { ok: true, event: row }; });
   }
 
   /* --- the admin's resets -------------------------------------------------- */
@@ -525,6 +612,13 @@ EGE.cardStore = (function () {
     listCard: listCard,
     cancelListing: cancelListing,
     buyListing: buyListing,
+    eventFor: eventFor,
+    eventClaims: eventClaims,
+    claimEventSet: claimEventSet,
+    claimEventReward: claimEventReward,
+    tradeLocks: tradeLocks,
+    startEvent: startEvent,
+    endEvent: endEvent,
     everything: everything,
     clearLibrary: clearLibrary,
     resetGoals: resetGoals

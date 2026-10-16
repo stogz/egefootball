@@ -491,6 +491,16 @@
 
       <!-- ===== Achievements: sets to put together ===== -->
       <div class="ege-cardpage" id="cardPageAchievements" data-page="achievements" hidden>
+        <!-- the Gold Rush while it is on: its sets, locked in one by one -->
+        <div class="fb-panel ege-eventpanel" id="eventPanel" hidden>
+          <div class="fb-panel__head">
+            <h3>Limited Time Event</h3>
+          </div>
+          <div class="fb-panel__body fb-stack fb-stack--lg">
+            <div class="ege-library" id="eventSets"></div>
+          </div>
+        </div>
+
         <div class="fb-panel" id="libraryPanel">
           <div class="fb-panel__head">
             <h3>Library</h3>
@@ -758,6 +768,21 @@
               </label>
               <button class="fb-btn fb-btn--primary" id="cardsDemoRip" type="button">Rip a demo</button>
               <span class="fb-meta" id="cardsDemoNote" role="status"></span>
+            </div>
+          </div>
+
+          <!-- the limited-time event: started here, runs its days from then -->
+          <div class="ege-demo">
+            <h4 class="ege-item__name">Gold Rush</h4>
+            <p class="fb-meta">
+              Starts the Gold Rush for everybody: seven days from the moment
+              it is started, with the Gold Rush Pack in the shop and the
+              Limited Time Event box on Achievements. End now closes it early.
+            </p>
+            <div class="fb-row fb-row--wrap ege-weekbar">
+              <span class="fb-meta" id="cardsEventState" role="status"></span>
+              <button class="fb-btn fb-btn--primary" id="cardsEventStart" type="button" disabled>Start 7 days</button>
+              <button class="fb-btn" id="cardsEventEnd" type="button" disabled>End now</button>
             </div>
           </div>
 

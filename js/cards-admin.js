@@ -6,7 +6,8 @@
    emptied, its open trades cancelled and its goals reset) and Reset goals
    (every Library set claimable again, cards kept). Either for one player or for everybody,
    and only once RESET is typed. Each account's row also counts its Player
-   Card photos, with a Remove that takes them all down.
+   Card photos, with a Remove that takes them all down. And the Gold Rush:
+   Start runs it seven days from that moment, End now closes it early.
 
    The resets are database functions that refuse anybody who is not in the
    admins table (supabase/schema.sql), whatever this page lets through.
@@ -94,6 +95,47 @@ EGE.cardsAdmin = (function () {
     });
   }
 
+  /* --- the Gold Rush --------------------------------------------------- */
+
+  var GOLD = EGE.cards.GOLD_RUSH;
+
+  function when(iso) {
+    return new Date(iso).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric',
+                                                     hour: 'numeric', minute: '2-digit' });
+  }
+
+  function drawEvent() {
+    var state = byId('cardsEventState');
+    var start = byId('cardsEventStart');
+    var end = byId('cardsEventEnd');
+    return EGE.cardStore.eventFor(GOLD.key).then(function (e) {
+      if (!e) {
+        state.textContent = 'The event table could not be read. Run supabase/schema.sql.';
+        start.disabled = true;
+        end.disabled = true;
+        return;
+      }
+      var on = EGE.cards.eventLive(e);
+      state.textContent = on ? 'On until ' + when(e.ends_at) + '.'
+        : e.starts_at && new Date(e.starts_at).getTime() > Date.now() ? 'Starts ' + when(e.starts_at) + '.'
+        : e.ends_at ? 'Not on. Last ran ' + when(e.starts_at) + ' to ' + when(e.ends_at) + '.'
+        : 'Not started yet.';
+      start.disabled = on;
+      end.disabled = !on;
+    });
+  }
+
+  function eventAction(button, action, ask, said) {
+    if (!window.confirm(ask)) { return; }
+    button.disabled = true;
+    action(GOLD.key).then(function (res) {
+      drawEvent().then(function () {
+        if (!res.ok) { byId('cardsEventState').textContent = res.message; }
+        else { note(said); }
+      });
+    });
+  }
+
   function armed() {
     return byId('cardsAdminConfirm').value.trim().toUpperCase() === 'RESET';
   }
@@ -139,6 +181,17 @@ EGE.cardsAdmin = (function () {
       byId('cardsDemoNote').textContent = res.message || '';
     });
 
+    byId('cardsEventStart').addEventListener('click', function () {
+      eventAction(this, EGE.cardStore.startEvent,
+        'Start the ' + GOLD.name + ' for everybody now? It runs ' + GOLD.days + ' days from this moment.',
+        'The ' + GOLD.name + ' is on.');
+    });
+    byId('cardsEventEnd').addEventListener('click', function () {
+      eventAction(this, EGE.cardStore.endEvent,
+        'End the ' + GOLD.name + ' now? Its pack leaves the shop and its sets close.',
+        'The ' + GOLD.name + ' is over.');
+    });
+
     byId('cardsAdminGoals').addEventListener('click', function () {
       if (!armed()) { return; }
       run(this, EGE.cardStore.resetGoals, function (count, whom) {
@@ -159,6 +212,7 @@ EGE.cardsAdmin = (function () {
   function render() {
     wire();
     sync();
+    drawEvent();
     return refresh();
   }
 

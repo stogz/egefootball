@@ -151,6 +151,23 @@ EGE.cards = (function () {
     });
   });
 
+  /* The Gold Rush Pack, sold only while the Gold Rush is on (see the Gold
+     Rush, further down). Its own odds rather than the table above:
+     Legendary and Mystic come up more often, so the long touchdown runs and
+     the two card-art cards can be found in a week, and Iconic is the same.
+     open_card_pack charges for it, and only while the event is on. */
+  PACKS.push({
+    key: 'gold-rush',
+    name: 'Gold Rush Pack',
+    diamonds: 15,
+    size: 4,
+    floor: 'rare',
+    event: 'gold-rush',
+    odds: { common: 41.4, uncommon: 26, rare: 15, epic: 9, legendary: 7, mystic: 1.5, iconic: 0.1 },
+    blurb: 'Four Gold Rush cards of Sam, Cooper and every rushing touchdown, the last one ' +
+           'Rare or better. Only Gold Rush cards complete the event’s sets.'
+  });
+
   function pack(key) {
     return PACKS.filter(function (p) { return p.key === key; })[0] || null;
   }
@@ -179,8 +196,15 @@ EGE.cards = (function () {
             logo: 'icon/packs/2022-unc-logo.webp', theme: 'unc', zoom: 1.2, drop: 1.5 }
   };
 
+  /* The Gold Rush Pack's cover: gold foil and its name, nobody on it
+     (Sam, 2026-10-16). */
+  var EVENT_COVERS = {
+    'gold-rush': { theme: 'goldrush' }
+  };
+
   /* The cover for a pack, or null. */
   function packCover(p) {
+    if (p && p.event) { return EVENT_COVERS[p.event] || null; }
     var year = p && (p.season || (p.seasonOnly ? EGE.currentSeason : null));
     return (year && PACK_COVERS[year]) || null;
   }
@@ -219,6 +243,75 @@ EGE.cards = (function () {
   function isHoloId(id) { return /:holo$/.test(String(id || '')); }
   function baseIdOf(id) { return isHoloId(id) ? String(id).slice(0, -HOLO_SUFFIX.length) : id; }
   function holoIdOf(id) { return baseIdOf(id) + HOLO_SUFFIX; }
+
+  /* --- the Gold Rush -----------------------------------------------------------
+
+     A limited-time event (Sam, 2026-10-16). It runs seven days from when an
+     admin starts it on the admin page; card_events in supabase/schema.sql
+     keeps when, so the clock starts the moment it is launched rather than
+     when the site is deployed.
+
+     While it is on the shop sells a Gold Rush Pack: Sam's and Cooper's
+     cards and every rushing touchdown (Isaac's and Jaykeb's too). Each card
+     in one comes out as a Gold Rush card -- the card again, with a gold
+     GOLD RUSH sticker under its score -- and is a card of its own: it never
+     stacks with the copies the standard packs give, and the two never count
+     for each other's sets. Its id is the card's with ':gr' on the end,
+     'p:2019:sam-stogsdill:18:gr', and its holo ':gr:holo'.
+
+     The pack can also hold one of the two card-art cards (Sam's own art of
+     Sam's week 18 and Cooper's week 11 in 2019, both printed Mystic), which
+     only ever come out of it ('a:...:gr'). Finishing every set before it
+     ends pays the Iconic GOLD RUSH card ('r:gold-rush:gr'), which no pack
+     holds: Sam's art of Sam and Cooper's 2019 seasons (`rewardImage`).
+
+     Gold Rush cards trade, but a copy that has just been traded cannot be
+     traded again for 48 hours, so one set of cards cannot be passed round
+     to finish everybody's sets. card_trade_locks in supabase/schema.sql
+     holds that, and a market sale counts as a trade. */
+  var GOLD_RUSH = {
+    key: 'gold-rush',
+    name: 'Gold Rush',
+    days: 7,
+    lockHours: 48,
+    pack: 'gold-rush',
+    reward: 'r:gold-rush:gr',
+    rewardImage: 'icon/cards/gold-rush-iconic.webp',
+    /* Paid with the GOLD RUSH card, on top of it. */
+    bonus: { diamonds: 40, booster: 'boost-2-5' }
+  };
+
+  var EVENT_TAG = ':gr';
+
+  /* Sam's card art: the card, printed as he drew it, in place of the one
+     the page draws. */
+  var CARD_ART = [
+    { id: 'a:2019:sam-stogsdill:18:gr', of: 'p:2019:sam-stogsdill:18', rarity: 'mystic',
+      image: 'icon/cards/sam-stogsdill-2019-wk18.webp' },
+    { id: 'a:2019:cooper-clark:11:gr', of: 'p:2019:cooper-clark:11', rarity: 'mystic',
+      image: 'icon/cards/cooper-clark-2019-wk11.webp' }
+  ];
+
+  /* A Gold Rush card, holo or not. */
+  function isEventId(id) { return /:gr(:holo)?$/.test(String(id || '')); }
+  function eventIdOf(id) { return baseIdOf(id) + EVENT_TAG; }
+
+  /* Whether a card can go in a Gold Rush Pack: Sam or Cooper, or any
+     rushing touchdown. */
+  function isRushTd(card) {
+    return card.kind === 'play' && card.play && card.play.kind === 'rush' && card.play.touchdown;
+  }
+  function inGoldRush(card) {
+    return card.slug === 'sam-stogsdill' || card.slug === 'cooper-clark' || isRushTd(card);
+  }
+
+  /* Whether the event is on, from its card_events row ({ starts_at,
+     ends_at }). `at` is a time in ms, now if left out. */
+  function eventLive(row, at) {
+    if (!row || !row.starts_at || !row.ends_at) { return false; }
+    var now = typeof at === 'number' ? at : Date.now();
+    return now >= new Date(row.starts_at).getTime() && now < new Date(row.ends_at).getTime();
+  }
 
   /* --- scoring a play ---------------------------------------------------- */
 
@@ -414,35 +507,73 @@ EGE.cards = (function () {
 
   function ensure() { if (!catalogue) { build(); } }
 
+  /* The Iconic GOLD RUSH card, paid for finishing every Gold Rush set. It
+     is not a game, so most of what a card says is left blank; the page
+     prints Sam's art for it, the two backs' 2019 seasons. */
+  function rewardCard() {
+    return {
+      id: GOLD_RUSH.reward, kind: 'reward', reward: true, gold: true, eventKey: GOLD_RUSH.key,
+      rarity: 'iconic', art: GOLD_RUSH.rewardImage, points: 0,
+      season: 2019, week: 0, slug: null,
+      player: { name: 'Gold Rush', first: 'Gold Rush', headshot: '' },
+      position: '', team: null, opponent: '', versus: 'Gold Rush', event: 'Gold Rush',
+      headline: 'Every Gold Rush set', line: 'Finished every Gold Rush set before it ended.',
+      playoff: false, game: null
+    };
+  }
+
   /* A holo is its card over again, marked holo, with the three cards'
-     points on it. Made the first time it is asked for. */
-  var holos = {};
+     points on it; a Gold Rush card is its card again, marked gold, and a
+     card-art card that card with Sam's art and its own rarity. Each is made
+     the first time it is asked for. Card art and the reward have no holo. */
+  var made = {};
 
   function byId(id) {
     ensure();
     if (catalogue[id]) { return catalogue[id]; }
-    if (!isHoloId(id)) { return null; }
-    if (!holos[id]) {
-      var card = catalogue[baseIdOf(id)];
-      if (!card) { return null; }
-      holos[id] = Object.assign({}, card, {
-        id: id, baseId: card.id, holo: true, points: round2(card.points * HOLO_OF)
-      });
+    if (made[id] !== undefined) { return made[id]; }
+    var card = null;
+    if (isHoloId(id)) {
+      var one = byId(baseIdOf(id));
+      if (one && !one.art && !one.reward) {
+        card = Object.assign({}, one, {
+          id: id, baseId: one.id, holo: true, points: round2(one.points * HOLO_OF)
+        });
+      }
+    } else if (id === GOLD_RUSH.reward) {
+      card = rewardCard();
+    } else if (/:gr$/.test(String(id))) {
+      var art = CARD_ART.filter(function (a) { return a.id === id; })[0] || null;
+      var plain = catalogue[art ? art.of : String(id).slice(0, -EVENT_TAG.length)];
+      if (plain) {
+        card = Object.assign({}, plain, { id: id, plainId: plain.id, gold: true, eventKey: GOLD_RUSH.key });
+        if (art) { card.art = art.image; card.rarity = art.rarity; }
+      }
     }
-    return holos[id];
+    made[id] = card;
+    return card;
   }
 
   function all() { ensure(); return list; }
 
-  /* What a pack can hand out right now: published weeks only. */
+  /* What a pack can hand out right now: published weeks only. A Gold Rush
+     Pack hands out the Gold Rush card of each, and the card art once its
+     week is out. */
   function pullable(packKey) {
     var p = pack(packKey);
-    return all().filter(function (card) {
+    var cards = all().filter(function (card) {
       if (!EGE.isPublished(card.season, card.week)) { return false; }
       if (p && p.seasonOnly && card.season !== EGE.currentSeason) { return false; }
       if (p && p.season && card.season !== p.season) { return false; }
+      if (p && p.event && !inGoldRush(card)) { return false; }
       return true;
     });
+    if (!p || !p.event) { return cards; }
+    return cards.map(function (card) { return byId(eventIdOf(card.id)); }).concat(
+      CARD_ART.filter(function (a) {
+        var of = catalogue[a.of];
+        return of && EGE.isPublished(of.season, of.week);
+      }).map(function (a) { return byId(a.id); }));
   }
 
   /* Best first: rarity, then score, then newest. */
@@ -471,12 +602,22 @@ EGE.cards = (function () {
     return odds;
   }
 
+  /* A pack's odds, rarity by rarity: its own table when it has one (the
+     Gold Rush Pack), else the standard odds with its `boost`. */
+  function packOdds(p) {
+    if (p && p.odds) {
+      return RARITIES.map(function (r) { return p.odds[r.key] || 0; });
+    }
+    return oddsWith(p && p.boost);
+  }
+
   /* A rarity, on the odds, at or above `floor` and no higher than
-     `ceiling`, with a pack's `boost` if it has one. */
-  function rollRarity(rng, floor, ceiling, boost) {
+     `ceiling`. `odds` is a pack's (packOdds), or a `boost` on the standard
+     ones, or nothing for the standard ones. */
+  function rollRarity(rng, floor, ceiling, odds) {
     var from = rankOf(floor || 'common');
     var to = ceiling ? Math.max(rankOf(ceiling), from) : RARITIES.length - 1;
-    var odds = oddsWith(boost);
+    odds = Array.isArray(odds) ? odds : oddsWith(odds);
     var total = 0;
     for (var r = from; r <= to; r += 1) { total += odds[r]; }
     var at = rng() * total;
@@ -492,9 +633,9 @@ EGE.cards = (function () {
      nearest one below it that has something, and only climbs if there is
      nothing below either. Never below `floor` while anything above it
      exists, and never above `ceiling` while anything at or under it does. */
-  function drawOne(pool, rng, floor, ceiling, boost) {
+  function drawOne(pool, rng, floor, ceiling, odds) {
     if (!pool.length) { return null; }
-    var wanted = rankOf(rollRarity(rng, floor, ceiling, boost));
+    var wanted = rankOf(rollRarity(rng, floor, ceiling, odds));
     var low = rankOf(floor || 'common');
     var high = ceiling ? Math.max(rankOf(ceiling), low) : RARITIES.length - 1;
 
@@ -541,10 +682,11 @@ EGE.cards = (function () {
     var big = false;
     var legends = 0;
     var cap = legendaryCap(p);
+    var odds = packOdds(p);
     for (var i = 0; i < p.size; i += 1) {
       var last = i === p.size - 1;
       var ceiling = legends >= cap ? 'epic' : big ? PACK_CAP : null;
-      var card = drawOne(pool, random, last ? p.floor : null, ceiling, p.boost);
+      var card = drawOne(pool, random, last ? p.floor : null, ceiling, odds);
       if (card) {
         out.push(card);
         if (rankOf(card.rarity) >= rankOf(PACK_CAP)) { legends += 1; }
@@ -689,14 +831,124 @@ EGE.cards = (function () {
     return out;
   }
 
+  /* The Gold Rush's sets, Sam's list (2026-10-16). Only Gold Rush cards
+     fill them, and they fill nothing else (fill). Each is locked in once
+     with every card it was made with in the collection (claim_event_set in
+     supabase/schema.sql), so a card can go on afterwards; the six locked in
+     before the event ends pay the GOLD RUSH card (the final set,
+     GOLD_RUSH.reward).
+
+     Locking a set in pays a reward the way a Library set does (Sam,
+     2026-10-16): a Gold Rush card at or above `floor`, diamonds, and a
+     booster, more for the sets that take more packs to finish -- a 1.5x
+     on the middling ones, the gold 2.0x on the two longest, and the 2.5x
+     with the GOLD RUSH card. The diamonds and the booster are held in
+     card_events.rewards in supabase/schema.sql, which pays them whatever
+     the page says; change the two together.
+
+     A career set wants a performance from every season the player has
+     cards in and a play from every one he has a play in -- neither back
+     has a play card from 2018, so that year is the performance alone. */
+  var eventSetsCache = null;
+
+  function playerOf(slug) {
+    return EGE.players.filter(function (p) { return p.slug === slug; })[0] || null;
+  }
+
+  function careerSet(slug) {
+    var player = playerOf(slug);
+    var slots = [];
+    seasonsWithCards().forEach(function (season) {
+      var his = all().filter(function (c) { return c.slug === slug && c.season === season; });
+      var perf = his.some(function (c) { return c.kind === 'performance'; });
+      var play = his.some(function (c) { return c.kind === 'play'; });
+      var label = season + (perf && play ? ' performance & play' : perf ? ' performance' : ' play');
+      ['performance', 'play'].forEach(function (kind) {
+        if (kind === 'performance' ? !perf : !play) { return; }
+        slots.push(slot(label, function (c) { return c.slug === slug && c.season === season && c.kind === kind; }));
+      });
+    });
+    return {
+      key: slug,
+      name: player.name,
+      blurb: 'A play and a performance from every year of ' + player.first + '’s career.',
+      event: GOLD_RUSH.key,
+      slots: slots
+    };
+  }
+
+  /* Each set's reward, hardest last. */
+  var EVENT_REWARDS = {
+    'card-art':        { floor: 'rare', diamonds: 8 },
+    'sam-stogsdill':   { floor: 'epic', diamonds: 10, booster: 'boost-1-5',
+                         from: ofPlayer('sam-stogsdill'), fromText: 'Sam' },
+    'triple':          { floor: 'epic', diamonds: 12, booster: 'boost-1-5' },
+    'marathon':        { floor: 'legendary', diamonds: 15, booster: 'boost-1-5',
+                         from: isRushTd, fromText: 'a rushing TD' },
+    'red-zone-rushes': { floor: 'legendary', diamonds: 20, booster: 'boost-2-0' },
+    'cooper-clark':    { floor: 'legendary', diamonds: 25, booster: 'boost-2-0',
+                         from: ofPlayer('cooper-clark'), fromText: 'Cooper' }
+  };
+
+  function eventSets() {
+    if (eventSetsCache) { return eventSetsCache; }
+    var out = [careerSet('cooper-clark'), careerSet('sam-stogsdill')];
+
+    out.push({
+      key: 'marathon',
+      name: 'Marathon',
+      blurb: 'Three rushing touchdown plays of over 60 yards.',
+      event: GOLD_RUSH.key,
+      slots: times(3, 'Rushing TD over 60 yards', function (c) { return isRushTd(c) && c.play.yards > 60; })
+    });
+
+    out.push({
+      key: 'red-zone-rushes',
+      name: 'Red-Zone Rushes',
+      blurb: 'A rushing touchdown play of Isaac, Jaykeb, Sam and Cooper.',
+      event: GOLD_RUSH.key,
+      slots: ['isaac-vitel', 'jaykeb-stewart', 'sam-stogsdill', 'cooper-clark'].map(function (slug) {
+        return slot(playerOf(slug).first + ' rushing TD', function (c) { return isRushTd(c) && c.slug === slug; });
+      })
+    });
+
+    out.push({
+      key: 'triple',
+      name: 'Triple',
+      blurb: 'A holo rushing touchdown and a holo Sam or Cooper performance.',
+      event: GOLD_RUSH.key,
+      slots: [
+        slot('Holo rushing TD', function (c) { return c.holo && isRushTd(c); }),
+        slot('Holo Sam or Cooper performance', function (c) {
+          return c.holo && c.kind === 'performance' && (c.slug === 'sam-stogsdill' || c.slug === 'cooper-clark');
+        })
+      ]
+    });
+
+    out.push({
+      key: 'card-art',
+      name: 'Card-Art',
+      blurb: 'One of the two card-art cards.',
+      event: GOLD_RUSH.key,
+      slots: [slot('Card art', function (c) { return Boolean(c.art) && !c.reward; })]
+    });
+
+    out.forEach(function (set) { set.reward = EVENT_REWARDS[set.key]; });
+    eventSetsCache = out;
+    return out;
+  }
+
   /* Which owned card fills which slot. Slots in a set either want the same
      thing or things that cannot overlap, so taking the first card that fits
      each one in turn is as good as any cleverer matching. Best cards are
      offered first, so the set shows off what it is made of. A holo is its
      card in a set: it counts where the card would, and the two of them
-     never fill two slots. */
+     never fill two slots. A Gold Rush set takes Gold Rush cards and
+     nothing else, and a Library set everything but them. */
   function fill(set, ownedIds) {
-    var owned = ownedIds.map(byId).filter(Boolean).sort(compare);
+    var owned = ownedIds.map(byId).filter(function (c) {
+      return c && Boolean(c.gold) === Boolean(set.event);
+    }).sort(compare);
     var used = {};
     var filled = set.slots.map(function (s) {
       var card = owned.filter(function (c) { return !used[c.baseId || c.id] && s.test(c); })[0] || null;
@@ -709,9 +961,10 @@ EGE.cards = (function () {
   }
 
   /* The card a set pays out with. From every published card, or the set's
-     own pool when it names one, at or above its floor. */
+     own pool when it names one, at or above its floor. A Gold Rush set pays
+     a Gold Rush card, from what its pack holds. */
   function rollReward(set, rng) {
-    var pool = pullable(null);
+    var pool = set.event ? pullable(GOLD_RUSH.pack) : pullable(null);
     if (set.reward.from) {
       var narrowed = pool.filter(set.reward.from);
       if (narrowed.length) { pool = narrowed; }
@@ -1045,6 +1298,15 @@ EGE.cards = (function () {
     baseIdOf: baseIdOf,
     holoIdOf: holoIdOf,
     legendaryCap: legendaryCap,
-    rebuild: function () { catalogue = null; holos = {}; setsCache = null; }
+    packOdds: packOdds,
+    GOLD_RUSH: GOLD_RUSH,
+    CARD_ART: CARD_ART,
+    isEventId: isEventId,
+    eventIdOf: eventIdOf,
+    isRushTd: isRushTd,
+    inGoldRush: inGoldRush,
+    eventLive: eventLive,
+    eventSets: eventSets,
+    rebuild: function () { catalogue = null; made = {}; setsCache = null; eventSetsCache = null; }
   };
 })();

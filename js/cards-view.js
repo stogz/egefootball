@@ -50,6 +50,9 @@ EGE.cardsView = (function () {
     spin: null,         /* today's spin from card_spin_today; null until read */
     spinning: false,    /* the wheel is turning: nothing redraws under it */
     sell: null,         /* picking cards to quick sell together: { picked: { id: n }, ... } */
+    event: null,        /* the Gold Rush's card_events row; null until read or before the schema has it */
+    eventClaims: {},    /* its sets this player has locked in, and its own key once the reward is in */
+    locks: {},          /* card id -> when each traded Gold Rush copy can go again */
     filter: { rarity: 'all', kind: 'all', player: 'all', sort: 'rarity' }
   };
 
@@ -129,14 +132,124 @@ EGE.cardsView = (function () {
 
   function ownedIds() { return Object.keys(state.owned); }
 
+  /* --- the Gold Rush ------------------------------------------------------
+
+     The limited-time event (EGE.cards.GOLD_RUSH): its pack in the shop,
+     the Limited Time Event box over the Library, and the 48 hours a Gold
+     Rush card waits after it is traded before it can go again. */
+  var GOLD = EGE.cards.GOLD_RUSH;
+
+  function eventOn() {
+    return Boolean(state.event) && state.event.key === GOLD.key && EGE.cards.eventLive(state.event);
+  }
+
+  /* Whether a pack is on sale: an event's only while the event is on. */
+  function packOpen(pack) {
+    return !pack.event || eventOn();
+  }
+
+  /* 'Ends in 6d 23h', 'Ends in 5h 12m', or 'Ending now'. */
+  function endsText(iso) {
+    var ms = new Date(iso).getTime() - Date.now();
+    if (isNaN(ms)) { return ''; }
+    if (ms <= 0) { return 'Ending now'; }
+    var mins = Math.ceil(ms / 60000);
+    var hours = Math.floor(mins / 60);
+    var days = Math.floor(hours / 24);
+    return 'Ends in ' + (days ? days + 'd ' + (hours % 24) + 'h' : hours ? hours + 'h ' + (mins % 60) + 'm' : mins + 'm');
+  }
+
+  /* The event's banner: '7 days only · 6d 23h left'. */
+  function leftText(iso) {
+    var text = endsText(iso);
+    return GOLD.days + ' days only \u00b7 ' + (/^Ends in /.test(text) ? text.replace(/^Ends in /, '') + ' left' : text);
+  }
+
+  /* How long until a cooled-down copy can be traded again: '31h' or '12m'. */
+  function waitText(iso) {
+    var ms = new Date(iso).getTime() - Date.now();
+    if (isNaN(ms) || ms <= 0) { return '0m'; }
+    var hours = Math.floor(ms / 3600000);
+    return hours ? hours + 'h' : Math.max(1, Math.ceil(ms / 60000)) + 'm';
+  }
+
+  /* The copies of a card still cooling down in `locks` ({ id: [iso] }), and
+     how many of `owned` can be traded or listed now. */
+  function lockedOf(locks, id) {
+    var now = Date.now();
+    return ((locks && locks[id]) || []).filter(function (iso) { return new Date(iso).getTime() > now; });
+  }
+  function freeCopies(owned, locks, id) {
+    return Math.max(0, (owned[id] || 0) - lockedOf(locks, id).length);
+  }
+
+  /* A tag hanging off a card none of whose copies can be traded yet, with
+     how long until the first one can. */
+  function lockTag(node, locks, owned, id) {
+    var cool = lockedOf(locks, id);
+    if (!cool.length || freeCopies(owned, locks, id) > 0) { return false; }
+    var tag = el('span', 'ege-tcard__lock', waitText(cool[0]));
+    tag.title = 'Traded in the last ' + GOLD.lockHours + ' hours: it can be traded again in ' + waitText(cool[0]) + '.';
+    node.appendChild(tag);
+    node.classList.add('is-locked');
+    return true;
+  }
+
   /* --- one card --------------------------------------------------------- */
 
   function describe(card) {
     var r = EGE.cards.rarity(card.rarity);
-    return card.player.name + ', ' + r.name + (card.holo ? ' holo ' : ' ') +
-      (card.kind === 'play' ? 'play' : 'performance') +
+    if (card.reward) { return 'The GOLD RUSH card, Iconic, for finishing every Gold Rush set'; }
+    return card.player.name + ', ' + r.name + (card.gold ? ' Gold Rush' : '') + (card.holo ? ' holo ' : ' ') +
+      (card.art ? 'card art ' : '') + (card.kind === 'play' ? 'play' : 'performance') +
       ' card, ' + points(card.points) + ' fantasy points, ' + card.headline + ', week ' +
       card.week + ' ' + card.season;
+  }
+
+  /* The GOLD RUSH sticker a Gold Rush card wears under its score: a gold
+     booster sticker (the sunburst js/app.js cuts them from) with the
+     event's name on it. */
+  function stickerEl() {
+    var s = el('span', 'ege-sticker ege-sticker--gold ege-tcard__sticker');
+    s.setAttribute('aria-hidden', 'true');
+    var face = el('span', 'ege-sticker__face');
+    var word = el('span', 'ege-sticker__text ege-tcard__stickerword');
+    word.appendChild(el('span', null, 'Gold'));
+    word.appendChild(el('span', null, 'Rush'));
+    face.appendChild(word);
+    s.appendChild(face);
+    return s;
+  }
+
+  /* The count and the New tag, off the corners of any card. */
+  function cardTags(node, opts) {
+    if (opts.count > 1) {
+      /* Three or more of one card can be merged into its holo: the count
+         says so in holo colours. */
+      var count = el('span', 'ege-tcard__count' + (opts.mergeable ? ' ege-tcard__count--merge' : ''),
+        '\u00d7' + opts.count);
+      if (opts.mergeable) { count.title = 'Three of these make a holo'; }
+      node.appendChild(count);
+    }
+    if (opts.isNew) { node.appendChild(el('span', 'ege-tcard__new', 'New')); }
+  }
+
+  /* A card printed from Sam's own art (the card-art cards and the GOLD
+     RUSH card): the picture is the whole card. */
+  function printedCard(card, opts) {
+    var node = el('div', 'ege-tcard ege-tcard--' + card.rarity + ' ege-tcard--art' +
+      (card.gold ? ' ege-tcard--gold' : '') + (card.reward ? ' ege-tcard--reward' : ''));
+    node.style.setProperty('--rarity', EGE.cards.rarity(card.rarity).color);
+    var print = el('img', 'ege-tcard__print');
+    print.src = card.art;
+    print.alt = '';
+    print.loading = 'lazy';
+    print.decoding = 'async';
+    print.draggable = false;
+    node.appendChild(print);
+    if (card.gold && !card.reward) { node.appendChild(stickerEl()); }
+    cardTags(node, opts);
+    return node;
   }
 
   /* A card's face. Sized by whatever holds it: every measurement inside is
@@ -144,11 +257,12 @@ EGE.cardsView = (function () {
      hand-sized thing in a pack. */
   function cardEl(card, options) {
     var opts = options || {};
+    if (card.art) { return printedCard(card, opts); }
     var r = EGE.cards.rarity(card.rarity);
     var team = card.team || {};
 
     var node = el('div', 'ege-tcard ege-tcard--' + card.rarity + ' ege-tcard--' + card.kind +
-      (card.holo ? ' ege-tcard--holo' : ''));
+      (card.holo ? ' ege-tcard--holo' : '') + (card.gold ? ' ege-tcard--gold' : ''));
     node.style.setProperty('--rarity', r.color);
     node.style.setProperty('--ground', team.ground || '#2f4a2b');
 
@@ -179,7 +293,10 @@ EGE.cardsView = (function () {
       art.appendChild(logo);
     }
 
-    /* A holo says so in the corner the logo leaves free. */
+    /* A Gold Rush card wears its sticker in the corner the logo leaves
+       free, under the score; a holo says so there too, under the sticker
+       on a Gold Rush holo. */
+    if (card.gold) { art.appendChild(stickerEl()); }
     if (card.holo) { art.appendChild(el('span', 'ege-tcard__holo', 'Holo')); }
 
     if (card.kind === 'play') {
@@ -228,23 +345,14 @@ EGE.cardsView = (function () {
     face.appendChild(foot);
 
     node.appendChild(face);
-
-    if (opts.count > 1) {
-      /* Three or more of one card can be merged into its holo: the count
-         says so in holo colours. */
-      var count = el('span', 'ege-tcard__count' + (opts.mergeable ? ' ege-tcard__count--merge' : ''),
-        '\u00d7' + opts.count);
-      if (opts.mergeable) { count.title = 'Three of these make a holo'; }
-      node.appendChild(count);
-    }
-    if (opts.isNew) { node.appendChild(el('span', 'ege-tcard__new', 'New')); }
-
+    cardTags(node, opts);
     return node;
   }
 
-  /* The back every card shares, for the moment before it is turned over. */
-  function backEl() {
-    var node = el('div', 'ege-tcard ege-tcard--back');
+  /* The back every card shares, for the moment before it is turned over;
+     a Gold Rush card's is gold (Sam, 2026-10-16). */
+  function backEl(card) {
+    var node = el('div', 'ege-tcard ege-tcard--back' + (card && card.gold ? ' ege-tcard--backgold' : ''));
     var face = el('div', 'ege-tcard__face');
     face.appendChild(el('span', 'ege-tcard__backmark'));
     var word = el('span', 'ege-tcard__backword');
@@ -265,7 +373,7 @@ EGE.cardsView = (function () {
     var cover = EGE.cards.packCover(pack);
     var year = pack.season || (pack.seasonOnly ? EGE.currentSeason : null);
     var art = el('div', 'ege-pack ege-pack--' + (pack.season ? 'year' : pack.key) +
-      (cover ? ' ege-pack--' + cover.theme + ' ege-pack--cover' : ''));
+      (cover ? ' ege-pack--' + cover.theme : '') + (cover && cover.image ? ' ege-pack--cover' : ''));
     /* Every pack's shimmer and glow keep time with the clock, so redrawing
        the packs (a new balance, the Season Pack's arrows) carries on where
        they were instead of starting them all over at once. */
@@ -287,7 +395,7 @@ EGE.cardsView = (function () {
       body.appendChild(logo);
     }
     body.appendChild(el('span', 'ege-pack__prizm'));
-    if (cover) {
+    if (cover && cover.image) {
       var photo = el('img', 'ege-pack__player');
       photo.src = cover.image;
       if (cover.zoom) { photo.style.setProperty('--zoom', cover.zoom); }
@@ -360,15 +468,28 @@ EGE.cardsView = (function () {
     var stepping = pack.seasonOnly && seasons.length > 1;
     if (stepping) { pack = seasons[at]; }
 
-    var tile = el('div', 'ege-packtile');
+    var tile = el('div', 'ege-packtile' + (pack.event ? ' ege-packtile--event' : ''));
     tile.appendChild(packArt(pack));
     tile.appendChild(el('h4', 'ege-item__name', pack.name));
+    /* An event's pack says how long it has left, kept up to the minute by
+       tickEvent. */
+    if (pack.event && state.event && state.event.ends_at) {
+      var ends = el('p', 'ege-packtile__ends', endsText(state.event.ends_at));
+      ends.dataset.ends = state.event.ends_at;
+      tile.appendChild(ends);
+    }
     tile.appendChild(el('p', 'ege-item__text', pack.blurb));
 
     var pool = EGE.cards.pullable(pack.key);
     var buy = el('button', 'fb-btn fb-btn--primary ege-packtile__buy');
     buy.type = 'button';
-    buy.appendChild(document.createTextNode('Buy & Rip \u00b7 '));
+    /* One piece of text, so the button's gap only opens before the price;
+       "& Rip" goes when the tile is narrow (site.css). */
+    var label = el('span');
+    label.appendChild(document.createTextNode('Buy'));
+    label.appendChild(el('span', 'ege-packtile__rip', ' & Rip'));
+    label.appendChild(document.createTextNode(' \u00b7 '));
+    buy.appendChild(label);
     buy.appendChild(price(pack.diamonds));
 
     var why = null;
@@ -395,8 +516,12 @@ EGE.cardsView = (function () {
     var holder = byId('cardPacks');
     holder.innerHTML = '';
 
+    /* An event's pack first, only while it is on. */
     EGE.cards.PACKS.forEach(function (pack) {
-      if (pack.season) { return; }
+      if (pack.event && packOpen(pack)) { holder.appendChild(packTile(pack)); }
+    });
+    EGE.cards.PACKS.forEach(function (pack) {
+      if (pack.season || pack.event) { return; }
       holder.appendChild(packTile(pack));
     });
 
@@ -450,6 +575,11 @@ EGE.cardsView = (function () {
      `pay`); closing it sealed costs nothing and hands nothing over. */
   function buyPack(pack, button) {
     say('', false);
+    if (!packOpen(pack)) {
+      say('The ' + GOLD.name + ' is over, and its pack with it.', true);
+      renderPacks();
+      return;
+    }
     if (state.diamonds !== null && state.diamonds < pack.diamonds) {
       say('Not enough diamonds for a ' + pack.name + '.', true);
       return;
@@ -631,7 +761,7 @@ EGE.cardsView = (function () {
     var again = rip.node.querySelector('.ege-rip__again');
     if (again && rip.pack) {
       var affordable = state.diamonds !== null && state.diamonds >= rip.pack.diamonds &&
-        EGE.cards.pullable(rip.pack.key).length >= rip.pack.size;
+        packOpen(rip.pack) && EGE.cards.pullable(rip.pack.key).length >= rip.pack.size;
       again.hidden = rip.again ? false : !affordable;
     }
     rip.node.querySelector('.ege-rip__hint').textContent = rip.summary ||
@@ -704,7 +834,7 @@ EGE.cardsView = (function () {
         var again = mine.node.querySelector('.ege-rip__again');
         if (again) {
           again.hidden = !(state.diamonds !== null && state.diamonds >= mine.pack.diamonds &&
-            EGE.cards.pullable(mine.pack.key).length >= mine.pack.size);
+            packOpen(mine.pack) && EGE.cards.pullable(mine.pack.key).length >= mine.pack.size);
         }
       }
     }
@@ -812,7 +942,7 @@ EGE.cardsView = (function () {
 
       var inner = el('div', 'ege-flip__inner');
       var back = el('div', 'ege-flip__side ege-flip__side--back');
-      back.appendChild(backEl());
+      back.appendChild(backEl(card));
       var front = el('div', 'ege-flip__side ege-flip__side--front');
       front.appendChild(cardEl(card, { isNew: options.isNew[i] }));
       inner.appendChild(back);
@@ -955,25 +1085,47 @@ EGE.cardsView = (function () {
       dd.appendChild(link);
       facts.appendChild(dd);
     }
-    if (card.holo) {
+    if (card.reward) {
+      fact('Rarity', r.name + ' \u00b7 only for locking in every ' + GOLD.name + ' set before it ended');
+      fact('Event', GOLD.name + ' \u00b7 it stays with whoever earned it: it cannot be traded, sold or listed');
+    } else if (card.holo) {
       var one = EGE.cards.byId(card.baseId);
       fact('Rarity', r.name + ' Holo \u00b7 three copies merged into one');
       fact('Fantasy', points(card.points) + ' points' +
         (one ? ' (3 \u00d7 ' + points(one.points) + ')' : ''));
+    } else if (card.art) {
+      fact('Rarity', r.name + ' \u00b7 card art, only in ' + GOLD.name + ' Packs');
+      fact('Fantasy', points(card.points) + ' points');
     } else {
-      fact('Rarity', r.name + ' \u00b7 ' + r.odds + '% of pulls');
+      /* A Gold Rush card is pulled at its own pack's odds. */
+      var gr = card.gold ? EGE.cards.pack(GOLD.pack) : null;
+      fact('Rarity', r.name + ' \u00b7 ' + (gr ? gr.odds[card.rarity] + '% of ' + GOLD.name + ' pulls' : r.odds + '% of pulls'));
       fact('Fantasy', points(card.points) + ' points');
     }
-    fact('Game', card.versus + ' \u00b7 ' + (card.event || 'Week ' + card.week) + ', ' + card.season +
-      (card.game.result ? ' \u00b7 ' + card.game.result.teamScore + '\u2013' + card.game.result.opponentScore : ''));
-    if (card.kind === 'play') {
-      fact('The play', card.text);
-      lineFact('That game', EGE.cards.statSummary(card.player.position, card.game.stats));
-    } else {
-      lineFact('Line', card.line);
+    if (card.gold && !card.reward) {
+      fact('Event', GOLD.name + ' \u00b7 fills ' + GOLD.name + ' sets only. Once traded, it waits ' +
+        GOLD.lockHours + ' hours to be traded again.');
+    }
+    if (card.game) {
+      fact('Game', card.versus + ' \u00b7 ' + (card.event || 'Week ' + card.week) + ', ' + card.season +
+        (card.game.result ? ' \u00b7 ' + card.game.result.teamScore + '\u2013' + card.game.result.opponentScore : ''));
+      if (card.kind === 'play') {
+        fact('The play', card.text);
+        lineFact('That game', EGE.cards.statSummary(card.player.position, card.game.stats));
+      } else {
+        lineFact('Line', card.line);
+      }
     }
     var ownedNode = typeof opts.owned === 'number' ? fact(opts.theirs ? 'You have' : 'Owned', String(opts.owned)) : null;
     if (opts.theirs) { fact(opts.theirs.name + ' has', String(opts.theirs.count)); }
+    /* Your own copies still cooling down after a trade. */
+    var cooling = typeof opts.owned === 'number' && opts.owned > 0 ? lockedOf(state.locks, card.id) : [];
+    if (cooling.length) {
+      var all = cooling.length >= opts.owned;
+      fact('Cooldown', (all ? (opts.owned === 1 ? 'Traded' : 'All ' + opts.owned + ' traded')
+        : cooling.length + ' of your ' + opts.owned + ' traded') + ' in the last ' + GOLD.lockHours +
+        ' hours. ' + (all ? 'It can' : 'They can') + ' be traded again in ' + waitText(cooling[0]) + '.');
+    }
     var viewer = EGE.auth.currentPlayer();
     if (viewer) {
       /* Everybody already counted above is left out of it. */
@@ -990,17 +1142,20 @@ EGE.cardsView = (function () {
 
     var actions = el('div', 'ege-rip__actions');
     var merge = null;
-    if (opts.sell && !card.holo && opts.owned >= EGE.cards.HOLO_OF) {
+    if (opts.sell && mergeable(card) && opts.owned >= EGE.cards.HOLO_OF) {
       merge = mergeControl(card, { status: status });
       actions.appendChild(merge);
     }
-    if (opts.sell && opts.owned > 0) {
+    if (opts.sell && opts.owned > 0 && card.reward) {
+      actions.appendChild(el('span', 'ege-zoom__nosell', 'The GOLD RUSH card stays with you.'));
+    } else if (opts.sell && opts.owned > 0) {
       actions.appendChild(sellControl(card, { holder: holder, owned: ownedNode, status: status, merge: merge }));
-      actions.appendChild(marketControl(card, { status: status }));
+      actions.appendChild(marketControl(card, { status: status, free: freeCopies(state.owned, state.locks, card.id),
+                                                wait: cooling[0] || null }));
     }
     /* Somebody else's card: straight to the Trades page with an offer for
        it ready, to pick what you give and send. */
-    if (viewer && opts.tradeWith && opts.tradeWith.toLowerCase() !== viewer.email.toLowerCase() &&
+    if (viewer && opts.tradeWith && !card.reward && opts.tradeWith.toLowerCase() !== viewer.email.toLowerCase() &&
         playerByEmail(opts.tradeWith)) {
       var trade = el('button', 'fb-btn ege-zoom__trade', 'Trade for it');
       trade.type = 'button';
@@ -1143,8 +1298,12 @@ EGE.cardsView = (function () {
     var left = state.market ? listingsLeft() : 0;
     var button = el('button', 'fb-btn ege-zoom__list', 'Sell');
     button.type = 'button';
-    button.disabled = !left;
-    button.title = !state.market ? 'The Market could not be loaded.'
+    /* A Gold Rush copy that has just been traded waits to be listed too. */
+    var cooling = parts.free === 0;
+    button.disabled = !left || cooling;
+    button.title = cooling ? 'Traded in the last ' + GOLD.lockHours + ' hours: it can be listed again in ' +
+        waitText(parts.wait) + '.'
+      : !state.market ? 'The Market could not be loaded.'
       : left ? left + ' of ' + EGE.cards.MARKET.perDay + ' listings left today'
       : 'You have used your ' + EGE.cards.MARKET.perDay + ' listings for today.';
     wrap.appendChild(button);
@@ -1241,6 +1400,13 @@ EGE.cardsView = (function () {
       });
     });
     return button;
+  }
+
+  /* Whether three copies of a card can be merged into a holo: not a holo
+     already, and not one printed from art (the card-art cards, the GOLD
+     RUSH card). */
+  function mergeable(card) {
+    return !card.holo && !card.art && !card.reward;
   }
 
   /* Up close, a holo leans toward the pointer and its foil follows it. */
@@ -1429,6 +1595,7 @@ EGE.cardsView = (function () {
     rarity.appendChild(new Option('All rarities', 'all'));
     EGE.cards.RARITIES.forEach(function (r) { rarity.appendChild(new Option(r.name, r.key)); });
     rarity.appendChild(new Option('Holo', 'holo'));
+    rarity.appendChild(new Option(GOLD.name, 'gold'));
     rarity.value = f.rarity;
     rarity.addEventListener('change', function () { pick('rarity', rarity.value); });
     rest.appendChild(rarity);
@@ -1513,6 +1680,12 @@ EGE.cardsView = (function () {
     if (toggle) { toggle.setAttribute('aria-expanded', open ? 'true' : 'false'); }
   }
 
+  /* The rarity drop-downs: a rarity, every holo, or every Gold Rush card. */
+  function rarityFits(card, rarity) {
+    return rarity === 'all' || (rarity === 'holo' ? Boolean(card.holo)
+      : rarity === 'gold' ? Boolean(card.gold) : card.rarity === rarity);
+  }
+
   /* `first` is when each card was first pulled, for Newest pulls. */
   function sorter(how, first) {
     if (how === 'points') {
@@ -1547,7 +1720,7 @@ EGE.cardsView = (function () {
 
     var mine = Object.keys(v.owned).map(EGE.cards.byId).filter(Boolean);
     var shown = mine.filter(function (card) {
-      return (f.rarity === 'all' || (f.rarity === 'holo' ? card.holo : card.rarity === f.rarity)) &&
+      return rarityFits(card, f.rarity) &&
         (f.kind === 'all' || card.kind === f.kind) &&
         (f.player === 'all' || card.slug === f.player);
     }).sort(sorter(f.sort, v.first));
@@ -1558,16 +1731,18 @@ EGE.cardsView = (function () {
 
     var copies = Object.keys(v.owned).reduce(function (sum, id) { return sum + v.owned[id]; }, 0);
     var out = EGE.cards.pullable(null).length;
-    /* A holo and its card are one card of the ones out. */
+    /* A holo and its card are one card of the ones out. Gold Rush cards
+       are counted on their own: they are not among the ones out. */
     var different = {};
     var holos = 0;
+    var golds = 0;
     mine.forEach(function (card) {
-      different[card.baseId || card.id] = true;
+      if (card.gold) { golds += v.owned[card.id]; } else { different[card.baseId || card.id] = true; }
       if (card.holo) { holos += v.owned[card.id]; }
     });
     byId('collectionCount').textContent = v.loaded && !v.failed
       ? copies + (copies === 1 ? ' card' : ' cards') + ' · ' + Object.keys(different).length + ' of ' + out +
-        ' different' + (holos ? ' · ' + holos + ' holo' : '')
+        ' different' + (holos ? ' · ' + holos + ' holo' : '') + (golds ? ' · ' + golds + ' ' + GOLD.name : '')
       : v.failed ? '' : 'Loading…';
 
 
@@ -1577,6 +1752,8 @@ EGE.cardsView = (function () {
       empty.textContent = mine.length
         ? (f.rarity === 'holo' && !holos
           ? 'No holos yet. Get three of one card, then open it and merge them.'
+          : f.rarity === 'gold' && !golds
+          ? 'No ' + GOLD.name + ' cards yet. They come out of ' + GOLD.name + ' Packs while the event is on.'
           : 'Nothing you own matches that. Try another filter.')
         : 'No cards yet. Rip a pack and they land here.';
     } else {
@@ -1614,7 +1791,8 @@ EGE.cardsView = (function () {
        it again -- the lag going back to Cards, worse the further it had
        been scrolled. The same binder is left as it is. */
     var sig = key + '#' + cards.map(function (card) {
-      return card.id + 'x' + (v.owned[card.id] || 0) + (v.mine && state.fresh[card.id] ? 'n' : '');
+      return card.id + 'x' + (v.owned[card.id] || 0) + (v.mine && state.fresh[card.id] ? 'n' : '') +
+        (v.mine && !freeCopies(state.owned, state.locks, card.id) ? 'l' : '');
     }).join(',');
     if (sig === binder.sig && grid.childElementCount) { return; }
     binder.sig = sig;
@@ -1675,8 +1853,9 @@ EGE.cardsView = (function () {
   function binderCard(card, v) {
     var count = v.owned[card.id] || 0;
     var node = cardEl(card, { count: count, isNew: v.mine && state.fresh[card.id],
-                              mergeable: v.mine && !card.holo && count >= EGE.cards.HOLO_OF });
+                              mergeable: v.mine && mergeable(card) && count >= EGE.cards.HOLO_OF });
     node.dataset.id = card.id;
+    if (v.mine) { lockTag(node, state.locks, state.owned, card.id); }
     pressable(node, describe(card) + (count > 1 ? ', ' + count + ' owned' : ''), function () {
       if (v.mine && state.sell) {
         pickForSale(card);
@@ -2227,8 +2406,9 @@ EGE.cardsView = (function () {
     if (!findText[card.id]) {
       var team = card.team || {};
       findText[card.id] = [card.player.name, card.position, team.school, card.versus, card.headline,
-        card.line, card.text, card.event, card.season, 'week ' + card.week, EGE.cards.rarity(card.rarity).name,
-        card.kind === 'play' ? 'play' : 'performance', card.holo ? 'holo' : '']
+        card.line, card.text, card.event, card.season, card.week ? 'week ' + card.week : '', EGE.cards.rarity(card.rarity).name,
+        card.reward ? 'reward' : card.kind === 'play' ? 'play' : 'performance', card.holo ? 'holo' : '',
+        card.gold ? 'gold rush' : '', card.art ? 'card art' : '']
         .filter(Boolean).join(' ').toLowerCase();
     }
     return findText[card.id];
@@ -2238,7 +2418,7 @@ EGE.cardsView = (function () {
     if (f.kind !== 'all' && card.kind !== f.kind) { return false; }
     if (f.player !== 'all' && card.slug !== f.player) { return false; }
     if (f.season !== 'all' && String(card.season) !== f.season) { return false; }
-    if (f.rarity !== 'all' && (f.rarity === 'holo' ? !card.holo : card.rarity !== f.rarity)) { return false; }
+    if (!rarityFits(card, f.rarity)) { return false; }
     var words = f.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
     if (!words.length) { return true; }
     var text = cardText(card);
@@ -2330,7 +2510,7 @@ EGE.cardsView = (function () {
         .map(function (y) { return [String(y), String(y)]; }))),
       rarity: select('rarity', 'Rarity', [['all', 'All rarities']].concat(EGE.cards.RARITIES.map(function (r) {
         return [r.key, r.name];
-      })).concat([['holo', 'Holo']])),
+      })).concat([['holo', 'Holo'], ['gold', GOLD.name]])),
       sort: select('sort', 'Order', [['rarity', 'Rarest first'], ['points', 'Highest score'],
         ['newest', 'Newest pulls'], ['year', 'By year'], ['game', 'By game']])
     };
@@ -2378,7 +2558,7 @@ EGE.cardsView = (function () {
      yours to pick, and nothing goes until Send. */
   function openTradeBuilder(preset) {
     var ask = preset && preset.to ? preset : null;
-    var build = { to: null, give: [], take: [], theirs: null, theirsFirst: {}, missing: null };
+    var build = { to: null, give: [], take: [], theirs: null, theirsFirst: {}, theirsLocks: {}, missing: null };
     var stage = openOverlay('Propose a trade', 'ege-rip__stage--trade');
     var panel = el('div', 'fb-panel ege-tradebuilder');
     stage.appendChild(panel);
@@ -2431,16 +2611,25 @@ EGE.cardsView = (function () {
           grid.appendChild(el('p', 'fb-meta', 'Loading\u2026'));
           return;
         }
-        var all = Object.keys(owned).map(EGE.cards.byId).filter(Boolean);
+        /* The GOLD RUSH card never trades, so it is not offered; a Gold
+           Rush card none of whose copies are free yet is there, tagged with
+           how long it has left, but cannot be picked. */
+        var all = Object.keys(owned).map(EGE.cards.byId).filter(function (c) { return c && !c.reward; });
         var cards = find.sort(all, side.first());
+        var locks = side.locks();
         cards.forEach(function (card) {
           var on = picked.indexOf(card.id) !== -1;
           var node = cardEl(card, { count: owned[card.id] });
+          var locked = !on && lockTag(node, locks, owned, card.id);
           if (on) { node.classList.add('is-picked'); }
           node.setAttribute('aria-pressed', on ? 'true' : 'false');
-          pressable(node, describe(card) + (on ? ', in the offer' : ''), function () {
+          pressable(node, describe(card) + (on ? ', in the offer' : locked ? ', traded too recently to trade again' : ''), function () {
             var at = picked.indexOf(card.id);
             if (at !== -1) { picked.splice(at, 1); }
+            else if (locked) {
+              build.note = card.player.first + '\u2019s ' + GOLD.name + ' card was traded in the last ' +
+                GOLD.lockHours + ' hours. It can be traded again in ' + waitText(lockedOf(locks, card.id)[0]) + '.';
+            }
             else if (picked.length < MAX_SIDE) { picked.push(card.id); }
             draw();
           });
@@ -2458,6 +2647,7 @@ EGE.cardsView = (function () {
       title: function () { return 'You give'; },
       owned: function () { return state.owned; },
       first: function () { return state.first; },
+      locks: function () { return state.locks; },
       picked: function () { return build.give; },
       none: function () { return 'No cards of yours to offer here.'; }
     });
@@ -2465,6 +2655,7 @@ EGE.cardsView = (function () {
       title: function () { return 'You get from ' + firstName(build.to); },
       owned: function () { return build.theirs; },
       first: function () { return build.theirsFirst; },
+      locks: function () { return build.theirsLocks; },
       picked: function () { return build.take; },
       none: function () { return firstName(build.to) + ' has no cards here.'; }
     });
@@ -2472,7 +2663,10 @@ EGE.cardsView = (function () {
     function draw() {
       mineSide.fill();
       theirsSide.fill();
-      summary.textContent = build.missing && !build.give.length ? build.missing
+      var note = build.note;
+      build.note = null;
+      summary.textContent = note ? note
+        : build.missing && !build.give.length ? build.missing
         : build.give.length
         ? 'You give ' + build.give.length + ', you get ' + build.take.length +
           (build.take.length ? '.' : ' \u2014 a gift.')
@@ -2489,17 +2683,24 @@ EGE.cardsView = (function () {
       build.take = [];
       build.theirs = null;
       build.theirsFirst = {};
+      build.theirsLocks = {};
       build.missing = null;
       draw();
-      EGE.cardStore.collectionFor(email).then(function (got) {
+      Promise.all([EGE.cardStore.collectionFor(email), EGE.cardStore.tradeLocks(email)]).then(function (both) {
+        var got = both[0];
         if (build.to !== email) { return; }
         build.theirs = got ? got.owned : {};
         build.theirsFirst = got ? got.first : {};
+        build.theirsLocks = both[1] || {};
+        var cooling = false;
         (take || []).forEach(function (id) {
-          if (build.theirs[id] && build.take.length < MAX_SIDE) { build.take.push(id); }
+          if (!freeCopies(build.theirs, build.theirsLocks, id)) { cooling = cooling || Boolean(build.theirs[id]); return; }
+          if (build.take.length < MAX_SIDE) { build.take.push(id); }
         });
         if (take && take.length && !build.take.length) {
-          build.missing = firstName(email) + ' does not have that card any more.';
+          build.missing = cooling
+            ? firstName(email) + '\u2019s copy was traded in the last ' + GOLD.lockHours + ' hours and cannot be traded again yet.'
+            : firstName(email) + ' does not have that card any more.';
         }
         draw();
         /* The card asked for, scrolled into sight in their side. */
@@ -2571,17 +2772,51 @@ EGE.cardsView = (function () {
 
   /* --- the library ------------------------------------------------------ */
 
+  function boosterName(key) {
+    var item = EGE.shopItem ? EGE.shopItem(key) : null;
+    return item ? item.name : '1.5x Booster';
+  }
+
+  /* What a set pays, in a line. A Gold Rush set's card is a Gold Rush
+     card. */
   function rewardText(set) {
     var rw = set.reward;
     var floor = EGE.cards.rarity(rw.floor).name;
-    var parts = [(/^[AEIOU]/.test(floor) ? 'An ' : 'A ') + floor + '-or-better card' +
-      (rw.fromText ? ' (' + rw.fromText + ')' : '')];
+    var parts = [(/^[AEIOU]/.test(floor) ? 'An ' : 'A ') + floor + '-or-better ' +
+      (set.event ? 'Gold Rush card' : 'card') + (rw.fromText ? ' (' + rw.fromText + ')' : '')];
     if (rw.diamonds) { parts.push(rw.diamonds + ' diamonds'); }
-    if (rw.booster) {
-      var item = EGE.shopItem ? EGE.shopItem(rw.booster) : null;
-      parts.push(item ? item.name : '1.5x Booster');
-    }
+    if (rw.booster) { parts.push(boosterName(rw.booster)); }
     return parts.join(' \u00b7 ');
+  }
+
+  /* The reward line under a set, and once it is paid the card it pulled. */
+  function rewardLines(tile, set, claim) {
+    var reward = el('p', 'ege-set__reward');
+    reward.appendChild(el('strong', null, 'Reward '));
+    reward.appendChild(document.createTextNode(rewardText(set)));
+    tile.appendChild(reward);
+
+    var got = claim && claim.reward && claim.reward.card ? EGE.cards.byId(claim.reward.card) : null;
+    if (got) {
+      var line = el('p', 'ege-set__got');
+      line.appendChild(document.createTextNode('Pulled '));
+      var name = el('button', 'ege-linkbtn', EGE.cards.rarity(got.rarity).name + ' ' + got.player.first + ', ' + got.headline);
+      name.type = 'button';
+      name.addEventListener('click', function () { zoom(got, { owned: state.owned[got.id] || 0 }); });
+      line.appendChild(name);
+      tile.appendChild(line);
+    }
+  }
+
+  /* What a reward rip says under the card: the diamonds and the booster. */
+  function rewardExtras(rw) {
+    var extras = [];
+    if (rw && rw.diamonds) { extras.push('+' + rw.diamonds + ' diamonds'); }
+    if (rw && rw.booster) {
+      var name = boosterName(rw.booster);
+      extras.push((/^[0-9]/.test(name) ? 'a ' : '') + name + ' in your shop inventory');
+    }
+    return extras;
   }
 
   /* Slots that want the same thing are one line with a pip each, so "ten
@@ -2637,24 +2872,9 @@ EGE.cardsView = (function () {
     tile.appendChild(meter);
 
     tile.appendChild(slotLines(filled));
+    rewardLines(tile, set, claim);
 
-    var reward = el('p', 'ege-set__reward');
-    reward.appendChild(el('strong', null, 'Reward '));
-    reward.appendChild(document.createTextNode(rewardText(set)));
-    tile.appendChild(reward);
-
-    if (claim) {
-      var got = claim.reward && claim.reward.card ? EGE.cards.byId(claim.reward.card) : null;
-      if (got) {
-        var line = el('p', 'ege-set__got');
-        line.appendChild(document.createTextNode('Pulled '));
-        var name = el('button', 'ege-linkbtn', EGE.cards.rarity(got.rarity).name + ' ' + got.player.first + ', ' + got.headline);
-        name.type = 'button';
-        name.addEventListener('click', function () { zoom(got, { owned: state.owned[got.id] || 0 }); });
-        line.appendChild(name);
-        tile.appendChild(line);
-      }
-    } else if (filled.complete) {
+    if (!claim && filled.complete) {
       var button = el('button', 'fb-btn fb-btn--primary fb-btn--block', 'Claim the reward');
       button.type = 'button';
       button.addEventListener('click', function () { claimSet(set, filled, button); });
@@ -2676,9 +2896,7 @@ EGE.cardsView = (function () {
       }
 
       var isNew = res.card ? !state.owned[res.card.id] : false;
-      var extras = [];
-      if (set.reward.diamonds) { extras.push('+' + set.reward.diamonds + ' diamonds'); }
-      if (set.reward.booster) { extras.push('a 1.5x Booster in your shop inventory'); }
+      var extras = rewardExtras(set.reward);
 
       /* Like a pack: the reward card stays face down, and out of the
          collection and the library, until it is put away. */
@@ -2723,7 +2941,229 @@ EGE.cardsView = (function () {
     }).length;
     byId('libraryCount').textContent = claimed + ' of ' + sets.length + ' claimed' +
       (ready ? ' \u00b7 ' + ready + ' ready to claim' : '');
-    tabBadge('tabSetsBadge', ready);
+    setsReady.library = ready;
+    tabBadge('tabSetsBadge', setsReady.library + setsReady.event);
+  }
+
+  /* --- the Limited Time Event ---------------------------------------------
+
+     The box over the Library while the Gold Rush is on (Sam, 2026-10-16):
+     how long it has left, its six sets, each locked in once it is put
+     together out of Gold Rush cards, and the last one, every set locked in,
+     which pays the GOLD RUSH card. Hidden before an admin starts it, and a
+     day after it is over, which it says until then. Locking a set in keeps
+     it: its cards can be traded on afterwards. */
+  var setsReady = { library: 0, event: 0 };
+  var EVENT_AFTER = 24 * 3600 * 1000;
+
+  function eventShown() {
+    var e = state.event;
+    if (!e || e.key !== GOLD.key || !e.starts_at || !e.ends_at) { return false; }
+    var now = Date.now();
+    return now >= new Date(e.starts_at).getTime() && now < new Date(e.ends_at).getTime() + EVENT_AFTER;
+  }
+
+  /* A set's cards as they were locked in, for a set whose cards may since
+     have been traded away. */
+  function lockedFill(set, claim) {
+    var ids = claim.cards || [];
+    var slots = set.slots.map(function (s, i) { return { slot: s, card: EGE.cards.byId(ids[i]) || null }; });
+    return { slots: slots, have: set.slots.length, need: set.slots.length, complete: true };
+  }
+
+  function eventSetTile(set, on) {
+    var claim = state.eventClaims[set.key];
+    var filled = claim ? lockedFill(set, claim) : EGE.cards.fill(set, ownedIds());
+    /* Ready to lock in only while the event is on. */
+    var ready = !claim && filled.complete && on;
+    var tile = el('article', 'ege-set ege-set--event' + (claim ? ' is-claimed' : ready ? ' is-complete' : ''));
+
+    var head = el('div', 'ege-set__head');
+    head.appendChild(el('h4', 'ege-item__name', set.name));
+    head.appendChild(el('span', 'fb-tag fb-tag--num' + (claim ? ' fb-tag--sage' : ready ? ' fb-tag--clay' : ''),
+      claim ? 'Locked in' : filled.have + ' / ' + filled.need));
+    tile.appendChild(head);
+    tile.appendChild(el('p', 'ege-item__text', set.blurb));
+
+    var meter = el('div', 'fb-meter');
+    var fill = el('div', 'fb-meter__fill' + (claim ? ' fb-meter__fill--alt' : ''));
+    fill.style.width = (filled.need ? Math.round(filled.have / filled.need * 100) : 0) + '%';
+    meter.appendChild(fill);
+    tile.appendChild(meter);
+
+    tile.appendChild(slotLines(filled));
+    if (set.reward) { rewardLines(tile, set, claim); }
+
+    if (ready) {
+      var button = el('button', 'fb-btn fb-btn--primary fb-btn--block', 'Lock it in');
+      button.type = 'button';
+      button.title = 'Pays the reward and counts toward the GOLD RUSH card. The cards stay yours.';
+      button.addEventListener('click', function () { lockInSet(set, filled, button); });
+      tile.appendChild(button);
+    }
+    return tile;
+  }
+
+  /* Locked in, the reward turns over like a Library set's: face down, and
+     out of the collection and the sets, until it is put away. */
+  function lockInSet(set, filled, button) {
+    button.disabled = true;
+    say('', false);
+    EGE.cardStore.claimEventSet(set, filled).then(function (res) {
+      if (!res.ok) { say(res.message, true); button.disabled = false; return; }
+      state.eventClaims[set.key] = {
+        set_key: set.key,
+        cards: filled.slots.map(function (one) { return one.card.id; }),
+        reward: { card: res.card ? res.card.id : null }
+      };
+      walletChanged(null, res.diamonds);
+      if (!res.card) { renderEvent(); refresh(); return; }
+      var isNew = !state.owned[res.card.id];
+      state.hold = true;
+      renderPacks();
+      openRip({ title: set.name + ' locked in', cards: [res.card], isNew: [isNew],
+                extras: rewardExtras(set.reward),
+                onClose: function () { reveal([res.card], [isNew]); } });
+    });
+  }
+
+  /* The last set: every other one locked in, for the GOLD RUSH card. */
+  function goldRushTile(sets, on) {
+    var locked = sets.filter(function (set) { return state.eventClaims[set.key]; }).length;
+    var got = state.eventClaims[GOLD.key];
+    var reward = EGE.cards.byId(GOLD.reward);
+    var ready = !got && locked === sets.length && on;
+    var tile = el('article', 'ege-set ege-set--event ege-set--final' + (got ? ' is-claimed' : ready ? ' is-complete' : ''));
+
+    var head = el('div', 'ege-set__head');
+    head.appendChild(el('h4', 'ege-item__name', GOLD.name));
+    head.appendChild(el('span', 'fb-tag fb-tag--num' + (got ? ' fb-tag--sage' : ready ? ' fb-tag--clay' : ''),
+      got ? 'Claimed' : locked + ' / ' + sets.length));
+    tile.appendChild(head);
+
+    var body = el('div', 'ege-set__final');
+    if (reward) {
+      var face = cardEl(reward, {});
+      face.classList.add('ege-set__prize');
+      pressable(face, describe(reward), function () {
+        zoom(reward, typeof state.owned[reward.id] === 'number' ? { owned: state.owned[reward.id], sell: true } : {});
+      });
+      body.appendChild(face);
+    }
+    var words = el('div', 'ege-set__finalwords');
+    words.appendChild(el('p', 'ege-item__text', 'Lock in every ' + GOLD.name + ' set before the event ends for ' +
+      'the Iconic GOLD RUSH card. No pack holds it, and it never trades.'));
+    var prize = el('p', 'ege-set__reward');
+    prize.appendChild(el('strong', null, 'Reward '));
+    prize.appendChild(document.createTextNode(['The GOLD RUSH card']
+      .concat(GOLD.bonus.diamonds ? [GOLD.bonus.diamonds + ' diamonds'] : [])
+      .concat(GOLD.bonus.booster ? [boosterName(GOLD.bonus.booster)] : []).join(' \u00b7 ')));
+    var list = el('ul', 'ege-set__needs');
+    sets.forEach(function (set) {
+      var done = Boolean(state.eventClaims[set.key]);
+      var item = el('li', 'ege-set__need' + (done ? ' is-done' : ''));
+      var pips = el('span', 'ege-set__pips');
+      var pip = el('span', 'ege-set__pip' + (done ? ' is-filled' : ''));
+      if (done) { pip.style.background = 'var(--fb-gold)'; }
+      pips.appendChild(pip);
+      item.appendChild(pips);
+      item.appendChild(el('span', 'ege-set__label', set.name));
+      list.appendChild(item);
+    });
+    words.appendChild(list);
+    body.appendChild(words);
+    tile.appendChild(body);
+    tile.appendChild(prize);
+
+    if (ready) {
+      var button = el('button', 'fb-btn fb-btn--primary fb-btn--block', 'Claim the GOLD RUSH card');
+      button.type = 'button';
+      button.addEventListener('click', function () { claimGoldRush(button); });
+      tile.appendChild(button);
+    }
+    return tile;
+  }
+
+  function claimGoldRush(button) {
+    button.disabled = true;
+    say('', false);
+    EGE.cardStore.claimEventReward(GOLD.key).then(function (res) {
+      if (!res.ok || !res.card) { say(res.message || 'The GOLD RUSH card could not be claimed.', true); button.disabled = false; return; }
+      var isNew = !state.owned[res.card.id];
+      state.eventClaims[GOLD.key] = { set_key: GOLD.key, cards: [] };
+      /* Like a pack: face down, and out of the collection until it is put
+         away. An Iconic, so it gets the longest turn there is. */
+      state.hold = true;
+      openRip({ title: GOLD.name + ' complete', cards: [res.card], isNew: [isNew],
+                extras: ['Every ' + GOLD.name + ' set, locked in before it ended'].concat(rewardExtras(GOLD.bonus)),
+                onClose: function () { reveal([res.card], [isNew]); } });
+    });
+  }
+
+  function renderEvent() {
+    var panel = byId('eventPanel');
+    if (!panel) { return; }
+    var shown = eventShown();
+    var on = eventOn();
+    panel.hidden = !shown;
+    var sets = EGE.cards.eventSets();
+    var ready = 0;
+    if (on) {
+      ready = sets.filter(function (set) {
+        return !state.eventClaims[set.key] && EGE.cards.fill(set, ownedIds()).complete;
+      }).length;
+      if (!state.eventClaims[GOLD.key] && sets.every(function (set) { return state.eventClaims[set.key]; })) {
+        ready += 1;
+      }
+    }
+    setsReady.event = ready;
+    tabBadge('tabSetsBadge', setsReady.library + setsReady.event);
+    if (!shown) { return; }
+
+    var holder = byId('eventSets');
+    holder.innerHTML = '';
+
+    var banner = el('div', 'ege-event');
+    var title = el('div', 'ege-event__title');
+    title.appendChild(el('span', 'ege-event__name', GOLD.name));
+    var when = el('span', 'ege-event__when', on ? leftText(state.event.ends_at) : 'Over');
+    if (on) { when.dataset.ends = state.event.ends_at; }
+    title.appendChild(when);
+    banner.appendChild(title);
+    var locked = sets.filter(function (set) { return state.eventClaims[set.key]; }).length;
+    banner.appendChild(el('p', 'ege-event__text', on
+      ? 'Gold Rush Packs in the Shop hold Sam\u2019s and Cooper\u2019s cards and every rushing touchdown, ' +
+        'each with a GOLD RUSH sticker, and only those fill these sets. Each set pays its reward when you lock it ' +
+        'in, and all six before it ends earn the Iconic GOLD RUSH card. A traded Gold Rush card can\u2019t be ' +
+        'traded again for ' + GOLD.lockHours + ' hours.'
+      : 'The ' + GOLD.name + ' is over. You locked in ' + locked + ' of its ' + sets.length + ' sets' +
+        (state.eventClaims[GOLD.key] ? ' and earned the GOLD RUSH card.' : '.') +
+        ' Your Gold Rush cards stay in your collection.'));
+    holder.appendChild(banner);
+
+    var grid = el('div', 'ege-library__grid');
+    sets.forEach(function (set) { grid.appendChild(eventSetTile(set, on)); });
+    grid.appendChild(goldRushTile(sets, on));
+    holder.appendChild(grid);
+  }
+
+  /* Every half minute: the time left on the event's box and its pack, and
+     the box and the pack coming and going as it starts and ends with the
+     page left open. */
+  var eventWasOn = null;
+
+  function tickEvent() {
+    var on = eventOn();
+    if (eventWasOn !== null && on !== eventWasOn) {
+      eventWasOn = on;
+      renderPacks();
+      if (!state.hold) { renderEvent(); }
+      return;
+    }
+    eventWasOn = on;
+    Array.prototype.forEach.call(document.querySelectorAll('#cardsContent [data-ends]'), function (node) {
+      node.textContent = node.classList.contains('ege-event__when') ? leftText(node.dataset.ends) : endsText(node.dataset.ends);
+    });
   }
 
   /* --- the five pages ----------------------------------------------------
@@ -3795,16 +4235,24 @@ EGE.cardsView = (function () {
       filter.addEventListener('change', function () { pickState.rarity = filter.value; draw(); });
       col.appendChild(filter);
 
+      /* Not the GOLD RUSH card, which never sells; a Gold Rush card that
+         has just been traded is there but waits to be listed. */
       var cards = ownedIds().map(EGE.cards.byId).filter(function (c) {
-        return c && (pickState.rarity === 'all' || c.rarity === pickState.rarity);
+        return c && !c.reward && (pickState.rarity === 'all' || c.rarity === pickState.rarity);
       }).sort(EGE.cards.compare);
       var grid = el('div', 'ege-tradegrid');
       cards.forEach(function (card) {
         var on = pickState.card === card;
         var node = cardEl(card, { count: state.owned[card.id] });
+        var locked = lockTag(node, state.locks, state.owned, card.id);
         if (on) { node.classList.add('is-picked'); }
         node.setAttribute('aria-pressed', on ? 'true' : 'false');
         pressable(node, describe(card), function () {
+          if (locked) {
+            summary.textContent = 'That ' + GOLD.name + ' card was traded in the last ' + GOLD.lockHours +
+              ' hours. It can be listed again in ' + waitText(lockedOf(state.locks, card.id)[0]) + '.';
+            return;
+          }
           pickState.card = on ? null : card;
           /* A starting price: what the shop would charge for it. */
           if (pickState.card && !input.value) {
@@ -3859,6 +4307,7 @@ EGE.cardsView = (function () {
     renderMarket();
     renderTrades();
     renderLibrary();
+    renderEvent();
   }
 
   function build() {
@@ -3881,6 +4330,7 @@ EGE.cardsView = (function () {
        7:00 AM Central with the page left open. */
     window.setInterval(function () {
       if (state.player && state.loaded && !state.spinning) { renderSpin(); }
+      if (state.player && state.loaded) { tickEvent(); }
     }, 30000);
     Array.prototype.forEach.call(document.querySelectorAll('#cardTabs input'), function (input) {
       input.addEventListener('change', function () { if (input.checked) { setTab(input.value); } });
@@ -3912,7 +4362,10 @@ EGE.cardsView = (function () {
       EGE.cardStore.market(player.email),
       EGE.cardStore.cardPhotos(player.email),
       loadPcOther(),
-      EGE.cardStore.spinToday()
+      EGE.cardStore.spinToday(),
+      EGE.cardStore.eventFor(GOLD.key),
+      EGE.cardStore.eventClaims(player.email, GOLD.key),
+      EGE.cardStore.tradeLocks(player.email)
     ]).then(function (all) {
       if (state.player !== player) { return; }
       if (all[0] === null) {
@@ -3931,6 +4384,10 @@ EGE.cardsView = (function () {
       state.market = all[9];
       state.photos = all[10];
       state.spin = all[12];
+      state.event = all[13];
+      state.eventClaims = all[14];
+      state.locks = all[15] || {};
+      eventWasOn = eventOn();
       state.loaded = all[0] !== null;
       if (all[4] === null && all[0] !== null) {
         say('Your diamonds could not be loaded. Run supabase/schema.sql to set up the diamond tables, then reload.', true);
@@ -4011,7 +4468,9 @@ EGE.cardsView = (function () {
       EGE.wallet.diamondsFor(player.email),
       shop ? EGE.cardStore.shopToday() : null,
       shop ? EGE.cardStore.market(player.email) : null,
-      shop ? EGE.cardStore.recentOpens(RECENT_MAX) : null
+      shop ? EGE.cardStore.recentOpens(RECENT_MAX) : null,
+      /* Whether an admin has started or ended the event, every other check. */
+      pollCount % 2 === 0 ? EGE.cardStore.eventFor(GOLD.key) : null
     ]).then(function (got) {
       polling = false;
       if (state.player !== player || busy()) { return; }
@@ -4052,6 +4511,13 @@ EGE.cardsView = (function () {
       if (got[4] && JSON.stringify(got[4]) !== JSON.stringify(state.recent)) {
         state.recent = got[4];
         renderRecent();
+      }
+      if (got[5] && (!state.event || got[5].starts_at !== state.event.starts_at ||
+                     got[5].ends_at !== state.event.ends_at)) {
+        state.event = got[5];
+        eventWasOn = eventOn();
+        renderPacks();
+        renderEvent();
       }
     }, function () { polling = false; });
   }
@@ -4102,6 +4568,12 @@ EGE.cardsView = (function () {
     state.pcOther = null;
     state.spin = null;
     state.spinning = false;
+    state.event = null;
+    state.eventClaims = {};
+    state.locks = {};
+    eventWasOn = null;
+    setsReady.library = 0;
+    setsReady.event = 0;
     if (state.sell) { window.clearTimeout(state.sell.timer); }
     state.sell = null;
     var panel = byId('collectionPanel');
