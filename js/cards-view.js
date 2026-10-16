@@ -234,8 +234,8 @@ EGE.cardsView = (function () {
     if (opts.isNew) { node.appendChild(el('span', 'ege-tcard__new', 'New')); }
   }
 
-  /* A card printed from Sam's own art (the card-art cards, and the GOLD
-     RUSH card once its art is in): the picture is the whole card. */
+  /* A card printed from Sam's own art (the card-art cards and the GOLD
+     RUSH card): the picture is the whole card. */
   function printedCard(card, opts) {
     var node = el('div', 'ege-tcard ege-tcard--' + card.rarity + ' ege-tcard--art' +
       (card.gold ? ' ege-tcard--gold' : '') + (card.reward ? ' ege-tcard--reward' : ''));
@@ -252,37 +252,12 @@ EGE.cardsView = (function () {
     return node;
   }
 
-  /* The GOLD RUSH card until Sam's art for it is in: gold rays on black,
-     the event's name in gold, and what it was for. */
-  function rewardFace(card, opts) {
-    var r = EGE.cards.rarity(card.rarity);
-    var node = el('div', 'ege-tcard ege-tcard--' + card.rarity + ' ege-tcard--reward ege-tcard--gold');
-    node.style.setProperty('--rarity', r.color);
-    var face = el('div', 'ege-tcard__face ege-tcard__face--reward');
-    var top = el('div', 'ege-tcard__top');
-    top.appendChild(el('span', 'ege-tcard__kind', 'Event reward'));
-    face.appendChild(top);
-    var middle = el('div', 'ege-tcard__rush');
-    middle.appendChild(el('span', 'ege-tcard__rushword', 'Gold'));
-    middle.appendChild(el('span', 'ege-tcard__rushword', 'Rush'));
-    middle.appendChild(el('span', 'ege-tcard__rushline', 'Every set, before it ended'));
-    face.appendChild(middle);
-    var foot = el('div', 'ege-tcard__foot');
-    foot.appendChild(el('span', 'ege-tcard__rarity', r.name));
-    foot.appendChild(el('span', 'ege-tcard__when', 'Limited time'));
-    face.appendChild(foot);
-    node.appendChild(face);
-    cardTags(node, opts);
-    return node;
-  }
-
   /* A card's face. Sized by whatever holds it: every measurement inside is
      in container units, so the same card is a thumbnail in the binder and a
      hand-sized thing in a pack. */
   function cardEl(card, options) {
     var opts = options || {};
     if (card.art) { return printedCard(card, opts); }
-    if (card.reward) { return rewardFace(card, opts); }
     var r = EGE.cards.rarity(card.rarity);
     var team = card.team || {};
 

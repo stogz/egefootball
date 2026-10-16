@@ -4664,45 +4664,6 @@ html.ege-noscroll body { overflow: hidden; }
 }
 .ege-tcard--art .ege-sticker.ege-tcard__sticker { top: 12.4%; right: 4.2%; }
 
-/* The GOLD RUSH card until its art is in: gold rays on black and the
-   event's name in gold. */
-.ege-tcard__face--reward {
-  background:
-    radial-gradient(circle at 50% 46%, rgba(255, 214, 106, .55), rgba(255, 214, 106, 0) 46%),
-    repeating-conic-gradient(from 0deg at 50% 46%,
-      rgba(255, 214, 106, .22) 0deg 3deg, rgba(255, 214, 106, 0) 3deg 9deg),
-    #17120a;
-}
-.ege-tcard__rush {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1cqw;
-  text-align: center;
-}
-.ege-tcard__rushword {
-  font-family: var(--fb-font-display);
-  font-size: 24cqw;
-  line-height: .92;
-  text-transform: uppercase;
-  background: linear-gradient(180deg, #fff6c8 0%, #ffd34f 40%, #b07a12 58%, #ffe392 78%, #d89b28 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(.8cqw .8cqw 0 #000);
-}
-.ege-tcard__rushline {
-  margin-top: 3cqw;
-  font-size: 4.4cqw;
-  font-weight: 800;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--fb-cream);
-}
-
 /* A Gold Rush card traded in the last 48 hours, none of whose copies can
    go again yet: a padlock and the time left, off its bottom left corner. */
 .ege-tcard__lock {

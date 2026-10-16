@@ -263,8 +263,7 @@ EGE.cards = (function () {
      Sam's week 18 and Cooper's week 11 in 2019, both printed Mystic), which
      only ever come out of it ('a:...:gr'). Finishing every set before it
      ends pays the Iconic GOLD RUSH card ('r:gold-rush:gr'), which no pack
-     holds. Its art is still to come from Sam; until then it is drawn as a
-     gold placeholder (set `rewardImage` to show it).
+     holds: Sam's art of Sam and Cooper's 2019 seasons (`rewardImage`).
 
      Gold Rush cards trade, but a copy that has just been traded cannot be
      traded again for 48 hours, so one set of cards cannot be passed round
@@ -277,7 +276,7 @@ EGE.cards = (function () {
     lockHours: 48,
     pack: 'gold-rush',
     reward: 'r:gold-rush:gr',
-    rewardImage: null,
+    rewardImage: 'icon/cards/gold-rush-iconic.webp',
     /* Paid with the GOLD RUSH card, on top of it. */
     bonus: { diamonds: 40, booster: 'boost-2-5' }
   };
@@ -510,12 +509,12 @@ EGE.cards = (function () {
 
   /* The Iconic GOLD RUSH card, paid for finishing every Gold Rush set. It
      is not a game, so most of what a card says is left blank; the page
-     draws it from `art` once Sam's art is in, and a placeholder until. */
+     prints Sam's art for it, the two backs' 2019 seasons. */
   function rewardCard() {
     return {
       id: GOLD_RUSH.reward, kind: 'reward', reward: true, gold: true, eventKey: GOLD_RUSH.key,
       rarity: 'iconic', art: GOLD_RUSH.rewardImage, points: 0,
-      season: EGE.currentSeason, week: 0, slug: null,
+      season: 2019, week: 0, slug: null,
       player: { name: 'Gold Rush', first: 'Gold Rush', headshot: '' },
       position: '', team: null, opponent: '', versus: 'Gold Rush', event: 'Gold Rush',
       headline: 'Every Gold Rush set', line: 'Finished every Gold Rush set before it ended.',
