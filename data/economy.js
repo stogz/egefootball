@@ -205,14 +205,45 @@ EGE.economy = (function () {
     return touchdownsIn(stats) * tdRateFor(player && player.position);
   }
 
+  /* --- the postseason ----------------------------------------------------
+
+     A playoff game -- any game with `playoff: true`, the conference title
+     games and bowls included -- pays 1.25 times the credits and twice the
+     diamonds of a regular-season one (Sam, 2026-10-16). Both come off the
+     same fantasy points: the credits are the points times the position's
+     share times 1.25, rounded up once, and the diamonds are the plain
+     credits times two, not the boosted credits doubled again. No booster
+     rides on a playoff game, so there is nothing else for it to stack with.
+
+     From 2022 on. The seasons before it were paid as they went, and their
+     ledger tops an award up to whatever it is worth now, so boosting them
+     would pay out again the next time one of their weeks was published. */
+  var PLAYOFF_CREDITS = 1.25;
+  var PLAYOFF_DIAMONDS = 2;
+  var PLAYOFF_FROM = 2022;
+
+  function playoffBoosted(season, playoff) {
+    return Boolean(playoff) && (season || EGE.currentSeason) >= PLAYOFF_FROM;
+  }
+
+  /* What a playoff game multiplies a game's diamonds by before any booster:
+     2, or 1 for a regular-season game. The Player Card bonuses ride on the
+     same number (data/cards.js). */
+  function playoffDiamondTimes(season, playoff) {
+    return playoffBoosted(season, playoff) ? PLAYOFF_DIAMONDS : 1;
+  }
+
   /* --- what one game pays ----------------------------------------------- */
 
-  function gameCredits(player, stats, season) {
+  /* `playoff` is the game's own flag. Left out, a game is paid as a
+     regular-season one. */
+  function gameCredits(player, stats, season, playoff) {
     if (!stats) { return 0; }
     if (!paysFantasy(season)) { return touchdownCredits(player, stats); }
 
     var share = fantasyShareFor(player && player.position);
-    var credits = Math.ceil(Math.round(fantasyPoints(stats) * share * 100) / 100);
+    var times = playoffBoosted(season, playoff) ? PLAYOFF_CREDITS : 1;
+    var credits = Math.ceil(Math.round(fantasyPoints(stats) * share * times * 100) / 100);
     return Math.max(1, credits);
   }
 
@@ -252,7 +283,7 @@ EGE.economy = (function () {
        pay_credit_awards in supabase/schema.sql), so the new scoring needed
        no change to the database. */
     EGE.gamesPlayed(player, year).forEach(function (game) {
-      var credits = gameCredits(player, game.stats, year);
+      var credits = gameCredits(player, game.stats, year, game.playoff);
       if (!credits) { return; }
 
       var what;
@@ -262,6 +293,7 @@ EGE.economy = (function () {
         var tds = touchdownsIn(game.stats);
         what = tds + (tds === 1 ? ' touchdown' : ' touchdowns');
       }
+      if (playoffBoosted(year, game.playoff)) { what += ' at the playoff ' + PLAYOFF_CREDITS + 'x'; }
       out.push({
         key: 'td-w' + game.week,
         credits: credits,
@@ -283,7 +315,8 @@ EGE.economy = (function () {
      booster riding on it multiplies them: a 1.5x Booster pays 1.5 times the
      diamonds, a 2.0x twice and a 2.5x two and a half times, rounded up
      again. The multiplier is the booster's own (`multiplier` in
-     data/shop.js), so the two can never disagree.
+     data/shop.js), so the two can never disagree. A playoff game pays
+     twice the diamonds instead (see the postseason above).
 
      They start with the 2022 season. Every season before it was paid in
      credits as it went, and handing out four seasons of diamonds at once
@@ -300,10 +333,13 @@ EGE.economy = (function () {
     return (season || EGE.currentSeason) >= DIAMONDS_FROM;
   }
 
-  function gameDiamonds(player, stats, season, multiplier) {
+  function gameDiamonds(player, stats, season, multiplier, playoff) {
     if (!stats || !paysDiamonds(season)) { return 0; }
+    /* The plain credits, before the playoff 1.25x: the playoff's own 2x is
+       what a playoff game's diamonds are boosted by. */
     var credits = gameCredits(player, stats, season);
     var times = typeof multiplier === 'number' && multiplier > 0 ? multiplier : 1;
+    times *= playoffDiamondTimes(season, playoff);
     return Math.ceil(Math.round(credits * times * 100) / 100);
   }
 
@@ -319,13 +355,15 @@ EGE.economy = (function () {
 
     EGE.gamesPlayed(player, year).forEach(function (game) {
       var booster = EGE.boosterOn ? EGE.boosterOn(player, game) : null;
-      var diamonds = gameDiamonds(player, game.stats, year, booster && booster.multiplier);
+      var diamonds = gameDiamonds(player, game.stats, year, booster && booster.multiplier,
+                                  game.playoff);
       if (!diamonds) { return; }
       out.push({
         key: 'game-w' + game.week,
         diamonds: diamonds,
         note: fantasyPoints(game.stats) + ' fantasy points' +
               (booster ? ' with a ' + booster.name : '') +
+              (playoffBoosted(year, game.playoff) ? ' at the playoff ' + PLAYOFF_DIAMONDS + 'x' : '') +
               ' in week ' + game.week + ' v ' + game.opponent
       });
     });
@@ -355,6 +393,11 @@ EGE.economy = (function () {
     fantasyShareFor: fantasyShareFor,
     paysFantasy: paysFantasy,
     gameCredits: gameCredits,
+    PLAYOFF_CREDITS: PLAYOFF_CREDITS,
+    PLAYOFF_DIAMONDS: PLAYOFF_DIAMONDS,
+    PLAYOFF_FROM: PLAYOFF_FROM,
+    playoffBoosted: playoffBoosted,
+    playoffDiamondTimes: playoffDiamondTimes,
     rateText: rateText,
     awardsEarned: awardsEarned,
     DIAMONDS_FROM: DIAMONDS_FROM,

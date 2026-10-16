@@ -1077,11 +1077,13 @@ EGE.cards = (function () {
     };
   }
 
-  /* The bonus one game pays at a rank. */
-  function playerBonus(player, stats, season, rankKey) {
+  /* The bonus one game pays at a rank. A playoff game pays twice it, the
+     same 2x as the game's own diamonds (data/economy.js). */
+  function playerBonus(player, stats, season, rankKey, playoff) {
     var r = PLAYER_RANKS.filter(function (one) { return one.key === rankKey; })[0];
     if (!r || !r.bonus || !stats) { return 0; }
-    var base = EGE.economy.gameCredits(player, stats, season);
+    var base = EGE.economy.gameCredits(player, stats, season) *
+               EGE.economy.playoffDiamondTimes(season, playoff);
     return Math.ceil(Math.round(base * r.bonus * 100) / 100);
   }
 
@@ -1098,12 +1100,14 @@ EGE.cards = (function () {
       EGE.gamesPlayed(player, year).forEach(function (game) {
         if (!game.stats || game.injured || game.bye) { return; }
         var rankKey = pc.rank ? pc.rank.key : null;
-        var diamonds = rankKey ? playerBonus(player, game.stats, year, rankKey) : 0;
+        var diamonds = rankKey ? playerBonus(player, game.stats, year, rankKey, game.playoff) : 0;
         out.push({
           key: 'pc-' + player.slug + '-w' + game.week,
           diamonds: diamonds,
           note: (pc.rank ? pc.rank.name : 'No') + ' ' + player.first + ' Player Card, week ' +
-                game.week + ' v ' + game.opponent
+                game.week + ' v ' + game.opponent +
+                (EGE.economy.playoffBoosted(year, game.playoff) ?
+                  ' at the playoff ' + EGE.economy.PLAYOFF_DIAMONDS + 'x' : '')
         });
       });
     });

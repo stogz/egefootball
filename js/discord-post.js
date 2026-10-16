@@ -19,8 +19,8 @@
    all are simply left out.
 
    A postseason week is headed "Playoffs Week One" rather than "Week
-   Fourteen" -- "Postseason Week One" in college, where each game carries
-   its name (SEC Championship, Rose Bowl) beside the opponent. Which weeks
+   Fourteen", in college as in high school; a college game carries its
+   name (SEC Championship, Rose Bowl) beside the opponent. Which weeks
    those are is read off the games -- see EGE.playoffWeeks in
    data/games.js -- so the heading does not need telling when the regular
    season ends.
@@ -118,14 +118,13 @@ EGE.discordPost = (function () {
 
   /* What the message is headed. The postseason counts from one again: week
      fourteen is Playoffs Week One, and a channel reading it should not have
-     to know which week of the year the brackets came out. A college one is
-     Postseason Week One: its weeks are title games and bowls as much as
-     playoff rounds, and each embed names the game it is. */
+     to know which week of the year the brackets came out. College too, where
+     the weeks are title games and bowls as much as playoff rounds: each
+     embed names the game it is (Sam, 2026-10-16). */
   function weekTitle(week, season) {
     var round = EGE.playoffRound(week, season);
     if (!round) { return 'Week ' + weekWord(week); }
-    var college = EGE.tierFor && EGE.tierFor(season || EGE.currentSeason) === 'college';
-    return (college ? 'Postseason Week ' : 'Playoffs Week ') + weekWord(round);
+    return 'Playoffs Week ' + weekWord(round);
   }
 
   /* --- the pieces of an embed ------------------------------------------------ */

@@ -477,18 +477,20 @@ EGE.boosterOn = function (player, game) {
 /* --- what a game paid ----------------------------------------------------- */
 
 /* The credits a published game earned, which is what the marker on the
-   schedule row is showing. Nothing is owed for a week nobody has put out. */
+   schedule row is showing. Nothing is owed for a week nobody has put out.
+   A playoff game pays the playoff 1.25x (see data/economy.js). */
 EGE.creditsFromGame = function (player, game) {
   if (!EGE.isFinal(game)) { return 0; }
-  return EGE.economy.gameCredits(player, game.stats, game.season);
+  return EGE.economy.gameCredits(player, game.stats, game.season, game.playoff);
 };
 
 /* And the diamonds, which are the same credits times the booster that was
-   riding on the game. */
+   riding on the game, or twice them for a playoff game. */
 EGE.diamondsFromGame = function (player, game) {
   if (!EGE.isFinal(game)) { return 0; }
   var booster = EGE.boosterOn(player, game);
-  return EGE.economy.gameDiamonds(player, game.stats, game.season, booster && booster.multiplier);
+  return EGE.economy.gameDiamonds(player, game.stats, game.season, booster && booster.multiplier,
+                                  game.playoff);
 };
 
 /* --- how good the defense across the way is ------------------------------

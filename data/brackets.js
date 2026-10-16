@@ -501,24 +501,24 @@ window.EGE = window.EGE || {};
     }
   };
 
-  /* 2022. Michigan, unbeaten Big Ten champion, is the top seed and takes
-     the Fiesta Bowl -- against Ohio State, the No. 4, the team it beat in
-     November. Georgia lost the SEC title game to Alabama and is still
-     second; Alabama, the champion it lost to, is third, and they meet
-     again in the Peach. */
+  /* 2022. The real field -- Georgia, Michigan, TCU and Ohio State -- with
+     the seeds moved by what happened here: Georgia lost the SEC title game
+     to Alabama, so Michigan, unbeaten Big Ten champion, is the top seed and
+     takes the Fiesta Bowl against Ohio State, the No. 4, the team it beat in
+     November. Georgia is second and meets TCU, which lost the Big 12 title
+     game to Texas, in the Peach. Alabama, SEC champion at 11-2, is the first
+     team out and plays Texas in the Sugar Bowl, the way the real Alabama
+     played the Big 12 champion there (Sam, 2026-10-16). */
   var CFP_2022 = {
     semifinal: 'Dec 31', final: 'Jan 9',
     left: { bowl: 'Fiesta Bowl', game: m(1, 'Michigan', 4, 'Ohio State') },
-    right: { bowl: 'Peach Bowl', game: m(2, 'Georgia', 3, 'Alabama') }
+    right: { bowl: 'Peach Bowl', game: m(2, 'Georgia', 3, 'TCU') }
   };
 
   EGE.brackets[2022] = {
 
     /* --- Sam Stogsdill, Jaykeb Stewart ------------------------------------ */
-    ohioState: cfp('Ohio State', CFP_2022),
-
-    /* --- Andrew Parr ------------------------------------------------------ */
-    alabama: cfp('Alabama', CFP_2022)
+    ohioState: cfp('Ohio State', CFP_2022)
   };
 
   /* The bracket a player's school was in that season, or null. Carlsbad in
