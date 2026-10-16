@@ -4419,6 +4419,173 @@ html.ege-noscroll body { overflow: hidden; }
   animation: ege-sheen 6s ease-in-out infinite;
 }
 
+/* --- holographic ---------------------------------------------------------
+
+   A holo is three copies of one card merged into one (js/cards-view.js).
+   It keeps its rarity's frame -- the colour around the edge, foil and all
+   -- and everything inside goes holographic: the face in a rainbow foil
+   with fine diffraction lines, the dark top and foot in a dark foil, the
+   score tab, the nameplate and the HOLO seal in a brighter one, the picture
+   under a faint rainbow with glitter, and the big numbers printed in foil.
+
+   Held still in the binder, the shop, trades and showcases, like the other
+   foils, and with no blend modes there, so a page of holos costs no more
+   than a page of cards. In a pack and up close the foil drifts, and up
+   close it catches the light where the pointer is and the card leans
+   toward it. */
+
+.ege-tcard--holo {
+  --holo: linear-gradient(125deg, #ffc6ec 0%, #ffe1b0 14%, #f9ffc2 28%, #c6ffcf 42%,
+                          #b6f1ff 56%, #c2d0ff 70%, #e3c6ff 84%, #ffc6ec 100%);
+  --holo-bright: linear-gradient(125deg, #ff8fd2 0%, #ffc874 16%, #f1ff86 32%, #8cffa4 48%,
+                                 #7de6ff 64%, #9eadff 80%, #df98ff 92%, #ff8fd2 100%);
+  --holo-dark: linear-gradient(115deg, #1d2416 0%, #2e1f43 22%, #0f3240 45%, #302c10 68%,
+                               #3a1730 86%, #1d2416 100%);
+  --holo-lines: repeating-linear-gradient(115deg,
+                  rgba(255, 255, 255, 0) 0 3.2cqw, rgba(255, 255, 255, .5) 3.2cqw 3.8cqw,
+                  rgba(255, 255, 255, 0) 3.8cqw 6.6cqw);
+}
+.ege-tcard--holo:not(.ege-tcard--legendary):not(.ege-tcard--mystic):not(.ege-tcard--iconic) {
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, .35), 0 0 14px rgba(170, 160, 255, .6);
+}
+
+.ege-tcard--holo .ege-tcard__face {
+  background: var(--holo-lines), var(--holo);
+  background-size: 100% 100%, 240% 240%;
+  background-position: 0 0, 30% 40%;
+}
+.ege-tcard--holo .ege-tcard__top,
+.ege-tcard--holo .ege-tcard__foot {
+  background:
+    linear-gradient(100deg, rgba(255, 143, 210, .26), rgba(125, 230, 255, .24) 50%, rgba(241, 255, 134, .22)),
+    var(--holo-dark);
+}
+.ege-tcard--holo .ege-tcard__score,
+.ege-tcard--holo .ege-tcard__plate {
+  background: var(--holo-lines), var(--holo-bright);
+  background-size: 100% 100%, 260% 260%;
+  background-position: 0 0, 15% 50%;
+  color: var(--fb-ink);
+}
+.ege-tcard--holo .ege-tcard__plate { background-position: 0 0, 65% 50%; }
+.ege-tcard--holo .ege-tcard__meta { opacity: .9; }
+.ege-tcard--holo .ege-tcard__line { color: #4a4255; }
+
+/* Over the picture: a rainbow streak across it, a wash of rainbow, and a
+   few points of glitter. */
+.ege-tcard--holo .ege-tcard__art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, .85) 0 .28cqw, rgba(255, 255, 255, 0) .55cqw) 3cqw 4cqw / 17cqw 15cqw,
+    radial-gradient(circle, rgba(255, 255, 255, .7) 0 .22cqw, rgba(255, 255, 255, 0) .45cqw) 11cqw 12cqw / 23cqw 19cqw,
+    linear-gradient(118deg, rgba(255, 255, 255, 0) 18%, rgba(255, 143, 210, .42) 27%, rgba(255, 200, 116, .38) 33%,
+                    rgba(241, 255, 134, .34) 38%, rgba(140, 255, 164, .36) 43%, rgba(125, 230, 255, .42) 49%,
+                    rgba(223, 152, 255, .4) 55%, rgba(255, 255, 255, 0) 64%),
+    linear-gradient(125deg, rgba(255, 143, 210, .3), rgba(255, 200, 116, .14) 25%,
+                    rgba(140, 255, 164, .18) 50%, rgba(125, 230, 255, .26) 75%, rgba(223, 152, 255, .32));
+}
+
+/* The big yards and touchdowns in foil. A text shadow would cover a
+   gradient clipped to the letters, so the ink edge is a drop shadow. */
+.ege-tcard--holo .ege-tcard__yards b {
+  background: var(--holo-bright);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(.8cqw .8cqw 0 var(--fb-ink));
+}
+
+/* HOLO in the picture's top right, the corner the team's logo leaves. */
+.ege-tcard__holo {
+  position: absolute;
+  top: 3cqw;
+  right: 3cqw;
+  z-index: 3;
+  padding: .9cqw 2.6cqw;
+  border: .8cqw solid var(--fb-ink);
+  border-radius: 999px !important;
+  background: var(--holo-lines), var(--holo-bright);
+  background-size: 100% 100%, 240% 240%;
+  color: var(--fb-ink);
+  font-size: 4.4cqw;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  box-shadow: .6cqw .6cqw 0 rgba(0, 0, 0, .45);
+}
+
+/* Up close and in a pack, the foil drifts. */
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--holo .ege-tcard__face {
+  animation: ege-holo-drift 7s ease-in-out infinite;
+}
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--holo :is(.ege-tcard__score, .ege-tcard__plate, .ege-tcard__holo) {
+  animation: ege-holo-drift 5s ease-in-out infinite reverse;
+}
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--holo .ege-tcard__yards b {
+  animation: ege-holo-text 4s linear infinite;
+}
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--holo .ege-tcard__art::after {
+  mix-blend-mode: screen;
+  background-size: 17cqw 15cqw, 23cqw 19cqw, 260% 260%, 220% 220%;
+  animation: ege-holo-glitter 6s ease-in-out infinite;
+}
+/* And catches the light: a glare and a turn of rainbow where the pointer
+   is, its top corner until it moves. */
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--holo .ege-tcard__face::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  background:
+    radial-gradient(circle at var(--mx, 22%) var(--my, 12%), rgba(255, 255, 255, .45), rgba(255, 255, 255, 0) 38%),
+    conic-gradient(from 30deg at var(--mx, 22%) var(--my, 12%),
+      rgba(255, 143, 210, .35), rgba(255, 200, 116, .35), rgba(241, 255, 134, .35),
+      rgba(140, 255, 164, .35), rgba(125, 230, 255, .35), rgba(158, 173, 255, .35),
+      rgba(223, 152, 255, .35), rgba(255, 143, 210, .35));
+}
+.ege-zoom__card.is-tilting { perspective: 900px; }
+.ege-zoom__card.is-tilting > .ege-tcard {
+  transform: rotateX(var(--tx, 0deg)) rotateY(var(--ty, 0deg));
+  transition: transform .14s ease-out;
+}
+
+@keyframes ege-holo-drift {
+  0%, 100% { background-position: 0 0, 10% 25%; }
+  50%      { background-position: 0 0, 90% 75%; }
+}
+@keyframes ege-holo-glitter {
+  0%, 100% { background-position: 3cqw 4cqw, 11cqw 12cqw, 100% 50%, 0% 50%; opacity: .9; }
+  50%      { background-position: 3.6cqw 3.4cqw, 10.2cqw 12.8cqw, 0% 50%, 100% 50%; opacity: 1; }
+}
+
+/* Three or more of a card in the binder: the count in holo, a nudge that
+   they can be merged. */
+.ege-tcard__count--merge {
+  background: linear-gradient(125deg, #ff8fd2, #ffc874 25%, #8cffa4 50%, #7de6ff 75%, #df98ff);
+}
+
+/* Merge in a card's close-up: holo, and dark with gold once armed. */
+.ege-rip__actions .fb-btn.ege-zoom__merge {
+  border-color: var(--fb-cream);
+  color: var(--fb-ink);
+  background: linear-gradient(125deg, #ff8fd2, #ffc874 25%, #8cffa4 50%, #7de6ff 75%, #df98ff);
+}
+.ege-rip__actions .fb-btn.ege-zoom__merge.is-armed {
+  border-color: var(--fb-gold);
+  color: var(--fb-gold);
+  background: var(--fb-ink);
+}
+
 /* --- the back ------------------------------------------------------------ */
 
 .ege-tcard--back { background: var(--fb-accent); }
@@ -6148,6 +6315,137 @@ html.ege-noscroll body { overflow: hidden; }
   letter-spacing: 0;
 }
 
+/* --- the daily spin --------------------------------------------------------
+
+   The wheel on the Shop page: an SVG drawn once by js/cards-view.js and
+   turned with a transform, a pointer at the top, and the EGE hub in the
+   middle. The odds, the Spin button and what today's spin won sit beside
+   it, under it on a phone. */
+
+.ege-spin {
+  display: grid;
+  grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+  gap: 32px;
+  align-items: center;
+}
+.ege-spin__wheelwrap {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  aspect-ratio: 1;
+  justify-self: center;
+  margin-top: 12px;
+}
+.ege-spin__wheel {
+  position: absolute;
+  inset: 0;
+  border-radius: 50% !important;
+  box-shadow: 5px 6px 0 rgba(0, 0, 0, .35);
+  transition: box-shadow .4s ease;
+}
+.ege-spin__wheel svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.ege-spin__rim { fill: var(--fb-ink); }
+.ege-spin__slice { stroke: var(--fb-ink); stroke-width: 1.2; stroke-linejoin: round; }
+.ege-spin__slice--jackpot { stroke: var(--fb-gold); stroke-width: 1.4; }
+.ege-spin__label {
+  font-family: var(--fb-font-body);
+  font-size: 8.6px;
+  font-weight: 800;
+  letter-spacing: .05em;
+}
+.ege-spin__label--jackpot { font-size: 7.4px; letter-spacing: .03em; }
+.ege-spin__peg { fill: var(--fb-gold); stroke: var(--fb-ink); stroke-width: 1; }
+
+/* The pointer: an ink arrowhead with the accent inside it, over the rim. */
+.ege-spin__pointer {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  z-index: 3;
+  width: 0;
+  height: 0;
+  translate: -50% 0;
+  border-left: 17px solid transparent;
+  border-right: 17px solid transparent;
+  border-top: 34px solid var(--fb-ink);
+}
+.ege-spin__pointer::after {
+  content: '';
+  position: absolute;
+  top: -31px;
+  left: -11px;
+  border-left: 11px solid transparent;
+  border-right: 11px solid transparent;
+  border-top: 22px solid var(--fb-accent);
+}
+.ege-spin__hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  width: 18%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  display: grid;
+  place-items: center;
+  border-radius: 50% !important;
+  background: var(--fb-ink);
+  border: 3px solid var(--fb-cream);
+  box-shadow: 0 0 0 3px var(--fb-ink);
+  font-family: var(--fb-font-display);
+  font-size: clamp(.75rem, 2.4vw, .9375rem);
+}
+.ege-spin__hub b { font-weight: 400; color: var(--fb-accent); }
+
+/* Where it landed: gold round the wheel, and the whole rainbow on a
+   jackpot. */
+.ege-spin__wheelwrap.is-won .ege-spin__wheel {
+  box-shadow: 0 0 0 5px var(--fb-gold), 0 0 30px rgba(240, 184, 42, .85);
+}
+.ege-spin__wheelwrap.is-jackpot .ege-spin__wheel {
+  animation: ege-spin-jackpot 1.2s ease-in-out 2;
+  box-shadow: 0 0 0 5px #df98ff, 0 0 36px rgba(223, 152, 255, .9);
+}
+@keyframes ege-spin-jackpot {
+  0%, 100% { box-shadow: 0 0 0 5px #ff8fd2, 0 0 30px rgba(255, 143, 210, .9); }
+  33%      { box-shadow: 0 0 0 5px #7de6ff, 0 0 40px rgba(125, 230, 255, .9); }
+  66%      { box-shadow: 0 0 0 5px #f1ff86, 0 0 36px rgba(241, 255, 134, .9); }
+}
+
+.ege-spin__side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.ege-spin__side .ege-item__text { margin: 0; }
+.ege-spin__odds {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 22px;
+}
+.ege-spin__odd { display: flex; align-items: center; gap: 2px; font-size: .875rem; font-weight: 700; }
+.ege-spin__oddname { flex: 1 1 auto; min-width: 0; }
+.ege-spin__oddpct { font-variant-numeric: tabular-nums; color: var(--fb-muted); }
+.ege-spin__odd--jackpot .ege-spin__oddname { color: #6f3fc0; }
+.ege-spin__go { align-self: flex-start; min-width: 180px; font-size: 1.0625rem; letter-spacing: .1em; text-transform: uppercase; }
+.ege-spin__go:not(:disabled) { animation: ege-spin-ready 1.8s ease-in-out infinite; }
+@keyframes ege-spin-ready {
+  0%, 100% { box-shadow: 4px 4px 0 var(--fb-ink); }
+  50%      { box-shadow: 4px 4px 0 var(--fb-ink), 0 0 0 5px rgba(229, 110, 40, .35); }
+}
+.ege-spin__result { margin: 0; font-weight: 700; }
+.ege-spin__result:empty { display: none; }
+.ege-spin__won { display: flex; flex-wrap: wrap; gap: 10px; }
+.ege-spin__won:empty { display: none; }
+.ege-spin__won > .ege-tcard { width: 84px; cursor: pointer; transition: transform .16s ease; }
+.ege-spin__won > .ege-tcard:hover { transform: translateY(-3px); }
+.ege-spin__won > .ege-tcard:focus-visible { outline: 3px solid var(--fb-accent); outline-offset: 3px; }
+
+@media (max-width: 760px) {
+  .ege-spin { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .ege-spin__wheelwrap { max-width: 300px; }
+  .ege-spin__go { align-self: stretch; }
+}
+
 /* --- the shop's daily cards ------------------------------------------------- */
 
 .ege-daily {
@@ -6289,6 +6587,11 @@ html.ege-noscroll body { overflow: hidden; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .ege-rip__stage .ege-tcard--holo .ege-tcard__face,
+  .ege-rip__stage .ege-tcard--holo .ege-tcard__face *,
+  .ege-rip__stage .ege-tcard--holo .ege-tcard__art::after,
+  .ege-spin__go,
+  .ege-spin__wheelwrap.is-jackpot .ege-spin__wheel,
   .ege-rip__stage .ege-tcard::after,
   .ege-rip__stage .ege-tcard--mystic,
   .ege-rip__stage .ege-tcard--iconic,
