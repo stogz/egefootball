@@ -398,7 +398,7 @@ EGE.cardsView = (function () {
     var cover = EGE.cards.packCover(pack);
     var year = pack.season || (pack.seasonOnly ? EGE.currentSeason : null);
     var art = el('div', 'ege-pack ege-pack--' + (pack.season ? 'year' : pack.key) +
-      (cover ? ' ege-pack--' + cover.theme + ' ege-pack--cover' : ''));
+      (cover ? ' ege-pack--' + cover.theme : '') + (cover && cover.image ? ' ege-pack--cover' : ''));
     /* Every pack's shimmer and glow keep time with the clock, so redrawing
        the packs (a new balance, the Season Pack's arrows) carries on where
        they were instead of starting them all over at once. */
@@ -420,25 +420,21 @@ EGE.cardsView = (function () {
       body.appendChild(logo);
     }
     body.appendChild(el('span', 'ege-pack__prizm'));
-    /* One player, or an event's two side by side (`players`, each with
-       where his middle stands across the pack). */
-    var standing = cover ? (cover.players || [cover]) : [];
-    standing.forEach(function (one) {
-      var photo = el('img', 'ege-pack__player' + (cover.players ? ' ege-pack__player--duo' : ''));
-      photo.src = one.image;
-      if (one.zoom) { photo.style.setProperty('--zoom', one.zoom); }
-      if (one.drop) { photo.style.setProperty('--drop', one.drop + '%'); }
-      if (one.left) { photo.style.setProperty('--left', one.left + '%'); }
+    if (cover && cover.image) {
+      var photo = el('img', 'ege-pack__player');
+      photo.src = cover.image;
+      if (cover.zoom) { photo.style.setProperty('--zoom', cover.zoom); }
+      if (cover.drop) { photo.style.setProperty('--drop', cover.drop + '%'); }
       photo.alt = '';
       photo.decoding = 'async';
       photo.draggable = false;
       /* A picture that will not load leaves the plain pack, not a hole. */
       photo.addEventListener('error', function () {
         photo.remove();
-        if (!body.querySelector('.ege-pack__player')) { art.classList.remove('ege-pack--cover'); }
+        art.classList.remove('ege-pack--cover');
       });
       body.appendChild(photo);
-    });
+    }
 
     var brand = el('span', 'ege-pack__brand');
     brand.appendChild(el('b', null, 'EGE'));

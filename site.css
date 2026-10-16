@@ -4981,9 +4981,8 @@ html.ege-noscroll body { overflow: hidden; }
   --pack-deep: #3e0516;
   --pack-hi: #f3e6ea;
 }
-/* The Gold Rush Pack: gold foil, Cooper and Sam side by side on it, a
-   dark gold for the bars, and it glows gold the way the Pro Pack glows
-   purple. */
+/* The Gold Rush Pack: gold foil with nobody on it, a dark gold for the
+   bars, and it glows gold the way the Pro Pack glows purple. */
 .ege-pack.ege-pack--goldrush {
   --foil: linear-gradient(135deg, #5a3a06 0%, #c58a17 18%, #ffe392 34%, #d89b28 50%,
                           #fff0a8 66%, #b57712 82%, #5a3a06 100%);
@@ -4999,10 +4998,8 @@ html.ege-noscroll body { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .ege-pack.ege-pack--goldrush { animation: none; }
 }
-/* Two players, each standing where his `--left` says. */
-.ege-pack__player.ege-pack__player--duo { left: var(--left, 50%); }
-/* Two words across the pack, a size down. */
-.ege-pack--goldrush.ege-pack--cover .ege-pack__name { font-size: 15cqw; }
+/* Its two words one over the other, in the middle of the pack. */
+.ege-pack--goldrush .ege-pack__name { top: 33%; white-space: normal; line-height: .95; }
 /* Gold nuggets on a dark band above the foot band. */
 .ege-pack--goldrush .ege-pack__foot::before {
   content: '';

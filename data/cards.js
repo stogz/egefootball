@@ -196,18 +196,10 @@ EGE.cards = (function () {
             logo: 'icon/packs/2022-unc-logo.webp', theme: 'unc', zoom: 1.2, drop: 1.5 }
   };
 
-  /* The Gold Rush Pack's cover: the two backs the event is about, Cooper
-     at Carlsbad and Sam at Normal Community, side by side on gold foil.
-     `players` takes the place of `image`; each one's `left` is where his
-     middle stands, in % across the pack. */
+  /* The Gold Rush Pack's cover: gold foil and its name, nobody on it
+     (Sam, 2026-10-16). */
   var EVENT_COVERS = {
-    'gold-rush': {
-      theme: 'goldrush',
-      players: [
-        { player: 'cooper-clark', image: 'icon/packs/2018-cooper-clark.webp', left: 30, zoom: 0.92 },
-        { player: 'sam-stogsdill', image: 'icon/packs/2019-sam-stogsdill.webp', left: 66, zoom: 0.92 }
-      ]
-    }
+    'gold-rush': { theme: 'goldrush' }
   };
 
   /* The cover for a pack, or null. */
