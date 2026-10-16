@@ -2746,8 +2746,9 @@ EGE.cardsView = (function () {
      diamonds go straight on the balance.
 
      The slices are sized for the eye, not to the odds -- at their real
-     size the two jackpots would be slivers too thin to read -- and the real
-     odds are listed beside the wheel. */
+     size the two jackpots would be slivers too thin to read -- and the odds
+     are not shown on the page (Sam, 2026-10-16). Once today's spin is spun
+     the wheel goes, leaving what it won, until the next one. */
   var WHEEL = [
     { prize: 'uncommon', deg: 60 },
     { prize: 'diamonds', deg: 44 },
@@ -2772,7 +2773,9 @@ EGE.cardsView = (function () {
   };
   var SPIN_MS = 5200;
 
-  var wheel = { drawn: false, turn: 0, prize: null };
+  /* `keep` is when the wheel may go after a spin, once it has shown where
+     it stopped. */
+  var wheel = { drawn: false, turn: 0, prize: null, keep: 0 };
 
   function polar(r, deg) {
     var a = deg * Math.PI / 180;
@@ -2806,21 +2809,6 @@ EGE.cardsView = (function () {
       at += slice.deg;
     });
     holder.innerHTML = svg.concat(pegs, ['</svg>']).join('');
-  }
-
-  /* The odds beside the wheel, the real ones. */
-  function drawSpinOdds() {
-    var list = byId('spinOdds');
-    if (list.childElementCount) { return; }
-    EGE.cards.SPIN.prizes.forEach(function (prize) {
-      var item = el('li', 'ege-spin__odd' + (prize.jackpot ? ' ege-spin__odd--jackpot' : ''));
-      var dot = el('span', 'ege-chipdot');
-      dot.style.background = WHEEL_LOOK[prize.key].fill;
-      item.appendChild(dot);
-      item.appendChild(el('span', 'ege-spin__oddname', prize.name + (prize.jackpot ? ' ★' : '')));
-      item.appendChild(el('span', 'ege-spin__oddpct', prize.odds + '%'));
-      list.appendChild(item);
-    });
   }
 
   /* Somewhere in one of the prize's slices: its middle when the wheel is
@@ -2900,8 +2888,8 @@ EGE.cardsView = (function () {
 
   function renderSpin() {
     drawWheel();
-    drawSpinOdds();
     if (state.spinning) { return; }
+    var box = byId('spinBox');
     var go = byId('spinGo');
     var result = byId('spinResult');
     var resets = byId('spinResets');
@@ -2914,6 +2902,7 @@ EGE.cardsView = (function () {
       result.textContent = state.loaded
         ? 'The daily spin could not be loaded. Run supabase/schema.sql to set it up, then reload.'
         : 'Loading…';
+      box.classList.remove('is-spun');
       drawSpinWon(null);
       tabBadge('tabShopBadge', 0);
       return;
@@ -2927,6 +2916,9 @@ EGE.cardsView = (function () {
       turnTo(now.spin.prize, false);
       drawSpinWon(now.spin);
       tabBadge('tabShopBadge', 0);
+      var left = wheel.keep - Date.now();
+      box.classList.toggle('is-spun', left <= 0);
+      if (left > 0) { window.setTimeout(renderSpin, left + 20); }
       return;
     }
 
@@ -2935,6 +2927,7 @@ EGE.cardsView = (function () {
     go.textContent = 'Spin';
     resets.textContent = enough ? 'Ready' : '';
     result.textContent = enough ? 'Your free spin is ready.' : 'The wheel opens once there are cards out.';
+    box.classList.remove('is-spun');
     drawSpinWon(null);
     tabBadge('tabShopBadge', enough && state.loaded ? 1 : 0);
   }
@@ -2986,8 +2979,12 @@ EGE.cardsView = (function () {
     if (state.player !== player) { return; }
     var prize = EGE.cards.spinPrize(res.prize);
     var wrap = byId('spinWheel').parentNode;
+    /* It glows where it stopped, then fades and goes until tomorrow. */
+    var still = reducedMotion() ? 0 : 2400;
+    wheel.keep = Date.now() + still;
     wrap.classList.add(prize && prize.jackpot ? 'is-jackpot' : 'is-won');
-    window.setTimeout(function () { wrap.classList.remove('is-won', 'is-jackpot'); }, 2400);
+    window.setTimeout(function () { wrap.classList.add('is-leaving'); }, Math.max(0, still - 450));
+    window.setTimeout(function () { wrap.classList.remove('is-won', 'is-jackpot', 'is-leaving'); }, still + 40);
 
     walletChanged(null, res.diamonds);
     renderSpin();

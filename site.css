@@ -4424,9 +4424,11 @@ html.ege-noscroll body { overflow: hidden; }
    A holo is three copies of one card merged into one (js/cards-view.js).
    It keeps its rarity's frame -- the colour around the edge, foil and all
    -- and everything inside goes holographic: the face in a rainbow foil
-   with fine diffraction lines, the dark top and foot in a dark foil, the
-   score tab, the nameplate and the HOLO seal in a brighter one, the picture
-   under a faint rainbow with glitter, and the big numbers printed in foil.
+   with fine diffraction lines; the top strip, the score tab, the nameplate
+   and the HOLO seal in a brighter one, with black type; the ground behind
+   the player and the logo in prism rays over the rainbow, with a streak of
+   rainbow across the picture; and the big numbers printed in foil. The
+   foot is white, its type black but for the rarity in its own colour.
 
    Held still in the binder, the shop, trades and showcases, like the other
    foils, and with no blend modes there, so a page of holos costs no more
@@ -4439,8 +4441,6 @@ html.ege-noscroll body { overflow: hidden; }
                           #b6f1ff 56%, #c2d0ff 70%, #e3c6ff 84%, #ffc6ec 100%);
   --holo-bright: linear-gradient(125deg, #ff8fd2 0%, #ffc874 16%, #f1ff86 32%, #8cffa4 48%,
                                  #7de6ff 64%, #9eadff 80%, #df98ff 92%, #ff8fd2 100%);
-  --holo-dark: linear-gradient(115deg, #1d2416 0%, #2e1f43 22%, #0f3240 45%, #302c10 68%,
-                               #3a1730 86%, #1d2416 100%);
   --holo-lines: repeating-linear-gradient(115deg,
                   rgba(255, 255, 255, 0) 0 3.2cqw, rgba(255, 255, 255, .5) 3.2cqw 3.8cqw,
                   rgba(255, 255, 255, 0) 3.8cqw 6.6cqw);
@@ -4454,12 +4454,20 @@ html.ege-noscroll body { overflow: hidden; }
   background-size: 100% 100%, 240% 240%;
   background-position: 0 0, 30% 40%;
 }
-.ege-tcard--holo .ege-tcard__top,
-.ege-tcard--holo .ege-tcard__foot {
-  background:
-    linear-gradient(100deg, rgba(255, 143, 210, .26), rgba(125, 230, 255, .24) 50%, rgba(241, 255, 134, .22)),
-    var(--holo-dark);
+.ege-tcard--holo .ege-tcard__top {
+  background: var(--holo-lines), var(--holo-bright);
+  background-size: 100% 100%, 260% 260%;
+  background-position: 0 0, 80% 50%;
 }
+.ege-tcard--holo .ege-tcard__kind { color: var(--fb-ink); }
+.ege-tcard--holo .ege-tcard__foot {
+  background: #fff;
+  color: var(--fb-ink);
+  border-top: .8cqw solid var(--fb-ink);
+}
+/* The rarity keeps its colour, with an ink edge so the gold and the grey
+   still read on the white. */
+.ege-tcard--holo .ege-tcard__rarity { text-shadow: .3cqw .3cqw 0 var(--fb-ink); }
 .ege-tcard--holo .ege-tcard__score,
 .ege-tcard--holo .ege-tcard__plate {
   background: var(--holo-lines), var(--holo-bright);
@@ -4471,8 +4479,22 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-tcard--holo .ege-tcard__meta { opacity: .9; }
 .ege-tcard--holo .ege-tcard__line { color: #4a4255; }
 
-/* Over the picture: a rainbow streak across it, a wash of rainbow, and a
-   few points of glitter. */
+/* Behind the player and the logo: prism rays fanning out from behind the
+   head over the bright rainbow, with a light at the middle. The marks
+   drawn white for their own ground go back to their colours on it. */
+.ege-tcard--holo .ege-tcard__art {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255, 255, 255, .55), rgba(255, 255, 255, 0) 58%),
+    repeating-conic-gradient(from 0deg at 50% 30%,
+      rgba(255, 255, 255, 0) 0deg 5deg, rgba(255, 255, 255, .42) 5deg 7.5deg),
+    var(--holo-lines),
+    var(--holo-bright);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 240% 240%;
+  background-position: 0 0, 0 0, 0 0, 30% 40%;
+}
+.ege-tcard--holo .ege-tcard__logo--white { filter: drop-shadow(0 .6cqw .8cqw rgba(0, 0, 0, .45)); }
+
+/* Over the picture: a rainbow streak across it and a wash of rainbow. */
 .ege-tcard--holo .ege-tcard__art::after {
   content: '';
   position: absolute;
@@ -4480,13 +4502,11 @@ html.ege-noscroll body { overflow: hidden; }
   z-index: 1;
   pointer-events: none;
   background:
-    radial-gradient(circle, rgba(255, 255, 255, .85) 0 .28cqw, rgba(255, 255, 255, 0) .55cqw) 3cqw 4cqw / 17cqw 15cqw,
-    radial-gradient(circle, rgba(255, 255, 255, .7) 0 .22cqw, rgba(255, 255, 255, 0) .45cqw) 11cqw 12cqw / 23cqw 19cqw,
     linear-gradient(118deg, rgba(255, 255, 255, 0) 18%, rgba(255, 143, 210, .42) 27%, rgba(255, 200, 116, .38) 33%,
                     rgba(241, 255, 134, .34) 38%, rgba(140, 255, 164, .36) 43%, rgba(125, 230, 255, .42) 49%,
                     rgba(223, 152, 255, .4) 55%, rgba(255, 255, 255, 0) 64%),
-    linear-gradient(125deg, rgba(255, 143, 210, .3), rgba(255, 200, 116, .14) 25%,
-                    rgba(140, 255, 164, .18) 50%, rgba(125, 230, 255, .26) 75%, rgba(223, 152, 255, .32));
+    linear-gradient(125deg, rgba(255, 143, 210, .16), rgba(255, 200, 116, .08) 25%,
+                    rgba(140, 255, 164, .1) 50%, rgba(125, 230, 255, .14) 75%, rgba(223, 152, 255, .18));
 }
 
 /* The big yards and touchdowns in foil. A text shadow would cover a
@@ -4526,7 +4546,10 @@ html.ege-noscroll body { overflow: hidden; }
 :is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--holo .ege-tcard__face {
   animation: ege-holo-drift 7s ease-in-out infinite;
 }
-:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--holo :is(.ege-tcard__score, .ege-tcard__plate, .ege-tcard__holo) {
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--holo .ege-tcard__art {
+  animation: ege-holo-ground 7s ease-in-out infinite;
+}
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--holo :is(.ege-tcard__top, .ege-tcard__score, .ege-tcard__plate, .ege-tcard__holo) {
   animation: ege-holo-drift 5s ease-in-out infinite reverse;
 }
 :is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--holo .ege-tcard__yards b {
@@ -4534,7 +4557,7 @@ html.ege-noscroll body { overflow: hidden; }
 }
 :is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--holo .ege-tcard__art::after {
   mix-blend-mode: screen;
-  background-size: 17cqw 15cqw, 23cqw 19cqw, 260% 260%, 220% 220%;
+  background-size: 260% 260%, 220% 220%;
   animation: ege-holo-glitter 6s ease-in-out infinite;
 }
 /* And catches the light: a glare and a turn of rainbow where the pointer
@@ -4563,9 +4586,13 @@ html.ege-noscroll body { overflow: hidden; }
   0%, 100% { background-position: 0 0, 10% 25%; }
   50%      { background-position: 0 0, 90% 75%; }
 }
+@keyframes ege-holo-ground {
+  0%, 100% { background-position: 0 0, 0 0, 0 0, 10% 25%; }
+  50%      { background-position: 0 0, 0 0, 0 0, 90% 75%; }
+}
 @keyframes ege-holo-glitter {
-  0%, 100% { background-position: 3cqw 4cqw, 11cqw 12cqw, 100% 50%, 0% 50%; opacity: .9; }
-  50%      { background-position: 3.6cqw 3.4cqw, 10.2cqw 12.8cqw, 0% 50%, 100% 50%; opacity: 1; }
+  0%, 100% { background-position: 100% 50%, 0% 50%; opacity: .9; }
+  50%      { background-position: 0% 50%, 100% 50%; opacity: 1; }
 }
 
 /* Three or more of a card in the binder: the count in holo, a nudge that
@@ -6412,20 +6439,16 @@ html.ege-noscroll body { overflow: hidden; }
   66%      { box-shadow: 0 0 0 5px #f1ff86, 0 0 36px rgba(241, 255, 134, .9); }
 }
 
+/* Then it fades away, and once today's spin is spun the wheel and its
+   button are gone until the next one, leaving what it won. */
+.ege-spin__wheelwrap { transition: opacity .45s ease, scale .45s ease; }
+.ege-spin__wheelwrap.is-leaving { opacity: 0; scale: .9; }
+.ege-spin.is-spun { grid-template-columns: minmax(0, 1fr); }
+.ege-spin.is-spun :is(.ege-spin__wheelwrap, .ege-spin__go) { display: none; }
+.ege-spin.is-spun .ege-spin__won > .ege-tcard { width: 110px; }
+
 .ege-spin__side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .ege-spin__side .ege-item__text { margin: 0; }
-.ege-spin__odds {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px 22px;
-}
-.ege-spin__odd { display: flex; align-items: center; gap: 2px; font-size: .875rem; font-weight: 700; }
-.ege-spin__oddname { flex: 1 1 auto; min-width: 0; }
-.ege-spin__oddpct { font-variant-numeric: tabular-nums; color: var(--fb-muted); }
-.ege-spin__odd--jackpot .ege-spin__oddname { color: #6f3fc0; }
 .ege-spin__go { align-self: flex-start; min-width: 180px; font-size: 1.0625rem; letter-spacing: .1em; text-transform: uppercase; }
 .ege-spin__go:not(:disabled) { animation: ege-spin-ready 1.8s ease-in-out infinite; }
 @keyframes ege-spin-ready {
@@ -6444,6 +6467,7 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-spin { grid-template-columns: minmax(0, 1fr); gap: 22px; }
   .ege-spin__wheelwrap { max-width: 300px; }
   .ege-spin__go { align-self: stretch; }
+  .ege-spin.is-spun .ege-spin__won > .ege-tcard { width: 84px; }
 }
 
 /* --- the shop's daily cards ------------------------------------------------- */
