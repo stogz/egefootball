@@ -129,12 +129,24 @@ EGE.showcase = (function () {
       return;
     }
 
+    /* Either kind opens up close on a tap: a Player Card with what it
+       stands for, a card with who else has it and, on somebody else's
+       page, a Trade for it. */
+    var viewer = EGE.auth.currentPlayer();
     items.forEach(function (item) {
-      if (item.pc) { grid.appendChild(playerCardNode(item.pc)); return; }
+      if (item.pc) {
+        var pc = item.pc;
+        var face = EGE.cardsView.playerCardFace(pc, pc.earned, pc.photo);
+        EGE.cardsView.pressable(face, pc.player.name + ' Player Card, ' +
+          (pc.rank ? pc.rank.name : 'unranked') + ', ' + Math.round(pc.points) + ' fantasy points collected',
+          function () { EGE.cardsView.zoomPlayer(pc, { whose: mine ? null : player.first }); });
+        grid.appendChild(face);
+        return;
+      }
       var card = item.card;
       var node = EGE.cardsView.cardEl(card, {});
       EGE.cardsView.pressable(node, EGE.cardsView.describe(card), function () {
-        EGE.cardsView.zoom(card);
+        EGE.cardsView.zoom(card, { owner: player.email, tradeWith: viewer && !mine ? player.email : null });
       });
       grid.appendChild(node);
     });

@@ -49,6 +49,7 @@ EGE.cardsView = (function () {
     pcOther: null,      /* theirs once read: { owned, photos, earned, failed } */
     spin: null,         /* today's spin from card_spin_today; null until read */
     spinning: false,    /* the wheel is turning: nothing redraws under it */
+    sell: null,         /* picking cards to quick sell together: { picked: { id: n }, ... } */
     filter: { rarity: 'all', kind: 'all', player: 'all', sort: 'rarity' }
   };
 
@@ -911,9 +912,12 @@ EGE.cardsView = (function () {
   /* --- a card up close -------------------------------------------------- */
 
   /* `owned`, when given, is how many the viewer has -- left off for somebody
-     else's card, on a showcase or in a trade. `theirs` is { name, count }
-     when it is from somebody else's collection, and `sell` offers a quick
-     sale of one copy when it is from your own. */
+     else's card, on a showcase or in a trade. `theirs` is { name, email,
+     count } when it is from somebody else's collection, and `sell` offers a
+     quick sale of one copy when it is from your own. `owner` is the email
+     of whoever's showcase it is on, and `tradeWith` an account to offer a
+     trade for it (the Trade for it button). Signed in, it also says who
+     else has the card and how many. */
   function zoom(card, options) {
     var opts = options || {};
     var stage = openOverlay(card.player.name, 'ege-rip__stage--zoom');
@@ -970,6 +974,14 @@ EGE.cardsView = (function () {
     }
     var ownedNode = typeof opts.owned === 'number' ? fact(opts.theirs ? 'You have' : 'Owned', String(opts.owned)) : null;
     if (opts.theirs) { fact(opts.theirs.name + ' has', String(opts.theirs.count)); }
+    var viewer = EGE.auth.currentPlayer();
+    if (viewer) {
+      /* Everybody already counted above is left out of it. */
+      var skip = [opts.theirs && opts.theirs.email, opts.owner,
+                  typeof opts.owned === 'number' ? viewer.email : null]
+        .filter(Boolean).map(function (e) { return e.toLowerCase(); });
+      owners(card, fact('Who else has it', 'Loading…'), skip, viewer.email.toLowerCase());
+    }
     stage.appendChild(facts);
 
     var status = el('p', 'ege-rip__hint ege-zoom__status');
@@ -986,6 +998,134 @@ EGE.cardsView = (function () {
       actions.appendChild(sellControl(card, { holder: holder, owned: ownedNode, status: status, merge: merge }));
       actions.appendChild(marketControl(card, { status: status }));
     }
+    /* Somebody else's card: straight to the Trades page with an offer for
+       it ready, to pick what you give and send. */
+    if (viewer && opts.tradeWith && opts.tradeWith.toLowerCase() !== viewer.email.toLowerCase() &&
+        playerByEmail(opts.tradeWith)) {
+      var trade = el('button', 'fb-btn ege-zoom__trade', 'Trade for it');
+      trade.type = 'button';
+      trade.title = 'Open a trade offer to ' + firstName(opts.tradeWith) + ' for this card';
+      trade.addEventListener('click', function () { tradeFor(opts.tradeWith, card); });
+      actions.appendChild(trade);
+    }
+    var done = el('button', 'fb-btn fb-btn--primary', 'Done');
+    done.type = 'button';
+    done.addEventListener('click', closeRip);
+    actions.appendChild(done);
+    stage.appendChild(actions);
+    done.focus({ preventScroll: true });
+  }
+
+  /* Who else has a card and how many, into `dd` once it is read: each
+     account with its face, its first name and its count, biggest pile
+     first, and any copies up on the Market (held out of collections while
+     they are). `skip` is who is already counted in the facts above. */
+  function owners(card, dd, skip, viewer) {
+    dd.classList.add('ege-zoom__owners');
+    EGE.cardStore.ownersOf(card.id).then(function (rows) {
+      if (!dd.isConnected) { return; }
+      dd.textContent = '';
+      if (!rows) { dd.textContent = 'That could not be loaded.'; return; }
+      var others = rows.filter(function (row) {
+        return row.quantity > 0 && skip.indexOf(String(row.email).toLowerCase()) === -1;
+      }).sort(function (a, b) {
+        return b.quantity - a.quantity || (firstName(a.email) < firstName(b.email) ? -1 : 1);
+      });
+      var listed = state.market && state.market.open ? state.market.open.filter(function (row) {
+        return row.card_id === card.id;
+      }).length : 0;
+      if (!others.length && !listed) { dd.textContent = 'Nobody else'; return; }
+
+      others.forEach(function (row) {
+        var mine = String(row.email).toLowerCase() === viewer;
+        var who = playerByEmail(row.email);
+        var tag = el('span', 'ege-owner');
+        if (who) {
+          var face = el('img', 'ege-owner__face');
+          face.src = who.headshot;
+          face.alt = '';
+          tag.appendChild(face);
+        }
+        tag.appendChild(el('span', null, mine ? 'You' : who ? who.first : row.email));
+        tag.appendChild(el('b', 'ege-owner__n', '×' + row.quantity));
+        dd.appendChild(tag);
+      });
+      if (listed) {
+        var market = el('span', 'ege-owner ege-owner--market');
+        market.appendChild(gem());
+        market.appendChild(el('span', null, 'On the Market'));
+        market.appendChild(el('b', 'ege-owner__n', '×' + listed));
+        dd.appendChild(market);
+      }
+    });
+  }
+
+  /* Somebody else's card to the Trades page, with an offer to them for it
+     already in the builder. From anywhere: off the Cards tab (a showcase on
+     a player page) it goes there first and the builder opens once the
+     cards are in. */
+  var pendingAsk = null;
+
+  function tradeFor(email, card) {
+    closeRip();
+    var player = EGE.auth.currentPlayer();
+    if (!player) { return; }
+    var ask = { to: email, take: [card.id] };
+    if (/^#cards(\/|$)/.test(window.location.hash) && state.player === player && state.loaded && !state.hold) {
+      setTab('trades');
+      openTradeBuilder(ask);
+      return;
+    }
+    pendingAsk = ask;
+    window.location.hash = '#cards/trades';
+  }
+
+  /* --- a Player Card up close -------------------------------------------- */
+
+  /* Off a showcase, the way a card opens up close: the Player Card as big
+     as a card is up close, and under it what it stands for -- whose it is,
+     its rank and what that pays, the points behind it, how far it is to
+     the next rank and what it has earned. `pc` comes with `earned` and
+     `photo` on it (js/showcase.js); `whose` is the owner's first name, left
+     off for your own. */
+  function zoomPlayer(pc, options) {
+    var opts = options || {};
+    var player = pc.player;
+    var rank = pc.rank;
+    var stage = openOverlay(player.name, 'ege-rip__stage--zoom');
+
+    var row = el('div', 'ege-rip__cards ege-rip__cards--1');
+    var holder = el('div', 'ege-zoom__card');
+    holder.appendChild(playerCardFace(pc, pc.earned, pc.photo || null));
+    row.appendChild(holder);
+    stage.appendChild(row);
+
+    var facts = el('dl', 'ege-zoom__facts');
+    function fact(label, value) {
+      facts.appendChild(el('dt', null, label));
+      return facts.appendChild(el('dd', null, value));
+    }
+    fact('Whose', opts.whose ? opts.whose + '’s Player Card' : 'Your Player Card');
+    fact('Rank', rank
+      ? rank.name + (rank.bonus ? ' · +' + pctText(rank.bonus) + ' of his game diamonds' : ' · no bonus until Uncommon')
+      : 'Unranked');
+    fact('Points', whole(pc.points) + ' FPTS from ' + pc.copies + (pc.copies === 1 ? ' card' : ' cards') +
+      ' · ' + pc.distinct + ' different');
+    var next = rank ? pc.next : pc.ladder[1];
+    fact('Next rank', next
+      ? whole(Math.max(0, Math.ceil(next.points - pc.points))) + ' more FPTS to ' + next.name +
+        ' (' + whole(next.points) + '), which pays +' + pctText(next.bonus)
+      : 'Iconic. As high as it goes.');
+    if (pc.earned !== null && pc.earned !== undefined) {
+      var earned = fact('Earned', whole(pc.earned));
+      earned.appendChild(gem());
+      earned.appendChild(document.createTextNode(' from his games, every season'));
+    }
+    var about = rank && rank.bonus ? typicalBonus(player, rank.key) : null;
+    if (about !== null) { fact('A game', 'About ' + about + ' diamonds on each of his games'); }
+    stage.appendChild(facts);
+
+    var actions = el('div', 'ege-rip__actions');
     var done = el('button', 'fb-btn fb-btn--primary', 'Done');
     done.type = 'button';
     done.addEventListener('click', closeRip);
@@ -1217,6 +1357,7 @@ EGE.cardsView = (function () {
      cards (a trade is picking from somebody else's), so somebody else's is
      read when it is picked and again on every refresh. */
   function pickView(email) {
+    if (email && state.sell) { sellMode(false); }
     state.view = email || null;
     state.other = null;
     renderFilters();
@@ -1310,6 +1451,10 @@ EGE.cardsView = (function () {
       renderCollection();
     });
     rest.appendChild(clear);
+    /* Beside the bin, Quick sell: picks cards out of the binder to sell
+       together. On a phone it sits beside the Sort button instead, since
+       the bin is in the menu there. */
+    rest.appendChild(sellButton(''));
 
     /* On a phone the whole row folds into a menu behind one Sort button
        (with a count of what is changed from the defaults), so the binder
@@ -1327,6 +1472,7 @@ EGE.cardsView = (function () {
       '<span>Sort</span>' + (changes ? '<b class="ege-filtertoggle__count">' + changes + '</b>' : '');
     toggle.addEventListener('click', function () { openFilters(!state.filtersOpen); });
     bar.appendChild(toggle);
+    bar.appendChild(sellButton('ege-filtersell--phone'));
 
     var done = el('button', 'fb-btn fb-btn--primary ege-filterdone', 'Done');
     done.type = 'button';
@@ -1336,6 +1482,27 @@ EGE.cardsView = (function () {
     rest.id = 'collectionFilterMenu';
     bar.classList.toggle('is-open', Boolean(state.filtersOpen));
     bar.appendChild(rest);
+  }
+
+  /* The Quick sell button: into picking cards to sell, or back out. Only
+     your own collection can be sold from. */
+  function sellButton(modifier) {
+    var b = el('button', 'fb-btn ege-filtersell' + (modifier ? ' ' + modifier : '') + (state.sell ? ' is-on' : ''));
+    b.type = 'button';
+    /* A price tag, the size of the bin beside it; the words only where
+       there is room for them (a phone). */
+    b.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">' +
+      '<path fill="currentColor" d="M21.4 11.6l-9-9A2 2 0 0 0 11 2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 .6 1.4l9 9a2 2 0 0 0 2.8 0l7-7a2 2 0 0 0 0-2.8zM6.5 8A1.5 1.5 0 1 1 6.5 5a1.5 1.5 0 0 1 0 3z"/></svg>';
+    b.appendChild(el('span', 'ege-filtersell__word', 'Quick sell'));
+    b.setAttribute('aria-label', 'Quick sell several cards');
+    b.setAttribute('aria-pressed', state.sell ? 'true' : 'false');
+    b.disabled = Boolean(state.view) || !state.loaded || Boolean(state.sell && state.sell.busy);
+    b.title = state.view ? 'Only your own cards can be quick sold.' : 'Quick sell: pick cards to sell together';
+    b.addEventListener('click', function () {
+      if (state.filtersOpen) { openFilters(false); }
+      sellMode(!state.sell);
+    });
+    return b;
   }
 
   function openFilters(open) {
@@ -1509,15 +1676,278 @@ EGE.cardsView = (function () {
     var count = v.owned[card.id] || 0;
     var node = cardEl(card, { count: count, isNew: v.mine && state.fresh[card.id],
                               mergeable: v.mine && !card.holo && count >= EGE.cards.HOLO_OF });
+    node.dataset.id = card.id;
     pressable(node, describe(card) + (count > 1 ? ', ' + count + ' owned' : ''), function () {
-      if (v.mine) {
+      if (v.mine && state.sell) {
+        pickForSale(card);
+      } else if (v.mine) {
         zoom(card, { owned: state.owned[card.id] || 0, sell: true });
       } else {
-        zoom(card, { owned: state.owned[card.id] || 0,
-                     theirs: { name: v.name, count: (state.other && state.other.owned[card.id]) || 0 } });
+        zoom(card, { owned: state.owned[card.id] || 0, tradeWith: state.view,
+                     theirs: { name: v.name, email: state.view,
+                               count: (state.other && state.other.owned[card.id]) || 0 } });
       }
     });
+    if (v.mine && state.sell) { saleMarks(node, card); }
     return node;
+  }
+
+  /* --- quick selling a group ------------------------------------------------
+
+     Quick sell, beside the bin over the binder, turns the binder into a
+     picker (Sam, 2026-10-16): a tap picks a card to sell or puts it back,
+     and a card held more than once gets − and + for how many of it go. A
+     bar over the page buttons keeps the count and what it all pays, with
+     Extras to pick every copy past the first of the cards showing. Selling
+     is two taps like a single quick sale, and goes one copy at a time
+     through quick_sell_card, so a refusal stops there and leaves the rest
+     picked. Iconic cards cannot be picked. Nothing in the background
+     redraws the binder while it is on (busy()). */
+  function sellMode(on) {
+    if (on && (state.view || !state.loaded)) { return; }
+    if (!on && state.sell && state.sell.busy) { return; }
+    state.sell = on ? { picked: {}, armed: false, busy: false, note: '', timer: null } : null;
+    byId('collectionPanel').classList.toggle('is-selling', Boolean(on));
+    renderFilters();
+    markBinder();
+    drawSellBar();
+  }
+
+  function pickForSale(card) {
+    var s = state.sell;
+    if (!s || s.busy) { return; }
+    disarmSale();
+    if (!EGE.cards.sellPrice(card)) {
+      s.note = 'Iconic cards cannot be quick sold.';
+    } else if (s.picked[card.id]) {
+      delete s.picked[card.id];
+      s.note = '';
+    } else if (state.owned[card.id]) {
+      s.picked[card.id] = 1;
+      s.note = '';
+    }
+    markBinder(card.id);
+    drawSellBar();
+  }
+
+  function stepSale(card, by) {
+    var s = state.sell;
+    if (!s || s.busy) { return; }
+    disarmSale();
+    var n = Math.min(state.owned[card.id] || 0, (s.picked[card.id] || 0) + by);
+    if (n > 0) { s.picked[card.id] = n; } else { delete s.picked[card.id]; }
+    s.note = '';
+    markBinder(card.id);
+    drawSellBar();
+  }
+
+  /* A card's look while picking: red round it when picked, with how many
+     of it go and the − and + to change that when there is more than one. */
+  function saleMarks(node, card) {
+    var old = node.querySelector('.ege-salepick');
+    if (old) { old.remove(); }
+    var s = state.sell;
+    var n = s ? s.picked[card.id] || 0 : 0;
+    node.classList.toggle('is-picked', n > 0);
+    node.classList.toggle('is-nosell', Boolean(s) && !EGE.cards.sellPrice(card));
+    if (s) { node.setAttribute('aria-pressed', n ? 'true' : 'false'); } else { node.removeAttribute('aria-pressed'); }
+    if (!n) { return; }
+
+    var owned = state.owned[card.id] || 0;
+    var box = el('span', 'ege-salepick');
+    box.appendChild(el('b', 'ege-salepick__tag', 'Sell'));
+    if (owned > 1) {
+      var step = el('span', 'ege-salepick__step');
+      [['−', -1, 'One fewer'], [n + ' of ' + owned, 0, ''], ['+', 1, 'One more']].forEach(function (part) {
+        if (!part[1]) { step.appendChild(el('span', 'ege-salepick__n', part[0])); return; }
+        var b = el('button', 'ege-salepick__btn', part[0]);
+        b.type = 'button';
+        b.setAttribute('aria-label', part[2] + ' ' + card.player.first + ' card to sell');
+        b.disabled = part[1] > 0 ? n >= owned : false;
+        /* Not the card's own tap, which would put it back altogether. */
+        b.addEventListener('click', function (e) { e.stopPropagation(); stepSale(card, part[1]); });
+        b.addEventListener('keydown', function (e) { e.stopPropagation(); });
+        step.appendChild(b);
+      });
+      box.appendChild(step);
+    }
+    node.appendChild(box);
+  }
+
+  /* Every card drawn in the binder, or just those of `id`. */
+  function markBinder(id) {
+    if (state.view) { return; }
+    Array.prototype.forEach.call(byId('collectionGrid').querySelectorAll('.ege-tcard[data-id]'), function (node) {
+      if (id && node.dataset.id !== id) { return; }
+      var card = EGE.cards.byId(node.dataset.id);
+      if (card) { saleMarks(node, card); }
+    });
+  }
+
+  function saleTotals() {
+    var s = state.sell;
+    var copies = 0;
+    var pays = 0;
+    Object.keys(s ? s.picked : {}).forEach(function (id) {
+      var card = EGE.cards.byId(id);
+      if (!card) { return; }
+      copies += s.picked[id];
+      pays += (EGE.cards.sellPrice(card) || 0) * s.picked[id];
+    });
+    return { copies: copies, pays: pays };
+  }
+
+  function disarmSale() {
+    var s = state.sell;
+    if (!s || !s.armed) { return; }
+    window.clearTimeout(s.timer);
+    s.armed = false;
+  }
+
+  /* The bar along the foot of the page while picking. */
+  function drawSellBar() {
+    var bar = byId('sellBar');
+    if (!bar) {
+      bar = el('div', 'ege-sellbar');
+      bar.id = 'sellBar';
+      bar.setAttribute('role', 'region');
+      bar.setAttribute('aria-label', 'Quick sell');
+      byId('cardPageCards').appendChild(bar);
+    }
+    var s = state.sell;
+    bar.hidden = !s;
+    bar.innerHTML = '';
+    if (!s) { return; }
+    var t = saleTotals();
+
+    var text = el('p', 'ege-sellbar__text');
+    text.setAttribute('role', 'status');
+    if (s.note) {
+      text.textContent = s.note;
+    } else if (t.copies) {
+      text.appendChild(el('strong', null, t.copies + (t.copies === 1 ? ' card' : ' cards')));
+      text.appendChild(document.createTextNode(' picked · '));
+      text.appendChild(price(t.pays));
+    } else {
+      text.textContent = 'Tap cards to pick them for a quick sale.';
+    }
+    bar.appendChild(text);
+
+    var row = el('div', 'ege-sellbar__actions');
+    var extras = el('button', 'fb-btn fb-btn--sm', 'Extras');
+    extras.type = 'button';
+    extras.title = 'Pick every copy past the first of the cards showing';
+    extras.disabled = s.busy;
+    extras.addEventListener('click', pickExtras);
+    var out = el('button', 'fb-btn fb-btn--sm', t.copies ? 'Cancel' : 'Done');
+    out.type = 'button';
+    out.disabled = s.busy;
+    out.addEventListener('click', function () { sellMode(false); });
+    var go = el('button', 'fb-btn fb-btn--sm fb-btn--primary ege-sellbar__go' + (s.armed ? ' is-armed' : ''));
+    go.type = 'button';
+    go.appendChild(document.createTextNode(s.busy ? 'Selling…' : s.armed ? 'Tap again to sell · ' : 'Quick sell · '));
+    if (!s.busy) { go.appendChild(price(t.pays)); }
+    go.disabled = s.busy || !t.copies;
+    go.addEventListener('click', function () {
+      if (!s.armed) {
+        s.armed = true;
+        s.note = '';
+        s.timer = window.setTimeout(function () {
+          if (state.sell === s && s.armed && !s.busy) { s.armed = false; drawSellBar(); }
+        }, 4000);
+        drawSellBar();
+        return;
+      }
+      disarmSale();
+      sellGroup();
+    });
+    row.appendChild(extras);
+    row.appendChild(out);
+    row.appendChild(go);
+    bar.appendChild(row);
+  }
+
+  /* Every copy past the first of each card the binder is showing, as it
+     is filtered; Iconic left out. */
+  function pickExtras() {
+    var s = state.sell;
+    if (!s || s.busy) { return; }
+    disarmSale();
+    var added = 0;
+    binder.cards.forEach(function (card) {
+      var extra = (state.owned[card.id] || 0) - 1;
+      if (extra > 0 && EGE.cards.sellPrice(card) && (s.picked[card.id] || 0) < extra) {
+        s.picked[card.id] = extra;
+        added += 1;
+      }
+    });
+    s.note = added || saleTotals().copies ? '' : 'No extras here: you have one of each of these.';
+    markBinder();
+    drawSellBar();
+  }
+
+  function sellGroup() {
+    var s = state.sell;
+    if (!s || s.busy) { return; }
+    var queue = [];
+    Object.keys(s.picked).forEach(function (id) {
+      for (var i = 0; i < s.picked[id]; i += 1) { queue.push(id); }
+    });
+    if (!queue.length) { return; }
+    var total = queue.length;
+    var sold = 0;
+    var got = 0;
+    s.busy = true;
+    s.note = 'Selling 1 of ' + total + '…';
+    renderFilters();
+    drawSellBar();
+
+    function next() {
+      var id = queue.shift();
+      if (!id) { return finish(''); }
+      var card = EGE.cards.byId(id);
+      EGE.cardStore.quickSell(card).then(function (res) {
+        if (!res.ok) { return finish(res.message); }
+        sold += 1;
+        got += res.price;
+        if (s.picked[id] > 1) { s.picked[id] -= 1; } else { delete s.picked[id]; }
+        var left = Math.max(0, (state.owned[id] || 0) - 1);
+        if (left) {
+          state.owned[id] = left;
+        } else {
+          delete state.owned[id];
+          delete state.first[id];
+          delete state.fresh[id];
+        }
+        walletChanged(null, res.diamonds);
+        if (queue.length) {
+          s.note = 'Selling ' + (sold + 1) + ' of ' + total + '…';
+          drawSellBar();
+        }
+        next();
+      });
+    }
+
+    function finish(problem) {
+      s.busy = false;
+      s.armed = false;
+      var did = sold ? 'Sold ' + sold + (sold === 1 ? ' card' : ' cards') + ' for ' + got +
+        (got === 1 ? ' diamond.' : ' diamonds.') : '';
+      s.note = problem ? (did ? did + ' The next one did not go: ' : '') + problem : did;
+      if (sold) {
+        if (EGE.showcase) { EGE.showcase.forget(); }
+        renderPacks();
+        renderCollection();
+        refresh();
+      }
+      if (state.sell === s) {
+        renderFilters();
+        markBinder();
+        drawSellBar();
+      }
+    }
+
+    next();
   }
 
   /* --- recent pulls -------------------------------------------------------
@@ -1580,7 +2010,7 @@ EGE.cardsView = (function () {
         var node = cardEl(card, {});
         if (mine && !have) { node.classList.add('is-gone'); }
         pressable(node, describe(card) + (mine && !have ? ', no longer in your collection' : ''), function () {
-          zoom(card, { owned: state.owned[card.id] || 0, sell: mine });
+          zoom(card, { owned: state.owned[card.id] || 0, sell: mine, tradeWith: mine ? null : pull.email });
         });
         strip.appendChild(node);
       });
@@ -1781,10 +2211,174 @@ EGE.cardsView = (function () {
     EGE.cardStore.markTradesSeen(ids);
   }
 
+  /* --- searching a pile of cards ------------------------------------------
+
+     Each side of the trade builder has a Sort button over its cards, like
+     the collection's on a phone, and everything for finding a card is in
+     the menu under it: a search box (a player, a school, an opponent, a
+     play, a season), then the kinds, the player, the season, the rarity
+     and the order. The button counts what is changed from the defaults,
+     and the bin puts them all back. */
+  var FIND_DEFAULT = { q: '', kind: 'all', player: 'all', season: 'all', rarity: 'all', sort: 'rarity' };
+
+  /* Everything a search can find a card by, in lower case. */
+  var findText = {};
+  function cardText(card) {
+    if (!findText[card.id]) {
+      var team = card.team || {};
+      findText[card.id] = [card.player.name, card.position, team.school, card.versus, card.headline,
+        card.line, card.text, card.event, card.season, 'week ' + card.week, EGE.cards.rarity(card.rarity).name,
+        card.kind === 'play' ? 'play' : 'performance', card.holo ? 'holo' : '']
+        .filter(Boolean).join(' ').toLowerCase();
+    }
+    return findText[card.id];
+  }
+
+  function finds(card, f) {
+    if (f.kind !== 'all' && card.kind !== f.kind) { return false; }
+    if (f.player !== 'all' && card.slug !== f.player) { return false; }
+    if (f.season !== 'all' && String(card.season) !== f.season) { return false; }
+    if (f.rarity !== 'all' && (f.rarity === 'holo' ? !card.holo : card.rarity !== f.rarity)) { return false; }
+    var words = f.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (!words.length) { return true; }
+    var text = cardText(card);
+    return words.every(function (w) { return text.indexOf(w) !== -1; });
+  }
+
+  /* A Sort button and its menu. `onChange` redraws whatever it sorts; the
+     menu itself is never redrawn, so the search box keeps its place while
+     it is typed in. Hands back { node, sort(cards, first) }. */
+  function finder(onChange) {
+    var f = Object.assign({}, FIND_DEFAULT);
+    var wrap = el('div', 'ege-finder');
+    var toggle = el('button', 'fb-btn ege-filtertoggle ege-finder__toggle');
+    toggle.type = 'button';
+    toggle.setAttribute('aria-expanded', 'false');
+    var menu = el('div', 'ege-finder__menu');
+    menu.hidden = true;
+    wrap.appendChild(toggle);
+    wrap.appendChild(menu);
+
+    function changes() {
+      return Object.keys(FIND_DEFAULT).filter(function (k) {
+        return k === 'q' ? Boolean(f.q.trim()) : f[k] !== FIND_DEFAULT[k];
+      }).length;
+    }
+
+    function label() {
+      var n = changes();
+      toggle.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">' +
+        '<path fill="currentColor" d="M3 6h11v2H3V6zm15 0h3v2h-3v2h-2V4h2v2zM3 16h3v-2h2v6H6v-2H3v-2zm7 0h11v2H10v-2z"/></svg>' +
+        '<span>Sort</span>' + (n ? '<b class="ege-filtertoggle__count">' + n + '</b>' : '');
+      toggle.setAttribute('aria-label', 'Sort and search' + (n ? ', ' + n + ' changed' : ''));
+      clear.disabled = !n;
+    }
+
+    function open(on) {
+      menu.hidden = !on;
+      wrap.classList.toggle('is-open', on);
+      toggle.setAttribute('aria-expanded', on ? 'true' : 'false');
+      if (on) { search.focus({ preventScroll: true }); }
+    }
+    toggle.addEventListener('click', function () { open(menu.hidden); });
+
+    function changed() { label(); onChange(); }
+
+    var search = el('input', 'fb-input ege-finder__search');
+    search.type = 'search';
+    search.placeholder = 'Search a player, team or play';
+    search.setAttribute('aria-label', 'Search the cards');
+    search.autocomplete = 'off';
+    search.addEventListener('input', function () { f.q = search.value; changed(); });
+    search.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); open(false); toggle.focus({ preventScroll: true }); }
+    });
+    menu.appendChild(search);
+
+    var kinds = el('div', 'ege-finder__kinds');
+    var kindChips = [['all', 'All'], ['performance', 'Performances'], ['play', 'Plays']].map(function (k) {
+      var b = chip(k[1], f.kind === k[0], function () {
+        f.kind = k[0];
+        kindChips.forEach(function (c) {
+          var on = c.dataset.kind === f.kind;
+          c.classList.toggle('is-active', on);
+          c.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        changed();
+      });
+      b.classList.add('ege-filterchip');
+      b.dataset.kind = k[0];
+      kinds.appendChild(b);
+      return b;
+    });
+    menu.appendChild(kinds);
+
+    function select(key, aria, options) {
+      var s = el('select', 'fb-select ege-filterselect');
+      s.setAttribute('aria-label', aria);
+      options.forEach(function (o) { s.appendChild(new Option(o[1], o[0])); });
+      s.value = f[key];
+      s.addEventListener('change', function () { f[key] = s.value; changed(); });
+      menu.appendChild(s);
+      return s;
+    }
+    var selects = {
+      player: select('player', 'Player', [['all', 'Every player']].concat(EGE.players.map(function (p) {
+        return [p.slug, p.name];
+      }))),
+      season: select('season', 'Season', [['all', 'Every season']].concat(EGE.seasonsPlayed().slice().reverse()
+        .map(function (y) { return [String(y), String(y)]; }))),
+      rarity: select('rarity', 'Rarity', [['all', 'All rarities']].concat(EGE.cards.RARITIES.map(function (r) {
+        return [r.key, r.name];
+      })).concat([['holo', 'Holo']])),
+      sort: select('sort', 'Order', [['rarity', 'Rarest first'], ['points', 'Highest score'],
+        ['newest', 'Newest pulls'], ['year', 'By year'], ['game', 'By game']])
+    };
+
+    var foot = el('div', 'ege-finder__foot');
+    var clear = el('button', 'fb-btn ege-filterclear');
+    clear.type = 'button';
+    clear.title = 'Reset the search and sort';
+    clear.setAttribute('aria-label', 'Reset the search and sort');
+    clear.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">' +
+      '<path fill="currentColor" d="M9 3h6l1 2h4v2H4V5h4l1-2zm-3 6h12l-1 12H7L6 9zm4 2v8h2v-8h-2zm4 0v8h2v-8h-2z"/></svg>';
+    clear.addEventListener('click', function () {
+      f = Object.assign({}, FIND_DEFAULT);
+      search.value = '';
+      Object.keys(selects).forEach(function (k) { selects[k].value = f[k]; });
+      kindChips.forEach(function (c) {
+        c.classList.toggle('is-active', c.dataset.kind === 'all');
+        c.setAttribute('aria-pressed', c.dataset.kind === 'all' ? 'true' : 'false');
+      });
+      changed();
+    });
+    var done = el('button', 'fb-btn fb-btn--primary ege-finder__done', 'Done');
+    done.type = 'button';
+    done.addEventListener('click', function () { open(false); toggle.focus({ preventScroll: true }); });
+    foot.appendChild(clear);
+    foot.appendChild(done);
+    menu.appendChild(foot);
+
+    label();
+    return {
+      node: wrap,
+      /* What of `cards` the menu lets through, in its order; `first` is
+         when each was first pulled, for Newest pulls. */
+      sort: function (cards, first) {
+        return cards.filter(function (card) { return finds(card, f); }).sort(sorter(f.sort, first || {}));
+      },
+      changed: function () { return changes() > 0; }
+    };
+  }
+
   /* --- the trade builder ------------------------------------------------- */
 
-  function openTradeBuilder() {
-    var build = { to: null, give: [], take: [], theirs: null, filterMine: 'all', filterTheirs: 'all' };
+  /* `preset` starts it already filled in: { to: email, take: [card id] },
+     from a card of somebody else's (tradeFor). What you give is still
+     yours to pick, and nothing goes until Send. */
+  function openTradeBuilder(preset) {
+    var ask = preset && preset.to ? preset : null;
+    var build = { to: null, give: [], take: [], theirs: null, theirsFirst: {}, missing: null };
     var stage = openOverlay('Propose a trade', 'ege-rip__stage--trade');
     var panel = el('div', 'fb-panel ege-tradebuilder');
     stage.appendChild(panel);
@@ -1794,15 +2388,12 @@ EGE.cardsView = (function () {
     pickLabel.appendChild(el('span', 'fb-eyebrow', 'Trade with'));
     var pick = el('select', 'fb-select');
     partners().forEach(function (p) { pick.appendChild(new Option(p.name, p.email)); });
+    if (ask) { pick.value = ask.to; }
     pickLabel.appendChild(pick);
     head.appendChild(pickLabel);
     panel.appendChild(head);
 
     var cols = el('div', 'ege-tradecols');
-    var mineCol = el('div', 'ege-tradecol');
-    var theirsCol = el('div', 'ege-tradecol');
-    cols.appendChild(mineCol);
-    cols.appendChild(theirsCol);
     panel.appendChild(cols);
 
     var foot = el('div', 'fb-panel__foot');
@@ -1813,69 +2404,109 @@ EGE.cardsView = (function () {
     foot.appendChild(send);
     panel.appendChild(foot);
 
-    function column(holder, title, owned, picked, filterKey, note) {
-      holder.innerHTML = '';
+    /* One side of the offer: its title and count, its Sort button, and the
+       cards. `side` says where its cards and its picks are, read afresh on
+       every draw since the other side's change with who it is with. */
+    function column(side) {
+      var holder = el('div', 'ege-tradecol');
       var top = el('div', 'ege-tradecol__head');
-      top.appendChild(el('h4', 'ege-item__name', title));
-      top.appendChild(el('span', 'fb-tag fb-tag--num', picked.length + ' / ' + MAX_SIDE));
+      var title = el('h4', 'ege-item__name');
+      var tag = el('span', 'fb-tag fb-tag--num');
+      top.appendChild(title);
+      top.appendChild(tag);
       holder.appendChild(top);
-
-      if (owned === null) {
-        holder.appendChild(el('p', 'fb-meta', 'Loading\u2026'));
-        return;
-      }
-
-      var filter = el('select', 'fb-select ege-filterselect');
-      filter.setAttribute('aria-label', 'Rarity');
-      filter.appendChild(new Option('Every rarity', 'all'));
-      EGE.cards.RARITIES.forEach(function (r) { filter.appendChild(new Option(r.name, r.key)); });
-      filter.value = build[filterKey];
-      filter.addEventListener('change', function () { build[filterKey] = filter.value; draw(); });
-      holder.appendChild(filter);
-
-      var cards = Object.keys(owned).map(EGE.cards.byId).filter(function (c) {
-        return c && (build[filterKey] === 'all' || c.rarity === build[filterKey]);
-      }).sort(EGE.cards.compare);
-
+      var find = finder(function () { fill(); });
+      holder.appendChild(find.node);
       var grid = el('div', 'ege-tradegrid');
-      cards.forEach(function (card) {
-        var on = picked.indexOf(card.id) !== -1;
-        var node = cardEl(card, { count: owned[card.id] });
-        if (on) { node.classList.add('is-picked'); }
-        node.setAttribute('aria-pressed', on ? 'true' : 'false');
-        pressable(node, describe(card) + (on ? ', in the offer' : ''), function () {
-          var at = picked.indexOf(card.id);
-          if (at !== -1) { picked.splice(at, 1); }
-          else if (picked.length < MAX_SIDE) { picked.push(card.id); }
-          draw();
-        });
-        grid.appendChild(node);
-      });
-      if (!cards.length) { grid.appendChild(el('p', 'fb-meta', note)); }
       holder.appendChild(grid);
+      cols.appendChild(holder);
+
+      function fill() {
+        var owned = side.owned();
+        var picked = side.picked();
+        title.textContent = side.title();
+        tag.textContent = picked.length + ' / ' + MAX_SIDE;
+        grid.innerHTML = '';
+        if (owned === null) {
+          grid.appendChild(el('p', 'fb-meta', 'Loading\u2026'));
+          return;
+        }
+        var all = Object.keys(owned).map(EGE.cards.byId).filter(Boolean);
+        var cards = find.sort(all, side.first());
+        cards.forEach(function (card) {
+          var on = picked.indexOf(card.id) !== -1;
+          var node = cardEl(card, { count: owned[card.id] });
+          if (on) { node.classList.add('is-picked'); }
+          node.setAttribute('aria-pressed', on ? 'true' : 'false');
+          pressable(node, describe(card) + (on ? ', in the offer' : ''), function () {
+            var at = picked.indexOf(card.id);
+            if (at !== -1) { picked.splice(at, 1); }
+            else if (picked.length < MAX_SIDE) { picked.push(card.id); }
+            draw();
+          });
+          grid.appendChild(node);
+        });
+        if (!cards.length) {
+          grid.appendChild(el('p', 'fb-meta', all.length && find.changed()
+            ? 'Nothing here matches that. Try another search.' : side.none()));
+        }
+      }
+      return { fill: fill, grid: grid };
     }
 
+    var mineSide = column({
+      title: function () { return 'You give'; },
+      owned: function () { return state.owned; },
+      first: function () { return state.first; },
+      picked: function () { return build.give; },
+      none: function () { return 'No cards of yours to offer here.'; }
+    });
+    var theirsSide = column({
+      title: function () { return 'You get from ' + firstName(build.to); },
+      owned: function () { return build.theirs; },
+      first: function () { return build.theirsFirst; },
+      picked: function () { return build.take; },
+      none: function () { return firstName(build.to) + ' has no cards here.'; }
+    });
+
     function draw() {
-      var name = firstName(build.to);
-      column(mineCol, 'You give', state.owned, build.give, 'filterMine', 'No cards of yours to offer here.');
-      column(theirsCol, 'You get from ' + name, build.theirs, build.take, 'filterTheirs',
-        name + ' has no cards here.');
-      summary.textContent = build.give.length
+      mineSide.fill();
+      theirsSide.fill();
+      summary.textContent = build.missing && !build.give.length ? build.missing
+        : build.give.length
         ? 'You give ' + build.give.length + ', you get ' + build.take.length +
           (build.take.length ? '.' : ' \u2014 a gift.')
+        : build.take.length
+        ? 'You get ' + build.take.length + '. Pick what you give for ' + (build.take.length === 1 ? 'it.' : 'them.')
         : 'Pick at least one of your cards to offer.';
       send.disabled = !build.give.length || build.theirs === null;
     }
 
-    function choose(email) {
+    /* `take` is what to ask them for straight away, once their cards are in
+       and only what they still have. */
+    function choose(email, take) {
       build.to = email;
       build.take = [];
       build.theirs = null;
+      build.theirsFirst = {};
+      build.missing = null;
       draw();
       EGE.cardStore.collectionFor(email).then(function (got) {
         if (build.to !== email) { return; }
         build.theirs = got ? got.owned : {};
+        build.theirsFirst = got ? got.first : {};
+        (take || []).forEach(function (id) {
+          if (build.theirs[id] && build.take.length < MAX_SIDE) { build.take.push(id); }
+        });
+        if (take && take.length && !build.take.length) {
+          build.missing = firstName(email) + ' does not have that card any more.';
+        }
         draw();
+        /* The card asked for, scrolled into sight in their side. */
+        var on = theirsSide.grid.querySelector('.is-picked');
+        if (on) {
+          theirsSide.grid.scrollTop += on.getBoundingClientRect().top - theirsSide.grid.getBoundingClientRect().top - 18;
+        }
       });
     }
 
@@ -1894,7 +2525,7 @@ EGE.cardsView = (function () {
       });
     });
 
-    choose(pick.value);
+    choose(pick.value, ask && pick.value === ask.to ? ask.take : null);
     /* Focus goes on the builder, not the drop-down: a phone opens a
        focused drop-down's picker straight away. */
     panel.tabIndex = -1;
@@ -2144,6 +2775,8 @@ EGE.cardsView = (function () {
     /* The binder measures itself to draw its first rows, and a hidden page
        measures as nothing. */
     if (moved && next === 'cards' && state.loaded && !state.hold) { renderCollection(); }
+    /* Picking cards to sell is on the Cards page only. */
+    if (moved && next !== 'cards' && state.sell) { sellMode(false); }
     /* Leaving the Trades page drops the New tags of the offers seen on it. */
     if (moved && next !== 'trades' && Object.keys(state.newTrades).length) {
       state.newTrades = {};
@@ -3241,7 +3874,7 @@ EGE.cardsView = (function () {
     document.addEventListener('keydown', function (event) {
       if (event.key === 'Escape' && state.filtersOpen) { openFilters(false); }
     });
-    byId('tradeNew').addEventListener('click', openTradeBuilder);
+    byId('tradeNew').addEventListener('click', function () { openTradeBuilder(null); });
     byId('marketSell').addEventListener('click', openSellPicker);
     byId('spinGo').addEventListener('click', doSpin);
     /* The countdown to the next spin, and the wheel coming free again at
@@ -3303,6 +3936,14 @@ EGE.cardsView = (function () {
         say('Your diamonds could not be loaded. Run supabase/schema.sql to set up the diamond tables, then reload.', true);
       }
       renderAll();
+      /* A Trade for it from off the Cards tab, now there is a collection
+         to give from. */
+      if (pendingAsk && state.loaded && !state.hold && !rip && /^#cards(\/|$)/.test(window.location.hash)) {
+        var ask = pendingAsk;
+        pendingAsk = null;
+        setTab('trades');
+        openTradeBuilder(ask);
+      }
     }).then(function () { refreshing -= 1; }, function () { refreshing -= 1; });
   }
 
@@ -3333,7 +3974,7 @@ EGE.cardsView = (function () {
   });
 
   function busy() {
-    if (state.hold || rip || state.filtersOpen || refreshing || polling || state.spinning) { return true; }
+    if (state.hold || rip || state.filtersOpen || state.sell || refreshing || polling || state.spinning) { return true; }
     if (Date.now() - touched < TOUCH_QUIET) { return true; }
     var a = document.activeElement;
     return Boolean(a && (a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' ||
@@ -3422,7 +4063,7 @@ EGE.cardsView = (function () {
     byId('cardsLocked').hidden = Boolean(player);
     byId('cardsContent').hidden = !player;
 
-    if (!player) { reset(); return; }
+    if (!player) { pendingAsk = null; reset(); return; }
     if (state.player !== player) {
       reset();
       state.player = player;
@@ -3461,6 +4102,12 @@ EGE.cardsView = (function () {
     state.pcOther = null;
     state.spin = null;
     state.spinning = false;
+    if (state.sell) { window.clearTimeout(state.sell.timer); }
+    state.sell = null;
+    var panel = byId('collectionPanel');
+    if (panel) { panel.classList.remove('is-selling'); }
+    var bar = byId('sellBar');
+    if (bar) { bar.hidden = true; }
     wheel.prize = null;
     binder.key = null;
     binder.sig = null;
@@ -3531,6 +4178,7 @@ EGE.cardsView = (function () {
     describe: describe,
     pressable: pressable,
     zoom: zoom,
+    zoomPlayer: zoomPlayer,
     openOverlay: openOverlay,
     closeOverlay: closeRip,
     demoPack: demoPack
