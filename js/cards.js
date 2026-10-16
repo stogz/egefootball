@@ -482,7 +482,7 @@ EGE.cardStore = (function () {
   function eventClaims(email, key) {
     var c = client();
     if (!c || !email || !key) { return Promise.resolve({}); }
-    return c.from('card_event_claims').select('set_key, cards, claimed_at')
+    return c.from('card_event_claims').select('set_key, cards, claimed_at, reward')
       .eq('email', email).eq('event_key', key)
       .then(function (res) {
         var out = {};
@@ -494,14 +494,22 @@ EGE.cardStore = (function () {
   }
 
   /* Locks in one of an event's sets with the cards it was made with;
-     claim_event_set checks they are all Gold Rush cards in the collection. */
+     claim_event_set checks they are all Gold Rush cards in the collection,
+     and pays the reward: the card rolled here, and the set's diamonds and
+     booster, which it holds itself. */
   function claimEventSet(set, filled) {
     if (!filled.complete) { return fail('That set is not complete yet.'); }
+    var reward = set.reward ? EGE.cards.rollReward(set) : null;
     return call('claim_event_set', {
       p_event: set.event,
       p_set: set.key,
-      p_cards: filled.slots.map(function (one) { return one.card.id; })
-    }, function (n) { return { ok: true, claimed: Number(n) || 0 }; });
+      p_cards: filled.slots.map(function (one) { return one.card.id; }),
+      p_reward_card: reward ? reward.id : null
+    }, function (out) {
+      out = out || {};
+      return { ok: true, claimed: Number(out.claimed) || 0, card: reward,
+               diamonds: out.diamonds == null ? null : Number(out.diamonds) };
+    });
   }
 
   /* Every set locked in: the event's reward card. */

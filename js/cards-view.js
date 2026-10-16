@@ -206,12 +206,18 @@ EGE.cardsView = (function () {
       card.week + ' ' + card.season;
   }
 
-  /* The gold GOLD RUSH sticker a Gold Rush card wears under its score. */
+  /* The GOLD RUSH sticker a Gold Rush card wears under its score: a gold
+     booster sticker (the sunburst js/app.js cuts them from) with the
+     event's name on it. */
   function stickerEl() {
-    var s = el('span', 'ege-tcard__sticker');
+    var s = el('span', 'ege-sticker ege-sticker--gold ege-tcard__sticker');
     s.setAttribute('aria-hidden', 'true');
-    s.appendChild(el('span', null, 'Gold'));
-    s.appendChild(el('span', null, 'Rush'));
+    var face = el('span', 'ege-sticker__face');
+    var word = el('span', 'ege-sticker__text ege-tcard__stickerword');
+    word.appendChild(el('span', null, 'Gold'));
+    word.appendChild(el('span', null, 'Rush'));
+    face.appendChild(word);
+    s.appendChild(face);
     return s;
   }
 
@@ -368,9 +374,10 @@ EGE.cardsView = (function () {
     return node;
   }
 
-  /* The back every card shares, for the moment before it is turned over. */
-  function backEl() {
-    var node = el('div', 'ege-tcard ege-tcard--back');
+  /* The back every card shares, for the moment before it is turned over;
+     a Gold Rush card's is gold (Sam, 2026-10-16). */
+  function backEl(card) {
+    var node = el('div', 'ege-tcard ege-tcard--back' + (card && card.gold ? ' ege-tcard--backgold' : ''));
     var face = el('div', 'ege-tcard__face');
     face.appendChild(el('span', 'ege-tcard__backmark'));
     var word = el('span', 'ege-tcard__backword');
@@ -505,7 +512,13 @@ EGE.cardsView = (function () {
     var pool = EGE.cards.pullable(pack.key);
     var buy = el('button', 'fb-btn fb-btn--primary ege-packtile__buy');
     buy.type = 'button';
-    buy.appendChild(document.createTextNode('Buy & Rip \u00b7 '));
+    /* One piece of text, so the button's gap only opens before the price;
+       "& Rip" goes when the tile is narrow (site.css). */
+    var label = el('span');
+    label.appendChild(document.createTextNode('Buy'));
+    label.appendChild(el('span', 'ege-packtile__rip', ' & Rip'));
+    label.appendChild(document.createTextNode(' \u00b7 '));
+    buy.appendChild(label);
     buy.appendChild(price(pack.diamonds));
 
     var why = null;
@@ -958,7 +971,7 @@ EGE.cardsView = (function () {
 
       var inner = el('div', 'ege-flip__inner');
       var back = el('div', 'ege-flip__side ege-flip__side--back');
-      back.appendChild(backEl());
+      back.appendChild(backEl(card));
       var front = el('div', 'ege-flip__side ege-flip__side--front');
       front.appendChild(cardEl(card, { isNew: options.isNew[i] }));
       inner.appendChild(back);
@@ -2788,17 +2801,51 @@ EGE.cardsView = (function () {
 
   /* --- the library ------------------------------------------------------ */
 
+  function boosterName(key) {
+    var item = EGE.shopItem ? EGE.shopItem(key) : null;
+    return item ? item.name : '1.5x Booster';
+  }
+
+  /* What a set pays, in a line. A Gold Rush set's card is a Gold Rush
+     card. */
   function rewardText(set) {
     var rw = set.reward;
     var floor = EGE.cards.rarity(rw.floor).name;
-    var parts = [(/^[AEIOU]/.test(floor) ? 'An ' : 'A ') + floor + '-or-better card' +
-      (rw.fromText ? ' (' + rw.fromText + ')' : '')];
+    var parts = [(/^[AEIOU]/.test(floor) ? 'An ' : 'A ') + floor + '-or-better ' +
+      (set.event ? 'Gold Rush card' : 'card') + (rw.fromText ? ' (' + rw.fromText + ')' : '')];
     if (rw.diamonds) { parts.push(rw.diamonds + ' diamonds'); }
-    if (rw.booster) {
-      var item = EGE.shopItem ? EGE.shopItem(rw.booster) : null;
-      parts.push(item ? item.name : '1.5x Booster');
-    }
+    if (rw.booster) { parts.push(boosterName(rw.booster)); }
     return parts.join(' \u00b7 ');
+  }
+
+  /* The reward line under a set, and once it is paid the card it pulled. */
+  function rewardLines(tile, set, claim) {
+    var reward = el('p', 'ege-set__reward');
+    reward.appendChild(el('strong', null, 'Reward '));
+    reward.appendChild(document.createTextNode(rewardText(set)));
+    tile.appendChild(reward);
+
+    var got = claim && claim.reward && claim.reward.card ? EGE.cards.byId(claim.reward.card) : null;
+    if (got) {
+      var line = el('p', 'ege-set__got');
+      line.appendChild(document.createTextNode('Pulled '));
+      var name = el('button', 'ege-linkbtn', EGE.cards.rarity(got.rarity).name + ' ' + got.player.first + ', ' + got.headline);
+      name.type = 'button';
+      name.addEventListener('click', function () { zoom(got, { owned: state.owned[got.id] || 0 }); });
+      line.appendChild(name);
+      tile.appendChild(line);
+    }
+  }
+
+  /* What a reward rip says under the card: the diamonds and the booster. */
+  function rewardExtras(rw) {
+    var extras = [];
+    if (rw && rw.diamonds) { extras.push('+' + rw.diamonds + ' diamonds'); }
+    if (rw && rw.booster) {
+      var name = boosterName(rw.booster);
+      extras.push((/^[0-9]/.test(name) ? 'a ' : '') + name + ' in your shop inventory');
+    }
+    return extras;
   }
 
   /* Slots that want the same thing are one line with a pip each, so "ten
@@ -2854,24 +2901,9 @@ EGE.cardsView = (function () {
     tile.appendChild(meter);
 
     tile.appendChild(slotLines(filled));
+    rewardLines(tile, set, claim);
 
-    var reward = el('p', 'ege-set__reward');
-    reward.appendChild(el('strong', null, 'Reward '));
-    reward.appendChild(document.createTextNode(rewardText(set)));
-    tile.appendChild(reward);
-
-    if (claim) {
-      var got = claim.reward && claim.reward.card ? EGE.cards.byId(claim.reward.card) : null;
-      if (got) {
-        var line = el('p', 'ege-set__got');
-        line.appendChild(document.createTextNode('Pulled '));
-        var name = el('button', 'ege-linkbtn', EGE.cards.rarity(got.rarity).name + ' ' + got.player.first + ', ' + got.headline);
-        name.type = 'button';
-        name.addEventListener('click', function () { zoom(got, { owned: state.owned[got.id] || 0 }); });
-        line.appendChild(name);
-        tile.appendChild(line);
-      }
-    } else if (filled.complete) {
+    if (!claim && filled.complete) {
       var button = el('button', 'fb-btn fb-btn--primary fb-btn--block', 'Claim the reward');
       button.type = 'button';
       button.addEventListener('click', function () { claimSet(set, filled, button); });
@@ -2893,9 +2925,7 @@ EGE.cardsView = (function () {
       }
 
       var isNew = res.card ? !state.owned[res.card.id] : false;
-      var extras = [];
-      if (set.reward.diamonds) { extras.push('+' + set.reward.diamonds + ' diamonds'); }
-      if (set.reward.booster) { extras.push('a 1.5x Booster in your shop inventory'); }
+      var extras = rewardExtras(set.reward);
 
       /* Like a pack: the reward card stays face down, and out of the
          collection and the library, until it is put away. */
@@ -2991,25 +3021,38 @@ EGE.cardsView = (function () {
     tile.appendChild(meter);
 
     tile.appendChild(slotLines(filled));
+    if (set.reward) { rewardLines(tile, set, claim); }
 
     if (ready) {
       var button = el('button', 'fb-btn fb-btn--primary fb-btn--block', 'Lock it in');
       button.type = 'button';
-      button.title = 'Counts toward the GOLD RUSH card. The cards stay yours.';
+      button.title = 'Pays the reward and counts toward the GOLD RUSH card. The cards stay yours.';
       button.addEventListener('click', function () { lockInSet(set, filled, button); });
       tile.appendChild(button);
     }
     return tile;
   }
 
+  /* Locked in, the reward turns over like a Library set's: face down, and
+     out of the collection and the sets, until it is put away. */
   function lockInSet(set, filled, button) {
     button.disabled = true;
     say('', false);
     EGE.cardStore.claimEventSet(set, filled).then(function (res) {
       if (!res.ok) { say(res.message, true); button.disabled = false; return; }
-      state.eventClaims[set.key] = { set_key: set.key, cards: filled.slots.map(function (one) { return one.card.id; }) };
-      renderEvent();
-      refresh();
+      state.eventClaims[set.key] = {
+        set_key: set.key,
+        cards: filled.slots.map(function (one) { return one.card.id; }),
+        reward: { card: res.card ? res.card.id : null }
+      };
+      walletChanged(null, res.diamonds);
+      if (!res.card) { renderEvent(); refresh(); return; }
+      var isNew = !state.owned[res.card.id];
+      state.hold = true;
+      renderPacks();
+      openRip({ title: set.name + ' locked in', cards: [res.card], isNew: [isNew],
+                extras: rewardExtras(set.reward),
+                onClose: function () { reveal([res.card], [isNew]); } });
     });
   }
 
@@ -3039,6 +3082,11 @@ EGE.cardsView = (function () {
     var words = el('div', 'ege-set__finalwords');
     words.appendChild(el('p', 'ege-item__text', 'Lock in every ' + GOLD.name + ' set before the event ends for ' +
       'the Iconic GOLD RUSH card. No pack holds it, and it never trades.'));
+    var prize = el('p', 'ege-set__reward');
+    prize.appendChild(el('strong', null, 'Reward '));
+    prize.appendChild(document.createTextNode(['The GOLD RUSH card']
+      .concat(GOLD.bonus.diamonds ? [GOLD.bonus.diamonds + ' diamonds'] : [])
+      .concat(GOLD.bonus.booster ? [boosterName(GOLD.bonus.booster)] : []).join(' \u00b7 ')));
     var list = el('ul', 'ege-set__needs');
     sets.forEach(function (set) {
       var done = Boolean(state.eventClaims[set.key]);
@@ -3054,6 +3102,7 @@ EGE.cardsView = (function () {
     words.appendChild(list);
     body.appendChild(words);
     tile.appendChild(body);
+    tile.appendChild(prize);
 
     if (ready) {
       var button = el('button', 'fb-btn fb-btn--primary fb-btn--block', 'Claim the GOLD RUSH card');
@@ -3075,7 +3124,7 @@ EGE.cardsView = (function () {
          away. An Iconic, so it gets the longest turn there is. */
       state.hold = true;
       openRip({ title: GOLD.name + ' complete', cards: [res.card], isNew: [isNew],
-                extras: ['Every ' + GOLD.name + ' set, locked in before it ended'],
+                extras: ['Every ' + GOLD.name + ' set, locked in before it ended'].concat(rewardExtras(GOLD.bonus)),
                 onClose: function () { reveal([res.card], [isNew]); } });
     });
   }
@@ -3113,8 +3162,9 @@ EGE.cardsView = (function () {
     var locked = sets.filter(function (set) { return state.eventClaims[set.key]; }).length;
     banner.appendChild(el('p', 'ege-event__text', on
       ? 'Gold Rush Packs in the Shop hold Sam\u2019s and Cooper\u2019s cards and every rushing touchdown, ' +
-        'each with a GOLD RUSH sticker, and only those fill these sets. Lock in all six before it ends for ' +
-        'the Iconic GOLD RUSH card. A traded Gold Rush card can\u2019t be traded again for ' + GOLD.lockHours + ' hours.'
+        'each with a GOLD RUSH sticker, and only those fill these sets. Each set pays its reward when you lock it ' +
+        'in, and all six before it ends earn the Iconic GOLD RUSH card. A traded Gold Rush card can\u2019t be ' +
+        'traded again for ' + GOLD.lockHours + ' hours.'
       : 'The ' + GOLD.name + ' is over. You locked in ' + locked + ' of its ' + sets.length + ' sets' +
         (state.eventClaims[GOLD.key] ? ' and earned the GOLD RUSH card.' : '.') +
         ' Your Gold Rush cards stay in your collection.'));

@@ -160,11 +160,11 @@ EGE.cards = (function () {
     key: 'gold-rush',
     name: 'Gold Rush Pack',
     diamonds: 15,
-    size: 5,
+    size: 4,
     floor: 'rare',
     event: 'gold-rush',
     odds: { common: 41.4, uncommon: 26, rare: 15, epic: 9, legendary: 7, mystic: 1.5, iconic: 0.1 },
-    blurb: 'Five Gold Rush cards of Sam, Cooper and every rushing touchdown, the last one ' +
+    blurb: 'Four Gold Rush cards of Sam, Cooper and every rushing touchdown, the last one ' +
            'Rare or better. Only Gold Rush cards complete the event’s sets.'
   });
 
@@ -285,7 +285,9 @@ EGE.cards = (function () {
     lockHours: 48,
     pack: 'gold-rush',
     reward: 'r:gold-rush:gr',
-    rewardImage: null
+    rewardImage: null,
+    /* Paid with the GOLD RUSH card, on top of it. */
+    bonus: { diamonds: 40, booster: 'boost-2-5' }
   };
 
   var EVENT_TAG = ':gr';
@@ -843,7 +845,15 @@ EGE.cards = (function () {
      with every card it was made with in the collection (claim_event_set in
      supabase/schema.sql), so a card can go on afterwards; the six locked in
      before the event ends pay the GOLD RUSH card (the final set,
-     GOLD_RUSH.reward). Nothing else is paid along the way.
+     GOLD_RUSH.reward).
+
+     Locking a set in pays a reward the way a Library set does (Sam,
+     2026-10-16): a Gold Rush card at or above `floor`, diamonds, and a
+     booster, more for the sets that take more packs to finish -- a 1.5x
+     on the middling ones, the gold 2.0x on the two longest, and the 2.5x
+     with the GOLD RUSH card. The diamonds and the booster are held in
+     card_events.rewards in supabase/schema.sql, which pays them whatever
+     the page says; change the two together.
 
      A career set wants a performance from every season the player has
      cards in and a play from every one he has a play in -- neither back
@@ -875,6 +885,19 @@ EGE.cards = (function () {
       slots: slots
     };
   }
+
+  /* Each set's reward, hardest last. */
+  var EVENT_REWARDS = {
+    'card-art':        { floor: 'rare', diamonds: 8 },
+    'sam-stogsdill':   { floor: 'epic', diamonds: 10, booster: 'boost-1-5',
+                         from: ofPlayer('sam-stogsdill'), fromText: 'Sam' },
+    'triple':          { floor: 'epic', diamonds: 12, booster: 'boost-1-5' },
+    'marathon':        { floor: 'legendary', diamonds: 15, booster: 'boost-1-5',
+                         from: isRushTd, fromText: 'a rushing TD' },
+    'red-zone-rushes': { floor: 'legendary', diamonds: 20, booster: 'boost-2-0' },
+    'cooper-clark':    { floor: 'legendary', diamonds: 25, booster: 'boost-2-0',
+                         from: ofPlayer('cooper-clark'), fromText: 'Cooper' }
+  };
 
   function eventSets() {
     if (eventSetsCache) { return eventSetsCache; }
@@ -919,6 +942,7 @@ EGE.cards = (function () {
       slots: [slot('Card art', function (c) { return Boolean(c.art) && !c.reward; })]
     });
 
+    out.forEach(function (set) { set.reward = EVENT_REWARDS[set.key]; });
     eventSetsCache = out;
     return out;
   }
@@ -946,9 +970,10 @@ EGE.cards = (function () {
   }
 
   /* The card a set pays out with. From every published card, or the set's
-     own pool when it names one, at or above its floor. */
+     own pool when it names one, at or above its floor. A Gold Rush set pays
+     a Gold Rush card, from what its pack holds. */
   function rollReward(set, rng) {
-    var pool = pullable(null);
+    var pool = set.event ? pullable(GOLD_RUSH.pack) : pullable(null);
     if (set.reward.from) {
       var narrowed = pool.filter(set.reward.from);
       if (narrowed.length) { pool = narrowed; }

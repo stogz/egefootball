@@ -1127,7 +1127,7 @@ begin
   v_price := case p_pack when 'base' then 10 when 'season' then 12 when 'pro' then 20 end;
   v_size  := case p_pack when 'base' then 3 when 'season' then 3 when 'pro' then 5 end;
 
-  -- The Gold Rush Pack: 15 diamonds, five Gold Rush cards, and only while
+  -- The Gold Rush Pack: 15 diamonds, four Gold Rush cards, and only while
   -- the Gold Rush is on. Never the GOLD RUSH card, which only finishing the
   -- event pays.
   if p_pack = 'gold-rush' then
@@ -1135,7 +1135,7 @@ begin
       raise exception 'The Gold Rush is not on, so its packs are not for sale.';
     end if;
     v_price := 15;
-    v_size := 5;
+    v_size := 4;
   end if;
 
   -- A past season's pack, year-{season}: 14 diamonds, three cards, every
@@ -2824,16 +2824,18 @@ notify pgrst, 'reload schema';
 -- when an admin starts it on the admin page.
 --
 -- While it is on the shop sells a Gold Rush Pack (open_card_pack, 15
--- diamonds for five cards) of Sam's and Cooper's cards and every rushing
+-- diamonds for four cards) of Sam's and Cooper's cards and every rushing
 -- touchdown, each one a Gold Rush card: the card's id with ':gr' on the
 -- end, a card of its own that never stacks with the standard copies. The
 -- pack can also hold one of Sam's two card-art cards ('a:...:gr').
 --
 -- The event has six sets (data/cards.js, eventSets), filled only with Gold
 -- Rush cards. Each is locked in once, with every card it was made with in
--- the collection (claim_event_set); all six locked in before the event ends
--- pays the Iconic GOLD RUSH card ('r:gold-rush:gr', claim_event_reward),
--- which no pack holds and which cannot be traded, listed or sold.
+-- the collection (claim_event_set), and pays a reward like a Library set: a
+-- Gold Rush card, diamonds and a booster, more for the harder sets. All six
+-- locked in before the event ends pays the Iconic GOLD RUSH card
+-- ('r:gold-rush:gr', claim_event_reward), which no pack holds and which
+-- cannot be traded, listed or sold, with diamonds and a 2.5x booster.
 --
 -- Gold Rush cards trade, but a copy that changes hands -- a trade or a
 -- market sale -- cannot be traded or listed again for 48 hours
@@ -2853,6 +2855,11 @@ create table if not exists public.card_events (
   updated_at timestamptz not null default now()
 );
 
+-- What locking in each set pays besides its card, keyed by set, and under
+-- the event's own key what the reward card comes with:
+-- { "marathon": { "diamonds": 15, "booster": "boost-1-5" }, ... }.
+alter table public.card_events add column if not exists rewards jsonb not null default '{}'::jsonb;
+
 alter table public.card_events enable row level security;
 
 drop policy if exists "card events are readable" on public.card_events;
@@ -2861,13 +2868,23 @@ create policy "card events are readable"
   using (true);
 
 -- The Gold Rush itself: its sets (the same keys as eventSets in
--- data/cards.js) and its reward. Re-running this leaves when it runs alone.
-insert into public.card_events (key, name, days, sets, reward)
+-- data/cards.js), its reward, and what each set pays (EVENT_REWARDS and
+-- GOLD_RUSH.bonus there; change them together). Re-running this leaves when
+-- it runs alone.
+insert into public.card_events (key, name, days, sets, reward, rewards)
 values ('gold-rush', 'Gold Rush', 7,
         array['cooper-clark', 'sam-stogsdill', 'marathon', 'red-zone-rushes', 'triple', 'card-art'],
-        'r:gold-rush:gr')
+        'r:gold-rush:gr',
+        '{"card-art":        {"diamonds":  8},
+          "sam-stogsdill":   {"diamonds": 10, "booster": "boost-1-5"},
+          "triple":          {"diamonds": 12, "booster": "boost-1-5"},
+          "marathon":        {"diamonds": 15, "booster": "boost-1-5"},
+          "red-zone-rushes": {"diamonds": 20, "booster": "boost-2-0"},
+          "cooper-clark":    {"diamonds": 25, "booster": "boost-2-0"},
+          "gold-rush":       {"diamonds": 40, "booster": "boost-2-5"}}'::jsonb)
 on conflict (key) do update
-  set name = excluded.name, days = excluded.days, sets = excluded.sets, reward = excluded.reward;
+  set name = excluded.name, days = excluded.days, sets = excluded.sets, reward = excluded.reward,
+      rewards = excluded.rewards;
 
 -- Whether an event is on right now.
 create or replace function public.card_event_live(p_key text)
@@ -2893,6 +2910,9 @@ create table if not exists public.card_event_claims (
   claimed_at timestamptz not null default now(),
   primary key (email, event_key, set_key)
 );
+
+-- What it paid: { card, diamonds, booster }.
+alter table public.card_event_claims add column if not exists reward jsonb;
 
 alter table public.card_event_claims enable row level security;
 
@@ -3042,18 +3062,34 @@ $$;
 
 -- Locks in one of an event's sets: the page says which Gold Rush cards it
 -- was made with, and they all have to be in the collection. Only while the
--- event is on, and once. Returns how many of the event's sets this player
--- has locked in.
-create or replace function public.claim_event_set(p_event text, p_set text, p_cards text[])
-returns integer
+-- event is on, and once. Pays the set's reward: the card the page rolled
+-- (a Gold Rush card, as a Library set's is any card -- the same trust),
+-- and the diamonds and booster card_events.rewards holds for the set,
+-- whatever the page says. Returns { claimed: how many of the event's sets
+-- this player has locked in, diamonds: the balance after }.
+--
+-- It used to take three arguments and return the count; Postgres will not
+-- change either in place, so the old one goes first.
+drop function if exists public.claim_event_set(text, text, text[]);
+
+create or replace function public.claim_event_set(
+  p_event       text,
+  p_set         text,
+  p_cards       text[],
+  p_reward_card text
+) returns jsonb
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
-  v_email text := auth.jwt() ->> 'email';
-  e       public.card_events;
-  v_card  text;
+  v_email    text := auth.jwt() ->> 'email';
+  e          public.card_events;
+  v_card     text;
+  v_pay      jsonb;
+  v_diamonds integer;
+  v_booster  text;
+  v_balance  integer;
 begin
   if v_email is null then
     raise exception 'sign in first';
@@ -3076,24 +3112,53 @@ begin
       raise exception 'Only % cards count for its sets: %', e.name, v_card;
     end if;
   end loop;
+  if p_reward_card is not null
+     and (not public.is_event_card_id(p_reward_card) or p_reward_card like 'r:%') then
+    raise exception 'Not a % card: %', e.name, p_reward_card;
+  end if;
   if not public.owns_cards(v_email, p_cards) then
     raise exception 'Some of those cards are not in your collection.';
   end if;
 
-  insert into public.card_event_claims (email, event_key, set_key, cards)
-  values (v_email, p_event, p_set, p_cards)
+  v_pay := coalesce(e.rewards -> p_set, '{}'::jsonb);
+  v_diamonds := greatest(coalesce((v_pay ->> 'diamonds')::integer, 0), 0);
+  v_booster := v_pay ->> 'booster';
+  if v_booster is not null and v_booster not in ('boost-1-5', 'boost-2-0', 'boost-2-5') then
+    v_booster := null;
+  end if;
+
+  insert into public.card_event_claims (email, event_key, set_key, cards, reward)
+  values (v_email, p_event, p_set, p_cards,
+          jsonb_build_object('card', p_reward_card, 'diamonds', v_diamonds, 'booster', v_booster))
   on conflict (email, event_key, set_key) do nothing;
   if not found then
     raise exception 'That set is already locked in.';
   end if;
 
-  return (select count(*) from public.card_event_claims
-           where email = v_email and event_key = p_event and set_key = any(e.sets));
+  if p_reward_card is not null then
+    perform public.give_card(v_email, p_reward_card);
+  end if;
+
+  insert into public.player_diamonds as pd (email, diamonds, updated_at)
+  values (v_email, v_diamonds, now())
+  on conflict (email) do update
+    set diamonds = pd.diamonds + v_diamonds, updated_at = now()
+  returning diamonds into v_balance;
+
+  if v_booster is not null then
+    perform public.give_booster(v_email, v_booster);
+  end if;
+
+  return jsonb_build_object(
+    'claimed', (select count(*) from public.card_event_claims
+                 where email = v_email and event_key = p_event and set_key = any(e.sets)),
+    'diamonds', v_balance);
 end;
 $$;
 
 -- Every set locked in before the event ends: the event's reward card,
--- once. Returns its id.
+-- once, with what card_events.rewards holds under the event's own key.
+-- Returns the card's id.
 create or replace function public.claim_event_reward(p_event text)
 returns text
 language plpgsql
@@ -3101,8 +3166,11 @@ security definer
 set search_path = public
 as $$
 declare
-  v_email text := auth.jwt() ->> 'email';
-  e       public.card_events;
+  v_email    text := auth.jwt() ->> 'email';
+  e          public.card_events;
+  v_pay      jsonb;
+  v_diamonds integer;
+  v_booster  text;
 begin
   if v_email is null then
     raise exception 'sign in first';
@@ -3119,25 +3187,40 @@ begin
     raise exception 'Lock in every % set first.', e.name;
   end if;
 
-  insert into public.card_event_claims (email, event_key, set_key)
-  values (v_email, p_event, p_event)
+  v_pay := coalesce(e.rewards -> p_event, '{}'::jsonb);
+  v_diamonds := greatest(coalesce((v_pay ->> 'diamonds')::integer, 0), 0);
+  v_booster := v_pay ->> 'booster';
+  if v_booster is not null and v_booster not in ('boost-1-5', 'boost-2-0', 'boost-2-5') then
+    v_booster := null;
+  end if;
+
+  insert into public.card_event_claims (email, event_key, set_key, reward)
+  values (v_email, p_event, p_event,
+          jsonb_build_object('card', e.reward, 'diamonds', v_diamonds, 'booster', v_booster))
   on conflict (email, event_key, set_key) do nothing;
   if not found then
     raise exception 'You already have the % card.', e.name;
   end if;
 
   perform public.give_card(v_email, e.reward);
+  insert into public.player_diamonds as pd (email, diamonds, updated_at)
+  values (v_email, v_diamonds, now())
+  on conflict (email) do update
+    set diamonds = pd.diamonds + v_diamonds, updated_at = now();
+  if v_booster is not null then
+    perform public.give_booster(v_email, v_booster);
+  end if;
   return e.reward;
 end;
 $$;
 
 revoke all on function public.start_card_event(text) from public, anon;
 revoke all on function public.end_card_event(text) from public, anon;
-revoke all on function public.claim_event_set(text, text, text[]) from public, anon;
+revoke all on function public.claim_event_set(text, text, text[], text) from public, anon;
 revoke all on function public.claim_event_reward(text) from public, anon;
 grant execute on function public.start_card_event(text) to authenticated;
 grant execute on function public.end_card_event(text) to authenticated;
-grant execute on function public.claim_event_set(text, text, text[]) to authenticated;
+grant execute on function public.claim_event_set(text, text, text[], text) to authenticated;
 grant execute on function public.claim_event_reward(text) to authenticated;
 
 notify pgrst, 'reload schema';

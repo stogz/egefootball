@@ -4615,34 +4615,41 @@ html.ege-noscroll body { overflow: hidden; }
 
 /* --- the Gold Rush ---------------------------------------------------------
 
-   A Gold Rush card is the card again with a gold GOLD RUSH sticker on it,
-   top right in the picture, just under the score, tilted a little the way
-   a sticker goes on (Sam, 2026-10-16). On a Gold Rush holo the HOLO seal
-   moves down under it. Held still everywhere, like the frames. */
-.ege-tcard__sticker {
+   A Gold Rush card is the card again with a GOLD RUSH sticker on it, top
+   right in the picture, just under the score (Sam, 2026-10-16): the booster
+   stickers' sunburst, cut with the same sharp points and dark die-cut edge,
+   in the 2.0x Booster's gold, lettered in the event's own type. On a Gold
+   Rush holo the HOLO seal moves down under it. Its foil only moves up close
+   and in a pack, like the frames. */
+.ege-sticker.ege-tcard__sticker {
+  --sticker-size: 25cqw;
+  --tilt: 9deg;
   position: absolute;
-  top: 3cqw;
-  right: 3cqw;
+  top: 1.4cqw;
+  right: 1.6cqw;
   z-index: 4;
+  display: grid;
+  filter: drop-shadow(.6cqw .8cqw .6cqw rgba(0, 0, 0, .5));
+  pointer-events: none;
+}
+.ege-tcard__stickerword {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 1.1cqw 2.2cqw 1cqw;
-  border: .8cqw solid var(--fb-ink);
-  border-radius: 1.6cqw !important;
-  background:
-    linear-gradient(160deg, rgba(255, 255, 255, .7) 0%, rgba(255, 255, 255, 0) 38%),
-    linear-gradient(120deg, #a76a10 0%, #f4c653 28%, #fff0a8 46%, #d89b28 64%, #ffe392 82%, #b57712 100%);
-  color: #2a1a02;
-  font-size: 4.1cqw;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: .1em;
+  font-size: calc(var(--sticker-size) * .2);
+  line-height: .86;
   text-transform: uppercase;
-  box-shadow: .6cqw .6cqw 0 rgba(0, 0, 0, .45);
-  transform: rotate(4deg);
+  text-shadow: 0 .3cqw 0 rgba(255, 246, 200, .55);
 }
-.ege-tcard--gold .ege-tcard__holo { top: 18cqw; }
+.ege-tcard__sticker .ege-sticker__face::before,
+.ege-tcard__sticker .ege-sticker__face::after { animation: none; }
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard__sticker .ege-sticker__face::before {
+  animation: ege-metal-flow 7s ease-in-out infinite;
+}
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard__sticker .ege-sticker__face::after {
+  animation: ege-sheen 9s ease-in-out infinite;
+}
+.ege-tcard--gold .ege-tcard__holo { top: 27cqw; }
 
 /* A card printed from Sam's art is the picture and nothing else; its
    sticker goes in the same place, under the score printed on it. */
@@ -4655,7 +4662,7 @@ html.ege-noscroll body { overflow: hidden; }
   object-fit: cover;
   pointer-events: none;
 }
-.ege-tcard--art .ege-tcard__sticker { top: 13.6%; right: 5.4%; }
+.ege-tcard--art .ege-sticker.ege-tcard__sticker { top: 12.4%; right: 4.2%; }
 
 /* The GOLD RUSH card until its art is in: gold rays on black and the
    event's name in gold. */
@@ -4759,12 +4766,33 @@ html.ege-noscroll body { overflow: hidden; }
 }
 .ege-tcard__backword em { font-style: normal; color: var(--fb-accent); }
 
+/* A Gold Rush card's back: the same ball and lettering on gold foil, in
+   the event's black. */
+.ege-tcard--back.ege-tcard--backgold {
+  background: linear-gradient(120deg, #a76a10 0%, #f4c653 26%, #fff0a8 44%, #d89b28 62%, #ffe392 80%, #b57712 100%);
+}
+.ege-tcard--backgold .ege-tcard__face {
+  background:
+    radial-gradient(circle at 50% 44%, rgba(255, 246, 200, .55), rgba(255, 246, 200, 0) 52%),
+    linear-gradient(160deg, rgba(255, 255, 255, .28) 0%, rgba(255, 255, 255, 0) 40%),
+    repeating-linear-gradient(-45deg, #e0a63a 0 7cqw, #b9801c 7cqw 14cqw);
+}
+.ege-tcard--backgold .ege-tcard__backmark {
+  background: #17120a;
+  border-color: #fff0a8;
+}
+.ege-tcard--backgold .ege-tcard__backmark::after { background: #fff0a8; }
+.ege-tcard--backgold .ege-tcard__backword { color: #17120a; }
+.ege-tcard--backgold .ege-tcard__backword em { color: #fff6c8; text-shadow: .4cqw .4cqw 0 #17120a; }
+
 /* --- packs --------------------------------------------------------------- */
 
+/* Every pack on one row on a computer, the Gold Rush Pack too (Sam,
+   2026-10-16): four across a full-width page, wrapping as it narrows. */
 .ege-packs {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 16px;
 }
 /* A pack top to bottom, all centred: the pack, its name, what is in it,
    then the Buy button on the tile's foot, so packs side by side put their
@@ -4791,7 +4819,20 @@ html.ege-noscroll body { overflow: hidden; }
   margin-top: auto;
   padding-top: 6px;
 }
-.ege-packtile__buy { flex: 0 1 auto; }
+.ege-packtile__buy { flex: 0 1 auto; white-space: nowrap; }
+/* Between the Season Pack's arrows, four packs across leave it a narrow
+   tile: the button gives up some padding rather than its line. */
+.ege-packtile__arrow ~ .ege-packtile__buy { padding-left: 12px; padding-right: 12px; }
+/* Four across a narrower screen: the arrows and the button tighten up and
+   the button just says Buy, so the Season Pack's row stays inside its
+   tile. */
+.ege-packtile { container-type: inline-size; }
+@container (max-width: 235px) {
+  .ege-packtile__row { gap: 6px; }
+  .ege-packtile__rip { display: none; }
+  .ege-packtile__arrow { min-width: 34px; padding: 0 6px; }
+  .ege-packtile__arrow ~ .ege-packtile__buy { padding-left: 10px; padding-right: 10px; }
+}
 /* An event's pack: a gold edge along the top, and the time it has left. */
 .ege-packtile--event {
   background: linear-gradient(180deg, #fff6d6, #fff 46%);
@@ -4812,8 +4853,8 @@ html.ege-noscroll body { overflow: hidden; }
 /* The same block shadow and press as the Buy button between them. */
 .ege-packtile__arrow {
   flex: none;
-  min-width: 44px;
-  padding: 0 10px;
+  min-width: 40px;
+  padding: 0 8px;
   background: #fff;
   font-size: 1.5rem;
   line-height: 1;
