@@ -376,10 +376,38 @@
         </details>
       </div>
 
-      <!-- ===== Shop: packs, today's cards, the market ===== -->
+      <!-- ===== Shop: the daily spin, packs, today's cards, the market ===== -->
       <div class="ege-cardpage" id="cardPageShop" data-page="shop" hidden>
 
-        <div class="fb-panel" id="packsPanel">
+        <!-- one free spin a day, from 7:00 AM Central -->
+        <div class="fb-panel" id="spinPanel">
+          <div class="fb-panel__head">
+            <h3>Daily Spin</h3>
+            <span class="fb-meta" id="spinResets"></span>
+          </div>
+          <div class="fb-panel__body">
+            <div class="ege-spin" id="spinBox">
+              <div class="ege-spin__wheelwrap">
+                <span class="ege-spin__pointer" aria-hidden="true"></span>
+                <div class="ege-spin__wheel" id="spinWheel" aria-hidden="true"></div>
+                <span class="ege-spin__hub" aria-hidden="true"><b>EGE</b></span>
+              </div>
+              <div class="ege-spin__side">
+                <p class="ege-item__text">
+                  One free spin a day. Land an Uncommon card at worst, or a few
+                  diamonds, a Rare card or a Base Pack, and if it is your day,
+                  a Legendary card or a Pro Pack. A new spin opens every day
+                  at 7:00 AM Central.
+                </p>
+                <button class="fb-btn fb-btn--primary ege-spin__go" id="spinGo" type="button" disabled>Spin</button>
+                <p class="ege-spin__result" id="spinResult" role="status"></p>
+                <div class="ege-spin__won" id="spinWon"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="fb-panel ege-section-gap" id="packsPanel">
           <div class="fb-panel__head">
             <h3>Packs</h3>
           </div>
@@ -475,7 +503,16 @@
             </p>
             <p class="fb-meta">
               Each card in a pack rolls its rarity first, at the chance below,
-              then is drawn from every card of that rarity that is out.
+              then is drawn from every card of that rarity that is out. A Pro
+              Pack has 1.5x the chance of a Legendary; Mystic and Iconic stay
+              the same. A pack holds one Mystic or Iconic at most, and at most
+              two Legendary-or-better cards in a five-card pack, one in a
+              three-card pack.
+            </p>
+            <p class="fb-meta">
+              Three copies of one card merge into a holo: one holographic
+              card with all three cards' fantasy points, which cannot be split
+              back up. Open a card you have three of to merge them.
             </p>
           </div>
           <div class="fb-tablewrap">
@@ -484,6 +521,7 @@
                 <tr>
                   <th>Rarity</th>
                   <th class="num">Chance per card</th>
+                  <th class="num">Pro Pack</th>
                   <th class="num">Cards out</th>
                   <th class="num">Shop</th>
                   <th class="num">Quick sell</th>
@@ -531,7 +569,7 @@
         <div class="ege-cardtabs__inner" role="radiogroup" aria-label="Cards pages" id="cardTabs">
           <label class="ege-cardtab is-active" title="Cards"><input type="radio" name="cardTab" value="cards" checked><span class="ege-cardtab__icon ege-cardtab__icon--cards" aria-hidden="true"></span><span class="ege-visually-hidden">Cards</span></label>
           <label class="ege-cardtab" title="Players"><input type="radio" name="cardTab" value="players"><span class="ege-cardtab__icon ege-cardtab__icon--players" aria-hidden="true"></span><span class="ege-visually-hidden">Players</span></label>
-          <label class="ege-cardtab" title="Shop"><input type="radio" name="cardTab" value="shop"><span class="ege-cardtab__icon ege-cardtab__icon--shop" aria-hidden="true"></span><span class="ege-visually-hidden">Shop</span></label>
+          <label class="ege-cardtab" title="Shop"><input type="radio" name="cardTab" value="shop"><span class="ege-cardtab__icon ege-cardtab__icon--shop" aria-hidden="true"></span><span class="ege-visually-hidden">Shop</span><b class="ege-cardtab__badge" id="tabShopBadge" hidden></b></label>
           <label class="ege-cardtab" title="Trades"><input type="radio" name="cardTab" value="trades"><span class="ege-cardtab__icon ege-cardtab__icon--trades" aria-hidden="true"></span><span class="ege-visually-hidden">Trades</span><b class="ege-cardtab__badge" id="tabTradesBadge" hidden></b></label>
           <label class="ege-cardtab" title="Achievements"><input type="radio" name="cardTab" value="achievements"><span class="ege-cardtab__icon ege-cardtab__icon--achievements" aria-hidden="true"></span><span class="ege-visually-hidden">Achievements</span><b class="ege-cardtab__badge" id="tabSetsBadge" hidden></b></label>
           <div class="ege-cardtabs__slider" aria-hidden="true"></div>

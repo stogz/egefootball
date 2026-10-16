@@ -126,7 +126,7 @@ EGE.cards = (function () {
       floor: 'rare',
       boost: 1.5,
       blurb: 'Five cards from any season, the last one Rare or better, and ' +
-             '1.5x the odds of a Legendary, Mystic or Iconic.'
+             '1.5x the odds of a Legendary.'
     }
   ];
 
@@ -193,10 +193,32 @@ EGE.cards = (function () {
      Change both together. */
   var QUICK_SELL = { common: 1, uncommon: 1, rare: 2, epic: 2, legendary: 3, mystic: 30 };
 
-  /* Null for a card that cannot be sold. */
+  /* Null for a card that cannot be sold. A holo sells for the three cards
+     it was made from. */
   function sellPrice(card) {
-    return card && QUICK_SELL[card.rarity] ? QUICK_SELL[card.rarity] : null;
+    if (!card || !QUICK_SELL[card.rarity]) { return null; }
+    return QUICK_SELL[card.rarity] * (card.holo ? HOLO_OF : 1);
   }
+
+  /* --- holographic cards ---------------------------------------------------
+
+     Three copies of one card merge into one holographic copy of it, for
+     good: the three go, and the holo carries all of their fantasy points
+     (three times the card's), so a Player Card loses nothing by it. Its
+     rarity and the colour of its frame stay the card's own; the rest of it
+     is holo.
+
+     A holo is the card's id with ':holo' on the end -- 'p:2021:sam-
+     stogsdill:5:holo' -- so it is owned, traded, shown off, sold and put on
+     the market like any other card. Nothing pulls one: merge_holo_card in
+     supabase/schema.sql is the only way one is made, and nothing turns one
+     back into three. */
+  var HOLO_SUFFIX = ':holo';
+  var HOLO_OF = 3;
+
+  function isHoloId(id) { return /:holo$/.test(String(id || '')); }
+  function baseIdOf(id) { return isHoloId(id) ? String(id).slice(0, -HOLO_SUFFIX.length) : id; }
+  function holoIdOf(id) { return baseIdOf(id) + HOLO_SUFFIX; }
 
   /* --- scoring a play ---------------------------------------------------- */
 
@@ -392,7 +414,23 @@ EGE.cards = (function () {
 
   function ensure() { if (!catalogue) { build(); } }
 
-  function byId(id) { ensure(); return catalogue[id] || null; }
+  /* A holo is its card over again, marked holo, with the three cards'
+     points on it. Made the first time it is asked for. */
+  var holos = {};
+
+  function byId(id) {
+    ensure();
+    if (catalogue[id]) { return catalogue[id]; }
+    if (!isHoloId(id)) { return null; }
+    if (!holos[id]) {
+      var card = catalogue[baseIdOf(id)];
+      if (!card) { return null; }
+      holos[id] = Object.assign({}, card, {
+        id: id, baseId: card.id, holo: true, points: round2(card.points * HOLO_OF)
+      });
+    }
+    return holos[id];
+  }
 
   function all() { ensure(); return list; }
 
@@ -417,14 +455,15 @@ EGE.cards = (function () {
 
   /* --- rolling ----------------------------------------------------------- */
 
-  /* A pack with a `boost` multiplies the odds of Legendary and up by it,
-     and Common gives up the difference: a Pro Pack's 1.5 makes Iconic
-     0.15% a card rather than 0.1%. */
-  var BOOSTED_FROM = 'legendary';
+  /* A pack with a `boost` multiplies the odds of a Legendary by it, and
+     Common gives up the difference: a Pro Pack's 1.5 makes Legendary 6% a
+     card rather than 4%. Mystic and Iconic stay at their own odds (Sam,
+     2026-10-15). */
+  var BOOSTED = ['legendary'];
 
   function oddsWith(boost) {
     var odds = RARITIES.map(function (r) {
-      return boost && rankOf(r.key) >= rankOf(BOOSTED_FROM) ? r.odds * boost : r.odds;
+      return boost && BOOSTED.indexOf(r.key) !== -1 ? r.odds * boost : r.odds;
     });
     if (boost) {
       odds[0] = 100 - odds.slice(1).reduce(function (sum, n) { return sum + n; }, 0);
@@ -477,8 +516,13 @@ EGE.cards = (function () {
   }
 
   /* At most one card in a pack is above Legendary: once a Mystic or an
-     Iconic is in it, every card after it rolls Legendary or lower. */
+     Iconic is in it, every card after it rolls Legendary or lower. And at
+     most two in a five-card pack are Legendary or better, one in a smaller
+     pack (Sam, 2026-10-15): once that many are in, the rest roll Epic or
+     lower. */
   var PACK_CAP = 'legendary';
+
+  function legendaryCap(p) { return p && p.size >= 5 ? 2 : 1; }
 
   /* Worst first, so a pack reads left to right from its worst card to its
      best. */
@@ -495,11 +539,15 @@ EGE.cards = (function () {
     var pool = pullable(packKey);
     var out = [];
     var big = false;
+    var legends = 0;
+    var cap = legendaryCap(p);
     for (var i = 0; i < p.size; i += 1) {
       var last = i === p.size - 1;
-      var card = drawOne(pool, random, last ? p.floor : null, big ? PACK_CAP : null, p.boost);
+      var ceiling = legends >= cap ? 'epic' : big ? PACK_CAP : null;
+      var card = drawOne(pool, random, last ? p.floor : null, ceiling, p.boost);
       if (card) {
         out.push(card);
+        if (rankOf(card.rarity) >= rankOf(PACK_CAP)) { legends += 1; }
         if (rankOf(card.rarity) > rankOf(PACK_CAP)) { big = true; }
       }
     }
@@ -644,13 +692,15 @@ EGE.cards = (function () {
   /* Which owned card fills which slot. Slots in a set either want the same
      thing or things that cannot overlap, so taking the first card that fits
      each one in turn is as good as any cleverer matching. Best cards are
-     offered first, so the set shows off what it is made of. */
+     offered first, so the set shows off what it is made of. A holo is its
+     card in a set: it counts where the card would, and the two of them
+     never fill two slots. */
   function fill(set, ownedIds) {
     var owned = ownedIds.map(byId).filter(Boolean).sort(compare);
     var used = {};
     var filled = set.slots.map(function (s) {
-      var card = owned.filter(function (c) { return !used[c.id] && s.test(c); })[0] || null;
-      if (card) { used[card.id] = true; }
+      var card = owned.filter(function (c) { return !used[c.baseId || c.id] && s.test(c); })[0] || null;
+      if (card) { used[card.baseId || card.id] = true; }
       return { slot: s, card: card };
     });
     var have = filled.filter(function (f) { return f.card; }).length;
@@ -747,15 +797,16 @@ EGE.cards = (function () {
     var ladder = ladderFor(player);
     var points = 0;
     var copies = 0;
-    var distinct = 0;
+    var seen = {};
     Object.keys(owned || {}).forEach(function (id) {
       var card = byId(id);
       var n = owned[id] || 0;
       if (!card || card.slug !== player.slug || n <= 0) { return; }
       points += Math.max(0, card.points) * n;
       copies += n;
-      distinct += 1;
+      seen[card.baseId || card.id] = true;
     });
+    var distinct = Object.keys(seen).length;
     points = round2(points);
 
     var at = -1;
@@ -883,6 +934,63 @@ EGE.cards = (function () {
      list_card_for_sale in supabase/schema.sql holds all of it. */
   var MARKET = { perDay: 3, hours: 24, minPrice: 1, maxPrice: 999 };
 
+  /* --- the daily spin --------------------------------------------------------
+
+     One free spin a day for every account, on the Shop page. The day turns
+     over at 7:00 AM Central (America/Chicago, so it follows daylight
+     saving), and the database holds each account to one spin a day.
+
+     The prizes are Sam's (2026-10-15): an Uncommon card at worst, a few
+     diamonds, a Rare card or a Base Pack, and two jackpots that are much
+     harder to hit, a Legendary card and a Pro Pack. `odds` are percent and
+     add up to 100.
+
+     Which prize comes up is rolled by spin_card_wheel in
+     supabase/schema.sql, on the same odds, so nobody picks their own. The
+     page proposes what every prize would be before the spin -- one card of
+     each rarity, a Base Pack's three and a Pro Pack's five, rolled the way
+     packs are (rollSpinOffer) -- the same trust a pack's contents run on.
+     Odds and the diamonds are repeated there; change both together. */
+  var SPIN = {
+    diamonds: 5,
+    resetHour: 7,
+    timeZone: 'America/Chicago',
+    prizes: [
+      { key: 'uncommon',  name: 'Uncommon card',  short: 'Uncommon', odds: 35 },
+      { key: 'diamonds',  name: '5 diamonds',     short: '5 Diamonds', odds: 25 },
+      { key: 'rare',      name: 'Rare card',      short: 'Rare', odds: 20 },
+      { key: 'base',      name: 'Base Pack',      short: 'Base Pack', odds: 15, pack: 'base' },
+      { key: 'pro',       name: 'Pro Pack',       short: 'Pro Pack', odds: 3, pack: 'pro', jackpot: true },
+      { key: 'legendary', name: 'Legendary card', short: 'Legendary', odds: 2, jackpot: true }
+    ]
+  };
+
+  function spinPrize(key) {
+    return SPIN.prizes.filter(function (p) { return p.key === key; })[0] || null;
+  }
+
+  /* What each prize would be: { uncommon, rare, legendary: card id,
+     base: [3 ids], pro: [5 ids] }. Null while there are not cards out to
+     fill them. */
+  function rollSpinOffer(rng) {
+    var random = rng || Math.random;
+    var pool = pullable(null);
+    function card(key) {
+      var c = drawOne(pool, random, key, key);
+      return c ? c.id : null;
+    }
+    function packOf(key) {
+      return rollPack(key, random).map(function (c) { return c.id; });
+    }
+    var offer = {
+      uncommon: card('uncommon'), rare: card('rare'), legendary: card('legendary'),
+      base: packOf('base'), pro: packOf('pro')
+    };
+    var full = offer.uncommon && offer.rare && offer.legendary &&
+      offer.base.length === pack('base').size && offer.pro.length === pack('pro').size;
+    return full ? offer : null;
+  }
+
   /* --- odds, said out loud ------------------------------------------------ */
 
   /* How many of each rarity exist right now, for the odds table. */
@@ -929,6 +1037,14 @@ EGE.cards = (function () {
     shopPrice: shopPrice,
     rollShop: rollShop,
     MARKET: MARKET,
-    rebuild: function () { catalogue = null; setsCache = null; }
+    SPIN: SPIN,
+    spinPrize: spinPrize,
+    rollSpinOffer: rollSpinOffer,
+    HOLO_OF: HOLO_OF,
+    isHoloId: isHoloId,
+    baseIdOf: baseIdOf,
+    holoIdOf: holoIdOf,
+    legendaryCap: legendaryCap,
+    rebuild: function () { catalogue = null; holos = {}; setsCache = null; }
   };
 })();

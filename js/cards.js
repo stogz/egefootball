@@ -8,10 +8,12 @@
 
    What a card *is* comes from data/cards.js; all that is stored is its id.
 
-   Trades, quick sales, showcases and the admin's resets go through
-   database functions too: a trade moves both sides at once or not at all, a
-   sale takes the card and pays the diamonds together, a showcase only takes
-   cards its player owns, and only an admin can reset anything.
+   Trades, quick sales, showcases, holo merges, the daily spin and the
+   admin's resets go through database functions too: a trade moves both
+   sides at once or not at all, a sale takes the card and pays the diamonds
+   together, a merge takes three copies and hands over the holo together, a
+   spin is once a day, a showcase only takes cards its player owns, and only
+   an admin can reset anything.
 
    Depends on: js/auth.js, data/cards.js.
    ========================================================================== */
@@ -367,6 +369,48 @@ EGE.cardStore = (function () {
       function (n) { return { ok: true, diamonds: Number(n) }; });
   }
 
+  /* --- the daily spin ---------------------------------------------------------- */
+
+  /* Where this account stands with today's spin: { day, next_at, spin }
+     where spin is { prize, cards, diamonds, spun_at } once it has spun
+     today, else null. Null when it cannot be read. */
+  function spinToday() {
+    var c = client();
+    if (!c) { return Promise.resolve(null); }
+    return c.rpc('card_spin_today')
+      .then(function (res) { return res.error ? null : res.data; })
+      .catch(function () { return null; });
+  }
+
+  /* Spins: the page proposes every prize (EGE.cards.rollSpinOffer) and
+     spin_card_wheel rolls which one it is. Comes back with { prize,
+     cards: [card], won, diamonds, next_at }. */
+  function spin() {
+    var offer = EGE.cards.rollSpinOffer();
+    if (!offer) { return fail('The wheel opens once there are cards out to put on it.'); }
+    return call('spin_card_wheel', { p_offer: offer }, function (data) {
+      return {
+        ok: true,
+        prize: data.prize,
+        cards: (data.cards || []).map(EGE.cards.byId).filter(Boolean),
+        won: Number(data.won) || 0,
+        diamonds: Number(data.diamonds),
+        nextAt: data.next_at
+      };
+    });
+  }
+
+  /* --- holos ------------------------------------------------------------------ */
+
+  /* Merges three copies of `card` into its holo, for good. Comes back with
+     the holo and how many copies of the card are left. */
+  function mergeHolo(card) {
+    if (!card || card.holo) { return fail('Only a card can be merged into a holo.'); }
+    return call('merge_holo_card', { p_card: card.id }, function (left) {
+      return { ok: true, holo: EGE.cards.byId(EGE.cards.holoIdOf(card.id)), left: Number(left) || 0 };
+    });
+  }
+
   /* --- the market ------------------------------------------------------------ */
 
   var LISTINGS = 'card_listings';
@@ -462,6 +506,9 @@ EGE.cardStore = (function () {
     playerCardAwards: playerCardAwards,
     shopToday: shopToday,
     buyShopCard: buyShopCard,
+    spinToday: spinToday,
+    spin: spin,
+    mergeHolo: mergeHolo,
     market: market,
     listCard: listCard,
     cancelListing: cancelListing,

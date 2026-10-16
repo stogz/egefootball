@@ -977,6 +977,18 @@ as $$
   select p_id ~ '^(p:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}|h:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}:[0-9]{1,2})$';
 $$;
 
+-- A holographic card: a card's id with ':holo' on the end. Only ever made
+-- by merging three copies (merge_holo_card, further down), never pulled, so
+-- the pack, the shop and the set rewards keep to is_card_id; trades,
+-- showcases, quick sales and the market take either.
+create or replace function public.is_holo_id(p_id text)
+returns boolean
+language sql
+immutable
+as $$
+  select coalesce(p_id like '%:holo' and public.is_card_id(left(p_id, -5)), false);
+$$;
+
 -- ---------------------------------------------------------------------------
 -- Helpers the functions below share. Not callable from the browser: they do
 -- no checking of their own, and every caller has done it already.
@@ -1338,7 +1350,7 @@ begin
     raise exception 'Ask for six cards at most.';
   end if;
   foreach v_card in array p_give || v_take loop
-    if not public.is_card_id(v_card) then
+    if not (public.is_card_id(v_card) or public.is_holo_id(v_card)) then
       raise exception 'Not a card: %', v_card;
     end if;
   end loop;
@@ -1484,7 +1496,7 @@ begin
                         and split_part(card_id, ':', 3) = substr(v_card, 4)) then
         raise exception 'You need a card of that player to show his Player Card.';
       end if;
-    elsif not public.is_card_id(v_card) then
+    elsif not (public.is_card_id(v_card) or public.is_holo_id(v_card)) then
       raise exception 'Not a card: %', v_card;
     end if;
   end loop;
@@ -1595,9 +1607,9 @@ notify pgrst, 'reload schema';
 -- Quick selling a card
 --
 -- One copy of a card back for a few diamonds, by its rarity: Common and
--- Uncommon 1, Rare and Epic 2, Legendary 3, Mystic 30. An Iconic cannot be
--- sold at all. The same numbers as QUICK_SELL in data/cards.js; change both
--- together.
+-- Uncommon 1, Rare and Epic 2, Legendary 3, Mystic 30, and a holo three
+-- times its card. An Iconic cannot be sold at all, holo or not. The same
+-- numbers as QUICK_SELL in data/cards.js; change both together.
 --
 -- The rarity comes from the page, which grades a card from the season files
 -- the same way it decides what is in a pack -- the same trust, with the
@@ -1647,7 +1659,7 @@ begin
   if v_email is null then
     raise exception 'sign in first';
   end if;
-  if p_card is null or not public.is_card_id(p_card) then
+  if p_card is null or not (public.is_card_id(p_card) or public.is_holo_id(p_card)) then
     raise exception 'Not a card: %', p_card;
   end if;
   if p_rarity = 'iconic' then
@@ -1664,6 +1676,10 @@ begin
              end;
   if v_price is null then
     raise exception 'Not a rarity: %', p_rarity;
+  end if;
+  -- A holo sells for the three cards it was made from.
+  if public.is_holo_id(p_card) then
+    v_price := v_price * 3;
   end if;
 
   select quantity into v_have
@@ -2043,7 +2059,7 @@ begin
   if v_email is null then
     raise exception 'sign in first';
   end if;
-  if p_card is null or not public.is_card_id(p_card) then
+  if p_card is null or not (public.is_card_id(p_card) or public.is_holo_id(p_card)) then
     raise exception 'Not a card: %', p_card;
   end if;
   if p_rarity is null or p_rarity not in ('common', 'uncommon', 'rare', 'epic', 'legendary', 'mystic', 'iconic') then
@@ -2419,5 +2435,288 @@ $$;
 
 revoke all on function public.mark_trades_seen(uuid[]) from public, anon;
 grant execute on function public.mark_trades_seen(uuid[]) to authenticated;
+
+notify pgrst, 'reload schema';
+
+-- ===========================================================================
+-- Holographic cards (Sam, 2026-10-15). Three copies of one card merge into
+-- one holo of it: the three come out of the collection and one
+-- '{card}:holo' goes in, carrying all three cards' fantasy points (the page
+-- prints three times the card's), so a Player Card loses nothing by it. It
+-- cannot be undone: nothing here or anywhere turns a holo back into cards.
+--
+-- A holo is owned, traded, shown, quick sold (for three times its card)
+-- and put on the market like any other card; is_holo_id says what one looks
+-- like. Every merge is kept in card_merges.
+-- ===========================================================================
+
+create table if not exists public.card_merges (
+  id        uuid primary key default gen_random_uuid(),
+  email     text        not null,
+  card_id   text        not null,          -- the card merged; the holo is card_id || ':holo'
+  merged_at timestamptz not null default now()
+);
+
+create index if not exists card_merges_email_idx
+  on public.card_merges (email, merged_at desc);
+
+alter table public.card_merges enable row level security;
+
+drop policy if exists "card merges readable by owner or admin" on public.card_merges;
+create policy "card merges readable by owner or admin"
+  on public.card_merges for select to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin());
+
+-- Merges three copies of p_card into its holo. Returns how many copies of
+-- the card are left.
+create or replace function public.merge_holo_card(p_card text)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  v_holo  text;
+  v_have  integer;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  if p_card is null or not public.is_card_id(p_card) then
+    raise exception 'Only a card can be merged into a holo: %', p_card;
+  end if;
+  v_holo := p_card || ':holo';
+
+  -- Under lock, so the same three copies cannot be merged twice from two
+  -- tabs, or sold or traded away while they are being merged.
+  select quantity into v_have
+    from public.player_cards
+   where email = v_email and card_id = p_card
+     for update;
+
+  if coalesce(v_have, 0) < 3 then
+    raise exception 'It takes three copies of a card to make its holo. You have %.', coalesce(v_have, 0);
+  end if;
+
+  update public.player_cards set quantity = quantity - 3
+   where email = v_email and card_id = p_card;
+  delete from public.player_cards
+   where email = v_email and card_id = p_card and quantity <= 0;
+  perform public.give_card(v_email, v_holo);
+
+  -- The last copies merged: if the card was up on the showcase, its holo
+  -- goes up in its place.
+  if v_have = 3 then
+    update public.card_showcases
+       set cards = array_replace(cards, p_card, v_holo), updated_at = now()
+     where email = v_email and p_card = any(cards) and not (v_holo = any(cards));
+  end if;
+  perform public.prune_showcase(v_email);
+
+  insert into public.card_merges (email, card_id) values (v_email, p_card);
+  return v_have - 3;
+end;
+$$;
+
+revoke all on function public.merge_holo_card(text) from public, anon;
+grant execute on function public.merge_holo_card(text) to authenticated;
+
+notify pgrst, 'reload schema';
+
+-- ===========================================================================
+-- The daily spin (Sam, 2026-10-15). One free spin a day for every account,
+-- on the Shop page. The day turns over at 7:00 AM Central -- America/
+-- Chicago, so it follows daylight saving -- and an account's one spin a day
+-- is the primary key of card_spins, so a second spin, from another tab or
+-- straight at the database, is refused.
+--
+-- The prize is rolled here, so nobody picks their own, on the same odds as
+-- SPIN in data/cards.js (change both together):
+--
+--   Uncommon card 35%, 5 diamonds 25%, Rare card 20%, Base Pack 15%,
+--   Pro Pack 3%, Legendary card 2%.
+--
+-- Which card or cards a prize is the page proposes, because the season
+-- files that say what a card is are not in Postgres -- the same trust a
+-- pack runs on. It proposes every prize before the roll, and they all have
+-- to look right before anything is rolled, so leaving the small prizes out
+-- cannot buy another try at the big ones. A pack won goes in card_packs as
+-- 'spin-base' or 'spin-pro', costing nothing, so it shows in Recent Pulls.
+-- ===========================================================================
+
+create table if not exists public.card_spins (
+  email    text        not null,
+  day      date        not null,
+  prize    text        not null,
+  cards    text[]      not null default '{}',
+  diamonds integer     not null default 0,
+  spun_at  timestamptz not null default now(),
+  primary key (email, day)
+);
+
+alter table public.card_spins enable row level security;
+
+drop policy if exists "card spins readable by owner or admin" on public.card_spins;
+create policy "card spins readable by owner or admin"
+  on public.card_spins for select to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin());
+
+-- The wheel's day: from 7:00 AM Central to 7:00 AM Central the next morning,
+-- named for the day it starts.
+create or replace function public.card_spin_day()
+returns date
+language sql
+stable
+as $$
+  select ((now() at time zone 'America/Chicago') - interval '7 hours')::date;
+$$;
+
+-- When a wheel's day ends: 7:00 AM Central the morning after it.
+create or replace function public.card_spin_ends(p_day date)
+returns timestamptz
+language sql
+stable
+as $$
+  select ((p_day + 1)::timestamp + interval '7 hours') at time zone 'America/Chicago';
+$$;
+
+-- Where this account stands today: { day, next_at, spin } where spin is
+-- today's { prize, cards, diamonds, spun_at }, or null before it spins.
+create or replace function public.card_spin_today()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  v_day   date := public.card_spin_day();
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  return jsonb_build_object(
+    'day', v_day,
+    'next_at', public.card_spin_ends(v_day),
+    'spin', (select jsonb_build_object('prize', s.prize, 'cards', to_jsonb(s.cards),
+                                       'diamonds', s.diamonds, 'spun_at', s.spun_at)
+               from public.card_spins s
+              where s.email = v_email and s.day = v_day));
+end;
+$$;
+
+-- Spins. p_offer is every prize the page proposes:
+--   { "uncommon": id, "rare": id, "legendary": id,
+--     "base": [three ids], "pro": [five ids] }
+-- Returns { day, next_at, prize, cards, won, diamonds }: `won` the diamonds
+-- the spin paid, `diamonds` the balance after.
+create or replace function public.spin_card_wheel(p_offer jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email   text := auth.jwt() ->> 'email';
+  v_day     date := public.card_spin_day();
+  v_roll    double precision;
+  v_prize   text;
+  v_cards   text[] := '{}';
+  v_won     integer := 0;
+  v_balance integer;
+  v_card    text;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+
+  -- Every prize, checked one step at a time so nothing is asked of a part
+  -- that is not there.
+  if p_offer is null or jsonb_typeof(p_offer) <> 'object' then
+    raise exception 'The wheel could not be filled. Reload the page and spin again.';
+  end if;
+  if not coalesce(public.is_card_id(p_offer ->> 'uncommon'), false)
+     or not coalesce(public.is_card_id(p_offer ->> 'rare'), false)
+     or not coalesce(public.is_card_id(p_offer ->> 'legendary'), false) then
+    raise exception 'The wheel could not be filled. Reload the page and spin again.';
+  end if;
+  if coalesce(jsonb_typeof(p_offer -> 'base'), '') <> 'array'
+     or coalesce(jsonb_typeof(p_offer -> 'pro'), '') <> 'array' then
+    raise exception 'The wheel could not be filled. Reload the page and spin again.';
+  end if;
+  if jsonb_array_length(p_offer -> 'base') <> 3 or jsonb_array_length(p_offer -> 'pro') <> 5
+     or exists (select 1 from jsonb_array_elements(p_offer -> 'base') c
+                 where jsonb_typeof(c) <> 'string' or not public.is_card_id(c #>> '{}'))
+     or exists (select 1 from jsonb_array_elements(p_offer -> 'pro') c
+                 where jsonb_typeof(c) <> 'string' or not public.is_card_id(c #>> '{}')) then
+    raise exception 'The wheel could not be filled. Reload the page and spin again.';
+  end if;
+
+  if exists (select 1 from public.card_spins where email = v_email and day = v_day) then
+    raise exception 'You have had today''s spin. The wheel turns over at 7:00 AM Central.';
+  end if;
+
+  v_roll := random() * 100;
+  v_prize := case
+               when v_roll < 35 then 'uncommon'
+               when v_roll < 60 then 'diamonds'
+               when v_roll < 80 then 'rare'
+               when v_roll < 95 then 'base'
+               when v_roll < 98 then 'pro'
+               else 'legendary'
+             end;
+
+  if v_prize in ('uncommon', 'rare', 'legendary') then
+    v_cards := array[p_offer ->> v_prize];
+  elsif v_prize in ('base', 'pro') then
+    v_cards := array(select c from jsonb_array_elements_text(p_offer -> v_prize) with ordinality as t(c, n)
+                      order by n);
+  else
+    v_won := 5;
+  end if;
+
+  -- The row is the one spin a day: two at once, and the second stops here.
+  insert into public.card_spins (email, day, prize, cards, diamonds)
+  values (v_email, v_day, v_prize, v_cards, v_won)
+  on conflict (email, day) do nothing;
+  if not found then
+    raise exception 'You have had today''s spin. The wheel turns over at 7:00 AM Central.';
+  end if;
+
+  foreach v_card in array v_cards loop
+    perform public.give_card(v_email, v_card);
+  end loop;
+
+  if v_prize in ('base', 'pro') then
+    insert into public.card_packs (email, pack_key, credits, diamonds, cards)
+    values (v_email, 'spin-' || v_prize, 0, 0, v_cards);
+  end if;
+
+  insert into public.player_diamonds as pd (email, diamonds, updated_at)
+  values (v_email, v_won, now())
+  on conflict (email) do update
+    set diamonds = pd.diamonds + v_won, updated_at = now()
+  returning diamonds into v_balance;
+
+  return jsonb_build_object(
+    'day', v_day,
+    'next_at', public.card_spin_ends(v_day),
+    'prize', v_prize,
+    'cards', to_jsonb(v_cards),
+    'won', v_won,
+    'diamonds', v_balance);
+end;
+$$;
+
+revoke all on function public.card_spin_day() from public, anon;
+revoke all on function public.card_spin_ends(date) from public, anon;
+revoke all on function public.card_spin_today() from public, anon;
+revoke all on function public.spin_card_wheel(jsonb) from public, anon;
+grant execute on function public.card_spin_day() to authenticated;
+grant execute on function public.card_spin_ends(date) to authenticated;
+grant execute on function public.card_spin_today() to authenticated;
+grant execute on function public.spin_card_wheel(jsonb) to authenticated;
 
 notify pgrst, 'reload schema';
