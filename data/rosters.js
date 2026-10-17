@@ -644,39 +644,39 @@ EGE.rosters[2023] = {
   },
   seattle: {
     QB: [
-      { name: 'Geno Smith', jersey: 7, year: 11, overall: 81, height: 75, weight: 221, espn: 15864, photo: true },
-      { name: 'Drew Lock', jersey: 2, year: 5, overall: 61, height: 76, weight: 228, espn: 3924327, photo: true }
+      { name: 'Geno Smith', jersey: 7, year: 11, overall: 70, height: 75, weight: 221, espn: 15864, photo: true },
+      { name: 'Drew Lock', jersey: 2, year: 5, overall: 66, height: 76, weight: 228, espn: 3924327, photo: true }
     ],
     RB: [
-      { name: 'Kenneth Walker', jersey: 9, year: 2, overall: 73, height: 69, weight: 210, espn: 4567048, photo: true },
+      { name: 'Kenneth Walker', jersey: 9, year: 2, overall: 77, height: 69, weight: 210, espn: 4567048, photo: true },
       { name: 'DeeJay Dallas', jersey: 31, year: 4, overall: 55, height: 70, weight: 214, espn: 4240631, photo: true },
       { name: 'Kenny McIntosh', jersey: 25, year: 1, overall: 50, height: 72, weight: 210, espn: null, photo: false }
     ],
     WR: [
-      { name: 'DK Metcalf', jersey: 14, year: 5, overall: 75, height: 76, weight: 230, espn: 4047650, photo: true },
-      { name: 'Tyler Lockett', jersey: 16, year: 9, overall: 73, height: 70, weight: 182, espn: 2577327, photo: true },
-      { name: 'Jaxon Smith-Njigba', jersey: 11, year: 1, overall: 66, height: 72, weight: 198, espn: null, photo: false },
+      { name: 'Tyler Lockett', jersey: 16, year: 9, overall: 90, height: 70, weight: 182, espn: 2577327, photo: true },
+      { name: 'DK Metcalf', jersey: 14, year: 5, overall: 89, height: 76, weight: 230, espn: 4047650, photo: true },
+      { name: 'Jaxon Smith-Njigba', jersey: 11, year: 1, overall: 70, height: 72, weight: 198, espn: null, photo: false },
       { name: 'D\'Wayne Eskridge', jersey: 1, year: 3, overall: 56, height: 69, weight: 190, espn: 4043016, photo: true },
       { name: 'Jake Bobo', jersey: 19, year: 1, overall: 54, height: 76, weight: 215, espn: null, photo: false },
       { name: 'Cody Thompson', jersey: 13, year: 5, overall: 54, height: 74, weight: 205, espn: 3126115, photo: true },
       { name: 'Dareke Young', jersey: 83, year: 2, overall: 51, height: 74, weight: 210, espn: 4401805, photo: true }
     ],
     TE: [
-      { name: 'Noah Fant', jersey: 87, year: 5, overall: 67, height: 76, weight: 249, espn: 4036131, photo: true },
-      { name: 'Colby Parkinson', jersey: 84, year: 4, overall: 60, height: 79, weight: 251, espn: 4242557, photo: true },
+      { name: 'Noah Fant', jersey: 87, year: 5, overall: 82, height: 76, weight: 249, espn: 4036131, photo: true },
+      { name: 'Colby Parkinson', jersey: 84, year: 4, overall: 65, height: 79, weight: 251, espn: 4242557, photo: true },
       { name: 'Will Dissly', jersey: 89, year: 6, overall: 60, height: 76, weight: 267, espn: 3127292, photo: true },
       { name: 'Brady Russell', jersey: 38, year: 1, overall: 50, height: 75, weight: 250, espn: null, photo: false }
     ]
   },
   houston: {
     QB: [
-      { name: 'Case Keenum', jersey: 18, year: 12, overall: 57, height: 73, weight: 215, espn: 15168, photo: true },
-      { name: 'Davis Mills', jersey: 10, year: 3, overall: 57, height: 76, weight: 225, espn: 4242546, photo: true },
+      { name: 'Case Keenum', jersey: 18, year: 12, overall: 65, height: 73, weight: 215, espn: 15168, photo: true },
+      { name: 'Davis Mills', jersey: 10, year: 3, overall: 60, height: 76, weight: 225, espn: 4242546, photo: true },
       { name: 'Tim Boyle', jersey: 16, year: 6, overall: 56, height: 76, weight: 233, espn: 3045169, photo: true }
     ],
     RB: [
-      { name: 'Devin Singletary', jersey: 26, year: 5, overall: 72, height: 67, weight: 203, espn: 4040761, photo: true },
-      { name: 'Dameon Pierce', jersey: 31, year: 2, overall: 60, height: 70, weight: 215, espn: 4360238, photo: true },
+      { name: 'Devin Singletary', jersey: 26, year: 5, overall: 81, height: 67, weight: 203, espn: 4040761, photo: true },
+      { name: 'Dameon Pierce', jersey: 31, year: 2, overall: 72, height: 70, weight: 215, espn: 4360238, photo: true },
       { name: 'Dare Ogunbowale', jersey: 33, year: 7, overall: 56, height: 71, weight: 205, espn: 2983509, photo: true },
       { name: 'Andrew Beck', jersey: 47, year: 5, overall: 55, height: 75, weight: 255, espn: 3125107, photo: true },
       { name: 'Troy Hairston', jersey: 34, year: 2, overall: 51, height: 71, weight: 245, espn: 4274040, photo: true }
@@ -692,7 +692,7 @@ EGE.rosters[2023] = {
       { name: 'Jesse Matthews', jersey: 41, year: 1, overall: 50, height: 72, weight: 190, espn: null, photo: false }
     ],
     TE: [
-      { name: 'Dalton Schultz', jersey: 86, year: 6, overall: 70, height: 77, weight: 242, espn: 3117256, photo: true },
+      { name: 'Dalton Schultz', jersey: 86, year: 6, overall: 82, height: 77, weight: 242, espn: 3117256, photo: true },
       { name: 'Brevin Jordan', jersey: 9, year: 3, overall: 58, height: 75, weight: 245, espn: 4362504, photo: true },
       { name: 'Eric Saubert', jersey: 81, year: 7, overall: 56, height: 77, weight: 253, espn: 2975863, photo: true },
       { name: 'Teagan Quitoriano', jersey: 84, year: 2, overall: 52, height: 78, weight: 259, espn: 4374045, photo: true }
