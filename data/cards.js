@@ -193,7 +193,9 @@ EGE.cards = (function () {
     2021: { player: 'jaykeb-stewart', image: 'icon/packs/2021-jaykeb-stewart.webp',
             logo: 'icon/packs/2021-osu-logo.webp', theme: 'osu', zoom: 1.2, drop: 2.5 },
     2022: { player: 'paxon-hatch', image: 'icon/packs/2022-paxon-hatch.webp',
-            logo: 'icon/packs/2022-unc-logo.webp', theme: 'unc', zoom: 1.2, drop: 1.5 }
+            logo: 'icon/packs/2022-unc-logo.webp', theme: 'unc', zoom: 1.2, drop: 1.5 },
+    2023: { player: 'isaac-vitel', image: 'icon/packs/2023-isaac-vitel.webp',
+            logo: 'icon/packs/2023-texas-logo.webp', theme: 'texas', zoom: 1.2, drop: 2.5 }
   };
 
   /* The Gold Rush Pack's cover: gold foil and its name, nobody on it

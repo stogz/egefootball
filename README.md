@@ -308,8 +308,9 @@ on the left, on the school's own colour (`ground` in `EGE.teams` — Alabama
 crimson with the A in white, USC cardinal (#9D2235), NDSU green, Illinois orange,
 Ohio State white, Texas burnt orange with the longhorn in white, North
 Carolina navy, the Seahawks navy, the Lions Honolulu blue and the Texans
-deep steel blue with ESPN's marks in white; the team page's header uses the
-same), then its record and place in its division, the faces of the
+deep steel blue, each NFL team's mark in its full colours with its white
+edge, from `icon/nfl/` (drawn in white they were only silhouettes); the
+team page's header uses the same), then its record and place in its division, the faces of the
 six who play there, and *View team →*. On a wide screen those run across
 the row — the name and record on the left, each of the six as a face with
 his name beside it in a column of its own, so they line up from card to
@@ -1360,7 +1361,10 @@ Ironmen's orange, the N behind him as only its orange outline,
 and a black sword on an orange band across the foot; and 2018 has Cooper
 at Carlsbad on purple foil, the Lancers' C behind him as only its outline in
 white, and a royal stripe of black, white and purple across the foot (Sam,
-2026-10-14). Every season now has a cover, every player 20% bigger than the
+2026-10-14). 2023 has Isaac at Texas, 20% bigger and lowered a touch, on
+burnt orange foil off his jersey, the longhorn behind him in a dark burnt
+orange edged in white with its horns out either side of his shoulders, and
+the sleeve's two white stripes across the foot (Sam, 2026-10-17). Every season now has a cover, every player 20% bigger than the
 first cut (`zoom: 1.2`; Cooper, in a tall standing pose, 1.44), some lowered a touch (`drop`) so no helmet covers
 the EGE Football letters. A cover
 follows its season: on the live Season Pack while it is that season, then on

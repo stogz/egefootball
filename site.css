@@ -5014,6 +5014,19 @@ html.ege-noscroll body { overflow: hidden; }
   --pack-deep: #4a0a0f;
   --pack-hi: #d2d1d8;
 }
+/* Texas, for Isaac's 2023 pack: burnt orange foil off the shadows and
+   highlights of his jersey in the photo, a dark burnt orange for the bars,
+   lined in the white of its numbers, and the sleeve's two white stripes
+   across the foot. */
+.ege-pack.ege-pack--texas {
+  --foil: linear-gradient(135deg, #3b1503 0%, #9b3402 18%, #f0844a 34%, #c4470e 50%,
+                          #f59a5c 66%, #9b3402 82%, #3b1503 100%);
+  --pack-deep: #4a1a04;
+  --pack-hi: #fbeee4;
+}
+/* The longhorn is wide and short, so it sits a little lower than the other
+   logos, its horns out either side of his shoulders. */
+.ege-pack--texas .ege-pack__logo { top: 22%; }
 
 .ege-pack__top,
 .ege-pack__body,
@@ -5259,6 +5272,18 @@ html.ege-noscroll body { overflow: hidden; }
   height: 5cqw;
   background: linear-gradient(180deg, #c9c8cf 0 12%, #151115 12% 22%, #fff 22% 36%,
                               #c81a24 36% 64%, #fff 64% 78%, #151115 78% 88%, #c9c8cf 88%);
+}
+/* Texas's sleeve stripes, two white on burnt orange, above the foot band. */
+.ege-pack--texas .ege-pack__foot::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + .9cqw);
+  height: 5cqw;
+  background: linear-gradient(180deg, #c4470e 0 18%, #fff 18% 36%, #c4470e 36% 64%,
+                              #fff 64% 82%, #c4470e 82%);
+  border-top: .5cqw solid var(--pack-deep);
 }
 
 /* --- ripping one open ------------------------------------------------------ */

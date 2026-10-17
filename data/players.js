@@ -197,13 +197,11 @@ EGE.teams = {
     ground: '#FF5F05',
     zone: 'America/Chicago'
   },
-  /* Isaac's school from 2022. There is no Texas mark in icon/offers/ yet, so
-     it is ESPN's, which the opponents' logos already come from; drop a
-     cut-down icon/offers/Texas.png in and point this at it whenever. */
+  /* Isaac's school from 2022. */
   texas: {
     school: 'Texas',
     league: 'Big 12',
-    logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/251.png',
+    logo: 'icon/offers/Texas.png',
     ground: '#BF5700',
     whiteMark: true,
     zone: 'America/Chicago'
@@ -221,18 +219,17 @@ EGE.teams = {
      Andrew (Detroit, 18th) and Sam (Seattle, 52nd). `tier: 'nfl'` is
      what makes a season on one of these an NFL season. `league` is the
      division, which is what the standings place a team in, and
-     `conference` the AFC or the NFC. The marks are ESPN's, asked for
-     from ESPN's image server the way the colleges' opponents are, drawn
-     in white on the team's own colour. */
+     `conference` the AFC or the NFC. The marks are in icon/nfl/, in their
+     full colours: each has a white edge of its own, so it stands out on
+     the team's colour, where drawn in white it was only a silhouette. */
   seattle: {
     school: 'Seattle Seahawks',
     short: 'Seahawks',
     tier: 'nfl',
     league: 'NFC West',
     conference: 'NFC',
-    logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/sea.png',
+    logo: 'icon/nfl/Seahawks.png',
     ground: '#002244',
-    whiteMark: true,
     zone: 'America/Los_Angeles'
   },
   detroit: {
@@ -241,9 +238,8 @@ EGE.teams = {
     tier: 'nfl',
     league: 'NFC North',
     conference: 'NFC',
-    logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/det.png',
+    logo: 'icon/nfl/Lions.png',
     ground: '#0076B6',
-    whiteMark: true,
     zone: 'America/Detroit'
   },
   houston: {
@@ -252,9 +248,8 @@ EGE.teams = {
     tier: 'nfl',
     league: 'AFC South',
     conference: 'AFC',
-    logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/hou.png',
+    logo: 'icon/nfl/Texans.png',
     ground: '#03202F',
-    whiteMark: true,
     zone: 'America/Chicago'
   }
 };
