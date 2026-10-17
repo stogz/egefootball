@@ -518,14 +518,14 @@ EGE.rosters[2022] = {
 EGE.rosters[2023] = {
   detroit: {
     QB: [
-      { name: 'Jared Goff', jersey: 16, year: 8, overall: 84, height: 76, weight: 223, espn: 3046779, photo: true },
+      { name: 'Jared Goff', jersey: 16, year: 8, overall: 82, height: 76, weight: 223, espn: 3046779, photo: true },
       { name: 'Teddy Bridgewater', jersey: 10, year: 10, overall: 60, height: 74, weight: 215, espn: 16728, photo: true },
       { name: 'Nate Sudfeld', jersey: 10, year: 8, overall: 56, height: 78, weight: 227, espn: 2979501, photo: true },
       { name: 'Hendon Hooker', jersey: 12, year: 1, overall: 54, height: 75, weight: 218, espn: null, photo: false }
     ],
     RB: [
-      { name: 'Bijan Robinson', jersey: 7, year: 1, overall: 77, height: 71, weight: 214, espn: null, photo: false },
-      { name: 'David Montgomery', jersey: 5, year: 5, overall: 75, height: 71, weight: 222, espn: 4035538, photo: true },
+      { name: 'David Montgomery', jersey: 5, year: 5, overall: 84, height: 71, weight: 222, espn: 4035538, photo: true },
+      { name: 'Bijan Robinson', jersey: 7, year: 1, overall: 80, height: 71, weight: 214, espn: null, photo: false },
       { name: 'Craig Reynolds', jersey: 13, year: 5, overall: 57, height: 71, weight: 215, espn: 4421446, photo: true },
       { name: 'Devine Ozigbo', jersey: 33, year: 5, overall: 54, height: 74, weight: 225, espn: 3699935, photo: true },
       { name: 'Jason Cabinda', jersey: 45, year: 6, overall: 54, height: 73, weight: 235, espn: 3116158, photo: true },
@@ -542,7 +542,7 @@ EGE.rosters[2023] = {
       { name: 'Antoine Green', jersey: 80, year: 1, overall: 50, height: 74, weight: 200, espn: null, photo: false }
     ],
     TE: [
-      { name: 'Zach Ertz', jersey: 86, year: 11, overall: 64, height: 77, weight: 250, espn: 15835, photo: true },
+      { name: 'Zach Ertz', jersey: 86, year: 11, overall: 84, height: 77, weight: 250, espn: 15835, photo: true },
       { name: 'Anthony Firkser', jersey: 86, year: 7, overall: 55, height: 74, weight: 246, espn: 3049698, photo: true },
       { name: 'Brock Wright', jersey: 89, year: 3, overall: 54, height: 77, weight: 255, espn: 4242392, photo: true },
       { name: 'James Mitchell', jersey: 82, year: 2, overall: 52, height: 76, weight: 255, espn: 4361988, photo: true },
