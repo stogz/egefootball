@@ -534,9 +534,9 @@ EGE.rosters[2023] = {
     ],
     WR: [
       { name: 'Amon-Ra St. Brown', jersey: 14, year: 3, overall: 79, height: 72, weight: 195, espn: 4374302, photo: true },
-      { name: 'Josh Reynolds', jersey: 8, year: 7, overall: 67, height: 75, weight: 196, espn: 3115306, photo: true },
-      { name: 'Kalif Raymond', jersey: 11, year: 8, overall: 63, height: 68, weight: 182, espn: 2973405, photo: true },
-      { name: 'Jameson Williams', jersey: 9, year: 2, overall: 63, height: 73, weight: 189, espn: 4426388, photo: true },
+      { name: 'Jameson Williams', jersey: 9, year: 2, overall: 78, height: 73, weight: 189, espn: 4426388, photo: true },
+      { name: 'Josh Reynolds', jersey: 8, year: 7, overall: 73, height: 75, weight: 196, espn: 3115306, photo: true },
+      { name: 'Kalif Raymond', jersey: 11, year: 8, overall: 72, height: 68, weight: 182, espn: 2973405, photo: true },
       { name: 'Marvin Jones', jersey: 0, year: 12, overall: 56, height: 74, weight: 198, espn: 15072, photo: true },
       { name: 'Donovan Peoples-Jones', jersey: 19, year: 4, overall: 55, height: 74, weight: 208, espn: 4258195, photo: true },
       { name: 'Antoine Green', jersey: 80, year: 1, overall: 50, height: 74, weight: 200, espn: null, photo: false }
