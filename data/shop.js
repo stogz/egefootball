@@ -306,15 +306,27 @@ EGE.timesBought = function (rows, itemKey) {
 };
 
 /* Whether an item can be bought in a given season, and why not when it
-   cannot. A player with no NFL season behind them cannot buy a chamber. */
-EGE.itemAvailable = function (item, season) {
+   cannot. A player with no NFL season behind them cannot buy a chamber.
+
+   It is the player's own level that decides, given one: in 2023 Sam,
+   Andrew and Jaykeb are in the NFL while the others are still in college,
+   so Intel is the college three's and nothing for the NFL three to scout
+   for. */
+EGE.itemAvailable = function (item, season, player) {
   if (!item || !item.tiers) { return { ok: true }; }
 
-  var tier = EGE.tierFor(season);
+  var tier = EGE.tierFor(season, player);
+  var nflOnly = item.tiers.length === 1 && item.tiers[0] === 'nfl';
+  if (nflOnly && tier === 'nfl' && player && EGE.nflYearFor(player, season) < 2) {
+    return { ok: false, reason: 'Not until your first NFL season is behind you.' };
+  }
   if (item.tiers.indexOf(tier) !== -1) { return { ok: true }; }
 
-  if (item.tiers.length === 1 && item.tiers[0] === 'nfl') {
-    return { ok: false, reason: 'NFL only — nobody has played an NFL season yet.' };
+  if (nflOnly) {
+    return { ok: false, reason: player ? 'NFL only.' : 'NFL only — nobody has played an NFL season yet.' };
+  }
+  if (tier === 'nfl') {
+    return { ok: false, reason: 'Nothing left to scout for in the NFL.' };
   }
   if (tier === 'highSchool' && item.tiers.indexOf('college') !== -1) {
     return { ok: false, reason: 'Not until college.' };

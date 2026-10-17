@@ -14,14 +14,14 @@ and in what order.
 
 ## The Six Players
 
-| Player | High school (2018–19) | League | College (2020–) | Conference | Position | Plays like |
-| --- | --- | --- | --- | --- | --- | --- |
-| Andrew Parr | Wake Forest High School | Northern 4A | Alabama | SEC | TE | a complete tight end |
-| Cooper Clark | Carlsbad High School | Avocado League | USC | Pac-12 | RB | a receiving back |
-| Paxon Hatch | Bloomington High School | Big Twelve | North Dakota State (2020–21), North Carolina (2022–) | Missouri Valley, then ACC | WR (TE through 2019) | a full-time receiver |
-| Isaac Vitel | Bloomington High School | Big Twelve | Illinois (2020–21), Texas (2022–) | Big Ten, then Big 12 | QB | a deep thrower |
-| Sam Stogsdill | Normal Community High School | Big Twelve | Ohio State | Big Ten | RB | a power back |
-| Jaykeb Stewart | Naples High School | 6A District 12 | Ohio State | Big Ten | QB | a pocket passer |
+| Player | High school (2018–19) | League | College (2020–) | Conference | NFL (2023–) | Position | Plays like |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Andrew Parr | Wake Forest High School | Northern 4A | Alabama (2020–22) | SEC | Detroit Lions, NFC North (No. 18) | TE | a complete tight end |
+| Cooper Clark | Carlsbad High School | Avocado League | USC | Pac-12 | — | RB | a receiving back |
+| Paxon Hatch | Bloomington High School | Big Twelve | North Dakota State (2020–21), North Carolina (2022–) | Missouri Valley, then ACC | — | WR (TE through 2019) | a full-time receiver |
+| Isaac Vitel | Bloomington High School | Big Twelve | Illinois (2020–21), Texas (2022–) | Big Ten, then Big 12 | — | QB | a deep thrower |
+| Sam Stogsdill | Normal Community High School | Big Twelve | Ohio State (2020–22) | Big Ten | Seattle Seahawks, NFC West (No. 52) | RB | a power back |
+| Jaykeb Stewart | Naples High School | 6A District 12 | Ohio State (2020–22) | Big Ten | Houston Texans, AFC South (No. 2) | QB | a pocket passer |
 
 **Isaac and Paxon were high school teammates**, which the data has to respect:
 they played the same fixtures, carried the same scorelines, and every ball
@@ -37,6 +37,18 @@ Forest High School after Andrew has gone to Alabama. A transfer is
 `transfers`, the school he moved to keyed by the season he got there —
 Isaac's `{ 2022: 'texas' }`, Paxon's `{ 2022: 'northCarolina' }` — so his
 2021 page still says Illinois or North Dakota State.
+
+**Being drafted is a transfer too**, to an NFL team: Sam's
+`{ 2023: 'seattle' }`, Andrew's `{ 2023: 'detroit' }`, Jaykeb's
+`{ 2023: 'houston' }`. Those three teams carry `tier: 'nfl'` in
+`EGE.teams`, and that is what puts a player in the NFL for a season:
+`EGE.tierFor(season, player)` says `'nfl'` for him even though the ladder's
+2023 is a college season, because Paxon, Cooper and Isaac are still in
+college that year. `EGE.leagueOf(player, season)` turns that into the
+league his week goes out with, `'nfl'` or `'college'`, and
+`EGE.levelFor(player, season)` into the words on his page, *NFL* or
+*College Football*. Sam and Jaykeb are no longer teammates from 2023, and
+the shared-fixture rule stops with them.
 
 Everything marked TBD is genuinely unknown right now and should stay TBD in code
 and data until it is confirmed — no placeholder guesses that later read as facts.
@@ -66,17 +78,24 @@ data is authored per season below.
 | 2020 | College football | Freshman year |
 | 2021 | College football | Sophomore year |
 | 2022 | College football | Junior year |
-| 2023 | College football | Senior year *(optional)* |
+| 2023 | NFL & college football | Rookie year (NFL), senior year (college) |
 
 The simulation opens on the **2018 junior-year high school season** — that is
 what gets built first. High school graduation is spring 2020, after the 2019
 senior season.
 
-**NFL Draft.** All six are drafted in the **2023 NFL Draft**, held the spring
-after the 2022 junior college season. Three seasons removed from a spring 2020
-high school graduation makes them draft-eligible, so declaring after junior year
-is the canonical path. The optional 2023 senior college season is the branch a
-player takes instead of declaring; it pushes that player to the 2024 draft.
+**NFL Draft.** The **2023 NFL Draft** is held the spring after the 2022
+junior college season. Three seasons removed from a spring 2020 high school
+graduation makes them draft-eligible, so declaring after junior year is the
+canonical path. **Three declared**: Jaykeb went 2nd to Houston, Andrew 18th
+to Detroit and Sam 52nd to Seattle. Paxon, Cooper and Isaac took the 2023
+senior college season instead, which pushes them to the 2024 draft.
+
+So **2023 is split**: half the six in the NFL and half in college, in the
+same season. Each league keeps its own week numbers (the NFL's 1–18, with a
+bye, the colleges' 0–13), its own standings, its own postseason and its own
+Discord channel. In the NFL a player's class is how far into his career he
+is, *Rookie Year* in 2023 (`EGE.nflYearFor`).
 
 **Redshirts.** The ladder's class is what a season is for a player who never
 redshirts. **Isaac redshirted his freshman year** (`redshirt: 2020` in
@@ -278,20 +297,26 @@ nothing else.
 ### Teams — `#teams`
 
 A tab beside Players, public like the player pages, and laid out like
-them. **College only** — the high schools are on the player pages.
+them. **College and the NFL** — the high schools are on the player pages.
+In a season that has both (2023 on), **the NFL's teams come first** under
+an *NFL* chip, then a dotted line across the page (`.ege-teamgrid__divider`),
+then the colleges under *NCAA*. A season with only one league has neither
+the chips nor the line.
 
 **The index, `#teams`**, is a stack of cards, one school to a row: its mark
 on the left, on the school's own colour (`ground` in `EGE.teams` — Alabama
 crimson with the A in white, USC cardinal (#9D2235), NDSU green, Illinois orange,
 Ohio State white, Texas burnt orange with the longhorn in white, North
-Carolina navy; the team page's header uses the same), then its record and place in its division, the faces of the
+Carolina navy, the Seahawks navy, the Lions Honolulu blue and the Texans
+deep steel blue with ESPN's marks in white; the team page's header uses the
+same), then its record and place in its division, the faces of the
 six who play there, and *View team →*. On a wide screen those run across
 the row — the name and record on the left, each of the six as a face with
 his name beside it in a column of its own, so they line up from card to
 card, and *View team →* on the right edge; narrower, they stack under the
 name and the faces go without the names. Above them is a season switcher
-across the full width of the page, as on a team's page — every college
-season, with ‹ and ›, starting on the live one.
+across the full width of the page, as on a team's page — every college or
+NFL season, with ‹ and ›, starting on the live one.
 
 **A team's page, `#teams/{school}`** — `#teams/ohio-state` — has what a
 player page has above it: *← All Teams* and the season switcher, a
@@ -358,6 +383,25 @@ Under the bar:
   Stroud's 2021 an 82. The one exception is Bryce Young's 2022, set by
   hand to an 86 — the only overall on any roster above 84. The constants
   are at the top of `tools/build-rosters.js`.
+
+  **An NFL room** (Seattle, Detroit and Houston, from 2023) is the same
+  cards from nflverse's 2023 rosters, with ESPN's NFL headshots. The class
+  is his season in the league — **R** for a rookie, then 2, 3 and on — and
+  the overall is on the same scale, topping out at 84:
+
+  ```
+  overall = 50 + 34 × (0.20 × draft + 0.15 × experience + 0.75 × production)
+  ```
+
+  *Draft* is where he went, the first pick all of it and the last nothing,
+  squared, and nothing undrafted; *experience* a rookie nothing and a
+  sixth-year all; *production* his 2023 regular season against an
+  MVP-calibre one (5,000 for a quarterback, 2,000 a back, 1,800 a
+  receiver, 1,300 a tight end). Jared Goff is the 84. The mock draft
+  rippled through the rooms: Bijan Robinson is a Lion, and Sam LaPorta,
+  Jahmyr Gibbs, Zach Charbonnet and C.J. Stroud went elsewhere. Sam is
+  Seattle's RB2 behind Kenneth Walker, Andrew Detroit's TE1 and Jaykeb
+  Houston's QB1, by overall.
 - **Conference Standings** — the whole conference as one table: the dark
   row of headings once at the top and every school under it, the school's
   own division first, a rule where the next division starts, and the
@@ -378,6 +422,15 @@ Under the bar:
   rest scrolls sideways. `EGE.conferenceTables` in `data/games.js` works out
   the movement by drawing the table as it stood a week earlier, and
   `EGE.overallRecord` the overall record.
+
+  **An NFL team's** is its conference's — *NFC Standings*, *AFC
+  Standings* — four divisions of four, ordered **the way the NFL orders a
+  division**: every game counts, so the columns are the record (**W-L**),
+  the division record (**vDiv**), the conference record (**vConf**), the
+  streak over every game, points for and against, the differential and
+  **Chg**. Ties go to head-to-head, then the division record, then the
+  conference record, then the points differential. The division column
+  says *NFC West* (*W* on a phone).
 - **Schedule** — the team's games as anybody can see them, with results as
   they are published and the postseason as far as the next game, the same
   rule a player's schedule follows. No credits, boosters or ODEF grades:
@@ -535,6 +588,18 @@ itself correctly.
 A player on a bye is left out, the same as a player with no game that week:
 there is nothing to post about somebody who is not playing.
 
+**Two bots from 2023.** With half the six in the NFL and half in college,
+each league has its own channel and its own webhook, and a week goes out as
+**one message per league**, the NFL's first (`buildWeekPosts` in
+`js/discord-post.js`). Each carries only that league's players
+(`EGE.leagueOf`) and is headed by that league's own week, so the NFL's
+`## Playoffs Week One` is counted from the NFL's own postseason and not the
+colleges'. A league with nobody playing that week sends nothing: week 0 is
+college only, and weeks 14 to 18 are NFL only. A game not yet played says
+*Division* or *Non-division* in the NFL where college says *Conference*.
+The high school seasons and 2018–22 belong to the college bot, the one
+channel there was before anybody was drafted.
+
 An embed reads top to bottom as:
 
 | | |
@@ -674,10 +739,15 @@ website are never two copies of the roster — change a school or a score in
 node bot/post-week.js --dry-run            # build the next post, print it
 node bot/post-week.js --week 4 --dry-run   # build one specific week
 node bot/post-week.js --force              # post now, ignoring the clock
+node bot/post-week.js --week 4 --league nfl --dry-run   # one league's post
 ```
 
-`DISCORD_WEBHOOK_URL` is required to actually post; `SITE_URL` defaults to
-the Vercel domain and decides where the images and player links point.
+The two webhooks are read from Supabase (saved on the admin page, see
+*How the Discord post gets sent*), with `DISCORD_WEBHOOK_URL_COLLEGE` and
+`DISCORD_WEBHOOK_URL_NFL` as a fallback for a league with none saved there.
+A league with neither is skipped and the run exits with an error; the week
+stays owed for it. `SITE_URL` defaults to the Vercel domain and decides
+where the images and player links point.
 
 ### The schedule it posts on
 
@@ -693,21 +763,24 @@ page posts the week there and then; these runs catch anything that did not go
 out — Discord was down, the click half-landed. Each run asks Supabase which
 weeks are published but unposted, sends them oldest first, and marks them, so
 nothing is posted twice and nothing is written back to this repository.
+`published_weeks.posted_leagues` records which of the two leagues' messages
+have gone, so a week where the NFL's landed and the college one did not gets
+only the college one next time; `posted_at` is set once both are out.
 
-With a webhook in `js/discord-config.js` there is not much left for it to do.
 Set it up if you want the safety net; skip it and publishing still posts.
 
-**Setup:** three repository secrets under Settings → Secrets and variables →
+**Setup:** repository secrets under Settings → Secrets and variables →
 Actions:
 
 | Secret | What it is |
 | --- | --- |
-| `DISCORD_WEBHOOK_URL` | the channel webhook (Server Settings → Integrations → Webhooks) |
 | `SUPABASE_URL` | your project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Settings → API. Server-side only — it never goes near the browser |
+| `DISCORD_WEBHOOK_URL_COLLEGE` | optional: the college channel's webhook, if it is not saved on the admin page |
+| `DISCORD_WEBHOOK_URL_NFL` | optional: the NFL channel's webhook, the same |
 
-Until those exist the workflow runs and fails loudly rather than posting
-anywhere.
+Until the first two exist the workflow runs and fails loudly rather than
+posting anywhere.
 
 ---
 
@@ -789,8 +862,13 @@ On sale:
 
 **Some things can't be bought yet.** An item can name the levels it belongs
 to, and the shop greys it out everywhere else with the reason on the card —
-the chamber is NFL only, and nobody has played an NFL season, so it reads
-*Unavailable*. The check runs in the buy call too, since a disabled button is
+the chamber is NFL only and needs an NFL season behind the player, so in
+2023 it reads *Not until your first NFL season is behind you* for the
+three rookies and *NFL only* for the three still in college. Intel is the
+other way round: the college three can buy it, and an NFL player is told
+there is *nothing left to scout for in the NFL*. It is the player's own
+level that decides (`EGE.itemAvailable(item, season, player)`), not the
+season's. The check runs in the buy call too, since a disabled button is
 only a suggestion.
 
 **Intel lasts one season.** A purchase records the season it was made in.
@@ -1778,7 +1856,14 @@ Two more flags mark the postseason:
 
 `playoff: true` is listed with two asterisks and takes no booster. `bye: true`
 is a round drawn into the schedule that is not played at all — no opponent, no
-kickoff, no stat line, and nothing for the editor to ask for.
+kickoff, no stat line, and nothing for the editor to ask for. An NFL bye week
+in the regular season is the same row, `bye: true` with no `playoff`, on the
+Sunday of its week, so the NFL's 18 weeks are all there.
+
+`division: true` marks an NFL division game, the NFL's own asterisk (six of
+the seventeen): the schedule stars it the way college stars a conference
+game, and the legend says *division game*. An NFL game has
+`conference: false`.
 
 The postseason is one week whatever the calendar says. Five schools in four
 states play their first round across three different Saturdays, and a week is
@@ -1913,6 +1998,24 @@ injury rating goes down: Jaykeb strains a hamstring against Iowa in week 8
 and misses the trip to Penn State, which Ohio State still wins 44–31 with
 Sam carrying more of it.
 
+**2023** is in, its regular season played out in full and waiting to be
+published, for both leagues. Sam (Seattle), Andrew (Detroit) and Jaykeb
+(Houston) play their teams' real 2023 NFL schedules, all eighteen weeks
+from nflverse with the bye in its week, and Paxon (North Carolina), Cooper
+(USC) and Isaac (Texas) their schools' real 2023 regular seasons, weeks 0
+to 13. The results are the real margins moved by what each player brings
+to his team and a game's worth of luck, as in 2022: the Lions finish 11–6
+and first in the NFC North, the Texans 10–7 and first in the AFC South,
+the Seahawks 8–9 and third in the NFC West, Texas 10–2, North Carolina 9–3
+and USC 7–5. Week 2 is Andrew's Lions against Sam's Seahawks, 33–32
+Detroit, and both files carry it from their own side. The one injury is
+Andrew's, a groin strain in week 6 that keeps him out against Tampa Bay
+and Baltimore. Jaykeb throws for about 4,000 yards as a rookie, Sam is
+Seattle's second back behind Kenneth Walker, and Isaac throws 30
+touchdowns. Scouts are only at the college players' games, four each as in
+2022; an NFL player has nobody left to scout him. No title games, bowls or
+NFL playoffs are in yet; those go in once the regular season is out.
+
 ### Conference standings
 
 The Conference line on a college season's header is the team's place in its
@@ -1956,6 +2059,18 @@ as they were played, and only the scores are played out, from each school's
 real 2021 points for and against, with the seed judged against its real
 2021 conference record. A new season goes in `SEASONS` at the top of the
 script, usually as another real one.
+
+**2023** keeps the real scores for every game the six are not in: the Big
+12, the ACC and the Pac-12 (all without divisions now), and the whole NFL.
+ESPN could not be reached from the build, so the colleges came from
+cfbfastR's copies of the 2023 schedules and the NFL from nflverse's
+`games.csv`, not through the tool. The AFC and the NFC are `nfl: true`,
+four divisions of four each, `games` the games inside the conference and
+`nonConference` those against the other one. An NFL division is ordered
+by the whole record, then head to head, the division record, the
+conference record and the points differential, the way the league orders
+one (`EGE.nflResults` and `nflDivisionTable` in `data/games.js`), so the
+header line reads **1ST in NFC North**.
 
 ### The file is the season
 
@@ -2074,34 +2189,43 @@ entry, not a view of the schedule, so publishing again pays nothing twice.
 
 ### How the Discord post gets sent
 
-Two ways, and publishing uses whichever is available.
+From 2023 there are **two channels**, one per league, each with its own
+webhook: the college bot's and the NFL bot's. Publishing a week sends one
+message to each league that has anybody playing that week (see *Two bots
+from 2023* under the Discord scores bot), and the Weeks row says *Posted*
+only once every one has gone; if one landed and the other did not, **Post
+again** sends only the missing one.
 
-**The webhook in `js/discord-config.js`.** Paste the channel webhook URL in
-and the browser posts straight to it. That is the whole setup — nothing to
-deploy, and the message lands on the click.
+**The webhooks are saved on the admin page.** Under the week list are two
+boxes, *College bot webhook* and *NFL bot webhook*: paste each channel's
+URL (Server Settings → Integrations → Webhooks) and press **Save**. They
+go in the `discord_webhooks` table in Supabase, which only an admin can
+read or write (`is_admin()`, the same check the rest of the site trusts),
+so the URLs are never in the site's code where anybody who views source
+could post to the channel as the bot. A saved box is never filled back in;
+it shows *Saved (…abc123)*, the last six characters, and pasting a new URL
+replaces it. To rotate one, delete the webhook in Discord, make a new one
+and save that.
 
-```js
-EGE.discordConfig = {
-  webhookUrl: 'https://discord.com/api/webhooks/...'
-};
+The admin's browser reads the saved URL with the admin's own sign-in and
+posts straight to it, so the message lands on the click with nothing to
+deploy.
+
+**The edge function**, for a league with no webhook saved. The browser
+hands `supabase/functions/post-week` the payload and its `league` instead;
+the function checks the caller is an admin, reads the saved webhook the
+same way, and otherwise uses its own secret for that league:
+
 ```
-
-Anything committed is public, so anyone who views source can read that URL and
-anyone with it can post to that channel as the bot. It grants nothing else —
-not the server, not the members, not anything said in it — and a bad message
-can be deleted. For a channel a few friends read, that is a fair trade for not
-running anything. Rotate it by deleting the webhook in Discord and making a
-new one.
-
-**The edge function**, if you would rather not publish it. Leave the config
-blank and the browser hands `supabase/functions/post-week` a payload instead;
-the URL stays a Supabase secret, and the function checks the caller is an
-admin against the same `admins` table the rest of the site trusts.
-
-```
-supabase secrets set DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/...'
+supabase secrets set DISCORD_WEBHOOK_URL_COLLEGE='https://discord.com/api/webhooks/...'
+supabase secrets set DISCORD_WEBHOOK_URL_NFL='https://discord.com/api/webhooks/...'
 supabase functions deploy post-week
 ```
+
+The table needs `supabase/schema.sql` run again (it adds
+`discord_webhooks` and `published_weeks.posted_leagues`). Until it is,
+pressing Save says to run it first, and publishing still posts through the
+function.
 
 Either way the week is published before the post is attempted, so a message
 that does not land is a message missing from a channel, not a week missing
@@ -2329,14 +2453,15 @@ Built so far:
 - `supabase/schema.sql` — every table and policy: accounts, credits,
   inventory, admins, the stickers stuck on games (and the trigger holding
   them to five a season), the credit awards a season pays out, diamonds and
-  their awards, which weeks are published, and the card collection.
-  **Re-run it after pulling this change** so the diamond tables and the
-  diamond-priced pack and set functions are in the database.
-- `js/discord-config.js` — the channel webhook URL, if you are happy for it to
-  be public. Blank by default.
-- `supabase/functions/post-week/` — the other way: an edge function that holds
-  the webhook URL, so the browser never has to. Run it in the Supabase SQL editor; it is safe to run
-  again, and it must be re-run after pulling a change that adds a table.
+  their awards, which weeks are published (and which leagues' Discord
+  posts have gone), the two Discord webhooks, and the card collection. Run
+  it in the Supabase SQL editor; it is safe to run again, and it must be
+  re-run after pulling a change that adds a table. **Re-run it after
+  pulling this change** so `discord_webhooks` and
+  `published_weeks.posted_leagues` are in the database.
+- `supabase/functions/post-week/` — an edge function that posts a week to
+  the college or NFL channel for an admin, from the saved webhook or its
+  own secret, for a league with no webhook saved on the admin page.
 - `js/supabase-config.js` — your Supabase URL and anon key. Blank by default.
 - `data/shop.js` — the shop catalogue: credit earnings and everything on sale.
 - `data/cards.js` — the card game: what a card is, how it is graded, the
@@ -2382,18 +2507,23 @@ Built so far:
 - `data/conferences.js` — every conference game of a college season that
   none of the six is in, played out, keyed by season and conference, with
   each conference's divisions. Written by `tools/build-conferences.js`
-  rather than by hand. See *Conference standings*.
+  rather than by hand. See *Conference standings*. From 2023 it holds the
+  NFL as well, the AFC and the NFC (`nfl: true`) with their divisions and
+  every real 2023 regular-season score, from nflverse.
 - `data/logos.js` — every college team ESPN carries (about 770, every
   division) against the id ESPN files its logo under, keyed by the name the
   season files use, and `EGE.logoFor(name)`, which turns one into an image
-  address on ESPN's server. Written by `tools/build-logos.js`.
+  address on ESPN's server. Written by `tools/build-logos.js`. The NFL's
+  32 are `EGE.nflLogos`, by hand, against ESPN's short names (`sea`,
+  `det`, `hou`), and `EGE.logoFor` checks them first.
 - `data/defenses.js` — every FBS and FCS school's rushing and passing yards
   allowed a game, by season, and where each ranks at its level. Written by
   `tools/build-defenses.js` from ESPN's box scores; add the new year to its
   `SEASONS` and run it again when a season starts. The schedule's ODEF
-  grade is read from it.
+  grade is read from it. 2023 adds the NFL's 32 at `level: 'NFL'`, ranked
+  among themselves, from nflverse's team stats.
 - `data/rosters.js` — the quarterbacks, backs, receivers and tight ends on
-  each of the six's colleges, by season, each with his class, overall, ESPN
+  each of the six's teams (college, and the NFL from 2023), by season, each with his class, overall, ESPN
   id and whether ESPN has his headshot. Written by `tools/build-rosters.js`
   from ESPN's rosters, game logs and season leaders, and the 247Sports
   Composite (through `tools/recruiting.js`); add the year to its `SEASONS`

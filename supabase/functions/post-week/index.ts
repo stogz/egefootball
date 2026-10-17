@@ -11,10 +11,19 @@
    Authorization header, and the same `admins` table the rest of the site
    trusts decides the answer — a player who found this endpoint gets a 403.
 
+   From 2023 there are two channels, one per league, and the payload says
+   which with `league`: 'college' or 'nfl'. The URL is the one saved on the
+   admin page (the discord_webhooks table, read with the admin's own
+   sign-in), or failing that this function's secret for that league.
+
    Deploying it
    ------------
-     supabase secrets set DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/...'
+     supabase secrets set DISCORD_WEBHOOK_URL_COLLEGE='https://discord.com/api/webhooks/...'
+     supabase secrets set DISCORD_WEBHOOK_URL_NFL='https://discord.com/api/webhooks/...'
      supabase functions deploy post-week
+
+   The secrets are only needed if the webhooks are not saved on the admin
+   page.
 
    If it is not deployed, nothing breaks: publishing still works, and the
    scheduled bot posts the week on its next run instead.
@@ -57,9 +66,6 @@ Deno.serve(async (request) => {
   if (adminError) { return reply({ error: adminError.message }, 500); }
   if (!isAdmin) { return reply({ error: 'admins only' }, 403); }
 
-  const webhook = Deno.env.get('DISCORD_WEBHOOK_URL');
-  if (!webhook) { return reply({ error: 'DISCORD_WEBHOOK_URL is not set on this function' }, 500); }
-
   let payload: unknown;
   try {
     payload = await request.json();
@@ -69,7 +75,20 @@ Deno.serve(async (request) => {
 
   /* Only the shape a week post has. An admin is trusted, but a typo should
      not become a 40kB message in the channel. */
-  const post = payload as { content?: unknown; embeds?: unknown };
+  const post = payload as { content?: unknown; embeds?: unknown; league?: unknown };
+  const league = post?.league === undefined ? 'college' : post.league;
+  if (league !== 'college' && league !== 'nfl') {
+    return reply({ error: "league must be 'college' or 'nfl'" }, 400);
+  }
+
+  const { data: saved } = await supabase.from('discord_webhooks')
+    .select('url').eq('league', league).maybeSingle();
+  const secret = 'DISCORD_WEBHOOK_URL_' + league.toUpperCase();
+  const webhook = saved?.url || Deno.env.get(secret);
+  if (!webhook) {
+    return reply({ error: 'no ' + league + ' webhook: save it on the admin page, or set ' + secret }, 500);
+  }
+
   if (typeof post?.content !== 'string' || !Array.isArray(post?.embeds)) {
     return reply({ error: 'expected { content, embeds }' }, 400);
   }

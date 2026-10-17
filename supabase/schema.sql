@@ -655,6 +655,55 @@ create policy "published weeks removed by an admin"
   on public.published_weeks for delete to authenticated
   using (public.is_admin());
 
+-- Which leagues' Discord posts a week has had. From 2023 the six are split
+-- between the NFL and college, so a week can be two messages to two
+-- channels, and one can land while the other does not. posted_at is set
+-- once every league with a game that week has had its post; until then this
+-- is what lets Post again, and the bot, send only the one still missing.
+alter table public.published_weeks
+  add column if not exists posted_leagues text[] not null default '{}';
+
+-- ---------------------------------------------------------------------------
+-- The Discord bots' webhooks
+--
+-- One per league: the colleges' channel and the NFL's. Pasted into the admin
+-- page and kept here rather than in the site's files, because the repository
+-- is public and anybody holding a webhook URL can post to its channel as the
+-- bot. Only an admin can read or change one. The scheduled bot reads them
+-- with the service role key, which passes RLS.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.discord_webhooks (
+  league     text        primary key check (league in ('college', 'nfl')),
+  url        text        not null
+             check (url ~ '^https://((canary|ptb)\.)?discord(app)?\.com/api/webhooks/[0-9]+/[A-Za-z0-9_-]+$'),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.discord_webhooks enable row level security;
+
+drop policy if exists "discord webhooks read by an admin" on public.discord_webhooks;
+create policy "discord webhooks read by an admin"
+  on public.discord_webhooks for select to authenticated
+  using (public.is_admin());
+
+drop policy if exists "discord webhooks added by an admin" on public.discord_webhooks;
+create policy "discord webhooks added by an admin"
+  on public.discord_webhooks for insert to authenticated
+  with check (public.is_admin());
+
+drop policy if exists "discord webhooks changed by an admin" on public.discord_webhooks;
+create policy "discord webhooks changed by an admin"
+  on public.discord_webhooks for update to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "discord webhooks removed by an admin" on public.discord_webhooks;
+create policy "discord webhooks removed by an admin"
+  on public.discord_webhooks for delete to authenticated
+  using (public.is_admin());
+
+revoke all on public.discord_webhooks from anon;
+
 -- ---------------------------------------------------------------------------
 -- Boosters, and why game_boosters stays small
 --

@@ -13,6 +13,9 @@
    Miss', 'California', 'UConn' -- so a new fixture against any of these
    has its mark with nothing else to do. A school that is not here (every
    high school) is drawn with its name alone.
+
+   The NFL's teams are below the colleges, by hand (there are only 32 and
+   they do not change), keyed by their full names -- 'Seattle Seahawks'.
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -792,13 +795,56 @@ EGE.espnIds = {
   'Youngstown State': 2754
 };
 
-/* The picture for a school, or null for one ESPN does not have. `size` is
-   the pixels on a side to ask for; the schedule draws its marks at 20, so
-   it asks for twice that for a sharp picture on a high-density screen. */
+/* The NFL's 32, by the name the season files write an opponent under,
+   against the short name ESPN files the team's logo under. */
+EGE.nflLogos = {
+  'Arizona Cardinals': 'ari',
+  'Atlanta Falcons': 'atl',
+  'Baltimore Ravens': 'bal',
+  'Buffalo Bills': 'buf',
+  'Carolina Panthers': 'car',
+  'Chicago Bears': 'chi',
+  'Cincinnati Bengals': 'cin',
+  'Cleveland Browns': 'cle',
+  'Dallas Cowboys': 'dal',
+  'Denver Broncos': 'den',
+  'Detroit Lions': 'det',
+  'Green Bay Packers': 'gb',
+  'Houston Texans': 'hou',
+  'Indianapolis Colts': 'ind',
+  'Jacksonville Jaguars': 'jax',
+  'Kansas City Chiefs': 'kc',
+  'Las Vegas Raiders': 'lv',
+  'Los Angeles Chargers': 'lac',
+  'Los Angeles Rams': 'lar',
+  'Miami Dolphins': 'mia',
+  'Minnesota Vikings': 'min',
+  'New England Patriots': 'ne',
+  'New Orleans Saints': 'no',
+  'New York Giants': 'nyg',
+  'New York Jets': 'nyj',
+  'Philadelphia Eagles': 'phi',
+  'Pittsburgh Steelers': 'pit',
+  'San Francisco 49ers': 'sf',
+  'Seattle Seahawks': 'sea',
+  'Tampa Bay Buccaneers': 'tb',
+  'Tennessee Titans': 'ten',
+  'Washington Commanders': 'wsh'
+};
+
+/* The picture for a school or an NFL team, or null for one ESPN does not
+   have. `size` is the pixels on a side to ask for; the schedule draws its
+   marks at 20, so it asks for twice that for a sharp picture on a
+   high-density screen. */
 EGE.logoFor = function (name, size) {
+  var px = size || 40;
+  var nfl = EGE.nflLogos[name];
+  if (nfl) {
+    return 'https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/' + nfl +
+      '.png&h=' + px + '&w=' + px;
+  }
   var id = EGE.espnIds[name];
   if (!id) { return null; }
-  var px = size || 40;
   return 'https://a.espncdn.com/combiner/i?img=/i/teamlogos/ncaa/500/' + id +
     '.png&h=' + px + '&w=' + px;
 };

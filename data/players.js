@@ -19,7 +19,10 @@
    both as keys in EGE.teams below. Which one a season shows is its tier on
    the ladder -- see EGE.teamFor. A player who transferred has `transfers`
    as well, `{ 2022: 'texas' }`: the school he is at from that season on,
-   so his earlier seasons still say where he was then.
+   so his earlier seasons still say where he was then. Being drafted is a
+   transfer too, to an NFL team -- `{ 2023: 'seattle' }` -- and an NFL
+   team (`tier: 'nfl'` in EGE.teams) is what puts a player in the NFL
+   that season, whatever the rest of the six are doing.
 
    `trophies` is what is in his trophy case on his page, oldest first:
    `{ name, season, image, about, scale }`. `image` is a picture of it under
@@ -43,22 +46,67 @@
 window.EGE = window.EGE || {};
 
 /* The season ladder. See the project spec — 2018 junior year of high school
-   through the 2023 NFL Draft. */
+   through the 2023 NFL Draft, and on from there.
+
+   2023 is the first season the six are split: Sam, Andrew and Jaykeb were
+   drafted and play it in the NFL, and Paxon, Cooper and Isaac stay in
+   college. Its `level` names both, for the places that say what a season
+   is for everybody at once (the home page, the Teams pages); a player's own
+   page says his own, from EGE.levelFor. */
 EGE.seasons = [
   { year: 2018, level: 'High School Varsity', tier: 'highSchool', class: 'Junior Year' },
   { year: 2019, level: 'High School Varsity', tier: 'highSchool', class: 'Senior Year' },
   { year: 2020, level: 'College Football',    tier: 'college',    class: 'Freshman Year' },
   { year: 2021, level: 'College Football',    tier: 'college',    class: 'Sophomore Year' },
   { year: 2022, level: 'College Football',    tier: 'college',    class: 'Junior Year' },
-  { year: 2023, level: 'College Football',    tier: 'college',    class: 'Senior Year', optional: true }
+  { year: 2023, level: 'NFL & College Football', tier: 'college', class: 'Senior Year', optional: true }
 ];
 
-/* Which level of football a season is played at. Nothing is at 'nfl' yet —
-   the ladder ends at the draft. */
-EGE.tierFor = function (season) {
+/* What each level of football is called on a player's own page. */
+EGE.TIER_LEVELS = {
+  highSchool: 'High School Varsity',
+  college: 'College Football',
+  nfl: 'NFL'
+};
+
+/* Which level of football a season is played at: 'highSchool', 'college'
+   or 'nfl'. Given a player, it is his own level that season -- a player
+   whose team that season is an NFL one is in the NFL, whatever the
+   ladder says the rest are doing. Without one, it is the ladder's. */
+EGE.tierFor = function (season, player) {
   var year = season || EGE.currentSeason;
   var found = EGE.seasons.filter(function (s) { return s.year === year; })[0];
-  return found ? found.tier : null;
+  if (!found) { return null; }
+  if (player && found.tier !== 'highSchool') {
+    var team = EGE.teams[EGE.teamKeyFor(player, year)];
+    if (team && team.tier === 'nfl') { return 'nfl'; }
+  }
+  return found.tier;
+};
+
+/* The level a player played at that season, as his page names it:
+   'NFL', 'College Football'. */
+EGE.levelFor = function (player, season) {
+  return EGE.TIER_LEVELS[EGE.tierFor(season, player)] || null;
+};
+
+/* Whether a season has anybody in the NFL in it. */
+EGE.seasonHasNfl = function (season) {
+  return EGE.players.some(function (player) {
+    return EGE.tierFor(season, player) === 'nfl';
+  });
+};
+
+/* Which of the two leagues a player's week goes out with: 'nfl' for a
+   player in the NFL that season, and 'college' for everybody else -- the
+   high school years too, which went out to the one channel there was
+   before anybody had been drafted. Each has its own Discord bot, its own
+   week numbers (the NFL's 1 to 18, the colleges' 0 to 13) and its own
+   postseason. */
+EGE.LEAGUES = ['nfl', 'college'];
+
+EGE.leagueOf = function (player, season) {
+  return EGE.tierFor(season, player) === 'nfl' ? 'nfl' : 'college';
 };
 
 /* Which season is live is not here: it changes every year, and the admin
@@ -167,6 +215,47 @@ EGE.teams = {
     logo: 'icon/offers/UNC.png',
     ground: '#13294B',
     zone: 'America/New_York'
+  },
+
+  /* The NFL, from 2023: the teams that drafted Jaykeb (Houston, 2nd),
+     Andrew (Detroit, 18th) and Sam (Seattle, 52nd). `tier: 'nfl'` is
+     what makes a season on one of these an NFL season. `league` is the
+     division, which is what the standings place a team in, and
+     `conference` the AFC or the NFC. The marks are ESPN's, asked for
+     from ESPN's image server the way the colleges' opponents are, drawn
+     in white on the team's own colour. */
+  seattle: {
+    school: 'Seattle Seahawks',
+    short: 'Seahawks',
+    tier: 'nfl',
+    league: 'NFC West',
+    conference: 'NFC',
+    logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/sea.png',
+    ground: '#002244',
+    whiteMark: true,
+    zone: 'America/Los_Angeles'
+  },
+  detroit: {
+    school: 'Detroit Lions',
+    short: 'Lions',
+    tier: 'nfl',
+    league: 'NFC North',
+    conference: 'NFC',
+    logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/det.png',
+    ground: '#0076B6',
+    whiteMark: true,
+    zone: 'America/Detroit'
+  },
+  houston: {
+    school: 'Houston Texans',
+    short: 'Texans',
+    tier: 'nfl',
+    league: 'AFC South',
+    conference: 'AFC',
+    logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/hou.png',
+    ground: '#03202F',
+    whiteMark: true,
+    zone: 'America/Chicago'
   }
 };
 
@@ -185,6 +274,8 @@ EGE.players = [
     last: 'Parr',
     team: 'wakeForest',
     college: 'alabama',       // from 2020
+    /* Drafted 18th by Detroit in 2023, the first tight end taken. */
+    transfers: { 2023: 'detroit' },
     position: 'TE',
     jersey: 87,
     height: 76,               // inches
@@ -282,6 +373,8 @@ EGE.players = [
     last: 'Stogsdill',
     team: 'normal',
     college: 'ohioState',     // from 2020
+    /* Drafted 52nd by Seattle in 2023. */
+    transfers: { 2023: 'seattle' },
     position: 'RB',
     jersey: 34,
     height: 73,               // inches
@@ -297,6 +390,8 @@ EGE.players = [
     last: 'Stewart',
     team: 'naples',
     college: 'ohioState',     // from 2020
+    /* Drafted 2nd by Houston in 2023. */
+    transfers: { 2023: 'houston' },
     position: 'QB',
     jersey: 2,
     height: 71,               // inches
@@ -333,7 +428,7 @@ EGE.weightText = function (player) {
 EGE.teamKeyFor = function (player, season) {
   if (!player) { return null; }
   var year = season || EGE.currentSeason;
-  if (EGE.tierFor(year) !== 'college') { return player.team || null; }
+  if (EGE.tierFor(year) === 'highSchool') { return player.team || null; }
   var key = player.college;
   Object.keys(player.transfers || {}).map(Number).sort(function (a, b) {
     return a - b;
@@ -367,12 +462,19 @@ EGE.teamFor = function (player, season) {
    everywhere else a season is a year and a level, since the six are not all
    in the same class. */
 var COLLEGE_CLASSES = ['Freshman Year', 'Sophomore Year', 'Junior Year', 'Senior Year', 'Fifth Year'];
+var NFL_CLASSES = ['Rookie Year', 'Second Year', 'Third Year', 'Fourth Year', 'Fifth Year',
+                   'Sixth Year', 'Seventh Year', 'Eighth Year', 'Ninth Year', 'Tenth Year'];
 
 EGE.classFor = function (player, season) {
   var year = season || EGE.currentSeason;
   var found = EGE.seasons.filter(function (s) { return s.year === year; })[0];
   if (!found) { return null; }
-  if (found.tier !== 'college') { return found.class; }
+  if (found.tier === 'highSchool') { return found.class; }
+
+  /* In the NFL a season is how far into his career he is: his first is
+     his rookie year. */
+  var pro = EGE.nflYearFor(player, year);
+  if (pro) { return NFL_CLASSES[Math.min(pro, NFL_CLASSES.length) - 1]; }
 
   /* The redshirt year itself is just that; after it, the class is the
      year of eligibility he is in -- a freshman again the year after. */
@@ -386,12 +488,22 @@ EGE.classFor = function (player, season) {
    is behind him. Null in high school. */
 EGE.eligibilityYearFor = function (player, season) {
   var year = season || EGE.currentSeason;
-  if (EGE.tierFor(year) !== 'college') { return null; }
+  if (EGE.tierFor(year, player) !== 'college') { return null; }
   var count = EGE.seasons.filter(function (s) {
-    return s.tier === 'college' && s.year <= year;
+    return s.tier === 'college' && s.year <= year && EGE.tierFor(s.year, player) === 'college';
   }).length;
   if (player && player.redshirt && player.redshirt < year) { count -= 1; }
   return Math.max(1, count);
+};
+
+/* Which season of his NFL career a player is in, 1 for his rookie year,
+   or null for a season he is not in the NFL. */
+EGE.nflYearFor = function (player, season) {
+  var year = season || EGE.currentSeason;
+  if (!player || EGE.tierFor(year, player) !== 'nfl') { return null; }
+  return EGE.seasons.filter(function (s) {
+    return s.year <= year && EGE.tierFor(s.year, player) === 'nfl';
+  }).length;
 };
 
 /* The accounts allowed to sign in. */
