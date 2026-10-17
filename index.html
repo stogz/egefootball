@@ -103,7 +103,8 @@
     <!-- ===== teams ==================================================== -->
     <!-- Laid out like the players: a card for every school one of the six
          plays for this season, each opening that school's own page. College
-         seasons only. Public, like the player pages. Built in app.js. -->
+         and NFL seasons, the NFL's teams above the colleges' with a dotted
+         line between. Public, like the player pages. Built in app.js. -->
     <section id="view-teams" hidden>
       <header class="fb-hero fb-hero--centred">
         <div class="fb-hero__col">
@@ -171,7 +172,7 @@
 
         <div class="fb-panel ege-section-gap" id="teamStandingsPanel" hidden>
           <div class="fb-panel__head">
-            <h3>Conference Standings</h3>
+            <h3 id="teamStandingsTitle">Conference Standings</h3>
             <button class="ege-collapse" type="button"
                     data-collapses="teamStandingsPanel" aria-controls="teamStandingsPanel"
                     aria-expanded="true" aria-label="Hide the conference standings"></button>
@@ -615,6 +616,24 @@
           </div>
 
           <p class="fb-meta" id="discordNote"></p>
+
+          <!-- The two Discord bots, one per league. Pasted here once and kept
+               in Supabase (discord_webhooks), which only an admin can read --
+               never in this repository, which is public. -->
+          <div class="ege-webhooks">
+            <label class="ege-field">
+              <span class="fb-eyebrow">College bot webhook</span>
+              <input class="fb-input" id="hookCollege" type="password" autocomplete="off"
+                     spellcheck="false">
+            </label>
+            <button class="fb-btn fb-btn--sm" id="hookCollegeSave" type="button">Save</button>
+            <label class="ege-field">
+              <span class="fb-eyebrow">NFL bot webhook</span>
+              <input class="fb-input" id="hookNfl" type="password" autocomplete="off"
+                     spellcheck="false">
+            </label>
+            <button class="fb-btn fb-btn--sm" id="hookNflSave" type="button">Save</button>
+          </div>
         </div>
       </div>
 
@@ -1081,7 +1100,7 @@
                 <th>Opponent</th>
                 <!-- How good the defense across the way is against what this
                      player does: the run for a back, the pass for everyone
-                     else. College seasons only; see EGE.defenseGrade. -->
+                     else. College and NFL seasons; see EGE.defenseGrade. -->
                 <th class="ege-schedule__gradehead" id="scheduleGradeHead"
                     title="The opponent's defense against what you do: the run for a back, the pass for everyone else. A is the toughest, F the softest.">ODEF</th>
                 <th class="num">Result</th>
@@ -1247,7 +1266,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="js/supabase-config.js"></script>
-<script src="js/discord-config.js"></script>
 
 <script src="data/players.js"></script>
 <script src="data/offers.js"></script>

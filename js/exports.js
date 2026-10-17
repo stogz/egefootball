@@ -245,6 +245,7 @@ EGE.exports = (function () {
           home: game.home,
           neutral: Boolean(game.neutral),
           conference: Boolean(game.conference),
+          division: Boolean(game.division),
           scouts: Boolean(game.scouts),
           injured: Boolean(game.injured),
           injury: game.injured ? (game.injury || null) : null,
@@ -504,6 +505,7 @@ EGE.exports = (function () {
        would come back as a regular one the first time anybody saved. */
     var flags = ['home: ' + (game.home ? 'true' : 'false'),
                  'conference: ' + (game.conference ? 'true' : 'false')];
+    if (game.division) { flags.push('division: true'); }
     if (game.neutral) { flags.push('neutral: true'); }
     if (game.playoff) { flags.push('playoff: true'); }
     if (game.bye) { flags.push('bye: true'); }
@@ -612,7 +614,8 @@ EGE.exports = (function () {
       '',
       '   `conference: true` marks the games listed with an asterisk, and',
       '   `scouts: true` marks a game scouts will be at — what Intel buys is the',
-      '   right to see it.',
+      '   right to see it. In the NFL the asterisk is a division game instead,',
+      '   `division: true`, and `conference` is always false.',
       '',
       '   `injured: true` marks a game the player missed hurt, and `injury` says',
       "   what with — 'Bruised Shoulder'. The Discord post shows it in red, as",

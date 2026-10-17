@@ -301,7 +301,7 @@ EGE.wallet = (function () {
     }
 
     /* The button is disabled too, but a disabled button is a suggestion. */
-    var allowed = EGE.itemAvailable(item, EGE.currentSeason);
+    var allowed = EGE.itemAvailable(item, EGE.currentSeason, player);
     if (!allowed.ok) { return fail(allowed.reason); }
 
     /* Both up front, because a stacking price depends on what is already
@@ -727,35 +727,101 @@ EGE.wallet = (function () {
       });
   }
 
-  function markPosted(season, week) {
+  /* Which leagues' posts have gone out for a week, and, once every one of
+     them has, when. A week with the NFL and college both in it is two
+     messages to two channels, and one can land while the other does not:
+     `posted_leagues` is what lets Post again, and the bot, send only the one
+     that is missing rather than the whole week twice.
+
+     A database that has not had the column added yet (schema.sql not re-run)
+     still gets `posted_at`, so a week is never posted over and over. */
+  function markPosted(season, week, leagues, done) {
     var c = client();
     if (!c) { return Promise.resolve({ ok: false }); }
 
-    return c.from(PUBLISHED).update({ posted_at: new Date().toISOString() })
-      .eq('season', season).eq('week', week)
-      .then(function (res) { return { ok: !res.error }; })
+    var change = { posted_leagues: leagues || [] };
+    if (done !== false) { change.posted_at = new Date().toISOString(); }
+    function write(values) {
+      return c.from(PUBLISHED).update(values).eq('season', season).eq('week', week);
+    }
+    return write(change)
+      .then(function (res) {
+        if (!res.error || !change.posted_at) { return { ok: !res.error }; }
+        return write({ posted_at: change.posted_at }).then(function (again) { return { ok: !again.error }; });
+      })
       .catch(function () { return { ok: false }; });
   }
 
-  /* Sends a built week to Discord.
+  /* --- the Discord channels ------------------------------------------------
 
-     Straight to the webhook when one is set in js/discord-config.js, which is
-     the whole setup: no function to deploy and the message lands on the click.
-     The URL is public in that case, which is a decision taken there.
+     One bot per league: the colleges' channel and the NFL's. Their webhook
+     URLs are pasted into the admin page once and kept in Supabase's
+     discord_webhooks table, which only an admin can read or write -- never
+     in this repository, which is public, so anyone could read a URL in it
+     and post to the channel as the bot. */
+  var WEBHOOKS = 'discord_webhooks';
+  var WEBHOOK_PATTERN = /^https:\/\/(?:(?:canary|ptb)\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/;
 
-     Failing that, the edge function, which keeps the URL as a Supabase secret.
+  /* { college: url, nfl: url }, with whichever have been saved. An empty
+     object for anybody who is not an admin, or before the table exists. */
+  function loadWebhooks() {
+    var c = client();
+    if (!c) { return Promise.resolve({}); }
+    return c.from(WEBHOOKS).select('league, url')
+      .then(function (res) {
+        var out = {};
+        if (res.error) { return out; }
+        (res.data || []).forEach(function (row) { out[row.league] = row.url; });
+        return out;
+      })
+      .catch(function () { return {}; });
+  }
+
+  function saveWebhook(league, url) {
+    var c = client();
+    if (!c) { return fail(offline()); }
+    if (EGE.LEAGUES.indexOf(league) === -1) { return fail('No such league: ' + league + '.'); }
+    var clean = String(url || '').trim();
+    if (!WEBHOOK_PATTERN.test(clean)) {
+      return fail('That is not a Discord webhook URL. Copy it from the channel\u2019s ' +
+                  'Integrations \u2192 Webhooks \u2192 Copy Webhook URL.');
+    }
+    return c.from(WEBHOOKS)
+      .upsert({ league: league, url: clean, updated_at: new Date().toISOString() },
+              { onConflict: 'league' })
+      .then(function (res) {
+        if (res.error) {
+          return { ok: false, message: res.error.message +
+            (/discord_webhooks/.test(res.error.message) ? ' Run supabase/schema.sql again first.' : '') };
+        }
+        return { ok: true };
+      });
+  }
+
+  /* Sends a built week to one league's channel.
+
+     Straight to that league's webhook when one has been saved on the admin
+     page: nothing to deploy and the message lands on the click.
+
+     Failing that, the edge function, which keeps the URLs as Supabase
+     secrets (or reads the same table with the admin's own sign-in).
 
      Whichever it is, the week is already published by the time this runs — a
      post that does not land is a message missing from a channel, not a week
      missing from the site, and the scheduled bot picks it up if it is set up. */
-  function postWeekToDiscord(payload) {
-    var url = (EGE.discordConfig || {}).webhookUrl;
-    if (url) { return postToWebhook(url, payload); }
+  function postWeekToDiscord(payload, league) {
+    var which = league || 'college';
+    return loadWebhooks().then(function (hooks) {
+      if (hooks[which]) { return postToWebhook(hooks[which], payload); }
+      return postThroughFunction(payload, which);
+    });
+  }
 
+  function postThroughFunction(payload, league) {
     var c = client();
     if (!c) { return fail(offline()); }
 
-    return c.functions.invoke('post-week', { body: payload })
+    return c.functions.invoke('post-week', { body: Object.assign({ league: league }, payload) })
       .then(function (res) {
         if (res.error) {
           return {
@@ -1155,6 +1221,8 @@ EGE.wallet = (function () {
     publishWeek: publishWeek,
     unpublishWeek: unpublishWeek,
     markPosted: markPosted,
+    loadWebhooks: loadWebhooks,
+    saveWebhook: saveWebhook,
     postWeekToDiscord: postWeekToDiscord,
     clearPublishedBoosters: clearPublishedBoosters
   };

@@ -46,9 +46,14 @@ jobs:
 
       - name: Post anything still owed
         env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          # The two channels' webhooks are read from Supabase (saved on the
+          # admin page). These are only a fallback for a league with none
+          # saved there, and can be left unset.
+          DISCORD_WEBHOOK_URL_COLLEGE: ${{ secrets.DISCORD_WEBHOOK_URL_COLLEGE }}
+          DISCORD_WEBHOOK_URL_NFL: ${{ secrets.DISCORD_WEBHOOK_URL_NFL }}
           # Server-side key. It reads which weeks are published and marks them
-          # posted, and it never goes anywhere near the browser.
+          # posted, reads the webhooks, and it never goes anywhere near the
+          # browser.
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SITE_URL: ${{ vars.SITE_URL || 'http://egefootball.vercel.app' }}

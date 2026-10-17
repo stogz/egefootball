@@ -24,6 +24,12 @@
    those are is read off the games -- see EGE.playoffWeeks in
    data/games.js -- so the heading does not need telling when the regular
    season ends.
+
+   From 2023 the six are split between the NFL and college, and each has
+   its own bot: a week goes out as one message per league (buildWeekPosts),
+   each to its own channel, each with only that league's players in it and
+   headed by that league's own week -- the NFL's Playoffs Week One is not
+   the colleges'.
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -121,8 +127,8 @@ EGE.discordPost = (function () {
      to know which week of the year the brackets came out. College too, where
      the weeks are title games and bowls as much as playoff rounds: each
      embed names the game it is (Sam, 2026-10-16). */
-  function weekTitle(week, season) {
-    var round = EGE.playoffRound(week, season);
+  function weekTitle(week, season, league) {
+    var round = EGE.playoffRound(week, season, league);
     if (!round) { return 'Week ' + weekWord(week); }
     return 'Playoffs Week ' + weekWord(round);
   }
@@ -260,12 +266,14 @@ EGE.discordPost = (function () {
 
   /* A game nobody has played has no numbers to show, so it shows what is
      known about it instead — in the same four lines, so the embed comes out
-     the same height as every other one. */
-  function fixtureBlock(game) {
+     the same height as every other one. In the NFL the line that matters is
+     whether it is a division game. */
+  function fixtureBlock(game, nfl) {
     var rows = [
       ['Kickoff', kickoffLabel(game)],
       ['Where', game.neutral ? 'Neutral site' : game.home ? 'Home' : 'Away'],
-      ['Game', game.conference ? 'Conference' : 'Non-conference']
+      ['Game', nfl ? (game.division ? 'Division' : 'Non-division')
+        : (game.conference ? 'Conference' : 'Non-conference')]
     ];
     var width = rows.reduce(function (widest, row) {
       return Math.max(widest, row[0].length);
@@ -487,7 +495,7 @@ EGE.discordPost = (function () {
     }
 
     embed.description = headline + '\n' +
-      (stats ? statBlock(player, stats) : fixtureBlock(game)) +
+      (stats ? statBlock(player, stats) : fixtureBlock(game, EGE.tierFor(season, player) === 'nfl')) +
       (plays ? '\n' + plays : '');
 
     summaryFor(player).forEach(function (part) {
@@ -541,22 +549,25 @@ EGE.discordPost = (function () {
 
   /* One week, ready to send. `options.played` forces the results form, which
      is what the publish button wants — it has just made the week real and is
-     not waiting for a reload to say so. */
+     not waiting for a reload to say so. `options.league` ('nfl' or
+     'college') keeps to that league's players and heads the message with
+     its week; left out, it is everybody, as it was before the split. */
   function buildWeekPost(week, options) {
     var settings = options || {};
     var season = settings.season || EGE.currentSeason;
     var siteUrl = settings.siteUrl || SITE;
+    var league = settings.league || null;
 
     /* A bye is on the schedule because the week is, but there is nothing to
        post about a player who is not playing -- the same rule that already
        leaves out a player with no game that week at all. */
     var playing = EGE.gamesInWeek(week, season).filter(function (entry) {
-      return !entry.game.bye;
+      return !entry.game.bye && (!league || EGE.leagueOf(entry.player, season) === league);
     });
     if (!playing.length) { return null; }
 
     return {
-      content: '## ' + weekTitle(week, season),
+      content: '## ' + weekTitle(week, season, league),
       embeds: playing.map(function (entry) {
         return buildEmbed(entry.player, entry.game, {
           season: season, siteUrl: siteUrl, played: settings.played
@@ -566,9 +577,22 @@ EGE.discordPost = (function () {
     };
   }
 
+  /* The week as one message per league with anybody playing in it, the NFL
+     first: [{ league: 'nfl', payload }, { league: 'college', payload }]. A
+     league with nobody playing that week -- the NFL in college's week 0, the
+     colleges after their week 13 -- is left out. */
+  function buildWeekPosts(week, options) {
+    var settings = options || {};
+    return EGE.LEAGUES.map(function (league) {
+      var payload = buildWeekPost(week, Object.assign({}, settings, { league: league }));
+      return payload ? { league: league, payload: payload } : null;
+    }).filter(Boolean);
+  }
+
   return {
     SITE: SITE,
     buildWeekPost: buildWeekPost,
+    buildWeekPosts: buildWeekPosts,
     buildEmbed: buildEmbed
   };
 })();

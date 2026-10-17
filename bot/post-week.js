@@ -12,9 +12,15 @@
    never posted twice, because `posted_at` is what it checks, not a file in
    this repository.
 
+   From 2023 a week is one message per league -- the NFL's players to the
+   NFL bot's channel, the colleges' to the college bot's -- and
+   `posted_leagues` says which have gone, so a week where one landed and
+   the other did not gets only the missing one.
+
      node bot/post-week.js                 post anything owed, if it is time
      node bot/post-week.js --force         ignore the clock
      node bot/post-week.js --week 4        post one week, published or not
+     node bot/post-week.js --league nfl    only that league's post
      node bot/post-week.js --dry-run       print the payload, post nothing
 
    Posting windows are 07:00, 12:00, 16:00 and 20:00 America/Chicago. The
@@ -23,8 +29,12 @@
    daylight saving never shifts the times.
 
    Environment:
-     DISCORD_WEBHOOK_URL        required unless --dry-run
-     SUPABASE_URL               required: which weeks are out lives there
+     SUPABASE_URL               required: which weeks are out lives there,
+                                and so do the two webhooks, saved on the
+                                admin page (the discord_webhooks table)
+     DISCORD_WEBHOOK_URL_COLLEGE
+     DISCORD_WEBHOOK_URL_NFL    optional: used for a league whose webhook
+                                is not saved in Supabase
      SUPABASE_SERVICE_ROLE_KEY  required: reading and marking them needs it.
                                 A server-side key. It belongs in the repo's
                                 Actions secrets and nowhere near the browser.
@@ -41,13 +51,14 @@ const DEFAULT_SITE = 'http://egefootball.vercel.app';
 /* --- arguments ------------------------------------------------------------ */
 
 function parseArgs(argv) {
-  const args = { dryRun: false, force: false, week: null, season: null };
+  const args = { dryRun: false, force: false, week: null, season: null, league: null };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--dry-run') { args.dryRun = true; }
     else if (arg === '--force') { args.force = true; }
     else if (arg === '--week') { args.week = Number(argv[i += 1]); }
     else if (arg === '--season') { args.season = Number(argv[i += 1]); }
+    else if (arg === '--league') { args.league = String(argv[i += 1] || '').toLowerCase(); }
   }
   return args;
 }
@@ -100,17 +111,40 @@ function supabase(pathAndQuery, options) {
    week 4 counts the weeks before it, and EGE.isFinal answers no for a week
    the site has not been told about. */
 function allPublished(season) {
-  return supabase('published_weeks?select=season,week,posted_at' +
-                  (season ? '&season=eq.' + season : '') +
-                  '&order=season.asc,week.asc');
+  const rest = (season ? '&season=eq.' + season : '') + '&order=season.asc,week.asc';
+  /* A database that has not had schema.sql re-run has no posted_leagues
+     yet, and a week there is posted whole or not at all. */
+  return supabase('published_weeks?select=season,week,posted_at,posted_leagues' + rest)
+    .catch(function () { return supabase('published_weeks?select=season,week,posted_at' + rest); });
 }
 
-function markPosted(season, week) {
-  return supabase('published_weeks?season=eq.' + season + '&week=eq.' + week, {
-    method: 'PATCH',
-    headers: { Prefer: 'return=minimal' },
-    body: { posted_at: new Date().toISOString() }
+function markPosted(season, week, leagues, done) {
+  const body = { posted_leagues: leagues };
+  if (done) { body.posted_at = new Date().toISOString(); }
+  const where = 'published_weeks?season=eq.' + season + '&week=eq.' + week;
+  const patch = function (values) {
+    return supabase(where, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: values });
+  };
+  return patch(body).catch(function (err) {
+    if (!done) { throw err; }
+    return patch({ posted_at: body.posted_at });
   });
+}
+
+/* The two channels' webhooks, { college, nfl }: the ones saved on the admin
+   page, and the environment's for a league that has none saved. */
+async function webhooks() {
+  const out = {
+    college: process.env.DISCORD_WEBHOOK_URL_COLLEGE || null,
+    nfl: process.env.DISCORD_WEBHOOK_URL_NFL || null
+  };
+  try {
+    const rows = await supabase('discord_webhooks?select=league,url');
+    (rows || []).forEach(function (row) { if (row.url) { out[row.league] = row.url; } });
+  } catch (err) {
+    console.log('(no saved webhooks: ' + err.message + ')');
+  }
+  return out;
 }
 
 /* --- posting -------------------------------------------------------------- */
@@ -167,39 +201,50 @@ async function main() {
     return;
   }
 
-  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
-  if (!webhookUrl && !args.dryRun) {
-    console.error('DISCORD_WEBHOOK_URL is not set. Use --dry-run to build the post without sending it.');
-    process.exitCode = 1;
-    return;
-  }
+  const hooks = args.dryRun ? {} : await webhooks();
 
   for (const entry of owed) {
-    const payload = EGE.discordPost.buildWeekPost(entry.week, {
+    const posts = EGE.discordPost.buildWeekPosts(entry.week, {
       season: entry.season,
       siteUrl: siteUrl,
       /* Anything owed is a week the admin has already put out. */
       played: true
-    });
+    }).filter(function (post) { return !args.league || post.league === args.league; });
 
-    if (!payload) {
+    if (!posts.length) {
       console.log('Week ' + entry.week + ' has no games. Nothing to post.');
-      if (args.week === null) { await markPosted(entry.season, entry.week); }
+      if (args.week === null && !args.league) { await markPosted(entry.season, entry.week, [], true); }
       continue;
     }
 
-    if (args.dryRun) {
-      console.log(JSON.stringify(payload, null, 2));
-      console.log('\n[dry run] ' + entry.season + ' week ' + entry.week + ', ' +
-                  payload.embeds.length + ' embed(s), nothing sent.');
-      continue;
+    const sent = (entry.posted_leagues || []).slice();
+    let missing = 0;
+    for (const post of posts) {
+      if (args.week === null && sent.indexOf(post.league) !== -1) { continue; }
+      const label = entry.season + ' week ' + entry.week + ' (' + post.league + ')';
+
+      if (args.dryRun) {
+        console.log(JSON.stringify(post.payload, null, 2));
+        console.log('\n[dry run] ' + label + ', ' + post.payload.embeds.length + ' embed(s), nothing sent.');
+        continue;
+      }
+      if (!hooks[post.league]) {
+        console.error('No ' + post.league + ' webhook: save it on the admin page, or set DISCORD_WEBHOOK_URL_' +
+                      post.league.toUpperCase() + '. Skipping ' + label + '.');
+        missing += 1;
+        process.exitCode = 1;
+        continue;
+      }
+
+      await postToDiscord(hooks[post.league], post.payload);
+      console.log('Posted ' + label + ', ' + post.payload.embeds.length + ' game(s).');
+      sent.push(post.league);
     }
 
-    await postToDiscord(webhookUrl, payload);
-    console.log('Posted ' + entry.season + ' week ' + entry.week +
-                ' (' + payload.embeds.length + ' game(s)).');
-
-    if (args.week === null) { await markPosted(entry.season, entry.week); }
+    if (args.week === null && !args.dryRun) {
+      const done = !missing && posts.every(function (post) { return sent.indexOf(post.league) !== -1; });
+      await markPosted(entry.season, entry.week, sent, done);
+    }
   }
 }
 

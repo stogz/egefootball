@@ -2081,6 +2081,15 @@ body::before {
   text-decoration: none;
 }
 
+/* The two Discord webhooks on the admin page: a box and its Save button a
+   row, the button level with the box. */
+.ege-webhooks {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
 /* Rolling a week: a label and its control side by side, and a preview whose
    stat line is allowed to be the widest thing in the row. */
 .ege-field--inline {
@@ -3671,6 +3680,27 @@ button.ege-owned__item { cursor: pointer; }
   margin: 0 0 22px;
 }
 .ege-teamgrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+/* A season split between the NFL and college: the NFL's cards first, a
+   dotted line, then the colleges', each under its league's name in the
+   same ink chip as the kicker over the page title. */
+.ege-teamgrid__league {
+  justify-self: start;
+  margin: 0 0 -8px;
+  padding: 7px 12px;
+  background: var(--fb-ink);
+  color: var(--fb-cream);
+  font-family: var(--fb-font-body);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+.ege-teamgrid__divider {
+  width: 100%;
+  margin: 8px 0;
+  border: 0;
+  border-top: 4px dotted rgba(255, 255, 255, .85);
+}
 .ege-teamcard { flex-direction: row; }
 .ege-teamcard__mark {
   flex: none;

@@ -231,8 +231,7 @@
        redshirt year puts him a year behind everybody else. */
     var klass = EGE.classFor(player, season);
     document.getElementById('playerStripLabel').textContent = season +
-      (klass ? ' \u00b7 ' + klass : '') + ' \u00b7 ' +
-      ((EGE.seasons.filter(function (x) { return x.year === season; })[0] || {}).level || '');
+      (klass ? ' \u00b7 ' + klass : '') + ' \u00b7 ' + (EGE.levelFor(player, season) || '');
 
     showPhoto(document.getElementById('playerPhoto'), player.headshot, player.name);
 
@@ -241,7 +240,7 @@
     /* A college season's school is a way through to its team page, opened
        on the season this page is showing. */
     var line = schoolLine(player, 'ege-school--lg', season);
-    var teamKey = EGE.tierFor(season) === 'college' ? EGE.teamKeyFor(player, season) : null;
+    var teamKey = EGE.tierFor(season) !== 'highSchool' ? EGE.teamKeyFor(player, season) : null;
     if (teamKey && EGE.teams[teamKey]) {
       var toTeam = el('a', 'ege-school__link');
       toTeam.href = '#teams/' + EGE.teamSlug(teamKey);
@@ -435,11 +434,13 @@
   }
 
   /* Where his team stands in its division -- 3RD in SEC West -- in the
-     college seasons. Worked out from the published weeks, so it moves as
-     they come out. TBD until the team has played a conference game. */
+     college seasons, and in the NFL 2ND in NFC West, on the whole record.
+     Worked out from the published weeks, so it moves as they come out. TBD
+     until the team has played a conference game (in the NFL, any game). */
   function renderConference(player, season) {
     var label = document.getElementById('playerConferenceLabel');
     var box = document.getElementById('playerConference');
+    label.textContent = EGE.tierFor(season, player) === 'nfl' ? 'Division' : 'Conference';
 
     /* A high school season has no table to be placed in, so it gets the
        league's name on its own -- and the row is there either way, so the
@@ -457,9 +458,11 @@
     if (!standing) { return; }
     box.textContent = (standing.place ? EGE.ordinal(standing.place) : TBD) +
       ' in\u00a0' + standing.league;
-    box.title = standing.place
-      ? standing.wins + '-' + standing.losses + ' in ' + standing.conference + ' games'
-      : '';
+    box.title = !standing.place ? ''
+      : standing.nfl
+        ? standing.wins + '-' + standing.losses + ', ' + standing.divisionRecord.wins + '-' +
+          standing.divisionRecord.losses + ' in ' + standing.league + ' games'
+        : standing.wins + '-' + standing.losses + ' in ' + standing.conference + ' games';
   }
 
   /* Stars out of five, the empty ones drawn as outlines, and where he ranks
@@ -990,13 +993,14 @@
   });
 
   /* An opponent's name with its mark in front of it, the mark straight off
-     ESPN's image server (see data/logos.js). College seasons only: ESPN
-     carries no high schools, and a Washington or a Lehigh on a high school
-     schedule is not the college of that name. A mark that fails to load
-     takes itself out rather than leaving a broken-image box in the row. */
+     ESPN's image server (see data/logos.js). College and NFL seasons only:
+     ESPN carries no high schools, and a Washington or a Lehigh on a high
+     school schedule is not the college of that name. A mark that fails to
+     load takes itself out rather than leaving a broken-image box in the
+     row. */
   function opponentName(cell, game) {
     var name = game.opponent;
-    var src = EGE.tierFor(game.season) === 'college' && EGE.logoFor && EGE.logoFor(name);
+    var src = EGE.tierFor(game.season) !== 'highSchool' && EGE.logoFor && EGE.logoFor(name);
     if (src) {
       var logo = el('img', 'ege-teamlogo');
       logo.src = src;
@@ -1022,10 +1026,27 @@
       (game.overtime ? '/OT' : ''));
   }
 
-  /* A high school's postseason is its playoffs; a college's is title games
-     and bowls as much as a bracket. */
-  function postseasonWord(season) {
-    return EGE.tierFor(season) === 'college' ? 'Postseason' : 'Playoff';
+  /* Whose game it is, from the stamp EGE.gamesFor puts on it. */
+  function gamePlayer(game) {
+    return game && game.slug ? EGE.playerBySlug(game.slug) : null;
+  }
+
+  /* A high school's postseason is its playoffs, and so is the NFL's; a
+     college's is title games and bowls as much as a bracket. */
+  function postseasonWord(game) {
+    return EGE.tierFor(game.season, gamePlayer(game)) === 'college' ? 'Postseason' : 'Playoff';
+  }
+
+  /* The asterisk on a schedule: a conference game in college, and in the
+     NFL a division game -- every NFL game is a conference game or very
+     nearly, so the division is the one worth marking. */
+  function marksGame(game) {
+    return EGE.tierFor(game.season, gamePlayer(game)) === 'nfl' ? Boolean(game.division)
+      : Boolean(game.conference);
+  }
+
+  function markWord(game) {
+    return EGE.tierFor(game.season, gamePlayer(game)) === 'nfl' ? 'Division' : 'Conference';
   }
 
   function scheduleRow(game, opensPlayoffs) {
@@ -1049,9 +1070,9 @@
       opponent.appendChild(el('span', 'ege-schedule__side', game.home || game.neutral ? 'vs' : 'at'));
       opponentName(opponent, game);
     }
-    if (game.conference) {
+    if (marksGame(game)) {
       var mark = el('abbr', 'ege-schedule__conf', '*');
-      mark.title = 'Conference game';
+      mark.title = markWord(game) + ' game';
       opponent.appendChild(mark);
     }
     /* Two of them for the postseason, one for a conference game. A playoff
@@ -1059,7 +1080,7 @@
        conference title game is postseason, not a standings game. */
     if (game.playoff) {
       var post = el('abbr', 'ege-schedule__conf', '**');
-      post.title = postseasonWord(game.season) + ' game';
+      post.title = postseasonWord(game) + ' game';
       opponent.appendChild(post);
     }
     if (showScouts && game.scouts) { opponent.appendChild(scoutMark()); }
@@ -1181,12 +1202,15 @@
       body.appendChild(scheduleRow(game, game === firstPlayoff));
     });
 
-    var conference = games.filter(function (game) { return game.conference; }).length;
-    var legend = conference ? '* conference game (' + conference + ' of ' + games.length + ')' : '';
+    /* Out of the games, not the weeks: an NFL bye is a row of its own. */
+    var fixtures = games.filter(function (game) { return !game.bye; });
+    var conference = fixtures.filter(marksGame).length;
+    var legend = conference ? '* ' + markWord(fixtures[0]).toLowerCase() + ' game (' + conference +
+      ' of ' + fixtures.length + ')' : '';
 
-    var playoff = games.filter(function (game) { return game.playoff; }).length;
-    if (playoff) {
-      legend += (legend ? ' · ' : '') + '** ' + postseasonWord(season).toLowerCase() + ' game';
+    var playoff = games.filter(function (game) { return game.playoff; });
+    if (playoff.length) {
+      legend += (legend ? ' · ' : '') + '** ' + postseasonWord(playoff[0]).toLowerCase() + ' game';
     }
 
     if (showScouts) {
@@ -1264,6 +1288,17 @@
       var pct = winPct(row.overall.wins, row.overall.losses);
       return pct === null ? null : pct * 1000 + row.overall.wins;
     },
+    /* An NFL row's games inside its division and its conference. */
+    divrec: function (row) {
+      if (!row.divisionRecord) { return null; }
+      var pct = winPct(row.divisionRecord.wins, row.divisionRecord.losses);
+      return pct === null ? null : pct * 1000 + row.divisionRecord.wins;
+    },
+    confrec: function (row) {
+      if (!row.conferenceRecord) { return null; }
+      var pct = winPct(row.conferenceRecord.wins, row.conferenceRecord.losses);
+      return pct === null ? null : pct * 1000 + row.conferenceRecord.wins;
+    },
     streak: function (row) { return row.streak ? (row.streak.won ? 1 : -1) * row.streak.count : null; },
     pf: function (row) { return row.wins + row.losses ? row.pointsFor : null; },
     pa: function (row) { return row.wins + row.losses ? row.pointsAgainst : null; },
@@ -1311,6 +1346,9 @@
     }
     var divided = tables.length > 1;
     var withOverall = conference.overall;
+    /* An NFL table is on the whole record, with the games inside the
+       division and the conference as columns of their own. */
+    var nfl = Boolean(conference.nfl);
 
     /* Every school, in the standings' own order, carrying what it needs. */
     var rows = [];
@@ -1338,13 +1376,23 @@
       ['Team', 'team', 'School', null]
     ];
     if (divided) { columns.push(['Div', 'div', 'Division', 'ege-standings__divcol']); }
-    columns.push(['Conf', 'conf', 'Conference record', 'num']);
-    if (withOverall) { columns.push(['Ovr', 'overall', 'Overall record, every game', 'num']); }
-    columns.push(['Strk', 'streak', 'Conference streak', 'num'],
-                 ['PF', 'pf', 'Conference points for', 'num ege-standings__pts'],
-                 ['PA', 'pa', 'Conference points against', 'num ege-standings__pts'],
-                 ['Diff', 'diff', 'Conference point differential', 'num ege-standings__pts'],
-                 ['Chg', 'change', 'Places moved since the week before', 'num']);
+    if (nfl) {
+      columns.push(['W-L', 'conf', 'Record, every game', 'num'],
+                   ['vDiv', 'divrec', 'Record against the division', 'num'],
+                   ['vConf', 'confrec', 'Record against the ' + conference.conference, 'num'],
+                   ['Strk', 'streak', 'Streak', 'num'],
+                   ['PF', 'pf', 'Points for', 'num ege-standings__pts'],
+                   ['PA', 'pa', 'Points against', 'num ege-standings__pts'],
+                   ['Diff', 'diff', 'Point differential', 'num ege-standings__pts']);
+    } else {
+      columns.push(['Conf', 'conf', 'Conference record', 'num']);
+      if (withOverall) { columns.push(['Ovr', 'overall', 'Overall record, every game', 'num']); }
+      columns.push(['Strk', 'streak', 'Conference streak', 'num'],
+                   ['PF', 'pf', 'Conference points for', 'num ege-standings__pts'],
+                   ['PA', 'pa', 'Conference points against', 'num ege-standings__pts'],
+                   ['Diff', 'diff', 'Conference point differential', 'num ege-standings__pts']);
+    }
+    columns.push(['Chg', 'change', 'Places moved since the week before', 'num']);
     columns.forEach(function (col) { head.appendChild(standingsHead(col[0], col[1], col[2], col[3])); });
     var thead = el('thead');
     thead.appendChild(head);
@@ -1380,12 +1428,18 @@
       if (withOverall) {
         tr.appendChild(el('td', 'num', row.overall ? row.overall.wins + '-' + row.overall.losses : '–'));
       }
+      if (nfl) {
+        [row.divisionRecord, row.conferenceRecord].forEach(function (record) {
+          tr.appendChild(el('td', 'num', record ? record.wins + '-' + record.losses : '–'));
+        });
+      }
 
-      /* The run it is on in conference play, green for wins, red for losses. */
+      /* The run it is on in conference play (in the NFL, every game), green
+         for wins, red for losses. */
       var streakCell = el('td', 'num');
       if (row.streak) {
         var run = el('span', 'ege-streak ege-streak--' + (row.streak.won ? 'win' : 'loss'), row.streak.text);
-        run.title = row.streak.count + ' conference ' + (row.streak.won ? 'win' : 'loss') +
+        run.title = row.streak.count + (nfl ? ' ' : ' conference ') + (row.streak.won ? 'win' : 'loss') +
           (row.streak.count === 1 ? '' : (row.streak.won ? 's' : 'es')) + ' in a row';
         streakCell.appendChild(run);
       } else {
@@ -1426,7 +1480,8 @@
     var note = conference.week === null
       ? 'No weeks published yet.'
       : 'Through week ' + conference.week + '. ' +
-        (withOverall ? 'Ovr counts every game; the rest is conference games.' : 'Conference games only.');
+        (nfl ? 'Every game counts, the way the NFL orders a division.'
+          : withOverall ? 'Ovr counts every game; the rest is conference games.' : 'Conference games only.');
     wrap.appendChild(el('p', 'ege-standings__note', note));
     return wrap;
   }
@@ -1490,6 +1545,14 @@
     return face;
   }
 
+  /* An NFL player's seasons in the league, the way an NFL roster lists
+     them: R for a rookie, then the season he is in. */
+  function nflClass(year) {
+    if (!year) { return null; }
+    return year === 1 ? { short: 'R', name: 'Rookie' }
+      : { short: String(year), name: EGE.ordinal(year).toLowerCase() + ' season in the NFL' };
+  }
+
   /* One player in a room, as a card: his picture, his name, his number,
      class, height and weight, and his overall in the same box the six's is
      drawn in. One of the six is a way through to his page and is picked out
@@ -1510,7 +1573,8 @@
       if (row.realJersey) { number.title = 'Wears #' + row.realJersey + ' in real life'; }
       meta.appendChild(number);
     }
-    var klass = row.redshirting ? { short: 'RS', name: 'Redshirt' } : EGE.CLASSES[row.year];
+    var klass = row.nfl ? nflClass(row.year)
+      : row.redshirting ? { short: 'RS', name: 'Redshirt' } : EGE.CLASSES[row.year];
     if (klass) {
       var chip = el('abbr', 'ege-room__class', klass.short);
       chip.title = klass.name;
@@ -1564,12 +1628,15 @@
      Laid out like the players: #teams is a card for every school one of the
      six plays for, and a card opens that school's own page at
      #teams/{school}, with the way back and a season switcher above it. College
-     seasons only -- the high schools are the player pages' business. */
+     and NFL seasons only -- the high schools are the player pages' business.
+     A season with both has the NFL's teams first and a dotted line before
+     the colleges'. */
 
-  /* Every college season there is something to show for: logged, and for an
-     admin any season whose file is in ahead of time. */
+  /* Every season past high school there is something to show for: logged,
+     and for an admin any season whose file is in ahead of time. 2023, half
+     NFL and half college, is one of these. */
   function collegeSeasons() {
-    return loggedSeasons().filter(function (year) { return EGE.tierFor(year) === 'college'; });
+    return loggedSeasons().filter(function (year) { return EGE.tierFor(year) !== 'highSchool'; });
   }
 
   /* The season the Teams pages are on. One pick for the index and every
@@ -1643,9 +1710,12 @@
   }
 
   /* What a season is called away from a player page: the year and the
-     level. A class would be wrong for somebody -- Isaac redshirts 2021. */
-  function teamSeasonText(year) {
-    return seasonLabel(year) + (isPreview(year) ? ' · Preview' : '');
+     level. A class would be wrong for somebody -- Isaac redshirts 2021. On
+     a team's own page the level is the team's: an NFL team's 2023 is the
+     NFL's, not the season's NFL & College Football. */
+  function teamSeasonText(year, team) {
+    var level = team ? (team.tier === 'nfl' ? EGE.TIER_LEVELS.nfl : EGE.TIER_LEVELS.college) : null;
+    return (level ? year + ' · ' + level : seasonLabel(year)) + (isPreview(year) ? ' · Preview' : '');
   }
 
   /* --- the index --------------------------------------------------------- */
@@ -1717,7 +1787,20 @@
       grid.appendChild(el('p', 'ege-note', 'No college season yet.'));
       return;
     }
-    EGE.teamsIn(season).forEach(function (entry) { grid.appendChild(teamCard(entry, season)); });
+    /* The NFL above the NCAA, with a dotted line between the two, in a
+       season that has both. */
+    var entries = EGE.teamsIn(season);
+    var nfl = entries.filter(function (entry) { return entry.team.tier === 'nfl'; });
+    var college = entries.filter(function (entry) { return entry.team.tier !== 'nfl'; });
+    var both = nfl.length && college.length;
+    [['NFL', nfl], ['NCAA', college]].forEach(function (group, at) {
+      if (!group[1].length) { return; }
+      if (both) {
+        if (at) { grid.appendChild(el('hr', 'ege-teamgrid__divider')); }
+        grid.appendChild(el('h3', 'ege-teamgrid__league', group[0]));
+      }
+      group[1].forEach(function (entry) { grid.appendChild(teamCard(entry, season)); });
+    });
   }
 
   /* --- a team's page ------------------------------------------------------ */
@@ -1745,7 +1828,7 @@
 
   /* The header: the mark, the name, and what the season has come to. */
   function renderTeamHead(entry, season) {
-    document.getElementById('teamStripLabel').textContent = teamSeasonText(season);
+    document.getElementById('teamStripLabel').textContent = teamSeasonText(season, entry.team);
 
     var mark = document.getElementById('teamLogo');
     mark.innerHTML = '';
@@ -1781,7 +1864,7 @@
     fact('Record', record);
 
     var standing = EGE.standingFor(lead, season);
-    fact('Conference', standing
+    fact(entry.team.tier === 'nfl' ? 'Division' : 'Conference', standing
       ? (standing.place ? EGE.ordinal(standing.place) + ' in ' : 'TBD in ') + standing.league
       : (entry.team.league || 'TBD'));
 
@@ -1815,6 +1898,9 @@
     body.innerHTML = '';
     panel.hidden = !conference;
     if (!conference) { return; }
+    /* The NFC's, say, for an NFL team: the conference is the whole table. */
+    document.getElementById('teamStandingsTitle').textContent =
+      conference.nfl ? conference.conference + ' Standings' : 'Conference Standings';
     standDrawn = { entry: entry, season: season };
     body.appendChild(standingsTable(conference, entry.team.school));
   }
@@ -1840,14 +1926,14 @@
         opponent.appendChild(el('span', 'ege-schedule__side', game.home || game.neutral ? 'vs' : 'at'));
         opponentName(opponent, game);
       }
-      if (game.conference) {
+      if (marksGame(game)) {
         var conf = el('abbr', 'ege-schedule__conf', '*');
-        conf.title = 'Conference game';
+        conf.title = markWord(game) + ' game';
         opponent.appendChild(conf);
       }
       if (game.playoff) {
         var post = el('abbr', 'ege-schedule__conf', '**');
-        post.title = postseasonWord(game.season) + ' game';
+        post.title = postseasonWord(game) + ' game';
         opponent.appendChild(post);
       }
       row.appendChild(opponent);
@@ -3076,7 +3162,7 @@
     if (description) { card.appendChild(el('p', 'ege-item__text', description)); }
 
     var picker = null;
-    var allowed = EGE.itemAvailable(item, EGE.currentSeason);
+    var allowed = EGE.itemAvailable(item, EGE.currentSeason, shopState.player);
     if (!allowed.ok) {
       card.classList.add('ege-item--locked');
       card.appendChild(el('p', 'ege-item__blocked', allowed.reason));
@@ -4075,7 +4161,7 @@
       if (filled < games.length) { count.className = 'num ege-weeks__short'; }
       tr.appendChild(count);
 
-      tr.appendChild(el('td', 'num', row && row.posted_at ? 'sent' : (published ? 'not yet' : '—')));
+      tr.appendChild(el('td', 'num', discordState(row, published)));
 
       var status = el('td');
       status.appendChild(el('span', 'fb-tag ' + (published ? 'fb-tag--sage' : 'fb-tag--clay'),
@@ -4097,10 +4183,11 @@
 
         var again = el('button', 'fb-btn fb-btn--sm', 'Post again');
         again.type = 'button';
-        again.title = 'Send the Discord message again without changing anything';
+        again.title = 'Send the Discord message again without changing anything. ' +
+          'When only one league\u2019s went out, just the other one.';
         again.addEventListener('click', function () {
           again.disabled = true;
-          sendWeekToDiscord(season, week).then(function (res) {
+          sendWeekToDiscord(season, week, row).then(function (res) {
             again.disabled = false;
             sayAdmin(res.message, !res.ok);
             return refreshAdminView();
@@ -4158,26 +4245,61 @@
     });
   }
 
-  function sendWeekToDiscord(season, week) {
-    var payload = EGE.discordPost.buildWeekPost(week, {
+  var LEAGUE_NAMES = { nfl: 'NFL', college: 'college' };
+
+  /* The Discord column: sent, not yet, or which league's went out when only
+     one of the two did. */
+  function discordState(row, published) {
+    if (row && row.posted_at) { return 'sent'; }
+    var some = (row && row.posted_leagues) || [];
+    if (some.length) {
+      return some.map(function (league) { return LEAGUE_NAMES[league] || league; }).join(', ') + ' sent';
+    }
+    return published ? 'not yet' : '—';
+  }
+
+  /* The week to Discord, one message per league to that league's channel:
+     the NFL's players to the NFL bot and the colleges' to the college bot.
+     Given the week's row, only the leagues it has not had yet go -- unless
+     it has had them all, which is Post again meaning it. Sent one after the
+     other, so the two land in the same order every week. */
+  function sendWeekToDiscord(season, week, row) {
+    var posts = EGE.discordPost.buildWeekPosts(week, {
       season: season,
       siteUrl: EGE.discordPost.SITE,
       played: true
     });
-    if (!payload) {
+    if (!posts.length) {
       return Promise.resolve({ ok: false, message: 'Week ' + week + ' has no games to post.' });
     }
 
-    return EGE.wallet.postWeekToDiscord(payload).then(function (res) {
-      if (!res.ok) {
+    var before = (row && !row.posted_at && row.posted_leagues) || [];
+    var owed = posts.filter(function (post) { return before.indexOf(post.league) === -1; });
+    if (!owed.length) { owed = posts; before = []; }
+
+    var sent = before.slice();
+    var failed = [];
+    return owed.reduce(function (chain, post) {
+      return chain.then(function () {
+        return EGE.wallet.postWeekToDiscord(post.payload, post.league).then(function (res) {
+          if (res.ok) { sent.push(post.league); } else { failed.push(LEAGUE_NAMES[post.league] + ': ' + res.message); }
+        });
+      });
+    }, Promise.resolve()).then(function () {
+      var done = posts.every(function (post) { return sent.indexOf(post.league) !== -1; });
+      var mark = sent.length ? EGE.wallet.markPosted(season, week, sent, done) : Promise.resolve();
+      return mark.then(function () {
+        var names = owed.filter(function (post) { return sent.indexOf(post.league) !== -1; })
+          .map(function (post) { return LEAGUE_NAMES[post.league]; });
+        if (!failed.length) {
+          return { ok: true, message: 'Posted to Discord' + (posts.length > 1 ? ' (' + names.join(' and ') + ')' : '') + '.' };
+        }
         return {
           ok: false,
-          message: 'Discord did not take it \u2014 ' + res.message +
-                   ' The week is still out; Post again retries just the message.'
+          message: (names.length ? 'Posted the ' + names.join(' and ') + ' week. ' : '') +
+                   'Discord did not take ' + failed.join('; ') +
+                   ' The week is still out; Post again retries just what is missing.'
         };
-      }
-      return EGE.wallet.markPosted(season, week).then(function () {
-        return { ok: true, message: 'Posted to Discord.' };
       });
     });
   }
@@ -4785,16 +4907,59 @@
     }
     sayAdmin('', false);
 
-    var note = document.getElementById('discordNote');
-    note.textContent = 'Publishing posts to Discord through the post-week function. ' +
-      'If it is not deployed the week still goes out, and the scheduled bot ' +
-      'posts it on its next run.';
+    renderWebhooks();
 
     EGE.cardsAdmin.render();
 
     return refreshAdminView().then(function () {
       fillEditorWeeks();
       renderEditor();
+    });
+  }
+
+  /* --- the Discord channels ----------------------------------------------
+
+     The two bots' webhooks, pasted in once. They are kept in Supabase where
+     only an admin can read them, never in the site's files: the repository
+     is public, and anybody with a webhook URL can post to its channel. A
+     saved one is never put back into the box -- it says it is saved, with
+     the last few characters to tell which it is. */
+  var HOOK_FIELDS = { college: 'hookCollege', nfl: 'hookNfl' };
+  var hooksWired = false;
+
+  function renderWebhooks() {
+    var note = document.getElementById('discordNote');
+    if (!hooksWired) {
+      hooksWired = true;
+      Object.keys(HOOK_FIELDS).forEach(function (league) {
+        var button = document.getElementById(HOOK_FIELDS[league] + 'Save');
+        button.addEventListener('click', function () {
+          var input = document.getElementById(HOOK_FIELDS[league]);
+          button.disabled = true;
+          EGE.wallet.saveWebhook(league, input.value).then(function (res) {
+            button.disabled = false;
+            if (res.ok) { input.value = ''; }
+            sayAdmin(res.ok ? 'Saved the ' + LEAGUE_NAMES[league] + ' webhook.' : res.message, !res.ok);
+            renderWebhooks();
+          });
+        });
+      });
+    }
+    EGE.wallet.loadWebhooks().then(function (hooks) {
+      Object.keys(HOOK_FIELDS).forEach(function (league) {
+        var input = document.getElementById(HOOK_FIELDS[league]);
+        input.placeholder = hooks[league]
+          ? 'Saved (\u2026' + hooks[league].slice(-6) + '). Paste a new one to replace it.'
+          : 'Not set. Paste the channel\u2019s webhook URL.';
+      });
+      var missing = Object.keys(HOOK_FIELDS).filter(function (league) { return !hooks[league]; });
+      note.textContent = 'Publishing posts each league\u2019s week to its own channel: the NFL ' +
+        'players to the NFL bot and the college players to the college bot. ' +
+        (missing.length
+          ? 'No ' + missing.map(function (league) { return LEAGUE_NAMES[league]; }).join(' or ') +
+            ' webhook is saved, so that one goes through the post-week function, and the ' +
+            'scheduled bot posts anything that did not land.'
+          : 'Both webhooks are saved.');
     });
   }
 

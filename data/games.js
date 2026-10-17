@@ -213,6 +213,7 @@ EGE.divisionTable = function (school, season, through) {
   var year = season || EGE.currentSeason;
   var found = EGE.conferenceOf(school, year);
   if (!found) { return null; }
+  if (found.conference.nfl) { return nflDivisionTable(found, year, through); }
 
   var results = EGE.conferenceResults(found.conference, year, through);
   var rows = {};
@@ -279,8 +280,141 @@ EGE.divisionTable = function (school, season, through) {
   return { conference: found.conference.name, division: found.division, rows: list };
 };
 
+/* --- the NFL's tables -----------------------------------------------------
+
+   An NFL division is ordered the way the league orders one: by the whole
+   record, every game counting, not by the conference record. So an NFL
+   row's wins and losses are every game's, with the games inside the
+   division (`divisionRecord`) and inside the conference
+   (`conferenceRecord`) beside them -- after the games between the teams
+   level, the first two things the league breaks a tie on. */
+
+/* Every NFL game in the books so far, each once, as { week, home, away,
+   score }: the games inside each conference and across them from
+   data/conferences.js, and the six's own from the season files. Seattle
+   and Detroit play each other, so that one is in both of theirs. */
+EGE.nflResults = function (season, through) {
+  var year = season || EGE.currentSeason;
+  var upTo = typeof through === 'number' ? through : Infinity;
+  var leagues = (EGE.conferences || {})[year] || {};
+  var seen = {};
+  var results = [];
+  function add(week, home, away, score) {
+    var key = week + '|' + [home, away].sort().join('|');
+    if (seen[key]) { return; }
+    seen[key] = true;
+    results.push({ week: week, home: home, away: away, score: score });
+  }
+  function counts(game) { return game.week <= upTo && EGE.isPublished(year, game.week); }
+
+  Object.keys(leagues).forEach(function (id) {
+    var league = leagues[id];
+    if (!league.nfl) { return; }
+    league.games.forEach(function (game) {
+      if (counts(game)) { add(game.week, game.home, game.away, game.score); }
+    });
+    /* Across the conferences, listed from both sides; a table does not need
+       to know who was at home. */
+    (league.nonConference || []).forEach(function (game) {
+      if (counts(game)) { add(game.week, game.school, game.opponent, game.score); }
+    });
+  });
+  EGE.players.forEach(function (player) {
+    if (EGE.tierFor(year, player) !== 'nfl') { return; }
+    var team = EGE.teamFor(player, year);
+    EGE.gamesPlayed(player, year).forEach(function (game) {
+      if (game.playoff || game.week > upTo) { return; }
+      add(game.week, team.school, game.opponent, [game.result.teamScore, game.result.opponentScore]);
+    });
+  });
+  return results;
+};
+
+function nflDivisionTable(found, year, through) {
+  var leagues = EGE.conferences[year];
+  var where = {};
+  Object.keys(leagues).forEach(function (id) {
+    if (!leagues[id].nfl) { return; }
+    Object.keys(leagues[id].divisions).forEach(function (division) {
+      leagues[id].divisions[division].forEach(function (name) {
+        where[name] = { conference: id, division: division };
+      });
+    });
+  });
+
+  var results = EGE.nflResults(year, through);
+  var rows = {};
+  found.conference.divisions[found.division].forEach(function (name) {
+    rows[name] = { school: name, wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0,
+                   divisionRecord: { wins: 0, losses: 0 },
+                   conferenceRecord: { wins: 0, losses: 0 }, games: [] };
+  });
+
+  results.forEach(function (game) {
+    [[game.home, game.away, game.score[0], game.score[1]],
+     [game.away, game.home, game.score[1], game.score[0]]].forEach(function (side) {
+      var row = rows[side[0]];
+      if (!row) { return; }
+      var won = side[2] > side[3];
+      var us = where[side[0]];
+      var them = where[side[1]] || {};
+      var tally = function (record) { if (won) { record.wins += 1; } else { record.losses += 1; } };
+      tally(row);
+      if (them.conference === us.conference) { tally(row.conferenceRecord); }
+      if (them.division === us.division) { tally(row.divisionRecord); }
+      row.pointsFor += side[2];
+      row.pointsAgainst += side[3];
+      row.games.push({ week: game.week, won: won });
+    });
+  });
+
+  Object.keys(rows).forEach(function (name) {
+    var games = rows[name].games.sort(function (a, b) { return a.week - b.week; });
+    delete rows[name].games;
+    if (!games.length) { rows[name].streak = null; return; }
+    var latest = games[games.length - 1].won;
+    var count = 0;
+    for (var i = games.length - 1; i >= 0 && games[i].won === latest; i -= 1) { count += 1; }
+    rows[name].streak = { won: latest, count: count, text: (latest ? 'W' : 'L') + count };
+  });
+
+  function pct(record) {
+    var played = record.wins + record.losses;
+    return played ? record.wins / played : 0.5;
+  }
+  var list = Object.keys(rows).map(function (name) { return rows[name]; });
+  list.forEach(function (row) {
+    var level = {};
+    list.forEach(function (other) {
+      if (pct(other) === pct(row) && other.wins === row.wins) { level[other.school] = true; }
+    });
+    var won = 0;
+    var played = 0;
+    results.forEach(function (game) {
+      if (!level[game.home] || !level[game.away]) { return; }
+      if (game.home !== row.school && game.away !== row.school) { return; }
+      played += 1;
+      var ours = game.home === row.school ? game.score[0] : game.score[1];
+      var theirs = game.home === row.school ? game.score[1] : game.score[0];
+      if (ours > theirs) { won += 1; }
+    });
+    row.headToHead = played ? won / played : 0.5;
+  });
+
+  list.sort(function (a, b) {
+    return (pct(b) - pct(a)) || (b.wins - a.wins) || (a.losses - b.losses) ||
+      (b.headToHead - a.headToHead) ||
+      (pct(b.divisionRecord) - pct(a.divisionRecord)) ||
+      (pct(b.conferenceRecord) - pct(a.conferenceRecord)) ||
+      ((b.pointsFor - b.pointsAgainst) - (a.pointsFor - a.pointsAgainst)) ||
+      a.school.localeCompare(b.school);
+  });
+  return { conference: found.conference.name, division: found.division, nfl: true, rows: list };
+}
+
 /* Where a player's team stands in its division on the season on show:
-   { league: 'Big Ten East', place: 2, wins, losses }. The place is null until
+   { league: 'Big Ten East', place: 2, wins, losses }, or in the NFL
+   { league: 'NFC West', ..., nfl: true, divisionRecord }. The place is null until
    the team has a conference result to be placed on. A school with no race
    in data/conferences.js falls back to its league and no place; a season
    with no school, to null. */
@@ -300,7 +434,11 @@ EGE.standingFor = function (player, season) {
     conference: table.conference,
     place: row.wins + row.losses ? at + 1 : null,
     wins: row.wins,
-    losses: row.losses
+    losses: row.losses,
+    /* In the NFL the wins and losses are every game's, and this is the
+       division's share of them. */
+    nfl: Boolean(table.nfl),
+    divisionRecord: row.divisionRecord || null
   };
 };
 
@@ -331,7 +469,7 @@ EGE.seasonOverFor = function (player, season) {
      finished could still be waiting to hear. */
   var inPostseason = EGE.gamesFor(player, year).some(function (game) { return game.playoff; });
   if (!inPostseason) {
-    var postseason = EGE.playoffWeeks(year);
+    var postseason = EGE.playoffWeeks(year, EGE.leagueOf(player, year));
     return postseason.length > 0 && EGE.isPublished(year, postseason[0]);
   }
 
@@ -357,14 +495,21 @@ EGE.scoutedGames = function (player, season) {
    The postseason is not a week number. Five schools in four states play their
    first round across three different Saturdays, and a season could open its
    playoffs at week 12 or week 15 -- so which weeks are postseason is read off
-   the games rather than counted from a constant. */
-EGE.playoffWeeks = function (season) {
+   the games rather than counted from a constant.
+
+   In a season split between the NFL and college, each league has its own:
+   `league` ('nfl' or 'college', EGE.leagueOf) keeps to the players in it,
+   so college's title games in week 14 are not the NFL's week 14 as well.
+   Left out, it is everybody's. */
+EGE.playoffWeeks = function (season, league) {
   var year = season || EGE.currentSeason;
   var forSeason = EGE.stats[year];
   if (!forSeason) { return []; }
 
   var seen = {};
   Object.keys(forSeason.games).forEach(function (slug) {
+    var player = EGE.playerBySlug(slug);
+    if (league && (!player || EGE.leagueOf(player, year) !== league)) { return; }
     forSeason.games[slug].forEach(function (game) {
       if (game.playoff) { seen[game.week] = true; }
     });
@@ -375,9 +520,9 @@ EGE.playoffWeeks = function (season) {
 /* Which round of the postseason a week is, counting from one, or 0 for a
    regular-season week. It is the week's place in the list above rather than
    a subtraction, so a gap between two playoff weeks does not invent a round
-   nobody played. */
-EGE.playoffRound = function (week, season) {
-  return EGE.playoffWeeks(season).indexOf(Number(week)) + 1;
+   nobody played. `league` as above. */
+EGE.playoffRound = function (week, season, league) {
+  return EGE.playoffWeeks(season, league).indexOf(Number(week)) + 1;
 };
 
 /* --- how far ahead a player can see ----------------------------------------
@@ -411,7 +556,7 @@ EGE.scheduleFor = function (player, season) {
      until that week is out: the bowls are picked after the conference title
      games. Illinois has no title game, so without this its bowl would be on
      the schedule the moment the regular season ended. */
-  var postseason = EGE.playoffWeeks(season);
+  var postseason = EGE.playoffWeeks(season, EGE.leagueOf(player, season));
   var opening = postseason.length ? postseason[0] : Infinity;
   var picked = !postseason.length || EGE.isPublished(season || EGE.currentSeason, opening);
 
@@ -528,7 +673,7 @@ EGE.defenseTable = function (season) {
        of: 125, level: 'FBS', season: 2020, text: 'Run defense: ...' } */
 EGE.defenseGrade = function (player, game) {
   if (!game || game.bye || !game.opponent) { return null; }
-  if (EGE.tierFor(game.season) !== 'college') { return null; }
+  if (EGE.tierFor(game.season, player) === 'highSchool') { return null; }
 
   var table = EGE.defenseTable(game.season);
   var school = table && table.schools[game.opponent];
@@ -660,6 +805,9 @@ EGE.rosterFor = function (teamKey, season) {
 
   var base = years.length ? rosters[years[0]][teamKey] : {};
   var positions = ['QB', 'RB', 'WR', 'TE'];
+  /* An NFL room counts its years in the league rather than in college, and
+     its pictures are ESPN's NFL headshots. */
+  var nfl = Boolean(EGE.teams[teamKey] && EGE.teams[teamKey].tier === 'nfl');
 
   var used = {};
   ours.forEach(function (player) {
@@ -673,6 +821,7 @@ EGE.rosterFor = function (teamKey, season) {
     }).map(function (row) {
       var copy = {};
       Object.keys(row).forEach(function (k) { copy[k] = row[k]; });
+      if (nfl) { copy.nfl = true; }
       return copy;
     });
   });
@@ -708,8 +857,9 @@ EGE.rosterFor = function (teamKey, season) {
       return EGE.positionFor(player, year) === position;
     }).map(function (player) {
       return { name: player.name, jersey: player.jersey, height: player.height,
-               weight: player.weight, year: EGE.collegeYearFor(player, year),
-               redshirting: Boolean(player.redshirt === year),
+               weight: player.weight,
+               year: nfl ? EGE.nflYearFor(player, year) : EGE.collegeYearFor(player, year),
+               redshirting: !nfl && Boolean(player.redshirt === year), nfl: nfl,
                overall: EGE.overallFor(player), player: player };
     }).concat(real[position]).sort(function (a, b) {
       return ((b.overall || 0) - (a.overall || 0)) || (b.player ? 1 : 0) - (a.player ? 1 : 0);
@@ -724,8 +874,8 @@ EGE.rosterFor = function (teamKey, season) {
 /* An ESPN headshot for a roster player, or null where ESPN has none. */
 EGE.rosterPhoto = function (row) {
   if (!row || !row.photo || !row.espn) { return null; }
-  return 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/' +
-    row.espn + '.png&w=96&h=70';
+  return 'https://a.espncdn.com/combiner/i?img=/i/headshots/' +
+    (row.nfl ? 'nfl' : 'college-football') + '/players/full/' + row.espn + '.png&w=96&h=70';
 };
 
 /* The quarterbacks a player can spend a QB Connection on: everybody in his
@@ -834,12 +984,16 @@ EGE.conferenceTables = function (school, season) {
     return table.rows.some(function (row) { return row.wins + row.losses; });
   }
 
+  var nfl = Boolean(found.conference.nfl);
   return {
     conference: found.conference.name,
     school: school,
     week: latest,
-    /* Whether the rows carry an overall record (see EGE.overallRecord). */
-    overall: Boolean(found.conference.nonConference),
+    /* Whether the table is an NFL one, ordered on the whole record. */
+    nfl: nfl,
+    /* Whether the rows carry an overall record (see EGE.overallRecord). An
+       NFL row's own wins and losses already are one. */
+    overall: Boolean(found.conference.nonConference) && !nfl,
     tables: divisions.map(function (division) {
       var first = found.conference.divisions[division][0];
       var table = EGE.divisionTable(first, year);
@@ -850,7 +1004,7 @@ EGE.conferenceTables = function (school, season) {
       }
       table.rows.forEach(function (row, i) {
         row.change = started(table) && places[row.school] ? places[row.school] - (i + 1) : null;
-        row.overall = EGE.overallRecord(row.school, year);
+        row.overall = nfl ? null : EGE.overallRecord(row.school, year);
       });
       return table;
     })
