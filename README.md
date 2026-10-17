@@ -1285,18 +1285,22 @@ pyramid, and each rarity has its own pull odds:
 
 | Rarity | Colour | Chance per card | Game from | Play from | In the files |
 | --- | --- | --- | --- | --- | --- |
-| Common | gray | 47.4% | — | — | 325 |
-| Uncommon | green | 26% | 6.5 | 7.1 | 215 |
-| Rare | orange | 14% | 11 | 8.6 | 145 |
+| Common | gray | 47.4% | — | — | 326 |
+| Uncommon | green | 26% | 6.5 | 7.1 | 221 |
+| Rare | orange | 14% | 11 | 8.6 | 146 |
 | Epic | red | 8% | 16 | 9.6 | 94 |
-| Legendary | purple | 4% | 20.5 | 11.2 | 77 |
-| Mystic | gold | 0.5% | 28.5 | 13.3 | 10 |
+| Legendary | purple | 4% | 20.5 | 11.2 | 75 |
+| Mystic | gold | 0.5% | 28.5 (24 in college and the NFL) | 13.3 | 14 |
 | Iconic | pink | 0.1% | picked | picked | 4 |
 
 Counts are the 2018–2022 files. Mystic was 24 / 12.1 until Sam asked for it
 to be closer to 10 cards than 35 (2026-10-13): the 30 that fell out became
 Legendary, and Legendary moved up from 20 / 11.1, so its six lowest became
-Epic.
+Epic. Then a college or NFL game got a lower Mystic bar than a high school
+one, 24 for a performance (`collegePerformance`, Sam, 2026-10-17), which
+made three more college performances Mystic: Paxon's 199 yards against
+Missouri State (2021) and Andrew's three touchdowns against UL Monroe and
+172 yards against Austin Peay (2022). Plays keep the one bar.
 
 **Iconic is picked by hand, not graded.** Grading stops at Mystic, and only
 the moments in `ICONIC` at the top of `data/cards.js` are Iconic: Sam's five

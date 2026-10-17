@@ -6023,7 +6023,10 @@ html.ege-noscroll body { overflow: hidden; }
 /* --- the Limited Time Event ------------------------------------------------ */
 
 /* Over the Library while the Gold Rush is on: a gold-on-black banner with
-   its name, the time it has left and how it works, then its sets. */
+   its name, the time it has left and how it works, then its sets. The
+   Library keeps the usual gap below it (Sam, 2026-10-17), and moves up to
+   the top when there is no event. */
+#eventPanel[hidden] + .ege-section-gap { margin-top: 0; }
 .ege-event {
   display: flex;
   flex-direction: column;

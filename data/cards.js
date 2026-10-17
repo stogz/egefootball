@@ -61,7 +61,10 @@ EGE.cards = (function () {
 
   /* Hardest to pull last. `odds` is the chance of each card in a pack
      coming up this rarity, in percent. `performance` and `play` are the
-     lowest graded score that reaches it.
+     lowest graded score that reaches it. `collegePerformance`, where a
+     rarity has one, is that bar for a performance in college or the NFL
+     instead: a Mystic game is harder to put up there than in high school,
+     so the bar is a little lower (Sam, 2026-10-17).
 
      Iconic is not graded at all: it is the few cards in ICONIC below,
      picked by hand, and nothing else reaches it however big the game. */
@@ -71,7 +74,8 @@ EGE.cards = (function () {
     { key: 'rare',      name: 'Rare',      color: '#e8812a', odds: 14,  performance: 11,  play: 8.6 },
     { key: 'epic',      name: 'Epic',      color: '#d5392b', odds: 8,   performance: 16,  play: 9.6 },
     { key: 'legendary', name: 'Legendary', color: '#8a4fd8', odds: 4,   performance: 20.5, play: 11.2 },
-    { key: 'mystic',    name: 'Mystic',    color: '#e0ad25', odds: 0.5,  performance: 28.5, play: 13.3 },
+    { key: 'mystic',    name: 'Mystic',    color: '#e0ad25', odds: 0.5,  performance: 28.5, play: 13.3,
+      collegePerformance: 24 },
     { key: 'iconic',    name: 'Iconic',    color: '#ec5fa8', odds: 0.1,  performance: null, play: null }
   ];
 
@@ -367,16 +371,20 @@ EGE.cards = (function () {
 
   /* --- scoring a game ---------------------------------------------------- */
 
-  function gradeFor(score, kind) {
+  /* `tier` is the level the card was played at (EGE.tierFor). */
+  function gradeFor(score, kind, tier) {
     var found = RARITIES[0];
     RARITIES.forEach(function (r) {
-      if (typeof r[kind] === 'number' && score >= r[kind]) { found = r; }
+      var bar = r[kind];
+      if (kind === 'performance' && tier !== 'highSchool' &&
+          typeof r.collegePerformance === 'number') { bar = r.collegePerformance; }
+      if (typeof bar === 'number' && score >= bar) { found = r; }
     });
     return found.key;
   }
 
-  function rarityOf(id, score, kind) {
-    return ICONIC.indexOf(id) !== -1 ? 'iconic' : gradeFor(score, kind);
+  function rarityOf(id, score, kind, tier) {
+    return ICONIC.indexOf(id) !== -1 ? 'iconic' : gradeFor(score, kind, tier);
   }
 
   /* The two numbers a performance card prints big across its picture: the
@@ -472,7 +480,7 @@ EGE.cards = (function () {
           perf.kind = 'performance';
           perf.points = points;
           perf.grade = round2(points * EGE.economy.fantasyShareFor(player.position));
-          perf.rarity = rarityOf(perf.id, perf.grade, 'performance');
+          perf.rarity = rarityOf(perf.id, perf.grade, 'performance', EGE.tierFor(season, player));
           perf.big = bigStats(player.position, game.stats);
           perf.headline = perf.versus;
           perf.line = statSummary(player.position, game.stats);
