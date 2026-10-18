@@ -5,12 +5,11 @@
    quietly, each at its own volume in SOUNDS. The rip is the louder clip by
    a long way (about 11 dB), so it is turned down further than the flip.
 
-   The big pulls have two more each: a build that rises while the card
-   holds back, exactly as long as its BUILDUP in js/cards-view.js, and a
-   reveal as it turns -- an impact, a sting, sparkles, and from Mystic up
-   a chord that rings on. Rarer is longer, fuller and a little louder. The
-   stings are public domain (CC0) clips from the uisfx package; the rest
-   was made for here.
+   The big pulls have two more each: a build, a whoosh that rises while
+   the card holds back, exactly as long as its BUILDUP in js/cards-view.js,
+   and a reveal as it turns -- a boom, a punch, a whoosh falling away and a
+   cymbal. Nothing musical: no notes, no sparkles (Sam's call). Rarer is
+   longer, deeper and a little louder. All made for here.
    They are mixed to one loudness (the builds -20 LUFS, the reveals -16),
    so the volumes below are all that sets how loud each one is.
 

@@ -1436,21 +1436,20 @@ The timings are `BUILDUP` and `SHOW` in `js/cards-view.js`. With reduced
 motion turned on in the phone or computer's settings, none of it runs and the
 card just turns over.
 
-**They sound bigger too.** While the card holds back, a build rises under it
-(noise sweeping up and a chord climbing an octave, with a tremolo that speeds
-up), cut to end exactly as the card turns. As it turns comes the reveal: an
-impact, a rising sting, sparkles like the sparks, and from Mystic up a cymbal
-and a chord that rings on. Each rarity is longer and fuller than the one below:
+**They sound bigger too.** While the card holds back, a build rises under it,
+a whoosh sweeping up that ends exactly as the card turns. As it turns comes
+the reveal: a boom, a punch, a whoosh falling away and a cymbal. **Nothing
+musical** -- no notes and no sparkles (Sam's call). Each rarity is longer and
+deeper than the one below:
 
 | Rarity | Build | Reveal |
 | --- | --- | --- |
-| Legendary | 0.9 s | a light impact, a B flat sting and a few sparkles, 2.1 s |
-| Mystic | 1.7 s, with gold tinkles rising | a bigger impact, a cymbal, an A flat sting, more sparkles and a ringing chord, 3.3 s |
-| Iconic | 2.8 s, with tinkles and a heartbeat that quickens | a deep impact, a long cymbal, two stings in fifths, a shower of sparkles and a wide chord, 4.8 s |
+| Legendary | 0.9 s | a light boom and cymbal, 1.8 s |
+| Mystic | 1.7 s | a bigger boom and a longer cymbal, 2.6 s |
+| Iconic | 2.8 s, with a heartbeat that quickens | the deepest boom and the longest cymbal, 4.2 s |
 
-They are `sound/{rarity}-build.mp3` and `sound/{rarity}-reveal.mp3`. The
-stings are public domain (CC0) clips from the uisfx package; the rest was
-synthesised for the site and tuned to them. A build is exactly `BUILDUP` long,
+They are `sound/{rarity}-build.mp3` and `sound/{rarity}-reveal.mp3`, all
+synthesised for the site. A build is exactly `BUILDUP` long,
 so **if a `BUILDUP` changes, the build has to be remade to match**. With
 reduced motion there is no build, but the reveal still plays. Closing the pack
 fades out whatever is still playing.
