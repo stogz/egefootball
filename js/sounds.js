@@ -1,9 +1,18 @@
 /* ==========================================================================
    EGE Football — sounds
-   Two sounds on the Cards tab, both Sam's clips in sound/: a pack tearing
+   The Cards tab's sounds, all in sound/. Sam's two clips: a pack tearing
    open, and a card turning over. Both are loud as they come, so they play
    quietly, each at its own volume in SOUNDS. The rip is the louder clip by
    a long way (about 11 dB), so it is turned down further than the flip.
+
+   The big pulls have two more each: a build that rises while the card
+   holds back, exactly as long as its BUILDUP in js/cards-view.js, and a
+   reveal as it turns -- an impact, a sting, sparkles, and from Mystic up
+   a chord that rings on. Rarer is longer, fuller and a little louder. The
+   stings are public domain (CC0) clips from the uisfx package; the rest
+   was made for here.
+   They are mixed to one loudness (the builds -20 LUFS, the reveals -16),
+   so the volumes below are all that sets how loud each one is.
 
    Played through Web Audio rather than an <audio> element: an iPhone
    ignores an element's volume and would play them at full blast. Web Audio
@@ -25,11 +34,17 @@ window.EGE = window.EGE || {};
 EGE.sounds = (function () {
   'use strict';
 
-  /* 1 is the clip as it was sent. The clips are trimmed at the front, so
+  /* 1 is the clip as it was made. The clips are trimmed at the front, so
      each starts the moment it is played. */
   var SOUNDS = {
     flip: { src: 'sound/card-flip.mp3', volume: 0.25 },
-    rip: { src: 'sound/pack-rip.mp3', volume: 0.1 }
+    rip: { src: 'sound/pack-rip.mp3', volume: 0.1 },
+    'legendary-build': { src: 'sound/legendary-build.mp3', volume: 0.25 },
+    'legendary-reveal': { src: 'sound/legendary-reveal.mp3', volume: 0.22 },
+    'mystic-build': { src: 'sound/mystic-build.mp3', volume: 0.25 },
+    'mystic-reveal': { src: 'sound/mystic-reveal.mp3', volume: 0.27 },
+    'iconic-build': { src: 'sound/iconic-build.mp3', volume: 0.25 },
+    'iconic-reveal': { src: 'sound/iconic-reveal.mp3', volume: 0.32 }
   };
 
   /* The same sound twice inside this many milliseconds is heard once.
@@ -42,6 +57,7 @@ EGE.sounds = (function () {
   var context = null;   /* made on the first wake(); false if it cannot be */
   var clips = {};       /* name -> its decoded clip, once loaded */
   var last = {};        /* name -> when it last started */
+  var playing = [];     /* { source, volume } still sounding */
 
   function quiet() {}
 
@@ -104,9 +120,29 @@ EGE.sounds = (function () {
       volume.gain.value = SOUNDS[name].volume;
       source.connect(volume);
       volume.connect(ctx.destination);
+      var held = { source: source, volume: volume };
+      playing.push(held);
+      source.onended = function () {
+        var at = playing.indexOf(held);
+        if (at !== -1) { playing.splice(at, 1); }
+      };
       source.start(0);
     } catch (e) { /* no sound */ }
   }
 
-  return { wake: wake, play: play };
+  /* Fades out whatever is still sounding, quickly rather than cut dead:
+     the pack was put away, maybe with a card still building up. */
+  function hush() {
+    if (!context) { return; }
+    var now = context.currentTime;
+    playing.splice(0).forEach(function (held) {
+      try {
+        held.volume.gain.setValueAtTime(held.volume.gain.value, now);
+        held.volume.gain.setTargetAtTime(0, now, 0.04);
+        held.source.stop(now + 0.25);
+      } catch (e) { /* already over */ }
+    });
+  }
+
+  return { wake: wake, play: play, hush: hush };
 })();

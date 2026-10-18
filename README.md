@@ -1407,7 +1407,8 @@ a flip sound as it turns over (a set's reward card and a holo too; a big pull
 flips when it turns, after it holds back). Both are Sam's clips in `sound/`,
 trimmed at the front so they start on the tap, and both play quietly because
 the clips are harsh at full volume: the volumes are `SOUNDS` in
-`js/sounds.js` (flip 0.25, rip 0.1; the rip clip is far louder). They go
+`js/sounds.js` (flip 0.25, rip 0.1; the rip clip is far louder). The big
+pulls have sounds of their own (below), a little louder than these. They go
 through Web Audio, so an iPhone keeps to those volumes, stays quiet on
 silent and plays over the player's own music. If the browser won't play
 sound, nothing else changes.
@@ -1434,6 +1435,25 @@ and glows in its colour, and turns in a burst of rays, a ring and sparks.
 The timings are `BUILDUP` and `SHOW` in `js/cards-view.js`. With reduced
 motion turned on in the phone or computer's settings, none of it runs and the
 card just turns over.
+
+**They sound bigger too.** While the card holds back, a build rises under it
+(noise sweeping up and a chord climbing an octave, with a tremolo that speeds
+up), cut to end exactly as the card turns. As it turns comes the reveal: an
+impact, a rising sting, sparkles like the sparks, and from Mystic up a cymbal
+and a chord that rings on. Each rarity is longer and fuller than the one below:
+
+| Rarity | Build | Reveal |
+| --- | --- | --- |
+| Legendary | 0.9 s | a light impact, a B flat sting and a few sparkles, 2.1 s |
+| Mystic | 1.7 s, with gold tinkles rising | a bigger impact, a cymbal, an A flat sting, more sparkles and a ringing chord, 3.3 s |
+| Iconic | 2.8 s, with tinkles and a heartbeat that quickens | a deep impact, a long cymbal, two stings in fifths, a shower of sparkles and a wide chord, 4.8 s |
+
+They are `sound/{rarity}-build.mp3` and `sound/{rarity}-reveal.mp3`. The
+stings are public domain (CC0) clips from the uisfx package; the rest was
+synthesised for the site and tuned to them. A build is exactly `BUILDUP` long,
+so **if a `BUILDUP` changes, the build has to be remade to match**. With
+reduced motion there is no build, but the reveal still plays. Closing the pack
+fades out whatever is still playing.
 
 The price and size are charged by `open_card_pack()` in
 `supabase/schema.sql`, not by the page. **Change both together.** Which cards
@@ -2494,8 +2514,8 @@ Built so far:
   opening a pack and claiming a set.
 - `js/cards-view.js` — the Cards tab: packs, buying diamonds, the rip, the
   collection, trades and the library.
-- `js/sounds.js` and `sound/` — the pack rip and card flip sounds, and how
-  loud each one plays.
+- `js/sounds.js` and `sound/` — the pack rip, card flip and big-pull
+  sounds, and how loud each one plays.
 - `js/showcase.js` — the showcase on a player page, and editing your own.
 - `js/cards-admin.js` — the Cards panel on the admin page and its two resets.
 - `data/economy.js` — every number about credits in one place: what a rating
