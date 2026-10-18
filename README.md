@@ -415,8 +415,8 @@ Under the bar:
   Every heading sorts, the way the game log's do: biggest first, then
   smallest, then back to the standings (the place and the school's name go
   1 and A first). Sorted, the divisions mix; the # stays each school's
-  division place. A line under it says which week the table runs through,
-  so a published week visibly moves it — the overall record moves every
+  division place. There is no line under the table (Sam took the
+  "Through week N" note off, 2026-10-17); the overall record moves every
   week, including weeks with no conference games in them. The school's own
   row is picked out in orange and nothing else is marked. On a phone the
   points and differential drop out and a long school name is cut short; the
@@ -1285,12 +1285,12 @@ pyramid, and each rarity has its own pull odds:
 
 | Rarity | Colour | Chance per card | Game from | Play from | In the files |
 | --- | --- | --- | --- | --- | --- |
-| Common | gray | 47.4% | — | — | 326 |
-| Uncommon | green | 26% | 6.5 | 7.1 | 221 |
-| Rare | orange | 14% | 11 | 8.6 | 146 |
-| Epic | red | 8% | 16 | 9.6 | 94 |
+| Common | gray | 47.4% | — | — | 335 |
+| Uncommon | green | 26% | 6.5 | 7.1 | 215 |
+| Rare | orange | 14% | 11 | 8.6 | 143 |
+| Epic | red | 8% | 16 | 9.6 | 98 |
 | Legendary | purple | 4% | 20.5 | 11.2 | 75 |
-| Mystic | gold | 0.5% | 28.5 (24 in college and the NFL) | 13.3 | 14 |
+| Mystic | gold | 0.5% | 28.5 (24 in college and the NFL) | 13.3 | 10 |
 | Iconic | pink | 0.1% | picked | picked | 4 |
 
 Counts are the 2018–2022 files. Mystic was 24 / 12.1 until Sam asked for it
@@ -1301,6 +1301,12 @@ one, 24 for a performance (`collegePerformance`, Sam, 2026-10-17), which
 made three more college performances Mystic: Paxon's 199 yards against
 Missouri State (2021) and Andrew's three touchdowns against UL Monroe and
 172 yards against Austin Peay (2022). Plays keep the one bar.
+
+A tight end grades on a share of 0.68 rather than the 0.75 his credits pay
+on (`GRADE_SHARE` in `data/cards.js`): on 0.75 Andrew had six Mystic
+performances to everybody else's three at most (Sam, 2026-10-17). He keeps
+two, his 205 yards and three touchdowns in 2019 and his 215 yards at
+Tennessee in 2022.
 
 **Iconic is picked by hand, not graded.** Grading stops at Mystic, and only
 the moments in `ICONIC` at the top of `data/cards.js` are Iconic: Sam's five

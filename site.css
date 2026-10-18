@@ -3623,14 +3623,6 @@ button.ege-owned__item { cursor: pointer; }
 .ege-standings__table th.is-sortable { padding: 0; }
 .ege-standings__table th.num .ege-sort { justify-content: flex-end; }
 .ege-standings__table td.is-sorted-cell { background: rgba(229, 110, 40, .12); }
-/* Which week the table is as of, under it. */
-.ege-standings__note {
-  margin: 0;
-  padding: 10px 14px 12px;
-  border-top: var(--fb-border-thin) solid rgba(29, 36, 22, .16);
-  font-size: var(--fb-small);
-  color: var(--fb-muted);
-}
 .ege-standings__table { min-width: 0; width: 100%; }
 .ege-standings__placehead,
 .ege-standings__place { width: 1%; white-space: nowrap; font-family: var(--fb-font-display); }

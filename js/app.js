@@ -1476,13 +1476,8 @@
     scroller.appendChild(t);
     wrap.appendChild(scroller);
 
-    /* Which week the table is as of, so a published week visibly moves it. */
-    var note = conference.week === null
-      ? 'No weeks published yet.'
-      : 'Through week ' + conference.week + '. ' +
-        (nfl ? 'Every game counts, the way the NFL orders a division.'
-          : withOverall ? 'Ovr counts every game; the rest is conference games.' : 'Conference games only.');
-    wrap.appendChild(el('p', 'ege-standings__note', note));
+    /* No note under the table: Sam took the "Through week N" line off every
+       team page (2026-10-17). */
     return wrap;
   }
 

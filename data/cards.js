@@ -88,6 +88,18 @@ EGE.cards = (function () {
     'p:2022:jaykeb-stewart:3'     /* Jaykeb Stewart 7TD Masterclass */
   ];
 
+  /* A performance is graded on its fantasy points times the position's
+     credit share (data/economy.js), except where a position grades on a
+     share of its own here. A tight end's 0.75 made his big nights Mystic
+     far more often than anybody else's (Sam, 2026-10-17), so a tight end
+     grades on 0.68. Credits still pay on the 0.75. */
+  var GRADE_SHARE = { TE: 0.68 };
+
+  function gradeShare(position) {
+    return typeof GRADE_SHARE[position] === 'number'
+      ? GRADE_SHARE[position] : EGE.economy.fantasyShareFor(position);
+  }
+
   var RANK = {};
   RARITIES.forEach(function (r, i) { RANK[r.key] = i; });
 
@@ -479,7 +491,7 @@ EGE.cards = (function () {
           perf.id = 'p:' + season + ':' + player.slug + ':' + game.week;
           perf.kind = 'performance';
           perf.points = points;
-          perf.grade = round2(points * EGE.economy.fantasyShareFor(player.position));
+          perf.grade = round2(points * gradeShare(player.position));
           perf.rarity = rarityOf(perf.id, perf.grade, 'performance', EGE.tierFor(season, player));
           perf.big = bigStats(player.position, game.stats);
           perf.headline = perf.versus;
