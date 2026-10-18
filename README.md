@@ -1402,6 +1402,17 @@ what is inside. Once torn, the cards are dealt face down and each one turns
 over on a tap with a flash of its colour from Rare up. Cards a player has
 never had before say *New*.
 
+**Sounds:** the pack makes a ripping sound as it tears, and every card makes
+a flip sound as it turns over (a set's reward card and a holo too; a big pull
+flips when it turns, after it holds back). Both are Sam's clips in `sound/`,
+trimmed at the front so they start on the tap, and both play quietly because
+the clips are harsh at full volume: the volumes are `SOUNDS` in
+`js/sounds.js` (flip 0.25, rip 0.1; the rip clip is far louder). The big
+pulls have sounds of their own (below), a little louder than these. They go
+through Web Audio, so an iPhone keeps to those volumes, stays quiet on
+silent and plays over the player's own music. If the browser won't play
+sound, nothing else changes.
+
 **Quick sell out of the pack:** once every card is turned, tapping a card
 picks it (tap again to put it back), and **Quick sell N** sells all the
 picked ones at the quick-sell prices before the next pack. Iconic cards
@@ -1424,6 +1435,24 @@ and glows in its colour, and turns in a burst of rays, a ring and sparks.
 The timings are `BUILDUP` and `SHOW` in `js/cards-view.js`. With reduced
 motion turned on in the phone or computer's settings, none of it runs and the
 card just turns over.
+
+**They sound bigger too.** While the card holds back, a build rises under it,
+a whoosh sweeping up that ends exactly as the card turns. As it turns comes
+the reveal: a boom, a punch, a whoosh falling away and a cymbal. **Nothing
+musical** -- no notes and no sparkles (Sam's call). Each rarity is longer and
+deeper than the one below:
+
+| Rarity | Build | Reveal |
+| --- | --- | --- |
+| Legendary | 0.9 s | a light boom and cymbal, 1.8 s |
+| Mystic | 1.7 s | a bigger boom and a longer cymbal, 2.6 s |
+| Iconic | 2.8 s, with a heartbeat that quickens | the deepest boom and the longest cymbal, 4.2 s |
+
+They are `sound/{rarity}-build.mp3` and `sound/{rarity}-reveal.mp3`, all
+synthesised for the site. A build is exactly `BUILDUP` long,
+so **if a `BUILDUP` changes, the build has to be remade to match**. With
+reduced motion there is no build, but the reveal still plays. Closing the pack
+fades out whatever is still playing.
 
 The price and size are charged by `open_card_pack()` in
 `supabase/schema.sql`, not by the page. **Change both together.** Which cards
@@ -2484,6 +2513,8 @@ Built so far:
   opening a pack and claiming a set.
 - `js/cards-view.js` — the Cards tab: packs, buying diamonds, the rip, the
   collection, trades and the library.
+- `js/sounds.js` and `sound/` — the pack rip, card flip and big-pull
+  sounds, and how loud each one plays.
 - `js/showcase.js` — the showcase on a player page, and editing your own.
 - `js/cards-admin.js` — the Cards panel on the admin page and its two resets.
 - `data/economy.js` — every number about credits in one place: what a rating

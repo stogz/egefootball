@@ -632,6 +632,7 @@ EGE.cardsView = (function () {
     rip.node.hidden = true;
     rip.node.innerHTML = '';
     delete rip.node.dataset.fx;
+    if (EGE.sounds) { EGE.sounds.hush(); }
     document.documentElement.classList.remove('ege-noscroll');
     var back = rip.returnTo;
     var after = rip.onClose;
@@ -679,6 +680,7 @@ EGE.cardsView = (function () {
     flip.style.setProperty('--charge', BUILDUP[rarity] + 'ms');
     flip.style.setProperty('--show', SHOW[rarity] + 'ms');
     flip.classList.add('is-charging', 'is-big');
+    if (EGE.sounds) { EGE.sounds.play(rarity + '-build'); }
     if (rarity !== 'legendary') { rip.node.dataset.fx = rarity; }
     if (rarity === 'iconic') { flip.appendChild(rays(flip)); }
     later(BUILDUP[rarity], function () {
@@ -690,6 +692,11 @@ EGE.cardsView = (function () {
 
   function turnOver(flip) {
     flip.classList.add('is-flipped');
+    if (EGE.sounds) {
+      EGE.sounds.play('flip');
+      /* With reduced motion there was no build, but it still lands big. */
+      if (isBig(flip)) { EGE.sounds.play(flip.dataset.rarity + '-reveal'); }
+    }
     flip.setAttribute('aria-label', flip.dataset.label);
     var left = rip.node.querySelectorAll('.ege-flip:not(.is-flipped)').length;
     if (!left) { finishRip(); }
@@ -877,6 +884,7 @@ EGE.cardsView = (function () {
     }
 
     packNode.classList.add('is-torn');
+    if (EGE.sounds) { EGE.sounds.play('rip'); }
     packNode.setAttribute('aria-hidden', 'true');
     packNode.tabIndex = -1;
     window.setTimeout(function () {
@@ -892,6 +900,8 @@ EGE.cardsView = (function () {
      and nothing goes anywhere, and `again` rips another one. `free` is a
      pack won on the daily spin: already the player's, so no Another. */
   function openRip(options) {
+    /* Gets the tear and flip sounds ready while the pack is still sealed. */
+    if (EGE.sounds) { EGE.sounds.wake(); }
     var node = byId('cardRip');
     node.innerHTML = '';
     delete node.dataset.fx;
