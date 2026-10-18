@@ -445,15 +445,17 @@ EGE.stats[2023] = {
         ] },
       { week:  6, date: '2023-10-07', kickoff: '3:30pm',
         opponent: 'Syracuse', home: true, conference: true,
-        result: { teamScore: 41, opponentScore: 15 }, booster: null,
+        result: { teamScore: 41, opponentScore: 15 }, booster: 'boost-2-0',
         stats: {
           receptions: 8, receivingYards: 124, receivingYac: 41,
-          receivingTd: 1, receivingLong: 40, targets: 12, carries: 0,
+          receivingTd: 3, receivingLong: 40, targets: 12, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 15.5, totalYards: 124, totalTd: 1
+          receivingAvg: 15.5, totalYards: 124, totalTd: 3
         },
         bigPlays: [
-          '13 yard receiving touchdown'
+          '13 yard receiving touchdown',
+          '12 yard receiving touchdown',
+          '1 yard receiving touchdown'
         ] },
       { week:  7, date: '2023-10-14', kickoff: '7:30pm',
         opponent: 'Miami', home: true, conference: true,
@@ -605,7 +607,7 @@ EGE.stats[2023] = {
           completions: 27, attempts: 44, passingYards: 374,
           passingYac: 80, passingTd: 6, interceptions: 1, carries: 3,
           rushingYards: 11, rushingTd: 0, rushingLong: 8, sacks: 2,
-          fumbles: 0, passingAvg: 13.8, rating: 181.7, rushingAvg: 3.7
+          fumbles: 0, passingAvg: 13.9, rating: 118.8, rushingAvg: 3.7
         },
         bigPlays: [
           '35 yard passing touchdown',
@@ -951,7 +953,7 @@ EGE.stats[2023] = {
         ] },
       { week:  6, date: '2023-10-15', kickoff: '12:00pm',
         opponent: 'New Orleans Saints', home: true, conference: false,
-        result: { teamScore: 23, opponentScore: 8 }, booster: null,
+        result: { teamScore: 23, opponentScore: 8 }, booster: 'boost-1-5',
         stats: {
           completions: 21, attempts: 29, passingYards: 252,
           passingYac: 121, passingTd: 2, interceptions: 0, carries: 3,
