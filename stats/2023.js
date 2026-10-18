@@ -602,10 +602,10 @@ EGE.stats[2023] = {
         opponent: 'Kansas', home: true, conference: true,
         result: { teamScore: 36, opponentScore: 8 }, booster: null,
         stats: {
-          completions: 21, attempts: 32, passingYards: 329,
-          passingYac: 80, passingTd: 4, interceptions: 1, carries: 3,
+          completions: 27, attempts: 44, passingYards: 374,
+          passingYac: 80, passingTd: 6, interceptions: 1, carries: 3,
           rushingYards: 11, rushingTd: 0, rushingLong: 8, sacks: 2,
-          fumbles: 0, passingAvg: 15.7, rating: 126.2, rushingAvg: 3.7
+          fumbles: 0, passingAvg: 13.8, rating: 181.7, rushingAvg: 3.7
         },
         bigPlays: [
           '35 yard passing touchdown',
