@@ -690,6 +690,7 @@ EGE.cardsView = (function () {
 
   function turnOver(flip) {
     flip.classList.add('is-flipped');
+    if (EGE.sounds) { EGE.sounds.play('flip'); }
     flip.setAttribute('aria-label', flip.dataset.label);
     var left = rip.node.querySelectorAll('.ege-flip:not(.is-flipped)').length;
     if (!left) { finishRip(); }
@@ -877,6 +878,7 @@ EGE.cardsView = (function () {
     }
 
     packNode.classList.add('is-torn');
+    if (EGE.sounds) { EGE.sounds.play('rip'); }
     packNode.setAttribute('aria-hidden', 'true');
     packNode.tabIndex = -1;
     window.setTimeout(function () {
@@ -892,6 +894,8 @@ EGE.cardsView = (function () {
      and nothing goes anywhere, and `again` rips another one. `free` is a
      pack won on the daily spin: already the player's, so no Another. */
   function openRip(options) {
+    /* Gets the tear and flip sounds ready while the pack is still sealed. */
+    if (EGE.sounds) { EGE.sounds.wake(); }
     var node = byId('cardRip');
     node.innerHTML = '';
     delete node.dataset.fx;

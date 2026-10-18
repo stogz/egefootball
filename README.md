@@ -1402,6 +1402,16 @@ what is inside. Once torn, the cards are dealt face down and each one turns
 over on a tap with a flash of its colour from Rare up. Cards a player has
 never had before say *New*.
 
+**Sounds:** the pack makes a ripping sound as it tears, and every card makes
+a flip sound as it turns over (a set's reward card and a holo too; a big pull
+flips when it turns, after it holds back). Both are Sam's clips in `sound/`,
+trimmed at the front so they start on the tap, and both play quietly because
+the clips are harsh at full volume: the volumes are `SOUNDS` in
+`js/sounds.js` (flip 0.25, rip 0.1; the rip clip is far louder). They go
+through Web Audio, so an iPhone keeps to those volumes, stays quiet on
+silent and plays over the player's own music. If the browser won't play
+sound, nothing else changes.
+
 **Quick sell out of the pack:** once every card is turned, tapping a card
 picks it (tap again to put it back), and **Quick sell N** sells all the
 picked ones at the quick-sell prices before the next pack. Iconic cards
@@ -2484,6 +2494,8 @@ Built so far:
   opening a pack and claiming a set.
 - `js/cards-view.js` — the Cards tab: packs, buying diamonds, the rip, the
   collection, trades and the library.
+- `js/sounds.js` and `sound/` — the pack rip and card flip sounds, and how
+  loud each one plays.
 - `js/showcase.js` — the showcase on a player page, and editing your own.
 - `js/cards-admin.js` — the Cards panel on the admin page and its two resets.
 - `data/economy.js` — every number about credits in one place: what a rating
