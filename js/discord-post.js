@@ -137,7 +137,7 @@ EGE.discordPost = (function () {
 
   /* Absolute URLs — Discord will not load anything relative. */
   function asset(siteUrl, path) {
-    /* A mark hosted somewhere else -- Texas's is ESPN's -- is already whole. */
+    /* A mark hosted somewhere else is already whole. */
     if (/^https?:\/\//.test(String(path))) { return String(path); }
     return siteUrl.replace(/\/+$/, '') + '/' + String(path).replace(/^\/+/, '');
   }

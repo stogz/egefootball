@@ -3623,14 +3623,6 @@ button.ege-owned__item { cursor: pointer; }
 .ege-standings__table th.is-sortable { padding: 0; }
 .ege-standings__table th.num .ege-sort { justify-content: flex-end; }
 .ege-standings__table td.is-sorted-cell { background: rgba(229, 110, 40, .12); }
-/* Which week the table is as of, under it. */
-.ege-standings__note {
-  margin: 0;
-  padding: 10px 14px 12px;
-  border-top: var(--fb-border-thin) solid rgba(29, 36, 22, .16);
-  font-size: var(--fb-small);
-  color: var(--fb-muted);
-}
 .ege-standings__table { min-width: 0; width: 100%; }
 .ege-standings__placehead,
 .ege-standings__place { width: 1%; white-space: nowrap; font-family: var(--fb-font-display); }
@@ -3681,20 +3673,7 @@ button.ege-owned__item { cursor: pointer; }
 }
 .ege-teamgrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
 /* A season split between the NFL and college: the NFL's cards first, a
-   dotted line, then the colleges', each under its league's name in the
-   same ink chip as the kicker over the page title. */
-.ege-teamgrid__league {
-  justify-self: start;
-  margin: 0 0 -8px;
-  padding: 7px 12px;
-  background: var(--fb-ink);
-  color: var(--fb-cream);
-  font-family: var(--fb-font-body);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: .18em;
-  text-transform: uppercase;
-}
+   dotted line, then the colleges'. */
 .ege-teamgrid__divider {
   width: 100%;
   margin: 8px 0;
@@ -5014,6 +4993,19 @@ html.ege-noscroll body { overflow: hidden; }
   --pack-deep: #4a0a0f;
   --pack-hi: #d2d1d8;
 }
+/* Texas, for Isaac's 2023 pack: burnt orange foil off the shadows and
+   highlights of his jersey in the photo, a dark burnt orange for the bars,
+   lined in the white of its numbers, and the sleeve's two white stripes
+   across the foot. */
+.ege-pack.ege-pack--texas {
+  --foil: linear-gradient(135deg, #3b1503 0%, #9b3402 18%, #f0844a 34%, #c4470e 50%,
+                          #f59a5c 66%, #9b3402 82%, #3b1503 100%);
+  --pack-deep: #4a1a04;
+  --pack-hi: #fbeee4;
+}
+/* The longhorn is wide and short, so it sits a little lower than the other
+   logos, its horns out either side of his shoulders. */
+.ege-pack--texas .ege-pack__logo { top: 22%; }
 
 .ege-pack__top,
 .ege-pack__body,
@@ -5259,6 +5251,18 @@ html.ege-noscroll body { overflow: hidden; }
   height: 5cqw;
   background: linear-gradient(180deg, #c9c8cf 0 12%, #151115 12% 22%, #fff 22% 36%,
                               #c81a24 36% 64%, #fff 64% 78%, #151115 78% 88%, #c9c8cf 88%);
+}
+/* Texas's sleeve stripes, two white on burnt orange, above the foot band. */
+.ege-pack--texas .ege-pack__foot::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + .9cqw);
+  height: 5cqw;
+  background: linear-gradient(180deg, #c4470e 0 18%, #fff 18% 36%, #c4470e 36% 64%,
+                              #fff 64% 82%, #c4470e 82%);
+  border-top: .5cqw solid var(--pack-deep);
 }
 
 /* --- ripping one open ------------------------------------------------------ */
@@ -5998,7 +6002,10 @@ html.ege-noscroll body { overflow: hidden; }
 /* --- the Limited Time Event ------------------------------------------------ */
 
 /* Over the Library while the Gold Rush is on: a gold-on-black banner with
-   its name, the time it has left and how it works, then its sets. */
+   its name, the time it has left and how it works, then its sets. The
+   Library keeps the usual gap below it (Sam, 2026-10-17), and moves up to
+   the top when there is no event. */
+#eventPanel[hidden] + .ege-section-gap { margin-top: 0; }
 .ege-event {
   display: flex;
   flex-direction: column;

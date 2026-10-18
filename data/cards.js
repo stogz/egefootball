@@ -61,7 +61,10 @@ EGE.cards = (function () {
 
   /* Hardest to pull last. `odds` is the chance of each card in a pack
      coming up this rarity, in percent. `performance` and `play` are the
-     lowest graded score that reaches it.
+     lowest graded score that reaches it. `collegePerformance`, where a
+     rarity has one, is that bar for a performance in college or the NFL
+     instead: a Mystic game is harder to put up there than in high school,
+     so the bar is a little lower (Sam, 2026-10-17).
 
      Iconic is not graded at all: it is the few cards in ICONIC below,
      picked by hand, and nothing else reaches it however big the game. */
@@ -71,7 +74,8 @@ EGE.cards = (function () {
     { key: 'rare',      name: 'Rare',      color: '#e8812a', odds: 14,  performance: 11,  play: 8.6 },
     { key: 'epic',      name: 'Epic',      color: '#d5392b', odds: 8,   performance: 16,  play: 9.6 },
     { key: 'legendary', name: 'Legendary', color: '#8a4fd8', odds: 4,   performance: 20.5, play: 11.2 },
-    { key: 'mystic',    name: 'Mystic',    color: '#e0ad25', odds: 0.5,  performance: 28.5, play: 13.3 },
+    { key: 'mystic',    name: 'Mystic',    color: '#e0ad25', odds: 0.5,  performance: 28.5, play: 13.3,
+      collegePerformance: 24 },
     { key: 'iconic',    name: 'Iconic',    color: '#ec5fa8', odds: 0.1,  performance: null, play: null }
   ];
 
@@ -83,6 +87,18 @@ EGE.cards = (function () {
     'h:2019:cooper-clark:15:0',    /* Cooper's 80 yard touchdown against Helix */
     'p:2022:jaykeb-stewart:3'     /* Jaykeb Stewart 7TD Masterclass */
   ];
+
+  /* A performance is graded on its fantasy points times the position's
+     credit share (data/economy.js), except where a position grades on a
+     share of its own here. A tight end's 0.75 made his big nights Mystic
+     far more often than anybody else's (Sam, 2026-10-17), so a tight end
+     grades on 0.68. Credits still pay on the 0.75. */
+  var GRADE_SHARE = { TE: 0.68 };
+
+  function gradeShare(position) {
+    return typeof GRADE_SHARE[position] === 'number'
+      ? GRADE_SHARE[position] : EGE.economy.fantasyShareFor(position);
+  }
 
   var RANK = {};
   RARITIES.forEach(function (r, i) { RANK[r.key] = i; });
@@ -193,7 +209,9 @@ EGE.cards = (function () {
     2021: { player: 'jaykeb-stewart', image: 'icon/packs/2021-jaykeb-stewart.webp',
             logo: 'icon/packs/2021-osu-logo.webp', theme: 'osu', zoom: 1.2, drop: 2.5 },
     2022: { player: 'paxon-hatch', image: 'icon/packs/2022-paxon-hatch.webp',
-            logo: 'icon/packs/2022-unc-logo.webp', theme: 'unc', zoom: 1.2, drop: 1.5 }
+            logo: 'icon/packs/2022-unc-logo.webp', theme: 'unc', zoom: 1.2, drop: 1.5 },
+    2023: { player: 'isaac-vitel', image: 'icon/packs/2023-isaac-vitel.webp',
+            logo: 'icon/packs/2023-texas-logo.webp', theme: 'texas', zoom: 1.2, drop: 2.5 }
   };
 
   /* The Gold Rush Pack's cover: gold foil and its name, nobody on it
@@ -365,16 +383,20 @@ EGE.cards = (function () {
 
   /* --- scoring a game ---------------------------------------------------- */
 
-  function gradeFor(score, kind) {
+  /* `tier` is the level the card was played at (EGE.tierFor). */
+  function gradeFor(score, kind, tier) {
     var found = RARITIES[0];
     RARITIES.forEach(function (r) {
-      if (typeof r[kind] === 'number' && score >= r[kind]) { found = r; }
+      var bar = r[kind];
+      if (kind === 'performance' && tier !== 'highSchool' &&
+          typeof r.collegePerformance === 'number') { bar = r.collegePerformance; }
+      if (typeof bar === 'number' && score >= bar) { found = r; }
     });
     return found.key;
   }
 
-  function rarityOf(id, score, kind) {
-    return ICONIC.indexOf(id) !== -1 ? 'iconic' : gradeFor(score, kind);
+  function rarityOf(id, score, kind, tier) {
+    return ICONIC.indexOf(id) !== -1 ? 'iconic' : gradeFor(score, kind, tier);
   }
 
   /* The two numbers a performance card prints big across its picture: the
@@ -469,8 +491,8 @@ EGE.cards = (function () {
           perf.id = 'p:' + season + ':' + player.slug + ':' + game.week;
           perf.kind = 'performance';
           perf.points = points;
-          perf.grade = round2(points * EGE.economy.fantasyShareFor(player.position));
-          perf.rarity = rarityOf(perf.id, perf.grade, 'performance');
+          perf.grade = round2(points * gradeShare(player.position));
+          perf.rarity = rarityOf(perf.id, perf.grade, 'performance', EGE.tierFor(season, player));
           perf.big = bigStats(player.position, game.stats);
           perf.headline = perf.versus;
           perf.line = statSummary(player.position, game.stats);
