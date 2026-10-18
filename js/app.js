@@ -1788,18 +1788,15 @@
       return;
     }
     /* The NFL above the NCAA, with a dotted line between the two, in a
-       season that has both. */
+       season that has both. No label on either: the line is enough (Sam,
+       2026-10-17). */
     var entries = EGE.teamsIn(season);
     var nfl = entries.filter(function (entry) { return entry.team.tier === 'nfl'; });
     var college = entries.filter(function (entry) { return entry.team.tier !== 'nfl'; });
-    var both = nfl.length && college.length;
-    [['NFL', nfl], ['NCAA', college]].forEach(function (group, at) {
-      if (!group[1].length) { return; }
-      if (both) {
-        if (at) { grid.appendChild(el('hr', 'ege-teamgrid__divider')); }
-        grid.appendChild(el('h3', 'ege-teamgrid__league', group[0]));
-      }
-      group[1].forEach(function (entry) { grid.appendChild(teamCard(entry, season)); });
+    [nfl, college].forEach(function (group, at) {
+      if (!group.length) { return; }
+      if (at && nfl.length) { grid.appendChild(el('hr', 'ege-teamgrid__divider')); }
+      group.forEach(function (entry) { grid.appendChild(teamCard(entry, season)); });
     });
   }
 

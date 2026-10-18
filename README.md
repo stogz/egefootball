@@ -298,10 +298,10 @@ nothing else.
 
 A tab beside Players, public like the player pages, and laid out like
 them. **College and the NFL** — the high schools are on the player pages.
-In a season that has both (2023 on), **the NFL's teams come first** under
-an *NFL* chip, then a dotted line across the page (`.ege-teamgrid__divider`),
-then the colleges under *NCAA*. A season with only one league has neither
-the chips nor the line.
+In a season that has both (2023 on), **the NFL's teams come first**, then
+a dotted line across the page (`.ege-teamgrid__divider`), then the
+colleges, with no label on either (Sam took the NFL and NCAA chips off,
+2026-10-17). A season with only one league has no line.
 
 **The index, `#teams`**, is a stack of cards, one school to a row: its mark
 on the left, on the school's own colour (`ground` in `EGE.teams` — Alabama

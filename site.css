@@ -3681,20 +3681,7 @@ button.ege-owned__item { cursor: pointer; }
 }
 .ege-teamgrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
 /* A season split between the NFL and college: the NFL's cards first, a
-   dotted line, then the colleges', each under its league's name in the
-   same ink chip as the kicker over the page title. */
-.ege-teamgrid__league {
-  justify-self: start;
-  margin: 0 0 -8px;
-  padding: 7px 12px;
-  background: var(--fb-ink);
-  color: var(--fb-cream);
-  font-family: var(--fb-font-body);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: .18em;
-  text-transform: uppercase;
-}
+   dotted line, then the colleges'. */
 .ege-teamgrid__divider {
   width: 100%;
   margin: 8px 0;
