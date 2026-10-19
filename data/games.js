@@ -290,13 +290,17 @@ EGE.divisionTable = function (school, season, through) {
    level, the first two things the league breaks a tie on. */
 
 /* Every NFL game in the books so far, each once, as { week, home, away,
-   score }: the games inside each conference and across them from
-   data/conferences.js, and the six's own from the season files. Seattle
-   and Detroit play each other, so that one is in both of theirs. */
+   score }: the six's own from the season files first, so a game in both
+   is theirs (Seattle and Detroit play each other, so that one is in both
+   of theirs); then everybody else's -- the real scores in
+   data/conferences.js, and from the week the NFL sim took over, its own
+   (data/nfl-results.js). */
 EGE.nflResults = function (season, through) {
   var year = season || EGE.currentSeason;
   var upTo = typeof through === 'number' ? through : Infinity;
   var leagues = (EGE.conferences || {})[year] || {};
+  var simmed = (EGE.nflSimResults || {})[year] || null;
+  var from = simmed ? simmed.from : Infinity;
   var seen = {};
   var results = [];
   function add(week, home, away, score) {
@@ -307,18 +311,6 @@ EGE.nflResults = function (season, through) {
   }
   function counts(game) { return game.week <= upTo && EGE.isPublished(year, game.week); }
 
-  Object.keys(leagues).forEach(function (id) {
-    var league = leagues[id];
-    if (!league.nfl) { return; }
-    league.games.forEach(function (game) {
-      if (counts(game)) { add(game.week, game.home, game.away, game.score); }
-    });
-    /* Across the conferences, listed from both sides; a table does not need
-       to know who was at home. */
-    (league.nonConference || []).forEach(function (game) {
-      if (counts(game)) { add(game.week, game.school, game.opponent, game.score); }
-    });
-  });
   EGE.players.forEach(function (player) {
     if (EGE.tierFor(year, player) !== 'nfl') { return; }
     var team = EGE.teamFor(player, year);
@@ -327,6 +319,23 @@ EGE.nflResults = function (season, through) {
       add(game.week, team.school, game.opponent, [game.result.teamScore, game.result.opponentScore]);
     });
   });
+  Object.keys(leagues).forEach(function (id) {
+    var league = leagues[id];
+    if (!league.nfl) { return; }
+    league.games.forEach(function (game) {
+      if (game.week < from && counts(game)) { add(game.week, game.home, game.away, game.score); }
+    });
+    /* Across the conferences, listed from both sides; a table does not need
+       to know who was at home. */
+    (league.nonConference || []).forEach(function (game) {
+      if (game.week < from && counts(game)) { add(game.week, game.school, game.opponent, game.score); }
+    });
+  });
+  if (simmed) {
+    simmed.games.forEach(function (game) {
+      if (counts(game)) { add(game.week, game.home, game.away, game.score); }
+    });
+  }
   return results;
 };
 

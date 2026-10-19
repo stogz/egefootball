@@ -385,24 +385,35 @@ Under the bar:
   hand to an 86 — the only overall on any roster above 84. The constants
   are at the top of `tools/build-rosters.js`.
 
-  **An NFL room** (Seattle, Detroit and Houston, from 2023) is the same
-  cards from nflverse's 2023 rosters, with ESPN's NFL headshots. The class
-  is his season in the league — **R** for a rookie, then 2, 3 and on — and
-  the overall is on the same scale, topping out at 84:
+  **An NFL team's roster** is the NFL sim's, not `data/rosters.js` (Sam,
+  2026-10-19): `data/nfl-rosters.json`, which `node nfl-sim/sim.js export`
+  writes, or whatever the admin page's NFL Sim tab last published to
+  `nfl_sim_rosters` in Supabase — whichever was saved later for the season
+  (`js/nfl-rosters.js`). An **Offense / Defense** switch at the top right of
+  the panel, the same as the schedule's Games / Tournament, picks the side:
+  quarterbacks, backs (a fullback with them), receivers and tight ends, or
+  the defensive line (edge rushers and tackles), linebackers, cornerbacks
+  and safeties. Each box is the headshot and overall as before, and under
+  the name **the archetype with his seasons in the league** in the class
+  chip (**R** for a rookie), then **height · weight**, with **no number**.
+  The six's boxes use their own overall, headshot and size from their
+  pages. **Every box opens a pop-up**, in the overlay the cards and
+  trophies use: a band in the team's colour with the headshot, the name and
+  the team's mark; then college, draft (*2021 · R4 #112*), age, height and
+  weight; then the overall box, the archetype and his skills, best first;
+  then his contract (*$1.1M a year through 2024*) and any injury. One of the
+  six's has a button through to his page. A click off the box closes it.
+  Nothing private is in the rosters: no team ratings, no potential, nothing
+  about how long a player will last.
 
-  ```
-  overall = 50 + 34 × (0.20 × draft + 0.15 × experience + 0.75 × production)
-  ```
-
-  *Draft* is where he went, the first pick all of it and the last nothing,
-  squared, and nothing undrafted; *experience* a rookie nothing and a
-  sixth-year all; *production* his 2023 regular season against an
-  MVP-calibre one (5,000 for a quarterback, 2,000 a back, 1,800 a
-  receiver, 1,300 a tight end). Jared Goff is the 84. The mock draft
-  rippled through the rooms: Bijan Robinson is a Lion, and Sam LaPorta,
-  Jahmyr Gibbs, Zach Charbonnet and C.J. Stroud went elsewhere. Sam is
-  Seattle's RB2 behind Kenneth Walker, Andrew Detroit's TE1 and Jaykeb
-  Houston's QB1, by overall.
+  **Every NFL team has a page**, `#teams/kansas-city-chiefs`. The six's
+  teams keep their standings and schedule; any other team's page is its
+  header (record, streak, place in the division) and its roster, nothing
+  else. The index ends with **NFL Standings**, a box for each division with
+  every team's record, each team a link to its page and the six's teams
+  picked out in orange. From the week the sim takes over, the standings use
+  the sim's scores (`data/nfl-results.js`) in place of the real ones in
+  `data/conferences.js`.
 - **Conference Standings** — the whole conference as one table: the dark
   row of headings once at the top and every school under it, the school's
   own division first, a rule where the next division starts, and the
@@ -2344,6 +2355,32 @@ else, the same rule the boosters follow. The column is headed *Paid*.
 else. It holds everything Sam used to do from the shop page, plus the two
 things that end a season.
 
+It is split into **tabs** across the top — **Weeks** (the weeks, the Discord
+bots folded away under a line, and the season file), **Accounts** (credits
+and diamonds earned, and every account), **Cards**, **NFL Sim** and **End of
+Season** — one at a time, so nothing needs scrolling past (Sam,
+2026-10-19). The tab is in the address (`#admin/sim`), so a reload comes
+back to it; plain `#admin` is Weeks.
+
+**NFL Sim** runs the NFL sim (`nfl-sim/`) in the browser. The first time the
+tab is opened it loads `js/nfl-sim.js` (the sim and its data, about 1.4 MB,
+built by `node nfl-sim/build/bundle.js`) and the world from Supabase
+(`nfl_sim_files`, gzipped, admin only — the world holds the team ratings,
+which are never shown anywhere). **Start the world** takes the weeks the site
+has already put out as played (the six's games from their season file,
+everybody else's real scores) and the sim plays every NFL game after them.
+Then: play a week or on to the deadline / the end of the regular season, the
+playoffs a round at a time or all at once, the offseason and the draft (with
+a team and round for any of the six still in college). Trades wait for
+**Approve** or **Reject**, and Sam can type in his own. **Put it on the
+site** downloads `stats/{year}.js` (the six's games as the sim played them,
+and their playoff games as they reach them) and `data/nfl-results.js` (every
+other NFL score) to commit, then the weeks are published on the Weeks tab as
+usual. After each step the rosters go to `nfl_sim_rosters` for the Teams
+pages (a box turns that off). The world can be downloaded, loaded back and
+started over. A step that fails saves nothing, and a world saved from
+another tab since the page loaded it is refused rather than overwritten.
+
 **Accounts** — every balance and everything each player owns. Set a player's
 credits or diamonds (each box has its coin or diamond after it, and Save
 writes only the one that was changed, so it never puts back a number a game
@@ -2517,6 +2554,15 @@ Built so far:
   sounds, and how loud each one plays.
 - `js/showcase.js` — the showcase on a player page, and editing your own.
 - `js/cards-admin.js` — the Cards panel on the admin page and its two resets.
+- `js/nfl-sim-admin.js` — the admin page's NFL Sim tab, which loads
+  `js/nfl-sim.js` (the NFL sim, built by `node nfl-sim/build/bundle.js`;
+  never edited by hand).
+- `js/nfl-rosters.js` — every NFL team's roster for the Teams pages, from
+  `data/nfl-rosters.json` or `nfl_sim_rosters` in Supabase, whichever is
+  newer.
+- `data/nfl.js` — the 32 NFL teams: name, division, colour, page address.
+- `data/nfl-results.js` — the NFL scores the sim played, written by the NFL
+  Sim tab or `node nfl-sim/sim.js site`.
 - `data/economy.js` — every number about credits in one place: what a rating
   point costs, how much overall a point is worth, what a touchdown pays, and
   the tuning behind all of it. Nothing else in the site invents a price. What

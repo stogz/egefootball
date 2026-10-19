@@ -1552,8 +1552,10 @@
      class, height and weight, and his overall in the same box the six's is
      drawn in. One of the six is a way through to his page and is picked out
      in orange; everybody else is the same
-     card with nowhere to go. No season numbers -- the overall says it. */
+     card with nowhere to go. No season numbers -- the overall says it. An
+     NFL player's card is the sim's (nflLine). */
   function rosterLine(row) {
+    if (row.sim) { return nflLine(row); }
     var item = el('li', 'ege-room__player');
     var card = el(row.player ? 'a' : 'div', 'ege-teamchip' + (row.player ? ' is-six' : ''));
     if (row.player) { card.href = '#' + row.player.slug; }
@@ -1618,6 +1620,275 @@
     return box;
   }
 
+  /* --- the NFL's rosters, from the sim ----------------------------------
+
+     An NFL team's page is the NFL sim's roster (js/nfl-rosters.js), not
+     data/rosters.js: every player on the team with his overall, his years
+     in the league, his size and his archetype, on two sides of the ball
+     picked with the switch in the panel's head. A fullback is in with the
+     backs, and the edge rushers and the tackles are one line. */
+  var NFL_ROOMS = {
+    offense: [
+      { key: 'QB', title: 'Quarterbacks', pos: ['QB'] },
+      { key: 'RB', title: 'Running Backs', pos: ['RB', 'FB'] },
+      { key: 'WR', title: 'Receivers', pos: ['WR'] },
+      { key: 'TE', title: 'Tight Ends', pos: ['TE'] }
+    ],
+    defense: [
+      { key: 'DL', title: 'Defensive Line', pos: ['EDGE', 'DI'] },
+      { key: 'LB', title: 'Linebackers', pos: ['LB'] },
+      { key: 'CB', title: 'Cornerbacks', pos: ['CB'] },
+      { key: 'S', title: 'Safeties', pos: ['S'] }
+    ]
+  };
+  var rosterSide = 'offense';
+
+  /* Which roster is on screen, so one that arrives late lands only if
+     nobody has moved on. */
+  var nflShown = null;
+
+  /* A sim row as a room's row. One of the six is his own: the overall,
+     headshot and size his page has. Everybody else is the sim's, with
+     ESPN's headshot. */
+  function nflRow(sim, season, key) {
+    var player = sim.ege ? EGE.playerBySlug(sim.ege) : null;
+    return {
+      name: player ? player.name : sim.name,
+      overall: player ? EGE.overallFor(player) : sim.ovr,
+      height: player && player.height ? player.height : sim.height,
+      weight: player && player.weight ? player.weight : sim.weight,
+      archetype: sim.archetype,
+      year: (player && EGE.nflYearFor(player, season)) || sim.years,
+      nfl: true,
+      photo: Boolean(sim.espn),
+      espn: sim.espn,
+      player: player,
+      sim: sim,
+      team: key,
+      season: season
+    };
+  }
+
+  /* An NFL player's card: his picture, then his name, his archetype with
+     his seasons in the league beside it, and his height and weight -- no
+     number (Sam, 2026-10-19) -- and his overall. Every card opens the
+     player's pop-up; one of the six is still picked out in orange, and his
+     pop-up is the way to his page. */
+  function nflLine(row) {
+    var item = el('li', 'ege-room__player');
+    var card = el('div', 'ege-teamchip ege-teamchip--nfl' + (row.player ? ' is-six' : ''));
+    EGE.cardsView.pressable(card, row.name, function () { openNflPlayer(row); });
+    card.appendChild(rosterFace(row));
+
+    var text = el('span', 'ege-teamchip__text');
+    text.appendChild(el('span', 'ege-teamchip__name', row.name));
+    var meta = el('span', 'ege-teamchip__meta');
+    if (row.archetype) { meta.appendChild(el('span', 'ege-teamchip__arch', row.archetype)); }
+    var klass = nflClass(row.year);
+    if (klass) {
+      var chip = el('abbr', 'ege-room__class', klass.short);
+      chip.title = klass.name;
+      meta.appendChild(chip);
+    }
+    text.appendChild(meta);
+    var size = [EGE.heightText(row), EGE.weightText(row)].filter(Boolean).join(' · ');
+    if (size) { text.appendChild(el('span', 'ege-teamchip__meta', size)); }
+    card.appendChild(text);
+
+    var box = overallBox(row.overall, 'ege-ovrbox--chip');
+    if (box) { card.appendChild(box); }
+    item.appendChild(card);
+    return item;
+  }
+
+  /* `key` is the sim's (DET). Drawn as soon as the season's rosters are
+     in; until then the panel says it is getting them. */
+  function renderNflRoster(key, season) {
+    var body = document.getElementById('teamRosterBody');
+    document.getElementById('rosterSwitch').hidden = false;
+    nflShown = key + ':' + season;
+    body.innerHTML = '';
+
+    var all = EGE.nflRosters.get(season);
+    if (all === undefined) {
+      body.appendChild(el('p', 'ege-room__empty', 'Getting the roster…'));
+      EGE.nflRosters.load(season).then(function () {
+        if (nflShown === key + ':' + season) { renderNflRoster(key, season); }
+      });
+      return;
+    }
+    var rows = all && all.teams ? all.teams[key] : null;
+    if (!rows || !rows.length) {
+      body.appendChild(el('p', 'ege-room__empty', 'No roster yet for ' + season + '.'));
+      return;
+    }
+    var grid = el('div', 'ege-rooms');
+    NFL_ROOMS[rosterSide].forEach(function (room) {
+      var inRoom = rows.filter(function (sim) { return room.pos.indexOf(sim.pos) !== -1; })
+        .map(function (sim) { return nflRow(sim, season, key); })
+        .sort(function (a, b) {
+          return ((b.overall || 0) - (a.overall || 0)) || (b.player ? 1 : 0) - (a.player ? 1 : 0);
+        });
+      grid.appendChild(roomEl(room, inRoom));
+    });
+    body.appendChild(grid);
+  }
+
+  document.addEventListener('change', function (event) {
+    var input = event.target.closest ? event.target.closest('.ege-switch__option input') : null;
+    if (!input || input.name !== 'rosterSide') { return; }
+    rosterSide = input.value;
+    var slug = currentTeamSlug();
+    if (slug) { renderTeam(slug); }
+  });
+
+  /* --- an NFL player up close ---------------------------------------------
+
+     The card overlay, as a card or a trophy opens in: across the top a band
+     in his team's colour with his headshot, his name and the team's mark;
+     under it where he came from (college, draft, age, height, weight), then
+     his overall, archetype and skills, then his contract. A click anywhere
+     off it puts it away. */
+  var POSITION_NAMES = {
+    QB: 'Quarterback', RB: 'Running Back', FB: 'Fullback', WR: 'Wide Receiver', TE: 'Tight End',
+    EDGE: 'Edge Rusher', DI: 'Defensive Tackle', LB: 'Linebacker', CB: 'Cornerback', S: 'Safety'
+  };
+  var SKILL_NAMES = {
+    accuracy: 'Accuracy', deep: 'Deep', arm: 'Arm', poise: 'Poise', mobility: 'Mobility',
+    power: 'Power', elusive: 'Elusiveness', speed: 'Speed', vision: 'Vision', hands: 'Hands',
+    block: 'Blocking', route: 'Route Running', yac: 'After the Catch', size: 'Size',
+    rush: 'Pass Rush', run: 'Run Defense', cover: 'Coverage', blitz: 'Blitzing',
+    man: 'Man Coverage', zone: 'Zone Coverage', ball: 'Ball Skills', tackle: 'Tackling',
+    range: 'Range', box: 'In the Box'
+  };
+
+  function skillName(skill, pos) {
+    if (skill === 'deep') { return pos === 'QB' ? 'Deep Ball' : 'Deep Routes'; }
+    return SKILL_NAMES[skill] || skill;
+  }
+
+  function moneyText(millions) {
+    return millions >= 1 ? '$' + (Math.round(millions * 10) / 10) + 'M'
+      : '$' + Math.round(millions * 1000) + 'K';
+  }
+
+  function nflPhoto(row, wide) {
+    if (row.player) { return row.player.headshot; }
+    if (!row.espn) { return null; }
+    return 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/' + row.espn +
+      '.png&w=' + (wide ? 350 : 96) + '&h=' + (wide ? 254 : 70);
+  }
+
+  function openNflPlayer(row) {
+    var sim = row.sim;
+    var team = EGE.nfl.teams[row.team] || {};
+    var stage = EGE.cardsView.openOverlay(POSITION_NAMES[sim.pos] || sim.pos, 'ege-rip__stage--person');
+    var box = el('div', 'ege-person');
+
+    /* Line one: the band. */
+    var band = el('div', 'ege-person__band');
+    band.style.background = team.color || '';
+    var face = el('span', 'ege-person__face');
+    var src = nflPhoto(row, true);
+    if (src) {
+      var img = el('img');
+      img.src = src;
+      img.alt = '';
+      img.addEventListener('error', function () { img.remove(); });
+      face.appendChild(img);
+    }
+    band.appendChild(face);
+    band.appendChild(el('h3', 'ege-person__name', row.name));
+    var mark = el('span', 'ege-person__mark');
+    var logoSrc = EGE.nfl.logo(row.team, 120);
+    if (logoSrc) {
+      var logo = el('img');
+      logo.src = logoSrc;
+      logo.alt = team.name || '';
+      logo.title = team.name || '';
+      logo.addEventListener('error', function () { logo.remove(); });
+      mark.appendChild(logo);
+    }
+    band.appendChild(mark);
+    box.appendChild(band);
+
+    var panel = el('div', 'ege-person__body');
+
+    /* Line two: where he came from and his size. */
+    var facts = el('dl', 'ege-person__facts');
+    function fact(label, value, title) {
+      var cell = el('div', 'ege-person__fact');
+      cell.appendChild(el('dt', null, label));
+      var dd = el('dd', null, value);
+      if (title) { dd.title = title; }
+      cell.appendChild(dd);
+      facts.appendChild(cell);
+    }
+    fact('College', sim.college || '–');
+    var d = sim.draft;
+    var by = d && d.team && EGE.nfl.teams[d.team] ? EGE.nfl.teams[d.team].name : null;
+    fact('Draft', d ? d.year + ' · R' + d.round + ' #' + d.pick : 'Undrafted',
+      d ? 'Round ' + d.round + ', pick ' + d.pick + ' of the ' + d.year + ' draft' + (by ? ', by the ' + by : '') : null);
+    fact('Age', typeof sim.age === 'number' ? String(sim.age) : '–');
+    fact('Height', EGE.heightText(row) || '–');
+    fact('Weight', EGE.weightText(row) || '–');
+    panel.appendChild(facts);
+
+    /* Line three: how good, what kind, and the skills it comes from, best
+       first. */
+    var rating = el('div', 'ege-person__rating');
+    var ovr = overallBox(row.overall, 'ege-ovrbox--chip');
+    if (ovr) { rating.appendChild(ovr); }
+    var kind = el('div', 'ege-person__kind');
+    kind.appendChild(el('span', 'ege-person__arch', sim.archetype || POSITION_NAMES[sim.pos] || sim.pos));
+    var skills = el('ul', 'ege-person__skills');
+    Object.keys(sim.skills || {}).sort(function (a, b) { return sim.skills[b] - sim.skills[a]; })
+      .forEach(function (skill) {
+        var chip = el('li', 'ege-person__skill');
+        chip.appendChild(el('span', null, skillName(skill, sim.pos)));
+        chip.appendChild(el('b', null, String(sim.skills[skill])));
+        skills.appendChild(chip);
+      });
+    kind.appendChild(skills);
+    rating.appendChild(kind);
+    panel.appendChild(rating);
+
+    /* Line four: the contract, and anything keeping him off the field. */
+    var foot = el('dl', 'ege-person__deal');
+    function line(label, value) {
+      foot.appendChild(el('dt', null, label));
+      foot.appendChild(el('dd', null, value));
+    }
+    line('Contract', sim.contract
+      ? moneyText(sim.contract.apy) + ' a year through ' + sim.contract.through
+      : 'None');
+    if (sim.out) {
+      var what = String(sim.out.what || 'injured').replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); });
+      line('Injury', what + (sim.out.games ? ' · out ' + sim.out.games + ' more ' +
+        (sim.out.games === 1 ? 'game' : 'games') : ' · out for the season'));
+    }
+    panel.appendChild(foot);
+
+    if (row.player) {
+      var go = el('a', 'fb-btn fb-btn--primary ege-person__go', row.player.first + '’s page →');
+      go.href = '#' + row.player.slug;
+      go.addEventListener('click', function () { EGE.cardsView.closeOverlay(); });
+      panel.appendChild(go);
+    }
+    box.appendChild(panel);
+    stage.appendChild(box);
+
+    var close = stage.querySelector('.ege-rip__close');
+    if (close) { close.focus({ preventScroll: true }); }
+  }
+
+  /* Off the box closes it, as off a trophy does. */
+  document.getElementById('cardRip').addEventListener('click', function (e) {
+    if (!this.querySelector('.ege-rip__stage--person')) { return; }
+    if (e.target.closest('.ege-person')) { return; }
+    EGE.cardsView.closeOverlay();
+  });
+
   /* --- the teams ----------------------------------------------------------
 
      Laid out like the players: #teams is a card for every school one of the
@@ -1670,8 +1941,8 @@
 
   function pickTeamsSeason(year) {
     teamsPicked = year;
-    var key = currentTeamKey();
-    if (key) { renderTeam(key); } else { renderTeams(); }
+    var slug = currentTeamSlug();
+    if (slug) { renderTeam(slug); } else { renderTeams(); }
   }
 
   function wireTeamsBar(ids, yearsFor) {
@@ -1681,8 +1952,8 @@
     [[ids.prev, -1], [ids.next, 1]].forEach(function (pair) {
       document.getElementById(pair[0]).addEventListener('click', function () {
         var years = yearsFor();
-        var key = currentTeamKey();
-        var at = years.indexOf(key ? shownTeamSeason(key) : teamsIndexSeason());
+        var page = teamPage(currentTeamSlug());
+        var at = years.indexOf(page ? page.season : teamsIndexSeason());
         var next = years[at + pair[1]];
         if (next) { pickTeamsSeason(next); }
       });
@@ -1793,6 +2064,96 @@
       if (at && nfl.length) { grid.appendChild(el('hr', 'ege-teamgrid__divider')); }
       group.forEach(function (entry) { grid.appendChild(teamCard(entry, season)); });
     });
+    /* Under the six's teams, every NFL team in its division, each one the
+       way to its page. */
+    if (nfl.length) { grid.appendChild(nflStandingsBox(season)); }
+  }
+
+  /* --- every NFL team ------------------------------------------------------ */
+
+  var NFL_DIVISIONS = ['East', 'North', 'South', 'West'];
+
+  /* A division as it stands: { key, name, wins, losses, streak } top to
+     bottom. The site's own table where the season has one
+     (EGE.divisionTable, with the league's tie-breaks); otherwise counted
+     from every NFL result there is, best record first. */
+  function nflDivisionRows(conf, div, season) {
+    var keys = Object.keys(EGE.nfl.teams).filter(function (key) {
+      return EGE.nfl.teams[key].conf === conf && EGE.nfl.teams[key].div === div;
+    });
+    var table = EGE.divisionTable(EGE.nfl.teams[keys[0]].name, season);
+    if (table && table.nfl) {
+      return table.rows.map(function (row) {
+        return { key: EGE.nfl.keyByName(row.school), name: row.school, wins: row.wins,
+                 losses: row.losses, streak: row.streak };
+      });
+    }
+    var rows = keys.map(function (key) {
+      return { key: key, name: EGE.nfl.teams[key].name, wins: 0, losses: 0, streak: null };
+    });
+    EGE.nflResults(season).forEach(function (game) {
+      rows.forEach(function (row) {
+        var ours = game.home === row.name ? game.score[0] : game.away === row.name ? game.score[1] : null;
+        if (ours === null) { return; }
+        var theirs = game.home === row.name ? game.score[1] : game.score[0];
+        if (ours > theirs) { row.wins += 1; } else { row.losses += 1; }
+      });
+    });
+    function pct(row) { return row.wins + row.losses ? row.wins / (row.wins + row.losses) : 0.5; }
+    return rows.sort(function (a, b) { return (pct(b) - pct(a)) || (b.wins - a.wins) || a.name.localeCompare(b.name); });
+  }
+
+  /* Where an NFL team stands: its row and its place in the division. */
+  function nflStanding(key, season) {
+    var team = EGE.nfl.teams[key];
+    var rows = nflDivisionRows(team.conf, team.div, season);
+    var at = 0;
+    rows.forEach(function (row, i) { if (row.key === key) { at = i; } });
+    return { row: rows[at], place: rows[at].wins + rows[at].losses ? at + 1 : null,
+             league: team.conf + ' ' + team.div };
+  }
+
+  /* The sim's keys of the teams the six are on that season. */
+  function nflOurs(season) {
+    var ours = {};
+    EGE.teamsIn(season).forEach(function (entry) {
+      var key = entry.team.tier === 'nfl' ? EGE.nfl.keyForSite(entry.key) : null;
+      if (key) { ours[key] = true; }
+    });
+    return ours;
+  }
+
+  /* The whole league, a box for each division, every team a link to its
+     page and the six's teams picked out in orange. */
+  function nflStandingsBox(season) {
+    var ours = nflOurs(season);
+    var panel = el('section', 'fb-panel ege-nflstand');
+    var head = el('div', 'fb-panel__head');
+    head.appendChild(el('h3', null, 'NFL Standings'));
+    panel.appendChild(head);
+    var body = el('div', 'fb-panel__body ege-nflstand__grid');
+    ['AFC', 'NFC'].forEach(function (conf) {
+      NFL_DIVISIONS.forEach(function (div) {
+        var box = el('div', 'ege-nflstand__div');
+        box.appendChild(el('h4', 'ege-nflstand__title', conf + ' ' + div));
+        var list = el('ol', 'ege-nflstand__list');
+        nflDivisionRows(conf, div, season).forEach(function (row) {
+          var item = el('li');
+          var link = el('a', 'ege-nflstand__team' + (ours[row.key] ? ' is-ours' : ''));
+          link.href = '#teams/' + EGE.nfl.slug(row.key);
+          var mark = schoolMark(row.name);
+          if (mark) { link.appendChild(mark); }
+          link.appendChild(el('span', 'ege-nflstand__name', row.name));
+          link.appendChild(el('span', 'ege-nflstand__record', row.wins + '-' + row.losses));
+          item.appendChild(link);
+          list.appendChild(item);
+        });
+        box.appendChild(list);
+        body.appendChild(box);
+      });
+    });
+    panel.appendChild(body);
+    return panel;
   }
 
   /* --- a team's page ------------------------------------------------------ */
@@ -1807,15 +2168,46 @@
     return years.length ? years[years.length - 1] : null;
   }
 
-  function currentTeamKey() {
+  function currentTeamSlug() {
     var hash = window.location.hash.replace(/^#/, '');
-    return hash.indexOf('teams/') === 0 ? EGE.teamKeyBySlug(hash.slice(6)) : null;
+    return hash.indexOf('teams/') === 0 ? hash.slice(6) : null;
+  }
+
+  /* The seasons the NFL is on the site: the ones any of the six played in
+     it. */
+  function nflSeasons() {
+    return collegeSeasons().filter(function (year) {
+      return EGE.teamsIn(year).some(function (entry) { return entry.team.tier === 'nfl'; });
+    });
+  }
+
+  /* What #teams/{slug} opens: { key, nfl, years, season, entry }. A school
+     one of the six played for (`key`, its key in EGE.teams) has its whole
+     page in the seasons one of them was there. Every NFL team (`nfl`, the
+     sim's key) has a page every NFL season; with none of the six on it that
+     season, `entry` is null and the page is the team's roster and nothing
+     else -- no schedule, no standings (Sam, 2026-10-19). */
+  function teamPage(slug) {
+    var key = slug ? EGE.teamKeyBySlug(slug) : null;
+    var nfl = slug ? EGE.nfl.keyBySlug(slug) : null;
+    var season;
+    if (!nfl) {
+      if (!key) { return null; }
+      season = shownTeamSeason(key);
+      return { key: key, nfl: null, years: teamSeasons(key), season: season,
+               entry: season ? teamEntry(key, season) : null };
+    }
+    var years = nflSeasons();
+    var picked = teamsIndexSeason();
+    season = years.indexOf(picked) !== -1 ? picked : years[years.length - 1] || null;
+    return { key: key, nfl: nfl, years: years, season: season,
+             entry: key && season ? teamEntry(key, season) : null };
   }
 
   wireTeamsBar(INDEX_BAR, function () { return collegeSeasons(); });
   wireTeamsBar(TEAM_BAR, function () {
-    var key = currentTeamKey();
-    return key ? teamSeasons(key) : [];
+    var page = teamPage(currentTeamSlug());
+    return page ? page.years : [];
   });
 
   /* The header: the mark, the name, and what the season has come to. */
@@ -1870,7 +2262,45 @@
     fact(entry.players.length > 1 ? 'EGE Players' : 'EGE Player', ours);
   }
 
-  function renderTeamRoster(entry, season) {
+  /* The header of an NFL team none of the six are on: its mark, its name,
+     its record and where it stands in its division. */
+  function renderNflHead(key, season) {
+    var team = EGE.nfl.teams[key];
+    document.getElementById('teamStripLabel').textContent = teamSeasonText(season, { tier: 'nfl' });
+
+    var mark = document.getElementById('teamLogo');
+    mark.innerHTML = '';
+    var logo = null;
+    var src = EGE.nfl.logo(key, 160);
+    if (src) {
+      logo = el('img');
+      logo.src = src;
+      logo.alt = team.name;
+      logo.addEventListener('error', function () { logo.remove(); });
+      mark.appendChild(logo);
+    }
+    paintMark(mark, {}, logo);
+    document.getElementById('teamName').textContent = team.name;
+
+    var facts = document.getElementById('teamFacts');
+    facts.innerHTML = '';
+    var standing = nflStanding(key, season);
+    var record = el('span', 'ege-record', standing.row.wins + '-' + standing.row.losses);
+    if (standing.row.streak) {
+      record.appendChild(el('span', 'ege-record__dot', ' · '));
+      record.appendChild(el('span', 'ege-streak ege-streak--' + (standing.row.streak.won ? 'win' : 'loss'),
+        standing.row.streak.text + ' Streak'));
+    }
+    facts.appendChild(el('dt', null, 'Record'));
+    facts.appendChild(el('dd')).appendChild(record);
+    facts.appendChild(el('dt', null, 'Division'));
+    facts.appendChild(el('dd', null, (standing.place ? EGE.ordinal(standing.place) : 'TBD') + ' in ' + standing.league));
+  }
+
+  function renderTeamRoster(entry, season, nflKey) {
+    if (nflKey) { renderNflRoster(nflKey, season); return; }
+    nflShown = null;
+    document.getElementById('rosterSwitch').hidden = true;
     var body = document.getElementById('teamRosterBody');
     body.innerHTML = '';
     var rooms = EGE.rosterFor(entry.key, season);
@@ -1937,18 +2367,28 @@
     });
   }
 
-  function renderTeam(key) {
-    var season = shownTeamSeason(key);
-    var entry = season ? teamEntry(key, season) : null;
-    document.getElementById('teamMissing').hidden = Boolean(entry);
-    document.getElementById('teamContent').hidden = !entry;
-    if (!entry) { return; }
+  /* `slug` is the address after #teams/. */
+  function renderTeam(slug) {
+    var page = teamPage(slug);
+    var entry = page ? page.entry : null;
+    var found = Boolean(entry || (page && page.nfl && page.season));
+    document.getElementById('teamMissing').hidden = found;
+    document.getElementById('teamContent').hidden = !found;
+    if (!found) { return; }
 
-    fillTeamsBar(TEAM_BAR, teamSeasons(key), season);
-    renderTeamHead(entry, season);
-    renderTeamRoster(entry, season);
-    renderTeamStandings(entry, season);
-    renderTeamSchedule(entry, season);
+    fillTeamsBar(TEAM_BAR, page.years, page.season);
+    document.getElementById('teamSchedulePanel').hidden = !entry;
+    if (!entry) {
+      renderNflHead(page.nfl, page.season);
+      renderNflRoster(page.nfl, page.season);
+      document.getElementById('teamStandingsPanel').hidden = true;
+      document.title = EGE.nfl.teams[page.nfl].name + ' — EGE Football';
+      return;
+    }
+    renderTeamHead(entry, page.season);
+    renderTeamRoster(entry, page.season, page.nfl);
+    renderTeamStandings(entry, page.season);
+    renderTeamSchedule(entry, page.season);
     document.title = entry.team.school + ' — EGE Football';
   }
 
@@ -4898,6 +5338,7 @@
       wireEveryone();
     }
     sayAdmin('', false);
+    showAdminTab(adminTab());
 
     renderWebhooks();
 
@@ -4907,6 +5348,36 @@
       fillEditorWeeks();
       renderEditor();
     });
+  }
+
+  /* --- the admin page's tabs ---------------------------------------------
+
+     One part of the page at a time, picked in the bar at the top and kept in
+     the address (#admin/sim), so a reload or the back button comes back to
+     the same one. Plain #admin is the weeks. Every panel says which tab it
+     belongs to in data-admin-tab. */
+  var ADMIN_TABS = ['weeks', 'accounts', 'cards', 'sim', 'season'];
+
+  function adminTab() {
+    var hash = window.location.hash.replace(/^#/, '');
+    var tab = hash.indexOf('admin/') === 0 ? hash.slice(6) : '';
+    return ADMIN_TABS.indexOf(tab) !== -1 ? tab : 'weeks';
+  }
+
+  function showAdminTab(tab) {
+    Array.prototype.forEach.call(document.querySelectorAll('#adminTabs [data-tab]'), function (link) {
+      var on = link.dataset.tab === tab;
+      link.classList.toggle('is-active', on);
+      if (on) { link.setAttribute('aria-current', 'page'); } else { link.removeAttribute('aria-current'); }
+    });
+    /* The first panel showing sits straight under the bar. */
+    var first = true;
+    Array.prototype.forEach.call(document.querySelectorAll('#adminContent [data-admin-tab]'), function (panel) {
+      panel.hidden = panel.dataset.adminTab !== tab;
+      panel.classList.toggle('is-tabfirst', !panel.hidden && first);
+      if (!panel.hidden) { first = false; }
+    });
+    if (tab === 'sim') { EGE.nflSimAdmin.render(); }
   }
 
   /* --- the Discord channels ----------------------------------------------
@@ -5095,7 +5566,7 @@
     if (player) { renderPlayer(player); }
     /* The teams carry records and overalls too. */
     if (hash === 'teams') { renderTeams(); }
-    if (hash.indexOf('teams/') === 0) { renderTeam(EGE.teamKeyBySlug(hash.slice(6))); }
+    if (hash.indexOf('teams/') === 0) { renderTeam(hash.slice(6)); }
   }
 
   /* The inventory arrives after a page may already have been drawn, so redraw
@@ -5149,7 +5620,7 @@
     } else if (hash.indexOf('teams/') === 0) {
       show(viewTeam);
       setNav('teams');
-      renderTeam(EGE.teamKeyBySlug(hash.slice(6)));
+      renderTeam(hash.slice(6));
     } else if (hash === 'shop') {
       renderShop();
       show(viewShop);
@@ -5160,7 +5631,7 @@
       EGE.cardsView.render(hash.slice(6) || null);
       setNav('cards');
       document.title = 'Cards \u2014 EGE Football';
-    } else if (hash === 'admin') {
+    } else if (hash === 'admin' || hash.indexOf('admin/') === 0) {
       renderAdminView();
       show(viewAdmin);
       setNav('admin');

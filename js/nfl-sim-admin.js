@@ -1,0 +1,810 @@
+/* ==========================================================================
+   EGE Football — the NFL sim, on the admin page
+   The NFL Sim tab: the same sim as node nfl-sim/sim.js, run in the browser.
+   It plays the league a week, a stretch or a phase at a time, holds the
+   trades that wait for an approval, runs the offseason and the draft, and
+   hands the site what it needs:
+
+   - the six's games and every other NFL score, as stats/{year}.js and
+     data/nfl-results.js to download and commit, the way the Season File
+     panel's file is;
+   - every team's roster, published to nfl_sim_rosters for the Teams pages
+     (js/nfl-rosters.js) after each step.
+
+   The world -- every player, the games, the trade queue, and everything the
+   sim knows about how good a team is -- is kept in Supabase, in
+   nfl_sim_files, which only an admin can read. Team ratings are never shown
+   here or anywhere on the site.
+
+   The sim itself is js/nfl-sim.js (built by nfl-sim/build/bundle.js), about
+   1.4 MB, loaded the first time the tab is opened. Each step reads the
+   world, plays, and writes back only the files it changed; if anything goes
+   wrong, nothing is saved and the world is as it was.
+
+   js/app.js calls render() when the tab is opened.
+
+   Depends on: js/auth.js, js/exports.js, js/nfl-rosters.js, data/nfl.js.
+   ========================================================================== */
+
+window.EGE = window.EGE || {};
+
+EGE.nflSimAdmin = (function () {
+  'use strict';
+
+  var FILES = 'nfl_sim_files';
+  var ROSTERS = 'nfl_sim_rosters';
+  var SEED = 'ege-nfl';
+  var WORLD = 'supabase';
+  var PUBLISH_KEY = 'ege.nflSim.publishRosters';
+
+  var state = {
+    files: null,          /* name -> JSON text, once loaded */
+    stamps: {},           /* name -> updated_at when loaded or last saved */
+    dirty: {},
+    busy: false,
+    loading: null,
+    last: null,           /* { title, lines } from the last step */
+    error: null
+  };
+
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) { node.className = className; }
+    if (text != null) { node.textContent = text; }
+    return node;
+  }
+
+  function byId(id) { return document.getElementById(id); }
+
+  function client() { return EGE.auth && EGE.auth.supabaseClient ? EGE.auth.supabaseClient() : null; }
+
+  function note(text) { byId('nflSimNote').textContent = text || ''; }
+
+  function sim() { return EGE.nflSim; }
+
+  function teamName(key) { return EGE.nfl.teams[key] ? EGE.nfl.teams[key].name : key; }
+
+  function nick(key) { return teamName(key).split(' ').slice(-1)[0]; }
+
+  function publishing() {
+    try { return window.localStorage.getItem(PUBLISH_KEY) !== 'off'; } catch (e) { return true; }
+  }
+
+  /* --- the sim, loaded once --------------------------------------------- */
+
+  var bundle = null;
+  function loadBundle() {
+    if (EGE.nflSim) { return Promise.resolve(EGE.nflSim); }
+    if (!bundle) {
+      bundle = new Promise(function (resolve, reject) {
+        var script = document.createElement('script');
+        script.src = 'js/nfl-sim.js';
+        script.onload = function () {
+          if (EGE.nflSim) { resolve(EGE.nflSim); } else { reject(new Error('The NFL sim did not load.')); }
+        };
+        script.onerror = function () {
+          bundle = null;
+          reject(new Error('The NFL sim did not load. Check the connection and open the tab again.'));
+        };
+        document.head.appendChild(script);
+      });
+    }
+    return bundle;
+  }
+
+  /* --- the world in Supabase ----------------------------------------------
+
+     Each file gzipped and in base64 ("gz:..."), or as it is ("json:...") in
+     a browser with no CompressionStream. */
+
+  function canZip() {
+    return typeof window.CompressionStream === 'function' && typeof window.DecompressionStream === 'function';
+  }
+
+  function toBase64(bytes) {
+    var text = '';
+    for (var i = 0; i < bytes.length; i += 0x8000) {
+      text += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    }
+    return window.btoa(text);
+  }
+
+  function fromBase64(b64) {
+    var text = window.atob(b64);
+    var bytes = new Uint8Array(text.length);
+    for (var i = 0; i < text.length; i += 1) { bytes[i] = text.charCodeAt(i); }
+    return bytes;
+  }
+
+  function pack(text) {
+    if (!canZip()) { return Promise.resolve('json:' + text); }
+    var stream = new Blob([text]).stream().pipeThrough(new window.CompressionStream('gzip'));
+    return new Response(stream).arrayBuffer().then(function (buf) { return 'gz:' + toBase64(new Uint8Array(buf)); });
+  }
+
+  function unpack(body) {
+    if (body.indexOf('json:') === 0) { return Promise.resolve(body.slice(5)); }
+    if (body.indexOf('gz:') !== 0) { return Promise.resolve(body); }
+    if (!canZip()) {
+      return Promise.reject(new Error('This browser cannot open the saved world. Use a newer Chrome, Safari or Firefox.'));
+    }
+    var stream = new Blob([fromBase64(body.slice(3))]).stream().pipeThrough(new window.DecompressionStream('gzip'));
+    return new Response(stream).text();
+  }
+
+  function schemaHint(message) {
+    return message + (/nfl_sim_/.test(message) ? ' Run supabase/schema.sql again first.' : '');
+  }
+
+  function loadWorld() {
+    var c = client();
+    if (!c) { return Promise.reject(new Error('Not connected to Supabase.')); }
+    return c.from(FILES).select('name, body, updated_at').then(function (res) {
+      if (res.error) { throw new Error(schemaHint(res.error.message)); }
+      return Promise.all((res.data || []).map(function (row) {
+        return unpack(row.body).then(function (text) { return { name: row.name, text: text, at: row.updated_at }; });
+      }));
+    }).then(function (rows) {
+      state.files = {};
+      state.stamps = {};
+      state.dirty = {};
+      rows.forEach(function (row) {
+        state.files[row.name] = row.text;
+        state.stamps[row.name] = row.at;
+      });
+    });
+  }
+
+  /* Only what changed, and only if nobody has saved the world from
+     somewhere else since this page loaded it. */
+  function saveWorld() {
+    var names = Object.keys(state.dirty);
+    if (!names.length) { return Promise.resolve(); }
+    var c = client();
+    if (!c) { return Promise.reject(new Error('Not connected to Supabase.')); }
+    note('Saving…');
+    return c.from(FILES).select('name, updated_at').then(function (res) {
+      if (res.error) { throw new Error(schemaHint(res.error.message)); }
+      var moved = (res.data || []).some(function (row) { return state.stamps[row.name] !== row.updated_at; });
+      if (moved) {
+        throw new Error('The world was saved from another tab or device since this page loaded it. ' +
+          'Reload the page and try again; nothing from this step was kept.');
+      }
+      var now = new Date().toISOString();
+      return Promise.all(names.map(function (name) {
+        return pack(state.files[name]).then(function (body) { return { name: name, body: body, updated_at: now }; });
+      }));
+    }).then(function (rows) {
+      return c.from(FILES).upsert(rows, { onConflict: 'name' }).select('name, updated_at');
+    }).then(function (res) {
+      if (res.error) { throw new Error(schemaHint(res.error.message)); }
+      (res.data || []).forEach(function (row) { state.stamps[row.name] = row.updated_at; });
+      state.dirty = {};
+      note('Saved ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + '.');
+    });
+  }
+
+  /* Every team's players as the Teams pages show them, for the season the
+     league is in. Nothing private goes in (see publicRosters). */
+  function publishRosters(league) {
+    var c = client();
+    if (!c) { return Promise.reject(new Error('Not connected to Supabase.')); }
+    var rosters = sim().site.publicRosters(league);
+    return c.from(ROSTERS).upsert({ season: rosters.season, rosters: rosters, saved_at: rosters.savedAt },
+      { onConflict: 'season' }).then(function (res) {
+      if (res.error) { throw new Error(schemaHint(res.error.message)); }
+      EGE.nflRosters.set(rosters.season, rosters);
+    });
+  }
+
+  /* --- the league -------------------------------------------------------- */
+
+  /* The league as saved, read fresh: what every step starts from. */
+  function openLeague() {
+    sim().use(state.files, state.dirty, EGE);
+    return sim().run.open(WORLD, SEED);
+  }
+
+  function hasWorld() { return Boolean(state.files && state.files['league.json']); }
+
+  /* Runs `fn(league)` and keeps what it did: the league and every file it
+     wrote saved, the rosters published. Anything that throws -- the sim
+     refusing, or the save -- leaves the world as it was. */
+  function step(fn) {
+    if (state.busy) { return Promise.resolve(); }
+    state.busy = true;
+    state.error = null;
+    draw();
+    var before = Object.assign({}, state.files);
+    return new Promise(function (resolve) { window.setTimeout(resolve, 30); }).then(function () {
+      var league = openLeague();
+      var made = fn(league);
+      sim().run.save(league);
+      return saveWorld().then(function () {
+        state.last = made;
+        /* The step is kept whatever happens to the rosters; they can be
+           sent again with Update rosters now. */
+        return publishing() ? publishRosters(league).catch(function (err) {
+          state.error = 'Saved, but the Teams pages were not updated: ' + (err.message || err);
+        }) : null;
+      });
+    }).catch(function (err) {
+      state.files = before;
+      state.dirty = {};
+      state.error = err && err.message ? err.message : String(err);
+      note('');
+    }).then(function () {
+      state.busy = false;
+      draw();
+    });
+  }
+
+  /* --- what a step says it did ------------------------------------------- */
+
+  function scoreLine(g) {
+    return nick(g.away) + ' ' + g.score[1] + (g.neutral ? ' vs. ' : ' at ') + nick(g.home) + ' ' + g.score[0] + (g.ot ? ' (OT)' : '');
+  }
+
+  function injuryLines(list) {
+    return list.filter(function (i) { return i.games >= 3 || i.ege; }).map(function (i) {
+      return 'Injury: ' + i.name + ' (' + i.team + ', ' + i.pos + '), ' + i.what + ', ' +
+        (i.season ? 'out for the season' : 'out ' + i.games + ' weeks');
+    });
+  }
+
+  function weekLines(r) {
+    var lines = [(r.round || 'Week ' + r.week) + ': ' + r.games.map(scoreLine).join(', ')];
+    lines = lines.concat(injuryLines(r.injuries || []));
+    if (r.deadline) { lines.push('The trade deadline is open: ' + r.deadline + ' proposals are waiting below.'); }
+    return lines;
+  }
+
+  /* --- drawing ----------------------------------------------------------- */
+
+  function button(text, primary, onClick, disabled) {
+    var b = el('button', 'fb-btn' + (primary ? ' fb-btn--primary' : ''), text);
+    b.type = 'button';
+    b.disabled = Boolean(disabled) || state.busy;
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
+  function section(title, blurb) {
+    var box = el('div', 'ege-demo ege-sim__part');
+    box.appendChild(el('h4', 'ege-item__name', title));
+    if (blurb) { box.appendChild(el('p', 'fb-meta', blurb)); }
+    return box;
+  }
+
+  function row() { return el('div', 'fb-row fb-row--wrap ege-weekbar'); }
+
+  var ROUND_BUTTONS = {
+    'Wild Card': 'Wild Card round', Divisional: 'Divisional round',
+    'Conference Championship': 'Conference Championships', 'Super Bowl': 'Super Bowl'
+  };
+
+  var PHASES = {
+    preseason: 'Before kickoff', regular: 'Regular season', deadline: 'Trade deadline',
+    playoffs: 'Playoffs', offseason: 'Season over', draft: 'Offseason, before the draft'
+  };
+
+  /* The last NFL week out on the site, to take the sim up from. */
+  function lastPublished(season) {
+    var last = 0;
+    for (var week = 1; week <= 18; week += 1) {
+      if (EGE.isPublished(season, week)) { last = week; }
+    }
+    return last;
+  }
+
+  function drawStart(body) {
+    var part = section('Start the world',
+      'The league starts at the 2023 kickoff. Weeks the site has already put out are taken as they were ' +
+      'played -- the six’s games from their season file and everybody else’s real scores -- ' +
+      'and the sim plays every NFL game from the week after.');
+    var r = row();
+    var label = el('label', 'ege-field ege-field--inline');
+    label.appendChild(el('span', 'fb-eyebrow', 'Take from the site'));
+    var pick = el('select', 'fb-select');
+    var last = lastPublished(2023);
+    for (var week = 0; week <= 18; week += 1) {
+      var option = el('option', null, week ? 'Weeks 1–' + week : 'Nothing (sim from Week 1)');
+      if (week === 1) { option.textContent = 'Week 1'; }
+      option.value = week;
+      pick.appendChild(option);
+    }
+    pick.value = String(last);
+    label.appendChild(pick);
+    r.appendChild(label);
+    r.appendChild(button('Start the world', true, function () {
+      var through = Number(pick.value);
+      step(function (league) {
+        if (!through) { return { title: 'Started at the 2023 kickoff', lines: [] }; }
+        var got = sim().run.importSite(league, through);
+        var lines = ['Took Weeks ' + got.from + '–' + got.through + ' of ' + league.season + ' from the site: ' + got.games + ' games.'];
+        if (got.deadline) { lines.push('The trade deadline is open: ' + got.deadline + ' proposals are waiting below.'); }
+        return { title: 'Started the world', lines: lines };
+      });
+    }));
+    part.appendChild(r);
+    body.appendChild(part);
+  }
+
+  function drawPlay(body, league) {
+    var part = section('Play');
+    var r = row();
+    var season = sim().season;
+    var phase = league.phase;
+    if (phase === 'regular' || phase === 'deadline') {
+      var deadlineAhead = phase === 'regular' && league.week <= season.DEADLINE_WEEK;
+      r.appendChild(button('Play Week ' + league.week, true, function () {
+        step(function (l) { return { title: 'Week ' + l.week, lines: weekLines(sim().run.playNext(l)) }; });
+      }));
+      r.appendChild(button(deadlineAhead ? 'Play to the trade deadline' : 'Play the rest of the regular season', false, function () {
+        step(function (l) {
+          var lines = [];
+          sim().run.playOn(l).forEach(function (w) { lines = lines.concat(weekLines(w)); });
+          if (l.phase === 'playoffs') { lines.push('The regular season is over: the playoffs are next.'); }
+          return { title: deadlineAhead ? 'To the trade deadline' : 'The rest of the regular season', lines: lines };
+        });
+      }));
+      if (phase === 'deadline') {
+        part.appendChild(el('p', 'fb-meta',
+          'The trade deadline is open. Approve or reject the trades below; playing on closes it, and anything not approved expires.'));
+      }
+    } else if (phase === 'playoffs') {
+      var round = season.ROUNDS[league.playoffs.rounds.length];
+      r.appendChild(button('Play the ' + (ROUND_BUTTONS[round] || round), true, function () {
+        step(function (l) {
+          var got = sim().run.playNext(l);
+          var lines = weekLines(got);
+          if (l.playoffs.champion) { lines.push('Champion: ' + teamName(l.playoffs.champion) + '.'); }
+          return { title: got.round, lines: lines };
+        });
+      }));
+      r.appendChild(button('Play the rest of the playoffs', false, function () {
+        step(function (l) {
+          var got = sim().run.playPlayoffs(l);
+          var lines = [];
+          got.rounds.forEach(function (w) { lines = lines.concat(weekLines(w)); });
+          lines.push('Champion: ' + teamName(got.champion) + '.');
+          return { title: 'The playoffs', lines: lines };
+        });
+      }));
+    } else if (phase === 'offseason') {
+      part.appendChild(el('p', 'fb-meta',
+        'Aging, retirements, contracts, free agency and coaching changes, then the pre-draft trade proposals.'));
+      r.appendChild(button('Run the ' + (league.season + 1) + ' offseason', true, function () {
+        step(function (l) {
+          var got = sim().run.offseason(l);
+          var lines = [];
+          if (got.champion) { lines.push(teamName(got.champion) + ' won the Super Bowl.'); }
+          if (got.the99s.length) { lines.push('99s: ' + got.the99s.join('; ')); }
+          got.bigChanges.forEach(function (c) {
+            lines.push(c.name + ' (' + c.pos + ', ' + c.age + '): ' + c.before + ' to ' + c.after + (c.note ? ' (' + c.note + ')' : ''));
+          });
+          if (got.retired.length) { lines.push('Retired: ' + got.retired.join(', ')); }
+          if (got.capCasualties.length) { lines.push('Cap casualties: ' + got.capCasualties.join(', ')); }
+          if (got.leftInFreeAgency.length) { lines.push('Hit free agency: ' + got.leftInFreeAgency.join(', ')); }
+          if (got.signings.length) { lines.push('Signed: ' + got.signings.join('; ')); }
+          got.schemes.forEach(function (n) { lines.push(n); });
+          lines.push(got.trades.length + ' pre-draft trade proposals are waiting below.');
+          return { title: 'The ' + got.season + ' offseason', lines: lines };
+        });
+      }));
+    } else if (phase === 'draft') {
+      drawDraft(part, r, league);
+    }
+    part.appendChild(r);
+    body.appendChild(part);
+  }
+
+  /* Any of the six not in the league yet can be put on a team by hand, in a
+     round if wanted; left alone, he goes where the site has him or where
+     his grade takes him. */
+  function drawDraft(part, r, league) {
+    var inLeague = {};
+    league.players.forEach(function (p) { if (p.ege && p.status === 'active') { inLeague[p.ege] = true; } });
+    var waiting = EGE.players.filter(function (player) { return !inLeague[player.slug]; });
+    var picks = {};
+    if (waiting.length) {
+      part.appendChild(el('p', 'fb-meta',
+        'Where the six still in college go, if they are in this draft. Left on the sim’s pick, ' +
+        'each goes where the site has him or where his grade takes him.'));
+      waiting.forEach(function (player) {
+        var line = row();
+        line.appendChild(el('span', 'ege-sim__who', player.name));
+        var team = el('select', 'fb-select');
+        team.setAttribute('aria-label', player.name + '’s team');
+        var auto = el('option', null, 'The sim’s pick');
+        auto.value = '';
+        team.appendChild(auto);
+        Object.keys(EGE.nfl.teams).sort(function (a, b) { return teamName(a).localeCompare(teamName(b)); }).forEach(function (key) {
+          var option = el('option', null, teamName(key));
+          option.value = key;
+          team.appendChild(option);
+        });
+        var round = el('select', 'fb-select');
+        round.setAttribute('aria-label', player.name + '’s round');
+        var any = el('option', null, 'First pick they have');
+        any.value = '';
+        round.appendChild(any);
+        for (var n = 1; n <= 7; n += 1) {
+          var option = el('option', null, 'Round ' + n);
+          option.value = String(n);
+          round.appendChild(option);
+        }
+        picks[player.slug] = { team: team, round: round };
+        line.appendChild(team);
+        line.appendChild(round);
+        part.appendChild(line);
+      });
+    }
+    r.appendChild(button('Run the ' + league.season + ' draft', true, function () {
+      var place = {};
+      Object.keys(picks).forEach(function (slug) {
+        var key = picks[slug].team.value;
+        if (key) { place[slug] = key + (picks[slug].round.value ? ':' + picks[slug].round.value : ''); }
+      });
+      step(function (l) {
+        var got = sim().run.draft(l, place);
+        var lines = [];
+        if (got.expired) { lines.push(got.expired + ' trade proposals expired.'); }
+        got.draft.filter(function (d) { return (d.round === 1 || d.ege) && !d.undrafted; }).forEach(function (d) {
+          lines.push(d.n + '. ' + teamName(d.team) + ': ' + d.name + ' (' + d.pos + ', ' + d.ovr + ')' + (d.ege ? ' — one of the six' : ''));
+        });
+        got.draft.filter(function (d) { return d.undrafted; }).forEach(function (d) {
+          lines.push(d.name + ' was not drafted' + (d.team !== 'FA' ? ' and signs with the ' + teamName(d.team) + '.' : ' and is a free agent.'));
+        });
+        lines.push('Rosters are at 53 and the ' + l.season + ' schedule is set.');
+        return { title: 'The ' + got.season + ' draft', lines: lines };
+      });
+    }));
+  }
+
+  function drawTrades(body, league) {
+    var queue = sim().run.queue(league);
+    var part = section('Trades',
+      queue.length ? 'Nothing moves until you approve it. Anything not approved expires when the window closes.'
+        : 'Nothing is waiting. Trades are proposed at the deadline after Week 9 and before each draft.');
+    queue.forEach(function (t) {
+      var box = el('div', 'ege-sim__trade');
+      box.appendChild(el('p', 'ege-sim__deal', t.summary));
+      var why = el('ul', 'ege-sim__why');
+      (t.reasons || []).forEach(function (reason) { why.appendChild(el('li', null, reason)); });
+      box.appendChild(why);
+      var r = row();
+      r.appendChild(el('span', 'fb-meta', t.id + (t.ege ? ' · moves one of the six' : '') + (t.proposedBy === 'Sam' ? ' · yours' : '')));
+      r.appendChild(button('Approve', true, function () {
+        step(function (l) {
+          var notes = sim().run.approve(l, t.id) || [];
+          return { title: 'Approved ' + t.id, lines: [t.summary].concat(notes) };
+        });
+      }));
+      r.appendChild(button('Reject', false, function () {
+        step(function (l) { sim().run.reject(l, t.id); return { title: 'Rejected ' + t.id, lines: [t.summary] }; });
+      }));
+      box.appendChild(r);
+      part.appendChild(box);
+    });
+
+    /* A trade of your own, in the command line's words. */
+    var own = row();
+    var label = el('label', 'ege-field ege-sim__own');
+    label.appendChild(el('span', 'fb-eyebrow', 'Propose a trade'));
+    var input = el('input', 'fb-input');
+    input.type = 'text';
+    input.placeholder = 'DET: Andrew Parr, 2025 R2 / SEA: Kenneth Walker';
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    label.appendChild(input);
+    own.appendChild(label);
+    own.appendChild(button('Propose', false, function () {
+      var text = input.value.trim();
+      if (!text) { return; }
+      step(function (l) {
+        var t = sim().run.proposeOwn(l, text);
+        return { title: 'Proposed ' + t.id, lines: [t.summary].concat(t.reasons || []).concat(['Approve it above to make it happen.']) };
+      });
+    }));
+    part.appendChild(own);
+    body.appendChild(part);
+  }
+
+  function drawSix(body, league) {
+    var part = section('The six in the NFL');
+    var wrap = el('div', 'fb-tablewrap');
+    var table = el('table', 'fb-table');
+    var head = el('tr');
+    ['Player', 'Team', 'OVR', 'In the sim\u2019s games'].forEach(function (h) { head.appendChild(el('th', null, h)); });
+    var thead = el('thead');
+    thead.appendChild(head);
+    table.appendChild(thead);
+    var tbody = el('tbody');
+    var six = sim().run.sixNow(league);
+    six.forEach(function (s) {
+      var tr = el('tr');
+      tr.appendChild(el('td', null, s.name + (s.out ? ' (out: ' + s.out.what + ')' : '')));
+      tr.appendChild(el('td', null, s.teamName));
+      tr.appendChild(el('td', 'num', String(s.ovr)));
+      tr.appendChild(el('td', null, sim().run.sixLine(s) || '–'));
+      tbody.appendChild(tr);
+    });
+    if (!six.length) {
+      var none = el('tr');
+      var cell = el('td', null, 'None of the six are in the league yet.');
+      cell.colSpan = 4;
+      none.appendChild(cell);
+      tbody.appendChild(none);
+    }
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    part.appendChild(wrap);
+    body.appendChild(part);
+  }
+
+  function drawStandings(body, league) {
+    if (!league.schedule || !league.schedule.some(function (g) { return g.score; })) { return; }
+    var table = sim().standings.standings(league.schedule, league.season);
+    var part = el('details', 'ege-admin__help ege-sim__part');
+    part.appendChild(el('summary', null, league.season + ' standings in the sim'));
+    var grid = el('div', 'ege-sim__divs');
+    Object.keys(table.divisions).forEach(function (division) {
+      var box = el('div');
+      box.appendChild(el('h4', 'ege-nflstand__title', division));
+      var list = el('ol', 'ege-sim__div');
+      table.divisions[division].forEach(function (r) {
+        list.appendChild(el('li', null, teamName(r.key) + ' ' + sim().standings.recordText(r)));
+      });
+      box.appendChild(list);
+      grid.appendChild(box);
+    });
+    part.appendChild(grid);
+    body.appendChild(part);
+  }
+
+  /* The seasons the sim has played games of: the ones there is something
+     to write to the site for. */
+  function playedSeasons() {
+    return Object.keys(state.files || {}).map(function (name) {
+      var m = /^games-(\d{4})\.json$/.exec(name);
+      return m ? Number(m[1]) : null;
+    }).filter(Boolean).filter(function (year) {
+      return JSON.parse(state.files['games-' + year + '.json']).some(function (g) { return !g.imported && !g.playoff; });
+    }).sort();
+  }
+
+  function drawSite(body, league) {
+    var part = section('Put it on the site',
+      'Download both files and commit them: stats/{year}.js (the six’s games as the sim played them, ' +
+      'and their playoff games as they reach them) and data/nfl-results.js (every other NFL score). ' +
+      'Then publish the weeks on the Weeks tab as usual; nothing shows until a week is out.');
+    var years = playedSeasons();
+    var r = row();
+    if (!years.length) {
+      part.appendChild(el('p', 'fb-meta', 'The sim has not played a game of its own yet.'));
+    } else {
+      var label = el('label', 'ege-field ege-field--inline');
+      label.appendChild(el('span', 'fb-eyebrow', 'Season'));
+      var pick = el('select', 'fb-select');
+      years.slice().reverse().forEach(function (year) {
+        var option = el('option', null, String(year));
+        option.value = year;
+        pick.appendChild(option);
+      });
+      label.appendChild(pick);
+      r.appendChild(label);
+      r.appendChild(button('Download the season files', true, function () {
+        var year = Number(pick.value);
+        state.error = null;
+        var l = openLeague();
+        sim().site.siteFiles(l, year).then(function (files) {
+          if (!files) { throw new Error('The sim has not played any of ' + year + '.'); }
+          EGE.exports.download(year + '.js', files.stats);
+          window.setTimeout(function () { EGE.exports.download('nfl-results.js', files.results); }, 400);
+          state.last = { title: 'Downloaded ' + year + '.js and nfl-results.js',
+            lines: ['Put ' + year + '.js in stats/ and nfl-results.js in data/, then commit both. ' +
+              'The sim’s games start at Week ' + files.from + '.'] };
+          draw();
+        }).catch(function (err) {
+          state.error = err.message || String(err);
+          draw();
+        });
+      }));
+    }
+    part.appendChild(r);
+
+    var pub = row();
+    var check = el('label', 'ege-sim__check');
+    var box = el('input');
+    box.type = 'checkbox';
+    box.checked = publishing();
+    box.addEventListener('change', function () {
+      try { window.localStorage.setItem(PUBLISH_KEY, box.checked ? 'on' : 'off'); } catch (e) { /* kept for this visit only */ }
+    });
+    check.appendChild(box);
+    check.appendChild(el('span', null, 'Update the Teams pages’ rosters after every step'));
+    pub.appendChild(check);
+    pub.appendChild(button('Update rosters now', false, function () {
+      state.busy = true;
+      draw();
+      publishRosters(openLeague()).then(function () {
+        state.last = { title: 'Rosters updated', lines: ['The Teams pages show the ' + league.season + ' rosters as the sim has them now.'] };
+      }, function (err) { state.error = err.message || String(err); }).then(function () {
+        state.busy = false;
+        draw();
+      });
+    }));
+    part.appendChild(pub);
+    body.appendChild(part);
+  }
+
+  function drawWorld(body) {
+    var part = section('The world',
+      'Kept in Supabase, where only an admin can read it. A download is a copy to keep or to load back here later.');
+    var r = row();
+    r.appendChild(button('Download the world', false, function () {
+      var copy = { kind: 'ege-nfl-sim-world', savedAt: new Date().toISOString(), files: state.files };
+      var blob = new Blob([JSON.stringify(copy)], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var link = el('a');
+      link.href = url;
+      link.download = 'nfl-sim-world-' + new Date().toISOString().slice(0, 10) + '.json';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+    }, !hasWorld()));
+
+    var upload = el('input');
+    upload.type = 'file';
+    upload.accept = 'application/json,.json';
+    upload.hidden = true;
+    upload.addEventListener('change', function () {
+      var file = upload.files && upload.files[0];
+      if (!file) { return; }
+      file.text().then(function (text) {
+        var copy = JSON.parse(text);
+        if (!copy || copy.kind !== 'ege-nfl-sim-world' || !copy.files || !copy.files['league.json']) {
+          throw new Error('That is not a world downloaded from here.');
+        }
+        return replaceWorld(copy.files).then(function () {
+          state.last = { title: 'Loaded the world', lines: ['From ' + file.name + '.'] };
+        });
+      }).catch(function (err) { state.error = err.message || String(err); }).then(draw);
+    });
+    r.appendChild(upload);
+    r.appendChild(button('Load a world', false, function () { upload.click(); }));
+    part.appendChild(r);
+
+    var over = row();
+    var label = el('label', 'ege-field ege-field--inline');
+    label.appendChild(el('span', 'fb-eyebrow', 'Type RESET to start over'));
+    var confirm = el('input', 'fb-input');
+    confirm.type = 'text';
+    confirm.autocomplete = 'off';
+    confirm.spellcheck = false;
+    confirm.placeholder = 'RESET';
+    label.appendChild(confirm);
+    over.appendChild(label);
+    var reset = button('Start over', false, function () {
+      if (confirm.value.trim() !== 'RESET') { return; }
+      replaceWorld({}).then(function () {
+        state.last = { title: 'Started over', lines: ['The world is gone. Start it again above.'] };
+      }, function (err) { state.error = err.message || String(err); }).then(draw);
+    }, !hasWorld());
+    reset.disabled = true;
+    confirm.addEventListener('input', function () { reset.disabled = state.busy || confirm.value.trim() !== 'RESET'; });
+    over.appendChild(reset);
+    part.appendChild(over);
+    body.appendChild(part);
+  }
+
+  /* The whole world at once: every saved file out, these in. With none,
+     the published rosters go too, so the Teams pages fall back to the
+     committed ones until the world is started again. */
+  function replaceWorld(files) {
+    var c = client();
+    if (!c) { return Promise.reject(new Error('Not connected to Supabase.')); }
+    state.busy = true;
+    draw();
+    var names = Object.keys(files);
+    return c.from(FILES).delete().neq('name', '').then(function (res) {
+      if (res.error) { throw new Error(schemaHint(res.error.message)); }
+      if (names.length) { return null; }
+      return c.from(ROSTERS).delete().gte('season', 0).then(function (gone) {
+        if (gone.error) { throw new Error(schemaHint(gone.error.message)); }
+      });
+    }).then(function () {
+      state.files = {};
+      state.stamps = {};
+      state.dirty = {};
+      names.forEach(function (name) {
+        state.files[name] = files[name];
+        state.dirty[name] = true;
+      });
+      return saveWorld();
+    }).then(function () {
+      if (names.length && publishing()) { return publishRosters(openLeague()); }
+      return null;
+    }).then(function () {
+      state.busy = false;
+    }, function (err) {
+      state.busy = false;
+      throw err;
+    });
+  }
+
+  function drawStatus(body, league) {
+    var box = el('div', 'ege-sim__status');
+    var phase = PHASES[league.phase] || league.phase;
+    var next = league.phase === 'regular' || league.phase === 'deadline' ? ' · Week ' + league.week + ' next' : '';
+    box.appendChild(el('p', 'ege-sim__where', league.season + ' · ' + phase + next));
+    var pending = sim().run.queue(league).length;
+    if (pending) { box.appendChild(el('p', 'fb-meta', pending + (pending === 1 ? ' trade is' : ' trades are') + ' waiting for you.')); }
+    var champ = (league.history || []).slice(-1)[0];
+    if (champ && champ.champion) { box.appendChild(el('p', 'fb-meta', 'Last champion: ' + teamName(champ.champion) + ' (' + champ.season + ').')); }
+    body.appendChild(box);
+  }
+
+  function drawLast(body) {
+    if (!state.last) { return; }
+    var box = el('div', 'ege-sim__last');
+    box.appendChild(el('h4', 'ege-item__name', state.last.title));
+    if (state.last.lines.length) {
+      var list = el('ul', 'ege-sim__lines');
+      state.last.lines.forEach(function (line) { list.appendChild(el('li', null, line)); });
+      box.appendChild(list);
+    }
+    body.appendChild(box);
+  }
+
+  function draw() {
+    var body = byId('nflSimBody');
+    if (!body) { return; }
+    body.innerHTML = '';
+    if (state.error) { body.appendChild(el('p', 'ege-note ege-note--error', state.error)); }
+    if (state.busy) { body.appendChild(el('p', 'ege-note ege-note--ok', 'Working…')); }
+    if (!state.files) {
+      if (!state.error) { body.appendChild(el('p', 'fb-meta', 'Loading the sim…')); }
+      return;
+    }
+    if (!hasWorld()) {
+      drawLast(body);
+      drawStart(body);
+      return;
+    }
+    var league;
+    try {
+      league = openLeague();
+    } catch (err) {
+      body.appendChild(el('p', 'ege-note ege-note--error', 'The saved world would not open: ' + err.message));
+      drawWorld(body);
+      return;
+    }
+    drawStatus(body, league);
+    drawLast(body);
+    drawPlay(body, league);
+    drawTrades(body, league);
+    drawSix(body, league);
+    drawStandings(body, league);
+    drawSite(body, league);
+    drawWorld(body);
+  }
+
+  /* Opening the tab: the sim and the world the first time, then the page
+     as it stands. */
+  function render() {
+    if (state.files || state.busy) { draw(); return; }
+    if (state.loading) { return; }
+    draw();
+    state.loading = loadBundle().then(loadWorld).catch(function (err) {
+      state.error = err.message || String(err);
+    }).then(function () {
+      state.loading = null;
+      draw();
+    });
+  }
+
+  return { render: render };
+})();
