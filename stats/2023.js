@@ -143,94 +143,91 @@ EGE.stats[2023] = {
         result: null, booster: null, stats: null },
       { week: 10, date: '2023-11-12', kickoff: '4:05pm',
         opponent: 'Los Angeles Chargers', home: false, conference: false,
-        result: { teamScore: 45, opponentScore: 36 }, booster: null,
+        result: { teamScore: 28, opponentScore: 39 }, booster: null,
         stats: {
-          receptions: 8, receivingYards: 94, receivingYac: 32,
-          receivingTd: 1, receivingLong: 44, targets: 10, carries: 0,
+          receptions: 1, receivingYards: 25, receivingYac: 3,
+          receivingTd: 0, receivingLong: 25, targets: 3, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 11.8, totalYards: 94, totalTd: 1
-        },
-        bigPlays: [
-          '44 yard receiving touchdown'
-        ] },
+          receivingAvg: 25, totalYards: 25, totalTd: 0
+        } },
       { week: 11, date: '2023-11-19', kickoff: '1:00pm',
         opponent: 'Chicago Bears', home: true, conference: false, division: true,
-        result: { teamScore: 33, opponentScore: 27 }, booster: null,
+        result: { teamScore: 23, opponentScore: 10 }, booster: null,
         stats: {
-          receptions: 4, receivingYards: 40, receivingYac: 16,
-          receivingTd: 0, receivingLong: 28, targets: 6, carries: 0,
+          receptions: 6, receivingYards: 37, receivingYac: 16,
+          receivingTd: 1, receivingLong: 14, targets: 8, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 10, totalYards: 40, totalTd: 0
-        } },
-      { week: 12, date: '2023-11-23', kickoff: '12:30pm',
-        opponent: 'Green Bay Packers', home: true, conference: false, division: true,
-        result: { teamScore: 24, opponentScore: 36 }, booster: null,
-        stats: {
-          receptions: 3, receivingYards: 31, receivingYac: 15,
-          receivingTd: 0, receivingLong: 23, targets: 5, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 10.3, totalYards: 31, totalTd: 0
-        } },
-      { week: 13, date: '2023-12-03', kickoff: '1:00pm',
-        opponent: 'New Orleans Saints', home: false, conference: false,
-        result: { teamScore: 34, opponentScore: 31 }, booster: null,
-        stats: {
-          receptions: 4, receivingYards: 49, receivingYac: 18,
-          receivingTd: 0, receivingLong: 34, targets: 6, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 12.3, totalYards: 49, totalTd: 0
-        } },
-      { week: 14, date: '2023-12-10', kickoff: '1:00pm',
-        opponent: 'Chicago Bears', home: false, conference: false, division: true,
-        result: { teamScore: 11, opponentScore: 21 }, booster: null,
-        stats: {
-          receptions: 5, receivingYards: 40, receivingYac: 14,
-          receivingTd: 0, receivingLong: 16, targets: 7, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 8, totalYards: 40, totalTd: 0
-        } },
-      { week: 15, date: '2023-12-16', kickoff: '8:15pm',
-        opponent: 'Denver Broncos', home: true, conference: false,
-        result: { teamScore: 34, opponentScore: 16 }, booster: null,
-        stats: {
-          receptions: 4, receivingYards: 27, receivingYac: 11,
-          receivingTd: 0, receivingLong: 15, targets: 5, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 6.8, totalYards: 27, totalTd: 0
-        } },
-      { week: 16, date: '2023-12-24', kickoff: '1:00pm',
-        opponent: 'Minnesota Vikings', home: false, conference: false, division: true,
-        result: { teamScore: 31, opponentScore: 26 }, booster: null,
-        stats: {
-          receptions: 5, receivingYards: 54, receivingYac: 16,
-          receivingTd: 1, receivingLong: 40, targets: 6, carries: 0,
-          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 10.8, totalYards: 54, totalTd: 1
+          receivingAvg: 6.2, totalYards: 37, totalTd: 1
         },
         bigPlays: [
           '2 yard receiving touchdown'
         ] },
+      { week: 12, date: '2023-11-23', kickoff: '12:30pm',
+        opponent: 'Green Bay Packers', home: true, conference: false, division: true,
+        result: { teamScore: 41, opponentScore: 14 }, booster: null,
+        stats: {
+          receptions: 7, receivingYards: 94, receivingYac: 46,
+          receivingTd: 0, receivingLong: 31, targets: 8, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 13.4, totalYards: 94, totalTd: 0
+        } },
+      { week: 13, date: '2023-12-03', kickoff: '1:00pm',
+        opponent: 'New Orleans Saints', home: false, conference: false,
+        result: { teamScore: 24, opponentScore: 33 }, booster: null,
+        stats: {
+          receptions: 1, receivingYards: 6, receivingYac: 2,
+          receivingTd: 0, receivingLong: 6, targets: 3, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 6, totalYards: 6, totalTd: 0
+        } },
+      { week: 14, date: '2023-12-10', kickoff: '1:00pm',
+        opponent: 'Chicago Bears', home: false, conference: false, division: true,
+        result: { teamScore: 24, opponentScore: 17 }, booster: null,
+        stats: {
+          receptions: 7, receivingYards: 67, receivingYac: 24,
+          receivingTd: 0, receivingLong: 19, targets: 10, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 9.6, totalYards: 67, totalTd: 0
+        } },
+      { week: 15, date: '2023-12-16', kickoff: '8:15pm',
+        opponent: 'Denver Broncos', home: true, conference: false,
+        result: { teamScore: 41, opponentScore: 17 }, booster: null,
+        stats: {
+          receptions: 5, receivingYards: 43, receivingYac: 17,
+          receivingTd: 1, receivingLong: 11, targets: 6, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 8.6, totalYards: 43, totalTd: 1
+        },
+        bigPlays: [
+          '11 yard receiving touchdown'
+        ] },
+      { week: 16, date: '2023-12-24', kickoff: '1:00pm',
+        opponent: 'Minnesota Vikings', home: false, conference: false, division: true,
+        result: { teamScore: 17, opponentScore: 21 }, booster: null,
+        stats: {
+          receptions: 3, receivingYards: 20, receivingYac: 11,
+          receivingTd: 0, receivingLong: 9, targets: 4, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 6.7, totalYards: 20, totalTd: 0
+        } },
       { week: 17, date: '2023-12-30', kickoff: '8:15pm',
         opponent: 'Dallas Cowboys', home: false, conference: false,
-        result: { teamScore: 19, opponentScore: 23 }, booster: null,
+        result: { teamScore: 3, opponentScore: 32 }, booster: null,
         stats: {
-          receptions: 4, receivingYards: 55, receivingYac: 23,
-          receivingTd: 0, receivingLong: 36, targets: 6, carries: 0,
+          receptions: 5, receivingYards: 33, receivingYac: 4,
+          receivingTd: 0, receivingLong: 13, targets: 5, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 13.8, totalYards: 55, totalTd: 0
+          receivingAvg: 6.6, totalYards: 33, totalTd: 0
         } },
       { week: 18, date: '2024-01-07', kickoff: '1:00pm',
         opponent: 'Minnesota Vikings', home: true, conference: false, division: true,
-        result: { teamScore: 19, opponentScore: 24 }, booster: null,
+        result: { teamScore: 6, opponentScore: 19 }, booster: null,
         stats: {
-          receptions: 3, receivingYards: 27, receivingYac: 9,
-          receivingTd: 1, receivingLong: 19, targets: 6, carries: 0,
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 3, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 9, totalYards: 27, totalTd: 1
-        },
-        bigPlays: [
-          '19 yard receiving touchdown'
-        ] },
+          totalYards: 0, totalTd: 0
+        } },
     ],
 
     /* Cooper Clark — USC */
@@ -795,97 +792,88 @@ EGE.stats[2023] = {
         } },
       { week: 10, date: '2023-11-12', kickoff: '1:25pm',
         opponent: 'Washington Commanders', home: true, conference: false,
-        result: { teamScore: 35, opponentScore: 23 }, booster: null,
+        result: { teamScore: 23, opponentScore: 15 }, booster: null,
         stats: {
-          carries: 11, rushingYards: 61, rushingTd: 0, rushingLong: 14,
-          receptions: 1, receivingYards: 11, receivingYac: 11,
-          receivingTd: 0, receivingLong: 11, targets: 1, fumbles: 1,
-          rushingAvg: 5.5, receivingAvg: 11, totalYards: 72, totalTd: 0
+          carries: 8, rushingYards: 57, rushingTd: 0, rushingLong: 27,
+          receptions: 1, receivingYards: 2, receivingYac: 2,
+          receivingTd: 0, receivingLong: 2, targets: 2, fumbles: 0,
+          rushingAvg: 7.1, receivingAvg: 2, totalYards: 59, totalTd: 0
         } },
       { week: 11, date: '2023-11-19', kickoff: '1:25pm',
         opponent: 'Los Angeles Rams', home: false, conference: false, division: true,
-        result: { teamScore: 9, opponentScore: 15 }, booster: null,
+        result: { teamScore: 27, opponentScore: 23 }, booster: null,
         stats: {
-          carries: 11, rushingYards: 73, rushingTd: 0, rushingLong: 20,
-          receptions: 1, receivingYards: 8, receivingYac: 6,
-          receivingTd: 0, receivingLong: 8, targets: 1, fumbles: 0,
-          rushingAvg: 6.6, receivingAvg: 8, totalYards: 81, totalTd: 0
+          carries: 6, rushingYards: 18, rushingTd: 0, rushingLong: 9,
+          receptions: 2, receivingYards: 9, receivingYac: 3,
+          receivingTd: 0, receivingLong: 7, targets: 2, fumbles: 0,
+          rushingAvg: 3, receivingAvg: 4.5, totalYards: 27, totalTd: 0
         } },
       { week: 12, date: '2023-11-23', kickoff: '5:20pm',
         opponent: 'San Francisco 49ers', home: true, conference: false, division: true,
-        result: { teamScore: 17, opponentScore: 31 }, booster: null,
+        result: { teamScore: 6, opponentScore: 3 }, booster: null,
         stats: {
-          carries: 7, rushingYards: 23, rushingTd: 0, rushingLong: 8,
-          receptions: 2, receivingYards: 11, receivingYac: 10,
-          receivingTd: 1, receivingLong: 7, targets: 2, fumbles: 0,
-          rushingAvg: 3.3, receivingAvg: 5.5, totalYards: 34, totalTd: 1
-        },
-        bigPlays: [
-          '7 yard receiving touchdown'
-        ] },
+          carries: 6, rushingYards: 29, rushingTd: 0, rushingLong: 8,
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 1, fumbles: 0,
+          rushingAvg: 4.8, totalYards: 29, totalTd: 0
+        } },
       { week: 13, date: '2023-11-30', kickoff: '5:15pm',
         opponent: 'Dallas Cowboys', home: false, conference: false,
-        result: { teamScore: 45, opponentScore: 42 }, booster: null,
+        result: { teamScore: 3, opponentScore: 26 }, booster: null,
         stats: {
-          carries: 9, rushingYards: 55, rushingTd: 1, rushingLong: 33,
-          receptions: 2, receivingYards: 13, receivingYac: 13,
-          receivingTd: 0, receivingLong: 9, targets: 3, fumbles: 0,
-          rushingAvg: 6.1, receivingAvg: 6.5, totalYards: 68, totalTd: 1
-        },
-        bigPlays: [
-          '33 yard rushing touchdown'
-        ] },
+          carries: 5, rushingYards: 19, rushingTd: 0, rushingLong: 12,
+          receptions: 1, receivingYards: 7, receivingYac: 5,
+          receivingTd: 0, receivingLong: 7, targets: 1, fumbles: 0,
+          rushingAvg: 3.8, receivingAvg: 7, totalYards: 26, totalTd: 0
+        } },
       { week: 14, date: '2023-12-10', kickoff: '1:05pm',
         opponent: 'San Francisco 49ers', home: false, conference: false, division: true,
-        result: { teamScore: 23, opponentScore: 26 }, booster: null,
+        result: { teamScore: 10, opponentScore: 24 }, booster: null,
         stats: {
-          carries: 9, rushingYards: 44, rushingTd: 1, rushingLong: 19,
-          receptions: 1, receivingYards: 10, receivingYac: 9,
-          receivingTd: 0, receivingLong: 10, targets: 1, fumbles: 0,
-          rushingAvg: 4.9, receivingAvg: 10, totalYards: 54, totalTd: 1
-        },
-        bigPlays: [
-          '19 yard rushing touchdown'
-        ] },
+          carries: 8, rushingYards: 21, rushingTd: 0, rushingLong: 11,
+          receptions: 1, receivingYards: 16, receivingYac: 12,
+          receivingTd: 0, receivingLong: 16, targets: 1, fumbles: 0,
+          rushingAvg: 2.6, receivingAvg: 16, totalYards: 37, totalTd: 0
+        } },
       { week: 15, date: '2023-12-18', kickoff: '5:15pm',
         opponent: 'Philadelphia Eagles', home: true, conference: false,
-        result: { teamScore: 21, opponentScore: 13 }, booster: null,
+        result: { teamScore: 30, opponentScore: 17 }, booster: null,
         stats: {
-          carries: 12, rushingYards: 55, rushingTd: 1, rushingLong: 15,
-          receptions: 1, receivingYards: 7, receivingYac: 6,
-          receivingTd: 0, receivingLong: 7, targets: 1, fumbles: 0,
-          rushingAvg: 4.6, receivingAvg: 7, totalYards: 62, totalTd: 1
-        },
-        bigPlays: [
-          '6 yard rushing touchdown'
-        ] },
+          carries: 7, rushingYards: 24, rushingTd: 0, rushingLong: 15,
+          receptions: 1, receivingYards: 4, receivingYac: 4,
+          receivingTd: 0, receivingLong: 4, targets: 1, fumbles: 1,
+          rushingAvg: 3.4, receivingAvg: 4, totalYards: 28, totalTd: 0
+        } },
       { week: 16, date: '2023-12-24', kickoff: '10:00am',
         opponent: 'Tennessee Titans', home: false, conference: false,
-        result: { teamScore: 16, opponentScore: 18 }, booster: null,
+        result: { teamScore: 27, opponentScore: 7 }, booster: null,
         stats: {
-          carries: 10, rushingYards: 36, rushingTd: 0, rushingLong: 8,
-          receptions: 2, receivingYards: 14, receivingYac: 14,
-          receivingTd: 0, receivingLong: 10, targets: 3, fumbles: 0,
-          rushingAvg: 3.6, receivingAvg: 7, totalYards: 50, totalTd: 0
+          carries: 11, rushingYards: 30, rushingTd: 0, rushingLong: 14,
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
+          rushingAvg: 2.7, totalYards: 30, totalTd: 0
         } },
       { week: 17, date: '2023-12-31', kickoff: '1:05pm',
         opponent: 'Pittsburgh Steelers', home: true, conference: false,
-        result: { teamScore: 25, opponentScore: 34 }, booster: null,
+        result: { teamScore: 34, opponentScore: 3 }, booster: null,
         stats: {
-          carries: 13, rushingYards: 50, rushingTd: 0, rushingLong: 17,
-          receptions: 1, receivingYards: 7, receivingYac: 7,
-          receivingTd: 0, receivingLong: 7, targets: 1, fumbles: 0,
-          rushingAvg: 3.8, receivingAvg: 7, totalYards: 57, totalTd: 0
+          carries: 13, rushingYards: 65, rushingTd: 0, rushingLong: 21,
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
+          rushingAvg: 5, totalYards: 65, totalTd: 0
         } },
       { week: 18, date: '2024-01-07', kickoff: '1:25pm',
-        opponent: 'Arizona Cardinals', home: false, conference: false, division: true,
-        result: { teamScore: 27, opponentScore: 25 }, booster: null,
+        opponent: 'Arizona Cardinals', home: false, conference: false, division: true, overtime: true,
+        result: { teamScore: 23, opponentScore: 17 }, booster: null,
         stats: {
-          carries: 12, rushingYards: 59, rushingTd: 0, rushingLong: 20,
-          receptions: 1, receivingYards: 8, receivingYac: 8,
-          receivingTd: 0, receivingLong: 8, targets: 2, fumbles: 1,
-          rushingAvg: 4.9, receivingAvg: 8, totalYards: 67, totalTd: 0
-        } },
+          carries: 4, rushingYards: 25, rushingTd: 1, rushingLong: 11,
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
+          rushingAvg: 6.3, totalYards: 25, totalTd: 1
+        },
+        bigPlays: [
+          '5 yard rushing touchdown'
+        ] },
     ],
 
     /* Jaykeb Stewart — Houston Texans */
@@ -995,121 +983,115 @@ EGE.stats[2023] = {
           '11 yard passing touchdown'
         ] },
       { week: 10, date: '2023-11-12', kickoff: '12:00pm',
-        opponent: 'Cincinnati Bengals', home: false, conference: false, overtime: true,
-        result: { teamScore: 34, opponentScore: 37 }, booster: null,
+        opponent: 'Cincinnati Bengals', home: false, conference: false,
+        result: { teamScore: 13, opponentScore: 44 }, booster: null,
         stats: {
-          completions: 23, attempts: 34, passingYards: 249,
-          passingYac: 92, passingTd: 3, interceptions: 1, carries: 4,
-          rushingYards: 37, rushingTd: 1, rushingLong: 20, sacks: 1,
-          fumbles: 0, passingAvg: 10.8, rating: 106.1, rushingAvg: 9.3
-        },
-        bigPlays: [
-          '22 yard passing touchdown',
-          '16 yard passing touchdown',
-          '10 yard passing touchdown',
-          '3 yard rushing touchdown'
-        ] },
+          completions: 16, attempts: 33, passingYards: 193,
+          passingYac: 79, passingTd: 0, interceptions: 1, carries: 1,
+          rushingYards: 2, rushingTd: 0, rushingLong: 2, sacks: 5,
+          fumbles: 0, passingAvg: 12.1, rating: 54.2, rushingAvg: 2
+        } },
       { week: 11, date: '2023-11-19', kickoff: '12:00pm',
         opponent: 'Arizona Cardinals', home: true, conference: false,
-        result: { teamScore: 26, opponentScore: 20 }, booster: null,
+        result: { teamScore: 14, opponentScore: 24 }, booster: null,
         stats: {
-          completions: 22, attempts: 27, passingYards: 323,
-          passingYac: 155, passingTd: 2, interceptions: 0, carries: 4,
-          rushingYards: 16, rushingTd: 0, rushingLong: 7, sacks: 1,
-          fumbles: 0, passingAvg: 14.7, rating: 141.2, rushingAvg: 4
+          completions: 21, attempts: 32, passingYards: 295,
+          passingYac: 95, passingTd: 2, interceptions: 1, carries: 1,
+          rushingYards: 4, rushingTd: 0, rushingLong: 4, sacks: 2,
+          fumbles: 0, passingAvg: 14, rating: 103, rushingAvg: 4
         },
         bigPlays: [
-          '21 yard passing touchdown',
-          '4 yard passing touchdown'
+          '15 yard passing touchdown',
+          '1 yard passing touchdown'
         ] },
       { week: 12, date: '2023-11-26', kickoff: '12:00pm',
         opponent: 'Jacksonville Jaguars', home: true, conference: false, division: true,
-        result: { teamScore: 25, opponentScore: 24 }, booster: null,
+        result: { teamScore: 19, opponentScore: 24 }, booster: null,
         stats: {
-          completions: 18, attempts: 24, passingYards: 153,
-          passingYac: 78, passingTd: 1, interceptions: 1, carries: 2,
-          rushingYards: 11, rushingTd: 0, rushingLong: 9.5, sacks: 1,
-          fumbles: 0, passingAvg: 8.5, rating: 87.7, rushingAvg: 5.5
+          completions: 22, attempts: 34, passingYards: 264,
+          passingYac: 66, passingTd: 1, interceptions: 2, carries: 1,
+          rushingYards: 1, rushingTd: 0, rushingLong: 0, sacks: 3,
+          fumbles: 0, passingAvg: 12, rating: 73.7, rushingAvg: 1
         },
         bigPlays: [
-          '11 yard passing touchdown'
+          '27 yard passing touchdown'
         ] },
       { week: 13, date: '2023-12-03', kickoff: '12:00pm',
         opponent: 'Denver Broncos', home: true, conference: false,
-        result: { teamScore: 22, opponentScore: 20 }, booster: null,
+        result: { teamScore: 24, opponentScore: 17 }, booster: null,
         stats: {
-          completions: 22, attempts: 33, passingYards: 255,
-          passingYac: 134, passingTd: 3, interceptions: 1, carries: 6,
-          rushingYards: 22, rushingTd: 0, rushingLong: 9, sacks: 1,
-          fumbles: 0, passingAvg: 11.6, rating: 107.5, rushingAvg: 3.7
+          completions: 17, attempts: 23, passingYards: 201,
+          passingYac: 84, passingTd: 1, interceptions: 0, carries: 3,
+          rushingYards: -1, rushingTd: 0, rushingLong: 4, sacks: 2,
+          fumbles: 0, passingAvg: 11.8, rating: 114.6, rushingAvg: -0.3
         },
         bigPlays: [
-          '34 yard passing touchdown',
-          '10 yard passing touchdown',
-          '2 yard passing touchdown'
+          '12 yard passing touchdown'
         ] },
       { week: 14, date: '2023-12-10', kickoff: '12:00pm',
         opponent: 'New York Jets', home: false, conference: false,
-        result: { teamScore: 6, opponentScore: 36 }, booster: null,
+        result: { teamScore: 13, opponentScore: 23 }, booster: null,
         stats: {
-          completions: 21, attempts: 34, passingYards: 276,
-          passingYac: 122, passingTd: 1, interceptions: 0, carries: 8,
-          rushingYards: 50, rushingTd: 0, rushingLong: 13, sacks: 2,
-          fumbles: 0, passingAvg: 13.1, rating: 97.2, rushingAvg: 6.3
+          completions: 20, attempts: 30, passingYards: 239,
+          passingYac: 98, passingTd: 2, interceptions: 1, carries: 3,
+          rushingYards: 13, rushingTd: 0, rushingLong: 5, sacks: 1,
+          fumbles: 0, passingAvg: 12, rating: 99.2, rushingAvg: 4.3
+        },
+        bigPlays: [
+          '60 yard passing touchdown',
+          '3 yard passing touchdown'
+        ] },
+      { week: 15, date: '2023-12-17', kickoff: '12:00pm',
+        opponent: 'Tennessee Titans', home: false, conference: false, division: true,
+        result: { teamScore: 37, opponentScore: 17 }, booster: null,
+        stats: {
+          completions: 19, attempts: 32, passingYards: 216,
+          passingYac: 44, passingTd: 2, interceptions: 0, carries: 4,
+          rushingYards: 3, rushingTd: 0, rushingLong: 7, sacks: 3,
+          fumbles: 0, passingAvg: 11.4, rating: 100.5, rushingAvg: 0.8
+        },
+        bigPlays: [
+          '2 yard passing touchdown',
+          '11 yard passing touchdown'
+        ] },
+      { week: 16, date: '2023-12-24', kickoff: '12:00pm',
+        opponent: 'Cleveland Browns', home: true, conference: false,
+        result: { teamScore: 28, opponentScore: 40 }, booster: null,
+        stats: {
+          completions: 27, attempts: 40, passingYards: 248,
+          passingYac: 89, passingTd: 3, interceptions: 1, carries: 1,
+          rushingYards: 3, rushingTd: 0, rushingLong: 3, sacks: 2,
+          fumbles: 1, passingAvg: 9.2, rating: 98.8, rushingAvg: 3
+        },
+        bigPlays: [
+          '6 yard passing touchdown',
+          '12 yard passing touchdown',
+          '14 yard passing touchdown'
+        ] },
+      { week: 17, date: '2023-12-31', kickoff: '12:00pm',
+        opponent: 'Tennessee Titans', home: true, conference: false, division: true,
+        result: { teamScore: 19, opponentScore: 18 }, booster: null,
+        stats: {
+          completions: 21, attempts: 29, passingYards: 259,
+          passingYac: 86, passingTd: 1, interceptions: 1, carries: 1,
+          rushingYards: 8, rushingTd: 0, rushingLong: 8, sacks: 3,
+          fumbles: 0, passingAvg: 12.3, rating: 96.8, rushingAvg: 8
         },
         bigPlays: [
           '4 yard passing touchdown'
         ] },
-      { week: 15, date: '2023-12-17', kickoff: '12:00pm',
-        opponent: 'Tennessee Titans', home: false, conference: false, division: true,
-        result: { teamScore: 24, opponentScore: 13 }, booster: null,
-        stats: {
-          completions: 21, attempts: 31, passingYards: 240,
-          passingYac: 132, passingTd: 1, interceptions: 0, carries: 9,
-          rushingYards: 35, rushingTd: 0, rushingLong: 10, sacks: 2,
-          fumbles: 1, passingAvg: 11.4, rating: 101.5, rushingAvg: 3.9
-        },
-        bigPlays: [
-          '3 yard passing touchdown'
-        ] },
-      { week: 16, date: '2023-12-24', kickoff: '12:00pm',
-        opponent: 'Cleveland Browns', home: true, conference: false,
-        result: { teamScore: 36, opponentScore: 40 }, booster: null,
-        stats: {
-          completions: 19, attempts: 29, passingYards: 267,
-          passingYac: 103, passingTd: 2, interceptions: 0, carries: 2,
-          rushingYards: 8, rushingTd: 0, rushingLong: 6, sacks: 2,
-          fumbles: 0, passingAvg: 14.1, rating: 118, rushingAvg: 4
-        },
-        bigPlays: [
-          '29 yard passing touchdown',
-          '7 yard passing touchdown'
-        ] },
-      { week: 17, date: '2023-12-31', kickoff: '12:00pm',
-        opponent: 'Tennessee Titans', home: true, conference: false, division: true,
-        result: { teamScore: 21, opponentScore: 0 }, booster: null,
-        stats: {
-          completions: 13, attempts: 21, passingYards: 147,
-          passingYac: 76, passingTd: 1, interceptions: 1, carries: 3,
-          rushingYards: 40, rushingTd: 0, rushingLong: 25, sacks: 1,
-          fumbles: 1, passingAvg: 11.3, rating: 78.9, rushingAvg: 13.3
-        },
-        bigPlays: [
-          '44 yard passing touchdown'
-        ] },
       { week: 18, date: '2024-01-06', kickoff: '7:15pm',
         opponent: 'Indianapolis Colts', home: false, conference: false, division: true,
-        result: { teamScore: 19, opponentScore: 17 }, booster: null,
+        result: { teamScore: 30, opponentScore: 14 }, booster: null,
         stats: {
-          completions: 19, attempts: 29, passingYards: 165,
-          passingYac: 85, passingTd: 2, interceptions: 0, carries: 4,
-          rushingYards: 12, rushingTd: 1, rushingLong: 6, sacks: 1,
-          fumbles: 1, passingAvg: 8.7, rating: 103.4, rushingAvg: 3
+          completions: 22, attempts: 29, passingYards: 320,
+          passingYac: 138, passingTd: 2, interceptions: 1, carries: 4,
+          rushingYards: 2, rushingTd: 0, rushingLong: 4, sacks: 1,
+          fumbles: 0, passingAvg: 14.5, rating: 119.9, rushingAvg: 0.5
         },
         bigPlays: [
-          '5 yard passing touchdown',
-          '2 yard passing touchdown',
-          '3 yard rushing touchdown'
+          '15 yard passing touchdown',
+          '31 yard passing touchdown'
         ] },
     ],
   }
