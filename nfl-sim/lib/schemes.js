@@ -200,8 +200,7 @@ function centreOn(league) { centre = centreFrom(league.players); }
 
 function centreOf(scheme, pos) {
   if (!centre) {
-    const file = require('path').join(__dirname, '..', 'data', 'league-2023.json');
-    centre = centreFrom(JSON.parse(require('fs').readFileSync(file, 'utf8')).players);
+    centre = centreFrom(require('./io').data('league-2023.json').players);
   }
   return (centre[scheme.name] && centre[scheme.name][pos]) || 0;
 }

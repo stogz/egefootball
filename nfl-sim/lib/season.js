@@ -7,13 +7,20 @@
    Injuries carry over: a player hurt in a game misses the weeks the injury
    says, and his backup starts until he is back. Every player's season
    totals build up as the games are played, and each game's score, scoring
-   plays and top performers are kept in the world folder (games-YEAR.json).
+   plays and top performers are kept in the world folder (games-YEAR.json),
+   with the six's whole lines, touchdowns and injuries for their season file.
+
+   The six get one injury a season between them, the way Sam has always
+   drawn them (weighted by the injury rating, which is their durability
+   here): once one of them is hurt, the rest of the season spares them.
+
+   Weeks the website has already played can be taken as they happened
+   (importWeeks) instead of simulated, and the season goes on from there.
    ========================================================================== */
 
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
+const io = require('./io');
 const { playGame } = require('./game');
 const { standings } = require('./standings');
 const { scheduleFor } = require('./schedule');
@@ -24,19 +31,11 @@ const ROUNDS = ['Wild Card', 'Divisional', 'Conference Championship', 'Super Bow
 
 /* --------------------------------------------------------------- files -- */
 
-function worldFile(league, name) { return path.join(league.world, name); }
-
 function readWorld(league, name, fallback) {
-  const file = worldFile(league, name);
-  return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : fallback;
+  return io.has(league.world, name) ? io.read(league.world, name) : fallback;
 }
 
-function writeWorld(league, name, value) {
-  fs.mkdirSync(league.world, { recursive: true });
-  const file = worldFile(league, name);
-  fs.writeFileSync(file + '.tmp', JSON.stringify(value));
-  fs.renameSync(file + '.tmp', file);
-}
+function writeWorld(league, name, value) { io.write(league.world, name, value); }
 
 /* ---------------------------------------------------------------- start -- */
 
@@ -73,6 +72,35 @@ function lastWeek(league) {
 
 /* ---------------------------------------------------------------- games -- */
 
+/* A touchdown that put its team ahead late (the fourth quarter or
+   overtime) and was never caught after. */
+function winning(result, td) {
+  if (!(td.ot || td.qtr >= 4) || result.winner !== result[td.side ? 'away' : 'home']) { return false; }
+  if (td.before[td.side] > td.before[1 - td.side]) { return false; }
+  return result.scoring.slice(td.at).every((s) => s.score[td.side] > s.score[1 - td.side]);
+}
+
+/* What the six did in a game, for their season file: the line, the
+   touchdowns they scored or threw, what hurt them in it, or what kept them
+   out of it. Keyed by slug. */
+function sixIn(league, game, result) {
+  const out = {};
+  [game.home, game.away].forEach((key) => {
+    (league.byTeam.get(key) || []).forEach((p) => {
+      if (!p.ege) { return; }
+      const entry = { team: key };
+      if (result.box[p.id]) { entry.line = result.box[p.id]; }
+      if (p.injury && !p.injury.fresh) { entry.out = p.injury.what; }
+      const hurt = result.injuries.filter((i) => i.id === p.id)[0];
+      if (hurt) { entry.hurt = { what: hurt.what, games: hurt.games }; }
+      const tds = (result.tds || []).filter((t) => t.id === p.id || t.qb === p.id);
+      if (tds.length) { entry.tds = tds.map((t) => ({ how: t.how, yards: t.yards, mine: t.id === p.id, winning: winning(result, t) })); }
+      out[p.ege] = entry;
+    });
+  });
+  return out;
+}
+
 /* Adds a game's box score to the season totals and keeps a short record of
    the game. */
 function record(league, game, result, log) {
@@ -93,7 +121,8 @@ function record(league, game, result, log) {
     home: game.home, away: game.away, score: result.score, ot: result.ot || undefined,
     scoring: result.scoring.map((s) => 'Q' + s.qtr + ' ' + s.clock + ' ' + s.team + ' ' + s.text + ' (' + s.score.join('-') + ')'),
     passing: leaders('passYds'), rushing: leaders('rushYds'), receiving: leaders('recYds'),
-    injuries: result.injuries.map((i) => i.name + ' (' + i.team + ', ' + i.what + ', ' + (i.season ? 'season' : i.games + ' wk') + ')')
+    injuries: result.injuries.map((i) => i.name + ' (' + i.team + ', ' + i.what + ', ' + (i.season ? 'season' : i.games + ' wk') + ')'),
+    six: sixIn(league, game, result)
   });
 }
 
@@ -102,6 +131,7 @@ function hurt(league, injuries) {
     const p = league.byId.get(i.id);
     if (!p) { return; }
     p.injury = { games: i.games, what: i.what, season: league.season, week: league.week, fresh: true };
+    if (p.ege) { league.egeHurt = league.season; }
   });
 }
 
@@ -116,7 +146,8 @@ function heal(league) {
 }
 
 function play(league, game, rng, opts) {
-  return playGame(side(league, game.home), side(league, game.away), rng, opts);
+  const spareEge = league.egeHurt === league.season;
+  return playGame(side(league, game.home), side(league, game.away), rng, Object.assign({ spareEge }, opts));
 }
 
 /* Plays the current week. Returns what happened, for the report. */
@@ -147,6 +178,47 @@ function playWeek(league, rng, hooks) {
     if (proposals && proposals.length) { league.phase = 'deadline'; out.deadline = proposals.length; }
   }
   if (week >= lastWeek(league)) {
+    if (league.phase === 'deadline' && hooks && hooks.closeDeadline) { hooks.closeDeadline(league); }
+    startPlayoffs(league);
+  }
+  return out;
+}
+
+/* Weeks the website has already played, from the week the league is on
+   through `through`: each game's real score (or the six's, from their
+   season file) goes into the schedule as if it had been simulated. Nobody
+   gets a box score for them, injuries heal a week at a time, and the trade
+   deadline comes round after Week 9 as usual. `results` are
+   { week, home, away, score: [home, away], ot } with team keys; which side
+   is listed as home does not matter. `egeHurt` says one of the six has
+   already had his injury this season. */
+function importWeeks(league, results, through, hooks, opts) {
+  if (league.phase !== 'regular') { throw new Error('Weeks can only be taken in during the regular season (phase: ' + league.phase + ').'); }
+  const last = Math.min(through, lastWeek(league));
+  if (last < league.week) { throw new Error('The league is already past Week ' + through + '.'); }
+  const log = readWorld(league, 'games-' + league.season + '.json', []);
+  const out = { from: league.week, through: last, games: 0 };
+  for (let week = league.week; week <= last; week += 1) {
+    league.schedule.filter((g) => g.week === week && !g.score).forEach((g) => {
+      const found = results.filter((r) => r.week === week &&
+        ((r.home === g.home && r.away === g.away) || (r.home === g.away && r.away === g.home)))[0];
+      if (!found) { throw new Error('No Week ' + week + ' result for ' + g.away + ' at ' + g.home + '.'); }
+      g.score = found.home === g.home ? found.score.slice() : [found.score[1], found.score[0]];
+      if (found.ot) { g.ot = true; }
+      g.imported = true;
+      log.push({ season: league.season, week, home: g.home, away: g.away, score: g.score, ot: g.ot || undefined, imported: true });
+      out.games += 1;
+    });
+    heal(league);
+    league.week = week + 1;
+    if (week === DEADLINE_WEEK && hooks && hooks.deadline) {
+      const proposals = hooks.deadline(league);
+      if (proposals && proposals.length) { league.phase = 'deadline'; out.deadline = proposals.length; }
+    }
+  }
+  if (opts && opts.egeHurt) { league.egeHurt = league.season; }
+  writeWorld(league, 'games-' + league.season + '.json', log);
+  if (league.week > lastWeek(league)) {
     if (league.phase === 'deadline' && hooks && hooks.closeDeadline) { hooks.closeDeadline(league); }
     startPlayoffs(league);
   }
@@ -254,4 +326,5 @@ function draftOrder(league) {
   });
 }
 
-module.exports = { startSeason, playWeek, playRound, startPlayoffs, draftOrder, readWorld, writeWorld, lastWeek, DEADLINE_WEEK, ROUNDS };
+module.exports = { startSeason, playWeek, playRound, importWeeks, startPlayoffs, draftOrder, readWorld, writeWorld, lastWeek,
+                   DEADLINE_WEEK, ROUNDS };

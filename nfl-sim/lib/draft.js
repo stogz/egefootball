@@ -18,8 +18,7 @@
 
 'use strict';
 
-const path = require('path');
-const fs = require('fs');
+const io = require('./io');
 const { skillsFrom, archetypeOf, SKILLS } = require('./skills');
 const { fitOf, schemeFor } = require('./schemes');
 const { capFor, pickPoints, POSITION } = require('./value');
@@ -68,8 +67,7 @@ function rookiePay(pick, season) {
 /* --------------------------------------------------------------- classes -- */
 
 function realClass(season) {
-  const file = path.join(__dirname, '..', 'data', 'prospects.json');
-  const all = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const all = io.data('prospects.json');
   return { list: all.classes[season] || null, ege: (all.ege && all.ege[season]) || [] };
 }
 
@@ -93,7 +91,7 @@ function toPlayer(pr, season, rng) {
   const skills = skillsFrom(pr.pos, ovr, z);
   return {
     id: pr.id, name: pr.name, pos: pr.pos, team: null, born: pr.born, age,
-    height: pr.height, weight: pr.weight, college: pr.college, entry: season,
+    height: pr.height, weight: pr.weight, college: pr.college, entry: season, espn: pr.espn || undefined,
     ovr, pot: Math.round(clamp(pot, ovr, 97)),
     skills, archetype: archetypeOf(pr.pos, skills, ovr),
     longevity: Math.round(clamp(50 + rng.gauss() * 12, 15, 90)),
@@ -225,7 +223,7 @@ function runDraft(league, order, rng, place) {
     taken.add(choice.id);
     choice.team = team.key;
     choice.status = 'active';
-    choice.draft = { year: season, round: slot.round, pick: slot.n };
+    choice.draft = { year: season, round: slot.round, pick: slot.n, team: team.key };
     choice.contract = { through: season + 3, apy: rookiePay(slot.n, season) };
     delete choice.siteTeam;
     if (!league.byId.has(choice.id)) { league.players.push(choice); league.byId.set(choice.id, choice); }

@@ -173,7 +173,9 @@ function main() {
       weight: num(r.weight) || num(person.weight),
       college: r.college || person.college_name || null,
       entry: num(r.entry_year) || num(person.rookie_season),
-      draft: { year: num(person.draft_year), round: num(person.draft_round), pick: num(r.draft_number) || num(person.draft_pick) },
+      draft: { year: num(person.draft_year), round: num(person.draft_round), pick: num(r.draft_number) || num(person.draft_pick),
+               team: r.draft_club || person.draft_team || undefined },
+      espn: r.espn_id || person.espn_id || undefined,
       status: r.status === 'RES' ? 'injured' : 'active',
       pfr: person.pfr_id || null,
       otc: person.otc_id || null
@@ -197,13 +199,14 @@ function main() {
         pos: simPos(person.pff_position, r.depth_chart_position, r.position),
         born: r.birth_date || person.birth_date || null, height: num(r.height), weight: num(r.weight),
         college: r.college || null, entry: 2023, draft: {}, status: 'injured',
+        espn: r.espn_id || person.espn_id || undefined,
         pfr: person.pfr_id || null, otc: person.otc_id || null
       };
       players.set(p.id, p);
     }
     if (!p) { process.stderr.write('Mock pick not on a 2023 roster: ' + name + '\n'); return; }
     p.team = team;
-    p.draft = { year: 2023, round: pick <= 31 ? 1 : pick <= 63 ? 2 : pick <= 102 ? 3 : pick <= 135 ? 4 : pick <= 177 ? 5 : 6, pick };
+    p.draft = { year: 2023, round: pick <= 31 ? 1 : pick <= 63 ? 2 : pick <= 102 ? 3 : pick <= 135 ? 4 : pick <= 177 ? 5 : 6, pick, team };
   });
 
   /* Judge every season at the position he plays now. */
@@ -355,7 +358,7 @@ function main() {
       const pick = { 'jaykeb-stewart': 2, 'andrew-parr': 18, 'sam-stogsdill': 52 }[slug] || null;
       egePlayers.push(Object.assign(player, {
         team, age: ageOn(player.born, SEASON), entry: SEASON, status: 'active',
-        draft: { year: SEASON, round: pick && pick <= 31 ? 1 : 2, pick },
+        draft: { year: SEASON, round: pick && pick <= 31 ? 1 : 2, pick, team },
         contract: { through: SEASON + 3, apy: rookieScale(pick) },
         archetype: archetypeOf(player.pos, player.skills, player.ovr)
       }));
@@ -502,6 +505,7 @@ function cleanPlayer(p) {
     college: p.college || undefined,
     entry: p.entry,
     draft: p.draft && p.draft.pick ? p.draft : undefined,
+    espn: p.espn || undefined,
     ovr: p.ovr,
     pot: p.pot,
     skills: p.skills,
@@ -534,6 +538,7 @@ function buildProspects(people, combine, realRating, meaningful, evidence, egeSl
       name: r.pfr_player_name,
       pos,
       college: r.college,
+      espn: person.espn_id || undefined,
       born,
       age: num(r.age),
       height: inches(person.height) || null,

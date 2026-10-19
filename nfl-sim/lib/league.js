@@ -9,33 +9,33 @@
 
    Every load re-reads the six from the website (lib/ege.js), so a rating
    bought or trained on the site is in the next simulated game.
+
+   On the admin page the world is not a folder but what the page loaded from
+   Supabase (lib/io.js); `world` is then only a name.
    ========================================================================== */
 
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
+const io = require('./io');
 const { sixFromSite } = require('./ege');
 const { marketPay } = require('./value');
 const { centreOn } = require('./schemes');
 
-const DATA = path.join(__dirname, '..', 'data');
 const PROJECT_WORLD = '/mnt/project-files/nfl-sim/world';
 
 function worldDir(explicit) {
+  const fs = require('fs');
+  const path = require('path');
   if (explicit) { return path.resolve(explicit); }
   if (process.env.NFL_SIM_WORLD) { return path.resolve(process.env.NFL_SIM_WORLD); }
   if (fs.existsSync('/mnt/project-files')) { return PROJECT_WORLD; }
   return path.join(__dirname, '..', 'world');
 }
 
-function readJson(file) { return JSON.parse(fs.readFileSync(file, 'utf8')); }
-
-/* The league as it stands: the saved world, or the 2023 kickoff league. */
-function loadLeague(dir) {
-  const world = worldDir(dir);
-  const saved = path.join(world, 'league.json');
-  const league = fs.existsSync(saved) ? readJson(saved) : readJson(path.join(DATA, 'league-2023.json'));
+/* The league as it stands: the saved world, or the 2023 kickoff league.
+   `world` is a folder on the command line and a name on the admin page. */
+function loadLeague(world) {
+  const league = io.has(world, 'league.json') ? io.read(world, 'league.json') : io.data('league-2023.json');
   league.world = world;
   fillPay(league);
   syncSix(league);
@@ -55,14 +55,11 @@ function fillPay(league) {
 }
 
 function saveLeague(league) {
-  fs.mkdirSync(league.world, { recursive: true });
   const out = Object.assign({}, league);
   delete out.world;
   delete out.byId;
   delete out.byTeam;
-  const file = path.join(league.world, 'league.json');
-  fs.writeFileSync(file + '.tmp', JSON.stringify(out));
-  fs.renameSync(file + '.tmp', file);
+  io.write(league.world, 'league.json', out);
 }
 
 /* Lookups rebuilt after anything moves. */
@@ -94,4 +91,4 @@ function teamOf(league, key) { return league.teams.find((t) => t.key === key); }
 function rosterOf(league, key) { return league.byTeam.get(key) || []; }
 function side(league, key) { return { team: teamOf(league, key), roster: rosterOf(league, key) }; }
 
-module.exports = { loadLeague, saveLeague, index, syncSix, teamOf, rosterOf, side, worldDir, readJson, DATA };
+module.exports = { loadLeague, saveLeague, index, syncSix, teamOf, rosterOf, side, worldDir };

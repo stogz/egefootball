@@ -20,8 +20,8 @@
 
 'use strict';
 
-const path = require('path');
-const { readJson, index, syncSix, DATA } = require('./lib/league');
+const io = require('./lib/io');
+const { index, syncSix } = require('./lib/league');
 const { playGame } = require('./lib/game');
 const { seeded } = require('./lib/rng');
 
@@ -31,7 +31,7 @@ function arg(name, fallback) {
 }
 
 function kickoffLeague() {
-  const league = readJson(path.join(DATA, 'league-2023.json'));
+  const league = io.data('league-2023.json');
   syncSix(league);
   index(league);
   return league;
@@ -60,7 +60,7 @@ function main() {
   const runs = Number(arg('runs', 3));
   const seed = Number(arg('seed', 2023));
   const league = kickoffLeague();
-  const bench = readJson(path.join(DATA, 'benchmarks-2023.json'));
+  const bench = io.data('benchmarks-2023.json');
   const games = bench.games.filter((g) => g.type === 'REG');
   const rng = seeded(seed);
 

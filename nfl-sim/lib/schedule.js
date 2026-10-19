@@ -10,16 +10,14 @@
 
 'use strict';
 
-const path = require('path');
-const fs = require('fs');
+const io = require('./io');
 const { TEAMS, KEYS } = require('./teams');
 const { seeded } = require('./rng');
 
 const DIVS = ['East', 'North', 'South', 'West'];
 
 function realSchedule(season) {
-  const file = path.join(__dirname, '..', 'data', 'schedules.json');
-  const all = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const all = io.data('schedules.json');
   return all[season] ? all[season].map((g) => ({ week: g.week, home: g.home, away: g.away, neutral: g.neutral || undefined })) : null;
 }
 

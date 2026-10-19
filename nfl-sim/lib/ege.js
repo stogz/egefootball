@@ -16,12 +16,8 @@
 
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
-const vm = require('vm');
+const io = require('./io');
 const { SKILLS, skillsFrom } = require('./skills');
-
-const ROOT = path.join(__dirname, '..', '..');
 
 /* Born in 2001: they were high school juniors in 2018. Nothing on the
    site says otherwise, and the sim needs an age. */
@@ -53,17 +49,9 @@ const FROM_SITE = {
   }
 };
 
-/* The website's EGE object, loaded the way tools/ load it. */
-function loadSite() {
-  const sandbox = { document: {} };
-  sandbox.window = sandbox;
-  vm.createContext(sandbox);
-  ['data/players.js', 'data/season.js', 'data/ratings.js', 'data/shop.js', 'data/economy.js'].forEach((rel) => {
-    const file = path.join(ROOT, rel);
-    vm.runInContext(fs.readFileSync(file, 'utf8'), sandbox, { filename: file });
-  });
-  return sandbox.EGE;
-}
+/* The website's EGE object: loaded from its files on the command line, and
+   the page's own on the admin page (lib/io.js). */
+function loadSite() { return io.site(); }
 
 function average(values, keys) {
   const found = keys.map((k) => values[k]).filter((v) => typeof v === 'number');

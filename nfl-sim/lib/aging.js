@@ -181,8 +181,7 @@ function scaleOf(players, pos) {
 
 function holdScale(league) {
   if (!kickoffScale) {
-    const file = require('path').join(__dirname, '..', 'data', 'league-2023.json');
-    const kickoff = JSON.parse(require('fs').readFileSync(file, 'utf8')).players;
+    const kickoff = require('./io').data('league-2023.json').players;
     kickoffScale = {};
     Object.keys(SCALE_GROUP).forEach((pos) => { kickoffScale[pos] = scaleOf(kickoff, pos); });
   }

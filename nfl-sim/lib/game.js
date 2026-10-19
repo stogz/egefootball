@@ -22,6 +22,11 @@
    Players get hurt during the game (more often the less durable they are)
    and the next man up plays the rest of it.
 
+   No back, receiver or tight end scores a fourth touchdown in a game (Sam's
+   rule for the six, kept for everybody): once he has three he is not the
+   one the ball goes to near the goal line, and anything that would have
+   been his fourth stops a yard short.
+
    Numbers are tuned so a league of average teams plays like the 2023 NFL;
    node nfl-sim/check.js holds it to that.
    ========================================================================== */
@@ -148,6 +153,20 @@ function stat(g, side, p, key, n) {
   line[key] = (line[key] || 0) + n;
 }
 
+/* Three touchdowns already, for anybody but a quarterback. */
+function capped(g, p) {
+  if (!p || p.pos === 'QB') { return false; }
+  const line = g.box[p.id];
+  return Boolean(line) && (line.recTd || 0) + (line.rushTd || 0) >= 3;
+}
+
+/* A touchdown as the six's season file wants it: who scored, how, from
+   where, when, and who threw it. */
+function scoring(g, side, how, p, yards, qb) {
+  g.tds.push({ side, how, id: p.id, yards, qb: qb ? qb.id : undefined, qtr: g.qtr, clock: Math.round(g.clock),
+               before: g.score.slice(), ot: !!g.ot, at: g.scoring.length });
+}
+
 function longest(g, side, p, key, n) {
   if (!p || p.standIn) { return; }
   stat(g, side, p, key, 0);
@@ -168,6 +187,7 @@ function scored(g, side, kind, text) {
 
 function hurt(g, side, p, base) {
   if (!p || p.standIn || g.opts.noInjuries) { return; }
+  if (p.ege && g.opts.spareEge) { return; }
   const risk = base * (1.5 - (typeof p.durability === 'number' ? p.durability : 70) / 100);
   if (g.rng() < risk) { injure(g, side, p); }
 }
@@ -664,8 +684,9 @@ function twoHighChance(def, O) {
   return clamp(def.twoHigh + 1.5 * (O.offense.deep - NORM.deep) + 0.012 * (O.deepThreat - MID), 0.1, 0.9);
 }
 
-function pickTarget(O, kind, rng) {
-  return rng.pick(O.targets, (t) => t.share * SUIT[t.group][kind] * Math.exp((t.catch[kind] - MID) / 45));
+function pickTarget(O, kind, rng, skip) {
+  const list = skip ? O.targets.filter((t) => !skip(t.p)) : O.targets;
+  return rng.pick(list.length ? list : O.targets, (t) => t.share * SUIT[t.group][kind] * Math.exp((t.catch[kind] - MID) / 45));
 }
 
 /* Who covers the target, and how well, for this call. */
@@ -789,7 +810,7 @@ function pass(g, mode) {
     return;
   }
 
-  const t = pickTarget(O, kind, rng);
+  const t = pickTarget(O, kind, rng, room <= 12 ? (p) => capped(g, p) : null);
   const target = t.p;
   const { defender, cov } = coverage(D, t, kind, man, twoHigh, blitz);
   stat(g, o, target, 'targets', 1);
@@ -821,6 +842,8 @@ function pass(g, mode) {
     }
     let gain = Math.min(room, air + yac);
     if (gain < -5) { gain = -5; }
+    if (gain >= room && capped(g, target)) { gain = room - 1; }
+    const after = clamp(gain - Math.max(0, air), 0, Math.max(0, gain));
     st.completions += 1;
     if (kind === 'deep') { st.deepCompletions += 1; }
     if (gain >= 20) { st.explosive += 1; st.explosivePass += 1; }
@@ -830,6 +853,8 @@ function pass(g, mode) {
     stat(g, o, qb, 'passYds', gain);
     stat(g, o, target, 'rec', 1);
     stat(g, o, target, 'recYds', gain);
+    stat(g, o, target, 'recYac', after);
+    stat(g, o, qb, 'passYac', after);
     longest(g, o, target, 'recLong', gain);
     const oob = rng() < (hurry ? 0.45 : mode === 'milk' ? 0.06 : 0.2);
     afterPlay(g, 6, false, oob);
@@ -837,6 +862,7 @@ function pass(g, mode) {
       stat(g, o, qb, 'passTd', 1);
       stat(g, o, target, 'recTd', 1);
       st.passTds += 1;
+      scoring(g, o, 'pass', target, gain, qb);
       advance(g, gain, target.name + ' ' + gain + ' pass from ' + qb.name);
       return;
     }
@@ -957,6 +983,7 @@ function scramble(g, mode) {
   if (gain >= 100 - g.yl) {
     stat(g, o, qb, 'rushTd', 1);
     st.rushTds += 1;
+    scoring(g, o, 'run', qb, gain);
     advance(g, gain, qb.name + ' ' + gain + ' run');
     return;
   }
@@ -1007,6 +1034,8 @@ function run(g, mode) {
     outside = true;
   } else {
     carrier = O.rbs.length > 1 ? rng.pick(O.rbs, (p) => (p === O.rbs[0] ? 1.4 * Math.exp((p.ovr - O.rbs[1].ovr) / 30) : 1)) : O.rbs[0];
+    /* Near the goal line the other back gets it once this one has three. */
+    if (room <= 12 && capped(g, carrier)) { carrier = O.rbs.filter((p) => p !== carrier && !capped(g, p))[0] || carrier; }
   }
 
   /* Blocking and the runner against the front. */
@@ -1042,6 +1071,7 @@ function run(g, mode) {
   }
   if (room <= 2 && gain < room && rng() < clamp(0.12 + 0.004 * adv + (qbRun ? 0.05 : 0), 0.02, 0.3)) { gain = room; }
   gain = Math.min(gain, room);
+  if (gain >= room && !qbRun && capped(g, carrier)) { gain = room - 1; }
   if (gain >= 10) { st.explosive += 1; st.explosiveRun += 1; }
   st.rushYards += gain;
   st.yards += gain;
@@ -1068,6 +1098,7 @@ function run(g, mode) {
   if (gain >= room) {
     stat(g, o, carrier, 'rushTd', 1);
     st.rushTds += 1;
+    scoring(g, o, 'run', carrier, gain);
     advance(g, gain, carrier.name + ' ' + gain + ' run');
     return;
   }
@@ -1143,6 +1174,7 @@ function playGame(home, away, rng, opts) {
     stats: [teamStats(), teamStats()],
     box: {},
     scoring: [],
+    tds: [],
     injuries: [],
     kicks: [],
     over: false,
@@ -1168,6 +1200,7 @@ function playGame(home, away, rng, opts) {
     stats: g.stats,
     box: g.box,
     scoring: g.scoring,
+    tds: g.tds,
     kicks: g.kicks,
     injuries: g.injuries
   };

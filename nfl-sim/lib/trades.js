@@ -21,7 +21,7 @@ const { playerValue, pickValue, POSITION } = require('./value');
 const { fitOf, schemeFor, offenseOf, defenseOf } = require('./schemes');
 const { starterLevels, needAt, onTeam, byPos, room, SLOTS, trim, addPlayers } = require('./rosters');
 const { makeName } = require('./draft');
-const { readWorld, writeWorld } = require('./season');
+const { readWorld, writeWorld, DEADLINE_WEEK } = require('./season');
 const { standings, recordText } = require('./standings');
 const { TEAMS } = require('./teams');
 const { index } = require('./league');
@@ -138,6 +138,9 @@ function propose(league, window, rng) {
         const sellerRoster = onTeam(league, seller.key);
         byPos(sellerRoster, pos).forEach((p, rank) => {
           if (p.ovr < floor + 4 || (p.injury && p.injury.games >= 4)) { return; }
+          /* The website keeps one team a season for the six, so they only
+             move in the offseason. */
+          if (p.ege && window === 'deadline') { return; }
           const starter = rank < (SLOTS[pos] || 0);
           const why = seller.mode === 'rebuild' ? 'rebuild' : window === 'deadline' && srec && srec.pct <= 0.4 ? 'losing' :
             seller.mode === 'retool' && p.age >= 28 ? 'aging' : !starter && (seller.mode === 'retool' || rank >= (SLOTS[pos] || 0) + 1) ? 'backup' : null;
@@ -321,6 +324,13 @@ function proposeOwn(league, text) {
     });
     return { key: m[1], items };
   });
+  const inSeason = ['regular', 'deadline', 'playoffs'].indexOf(league.phase) !== -1;
+  if (inSeason && (league.phase === 'playoffs' || (league.phase === 'regular' && league.week > DEADLINE_WEEK))) {
+    throw new Error('The trade deadline has passed. Trades open again in the offseason.');
+  }
+  if (inSeason && parsed.some((side) => side.items.some((i) => i.kind === 'player' && i.player.ege))) {
+    throw new Error('The six can only be traded in the offseason: the website keeps one team a season for them.');
+  }
   const levels = starterLevels(league);
   const slotOf = slotFinder(league);
   const [A, B] = parsed;
