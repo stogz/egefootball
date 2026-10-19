@@ -3,12 +3,11 @@
    Once a season is over every player is a year older and his overall
    moves (develop below). Two things decide which way:
 
-   - Young players grow toward their potential, quickly at 21 and less
-     each year after. A 22-year-old closes about 38% of the gap between his
-     overall and his ceiling in a year, a 26-year-old about 24%. On top of
-     that each year is a roll of the dice (about ±2 points), and now and
-     then a player breaks out and finds a higher ceiling than anybody
-     thought he had.
+   - Young players grow toward their potential: about 40% of the gap
+     between his overall and his ceiling each year through 25, more after,
+     so most are close to it by 27 or 28. On top of that each year is a roll of
+     the dice (about ±2 points), and now and then a player breaks out and
+     finds a higher ceiling than anybody thought he had.
 
    - Past his position's peak a player declines, a little more every year.
      How fast depends on the position -- backs and corners live on their
@@ -58,10 +57,12 @@ const CURVES = {
   P: { peak: 35, decline: 0.5, accel: 0.3, cliffAge: 39, cliff: 0.05, cliffStep: 0.04, retire: 41 }
 };
 
-/* Share of the gap to his ceiling a player closes in a year, by age. */
+/* Share of the gap to his ceiling a player closes in a year, by age: a
+   steady 40% through 25, then more each year, so most players are close
+   to their ceiling by 27 or 28 -- when the real ones were. */
 function growthRate(age) {
-  if (age <= 21) { return 0.4; }
-  return Math.max(0.12, 0.4 - 0.04 * (age - 21));
+  if (age <= 25) { return 0.4; }
+  return Math.min(0.8, 0.4 + 0.1 * (age - 25));
 }
 
 /* Longevity 50 is 1x the curve, 90 about half of it, 20 about 1.4x. */
@@ -111,7 +112,7 @@ function develop(player, rng, gauss) {
     }
     change = (player.pot - player.ovr) * growthRate(age) + gauss() * (age <= 24 ? 2.0 : 1.5);
     /* A young player who stalls can lose a little of his ceiling too. */
-    if (change < -1 && age <= 25) { player.pot = Math.max(player.ovr - 1, player.pot - 1); }
+    if (change < -1 && age <= 25 && player.pot > player.ovr) { player.pot -= 1; }
   }
   if (age >= c.peak) {
     const w = wear(player.longevity);
@@ -126,7 +127,10 @@ function develop(player, rng, gauss) {
   }
 
   const after = Math.max(40, Math.min(99, Math.round(player.ovr + change)));
-  if (age >= c.peak) { player.pot = after; } else { player.pot = Math.max(player.pot, after); }
+  /* Past his peak his ceiling is wherever he is. Before it, a good year
+     that puts him above his ceiling does not raise it: he drifts back
+     toward it (growth below goes negative) unless he really broke out. */
+  if (age >= c.peak) { player.pot = after; }
   moveSkills(player, after - player.ovr);
   player.ovr = after;
   return { id: player.id, name: player.name, pos: player.pos, age, before, after, note };
@@ -153,6 +157,56 @@ function moveSkills(player, delta) {
   });
 }
 
+/* Overalls are a scale, and the scale holds still. Every year the league
+   gets older and new classes come in, and over a few seasons that would
+   leave a position rated higher or lower across the board than it was --
+   quarterbacks, who last, drift up; backs, who do not, drift down -- so a
+   90 would stop meaning what it means now. So once everybody has aged,
+   each position's top group (32 x its starters, plus one more each) is
+   set against the same group at the 2023 kickoff, and every player there
+   moves half of the way back in average and in spread, never more than 3
+   points in a year. Who is better than whom
+   never changes. The six are left alone: theirs come from the website. */
+const SCALE_GROUP = { QB: 2, RB: 2, FB: 1, WR: 4, TE: 2, OT: 3, IOL: 4, EDGE: 3, DI: 3, LB: 3, CB: 4, S: 3, K: 1, P: 1 };
+let kickoffScale = null;
+
+function scaleOf(players, pos) {
+  const top = players.filter((p) => p.pos === pos && !p.ege && p.status !== 'retired' && p.status !== 'prospect')
+    .map((p) => p.ovr).sort((a, b) => b - a).slice(0, 32 * (SCALE_GROUP[pos] || 1));
+  if (top.length < 10) { return null; }
+  const mean = top.reduce((s, v) => s + v, 0) / top.length;
+  const sd = Math.sqrt(top.reduce((s, v) => s + (v - mean) * (v - mean), 0) / top.length);
+  return { mean, sd };
+}
+
+function holdScale(league) {
+  if (!kickoffScale) {
+    const file = require('path').join(__dirname, '..', 'data', 'league-2023.json');
+    const kickoff = JSON.parse(require('fs').readFileSync(file, 'utf8')).players;
+    kickoffScale = {};
+    Object.keys(SCALE_GROUP).forEach((pos) => { kickoffScale[pos] = scaleOf(kickoff, pos); });
+  }
+  const moves = {};
+  Object.keys(SCALE_GROUP).forEach((pos) => {
+    const want = kickoffScale[pos];
+    const now = scaleOf(league.players, pos);
+    if (!want || !now || !now.sd) { return; }
+    const sd = now.sd + 0.5 * (want.sd - now.sd);
+    const mean = now.mean + 0.5 * (want.mean - now.mean);
+    moves[pos] = Math.round((mean - now.mean) * 10) / 10;
+    league.players.forEach((p) => {
+      if (p.pos !== pos || p.ege || p.status === 'retired' || p.status === 'prospect') { return; }
+      const target = mean + (p.ovr - now.mean) * sd / now.sd;
+      const delta = Math.round(Math.max(-3, Math.min(3, target - p.ovr)));
+      if (!delta) { return; }
+      p.ovr = Math.max(40, Math.min(99, p.ovr + delta));
+      p.pot = Math.max(p.ovr, Math.min(99, (p.pot || p.ovr) + delta));
+      if (p.skills) { Object.keys(p.skills).forEach((k) => { p.skills[k] = Math.max(30, Math.min(99, p.skills[k] + delta)); }); }
+    });
+  });
+  return moves;
+}
+
 /* Chance a player calls it a career this offseason: almost none before
    his position's usual age, rising steeply after, less for a player still
    good enough to start and more for one who is not. */
@@ -160,10 +214,11 @@ function retireChance(player) {
   if (player.ege) { return 0; }
   const c = CURVES[player.pos] || CURVES.WR;
   const x = player.age - c.retire;
-  let p = 1 / (1 + Math.exp(-(0.9 * x)));
-  p *= player.ovr >= 85 ? 0.35 : player.ovr >= 78 ? 0.6 : player.ovr >= 70 ? 1 : 1.5;
-  if (player.age < 29) { p = player.ovr < 56 ? 0.08 : 0.005; }
+  let p = 1 / (1 + Math.exp(-(0.9 * x - 0.3)));
+  p *= player.ovr >= 85 ? 0.25 : player.ovr >= 78 ? 0.4 : player.ovr >= 70 ? 0.9 : 1.4;
+  if (x <= -1) { p = Math.min(p, player.ovr < 65 ? 0.15 : 0.03); }
+  if (player.age < 27) { p = player.ovr < 56 ? 0.05 : 0.002; }
   return Math.max(0, Math.min(0.97, p));
 }
 
-module.exports = { CURVES, develop, expectedChange, retireChance, moveSkills, growthRate };
+module.exports = { CURVES, develop, expectedChange, retireChance, moveSkills, growthRate, holdScale };

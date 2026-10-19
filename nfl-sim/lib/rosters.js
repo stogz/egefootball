@@ -1,0 +1,300 @@
+/* ==========================================================================
+   EGE Football NFL sim — rosters, contracts and free agency
+   - Payroll against the salary cap (lib/value.js has the cap and what
+     players get on the open market).
+   - Needs: how far a team's starters at a position are below a typical
+     NFL starter's.
+   - Re-signing: each team keeps the expiring players it still wants and
+     can pay; the rest become free agents.
+   - Free agency: the best free agents first, each to the team that needs
+     him most, fits him best and can pay him. Contenders pay for veterans;
+     rebuilding teams do not.
+   - Cutdown: 53 a team, the least valuable released.
+   ========================================================================== */
+
+'use strict';
+
+const { capFor, marketPay, playerValue, POSITION } = require('./value');
+const { fitOf, schemeFor } = require('./schemes');
+const { CURVES } = require('./aging');
+const { skillsFrom, archetypeOf, SKILLS } = require('./skills');
+
+/* Starters a position puts on the field, and what a 53 holds. */
+const SLOTS = { QB: 1, RB: 1, FB: 0, WR: 3, TE: 1, OT: 2, IOL: 3, EDGE: 2, DI: 2, LB: 2, CB: 3, S: 2, K: 1, P: 1 };
+const MIN = { QB: 2, RB: 2, FB: 0, WR: 4, TE: 2, OT: 3, IOL: 4, EDGE: 3, DI: 3, LB: 3, CB: 4, S: 3, K: 1, P: 1 };
+const TARGET = { QB: 3, RB: 4, FB: 1, WR: 6, TE: 3, OT: 4, IOL: 5, EDGE: 5, DI: 5, LB: 5, CB: 6, S: 4, K: 1, P: 1 };
+const ROSTER = 53;
+const OFFSEASON_ROSTER = 75;
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function onTeam(league, key) {
+  return league.players.filter((p) => p.team === key && p.status === 'active');
+}
+
+function payroll(league, key) {
+  return onTeam(league, key).reduce((sum, p) => sum + ((p.contract && p.contract.apy) || 0), 0);
+}
+
+function room(league, key) { return capFor(league.season) - payroll(league, key); }
+
+function byPos(players, pos) {
+  return players.filter((p) => p.pos === pos).sort((a, b) => b.ovr - a.ovr);
+}
+
+/* A typical NFL starter's overall at each position, from the league. */
+function starterLevels(league) {
+  const out = {};
+  Object.keys(SLOTS).forEach((pos) => {
+    if (!SLOTS[pos]) { return; }
+    const values = [];
+    league.teams.forEach((t) => {
+      byPos(onTeam(league, t.key), pos).slice(0, SLOTS[pos]).forEach((p) => values.push(p.ovr));
+    });
+    out[pos] = values.length ? values.reduce((a, b) => a + b, 0) / values.length : 75;
+  });
+  return out;
+}
+
+/* 0 (set) to 1 (a hole) at a position. */
+function needAt(league, key, pos, levels, roster) {
+  if (!SLOTS[pos]) { return 0; }
+  const players = byPos(roster || onTeam(league, key), pos);
+  if (players.length < SLOTS[pos]) { return 1; }
+  const weakest = players[SLOTS[pos] - 1].ovr;
+  return clamp((levels[pos] - weakest + 4) / 14, 0, 1);
+}
+
+function needs(league, key, levels) {
+  const roster = onTeam(league, key);
+  const out = {};
+  Object.keys(SLOTS).forEach((pos) => { out[pos] = needAt(league, key, pos, levels, roster); });
+  return out;
+}
+
+function contractYears(age, rng) {
+  const base = age <= 25 ? 4 : age <= 28 ? 3 : age <= 31 ? 2 : 1;
+  return clamp(base + (rng() < 0.3 ? 1 : 0) - (rng() < 0.3 ? 1 : 0), 1, 5);
+}
+
+function sign(p, key, league, rng, apy) {
+  const years = contractYears(p.age, rng);
+  p.team = key;
+  p.status = 'active';
+  p.contract = { through: league.season + years - 1, apy: Math.round((apy || marketPay(p, league.season)) * 10) / 10 };
+  delete p.faSince;
+}
+
+/* A team over the cap in the spring cuts the veterans it pays the most
+   more than they are now worth on the market (an aging star on a big deal
+   first) until it is back under, the way cap casualties go in March. */
+function capCasualties(league) {
+  const out = [];
+  const cap = capFor(league.season);
+  league.teams.forEach((t) => {
+    let over = payroll(league, t.key) - cap;
+    if (over <= 0) { return; }
+    const overpaid = onTeam(league, t.key)
+      .filter((p) => !p.ege && p.age >= 27 && p.contract && p.contract.apy >= 3)
+      .map((p) => [p, p.contract.apy - marketPay(p, league.season)])
+      .filter(([, extra]) => extra > 1.5)
+      .sort((a, b) => b[1] - a[1]);
+    for (let i = 0; i < overpaid.length && over > 0; i += 1) {
+      const [p] = overpaid[i];
+      over -= p.contract.apy;
+      out.push({ player: p, team: t.key, apy: p.contract.apy });
+      release(p, league.season);
+    }
+    if (over <= 0) { return; }
+    /* Still over: the veterans who give the least for what they cost. */
+    const costly = onTeam(league, t.key)
+      .filter((p) => !p.ege && p.age >= 26 && p.contract && p.contract.apy >= 2)
+      .map((p) => [p, playerValue(p, league.season, { mode: t.mode }) / p.contract.apy])
+      .sort((a, b) => a[1] - b[1]);
+    for (let i = 0; i < costly.length && over > 0; i += 1) {
+      const [p] = costly[i];
+      over -= p.contract.apy;
+      out.push({ player: p, team: t.key, apy: p.contract.apy });
+      release(p, league.season);
+    }
+  });
+  return out;
+}
+
+/* Expiring contracts: re-sign the wanted, free the rest. Teams keep
+   nearly all their young starters and stars -- extensions, fifth-year
+   options and franchise tags see to that in the NFL, and a team will
+   restructure other deals to make room -- so only a few good players reach
+   the market each year, most of them older or not starting. The six always
+   stay where they are: where they play is Sam's call. */
+function reSign(league, rng) {
+  const out = { kept: [], freed: [] };
+  const cap = capFor(league.season);
+  league.teams.forEach((t) => {
+    const roster = onTeam(league, t.key);
+    const expiring = roster.filter((p) => p.contract && p.contract.through < league.season)
+      .sort((a, b) => b.ovr - a.ovr);
+    let used = roster.filter((p) => expiring.indexOf(p) === -1).reduce((sum, p) => sum + ((p.contract && p.contract.apy) || 0), 0);
+    expiring.forEach((p) => {
+      const rank = byPos(roster, p.pos).indexOf(p);
+      const c = CURVES[p.pos] || CURVES.WR;
+      const young = p.age <= c.peak + 1;
+      const starter = rank < (SLOTS[p.pos] || 0);
+      let want = p.ovr >= 85 ? (young ? 0.96 : 0.8) : starter ? (young ? 0.88 : 0.55) :
+        rank < (SLOTS[p.pos] || 0) + 2 && p.ovr >= 70 ? 0.4 : 0.1;
+      if (t.mode === 'rebuild' && p.age >= 29) { want *= 0.4; }
+      const ask = marketPay(p, league.season) * (0.95 + rng() * 0.15);
+      const stretch = p.ovr >= 85 ? 0.08 * cap : 0;
+      if (p.ege || (rng() < want && cap + stretch - used - ask > 2)) {
+        sign(p, t.key, league, rng, ask);
+        used += p.contract.apy;
+        out.kept.push(p);
+      } else {
+        release(p, league.season);
+        out.freed.push(p);
+      }
+    });
+  });
+  return out;
+}
+
+/* Free agency: best first, each to the team that wants him most and can
+   pay him, keeping `reserve` ($M) back for the draft class. */
+function freeAgency(league, rng, opts) {
+  opts = opts || {};
+  const limit = opts.limit || OFFSEASON_ROSTER;
+  const levels = starterLevels(league);
+  const signed = [];
+  const pool = league.players.filter((p) => p.status === 'fa').sort((a, b) => b.ovr - a.ovr);
+  const sizes = {};
+  const rooms = {};
+  league.teams.forEach((t) => {
+    sizes[t.key] = onTeam(league, t.key).length;
+    rooms[t.key] = room(league, t.key) - (opts.reserve || 0);
+  });
+  pool.forEach((p) => {
+    const ask = marketPay(p, league.season);
+    let best = null;
+    let bestScore = opts.minScore === undefined ? 0.2 : opts.minScore;
+    league.teams.forEach((t) => {
+      if (sizes[t.key] >= limit || rooms[t.key] < ask + 1) { return; }
+      const need = needAt(league, t.key, p.pos, levels);
+      const roster = onTeam(league, t.key);
+      const count = roster.filter((x) => x.pos === p.pos).length;
+      const short = count < (MIN[p.pos] || 0) ? 0.6 : count < (TARGET[p.pos] || 0) ? 0.15 : -0.3;
+      const fit = fitOf(p, schemeFor(t, p.pos));
+      let score = need * (POSITION[p.pos] || 0.8) + short + 0.04 * fit + rng() * 0.25;
+      if (t.mode === 'rebuild' && p.age >= 29) { score -= 0.5; }
+      if (t.mode === 'compete' && p.ovr >= 80) { score += 0.15; }
+      if (score > bestScore) { bestScore = score; best = t; }
+    });
+    if (best) {
+      sign(p, best.key, league, rng, ask * (0.9 + rng() * 0.25));
+      sizes[best.key] += 1;
+      rooms[best.key] -= p.contract.apy;
+      signed.push(p);
+    }
+  });
+  return signed;
+}
+
+function release(p, season) {
+  p.team = 'FA';
+  p.status = 'fa';
+  p.faSince = season;
+}
+
+/* Releases a team's `n` least valuable players, never one of the six, a
+   player on injured reserve, or one it needs to field each position. */
+function trim(league, key, n, rng) {
+  if (n <= 0) { return []; }
+  const team = league.teams.find((t) => t.key === key);
+  const roster = onTeam(league, key);
+  const healthy = roster.filter((p) => !p.injury);
+  const keep = new Set(roster.filter((p) => p.ege || p.injury));
+  Object.keys(MIN).forEach((pos) => byPos(healthy, pos).slice(0, MIN[pos]).forEach((p) => keep.add(p)));
+  const out = roster.filter((p) => !keep.has(p)).map((p) => {
+    const count = byPos(roster, p.pos).indexOf(p);
+    const surplus = count >= (TARGET[p.pos] || 3) ? 0.5 : 1;
+    return [p, playerValue(p, league.season, { mode: team.mode }) * surplus + p.ovr / 100 + rng() * 0.01];
+  }).sort((a, b) => a[1] - b[1]).slice(0, n).map(([p]) => p);
+  out.forEach((p) => release(p, league.season));
+  return out;
+}
+
+/* Down to 53: keep the position minimums, then the most valuable. */
+function cutDown(league, rng) {
+  const released = [];
+  league.teams.forEach((t) => {
+    trim(league, t.key, onTeam(league, t.key).length - ROSTER, rng).forEach((p) => released.push(p));
+  });
+  return released;
+}
+
+/* Signs `n` players where a team is thinnest: the best free agent there,
+   or a made-up replacement-level player. */
+function addPlayers(league, key, n, rng, makeName) {
+  const added = [];
+  for (let i = 0; i < n; i += 1) {
+    const counts = {};
+    onTeam(league, key).forEach((p) => { counts[p.pos] = (counts[p.pos] || 0) + 1; });
+    const pos = Object.keys(TARGET).sort((a, b) => ((counts[a] || 0) - TARGET[a]) - ((counts[b] || 0) - TARGET[b]))[0];
+    const p = bestAffordable(league, key, pos, 33) || replacement(league, pos, rng, makeName);
+    sign(p, key, league, rng, marketPay(p, league.season));
+    added.push(p);
+  }
+  return added;
+}
+
+/* The best free agent at a position a team can still pay (anybody at the
+   minimum, whatever its cap). */
+function bestAffordable(league, key, pos, maxAge) {
+  const space = Math.max(room(league, key) - 1, capFor(league.season) / capFor(2024) * 1.2);
+  return league.players.filter((p) => p.status === 'fa' && p.pos === pos && (!maxAge || p.age <= maxAge) &&
+    marketPay(p, league.season) <= space).sort((a, b) => b.ovr - a.ovr)[0];
+}
+
+/* A team short at a position after everything else signs a camp body
+   (and lets its least valuable player go if that takes it past 53); then
+   everyone fills out to 53. */
+function fillHoles(league, rng, makeName) {
+  const added = [];
+  league.teams.forEach((t) => {
+    Object.keys(MIN).forEach((pos) => {
+      let roster = onTeam(league, t.key);
+      while (roster.filter((p) => p.pos === pos).length < MIN[pos]) {
+        const p = bestAffordable(league, t.key, pos) || replacement(league, pos, rng, makeName);
+        sign(p, t.key, league, rng, marketPay(p, league.season));
+        added.push(p);
+        roster = onTeam(league, t.key);
+      }
+    });
+    const size = onTeam(league, t.key).length;
+    if (size > ROSTER) { trim(league, t.key, size - ROSTER, rng); }
+    addPlayers(league, t.key, ROSTER - size, rng, makeName).forEach((p) => added.push(p));
+  });
+  return added;
+}
+
+let made = 0;
+function replacement(league, pos, rng, makeName) {
+  made += 1;
+  const ovr = Math.round(56 + rng() * 8);
+  const age = 23 + Math.floor(rng() * 5);
+  const z = {};
+  Object.keys(SKILLS[pos] || {}).forEach((k) => { z[k] = (rng() - 0.5) * 2; });
+  const p = {
+    id: 'sim:' + league.season + ':r' + made + ':' + Math.floor(rng() * 1e6),
+    name: makeName ? makeName(rng) : 'Player ' + made,
+    pos, team: 'FA', status: 'fa', born: (league.season - age) + '-06-01', age,
+    entry: league.season, draft: null, ovr, pot: ovr + Math.round(rng() * 3),
+    longevity: 50, durability: Math.round(60 + rng() * 25)
+  };
+  p.skills = skillsFrom(pos, ovr, z);
+  p.archetype = archetypeOf(pos, p.skills, ovr);
+  league.players.push(p);
+  return p;
+}
+
+module.exports = { SLOTS, MIN, TARGET, ROSTER, onTeam, payroll, room, starterLevels, needAt, needs, reSign, freeAgency,
+                   cutDown, trim, addPlayers, fillHoles, sign, release, byPos, capCasualties };
