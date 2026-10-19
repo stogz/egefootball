@@ -8,7 +8,11 @@
      runs, and who gets the ball. The game engine calls plays off these.
      A team's own numbers start from what it really did in 2023 (read off
      the play-by-play by build/schemes.js) and move toward the scheme's
-     when it changes scheme.
+     when it changes scheme. They are on the play-by-play's own scale
+     (`outside` is runs charted to the end, `deep` throws of 20 air yards
+     or more), and NFL teams are more alike than their scheme names: the
+     scheme numbers sit close to the 2023 league average, a little further
+     out in the direction the scheme leans.
 
    - `demands`: which skills it needs at each position. A Wide Zone back
      has to see the cutback lane; a Power Run back has to run through
@@ -29,8 +33,8 @@ const OFFENSE = {
   westCoast: {
     name: 'West Coast',
     about: 'Quick, timed throws underneath with the backs and tight ends in the passing game, and yards after the catch.',
-    tendencies: { pass: 0.6, short: 0.53, mid: 0.33, deep: 0.14, screen: 0.1, playAction: 0.2,
-                  qbRun: 0.04, outside: 0.45, heavy: 0.22, targets: { WR: 0.57, TE: 0.22, RB: 0.21 } },
+    tendencies: { pass: 0.572, short: 0.616, mid: 0.287, deep: 0.097, screen: 0.123, playAction: 0.183,
+                  qbRun: 0.049, outside: 0.233, heavy: 0.313, targets: { WR: 0.563, TE: 0.219, RB: 0.218 } },
     demands: {
       QB: { accuracy: 3, poise: 2, deep: 0.5, arm: 0.5, mobility: 0.5 },
       RB: { hands: 2, elusive: 1.5, vision: 1.5, speed: 1, power: 0.5, block: 1 },
@@ -42,8 +46,8 @@ const OFFENSE = {
   wideZone: {
     name: 'Wide Zone',
     about: 'Outside-zone runs with bootlegs and play-action off them, motion before the snap, and a tight end who blocks and catches.',
-    tendencies: { pass: 0.55, short: 0.45, mid: 0.38, deep: 0.17, screen: 0.07, playAction: 0.32,
-                  qbRun: 0.03, outside: 0.62, heavy: 0.32, targets: { WR: 0.6, TE: 0.22, RB: 0.18 } },
+    tendencies: { pass: 0.542, short: 0.57, mid: 0.319, deep: 0.111, screen: 0.099, playAction: 0.242,
+                  qbRun: 0.041, outside: 0.282, heavy: 0.393, targets: { WR: 0.581, TE: 0.22, RB: 0.199 } },
     demands: {
       QB: { accuracy: 2.5, poise: 1, deep: 1.5, arm: 1, mobility: 1 },
       RB: { vision: 3, speed: 2, elusive: 1.5, hands: 1, power: 0.5, block: 0.5 },
@@ -55,8 +59,8 @@ const OFFENSE = {
   airRaid: {
     name: 'Air Raid',
     about: 'Three and four receivers spread wide and the ball pushed downfield.',
-    tendencies: { pass: 0.66, short: 0.41, mid: 0.36, deep: 0.23, screen: 0.06, playAction: 0.17,
-                  qbRun: 0.04, outside: 0.5, heavy: 0.12, targets: { WR: 0.72, TE: 0.15, RB: 0.13 } },
+    tendencies: { pass: 0.605, short: 0.549, mid: 0.314, deep: 0.136, screen: 0.09, playAction: 0.166,
+                  qbRun: 0.049, outside: 0.248, heavy: 0.218, targets: { WR: 0.657, TE: 0.177, RB: 0.166 } },
     demands: {
       QB: { deep: 3, arm: 3, accuracy: 1.5, poise: 1, mobility: 0.5 },
       RB: { hands: 1.5, elusive: 1, speed: 1, vision: 1, block: 1 },
@@ -68,8 +72,8 @@ const OFFENSE = {
   spreadOption: {
     name: 'Spread Option',
     about: 'A running quarterback: zone reads, RPOs and designed runs stretch the defense sideways.',
-    tendencies: { pass: 0.52, short: 0.48, mid: 0.34, deep: 0.18, screen: 0.07, playAction: 0.24,
-                  qbRun: 0.14, outside: 0.5, heavy: 0.18, targets: { WR: 0.63, TE: 0.2, RB: 0.17 } },
+    tendencies: { pass: 0.525, short: 0.589, mid: 0.296, deep: 0.115, screen: 0.099, playAction: 0.204,
+                  qbRun: 0.104, outside: 0.248, heavy: 0.278, targets: { WR: 0.6, TE: 0.208, RB: 0.192 } },
     demands: {
       QB: { mobility: 4, accuracy: 1.5, deep: 1, arm: 1, poise: 1 },
       RB: { elusive: 2, speed: 2, vision: 1.5, power: 1, hands: 0.5 },
@@ -81,8 +85,8 @@ const OFFENSE = {
   powerRun: {
     name: 'Power Run',
     about: 'Under center with heavy personnel, downhill gap runs, and play-action shots over the top.',
-    tendencies: { pass: 0.5, short: 0.42, mid: 0.36, deep: 0.22, screen: 0.04, playAction: 0.28,
-                  qbRun: 0.03, outside: 0.35, heavy: 0.42, targets: { WR: 0.6, TE: 0.25, RB: 0.15 } },
+    tendencies: { pass: 0.512, short: 0.555, mid: 0.313, deep: 0.132, screen: 0.071, playAction: 0.224,
+                  qbRun: 0.041, outside: 0.2, heavy: 0.462, targets: { WR: 0.583, TE: 0.238, RB: 0.179 } },
     demands: {
       QB: { arm: 2, deep: 2, poise: 1.5, accuracy: 1.5, mobility: 0.3 },
       RB: { power: 3, vision: 2, elusive: 1, speed: 1, hands: 0.5, block: 1 },
@@ -97,7 +101,7 @@ const DEFENSE = {
   cover3: {
     name: 'Cover 3',
     about: 'Single-high zone: a centerfielder deep, corners in thirds, and a safety down in the box against the run.',
-    tendencies: { man: 0.25, twoHigh: 0.25, blitz: 0.22, box: 6.6, front: 43 },
+    tendencies: { man: 0.361, twoHigh: 0.306, blitz: 0.279, box: 6.39, front: 43 },
     demands: {
       EDGE: { rush: 3, run: 1, speed: 1 }, DI: { rush: 1.5, run: 2 },
       LB: { run: 2, cover: 1.5, speed: 1 },
@@ -108,7 +112,7 @@ const DEFENSE = {
   quarters: {
     name: 'Quarters',
     about: 'Two safeties deep to take away the big play; the box is light, so it can be run on.',
-    tendencies: { man: 0.25, twoHigh: 0.6, blitz: 0.18, box: 6.2, front: 34 },
+    tendencies: { man: 0.361, twoHigh: 0.518, blitz: 0.247, box: 6.19, front: 34 },
     demands: {
       EDGE: { rush: 3, run: 1 }, DI: { rush: 2, run: 1.5 },
       LB: { cover: 2, run: 1.5, speed: 1.5 },
@@ -119,7 +123,7 @@ const DEFENSE = {
   manBlitz: {
     name: 'Cover 1 Man',
     about: 'Press-man corners, one deep safety and pressure from everywhere.',
-    tendencies: { man: 0.55, twoHigh: 0.2, blitz: 0.36, box: 6.9, front: 43 },
+    tendencies: { man: 0.579, twoHigh: 0.268, blitz: 0.375, box: 6.54, front: 43 },
     demands: {
       EDGE: { rush: 2.5, speed: 1 }, DI: { rush: 2, run: 1 },
       LB: { blitz: 3, cover: 1.5, speed: 1 },
@@ -130,7 +134,7 @@ const DEFENSE = {
   pressure34: {
     name: '3-4 Pressure',
     about: 'A nose tackle, two rushing outside linebackers, disguised looks and simulated pressures.',
-    tendencies: { man: 0.38, twoHigh: 0.4, blitz: 0.3, box: 6.6, front: 34 },
+    tendencies: { man: 0.464, twoHigh: 0.406, blitz: 0.336, box: 6.39, front: 34 },
     demands: {
       EDGE: { rush: 3, cover: 1, run: 1 }, DI: { run: 3, rush: 1 },
       LB: { blitz: 2, run: 2, cover: 1 },
@@ -141,7 +145,7 @@ const DEFENSE = {
   tampa2: {
     name: 'Tampa 2',
     about: 'A four-man rush with everybody else in zone; the middle linebacker carries the deep middle.',
-    tendencies: { man: 0.18, twoHigh: 0.55, blitz: 0.15, box: 6.3, front: 43 },
+    tendencies: { man: 0.296, twoHigh: 0.492, blitz: 0.222, box: 6.24, front: 43 },
     demands: {
       EDGE: { rush: 3.5, speed: 1 }, DI: { rush: 2.5, run: 1 },
       LB: { speed: 2.5, cover: 2.5, run: 1 },
@@ -154,7 +158,7 @@ const DEFENSE = {
 /* How much better (or worse) a player is in a scheme than his overall:
    his skills weighted by what the scheme asks of his position, less his
    overall. 0 for a position the scheme asks nothing particular of. */
-function fitOf(player, scheme) {
+function rawFit(player, scheme) {
   const demands = scheme && scheme.demands && scheme.demands[player.pos];
   if (!demands || !player.skills) { return 0; }
   let total = 0;
@@ -165,6 +169,47 @@ function fitOf(player, scheme) {
     weight += demands[skill];
   });
   return weight ? total / weight - player.ovr : 0;
+}
+
+/* Some skills run higher across the league than others, so the raw
+   numbers would make one scheme look better for everybody (Tampa 2 for
+   corners, by almost a point) and teams would all drift to it. Each fit is
+   centred instead: the average NFL player of 70 or better at a position
+   fits every scheme at 0. The centre is the league as it is now (set when
+   the league loads and again each offseason, since aging moves skills
+   unevenly: legs go first, so an older league would otherwise tilt every
+   team away from man coverage); until then, the 2023 kickoff league's. */
+let centre = null;
+
+function centreFrom(players) {
+  const out = {};
+  const good = players.filter((p) => p.status !== 'retired' && p.status !== 'prospect' && p.ovr >= 70 && !p.ege && p.skills);
+  [OFFENSE, DEFENSE].forEach((group) => Object.keys(group).forEach((key) => {
+    const sc = group[key];
+    out[sc.name] = {};
+    Object.keys(sc.demands).forEach((ps) => {
+      const list = good.filter((p) => p.pos === ps);
+      out[sc.name][ps] = list.reduce((sum, p) => sum + rawFit(p, sc), 0) / Math.max(1, list.length);
+    });
+  }));
+  return out;
+}
+
+/* Re-centres fits on this league's players. */
+function centreOn(league) { centre = centreFrom(league.players); }
+
+function centreOf(scheme, pos) {
+  if (!centre) {
+    const file = require('path').join(__dirname, '..', 'data', 'league-2023.json');
+    centre = centreFrom(JSON.parse(require('fs').readFileSync(file, 'utf8')).players);
+  }
+  return (centre[scheme.name] && centre[scheme.name][pos]) || 0;
+}
+
+function fitOf(player, scheme) {
+  const demands = scheme && scheme.demands && scheme.demands[player.pos];
+  if (!demands || !player.skills) { return 0; }
+  return rawFit(player, scheme) - centreOf(scheme, player.pos);
 }
 
 /* The scheme a team runs, from its keys. */
@@ -180,4 +225,4 @@ function schemeFor(team, pos) {
   return null;
 }
 
-module.exports = { OFFENSE, DEFENSE, fitOf, offenseOf, defenseOf, schemeFor };
+module.exports = { OFFENSE, DEFENSE, fitOf, offenseOf, defenseOf, schemeFor, centreOn };

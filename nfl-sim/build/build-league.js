@@ -47,6 +47,8 @@ const { archetypeOf } = require('../lib/skills');
 const { TEAMS, KEYS, keyForName } = require('../lib/teams');
 const { sixFromSite } = require('../lib/ege');
 const { HAND_SET, POSITION_FIX } = require('./hand-set');
+const { buildBenchmarks } = require('./benchmarks');
+const { writeJson } = require('./write');
 
 const OUT = path.join(__dirname, '..', 'data');
 const SEASON = 2023;
@@ -554,35 +556,6 @@ function buildSchedules() {
                                     neutral: r.location === 'Neutral' || undefined });
   });
   return out;
-}
-
-/* Every 2023 game's real score and closing line, for the calibration
-   check (node nfl-sim/check.js). */
-function buildBenchmarks() {
-  return read('games.csv', (r) => r.season === '2023').map((r) => ({
-    week: Number(r.week), type: r.game_type, home: r.home_team, away: r.away_team,
-    homeScore: num(r.home_score), awayScore: num(r.away_score), spread: num(r.spread_line)
-  }));
-}
-
-/* JSON with every row of a list on its own line, so a rebuild's diff
-   shows which players moved rather than one changed line a megabyte long. */
-function writeJson(name, value) {
-  fs.writeFileSync(path.join(OUT, name), rows(value, '') + '\n');
-  process.stderr.write('Wrote nfl-sim/data/' + name + '\n');
-}
-
-function rows(value, indent) {
-  if (Array.isArray(value)) {
-    if (!value.length || typeof value[0] !== 'object') { return JSON.stringify(value); }
-    return '[\n' + value.map((v) => indent + '  ' + JSON.stringify(v)).join(',\n') + '\n' + indent + ']';
-  }
-  if (value && typeof value === 'object') {
-    const keys = Object.keys(value).filter((k) => value[k] !== undefined);
-    return '{\n' + keys.map((k) => indent + '  ' + JSON.stringify(k) + ': ' + rows(value[k], indent + '  ')).join(',\n') +
-      '\n' + indent + '}';
-  }
-  return JSON.stringify(value);
 }
 
 /* The best at each position, to eyeball after a build. */
