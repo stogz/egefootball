@@ -459,7 +459,33 @@ node nfl-sim/sim.js draft --place cooper-clark=LAC --place isaac-vitel=DET:2
                                                 put one of the six on a team (in a round)
 node nfl-sim/sim.js report                      a written report (ratings included) into the world folder
 node nfl-sim/sim.js reset --force               start the world over from the 2023 kickoff
+
+node nfl-sim/sim.js import-site --through 9     take the site's Weeks 1-9 as played
+node nfl-sim/sim.js site [--season 2023]        write stats/2023.js and data/nfl-results.js
+node nfl-sim/sim.js export                      write data/nfl-rosters.json for the Teams pages
 ```
+
+**Taking a season up from the site.** The site had 2023 out through Week 9
+before the sim existed, so `import-site` takes those weeks as they were
+played: the six's games from `stats/2023.js` and everybody else's real
+scores from `data/conferences.js`. Nobody gets a box score for them;
+injuries heal week by week, the deadline comes after Week 9 as usual, and if
+one of the six was already hurt, that was his one injury of the season. From
+Week 10 the sim plays every NFL game. `site` writes the six's sim games into
+their season file (scores, stat lines, big plays, injuries, and their
+playoff games as their teams reach them; weeks it has not played yet are
+emptied) and every other score into `data/nfl-results.js`, which the
+standings use from the week the sim took over. Commit both and publish the
+weeks as usual.
+
+**The admin page.** The same commands, as buttons, are the admin page's NFL
+Sim tab (see the site's README). There the world is kept in Supabase
+(`nfl_sim_files`, admin only) instead of a folder, and after every step the
+rosters are published to `nfl_sim_rosters`. `lib/io.js` is what makes that
+work: everything the sim reads or writes goes through it, to files on the
+command line and to memory, filled from Supabase, on the page.
+`build/bundle.js` writes `js/nfl-sim.js`, every module in `lib/` and the data
+they read in one file; run it again after changing either.
 
 A year goes `season` (stopping at the deadline if there are trades), `trades`,
 `approve`/`reject`, `season`, `playoffs`, `offseason`, `trades`,
@@ -481,6 +507,9 @@ nfl-sim/
     schemes.js           the schemes, their tendencies and demands, fit
     skills.js            position skills and archetypes
     ege.js               the six, read from the website
+    io.js                where everything is read and written: files, or the admin page's memory
+    run.js               the commands, shared by sim.js and the admin page
+    site.js              the website's side: its weeks in, the season files and rosters out
     league.js            loading and saving the world
     lineup.js            depth charts and who plays
     game.js              the game engine
@@ -506,6 +535,7 @@ nfl-sim/
     hand-set.js          overalls set by hand
     nflverse.js          downloads and CSV
     write.js             writing the data files
+    bundle.js            js/nfl-sim.js, the sim for the admin page
   data/                  what the sim starts from (committed)
     league-2023.json     teams and players, Week 1 of 2023
     prospects.json       the 2024-2026 draft classes
