@@ -81,7 +81,8 @@ function archetypeOf(pos, s, ovr) {
       if (Math.abs(s.block - (s.route + s.hands) / 2) <= 4) { return 'Complete Tight End'; }
       return 'Possession Tight End';
     case 'EDGE':
-      return s.rush >= s.run + 4 ? (s.speed >= s.rush ? 'Speed Rusher' : 'Power Rusher') : 'Run Stopper';
+      if (s.run >= s.rush + 3) { return 'Run Stopper'; }
+      return s.speed >= s.rush - 3 ? 'Speed Rusher' : 'Power Rusher';
     case 'DI':
       return s.rush >= s.run + 3 ? 'Interior Rusher' : (s.run >= s.rush + 3 ? 'Nose Tackle' : 'Three-Down Lineman');
     case 'LB':

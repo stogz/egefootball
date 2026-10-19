@@ -163,6 +163,20 @@
         <div class="fb-panel ege-section-gap" id="teamRosterPanel">
           <div class="fb-panel__head">
             <h3>Roster</h3>
+            <!-- An NFL team's two sides of the ball, the same switch as the
+                 schedule's Games and Tournament. Drawn in app.js for NFL
+                 teams only. -->
+            <div class="ege-switch" id="rosterSwitch" role="group"
+                 aria-label="Which side of the ball" hidden>
+              <label class="ege-switch__option">
+                <input type="radio" name="rosterSide" value="offense" checked>
+                <span>Offense</span>
+              </label>
+              <label class="ege-switch__option">
+                <input type="radio" name="rosterSide" value="defense">
+                <span>Defense</span>
+              </label>
+            </div>
             <button class="ege-collapse" type="button"
                     data-collapses="teamRosterPanel" aria-controls="teamRosterPanel"
                     aria-expanded="true" aria-label="Hide the roster"></button>
@@ -540,11 +554,7 @@
         <div class="fb-hero__col">
           <span class="fb-kicker">Commissioner</span>
           <h1 class="fb-hero__title">Admin</h1>
-          <p class="fb-hero__lede">
-            Every account's credits, diamonds and inventory, what the season
-            has paid out so far, and the files that put a finished season into the
-            repository for good.
-          </p>
+
         </div>
       </header>
 
@@ -562,30 +572,45 @@
 
       <div id="adminContent" hidden>
 
+      <!-- One part of the page at a time (Sam, 2026-10-19: there was too
+           much to scroll through). Each panel below names its tab in
+           data-admin-tab; the tab is in the address, #admin/sim, so a
+           reload or the back button lands on the same one. Drawn in app.js. -->
+      <nav class="ege-admintabs" id="adminTabs" aria-label="Admin sections">
+        <a class="ege-admintabs__tab" href="#admin/weeks" data-tab="weeks">Weeks</a>
+        <a class="ege-admintabs__tab" href="#admin/accounts" data-tab="accounts">Accounts</a>
+        <a class="ege-admintabs__tab" href="#admin/cards" data-tab="cards">Cards</a>
+        <a class="ege-admintabs__tab" href="#admin/sim" data-tab="sim">NFL Sim</a>
+        <a class="ege-admintabs__tab" href="#admin/season" data-tab="season">End of Season</a>
+      </nav>
+
       <p class="ege-note" id="adminMessage" role="alert" hidden></p>
 
       <!-- putting a week out -->
-      <div class="fb-panel" id="weekPanel">
+      <div class="fb-panel" id="weekPanel" data-admin-tab="weeks">
         <div class="fb-panel__head">
           <h3>Weeks</h3>
           <span class="fb-meta" id="weekNote"></span>
         </div>
         <div class="fb-panel__body fb-stack fb-stack--lg">
 
-          <p class="fb-meta">
-            The season file holds every result of the year, and nobody sees any
-            of it until you put a week out. Publishing shows the scores and the
-            stat lines, moves the records, pays the game credits and diamonds
-            and posts the week to Discord — one button. Pulling a week back is one click
-            too, as often as you like.
-          </p>
-          <p class="fb-meta">
-            Correcting a stat line after its week is out is fine: Pay out
-            works out what everybody is owed again and pays the difference. It
-            never pays the same game twice, and it never takes credits or
-            diamonds back from a number that went down — adjust a balance by
-            hand for that.
-          </p>
+          <details class="ege-admin__help">
+            <summary>How publishing works</summary>
+            <p class="fb-meta">
+              The season file holds every result of the year, and nobody sees any
+              of it until you put a week out. Publishing shows the scores and the
+              stat lines, moves the records, pays the game credits and diamonds
+              and posts the week to Discord — one button. Pulling a week back is one click
+              too, as often as you like.
+            </p>
+            <p class="fb-meta">
+              Correcting a stat line after its week is out is fine: Pay out
+              works out what everybody is owed again and pays the difference. It
+              never pays the same game twice, and it never takes credits or
+              diamonds back from a number that went down — adjust a balance by
+              hand for that.
+            </p>
+          </details>
 
           <div class="fb-row fb-row--wrap ege-weekbar">
             <label class="ege-field ege-field--inline">
@@ -619,7 +644,10 @@
 
           <!-- The two Discord bots, one per league. Pasted here once and kept
                in Supabase (discord_webhooks), which only an admin can read --
-               never in this repository, which is public. -->
+               never in this repository, which is public. Folded away: they
+               are set once and left. -->
+          <details class="ege-admin__help">
+          <summary>Discord bots</summary>
           <div class="ege-webhooks">
             <label class="ege-field">
               <span class="fb-eyebrow">College bot webhook</span>
@@ -634,11 +662,12 @@
             </label>
             <button class="fb-btn fb-btn--sm" id="hookNflSave" type="button">Save</button>
           </div>
+          </details>
         </div>
       </div>
 
       <!-- editing the season file -->
-      <div class="fb-panel ege-section-gap" id="editorPanel">
+      <div class="fb-panel ege-section-gap" id="editorPanel" data-admin-tab="weeks">
         <div class="fb-panel__head">
           <h3>Season File</h3>
           <span class="fb-meta" id="editorNote"></span>
@@ -676,7 +705,7 @@
       </div>
 
       <!-- what the season has paid out so far -->
-      <div class="fb-panel ege-section-gap" id="awardsPanel">
+      <div class="fb-panel ege-section-gap" id="awardsPanel" data-admin-tab="accounts">
         <div class="fb-panel__head">
           <h3>Credits &amp; Diamonds Earned</h3>
           <span class="fb-meta" id="awardsNote"></span>
@@ -704,7 +733,7 @@
       </div>
 
       <!-- every account -->
-      <div class="fb-panel ege-section-gap" id="adminPanel">
+      <div class="fb-panel ege-section-gap" id="adminPanel" data-admin-tab="accounts">
         <div class="fb-panel__head">
           <h3>Accounts</h3>
           <span class="fb-meta">Credits, diamonds, awards and everything bought</span>
@@ -740,7 +769,7 @@
       </div>
 
       <!-- the card game: who has what, and the two resets -->
-      <div class="fb-panel ege-section-gap" id="cardsAdminPanel">
+      <div class="fb-panel ege-section-gap" id="cardsAdminPanel" data-admin-tab="cards">
         <div class="fb-panel__head">
           <h3>Cards</h3>
           <span class="fb-meta" id="cardsAdminNote"></span>
@@ -830,8 +859,19 @@
         </div>
       </div>
 
+      <!-- the NFL sim: played here, kept in Supabase, private. Built in
+           js/nfl-sim-admin.js, which loads the sim (js/nfl-sim.js) the first
+           time this tab is opened. -->
+      <div class="fb-panel" id="nflSimPanel" data-admin-tab="sim">
+        <div class="fb-panel__head">
+          <h3>NFL Sim</h3>
+          <span class="fb-meta" id="nflSimNote" role="status"></span>
+        </div>
+        <div class="fb-panel__body fb-stack fb-stack--lg" id="nflSimBody"></div>
+      </div>
+
       <!-- the end of a season, in the order it has to happen -->
-      <div class="fb-panel ege-section-gap" id="seasonPanel">
+      <div class="fb-panel ege-section-gap" id="seasonPanel" data-admin-tab="season">
         <div class="fb-panel__head">
           <h3>End of Season</h3>
           <span class="fb-meta" id="seasonPanelNote"></span>
@@ -1272,6 +1312,7 @@
 <script src="data/brackets.js"></script>
 <script src="data/conferences.js"></script>
 <script src="data/logos.js"></script>
+<script src="data/nfl.js"></script>
 <script src="data/defenses.js"></script>
 <script src="data/rosters.js"></script>
 <script src="data/shop.js"></script>
@@ -1297,6 +1338,8 @@
 <script src="js/cards-admin.js"></script>
 <script src="js/discord-post.js"></script>
 <script src="js/exports.js"></script>
+<script src="js/nfl-rosters.js"></script>
+<script src="js/nfl-sim-admin.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

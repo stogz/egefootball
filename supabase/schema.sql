@@ -3273,3 +3273,83 @@ grant execute on function public.claim_event_set(text, text, text[], text) to au
 grant execute on function public.claim_event_reward(text) to authenticated;
 
 notify pgrst, 'reload schema';
+
+-- ===========================================================================
+-- The NFL sim
+--
+-- The admin page's NFL Sim tab plays the whole league in the browser
+-- (js/nfl-sim.js) and keeps the world here, one row per file, the same
+-- files the command line keeps in its world folder: league.json (every
+-- player, team and pick), games-{year}.json, stats-{year}.json and
+-- trades.json, each gzipped. Team ratings and everything else the sim
+-- knows about a team are in here, so only an admin can read or write it.
+--
+-- What the Teams pages show is nfl_sim_rosters: every team's players with
+-- nothing private in them (no team ratings, no potential), one row per
+-- season, written by the NFL Sim tab and readable by everybody.
+-- ===========================================================================
+
+create table if not exists public.nfl_sim_files (
+  name       text        primary key check (name ~ '^[a-z0-9-]+\.json$'),
+  body       text        not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.nfl_sim_files enable row level security;
+
+drop policy if exists "nfl sim files read by an admin" on public.nfl_sim_files;
+create policy "nfl sim files read by an admin"
+  on public.nfl_sim_files for select to authenticated
+  using (public.is_admin());
+
+drop policy if exists "nfl sim files added by an admin" on public.nfl_sim_files;
+create policy "nfl sim files added by an admin"
+  on public.nfl_sim_files for insert to authenticated
+  with check (public.is_admin());
+
+drop policy if exists "nfl sim files changed by an admin" on public.nfl_sim_files;
+create policy "nfl sim files changed by an admin"
+  on public.nfl_sim_files for update to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "nfl sim files removed by an admin" on public.nfl_sim_files;
+create policy "nfl sim files removed by an admin"
+  on public.nfl_sim_files for delete to authenticated
+  using (public.is_admin());
+
+revoke all on public.nfl_sim_files from anon;
+
+create table if not exists public.nfl_sim_rosters (
+  season   integer     primary key check (season between 2023 and 2100),
+  rosters  jsonb       not null,
+  saved_at timestamptz not null default now()
+);
+
+alter table public.nfl_sim_rosters enable row level security;
+
+drop policy if exists "nfl rosters read by everybody" on public.nfl_sim_rosters;
+create policy "nfl rosters read by everybody"
+  on public.nfl_sim_rosters for select to anon, authenticated
+  using (true);
+
+drop policy if exists "nfl rosters added by an admin" on public.nfl_sim_rosters;
+create policy "nfl rosters added by an admin"
+  on public.nfl_sim_rosters for insert to authenticated
+  with check (public.is_admin());
+
+drop policy if exists "nfl rosters changed by an admin" on public.nfl_sim_rosters;
+create policy "nfl rosters changed by an admin"
+  on public.nfl_sim_rosters for update to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "nfl rosters removed by an admin" on public.nfl_sim_rosters;
+create policy "nfl rosters removed by an admin"
+  on public.nfl_sim_rosters for delete to authenticated
+  using (public.is_admin());
+
+revoke insert, update, delete on public.nfl_sim_rosters from anon;
+grant select on public.nfl_sim_rosters to anon, authenticated;
+grant select, insert, update, delete on public.nfl_sim_rosters to authenticated;
+grant select, insert, update, delete on public.nfl_sim_files to authenticated;
+
+notify pgrst, 'reload schema';

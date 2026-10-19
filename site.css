@@ -2089,6 +2089,91 @@ body::before {
   gap: 12px;
   align-items: end;
 }
+.ege-admin__help > .ege-webhooks { margin-top: 12px; }
+
+/* --- the admin page's tabs ------------------------------------------------
+
+   The schedule's switch, made a bar of five across the page: the one open is
+   dark. On a phone it scrolls sideways rather than wrapping. */
+.ege-admintabs {
+  display: flex;
+  margin: 0 0 22px;
+  border: var(--fb-border) solid var(--fb-ink);
+  background: var(--fb-cream);
+  box-shadow: 4px 4px 0 var(--fb-ink);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ege-admintabs::-webkit-scrollbar { display: none; }
+.ege-admintabs__tab {
+  flex: 1 0 auto;
+  padding: 11px 16px;
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--fb-muted);
+  text-decoration: none;
+}
+.ege-admintabs__tab + .ege-admintabs__tab { border-left: var(--fb-border-thin) solid var(--fb-ink); }
+.ege-admintabs__tab:hover { color: var(--fb-ink); background: var(--fb-tint-wash); }
+.ege-admintabs__tab.is-active { background: var(--fb-ink); color: var(--fb-cream); }
+.ege-admintabs__tab:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: -4px; }
+/* Whichever panel opens a tab sits straight under the bar. */
+.ege-section-gap.is-tabfirst { margin-top: 0; }
+
+/* The notes and settings that are read once: folded away under a line. */
+.ege-admin__help > summary {
+  cursor: pointer;
+  font-size: var(--fb-small);
+  font-weight: 800;
+  color: var(--fb-accent-deep);
+}
+.ege-admin__help > .fb-meta { margin: 8px 0 0; }
+
+/* --- the NFL Sim tab --------------------------------------------------------
+
+   Where the league is, what the last step did, then a part for each thing
+   to do, divided the way the Cards tab's demo and event are. */
+.ege-sim__status { display: grid; gap: 4px; }
+.ege-sim__status p { margin: 0; }
+.ege-sim__where { font-family: var(--fb-font-display); font-size: 1.375rem; }
+.ege-sim__last {
+  padding: 12px 14px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-tint-wash);
+}
+.ege-sim__last .ege-item__name { margin: 0 0 6px; }
+.ege-sim__lines {
+  display: grid;
+  gap: 4px;
+  max-height: 320px;
+  margin: 0;
+  padding-left: 18px;
+  overflow-y: auto;
+  font-size: var(--fb-small);
+}
+.ege-sim__trade {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: #fff;
+}
+.ege-sim__deal { margin: 0; font-weight: 800; }
+.ege-sim__why { margin: 0; padding-left: 18px; font-size: var(--fb-small); color: var(--fb-muted); }
+.ege-sim__own { flex: 1 1 280px; }
+.ege-sim__who { min-width: 9rem; font-weight: 800; }
+.ege-sim__check { display: inline-flex; align-items: center; gap: 8px; font-size: var(--fb-small); font-weight: 700; }
+.ege-sim__divs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px 20px;
+  margin-top: 12px;
+}
+.ege-sim__div { margin: 0; padding-left: 20px; font-size: var(--fb-small); }
 
 /* Rolling a week: a label and its control side by side, and a preview whose
    stat line is allowed to be the widest thing in the row. */
@@ -3872,6 +3957,187 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 }
 .ege-room__more .ege-room__list { margin-top: 6px; }
 .ege-room__empty { margin: 0; font-size: var(--fb-small); color: var(--fb-muted); }
+
+/* An NFL player's card: name, archetype and years, height and weight. The
+   whole card opens his pop-up. A long archetype gives way before the years
+   chip does. */
+.ege-teamchip--nfl { cursor: pointer; }
+.ege-teamchip--nfl:hover { background: var(--fb-tint-wash); }
+.ege-teamchip--nfl.is-six:hover { background: var(--fb-tint-clay-2); }
+.ege-teamchip--nfl:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: 2px; }
+.ege-teamchip--nfl .ege-teamchip__meta { min-width: 0; }
+.ege-teamchip__arch { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ege-teamchip--nfl .ege-room__class { flex: none; }
+
+/* The roster's Offense and Defense switch goes on a line of its own on a
+   phone, as the schedule's does. */
+@media (max-width: 620px) {
+  #teamRosterPanel .ege-switch {
+    order: 3;
+    flex-basis: 100%;
+    width: 100%;
+    margin-left: 0;
+  }
+  #teamRosterPanel .ege-collapse { order: 2; }
+  #teamRosterPanel .ege-switch__option { flex: 1; }
+  #teamRosterPanel .ege-switch__option span { text-align: center; }
+}
+
+/* --- every NFL team -------------------------------------------------------
+
+   Under the six's teams on the index: the league a division to a box, four
+   across where there is room, each team a link to its page with its
+   record. The six's teams are picked out in orange. */
+.ege-nflstand__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 18px 22px;
+}
+.ege-nflstand__title {
+  margin: 0 0 6px;
+  padding-bottom: 4px;
+  border-bottom: var(--fb-border-thin) solid var(--fb-ink);
+  font-size: .9375rem;
+}
+.ege-nflstand__list { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.ege-nflstand__team {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 6px;
+  color: var(--fb-ink);
+  font-weight: 700;
+  text-decoration: none;
+}
+.ege-nflstand__team:hover { background: var(--fb-tint-wash); }
+.ege-nflstand__team.is-ours { background: var(--fb-tint-clay); box-shadow: inset 4px 0 0 var(--fb-accent); }
+.ege-nflstand__team.is-ours:hover { background: var(--fb-tint-clay-2); }
+.ege-nflstand__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ege-nflstand__record { flex: none; margin-left: 10px; font-variant-numeric: tabular-nums; }
+
+/* --- an NFL player up close -------------------------------------------------
+
+   In the card overlay, the page blurred behind it as for a trophy: a band in
+   his team's colour with his headshot, name and the team's mark, then a
+   cream panel with where he came from, his overall, archetype and skills,
+   and his contract. */
+.ege-rip__stage.ege-rip__stage--person { width: min(520px, 100%); }
+.ege-rip:has(.ege-rip__stage--person) {
+  background:
+    radial-gradient(circle at 50% 40%, rgba(240, 184, 42, .14), transparent 55%),
+    rgba(14, 18, 10, .72);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.ege-person {
+  width: 100%;
+  border: var(--fb-border) solid var(--fb-ink);
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, .35);
+  background: var(--fb-cream);
+  color: var(--fb-ink);
+}
+.ege-person__band {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  padding: 12px 14px 0;
+  background: var(--fb-ink);
+  border-bottom: var(--fb-border) solid var(--fb-ink);
+  color: #fff;
+}
+.ege-person__face {
+  display: block;
+  width: 132px;
+  height: 96px;
+  overflow: hidden;
+}
+.ege-person__face img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.ege-person__name {
+  align-self: center;
+  margin: 0;
+  padding-bottom: 12px;
+  font-size: clamp(1.25rem, 4.5vw, 1.75rem);
+  line-height: 1.1;
+  color: #fff;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, .45);
+  overflow-wrap: anywhere;
+}
+/* On white, so any team's mark reads on any team's colour. */
+.ege-person__mark {
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 12px;
+  background: #fff;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+}
+.ege-person__mark img { width: 42px; height: 42px; object-fit: contain; }
+.ege-person__body { display: grid; gap: 14px; padding: 14px 16px 16px; }
+.ege-person__facts {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.3fr) repeat(3, minmax(0, .8fr));
+  gap: 10px 12px;
+  margin: 0;
+  padding-bottom: 12px;
+  border-bottom: var(--fb-border-thin) solid rgba(29, 36, 22, .2);
+}
+.ege-person__fact { min-width: 0; }
+.ege-person__facts dt,
+.ege-person__deal dt {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-accent-deep);
+}
+.ege-person__facts dd { margin: 2px 0 0; font-weight: 700; font-size: .875rem; overflow-wrap: anywhere; }
+.ege-person__rating {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+  padding-bottom: 12px;
+  border-bottom: var(--fb-border-thin) solid rgba(29, 36, 22, .2);
+}
+.ege-person__rating .ege-ovrbox--chip { width: 64px; }
+.ege-person__rating .ege-ovrbox--chip .ege-ovrbox__value { font-size: 1.75rem; }
+.ege-person__arch { display: block; margin-bottom: 8px; font-family: var(--fb-font-display); font-size: 1.125rem; }
+.ege-person__skills { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.ege-person__skill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 1px solid var(--fb-ink);
+  background: #fff;
+  font-size: var(--fb-small);
+  font-weight: 700;
+}
+.ege-person__skill b { font-variant-numeric: tabular-nums; }
+.ege-person__deal {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 0;
+  font-size: .875rem;
+}
+.ege-person__deal dt { padding-top: 2px; }
+.ege-person__deal dd { margin: 0; font-weight: 700; }
+.ege-person__go { justify-self: start; }
+
+@media (max-width: 520px) {
+  .ege-person__band { gap: 8px; padding: 10px 10px 0; }
+  .ege-person__face { width: 96px; height: 70px; }
+  .ege-person__mark { width: 46px; height: 46px; margin-bottom: 10px; }
+  .ege-person__mark img { width: 32px; height: 32px; }
+  .ege-person__facts { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .ege-person__fact { grid-column: span 2; }
+  .ege-person__fact:nth-child(-n+2) { grid-column: span 3; }
+  .ege-person__body { padding: 12px; }
+}
 
 
 /* --- the injury report ------------------------------------------------------

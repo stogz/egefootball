@@ -256,10 +256,13 @@ function seasonFileText(season, made) {
 }
 
 /* Every NFL score the sim played in `season` from the week it took over,
-   regular season only, by team name: what data/nfl-results.js holds. */
+   regular season only, by team name: what data/nfl-results.js holds. Read
+   from the season's game log, so a season can still be written once the
+   league has moved on to the next. */
 function simResults(league, season) {
-  if (league.season !== season || !league.schedule) { return null; }
-  const played = league.schedule.filter((g) => g.score && !g.imported);
+  const name = 'games-' + season + '.json';
+  const log = io.has(league.world, name) ? io.read(league.world, name) : [];
+  const played = log.filter((g) => g.season === season && !g.playoff && !g.imported && g.score);
   if (!played.length) { return null; }
   const from = Math.min.apply(null, played.map((g) => g.week));
   return {
@@ -314,6 +317,22 @@ function resultsFileText(season, results) {
   return lines.join('\n');
 }
 
+/* Both files for `season`, as a promise of { season, from, games, stats,
+   results }: stats/{season}.js and data/nfl-results.js as text. Null when
+   the sim has played none of that season. */
+function siteFiles(league, season) {
+  return Promise.resolve().then(() => {
+    const results = simResults(league, season);
+    if (!results) { return null; }
+    const name = 'games-' + season + '.json';
+    const made = sixEdits(io.has(league.world, name) ? io.read(league.world, name) : [], season, results.from);
+    const text = resultsFileText(season, results);
+    return seasonFileText(season, made).then((stats) => ({
+      season, from: results.from, games: results.games.length, stats, results: text
+    }));
+  });
+}
+
 /* --------------------------------------------------------- out: rosters -- */
 
 /* The positions the Teams pages show: the offense's skill players and the
@@ -349,4 +368,4 @@ function publicRosters(league) {
   return { season: league.season, phase: league.phase, week: league.week || null, savedAt: new Date().toISOString(), teams };
 }
 
-module.exports = { siteResults, sixEdits, seasonFileText, simResults, resultsFileText, publicRosters, simKey };
+module.exports = { siteResults, sixEdits, seasonFileText, simResults, resultsFileText, siteFiles, publicRosters, simKey };

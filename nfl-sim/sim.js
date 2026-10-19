@@ -27,7 +27,7 @@
 
    The website:
      node nfl-sim/sim.js import-site --through 9   take the site's first weeks as played
-     node nfl-sim/sim.js site                   write the sim's games into stats/YEAR.js
+     node nfl-sim/sim.js site [--season YEAR]   write the sim's games into stats/YEAR.js
                                                 and data/nfl-results.js
      node nfl-sim/sim.js export                 write data/nfl-rosters.json for the
                                                 Teams pages (nothing private in it)
@@ -70,6 +70,7 @@ const force = flag('force');
 const neutral = flag('neutral');
 const gamesArg = flag('games');
 const throughArg = flag('through');
+const seasonArg = flag('season');
 const [command, ...rest] = args;
 
 const out = [];
@@ -169,16 +170,14 @@ function main() {
       break;
     }
     case 'site': {
-      const results = site.simResults(league, league.season);
-      if (!results) { say('The sim has not played any of ' + league.season + ' yet, so there is nothing to write.'); break; }
-      const made = site.sixEdits(season.readWorld(league, 'games-' + league.season + '.json', []), league.season, results.from);
+      const year = Number(seasonArg) || league.season;
       const root = path.join(__dirname, '..');
-      const text = site.resultsFileText(league.season, results);
-      site.seasonFileText(league.season, made).then((stats) => {
-        fs.writeFileSync(path.join(root, 'stats', league.season + '.js'), stats);
-        fs.writeFileSync(path.join(root, 'data', 'nfl-results.js'), text);
-        say('Wrote stats/' + league.season + '.js (the six\'s games from Week ' + results.from + ') and data/nfl-results.js (' +
-          results.games.length + ' games).');
+      site.siteFiles(league, year).then((files) => {
+        if (!files) { say('The sim has not played any of ' + year + ', so there is nothing to write.'); done(); return; }
+        fs.writeFileSync(path.join(root, 'stats', year + '.js'), files.stats);
+        fs.writeFileSync(path.join(root, 'data', 'nfl-results.js'), files.results);
+        say('Wrote stats/' + year + '.js (the six\'s games from Week ' + files.from + ') and data/nfl-results.js (' +
+          files.games + ' games).');
         done();
       }).catch((err) => { process.stderr.write(err.message + '\n'); process.exit(1); });
       return;

@@ -49,9 +49,11 @@
   /* One file per season. Add the next one here when it starts. */
   var SEASONS = [2018, 2019, 2020, 2021, 2022, 2023];
 
-  /* In the order they have always loaded in. */
+  /* In the order they have always loaded in, then the NFL sim's scores,
+     which the admin page's NFL Sim tab writes the same way. */
   var FILES = ['data/season.js', 'data/ratings.js'].concat(
-    SEASONS.map(function (year) { return 'stats/' + year + '.js'; })
+    SEASONS.map(function (year) { return 'stats/' + year + '.js'; }),
+    ['data/nfl-results.js']
   );
 
   /* A query string is a different URL, which is a different cache entry, which

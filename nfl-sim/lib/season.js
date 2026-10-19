@@ -118,7 +118,7 @@ function record(league, game, result, log) {
     .sort((a, b) => b[key] - a[key]).slice(0, 2).map((l) => l.name + ' ' + l[key]);
   log.push({
     season: league.season, week: game.week, playoff: game.playoff || undefined, round: game.round || undefined,
-    home: game.home, away: game.away, score: result.score, ot: result.ot || undefined,
+    home: game.home, away: game.away, score: result.score, ot: result.ot || undefined, neutral: game.neutral || undefined,
     scoring: result.scoring.map((s) => 'Q' + s.qtr + ' ' + s.clock + ' ' + s.team + ' ' + s.text + ' (' + s.score.join('-') + ')'),
     passing: leaders('passYds'), rushing: leaders('rushYds'), receiving: leaders('recYds'),
     injuries: result.injuries.map((i) => i.name + ' (' + i.team + ', ' + i.what + ', ' + (i.season ? 'season' : i.games + ' wk') + ')'),
