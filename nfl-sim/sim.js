@@ -25,6 +25,13 @@
      node nfl-sim/sim.js report                 a written report into the world folder
      node nfl-sim/sim.js reset --force          start over from the 2023 kickoff
 
+   The website:
+     node nfl-sim/sim.js import-site --through 9   take the site's first weeks as played
+     node nfl-sim/sim.js site                   write the sim's games into stats/YEAR.js
+                                                and data/nfl-results.js
+     node nfl-sim/sim.js export                 write data/nfl-rosters.json for the
+                                                Teams pages (nothing private in it)
+
    Every command that plays games is seeded from the world's seed and where
    the league is, so the same world always plays out the same way.
    ========================================================================== */
@@ -33,13 +40,13 @@
 
 const fs = require('fs');
 const path = require('path');
-const { loadLeague, saveLeague, worldDir, teamOf } = require('./lib/league');
-const { seeded } = require('./lib/rng');
+const { worldDir, teamOf } = require('./lib/league');
+const run = require('./lib/run');
+const site = require('./lib/site');
 const season = require('./lib/season');
 const { standings, recordText } = require('./lib/standings');
 const { rateTeams } = require('./lib/team-ratings');
 const { assess, describe } = require('./lib/assess');
-const { startOffseason, finishOffseason, firstModes } = require('./lib/offseason');
 const trades = require('./lib/trades');
 const { depthChart } = require('./lib/lineup');
 const { OFFENSE, DEFENSE, fitOf, schemeFor } = require('./lib/schemes');
@@ -62,6 +69,7 @@ for (let p = flag('place'); p; p = flag('place')) { places.push(p); }
 const force = flag('force');
 const neutral = flag('neutral');
 const gamesArg = flag('games');
+const throughArg = flag('through');
 const [command, ...rest] = args;
 
 const out = [];
@@ -70,31 +78,16 @@ function done() { process.stdout.write(out.join('\n') + '\n'); }
 
 function nick(key) { return TEAMS[key] ? TEAMS[key].name.split(' ').slice(-1)[0] : key; }
 
-function rngFor(league, what) {
-  return seeded((league.seed || 'ege-nfl') + ':' + league.season + ':' + league.phase + ':' + (league.week || 0) + ':' + what);
-}
-
-function hooks(league) {
-  return {
-    deadline: (l) => trades.propose(l, 'deadline', rngFor(l, 'deadline')),
-    closeDeadline: (l) => trades.closeWindow(l, 'deadline')
-  };
-}
-
 function scoreLine(g) {
   return nick(g.away) + ' ' + g.score[1] + (g.neutral ? ' vs. ' : ' at ') + nick(g.home) + ' ' + g.score[0] + (g.ot ? ' (OT)' : '');
 }
 
 /* The six, as they stand. */
 function sixLines(league) {
-  return league.players.filter((p) => p.ege && p.status === 'active').map((p) => {
-    const s = (league.stats || {})[p.id] || {};
-    const bits = [];
-    if (s.passAtt) { bits.push(s.passCmp + '/' + s.passAtt + ', ' + s.passYds + ' yds, ' + (s.passTd || 0) + ' TD, ' + (s.passInt || 0) + ' INT'); }
-    if (s.rushAtt) { bits.push(s.rushAtt + ' car, ' + s.rushYds + ' yds, ' + (s.rushTd || 0) + ' TD'); }
-    if (s.rec || s.targets) { bits.push((s.rec || 0) + ' rec, ' + (s.recYds || 0) + ' yds, ' + (s.recTd || 0) + ' TD'); }
-    return p.name + ' (' + p.pos + ', ' + p.team + ', ' + p.ovr + ')' + (p.injury ? ' [out: ' + p.injury.what + ']' : '') +
-      (bits.length ? ': ' + bits.join('; ') : '');
+  return run.sixNow(league).map((s) => {
+    const line = run.sixLine(s);
+    return s.name + ' (' + s.pos + ', ' + s.team + ', ' + s.ovr + ')' + (s.out ? ' [out: ' + s.out.what + ']' : '') +
+      (line ? ': ' + line : '');
   });
 }
 
@@ -129,12 +122,8 @@ function findPlayer(league, name) {
 }
 
 function main() {
-  const league = loadLeague(worldArg);
-  if (!league.seed) { league.seed = seedArg || 'ege-nfl'; }
-  if (league.phase === 'preseason' && command !== 'reset') {
-    if (!(league.history || []).length) { firstModes(league); }
-    season.startSeason(league, rngFor(league, 'start'));
-  }
+  if (command === 'reset') { reset(worldDir(worldArg)); done(); return; }
+  const league = run.open(worldDir(worldArg), seedArg);
 
   switch (command) {
     case undefined:
@@ -150,24 +139,55 @@ function main() {
       break;
     }
     case 'week': {
-      if (league.phase === 'playoffs') { weekReport(league, season.playRound(league, rngFor(league, 'round'))); break; }
       if (league.phase === 'offseason' || league.phase === 'draft') { say('The season is over: run offseason, then draft.'); break; }
-      weekReport(league, season.playWeek(league, rngFor(league, 'week'), hooks(league)));
+      weekReport(league, run.playNext(league));
       break;
     }
     case 'season': {
-      while (league.phase === 'regular' || (league.phase === 'deadline' && out.length === 0)) {
-        const r = season.playWeek(league, rngFor(league, 'week'), hooks(league));
+      run.playOn(league).forEach((r) => {
         say('Week ' + r.week + ': ' + r.games.map(scoreLine).join(', '));
-        if (r.deadline) { say(''); say('Stopped at the trade deadline: ' + r.deadline + ' proposals are waiting. Look at them with "trades", then run "season" again (anything not approved expires).'); break; }
-      }
+        if (r.deadline) { say(''); say('Stopped at the trade deadline: ' + r.deadline + ' proposals are waiting. Look at them with "trades", then run "season" again (anything not approved expires).'); }
+      });
       if (league.phase === 'playoffs') { say(''); showStandings(league); }
       break;
     }
     case 'playoffs': {
       if (league.phase !== 'playoffs') { say('The playoffs are not on (phase: ' + league.phase + ').'); break; }
-      while (league.phase === 'playoffs') { weekReport(league, season.playRound(league, rngFor(league, 'round'))); say(''); }
-      say('Champion: ' + TEAMS[league.playoffs.champion].name);
+      const r = run.playPlayoffs(league);
+      r.rounds.forEach((round) => { weekReport(league, round); say(''); });
+      say('Champion: ' + TEAMS[r.champion].name);
+      break;
+    }
+    case 'import-site': {
+      const through = Number(throughArg);
+      if (!through) { say('Usage: import-site --through WEEK'); break; }
+      const r = run.importSite(league, through);
+      say('Took Weeks ' + r.from + '-' + r.through + ' of ' + league.season + ' from the website: ' + r.games + ' games.');
+      if (r.deadline) { say('Trade deadline: ' + r.deadline + ' proposals are waiting (node nfl-sim/sim.js trades).'); }
+      say('');
+      showStandings(league);
+      break;
+    }
+    case 'site': {
+      const results = site.simResults(league, league.season);
+      if (!results) { say('The sim has not played any of ' + league.season + ' yet, so there is nothing to write.'); break; }
+      const made = site.sixEdits(season.readWorld(league, 'games-' + league.season + '.json', []), league.season, results.from);
+      const root = path.join(__dirname, '..');
+      const text = site.resultsFileText(league.season, results);
+      site.seasonFileText(league.season, made).then((stats) => {
+        fs.writeFileSync(path.join(root, 'stats', league.season + '.js'), stats);
+        fs.writeFileSync(path.join(root, 'data', 'nfl-results.js'), text);
+        say('Wrote stats/' + league.season + '.js (the six\'s games from Week ' + results.from + ') and data/nfl-results.js (' +
+          results.games.length + ' games).');
+        done();
+      }).catch((err) => { process.stderr.write(err.message + '\n'); process.exit(1); });
+      return;
+    }
+    case 'export': {
+      const file = path.join(__dirname, '..', 'data', 'nfl-rosters.json');
+      const data = site.publicRosters(league);
+      fs.writeFileSync(file, JSON.stringify(data) + '\n');
+      say('Wrote data/nfl-rosters.json: ' + Object.keys(data.teams).reduce((n, k) => n + data.teams[k].length, 0) + ' players.');
       break;
     }
     case 'standings': showStandings(league); break;
@@ -237,7 +257,7 @@ function main() {
       break;
     }
     case 'offseason': {
-      const r = startOffseason(league, rngFor(league, 'offseason'));
+      const r = run.offseason(league);
       say('Into the ' + r.season + ' offseason. ' + (r.champion ? TEAMS[r.champion].name + ' won the Super Bowl.' : ''));
       if (r.the99s.length) { say('99s: ' + r.the99s.join('; ')); }
       say('');
@@ -258,7 +278,7 @@ function main() {
     case 'draft': {
       const place = {};
       places.forEach((p) => { const [slug, where] = String(p).split('='); place[slug] = where; });
-      const r = finishOffseason(league, rngFor(league, 'draft'), place);
+      const r = run.draft(league, place);
       say(r.season + ' draft' + (r.expired ? ' (' + r.expired + ' trade proposals expired)' : '') + ':');
       r.draft.filter((d) => (d.round === 1 || d.ege) && !d.undrafted).forEach((d) => say('  ' + d.n + '. ' + d.team + ': ' + d.name + ' (' + d.pos + ', ' + d.ovr + '/' + d.pot + ')' + (d.ege ? '  <- one of the six' : '')));
       r.draft.filter((d) => d.undrafted).forEach((d) => say('  ' + d.name + ' (one of the six) was not drafted' +
@@ -293,24 +313,23 @@ function main() {
       say('Wrote ' + file);
       break;
     }
-    case 'reset': {
-      if (!force) { say('This starts the world over from the 2023 kickoff. Run "reset --force" to do it.'); break; }
-      const mine = /^(league|trades|games-\d+|stats-\d+|ratings-.+)\.json$/;
-      if (fs.existsSync(league.world)) {
-        fs.readdirSync(league.world).filter((f) => mine.test(f)).forEach((f) => fs.unlinkSync(path.join(league.world, f)));
-        fs.rmSync(path.join(league.world, 'reports'), { recursive: true, force: true });
-      }
-      say('The world starts over from the 2023 kickoff.');
-      done();
-      return;
-    }
     default:
-      say('Unknown command ' + command + '. Commands: status, week, season, playoffs, standings, rankings, team, player, matchup, offseason, draft, trades, approve, reject, trade, report, reset.');
+      say('Unknown command ' + command + '. Commands: status, week, season, playoffs, standings, rankings, team, player, matchup, offseason, draft, trades, approve, reject, trade, report, reset, import-site, site, export.');
       done();
       return;
   }
-  saveLeague(league);
+  run.save(league);
   done();
+}
+
+function reset(world) {
+  if (!force) { say('This starts the world over from the 2023 kickoff. Run "reset --force" to do it.'); return; }
+  const mine = /^(league|trades|games-\d+|stats-\d+|ratings-.+)\.json$/;
+  if (fs.existsSync(world)) {
+    fs.readdirSync(world).filter((f) => mine.test(f)).forEach((f) => fs.unlinkSync(path.join(world, f)));
+    fs.rmSync(path.join(world, 'reports'), { recursive: true, force: true });
+  }
+  say('The world starts over from the 2023 kickoff.');
 }
 
 /* A written report into world/reports: standings, ratings, leaders, the

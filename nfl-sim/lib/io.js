@@ -46,7 +46,7 @@ function fileStore() {
       const stats = fs.readdirSync(path.join(ROOT, 'stats')).filter((n) => /^\d{4}\.js$/.test(n)).sort()
         .map((n) => 'stats/' + n);
       ['data/players.js', 'data/season.js', 'data/ratings.js', 'data/shop.js', 'data/economy.js',
-        'data/statline.js', 'data/brackets.js', 'data/conferences.js', 'data/logos.js', 'data/nfl.js']
+        'data/statline.js', 'data/brackets.js', 'data/conferences.js', 'data/logos.js', 'data/nfl.js', 'data/nfl-results.js']
         .concat(stats, ['data/games.js', 'js/exports.js'])
         .forEach((rel) => {
           const file = path.join(ROOT, rel);
