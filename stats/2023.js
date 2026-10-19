@@ -131,7 +131,7 @@ EGE.stats[2023] = {
         } },
       { week:  8, date: '2023-10-30', kickoff: '8:15pm',
         opponent: 'Las Vegas Raiders', home: true, conference: false,
-        result: { teamScore: 23, opponentScore: 13 }, booster: null,
+        result: { teamScore: 23, opponentScore: 13 }, booster: 'boost-1-5',
         stats: {
           receptions: 4, receivingYards: 64, receivingYac: 25,
           receivingTd: 0, receivingLong: 42, targets: 6, carries: 0,
@@ -327,17 +327,19 @@ EGE.stats[2023] = {
           rushingAvg: 3.4, receivingAvg: 9.7, totalYards: 129, totalTd: 0
         } },
       { week:  8, date: '2023-10-21', kickoff: '5:00pm',
-        opponent: 'Utah', home: true, conference: true, scouts: true,
-        result: { teamScore: 33, opponentScore: 39 }, booster: null,
+        opponent: 'Utah', home: true, conference: true, scouts: true, overtime: true,
+        result: { teamScore: 42, opponentScore: 39 }, booster: 'boost-2-0',
         stats: {
-          carries: 25, rushingYards: 104, rushingTd: 2, rushingLong: 18,
-          receptions: 6, receivingYards: 58, receivingYac: 44,
-          receivingTd: 0, receivingLong: 23, targets: 7, fumbles: 0,
-          rushingAvg: 4.2, receivingAvg: 9.7, totalYards: 162, totalTd: 2
+          carries: 25, rushingYards: 123, rushingTd: 3, rushingLong: 27,
+          receptions: 7, receivingYards: 118, receivingYac: 91,
+          receivingTd: 1, receivingLong: 45, targets: 8, fumbles: 0,
+          rushingAvg: 4.9, receivingAvg: 16.9, totalYards: 241, totalTd: 4
         },
         bigPlays: [
-          '5 yard rushing touchdown',
-          '14 yard rushing touchdown'
+          '45 yard receiving touchdown',
+          '19 yard rushing touchdown',
+          '14 yard rushing touchdown',
+          '5 yard rushing touchdown'
         ] },
       { week:  9, date: '2023-10-28', kickoff: '1:00pm',
         opponent: 'California', home: false, conference: true,
@@ -631,12 +633,12 @@ EGE.stats[2023] = {
         ] },
       { week:  8, date: '2023-10-21', kickoff: '3:00pm',
         opponent: 'Houston', home: false, conference: true,
-        result: { teamScore: 20, opponentScore: 23 }, booster: null,
+        result: { teamScore: 20, opponentScore: 23 }, booster: 'boost-1-5',
         stats: {
           completions: 22, attempts: 35, passingYards: 306,
-          passingYac: 88, passingTd: 2, interceptions: 1, carries: 4,
-          rushingYards: 8, rushingTd: 0, rushingLong: 3.5, sacks: 3,
-          fumbles: 0, passingAvg: 13.9, rating: 98, rushingAvg: 2
+          passingYac: 88, passingTd: 2, interceptions: 0, carries: 4,
+          rushingYards: 8, rushingTd: 0, rushingLong: 3, sacks: 3,
+          fumbles: 0, passingAvg: 13.9, rating: 109.9, rushingAvg: 2
         },
         bigPlays: [
           '57 yard passing touchdown',
@@ -969,7 +971,7 @@ EGE.stats[2023] = {
         result: null, booster: null, stats: null },
       { week:  8, date: '2023-10-29', kickoff: '12:00pm',
         opponent: 'Carolina Panthers', home: false, conference: false,
-        result: { teamScore: 7, opponentScore: 19 }, booster: null,
+        result: { teamScore: 7, opponentScore: 19 }, booster: 'boost-1-5',
         stats: {
           completions: 24, attempts: 38, passingYards: 239,
           passingYac: 117, passingTd: 1, interceptions: 0, carries: 5,
