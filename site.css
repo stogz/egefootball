@@ -4706,6 +4706,36 @@ html.ege-noscroll body { overflow: hidden; }
   animation: ege-sheen 6s ease-in-out infinite;
 }
 
+/* GOAT is the rung above Iconic, and only a Player Card reaches it: no play
+   or performance card is ever GOAT. Bright white platinum, and up close a
+   band of white light keeps sweeping across it on top of the drifting
+   metal. */
+.ege-tcard--goat {
+  background:
+    radial-gradient(circle at 22% 20%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 46%),
+    radial-gradient(circle at 76% 78%, rgba(122, 140, 160, .5) 0%, rgba(122, 140, 160, 0) 52%),
+    linear-gradient(120deg, #8e9dae 0%, #dfe6ee 16%, #ffffff 30%, #b8c3cf 44%,
+                    #eef2f6 58%, #ffffff 70%, #c2ccd7 84%, #8e9dae 100%);
+  background-size: 150% 150%, 150% 150%, 220% 220%;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, .35), 0 0 18px rgba(220, 232, 245, .9);
+}
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--goat { animation: ege-metal-flow 6s ease-in-out infinite; }
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--goat::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  background: linear-gradient(110deg, transparent 32%, rgba(255, 255, 255, .95) 45%, transparent 56%);
+  background-size: 300% 100%;
+  animation: ege-goat-shine 3.4s ease-in-out infinite;
+}
+@keyframes ege-goat-shine {
+  0%       { background-position: 100% 0; }
+  65%, 100% { background-position: 0% 0; }
+}
+
 /* --- holographic ---------------------------------------------------------
 
    A holo is three copies of one card merged into one (js/cards-view.js).
@@ -7454,6 +7484,7 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-rip__stage .ege-tcard--mystic,
   .ege-rip__stage .ege-tcard--iconic,
   .ege-rip__stage .ege-tcard--iconic .ege-tcard__art::after,
+  .ege-rip__stage .ege-tcard--goat,
   .ege-pack__body,
   .ege-pack__prizm,
   .ege-rip,

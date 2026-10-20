@@ -69,8 +69,9 @@ EGE.diamondsView = (function () {
   /* The rank a Player Card bonus was paid at, out of its note ("Rare Sam
      Player Card, week 4 v ..."), or null for one that does not say. */
   function rankIn(note) {
-    var m = /^(Uncommon|Rare|Epic|Legendary|Mystic|Iconic) /.exec(note || '');
-    return m ? m[1].toLowerCase() : null;
+    var hit = EGE.cards.PLAYER_RANKS.map(function (r) { return EGE.cards.playerRank(r.key); })
+      .filter(function (r) { return r.bonus && String(note || '').indexOf(r.name + ' ') === 0; })[0];
+    return hit ? hit.key : null;
   }
 
   /* The ledger's rows as games, a week to a box: [{ season, week, total,
@@ -175,8 +176,7 @@ EGE.diamondsView = (function () {
       text.appendChild(mine);
     }
     if (row.card) {
-      var rank = row.rank ? EGE.cards.rarity(row.rank) : null;
-      var tier = rank ? EGE.cards.PLAYER_RANKS.filter(function (r) { return r.key === row.rank; })[0] : null;
+      var rank = row.rank ? EGE.cards.playerRank(row.rank) : null;
       var why = el('span', 'ege-dgame__why');
       if (rank) {
         var pip = el('span', 'ege-dgame__pip', '\u25c6');
@@ -184,7 +184,7 @@ EGE.diamondsView = (function () {
         why.appendChild(pip);
       }
       why.appendChild(document.createTextNode((rank ? rank.name + ' ' : '') + 'Player Card' +
-        (tier && tier.bonus ? ' \u00b7 +' + Math.round(tier.bonus * 100) + '%' : '')));
+        (rank && rank.bonus ? ' \u00b7 +' + Math.round(rank.bonus * 100) + '%' : '')));
       if (both) { why.appendChild(document.createTextNode(' \u00b7 ')); why.appendChild(gems(row.card, true)); }
       text.appendChild(why);
     }
