@@ -1273,8 +1273,8 @@ body::before {
 /* A wager -- a poker chip: black felt with a ring of white notches round
    the edge, and the mark of the team it is on in the middle, or BET on the
    drawer's blank one. Once the game is out it turns green for a wager that
-   won and red for one that lost (Sam, 2026-10-20), and is stamped with what
-   it did; one that came out level stays black. */
+   won and red for one that lost (Sam, 2026-10-20); the colour is the whole
+   of it, with no stamp. One that came out level stays black. */
 .ege-sticker--wager { --cut: circle(50%); --chip: #2b2b29; --chip-edge: #121211; }
 .ege-sticker--won { --chip: #2f8a55; --chip-edge: #1f6b3f; }
 .ege-sticker--lost { --chip: #c4402c; --chip-edge: #8f2416; }
@@ -1297,20 +1297,6 @@ body::before {
   object-fit: contain;
 }
 .ege-sticker--wager .ege-sticker__text { font-size: calc(var(--sticker-size) * 0.2); letter-spacing: .04em; }
-.ege-sticker__stamp {
-  position: absolute;
-  right: 4%;
-  bottom: 4%;
-  z-index: 5;
-  padding: 1px 4px;
-  border: 2px solid var(--fb-ink);
-  background: var(--fb-tint-sage-2);
-  color: var(--fb-ink);
-  font-size: calc(var(--sticker-size) * 0.17);
-  font-weight: 800;
-  line-height: 1.1;
-}
-.ege-sticker--lost .ege-sticker__stamp { background: #f9d3c9; }
 
 @keyframes ege-holo-flow {
   0%   { background-position: 0% 0%, 100% 0%, 0% 100%, 100% 100%, 0% 50%; }

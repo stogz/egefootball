@@ -736,7 +736,7 @@
 
   /* A wager's sticker: a chip with the mark of the team it is on, or BET on
      the drawer's blank one. Black until the game is out; then `outcome`
-     turns it green for a win and red for a loss, and stamps it 2x or 0. */
+     turns it green for a win and red for a loss (Sam, 2026-10-20). */
   function wagerStickerEl(logo, size, seed, outcome) {
     var sticker = el('span', 'ege-sticker ege-sticker--wager' +
       (outcome ? ' ege-sticker--' + outcome : ''));
@@ -756,9 +756,6 @@
       face.appendChild(el('span', 'ege-sticker__text', 'BET'));
     }
     sticker.appendChild(face);
-    if (outcome === 'won' || outcome === 'lost') {
-      sticker.appendChild(el('span', 'ege-sticker__stamp', outcome === 'won' ? '2x' : '0'));
-    }
     return sticker;
   }
 
