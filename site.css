@@ -2387,10 +2387,11 @@ body::before {
   color: var(--fb-muted);
 }
 
-/* Under an NFL player's next game: the defenders he is about to face, on
-   the colour of their team, each a small card with his overall. The row
-   after it is never shown; it is there so the games under it keep their
-   stripe. */
+/* Under an NFL player's next game, the scouting report, on the colour of
+   the team he is about to face: a ring as full as that defense's rating
+   against him, with its NFL rank, then its three best defenders he will
+   see, each a small card with his overall. The row after it is never
+   shown; it is there so the games under it keep their stripe. */
 .ege-schedule tbody tr.ege-faceoff,
 .ege-schedule tbody tr.ege-faceoff:hover { background: none; }
 .ege-schedule tbody tr.ege-faceoff > td { padding: 0; }
@@ -2413,13 +2414,65 @@ body::before {
   text-transform: uppercase;
 }
 .ege-faceoff__logo { width: 34px; height: 34px; object-fit: contain; }
+.ege-scoutrep {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+.ege-scoutrep__rating {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 14px 5px 6px;
+  border: var(--fb-border) solid var(--fb-ink);
+  background: var(--fb-cream);
+  box-shadow: 4px 4px 0 var(--fb-ink);
+}
+.ege-scoutrep__ring {
+  --fill: 0%;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  border-radius: 50% !important;
+  background: conic-gradient(var(--fb-accent) var(--fill), var(--fb-sand) 0);
+}
+.ege-scoutrep__score {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  border-radius: 50% !important;
+  background: var(--fb-cream);
+  font-family: var(--fb-font-display);
+  font-size: 1rem;
+  line-height: 1;
+}
+.ege-scoutrep__words { display: flex; flex-direction: column; gap: 3px; white-space: nowrap; }
+.ege-scoutrep__what {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.ege-scoutrep__rank { font-size: var(--fb-small); color: var(--fb-muted); }
+.ege-scoutrep__rank b { color: var(--fb-ink); font-weight: 800; }
 .ege-faceoff__list {
   margin: 0;
   padding: 0 4px 0 0;
   list-style: none;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+}
+@media (max-width: 980px) {
+  .ege-scoutrep { grid-template-columns: minmax(0, 1fr); }
+  .ege-scoutrep__rating { justify-self: start; }
+  .ege-faceoff__list { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
 }
 .ege-faceoff__player { min-width: 0; }
 .ege-teamchip--faceoff { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 8px; padding: 5px; }
@@ -3332,6 +3385,7 @@ select,
   .ege-schedule tbody tr.ege-faceoff__keep { display: none; }
   .ege-faceoff__strip { padding: 10px 11px 14px; }
   .ege-faceoff__list { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .ege-scoutrep__rating { justify-self: stretch; }
 
   /* the week number spans both lines of its block */
   .ege-schedule tbody tr .ege-schedule__week { grid-area: 1 / 1 / 3 / 2; font-size: 1.0625rem; }

@@ -124,6 +124,7 @@
   var MATCHUPS = {
     rush: {
       text: 'Run defense',
+      short: 'Run Defense',
       score: function (at) {
         var inside = weighted([[at('DI', 0), 1.3], [at('DI', 1), 1.3], [at('LB', 0), 1.1], [at('LB', 1), 1.1],
           [at('EDGE', 0), 0.6], [at('EDGE', 1), 0.6], [at('S', 0), 0.3], [at('S', 1), 0.3]],
@@ -136,6 +137,7 @@
     },
     QB: {
       text: 'Pass defense',
+      short: 'Pass Defense',
       score: function (at) {
         return 0.35 * passRush(at) +
           0.15 * weighted([[at('LB', 0), 1], [at('LB', 1), 1], [at('S', 0), 0.4]],
@@ -146,6 +148,7 @@
     },
     WR: {
       text: 'Coverage on receivers',
+      short: 'Pass Defense',
       score: function (at) {
         return 0.25 * passRush(at) +
           0.75 * weighted([[at('CB', 0), 1.2], [at('CB', 1), 1.1], [at('CB', 2), 0.8], [at('S', 0), 0.6], [at('S', 1), 0.6]],
@@ -154,6 +157,7 @@
     },
     TE: {
       text: 'Coverage on tight ends',
+      short: 'Pass Defense',
       score: function (at) {
         return 0.25 * passRush(at) +
           0.75 * weighted([[at('LB', 0), 1.1], [at('LB', 1), 1], [at('S', 0), 1], [at('S', 1), 0.9], [at('CB', 2), 0.5]],
@@ -189,7 +193,9 @@
   }
 
   /* The grade one of the six gets for a defense: where it ranks against
-     his position among the NFL's teams, a fifth of the league a letter.
+     his position among the NFL's teams, a fifth of the league a letter,
+     with the rating it ranks on (`score`, out of 99 like an overall) and
+     what to call that rating (`short`).
      Null until the rosters are in (load() them first), or for a team the
      rosters do not have. */
   function defenseGrade(season, key, position) {
@@ -203,6 +209,8 @@
     var what = MATCHUPS[matchupFor(position)].text;
     return {
       letter: letter,
+      score: Math.round(list[at].score),
+      short: MATCHUPS[matchupFor(position)].short,
       side: matchupFor(position) === 'rush' ? 'rush' : 'pass',
       rank: at + 1,
       of: list.length,

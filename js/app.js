@@ -1159,14 +1159,16 @@
     return row;
   }
 
-  /* --- who he lines up against -----------------------------------------
+  /* --- the scouting report ----------------------------------------------
 
      Under an NFL player's next game, in the colour of the team he is about
-     to play, the defenders he will face, each with his overall and the
-     pop-up the Teams page opens (Sam, 2026-10-20). The live season only,
-     and the next game rather than the next week, so a bye puts it under the
-     game after it. The rosters are the sim's as they stand, injuries and
-     all; see EGE.nflRosters.facing. */
+     to play: a ring filled to that defense's rating against what he does
+     (run defense for a back, pass defense for everyone else) with where it
+     ranks in the NFL, and the three best of the defenders he will face,
+     each with his overall and the pop-up the Teams page opens (Sam,
+     2026-10-20). The live season only, and the next game rather than the
+     next week, so a bye puts it under the game after it. The rosters are
+     the sim's as they stand, injuries and all; see EGE.nflRosters.facing. */
   function nextNflGame(player, season, games) {
     if (season !== EGE.currentSeason || EGE.tierFor(season, player) !== 'nfl') { return null; }
     return games.filter(function (game) {
@@ -1175,12 +1177,36 @@
   }
 
   var FACING_POS = { DI: 'DT' };
+  var FACING_SHOWN = 3;
+
+  /* The defense's rating as a ring that far round, the number in it, and
+     what it is and where it ranks beside it. */
+  function scoutRing(grade) {
+    var box = el('div', 'ege-scoutrep__rating');
+    var ring = el('div', 'ege-scoutrep__ring');
+    ring.style.setProperty('--fill', Math.max(0, Math.min(100, grade.score)) + '%');
+    ring.setAttribute('role', 'img');
+    ring.setAttribute('aria-label', grade.short + ' ' + grade.score + ' out of 100');
+    ring.appendChild(el('span', 'ege-scoutrep__score', String(grade.score)));
+    box.appendChild(ring);
+    var words = el('div', 'ege-scoutrep__words');
+    words.appendChild(el('span', 'ege-scoutrep__what', grade.short));
+    var rank = el('span', 'ege-scoutrep__rank');
+    rank.appendChild(el('b', null, EGE.ordinal(grade.rank).toLowerCase()));
+    rank.appendChild(document.createTextNode(' of ' + grade.of + ' in the NFL'));
+    words.appendChild(rank);
+    box.appendChild(words);
+    box.title = grade.text;
+    return box;
+  }
 
   function appendFaceoff(body, player, game) {
     var key = EGE.nfl.keyByName(game.opponent);
-    var rows = key ? EGE.nflRosters.facing(game.season, key, EGE.positionFor(player, game.season)) : null;
+    var position = EGE.positionFor(player, game.season);
+    var rows = key ? EGE.nflRosters.facing(game.season, key, position) : null;
     if (!rows || !rows.length) { return; }
     var team = EGE.nfl.teams[key] || {};
+    var grade = EGE.nflRosters.defenseGrade(game.season, key, position);
 
     var row = el('tr', 'ege-faceoff');
     var cell = el('td');
@@ -1189,7 +1215,7 @@
     strip.style.background = team.color || '';
 
     var head = el('div', 'ege-faceoff__head');
-    head.appendChild(el('span', 'ege-faceoff__title', 'Lining up against ' + player.first));
+    head.appendChild(el('span', 'ege-faceoff__title', 'Scouting Report'));
     var src = EGE.nfl.logo(key);
     if (src) {
       var logo = el('img', 'ege-faceoff__logo');
@@ -1201,28 +1227,33 @@
     }
     strip.appendChild(head);
 
+    var report = el('div', 'ege-scoutrep');
+    if (grade) { report.appendChild(scoutRing(grade)); }
+
     var list = el('ul', 'ege-faceoff__list');
-    rows.forEach(function (sim) {
-      var who = nflRow(sim, game.season, key);
-      var item = el('li', 'ege-faceoff__player');
-      var card = el('div', 'ege-teamchip ege-teamchip--nfl ege-teamchip--faceoff');
-      EGE.cardsView.pressable(card, who.name, function () { openNflPlayer(who); });
-      card.appendChild(rosterFace(who));
-      var text = el('span', 'ege-teamchip__text');
-      text.appendChild(el('span', 'ege-teamchip__name', who.name));
-      var meta = el('span', 'ege-teamchip__meta');
-      var pos = el('abbr', 'ege-room__class', FACING_POS[sim.pos] || sim.pos);
-      pos.title = POSITION_NAMES[sim.pos] || sim.pos;
-      meta.appendChild(pos);
-      if (who.archetype) { meta.appendChild(el('span', 'ege-teamchip__arch', who.archetype)); }
-      text.appendChild(meta);
-      card.appendChild(text);
-      var box = overallBox(who.overall, 'ege-ovrbox--chip');
-      if (box) { card.appendChild(box); }
-      item.appendChild(card);
-      list.appendChild(item);
-    });
-    strip.appendChild(list);
+    rows.slice().sort(function (a, b) { return (b.ovr || 0) - (a.ovr || 0); })
+      .slice(0, FACING_SHOWN).forEach(function (sim) {
+        var who = nflRow(sim, game.season, key);
+        var item = el('li', 'ege-faceoff__player');
+        var card = el('div', 'ege-teamchip ege-teamchip--nfl ege-teamchip--faceoff');
+        EGE.cardsView.pressable(card, who.name, function () { openNflPlayer(who); });
+        card.appendChild(rosterFace(who));
+        var text = el('span', 'ege-teamchip__text');
+        text.appendChild(el('span', 'ege-teamchip__name', who.name));
+        var meta = el('span', 'ege-teamchip__meta');
+        var pos = el('abbr', 'ege-room__class', FACING_POS[sim.pos] || sim.pos);
+        pos.title = POSITION_NAMES[sim.pos] || sim.pos;
+        meta.appendChild(pos);
+        if (who.archetype) { meta.appendChild(el('span', 'ege-teamchip__arch', who.archetype)); }
+        text.appendChild(meta);
+        card.appendChild(text);
+        var box = overallBox(who.overall, 'ege-ovrbox--chip');
+        if (box) { card.appendChild(box); }
+        item.appendChild(card);
+        list.appendChild(item);
+      });
+    report.appendChild(list);
+    strip.appendChild(report);
     cell.appendChild(strip);
     row.appendChild(cell);
     body.appendChild(row);
