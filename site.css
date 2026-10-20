@@ -890,16 +890,55 @@ body::before {
   font-size: 1.375rem;
 }
 
-/* --- shop --------------------------------------------------------------- */
+/* Client viewer mode, in an admin's portal: the words, then a switch the
+   kit's way -- square, inked, the knob sliding over to orange when on. */
+.ege-viewer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-surface);
+  cursor: pointer;
+}
+.ege-viewer[hidden] { display: none; }
+.ege-viewer__words { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-width: 0; }
+.ege-viewer__title { font-weight: 800; }
+.ege-viewer__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.ege-viewer__track {
+  position: relative;
+  flex: none;
+  width: 52px;
+  height: 28px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-cream);
+  transition: background .18s ease;
+}
+.ege-viewer__track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background: var(--fb-ink);
+  transition: transform .18s ease;
+}
+.ege-viewer__input:checked + .ege-viewer__track { background: var(--fb-accent); }
+.ege-viewer__input:checked + .ege-viewer__track::after { transform: translateX(24px); }
+.ege-viewer__input:focus-visible + .ege-viewer__track { outline: 3px solid var(--fb-accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .ege-viewer__track, .ege-viewer__track::after { transition: none; }
+}
 
-.ege-earnings tbody tr { cursor: default; }
-/* Two columns fit any phone, so these do not need the 480px every other
-   table keeps to scroll sideways at. */
-.ege-earnings { min-width: 0; }
-.ege-earnings + .ege-earnings { margin-top: 12px; }
-.ege-earnings__lead td:first-child { font-weight: 800; }
-.ege-earnings__sub td:first-child { padding-left: 22px; }
-.ege-earnings tbody tr:hover { background: var(--fb-tint-wash); }
+/* --- shop --------------------------------------------------------------- */
 
 .ege-items {
   display: grid;
@@ -990,24 +1029,6 @@ body::before {
   color: var(--fb-accent-deep);
 }
 .ege-item .fb-btn { margin-top: auto; }
-
-/* A panel that opens and closes. The kit's head doubles as the summary. */
-.ege-details { padding: 0; }
-.ege-details__summary {
-  cursor: pointer;
-  list-style: none;
-  margin: 0;
-}
-.ege-details__summary::-webkit-details-marker { display: none; }
-.ege-details__summary::after {
-  content: '+';
-  font-family: var(--fb-font-display);
-  font-size: 1.375rem;
-  line-height: 1;
-  color: var(--fb-accent-deep);
-}
-.ege-details[open] .ege-details__summary::after { content: '\2013'; }
-.ege-details:not([open]) .ege-details__summary { border-bottom: 0; }
 
 .ege-account {
   border: var(--fb-border-thin) solid var(--fb-ink);
@@ -1249,6 +1270,45 @@ body::before {
   animation: ege-sheen 9s ease-in-out infinite;
 }
 
+/* A wager -- a poker chip: green felt with a ring of white notches round
+   the edge, and the mark of the team it is on in the middle, or BET on the
+   drawer's blank one. A played one is stamped with what it did. */
+.ege-sticker--wager { --cut: circle(50%); }
+.ege-sticker--wager .ege-sticker__face {
+  background:
+    radial-gradient(circle, #2f8a55 0 52%, transparent 53%),
+    repeating-conic-gradient(#f4efe4 0 12deg, #1f6b3f 12deg 30deg);
+}
+.ege-sticker--wager .ege-sticker__face::before {
+  inset: 22%;
+  border-radius: 50% !important;
+  background: radial-gradient(circle at 35% 30%, #fbf6ea, #e9dfc9);
+  box-shadow: 0 0 0 2px #1f6b3f;
+}
+.ege-sticker__logo {
+  position: relative;
+  z-index: 2;
+  width: 46%;
+  height: 46%;
+  object-fit: contain;
+}
+.ege-sticker--wager .ege-sticker__text { font-size: calc(var(--sticker-size) * 0.2); letter-spacing: .04em; }
+.ege-sticker--lost { filter: grayscale(1) drop-shadow(2px 3px 3px rgba(0, 0, 0, .45)); }
+.ege-sticker__stamp {
+  position: absolute;
+  right: 4%;
+  bottom: 4%;
+  z-index: 5;
+  padding: 1px 4px;
+  border: 2px solid var(--fb-ink);
+  background: var(--fb-tint-sage-2);
+  color: var(--fb-ink);
+  font-size: calc(var(--sticker-size) * 0.17);
+  font-weight: 800;
+  line-height: 1.1;
+}
+.ege-sticker--lost .ege-sticker__stamp { background: #e8826a; }
+
 @keyframes ege-holo-flow {
   0%   { background-position: 0% 0%, 100% 0%, 0% 100%, 100% 100%, 0% 50%; }
   25%  { background-position: 20% 10%, 85% 20%, 15% 85%, 80% 90%, 40% 60%; }
@@ -1429,21 +1489,47 @@ body::before {
   from { transform: translateY(100%); }
   to   { transform: none; }
 }
+/* Drawn again in place, it stays put rather than sliding up again. */
+.ege-drawer--again { animation: none; }
+/* One row where there is room: the game and what is left on the left, the
+   boosters, the wager, and the cross in the corner, clear of all of it. */
 .ege-drawer__inner {
+  position: relative;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 16px 22px 20px;
+  padding: 14px 64px 16px 22px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 18px;
+  gap: 14px 26px;
 }
 .ege-drawer__title {
+  display: flex;
+  flex-direction: column;
   font-family: var(--fb-font-display);
   font-size: 1.25rem;
   color: var(--fb-cream);
   margin-right: auto;
 }
+.ege-drawer__close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0 0 3px;
+  border: var(--fb-border-thin) solid rgba(244, 239, 228, .45);
+  background: none;
+  color: var(--fb-cream);
+  font-family: var(--fb-font-body);
+  font-size: 1.625rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.ege-drawer__close:hover,
+.ege-drawer__close:focus-visible { background: var(--fb-accent); border-color: var(--fb-accent); color: var(--fb-ink); }
 .ege-drawer__title small {
   display: block;
   font-family: var(--fb-font-body);
@@ -1483,7 +1569,7 @@ body::before {
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
-.ege-drawer__empty { color: var(--fb-sand); font-size: .8125rem; font-weight: 600; }
+.ege-drawer__empty { max-width: 230px; color: var(--fb-sand); font-size: .8125rem; font-weight: 600; }
 /* How many more of each the season has room for, under the sticker, and a
    kind the season is full of greyed out where it lies. */
 .ege-drawer__stickers:has(.ege-pick__left) { padding-bottom: 22px; column-gap: 26px; }
@@ -1502,14 +1588,70 @@ body::before {
 .ege-pick.is-spent { cursor: not-allowed; }
 .ege-pick.is-spent .ege-sticker { filter: grayscale(1) opacity(.45); }
 .ege-pick.is-spent .ege-pick__left { color: var(--fb-accent); }
+/* The wager in the drawer: the blank chip, the line and what it does, and
+   the two sides stacked like a sportsbook's, each with its line. */
+.ege-drawer__wager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  padding-left: 24px;
+  border-left: var(--fb-border-thin) solid rgba(244, 239, 228, .2);
+}
+.ege-drawer__wagerwords { display: flex; flex-direction: column; gap: 2px; flex: 1 1 170px; min-width: 0; max-width: 230px; }
+.ege-drawer__wagertitle {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-accent);
+}
+.ege-drawer__line {
+  font-family: var(--fb-font-display);
+  font-size: 1.125rem;
+  line-height: 1.2;
+  color: var(--fb-cream);
+}
+.ege-drawer__wagernote { font-size: .75rem; font-weight: 600; line-height: 1.35; color: var(--fb-sand); }
+.ege-drawer__sides { display: flex; flex-direction: column; gap: 6px; width: 200px; }
+.ege-wagerpick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 4px 12px 4px 8px;
+  border: var(--fb-border-thin) solid var(--fb-cream);
+  background: var(--fb-cream);
+  color: var(--fb-ink);
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+.ege-wagerpick:hover,
+.ege-wagerpick:focus-visible { background: var(--fb-accent); border-color: var(--fb-accent); }
+.ege-wagerpick:disabled { cursor: not-allowed; opacity: .45; background: var(--fb-cream); }
+.ege-wagerpick__logo { width: 26px; height: 26px; object-fit: contain; }
+.ege-wagerpick__name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ege-wagerpick__line { font-variant-numeric: tabular-nums; }
 .ege-drawer__room {
-  flex-basis: 100%;
-  order: -1;
+  margin-top: 3px;
+  font-family: var(--fb-font-body);
   font-size: var(--fb-label);
   font-weight: 800;
   letter-spacing: .12em;
   text-transform: uppercase;
   color: var(--fb-sand);
+}
+/* Below the width the one row needs, the wager goes onto a row of its own
+   and the rule beside it has nothing to divide. */
+@media (max-width: 1240px) {
+  .ege-drawer__wager { padding-left: 0; border-left: 0; }
+}
+@media (max-width: 620px) {
+  .ege-drawer__inner { padding: 14px 16px 16px; }
+  .ege-drawer__title { padding-right: 44px; }
+  .ege-drawer__sides { width: 100%; flex-direction: row; }
+  .ege-wagerpick { flex: 1 1 0; min-width: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1556,6 +1698,18 @@ body::before {
   object-fit: contain;
   vertical-align: middle;
 }
+/* An NFL opponent is a link to its team's page (Sam, 2026-10-20). It reads
+   exactly as the plain name does; only a pointer over it, or a focus, says
+   it goes somewhere: the name underlined in orange and the hand. */
+.ege-opplink,
+.ege-opplink:hover { color: inherit; text-decoration: none; }
+.ege-opplink:hover .fb-name,
+.ege-opplink:focus-visible .fb-name {
+  text-decoration: underline;
+  text-decoration-color: var(--fb-accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
 .ege-schedule__side {
   display: inline-block;
   width: 20px;
@@ -1578,8 +1732,9 @@ body::before {
 }
 
 /* The opponent's defense, graded A to F against what this player does
-   (EGE.defenseGrade in data/games.js). A report card's colours: an A is a
-   good defense, so it is the hard one to play. */
+   (EGE.defenseGrade in data/games.js). Coloured for the player, not the
+   defense: an A is a good defense, so it is the hard one to play and red,
+   and an F is a soft one and green (Sam, 2026-10-20). */
 .ege-schedule__gradehead,
 .ege-schedule__grade { width: 1%; text-align: center; white-space: nowrap; }
 .ege-grade {
@@ -1593,11 +1748,11 @@ body::before {
   text-align: center;
   color: var(--fb-ink);
 }
-.ege-grade--a { background: #7fbf5a; }
-.ege-grade--b { background: var(--fb-tint-sage-2); }
+.ege-grade--a { background: #e8826a; }
+.ege-grade--b { background: var(--fb-tint-clay-2); }
 .ege-grade--c { background: #f3df8f; }
-.ege-grade--d { background: var(--fb-tint-clay-2); }
-.ege-grade--f { background: #e8826a; }
+.ege-grade--d { background: var(--fb-tint-sage-2); }
+.ege-grade--f { background: #7fbf5a; }
 
 .ege-schedule__conf {
   margin-left: 4px;
@@ -2080,6 +2235,10 @@ body::before {
   font-weight: 800;
   text-decoration: none;
 }
+/* And a wager, coloured by how it went. */
+.ege-gamelog__boost--won { background: var(--fb-tint-sage-2); }
+.ege-gamelog__boost--lost { background: #f4c4b6; }
+.ege-gamelog__boost--push { background: var(--fb-sand); }
 
 /* The two Discord webhooks on the admin page: a box and its Save button a
    row, the button level with the box. */
@@ -2352,6 +2511,102 @@ body::before {
   font-style: italic;
   color: var(--fb-muted);
 }
+
+/* Under an NFL player's next game, the scouting report, on the colour of
+   the team he is about to face: a ring as full as that defense's rating
+   against him, with its NFL rank, then its three best defenders he will
+   see, each a small card with his overall. The row after it is never
+   shown; it is there so the games under it keep their stripe. */
+.ege-schedule tbody tr.ege-faceoff,
+.ege-schedule tbody tr.ege-faceoff:hover { background: none; }
+.ege-schedule tbody tr.ege-faceoff > td { padding: 0; border-bottom: var(--fb-border) solid var(--fb-ink); }
+/* The game the report is for: the heavy rule over it closes the box the
+   one under the report opens. */
+.ege-schedule tbody tr.ege-schedule__next > td { border-top: var(--fb-border) solid var(--fb-ink); }
+.ege-schedule tbody tr.ege-faceoff__keep { display: none; }
+.ege-faceoff__strip { padding: 12px 14px 16px; }
+.ege-faceoff__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.ege-faceoff__title {
+  padding: 4px 9px;
+  background: var(--fb-ink);
+  color: var(--fb-cream);
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.ege-faceoff__logo { width: 34px; height: 34px; object-fit: contain; }
+.ege-scoutrep {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+.ege-scoutrep__rating {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 14px 5px 6px;
+  border: var(--fb-border) solid var(--fb-ink);
+  background: var(--fb-cream);
+  box-shadow: 4px 4px 0 var(--fb-ink);
+}
+.ege-scoutrep__ring {
+  --fill: 0%;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  border-radius: 50% !important;
+  background: conic-gradient(var(--fb-accent) var(--fill), var(--fb-sand) 0);
+}
+.ege-scoutrep__score {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  border-radius: 50% !important;
+  background: var(--fb-cream);
+  font-family: var(--fb-font-display);
+  font-size: 1rem;
+  line-height: 1;
+}
+.ege-scoutrep__words { display: flex; flex-direction: column; gap: 3px; white-space: nowrap; }
+.ege-scoutrep__what {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.ege-scoutrep__rank { font-size: var(--fb-small); color: var(--fb-muted); }
+.ege-scoutrep__rank b { color: var(--fb-ink); font-weight: 800; }
+.ege-faceoff__list {
+  margin: 0;
+  padding: 0 4px 0 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 980px) {
+  .ege-scoutrep { grid-template-columns: minmax(0, 1fr); }
+  .ege-scoutrep__rating { justify-self: start; }
+  .ege-faceoff__list { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+}
+.ege-faceoff__player { min-width: 0; }
+.ege-teamchip--faceoff { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 8px; padding: 5px; }
+.ege-teamchip--faceoff .ege-teamchip__photo { width: 44px; height: 44px; font-size: .8125rem; }
+.ege-teamchip--faceoff .ege-ovrbox--chip { width: 46px; padding: 4px 3px 5px; }
+.ege-teamchip--faceoff .ege-ovrbox--chip .ege-ovrbox__value { font-size: 1.25rem; }
 
 /* --- the bracket ---------------------------------------------------------
 
@@ -2713,6 +2968,8 @@ body::before {
   background: #e3f5fb;
 }
 .ege-schedule__paid--gem .ege-gem { margin-left: .2em; }
+/* A game a lost wager paid nothing for. */
+.ege-schedule__paid--lost { background: #f4c4b6; }
 
 /* The season editor: a lot of small number fields in a tidy grid. */
 .ege-statgrid {
@@ -2869,8 +3126,7 @@ body {
 
   /* Rows that light up under a mouse do nothing useful under a finger, and
      leave a row stuck highlighted after a tap. */
-  .ege-schedule tbody tr:hover,
-  .ege-earnings tbody tr:hover { background: transparent; }
+  .ege-schedule tbody tr:hover { background: transparent; }
 }
 
 /* --- tables that run off the side ------------------------------------------
@@ -3252,6 +3508,16 @@ select,
   .ege-schedule tbody tr.ege-schedule__break {
     border-top: var(--fb-border-thin) dotted rgba(29, 36, 22, .55);
   }
+
+  /* The strip under the next game is a block of its own, not a game. */
+  .ege-schedule tbody tr.ege-faceoff { display: block; padding: 0; border-bottom: 0; }
+  .ege-schedule tbody tr.ege-schedule__next { border-top: var(--fb-border) solid var(--fb-ink); }
+  .ege-schedule tbody tr.ege-schedule__next > td { border-top: 0; }
+  .ege-schedule tbody tr.ege-faceoff > td { display: block; }
+  .ege-schedule tbody tr.ege-faceoff__keep { display: none; }
+  .ege-faceoff__strip { padding: 10px 11px 14px; }
+  .ege-faceoff__list { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .ege-scoutrep__rating { justify-self: stretch; }
 
   /* the week number spans both lines of its block */
   .ege-schedule tbody tr .ege-schedule__week { grid-area: 1 / 1 / 3 / 2; font-size: 1.0625rem; }
@@ -3968,6 +4234,29 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-teamchip--nfl .ege-teamchip__meta { min-width: 0; }
 .ege-teamchip__arch { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .ege-teamchip--nfl .ege-room__class { flex: none; }
+
+/* An admin's offense and defense overalls, beside the switch: the overall
+   box in its tier's colours, laid on its side and shrunk to the head's
+   height, OFF or DEF where OVR goes. */
+.ege-unitovr {
+  display: flex;
+  flex: none;
+  gap: 6px;
+  margin-left: auto;
+}
+.ege-unitovr[hidden] { display: none; }
+.ege-unitovr:not([hidden]) + .ege-switch { margin-left: 10px; }
+.ege-ovrbox--unit {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 5px;
+  width: auto;
+  padding: 3px 8px 4px;
+  border-width: var(--fb-border-thin);
+}
+.ege-ovrbox--unit .ege-ovrbox__label { letter-spacing: .12em; }
+.ege-ovrbox--unit .ege-ovrbox__value { font-size: 1.125rem; line-height: 1; }
+.ege-ovrbox--unit.ege-ovrbox--tier::after { display: none; }
 
 /* The roster's Offense and Defense switch goes on a line of its own on a
    phone, as the schedule's does. */
@@ -6399,9 +6688,6 @@ html.ege-noscroll body { overflow: hidden; }
   cursor: pointer;
 }
 
-.ege-odds { min-width: 0; }
-.ege-odds tbody tr { cursor: default; }
-
 /* --- trades --------------------------------------------------------------- */
 
 /* How many offers are waiting, on the Cards link in the nav. */
@@ -6758,7 +7044,40 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-pcards { grid-template-columns: minmax(0, 1fr); }
   .ege-pcard { --card-w: calc((100cqw - 60px) / 4); }
 }
-.ege-pcards__who { align-self: flex-start; max-width: 100%; }
+/* Whose Player Cards: the picker centred over them, and beside it, while
+   somebody else's are up, their picture, popping in. The picture hangs off
+   the picker's right side, so the picker stays centred and does not move
+   when it arrives; on a phone, where there is no room out there, the
+   picker fills the row beside it instead. */
+.ege-pcards__whobar { display: flex; justify-content: center; }
+.ege-pcards__whopick { position: relative; display: flex; align-items: center; width: 400px; max-width: 100%; }
+.ege-pcards__who { flex: 1 1 auto; width: auto; min-width: 0; }
+.ege-pcards__whoface {
+  position: absolute;
+  top: calc(50% - 23px);
+  left: calc(100% + 12px);
+  width: 46px;
+  height: 46px;
+  flex: none;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-tint-sage);
+}
+@media (max-width: 620px) {
+  .ege-pcards__whopick { gap: 8px; width: 100%; }
+  .ege-pcards__who { padding-left: 8px; padding-right: 6px; letter-spacing: .01em; }
+  .ege-pcards__whoface { position: static; width: 38px; height: 38px; }
+}
+.ege-pcards__whoface[hidden] { display: none; }
+.ege-pcards__whoface.is-popping { animation: ege-whoface-pop .38s cubic-bezier(.34, 1.56, .64, 1); }
+@keyframes ege-whoface-pop {
+  0%   { transform: scale(.2); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ege-pcards__whoface.is-popping { animation: none; }
+}
+/* The card itself opens up close. */
+.ege-pcard > .ege-tcard { cursor: pointer; }
 .ege-pcard__body {
   display: flex;
   flex-direction: column;
@@ -6780,6 +7099,18 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-pcard__rate { font-weight: 800; color: var(--fb-diamond-deep); }
 .ege-pcard__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 .ege-pcard__actions > .fb-btn { flex: 0 1 auto; }
+/* See his cards and Add photo: just the icon, in the button's ink. */
+.ege-iconbtn { padding-left: 14px; padding-right: 14px; }
+.ege-iconbtn__icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  background: currentColor;
+  -webkit-mask: var(--icon) center / contain no-repeat;
+  mask: var(--icon) center / contain no-repeat;
+}
+.ege-iconbtn__icon--cards  { --icon: url("icon/cardtabs/cards.png"); }
+.ege-iconbtn__icon--player { --icon: url("icon/cardtabs/players.png"); }
 .ege-pcard__actions > .ege-pcard__unphoto { flex: none; padding: 0 14px; font-size: 18px; line-height: 1; }
 
 /* --- a Player Card's face ------------------------------------------------------
@@ -7500,8 +7831,6 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-pcard__next,
   .ege-pcard__bonus { font-size: .8125rem; }
   .ege-filterclear { flex: 0 0 auto; min-height: 47px; }
-
-  .ege-odds td.num { white-space: nowrap; }
 
   /* On a phone the filters scroll away with the page rather than pinning,
      and are the anchor the Sort menu opens under. */

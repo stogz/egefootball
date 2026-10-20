@@ -283,7 +283,11 @@ EGE.economy = (function () {
        pay_credit_awards in supabase/schema.sql), so the new scoring needed
        no change to the database. */
     EGE.gamesPlayed(player, year).forEach(function (game) {
-      var credits = gameCredits(player, game.stats, year, game.playoff);
+      /* A wager doubles a game's credits or takes them away (EGE.wagerOn
+         in data/games.js). A lost one pays nothing, so it is never paid. */
+      var plain = gameCredits(player, game.stats, year, game.playoff);
+      var wager = EGE.wagerOn ? EGE.wagerOn(player, game) : null;
+      var credits = EGE.wageredCredits ? EGE.wageredCredits(plain, wager) : plain;
       if (!credits) { return; }
 
       var what;
@@ -294,6 +298,7 @@ EGE.economy = (function () {
         what = tds + (tds === 1 ? ' touchdown' : ' touchdowns');
       }
       if (playoffBoosted(year, game.playoff)) { what += ' at the playoff ' + PLAYOFF_CREDITS + 'x'; }
+      if (wager && wager.outcome === 'won') { what += ', doubled by a winning wager'; }
       out.push({
         key: 'td-w' + game.week,
         credits: credits,

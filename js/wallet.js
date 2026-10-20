@@ -51,7 +51,27 @@ EGE.wallet = (function () {
       .catch(function () { return false; });
   }
 
-  function admin() { return isAdmin; }
+  /* Client viewer mode: an admin seeing the site the way a player does,
+     switched on from the player portal and kept on this device until it
+     is switched off. While it is on, admin() says no everywhere the page
+     asks, so nothing only an admin gets is drawn; realAdmin() is still the
+     truth, for the switch itself. The database's policies are not touched:
+     this is what the page shows, not what the account may do. */
+  var VIEWER_KEY = 'ege.viewerMode';
+
+  function viewerMode() {
+    try { return window.localStorage.getItem(VIEWER_KEY) === 'on'; } catch (e) { return false; }
+  }
+
+  function setViewerMode(on) {
+    try {
+      if (on) { window.localStorage.setItem(VIEWER_KEY, 'on'); } else { window.localStorage.removeItem(VIEWER_KEY); }
+    } catch (e) { /* private browsing: it lasts as long as the page */ }
+  }
+
+  function realAdmin() { return isAdmin; }
+
+  function admin() { return isAdmin && !viewerMode(); }
 
   /* --- credits ----------------------------------------------------------- */
 
@@ -503,21 +523,32 @@ EGE.wallet = (function () {
      every page load is both safe and the whole point. A result committed
      with two touchdowns in it turns into twenty credits the next time the
      player opens the site. */
-  function syncAwards(player, season) {
+  /* A wager on a game doubles its credits or takes them away, and the
+     ledger only ever tops an award up -- so the stickers have to be in
+     before anything is paid, or a lost wager would be paid in full and
+     never taken back. Pass `boostersLoaded` when they already are, as
+     syncDiamonds takes it. */
+  function syncAwards(player, season, boostersLoaded) {
     var c = client();
     if (!c || !player || !player.email) { return Promise.resolve({ paid: 0 }); }
 
     var year = season || EGE.currentSeason;
-    var owed = EGE.economy.awardsEarned(player, year);
-    if (!owed.length) { return Promise.resolve({ paid: 0 }); }
+    var ready = boostersLoaded || year !== EGE.currentSeason
+      ? Promise.resolve()
+      : loadGameBoosters(year);
 
-    return c.rpc('pay_credit_awards', {
-      p_email: player.email,
-      p_season: year,
-      p_awards: owed
-    }).then(function (res) {
-      if (res.error) { return { paid: 0, message: res.error.message }; }
-      return { paid: Number(res.data) || 0 };
+    return ready.then(function () {
+      var owed = EGE.economy.awardsEarned(player, year);
+      if (!owed.length) { return { paid: 0 }; }
+
+      return c.rpc('pay_credit_awards', {
+        p_email: player.email,
+        p_season: year,
+        p_awards: owed
+      }).then(function (res) {
+        if (res.error) { return { paid: 0, message: res.error.message }; }
+        return { paid: Number(res.data) || 0 };
+      });
     }).catch(function () { return { paid: 0 }; });
   }
 
@@ -994,16 +1025,20 @@ EGE.wallet = (function () {
     var c = client();
     if (!c) { return fail(offline()); }
 
-    /* The page does not draw a plus on a playoff game, but the page is not
-       what decides. A booster is spent on planning a regular season, and the
-       postseason is not planned -- so the week is checked here as well, where
-       the sticker actually leaves the drawer. */
+    /* The page offers no booster on a playoff game (a wager, yes), but the
+       page is not what decides. A booster is spent on planning a regular
+       season, and the postseason is not planned -- so the week is checked
+       here as well, where the sticker actually leaves the drawer. */
     var owner = EGE.players.filter(function (p) {
       return p.email && email && p.email.toLowerCase() === String(email).toLowerCase();
     })[0];
     var target = owner ? EGE.gameInWeek(owner, week, season) : null;
     if (target && target.playoff) {
       return fail('No boosters in the playoffs \u2014 that one is a postseason game.');
+    }
+    if (target && target.bye) { return fail('That is a bye week \u2014 there is no game to boost.'); }
+    if (target && EGE.outInjured(owner, target)) {
+      return fail('He is out injured that week, so no booster \u2014 a wager can still go on it.');
     }
 
     /* Five a season, and only so many of each kind. Counted from what the
@@ -1048,10 +1083,94 @@ EGE.wallet = (function () {
     });
   }
 
-  /* Peels one off and puts it back in the drawer. */
+  /* Puts a wager on a game: `side` is 'for' (his own team) or 'against'
+     (the other one), at the line on it right now (EGE.gameLine), which the
+     wager keeps whatever the line does after. `shown` is the line the page
+     offered: if the line has moved since, nothing goes on and the page is
+     told, so nobody takes a number they were not shown. Nothing comes out
+     of the inventory -- a wager is a pick, not a thing bought -- but it
+     takes the game's sticker slot, so a game carries a booster or a wager
+     and never both. Two a season, playoffs and all, and only on a game not
+     yet out; the schema refuses the row past any of those as well. */
+  function applyWager(email, season, week, side, shown) {
+    var c = client();
+    if (!c) { return fail(offline()); }
+
+    var owner = EGE.players.filter(function (p) {
+      return p.email && email && p.email.toLowerCase() === String(email).toLowerCase();
+    })[0];
+    var target = owner ? EGE.gameInWeek(owner, week, season) : null;
+    if (!owner || !target || target.bye) { return fail('There is no game that week to wager on.'); }
+    if (EGE.isPublished(season, week)) { return fail('That game is already out.'); }
+    var key = side === 'against' ? 'wager-against' : 'wager-for';
+
+    return Promise.all([loadGameBoosters(season), EGE.lineReady(owner, season)]).then(function () {
+      var room = EGE.wagerRoom(owner, season);
+      if (!room.ok) { return { ok: false, message: room.reason }; }
+      var odds = EGE.gameLine(owner, target);
+      if (!odds) { return { ok: false, message: 'There is no line on that game.' }; }
+      var line = odds[EGE.WAGER_SIDES[key]];
+      if (typeof shown === 'number' && shown !== line) {
+        return { ok: false, moved: true,
+                 message: 'The line just moved to ' + EGE.lineText(line) + ' \u2014 have another look.' };
+      }
+      var name = EGE.wagerName(EGE.wagerSides(owner, target)[EGE.WAGER_SIDES[key]], line);
+
+      return c.from(GAME_BOOSTERS).insert({
+        email: email,
+        season: season,
+        week: week,
+        item_key: key,
+        item_name: name,
+        line: line
+      }).then(function (res) {
+        if (res.error) {
+          return {
+            ok: false,
+            message: /duplicate|unique/i.test(res.error.message || '')
+              ? 'That game already has a sticker on it.'
+              : res.error.message.replace(/^.*?(Season limit|That week|A wager)/, '$1')
+          };
+        }
+        return { ok: true, message: name + ' in week ' + week + '.' };
+      });
+    });
+  }
+
+  /* One of a booster back in the drawer it came out of. */
+  function backInDrawer(email, item) {
+    var c = client();
+    return inventoryFor(email).then(function (rows) {
+      var owned = stackedRow(rows, item.key, null);
+      return owned
+        ? c.from(INVENTORY).update({ quantity: quantityOf(owned) + 1 }).eq('id', owned.id)
+        : c.from(INVENTORY).insert({
+            email: email,
+            item_key: item.key,
+            item_name: item.name,
+            target: null,
+            quantity: 1,
+            credits: 0,
+            effects: {},
+            consumable: true,
+            season: null,
+            active: false
+          });
+    });
+  }
+
+  /* Peels one off and puts it back in the drawer. A wager just comes off:
+     it never came out of one. */
   function peelBooster(email, sticker) {
     var c = client();
     if (!c) { return fail(offline()); }
+
+    if (EGE.isWagerKey(sticker.item_key)) {
+      return c.from(GAME_BOOSTERS).delete().eq('id', sticker.id).then(function (res) {
+        if (res.error) { return { ok: false, message: res.error.message }; }
+        return { ok: true, message: (sticker.item_name || 'The wager') + ' is off.' };
+      });
+    }
 
     var item = EGE.shopItem(sticker.item_key);
     if (!item) { return fail('That sticker is not in the shop any more.'); }
@@ -1059,28 +1178,47 @@ EGE.wallet = (function () {
     return c.from(GAME_BOOSTERS).delete().eq('id', sticker.id).then(function (res) {
       if (res.error) { return { ok: false, message: res.error.message }; }
 
-      return inventoryFor(email).then(function (rows) {
-        var owned = stackedRow(rows, item.key, null);
-        var write = owned
-          ? c.from(INVENTORY).update({ quantity: quantityOf(owned) + 1 }).eq('id', owned.id)
-          : c.from(INVENTORY).insert({
-              email: email,
-              item_key: item.key,
-              item_name: item.name,
-              target: null,
-              quantity: 1,
-              credits: 0,
-              effects: {},
-              consumable: true,
-              season: null,
-              active: false
-            });
-
-        return write.then(function () {
-          return { ok: true, message: item.name + ' back in your inventory.' };
-        });
+      return backInDrawer(email, item).then(function () {
+        return { ok: true, message: item.name + ' back in your inventory.' };
       });
     });
+  }
+
+  /* Once a player is known to be hurt -- the week he went down is out --
+     every booster on a game he will miss comes off it and goes back in his
+     drawer (Sam, 2026-10-20). Wagers stay where they are. Run by the
+     player's own page and by the admin's publishing a week; the row is
+     only handed back by whoever actually deleted it, so the two can never
+     both put the same booster back. Pass `boostersLoaded` when they are. */
+  function returnInjuredBoosters(player, season, boostersLoaded) {
+    var c = client();
+    var year = season || EGE.currentSeason;
+    if (!c || !player || !player.email || year !== EGE.currentSeason) {
+      return Promise.resolve({ returned: 0 });
+    }
+    var ready = boostersLoaded ? Promise.resolve() : loadGameBoosters(year);
+
+    return ready.then(function () {
+      var due = EGE.gamesFor(player, year).map(function (game) {
+        var booster = EGE.boosterOn(player, game);
+        return booster && !booster.hardcoded && EGE.outInjured(player, game) ? booster : null;
+      }).filter(Boolean);
+
+      return due.reduce(function (chain, booster) {
+        return chain.then(function (returned) {
+          var item = EGE.shopItem(booster.key);
+          if (!item) { return returned; }
+          return c.from(GAME_BOOSTERS).delete().eq('id', booster.id).select('id').then(function (res) {
+            if (res.error || !res.data || !res.data.length) { return returned; }
+            return backInDrawer(player.email, item).then(function () { return returned + 1; });
+          });
+        });
+      }, Promise.resolve(0)).then(function (returned) {
+        return (returned ? loadGameBoosters(year) : Promise.resolve()).then(function () {
+          return { returned: returned };
+        });
+      });
+    }).catch(function () { return { returned: 0 }; });
   }
 
   /* --- using and toggling ------------------------------------------------ */
@@ -1227,6 +1365,9 @@ EGE.wallet = (function () {
     hasIntel: hasIntel,
     refreshAdmin: refreshAdmin,
     admin: admin,
+    realAdmin: realAdmin,
+    viewerMode: viewerMode,
+    setViewerMode: setViewerMode,
     creditsFor: creditsFor,
     setCredits: setCredits,
     diamondsFor: diamondsFor,
@@ -1244,7 +1385,9 @@ EGE.wallet = (function () {
     buyUpgrade: buyUpgrade,
     loadGameBoosters: loadGameBoosters,
     applyBooster: applyBooster,
+    applyWager: applyWager,
     peelBooster: peelBooster,
+    returnInjuredBoosters: returnInjuredBoosters,
     useItem: useItem,
     setActive: setActive,
     removeItem: removeItem,

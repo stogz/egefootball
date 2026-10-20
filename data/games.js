@@ -594,48 +594,141 @@ EGE.bracketInSight = function (player, season) {
   });
 };
 
-/* --- boosters ------------------------------------------------------------ */
+/* --- boosters and wagers ------------------------------------------------ */
 
-/* What was riding on a game.
+/* Whatever sticker is on a game -- a booster or a wager, which share the
+   one slot a game has.
 
    A published week reads from the season file, where the admin wrote it, and
    that is the record for good — which is what lets the row behind it be
    cleared out of Supabase at the end of a season. A week still to come reads
    from Supabase, because that is where a player putting a sticker on a game
    this afternoon puts it. */
-EGE.boosterOn = function (player, game) {
+EGE.stickerOn = function (player, game) {
   if (!game) { return null; }
-
   if (game.booster) {
-    var item = EGE.shopItem(game.booster);
-    return {
-      key: game.booster,
-      name: item ? item.name : game.booster,
-      multiplier: EGE.multiplierFor(game.booster),
-      hardcoded: true
-    };
+    return { key: game.booster, name: null, id: null, hardcoded: true,
+             line: typeof game.line === 'number' ? game.line : null };
   }
 
   var live = ((EGE.gameBoosters || {})[player.slug] || {})[game.week];
   if (!live || live.season !== game.season) { return null; }
+  return { key: live.item_key, name: live.item_name, id: live.id, hardcoded: false,
+           line: live.line === null || live.line === undefined ? null : Number(live.line) };
+};
 
+/* What was riding on a game, when it was a booster. */
+EGE.boosterOn = function (player, game) {
+  var stuck = EGE.stickerOn(player, game);
+  if (!stuck || EGE.isWagerKey(stuck.key)) { return null; }
+  var item = EGE.shopItem(stuck.key);
   return {
-    key: live.item_key,
-    name: live.item_name,
-    multiplier: EGE.multiplierFor(live.item_key),
-    id: live.id,
-    hardcoded: false
+    key: stuck.key,
+    name: stuck.name || (item ? item.name : stuck.key),
+    multiplier: EGE.multiplierFor(stuck.key),
+    id: stuck.id,
+    hardcoded: stuck.hardcoded
   };
+};
+
+/* A wager is a pick against the line on a game (Sam, 2026-10-20): the
+   player takes one side, his own team or the one across the way, at the
+   point spread js/lines.js works out for it -- Seattle -3.5, which needs
+   Seattle to win by 4, or Pittsburgh +3.5, which needs Pittsburgh to lose
+   by 3 or fewer or win. Beaten, the game pays him twice its credits;
+   missed, none. Two a season (`wagerSeasonLimit` in data/shop.js), the
+   playoffs included, and free: it is a pick, not something bought. It sits
+   in the game's sticker slot under one of these keys, with the line it was
+   taken at beside it (`line`), in Supabase and then in the season file
+   like a booster. Diamonds and Player Card bonuses are paid as if it were
+   not there. */
+EGE.WAGER_SIDES = { 'wager-for': 'for', 'wager-against': 'against' };
+
+EGE.isWagerKey = function (key) {
+  return Object.prototype.hasOwnProperty.call(EGE.WAGER_SIDES, key);
+};
+
+/* A team as a wager names it: an NFL team by its city, as the schedule
+   does, and a school by its name. */
+EGE.sideName = function (name) {
+  var key = EGE.nfl && EGE.nfl.keyByName ? EGE.nfl.keyByName(name) : null;
+  return key ? EGE.nfl.city(key) : name;
+};
+
+/* The two sides of one of the player's games: his own team's name and the
+   opponent's, as the file has them. */
+EGE.wagerSides = function (player, game) {
+  var team = EGE.teamFor(player, game.season);
+  return { for: team ? team.school : player.name, against: game.opponent };
+};
+
+/* A wager as it is written: 'Wager on Seattle -3.5'. */
+EGE.wagerName = function (team, line) {
+  var text = EGE.lineText ? EGE.lineText(line) : '';
+  return 'Wager on ' + EGE.sideName(team) + (text ? ' ' + text : '');
+};
+
+/* { key, side, team, line, name, id, hardcoded, outcome } for a wager on
+   the game, or null. `outcome` is null until the game is out, then 'won'
+   or 'lost' -- or 'push' for a wager with no line that ended level, which
+   a half-point line never does. */
+EGE.wagerOn = function (player, game) {
+  var stuck = EGE.stickerOn(player, game);
+  if (!stuck || !EGE.isWagerKey(stuck.key)) { return null; }
+  var side = EGE.WAGER_SIDES[stuck.key];
+  var team = EGE.wagerSides(player, game)[side];
+  var line = typeof stuck.line === 'number' && !isNaN(stuck.line) ? stuck.line : null;
+  var outcome = null;
+  if (EGE.isFinal(game)) {
+    var margin = game.result.teamScore - game.result.opponentScore;
+    var beat = (side === 'for' ? margin : -margin) + (line || 0);
+    outcome = beat > 0 ? 'won' : beat < 0 ? 'lost' : 'push';
+  }
+  return {
+    key: stuck.key,
+    side: side,
+    team: team,
+    line: line,
+    name: EGE.wagerName(team, line),
+    id: stuck.id,
+    hardcoded: stuck.hardcoded,
+    outcome: outcome
+  };
+};
+
+/* What a game's credits come to with the wager on it settled. */
+EGE.wageredCredits = function (credits, wager) {
+  if (!wager || !credits) { return credits; }
+  if (wager.outcome === 'won') { return credits * 2; }
+  if (wager.outcome === 'lost') { return 0; }
+  return credits;
+};
+
+/* Whether a game is one the player is known to be missing hurt: the
+   injury report is up (EGE.injuryFor), and the game is in the run of it,
+   from the week he went out to the week before he is back. Only what the
+   page already says, so a game further down the file marked injured is
+   not given away before the week he gets hurt is out. No booster goes on
+   one of these (a wager still can), and one already there goes back in
+   the drawer (EGE.wallet.returnInjuredBoosters). */
+EGE.outInjured = function (player, game) {
+  if (!game || !game.injured || game.season !== EGE.currentSeason) { return false; }
+  if (EGE.isPublished(game.season, game.week)) { return false; }
+  var injury = EGE.injuryFor(player, game.season);
+  if (!injury) { return false; }
+  return game.week >= injury.week && (injury.back === null || game.week < injury.back);
 };
 
 /* --- what a game paid ----------------------------------------------------- */
 
 /* The credits a published game earned, which is what the marker on the
    schedule row is showing. Nothing is owed for a week nobody has put out.
-   A playoff game pays the playoff 1.25x (see data/economy.js). */
+   A playoff game pays the playoff 1.25x (see data/economy.js), and a wager
+   doubles a game's credits or takes them away. */
 EGE.creditsFromGame = function (player, game) {
   if (!EGE.isFinal(game)) { return 0; }
-  return EGE.economy.gameCredits(player, game.stats, game.season, game.playoff);
+  return EGE.wageredCredits(EGE.economy.gameCredits(player, game.stats, game.season, game.playoff),
+                            EGE.wagerOn(player, game));
 };
 
 /* And the diamonds, which are the same credits times the booster that was
@@ -659,7 +752,12 @@ EGE.diamondsFromGame = function (player, game) {
    FBS, FCS against FCS. A grade is a fifth of that list -- the top fifth an
    A, the bottom fifth an F. A season with no table yet borrows the latest
    one before it, so a new season's schedule is graded from the day its file
-   goes in. High schools have no numbers anywhere and get no grade. */
+   goes in. High schools have no numbers anywhere and get no grade.
+
+   An NFL opponent is graded on its players instead of its real season:
+   the ratings of the defenders this player would see, from the sim's
+   rosters, ranked among the NFL's 32 (EGE.nflRosters.defenseGrade in
+   js/nfl-rosters.js, Sam, 2026-10-20). Null until the rosters are in. */
 
 EGE.GRADES = ['A', 'B', 'C', 'D', 'F'];
 
@@ -682,7 +780,14 @@ EGE.defenseTable = function (season) {
        of: 125, level: 'FBS', season: 2020, text: 'Run defense: ...' } */
 EGE.defenseGrade = function (player, game) {
   if (!game || game.bye || !game.opponent) { return null; }
-  if (EGE.tierFor(game.season, player) === 'highSchool') { return null; }
+  var tier = EGE.tierFor(game.season, player);
+  if (tier === 'highSchool') { return null; }
+  if (tier === 'nfl') {
+    var key = EGE.nfl && EGE.nfl.keyByName(game.opponent);
+    return key && EGE.nflRosters
+      ? EGE.nflRosters.defenseGrade(game.season, key, EGE.positionFor(player, game.season))
+      : null;
+  }
 
   var table = EGE.defenseTable(game.season);
   var school = table && table.schools[game.opponent];
@@ -1083,6 +1188,24 @@ EGE.boostersUsed = function (player, season) {
     used.byKey[booster.key] = (used.byKey[booster.key] || 0) + 1;
   });
   return used;
+};
+
+/* How many wagers are on a season's games, and whether there is room for
+   another: { used, limit, left, ok, reason }. */
+EGE.wagerRoom = function (player, season) {
+  var year = season || EGE.currentSeason;
+  var used = EGE.gamesFor(player, year).filter(function (game) {
+    return EGE.wagerOn(player, game);
+  }).length;
+  var limit = EGE.shop.wagerSeasonLimit || 0;
+  return {
+    used: used,
+    limit: limit,
+    left: Math.max(0, limit - used),
+    ok: used < limit,
+    reason: used < limit ? null : (limit === 2 ? 'Both wagers are' : 'All ' + limit + ' wagers are') +
+      ' on games this season \u2014 take one off an unplayed game to move it.'
+  };
 };
 
 /* Whether one more of this booster can go on this season's games, and how

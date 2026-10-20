@@ -195,7 +195,13 @@ holds:
   straight off ESPN's image server by the school's ESPN id in
   `data/logos.js` -- nothing is saved into the site) and a mark for
   conference games, the **ODEF** grade, and the result once it has been
-  played. No kickoff
+  played. An NFL opponent is its **city alone** — *Detroit*, *Kansas City*,
+  *Tampa Bay* — with *NY Giants*, *NY Jets*, *LA Rams* and *LA Chargers*
+  where a city has two teams (`EGE.nfl.city`, Sam, 2026-10-20), on the
+  schedule and in the game log alike, and the mark and city are **a link to
+  that team's page** for the season of the game. The link looks the same
+  as the plain name until the pointer is on it, when it underlines in
+  orange and shows the hand. No kickoff
   time: the file still carries it for the Discord post, but the page does
   not show it. The Credits and Booster columns are only drawn on your own
   schedule, or on anyone's for an admin. A silhouette marks a game scouts will attend,
@@ -227,8 +233,9 @@ holds:
   **ODEF** grades the defense across the way, A to F, for what this player
   does: a back is graded on the run defense he runs into, a quarterback,
   receiver or tight end on the pass defense. A stingy run defense is an A
-  for Cooper or Sam, and a sieve an F — a report card's colours, so the A is
-  the hard one to play. The numbers are each school's real rushing and
+  for Cooper or Sam, and a sieve an F. The colours are the player's, not
+  the defense's (Sam, 2026-10-20): an A is the hard one to play and red, an
+  F the soft one and green. In college the numbers are each school's real rushing and
   passing yards allowed a game that season, ranked among every school at its
   level (FBS against FBS, FCS against FCS), and a grade is a fifth of that
   list. The tooltip says the number, the yards a play and the rank. A school
@@ -238,6 +245,36 @@ holds:
   so a new season's schedule is graded the day its file goes in. High
   schools have no grade and no column. `EGE.defenseGrade` in
   `data/games.js`, from `data/defenses.js`.
+
+  **An NFL defense is graded on its players** instead (Sam, 2026-10-20):
+  the ratings in the sim's rosters of the defenders this player would see,
+  ranked among the 32 for his position, a fifth of the league a letter. A
+  back faces the sim's own run-defense sums (the tackles, linebackers and
+  edge rushers on run defense, the safeties in the box, inside and out); a
+  quarterback the pass rush, the blitzers and everybody in coverage; a
+  receiver the corners and the deep safeties with some pass rush; a tight
+  end the linebackers and safeties with some pass rush. Starters are the
+  best healthy players at each spot, nickel. The tooltip says the rank.
+  `EGE.nflRosters.defenseGrade` in `js/nfl-rosters.js`; the column waits
+  for the rosters to load and the schedule is drawn again when they do.
+
+  **Under an NFL player's next game** (Sam, 2026-10-20) is a **Scouting
+  Report**: a strip in the colour of the team he is about to play, with
+  its logo. First a ring filled as far as that defense's rating against
+  what he does (Run Defense for a back, Pass Defense for everyone else,
+  the same number the ODEF grade ranks, out of 99 like an overall), with
+  where it ranks among the 32. Then the three best of the defenders he
+  will face, each a small card with his picture, position, archetype and
+  overall box that opens the same pop-up as the Teams page. They are
+  picked from: a back's two tackles, two edge rushers, two linebackers
+  and the box safety; a quarterback's whole nickel defense; a receiver's
+  three corners and two safeties; a tight end's two edge rushers, two
+  linebackers and two safeties. All are the healthy starters in the sim's
+  rosters as they stand (`EGE.nflRosters.facing`). The live season only,
+  and the next game, not the next week: a bye puts the report under the
+  game after it. A heavy ink rule above the game and another under the
+  report box the two in together. A hidden row after the report keeps the
+  stripes on the games under it as they were.
 - **Game log** — per-game stats for that player, with the stat lines driven by
   their position (see below), and a totals row for the season, on the
   panel's own cream under a hard rule.
@@ -393,7 +430,14 @@ Under the bar:
   the panel, the same as the schedule's Games / Tournament, picks the side:
   quarterbacks, backs (a fullback with them), receivers and tight ends, or
   the defensive line (edge rushers and tackles), linebackers, cornerbacks
-  and safeties. Each box is the headshot and overall as before, and under
+  and safeties. **An admin also sees the team's offense and defense as two
+  overalls**, *OFF* and *DEF* boxes in their tier's colours left of the
+  switch (Sam, 2026-10-20): each the starters' overalls weighted by how
+  much the spot matters (the quarterback a third of the offense; the
+  corners, edge rushers and tackles most of the defense), worked out in the
+  browser from the same rosters (`EGE.nflRosters.unitOveralls`). They are
+  not the sim's own team ratings, which stay private, and nobody else sees
+  them, nor does an admin in client viewer mode. Each box is the headshot and overall as before, and under
   the name **the archetype with his seasons in the league** in the class
   chip (**R** for a rookie), then **height · weight**, with **no number**.
   The six's boxes use their own overall, headshot and size from their
@@ -463,7 +507,8 @@ Under the bar:
 - **Schedule** — the team's games as anybody can see them, with results as
   they are published and the postseason as far as the next game, the same
   rule a player's schedule follows. No credits, boosters or ODEF grades:
-  those belong to a player.
+  those belong to a player. NFL opponents are cities and links, as on a
+  player's schedule.
 
 The quarterback rooms are also where a QB Connection is picked from (see
 the shop).
@@ -826,9 +871,10 @@ Items with a picture name it as `icon`. The originals are in `icon/shop` at
 all six instead of 1.8MB.
 
 **Credits** are 60 every offseason, whatever a player is paid, plus what the
-season earns by contract size and honours. That table sits at the bottom of
-the page as a collapsible panel rather than taking up the top of it. Anything
-unspent carries into the next offseason.
+season earns by contract size and honours (`earnings` in `data/shop.js`).
+The page no longer shows that table, nor any words under the Performance
+Boosters and Rating Points headings (Sam, 2026-10-20). Anything unspent
+carries into the next offseason.
 
 **Your Inventory** heads the page: what this player owns, what is in effect,
 and the balance. Anything bought repeatedly is one row with a quantity rather
@@ -1003,12 +1049,92 @@ on, and a trigger on `game_boosters` in `supabase/schema.sql` refuses the
 row as well, for anything that skips the page. Buying is not capped: an
 unused booster carries over.
 
-**Nothing goes on a playoff game.** A booster is what you spend a limited
+**No + on a bye** (Sam, 2026-10-20): there is no game to put anything on.
+
+**Hurt, no boosters.** Once the week a player got hurt in is out, every
+booster on a game he is going to miss comes off it and goes back in his
+drawer, and those games take no new booster — the drawer says he is out
+injured and offers only the wager (Sam, 2026-10-20). Which games he is going
+to miss is what the injury report says, from the week he went out to the
+week before he is back (`EGE.outInjured` in `data/games.js`), so an injury
+further down the file is not given away early. The handing back is
+`EGE.wallet.returnInjuredBoosters`, run by the player's own page whenever it
+pays what he is owed and by the admin's publishing a week; a booster only
+goes back to the drawer from whichever of them actually deleted its row, so
+it can never come back twice. Boosters already written into the season file
+are left alone.
+
+### Wagers
+
+The drawer has a **Wager** beside the boosters (Sam, 2026-10-20): a pick
+against the **point spread** on the game. Every game the six have left gets
+a line — *Seattle by 5.5* — and a wager takes one side of it: Seattle −5.5
+needs Seattle to win by 6 or more, Pittsburgh +5.5 needs Pittsburgh to win
+or lose by 5 or fewer. Every line ends in a half, so there are no pushes,
+and the closest a game gets is a half point. Beat the line and the game
+pays **double its credits**; miss it and it pays **no credits**. Diamonds
+and the Player Card bonuses are paid as if there were no wager. **Two a
+season**, playoff games included, never on a game already out, and free: a
+wager is a pick, not something bought, so nothing comes out of the
+inventory. It takes the game's one sticker slot, so a game carries a booster
+or a wager, never both. A game a player is out hurt for still takes a wager
+(it pays the 1 credit a missed game pays, so 2 or 0).
+
+**The line** is worked out in the browser by `js/lines.js` from a projected
+score for each side (shown in the drawer: *Projected 18–13*), and the score
+from what the site has already put out and nothing else:
+
+- every published result of the season before the game — the six's own,
+  every conference race in `data/conferences.js`, and the NFL sim's other
+  games in `data/nfl-results.js` — as points scored and allowed, with who
+  each team played taken into account, and a blowout past four touchdowns
+  counting half of the rest;
+- where each team stood beforehand, which those results take over from as
+  the weeks go by: in the NFL its starters' ratings off the Teams pages'
+  rosters (never the sim's own team ratings), in college its defense's yards
+  allowed in `data/defenses.js` and whether it is FCS; and last season's
+  results where the site has them;
+- home field, and nobody at a neutral site;
+- one of the six out hurt, once his injury report is up (a quarterback costs
+  his team most).
+
+So a line moves as the weeks come out, like a real one. **A wager keeps the
+line it was taken at**: the `line` column on its `game_boosters` row, and
+`line` beside `booster` in the season file once the week is pulled in. If
+the line moves between the drawer opening and the pick, nothing goes on and
+the drawer shows the new number.
+
+On the schedule it is a green poker chip with the mark of the team it is on;
+once the game is out it is stamped **2x** for a win or **0** for a loss (and
+greyed), the Paid column shows the doubled credits or a red **+0**, and the
+game log carries *Bet 2x* or *Bet 0x* beside the opponent. Until then it
+comes off the way a booster does.
+
+It is stored like a booster: a `game_boosters` row with `item_key`
+`wager-for` (your team) or `wager-against` (the opponent) and its `line`,
+written into the season file's `booster` and `line` fields when the week is
+pulled in, and the season editor's Booster or wager pick has both (picked
+there by hand, it takes the line as it stands). `EGE.wagerOn` in
+`data/games.js` reads it and settles it from the score and the line;
+`EGE.economy.awardsEarned` and `EGE.creditsFromGame` pay it. The credit
+ledger only ever tops an award up, so the stickers are always loaded before
+a player's credits are paid (`syncAwards`), or a lost wager would be paid in
+full and never taken back. The trigger on `game_boosters` refuses a third
+wager in a season, a wager without a half-point line, and any sticker on a
+week already out, admins aside.
+
+**No booster on a playoff game.** A booster is what you spend a limited
 drawer on across a regular season you can see all of; the postseason is not
 planned, it is whatever the bracket hands you. A game with `playoff: true`
-grows no +, the drawer never opens on it, and `applyBooster` in `js/wallet.js`
-refuses the week even if it is called directly. A playoff game pays more
-on its own instead: 1.25 times the credits and twice the diamonds.
+still grows a +, for the wager (Sam, 2026-10-20), but the drawer offers no
+boosters there, and `applyBooster` in `js/wallet.js` refuses the week even
+if it is called directly. A playoff game pays more on its own instead: 1.25
+times the credits and twice the diamonds.
+
+**The drawer** sits along the bottom of the screen in one row where there is
+room — the game and what the season has left, the boosters, the wager — with
+a cross in the corner. A click anywhere off it, or going to another page,
+shuts it (Sam, 2026-10-20).
 
 **Stickers are private.** Only the player who stuck one on — and Sam, as
 admin — can see what is riding on which game. That is in the policy on
@@ -1851,12 +1977,20 @@ Legendary's purple glow, Mystic's moving gold and Iconic's holo. The Players
 page lays the six out in three rows of two (one a row once the screen
 narrows), each card as wide as one in the binder, with what it means beside
 it: his name, FPTS and how many cards (and how many different) make them, a
-bar and how many more FPTS reach the next rank and what that pays, what the
+bar and how many more FPTS reach the next rank (not what it pays: Sam,
+2026-10-20, there and up close), what the
 card has earned so far with its bonus now and about how much that is a game,
-then **See his cards** (the collection filtered to him) and **Add photo**.
+then two icon buttons in the button's ink, Sam's cards and player glyphs from
+`icon/cardtabs/`: **See his cards** (the collection filtered to him) and
+**Add photo** (*Change photo* once there is one), each saying so on hover.
+**The card itself opens up close**, the same close-up as off a showcase.
+The page is just the drop-down and the cards: no words above them, no
+season's bonus total in the head and no Ranks & Bonuses table under them
+(Sam, 2026-10-20; the ladder is above).
 
-**Somebody else's Player Cards.** The drop-down above them switches to any
-other account's six. Their cards come from their collection, which anybody
+**Somebody else's Player Cards.** The drop-down above them, centred, switches
+to any other account's six, and while somebody else's are up their picture
+pops in beside it. Their cards come from their collection, which anybody
 signed in can read; what theirs have earned comes from
 `player_card_earnings()`, which hands over the Player Card totals from
 `diamond_awards` and nothing else of it. **See his cards** opens their
@@ -1945,7 +2079,9 @@ the same thing, so they live on the same line.
 `result` and `stats` are null until a game has been played. Nothing generates
 them — the numbers come from wherever you generate them and are typed in, by
 hand or through the season editor. `booster` is the performance booster that
-was riding on the game, and once a week is out that is where it lives for
+was riding on the game, or the wager (`wager-for` / `wager-against`, with
+the `line` it was taken at beside it), and once a week is out that is where
+it lives for
 good, so the row behind it can be cleared out of Supabase. `bigPlays` is an
 optional list of strings, one per big play, shown under the stat line in the
 Discord post.
@@ -2551,6 +2687,13 @@ Each of the six gets an account and a private portal.
   `player_accounts` back to `password_set = false`.
 - **Show password** — every password field has an eye toggle, so what's being
   typed can be checked before it's submitted.
+- **Client viewer mode** — an admin's portal has a switch that draws the
+  whole site the way a player sees it (Sam, 2026-10-20): no Admin tab, no
+  team overalls, nobody else's credits or boosters, no season ahead of the
+  live one. It stays on, on that device, until it is switched off
+  (`EGE.wallet.viewerMode`; `EGE.wallet.admin()` answers no while it is on
+  and `realAdmin()` still knows). It changes only what the page shows: the
+  database still treats the account as an admin.
 - **Overalls** — a rating per attribute (speed, strength, catching, route
   running, awareness, etc. — final attribute list TBD) plus a single overall.
 - **Offseason workouts** — the progression mechanic. Between seasons a player
@@ -2627,6 +2770,8 @@ Built so far:
 - `js/nfl-rosters.js` — every NFL team's roster for the Teams pages, from
   `data/nfl-rosters.json` or `nfl_sim_rosters` in Supabase, whichever is
   newer.
+- `js/lines.js` — the point spread on every game the six have left, for
+  the wagers (see Wagers).
 - `data/nfl.js` — the 32 NFL teams: name, division, colour, page address.
 - `data/nfl-results.js` — the NFL scores the sim played, written by the NFL
   Sim tab or `node nfl-sim/sim.js site`.
@@ -2679,8 +2824,8 @@ Built so far:
   allowed a game, by season, and where each ranks at its level. Written by
   `tools/build-defenses.js` from ESPN's box scores; add the new year to its
   `SEASONS` and run it again when a season starts. The schedule's ODEF
-  grade is read from it. 2023 adds the NFL's 32 at `level: 'NFL'`, ranked
-  among themselves, from nflverse's team stats.
+  grade is read from it in college; the NFL's are graded from the rosters
+  instead and are not in it.
 - `data/rosters.js` — the quarterbacks, backs, receivers and tight ends on
   each of the six's teams (college, and the NFL from 2023), by season, each with his class, overall, ESPN
   id and whether ESPN has his headshot. Written by `tools/build-rosters.js`

@@ -24,9 +24,8 @@ EGE.shop = {
      top. */
   offseasonCredits: 60,
 
-  /* How an offseason pays, as the shop's Earning Credits panel shows it.
-     Every row stacks: a starter who made the Pro Bowl gets the 60, the 30
-     for his salary and the 30 for the Pro Bowl.
+  /* How an offseason pays. Every row stacks: a starter who made the Pro
+     Bowl gets the 60, the 30 for his salary and the 30 for the Pro Bowl.
 
      The first row is paid on its own on the way into a season (see
      awardsEarned in data/economy.js). The `sub` rows are the ones an admin
@@ -55,14 +54,16 @@ EGE.shop = {
      numbers are enforced in supabase/schema.sql. */
   boosterSeasonLimit: 5,
 
+  /* Wagers a season can carry (Sam, 2026-10-20). A wager is free -- it is
+     not bought, it is a pick -- and it takes a game's sticker slot the way
+     a booster does. Enforced in supabase/schema.sql too. See EGE.wagerOn in
+     data/games.js. */
+  wagerSeasonLimit: 2,
+
   sections: [
     {
       key: 'boosters',
       title: 'Performance Boosters',
-      blurb: 'Regular season games only, one use per purchase. Save one for a ' +
-             'hard opponent, or spend it proving a point against a rival. A ' +
-             'season takes five at most: two 2.5x, three 2.0x and four 1.5x. ' +
-             'Any you do not use carry over.',
       /* How many can go on a season's games: `seasonLimit` of each, and
          `boosterSeasonLimit` above across all three. Buying is not capped --
          an unused booster carries over -- only sticking one on a game is. */
@@ -76,11 +77,6 @@ EGE.shop = {
     {
       key: 'upgrades',
       title: 'Rating Points',
-      blurb: 'Buy points straight into the attributes your position is judged ' +
-             'on. A point costs more the closer that attribute is to 99, so ' +
-             'early ones are two or three credits and late ones are not. The ' +
-             'general attributes are not here — speed, strength, stamina and ' +
-             'the rest move through offseason training only.',
       upgrades: true,
       items: []
     },

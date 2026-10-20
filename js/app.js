@@ -734,6 +734,44 @@
     return sticker;
   }
 
+  /* A wager's sticker: a green chip with the mark of the team it is on, or
+     BET on the drawer's blank one. `outcome` stamps a played one: 2x for a
+     win, 0 for a loss. */
+  function wagerStickerEl(logo, size, seed, outcome) {
+    var sticker = el('span', 'ege-sticker ege-sticker--wager' +
+      (outcome ? ' ege-sticker--' + outcome : ''));
+    if (size) { sticker.style.setProperty('--sticker-size', size + 'px'); }
+    sticker.style.setProperty('--tilt', scatter(seed == null ? 'wager' : seed).tilt + 'deg');
+
+    var face = el('span', 'ege-sticker__face');
+    if (logo) {
+      var mark = el('img', 'ege-sticker__logo');
+      mark.src = logo;
+      mark.alt = '';
+      mark.addEventListener('error', function () {
+        mark.replaceWith(el('span', 'ege-sticker__text', 'BET'));
+      });
+      face.appendChild(mark);
+    } else {
+      face.appendChild(el('span', 'ege-sticker__text', 'BET'));
+    }
+    sticker.appendChild(face);
+    if (outcome === 'won' || outcome === 'lost') {
+      sticker.appendChild(el('span', 'ege-sticker__stamp', outcome === 'won' ? '2x' : '0'));
+    }
+    return sticker;
+  }
+
+  /* The mark of one side of a player's game: his own team's, or the
+     opponent's off ESPN (college and NFL only, as the schedule draws). */
+  function sideLogo(player, game, side) {
+    if (side === 'for') {
+      var team = EGE.teamFor(player, game.season);
+      return team ? team.logo : null;
+    }
+    return EGE.tierFor(game.season) !== 'highSchool' && EGE.logoFor ? EGE.logoFor(game.opponent) : null;
+  }
+
   /* Width only. A phone fires `resize` every time its address bar slides in
      or out as you scroll, which changes the height and nothing else --
      re-fitting then was work for nothing, done in the middle of a scroll. */
@@ -812,12 +850,14 @@
 
        Either way it is private: what somebody has riding on a game is his own
        business and an admin's, whether it came from the file or the table. */
-    var booster = canSeeStickers(player) ? EGE.boosterOn(player, game) : null;
-    var stuck = booster ? {
-      id: booster.id || (player.slug + '-' + game.week),
-      item_key: booster.key,
-      item_name: booster.name,
-      hardcoded: booster.hardcoded
+    var wager = canSeeStickers(player) ? EGE.wagerOn(player, game) : null;
+    var booster = !wager && canSeeStickers(player) ? EGE.boosterOn(player, game) : null;
+    var placed = booster || wager;
+    var stuck = placed ? {
+      id: placed.id || (player.slug + '-' + game.week),
+      item_key: placed.key,
+      item_name: placed.name,
+      hardcoded: placed.hardcoded
     } : null;
 
     if (stuck) {
@@ -827,9 +867,14 @@
       applied.type = 'button';
       applied.disabled = !peelable;
       var touch = window.matchMedia && window.matchMedia('(hover: none)').matches;
+      var settled = !wager || !wager.outcome ? ' \u2014 the game has been played, it stays put'
+        : wager.outcome === 'won' ? ' \u2014 won: the game paid double credits'
+        : wager.outcome === 'lost' ? ' \u2014 lost: the game paid no credits'
+        : ' \u2014 a tie: the game paid its credits as usual';
       applied.title = peelable
-        ? stuck.item_name + ' \u2014 ' + (touch ? 'tap' : 'click') + ' to peel it off'
-        : stuck.item_name + ' \u2014 the game has been played, it stays put';
+        ? stuck.item_name + ' \u2014 ' + (touch ? 'tap' : 'click') + ' to ' +
+          (wager ? 'take it off' : 'peel it off')
+        : stuck.item_name + settled;
       applied.setAttribute('aria-label', applied.title);
       applied.dataset.restTitle = applied.title;
       /* How big it is belongs to the stylesheet -- it is bigger than the row
@@ -838,7 +883,9 @@
          and how far it hangs over the row above or below. */
       var seed = stuck.id;
       var placing = scatter(seed);
-      var sticker = stickerEl(stuck.item_key, null, seed);
+      var sticker = wager
+        ? wagerStickerEl(sideLogo(player, game, wager.side), null, seed, wager.outcome)
+        : stickerEl(stuck.item_key, null, seed);
       applied.style.setProperty('--nudge', placing.nudge + 'px');
       applied.appendChild(sticker);
       if (peelable) {
@@ -867,11 +914,11 @@
       return slot;
     }
 
-    /* Nothing goes on a playoff game. Boosters are a thing you plan a
+    /* No booster goes on a playoff game. Boosters are a thing you plan a
        regular season around -- you are spending a limited drawer on the
        weeks you think matter -- and the postseason is not planned, it is
-       whatever the bracket hands you. The drawer never opens on one, and
-       neither does the plus that opens it. */
+       whatever the bracket hands you. A wager does (Sam, 2026-10-20), so the
+       plus is there and the drawer offers only that. */
 
     /* A booster goes on any game that has not been published yet.
 
@@ -880,11 +927,12 @@
        could ever use a booster. Holding a week back is exactly the window in
        which a player puts a sticker on it and the admin writes it into the
        file before putting the week out. */
-    if (mine && !played && !game.playoff && game.season === EGE.currentSeason) {
+    /* Nor on a bye: there is no game to put it on (Sam, 2026-10-20). */
+    if (mine && !played && !game.bye && game.season === EGE.currentSeason) {
       var add = el('button', 'ege-slot__add', '+');
       add.type = 'button';
-      add.title = 'Put a booster on this game';
-      add.setAttribute('aria-label', 'Put a booster on week ' + game.week);
+      add.title = game.playoff ? 'Put a wager on this game' : 'Put a booster or a wager on this game';
+      add.setAttribute('aria-label', 'Put a booster or a wager on week ' + game.week);
       add.addEventListener('click', function () { openDrawer(player, game); });
       slot.appendChild(add);
     }
@@ -912,38 +960,62 @@
     if (drawer) { drawer.remove(); drawer = null; }
   }
 
+  /* An NFL line is worked out from the rosters, which the page has nearly
+     always loaded by the time anybody reaches for a plus. If it has not, the
+     drawer is drawn again once they are in. */
   function openDrawer(player, game) {
-    drawerFor = { player: player, game: game };
+    var opened = drawerFor = { player: player, game: game };
+    var waiting = EGE.leagueOf(player, game.season) === 'nfl' && EGE.nflRosters &&
+      EGE.nflRosters.get(game.season) === undefined;
     renderDrawer();
+    if (!waiting) { return; }
+    EGE.lineReady(player, game.season).then(function () {
+      if (drawerFor === opened) { renderDrawer(); }
+    });
   }
 
+  /* The drawer, one row of it where the screen has the room (Sam,
+     2026-10-20): the game and what the season has left on the left, then
+     the boosters, then the wager, and a cross in the corner to shut it. */
   function renderDrawer() {
     if (!drawerFor) { return; }
+    var again = Boolean(drawer);
     if (drawer) { drawer.remove(); }
 
     var game = drawerFor.game;
     var player = drawerFor.player;
 
-    drawer = el('div', 'ege-drawer');
+    /* Drawn again in place, it does not slide up a second time. */
+    drawer = el('div', 'ege-drawer' + (again ? ' ege-drawer--again' : ''));
     var inner = el('div', 'ege-drawer__inner');
+
+    /* What the season has room for: five boosters in all, so many of each,
+       and two wagers. */
+    var used = EGE.boostersUsed(player, game.season);
+    var wagers = EGE.wagerRoom(player, game.season);
 
     var title = el('div', 'ege-drawer__title');
     title.appendChild(el('small', null, 'Week ' + game.week + ' \u00b7 ' +
       (game.home || game.neutral ? 'vs ' : 'at ') + game.opponent));
-    title.appendChild(document.createTextNode('Your Booster Stickers'));
+    title.appendChild(el('span', 'ege-drawer__heading', 'Your Stickers'));
+    title.appendChild(el('span', 'ege-drawer__room',
+      used.total + ' of ' + EGE.shop.boosterSeasonLimit + ' boosters \u00b7 ' +
+      wagers.used + ' of ' + wagers.limit + ' wagers used'));
     inner.appendChild(title);
 
     var owned = shopState.inventory.filter(function (row) {
       return row.consumable && STICKER_LOOK[row.item_key];
     });
 
-    /* What the season has room for: five in all, and so many of each. */
-    var used = EGE.boostersUsed(player, game.season);
-    var totalLimit = EGE.shop.boosterSeasonLimit;
-    inner.appendChild(el('span', 'ege-drawer__room',
-      used.total + ' of ' + totalLimit + ' boosters on this season\u2019s games'));
-
-    if (!owned.length) {
+    /* No booster on a playoff game, or on one he is known to be missing
+       hurt (Sam, 2026-10-20). A wager goes on either. */
+    if (game.playoff) {
+      inner.appendChild(el('span', 'ege-drawer__empty',
+        'No boosters in the playoffs. A wager still goes on.'));
+    } else if (EGE.outInjured(player, game)) {
+      inner.appendChild(el('span', 'ege-drawer__empty',
+        'Out injured this week, so no boosters. A wager still goes on.'));
+    } else if (!owned.length) {
       inner.appendChild(el('span', 'ege-drawer__empty',
         'No boosters in the drawer. They are in the shop.'));
     } else {
@@ -978,8 +1050,12 @@
       inner.appendChild(strip);
     }
 
-    var close = el('button', 'fb-btn fb-btn--inverse', 'Close');
+    inner.appendChild(wagerPicker(player, game, wagers));
+
+    var close = el('button', 'ege-drawer__close', '\u00d7');
     close.type = 'button';
+    close.title = 'Close';
+    close.setAttribute('aria-label', 'Close your stickers');
     close.addEventListener('click', closeDrawer);
     inner.appendChild(close);
 
@@ -987,10 +1063,84 @@
     document.body.appendChild(drawer);
   }
 
+  /* The wager in the drawer: the blank chip, the line on the game (see
+     js/lines.js) and the projected score, and a button for each side with
+     its line, the way a sportsbook lists one. Picking one puts the wager on
+     the game at that line. */
+  function wagerPicker(player, game, room) {
+    var box = el('div', 'ege-drawer__wager');
+    box.appendChild(wagerStickerEl(null, 64, 'wager-' + game.week));
+
+    var names = EGE.wagerSides(player, game);
+    var odds = EGE.gameLine(player, game);
+    var words = el('div', 'ege-drawer__wagerwords');
+    words.appendChild(el('span', 'ege-drawer__wagertitle',
+      'Wager \u00b7 ' + room.left + ' of ' + room.limit + ' left'));
+    if (odds) {
+      var under = odds.favorite === 'for' ? 'against' : 'for';
+      words.appendChild(el('span', 'ege-drawer__line',
+        EGE.sideName(names[odds.favorite]) + ' by ' + odds.spread));
+      words.appendChild(el('span', 'ege-drawer__wagernote', room.ok
+        ? 'Projected ' + odds.projected[odds.favorite] + '\u2013' + odds.projected[under] +
+          '. Beat the line for double credits, miss it for none.'
+        : room.reason));
+    } else {
+      words.appendChild(el('span', 'ege-drawer__wagernote', 'There is no line on this game.'));
+    }
+    box.appendChild(words);
+
+    var sides = el('div', 'ege-drawer__sides');
+    ['for', 'against'].forEach(function (side) {
+      var pick = el('button', 'ege-wagerpick');
+      pick.type = 'button';
+      var logo = sideLogo(player, game, side);
+      if (logo) {
+        var mark = el('img', 'ege-wagerpick__logo');
+        mark.src = logo;
+        mark.alt = '';
+        mark.addEventListener('error', function () { mark.remove(); });
+        pick.appendChild(mark);
+      }
+      var name = EGE.sideName(names[side]);
+      var line = odds ? odds[side] : null;
+      pick.appendChild(el('span', 'ege-wagerpick__name', name));
+      pick.appendChild(el('span', 'ege-wagerpick__line', EGE.lineText(line)));
+      pick.title = odds ? 'Take ' + name + ' ' + EGE.lineText(line) + ': ' + EGE.coverText(name, line) : name;
+      pick.disabled = !room.ok || !odds;
+      pick.addEventListener('click', function () {
+        pick.disabled = true;
+        EGE.wallet.applyWager(player.email, game.season, game.week, side, line).then(function (res) {
+          if (res.ok) {
+            sayShop(res.message, false);
+            closeDrawer();
+          } else {
+            announce(res.message, true);
+          }
+          refreshShop();
+        });
+      });
+      sides.appendChild(pick);
+    });
+    box.appendChild(sides);
+    return box;
+  }
+
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') { return; }
     if (drawer) { closeDrawer(); }
     disarmSticker();
+  });
+
+  /* A click anywhere off the drawer shuts it (Sam, 2026-10-20) -- the tabs,
+     the page, the schedule -- except a plus, which opens it on its own game
+     instead. A button in the drawer that drew the drawer again is no longer
+     in the page by the time the click gets here; that was a click inside. */
+  document.addEventListener('click', function (event) {
+    if (!drawer) { return; }
+    var target = event.target;
+    if (!target || !target.isConnected || drawer.contains(target)) { return; }
+    if (target.closest && target.closest('.ege-slot__add')) { return; }
+    closeDrawer();
   });
 
   /* An opponent's name with its mark in front of it, the mark straight off
@@ -1001,6 +1151,19 @@
      row. */
   function opponentName(cell, game) {
     var name = game.opponent;
+    /* An NFL team is its city alone, and the mark and the city are a link
+       to its page on Teams, for the season the game is in. The link looks
+       exactly like the name did; only a pointer over it says it goes
+       somewhere (Sam, 2026-10-20). */
+    var nfl = EGE.tierFor(game.season, gamePlayer(game)) === 'nfl' ? EGE.nfl.keyByName(name) : null;
+    var holder = cell;
+    if (nfl) {
+      holder = el('a', 'ege-opplink');
+      holder.href = '#teams/' + EGE.nfl.slug(nfl);
+      holder.title = name;
+      holder.addEventListener('click', function () { teamsPicked = game.season; });
+      cell.appendChild(holder);
+    }
     var src = EGE.tierFor(game.season) !== 'highSchool' && EGE.logoFor && EGE.logoFor(name);
     if (src) {
       var logo = el('img', 'ege-teamlogo');
@@ -1011,9 +1174,9 @@
       logo.loading = 'lazy';
       logo.decoding = 'async';
       logo.addEventListener('error', function () { logo.remove(); });
-      cell.appendChild(logo);
+      holder.appendChild(logo);
     }
-    cell.appendChild(el('span', 'fb-name', name));
+    holder.appendChild(el('span', 'fb-name', nfl ? EGE.nfl.city(nfl) : name));
   }
 
   /* A played game's score as the result pill -- W 38-9, L 21-24/OT -- or a
@@ -1110,9 +1273,15 @@
     if (showBoosters) {
       var credits = el('td', 'num ege-schedule__credits');
       var earned = schedulePlayer ? EGE.creditsFromGame(schedulePlayer, game) : 0;
-      if (earned) {
-        var tag = el('span', 'ege-schedule__paid', '+' + earned);
-        tag.title = earned + ' credits for this game';
+      /* A lost wager still shows what it paid: nothing, and the diamonds,
+         which a wager leaves alone. */
+      var wagered = schedulePlayer && EGE.isFinal(game) ? EGE.wagerOn(schedulePlayer, game) : null;
+      var lost = Boolean(wagered && wagered.outcome === 'lost');
+      if (earned || lost) {
+        var tag = el('span', 'ege-schedule__paid' + (lost ? ' ege-schedule__paid--lost' : ''), '+' + earned);
+        tag.title = lost ? 'No credits for this game: ' + wagered.name.replace(/^Wager/, 'the wager') + ' lost'
+          : earned + ' credits for this game' +
+            (wagered && wagered.outcome === 'won' ? ', doubled by ' + wagered.name.replace(/^Wager/, 'the wager') : '');
         credits.appendChild(tag);
 
         /* And its diamonds beside them: the same number, or more when a
@@ -1146,6 +1315,115 @@
     return row;
   }
 
+  /* --- the scouting report ----------------------------------------------
+
+     Under an NFL player's next game, in the colour of the team he is about
+     to play: a ring filled to that defense's rating against what he does
+     (run defense for a back, pass defense for everyone else) with where it
+     ranks in the NFL, and the three best of the defenders he will face,
+     each with his overall and the pop-up the Teams page opens (Sam,
+     2026-10-20). The live season only, and the next game rather than the
+     next week, so a bye puts it under the game after it. The rosters are
+     the sim's as they stand, injuries and all; see EGE.nflRosters.facing. */
+  function nextNflGame(player, season, games) {
+    if (season !== EGE.currentSeason || EGE.tierFor(season, player) !== 'nfl') { return null; }
+    return games.filter(function (game) {
+      return !game.bye && !EGE.isPublished(game.season, game.week);
+    })[0] || null;
+  }
+
+  var FACING_POS = { DI: 'DT' };
+  var FACING_SHOWN = 3;
+
+  /* The defense's rating as a ring that far round, the number in it, and
+     what it is and where it ranks beside it. */
+  function scoutRing(grade) {
+    var box = el('div', 'ege-scoutrep__rating');
+    var ring = el('div', 'ege-scoutrep__ring');
+    ring.style.setProperty('--fill', Math.max(0, Math.min(100, grade.score)) + '%');
+    ring.setAttribute('role', 'img');
+    ring.setAttribute('aria-label', grade.short + ' ' + grade.score + ' out of 100');
+    ring.appendChild(el('span', 'ege-scoutrep__score', String(grade.score)));
+    box.appendChild(ring);
+    var words = el('div', 'ege-scoutrep__words');
+    words.appendChild(el('span', 'ege-scoutrep__what', grade.short));
+    var rank = el('span', 'ege-scoutrep__rank');
+    rank.appendChild(el('b', null, EGE.ordinal(grade.rank).toLowerCase()));
+    rank.appendChild(document.createTextNode(' of ' + grade.of + ' in the NFL'));
+    words.appendChild(rank);
+    box.appendChild(words);
+    box.title = grade.text;
+    return box;
+  }
+
+  function appendFaceoff(body, player, game) {
+    var key = EGE.nfl.keyByName(game.opponent);
+    var position = EGE.positionFor(player, game.season);
+    var rows = key ? EGE.nflRosters.facing(game.season, key, position) : null;
+    if (!rows || !rows.length) { return false; }
+    var team = EGE.nfl.teams[key] || {};
+    var grade = EGE.nflRosters.defenseGrade(game.season, key, position);
+
+    var row = el('tr', 'ege-faceoff');
+    var cell = el('td');
+    cell.colSpan = document.querySelectorAll('#scheduleTableWrap thead th:not([hidden])').length;
+    var strip = el('div', 'ege-faceoff__strip');
+    strip.style.background = team.color || '';
+
+    var head = el('div', 'ege-faceoff__head');
+    head.appendChild(el('span', 'ege-faceoff__title', 'Scouting Report'));
+    var src = EGE.nfl.logo(key);
+    if (src) {
+      var logo = el('img', 'ege-faceoff__logo');
+      logo.src = src;
+      logo.alt = team.name || '';
+      logo.title = team.name || '';
+      logo.addEventListener('error', function () { logo.remove(); });
+      head.appendChild(logo);
+    }
+    strip.appendChild(head);
+
+    var report = el('div', 'ege-scoutrep');
+    if (grade) { report.appendChild(scoutRing(grade)); }
+
+    var list = el('ul', 'ege-faceoff__list');
+    rows.slice().sort(function (a, b) { return (b.ovr || 0) - (a.ovr || 0); })
+      .slice(0, FACING_SHOWN).forEach(function (sim) {
+        var who = nflRow(sim, game.season, key);
+        var item = el('li', 'ege-faceoff__player');
+        var card = el('div', 'ege-teamchip ege-teamchip--nfl ege-teamchip--faceoff');
+        EGE.cardsView.pressable(card, who.name, function () { openNflPlayer(who); });
+        card.appendChild(rosterFace(who));
+        var text = el('span', 'ege-teamchip__text');
+        text.appendChild(el('span', 'ege-teamchip__name', who.name));
+        var meta = el('span', 'ege-teamchip__meta');
+        var pos = el('abbr', 'ege-room__class', FACING_POS[sim.pos] || sim.pos);
+        pos.title = POSITION_NAMES[sim.pos] || sim.pos;
+        meta.appendChild(pos);
+        if (who.archetype) { meta.appendChild(el('span', 'ege-teamchip__arch', who.archetype)); }
+        text.appendChild(meta);
+        card.appendChild(text);
+        var box = overallBox(who.overall, 'ege-ovrbox--chip');
+        if (box) { card.appendChild(box); }
+        item.appendChild(card);
+        list.appendChild(item);
+      });
+    report.appendChild(list);
+    strip.appendChild(report);
+    cell.appendChild(strip);
+    row.appendChild(cell);
+    body.appendChild(row);
+
+    /* And a row nobody sees, so the games under it keep the same stripe
+       they had: the kit stripes every second row, whatever is in it (see
+       .ege-schedule__break in site.css). */
+    var keep = el('tr', 'ege-faceoff__keep');
+    keep.hidden = true;
+    keep.setAttribute('aria-hidden', 'true');
+    body.appendChild(keep);
+    return true;
+  }
+
   function renderSchedule(player) {
     var panel = document.getElementById('schedulePanel');
     var body = document.getElementById('scheduleBody');
@@ -1160,8 +1438,15 @@
     showScouts = canSeeScouts(player) && season === EGE.currentSeason;
     showBoosters = canSeeStickers(player);
     /* The column is only there when there is something in it: a college
-       season, against schools with numbers. */
+       season, against schools with numbers, or an NFL one once the rosters
+       its grades come from are in. They arrive after the first draw, and
+       the schedule is drawn again with them. */
     showGrades = games.some(function (game) { return EGE.defenseGrade(player, game); });
+    if (EGE.tierFor(season, player) === 'nfl' && EGE.nflRosters.get(season) === undefined) {
+      EGE.nflRosters.load(season).then(function () {
+        if (schedulePlayer === player && shownSeason() === season && !viewPlayer.hidden) { renderSchedule(player); }
+      });
+    }
 
     /* A bracket belongs to a school, so opening somebody else's page puts the
        panel back on his games rather than leaving it on a tournament he is
@@ -1199,8 +1484,13 @@
        the stat line that dropped open under a finished game was a row of its
        own, and every row after it changed colour. */
     var firstPlayoff = games.filter(function (game) { return game.playoff; })[0];
+    var next = nextNflGame(player, season, games);
     games.forEach(function (game) {
-      body.appendChild(scheduleRow(game, game === firstPlayoff));
+      var row = scheduleRow(game, game === firstPlayoff);
+      body.appendChild(row);
+      /* The game and its report boxed in together by a heavy rule above
+         and below (Sam, 2026-10-20). */
+      if (game === next && appendFaceoff(body, player, game)) { row.classList.add('ege-schedule__next'); }
     });
 
     /* Out of the games, not the weeks: an NFL bye is a row of its own. */
@@ -1709,6 +1999,7 @@
     document.getElementById('rosterSwitch').hidden = false;
     nflShown = key + ':' + season;
     body.innerHTML = '';
+    renderUnitOveralls(key, season);
 
     var all = EGE.nflRosters.get(season);
     if (all === undefined) {
@@ -1733,6 +2024,28 @@
       grid.appendChild(roomEl(room, inRoom));
     });
     body.appendChild(grid);
+  }
+
+  /* Beside the Offense and Defense switch, for an admin and nobody else
+     (Sam, 2026-10-20): the team's offense and defense as two overalls, from
+     its players' ratings. Hidden in client viewer mode, and for a team the
+     rosters do not have yet. */
+  function renderUnitOveralls(key, season) {
+    var holder = document.getElementById('rosterRatings');
+    holder.innerHTML = '';
+    var units = key && EGE.wallet.admin() ? EGE.nflRosters.unitOveralls(season, key, function (sim) {
+      var player = sim.ege ? EGE.playerBySlug(sim.ege) : null;
+      return player ? EGE.overallFor(player) : sim.ovr;
+    }) : null;
+    holder.hidden = !units;
+    if (!units) { return; }
+    [['offense', 'OFF', 'Offense'], ['defense', 'DEF', 'Defense']].forEach(function (side) {
+      var box = overallBox(units[side[0]], 'ege-ovrbox--unit');
+      if (!box) { return; }
+      box.querySelector('.ege-ovrbox__label').textContent = side[1];
+      box.title = side[2] + ' overall ' + units[side[0]] + ', from its starters\u2019 ratings. Only admins see this.';
+      holder.appendChild(box);
+    });
   }
 
   document.addEventListener('change', function (event) {
@@ -2319,6 +2632,7 @@
     if (nflKey) { renderNflRoster(nflKey, season); return; }
     nflShown = null;
     document.getElementById('rosterSwitch').hidden = true;
+    renderUnitOveralls(null, season);
     var body = document.getElementById('teamRosterBody');
     body.innerHTML = '';
     var rooms = EGE.rosterFor(entry.key, season);
@@ -3043,6 +3357,15 @@
         var mark = el('abbr', 'ege-gamelog__boost', booster.multiplier + 'x');
         mark.title = booster.name + ' was on this game';
         opponent.appendChild(mark);
+      }
+      /* And a wager, the same way: what it did to the game's credits. */
+      var wager = canSeeStickers(player) ? EGE.wagerOn(player, game) : null;
+      if (wager && wager.outcome) {
+        var bet = el('abbr', 'ege-gamelog__boost ege-gamelog__boost--' + wager.outcome,
+          wager.outcome === 'won' ? 'Bet 2x' : wager.outcome === 'lost' ? 'Bet 0x' : 'Bet 1x');
+        bet.title = wager.name + (wager.outcome === 'won' ? ' won: double credits'
+          : wager.outcome === 'lost' ? ' lost: no credits' : ' was a tie: credits as usual');
+        opponent.appendChild(bet);
       }
       row.appendChild(opponent);
 
@@ -4782,10 +5105,14 @@
         : null;
     }).then(function () {
       return Promise.all(EGE.playersWithAccounts().map(function (player) {
-        return Promise.all([
-          EGE.wallet.syncAwards(player, season),
-          EGE.wallet.syncDiamonds(player, season, true)
-        ]).then(function (both) {
+        /* A player hurt in the week just out has his boosters on the games
+           he will miss handed back first (wagers stay). */
+        return EGE.wallet.returnInjuredBoosters(player, season, true).then(function () {
+          return Promise.all([
+            EGE.wallet.syncAwards(player, season, true),
+            EGE.wallet.syncDiamonds(player, season, true)
+          ]);
+        }).then(function (both) {
           return {
             player: player,
             paid: both[0].paid || 0,
@@ -4969,9 +5296,10 @@
     head.appendChild(score);
     box.appendChild(head);
 
-    /* The booster that was on the game, written into the file for good. */
+    /* The booster or wager that was on the game, written into the file for
+       good. */
     var boosterRow = el('div', 'fb-row fb-row--wrap');
-    boosterRow.appendChild(el('span', 'fb-eyebrow', 'Booster'));
+    boosterRow.appendChild(el('span', 'fb-eyebrow', 'Booster or wager'));
     var pick = el('select', 'fb-select');
     var none = el('option', null, 'None');
     none.value = '';
@@ -4983,11 +5311,34 @@
       option.value = item.key;
       pick.appendChild(option);
     });
+    var sides = EGE.wagerSides(entry.player, entry.game);
+    Object.keys(EGE.WAGER_SIDES).forEach(function (key) {
+      var option = el('option', null, 'Wager on ' + EGE.sideName(sides[EGE.WAGER_SIDES[key]]));
+      option.value = key;
+      pick.appendChild(option);
+    });
     pick.value = held.booster || '';
+    /* A wager is written with its line: the one it was taken at when it
+       came in off Supabase (Pull in stickers), or, picked here by hand,
+       the line on the game as it stands. */
+    var lineNote = el('span', 'fb-meta');
+    function showLine() {
+      lineNote.textContent = EGE.isWagerKey(held.booster) && typeof held.line === 'number'
+        ? 'at ' + EGE.lineText(held.line) : '';
+    }
     pick.addEventListener('change', function () {
       held.booster = pick.value || null;
+      if (EGE.isWagerKey(held.booster)) {
+        var odds = EGE.gameLine(entry.player, entry.game);
+        held.line = odds ? odds[EGE.WAGER_SIDES[held.booster]] : null;
+      } else {
+        held.line = null;
+      }
+      showLine();
     });
+    showLine();
     boosterRow.appendChild(pick);
+    boosterRow.appendChild(lineNote);
     box.appendChild(boosterRow);
 
     /* Hurt this week: he sits it out, the Discord post says DNP Injured, and
@@ -5083,6 +5434,7 @@
           opponentScore: entry.game.result.opponentScore
         } : null,
         booster: entry.game.booster || null,
+        line: typeof entry.game.line === 'number' ? entry.game.line : null,
         overtime: Boolean(entry.game.overtime),
         injured: Boolean(entry.game.injured),
         injury: entry.game.injury || '',
@@ -5122,6 +5474,7 @@
         var stuck = (boosters[slug] || {})[week];
         if (!stuck) { return; }
         held[slug].booster = stuck.item_key;
+        held[slug].line = stuck.line === null || stuck.line === undefined ? null : Number(stuck.line);
         found += 1;
       });
 
@@ -5470,71 +5823,11 @@
     });
   }
 
-  /* The Earning Credits panel: what an offseason pays, what a game pays, and
-     how a game's fantasy points are scored. The game rows are read out of
-     data/economy.js, so the panel can never describe different maths from
-     the maths that pays. */
-  var SUB = '\u221f ';
-
-  function earningRow(body, label, value, sub) {
-    var tr = el('tr', sub ? 'ege-earnings__sub' : 'ege-earnings__lead');
-    tr.appendChild(el('td', null, (sub ? SUB : '') + label));
-    var cell = el('td', 'num');
-    cell.appendChild(el('strong', null, value));
-    tr.appendChild(cell);
-    body.appendChild(tr);
-  }
-
-  function buildEarnings() {
-    var offseason = document.getElementById('shopEarnings');
-    EGE.shop.earnings.forEach(function (row) {
-      earningRow(offseason, row.label, '+' + row.credits, row.sub);
-    });
-
-    var economy = EGE.economy;
-    var shares = economy.FANTASY_SHARE;
-    var perGame = document.getElementById('shopGameEarnings');
-    earningRow(perGame, 'Every Game', 'fantasy pts \u00d7', false);
-    [['QB', 'Quarterback'], ['RB', 'Running Back'], ['TE', 'Tight End'],
-     ['WR', 'Wide Receiver']].forEach(function (pos) {
-      earningRow(perGame, pos[1], '\u00d7' + shares[pos[0]].toFixed(2), true);
-    });
-
-    var f = economy.FANTASY;
-    var per = function (rate) { return String(Math.round(1 / rate)); };
-    var scoring = document.getElementById('shopFantasy');
-    [
-      ['Passing', null],
-      ['Yards', '1 per ' + per(f.passingYards)],
-      ['Touchdown', '+' + f.passingTd],
-      ['Interception', String(f.interceptions)],
-      ['Rushing', null],
-      ['Yards', '1 per ' + per(f.rushingYards)],
-      ['Touchdown', '+' + f.rushingTd],
-      ['Receiving', null],
-      ['Catch', '+' + f.receptions],
-      ['Yards', '1 per ' + per(f.receivingYards)],
-      ['Touchdown', '+' + f.receivingTd],
-      ['Fumble lost', String(f.fumbles)]
-    ].forEach(function (row) {
-      if (row[1] === null) {
-        var head = el('tr', 'ege-earnings__lead');
-        head.appendChild(el('td', null, row[0]));
-        head.appendChild(el('td', 'num'));
-        scoring.appendChild(head);
-        return;
-      }
-      earningRow(scoring, row[0], row[1].replace('-', '\u2212'), row[0] !== 'Fumble lost');
-    });
-  }
-
   function buildCatalogue() {
     if (shopState.built) { return; }
     shopState.built = true;
     stackedCards = [];
     levelCards = [];
-
-    buildEarnings();
 
     var sections = document.getElementById('shopSections');
     EGE.shop.sections.filter(function (section) {
@@ -5631,6 +5924,10 @@
     var player = hash ? EGE.playerBySlug(hash) : null;
     var moved = hash !== routed;
     routed = hash;
+
+    /* Going anywhere else shuts the sticker drawer (Sam, 2026-10-20): it
+       belongs to a game on the page being left. */
+    if (moved) { closeDrawer(); }
 
     if (hash === 'teams') {
       renderTeams();
@@ -5860,6 +6157,29 @@
     EGE.auth.signOut();
   });
 
+  /* The admin's link in the nav and, in the portal, the client viewer
+     mode switch: shown to a real admin whichever way it is set, so it can
+     always be switched back. With it on the page is drawn as a player's,
+     so the Admin link goes with everything else. */
+  var viewerMode = document.getElementById('viewerMode');
+
+  function showAdminBits() {
+    var real = EGE.auth.currentPlayer() && EGE.wallet.realAdmin();
+    document.getElementById('navAdmin').hidden = !EGE.wallet.admin();
+    document.getElementById('viewerModeRow').hidden = !real;
+    viewerMode.checked = Boolean(real && EGE.wallet.viewerMode());
+    document.getElementById('viewerModeNote').textContent = viewerMode.checked
+      ? 'On: you are seeing the site the way a player does.'
+      : 'See the site the way a player does.';
+  }
+
+  viewerMode.addEventListener('change', function () {
+    EGE.wallet.setViewerMode(viewerMode.checked);
+    showAdminBits();
+    /* Whatever is on screen, drawn again for whoever it is now for. */
+    route();
+  });
+
   document.getElementById('shopLoginBtn').addEventListener('click', function () {
     openLogin();
   });
@@ -5892,6 +6212,7 @@
     document.getElementById('navShop').hidden = true;
     document.getElementById('navCards').hidden = true;
     document.getElementById('navAdmin').hidden = true;
+    document.getElementById('viewerModeRow').hidden = true;
     document.getElementById('navCredits').hidden = true;
     document.getElementById('navDiamonds').hidden = true;
   }
@@ -5985,8 +6306,8 @@
       loading();
       EGE.wallet.loadPublishedWeeks()
         .then(function () { return EGE.wallet.refreshAdmin(player.email); })
-        .then(function (admin) {
-          document.getElementById('navAdmin').hidden = !admin;
+        .then(function () {
+          showAdminBits();
           /* Anything the season owes this player is paid on the way in, so a
              result posted since their last visit is already credits and
              diamonds by the time they reach the shop. */
@@ -6005,6 +6326,9 @@
       photo.alt = player.name;
       showPanel(panelSignedIn);
     } else {
+      /* Nobody is an admin once they have signed out, so nothing only an
+         admin sees stays on the page behind them. */
+      EGE.wallet.refreshAdmin(null);
       showSignedOutNav();
       showPanel(panelAuth);
       loadAccount();
@@ -6020,11 +6344,16 @@
      earn on those games. Each is keyed on what earned it, so running it
      again pays nothing twice. Nothing is said: the balances show it. */
   function payWhatIsOwed(player) {
-    return Promise.all([
-      EGE.wallet.syncAwards(player, EGE.currentSeason),
-      EGE.wallet.syncDiamonds(player, EGE.currentSeason),
-      EGE.cardStore.syncPlayerCards(player, EGE.currentSeason)
-    ]).then(function (all) {
+    /* And a booster on a game he is now known to miss goes back in his
+       drawer before anything else (see returnInjuredBoosters). */
+    return EGE.wallet.returnInjuredBoosters(player, EGE.currentSeason).then(function (back) {
+      if (back.returned) { refreshShop().then(route); }
+      return Promise.all([
+        EGE.wallet.syncAwards(player, EGE.currentSeason),
+        EGE.wallet.syncDiamonds(player, EGE.currentSeason),
+        EGE.cardStore.syncPlayerCards(player, EGE.currentSeason)
+      ]);
+    }).then(function (all) {
       var credits = (all[0] && all[0].paid) || 0;
       var diamonds = ((all[1] && all[1].paid) || 0) + ((all[2] && all[2].paid) || 0);
       return { credits: credits, diamonds: diamonds };

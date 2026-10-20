@@ -15,9 +15,8 @@
    out of the rushing yards rather than counted against them.
 
    2023's college defenses are the same again, from cfbfastR's 2023 copy.
-   The NFL's 32 come from nflverse's team stats for the 2023 regular
-   season, ranked among themselves (`level: 'NFL'`, `of: 32`), with the
-   passing yards net of sacks the way the league counts them.
+   The NFL is not here: its grades come from the sim's player ratings (see
+   EGE.nflRosters.defenseGrade in js/nfl-rosters.js).
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -1108,39 +1107,5 @@ EGE.defenses[2023] = {
   'Wofford': { level: 'FCS', games: 10, rush: 168.4, perCarry: 5.2, rushRank: 72, pass: 206.2, perAttempt: 7.7, passRank: 68, of: 128 },
   'Wyoming': { level: 'FBS', games: 11, rush: 140.3, perCarry: 4.4, rushRank: 29, pass: 230.5, perAttempt: 6.8, passRank: 78, of: 133 },
   'Yale': { level: 'FCS', games: 8, rush: 146.4, perCarry: 4.8, rushRank: 44, pass: 218.5, perAttempt: 6.9, passRank: 83, of: 128 },
-  'Youngstown State': { level: 'FCS', games: 10, rush: 114.2, perCarry: 5.6, rushRank: 13, pass: 266, perAttempt: 8.6, passRank: 120, of: 128 },
-
-  /* The NFL, ranked among its 32. */
-  'Arizona Cardinals': { level: 'NFL', games: 17, rush: 143.2, perCarry: 4.7, rushRank: 32, pass: 212.5, perAttempt: 7.1, passRank: 13, of: 32 },
-  'Atlanta Falcons': { level: 'NFL', games: 17, rush: 118.2, perCarry: 4, rushRank: 20, pass: 202.9, perAttempt: 6.3, passRank: 8, of: 32 },
-  'Baltimore Ravens': { level: 'NFL', games: 17, rush: 109.4, perCarry: 4.5, rushRank: 14, pass: 191.9, perAttempt: 5.1, passRank: 6, of: 32 },
-  'Buffalo Bills': { level: 'NFL', games: 17, rush: 110.6, perCarry: 4.6, rushRank: 15, pass: 196.6, perAttempt: 6.1, passRank: 7, of: 32 },
-  'Carolina Panthers': { level: 'NFL', games: 17, rush: 122.4, perCarry: 4.1, rushRank: 23, pass: 171.5, perAttempt: 6.1, passRank: 3, of: 32 },
-  'Chicago Bears': { level: 'NFL', games: 17, rush: 86.4, perCarry: 3.8, rushRank: 1, pass: 237.8, perAttempt: 6.6, passRank: 25, of: 32 },
-  'Cincinnati Bengals': { level: 'NFL', games: 17, rush: 126.2, perCarry: 4.7, rushRank: 26, pass: 248.4, perAttempt: 7.6, passRank: 28, of: 32 },
-  'Cleveland Browns': { level: 'NFL', games: 17, rush: 105.5, perCarry: 4.3, rushRank: 11, pass: 164.7, perAttempt: 5.2, passRank: 1, of: 32 },
-  'Dallas Cowboys': { level: 'NFL', games: 17, rush: 112.4, perCarry: 4.2, rushRank: 16, pass: 187.4, perAttempt: 6.3, passRank: 5, of: 32 },
-  'Denver Broncos': { level: 'NFL', games: 17, rush: 137.1, perCarry: 5, rushRank: 30, pass: 233.6, perAttempt: 6.9, passRank: 22, of: 32 },
-  'Detroit Lions': { level: 'NFL', games: 17, rush: 88.8, perCarry: 3.7, rushRank: 2, pass: 247.4, perAttempt: 7.2, passRank: 27, of: 32 },
-  'Green Bay Packers': { level: 'NFL', games: 17, rush: 128.3, perCarry: 4.4, rushRank: 28, pass: 206.8, perAttempt: 6.7, passRank: 9, of: 32 },
-  'Houston Texans': { level: 'NFL', games: 17, rush: 96.6, perCarry: 3.5, rushRank: 6, pass: 234.1, perAttempt: 7, passRank: 23, of: 32 },
-  'Indianapolis Colts': { level: 'NFL', games: 17, rush: 123.8, perCarry: 4.1, rushRank: 24, pass: 226, perAttempt: 6.8, passRank: 16, of: 32 },
-  'Jacksonville Jaguars': { level: 'NFL', games: 17, rush: 103.1, perCarry: 4.2, rushRank: 9, pass: 239.8, perAttempt: 6.6, passRank: 26, of: 32 },
-  'Kansas City Chiefs': { level: 'NFL', games: 17, rush: 113.2, perCarry: 4.5, rushRank: 17, pass: 176.5, perAttempt: 5.4, passRank: 4, of: 32 },
-  'Las Vegas Raiders': { level: 'NFL', games: 17, rush: 118.5, perCarry: 4.2, rushRank: 21, pass: 212.4, perAttempt: 6.4, passRank: 12, of: 32 },
-  'Los Angeles Chargers': { level: 'NFL', games: 17, rush: 113.2, perCarry: 4.1, rushRank: 17, pass: 249.8, perAttempt: 7.1, passRank: 30, of: 32 },
-  'Los Angeles Rams': { level: 'NFL', games: 17, rush: 106.8, perCarry: 4.2, rushRank: 12, pass: 231.1, perAttempt: 6.5, passRank: 20, of: 32 },
-  'Miami Dolphins': { level: 'NFL', games: 17, rush: 97.1, perCarry: 3.8, rushRank: 7, pass: 221.2, perAttempt: 6.6, passRank: 15, of: 32 },
-  'Minnesota Vikings': { level: 'NFL', games: 17, rush: 98.7, perCarry: 3.8, rushRank: 8, pass: 234.5, perAttempt: 6.6, passRank: 24, of: 32 },
-  'New England Patriots': { level: 'NFL', games: 17, rush: 93.2, perCarry: 3.3, rushRank: 4, pass: 208.4, perAttempt: 6.2, passRank: 11, of: 32 },
-  'New Orleans Saints': { level: 'NFL', games: 17, rush: 119.9, perCarry: 4.4, rushRank: 22, pass: 207.3, perAttempt: 6.3, passRank: 10, of: 32 },
-  'New York Giants': { level: 'NFL', games: 17, rush: 132.4, perCarry: 4.7, rushRank: 29, pass: 229.3, perAttempt: 6.7, passRank: 19, of: 32 },
-  'New York Jets': { level: 'NFL', games: 17, rush: 124, perCarry: 4.1, rushRank: 25, pass: 168.3, perAttempt: 5.5, passRank: 2, of: 32 },
-  'Philadelphia Eagles': { level: 'NFL', games: 17, rush: 103.4, perCarry: 4.3, rushRank: 10, pass: 252.7, perAttempt: 6.6, passRank: 31, of: 32 },
-  'Pittsburgh Steelers': { level: 'NFL', games: 17, rush: 115.1, perCarry: 4.3, rushRank: 19, pass: 227.1, perAttempt: 6.7, passRank: 17, of: 32 },
-  'San Francisco 49ers': { level: 'NFL', games: 17, rush: 89.7, perCarry: 4.1, rushRank: 3, pass: 214.2, perAttempt: 5.9, passRank: 14, of: 32 },
-  'Seattle Seahawks': { level: 'NFL', games: 17, rush: 138.4, perCarry: 4.6, rushRank: 31, pass: 233, perAttempt: 6.8, passRank: 21, of: 32 },
-  'Tampa Bay Buccaneers': { level: 'NFL', games: 17, rush: 95.3, perCarry: 3.8, rushRank: 5, pass: 248.9, perAttempt: 6.9, passRank: 29, of: 32 },
-  'Tennessee Titans': { level: 'NFL', games: 17, rush: 107.7, perCarry: 3.8, rushRank: 13, pass: 227.4, perAttempt: 6.8, passRank: 18, of: 32 },
-  'Washington Commanders': { level: 'NFL', games: 17, rush: 126.8, perCarry: 4.5, rushRank: 27, pass: 262.2, perAttempt: 7.5, passRank: 32, of: 32 }
+  'Youngstown State': { level: 'FCS', games: 10, rush: 114.2, perCarry: 5.6, rushRank: 13, pass: 266, perAttempt: 8.6, passRank: 120, of: 128 }
 };
