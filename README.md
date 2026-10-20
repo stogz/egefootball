@@ -1797,7 +1797,18 @@ on the market takes its points with it — graded on the card ladder:
 | Epic | 800 | 720 | 600 | +50% |
 | Legendary | 1400 | 1260 | 1050 | +80% |
 | Mystic | 2200 | 1980 | 1650 | +125% |
-| Iconic | 3500 | 3150 | 2625 | +300% |
+| Iconic | 7000 | 6300 | 5250 | +300% |
+| GOAT | 28000 | 25200 | 21000 | +500% |
+
+**GOAT** is a Player Card's alone: no play or performance card is ever GOAT,
+so it is not one of the card rarities, and its rung in `PLAYER_RANKS` carries
+its own name and colour. It looks like no other rank: a platinum frame
+engraved in a diamond cross-hatch with prism fire and four sparkles, the
+player in a platinum spotlight, a black plate
+with the name in platinum foil, and a platinum foot with a crown before GOAT.
+Up close the sparkles twinkle and a band of prism light sweeps across it.
+GOAT takes four times Iconic's points. Iconic took 3500 points until Sam doubled it on
+2026-10-20.
 
 A quarterback's average card scores about 9.6, a back's or receiver's 13.4 and
 a tight end's 11.9, so their rungs are ×0.75 and ×0.9 of a receiver's

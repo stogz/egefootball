@@ -1020,7 +1020,8 @@ EGE.cards = (function () {
      Every account has a Player Card for each of the six, for their whole
      career. It is not a card in the binder: it is how much of that player
      the account has collected, and it climbs the same ladder the cards do,
-     Common to Iconic.
+     Common to Iconic, and then one rung more that no card ever reaches:
+     GOAT.
 
      What counts is the fantasy points printed on every copy of every one of
      his cards you hold -- a duplicate counts again, which is what a second
@@ -1054,11 +1055,17 @@ EGE.cards = (function () {
        Epic         800    50%         7                98
        Legendary   1400    80%        11               154
        Mystic      2200   125%        17               238
-       Iconic      3500   300%        39               546
+       Iconic      7000   300%        39               546
+       GOAT       28000   500%        65               910
 
      An account earns about 200 diamonds a season from its own games, and
      random packs bring in about half a point of any one player per diamond
-     spent. */
+     spent.
+
+     Iconic was 3500 until Sam made it twice as hard (2026-10-20) and put
+     GOAT above it, four times as hard again as Iconic. GOAT is a Player Card's alone: no play or performance
+     card is ever GOAT, so it is not one of the RARITIES and its rung
+     carries its own name and colour. */
   var PLAYER_RANKS = [
     { key: 'common',    points: 0,    bonus: 0 },
     { key: 'uncommon',  points: 150,  bonus: 0.10 },
@@ -1066,8 +1073,18 @@ EGE.cards = (function () {
     { key: 'epic',      points: 800,  bonus: 0.50 },
     { key: 'legendary', points: 1400, bonus: 0.80 },
     { key: 'mystic',    points: 2200, bonus: 1.25 },
-    { key: 'iconic',    points: 3500, bonus: 3.00 }
+    { key: 'iconic',    points: 7000, bonus: 3.00 },
+    { key: 'goat',      points: 28000, bonus: 5.00, name: 'GOAT', color: '#9aa9ba' }
   ];
+
+  /* A rung's name and colour: its card rarity's, or its own for GOAT. */
+  function playerRank(key) {
+    var r = PLAYER_RANKS.filter(function (one) { return one.key === key; })[0];
+    if (!r) { return null; }
+    var card = rarity(key);
+    return { key: r.key, name: r.name || card.name, color: r.color || card.color,
+             points: r.points, bonus: r.bonus };
+  }
 
   /* How far a position's rungs are from a receiver's. */
   var RANK_SCALE = { QB: 0.75, RB: 1, WR: 1, TE: 0.9 };
@@ -1081,7 +1098,8 @@ EGE.cards = (function () {
   function ladderFor(player) {
     var scale = rankScale(player);
     return PLAYER_RANKS.map(function (r) {
-      return { key: r.key, name: rarity(r.key).name, color: rarity(r.key).color,
+      var info = playerRank(r.key);
+      return { key: r.key, name: info.name, color: info.color,
                points: Math.round(r.points * scale), bonus: r.bonus };
     });
   }
@@ -1327,6 +1345,7 @@ EGE.cards = (function () {
     rollReward: rollReward,
     counts: counts,
     PLAYER_RANKS: PLAYER_RANKS,
+    playerRank: playerRank,
     RANK_SCALE: RANK_SCALE,
     ladderFor: ladderFor,
     playerCard: playerCard,

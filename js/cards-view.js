@@ -1280,7 +1280,7 @@ EGE.cardsView = (function () {
     fact('Next rank', next
       ? whole(Math.max(0, Math.ceil(next.points - pc.points))) + ' more FPTS to ' + next.name +
         ' (' + whole(next.points) + '), which pays +' + pctText(next.bonus)
-      : 'Iconic. As high as it goes.');
+      : rank.name + '. As high as it goes.');
     if (pc.earned !== null && pc.earned !== undefined) {
       var earned = fact('Earned', whole(pc.earned));
       earned.appendChild(gem());
@@ -3347,6 +3347,14 @@ EGE.cardsView = (function () {
     foot.appendChild(el('span', 'ege-plcard__rank', rank ? rank.name : 'Unranked'));
     foot.appendChild(el('span', null, 'Career'));
     node.appendChild(foot);
+
+    /* GOAT, the rung no binder card reaches, gets four sparkles on its
+       platinum frame. */
+    if (key === 'goat') {
+      for (var i = 1; i <= 4; i += 1) {
+        outer.appendChild(el('span', 'ege-plcard__spark ege-plcard__spark--' + i));
+      }
+    }
     return outer;
   }
 
@@ -3399,7 +3407,7 @@ EGE.cardsView = (function () {
       ? 'One ' + player.first + ' card starts it, and ' + whole(next.points) + ' FPTS makes it ' + next.name + '.'
       : next ? whole(Math.max(0, Math.ceil(next.points - pc.points))) + ' more FPTS to ' + next.name +
                ' (' + whole(next.points) + '), which pays +' + pctText(next.bonus) + '.'
-      : 'Iconic. As high as it goes.'));
+      : rank.name + '. As high as it goes.'));
 
     /* What it has earned, and what it pays now. */
     var pays = el('p', 'ege-pcard__bonus');
@@ -3773,7 +3781,7 @@ EGE.cardsView = (function () {
     body.innerHTML = '';
     var scale = EGE.cards.RANK_SCALE;
     EGE.cards.PLAYER_RANKS.forEach(function (r) {
-      var rarityInfo = EGE.cards.rarity(r.key);
+      var rarityInfo = EGE.cards.playerRank(r.key);
       var tr = el('tr');
       var name = el('td');
       var dot = el('span', 'ege-chipdot');
