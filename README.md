@@ -1104,11 +1104,13 @@ line it was taken at**: the `line` column on its `game_boosters` row, and
 the line moves between the drawer opening and the pick, nothing goes on and
 the drawer shows the new number.
 
-On the schedule it is a green poker chip with the mark of the team it is on;
-once the game is out it is stamped **2x** for a win or **0** for a loss (and
-greyed), the Paid column shows the doubled credits or a red **+0**, and the
-game log carries *Bet 2x* or *Bet 0x* beside the opponent. Until then it
-comes off the way a booster does.
+On the schedule it is a black poker chip with the mark of the team it is on
+(and the drawer's blank one says BET). Once the game is out the chip turns
+**green** and is stamped **2x** for a win, or turns **red** and is stamped
+**0** for a loss (Sam, 2026-10-20); one that came out level stays black. The
+Paid column shows the doubled credits or a red **+0**, and the game log
+carries *Bet 2x* or *Bet 0x* beside the opponent. Until then it comes off
+the way a booster does.
 
 It is stored like a booster: a `game_boosters` row with `item_key`
 `wager-for` (your team) or `wager-against` (the opponent) and its `line`,

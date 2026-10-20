@@ -734,9 +734,9 @@
     return sticker;
   }
 
-  /* A wager's sticker: a green chip with the mark of the team it is on, or
-     BET on the drawer's blank one. `outcome` stamps a played one: 2x for a
-     win, 0 for a loss. */
+  /* A wager's sticker: a chip with the mark of the team it is on, or BET on
+     the drawer's blank one. Black until the game is out; then `outcome`
+     turns it green for a win and red for a loss, and stamps it 2x or 0. */
   function wagerStickerEl(logo, size, seed, outcome) {
     var sticker = el('span', 'ege-sticker ege-sticker--wager' +
       (outcome ? ' ege-sticker--' + outcome : ''));
