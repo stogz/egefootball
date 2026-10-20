@@ -405,15 +405,16 @@ EGE.stats[2023] = {
       { week: 19, date: '2023-12-27', kickoff: null,
         name: 'Holiday Bowl',
         opponent: 'North Carolina', home: false, conference: false, neutral: true, playoff: true,
-        result: { teamScore: 32, opponentScore: 37 }, booster: null,
+        result: { teamScore: 32, opponentScore: 40 }, booster: null,
         stats: {
-          carries: 31, rushingYards: 157, rushingTd: 2, rushingLong: 28,
+          carries: 31, rushingYards: 254, rushingTd: 3, rushingLong: 72,
           receptions: 6, receivingYards: 77, receivingYac: 57,
           receivingTd: 0, receivingLong: 26, targets: 7, fumbles: 0,
-          rushingAvg: 5.1, receivingAvg: 12.8, totalYards: 234, totalTd: 2
+          rushingAvg: 8.2, receivingAvg: 12.8, totalYards: 331, totalTd: 3
         },
         bigPlays: [
-          '19 yard rushing touchdown',
+          '72 yard rushing touchdown bomb',
+          '52 yard rushing touchdown',
           '2 yard rushing touchdown'
         ] },
     ],
@@ -566,14 +567,16 @@ EGE.stats[2023] = {
       { week: 19, date: '2023-12-27', kickoff: null,
         name: 'Holiday Bowl',
         opponent: 'USC', home: false, conference: false, neutral: true, playoff: true,
-        result: { teamScore: 37, opponentScore: 32 }, booster: null,
+        result: { teamScore: 40, opponentScore: 32 }, booster: null,
         stats: {
-          receptions: 8, receivingYards: 139, receivingYac: 54,
-          receivingTd: 1, receivingLong: 41, targets: 11, carries: 0,
+          receptions: 12, receivingYards: 201, receivingYac: 126,
+          receivingTd: 3, receivingLong: 54, targets: 17, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 17.4, totalYards: 139, totalTd: 1
+          receivingAvg: 16.8, totalYards: 201, totalTd: 3
         },
         bigPlays: [
+          '54 yard game-icing receiving touchdown',
+          '12 yard receiving touchdown',
           '5 yard receiving touchdown'
         ] },
     ],
