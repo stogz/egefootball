@@ -7,8 +7,11 @@
    that paid them anything: their own game (game-w{week} in diamond_awards)
    and each game one of their Player Cards paid a bonus on (pc-{slug}-w{week}),
    with the week's total. A row opens that game in the player's game log.
-   Holo Bonuses, under it, is every holo they have made since merging one
-   started paying (card_merges.diamonds), newest first.
+   Other Earnings, under it, is everything else that paid them, newest first
+   (Sam, 2026-10-20): the holos they have made since merging one started
+   paying (card_merges.diamonds), the Library and Gold Rush sets they have
+   completed (the diamonds in each claim's reward), and the cards they have
+   sold on the market (each sale's price).
 
    Nothing here is worked out again from the season files: it is what the
    ledger says was paid. The season files only put a score, an opponent and a
@@ -26,12 +29,14 @@ EGE.diamondsView = (function () {
   'use strict';
 
   var WEEKS_AT_A_TIME = 6;
+  var OTHERS_AT_A_TIME = 10;
 
   var state = {
     email: null,        /* whose page was last drawn */
-    history: null,      /* { awards, merges } from EGE.wallet.diamondHistory */
+    history: null,      /* { awards, merges, sets, eventSets, sales } from EGE.wallet.diamondHistory */
     balance: null,
     shown: WEEKS_AT_A_TIME,
+    othersShown: OTHERS_AT_A_TIME,
     failed: false
   };
 
@@ -204,33 +209,115 @@ EGE.diamondsView = (function () {
     return node;
   }
 
-  function holoRow(merge) {
-    var card = EGE.cards.byId(merge.card_id);
-    var item = el('li', 'ege-dholo');
-    var pip = el('span', 'ege-dholo__pip', '\u25c6');
-    if (card) { pip.style.color = EGE.cards.rarity(card.rarity).color; }
-    item.appendChild(pip);
+  /* --- everything else that paid ------------------------------------------- */
+
+  function rewardDiamonds(reward) {
+    return Math.max(0, Number(reward && reward.diamonds) || 0);
+  }
+
+  /* A set's name from its key, out of the Library's sets or the Gold
+     Rush's. */
+  function setName(key, event) {
+    var set = (event ? EGE.cards.eventSets() : EGE.cards.sets()).filter(function (one) {
+      return one.key === key;
+    })[0];
+    return set ? set.name : key;
+  }
+
+  function playerByEmail(email) {
+    var low = String(email || '').toLowerCase();
+    return EGE.players.filter(function (p) { return p.email && p.email.toLowerCase() === low; })[0] || null;
+  }
+
+  /* Holos made, sets completed and cards sold, as one list, newest first:
+     [{ kind: 'holo' | 'set' | 'sale', at, diamonds, ... }]. */
+  function othersFrom(history) {
+    var out = [];
+    (history.merges || []).forEach(function (m) {
+      out.push({ kind: 'holo', at: m.merged_at, diamonds: m.diamonds, card: EGE.cards.byId(m.card_id) });
+    });
+    (history.sets || []).forEach(function (claim) {
+      var paid = rewardDiamonds(claim.reward);
+      if (!paid) { return; }
+      out.push({ kind: 'set', at: claim.claimed_at, diamonds: paid,
+                 name: setName(claim.set_key, false), group: 'Library set' });
+    });
+    (history.eventSets || []).forEach(function (claim) {
+      var paid = rewardDiamonds(claim.reward);
+      if (!paid) { return; }
+      var whole = claim.set_key === claim.event_key;
+      out.push({ kind: 'set', at: claim.claimed_at, diamonds: paid, gold: true,
+                 name: whole ? 'Every ' + EGE.cards.GOLD_RUSH.name + ' set' : setName(claim.set_key, true),
+                 group: EGE.cards.GOLD_RUSH.name + (whole ? ' reward' : ' set') });
+    });
+    (history.sales || []).forEach(function (sale) {
+      if (!(sale.price > 0)) { return; }
+      out.push({ kind: 'sale', at: sale.resolved_at, diamonds: sale.price, card: EGE.cards.byId(sale.card_id),
+                 rarity: sale.rarity, buyer: playerByEmail(sale.buyer_email) });
+    });
+    return out.sort(function (a, b) { return new Date(b.at || 0) - new Date(a.at || 0); });
+  }
+
+  function day(at) {
+    return at ? new Date(at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+  }
+
+  /* Which game a card is of, in a few words. */
+  function cardWhat(card) {
+    return card.season + ' \u00b7 ' + (card.event || 'Week ' + card.week) + ' \u00b7 ' +
+      (card.kind === 'play' ? 'play' : card.kind === 'reward' ? 'event card' : 'performance');
+  }
+
+  function otherRow(item) {
+    var row = el('li', 'ege-dother');
+    var card = item.card;
+    var rarityKey = card ? card.rarity : item.rarity;
+    var pip = el('span', 'ege-dother__pip', '\u25c6');
+    pip.style.color = item.kind === 'set'
+      ? (item.gold ? EGE.cards.rarity('mystic').color : 'var(--fb-accent)')
+      : EGE.cards.rarity(rarityKey).color;
+    row.appendChild(pip);
 
     var text = el('span', 'ege-dgame__text');
     var top = el('span', 'ege-dgame__top');
-    top.appendChild(el('span', 'ege-dgame__name', card ? card.player.name : 'A card no longer out'));
-    if (card) {
-      top.appendChild(el('span', 'ege-dgame__score',
-        card.season + ' \u00b7 ' + (card.event || 'Week ' + card.week) + ' \u00b7 ' +
-        (card.kind === 'play' ? 'play' : 'performance')));
+    var bits = [];
+    if (item.kind === 'set') {
+      top.appendChild(el('span', 'ege-dgame__name', item.name));
+      top.appendChild(el('span', 'ege-dgame__score', item.group));
+      bits.push('Set completed');
+    } else {
+      top.appendChild(el('span', 'ege-dgame__name', card ? card.player.name : 'A card no longer out'));
+      if (card) { top.appendChild(el('span', 'ege-dgame__score', cardWhat(card))); }
+      if (item.kind === 'holo') {
+        bits.push('Holo made');
+        if (card) {
+          bits.push(EGE.cards.rarity(card.rarity).name + (card.gold ? ' ' + EGE.cards.GOLD_RUSH.name : ''));
+          bits.push(points(card.points) + ' FPTS card');
+        }
+      } else {
+        bits.push('Sold on the Market' + (item.buyer ? ' to ' + item.buyer.first : ''));
+        bits.push(EGE.cards.rarity(rarityKey).name + (card && card.holo ? ' holo' : ''));
+      }
     }
+    bits.push(day(item.at));
     text.appendChild(top);
-    var when = new Date(merge.merged_at);
-    text.appendChild(el('span', 'ege-dgame__why',
-      (card ? EGE.cards.rarity(card.rarity).name + (card.gold ? ' Gold Rush' : '') + ' holo \u00b7 ' +
-        points(card.points) + ' FPTS card \u00b7 ' : '') +
-      'made ' + when.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })));
-    item.appendChild(text);
+    text.appendChild(el('span', 'ege-dgame__why', bits.filter(Boolean).join(' \u00b7 ')));
+    row.appendChild(text);
 
     var paid = el('span', 'ege-dgame__paid');
-    paid.appendChild(gems(merge.diamonds, true));
-    item.appendChild(paid);
-    return item;
+    paid.appendChild(gems(item.diamonds, true));
+    row.appendChild(paid);
+    return row;
+  }
+
+  /* "Holos 14 · Sets 32 · Market 40", leaving out what has paid nothing. */
+  function othersSplit(items) {
+    var sum = { holo: 0, set: 0, sale: 0 };
+    items.forEach(function (item) { sum[item.kind] += item.diamonds; });
+    return [['Holos', sum.holo], ['Sets', sum.set], ['Market', sum.sale]]
+      .filter(function (one) { return one[1] > 0; })
+      .map(function (one) { return one[0] + ' ' + one[1]; })
+      .join(' \u00b7 ');
   }
 
   function draw() {
@@ -247,7 +334,7 @@ EGE.diamondsView = (function () {
       empty.hidden = false;
       empty.textContent = state.failed ? 'Your diamonds could not be loaded. Try again in a moment.' : 'Loading\u2026';
       more.hidden = true;
-      byId('diamondsHoloPanel').hidden = true;
+      byId('diamondsOtherPanel').hidden = true;
       return;
     }
 
@@ -263,14 +350,13 @@ EGE.diamondsView = (function () {
       'and so does every game a ranked Player Card is on.';
     more.hidden = weeks.length <= state.shown;
 
-    var merges = state.history.merges || [];
-    byId('diamondsHoloPanel').hidden = !merges.length;
-    var holos = byId('diamondsHolos');
-    holos.innerHTML = '';
-    merges.forEach(function (m) { holos.appendChild(holoRow(m)); });
-    var holoTotal = merges.reduce(function (sum, m) { return sum + m.diamonds; }, 0);
-    byId('diamondsHoloMeta').textContent = holoTotal + ' from ' + merges.length +
-      (merges.length === 1 ? ' holo' : ' holos');
+    var others = othersFrom(state.history);
+    byId('diamondsOtherPanel').hidden = !others.length;
+    var list = byId('diamondsOthers');
+    list.innerHTML = '';
+    others.slice(0, state.othersShown).forEach(function (item) { list.appendChild(otherRow(item)); });
+    byId('diamondsOtherMeta').textContent = othersSplit(others);
+    byId('diamondsOtherMore').hidden = others.length <= state.othersShown;
   }
 
   /* Draws the page for whoever is signed in, from the ledger as it is now.
@@ -287,6 +373,7 @@ EGE.diamondsView = (function () {
       state.history = null;
       state.balance = null;
       state.shown = WEEKS_AT_A_TIME;
+      state.othersShown = OTHERS_AT_A_TIME;
     }
     state.failed = false;
     draw();
@@ -306,6 +393,11 @@ EGE.diamondsView = (function () {
 
   byId('diamondsMore').addEventListener('click', function () {
     state.shown += WEEKS_AT_A_TIME;
+    draw();
+  });
+
+  byId('diamondsOtherMore').addEventListener('click', function () {
+    state.othersShown += OTHERS_AT_A_TIME;
     draw();
   });
 

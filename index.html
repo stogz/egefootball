@@ -551,7 +551,8 @@
     <!-- Where the signed-in player's diamonds came from, opened from the
          diamond balance in the nav (Sam, 2026-10-20): the latest games that
          paid them, a week at a time, each split into their own game and
-         their Player Cards' bonuses, and the holos they have made. Drawn by
+         their Player Cards' bonuses, and everything else that paid them:
+         holos made, sets completed and cards sold on the market. Drawn by
          js/diamonds-view.js. -->
     <section id="view-diamonds" hidden>
 
@@ -592,13 +593,15 @@
           </div>
         </div>
 
-        <div class="fb-panel ege-section-gap" id="diamondsHoloPanel" hidden>
+        <!-- Holos made, sets completed and cards sold on the market. -->
+        <div class="fb-panel ege-section-gap" id="diamondsOtherPanel" hidden>
           <div class="fb-panel__head">
-            <h3>Holo Bonuses</h3>
-            <span class="fb-meta" id="diamondsHoloMeta"></span>
+            <h3>Other Earnings</h3>
+            <span class="fb-meta" id="diamondsOtherMeta"></span>
           </div>
-          <div class="fb-panel__body">
-            <ul class="ege-dholos" id="diamondsHolos"></ul>
+          <div class="fb-panel__body fb-stack fb-stack--lg">
+            <ul class="ege-dothers" id="diamondsOthers"></ul>
+            <button class="fb-btn ege-dgames__more" id="diamondsOtherMore" type="button" hidden>Show more</button>
           </div>
         </div>
 

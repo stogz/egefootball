@@ -7293,7 +7293,7 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-dweek__total .ege-gem { --coin-height: .67em; }
 
 .ege-dgame,
-.ege-dholo {
+.ege-dother {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
@@ -7303,7 +7303,7 @@ html.ege-noscroll body { overflow: hidden; }
   text-decoration: none;
 }
 .ege-dgame + .ege-dgame,
-.ege-dholo + .ege-dholo { border-top: var(--fb-border-thin) dashed rgba(29, 36, 22, .22); }
+.ege-dother + .ege-dother { border-top: var(--fb-border-thin) dashed rgba(29, 36, 22, .22); }
 .ege-dgame:hover { background: var(--fb-tint-wash); }
 .ege-dgame:focus-visible { outline: 3px solid var(--fb-accent); outline-offset: -3px; }
 .ege-dgame__face {
@@ -7330,23 +7330,23 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-dgame__paid .ege-gem { --coin-height: .67em; }
 .ege-dgames__more { align-self: flex-start; }
 
-.ege-dholos {
+.ege-dothers {
   margin: 0;
   padding: 0;
   list-style: none;
   border: var(--fb-border-thin) solid var(--fb-ink);
   background: #fff;
 }
-.ege-dholo__pip { width: 40px; text-align: center; font-size: 1.25rem; line-height: 1; }
+.ege-dother__pip { width: 40px; text-align: center; font-size: 1.25rem; line-height: 1; }
 
 /* The balance in the nav, while its page is open. */
 .ege-credits--diamonds.is-active { background: rgba(127, 220, 245, .16); }
 
 @media (max-width: 620px) {
   .ege-dgame,
-  .ege-dholo { gap: 10px; padding: 9px 11px; }
+  .ege-dother { gap: 10px; padding: 9px 11px; }
   .ege-dgame__face { width: 34px; height: 34px; }
-  .ege-dholo__pip { width: 34px; }
+  .ege-dother__pip { width: 34px; }
 }
 
 /* --- on a phone ----------------------------------------------------------- */

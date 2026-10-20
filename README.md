@@ -1290,9 +1290,19 @@ one row a game, split into what it paid as their own game (`game-w{week}`)
 and what it paid through their Player Card on that player
 (`pc-{slug}-w{week}`, with the rank it was paid at), and the week's total.
 A row opens that game in the player's game log. The panel's head has the
-balance and the live season's split. Holo Bonuses, under it, lists every
-holo that paid, and only shows once one has. It reads the ledger as it
-stands, so it is what was paid, not a sum done again.
+balance and the live season's split.
+
+Other Earnings, under it, is everything else that paid, newest first, ten
+at a time (Sam, 2026-10-20): holos made (`card_merges.diamonds`), Library
+and Gold Rush sets completed, the Gold Rush's final reward included (the
+diamonds in each `card_set_claims` / `card_event_claims` reward), and cards
+sold on the market (each `card_listings` sale's price, with who bought
+it). Its head splits them into Holos, Sets and Market, and it only shows
+once one of them has paid. Quick sales and the Daily Spin are not on it.
+
+The page reads what is already kept, so it shows what was paid, not a sum
+done again, and needed nothing new in the database beyond
+`card_merges.diamonds`.
 
 ### Where the cards come from
 
@@ -2594,8 +2604,8 @@ Built so far:
 - `js/cards-view.js` — the Cards tab: packs, buying diamonds, the rip, the
   collection, trades and the library.
 - `js/diamonds-view.js` — the diamonds page (`#diamonds`), opened from the
-  diamond balance in the nav: the latest games that paid diamonds and the
-  holos that did.
+  diamond balance in the nav: the latest games that paid diamonds, and the
+  holos, sets and market sales that did.
 - `js/sounds.js` and `sound/` — the pack rip, card flip and big-pull
   sounds, and how loud each one plays.
 - `js/showcase.js` — the showcase on a player page, and editing your own.

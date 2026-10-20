@@ -574,22 +574,39 @@ EGE.wallet = (function () {
   /* Where one account's diamonds came from, for the diamonds page: every
      diamond_awards row that paid anything -- its own games (game-w{week})
      and its Player Cards' bonuses (pc-{slug}-w{week}), every season -- and
-     the holo merges that paid (card_merges.diamonds). Null when the awards
-     could not be read. Merges read before the schema has their diamonds
-     come back as none rather than failing the page. */
+     the rest, each read from where it is already kept: the holo merges that
+     paid (card_merges.diamonds), the Library sets and Gold Rush sets
+     claimed (card_set_claims and card_event_claims, whose `reward` says the
+     diamonds), and its cards sold on the market (card_listings, status
+     'sold', for their price). Null when the awards could not be read; any
+     of the rest that cannot be read -- a table the schema has not got yet --
+     comes back as none rather than failing the page. */
   function diamondHistory(email) {
     var c = client();
     if (!c || !email) { return Promise.resolve(null); }
+
+    function rows(res) { return res && !res.error ? (res.data || []) : []; }
 
     return Promise.all([
       c.from(DIAMOND_AWARDS).select('season, award_key, diamonds, note, awarded_at')
         .eq('email', email).gt('diamonds', 0),
       c.from('card_merges').select('card_id, diamonds, merged_at')
         .eq('email', email).gt('diamonds', 0)
-        .order('merged_at', { ascending: false }).limit(60)
-    ]).then(function (both) {
-      if (both[0].error) { return null; }
-      return { awards: both[0].data || [], merges: both[1].error ? [] : (both[1].data || []) };
+        .order('merged_at', { ascending: false }).limit(100),
+      c.from('card_set_claims').select('set_key, reward, claimed_at').eq('email', email),
+      c.from('card_event_claims').select('event_key, set_key, reward, claimed_at').eq('email', email),
+      c.from('card_listings').select('card_id, rarity, price, buyer_email, resolved_at')
+        .eq('email', email).eq('status', 'sold')
+        .order('resolved_at', { ascending: false }).limit(100)
+    ]).then(function (all) {
+      if (all[0].error) { return null; }
+      return {
+        awards: all[0].data || [],
+        merges: rows(all[1]),
+        sets: rows(all[2]),
+        eventSets: rows(all[3]),
+        sales: rows(all[4])
+      };
     }).catch(function () { return null; });
   }
 
