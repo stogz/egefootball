@@ -367,6 +367,12 @@ create table if not exists public.game_boosters (
 create index if not exists game_boosters_email_idx
   on public.game_boosters (email, season, week);
 
+-- A wager's line, from the side it took: -3.5 means that side had to win by
+-- 4 or more, 3.5 that it could lose by 3. Kept with the row so the wager is
+-- settled at the line it was taken at, whatever the line does after.
+-- Null on a booster.
+alter table public.game_boosters add column if not exists line numeric;
+
 alter table public.game_boosters enable row level security;
 
 -- A sticker is private. Only the player who stuck it on and an admin can see
@@ -414,6 +420,10 @@ begin
   end if;
 
   if new.item_key in ('wager-for', 'wager-against') then
+    -- A line ends in a half, so a wager is won or lost, never pushed.
+    if new.line is null or abs(new.line) > 60 or mod(abs(new.line) * 2, 2) <> 1 then
+      raise exception 'A wager needs a line that ends in a half.';
+    end if;
     select count(*) into same_kind
       from public.game_boosters
      where lower(email) = lower(new.email) and season = new.season

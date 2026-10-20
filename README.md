@@ -1066,16 +1066,43 @@ are left alone.
 
 ### Wagers
 
-The drawer has a **Wager** beside the boosters (Sam, 2026-10-20): a money
-line on the game. Pick a side — your own team or the other one — to win it.
-Right, and the game pays **double its credits**; wrong, and it pays **no
-credits**; a tie hands it back and the game pays as usual. Diamonds and the
-Player Card bonuses are paid as if there were no wager. **Two a season**,
-regular season only, never on a game already out, and free: a wager is a
-pick, not something bought, so nothing comes out of the inventory. It takes
-the game's one sticker slot, so a game carries a booster or a wager, never
-both. A game a player is out hurt for still takes a wager (it pays the 1
-credit a missed game pays, so 2 or 0).
+The drawer has a **Wager** beside the boosters (Sam, 2026-10-20): a pick
+against the **point spread** on the game. Every game the six have left gets
+a line — *Seattle by 5.5* — and a wager takes one side of it: Seattle −5.5
+needs Seattle to win by 6 or more, Pittsburgh +5.5 needs Pittsburgh to win
+or lose by 5 or fewer. Every line ends in a half, so there are no pushes,
+and the closest a game gets is a half point. Beat the line and the game
+pays **double its credits**; miss it and it pays **no credits**. Diamonds
+and the Player Card bonuses are paid as if there were no wager. **Two a
+season**, playoff games included, never on a game already out, and free: a
+wager is a pick, not something bought, so nothing comes out of the
+inventory. It takes the game's one sticker slot, so a game carries a booster
+or a wager, never both. A game a player is out hurt for still takes a wager
+(it pays the 1 credit a missed game pays, so 2 or 0).
+
+**The line** is worked out in the browser by `js/lines.js` from a projected
+score for each side (shown in the drawer: *Projected 18–13*), and the score
+from what the site has already put out and nothing else:
+
+- every published result of the season before the game — the six's own,
+  every conference race in `data/conferences.js`, and the NFL sim's other
+  games in `data/nfl-results.js` — as points scored and allowed, with who
+  each team played taken into account, and a blowout past four touchdowns
+  counting half of the rest;
+- where each team stood beforehand, which those results take over from as
+  the weeks go by: in the NFL its starters' ratings off the Teams pages'
+  rosters (never the sim's own team ratings), in college its defense's yards
+  allowed in `data/defenses.js` and whether it is FCS; and last season's
+  results where the site has them;
+- home field, and nobody at a neutral site;
+- one of the six out hurt, once his injury report is up (a quarterback costs
+  his team most).
+
+So a line moves as the weeks come out, like a real one. **A wager keeps the
+line it was taken at**: the `line` column on its `game_boosters` row, and
+`line` beside `booster` in the season file once the week is pulled in. If
+the line moves between the drawer opening and the pick, nothing goes on and
+the drawer shows the new number.
 
 On the schedule it is a green poker chip with the mark of the team it is on;
 once the game is out it is stamped **2x** for a win or **0** for a loss (and
@@ -1084,22 +1111,30 @@ game log carries *Bet 2x* or *Bet 0x* beside the opponent. Until then it
 comes off the way a booster does.
 
 It is stored like a booster: a `game_boosters` row with `item_key`
-`wager-for` (your team) or `wager-against` (the opponent), written into the
-season file's `booster` field when the week is pulled in, and the season
-editor's Booster or wager pick has both. `EGE.wagerOn` in `data/games.js`
-reads it and settles it from the score; `EGE.economy.awardsEarned` and
-`EGE.creditsFromGame` pay it. The credit ledger only ever tops an award up,
-so the stickers are always loaded before a player's credits are paid
-(`syncAwards`), or a lost wager would be paid in full and never taken back.
-The trigger on `game_boosters` refuses a third wager in a season and any
-sticker on a week already out, admins aside.
+`wager-for` (your team) or `wager-against` (the opponent) and its `line`,
+written into the season file's `booster` and `line` fields when the week is
+pulled in, and the season editor's Booster or wager pick has both (picked
+there by hand, it takes the line as it stands). `EGE.wagerOn` in
+`data/games.js` reads it and settles it from the score and the line;
+`EGE.economy.awardsEarned` and `EGE.creditsFromGame` pay it. The credit
+ledger only ever tops an award up, so the stickers are always loaded before
+a player's credits are paid (`syncAwards`), or a lost wager would be paid in
+full and never taken back. The trigger on `game_boosters` refuses a third
+wager in a season, a wager without a half-point line, and any sticker on a
+week already out, admins aside.
 
-**Nothing goes on a playoff game.** A booster is what you spend a limited
+**No booster on a playoff game.** A booster is what you spend a limited
 drawer on across a regular season you can see all of; the postseason is not
 planned, it is whatever the bracket hands you. A game with `playoff: true`
-grows no +, the drawer never opens on it, and `applyBooster` in `js/wallet.js`
-refuses the week even if it is called directly. A playoff game pays more
-on its own instead: 1.25 times the credits and twice the diamonds.
+still grows a +, for the wager (Sam, 2026-10-20), but the drawer offers no
+boosters there, and `applyBooster` in `js/wallet.js` refuses the week even
+if it is called directly. A playoff game pays more on its own instead: 1.25
+times the credits and twice the diamonds.
+
+**The drawer** sits along the bottom of the screen in one row where there is
+room — the game and what the season has left, the boosters, the wager — with
+a cross in the corner. A click anywhere off it, or going to another page,
+shuts it (Sam, 2026-10-20).
 
 **Stickers are private.** Only the player who stuck one on — and Sam, as
 admin — can see what is riding on which game. That is in the policy on
@@ -2044,8 +2079,9 @@ the same thing, so they live on the same line.
 `result` and `stats` are null until a game has been played. Nothing generates
 them — the numbers come from wherever you generate them and are typed in, by
 hand or through the season editor. `booster` is the performance booster that
-was riding on the game, or the wager (`wager-for` / `wager-against`), and
-once a week is out that is where it lives for
+was riding on the game, or the wager (`wager-for` / `wager-against`, with
+the `line` it was taken at beside it), and once a week is out that is where
+it lives for
 good, so the row behind it can be cleared out of Supabase. `bigPlays` is an
 optional list of strings, one per big play, shown under the stat line in the
 Discord post.
@@ -2734,6 +2770,8 @@ Built so far:
 - `js/nfl-rosters.js` — every NFL team's roster for the Teams pages, from
   `data/nfl-rosters.json` or `nfl_sim_rosters` in Supabase, whichever is
   newer.
+- `js/lines.js` — the point spread on every game the six have left, for
+  the wagers (see Wagers).
 - `data/nfl.js` — the 32 NFL teams: name, division, colour, page address.
 - `data/nfl-results.js` — the NFL scores the sim played, written by the NFL
   Sim tab or `node nfl-sim/sim.js site`.

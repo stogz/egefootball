@@ -1025,10 +1025,10 @@ EGE.wallet = (function () {
     var c = client();
     if (!c) { return fail(offline()); }
 
-    /* The page does not draw a plus on a playoff game, but the page is not
-       what decides. A booster is spent on planning a regular season, and the
-       postseason is not planned -- so the week is checked here as well, where
-       the sticker actually leaves the drawer. */
+    /* The page offers no booster on a playoff game (a wager, yes), but the
+       page is not what decides. A booster is spent on planning a regular
+       season, and the postseason is not planned -- so the week is checked
+       here as well, where the sticker actually leaves the drawer. */
     var owner = EGE.players.filter(function (p) {
       return p.email && email && p.email.toLowerCase() === String(email).toLowerCase();
     })[0];
@@ -1083,13 +1083,16 @@ EGE.wallet = (function () {
     });
   }
 
-  /* Puts a wager on a game: `side` is 'for' (his own team to win it) or
-     'against' (the other one). Nothing comes out of the inventory -- a
-     wager is a pick, not a thing bought -- but it takes the game's sticker
-     slot, so a game carries a booster or a wager and never both. Two a
-     season, regular season only, and only on a game not yet out; the
-     schema refuses the row past any of those as well. */
-  function applyWager(email, season, week, side) {
+  /* Puts a wager on a game: `side` is 'for' (his own team) or 'against'
+     (the other one), at the line on it right now (EGE.gameLine), which the
+     wager keeps whatever the line does after. `shown` is the line the page
+     offered: if the line has moved since, nothing goes on and the page is
+     told, so nobody takes a number they were not shown. Nothing comes out
+     of the inventory -- a wager is a pick, not a thing bought -- but it
+     takes the game's sticker slot, so a game carries a booster or a wager
+     and never both. Two a season, playoffs and all, and only on a game not
+     yet out; the schema refuses the row past any of those as well. */
+  function applyWager(email, season, week, side, shown) {
     var c = client();
     if (!c) { return fail(offline()); }
 
@@ -1098,28 +1101,35 @@ EGE.wallet = (function () {
     })[0];
     var target = owner ? EGE.gameInWeek(owner, week, season) : null;
     if (!owner || !target || target.bye) { return fail('There is no game that week to wager on.'); }
-    if (target.playoff) { return fail('No wagers in the playoffs \u2014 that one is a postseason game.'); }
     if (EGE.isPublished(season, week)) { return fail('That game is already out.'); }
     var key = side === 'against' ? 'wager-against' : 'wager-for';
 
-    return loadGameBoosters(season).then(function () {
+    return Promise.all([loadGameBoosters(season), EGE.lineReady(owner, season)]).then(function () {
       var room = EGE.wagerRoom(owner, season);
       if (!room.ok) { return { ok: false, message: room.reason }; }
-      var name = 'Wager on ' + EGE.sideName(EGE.wagerSides(owner, target)[EGE.WAGER_SIDES[key]]);
+      var odds = EGE.gameLine(owner, target);
+      if (!odds) { return { ok: false, message: 'There is no line on that game.' }; }
+      var line = odds[EGE.WAGER_SIDES[key]];
+      if (typeof shown === 'number' && shown !== line) {
+        return { ok: false, moved: true,
+                 message: 'The line just moved to ' + EGE.lineText(line) + ' \u2014 have another look.' };
+      }
+      var name = EGE.wagerName(EGE.wagerSides(owner, target)[EGE.WAGER_SIDES[key]], line);
 
       return c.from(GAME_BOOSTERS).insert({
         email: email,
         season: season,
         week: week,
         item_key: key,
-        item_name: name
+        item_name: name,
+        line: line
       }).then(function (res) {
         if (res.error) {
           return {
             ok: false,
             message: /duplicate|unique/i.test(res.error.message || '')
               ? 'That game already has a sticker on it.'
-              : res.error.message.replace(/^.*?(Season limit|That week)/, '$1')
+              : res.error.message.replace(/^.*?(Season limit|That week|A wager)/, '$1')
           };
         }
         return { ok: true, message: name + ' in week ' + week + '.' };

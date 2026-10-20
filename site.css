@@ -1489,21 +1489,47 @@ body::before {
   from { transform: translateY(100%); }
   to   { transform: none; }
 }
+/* Drawn again in place, it stays put rather than sliding up again. */
+.ege-drawer--again { animation: none; }
+/* One row where there is room: the game and what is left on the left, the
+   boosters, the wager, and the cross in the corner, clear of all of it. */
 .ege-drawer__inner {
+  position: relative;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 16px 22px 20px;
+  padding: 14px 64px 16px 22px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 18px;
+  gap: 14px 26px;
 }
 .ege-drawer__title {
+  display: flex;
+  flex-direction: column;
   font-family: var(--fb-font-display);
   font-size: 1.25rem;
   color: var(--fb-cream);
   margin-right: auto;
 }
+.ege-drawer__close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0 0 3px;
+  border: var(--fb-border-thin) solid rgba(244, 239, 228, .45);
+  background: none;
+  color: var(--fb-cream);
+  font-family: var(--fb-font-body);
+  font-size: 1.625rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.ege-drawer__close:hover,
+.ege-drawer__close:focus-visible { background: var(--fb-accent); border-color: var(--fb-accent); color: var(--fb-ink); }
 .ege-drawer__title small {
   display: block;
   font-family: var(--fb-font-body);
@@ -1543,7 +1569,7 @@ body::before {
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
-.ege-drawer__empty { color: var(--fb-sand); font-size: .8125rem; font-weight: 600; }
+.ege-drawer__empty { max-width: 230px; color: var(--fb-sand); font-size: .8125rem; font-weight: 600; }
 /* How many more of each the season has room for, under the sticker, and a
    kind the season is full of greyed out where it lies. */
 .ege-drawer__stickers:has(.ege-pick__left) { padding-bottom: 22px; column-gap: 26px; }
@@ -1562,17 +1588,17 @@ body::before {
 .ege-pick.is-spent { cursor: not-allowed; }
 .ege-pick.is-spent .ege-sticker { filter: grayscale(1) opacity(.45); }
 .ege-pick.is-spent .ege-pick__left { color: var(--fb-accent); }
-/* The wager in the drawer: the blank chip, what it does, and the two
-   sides to pick from. */
+/* The wager in the drawer: the blank chip, the line and what it does, and
+   the two sides stacked like a sportsbook's, each with its line. */
 .ege-drawer__wager {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 14px 16px;
-  padding-left: 18px;
+  gap: 12px 16px;
+  padding-left: 24px;
   border-left: var(--fb-border-thin) solid rgba(244, 239, 228, .2);
 }
-.ege-drawer__wagerwords { display: flex; flex-direction: column; gap: 3px; flex: 1 1 200px; min-width: 0; max-width: 280px; }
+.ege-drawer__wagerwords { display: flex; flex-direction: column; gap: 2px; flex: 1 1 170px; min-width: 0; max-width: 230px; }
 .ege-drawer__wagertitle {
   font-size: var(--fb-label);
   font-weight: 800;
@@ -1580,35 +1606,52 @@ body::before {
   text-transform: uppercase;
   color: var(--fb-accent);
 }
-.ege-drawer__wagernote { font-size: .8125rem; font-weight: 600; color: var(--fb-sand); }
-.ege-drawer__sides { display: flex; flex-wrap: wrap; gap: 10px; }
+.ege-drawer__line {
+  font-family: var(--fb-font-display);
+  font-size: 1.125rem;
+  line-height: 1.2;
+  color: var(--fb-cream);
+}
+.ege-drawer__wagernote { font-size: .75rem; font-weight: 600; line-height: 1.35; color: var(--fb-sand); }
+.ege-drawer__sides { display: flex; flex-direction: column; gap: 6px; width: 200px; }
 .ege-wagerpick {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 44px;
-  padding: 6px 14px 6px 8px;
+  min-height: 38px;
+  padding: 4px 12px 4px 8px;
   border: var(--fb-border-thin) solid var(--fb-cream);
   background: var(--fb-cream);
   color: var(--fb-ink);
   font-weight: 800;
+  text-align: left;
   cursor: pointer;
 }
 .ege-wagerpick:hover,
 .ege-wagerpick:focus-visible { background: var(--fb-accent); border-color: var(--fb-accent); }
 .ege-wagerpick:disabled { cursor: not-allowed; opacity: .45; background: var(--fb-cream); }
-.ege-wagerpick__logo { width: 28px; height: 28px; object-fit: contain; }
-@media (max-width: 620px) {
-  .ege-drawer__wager { padding-left: 0; border-left: 0; }
-}
+.ege-wagerpick__logo { width: 26px; height: 26px; object-fit: contain; }
+.ege-wagerpick__name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ege-wagerpick__line { font-variant-numeric: tabular-nums; }
 .ege-drawer__room {
-  flex-basis: 100%;
-  order: -1;
+  margin-top: 3px;
+  font-family: var(--fb-font-body);
   font-size: var(--fb-label);
   font-weight: 800;
   letter-spacing: .12em;
   text-transform: uppercase;
   color: var(--fb-sand);
+}
+/* Below the width the one row needs, the wager goes onto a row of its own
+   and the rule beside it has nothing to divide. */
+@media (max-width: 1240px) {
+  .ege-drawer__wager { padding-left: 0; border-left: 0; }
+}
+@media (max-width: 620px) {
+  .ege-drawer__inner { padding: 14px 16px 16px; }
+  .ege-drawer__title { padding-right: 44px; }
+  .ege-drawer__sides { width: 100%; flex-direction: row; }
+  .ege-wagerpick { flex: 1 1 0; min-width: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

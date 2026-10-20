@@ -259,7 +259,7 @@ EGE.exports = (function () {
             name: booster.name,
             multiplier: booster.multiplier
           } : null,
-          wager: wager ? { side: wager.side, team: wager.team, outcome: wager.outcome } : null,
+          wager: wager ? { side: wager.side, team: wager.team, line: wager.line, outcome: wager.outcome } : null,
           touchdowns: EGE.economy.touchdownsIn(game.stats),
           fantasyPoints: EGE.economy.fantasyPoints(game.stats),
           creditsEarned: EGE.wageredCredits(
@@ -489,6 +489,10 @@ EGE.exports = (function () {
   function gameLines(player, game, edited) {
     var result = edited ? edited.result : game.result;
     var booster = edited ? edited.booster : game.booster;
+    /* A wager's line, which only a wager has. An edit that never heard of
+       lines (the NFL sim writing its weeks in) keeps the file's. */
+    var line = edited && 'line' in edited ? edited.line : game.line;
+    if (!EGE.isWagerKey || !EGE.isWagerKey(booster) || typeof line !== 'number') { line = null; }
     var typed = edited ? edited.stats : game.stats;
     var plays = bigPlaysOf(edited ? edited.bigPlays : game.bigPlays);
     var overtime = edited ? edited.overtime : game.overtime;
@@ -536,6 +540,7 @@ EGE.exports = (function () {
       ? '{ teamScore: ' + result.teamScore + ', opponentScore: ' + result.opponentScore + ' }'
       : 'null';
     var boosterText = booster ? quote(booster) : 'null';
+    if (line !== null) { boosterText += ', line: ' + line; }
 
     if (!stats) {
       out.push('        result: ' + resultText + ', booster: ' + boosterText + ', stats: null },');
@@ -601,8 +606,11 @@ EGE.exports = (function () {
       '   file back out for you.',
       '',
       '   `booster` is the performance booster that was riding on the game, as its',
-      "   shop key — 'boost-2-5', 'boost-2-0', 'boost-1-5' — or null. Once a week",
-      '   is published this is where a booster lives for good, so the row behind it',
+      "   shop key — 'boost-2-5', 'boost-2-0', 'boost-1-5' — or a wager,",
+      "   'wager-for' (his own team) or 'wager-against' (the other one), or null.",
+      '   A wager has `line` beside it, the point spread it was taken at from the',
+      '   side it took: -3.5 means that side had to win by 4. Once a week is',
+      '   published this is where a booster lives for good, so the row behind it',
       '   can be cleared out of Supabase.',
       '',
       '   Nothing here shows on the site until the admin publishes that week. The',

@@ -606,11 +606,15 @@ EGE.bracketInSight = function (player, season) {
    this afternoon puts it. */
 EGE.stickerOn = function (player, game) {
   if (!game) { return null; }
-  if (game.booster) { return { key: game.booster, name: null, id: null, hardcoded: true }; }
+  if (game.booster) {
+    return { key: game.booster, name: null, id: null, hardcoded: true,
+             line: typeof game.line === 'number' ? game.line : null };
+  }
 
   var live = ((EGE.gameBoosters || {})[player.slug] || {})[game.week];
   if (!live || live.season !== game.season) { return null; }
-  return { key: live.item_key, name: live.item_name, id: live.id, hardcoded: false };
+  return { key: live.item_key, name: live.item_name, id: live.id, hardcoded: false,
+           line: live.line === null || live.line === undefined ? null : Number(live.line) };
 };
 
 /* What was riding on a game, when it was a booster. */
@@ -627,12 +631,15 @@ EGE.boosterOn = function (player, game) {
   };
 };
 
-/* A wager is a money line on a game (Sam, 2026-10-20): the player takes one
-   side, his own team or the one across the way, to win it. Won, the game
-   pays him twice its credits; lost, none; a tie hands it back. Two a
-   season (`wagerSeasonLimit` in data/shop.js), never in the playoffs, and
-   free: it is a pick, not something bought. It sits in the game's sticker
-   slot under one of these keys, in Supabase and then in the season file
+/* A wager is a pick against the line on a game (Sam, 2026-10-20): the
+   player takes one side, his own team or the one across the way, at the
+   point spread js/lines.js works out for it -- Seattle -3.5, which needs
+   Seattle to win by 4, or Pittsburgh +3.5, which needs Pittsburgh to lose
+   by 3 or fewer or win. Beaten, the game pays him twice its credits;
+   missed, none. Two a season (`wagerSeasonLimit` in data/shop.js), the
+   playoffs included, and free: it is a pick, not something bought. It sits
+   in the game's sticker slot under one of these keys, with the line it was
+   taken at beside it (`line`), in Supabase and then in the season file
    like a booster. Diamonds and Player Card bonuses are paid as if it were
    not there. */
 EGE.WAGER_SIDES = { 'wager-for': 'for', 'wager-against': 'against' };
@@ -655,25 +662,34 @@ EGE.wagerSides = function (player, game) {
   return { for: team ? team.school : player.name, against: game.opponent };
 };
 
-/* { key, side, team, name, id, hardcoded, outcome } for a wager on the
-   game, or null. `outcome` is null until the game is out, then 'won',
-   'lost' or 'push'. */
+/* A wager as it is written: 'Wager on Seattle -3.5'. */
+EGE.wagerName = function (team, line) {
+  var text = EGE.lineText ? EGE.lineText(line) : '';
+  return 'Wager on ' + EGE.sideName(team) + (text ? ' ' + text : '');
+};
+
+/* { key, side, team, line, name, id, hardcoded, outcome } for a wager on
+   the game, or null. `outcome` is null until the game is out, then 'won'
+   or 'lost' -- or 'push' for a wager with no line that ended level, which
+   a half-point line never does. */
 EGE.wagerOn = function (player, game) {
   var stuck = EGE.stickerOn(player, game);
   if (!stuck || !EGE.isWagerKey(stuck.key)) { return null; }
   var side = EGE.WAGER_SIDES[stuck.key];
   var team = EGE.wagerSides(player, game)[side];
+  var line = typeof stuck.line === 'number' && !isNaN(stuck.line) ? stuck.line : null;
   var outcome = null;
   if (EGE.isFinal(game)) {
-    var us = game.result.teamScore;
-    var them = game.result.opponentScore;
-    outcome = us === them ? 'push' : (us > them) === (side === 'for') ? 'won' : 'lost';
+    var margin = game.result.teamScore - game.result.opponentScore;
+    var beat = (side === 'for' ? margin : -margin) + (line || 0);
+    outcome = beat > 0 ? 'won' : beat < 0 ? 'lost' : 'push';
   }
   return {
     key: stuck.key,
     side: side,
     team: team,
-    name: 'Wager on ' + EGE.sideName(team),
+    line: line,
+    name: EGE.wagerName(team, line),
     id: stuck.id,
     hardcoded: stuck.hardcoded,
     outcome: outcome

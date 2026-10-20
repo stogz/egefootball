@@ -914,11 +914,11 @@
       return slot;
     }
 
-    /* Nothing goes on a playoff game. Boosters are a thing you plan a
+    /* No booster goes on a playoff game. Boosters are a thing you plan a
        regular season around -- you are spending a limited drawer on the
        weeks you think matter -- and the postseason is not planned, it is
-       whatever the bracket hands you. The drawer never opens on one, and
-       neither does the plus that opens it. */
+       whatever the bracket hands you. A wager does (Sam, 2026-10-20), so the
+       plus is there and the drawer offers only that. */
 
     /* A booster goes on any game that has not been published yet.
 
@@ -928,10 +928,10 @@
        which a player puts a sticker on it and the admin writes it into the
        file before putting the week out. */
     /* Nor on a bye: there is no game to put it on (Sam, 2026-10-20). */
-    if (mine && !played && !game.playoff && !game.bye && game.season === EGE.currentSeason) {
+    if (mine && !played && !game.bye && game.season === EGE.currentSeason) {
       var add = el('button', 'ege-slot__add', '+');
       add.type = 'button';
-      add.title = 'Put a booster or a wager on this game';
+      add.title = game.playoff ? 'Put a wager on this game' : 'Put a booster or a wager on this game';
       add.setAttribute('aria-label', 'Put a booster or a wager on week ' + game.week);
       add.addEventListener('click', function () { openDrawer(player, game); });
       slot.appendChild(add);
@@ -960,45 +960,59 @@
     if (drawer) { drawer.remove(); drawer = null; }
   }
 
+  /* An NFL line is worked out from the rosters, which the page has nearly
+     always loaded by the time anybody reaches for a plus. If it has not, the
+     drawer is drawn again once they are in. */
   function openDrawer(player, game) {
-    drawerFor = { player: player, game: game };
+    var opened = drawerFor = { player: player, game: game };
+    var waiting = EGE.leagueOf(player, game.season) === 'nfl' && EGE.nflRosters &&
+      EGE.nflRosters.get(game.season) === undefined;
     renderDrawer();
+    if (!waiting) { return; }
+    EGE.lineReady(player, game.season).then(function () {
+      if (drawerFor === opened) { renderDrawer(); }
+    });
   }
 
+  /* The drawer, one row of it where the screen has the room (Sam,
+     2026-10-20): the game and what the season has left on the left, then
+     the boosters, then the wager, and a cross in the corner to shut it. */
   function renderDrawer() {
     if (!drawerFor) { return; }
+    var again = Boolean(drawer);
     if (drawer) { drawer.remove(); }
 
     var game = drawerFor.game;
     var player = drawerFor.player;
 
-    drawer = el('div', 'ege-drawer');
+    /* Drawn again in place, it does not slide up a second time. */
+    drawer = el('div', 'ege-drawer' + (again ? ' ege-drawer--again' : ''));
     var inner = el('div', 'ege-drawer__inner');
+
+    /* What the season has room for: five boosters in all, so many of each,
+       and two wagers. */
+    var used = EGE.boostersUsed(player, game.season);
+    var wagers = EGE.wagerRoom(player, game.season);
 
     var title = el('div', 'ege-drawer__title');
     title.appendChild(el('small', null, 'Week ' + game.week + ' \u00b7 ' +
       (game.home || game.neutral ? 'vs ' : 'at ') + game.opponent));
-    title.appendChild(document.createTextNode('Your Stickers'));
+    title.appendChild(el('span', 'ege-drawer__heading', 'Your Stickers'));
+    title.appendChild(el('span', 'ege-drawer__room',
+      used.total + ' of ' + EGE.shop.boosterSeasonLimit + ' boosters \u00b7 ' +
+      wagers.used + ' of ' + wagers.limit + ' wagers used'));
     inner.appendChild(title);
 
     var owned = shopState.inventory.filter(function (row) {
       return row.consumable && STICKER_LOOK[row.item_key];
     });
 
-    /* What the season has room for: five boosters in all, so many of each,
-       and two wagers. */
-    var used = EGE.boostersUsed(player, game.season);
-    var totalLimit = EGE.shop.boosterSeasonLimit;
-    var wagers = EGE.wagerRoom(player, game.season);
-    inner.appendChild(el('span', 'ege-drawer__room',
-      used.total + ' of ' + totalLimit + ' boosters and ' + wagers.used + ' of ' + wagers.limit +
-      ' wagers on this season\u2019s games'));
-
-    /* A game he is known to be missing hurt takes no booster, only a wager
-       (Sam, 2026-10-20). */
-    var hurt = EGE.outInjured(player, game);
-
-    if (hurt) {
+    /* No booster on a playoff game, or on one he is known to be missing
+       hurt (Sam, 2026-10-20). A wager goes on either. */
+    if (game.playoff) {
+      inner.appendChild(el('span', 'ege-drawer__empty',
+        'No boosters in the playoffs. A wager still goes on.'));
+    } else if (EGE.outInjured(player, game)) {
       inner.appendChild(el('span', 'ege-drawer__empty',
         'Out injured this week, so no boosters. A wager still goes on.'));
     } else if (!owned.length) {
@@ -1038,8 +1052,10 @@
 
     inner.appendChild(wagerPicker(player, game, wagers));
 
-    var close = el('button', 'fb-btn fb-btn--inverse', 'Close');
+    var close = el('button', 'ege-drawer__close', '\u00d7');
     close.type = 'button';
+    close.title = 'Close';
+    close.setAttribute('aria-label', 'Close your stickers');
     close.addEventListener('click', closeDrawer);
     inner.appendChild(close);
 
@@ -1047,21 +1063,33 @@
     document.body.appendChild(drawer);
   }
 
-  /* The wager in the drawer: the blank chip, what it does, and a button
-     for each side. Picking one puts the wager on the game. */
+  /* The wager in the drawer: the blank chip, the line on the game (see
+     js/lines.js) and the projected score, and a button for each side with
+     its line, the way a sportsbook lists one. Picking one puts the wager on
+     the game at that line. */
   function wagerPicker(player, game, room) {
     var box = el('div', 'ege-drawer__wager');
     box.appendChild(wagerStickerEl(null, 64, 'wager-' + game.week));
+
+    var names = EGE.wagerSides(player, game);
+    var odds = EGE.gameLine(player, game);
     var words = el('div', 'ege-drawer__wagerwords');
-    words.appendChild(el('span', 'ege-drawer__wagertitle', 'Wager'));
-    words.appendChild(el('span', 'ege-drawer__wagernote', room.ok
-      ? 'Pick who wins. Right, and this game pays double credits; wrong, and it pays none. ' +
-        room.left + ' of ' + room.limit + ' left this season.'
-      : room.reason));
+    words.appendChild(el('span', 'ege-drawer__wagertitle',
+      'Wager \u00b7 ' + room.left + ' of ' + room.limit + ' left'));
+    if (odds) {
+      var under = odds.favorite === 'for' ? 'against' : 'for';
+      words.appendChild(el('span', 'ege-drawer__line',
+        EGE.sideName(names[odds.favorite]) + ' by ' + odds.spread));
+      words.appendChild(el('span', 'ege-drawer__wagernote', room.ok
+        ? 'Projected ' + odds.projected[odds.favorite] + '\u2013' + odds.projected[under] +
+          '. Beat the line for double credits, miss it for none.'
+        : room.reason));
+    } else {
+      words.appendChild(el('span', 'ege-drawer__wagernote', 'There is no line on this game.'));
+    }
     box.appendChild(words);
 
     var sides = el('div', 'ege-drawer__sides');
-    var names = EGE.wagerSides(player, game);
     ['for', 'against'].forEach(function (side) {
       var pick = el('button', 'ege-wagerpick');
       pick.type = 'button';
@@ -1074,14 +1102,20 @@
         pick.appendChild(mark);
       }
       var name = EGE.sideName(names[side]);
+      var line = odds ? odds[side] : null;
       pick.appendChild(el('span', 'ege-wagerpick__name', name));
-      pick.title = 'Wager on ' + name + ' to win week ' + game.week;
-      pick.disabled = !room.ok;
+      pick.appendChild(el('span', 'ege-wagerpick__line', EGE.lineText(line)));
+      pick.title = odds ? 'Take ' + name + ' ' + EGE.lineText(line) + ': ' + EGE.coverText(name, line) : name;
+      pick.disabled = !room.ok || !odds;
       pick.addEventListener('click', function () {
         pick.disabled = true;
-        EGE.wallet.applyWager(player.email, game.season, game.week, side).then(function (res) {
-          sayShop(res.message, !res.ok);
-          if (res.ok) { closeDrawer(); }
+        EGE.wallet.applyWager(player.email, game.season, game.week, side, line).then(function (res) {
+          if (res.ok) {
+            sayShop(res.message, false);
+            closeDrawer();
+          } else {
+            announce(res.message, true);
+          }
           refreshShop();
         });
       });
@@ -1095,6 +1129,18 @@
     if (e.key !== 'Escape') { return; }
     if (drawer) { closeDrawer(); }
     disarmSticker();
+  });
+
+  /* A click anywhere off the drawer shuts it (Sam, 2026-10-20) -- the tabs,
+     the page, the schedule -- except a plus, which opens it on its own game
+     instead. A button in the drawer that drew the drawer again is no longer
+     in the page by the time the click gets here; that was a click inside. */
+  document.addEventListener('click', function (event) {
+    if (!drawer) { return; }
+    var target = event.target;
+    if (!target || !target.isConnected || drawer.contains(target)) { return; }
+    if (target.closest && target.closest('.ege-slot__add')) { return; }
+    closeDrawer();
   });
 
   /* An opponent's name with its mark in front of it, the mark straight off
@@ -5272,10 +5318,27 @@
       pick.appendChild(option);
     });
     pick.value = held.booster || '';
+    /* A wager is written with its line: the one it was taken at when it
+       came in off Supabase (Pull in stickers), or, picked here by hand,
+       the line on the game as it stands. */
+    var lineNote = el('span', 'fb-meta');
+    function showLine() {
+      lineNote.textContent = EGE.isWagerKey(held.booster) && typeof held.line === 'number'
+        ? 'at ' + EGE.lineText(held.line) : '';
+    }
     pick.addEventListener('change', function () {
       held.booster = pick.value || null;
+      if (EGE.isWagerKey(held.booster)) {
+        var odds = EGE.gameLine(entry.player, entry.game);
+        held.line = odds ? odds[EGE.WAGER_SIDES[held.booster]] : null;
+      } else {
+        held.line = null;
+      }
+      showLine();
     });
+    showLine();
     boosterRow.appendChild(pick);
+    boosterRow.appendChild(lineNote);
     box.appendChild(boosterRow);
 
     /* Hurt this week: he sits it out, the Discord post says DNP Injured, and
@@ -5371,6 +5434,7 @@
           opponentScore: entry.game.result.opponentScore
         } : null,
         booster: entry.game.booster || null,
+        line: typeof entry.game.line === 'number' ? entry.game.line : null,
         overtime: Boolean(entry.game.overtime),
         injured: Boolean(entry.game.injured),
         injury: entry.game.injury || '',
@@ -5410,6 +5474,7 @@
         var stuck = (boosters[slug] || {})[week];
         if (!stuck) { return; }
         held[slug].booster = stuck.item_key;
+        held[slug].line = stuck.line === null || stuck.line === undefined ? null : Number(stuck.line);
         found += 1;
       });
 
@@ -5859,6 +5924,10 @@
     var player = hash ? EGE.playerBySlug(hash) : null;
     var moved = hash !== routed;
     routed = hash;
+
+    /* Going anywhere else shuts the sticker drawer (Sam, 2026-10-20): it
+       belongs to a game on the page being left. */
+    if (moved) { closeDrawer(); }
 
     if (hash === 'teams') {
       renderTeams();
