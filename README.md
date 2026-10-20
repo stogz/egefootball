@@ -399,7 +399,10 @@ Under the bar:
   The six's boxes use their own overall, headshot and size from their
   pages. **Every box opens a pop-up**, in the overlay the cards and
   trophies use: a band in the team's colour with the headshot, the name and
-  the team's mark; then college, draft (*2021 · R4 #112*), age, height and
+  the team's mark straight on the colour, no box round it (Sam,
+  2026-10-20). The headshot stands on the band's bottom edge and is sized
+  so the top of the head just clears the top of the box, about 5% of the
+  picture; every headshot is placed the same way. Then college, draft (*2021 · R4 #112*), age, height and
   weight; then the overall box, the archetype and his skills, best first;
   then his contract (*$1.1M a year through 2024*) and any injury. One of the
   six's has a button through to his page. A click off the box closes it.
@@ -409,7 +412,9 @@ Under the bar:
   **Every NFL team has a page**, `#teams/kansas-city-chiefs`. The six's
   teams keep their standings and schedule; any other team's page is its
   header (record, streak, place in the division) and its roster, nothing
-  else. The index ends with **NFL Standings**, a box for each division with
+  else. Every NFL team's mark sits on its colour from `data/nfl.js`, the
+  way the six's teams' do; ESPN's marks get a white edge drawn round them
+  (`is-edged`) to match the six's, which have one of their own. The index ends with **NFL Standings**, a box for each division with
   every team's record, each team a link to its page and the six's teams
   picked out in orange. From the week the sim takes over, the standings use
   the sim's scores (`data/nfl-results.js`) in place of the real ones in

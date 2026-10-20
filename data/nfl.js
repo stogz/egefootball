@@ -82,3 +82,11 @@ EGE.nfl.logo = function (key, size) {
   if (team.site && EGE.teams[team.site] && EGE.teams[team.site].logo) { return EGE.teams[team.site].logo; }
   return EGE.logoFor ? EGE.logoFor(team.name, size || 80) : null;
 };
+
+/* Whether a team's mark is one of the six's teams' own, which come with a
+   white edge that holds them apart from the team's colour. ESPN's have
+   none, so the site draws one round them (`is-edged` in site.css). */
+EGE.nfl.ownLogo = function (key) {
+  var team = EGE.nfl.teams[key];
+  return Boolean(team && team.site && EGE.teams[team.site] && EGE.teams[team.site].logo);
+};

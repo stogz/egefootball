@@ -1800,9 +1800,9 @@
     band.appendChild(face);
     band.appendChild(el('h3', 'ege-person__name', row.name));
     var mark = el('span', 'ege-person__mark');
-    var logoSrc = EGE.nfl.logo(row.team, 120);
+    var logoSrc = EGE.nfl.logo(row.team, 160);
     if (logoSrc) {
-      var logo = el('img');
+      var logo = el('img', EGE.nfl.ownLogo(row.team) ? null : 'is-edged');
       logo.src = logoSrc;
       logo.alt = team.name || '';
       logo.title = team.name || '';
@@ -2273,13 +2273,14 @@
     var logo = null;
     var src = EGE.nfl.logo(key, 160);
     if (src) {
-      logo = el('img');
+      logo = el('img', EGE.nfl.ownLogo(key) ? null : 'is-edged');
       logo.src = src;
       logo.alt = team.name;
       logo.addEventListener('error', function () { logo.remove(); });
       mark.appendChild(logo);
     }
-    paintMark(mark, {}, logo);
+    /* On the team's colour, as the six's teams are. */
+    paintMark(mark, { ground: team.color }, logo);
     document.getElementById('teamName').textContent = team.name;
 
     var facts = document.getElementById('teamFacts');

@@ -3869,6 +3869,11 @@ button.ege-owned__item { cursor: pointer; }
   background: radial-gradient(circle at 50% 45%, #fff 0 40%, var(--fb-surface) 78%);
 }
 .ege-teamhead__logo img { width: 74%; height: 74%; object-fit: contain; }
+/* ESPN's NFL marks have no edge of their own, so on their team's colour
+   they get a white one, like the six's teams' marks (EGE.nfl.ownLogo). */
+.ege-teamhead__logo img.is-edged {
+  filter: drop-shadow(3px 0 0 #fff) drop-shadow(-3px 0 0 #fff) drop-shadow(0 3px 0 #fff) drop-shadow(0 -3px 0 #fff);
+}
 .ege-teamhead__words { min-width: 0; }
 .ege-teamhead__facts dd { font-size: 1rem; }
 .ege-teamhead__ours a { color: var(--fb-ink); text-decoration: underline; text-underline-offset: 3px; }
@@ -3882,6 +3887,9 @@ button.ege-owned__item { cursor: pointer; }
     gap: 14px 16px;
   }
   .ege-teamhead__logo { width: 88px; }
+  .ege-teamhead__logo img.is-edged {
+    filter: drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff);
+  }
   .ege-teamhead__words { display: contents; }
   /* The player header's classes name grid areas this grid does not have. */
   .ege-teamhead__body .ege-detail__name { grid-area: auto; margin: 0; }
@@ -4041,18 +4049,26 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: end;
   gap: 12px;
-  padding: 12px 14px 0;
+  padding: 0 14px;
   background: var(--fb-ink);
   border-bottom: var(--fb-border) solid var(--fb-ink);
   color: #fff;
 }
+/* The headshot stands on the band's bottom edge, and the top of his head
+   just clears the box: about 5% of the picture above its top border. A
+   headshot's crown sits about 4.5% down its own picture (ESPN's and the
+   six's are framed alike), so the picture starts 9.5% of its height above
+   the border. Every headshot is placed the same way, so one whose head
+   sits higher or lower in its frame clears the top by a little more or
+   less. */
 .ege-person__face {
+  --face-h: 124px;
   display: block;
-  width: 132px;
-  height: 96px;
-  overflow: hidden;
+  width: calc(var(--face-h) * 1.375);
+  height: var(--face-h);
+  margin-top: calc(-1 * var(--fb-border) - var(--face-h) * .095);
 }
-.ege-person__face img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.ege-person__face img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
 .ege-person__name {
   align-self: center;
   margin: 0;
@@ -4063,18 +4079,18 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
   text-shadow: 2px 2px 0 rgba(0, 0, 0, .45);
   overflow-wrap: anywhere;
 }
-/* On white, so any team's mark reads on any team's colour. */
+/* Straight on the team's colour, as on the team's page. */
 .ege-person__mark {
   align-self: center;
   display: grid;
   place-items: center;
-  width: 58px;
-  height: 58px;
-  margin-bottom: 12px;
-  background: #fff;
-  border: var(--fb-border-thin) solid var(--fb-ink);
+  width: 76px;
+  height: 76px;
 }
-.ege-person__mark img { width: 42px; height: 42px; object-fit: contain; }
+.ege-person__mark img { width: 100%; height: 100%; object-fit: contain; }
+.ege-person__mark img.is-edged {
+  filter: drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff);
+}
 .ege-person__body { display: grid; gap: 14px; padding: 14px 16px 16px; }
 .ege-person__facts {
   display: grid;
@@ -4129,10 +4145,9 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-person__go { justify-self: start; }
 
 @media (max-width: 520px) {
-  .ege-person__band { gap: 8px; padding: 10px 10px 0; }
-  .ege-person__face { width: 96px; height: 70px; }
-  .ege-person__mark { width: 46px; height: 46px; margin-bottom: 10px; }
-  .ege-person__mark img { width: 32px; height: 32px; }
+  .ege-person__band { gap: 8px; padding: 0 10px; }
+  .ege-person__face { --face-h: 88px; }
+  .ege-person__mark { width: 52px; height: 52px; }
   .ege-person__facts { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .ege-person__fact { grid-column: span 2; }
   .ege-person__fact:nth-child(-n+2) { grid-column: span 3; }
