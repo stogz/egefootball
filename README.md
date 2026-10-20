@@ -1524,9 +1524,10 @@ week 18 and Cooper's week 11 in 2019, Mystic, only in the Gold Rush Pack
 (`CARD_ART` in `data/cards.js`). Each is the usual card with Sam's photo of
 the game in the picture in place of the headshot and no team logo, and the
 helmet cut out above the photo stands up out of the picture over the
-PERFORMANCE strip and the score tab, under the frame, the big yards and
-touchdowns and the score's number. So they have the foils, the tilt and the
-close-up of any card, and three of one merge into its holo. Only the GOLD
+PERFORMANCE strip and the score, number and all, under the frame and the big
+yards and touchdowns. So they have the foils, the tilt and the close-up of
+any card, and three of one merge into its holo, whose rainbow covers the
+helmet as well as the picture. Only the GOLD
 RUSH card is still Sam's picture printed whole, and it has no holo.
 
 Under the picture a college or NFL card names its opponent with the

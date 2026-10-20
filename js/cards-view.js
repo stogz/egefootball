@@ -311,6 +311,10 @@ EGE.cardsView = (function () {
          he drew it. */
       var cut = el('div', 'ege-tcard__cut');
       cut.style.setProperty('--rise', card.art.rise);
+      /* The photo again, as the mask a holo's rainbow is cut to: a whole
+         address, since a relative one in a custom property is not read
+         from the page's folder in every browser. */
+      cut.style.setProperty('--cut', 'url("' + new URL(card.art.photo, document.baseURI).href + '")');
       cut.appendChild(photo);
       art.appendChild(cut);
     } else {
