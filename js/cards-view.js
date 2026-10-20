@@ -3297,6 +3297,7 @@ EGE.cardsView = (function () {
     photo.loading = 'lazy';
     photo.decoding = 'async';
     frame.appendChild(photo);
+    if (key === 'goat') { frame.appendChild(el('div', 'ege-plcard__goatband', 'Greatest of all time')); }
     node.appendChild(frame);
 
     var plate = el('div', 'ege-plcard__plate');
@@ -3347,6 +3348,14 @@ EGE.cardsView = (function () {
     foot.appendChild(el('span', 'ege-plcard__rank', rank ? rank.name : 'Unranked'));
     foot.appendChild(el('span', null, 'Career'));
     node.appendChild(foot);
+
+    /* GOAT, the rung no binder card reaches, gets four sparkles on its
+       platinum frame. */
+    if (key === 'goat') {
+      for (var i = 1; i <= 4; i += 1) {
+        outer.appendChild(el('span', 'ege-plcard__spark ege-plcard__spark--' + i));
+      }
+    }
     return outer;
   }
 
