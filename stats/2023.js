@@ -12,8 +12,11 @@
    file back out for you.
 
    `booster` is the performance booster that was riding on the game, as its
-   shop key — 'boost-2-5', 'boost-2-0', 'boost-1-5' — or null. Once a week
-   is published this is where a booster lives for good, so the row behind it
+   shop key — 'boost-2-5', 'boost-2-0', 'boost-1-5' — or a wager,
+   'wager-for' (his own team) or 'wager-against' (the other one), or null.
+   A wager has `line` beside it, the point spread it was taken at from the
+   side it took: -3.5 means that side had to win by 4. Once a week is
+   published this is where a booster lives for good, so the row behind it
    can be cleared out of Supabase.
 
    Nothing here shows on the site until the admin publishes that week. The
@@ -227,6 +230,16 @@ EGE.stats[2023] = {
           receivingTd: 0, receivingLong: 0, targets: 3, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
           totalYards: 0, totalTd: 0
+        } },
+      { week: 19, date: '2024-01-13', kickoff: null,
+        name: 'NFC Wild Card',
+        opponent: 'San Francisco 49ers', home: true, conference: false, playoff: true,
+        result: { teamScore: 13, opponentScore: 31 }, booster: null,
+        stats: {
+          receptions: 9, receivingYards: 58, receivingYac: 16,
+          receivingTd: 0, receivingLong: 24, targets: 16, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 6.4, totalYards: 58, totalTd: 0
         } },
     ],
 
@@ -874,6 +887,46 @@ EGE.stats[2023] = {
         bigPlays: [
           '5 yard rushing touchdown'
         ] },
+      { week: 19, date: '2024-01-13', kickoff: null,
+        name: 'NFC Wild Card',
+        opponent: 'Minnesota Vikings', home: true, conference: false, playoff: true,
+        result: { teamScore: 24, opponentScore: 20 }, booster: null,
+        stats: {
+          carries: 4, rushingYards: 5, rushingTd: 0, rushingLong: 6,
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 1, fumbles: 0,
+          rushingAvg: 1.3, totalYards: 5, totalTd: 0
+        } },
+      { week: 20, date: '2024-01-20', kickoff: null,
+        name: 'NFC Divisional Round',
+        opponent: 'New Orleans Saints', home: true, conference: false, playoff: true,
+        result: { teamScore: 23, opponentScore: 11 }, booster: null,
+        stats: {
+          carries: 9, rushingYards: 47, rushingTd: 0, rushingLong: 12,
+          receptions: 1, receivingYards: 11, receivingYac: 10,
+          receivingTd: 0, receivingLong: 11, targets: 2, fumbles: 0,
+          rushingAvg: 5.2, receivingAvg: 11, totalYards: 58, totalTd: 0
+        } },
+      { week: 21, date: '2024-01-28', kickoff: null,
+        name: 'NFC Championship',
+        opponent: 'Philadelphia Eagles', home: false, conference: false, playoff: true,
+        result: { teamScore: 26, opponentScore: 20 }, booster: null,
+        stats: {
+          carries: 10, rushingYards: 39, rushingTd: 0, rushingLong: 8,
+          receptions: 1, receivingYards: 10, receivingYac: 6,
+          receivingTd: 0, receivingLong: 10, targets: 1, fumbles: 0,
+          rushingAvg: 3.9, receivingAvg: 10, totalYards: 49, totalTd: 0
+        } },
+      { week: 22, date: '2024-02-11', kickoff: null,
+        name: 'Super Bowl LVIII',
+        opponent: 'Kansas City Chiefs', home: false, conference: false, neutral: true, playoff: true,
+        result: { teamScore: 20, opponentScore: 23 }, booster: null,
+        stats: {
+          carries: 7, rushingYards: 23, rushingTd: 0, rushingLong: 5,
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 1, fumbles: 0,
+          rushingAvg: 3.3, totalYards: 23, totalTd: 0
+        } },
     ],
 
     /* Jaykeb Stewart — Houston Texans */
