@@ -1204,7 +1204,7 @@
     var key = EGE.nfl.keyByName(game.opponent);
     var position = EGE.positionFor(player, game.season);
     var rows = key ? EGE.nflRosters.facing(game.season, key, position) : null;
-    if (!rows || !rows.length) { return; }
+    if (!rows || !rows.length) { return false; }
     var team = EGE.nfl.teams[key] || {};
     var grade = EGE.nflRosters.defenseGrade(game.season, key, position);
 
@@ -1265,6 +1265,7 @@
     keep.hidden = true;
     keep.setAttribute('aria-hidden', 'true');
     body.appendChild(keep);
+    return true;
   }
 
   function renderSchedule(player) {
@@ -1329,8 +1330,11 @@
     var firstPlayoff = games.filter(function (game) { return game.playoff; })[0];
     var next = nextNflGame(player, season, games);
     games.forEach(function (game) {
-      body.appendChild(scheduleRow(game, game === firstPlayoff));
-      if (game === next) { appendFaceoff(body, player, game); }
+      var row = scheduleRow(game, game === firstPlayoff);
+      body.appendChild(row);
+      /* The game and its report boxed in together by a heavy rule above
+         and below (Sam, 2026-10-20). */
+      if (game === next && appendFaceoff(body, player, game)) { row.classList.add('ege-schedule__next'); }
     });
 
     /* Out of the games, not the weeks: an NFL bye is a row of its own. */

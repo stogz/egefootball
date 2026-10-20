@@ -2394,7 +2394,10 @@ body::before {
    shown; it is there so the games under it keep their stripe. */
 .ege-schedule tbody tr.ege-faceoff,
 .ege-schedule tbody tr.ege-faceoff:hover { background: none; }
-.ege-schedule tbody tr.ege-faceoff > td { padding: 0; }
+.ege-schedule tbody tr.ege-faceoff > td { padding: 0; border-bottom: var(--fb-border) solid var(--fb-ink); }
+/* The game the report is for: the heavy rule over it closes the box the
+   one under the report opens. */
+.ege-schedule tbody tr.ege-schedule__next > td { border-top: var(--fb-border) solid var(--fb-ink); }
 .ege-schedule tbody tr.ege-faceoff__keep { display: none; }
 .ege-faceoff__strip { padding: 12px 14px 16px; }
 .ege-faceoff__head {
@@ -3380,7 +3383,9 @@ select,
   }
 
   /* The strip under the next game is a block of its own, not a game. */
-  .ege-schedule tbody tr.ege-faceoff { display: block; padding: 0; }
+  .ege-schedule tbody tr.ege-faceoff { display: block; padding: 0; border-bottom: 0; }
+  .ege-schedule tbody tr.ege-schedule__next { border-top: var(--fb-border) solid var(--fb-ink); }
+  .ege-schedule tbody tr.ege-schedule__next > td { border-top: 0; }
   .ege-schedule tbody tr.ege-faceoff > td { display: block; }
   .ege-schedule tbody tr.ege-faceoff__keep { display: none; }
   .ege-faceoff__strip { padding: 10px 11px 14px; }

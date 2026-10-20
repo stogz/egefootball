@@ -272,8 +272,9 @@ holds:
   linebackers and two safeties. All are the healthy starters in the sim's
   rosters as they stand (`EGE.nflRosters.facing`). The live season only,
   and the next game, not the next week: a bye puts the report under the
-  game after it. A hidden row after it keeps the stripes on the games
-  under it as they were.
+  game after it. A heavy ink rule above the game and another under the
+  report box the two in together. A hidden row after the report keeps the
+  stripes on the games under it as they were.
 - **Game log** — per-game stats for that player, with the stat lines driven by
   their position (see below), and a totals row for the season, on the
   panel's own cream under a hard rule.
