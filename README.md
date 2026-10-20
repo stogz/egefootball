@@ -1104,11 +1104,13 @@ line it was taken at**: the `line` column on its `game_boosters` row, and
 the line moves between the drawer opening and the pick, nothing goes on and
 the drawer shows the new number.
 
-On the schedule it is a green poker chip with the mark of the team it is on;
-once the game is out it is stamped **2x** for a win or **0** for a loss (and
-greyed), the Paid column shows the doubled credits or a red **+0**, and the
-game log carries *Bet 2x* or *Bet 0x* beside the opponent. Until then it
-comes off the way a booster does.
+On the schedule it is a black poker chip with the mark of the team it is on
+(and the drawer's blank one says BET). Once the game is out the chip turns
+**green** for a win or **red** for a loss, with nothing stamped on it (Sam,
+2026-10-20); one that came out level stays black. The
+Paid column shows the doubled credits or a red **+0**, and the game log
+carries *Bet 2x* or *Bet 0x* beside the opponent. Until then it comes off
+the way a booster does.
 
 It is stored like a booster: a `game_boosters` row with `item_key`
 `wager-for` (your team) or `wager-against` (the opponent) and its `line`,
@@ -2258,17 +2260,45 @@ published, for both leagues. Sam (Seattle), Andrew (Detroit) and Jaykeb
 from nflverse with the bye in its week, and Paxon (North Carolina), Cooper
 (USC) and Isaac (Texas) their schools' real 2023 regular seasons, weeks 0
 to 13. The results are the real margins moved by what each player brings
-to his team and a game's worth of luck, as in 2022: the Lions finish 11–6
-and first in the NFC North, the Texans 10–7 and first in the AFC South,
-the Seahawks 8–9 and third in the NFC West, Texas 10–2, North Carolina 9–3
-and USC 7–5. Week 2 is Andrew's Lions against Sam's Seahawks, 33–32
-Detroit, and both files carry it from their own side. The one injury is
-Andrew's, a groin strain in week 6 that keeps him out against Tampa Bay
-and Baltimore. Jaykeb throws for about 4,000 yards as a rookie, Sam is
+to his team and a game's worth of luck, as in 2022, until the NFL sim
+takes the NFL over from week 10 (see *NFL Sim* under the admin page): the
+Lions finish 10–7 and first in the NFC North, the Seahawks 11–6 and first
+in the NFC West, the Texans 8–9 and second in the AFC South, Texas 10–2,
+North Carolina 9–3 and USC 8–4. Week 2 is Andrew's Lions against Sam's
+Seahawks, 33–32 Detroit, and both files carry it from their own side.
+The one injury is Andrew's, a groin strain in week 6 that keeps him out
+against Tampa Bay and Baltimore. Jaykeb throws for about 4,000 yards as a rookie, Sam is
 Seattle's second back behind Kenneth Walker, and Isaac throws 30
 touchdowns. Scouts are only at the college players' games, four each as in
-2022; an NFL player has nobody left to scout him. No title games, bowls or
-NFL playoffs are in yet; those go in once the regular season is out.
+2022; an NFL player has nobody left to scout him.
+
+The 2023 postseason is in weeks 19 to 22, the NFL's playoff weeks. The NFL
+sim played the NFL's: Seattle beat Minnesota, New Orleans and Philadelphia
+and lose Super Bowl LVIII 23–20 to Kansas City, and Detroit go out to San
+Francisco in the wild-card round. The colleges' bowls are in week 19 with
+the wild-card round, whatever their real dates (Sam, 2026-10-20), so both
+leagues' Discord posts that week are headed Playoffs Week One. None of the
+three plays a title game. Texas, Oklahoma and Oklahoma State finish level
+at 7–2 in the Big 12; Texas and Oklahoma State never met, nobody beat both
+of the others, and Oklahoma State lost to Iowa State, the best placed
+school all three played, so Oklahoma (who beat Texas) and Oklahoma State
+(who beat Oklahoma) play for the title and Texas is third. North Carolina
+finish sixth in the ACC and USC fourth in the Pac-12. With Texas out of
+the College Football Playoff, Florida State takes the last place in it,
+so Louisville, the ACC's runner-up, goes to the Orange Bowl in its place
+and its real Holiday Bowl spot goes to North Carolina, the best ACC team
+left after NC State (Pop-Tarts Bowl). The bowls, played out from each
+side's points for and against with seeded dice (seed 34), with each
+player's line drawn under the same rules as the regular season:
+
+- **Alamo Bowl** (Dec 28), the Big 12's first pick after the New Year's
+  Six against the Pac-12's: Texas 33, Arizona 12. Isaac 21 of 35 for 268
+  yards and 3 touchdowns.
+- **Holiday Bowl** (Dec 27), the ACC against the Pac-12's next pick after
+  Arizona: North Carolina 37, USC 32. Paxon 8 catches for 139 yards and a
+  touchdown; Cooper 31 carries for 157 yards and 2 touchdowns, and 6
+  catches for 77. Both files carry it from their own side, as week 2's
+  Lions–Seahawks game does.
 
 ### Conference standings
 
