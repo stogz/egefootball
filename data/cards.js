@@ -384,7 +384,16 @@ EGE.cards = (function () {
     if (/game-winning|walk-off/.test(t)) { grade += 3; }
     else if (/go-ahead|game-tying/.test(t)) { grade += 1.5; }
 
-    return { kind: kind, yards: yards, touchdown: touchdown,
+    /* A touchdown the file calls game-winning (or walk-off) or game-icing
+       says so on its card, under its yardage. The file is the only place
+       that knows when in a game a play came; a go-ahead score that was
+       given back later reads just like one that held, so only its words
+       decide. */
+    var clutch = !touchdown ? null
+      : /game-winning|walk-off/.test(t) ? 'Game-Winning'
+      : /game-icing/.test(t) ? 'Game-Icing' : null;
+
+    return { kind: kind, yards: yards, touchdown: touchdown, clutch: clutch,
              points: round2(points), grade: round2(grade) };
   }
 
@@ -463,7 +472,7 @@ EGE.cards = (function () {
   }
 
   function versus(game) {
-    return (game.home || game.neutral ? 'vs ' : 'at ') + game.opponent;
+    return (game.home || game.neutral ? 'vs. ' : 'at ') + game.opponent;
   }
 
   /* --- the catalogue ----------------------------------------------------- */
@@ -524,6 +533,8 @@ EGE.cards = (function () {
             play.text = text;
             play.points = read.points;
             play.grade = read.grade;
+            /* Not in a game it lost, whatever the file says. */
+            if (read.clutch && !(game.result.teamScore > game.result.opponentScore)) { read.clutch = null; }
             play.rarity = rarityOf(play.id, read.grade, 'play');
             play.headline = playHeadline(read);
             play.line = text;

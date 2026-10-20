@@ -146,7 +146,7 @@ EGE.showcase = (function () {
       var card = item.card;
       var node = EGE.cardsView.cardEl(card, {});
       EGE.cardsView.pressable(node, EGE.cardsView.describe(card), function () {
-        EGE.cardsView.zoom(card, { owner: player.email, tradeWith: viewer && !mine ? player.email : null });
+        EGE.cardsView.zoom(card, { tradeWith: viewer && !mine ? player.email : null });
       });
       grid.appendChild(node);
     });

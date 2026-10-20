@@ -1510,6 +1510,16 @@ not lag (Sam, 2026-10-13).
 
 Across the bottom of the picture, a play card prints its yardage big (*44
 YD TD*) and a performance card its yards and touchdowns (*312 YDS 5 TD*).
+A touchdown its season file calls *game-winning* (or *walk-off*) or
+*game-icing*, in a game the team won, says so in the rarity's colour on a
+line under *YD TD*, the two lines beside the number (Sam, 2026-10-20). The
+words in the file decide, since nothing else there says when in a game a
+play came; the NFL sim writes *game-winning* for a fourth-quarter or
+overtime touchdown that put its team ahead for good.
+
+Under the picture a college or NFL card names its opponent with the
+opponent's mark after it, about a capital letter high (*vs. Ohio State* and
+the Block O; Sam, 2026-10-20). A high school has no mark.
 
 ### Packs
 
@@ -1664,14 +1674,18 @@ pack or a refresh keeps the binder where it was scrolled to.
 
 Tap a card to hold it up close with the game it came from; the **→** button
 beside its stat line opens that player's page on the card's season and picks
-the game out in the game log. Duplicates are kept, and are what trades are
-made of.
+the game out in the game log. Up close the card is as wide as the facts
+under it and leans toward the pointer, every rarity the way a holo always
+did. The facts leave out what the card already shows: no rarity, no
+fantasy points and no count of your own; a Gold Rush card's Event is just
+*Gold Rush* (Sam, 2026-10-20). Duplicates are kept, and are what trades
+are made of.
 
 **Anybody's collection can be looked through.** The first drop-down switches
 from *My collection* to any other player's, with the same filters and sorts.
-Their cards up close say how many they have and how many you have. It is the
-same reading a trade already does: any signed-in player can see anybody's
-cards. A card of theirs up close also has **Trade for it**, which goes to the
+Their cards up close list everybody who has them, you and them included,
+under Who has it. It is the same reading a trade already does: any
+signed-in player can see anybody's cards. A card of theirs up close also has **Trade for it**, which goes to the
 Trades page with the trade builder open to them and that card already asked
 for; you pick what you give and send it as usual. A card on somebody else's
 showcase or in their recent pulls has the same button, signed in. If they
@@ -1680,8 +1694,10 @@ no longer have it, the builder says so and asks for nothing.
 **Who else has it.** Signed in, any card up close (from the collection, a
 pack's recent pulls, a trade, the shop, the market or a showcase) lists who
 else holds it, with each account's face, first name and count, biggest pile
-first, plus any copies up on the Market. Anybody already counted above it
-(you, or the player whose collection or showcase it is) is left out. It reads
+first, plus any copies up on the Market. On a card from your own collection
+you are left out (your binder has your count); anywhere else it is *Who has
+it*, with you as *You* and the player whose collection or showcase it is
+counted like anybody else (Sam, 2026-10-20). It reads
 `player_cards` for that card id, which any signed-in player can already read
 (`ownersOf()` in `js/cards.js`), so it needed no schema change.
 
