@@ -2322,6 +2322,18 @@ body::before {
   margin-top: 12px;
 }
 .ege-sim__div { margin: 0; padding-left: 20px; font-size: var(--fb-small); }
+/* A draft written by hand: the paste box, what is wrong with it, or the
+   picks as they will go. */
+.ege-sim__paste { width: 100%; min-height: 132px; resize: vertical; line-height: 1.4; }
+.ege-sim__preview { display: grid; gap: 10px; }
+.ege-sim__errors { margin: 0; padding-left: 18px; }
+.ege-sim__picks { max-height: 440px; overflow-y: auto; }
+.ege-sim__picks td { padding-top: 6px; padding-bottom: 6px; }
+.ege-sim__picks tbody tr { cursor: default; }
+.ege-sim__picks .ege-sim__ege td { font-weight: 800; }
+.ege-sim__round th { padding-top: 8px; padding-bottom: 6px; background: var(--fb-tint-wash); color: var(--fb-ink); cursor: default; }
+.ege-sim__team { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.ege-sim__logo { display: block; width: 20px; height: 20px; object-fit: contain; }
 
 /* Rolling a week: a label and its control side by side, and a preview whose
    stat line is allowed to be the widest thing in the row. */

@@ -2630,7 +2630,16 @@ has already put out as played (the six's games from their season file,
 everybody else's real scores) and the sim plays every NFL game after them.
 Then: play a week or on to the deadline / the end of the regular season, the
 playoffs a round at a time or all at once, the offseason and the draft (with
-a team and round for any of the six still in college). Trades wait for
+a team and round for any of the six still in college). **Upload the {year}
+draft** takes the first rounds of the next draft written by hand, pasted or
+from a file (the Discord lists, `7. :CHI: Cooper Clark`; numbered lines; a
+CSV with Pick, Team and Player; or JSON), checks every pick against the order
+and the class (unknown players, a team that does not own the pick,
+duplicates, missing picks), shows them, and **Use this draft** keeps them:
+those picks go exactly as written, can't be traded while they wait, and the
+sim drafts the rest. The 2024 draft goes in the order from the 2024 mock
+draft doc in every round, whatever the sim's own 2023 said
+(`nfl-sim/data/draft-orders.json`). Trades wait for
 **Approve** or **Reject**, and Sam can type in his own. **Put it on the
 site** downloads `stats/{year}.js` (the six's games as the sim played them,
 and their playoff games as they reach them) and `data/nfl-results.js` (every

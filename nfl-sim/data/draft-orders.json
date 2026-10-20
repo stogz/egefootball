@@ -1,0 +1,17 @@
+{
+  "2024": {
+    "note": "From the 2024 NFL Combine and Mock Draft doc (2026-10-20): the 2023 regular season as the site has it, the AFC playoffs the sim's favorite in each game, and the real pick trades made before the 2023 kickoff. Teams tied on record rotate each round.",
+    "order": ["NE", "CHI", "NYG", "GB", "WAS", "ARI", "CAR", "TB", "DEN", "TEN", "IND", "LA", "HOU", "PIT", "ATL", "BUF",
+              "NYJ", "LV", "MIN", "DET", "DAL", "JAX", "CLE", "MIA", "NO", "SF", "CIN", "LAC", "BAL", "PHI", "SEA", "KC"],
+    "ties": [["CHI", "NYG"], ["GB", "WAS", "ARI"], ["CAR", "TB", "DEN", "TEN"], ["IND", "LA"], ["HOU", "PIT"],
+             ["ATL", "BUF", "NYJ"], ["DET", "DAL", "JAX"], ["NO", "SF"]],
+    "trades": [
+      { "round": 1, "from": "CAR", "owner": "CHI", "why": "D.J. Moore" },
+      { "round": 1, "from": "CLE", "owner": "HOU", "why": "Deshaun Watson" },
+      { "round": 1, "from": "HOU", "owner": "ARI", "why": "the 2023 draft-day trade" },
+      { "round": 2, "from": "DEN", "owner": "NO", "why": "Sean Payton" },
+      { "round": 2, "from": "NO", "owner": "PHI", "why": "the 2022 draft-day trade" },
+      { "round": 2, "from": "NYJ", "owner": "GB", "why": "Aaron Rodgers" }
+    ]
+  }
+}

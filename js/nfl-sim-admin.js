@@ -2,8 +2,8 @@
    EGE Football — the NFL sim, on the admin page
    The NFL Sim tab: the same sim as node nfl-sim/sim.js, run in the browser.
    It plays the league a week, a stretch or a phase at a time, holds the
-   trades that wait for an approval, runs the offseason and the draft, and
-   hands the site what it needs:
+   trades that wait for an approval, runs the offseason and the draft (with
+   any first rounds uploaded as written), and hands the site what it needs:
 
    - the six's games and every other NFL score, as stats/{year}.js and
      data/nfl-results.js to download and commit, the way the Season File
@@ -44,7 +44,8 @@ EGE.nflSimAdmin = (function () {
     busy: false,
     loading: null,
     last: null,           /* { title, lines } from the last step */
-    error: null
+    error: null,
+    upload: { text: '', checked: null, showSaved: false }   /* a draft written by hand, before it is kept */
   };
 
   function el(tag, className, text) {
@@ -399,12 +400,14 @@ EGE.nflSimAdmin = (function () {
     body.appendChild(part);
   }
 
-  /* Any of the six not in the league yet can be put on a team by hand, in a
-     round if wanted; left alone, he goes where the site has him or where
-     his grade takes him. */
+  /* Any of the six not in the league yet, or in an uploaded draft, can be
+     put on a team by hand, in a round if wanted; left alone, he goes where
+     the site has him or where his grade takes him. */
   function drawDraft(part, r, league) {
     var inLeague = {};
     league.players.forEach(function (p) { if (p.ege && p.status === 'active') { inLeague[p.ege] = true; } });
+    var kept = sim().draftPlan.saved(league);
+    (kept ? kept.picks : []).forEach(function (p) { if (p.ege) { inLeague[p.ege] = true; } });
     var waiting = EGE.players.filter(function (player) { return !inLeague[player.slug]; });
     var picks = {};
     if (waiting.length) {
@@ -450,6 +453,7 @@ EGE.nflSimAdmin = (function () {
         var got = sim().run.draft(l, place);
         var lines = [];
         if (got.expired) { lines.push(got.expired + ' trade proposals expired.'); }
+        if (got.written) { lines.push('Picks 1–' + got.written + ' as uploaded.'); }
         got.draft.filter(function (d) { return (d.round === 1 || d.ege) && !d.undrafted; }).forEach(function (d) {
           lines.push(d.n + '. ' + teamName(d.team) + ': ' + d.name + ' (' + d.pos + ', ' + d.ovr + ')' + (d.ege ? ' — one of the six' : ''));
         });
@@ -460,6 +464,155 @@ EGE.nflSimAdmin = (function () {
         return { title: 'The ' + got.season + ' draft', lines: lines };
       });
     }));
+  }
+
+  /* --- a draft written by hand -------------------------------------------
+
+     The first rounds of a draft (the mock draft's two, say), pasted or from
+     a file, checked against the order and the class, then kept: those picks
+     go exactly as written and the sim drafts the rest (nfl-sim/lib/draft-plan.js). */
+
+  function pickTable(picks) {
+    var wrap = el('div', 'fb-tablewrap ege-sim__picks');
+    var table = el('table', 'fb-table');
+    var head = el('tr');
+    ['No.', 'Team', 'Player', 'Pos', 'School'].forEach(function (h) { head.appendChild(el('th', null, h)); });
+    var thead = el('thead');
+    thead.appendChild(head);
+    table.appendChild(thead);
+    var tbody = el('tbody');
+    var round = null;
+    picks.forEach(function (p) {
+      if (p.round && p.round !== round) {
+        round = p.round;
+        var split = el('tr', 'ege-sim__round');
+        var cell = el('th', null, 'Round ' + round);
+        cell.colSpan = 5;
+        split.appendChild(cell);
+        tbody.appendChild(split);
+      }
+      var tr = el('tr', p.ege ? 'ege-sim__ege' : null);
+      tr.appendChild(el('td', 'num', String(p.n)));
+      var where = el('td');
+      var team = el('span', 'ege-sim__team');
+      var logo = EGE.logoFor ? EGE.logoFor(teamName(p.team)) : null;
+      if (logo) {
+        var img = el('img', 'ege-sim__logo');
+        img.src = logo;
+        img.alt = '';
+        team.appendChild(img);
+      }
+      team.appendChild(el('span', null, nick(p.team) + (p.from && p.from !== p.team ? ' (from ' + nick(p.from) + ')' : '')));
+      where.appendChild(team);
+      tr.appendChild(where);
+      tr.appendChild(el('td', null, p.name));
+      tr.appendChild(el('td', null, p.pos || ''));
+      tr.appendChild(el('td', null, p.college || ''));
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    return wrap;
+  }
+
+  function checkUpload() {
+    try {
+      state.upload.checked = sim().draftPlan.check(openLeague(), state.upload.text);
+    } catch (err) {
+      state.upload.checked = { errors: [err.message || String(err)], picks: [] };
+    }
+    draw();
+  }
+
+  function drawUpload(body, league) {
+    var plan = sim().draftPlan;
+    var year = plan.ready(league);
+    if (!year) { return; }
+    var part = section('Upload the ' + year + ' draft');
+    var kept = plan.saved(league);
+    if (kept) {
+      var line = row();
+      line.appendChild(el('span', 'ege-sim__who', 'Rounds 1–' + kept.rounds + ' uploaded'));
+      line.appendChild(button(state.upload.showSaved ? 'Hide' : 'Show', false, function () {
+        state.upload.showSaved = !state.upload.showSaved;
+        draw();
+      }));
+      line.appendChild(button('Remove', false, function () {
+        step(function (l) {
+          plan.remove(l, year);
+          return { title: 'Removed the uploaded ' + year + ' draft', lines: [] };
+        });
+      }));
+      part.appendChild(line);
+      if (state.upload.showSaved) { part.appendChild(pickTable(kept.picks)); }
+    }
+
+    var preview = el('div', 'ege-sim__preview');
+    var input = el('textarea', 'fb-input ege-sim__paste');
+    input.rows = 6;
+    input.spellcheck = false;
+    input.placeholder = '### Round One\n1. :NE: Caleb Williams\n2. :CHI: Jayden Daniels';
+    input.setAttribute('aria-label', 'The draft, one pick a line');
+    input.value = state.upload.text;
+    input.addEventListener('input', function () {
+      state.upload.text = input.value;
+      state.upload.checked = null;
+      if (preview.parentNode) { preview.parentNode.removeChild(preview); }
+    });
+    part.appendChild(input);
+
+    var file = el('input');
+    file.type = 'file';
+    file.accept = '.txt,.csv,.tsv,.json,.md,text/plain,text/csv,application/json';
+    file.hidden = true;
+    file.addEventListener('change', function () {
+      var chosen = file.files && file.files[0];
+      if (!chosen) { return; }
+      chosen.text().then(function (text) {
+        state.upload.text = text;
+        checkUpload();
+      });
+    });
+    var r = row();
+    r.appendChild(file);
+    r.appendChild(button('Choose a file', false, function () { file.click(); }));
+    r.appendChild(button('Check', !state.upload.checked, function () {
+      state.upload.text = input.value;
+      checkUpload();
+    }));
+    part.appendChild(r);
+
+    var checked = state.upload.checked;
+    if (checked) {
+      if (checked.errors.length) {
+        var box = el('div', 'ege-note ege-note--error');
+        var list = el('ul', 'ege-sim__errors');
+        checked.errors.slice(0, 25).forEach(function (e) { list.appendChild(el('li', null, e)); });
+        if (checked.errors.length > 25) { list.appendChild(el('li', null, 'And ' + (checked.errors.length - 25) + ' more.')); }
+        box.appendChild(list);
+        preview.appendChild(box);
+      } else {
+        preview.appendChild(pickTable(checked.picks));
+        var go = row();
+        go.appendChild(button('Use this draft', true, function () {
+          var text = state.upload.text;
+          var made = null;
+          step(function (l) {
+            var again = plan.check(l, text);
+            plan.save(l, again);
+            made = { title: 'Uploaded the ' + again.year + ' draft', lines: ['Rounds 1–' + again.rounds + ', ' + again.picks.length + ' picks.'] };
+            return made;
+          }).then(function () {
+            if (state.last !== made) { return; }
+            state.upload = { text: '', checked: null, showSaved: false };
+            draw();
+          });
+        }));
+        preview.appendChild(go);
+      }
+      part.appendChild(preview);
+    }
+    body.appendChild(part);
   }
 
   function drawTrades(body, league) {
@@ -785,6 +938,7 @@ EGE.nflSimAdmin = (function () {
     drawStatus(body, league);
     drawLast(body);
     drawPlay(body, league);
+    drawUpload(body, league);
     drawTrades(body, league);
     drawSix(body, league);
     drawStandings(body, league);

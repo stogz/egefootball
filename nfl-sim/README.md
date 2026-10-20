@@ -367,6 +367,29 @@ In two parts, so Sam can look at the pre-draft trades between them.
    Cooper and Isaac are in the 2024 class, rated from the website. Sam can
    place any of them by hand (`--place`); one placed on a team with no pick
    left there signs with it as an undrafted rookie.
+
+   **A draft written by hand** (`lib/draft-plan.js`). Sam can upload the
+   first rounds of the next draft himself, at any point before it, as the
+   Discord lists (`### Round One`, `7. :CHI: __**Cooper Clark**__`),
+   numbered lines with a team and a player, a CSV with Pick, Team and
+   Player columns, or JSON. Each pick is checked against the order and the
+   class: an unknown player (with the nearest name), a team that does not
+   own the pick, a player or pick in twice, and a round with picks missing
+   are all errors, and nothing is kept until it reads cleanly. Those picks
+   then go exactly as written, the six included, and the sim drafts the
+   rest. While the draft waits, the picks it covers are out of every trade.
+
+   **An order set by hand** (`data/draft-orders.json`). A year can have its
+   order fixed: the first round, the teams tied on record (who take turns
+   each round, the first of them in one round picking last of them in the
+   next, as in the NFL) and pick trades made before the 2023 kickoff, which
+   the starting league does not have. 2024's is the order in the "2024 NFL
+   Combine and Mock Draft" doc: New England first, Chicago second and
+   seventh (Carolina's pick), Houston with Cleveland's first, Arizona with
+   Houston's, New Orleans with Denver's second, Philadelphia with New
+   Orleans' and Green Bay with the Jets'. It goes for all seven rounds,
+   whatever the sim's own 2023 standings say; the trades are made the first
+   time a world opens (only for a pick nobody has traded since).
 3. Free agency again for the leftovers, then **rosters are cut to 53**: the
    least valuable go, never one of the six.
 4. The new season's schedule.
@@ -457,6 +480,9 @@ node nfl-sim/sim.js trade "DET: Andrew Parr, 2025 R2 / SEA: Kenneth Walker"
 node nfl-sim/sim.js draft                       the draft, cut to 53, the next season's schedule
 node nfl-sim/sim.js draft --place cooper-clark=LAC --place isaac-vitel=DET:2
                                                 put one of the six on a team (in a round)
+node nfl-sim/sim.js draft-order [2024]          every round's order and who owns each pick
+node nfl-sim/sim.js upload-draft FILE           a draft written by hand (rounds 1-2, say), checked and
+                                                kept for the next draft (--check: only check; --remove)
 node nfl-sim/sim.js report                      a written report (ratings included) into the world folder
 node nfl-sim/sim.js reset --force               start the world over from the 2023 kickoff
 
@@ -522,6 +548,7 @@ nfl-sim/
     value.js             what players, picks and contracts are worth; the cap
     rosters.js           needs, contracts, free agency, cutdowns
     draft.js             draft classes, ceilings, the draft
+    draft-plan.js        a draft written by hand, and draft orders set by hand
     trades.js            proposals, the queue, approving
     offseason.js         the offseason, in order
     rng.js               the seeded dice
@@ -539,6 +566,7 @@ nfl-sim/
   data/                  what the sim starts from (committed)
     league-2023.json     teams and players, Week 1 of 2023
     prospects.json       the 2024-2026 draft classes
+    draft-orders.json    draft orders set by hand (2024's, from the mock draft doc)
     schedules.json       the real 2023-2026 regular seasons
     benchmarks-2023.json real 2023 averages, scores and lines
 ```
