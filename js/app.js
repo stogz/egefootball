@@ -1800,9 +1800,9 @@
     band.appendChild(face);
     band.appendChild(el('h3', 'ege-person__name', row.name));
     var mark = el('span', 'ege-person__mark');
-    var logoSrc = EGE.nfl.logo(row.team, 160);
+    var logoSrc = EGE.nfl.logo(row.team);
     if (logoSrc) {
-      var logo = el('img', EGE.nfl.ownLogo(row.team) ? null : 'is-edged');
+      var logo = el('img');
       logo.src = logoSrc;
       logo.alt = team.name || '';
       logo.title = team.name || '';
@@ -2271,9 +2271,9 @@
     var mark = document.getElementById('teamLogo');
     mark.innerHTML = '';
     var logo = null;
-    var src = EGE.nfl.logo(key, 160);
+    var src = EGE.nfl.logo(key);
     if (src) {
-      logo = el('img', EGE.nfl.ownLogo(key) ? null : 'is-edged');
+      logo = el('img');
       logo.src = src;
       logo.alt = team.name;
       logo.addEventListener('error', function () { logo.remove(); });

@@ -402,8 +402,8 @@ Under the bar:
   the team's mark straight on the colour, no box round it (Sam,
   2026-10-20). The headshot stands on the band's bottom edge and is sized
   so the top of the head just clears the top of the box, about 5% of the
-  picture; every headshot is placed the same way. Then college, draft (*2021 · R4 #112*), age, height and
-  weight; then the overall box, the archetype and his skills, best first;
+  picture; every headshot is placed the same way. Then college, draft
+  (*2021 · R4 #112*), age, height and weight; then the overall box, the archetype and his skills, best first;
   then his contract (*$1.1M a year through 2024*) and any injury. One of the
   six's has a button through to his page. A click off the box closes it.
   Nothing private is in the rosters: no team ratings, no potential, nothing
@@ -413,8 +413,16 @@ Under the bar:
   teams keep their standings and schedule; any other team's page is its
   header (record, streak, place in the division) and its roster, nothing
   else. Every NFL team's mark sits on its colour from `data/nfl.js`, the
-  way the six's teams' do; ESPN's marks get a white edge drawn round them
-  (`is-edged`) to match the six's, which have one of their own. The index ends with **NFL Standings**, a box for each division with
+  way the six's teams' do.
+
+  **The NFL's marks are the site's own**, in `icon/nfl/`, from a set Sam
+  sent (2026-10-20), not ESPN's: the team pages, the pop-up, the schedules
+  and the standings all use them (`EGE.nflLogos` in `data/logos.js`). Each
+  is drawn for a dark ground with a white edge of its own. The Jets' is all
+  white, so on a schedule's or a table's cream rows they have
+  `Jets-green.png` instead (`EGE.nflLogosOnLight`).
+
+  The index ends with **NFL Standings**, a box for each division with
   every team's record, each team a link to its page and the six's teams
   picked out in orange. From the week the sim takes over, the standings use
   the sim's scores (`data/nfl-results.js`) in place of the real ones in
@@ -2610,8 +2618,9 @@ Built so far:
   division) against the id ESPN files its logo under, keyed by the name the
   season files use, and `EGE.logoFor(name)`, which turns one into an image
   address on ESPN's server. Written by `tools/build-logos.js`. The NFL's
-  32 are `EGE.nflLogos`, by hand, against ESPN's short names (`sea`,
-  `det`, `hou`), and `EGE.logoFor` checks them first.
+  32 are `EGE.nflLogos`, by hand, against their file in `icon/nfl/`
+  (`Seahawks`, `Lions`, `Texans`), and `EGE.logoFor` checks them first,
+  and `EGE.nflLogosOnLight` before those.
 - `data/defenses.js` — every FBS and FCS school's rushing and passing yards
   allowed a game, by season, and where each ranks at its level. Written by
   `tools/build-defenses.js` from ESPN's box scores; add the new year to its

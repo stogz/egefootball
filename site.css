@@ -3869,11 +3869,6 @@ button.ege-owned__item { cursor: pointer; }
   background: radial-gradient(circle at 50% 45%, #fff 0 40%, var(--fb-surface) 78%);
 }
 .ege-teamhead__logo img { width: 74%; height: 74%; object-fit: contain; }
-/* ESPN's NFL marks have no edge of their own, so on their team's colour
-   they get a white one, like the six's teams' marks (EGE.nfl.ownLogo). */
-.ege-teamhead__logo img.is-edged {
-  filter: drop-shadow(3px 0 0 #fff) drop-shadow(-3px 0 0 #fff) drop-shadow(0 3px 0 #fff) drop-shadow(0 -3px 0 #fff);
-}
 .ege-teamhead__words { min-width: 0; }
 .ege-teamhead__facts dd { font-size: 1rem; }
 .ege-teamhead__ours a { color: var(--fb-ink); text-decoration: underline; text-underline-offset: 3px; }
@@ -3887,9 +3882,6 @@ button.ege-owned__item { cursor: pointer; }
     gap: 14px 16px;
   }
   .ege-teamhead__logo { width: 88px; }
-  .ege-teamhead__logo img.is-edged {
-    filter: drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff);
-  }
   .ege-teamhead__words { display: contents; }
   /* The player header's classes name grid areas this grid does not have. */
   .ege-teamhead__body .ege-detail__name { grid-area: auto; margin: 0; }
@@ -4088,9 +4080,6 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
   height: 76px;
 }
 .ege-person__mark img { width: 100%; height: 100%; object-fit: contain; }
-.ege-person__mark img.is-edged {
-  filter: drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff);
-}
 .ege-person__body { display: grid; gap: 14px; padding: 14px 16px 16px; }
 .ege-person__facts {
   display: grid;

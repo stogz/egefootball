@@ -796,53 +796,59 @@ EGE.espnIds = {
 };
 
 /* The NFL's 32, by the name the season files write an opponent under,
-   against the short name ESPN files the team's logo under. */
+   against their mark in icon/nfl/ -- Sam's own set (2026-10-20), not
+   ESPN's. Each is drawn for a dark ground, with a white edge of its own,
+   so it reads on its team's colour on a team page. */
 EGE.nflLogos = {
-  'Arizona Cardinals': 'ari',
-  'Atlanta Falcons': 'atl',
-  'Baltimore Ravens': 'bal',
-  'Buffalo Bills': 'buf',
-  'Carolina Panthers': 'car',
-  'Chicago Bears': 'chi',
-  'Cincinnati Bengals': 'cin',
-  'Cleveland Browns': 'cle',
-  'Dallas Cowboys': 'dal',
-  'Denver Broncos': 'den',
-  'Detroit Lions': 'det',
-  'Green Bay Packers': 'gb',
-  'Houston Texans': 'hou',
-  'Indianapolis Colts': 'ind',
-  'Jacksonville Jaguars': 'jax',
-  'Kansas City Chiefs': 'kc',
-  'Las Vegas Raiders': 'lv',
-  'Los Angeles Chargers': 'lac',
-  'Los Angeles Rams': 'lar',
-  'Miami Dolphins': 'mia',
-  'Minnesota Vikings': 'min',
-  'New England Patriots': 'ne',
-  'New Orleans Saints': 'no',
-  'New York Giants': 'nyg',
-  'New York Jets': 'nyj',
-  'Philadelphia Eagles': 'phi',
-  'Pittsburgh Steelers': 'pit',
-  'San Francisco 49ers': 'sf',
-  'Seattle Seahawks': 'sea',
-  'Tampa Bay Buccaneers': 'tb',
-  'Tennessee Titans': 'ten',
-  'Washington Commanders': 'wsh'
+  'Arizona Cardinals': 'Cardinals',
+  'Atlanta Falcons': 'Falcons',
+  'Baltimore Ravens': 'Ravens',
+  'Buffalo Bills': 'Bills',
+  'Carolina Panthers': 'Panthers',
+  'Chicago Bears': 'Bears',
+  'Cincinnati Bengals': 'Bengals',
+  'Cleveland Browns': 'Browns',
+  'Dallas Cowboys': 'Cowboys',
+  'Denver Broncos': 'Broncos',
+  'Detroit Lions': 'Lions',
+  'Green Bay Packers': 'Packers',
+  'Houston Texans': 'Texans',
+  'Indianapolis Colts': 'Colts',
+  'Jacksonville Jaguars': 'Jaguars',
+  'Kansas City Chiefs': 'Chiefs',
+  'Las Vegas Raiders': 'Raiders',
+  'Los Angeles Chargers': 'Chargers',
+  'Los Angeles Rams': 'Rams',
+  'Miami Dolphins': 'Dolphins',
+  'Minnesota Vikings': 'Vikings',
+  'New England Patriots': 'Patriots',
+  'New Orleans Saints': 'Saints',
+  'New York Giants': 'Giants',
+  'New York Jets': 'Jets',
+  'Philadelphia Eagles': 'Eagles',
+  'Pittsburgh Steelers': 'Steelers',
+  'San Francisco 49ers': '49ers',
+  'Seattle Seahawks': 'Seahawks',
+  'Tampa Bay Buccaneers': 'Buccaneers',
+  'Tennessee Titans': 'Titans',
+  'Washington Commanders': 'Commanders'
 };
 
-/* The picture for a school or an NFL team, or null for one ESPN does not
-   have. `size` is the pixels on a side to ask for; the schedule draws its
-   marks at 20, so it asks for twice that for a sharp picture on a
-   high-density screen. */
+/* On the cream rows of a schedule or a standings table the Jets' mark,
+   which is all white, would vanish; there they have it in their green. */
+EGE.nflLogosOnLight = {
+  'New York Jets': 'Jets-green'
+};
+
+/* The picture for a school or an NFL team, or null for one there is none
+   for. `size` is the pixels on a side to ask ESPN for, for a school; the
+   schedule draws its marks at 20, so it asks for twice that for a sharp
+   picture on a high-density screen. An NFL team's mark is the site's own
+   and the size does not come into it. */
 EGE.logoFor = function (name, size) {
   var px = size || 40;
-  var nfl = EGE.nflLogos[name];
-  if (nfl) {
-    return 'https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/' + nfl +
-      '.png&h=' + px + '&w=' + px;
-  }
+  var nfl = EGE.nflLogosOnLight[name] || EGE.nflLogos[name];
+  if (nfl) { return 'icon/nfl/' + nfl + '.png'; }
   var id = EGE.espnIds[name];
   if (!id) { return null; }
   return 'https://a.espncdn.com/combiner/i?img=/i/teamlogos/ncaa/500/' + id +
