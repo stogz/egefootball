@@ -5118,7 +5118,8 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-tcard--holo .ege-tcard__logo--white { filter: drop-shadow(0 .6cqw .8cqw rgba(0, 0, 0, .45)); }
 
 /* Over the picture: a rainbow streak across it and a wash of rainbow. */
-.ege-tcard--holo .ege-tcard__art::after {
+.ege-tcard--holo .ege-tcard__art::after,
+.ege-tcard--holo .ege-tcard__cut::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -5178,7 +5179,7 @@ html.ege-noscroll body { overflow: hidden; }
 :is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--holo .ege-tcard__yards b {
   animation: ege-holo-text 4s linear infinite;
 }
-:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--holo .ege-tcard__art::after {
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--holo :is(.ege-tcard__art, .ege-tcard__cut)::after {
   mix-blend-mode: screen;
   background-size: 260% 260%, 220% 220%;
   animation: ege-holo-glitter 6s ease-in-out infinite;
@@ -5289,10 +5290,10 @@ html.ege-noscroll body { overflow: hidden; }
 /* A card-art card is the page's card with Sam's photo of the game in the
    picture (Sam, 2026-10-20). The photo comes with its helmet cut out above
    it, and the helmet stands up out of the picture over the PERFORMANCE
-   strip and the score. The picture lets it out of its top only, and the
-   face still holds it in, so it stays under the frame; the big numbers,
-   the sticker and the holo's rainbow stay on top of it. --rise is how far
-   the helmet stands up, as a % of the picture's width (CARD_ART in
+   strip and the score, number and all (Sam, 2026-10-20). The picture lets
+   it out of its top only, and the face still holds it in, so it stays under
+   the frame; the big numbers and the sticker stay on top of it. --rise is
+   how far the helmet stands up, as a % of the picture's width (CARD_ART in
    data/cards.js). */
 .ege-tcard--cut .ege-tcard__art {
   overflow: visible;
@@ -5305,9 +5306,15 @@ html.ege-noscroll body { overflow: hidden; }
   pointer-events: none;
 }
 .ege-tcard__cut .ege-tcard__photo { object-position: center top; }
-/* The score's number stays in front of the helmet, so a holo's wider one
-   (177.9) is not read as 77.9. */
-.ege-tcard--cut :is(.ege-tcard__points, .ege-tcard__fpts) { position: relative; z-index: 1; }
+/* On a holo the rainbow over the picture goes over the helmet too (Sam,
+   2026-10-20): it is drawn on the photo's own layer, cut to the photo's
+   shape (--cut, the same picture as a mask), in place of the one on the
+   picture's box. */
+.ege-tcard--cut.ege-tcard--holo .ege-tcard__art::after { content: none; }
+.ege-tcard--cut.ege-tcard--holo .ege-tcard__cut::after {
+  -webkit-mask: var(--cut) center top / cover no-repeat;
+  mask: var(--cut) center top / cover no-repeat;
+}
 
 /* A Gold Rush card traded in the last 48 hours, none of whose copies can
    go again yet: a padlock and the time left, off its bottom left corner. */
@@ -7944,6 +7951,7 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-rip__stage .ege-tcard--holo .ege-tcard__face,
   .ege-rip__stage .ege-tcard--holo .ege-tcard__face *,
   .ege-rip__stage .ege-tcard--holo .ege-tcard__art::after,
+  .ege-rip__stage .ege-tcard--holo .ege-tcard__cut::after,
   .ege-spin__go,
   .ege-spin__wheelwrap.is-jackpot .ege-spin__wheel,
   .ege-rip__stage .ege-tcard::after,
