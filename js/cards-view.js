@@ -1113,8 +1113,8 @@ EGE.cardsView = (function () {
       fact('Fantasy', points(card.points) + ' points');
     }
     if (card.gold && !card.reward) {
-      fact('Event', GOLD.name + ' \u00b7 fills ' + GOLD.name + ' sets only. Once traded, it waits ' +
-        GOLD.lockHours + ' hours to be traded again.');
+      fact('Event', GOLD.name + ' \u00b7 fills ' + GOLD.name + ' sets, and Library sets as its card. ' +
+        'Once traded, it waits ' + GOLD.lockHours + ' hours to be traded again.');
     }
     if (card.game) {
       fact('Game', card.versus + ' \u00b7 ' + (card.event || 'Week ' + card.week) + ', ' + card.season +
@@ -1369,6 +1369,7 @@ EGE.cardsView = (function () {
      turns over. */
   function mergeControl(card, parts) {
     var worth = points(card.points * EGE.cards.HOLO_OF);
+    var bonus = EGE.cards.holoBonus(card);
     var button = el('button', 'fb-btn ege-zoom__merge');
     button.type = 'button';
     var armed = false;
@@ -1387,7 +1388,8 @@ EGE.cardsView = (function () {
         button.classList.add('is-armed');
         button.textContent = 'Tap again to merge for good';
         parts.status.textContent = 'Merging takes 3 of your copies and makes one holographic ' +
-          card.player.first + ' card with all of their points, ' + worth + ' FPTS. It cannot be undone.';
+          card.player.first + ' card with all of their points, ' + worth + ' FPTS, and pays ' +
+          bonus + (bonus === 1 ? ' diamond' : ' diamonds') + '. It cannot be undone.';
         timer = window.setTimeout(disarm, 6000);
         return;
       }
@@ -1398,6 +1400,7 @@ EGE.cardsView = (function () {
         button.disabled = false;
         disarm();
         if (!res.ok || !res.holo) { parts.status.textContent = res.message || 'That holo could not be made.'; return; }
+        walletChanged(null, res.diamonds);
         var isNew = !state.owned[res.holo.id];
         /* Like a pull: out of the collection until it is turned over and
            put away. */
@@ -1405,7 +1408,8 @@ EGE.cardsView = (function () {
         closeRip();
         if (EGE.showcase) { EGE.showcase.forget(); }
         openRip({ title: 'Holo made', cards: [res.holo], isNew: [isNew],
-                  extras: ['Three ' + card.player.first + ' cards merged into one, ' + worth + ' FPTS'],
+                  extras: ['Three ' + card.player.first + ' cards merged into one, ' + worth + ' FPTS']
+                    .concat(res.paid ? ['+' + res.paid + (res.paid === 1 ? ' diamond' : ' diamonds')] : []),
                   onClose: function () { reveal([res.holo], [isNew]); } });
       });
     });
@@ -2849,7 +2853,8 @@ EGE.cardsView = (function () {
         var pip = el('span', 'ege-set__pip' + (s.card ? ' is-filled' : ''));
         if (s.card) {
           pip.style.background = EGE.cards.rarity(s.card.rarity).color;
-          pip.title = s.card.player.name + ' \u00b7 ' + s.card.headline + ' \u00b7 ' + s.card.season;
+          pip.title = s.card.player.name + ' \u00b7 ' + s.card.headline + ' \u00b7 ' + s.card.season +
+            (s.card.gold ? ' \u00b7 ' + GOLD.name : '');
         }
         pips.appendChild(pip);
       });

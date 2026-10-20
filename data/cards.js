@@ -255,13 +255,28 @@ EGE.cards = (function () {
      stogsdill:5:holo' -- so it is owned, traded, shown off, sold and put on
      the market like any other card. Nothing pulls one: merge_holo_card in
      supabase/schema.sql is the only way one is made, and nothing turns one
-     back into three. */
+     back into three.
+
+     Making one pays diamonds (Sam, 2026-10-20): a tenth of the card's own
+     fantasy score -- the one card's, not the holo's three times it --
+     rounded, and never less than 1. Most cards pay 1 or 2; the biggest,
+     Sam's 65-point Iconic, pays 7. merge_holo_card pays it with the merge
+     and holds it to HOLO_BONUS_MAX, so change the two together. */
   var HOLO_SUFFIX = ':holo';
   var HOLO_OF = 3;
+  var HOLO_BONUS_SHARE = 0.1;
+  var HOLO_BONUS_MAX = 15;
 
   function isHoloId(id) { return /:holo$/.test(String(id || '')); }
   function baseIdOf(id) { return isHoloId(id) ? String(id).slice(0, -HOLO_SUFFIX.length) : id; }
   function holoIdOf(id) { return baseIdOf(id) + HOLO_SUFFIX; }
+
+  /* The diamonds merging three copies of `card` into its holo pays. */
+  function holoBonus(card) {
+    if (!card || card.holo) { return 0; }
+    var diamonds = Math.max(1, Math.round((Number(card.points) || 0) * HOLO_BONUS_SHARE));
+    return Math.min(HOLO_BONUS_MAX, diamonds);
+  }
 
   /* --- the Gold Rush -----------------------------------------------------------
 
@@ -274,9 +289,10 @@ EGE.cards = (function () {
      cards and every rushing touchdown (Isaac's and Jaykeb's too). Each card
      in one comes out as a Gold Rush card -- the card again, with a gold
      GOLD RUSH sticker under its score -- and is a card of its own: it never
-     stacks with the copies the standard packs give, and the two never count
-     for each other's sets. Its id is the card's with ':gr' on the end,
-     'p:2019:sam-stogsdill:18:gr', and its holo ':gr:holo'.
+     stacks with the copies the standard packs give. Only Gold Rush cards
+     fill the Gold Rush's sets, but a Gold Rush card counts in the Library's
+     sets as the card it is (Sam, 2026-10-20). Its id is the card's with
+     ':gr' on the end, 'p:2019:sam-stogsdill:18:gr', and its holo ':gr:holo'.
 
      The pack can also hold one of the two card-art cards (Sam's own art of
      Sam's week 18 and Cooper's week 11 in 2019, both printed Mystic), which
@@ -855,7 +871,7 @@ EGE.cards = (function () {
   }
 
   /* The Gold Rush's sets, Sam's list (2026-10-16). Only Gold Rush cards
-     fill them, and they fill nothing else (fill). Each is locked in once
+     fill them (fill). Each is locked in once
      with every card it was made with in the collection (claim_event_set in
      supabase/schema.sql), so a card can go on afterwards; the six locked in
      before the event ends pay the GOLD RUSH card (the final set,
@@ -967,15 +983,19 @@ EGE.cards = (function () {
      offered first, so the set shows off what it is made of. A holo is its
      card in a set: it counts where the card would, and the two of them
      never fill two slots. A Gold Rush set takes Gold Rush cards and
-     nothing else, and a Library set everything but them. */
+     nothing else. A Library set takes those too (Sam, 2026-10-20), each as
+     the card it is a Gold Rush copy of, so a card and its Gold Rush copy
+     never fill two slots either: the card-art cards count as the game they
+     are art of, and the GOLD RUSH card as an Iconic. */
   function fill(set, ownedIds) {
     var owned = ownedIds.map(byId).filter(function (c) {
-      return c && Boolean(c.gold) === Boolean(set.event);
+      return c && (!set.event || c.gold);
     }).sort(compare);
+    function same(c) { return set.event ? c.baseId || c.id : c.plainId || c.baseId || c.id; }
     var used = {};
     var filled = set.slots.map(function (s) {
-      var card = owned.filter(function (c) { return !used[c.baseId || c.id] && s.test(c); })[0] || null;
-      if (card) { used[card.baseId || card.id] = true; }
+      var card = owned.filter(function (c) { return !used[same(c)] && s.test(c); })[0] || null;
+      if (card) { used[same(card)] = true; }
       return { slot: s, card: card };
     });
     var have = filled.filter(function (f) { return f.card; }).length;
@@ -1321,6 +1341,8 @@ EGE.cards = (function () {
     spinPrize: spinPrize,
     rollSpinOffer: rollSpinOffer,
     HOLO_OF: HOLO_OF,
+    HOLO_BONUS_MAX: HOLO_BONUS_MAX,
+    holoBonus: holoBonus,
     isHoloId: isHoloId,
     baseIdOf: baseIdOf,
     holoIdOf: holoIdOf,

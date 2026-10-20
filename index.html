@@ -54,7 +54,7 @@
           <span class="ege-credits__value" id="navCreditsValue">0</span>
           <span class="ege-coin ege-credits__coin" role="img" aria-label="credits"></span>
         </span>
-        <a class="ege-credits ege-credits--diamonds" id="navDiamonds" href="#cards/shop" hidden>
+        <a class="ege-credits ege-credits--diamonds" id="navDiamonds" href="#diamonds" hidden>
           <span class="ege-credits__value" id="navDiamondsValue">0</span>
           <span class="ege-gem ege-credits__coin" role="img" aria-label="diamonds"></span>
         </a>
@@ -544,6 +544,65 @@
       </nav>
 
       </div><!-- /cardsContent -->
+
+    </section>
+
+    <!-- ===== diamonds ================================================= -->
+    <!-- Where the signed-in player's diamonds came from, opened from the
+         diamond balance in the nav (Sam, 2026-10-20): the latest games that
+         paid them, a week at a time, each split into their own game and
+         their Player Cards' bonuses, and the holos they have made. Drawn by
+         js/diamonds-view.js. -->
+    <section id="view-diamonds" hidden>
+
+      <header class="fb-hero fb-hero--centred">
+        <div class="fb-hero__col">
+          <span class="fb-kicker">Your earnings</span>
+          <h1 class="fb-hero__title">Diamonds</h1>
+        </div>
+      </header>
+
+      <div class="fb-panel" id="diamondsLocked" hidden>
+        <div class="fb-panel__strip">
+          <span class="fb-eyebrow">Players only</span>
+        </div>
+        <div class="fb-panel__body fb-stack">
+          <p>
+            Diamonds are part of your portal. Sign in to see where yours came from.
+          </p>
+          <button class="fb-btn fb-btn--primary" id="diamondsLoginBtn" type="button">Log In</button>
+        </div>
+      </div>
+
+      <div id="diamondsContent">
+
+        <div class="fb-panel">
+          <div class="fb-panel__head">
+            <h3>Recent Games</h3>
+            <span class="fb-meta" id="diamondsSeason"></span>
+            <div class="ege-ovr ege-ovr--head ege-ovr--diamonds">
+              <span class="ege-ovr__label">Diamonds</span>
+              <span class="ege-ovr__value" id="diamondsBalance">&mdash;</span>
+            </div>
+          </div>
+          <div class="fb-panel__body fb-stack fb-stack--lg">
+            <div class="ege-dgames" id="diamondsGames"></div>
+            <p class="fb-meta" id="diamondsEmpty" hidden></p>
+            <button class="fb-btn ege-dgames__more" id="diamondsMore" type="button" hidden>Show more</button>
+          </div>
+        </div>
+
+        <div class="fb-panel ege-section-gap" id="diamondsHoloPanel" hidden>
+          <div class="fb-panel__head">
+            <h3>Holo Bonuses</h3>
+            <span class="fb-meta" id="diamondsHoloMeta"></span>
+          </div>
+          <div class="fb-panel__body">
+            <ul class="ege-dholos" id="diamondsHolos"></ul>
+          </div>
+        </div>
+
+      </div><!-- /diamondsContent -->
 
     </section>
 
@@ -1334,6 +1393,7 @@
 <script src="js/cards.js"></script>
 <script src="js/sounds.js"></script>
 <script src="js/cards-view.js"></script>
+<script src="js/diamonds-view.js"></script>
 <script src="js/showcase.js"></script>
 <script src="js/cards-admin.js"></script>
 <script src="js/discord-post.js"></script>

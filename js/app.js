@@ -18,6 +18,7 @@
   var viewAdmin  = document.getElementById('view-admin');
   var viewTeams  = document.getElementById('view-teams');
   var viewTeam   = document.getElementById('view-team');
+  var viewDiamonds = document.getElementById('view-diamonds');
   var loginBtn   = document.getElementById('loginBtn');
   var loginModal = document.getElementById('loginModal');
 
@@ -5607,6 +5608,7 @@
     document.getElementById('navShop').classList.toggle('is-active', active === 'shop');
     document.getElementById('navCards').classList.toggle('is-active', active === 'cards');
     document.getElementById('navAdmin').classList.toggle('is-active', active === 'admin');
+    document.getElementById('navDiamonds').classList.toggle('is-active', active === 'diamonds');
   }
 
   function show(view) {
@@ -5617,6 +5619,7 @@
     viewAdmin.hidden  = view !== viewAdmin;
     viewTeams.hidden  = view !== viewTeams;
     viewTeam.hidden   = view !== viewTeam;
+    viewDiamonds.hidden = view !== viewDiamonds;
   }
 
   /* The page route() last drew, so it can tell going somewhere from being
@@ -5648,6 +5651,11 @@
       EGE.cardsView.render(hash.slice(6) || null);
       setNav('cards');
       document.title = 'Cards \u2014 EGE Football';
+    } else if (hash === 'diamonds') {
+      show(viewDiamonds);
+      EGE.diamondsView.render();
+      setNav('diamonds');
+      document.title = 'Diamonds \u2014 EGE Football';
     } else if (hash === 'admin' || hash.indexOf('admin/') === 0) {
       renderAdminView();
       show(viewAdmin);
@@ -5860,6 +5868,10 @@
     openLogin();
   });
 
+  document.getElementById('diamondsLoginBtn').addEventListener('click', function () {
+    openLogin();
+  });
+
   /* The Cards tab spends diamonds, swaps credits for them, and a library
      set can pay out a booster, so the balances in the nav and the shop's
      inventory -- which the sticker drawer reads -- are brought up to date
@@ -5914,12 +5926,13 @@
   }
 
   /* Diamonds beside them, for the Cards tab. A balance that could not be
-     read shows a dash rather than a zero nobody has. */
+     read shows a dash rather than a zero nobody has. It opens the diamonds
+     page, which lists where they came from. */
   function updateNavDiamonds(diamonds) {
     var box = document.getElementById('navDiamonds');
     var known = typeof diamonds === 'number' && !isNaN(diamonds);
     document.getElementById('navDiamondsValue').textContent = known ? diamonds : '\u2014';
-    box.title = known ? diamonds + ' diamonds to spend on packs' : 'Diamonds, for packs';
+    box.title = known ? diamonds + ' diamonds: see where they came from' : 'Diamonds: see where they came from';
   }
 
   /* Two things decide what a visitor sees before anybody signs in, so both
@@ -6231,8 +6244,9 @@
         redrawRatings();
         refreshScoutMarks();
         /* A week out since is a week of new cards in the packs, and new
-           Player Card earnings. */
+           Player Card earnings -- and new rows on the diamonds page. */
         if (onCards()) { EGE.cardsView.poll(true); }
+        if (window.location.hash === '#diamonds') { EGE.diamondsView.render(); }
       }
       updateNavCreditsFromServer();
       /* An offer may have come in while the page was put away. On a Cards

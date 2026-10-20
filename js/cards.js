@@ -415,13 +415,21 @@ EGE.cardStore = (function () {
 
   /* --- holos ------------------------------------------------------------------ */
 
-  /* Merges three copies of `card` into its holo, for good. Comes back with
-     the holo and how many copies of the card are left. */
+  /* Merges three copies of `card` into its holo, for good, and is paid a
+     tenth of the card's fantasy score for it (EGE.cards.holoBonus). Comes
+     back with the holo, how many copies of the card are left, what the
+     merge paid and the diamonds after. */
   function mergeHolo(card) {
     if (!card || card.holo) { return fail('Only a card can be merged into a holo.'); }
     if (card.art || card.reward) { return fail('That card has no holo.'); }
-    return call('merge_holo_card', { p_card: card.id }, function (left) {
-      return { ok: true, holo: EGE.cards.byId(EGE.cards.holoIdOf(card.id)), left: Number(left) || 0 };
+    return call('merge_holo_card', { p_card: card.id, p_diamonds: EGE.cards.holoBonus(card) }, function (data) {
+      return {
+        ok: true,
+        holo: EGE.cards.byId(EGE.cards.holoIdOf(card.id)),
+        left: Number(data && data.left) || 0,
+        paid: Number(data && data.diamonds) || 0,
+        diamonds: data && typeof data.balance === 'number' ? data.balance : null
+      };
     });
   }
 

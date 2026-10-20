@@ -2576,6 +2576,15 @@ notify pgrst, 'reload schema';
 -- A holo is owned, traded, shown, quick sold (for three times its card)
 -- and put on the market like any other card; is_holo_id says what one looks
 -- like. Every merge is kept in card_merges.
+--
+-- Making one pays diamonds (Sam, 2026-10-20): a tenth of the card's fantasy
+-- score, rounded, at least 1 (holoBonus in data/cards.js). The score is in
+-- the season files, not in Postgres, so the page says what it comes to --
+-- the same trust as a game's diamonds -- and this holds it to 15, the most
+-- a 150-point card would pay; the biggest card there is pays 7.
+-- HOLO_BONUS_MAX in data/cards.js is the same 15, and the two are changed
+-- together. card_merges.diamonds keeps what each merge paid, which the
+-- diamonds page lists; a merge from before this pays nothing after it.
 -- ===========================================================================
 
 create table if not exists public.card_merges (
@@ -2588,6 +2597,8 @@ create table if not exists public.card_merges (
 create index if not exists card_merges_email_idx
   on public.card_merges (email, merged_at desc);
 
+alter table public.card_merges add column if not exists diamonds integer not null default 0;
+
 alter table public.card_merges enable row level security;
 
 drop policy if exists "card merges readable by owner or admin" on public.card_merges;
@@ -2595,23 +2606,35 @@ create policy "card merges readable by owner or admin"
   on public.card_merges for select to authenticated
   using (email = auth.jwt() ->> 'email' or public.is_admin());
 
--- Merges three copies of p_card into its holo. Returns how many copies of
--- the card are left.
-create or replace function public.merge_holo_card(p_card text)
-returns integer
+-- Merges three copies of p_card into its holo and pays p_diamonds for it.
+-- Returns { left: copies of the card left, diamonds: what it paid,
+-- balance: the diamonds after }.
+--
+-- It took the card alone and returned the copies left. Postgres will not
+-- change a function's arguments or what it returns in place, so the old
+-- one goes first; re-running this drops and recreates it.
+drop function if exists public.merge_holo_card(text);
+
+create or replace function public.merge_holo_card(p_card text, p_diamonds integer default 1)
+returns jsonb
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
-  v_email  text := auth.jwt() ->> 'email';
-  v_holo   text;
-  v_have   integer;
-  v_locked integer;
-  v_until  timestamptz;
+  v_email   text := auth.jwt() ->> 'email';
+  v_holo    text;
+  v_have    integer;
+  v_locked  integer;
+  v_until   timestamptz;
+  v_bonus   integer := greatest(coalesce(p_diamonds, 1), 1);
+  v_balance integer;
 begin
   if v_email is null then
     raise exception 'sign in first';
+  end if;
+  if v_bonus > 15 then
+    raise exception 'That is more than a holo pays.';
   end if;
   if p_card is null or not public.is_any_card_id(p_card) or public.is_holo_id(p_card) then
     raise exception 'Only a card can be merged into a holo: %', p_card;
@@ -2661,13 +2684,20 @@ begin
   end if;
   perform public.prune_showcase(v_email);
 
-  insert into public.card_merges (email, card_id) values (v_email, p_card);
-  return v_have - 3;
+  insert into public.card_merges (email, card_id, diamonds) values (v_email, p_card, v_bonus);
+
+  insert into public.player_diamonds as pd (email, diamonds, updated_at)
+  values (v_email, v_bonus, now())
+  on conflict (email) do update
+    set diamonds = pd.diamonds + v_bonus, updated_at = now()
+  returning diamonds into v_balance;
+
+  return jsonb_build_object('left', v_have - 3, 'diamonds', v_bonus, 'balance', v_balance);
 end;
 $$;
 
-revoke all on function public.merge_holo_card(text) from public, anon;
-grant execute on function public.merge_holo_card(text) to authenticated;
+revoke all on function public.merge_holo_card(text, integer) from public, anon;
+grant execute on function public.merge_holo_card(text, integer) to authenticated;
 
 notify pgrst, 'reload schema';
 
