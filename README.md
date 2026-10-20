@@ -402,7 +402,11 @@ Under the bar:
   the team's mark straight on the colour, no box round it (Sam,
   2026-10-20). The headshot stands on the band's bottom edge and is sized
   so the top of the head just clears the top of the box, about 5% of the
-  picture; every headshot is placed the same way. Then college, draft
+  picture; every headshot is placed the same way. The name is centred in
+  the band both ways (Sam, 2026-10-20): the mark's column is as wide as
+  the headshot's, which is framed square to leave the name room, and a
+  name too long for its column is set smaller rather than broken inside a
+  word (`fitName`). Then college, draft
   (*2021 · R4 #112*), age, height and weight; then the overall box, the archetype and his skills, best first;
   then his contract (*$1.1M a year through 2024*) and any injury. One of the
   six's has a button through to his page. A click off the box closes it.

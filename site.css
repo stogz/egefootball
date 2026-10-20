@@ -4021,7 +4021,7 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
    his team's colour with his headshot, name and the team's mark, then a
    cream panel with where he came from, his overall, archetype and skills,
    and his contract. */
-.ege-rip__stage.ege-rip__stage--person { width: min(520px, 100%); }
+.ege-rip__stage.ege-rip__stage--person { width: min(600px, 100%); }
 .ege-rip:has(.ege-rip__stage--person) {
   background:
     radial-gradient(circle at 50% 40%, rgba(240, 184, 42, .14), transparent 55%),
@@ -4037,8 +4037,14 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
   color: var(--fb-ink);
 }
 .ege-person__band {
+  --face-h: 124px;
+  --face-w: var(--face-h);
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  /* The mark's column is as wide as the headshot's, so the name's column,
+     and the name centred in it, sit on the band's own centre line. The
+     headshot is framed square, its shoulders trimmed at the sides, to
+     leave the name the room. */
+  grid-template-columns: var(--face-w) minmax(0, 1fr) var(--face-w);
   align-items: end;
   gap: 12px;
   padding: 0 14px;
@@ -4054,26 +4060,29 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
    sits higher or lower in its frame clears the top by a little more or
    less. */
 .ege-person__face {
-  --face-h: 124px;
   display: block;
-  width: calc(var(--face-h) * 1.375);
+  width: var(--face-w);
   height: var(--face-h);
   margin-top: calc(-1 * var(--fb-border) - var(--face-h) * .095);
 }
 .ege-person__face img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+/* Centred in the band both ways: across, by the matching columns either
+   side, and down, in the band's one row. A long name wraps to two even
+   lines rather than one long and one short. */
 .ege-person__name {
   align-self: center;
   margin: 0;
-  padding-bottom: 12px;
-  font-size: clamp(1.25rem, 4.5vw, 1.75rem);
+  font-size: clamp(1.125rem, 4.5vw, 1.75rem);
   line-height: 1.1;
+  text-align: center;
+  text-wrap: balance;
   color: #fff;
   text-shadow: 2px 2px 0 rgba(0, 0, 0, .45);
-  overflow-wrap: anywhere;
 }
 /* Straight on the team's colour, as on the team's page. */
 .ege-person__mark {
   align-self: center;
+  justify-self: end;
   display: grid;
   place-items: center;
   width: 76px;
@@ -4134,8 +4143,7 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-person__go { justify-self: start; }
 
 @media (max-width: 520px) {
-  .ege-person__band { gap: 8px; padding: 0 10px; }
-  .ege-person__face { --face-h: 88px; }
+  .ege-person__band { --face-h: 80px; gap: 8px; padding: 0 10px; }
   .ege-person__mark { width: 52px; height: 52px; }
   .ege-person__facts { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .ege-person__fact { grid-column: span 2; }

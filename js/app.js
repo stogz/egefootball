@@ -1779,6 +1779,19 @@
       '.png&w=' + (wide ? 350 : 96) + '&h=' + (wide ? 254 : 70);
   }
 
+  /* The pop-up's name at the size site.css gives it, or smaller when a
+     long name would otherwise run wider than its column (VanValkenburg) or
+     past two lines. A name is never broken inside a word. */
+  function fitName(node) {
+    node.style.fontSize = '';
+    var size = parseFloat(window.getComputedStyle(node).fontSize);
+    while (size > 10 && (node.scrollWidth > node.clientWidth + 1 ||
+        node.offsetHeight > size * 1.1 * 2 + 2)) {
+      size -= 1;
+      node.style.fontSize = size + 'px';
+    }
+  }
+
   function openNflPlayer(row) {
     var sim = row.sim;
     var team = EGE.nfl.teams[row.team] || {};
@@ -1798,7 +1811,8 @@
       face.appendChild(img);
     }
     band.appendChild(face);
-    band.appendChild(el('h3', 'ege-person__name', row.name));
+    var name = el('h3', 'ege-person__name', row.name);
+    band.appendChild(name);
     var mark = el('span', 'ege-person__mark');
     var logoSrc = EGE.nfl.logo(row.team);
     if (logoSrc) {
@@ -1877,6 +1891,8 @@
     }
     box.appendChild(panel);
     stage.appendChild(box);
+    fitName(name);
+    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(function () { fitName(name); }); }
 
     var close = stage.querySelector('.ege-rip__close');
     if (close) { close.focus({ preventScroll: true }); }
