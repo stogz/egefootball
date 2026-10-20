@@ -252,6 +252,28 @@ EGE.cardsView = (function () {
     return node;
   }
 
+  /* Who the game was against, 'vs. Ohio State', with the opponent's mark
+     after the name, a capital letter high, on a college or NFL card (Sam,
+     2026-10-20). A high school has no mark, and one that will not load
+     leaves the name alone. */
+  function versusEl(className, card) {
+    var node = el('div', className, card.versus);
+    var tier = card.opponent ? EGE.tierFor(card.season, card.player) : 'highSchool';
+    var src = tier !== 'highSchool' && EGE.logoFor ? EGE.logoFor(card.opponent, 64) : null;
+    if (src) {
+      var logo = el('img', 'ege-tcard__opplogo' + (tier === 'nfl' ? ' ege-tcard__opplogo--nfl' : ''));
+      logo.src = src;
+      logo.alt = '';
+      logo.loading = 'lazy';
+      logo.decoding = 'async';
+      logo.draggable = false;
+      logo.addEventListener('error', function () { logo.remove(); });
+      node.appendChild(document.createTextNode(' '));
+      node.appendChild(logo);
+    }
+    return node;
+  }
+
   /* A card's face. Sized by whatever holds it: every measurement inside is
      in container units, so the same card is a thumbnail in the binder and a
      hand-sized thing in a pack. */
@@ -305,7 +327,18 @@ EGE.cardsView = (function () {
         big.appendChild(el('b', null, 'INT'));
       } else {
         big.appendChild(el('b', null, String(card.play.yards)));
-        big.appendChild(el('small', null, 'YD' + (card.play.touchdown ? ' TD' : '')));
+        var unit = el('small', null, 'YD' + (card.play.touchdown ? ' TD' : ''));
+        /* A game-winning or game-icing touchdown says so on a line of its
+           own under YD TD, the two lines beside the number (Sam,
+           2026-10-20). */
+        if (card.play.clutch) {
+          big.classList.add('ege-tcard__yards--clutch');
+          var stack = el('span', 'ege-tcard__unit');
+          stack.appendChild(unit);
+          stack.appendChild(el('small', 'ege-tcard__clutch', card.play.clutch));
+          unit = stack;
+        }
+        big.appendChild(unit);
       }
       art.appendChild(big);
     } else if (card.big) {
@@ -331,9 +364,9 @@ EGE.cardsView = (function () {
     var body = el('div', 'ege-tcard__body');
     if (card.kind === 'play') {
       body.appendChild(el('div', 'ege-tcard__headline', card.headline));
-      body.appendChild(el('div', 'ege-tcard__line', card.versus));
+      body.appendChild(versusEl('ege-tcard__line', card));
     } else {
-      body.appendChild(el('div', 'ege-tcard__headline', card.versus));
+      body.appendChild(versusEl('ege-tcard__headline', card));
       body.appendChild(el('div', 'ege-tcard__line', card.line));
     }
     face.appendChild(body);
@@ -1052,12 +1085,10 @@ EGE.cardsView = (function () {
   /* --- a card up close -------------------------------------------------- */
 
   /* `owned`, when given, is how many the viewer has -- left off for somebody
-     else's card, on a showcase or in a trade. `theirs` is { name, email,
-     count } when it is from somebody else's collection, and `sell` offers a
-     quick sale of one copy when it is from your own. `owner` is the email
-     of whoever's showcase it is on, and `tradeWith` an account to offer a
-     trade for it (the Trade for it button). Signed in, it also says who
-     else has the card and how many. */
+     else's card, on a showcase or in a trade. `sell` offers a quick sale of
+     one copy when it is from your own collection, and `tradeWith` is an
+     account to offer a trade for it (the Trade for it button). Signed in,
+     it also says who has the card and how many. */
   function zoom(card, options) {
     var opts = options || {};
     var stage = openOverlay(card.player.name, 'ege-rip__stage--zoom');
@@ -1067,9 +1098,8 @@ EGE.cardsView = (function () {
     holder.appendChild(cardEl(card, {}));
     row.appendChild(holder);
     stage.appendChild(row);
-    if (card.holo) { tiltHolo(holder); }
+    tiltCard(holder);
 
-    var r = EGE.cards.rarity(card.rarity);
     var facts = el('dl', 'ege-zoom__facts');
     function fact(label, value) {
       facts.appendChild(el('dt', null, label));
@@ -1095,27 +1125,9 @@ EGE.cardsView = (function () {
       dd.appendChild(link);
       facts.appendChild(dd);
     }
-    if (card.reward) {
-      fact('Rarity', r.name + ' \u00b7 only for locking in every ' + GOLD.name + ' set before it ended');
-      fact('Event', GOLD.name + ' \u00b7 it stays with whoever earned it: it cannot be traded, sold or listed');
-    } else if (card.holo) {
-      var one = EGE.cards.byId(card.baseId);
-      fact('Rarity', r.name + ' Holo \u00b7 three copies merged into one');
-      fact('Fantasy', points(card.points) + ' points' +
-        (one ? ' (3 \u00d7 ' + points(one.points) + ')' : ''));
-    } else if (card.art) {
-      fact('Rarity', r.name + ' \u00b7 card art, only in ' + GOLD.name + ' Packs');
-      fact('Fantasy', points(card.points) + ' points');
-    } else {
-      /* A Gold Rush card is pulled at its own pack's odds. */
-      var gr = card.gold ? EGE.cards.pack(GOLD.pack) : null;
-      fact('Rarity', r.name + ' \u00b7 ' + (gr ? gr.odds[card.rarity] + '% of ' + GOLD.name + ' pulls' : r.odds + '% of pulls'));
-      fact('Fantasy', points(card.points) + ' points');
-    }
-    if (card.gold && !card.reward) {
-      fact('Event', GOLD.name + ' \u00b7 fills ' + GOLD.name + ' sets, and Library sets as its card. ' +
-        'Once traded, it waits ' + GOLD.lockHours + ' hours to be traded again.');
-    }
+    /* The rarity and the points are on the card, and how many anybody has
+       is in Who has it, so the facts leave them out (Sam, 2026-10-20). */
+    if (card.gold) { fact('Event', GOLD.name); }
     if (card.game) {
       fact('Game', card.versus + ' \u00b7 ' + (card.event || 'Week ' + card.week) + ', ' + card.season +
         (card.game.result ? ' \u00b7 ' + card.game.result.teamScore + '\u2013' + card.game.result.opponentScore : ''));
@@ -1126,8 +1138,6 @@ EGE.cardsView = (function () {
         lineFact('Line', card.line);
       }
     }
-    var ownedNode = typeof opts.owned === 'number' ? fact(opts.theirs ? 'You have' : 'Owned', String(opts.owned)) : null;
-    if (opts.theirs) { fact(opts.theirs.name + ' has', String(opts.theirs.count)); }
     /* Your own copies still cooling down after a trade. */
     var cooling = typeof opts.owned === 'number' && opts.owned > 0 ? lockedOf(state.locks, card.id) : [];
     if (cooling.length) {
@@ -1138,11 +1148,10 @@ EGE.cardsView = (function () {
     }
     var viewer = EGE.auth.currentPlayer();
     if (viewer) {
-      /* Everybody already counted above is left out of it. */
-      var skip = [opts.theirs && opts.theirs.email, opts.owner,
-                  typeof opts.owned === 'number' ? viewer.email : null]
-        .filter(Boolean).map(function (e) { return e.toLowerCase(); });
-      owners(card, fact('Who else has it', 'Loading…'), skip, viewer.email.toLowerCase());
+      /* Everybody who has it, you too, but for a card of your own: your
+         binder already says how many of it you have. */
+      owners(card, fact(opts.sell ? 'Who else has it' : 'Who has it', 'Loading…'),
+        opts.sell ? [viewer.email.toLowerCase()] : [], viewer.email.toLowerCase());
     }
     stage.appendChild(facts);
 
@@ -1159,7 +1168,7 @@ EGE.cardsView = (function () {
     if (opts.sell && opts.owned > 0 && card.reward) {
       actions.appendChild(el('span', 'ege-zoom__nosell', 'The GOLD RUSH card stays with you.'));
     } else if (opts.sell && opts.owned > 0) {
-      actions.appendChild(sellControl(card, { holder: holder, owned: ownedNode, status: status, merge: merge }));
+      actions.appendChild(sellControl(card, { holder: holder, status: status, merge: merge }));
       actions.appendChild(marketControl(card, { status: status, free: freeCopies(state.owned, state.locks, card.id),
                                                 wait: cooling[0] || null }));
     }
@@ -1184,7 +1193,8 @@ EGE.cardsView = (function () {
   /* Who else has a card and how many, into `dd` once it is read: each
      account with its face, its first name and its count, biggest pile
      first, and any copies up on the Market (held out of collections while
-     they are). `skip` is who is already counted in the facts above. */
+     they are). `skip` is who is left out of it: you, for a card from your
+     own collection. */
   function owners(card, dd, skip, viewer) {
     dd.classList.add('ege-zoom__owners');
     EGE.cardStore.ownersOf(card.id).then(function (rows) {
@@ -1199,7 +1209,7 @@ EGE.cardsView = (function () {
       var listed = state.market && state.market.open ? state.market.open.filter(function (row) {
         return row.card_id === card.id;
       }).length : 0;
-      if (!others.length && !listed) { dd.textContent = 'Nobody else'; return; }
+      if (!others.length && !listed) { dd.textContent = skip.length ? 'Nobody else' : 'Nobody'; return; }
 
       others.forEach(function (row) {
         var mine = String(row.email).toLowerCase() === viewer;
@@ -1264,6 +1274,7 @@ EGE.cardsView = (function () {
     holder.appendChild(playerCardFace(pc, pc.earned, pc.photo || null));
     row.appendChild(holder);
     stage.appendChild(row);
+    tiltCard(holder);
 
     var facts = el('dl', 'ege-zoom__facts');
     function fact(label, value) {
@@ -1423,8 +1434,9 @@ EGE.cardsView = (function () {
     return !card.holo && !card.art && !card.reward;
   }
 
-  /* Up close, a holo leans toward the pointer and its foil follows it. */
-  function tiltHolo(holder) {
+  /* Up close, a card of any rarity leans toward the pointer, as a holo
+     always has (Sam, 2026-10-20), and a holo's foil follows it. */
+  function tiltCard(holder) {
     if (reducedMotion()) { return; }
     holder.classList.add('is-tilting');
     holder.addEventListener('pointermove', function (e) {
@@ -1498,7 +1510,6 @@ EGE.cardsView = (function () {
         walletChanged(null, res.diamonds);
         renderPacks();
 
-        if (parts.owned) { parts.owned.textContent = String(left); }
         if (parts.merge && left < EGE.cards.HOLO_OF) { parts.merge.hidden = true; }
         parts.status.textContent = 'Sold for ' + pays + (pays === 1 ? ' diamond. ' : ' diamonds. ') +
           (left ? 'You have ' + left + ' left.' : 'That was your last one.');
@@ -1876,9 +1887,7 @@ EGE.cardsView = (function () {
       } else if (v.mine) {
         zoom(card, { owned: state.owned[card.id] || 0, sell: true });
       } else {
-        zoom(card, { owned: state.owned[card.id] || 0, tradeWith: state.view,
-                     theirs: { name: v.name, email: state.view,
-                               count: (state.other && state.other.owned[card.id]) || 0 } });
+        zoom(card, { owned: state.owned[card.id] || 0, tradeWith: state.view });
       }
     });
     if (v.mine && state.sell) { saleMarks(node, card); }

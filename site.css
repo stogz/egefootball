@@ -4816,6 +4816,18 @@ html.ege-noscroll body { overflow: hidden; }
 /* A game's two numbers sit a size down, so both fit across the picture. */
 .ege-tcard__yards--game b { font-size: 14.5cqw; }
 .ege-tcard__yards--game small + b { margin-left: 2.4cqw; }
+/* A game-winning or game-icing touchdown: YD TD with GAME-WINNING under
+   it, the pair beside the number with GAME-WINNING on the number's
+   baseline, so the strip is no taller. A browser without last-baseline
+   alignment puts YD TD there and GAME-WINNING just under it. */
+.ege-tcard__yards--clutch { align-items: last baseline; }
+.ege-tcard__unit { display: flex; flex-direction: column; gap: .4cqw; }
+.ege-tcard__unit small { line-height: 1.05; }
+.ege-tcard__clutch {
+  color: var(--rarity);
+  text-shadow: .5cqw .5cqw 0 var(--fb-ink);
+  text-transform: uppercase;
+}
 
 .ege-tcard__plate {
   padding: 1.4cqw 3cqw 1.6cqw;
@@ -4855,6 +4867,20 @@ html.ege-noscroll body { overflow: hidden; }
   font-weight: 800;
   line-height: 1.2;
 }
+/* The opponent's mark after its name, about a capital letter high. A
+   school's comes off ESPN on a square with a little room round it; an NFL
+   team's (Sam's set) is cut to the mark, so it is drawn a size down, and a
+   wide one like the Seahawks' runs as wide as it needs. */
+.ege-tcard__opplogo {
+  display: inline-block;
+  width: auto;
+  height: 1.1em;
+  max-width: 2.4em;
+  margin-left: .05em;
+  vertical-align: -.22em;
+  object-fit: contain;
+}
+.ege-tcard__opplogo--nfl { height: .9em; vertical-align: -.1em; }
 .ege-tcard__line {
   font-size: 4.4cqw;
   font-weight: 600;
@@ -5983,8 +6009,9 @@ html.ege-noscroll body { overflow: hidden; }
   width: 100%;
 }
 .ege-rip__cards > .ege-flip { width: clamp(150px, 17vw, 190px); }
-.ege-rip__cards--1 > .ege-flip,
-.ege-zoom__card { width: min(290px, 72vw); }
+.ege-rip__cards--1 > .ege-flip { width: min(290px, 72vw); }
+/* A card up close is as wide as the facts under it (Sam, 2026-10-20). */
+.ege-zoom__card { width: min(460px, 100%); }
 /* An account's Player Card photos on the admin's card table. */
 .ege-cardsadmin__photos { white-space: nowrap; }
 .ege-cardsadmin__photos .fb-btn { margin-left: 10px; }
@@ -7865,8 +7892,7 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-rip__stage { gap: 16px; }
   .ege-rip__cards { gap: 10px; }
   .ege-rip__cards > .ege-flip { width: calc((100% - 20px) / 3); }
-  .ege-rip__cards--1 > .ege-flip,
-  .ege-zoom__card { width: min(260px, 70vw); }
+  .ege-rip__cards--1 > .ege-flip { width: min(260px, 70vw); }
 
   .ege-trade__sides { grid-template-columns: minmax(0, 1fr); }
   .ege-trade__swap { transform: rotate(90deg); justify-self: center; }
