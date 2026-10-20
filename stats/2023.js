@@ -402,6 +402,20 @@ EGE.stats[2023] = {
         bigPlays: [
           '4 yard rushing touchdown'
         ] },
+      { week: 19, date: '2023-12-27', kickoff: null,
+        name: 'Holiday Bowl',
+        opponent: 'North Carolina', home: false, conference: false, neutral: true, playoff: true,
+        result: { teamScore: 32, opponentScore: 37 }, booster: null,
+        stats: {
+          carries: 31, rushingYards: 157, rushingTd: 2, rushingLong: 28,
+          receptions: 6, receivingYards: 77, receivingYac: 57,
+          receivingTd: 0, receivingLong: 26, targets: 7, fumbles: 0,
+          rushingAvg: 5.1, receivingAvg: 12.8, totalYards: 234, totalTd: 2
+        },
+        bigPlays: [
+          '19 yard rushing touchdown',
+          '2 yard rushing touchdown'
+        ] },
     ],
 
     /* Paxon Hatch — North Carolina */
@@ -548,6 +562,19 @@ EGE.stats[2023] = {
         },
         bigPlays: [
           '32 yard receiving touchdown'
+        ] },
+      { week: 19, date: '2023-12-27', kickoff: null,
+        name: 'Holiday Bowl',
+        opponent: 'USC', home: false, conference: false, neutral: true, playoff: true,
+        result: { teamScore: 37, opponentScore: 32 }, booster: null,
+        stats: {
+          receptions: 8, receivingYards: 139, receivingYac: 54,
+          receivingTd: 1, receivingLong: 41, targets: 11, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 17.4, totalYards: 139, totalTd: 1
+        },
+        bigPlays: [
+          '5 yard receiving touchdown'
         ] },
     ],
 
@@ -714,6 +741,21 @@ EGE.stats[2023] = {
           '39 yard passing touchdown',
           '1 yard passing touchdown',
           '22 yard passing touchdown'
+        ] },
+      { week: 19, date: '2023-12-28', kickoff: null,
+        name: 'Alamo Bowl',
+        opponent: 'Arizona', home: false, conference: false, neutral: true, playoff: true,
+        result: { teamScore: 33, opponentScore: 12 }, booster: null,
+        stats: {
+          completions: 21, attempts: 35, passingYards: 268,
+          passingYac: 91, passingTd: 3, interceptions: 0, carries: 2,
+          rushingYards: 9, rushingTd: 0, rushingLong: 6, sacks: 3,
+          fumbles: 0, passingAvg: 12.8, rating: 112.6, rushingAvg: 4.5
+        },
+        bigPlays: [
+          '30 yard passing touchdown',
+          '22 yard passing touchdown',
+          '6 yard passing touchdown'
         ] },
     ],
 
