@@ -1272,7 +1272,27 @@ credits on the player's own schedule.
 Unlike credits, **a player cannot write their own diamond balance**:
 `player_diamonds` has an insert and update policy for an admin only, and a
 player's diamonds move only through paying a game, buying diamonds, opening a
-pack, claiming a set and quick selling a card.
+pack, claiming a set, quick selling a card and making a holo.
+
+**Making a holo pays a tenth of the card's fantasy score** in diamonds,
+rounded and never less than 1 (Sam, 2026-10-20): the one card's score, not
+the holo's three times it, so most cards pay 1 or 2 and Sam's 65-point
+Iconic pays 7. The page works it out (`holoBonus` in `data/cards.js`) and
+`merge_holo_card()` pays it in the same transaction as the merge, holds it to
+15 (`HOLO_BONUS_MAX`; change both together) and keeps it in
+`card_merges.diamonds`. Holos made before this paid nothing and are not
+back-paid.
+
+**The diamond balance in the nav opens the diamonds page** (`#diamonds`,
+`js/diamonds-view.js`). Recent Games is a box a week, newest first, six at a
+time with Show more: every game that week that paid the account anything,
+one row a game, split into what it paid as their own game (`game-w{week}`)
+and what it paid through their Player Card on that player
+(`pc-{slug}-w{week}`, with the rank it was paid at), and the week's total.
+A row opens that game in the player's game log. The panel's head has the
+balance and the live season's split. Holo Bonuses, under it, lists every
+holo that paid, and only shows once one has. It reads the ledger as it
+stands, so it is what was paid, not a sum done again.
 
 ### Where the cards come from
 
@@ -1578,6 +1598,12 @@ which pack, the cards and when, never the price.
 Sets to put together, each claimed once. A set is a list of slots, each
 wanting one card. No card fills two slots of the same set, but a card counts
 toward every set it fits, and claiming uses nothing up.
+
+**Gold Rush cards count toward them too** (Sam, 2026-10-20), each as the card
+it is a Gold Rush copy of: a card and its Gold Rush copy are one card here
+and never fill two slots, the two card-art cards count as the games they are
+art of (at their own Mystic), and the GOLD RUSH card counts as an Iconic. The
+Gold Rush's own sets still take Gold Rush cards and nothing else.
 
 | Set | Needs | Reward |
 | --- | --- | --- |
@@ -2567,6 +2593,9 @@ Built so far:
   opening a pack and claiming a set.
 - `js/cards-view.js` — the Cards tab: packs, buying diamonds, the rip, the
   collection, trades and the library.
+- `js/diamonds-view.js` — the diamonds page (`#diamonds`), opened from the
+  diamond balance in the nav: the latest games that paid diamonds and the
+  holos that did.
 - `js/sounds.js` and `sound/` — the pack rip, card flip and big-pull
   sounds, and how loud each one plays.
 - `js/showcase.js` — the showcase on a player page, and editing your own.

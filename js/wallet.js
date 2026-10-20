@@ -571,6 +571,28 @@ EGE.wallet = (function () {
       .catch(function () { return []; });
   }
 
+  /* Where one account's diamonds came from, for the diamonds page: every
+     diamond_awards row that paid anything -- its own games (game-w{week})
+     and its Player Cards' bonuses (pc-{slug}-w{week}), every season -- and
+     the holo merges that paid (card_merges.diamonds). Null when the awards
+     could not be read. Merges read before the schema has their diamonds
+     come back as none rather than failing the page. */
+  function diamondHistory(email) {
+    var c = client();
+    if (!c || !email) { return Promise.resolve(null); }
+
+    return Promise.all([
+      c.from(DIAMOND_AWARDS).select('season, award_key, diamonds, note, awarded_at')
+        .eq('email', email).gt('diamonds', 0),
+      c.from('card_merges').select('card_id, diamonds, merged_at')
+        .eq('email', email).gt('diamonds', 0)
+        .order('merged_at', { ascending: false }).limit(60)
+    ]).then(function (both) {
+      if (both[0].error) { return null; }
+      return { awards: both[0].data || [], merges: both[1].error ? [] : (both[1].data || []) };
+    }).catch(function () { return null; });
+  }
+
   /* Hands out credits an admin has decided on — a salary, a Pro Bowl,
      whatever the earnings table calls it. Added straight onto the balance
      and not logged anywhere: the credits are the point, not a record of
@@ -1196,6 +1218,7 @@ EGE.wallet = (function () {
     buyDiamonds: buyDiamonds,
     syncDiamonds: syncDiamonds,
     allDiamondAwards: allDiamondAwards,
+    diamondHistory: diamondHistory,
     adjustEveryone: adjustEveryone,
     inventoryFor: inventoryFor,
     allInventory: allInventory,
