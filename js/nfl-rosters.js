@@ -14,8 +14,9 @@
    either: no team ratings, no potential, nothing about how long a player
    will last (see publicRosters in nfl-sim/lib/site.js).
 
-   Two things are worked out from them here: how hard each defense is on
-   one of the six's positions, for the ODEF grade on an NFL schedule, and
+   Three things are worked out from them here: how hard each defense is on
+   one of the six's positions, for the ODEF grade on an NFL schedule; the
+   defenders he will face in his next game, for the strip under it; and
    for an admin's eyes only a team's offense and defense as two overalls.
 
    A season is asked for once a load. get() is undefined until then, null
@@ -212,6 +213,30 @@
     };
   }
 
+  /* The defenders one of the six will actually line up against, from the
+     same depth chart the grade is worked out on: a back the front seven
+     and the box safety, a quarterback the whole defense, a receiver the
+     corners and safeties, a tight end the edge rushers he blocks and the
+     linebackers and safeties who cover him. Hurt players are not in it. */
+  var FACING = {
+    rush: [['DI', 0], ['DI', 1], ['EDGE', 0], ['EDGE', 1], ['LB', 0], ['LB', 1], ['S', 0]],
+    QB: [['EDGE', 0], ['EDGE', 1], ['DI', 0], ['DI', 1], ['LB', 0], ['LB', 1], ['CB', 0], ['CB', 1], ['CB', 2],
+         ['S', 0], ['S', 1]],
+    WR: [['CB', 0], ['CB', 1], ['CB', 2], ['S', 0], ['S', 1]],
+    TE: [['EDGE', 0], ['EDGE', 1], ['LB', 0], ['LB', 1], ['S', 0], ['S', 1]]
+  };
+
+  /* Those defenders as roster rows, in that order, or null before the
+     season's rosters are in or for a team they do not have. */
+  function facing(season, key, position) {
+    var all = cache[season];
+    var rows = all && all.teams ? all.teams[key] : null;
+    if (!rows || !rows.length) { return null; }
+    var at = depth(rows);
+    return FACING[matchupFor(position)].map(function (slot) { return at(slot[0], slot[1]); })
+      .filter(Boolean);
+  }
+
   /* A team's offense and defense as two overalls, for an admin only: the
      starters' overalls with the ones that matter most counting most -- the
      quarterback a third of the offense. `ovrOf(row)` is the overall to use
@@ -246,6 +271,7 @@
     set: function (season, rosters) { cache[season] = rosters; },
     forget: function (season) { delete cache[season]; file = null; },
     defenseGrade: defenseGrade,
+    facing: facing,
     unitOveralls: unitOveralls,
     /* One team's players, best first, or null. */
     team: function (season, key) {

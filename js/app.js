@@ -1159,6 +1159,83 @@
     return row;
   }
 
+  /* --- who he lines up against -----------------------------------------
+
+     Under an NFL player's next game, in the colour of the team he is about
+     to play, the defenders he will face, each with his overall and the
+     pop-up the Teams page opens (Sam, 2026-10-20). The live season only,
+     and the next game rather than the next week, so a bye puts it under the
+     game after it. The rosters are the sim's as they stand, injuries and
+     all; see EGE.nflRosters.facing. */
+  function nextNflGame(player, season, games) {
+    if (season !== EGE.currentSeason || EGE.tierFor(season, player) !== 'nfl') { return null; }
+    return games.filter(function (game) {
+      return !game.bye && !EGE.isPublished(game.season, game.week);
+    })[0] || null;
+  }
+
+  var FACING_POS = { DI: 'DT' };
+
+  function appendFaceoff(body, player, game) {
+    var key = EGE.nfl.keyByName(game.opponent);
+    var rows = key ? EGE.nflRosters.facing(game.season, key, EGE.positionFor(player, game.season)) : null;
+    if (!rows || !rows.length) { return; }
+    var team = EGE.nfl.teams[key] || {};
+
+    var row = el('tr', 'ege-faceoff');
+    var cell = el('td');
+    cell.colSpan = document.querySelectorAll('#scheduleTableWrap thead th:not([hidden])').length;
+    var strip = el('div', 'ege-faceoff__strip');
+    strip.style.background = team.color || '';
+
+    var head = el('div', 'ege-faceoff__head');
+    head.appendChild(el('span', 'ege-faceoff__title', 'Lining up against ' + player.first));
+    var src = EGE.nfl.logo(key);
+    if (src) {
+      var logo = el('img', 'ege-faceoff__logo');
+      logo.src = src;
+      logo.alt = team.name || '';
+      logo.title = team.name || '';
+      logo.addEventListener('error', function () { logo.remove(); });
+      head.appendChild(logo);
+    }
+    strip.appendChild(head);
+
+    var list = el('ul', 'ege-faceoff__list');
+    rows.forEach(function (sim) {
+      var who = nflRow(sim, game.season, key);
+      var item = el('li', 'ege-faceoff__player');
+      var card = el('div', 'ege-teamchip ege-teamchip--nfl ege-teamchip--faceoff');
+      EGE.cardsView.pressable(card, who.name, function () { openNflPlayer(who); });
+      card.appendChild(rosterFace(who));
+      var text = el('span', 'ege-teamchip__text');
+      text.appendChild(el('span', 'ege-teamchip__name', who.name));
+      var meta = el('span', 'ege-teamchip__meta');
+      var pos = el('abbr', 'ege-room__class', FACING_POS[sim.pos] || sim.pos);
+      pos.title = POSITION_NAMES[sim.pos] || sim.pos;
+      meta.appendChild(pos);
+      if (who.archetype) { meta.appendChild(el('span', 'ege-teamchip__arch', who.archetype)); }
+      text.appendChild(meta);
+      card.appendChild(text);
+      var box = overallBox(who.overall, 'ege-ovrbox--chip');
+      if (box) { card.appendChild(box); }
+      item.appendChild(card);
+      list.appendChild(item);
+    });
+    strip.appendChild(list);
+    cell.appendChild(strip);
+    row.appendChild(cell);
+    body.appendChild(row);
+
+    /* And a row nobody sees, so the games under it keep the same stripe
+       they had: the kit stripes every second row, whatever is in it (see
+       .ege-schedule__break in site.css). */
+    var keep = el('tr', 'ege-faceoff__keep');
+    keep.hidden = true;
+    keep.setAttribute('aria-hidden', 'true');
+    body.appendChild(keep);
+  }
+
   function renderSchedule(player) {
     var panel = document.getElementById('schedulePanel');
     var body = document.getElementById('scheduleBody');
@@ -1219,8 +1296,10 @@
        the stat line that dropped open under a finished game was a row of its
        own, and every row after it changed colour. */
     var firstPlayoff = games.filter(function (game) { return game.playoff; })[0];
+    var next = nextNflGame(player, season, games);
     games.forEach(function (game) {
       body.appendChild(scheduleRow(game, game === firstPlayoff));
+      if (game === next) { appendFaceoff(body, player, game); }
     });
 
     /* Out of the games, not the weeks: an NFL bye is a row of its own. */

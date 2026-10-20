@@ -257,6 +257,20 @@ holds:
   best healthy players at each spot, nickel. The tooltip says the rank.
   `EGE.nflRosters.defenseGrade` in `js/nfl-rosters.js`; the column waits
   for the rosters to load and the schedule is drawn again when they do.
+
+  **Under an NFL player's next game** (Sam, 2026-10-20) is a strip in the
+  colour of the team he is about to play, with its logo and "Lining up
+  against {first name}": the defenders he will face, each a small card
+  with his picture, position, archetype and overall box that opens the
+  same pop-up as the Teams page. A back sees the two tackles, two edge
+  rushers, two linebackers and the box safety; a quarterback the whole
+  nickel defense; a receiver the three corners and two safeties; a tight
+  end the two edge rushers, two linebackers and two safeties. They are
+  the healthy starters in the sim's rosters as they stand
+  (`EGE.nflRosters.facing`). The live season only, and the next game, not
+  the next week: a bye puts the strip under the game after it. A hidden
+  row after the strip keeps the stripes on the games under it as they
+  were.
 - **Game log** — per-game stats for that player, with the stat lines driven by
   their position (see below), and a totals row for the season, on the
   panel's own cream under a hard rule.
