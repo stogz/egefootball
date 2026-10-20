@@ -1270,6 +1270,45 @@ body::before {
   animation: ege-sheen 9s ease-in-out infinite;
 }
 
+/* A wager -- a poker chip: green felt with a ring of white notches round
+   the edge, and the mark of the team it is on in the middle, or BET on the
+   drawer's blank one. A played one is stamped with what it did. */
+.ege-sticker--wager { --cut: circle(50%); }
+.ege-sticker--wager .ege-sticker__face {
+  background:
+    radial-gradient(circle, #2f8a55 0 52%, transparent 53%),
+    repeating-conic-gradient(#f4efe4 0 12deg, #1f6b3f 12deg 30deg);
+}
+.ege-sticker--wager .ege-sticker__face::before {
+  inset: 22%;
+  border-radius: 50% !important;
+  background: radial-gradient(circle at 35% 30%, #fbf6ea, #e9dfc9);
+  box-shadow: 0 0 0 2px #1f6b3f;
+}
+.ege-sticker__logo {
+  position: relative;
+  z-index: 2;
+  width: 46%;
+  height: 46%;
+  object-fit: contain;
+}
+.ege-sticker--wager .ege-sticker__text { font-size: calc(var(--sticker-size) * 0.2); letter-spacing: .04em; }
+.ege-sticker--lost { filter: grayscale(1) drop-shadow(2px 3px 3px rgba(0, 0, 0, .45)); }
+.ege-sticker__stamp {
+  position: absolute;
+  right: 4%;
+  bottom: 4%;
+  z-index: 5;
+  padding: 1px 4px;
+  border: 2px solid var(--fb-ink);
+  background: var(--fb-tint-sage-2);
+  color: var(--fb-ink);
+  font-size: calc(var(--sticker-size) * 0.17);
+  font-weight: 800;
+  line-height: 1.1;
+}
+.ege-sticker--lost .ege-sticker__stamp { background: #e8826a; }
+
 @keyframes ege-holo-flow {
   0%   { background-position: 0% 0%, 100% 0%, 0% 100%, 100% 100%, 0% 50%; }
   25%  { background-position: 20% 10%, 85% 20%, 15% 85%, 80% 90%, 40% 60%; }
@@ -1523,6 +1562,45 @@ body::before {
 .ege-pick.is-spent { cursor: not-allowed; }
 .ege-pick.is-spent .ege-sticker { filter: grayscale(1) opacity(.45); }
 .ege-pick.is-spent .ege-pick__left { color: var(--fb-accent); }
+/* The wager in the drawer: the blank chip, what it does, and the two
+   sides to pick from. */
+.ege-drawer__wager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 16px;
+  padding-left: 18px;
+  border-left: var(--fb-border-thin) solid rgba(244, 239, 228, .2);
+}
+.ege-drawer__wagerwords { display: flex; flex-direction: column; gap: 3px; flex: 1 1 200px; min-width: 0; max-width: 280px; }
+.ege-drawer__wagertitle {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-accent);
+}
+.ege-drawer__wagernote { font-size: .8125rem; font-weight: 600; color: var(--fb-sand); }
+.ege-drawer__sides { display: flex; flex-wrap: wrap; gap: 10px; }
+.ege-wagerpick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 14px 6px 8px;
+  border: var(--fb-border-thin) solid var(--fb-cream);
+  background: var(--fb-cream);
+  color: var(--fb-ink);
+  font-weight: 800;
+  cursor: pointer;
+}
+.ege-wagerpick:hover,
+.ege-wagerpick:focus-visible { background: var(--fb-accent); border-color: var(--fb-accent); }
+.ege-wagerpick:disabled { cursor: not-allowed; opacity: .45; background: var(--fb-cream); }
+.ege-wagerpick__logo { width: 28px; height: 28px; object-fit: contain; }
+@media (max-width: 620px) {
+  .ege-drawer__wager { padding-left: 0; border-left: 0; }
+}
 .ege-drawer__room {
   flex-basis: 100%;
   order: -1;
@@ -2114,6 +2192,10 @@ body::before {
   font-weight: 800;
   text-decoration: none;
 }
+/* And a wager, coloured by how it went. */
+.ege-gamelog__boost--won { background: var(--fb-tint-sage-2); }
+.ege-gamelog__boost--lost { background: #f4c4b6; }
+.ege-gamelog__boost--push { background: var(--fb-sand); }
 
 /* The two Discord webhooks on the admin page: a box and its Save button a
    row, the button level with the box. */
@@ -2843,6 +2925,8 @@ body::before {
   background: #e3f5fb;
 }
 .ege-schedule__paid--gem .ege-gem { margin-left: .2em; }
+/* A game a lost wager paid nothing for. */
+.ege-schedule__paid--lost { background: #f4c4b6; }
 
 /* The season editor: a lot of small number fields in a tidy grid. */
 .ege-statgrid {

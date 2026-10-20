@@ -1049,6 +1049,51 @@ on, and a trigger on `game_boosters` in `supabase/schema.sql` refuses the
 row as well, for anything that skips the page. Buying is not capped: an
 unused booster carries over.
 
+**No + on a bye** (Sam, 2026-10-20): there is no game to put anything on.
+
+**Hurt, no boosters.** Once the week a player got hurt in is out, every
+booster on a game he is going to miss comes off it and goes back in his
+drawer, and those games take no new booster — the drawer says he is out
+injured and offers only the wager (Sam, 2026-10-20). Which games he is going
+to miss is what the injury report says, from the week he went out to the
+week before he is back (`EGE.outInjured` in `data/games.js`), so an injury
+further down the file is not given away early. The handing back is
+`EGE.wallet.returnInjuredBoosters`, run by the player's own page whenever it
+pays what he is owed and by the admin's publishing a week; a booster only
+goes back to the drawer from whichever of them actually deleted its row, so
+it can never come back twice. Boosters already written into the season file
+are left alone.
+
+### Wagers
+
+The drawer has a **Wager** beside the boosters (Sam, 2026-10-20): a money
+line on the game. Pick a side — your own team or the other one — to win it.
+Right, and the game pays **double its credits**; wrong, and it pays **no
+credits**; a tie hands it back and the game pays as usual. Diamonds and the
+Player Card bonuses are paid as if there were no wager. **Two a season**,
+regular season only, never on a game already out, and free: a wager is a
+pick, not something bought, so nothing comes out of the inventory. It takes
+the game's one sticker slot, so a game carries a booster or a wager, never
+both. A game a player is out hurt for still takes a wager (it pays the 1
+credit a missed game pays, so 2 or 0).
+
+On the schedule it is a green poker chip with the mark of the team it is on;
+once the game is out it is stamped **2x** for a win or **0** for a loss (and
+greyed), the Paid column shows the doubled credits or a red **+0**, and the
+game log carries *Bet 2x* or *Bet 0x* beside the opponent. Until then it
+comes off the way a booster does.
+
+It is stored like a booster: a `game_boosters` row with `item_key`
+`wager-for` (your team) or `wager-against` (the opponent), written into the
+season file's `booster` field when the week is pulled in, and the season
+editor's Booster or wager pick has both. `EGE.wagerOn` in `data/games.js`
+reads it and settles it from the score; `EGE.economy.awardsEarned` and
+`EGE.creditsFromGame` pay it. The credit ledger only ever tops an award up,
+so the stickers are always loaded before a player's credits are paid
+(`syncAwards`), or a lost wager would be paid in full and never taken back.
+The trigger on `game_boosters` refuses a third wager in a season and any
+sticker on a week already out, admins aside.
+
 **Nothing goes on a playoff game.** A booster is what you spend a limited
 drawer on across a regular season you can see all of; the postseason is not
 planned, it is whatever the bracket hands you. A game with `playoff: true`
@@ -1999,7 +2044,8 @@ the same thing, so they live on the same line.
 `result` and `stats` are null until a game has been played. Nothing generates
 them — the numbers come from wherever you generate them and are typed in, by
 hand or through the season editor. `booster` is the performance booster that
-was riding on the game, and once a week is out that is where it lives for
+was riding on the game, or the wager (`wager-for` / `wager-against`), and
+once a week is out that is where it lives for
 good, so the row behind it can be cleared out of Supabase. `bigPlays` is an
 optional list of strings, one per big play, shown under the stat line in the
 Discord post.

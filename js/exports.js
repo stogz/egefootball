@@ -238,6 +238,7 @@ EGE.exports = (function () {
 
       games: EGE.gamesFor(player, season).map(function (game) {
         var booster = EGE.boosterOn(player, game);
+        var wager = EGE.wagerOn(player, game);
         return {
           week: game.week,
           date: game.date,
@@ -258,9 +259,11 @@ EGE.exports = (function () {
             name: booster.name,
             multiplier: booster.multiplier
           } : null,
+          wager: wager ? { side: wager.side, team: wager.team, outcome: wager.outcome } : null,
           touchdowns: EGE.economy.touchdownsIn(game.stats),
           fantasyPoints: EGE.economy.fantasyPoints(game.stats),
-          creditsEarned: EGE.economy.gameCredits(player, game.stats, season, game.playoff),
+          creditsEarned: EGE.wageredCredits(
+            EGE.economy.gameCredits(player, game.stats, season, game.playoff), wager),
           diamondsEarned: EGE.economy.gameDiamonds(player, game.stats, season,
                                                    booster && booster.multiplier, game.playoff)
         };

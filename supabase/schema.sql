@@ -390,10 +390,13 @@ create policy "game boosters removed by owner or admin"
   using (email = auth.jwt() ->> 'email' or public.is_admin());
 
 -- A season takes five boosters at most: two 2.5x, three 2.0x and four 1.5x
--- (boosterSeasonLimit and each booster's seasonLimit in data/shop.js). The
--- page checks before it sticks one on, and counts the boosters already
--- written into the season file too; this is the backstop for the rows still
--- in here, so a direct insert with the anon key cannot go past it either.
+-- (boosterSeasonLimit and each booster's seasonLimit in data/shop.js), and
+-- two wagers (wagerSeasonLimit), which share a game's one slot with the
+-- boosters but not their count. The page checks before it sticks one on,
+-- and counts what is already written into the season file too; this is the
+-- backstop for the rows still in here, so a direct insert with the anon key
+-- cannot go past it either. Nor can one go on a week already out, where the
+-- result is known -- an admin aside, putting a week right.
 create or replace function public.enforce_booster_limits()
 returns trigger
 language plpgsql
@@ -403,6 +406,24 @@ declare
   same_kind  integer;
   every_kind integer;
 begin
+  if not public.is_admin() and exists (
+    select 1 from public.published_weeks
+     where season = new.season and week = new.week
+  ) then
+    raise exception 'That week is already out.';
+  end if;
+
+  if new.item_key in ('wager-for', 'wager-against') then
+    select count(*) into same_kind
+      from public.game_boosters
+     where lower(email) = lower(new.email) and season = new.season
+       and item_key in ('wager-for', 'wager-against');
+    if same_kind >= 2 then
+      raise exception 'Season limit: two wagers a season.';
+    end if;
+    return new;
+  end if;
+
   kind_limit := case new.item_key
     when 'boost-2-5' then 2
     when 'boost-2-0' then 3
@@ -412,7 +433,8 @@ begin
 
   select count(*) into every_kind
     from public.game_boosters
-   where lower(email) = lower(new.email) and season = new.season;
+   where lower(email) = lower(new.email) and season = new.season
+     and item_key not in ('wager-for', 'wager-against');
 
   select count(*) into same_kind
     from public.game_boosters

@@ -54,6 +54,12 @@ EGE.shop = {
      numbers are enforced in supabase/schema.sql. */
   boosterSeasonLimit: 5,
 
+  /* Wagers a season can carry (Sam, 2026-10-20). A wager is free -- it is
+     not bought, it is a pick -- and it takes a game's sticker slot the way
+     a booster does. Enforced in supabase/schema.sql too. See EGE.wagerOn in
+     data/games.js. */
+  wagerSeasonLimit: 2,
+
   sections: [
     {
       key: 'boosters',
