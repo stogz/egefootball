@@ -5274,9 +5274,9 @@ html.ege-noscroll body { overflow: hidden; }
 }
 .ege-tcard--gold .ege-tcard__holo { top: 27cqw; }
 
-/* A card printed from Sam's art is the picture and nothing else; its
-   sticker goes in the same place, under the score printed on it. */
-.ege-tcard--art { overflow: hidden; }
+/* The GOLD RUSH card, printed from Sam's art, is the picture and nothing
+   else. */
+.ege-tcard--print { overflow: hidden; }
 .ege-tcard__print {
   position: absolute;
   inset: 0;
@@ -5285,7 +5285,29 @@ html.ege-noscroll body { overflow: hidden; }
   object-fit: cover;
   pointer-events: none;
 }
-.ege-tcard--art .ege-sticker.ege-tcard__sticker { top: 12.4%; right: 4.2%; }
+
+/* A card-art card is the page's card with Sam's photo of the game in the
+   picture (Sam, 2026-10-20). The photo comes with its helmet cut out above
+   it, and the helmet stands up out of the picture over the PERFORMANCE
+   strip and the score. The picture lets it out of its top only, and the
+   face still holds it in, so it stays under the frame; the big numbers,
+   the sticker and the holo's rainbow stay on top of it. --rise is how far
+   the helmet stands up, as a % of the picture's width (CARD_ART in
+   data/cards.js). */
+.ege-tcard--cut .ege-tcard__art {
+  overflow: visible;
+  clip-path: inset(-60cqw 0 0 0);
+}
+.ege-tcard__cut {
+  position: absolute;
+  inset: 0;
+  margin-top: calc(var(--rise, 0) * -1%);
+  pointer-events: none;
+}
+.ege-tcard__cut .ege-tcard__photo { object-position: center top; }
+/* The score's number stays in front of the helmet, so a holo's wider one
+   (177.9) is not read as 77.9. */
+.ege-tcard--cut :is(.ege-tcard__points, .ege-tcard__fpts) { position: relative; z-index: 1; }
 
 /* A Gold Rush card traded in the last 48 hours, none of whose copies can
    go again yet: a padlock and the time left, off its bottom left corner. */

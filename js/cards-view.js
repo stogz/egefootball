@@ -234,14 +234,14 @@ EGE.cardsView = (function () {
     if (opts.isNew) { node.appendChild(el('span', 'ege-tcard__new', 'New')); }
   }
 
-  /* A card printed from Sam's own art (the card-art cards and the GOLD
-     RUSH card): the picture is the whole card. */
+  /* A card printed from Sam's own art (the GOLD RUSH card): the picture is
+     the whole card. */
   function printedCard(card, opts) {
-    var node = el('div', 'ege-tcard ege-tcard--' + card.rarity + ' ege-tcard--art' +
+    var node = el('div', 'ege-tcard ege-tcard--' + card.rarity + ' ege-tcard--print' +
       (card.gold ? ' ege-tcard--gold' : '') + (card.reward ? ' ege-tcard--reward' : ''));
     node.style.setProperty('--rarity', EGE.cards.rarity(card.rarity).color);
     var print = el('img', 'ege-tcard__print');
-    print.src = card.art;
+    print.src = card.print;
     print.alt = '';
     print.loading = 'lazy';
     print.decoding = 'async';
@@ -279,12 +279,13 @@ EGE.cardsView = (function () {
      hand-sized thing in a pack. */
   function cardEl(card, options) {
     var opts = options || {};
-    if (card.art) { return printedCard(card, opts); }
+    if (card.print) { return printedCard(card, opts); }
     var r = EGE.cards.rarity(card.rarity);
     var team = card.team || {};
 
     var node = el('div', 'ege-tcard ege-tcard--' + card.rarity + ' ege-tcard--' + card.kind +
-      (card.holo ? ' ege-tcard--holo' : '') + (card.gold ? ' ege-tcard--gold' : ''));
+      (card.holo ? ' ege-tcard--holo' : '') + (card.gold ? ' ege-tcard--gold' : '') +
+      (card.art ? ' ege-tcard--cut' : ''));
     node.style.setProperty('--rarity', r.color);
     node.style.setProperty('--ground', team.ground || '#2f4a2b');
 
@@ -300,13 +301,23 @@ EGE.cardsView = (function () {
 
     var art = el('div', 'ege-tcard__art');
     var photo = el('img', 'ege-tcard__photo');
-    photo.src = card.player.headshot;
+    photo.src = card.art ? card.art.photo : card.player.headshot;
     photo.alt = '';
     photo.loading = 'lazy';
     photo.decoding = 'async';
-    art.appendChild(photo);
+    if (card.art) {
+      /* A card-art card: Sam's photo of the game, its helmet standing up
+         out of the picture over the strip and the score, and no logo, as
+         he drew it. */
+      var cut = el('div', 'ege-tcard__cut');
+      cut.style.setProperty('--rise', card.art.rise);
+      cut.appendChild(photo);
+      art.appendChild(cut);
+    } else {
+      art.appendChild(photo);
+    }
 
-    if (team.logo) {
+    if (team.logo && !card.art) {
       var logo = el('img', 'ege-tcard__logo' + (team.whiteMark ? ' ege-tcard__logo--white' : ''));
       logo.src = team.logo;
       logo.alt = '';
@@ -1428,10 +1439,9 @@ EGE.cardsView = (function () {
   }
 
   /* Whether three copies of a card can be merged into a holo: not a holo
-     already, and not one printed from art (the card-art cards, the GOLD
-     RUSH card). */
+     already, and not the GOLD RUSH card. */
   function mergeable(card) {
-    return !card.holo && !card.art && !card.reward;
+    return !card.holo && !card.reward;
   }
 
   /* Up close, a card of any rarity leans toward the pointer, as a holo

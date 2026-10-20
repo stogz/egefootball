@@ -292,7 +292,9 @@ EGE.diamondsView = (function () {
         bits.push('Holo made');
         if (card) {
           bits.push(EGE.cards.rarity(card.rarity).name + (card.gold ? ' ' + EGE.cards.GOLD_RUSH.name : ''));
-          bits.push(points(card.points) + ' FPTS card');
+          /* What it paid is a tenth of the holo's points, so those are
+             the points it shows. */
+          bits.push(points(card.points * EGE.cards.HOLO_OF) + ' FPTS holo');
         }
       } else {
         bits.push('Sold on the Market' + (item.buyer ? ' to ' + item.buyer.first : ''));
