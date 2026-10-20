@@ -256,25 +256,28 @@ EGE.cards = (function () {
      supabase/schema.sql is the only way one is made, and nothing turns one
      back into three.
 
-     Making one pays diamonds (Sam, 2026-10-20): a tenth of the card's own
-     fantasy score -- the one card's, not the holo's three times it --
-     rounded, and never less than 1. Most cards pay 1 or 2; the biggest,
-     Sam's 65-point Iconic, pays 7. merge_holo_card pays it with the merge
-     and holds it to HOLO_BONUS_MAX, so change the two together. */
+     Making one pays diamonds (Sam, 2026-10-20): a tenth of the holo's
+     fantasy score -- three times the card's -- rounded up, and never less
+     than 1, so a 170-point holo pays 17. Most pay 2 to 4; the biggest, Sam's
+     65.3-point Iconic (195.9 as a holo), pays 20. There is no cap:
+     merge_holo_card pays it with the merge and only turns down more than
+     HOLO_BONUS_MAX, which no card comes near, so change the two together. */
   var HOLO_SUFFIX = ':holo';
   var HOLO_OF = 3;
-  var HOLO_BONUS_SHARE = 0.1;
-  var HOLO_BONUS_MAX = 15;
+  var HOLO_POINTS_PER_DIAMOND = 10;
+  var HOLO_BONUS_MAX = 60;
 
   function isHoloId(id) { return /:holo$/.test(String(id || '')); }
   function baseIdOf(id) { return isHoloId(id) ? String(id).slice(0, -HOLO_SUFFIX.length) : id; }
   function holoIdOf(id) { return baseIdOf(id) + HOLO_SUFFIX; }
 
-  /* The diamonds merging three copies of `card` into its holo pays. */
+  /* The diamonds merging three copies of `card` into its holo pays. Worked
+     in whole hundredths of a point, so a holo of exactly 170 is 17, never
+     17.000001 rounded up to 18. */
   function holoBonus(card) {
     if (!card || card.holo) { return 0; }
-    var diamonds = Math.max(1, Math.round((Number(card.points) || 0) * HOLO_BONUS_SHARE));
-    return Math.min(HOLO_BONUS_MAX, diamonds);
+    var hundredths = Math.round((Number(card.points) || 0) * HOLO_OF * 100);
+    return Math.max(1, Math.ceil(hundredths / (HOLO_POINTS_PER_DIAMOND * 100)));
   }
 
   /* --- the Gold Rush -----------------------------------------------------------
@@ -293,11 +296,12 @@ EGE.cards = (function () {
      sets as the card it is (Sam, 2026-10-20). Its id is the card's with
      ':gr' on the end, 'p:2019:sam-stogsdill:18:gr', and its holo ':gr:holo'.
 
-     The pack can also hold one of the two card-art cards (Sam's own art of
-     Sam's week 18 and Cooper's week 11 in 2019, both printed Mystic), which
-     only ever come out of it ('a:...:gr'). Finishing every set before it
-     ends pays the Iconic GOLD RUSH card ('r:gold-rush:gr'), which no pack
-     holds: Sam's art of Sam and Cooper's 2019 seasons (`rewardImage`).
+     The pack can also hold one of the two card-art cards (Sam's own photos
+     of Sam's week 18 and Cooper's week 11 in 2019, both Mystic, CARD_ART),
+     which only ever come out of it ('a:...:gr'). Finishing every set before
+     it ends pays the Iconic GOLD RUSH card ('r:gold-rush:gr'), which no
+     pack holds: Sam's art of Sam and Cooper's 2019 seasons, printed as he
+     drew it (`rewardImage`).
 
      Gold Rush cards trade, but a copy that has just been traded cannot be
      traded again for 48 hours, so one set of cards cannot be passed round
@@ -317,13 +321,17 @@ EGE.cards = (function () {
 
   var EVENT_TAG = ':gr';
 
-  /* Sam's card art: the card, printed as he drew it, in place of the one
-     the page draws. */
+  /* Sam's card art: the card the page draws, with his photo of the game in
+     the picture in place of the headshot (Sam, 2026-10-20), so it is a card
+     like any other and makes a holo. `photo` is the picture with the helmet
+     cut out above it, on a clear background; `rise` is how far the helmet
+     stands above the picture, as a % of its width, and it comes up over the
+     PERFORMANCE strip and the score. */
   var CARD_ART = [
     { id: 'a:2019:sam-stogsdill:18:gr', of: 'p:2019:sam-stogsdill:18', rarity: 'mystic',
-      image: 'icon/cards/sam-stogsdill-2019-wk18.webp' },
+      photo: 'icon/cards/sam-stogsdill-2019-wk18-cut.webp', rise: 7.62 },
     { id: 'a:2019:cooper-clark:11:gr', of: 'p:2019:cooper-clark:11', rarity: 'mystic',
-      image: 'icon/cards/cooper-clark-2019-wk11.webp' }
+      photo: 'icon/cards/cooper-clark-2019-wk11-cut.webp', rise: 9.52 }
   ];
 
   /* A Gold Rush card, holo or not. */
@@ -562,7 +570,7 @@ EGE.cards = (function () {
   function rewardCard() {
     return {
       id: GOLD_RUSH.reward, kind: 'reward', reward: true, gold: true, eventKey: GOLD_RUSH.key,
-      rarity: 'iconic', art: GOLD_RUSH.rewardImage, points: 0,
+      rarity: 'iconic', print: GOLD_RUSH.rewardImage, points: 0,
       season: 2019, week: 0, slug: null,
       player: { name: 'Gold Rush', first: 'Gold Rush', headshot: '' },
       position: '', team: null, opponent: '', versus: 'Gold Rush', event: 'Gold Rush',
@@ -573,8 +581,8 @@ EGE.cards = (function () {
 
   /* A holo is its card over again, marked holo, with the three cards'
      points on it; a Gold Rush card is its card again, marked gold, and a
-     card-art card that card with Sam's art and its own rarity. Each is made
-     the first time it is asked for. Card art and the reward have no holo. */
+     card-art card that card with Sam's photo and its own rarity. Each is
+     made the first time it is asked for. The GOLD RUSH card has no holo. */
   var made = {};
 
   function byId(id) {
@@ -584,7 +592,7 @@ EGE.cards = (function () {
     var card = null;
     if (isHoloId(id)) {
       var one = byId(baseIdOf(id));
-      if (one && !one.art && !one.reward) {
+      if (one && !one.reward) {
         card = Object.assign({}, one, {
           id: id, baseId: one.id, holo: true, points: round2(one.points * HOLO_OF)
         });
@@ -596,7 +604,7 @@ EGE.cards = (function () {
       var plain = catalogue[art ? art.of : String(id).slice(0, -EVENT_TAG.length)];
       if (plain) {
         card = Object.assign({}, plain, { id: id, plainId: plain.id, gold: true, eventKey: GOLD_RUSH.key });
-        if (art) { card.art = art.image; card.rarity = art.rarity; }
+        if (art) { card.art = { photo: art.photo, rise: art.rise }; card.rarity = art.rarity; }
       }
     }
     made[id] = card;

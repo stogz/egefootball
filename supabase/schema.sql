@@ -1075,7 +1075,8 @@ $$;
 -- by merging three copies (merge_holo_card, further down), never pulled, so
 -- the pack, the shop and the set rewards keep to is_card_id; trades,
 -- showcases, quick sales and the market take either. A Gold Rush card has
--- a holo too ('...:gr:holo'), but the card art and the GOLD RUSH card do not.
+-- a holo too ('...:gr:holo'), and so does a card-art card since the page
+-- draws them (Sam, 2026-10-20), but the GOLD RUSH card does not.
 create or replace function public.is_holo_id(p_id text)
 returns boolean
 language sql
@@ -1083,7 +1084,7 @@ immutable
 as $$
   select coalesce(p_id like '%:holo'
                   and (public.is_card_id(left(p_id, -5))
-                       or (public.is_event_card_id(left(p_id, -5)) and left(p_id, 2) in ('p:', 'h:'))),
+                       or (public.is_event_card_id(left(p_id, -5)) and left(p_id, 2) in ('p:', 'h:', 'a:'))),
                   false);
 $$;
 
@@ -2609,14 +2610,16 @@ notify pgrst, 'reload schema';
 -- and put on the market like any other card; is_holo_id says what one looks
 -- like. Every merge is kept in card_merges.
 --
--- Making one pays diamonds (Sam, 2026-10-20): a tenth of the card's fantasy
--- score, rounded, at least 1 (holoBonus in data/cards.js). The score is in
--- the season files, not in Postgres, so the page says what it comes to --
--- the same trust as a game's diamonds -- and this holds it to 15, the most
--- a 150-point card would pay; the biggest card there is pays 7.
--- HOLO_BONUS_MAX in data/cards.js is the same 15, and the two are changed
--- together. card_merges.diamonds keeps what each merge paid, which the
--- diamonds page lists; a merge from before this pays nothing after it.
+-- Making one pays diamonds (Sam, 2026-10-20): a tenth of the holo's fantasy
+-- score (three times the card's), rounded up, at least 1, so a 170-point
+-- holo pays 17 (holoBonus in data/cards.js). The score is in the season
+-- files, not in Postgres, so the page says what it comes to -- the same
+-- trust as a game's diamonds. There is no cap; this only turns down more
+-- than 60, which would take a 200-point card, against a page that has been
+-- tampered with. The biggest card there is pays 20. HOLO_BONUS_MAX in
+-- data/cards.js is the same 60, and the two are changed together.
+-- card_merges.diamonds keeps what each merge paid, which the diamonds page
+-- lists; a merge from before this pays nothing after it.
 -- ===========================================================================
 
 create table if not exists public.card_merges (
@@ -2665,14 +2668,14 @@ begin
   if v_email is null then
     raise exception 'sign in first';
   end if;
-  if v_bonus > 15 then
+  if v_bonus > 60 then
     raise exception 'That is more than a holo pays.';
   end if;
   if p_card is null or not public.is_any_card_id(p_card) or public.is_holo_id(p_card) then
     raise exception 'Only a card can be merged into a holo: %', p_card;
   end if;
   v_holo := p_card || ':holo';
-  -- The card art and the GOLD RUSH card have no holo.
+  -- The GOLD RUSH card has no holo.
   if not public.is_holo_id(v_holo) then
     raise exception 'That card has no holo.';
   end if;

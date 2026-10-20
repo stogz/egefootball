@@ -1402,14 +1402,16 @@ Unlike credits, **a player cannot write their own diamond balance**:
 player's diamonds move only through paying a game, buying diamonds, opening a
 pack, claiming a set, quick selling a card and making a holo.
 
-**Making a holo pays a tenth of the card's fantasy score** in diamonds,
-rounded and never less than 1 (Sam, 2026-10-20): the one card's score, not
-the holo's three times it, so most cards pay 1 or 2 and Sam's 65-point
-Iconic pays 7. The page works it out (`holoBonus` in `data/cards.js`) and
-`merge_holo_card()` pays it in the same transaction as the merge, holds it to
-15 (`HOLO_BONUS_MAX`; change both together) and keeps it in
-`card_merges.diamonds`. Holos made before this paid nothing and are not
-back-paid.
+**Making a holo pays a tenth of the holo's fantasy score** in diamonds,
+rounded up and never less than 1 (Sam, 2026-10-20): the holo's score is three
+times the card's, so a 170-point holo pays 17, most pay 2 to 4 and Sam's
+65.3-point Iconic (195.9 as a holo) pays 20. There is no cap. The page works it
+out (`holoBonus` in `data/cards.js`) and `merge_holo_card()` pays it in the
+same transaction as the merge, turns down only more than 60 (a page that has
+been tampered with; `HOLO_BONUS_MAX`, change both together) and keeps it in
+`card_merges.diamonds`. Holos made before PR #88 paid nothing, and those made
+between it and this paid a tenth of the one card's score, capped at 15; none
+are back-paid.
 
 **The diamond balance in the nav opens the diamonds page** (`#diamonds`,
 `js/diamonds-view.js`). Recent Games is a box a week, newest first, six at a
@@ -1516,6 +1518,16 @@ line under *YD TD*, the two lines beside the number (Sam, 2026-10-20). The
 words in the file decide, since nothing else there says when in a game a
 play came; the NFL sim writes *game-winning* for a fourth-quarter or
 overtime touchdown that put its team ahead for good.
+
+**The two card-art cards are drawn by the page** (Sam, 2026-10-20): Sam's
+week 18 and Cooper's week 11 in 2019, Mystic, only in the Gold Rush Pack
+(`CARD_ART` in `data/cards.js`). Each is the usual card with Sam's photo of
+the game in the picture in place of the headshot and no team logo, and the
+helmet cut out above the photo stands up out of the picture over the
+PERFORMANCE strip and the score tab, under the frame, the big yards and
+touchdowns and the score's number. So they have the foils, the tilt and the
+close-up of any card, and three of one merge into its holo. Only the GOLD
+RUSH card is still Sam's picture printed whole, and it has no holo.
 
 Under the picture a college or NFL card names its opponent with the
 opponent's mark after it, about a capital letter high (*vs. Ohio State* and
