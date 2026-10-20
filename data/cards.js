@@ -1056,14 +1056,14 @@ EGE.cards = (function () {
        Legendary   1400    80%        11               154
        Mystic      2200   125%        17               238
        Iconic      7000   300%        39               546
-       GOAT       12000   500%        65               910
+       GOAT       28000   500%        65               910
 
      An account earns about 200 diamonds a season from its own games, and
      random packs bring in about half a point of any one player per diamond
      spent.
 
      Iconic was 3500 until Sam made it twice as hard (2026-10-20) and put
-     GOAT above it. GOAT is a Player Card's alone: no play or performance
+     GOAT above it, four times as hard again as Iconic. GOAT is a Player Card's alone: no play or performance
      card is ever GOAT, so it is not one of the RARITIES and its rung
      carries its own name and colour. */
   var PLAYER_RANKS = [
@@ -1074,7 +1074,7 @@ EGE.cards = (function () {
     { key: 'legendary', points: 1400, bonus: 0.80 },
     { key: 'mystic',    points: 2200, bonus: 1.25 },
     { key: 'iconic',    points: 7000, bonus: 3.00 },
-    { key: 'goat',      points: 12000, bonus: 5.00, name: 'GOAT', color: '#9aa9ba' }
+    { key: 'goat',      points: 28000, bonus: 5.00, name: 'GOAT', color: '#9aa9ba' }
   ];
 
   /* A rung's name and colour: its card rarity's, or its own for GOAT. */
