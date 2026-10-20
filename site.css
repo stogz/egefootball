@@ -4021,7 +4021,7 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
    his team's colour with his headshot, name and the team's mark, then a
    cream panel with where he came from, his overall, archetype and skills,
    and his contract. */
-.ege-rip__stage.ege-rip__stage--person { width: min(520px, 100%); }
+.ege-rip__stage.ege-rip__stage--person { width: min(600px, 100%); }
 .ege-rip:has(.ege-rip__stage--person) {
   background:
     radial-gradient(circle at 50% 40%, rgba(240, 184, 42, .14), transparent 55%),
@@ -4037,44 +4037,58 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
   color: var(--fb-ink);
 }
 .ege-person__band {
+  --face-h: 124px;
+  --face-w: var(--face-h);
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  /* The mark's column is as wide as the headshot's, so the name's column,
+     and the name centred in it, sit on the band's own centre line. The
+     headshot is framed square, its shoulders trimmed at the sides, to
+     leave the name the room. */
+  grid-template-columns: var(--face-w) minmax(0, 1fr) var(--face-w);
   align-items: end;
   gap: 12px;
-  padding: 12px 14px 0;
+  padding: 0 14px;
   background: var(--fb-ink);
   border-bottom: var(--fb-border) solid var(--fb-ink);
   color: #fff;
 }
+/* The headshot stands on the band's bottom edge, and the top of his head
+   just clears the box: about 5% of the picture above its top border. A
+   headshot's crown sits about 4.5% down its own picture (ESPN's and the
+   six's are framed alike), so the picture starts 9.5% of its height above
+   the border. Every headshot is placed the same way, so one whose head
+   sits higher or lower in its frame clears the top by a little more or
+   less. */
 .ege-person__face {
   display: block;
-  width: 132px;
-  height: 96px;
-  overflow: hidden;
+  width: var(--face-w);
+  height: var(--face-h);
+  margin-top: calc(-1 * var(--fb-border) - var(--face-h) * .095);
 }
-.ege-person__face img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.ege-person__face img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+/* Centred in the band both ways: across, by the matching columns either
+   side, and down, in the band's one row. A long name wraps to two even
+   lines rather than one long and one short. */
 .ege-person__name {
   align-self: center;
   margin: 0;
-  padding-bottom: 12px;
-  font-size: clamp(1.25rem, 4.5vw, 1.75rem);
+  font-size: clamp(1.125rem, 4.5vw, 1.75rem);
   line-height: 1.1;
+  text-align: center;
+  text-wrap: balance;
   color: #fff;
   text-shadow: 2px 2px 0 rgba(0, 0, 0, .45);
-  overflow-wrap: anywhere;
 }
-/* On white, so any team's mark reads on any team's colour. */
+/* Straight on the team's colour, as on the team's page. */
 .ege-person__mark {
   align-self: center;
+  justify-self: end;
   display: grid;
   place-items: center;
-  width: 58px;
-  height: 58px;
-  margin-bottom: 12px;
-  background: #fff;
-  border: var(--fb-border-thin) solid var(--fb-ink);
+  width: 76px;
+  height: 76px;
 }
-.ege-person__mark img { width: 42px; height: 42px; object-fit: contain; }
+.ege-person__mark img { width: 100%; height: 100%; object-fit: contain; }
 .ege-person__body { display: grid; gap: 14px; padding: 14px 16px 16px; }
 .ege-person__facts {
   display: grid;
@@ -4129,10 +4143,8 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-person__go { justify-self: start; }
 
 @media (max-width: 520px) {
-  .ege-person__band { gap: 8px; padding: 10px 10px 0; }
-  .ege-person__face { width: 96px; height: 70px; }
-  .ege-person__mark { width: 46px; height: 46px; margin-bottom: 10px; }
-  .ege-person__mark img { width: 32px; height: 32px; }
+  .ege-person__band { --face-h: 80px; gap: 8px; padding: 0 10px; }
+  .ege-person__mark { width: 52px; height: 52px; }
   .ege-person__facts { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .ege-person__fact { grid-column: span 2; }
   .ege-person__fact:nth-child(-n+2) { grid-column: span 3; }

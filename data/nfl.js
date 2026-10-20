@@ -74,11 +74,11 @@ EGE.nfl.keyForSite = function (siteKey) {
   return Object.keys(EGE.nfl.teams).filter(function (key) { return EGE.nfl.teams[key].site === siteKey; })[0] || null;
 };
 
-/* A team's mark: the six's teams' own, in icon/nfl/, and ESPN's for the
-   rest. */
-EGE.nfl.logo = function (key, size) {
+/* A team's mark, in icon/nfl/, for its own colour: the team pages' header
+   and a player's pop-up. A schedule or a standings table, on cream, asks
+   EGE.logoFor instead (data/logos.js). */
+EGE.nfl.logo = function (key) {
   var team = EGE.nfl.teams[key];
-  if (!team) { return null; }
-  if (team.site && EGE.teams[team.site] && EGE.teams[team.site].logo) { return EGE.teams[team.site].logo; }
-  return EGE.logoFor ? EGE.logoFor(team.name, size || 80) : null;
+  var file = team && EGE.nflLogos && EGE.nflLogos[team.name];
+  return file ? 'icon/nfl/' + file + '.png' : null;
 };
