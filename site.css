@@ -4710,7 +4710,7 @@ html.ege-noscroll body { overflow: hidden; }
    or performance card is ever GOAT. The frame is bright white platinum, and
    up close a band of prism light keeps sweeping across it on top of the
    drifting metal. The rest of its look (engraving, the black plate, the
-   spotlight, the band and the sparkles) is with the Player Card below. */
+   spotlight and the sparkles) is with the Player Card below. */
 .ege-tcard--goat {
   background:
     radial-gradient(circle at 22% 20%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 46%),
@@ -6937,8 +6937,7 @@ html.ege-noscroll body { overflow: hidden; }
    Black and platinum, unlike any other rank: the frame engraved in a fine
    diamond cross-hatch with a faint prism fire through it; a black plate
    with the name in platinum foil; the player in a platinum spotlight with
-   rays behind him instead of his team's colour, a GREATEST OF ALL TIME band
-   across his chest; a platinum foot with a crown before GOAT; and four
+   rays behind him instead of his team's colour; a platinum foot with a crown before GOAT; and four
    sparkles on the frame. All of it holds still in the binder and on the
    Players page; up close the sparkles twinkle and the prism light sweeps
    across (the frame, above). */
@@ -6966,25 +6965,6 @@ html.ege-noscroll body { overflow: hidden; }
     repeating-conic-gradient(from 0deg at 50% 44%, rgba(255, 255, 255, .15) 0deg 5deg, rgba(255, 255, 255, 0) 5deg 12deg),
     radial-gradient(ellipse at 50% 44%, #6b7889 0%, #2a313b 42%, #0b0e12 80%);
 }
-.ege-plcard__goatband {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 2;
-  padding: 1.2cqw 0;
-  background: linear-gradient(90deg, rgba(11, 14, 18, 0) 0%, rgba(11, 14, 18, .88) 16%,
-                              rgba(11, 14, 18, .88) 84%, rgba(11, 14, 18, 0) 100%);
-  color: #eef2f6;
-  font-size: 3.4cqw;
-  font-weight: 800;
-  letter-spacing: .28em;
-  text-align: center;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.ege-plcard__goatband::before,
-.ege-plcard__goatband::after { content: '\2605'; margin: 0 .7em; color: #c9d2dc; letter-spacing: 0; }
 .ege-plcard--goat .ege-plcard__name {
   background: linear-gradient(180deg, #ffffff 0%, #e4eaf0 44%, #97a6b6 56%, #f4f7fa 100%);
   -webkit-background-clip: text;

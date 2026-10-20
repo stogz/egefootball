@@ -1804,7 +1804,7 @@ on the market takes its points with it — graded on the card ladder:
 so it is not one of the card rarities, and its rung in `PLAYER_RANKS` carries
 its own name and colour. It looks like no other rank: a platinum frame
 engraved in a diamond cross-hatch with prism fire and four sparkles, the
-player in a platinum spotlight with a GREATEST OF ALL TIME band, a black plate
+player in a platinum spotlight, a black plate
 with the name in platinum foil, and a platinum foot with a crown before GOAT.
 Up close the sparkles twinkle and a band of prism light sweeps across it.
 GOAT takes four times Iconic's points. Iconic took 3500 points until Sam doubled it on

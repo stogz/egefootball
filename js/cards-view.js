@@ -3297,7 +3297,6 @@ EGE.cardsView = (function () {
     photo.loading = 'lazy';
     photo.decoding = 'async';
     frame.appendChild(photo);
-    if (key === 'goat') { frame.appendChild(el('div', 'ege-plcard__goatband', 'Greatest of all time')); }
     node.appendChild(frame);
 
     var plate = el('div', 'ege-plcard__plate');
