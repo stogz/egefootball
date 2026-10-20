@@ -18,6 +18,9 @@
      node nfl-sim/sim.js matchup DET SEA        Detroit at Seattle, sized up
      node nfl-sim/sim.js offseason              aging, contracts, schemes, trade proposals
      node nfl-sim/sim.js draft [--place cooper-clark=LAC[:2]]
+     node nfl-sim/sim.js draft-order [YEAR]     every round's order and who owns each pick
+     node nfl-sim/sim.js upload-draft FILE      a draft written by hand (rounds 1-2, say), kept
+                                                for the draft (--check only checks it; --remove)
      node nfl-sim/sim.js trades [all]           the queue
      node nfl-sim/sim.js approve 2024-O3
      node nfl-sim/sim.js reject 2024-O3
@@ -48,6 +51,7 @@ const { standings, recordText } = require('./lib/standings');
 const { rateTeams } = require('./lib/team-ratings');
 const { assess, describe } = require('./lib/assess');
 const trades = require('./lib/trades');
+const draftPlan = require('./lib/draft-plan');
 const { depthChart } = require('./lib/lineup');
 const { OFFENSE, DEFENSE, fitOf, schemeFor } = require('./lib/schemes');
 const { payroll } = require('./lib/rosters');
@@ -71,6 +75,13 @@ const neutral = flag('neutral');
 const gamesArg = flag('games');
 const throughArg = flag('through');
 const seasonArg = flag('season');
+function bool(name) {
+  const at = args.indexOf('--' + name);
+  if (at !== -1) { args.splice(at, 1); }
+  return at !== -1;
+}
+const checkOnly = bool('check');
+const removeArg = bool('remove');
 const [command, ...rest] = args;
 
 const out = [];
@@ -280,10 +291,47 @@ function main() {
       const r = run.draft(league, place);
       say(r.season + ' draft' + (r.expired ? ' (' + r.expired + ' trade proposals expired)' : '') + ':');
       r.draft.filter((d) => (d.round === 1 || d.ege) && !d.undrafted).forEach((d) => say('  ' + d.n + '. ' + d.team + ': ' + d.name + ' (' + d.pos + ', ' + d.ovr + '/' + d.pot + ')' + (d.ege ? '  <- one of the six' : '')));
+      if (r.written) { say('  (picks 1-' + r.written + ' as uploaded)'); }
       r.draft.filter((d) => d.undrafted).forEach((d) => say('  ' + d.name + ' (one of the six) was not drafted' +
         (d.team !== 'FA' ? ': ' + TEAMS[d.team].name + ' had no pick where you placed him, so he signs with them as an undrafted rookie.' : ' and is a free agent.')));
       say('');
       say('Rosters are at 53 and the ' + league.season + ' schedule is set.');
+      break;
+    }
+    case 'draft-order': {
+      const year = Number(rest[0]) || draftPlan.draftYear(league);
+      const slots = draftPlan.slotsFor(league, year);
+      if (!slots) { say('The ' + year + ' order is set when the offseason runs.'); break; }
+      say(year + ' draft order' + (draftPlan.officialRounds(year) ? ' (set by hand, data/draft-orders.json)' : '') + ':');
+      for (let round = 1; round <= 7; round += 1) {
+        say('  Round ' + round + ': ' + slots.filter((x) => x.round === round)
+          .map((x) => x.n + ' ' + x.owner + (x.from !== x.owner ? ' (' + x.from + ')' : '')).join(', '));
+      }
+      break;
+    }
+    case 'upload-draft': {
+      const year = draftPlan.draftYear(league);
+      if (removeArg) { draftPlan.remove(league, year); say('Removed the uploaded ' + year + ' draft.'); break; }
+      if (!rest[0]) {
+        const kept = draftPlan.saved(league);
+        say(kept ? 'Uploaded for ' + year + ': rounds 1-' + kept.rounds + ', ' + kept.picks.length + ' picks.' :
+          'Nothing uploaded for ' + year + '. Usage: upload-draft FILE [--check]');
+        break;
+      }
+      const c = draftPlan.check(league, fs.readFileSync(rest[0], 'utf8'));
+      if (c.errors.length) {
+        say(c.errors.length + (c.errors.length === 1 ? ' problem' : ' problems') + ' in ' + rest[0] + ':');
+        c.errors.forEach((e) => say('  ' + e));
+        done();
+        process.exitCode = 1;
+        return;
+      }
+      c.picks.forEach((x) => say(String(x.n).padStart(3) + '. ' + x.team.padEnd(4) + (x.from !== x.team ? '(' + x.from + ') ' : '') +
+        x.name + ', ' + x.pos + (x.college ? ', ' + x.college : '') + (x.ege ? '  <- one of the six' : '')));
+      if (checkOnly) { say(''); say('Checked: rounds 1-' + c.rounds + ' read cleanly. Run it again without --check to keep it.'); done(); return; }
+      draftPlan.save(league, c);
+      say('');
+      say('Kept for the ' + year + ' draft: rounds 1-' + c.rounds + ' go as written, and the sim drafts the rest.');
       break;
     }
     case 'trades': {
@@ -313,7 +361,7 @@ function main() {
       break;
     }
     default:
-      say('Unknown command ' + command + '. Commands: status, week, season, playoffs, standings, rankings, team, player, matchup, offseason, draft, trades, approve, reject, trade, report, reset, import-site, site, export.');
+      say('Unknown command ' + command + '. Commands: status, week, season, playoffs, standings, rankings, team, player, matchup, offseason, draft, draft-order, upload-draft, trades, approve, reject, trade, report, reset, import-site, site, export.');
       done();
       return;
   }

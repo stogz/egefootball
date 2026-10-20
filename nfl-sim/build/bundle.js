@@ -2,10 +2,11 @@
 /* ==========================================================================
    EGE Football NFL sim — the admin page's copy
    Writes js/nfl-sim.js: every module in lib/ and the data they read (the
-   2023 kickoff league, the draft classes and the schedules) in one file the
-   admin page loads when its NFL Sim tab is opened. Nothing private goes in:
-   no world, no team ratings -- those are worked out on the page and kept in
-   Supabase where only an admin can read them.
+   2023 kickoff league, the draft classes, the schedules and the draft
+   orders set by hand) in one file the admin page loads when its NFL Sim
+   tab is opened. Nothing private goes in: no world, no team ratings --
+   those are worked out on the page and kept in Supabase where only an
+   admin can read them.
 
    Run it again after changing anything in lib/ or data/:
      node nfl-sim/build/bundle.js
@@ -18,7 +19,7 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const OUT = path.join(ROOT, '..', 'js', 'nfl-sim.js');
-const DATA = ['league-2023.json', 'prospects.json', 'schedules.json'];
+const DATA = ['league-2023.json', 'prospects.json', 'schedules.json', 'draft-orders.json'];
 
 const modules = fs.readdirSync(path.join(ROOT, 'lib')).filter((n) => /\.js$/.test(n)).sort();
 const parts = [];
@@ -82,7 +83,8 @@ parts.push(`
     season: load('season'),
     standings: load('standings'),
     teams: load('teams'),
-    trades: load('trades')
+    trades: load('trades'),
+    draftPlan: load('draft-plan')
   };
 })();
 `);

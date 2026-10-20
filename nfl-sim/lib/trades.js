@@ -21,6 +21,7 @@ const { playerValue, pickValue, POSITION } = require('./value');
 const { fitOf, schemeFor, offenseOf, defenseOf } = require('./schemes');
 const { starterLevels, needAt, onTeam, byPos, room, SLOTS, trim, addPlayers } = require('./rosters');
 const { makeName } = require('./draft');
+const { locked } = require('./draft-plan');
 const { readWorld, writeWorld, DEADLINE_WEEK } = require('./season');
 const { standings, recordText } = require('./standings');
 const { TEAMS } = require('./teams');
@@ -80,11 +81,12 @@ function describeItem(item) {
   return p.name + ' (' + p.pos + ', ' + p.ovr + ', age ' + p.age + ')';
 }
 
-/* The assets a buyer can offer: its picks for the next three drafts and
-   young players who are not starting for it. */
+/* The assets a buyer can offer: its picks for the next three drafts (not
+   one an uploaded draft covers) and young players who are not starting
+   for it. */
 function assetsOf(league, key) {
-  const picks = league.picks.filter((p) => p.owner === key && p.year >= league.season && p.year <= league.season + 2)
-    .map((pick) => ({ kind: 'pick', pick }));
+  const picks = league.picks.filter((p) => p.owner === key && p.year >= league.season && p.year <= league.season + 2 &&
+    !locked(league, p)).map((pick) => ({ kind: 'pick', pick }));
   const roster = onTeam(league, key);
   const young = roster.filter((p) => !p.ege && p.age <= 25 && byPos(roster, p.pos).indexOf(p) >= (SLOTS[p.pos] || 0) &&
     p.ovr >= 65).map((player) => ({ kind: 'player', player }));
@@ -251,6 +253,7 @@ function approve(league, id) {
     } else {
       const pick = findPick(league, g.pick);
       if (!pick || pick.owner !== from) { throw new Error('The ' + g.pick + ' pick is no longer ' + from + "'s."); }
+      if (locked(league, pick)) { throw new Error('The ' + g.pick + ' pick is in the uploaded ' + pick.year + ' draft.'); }
     }
   }));
   [[a, b], [b, a]].forEach(([from, to]) => (t.gives[from] || []).forEach((g) => {
@@ -309,6 +312,7 @@ function proposeOwn(league, text) {
         const from = pm[3] ? pm[3].toUpperCase() : m[1];
         const pick = league.picks.find((p) => p.year === Number(pm[1]) && p.round === Number(pm[2]) && p.from === from && p.owner === m[1]);
         if (!pick) { throw new Error(m[1] + ' does not own ' + x + '.'); }
+        if (locked(league, pick)) { throw new Error(x + ' is in the uploaded ' + pick.year + ' draft.'); }
         return { kind: 'pick', pick };
       }
       const mine = league.players.filter((pl) => pl.team === m[1] && pl.status === 'active');

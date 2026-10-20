@@ -20,6 +20,7 @@ const { startOffseason, finishOffseason, firstModes } = require('./offseason');
 const trades = require('./trades');
 const { TEAMS } = require('./teams');
 const { siteResults } = require('./site');
+const { applyOfficial } = require('./draft-plan');
 
 function rngFor(league, what) {
   return seeded((league.seed || 'ege-nfl') + ':' + league.season + ':' + league.phase + ':' + (league.week || 0) + ':' + what);
@@ -33,10 +34,12 @@ function hooks() {
 }
 
 /* The league, ready for the next step: a world that has not started yet
-   gets its teams' first plans and its schedule. */
+   gets its teams' first plans and its schedule, and any draft order set by
+   hand is put in force (lib/draft-plan.js). */
 function open(world, seed) {
   const league = loadLeague(world);
   if (!league.seed) { league.seed = seed || 'ege-nfl'; }
+  applyOfficial(league);
   if (league.phase === 'preseason') {
     if (!(league.history || []).length) { firstModes(league); }
     season.startSeason(league, rngFor(league, 'start'));

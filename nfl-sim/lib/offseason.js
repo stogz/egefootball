@@ -17,7 +17,8 @@
      6. pre-draft trade proposals for Sam.
 
    finishOffseason (the draft and after)
-     7. pending trades expire; the draft;
+     7. pending trades expire; the draft, in a hand-set order if the year
+        has one (lib/draft-plan.js), with any rounds Sam wrote himself;
      8. free agency again for the leftovers; 53-man rosters;
      9. the new season's schedule.
    ========================================================================== */
@@ -29,6 +30,7 @@ const { standings, recordText } = require('./standings');
 const { draftOrder, startSeason, writeWorld } = require('./season');
 const { reSign, freeAgency, cutDown, fillHoles, onTeam, byPos, SLOTS, capCasualties } = require('./rosters');
 const { runDraft, makeName } = require('./draft');
+const { applyOfficial, planFor } = require('./draft-plan');
 const { rateTeams } = require('./team-ratings');
 const { OFFENSE, DEFENSE, fitOf, centreOn } = require('./schemes');
 const { gameDay } = require('./lineup');
@@ -200,6 +202,7 @@ function startOffseason(league, rng) {
   const entry = archive(league);
   report.champion = entry.champion;
   league.draftOrder = draftOrder(league);
+  delete league.draftRounds;
   league.stats = {};
   league.players.forEach((p) => { delete p.injury; });
 
@@ -259,6 +262,7 @@ function startOffseason(league, rng) {
 
   /* Pre-draft trades for Sam. */
   league.phase = 'draft';
+  applyOfficial(league);
   report.trades = propose(league, 'offseason', rng);
   return report;
 }
@@ -269,7 +273,14 @@ function finishOffseason(league, rng, place) {
   if (league.phase !== 'draft') { throw new Error('Not draft time (phase: ' + league.phase + ').'); }
   const report = { season: league.season };
   report.expired = closeWindow(league, 'offseason');
-  report.draft = runDraft(league, league.draftOrder, rng, place);
+  /* A hand-set order goes for every round, and a draft written by hand
+     for the rounds it covers. */
+  applyOfficial(league);
+  const plan = planFor(league, league.season);
+  report.written = plan ? plan.picks.length : 0;
+  report.draft = runDraft(league, league.draftRounds || league.draftOrder, rng, place, plan);
+  delete league.draftRounds;
+  if (plan) { delete league.draftPlans[league.season]; }
   index(league);
   freeAgency(league, rng, { minScore: 0.05 });
   index(league);

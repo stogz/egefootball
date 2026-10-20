@@ -162,12 +162,15 @@ function madeClass(season, rng) {
 
 /* ---------------------------------------------------------------- order -- */
 
-/* Every pick of this year's draft, in order: [{ n, round, slot, from, owner }]. */
-function picksInOrder(league, order) {
+/* Every pick of a draft, in order: [{ n, round, slot, from, owner }].
+   `order` is the first round's team order, used for every round, or an
+   order for each round; `year` is the draft's, this season's if not given. */
+function picksInOrder(league, order, year) {
+  const draftYear = year || league.season;
   const out = [];
   for (let round = 1; round <= 7; round += 1) {
-    order.forEach((key, i) => {
-      const pick = league.picks.find((p) => p.year === league.season && p.round === round && p.from === key);
+    (Array.isArray(order[0]) ? order[round - 1] : order).forEach((key, i) => {
+      const pick = league.picks.find((p) => p.year === draftYear && p.round === round && p.from === key);
       if (!pick) { return; }
       out.push({ n: out.length + 1, round, slot: i + 1, from: key, owner: pick.owner, pick });
     });
@@ -177,9 +180,11 @@ function picksInOrder(league, order) {
 
 /* ----------------------------------------------------------------- draft -- */
 
-/* Runs the whole draft. `order` is the first round's team order;
-   `place` is { slug: 'TEAM' or 'TEAM:round' } for the six. */
-function runDraft(league, order, rng, place) {
+/* Runs the whole draft. `order` is the first round's team order, or one
+   for each round; `place` is { slug: 'TEAM' or 'TEAM:round' } for the six;
+   `plan` is a draft written by hand (lib/draft-plan.js), whose picks go
+   exactly as written. */
+function runDraft(league, order, rng, place, plan) {
   place = place || {};
   const season = league.season;
   const real = realClass(season);
@@ -189,6 +194,12 @@ function runDraft(league, order, rng, place) {
     prospects.push(p);
     if (!place[p.ege] && p.siteTeam) { place[p.ege] = p.siteTeam; }
   });
+  const written = {};
+  (plan ? plan.picks : []).forEach((w) => {
+    written[w.n] = w;
+    if (w.ege) { delete place[w.ege]; }
+  });
+  const reserved = new Set((plan ? plan.picks : []).map((w) => w.id));
   const levels = starterLevels(league);
   const noise = new Map();
   league.teams.forEach((t) => prospects.forEach((p) => noise.set(t.key + p.id, 1 + rng.gauss() * 0.12)));
@@ -196,10 +207,15 @@ function runDraft(league, order, rng, place) {
   const picks = picksInOrder(league, order);
   const results = [];
   picks.forEach((slot) => {
-    const team = league.teams.find((t) => t.key === slot.owner);
+    const w = written[slot.n];
+    const team = league.teams.find((t) => t.key === (w ? w.team : slot.owner));
+    let choice = null;
+    if (w) {
+      choice = prospects.find((p) => p.id === w.id && !taken.has(p.id));
+      if (!choice) { throw new Error('Pick ' + slot.n + ' of the uploaded draft: ' + w.name + ' is not in the ' + season + ' class.'); }
+    }
     /* One of the six placed on this team goes with its first pick (in the
        round asked for, if one was). */
-    let choice = null;
     Object.keys(place).forEach((slug) => {
       const [key, round] = String(place[slug]).split(':');
       const p = prospects.find((x) => x.ege === slug);
@@ -211,7 +227,7 @@ function runDraft(league, order, rng, place) {
       const roster = onTeam(league, team.key);
       let best = -1;
       prospects.forEach((p) => {
-        if (taken.has(p.id)) { return; }
+        if (taken.has(p.id) || reserved.has(p.id)) { return; }
         if (p.ege && place[p.ege]) { return; }
         const need = needAt(league, team.key, p.pos, levels, roster);
         const fit = fitOf(p, schemeFor(team, p.pos));
