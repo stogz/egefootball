@@ -1279,7 +1279,7 @@ EGE.cardsView = (function () {
     var next = rank ? pc.next : pc.ladder[1];
     fact('Next rank', next
       ? whole(Math.max(0, Math.ceil(next.points - pc.points))) + ' more FPTS to ' + next.name +
-        ' (' + whole(next.points) + '), which pays +' + pctText(next.bonus)
+        ' (' + whole(next.points) + ')'
       : rank.name + '. As high as it goes.');
     if (pc.earned !== null && pc.earned !== undefined) {
       var earned = fact('Earned', whole(pc.earned));
@@ -3375,6 +3375,18 @@ EGE.cardsView = (function () {
     return totals ? totals[slug] || 0 : null;
   }
 
+  /* A small button that is just an icon from icon/cardtabs, drawn as a mask
+     in the button's own ink. `label` is its tooltip and what a screen
+     reader says. */
+  function iconButton(className, icon, label) {
+    var button = el('button', 'fb-btn fb-btn--sm ege-iconbtn ' + className);
+    button.type = 'button';
+    button.title = label;
+    button.setAttribute('aria-label', label);
+    button.appendChild(el('span', 'ege-iconbtn__icon ege-iconbtn__icon--' + icon));
+    return button;
+  }
+
   /* A Player Card and, beside it, what it means: his name, how far it is
      to the next rank, what it has earned and pays a game, and the buttons
      to see his cards and (on your own) put a photo on it. `whose` is the
@@ -3385,7 +3397,12 @@ EGE.cardsView = (function () {
     var earned = whose.earned ? (whose.earned[player.slug] || 0) : null;
     var photo = whose.photos ? whose.photos[player.slug] || null : null;
     var node = el('article', 'ege-pcard');
-    node.appendChild(playerCardFace(pc, earned, photo));
+    /* The card itself opens up close, the way it does off a showcase. */
+    var face = playerCardFace(pc, earned, photo);
+    pressable(face, player.name + ' Player Card, ' + (rank ? rank.name : 'unranked') + ', up close', function () {
+      zoomPlayer(Object.assign({}, pc, { earned: earned, photo: photo }), { whose: whose.mine ? null : whose.first });
+    });
+    node.appendChild(face);
 
     var body = el('div', 'ege-pcard__body');
     body.appendChild(el('h4', 'ege-item__name', player.name));
@@ -3406,7 +3423,7 @@ EGE.cardsView = (function () {
     body.appendChild(el('p', 'ege-pcard__next', !pc.copies
       ? 'One ' + player.first + ' card starts it, and ' + whole(next.points) + ' FPTS makes it ' + next.name + '.'
       : next ? whole(Math.max(0, Math.ceil(next.points - pc.points))) + ' more FPTS to ' + next.name +
-               ' (' + whole(next.points) + '), which pays +' + pctText(next.bonus) + '.'
+               ' (' + whole(next.points) + ').'
       : rank.name + '. As high as it goes.'));
 
     /* What it has earned, and what it pays now. */
@@ -3431,8 +3448,9 @@ EGE.cardsView = (function () {
     body.appendChild(pays);
 
     var row = el('div', 'ege-pcard__actions');
-    var see = el('button', 'fb-btn fb-btn--sm ege-pcard__see', 'See his cards');
-    see.type = 'button';
+    /* Two icon buttons, Sam's cards and player marks in the button's ink:
+       his cards in the binder, and (on your own) a photo of yours on it. */
+    var see = iconButton('ege-pcard__see', 'cards', 'See ' + player.first + '\u2019s cards');
     see.disabled = !pc.copies;
     see.addEventListener('click', function () {
       state.filter.player = player.slug;
@@ -3448,11 +3466,10 @@ EGE.cardsView = (function () {
 
     /* Your own: a photo of yours on it, in place of his headshot. */
     if (whose.mine) {
-      var pick = el('button', 'fb-btn fb-btn--sm ege-pcard__photo', photo ? 'Change photo' : 'Add photo');
-      pick.type = 'button';
+      var pick = iconButton('ege-pcard__photo', 'player', photo ? 'Change photo' : 'Add photo');
       pick.disabled = !pc.copies || state.photos === null;
-      pick.title = state.photos === null ? 'Photos could not be loaded. Run supabase/schema.sql.'
-        : !pc.copies ? 'Collect a ' + player.first + ' card first.' : '';
+      if (state.photos === null) { pick.title = 'Photos could not be loaded. Run supabase/schema.sql.'; }
+      else if (!pc.copies) { pick.title = 'Collect a ' + player.first + ' card first.'; }
       pick.addEventListener('click', function () { choosePhoto(pc); });
       row.appendChild(pick);
       if (photo) {
@@ -3746,9 +3763,11 @@ EGE.cardsView = (function () {
     }
     who.value = state.pcView || '';
 
+    var other = state.pcView ? playerByEmail(state.pcView) : null;
+    showWhoFace(other);
+
     var holder = byId('playerCards');
     holder.innerHTML = '';
-    var other = state.pcView ? playerByEmail(state.pcView) : null;
     var whose = state.pcView
       ? { mine: false, email: state.pcView, first: other ? other.first : state.pcView,
           earned: state.pcOther && state.pcOther.earned, photos: state.pcOther && state.pcOther.photos }
@@ -3765,36 +3784,26 @@ EGE.cardsView = (function () {
     EGE.players.forEach(function (player) {
       holder.appendChild(playerCardEl(EGE.cards.playerCard(player, owned), whose));
     });
-
-    var total = state.pcView ? 0 : (state.pcAwards || []).filter(function (row) { return row.season === EGE.currentSeason; })
-      .reduce(function (sum, row) { return sum + (row.diamonds || 0); }, 0);
-    var earned = byId('playerCardsEarned');
-    earned.innerHTML = '';
-    if (total) {
-      earned.appendChild(document.createTextNode(EGE.currentSeason + ' bonuses: ' + total + ' '));
-      earned.appendChild(gem());
-    }
   }
 
-  function renderRankTable() {
-    var body = byId('rankTable');
-    body.innerHTML = '';
-    var scale = EGE.cards.RANK_SCALE;
-    EGE.cards.PLAYER_RANKS.forEach(function (r) {
-      var rarityInfo = EGE.cards.playerRank(r.key);
-      var tr = el('tr');
-      var name = el('td');
-      var dot = el('span', 'ege-chipdot');
-      dot.style.background = rarityInfo.color;
-      name.appendChild(dot);
-      name.appendChild(el('strong', null, rarityInfo.name));
-      tr.appendChild(name);
-      [scale.WR, scale.TE, scale.QB].forEach(function (k) {
-        tr.appendChild(el('td', 'num', r.points ? String(Math.round(r.points * k)) : '1 card'));
-      });
-      tr.appendChild(el('td', 'num', r.bonus ? '+' + pctText(r.bonus) : '—'));
-      body.appendChild(tr);
-    });
+  /* Beside the picker while somebody else's Player Cards are up: their
+     picture, popping in each time a different one is picked. */
+  function showWhoFace(other) {
+    var face = byId('playerCardsWhoFace');
+    var shown = face.hidden ? null : face.dataset.slug;
+    if (!other) {
+      face.hidden = true;
+      face.dataset.slug = '';
+      return;
+    }
+    if (shown === other.slug) { return; }
+    face.src = other.headshot;
+    face.alt = other.name;
+    face.dataset.slug = other.slug;
+    face.hidden = false;
+    face.classList.remove('is-popping');
+    void face.offsetWidth;          /* so the pop plays again */
+    face.classList.add('is-popping');
   }
 
   /* --- the daily spin -------------------------------------------------------
@@ -4358,7 +4367,6 @@ EGE.cardsView = (function () {
     Array.prototype.forEach.call(document.querySelectorAll('#cardTabs input'), function (input) {
       input.addEventListener('change', function () { if (input.checked) { setTab(input.value); } });
     });
-    renderRankTable();
     byId('swapCredits').addEventListener('input', renderSwap);
     byId('swapBuy').addEventListener('click', buySwap);
     byId('recentMore').addEventListener('click', function () {

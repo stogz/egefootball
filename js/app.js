@@ -1001,6 +1001,19 @@
      row. */
   function opponentName(cell, game) {
     var name = game.opponent;
+    /* An NFL team is its city alone, and the mark and the city are a link
+       to its page on Teams, for the season the game is in. The link looks
+       exactly like the name did; only a pointer over it says it goes
+       somewhere (Sam, 2026-10-20). */
+    var nfl = EGE.tierFor(game.season, gamePlayer(game)) === 'nfl' ? EGE.nfl.keyByName(name) : null;
+    var holder = cell;
+    if (nfl) {
+      holder = el('a', 'ege-opplink');
+      holder.href = '#teams/' + EGE.nfl.slug(nfl);
+      holder.title = name;
+      holder.addEventListener('click', function () { teamsPicked = game.season; });
+      cell.appendChild(holder);
+    }
     var src = EGE.tierFor(game.season) !== 'highSchool' && EGE.logoFor && EGE.logoFor(name);
     if (src) {
       var logo = el('img', 'ege-teamlogo');
@@ -1011,9 +1024,9 @@
       logo.loading = 'lazy';
       logo.decoding = 'async';
       logo.addEventListener('error', function () { logo.remove(); });
-      cell.appendChild(logo);
+      holder.appendChild(logo);
     }
-    cell.appendChild(el('span', 'fb-name', name));
+    holder.appendChild(el('span', 'fb-name', nfl ? EGE.nfl.city(nfl) : name));
   }
 
   /* A played game's score as the result pill -- W 38-9, L 21-24/OT -- or a
@@ -1160,8 +1173,15 @@
     showScouts = canSeeScouts(player) && season === EGE.currentSeason;
     showBoosters = canSeeStickers(player);
     /* The column is only there when there is something in it: a college
-       season, against schools with numbers. */
+       season, against schools with numbers, or an NFL one once the rosters
+       its grades come from are in. They arrive after the first draw, and
+       the schedule is drawn again with them. */
     showGrades = games.some(function (game) { return EGE.defenseGrade(player, game); });
+    if (EGE.tierFor(season, player) === 'nfl' && EGE.nflRosters.get(season) === undefined) {
+      EGE.nflRosters.load(season).then(function () {
+        if (schedulePlayer === player && shownSeason() === season && !viewPlayer.hidden) { renderSchedule(player); }
+      });
+    }
 
     /* A bracket belongs to a school, so opening somebody else's page puts the
        panel back on his games rather than leaving it on a tournament he is
@@ -1709,6 +1729,7 @@
     document.getElementById('rosterSwitch').hidden = false;
     nflShown = key + ':' + season;
     body.innerHTML = '';
+    renderUnitOveralls(key, season);
 
     var all = EGE.nflRosters.get(season);
     if (all === undefined) {
@@ -1733,6 +1754,28 @@
       grid.appendChild(roomEl(room, inRoom));
     });
     body.appendChild(grid);
+  }
+
+  /* Beside the Offense and Defense switch, for an admin and nobody else
+     (Sam, 2026-10-20): the team's offense and defense as two overalls, from
+     its players' ratings. Hidden in client viewer mode, and for a team the
+     rosters do not have yet. */
+  function renderUnitOveralls(key, season) {
+    var holder = document.getElementById('rosterRatings');
+    holder.innerHTML = '';
+    var units = key && EGE.wallet.admin() ? EGE.nflRosters.unitOveralls(season, key, function (sim) {
+      var player = sim.ege ? EGE.playerBySlug(sim.ege) : null;
+      return player ? EGE.overallFor(player) : sim.ovr;
+    }) : null;
+    holder.hidden = !units;
+    if (!units) { return; }
+    [['offense', 'OFF', 'Offense'], ['defense', 'DEF', 'Defense']].forEach(function (side) {
+      var box = overallBox(units[side[0]], 'ege-ovrbox--unit');
+      if (!box) { return; }
+      box.querySelector('.ege-ovrbox__label').textContent = side[1];
+      box.title = side[2] + ' overall ' + units[side[0]] + ', from its starters\u2019 ratings. Only admins see this.';
+      holder.appendChild(box);
+    });
   }
 
   document.addEventListener('change', function (event) {
@@ -2319,6 +2362,7 @@
     if (nflKey) { renderNflRoster(nflKey, season); return; }
     nflShown = null;
     document.getElementById('rosterSwitch').hidden = true;
+    renderUnitOveralls(null, season);
     var body = document.getElementById('teamRosterBody');
     body.innerHTML = '';
     var rooms = EGE.rosterFor(entry.key, season);
@@ -5470,71 +5514,11 @@
     });
   }
 
-  /* The Earning Credits panel: what an offseason pays, what a game pays, and
-     how a game's fantasy points are scored. The game rows are read out of
-     data/economy.js, so the panel can never describe different maths from
-     the maths that pays. */
-  var SUB = '\u221f ';
-
-  function earningRow(body, label, value, sub) {
-    var tr = el('tr', sub ? 'ege-earnings__sub' : 'ege-earnings__lead');
-    tr.appendChild(el('td', null, (sub ? SUB : '') + label));
-    var cell = el('td', 'num');
-    cell.appendChild(el('strong', null, value));
-    tr.appendChild(cell);
-    body.appendChild(tr);
-  }
-
-  function buildEarnings() {
-    var offseason = document.getElementById('shopEarnings');
-    EGE.shop.earnings.forEach(function (row) {
-      earningRow(offseason, row.label, '+' + row.credits, row.sub);
-    });
-
-    var economy = EGE.economy;
-    var shares = economy.FANTASY_SHARE;
-    var perGame = document.getElementById('shopGameEarnings');
-    earningRow(perGame, 'Every Game', 'fantasy pts \u00d7', false);
-    [['QB', 'Quarterback'], ['RB', 'Running Back'], ['TE', 'Tight End'],
-     ['WR', 'Wide Receiver']].forEach(function (pos) {
-      earningRow(perGame, pos[1], '\u00d7' + shares[pos[0]].toFixed(2), true);
-    });
-
-    var f = economy.FANTASY;
-    var per = function (rate) { return String(Math.round(1 / rate)); };
-    var scoring = document.getElementById('shopFantasy');
-    [
-      ['Passing', null],
-      ['Yards', '1 per ' + per(f.passingYards)],
-      ['Touchdown', '+' + f.passingTd],
-      ['Interception', String(f.interceptions)],
-      ['Rushing', null],
-      ['Yards', '1 per ' + per(f.rushingYards)],
-      ['Touchdown', '+' + f.rushingTd],
-      ['Receiving', null],
-      ['Catch', '+' + f.receptions],
-      ['Yards', '1 per ' + per(f.receivingYards)],
-      ['Touchdown', '+' + f.receivingTd],
-      ['Fumble lost', String(f.fumbles)]
-    ].forEach(function (row) {
-      if (row[1] === null) {
-        var head = el('tr', 'ege-earnings__lead');
-        head.appendChild(el('td', null, row[0]));
-        head.appendChild(el('td', 'num'));
-        scoring.appendChild(head);
-        return;
-      }
-      earningRow(scoring, row[0], row[1].replace('-', '\u2212'), row[0] !== 'Fumble lost');
-    });
-  }
-
   function buildCatalogue() {
     if (shopState.built) { return; }
     shopState.built = true;
     stackedCards = [];
     levelCards = [];
-
-    buildEarnings();
 
     var sections = document.getElementById('shopSections');
     EGE.shop.sections.filter(function (section) {
@@ -5860,6 +5844,29 @@
     EGE.auth.signOut();
   });
 
+  /* The admin's link in the nav and, in the portal, the client viewer
+     mode switch: shown to a real admin whichever way it is set, so it can
+     always be switched back. With it on the page is drawn as a player's,
+     so the Admin link goes with everything else. */
+  var viewerMode = document.getElementById('viewerMode');
+
+  function showAdminBits() {
+    var real = EGE.auth.currentPlayer() && EGE.wallet.realAdmin();
+    document.getElementById('navAdmin').hidden = !EGE.wallet.admin();
+    document.getElementById('viewerModeRow').hidden = !real;
+    viewerMode.checked = Boolean(real && EGE.wallet.viewerMode());
+    document.getElementById('viewerModeNote').textContent = viewerMode.checked
+      ? 'On: you are seeing the site the way a player does.'
+      : 'See the site the way a player does.';
+  }
+
+  viewerMode.addEventListener('change', function () {
+    EGE.wallet.setViewerMode(viewerMode.checked);
+    showAdminBits();
+    /* Whatever is on screen, drawn again for whoever it is now for. */
+    route();
+  });
+
   document.getElementById('shopLoginBtn').addEventListener('click', function () {
     openLogin();
   });
@@ -5892,6 +5899,7 @@
     document.getElementById('navShop').hidden = true;
     document.getElementById('navCards').hidden = true;
     document.getElementById('navAdmin').hidden = true;
+    document.getElementById('viewerModeRow').hidden = true;
     document.getElementById('navCredits').hidden = true;
     document.getElementById('navDiamonds').hidden = true;
   }
@@ -5985,8 +5993,8 @@
       loading();
       EGE.wallet.loadPublishedWeeks()
         .then(function () { return EGE.wallet.refreshAdmin(player.email); })
-        .then(function (admin) {
-          document.getElementById('navAdmin').hidden = !admin;
+        .then(function () {
+          showAdminBits();
           /* Anything the season owes this player is paid on the way in, so a
              result posted since their last visit is already credits and
              diamonds by the time they reach the shop. */
@@ -6005,6 +6013,9 @@
       photo.alt = player.name;
       showPanel(panelSignedIn);
     } else {
+      /* Nobody is an admin once they have signed out, so nothing only an
+         admin sees stays on the page behind them. */
+      EGE.wallet.refreshAdmin(null);
       showSignedOutNav();
       showPanel(panelAuth);
       loadAccount();

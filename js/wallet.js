@@ -51,7 +51,27 @@ EGE.wallet = (function () {
       .catch(function () { return false; });
   }
 
-  function admin() { return isAdmin; }
+  /* Client viewer mode: an admin seeing the site the way a player does,
+     switched on from the player portal and kept on this device until it
+     is switched off. While it is on, admin() says no everywhere the page
+     asks, so nothing only an admin gets is drawn; realAdmin() is still the
+     truth, for the switch itself. The database's policies are not touched:
+     this is what the page shows, not what the account may do. */
+  var VIEWER_KEY = 'ege.viewerMode';
+
+  function viewerMode() {
+    try { return window.localStorage.getItem(VIEWER_KEY) === 'on'; } catch (e) { return false; }
+  }
+
+  function setViewerMode(on) {
+    try {
+      if (on) { window.localStorage.setItem(VIEWER_KEY, 'on'); } else { window.localStorage.removeItem(VIEWER_KEY); }
+    } catch (e) { /* private browsing: it lasts as long as the page */ }
+  }
+
+  function realAdmin() { return isAdmin; }
+
+  function admin() { return isAdmin && !viewerMode(); }
 
   /* --- credits ----------------------------------------------------------- */
 
@@ -1227,6 +1247,9 @@ EGE.wallet = (function () {
     hasIntel: hasIntel,
     refreshAdmin: refreshAdmin,
     admin: admin,
+    realAdmin: realAdmin,
+    viewerMode: viewerMode,
+    setViewerMode: setViewerMode,
     creditsFor: creditsFor,
     setCredits: setCredits,
     diamondsFor: diamondsFor,

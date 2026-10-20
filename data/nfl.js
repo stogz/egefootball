@@ -69,6 +69,21 @@ EGE.nfl.keyByName = function (name) {
   return Object.keys(EGE.nfl.teams).filter(function (key) { return EGE.nfl.teams[key].name === name; })[0] || null;
 };
 
+/* What a schedule or a game log calls a team: its city alone -- Detroit,
+   Kansas City, Tampa Bay -- not the city and the nickname (Sam,
+   2026-10-20). New York and Los Angeles have two teams each, so theirs keep
+   enough to tell the two apart: NY Giants, NY Jets, LA Rams, LA Chargers. */
+EGE.nfl.SHARED_CITIES = { 'New York': 'NY', 'Los Angeles': 'LA' };
+
+EGE.nfl.city = function (key) {
+  var team = EGE.nfl.teams[key];
+  if (!team) { return null; }
+  var words = team.name.split(' ');
+  var nickname = words.pop();
+  var city = words.join(' ');
+  return EGE.nfl.SHARED_CITIES[city] ? EGE.nfl.SHARED_CITIES[city] + ' ' + nickname : city;
+};
+
 /* The sim's key for one of the six's teams ('detroit' is DET), and back. */
 EGE.nfl.keyForSite = function (siteKey) {
   return Object.keys(EGE.nfl.teams).filter(function (key) { return EGE.nfl.teams[key].site === siteKey; })[0] || null;

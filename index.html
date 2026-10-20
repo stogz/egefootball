@@ -163,6 +163,11 @@
         <div class="fb-panel ege-section-gap" id="teamRosterPanel">
           <div class="fb-panel__head">
             <h3>Roster</h3>
+            <!-- For an admin only: the offense's and the defense's overall,
+                 worked out in the browser from the players' ratings
+                 (EGE.nflRosters.unitOveralls). Never drawn for anybody else,
+                 nor in client viewer mode. -->
+            <div class="ege-unitovr" id="rosterRatings" hidden></div>
             <!-- An NFL team's two sides of the ball, the same switch as the
                  schedule's Games and Tournament. Drawn in app.js for NFL
                  teams only. -->
@@ -261,33 +266,6 @@
 
       <div id="shopSections"></div>
 
-      <!-- how credits are earned, out of the way until wanted -->
-      <details class="fb-panel ege-section-gap ege-details" id="earningsDetails">
-        <summary class="fb-panel__head ege-details__summary">
-          <h3>Earning Credits</h3>
-          <span class="fb-meta">60 every offseason, plus what the season earns</span>
-        </summary>
-        <div class="fb-tablewrap">
-          <table class="fb-table ege-earnings">
-            <thead><tr><th>Offseason</th><th class="num">Credits</th></tr></thead>
-            <tbody id="shopEarnings"></tbody>
-          </table>
-          <table class="fb-table ege-earnings">
-            <thead><tr><th>Per game</th><th class="num">Credits</th></tr></thead>
-            <tbody id="shopGameEarnings"></tbody>
-          </table>
-          <table class="fb-table ege-earnings">
-            <thead><tr><th>Fantasy scoring</th><th class="num">Points</th></tr></thead>
-            <tbody id="shopFantasy"></tbody>
-          </table>
-        </div>
-        <div class="fb-panel__foot">
-          <span class="fb-meta">Everything stacks. A game pays its fantasy points
-            times your position's share, always rounded up, and never less than
-            1. Unspent credits come back with you next season.</span>
-        </div>
-      </details>
-
       </div><!-- /shopContent -->
 
     </section>
@@ -346,49 +324,19 @@
         <div class="fb-panel" id="playerCardsPanel">
           <div class="fb-panel__head">
             <h3>Player Cards</h3>
-            <span class="fb-meta" id="playerCardsEarned"></span>
           </div>
           <div class="fb-panel__body fb-stack fb-stack--lg">
-            <p class="fb-meta">
-              Every card you hold of a player puts its fantasy points on his
-              Player Card, duplicates too. Collect enough and the card ranks
-              up, Common to GOAT, and every game he plays after that pays
-              you bonus diamonds on top of everything else, for his whole
-              career. A card that leaves your collection takes its points with it.
-            </p>
-            <select class="fb-select ege-filterselect ege-pcards__who" id="playerCardsWho" aria-label="Whose Player Cards"></select>
+            <!-- Whose Player Cards, centred, with that player's picture popping
+                 in beside it while somebody else's are showing. -->
+            <div class="ege-pcards__whobar">
+              <span class="ege-pcards__whopick">
+                <select class="fb-select ege-filterselect ege-pcards__who" id="playerCardsWho" aria-label="Whose Player Cards"></select>
+                <img class="ege-avatar ege-pcards__whoface" id="playerCardsWhoFace" src="" alt="" hidden>
+              </span>
+            </div>
             <div class="ege-pcards" id="playerCards"></div>
           </div>
         </div>
-        <details class="fb-panel ege-section-gap ege-details" id="ranksDetails">
-          <summary class="fb-panel__head ege-details__summary">
-            <h3>Ranks &amp; Bonuses</h3>
-            <span class="fb-meta">What each rank takes and what it pays</span>
-          </summary>
-          <div class="fb-panel__body fb-stack">
-            <p class="fb-meta">
-              A rank's bonus is a share of the diamonds the game would pay
-              its own player before any booster, rounded up. Quarterbacks'
-              cards score lower, so their ranks take three quarters of the
-              points; tight ends' nine tenths. A game pays at the rank you
-              hold when it goes out.
-            </p>
-          </div>
-          <div class="fb-tablewrap">
-            <table class="fb-table ege-odds">
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th class="num">WR / RB</th>
-                  <th class="num">TE</th>
-                  <th class="num">QB</th>
-                  <th class="num">Bonus a game</th>
-                </tr>
-              </thead>
-              <tbody id="rankTable"></tbody>
-            </table>
-          </div>
-        </details>
       </div>
 
       <!-- ===== Shop: the daily spin, packs, today's cards, the market ===== -->
@@ -522,10 +470,6 @@
             <span class="fb-meta" id="libraryCount"></span>
           </div>
           <div class="fb-panel__body fb-stack fb-stack--lg">
-            <p class="fb-meta">
-              Put a set together and claim its reward once. A card counts toward
-              every set it fits, and nothing is used up.
-            </p>
             <div class="ege-library" id="librarySets"></div>
           </div>
         </div>
@@ -1360,6 +1304,18 @@
           <p class="ege-who__name" id="signedInName"></p>
         </div>
       </div>
+      <!-- Admins only: the whole site drawn the way a player sees it, with
+           nothing an admin alone gets, until it is switched back. Kept on
+           this device. Wired in app.js; EGE.wallet.admin() answers false
+           while it is on. -->
+      <label class="ege-viewer" id="viewerModeRow" hidden>
+        <span class="ege-viewer__words">
+          <span class="ege-viewer__title">Client viewer mode</span>
+          <span class="fb-meta" id="viewerModeNote">See the site the way a player does.</span>
+        </span>
+        <input class="ege-viewer__input" id="viewerMode" type="checkbox" role="switch">
+        <span class="ege-viewer__track" aria-hidden="true"></span>
+      </label>
       <button class="fb-btn fb-btn--block" id="logoutBtn" type="button">Log Out</button>
     </div>
 

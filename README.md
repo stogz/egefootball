@@ -195,7 +195,13 @@ holds:
   straight off ESPN's image server by the school's ESPN id in
   `data/logos.js` -- nothing is saved into the site) and a mark for
   conference games, the **ODEF** grade, and the result once it has been
-  played. No kickoff
+  played. An NFL opponent is its **city alone** — *Detroit*, *Kansas City*,
+  *Tampa Bay* — with *NY Giants*, *NY Jets*, *LA Rams* and *LA Chargers*
+  where a city has two teams (`EGE.nfl.city`, Sam, 2026-10-20), on the
+  schedule and in the game log alike, and the mark and city are **a link to
+  that team's page** for the season of the game. The link looks the same
+  as the plain name until the pointer is on it, when it underlines in
+  orange and shows the hand. No kickoff
   time: the file still carries it for the Discord post, but the page does
   not show it. The Credits and Booster columns are only drawn on your own
   schedule, or on anyone's for an admin. A silhouette marks a game scouts will attend,
@@ -227,8 +233,9 @@ holds:
   **ODEF** grades the defense across the way, A to F, for what this player
   does: a back is graded on the run defense he runs into, a quarterback,
   receiver or tight end on the pass defense. A stingy run defense is an A
-  for Cooper or Sam, and a sieve an F — a report card's colours, so the A is
-  the hard one to play. The numbers are each school's real rushing and
+  for Cooper or Sam, and a sieve an F. The colours are the player's, not
+  the defense's (Sam, 2026-10-20): an A is the hard one to play and red, an
+  F the soft one and green. In college the numbers are each school's real rushing and
   passing yards allowed a game that season, ranked among every school at its
   level (FBS against FBS, FCS against FCS), and a grade is a fifth of that
   list. The tooltip says the number, the yards a play and the rank. A school
@@ -238,6 +245,18 @@ holds:
   so a new season's schedule is graded the day its file goes in. High
   schools have no grade and no column. `EGE.defenseGrade` in
   `data/games.js`, from `data/defenses.js`.
+
+  **An NFL defense is graded on its players** instead (Sam, 2026-10-20):
+  the ratings in the sim's rosters of the defenders this player would see,
+  ranked among the 32 for his position, a fifth of the league a letter. A
+  back faces the sim's own run-defense sums (the tackles, linebackers and
+  edge rushers on run defense, the safeties in the box, inside and out); a
+  quarterback the pass rush, the blitzers and everybody in coverage; a
+  receiver the corners and the deep safeties with some pass rush; a tight
+  end the linebackers and safeties with some pass rush. Starters are the
+  best healthy players at each spot, nickel. The tooltip says the rank.
+  `EGE.nflRosters.defenseGrade` in `js/nfl-rosters.js`; the column waits
+  for the rosters to load and the schedule is drawn again when they do.
 - **Game log** — per-game stats for that player, with the stat lines driven by
   their position (see below), and a totals row for the season, on the
   panel's own cream under a hard rule.
@@ -393,7 +412,14 @@ Under the bar:
   the panel, the same as the schedule's Games / Tournament, picks the side:
   quarterbacks, backs (a fullback with them), receivers and tight ends, or
   the defensive line (edge rushers and tackles), linebackers, cornerbacks
-  and safeties. Each box is the headshot and overall as before, and under
+  and safeties. **An admin also sees the team's offense and defense as two
+  overalls**, *OFF* and *DEF* boxes in their tier's colours left of the
+  switch (Sam, 2026-10-20): each the starters' overalls weighted by how
+  much the spot matters (the quarterback a third of the offense; the
+  corners, edge rushers and tackles most of the defense), worked out in the
+  browser from the same rosters (`EGE.nflRosters.unitOveralls`). They are
+  not the sim's own team ratings, which stay private, and nobody else sees
+  them, nor does an admin in client viewer mode. Each box is the headshot and overall as before, and under
   the name **the archetype with his seasons in the league** in the class
   chip (**R** for a rookie), then **height · weight**, with **no number**.
   The six's boxes use their own overall, headshot and size from their
@@ -463,7 +489,8 @@ Under the bar:
 - **Schedule** — the team's games as anybody can see them, with results as
   they are published and the postseason as far as the next game, the same
   rule a player's schedule follows. No credits, boosters or ODEF grades:
-  those belong to a player.
+  those belong to a player. NFL opponents are cities and links, as on a
+  player's schedule.
 
 The quarterback rooms are also where a QB Connection is picked from (see
 the shop).
@@ -826,9 +853,10 @@ Items with a picture name it as `icon`. The originals are in `icon/shop` at
 all six instead of 1.8MB.
 
 **Credits** are 60 every offseason, whatever a player is paid, plus what the
-season earns by contract size and honours. That table sits at the bottom of
-the page as a collapsible panel rather than taking up the top of it. Anything
-unspent carries into the next offseason.
+season earns by contract size and honours (`earnings` in `data/shop.js`).
+The page no longer shows that table, nor any words under the Performance
+Boosters and Rating Points headings (Sam, 2026-10-20). Anything unspent
+carries into the next offseason.
 
 **Your Inventory** heads the page: what this player owns, what is in effect,
 and the balance. Anything bought repeatedly is one row with a quantity rather
@@ -1851,12 +1879,20 @@ Legendary's purple glow, Mystic's moving gold and Iconic's holo. The Players
 page lays the six out in three rows of two (one a row once the screen
 narrows), each card as wide as one in the binder, with what it means beside
 it: his name, FPTS and how many cards (and how many different) make them, a
-bar and how many more FPTS reach the next rank and what that pays, what the
+bar and how many more FPTS reach the next rank (not what it pays: Sam,
+2026-10-20, there and up close), what the
 card has earned so far with its bonus now and about how much that is a game,
-then **See his cards** (the collection filtered to him) and **Add photo**.
+then two icon buttons in the button's ink, Sam's cards and player glyphs from
+`icon/cardtabs/`: **See his cards** (the collection filtered to him) and
+**Add photo** (*Change photo* once there is one), each saying so on hover.
+**The card itself opens up close**, the same close-up as off a showcase.
+The page is just the drop-down and the cards: no words above them, no
+season's bonus total in the head and no Ranks & Bonuses table under them
+(Sam, 2026-10-20; the ladder is above).
 
-**Somebody else's Player Cards.** The drop-down above them switches to any
-other account's six. Their cards come from their collection, which anybody
+**Somebody else's Player Cards.** The drop-down above them, centred, switches
+to any other account's six, and while somebody else's are up their picture
+pops in beside it. Their cards come from their collection, which anybody
 signed in can read; what theirs have earned comes from
 `player_card_earnings()`, which hands over the Player Card totals from
 `diamond_awards` and nothing else of it. **See his cards** opens their
@@ -2551,6 +2587,13 @@ Each of the six gets an account and a private portal.
   `player_accounts` back to `password_set = false`.
 - **Show password** — every password field has an eye toggle, so what's being
   typed can be checked before it's submitted.
+- **Client viewer mode** — an admin's portal has a switch that draws the
+  whole site the way a player sees it (Sam, 2026-10-20): no Admin tab, no
+  team overalls, nobody else's credits or boosters, no season ahead of the
+  live one. It stays on, on that device, until it is switched off
+  (`EGE.wallet.viewerMode`; `EGE.wallet.admin()` answers no while it is on
+  and `realAdmin()` still knows). It changes only what the page shows: the
+  database still treats the account as an admin.
 - **Overalls** — a rating per attribute (speed, strength, catching, route
   running, awareness, etc. — final attribute list TBD) plus a single overall.
 - **Offseason workouts** — the progression mechanic. Between seasons a player
@@ -2679,8 +2722,8 @@ Built so far:
   allowed a game, by season, and where each ranks at its level. Written by
   `tools/build-defenses.js` from ESPN's box scores; add the new year to its
   `SEASONS` and run it again when a season starts. The schedule's ODEF
-  grade is read from it. 2023 adds the NFL's 32 at `level: 'NFL'`, ranked
-  among themselves, from nflverse's team stats.
+  grade is read from it in college; the NFL's are graded from the rosters
+  instead and are not in it.
 - `data/rosters.js` — the quarterbacks, backs, receivers and tight ends on
   each of the six's teams (college, and the NFL from 2023), by season, each with his class, overall, ESPN
   id and whether ESPN has his headshot. Written by `tools/build-rosters.js`

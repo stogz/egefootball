@@ -14,6 +14,10 @@
    either: no team ratings, no potential, nothing about how long a player
    will last (see publicRosters in nfl-sim/lib/site.js).
 
+   Two things are worked out from them here: how hard each defense is on
+   one of the six's positions, for the ODEF grade on an NFL schedule, and
+   for an admin's eyes only a team's offense and defense as two overalls.
+
    A season is asked for once a load. get() is undefined until then, null
    for a season with no rosters, and the rosters once they are in.
    ========================================================================== */
@@ -66,12 +70,183 @@
     return asking[season];
   }
 
+  /* --- what a roster adds up to -------------------------------------------
+
+     Worked out here from the players' own ratings in the rosters, the same
+     ones the Teams pages show, and nothing else: none of the sim's own team
+     ratings, which stay in the world (see nfl-sim/README.md). Starters are
+     the best healthy players at each spot, the sim's game-day lineup:
+     nickel on defense, eleven personnel on offense. A spot with nobody
+     healthy in it counts as a 55, the sim's stand-in. */
+
+  function depth(rows) {
+    var d = {};
+    rows.forEach(function (p) {
+      if (p.out) { return; }
+      (d[p.pos] = d[p.pos] || []).push(p);
+    });
+    Object.keys(d).forEach(function (pos) {
+      d[pos].sort(function (a, b) { return (b.ovr || 0) - (a.ovr || 0); });
+    });
+    return function (pos, i) { return (d[pos] || [])[i] || null; };
+  }
+
+  function skill(p, key) {
+    if (!p) { return 55; }
+    var v = p.skills && p.skills[key];
+    return typeof v === 'number' ? v : p.ovr;
+  }
+
+  function weighted(list, valueOf) {
+    var total = 0;
+    var weight = 0;
+    list.forEach(function (pair) {
+      total += (pair[0] ? valueOf(pair[0]) : 55) * pair[1];
+      weight += pair[1];
+    });
+    return weight ? total / weight : 55;
+  }
+
+  /* A defender's coverage, whatever he lines up as. */
+  function cover(p) {
+    if (!p) { return 55; }
+    if (p.pos === 'CB') { return (skill(p, 'man') + skill(p, 'zone')) / 2; }
+    if (p.pos === 'S') { return (skill(p, 'range') + skill(p, 'cover')) / 2; }
+    return skill(p, 'cover');
+  }
+
+  /* How hard a defense is on one kind of player, from the ratings of the
+     defenders he would see: a back the front and the safeties in the box
+     (the sim's own run-defense sums, inside and out), a quarterback the
+     pass rush and everybody in coverage, a receiver the corners and the
+     deep safeties, a tight end the linebackers and safeties. */
+  var MATCHUPS = {
+    rush: {
+      text: 'Run defense',
+      score: function (at) {
+        var inside = weighted([[at('DI', 0), 1.3], [at('DI', 1), 1.3], [at('LB', 0), 1.1], [at('LB', 1), 1.1],
+          [at('EDGE', 0), 0.6], [at('EDGE', 1), 0.6], [at('S', 0), 0.3], [at('S', 1), 0.3]],
+          function (p) { return skill(p, p.pos === 'S' ? 'box' : 'run'); });
+        var outside = weighted([[at('EDGE', 0), 1.2], [at('EDGE', 1), 1.2], [at('LB', 0), 1], [at('LB', 1), 1],
+          [at('DI', 0), 0.5], [at('DI', 1), 0.5], [at('S', 0), 0.5], [at('S', 1), 0.5], [at('CB', 0), 0.3], [at('CB', 1), 0.3]],
+          function (p) { return skill(p, p.pos === 'S' ? 'box' : p.pos === 'CB' ? 'tackle' : p.pos === 'LB' ? 'speed' : 'run'); });
+        return (inside + outside) / 2;
+      }
+    },
+    QB: {
+      text: 'Pass defense',
+      score: function (at) {
+        return 0.35 * passRush(at) +
+          0.15 * weighted([[at('LB', 0), 1], [at('LB', 1), 1], [at('S', 0), 0.4]],
+            function (p) { return skill(p, p.pos === 'S' ? 'box' : 'blitz'); }) +
+          0.5 * weighted([[at('CB', 0), 1.1], [at('CB', 1), 1], [at('CB', 2), 0.7], [at('S', 0), 0.9], [at('S', 1), 0.9],
+            [at('LB', 0), 0.5], [at('LB', 1), 0.5]], cover);
+      }
+    },
+    WR: {
+      text: 'Coverage on receivers',
+      score: function (at) {
+        return 0.25 * passRush(at) +
+          0.75 * weighted([[at('CB', 0), 1.2], [at('CB', 1), 1.1], [at('CB', 2), 0.8], [at('S', 0), 0.6], [at('S', 1), 0.6]],
+            function (p) { return p.pos === 'S' ? skill(p, 'range') : cover(p); });
+      }
+    },
+    TE: {
+      text: 'Coverage on tight ends',
+      score: function (at) {
+        return 0.25 * passRush(at) +
+          0.75 * weighted([[at('LB', 0), 1.1], [at('LB', 1), 1], [at('S', 0), 1], [at('S', 1), 0.9], [at('CB', 2), 0.5]],
+            function (p) { return p.pos === 'S' ? (skill(p, 'cover') + skill(p, 'box')) / 2 : cover(p); });
+      }
+    }
+  };
+
+  function passRush(at) {
+    return weighted([[at('EDGE', 0), 1.3], [at('EDGE', 1), 1.3], [at('DI', 0), 0.8], [at('DI', 1), 0.8]],
+      function (p) { return skill(p, 'rush'); });
+  }
+
+  function matchupFor(position) {
+    if (position === 'RB' || position === 'FB') { return 'rush'; }
+    return MATCHUPS[position] ? position : 'QB';
+  }
+
+  /* Every team's defense against `position`, best first:
+     [{ key, score }], or null before the season's rosters are in. */
+  var ranked = {};
+  function defenseRanks(season, position) {
+    var all = cache[season];
+    if (!all || !all.teams) { return null; }
+    var kind = matchupFor(position);
+    var id = season + ':' + kind;
+    if (ranked[id] && ranked[id].from === all) { return ranked[id].list; }
+    var list = Object.keys(all.teams).map(function (key) {
+      return { key: key, score: MATCHUPS[kind].score(depth(all.teams[key])) };
+    }).sort(function (a, b) { return b.score - a.score; });
+    ranked[id] = { from: all, list: list };
+    return list;
+  }
+
+  /* The grade one of the six gets for a defense: where it ranks against
+     his position among the NFL's teams, a fifth of the league a letter.
+     Null until the rosters are in (load() them first), or for a team the
+     rosters do not have. */
+  function defenseGrade(season, key, position) {
+    var list = defenseRanks(season, position);
+    if (!list) { return null; }
+    var at = -1;
+    list.forEach(function (row, i) { if (row.key === key) { at = i; } });
+    if (at === -1) { return null; }
+    var letters = EGE.GRADES;
+    var letter = letters[Math.min(letters.length - 1, Math.floor(at / list.length * letters.length))];
+    var what = MATCHUPS[matchupFor(position)].text;
+    return {
+      letter: letter,
+      side: matchupFor(position) === 'rush' ? 'rush' : 'pass',
+      rank: at + 1,
+      of: list.length,
+      level: 'NFL',
+      season: season,
+      text: what + ': ' + letter + ' \u2014 ' + EGE.ordinal(at + 1).toLowerCase() + ' of ' + list.length +
+        ' in the NFL, by its players\u2019 ratings'
+    };
+  }
+
+  /* A team's offense and defense as two overalls, for an admin only: the
+     starters' overalls with the ones that matter most counting most -- the
+     quarterback a third of the offense. `ovrOf(row)` is the overall to use
+     for a player (one of the six's is his site overall). Never drawn for
+     anybody else; see renderNflRoster in js/app.js. */
+  var UNITS = {
+    offense: [['QB', 0, 0.34], ['RB', 0, 0.12], ['RB', 1, 0.04], ['WR', 0, 0.14], ['WR', 1, 0.11],
+              ['WR', 2, 0.08], ['TE', 0, 0.12], ['TE', 1, 0.05]],
+    defense: [['EDGE', 0, 0.12], ['EDGE', 1, 0.10], ['DI', 0, 0.10], ['DI', 1, 0.08], ['LB', 0, 0.10],
+              ['LB', 1, 0.07], ['CB', 0, 0.12], ['CB', 1, 0.10], ['CB', 2, 0.06], ['S', 0, 0.08], ['S', 1, 0.07]]
+  };
+
+  function unitOveralls(season, key, ovrOf) {
+    var all = cache[season];
+    var rows = all && all.teams ? all.teams[key] : null;
+    if (!rows || !rows.length) { return null; }
+    var withOvr = rows.map(function (p) { return Object.assign({}, p, { ovr: ovrOf ? ovrOf(p) : p.ovr }); });
+    var at = depth(withOvr);
+    var out = {};
+    Object.keys(UNITS).forEach(function (side) {
+      out[side] = Math.round(weighted(UNITS[side].map(function (slot) {
+        return [at(slot[0], slot[1]), slot[2]];
+      }), function (p) { return p.ovr; }));
+    });
+    return out;
+  }
+
   EGE.nflRosters = {
     load: load,
     get: function (season) { return cache[season]; },
     /* The admin page, having just published a season's rosters. */
     set: function (season, rosters) { cache[season] = rosters; },
     forget: function (season) { delete cache[season]; file = null; },
+    defenseGrade: defenseGrade,
+    unitOveralls: unitOveralls,
     /* One team's players, best first, or null. */
     team: function (season, key) {
       var all = cache[season];

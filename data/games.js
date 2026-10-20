@@ -659,7 +659,12 @@ EGE.diamondsFromGame = function (player, game) {
    FBS, FCS against FCS. A grade is a fifth of that list -- the top fifth an
    A, the bottom fifth an F. A season with no table yet borrows the latest
    one before it, so a new season's schedule is graded from the day its file
-   goes in. High schools have no numbers anywhere and get no grade. */
+   goes in. High schools have no numbers anywhere and get no grade.
+
+   An NFL opponent is graded on its players instead of its real season:
+   the ratings of the defenders this player would see, from the sim's
+   rosters, ranked among the NFL's 32 (EGE.nflRosters.defenseGrade in
+   js/nfl-rosters.js, Sam, 2026-10-20). Null until the rosters are in. */
 
 EGE.GRADES = ['A', 'B', 'C', 'D', 'F'];
 
@@ -682,7 +687,14 @@ EGE.defenseTable = function (season) {
        of: 125, level: 'FBS', season: 2020, text: 'Run defense: ...' } */
 EGE.defenseGrade = function (player, game) {
   if (!game || game.bye || !game.opponent) { return null; }
-  if (EGE.tierFor(game.season, player) === 'highSchool') { return null; }
+  var tier = EGE.tierFor(game.season, player);
+  if (tier === 'highSchool') { return null; }
+  if (tier === 'nfl') {
+    var key = EGE.nfl && EGE.nfl.keyByName(game.opponent);
+    return key && EGE.nflRosters
+      ? EGE.nflRosters.defenseGrade(game.season, key, EGE.positionFor(player, game.season))
+      : null;
+  }
 
   var table = EGE.defenseTable(game.season);
   var school = table && table.schools[game.opponent];
