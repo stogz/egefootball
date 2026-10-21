@@ -3461,6 +3461,8 @@ select,
   max-width: 100%;
   min-width: 0;
 }
+/* How many levels to grant, or the level a connection is set to. */
+.ege-account__levels { width: 5.5rem; }
 
 @media (max-width: 620px) {
   /* The admin's award and grant pickers, each on their own line rather than
@@ -4261,6 +4263,37 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 }
 .ege-room__more .ege-room__list { margin-top: 6px; }
 .ege-room__empty { margin: 0; font-size: var(--fb-small); color: var(--fb-muted); }
+/* An admin's + under a room's last player, card-sized, and the free agent
+   picker it opens into. */
+.ege-room__sign { display: grid; gap: 8px; margin-top: 12px; padding: 0 4px 4px 0; }
+.ege-room__plus {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 52px;
+  border: var(--fb-border) dashed var(--fb-ink);
+  background: transparent;
+  color: var(--fb-ink);
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+.ege-room__plus:hover { background: var(--fb-tint-wash); }
+.ege-room__plus:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: 2px; }
+.ege-room__signform { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ege-room__signform .fb-select { flex: 1 1 220px; min-width: 0; }
+/* A team's schemes and status, over its rooms, for an admin. */
+.ege-nflsys { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 0 0 16px; }
+.ege-nflsys__fact { min-width: 0; }
+.ege-nflsys dt {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-accent-deep);
+}
+.ege-nflsys dd { margin: 2px 0 0; font-weight: 800; }
 
 /* An NFL player's card: name, archetype and years, height and weight. The
    whole card opens his pop-up. A long archetype gives way before the years
@@ -4468,6 +4501,24 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-person__deal dt { padding-top: 2px; }
 .ege-person__deal dd { margin: 0; font-weight: 700; }
 .ege-person__go { justify-self: start; }
+/* An admin's Edit: the ratings line turned into boxes to type in. */
+.ege-person__edit { justify-self: start; }
+.ege-person__form { display: grid; gap: 12px; padding-bottom: 12px; border-bottom: var(--fb-border-thin) solid rgba(29, 36, 22, .2); }
+.ege-person__fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+.ege-person__field { display: grid; gap: 4px; min-width: 0; }
+.ege-person__field > span {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-accent-deep);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ege-person__field--wide { grid-column: span 2; }
+.ege-person__field .fb-input,
+.ege-person__field .fb-select { width: 100%; min-width: 0; }
 
 @media (max-width: 520px) {
   .ege-person__band { --face-h: 80px; gap: 8px; padding: 0 10px; }

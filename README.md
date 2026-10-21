@@ -466,6 +466,21 @@ Under the bar:
   else. Every NFL team's mark sits on its colour from `data/nfl.js`, the
   way the six's teams' do.
 
+  **An admin edits the roster right there** (Sam, 2026-10-21), on the
+  season the NFL sim is playing, once the page has loaded the sim's world
+  (`EGE.nflSimAdmin.ready`). Above the roster: the team's **Offense**,
+  **Defense** and **Status** (*Competing*, *Retooling*, *Rebuilding*, the
+  sim's mode). Under every room's worst player, a dashed **+** box opens a
+  list of the free agents at that position (overall, age, what he asks) and
+  **Sign** puts him on the team at his market pay. A pop-up has **Edit**
+  for anybody but the six: overall, ceiling, archetype and every skill.
+  New skills make the overall they average to unless an overall is given
+  too; an overall alone moves every skill with it; an archetype picked by
+  hand stays his (`archetypeSet`). The archetype is a name, and his skills
+  decide how he plays. Each change saves the world and publishes the
+  rosters again (`EGE.nflSimAdmin.change`, `lib/edits.js`). None of it shows
+  in client viewer mode.
+
   **The NFL's marks are the site's own**, in `icon/nfl/`, from a set Sam
   sent (2026-10-20), not ESPN's: the team pages, the pop-up, the schedules
   and the standings all use them (`EGE.nflLogos` in `data/logos.js`). Each
@@ -914,11 +929,15 @@ On sale:
   it runs out of attributes. See below.
 - **QB Connection** (20, college and later) — **with a named quarterback**:
   the card has a drop-down of his team's quarterback room that season
-  (`EGE.quarterbacksFor` — the real roster plus any of the six, never
+  (`EGE.quarterbacksFor` — in the NFL the sim's roster from
+  `nfl_sim_rosters`, `EGE.simQuarterbacks`, loaded the first time it is
+  asked for; in college the real roster; plus any of the six, never
   himself), and Buy waits until one is picked. The row is called *QB
   Connection — C.J. Stroud*, with the name in `target`, and the buy call
   refuses a name that is not in the room. A quarterback's O-Line Connection
-  has nobody to pick. An admin granting one picks the quarterback too.
+  has nobody to pick. An admin granting one picks the quarterback too, and
+  how many levels (a held one goes up that many); **Set level** on a row in
+  Accounts sets it to any level (`EGE.wallet.setLevel`).
   **Buying it again with the same quarterback levels it up** — one row per
   quarterback, with the level kept in `quantity`, shown in Roman numerals
   from II (*QB Connection III — C.J. Stroud*). The price follows the level

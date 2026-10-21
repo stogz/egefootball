@@ -253,7 +253,7 @@ function startOffseason(league, rng) {
   /* Retired players keep only who they were, to keep the world file small. */
   league.players.forEach((p) => {
     if (p.status !== 'retired') { return; }
-    ['skills', 'contract', 'injury', 'faSince', 'archetype', 'durability', 'longevity', 'height', 'weight', 'pfr', 'otc']
+    ['skills', 'contract', 'injury', 'faSince', 'archetype', 'archetypeSet', 'durability', 'longevity', 'height', 'weight', 'pfr', 'otc']
       .forEach((k) => { delete p[k]; });
   });
   index(league);

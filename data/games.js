@@ -992,12 +992,34 @@ EGE.rosterPhoto = function (row) {
     (row.nfl ? 'nfl' : 'college-football') + '/players/full/' + row.espn + '.png&w=96&h=70';
 };
 
+/* An NFL team's quarterbacks as the NFL sim has them that season (the
+   rosters js/nfl-rosters.js loads), best first; null for a college team,
+   or before those rosters are in. */
+EGE.simQuarterbacks = function (teamKey, season) {
+  var simKey = EGE.nfl && EGE.nfl.keyForSite ? EGE.nfl.keyForSite(teamKey) : null;
+  var all = simKey && EGE.nflRosters ? EGE.nflRosters.get(season) : null;
+  var rows = all && all.teams ? all.teams[simKey] : null;
+  if (!rows) { return null; }
+  return rows.filter(function (row) { return row.pos === 'QB'; }).slice()
+    .sort(function (a, b) { return (b.ovr || 0) - (a.ovr || 0); });
+};
+
 /* The quarterbacks a player can spend a QB Connection on: everybody in his
    team's quarterback room that season, the six's own included, and never
-   himself. */
+   himself. In the NFL that is the sim's room (Sam, 2026-10-21), so a
+   quarterback the sim signed or traded for is there and one it let go is
+   not; the shop asks for those rosters first (js/app.js). */
 EGE.quarterbacksFor = function (player, season) {
-  var key = EGE.teamKeyFor(player, season);
-  var rooms = key ? EGE.rosterFor(key, season) : null;
+  var year = season || EGE.currentSeason;
+  var key = EGE.teamKeyFor(player, year);
+  var sim = key ? EGE.simQuarterbacks(key, year) : null;
+  if (sim) {
+    return sim.filter(function (row) { return row.ege !== player.slug; }).map(function (row) {
+      var own = row.ege ? EGE.playerBySlug(row.ege) : null;
+      return own ? own.name : row.name;
+    });
+  }
+  var rooms = key ? EGE.rosterFor(key, year) : null;
   if (!rooms) { return []; }
   return rooms.QB.filter(function (row) {
     return !(row.player && row.player.slug === player.slug);
@@ -1011,6 +1033,11 @@ EGE.quarterbacksFor = function (player, season) {
 EGE.quarterbackPhoto = function (player, season, name) {
   if (!player || !name) { return null; }
   var key = EGE.teamKeyFor(player, season);
+  var sim = key ? EGE.simQuarterbacks(key, season || EGE.currentSeason) : null;
+  var simRow = sim ? sim.filter(function (one) { return one.name === name && one.espn; })[0] : null;
+  if (simRow) {
+    return 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/' + simRow.espn + '.png&w=96&h=70';
+  }
   var rooms = key ? EGE.rosterFor(key, season) : null;
   var row = rooms ? rooms.QB.filter(function (one) { return one.name === name; })[0] : null;
   if (row) { return row.player ? row.player.headshot : EGE.rosterPhoto(row); }

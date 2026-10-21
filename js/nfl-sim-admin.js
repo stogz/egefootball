@@ -67,7 +67,10 @@ EGE.nflSimAdmin = (function () {
 
   function client() { return EGE.auth && EGE.auth.supabaseClient ? EGE.auth.supabaseClient() : null; }
 
-  function note(text) { byId('nflSimNote').textContent = text || ''; }
+  function note(text) {
+    var line = byId('nflSimNote');
+    if (line) { line.textContent = text || ''; }
+  }
 
   function sim() { return EGE.nflSim; }
 
@@ -1223,7 +1226,7 @@ EGE.nflSimAdmin = (function () {
      as it stands. */
   function render() {
     if (state.files || state.busy) { draw(); return; }
-    if (state.loading) { return; }
+    if (state.loading) { state.loading.then(draw); return; }
     draw();
     state.loading = loadBundle().then(loadWorld).catch(function (err) {
       state.error = err.message || String(err);
@@ -1233,5 +1236,62 @@ EGE.nflSimAdmin = (function () {
     });
   }
 
-  return { render: render };
+  /* --- for the Teams pages -----------------------------------------------
+
+     An admin edits an NFL team's roster on the team's own page (js/app.js).
+     The sim and the world load the first time it is asked for; peek()
+     hands over the league as saved once they are in, and change(fn) runs
+     fn on it, saves the world and publishes the season's rosters, the way
+     a step here does. Anything that throws before the save keeps nothing. */
+
+  function ready() {
+    if (state.files) { return Promise.resolve(); }
+    if (!state.loading) {
+      state.loading = loadBundle().then(loadWorld).catch(function (err) {
+        state.error = err.message || String(err);
+      }).then(function () {
+        state.loading = null;
+      });
+    }
+    return state.loading.then(function () {
+      if (!state.files) { throw new Error(state.error || 'The NFL sim did not load.'); }
+    });
+  }
+
+  function loaded() { return Boolean(state.files) && hasWorld(); }
+
+  function peek() { return loaded() ? openLeague() : null; }
+
+  function change(fn) {
+    return ready().then(function () {
+      if (!hasWorld()) { throw new Error('The NFL sim has not been started.'); }
+      if (state.busy) { throw new Error('The NFL sim is busy. Try again in a moment.'); }
+      state.busy = true;
+      var before = Object.assign({}, state.files);
+      var saved = false;
+      var league;
+      var made;
+      return Promise.resolve().then(function () {
+        league = openLeague();
+        made = fn(league);
+        sim().run.save(league);
+        return saveWorld();
+      }).then(function () {
+        saved = true;
+        return publishRosters(league);
+      }).then(function () {
+        state.busy = false;
+        return made;
+      }, function (err) {
+        if (!saved) {
+          state.files = before;
+          state.dirty = {};
+        }
+        state.busy = false;
+        throw err;
+      });
+    });
+  }
+
+  return { render: render, ready: ready, loaded: loaded, peek: peek, change: change };
 })();
