@@ -8,7 +8,9 @@
 
    Every step that plays games is seeded from the world's seed and where the
    league is, so the same world always plays out the same way, wherever it
-   is run.
+   is run. Each week the sim plays is kept first as a save point, so it can
+   be undone or played again (lib/rewind.js); every undo moves the world to
+   a new take, and the dice with it.
    ========================================================================== */
 
 'use strict';
@@ -21,9 +23,11 @@ const trades = require('./trades');
 const { TEAMS } = require('./teams');
 const { siteResults } = require('./site');
 const { applyOfficial } = require('./draft-plan');
+const rewind = require('./rewind');
 
 function rngFor(league, what) {
-  return seeded((league.seed || 'ege-nfl') + ':' + league.season + ':' + league.phase + ':' + (league.week || 0) + ':' + what);
+  return seeded((league.seed || 'ege-nfl') + (league.take ? ':take' + league.take : '') + ':' + league.season + ':' +
+    league.phase + ':' + (league.week || 0) + ':' + what);
 }
 
 function hooks() {
@@ -61,8 +65,9 @@ function nextStep(league) {
 
 /* The next week of the regular season, or the next playoff round. */
 function playNext(league) {
-  if (league.phase === 'playoffs') { return season.playRound(league, rngFor(league, 'round')); }
   if (league.phase === 'offseason' || league.phase === 'draft') { throw new Error('The season is over: run the offseason, then the draft.'); }
+  rewind.mark(league);
+  if (league.phase === 'playoffs') { return season.playRound(league, rngFor(league, 'round')); }
   return season.playWeek(league, rngFor(league, 'week'), hooks());
 }
 
@@ -73,6 +78,7 @@ function playOn(league) {
   let first = true;
   while (league.phase === 'regular' || (league.phase === 'deadline' && first)) {
     first = false;
+    rewind.mark(league);
     const r = season.playWeek(league, rngFor(league, 'week'), hooks());
     weeks.push(r);
     if (r.deadline) { break; }
@@ -83,12 +89,26 @@ function playOn(league) {
 function playPlayoffs(league) {
   if (league.phase !== 'playoffs') { throw new Error('The playoffs are not on (phase: ' + league.phase + ').'); }
   const rounds = [];
-  while (league.phase === 'playoffs') { rounds.push(season.playRound(league, rngFor(league, 'round'))); }
+  while (league.phase === 'playoffs') {
+    rewind.mark(league);
+    rounds.push(season.playRound(league, rngFor(league, 'round')));
+  }
   return { rounds, champion: league.playoffs.champion };
+}
+
+/* Puts the league back to before `week` of this season (a playoff round
+   is the week it was played in, 19 to 22). Returns what was undone. */
+function undo(league, week) { return rewind.undo(league, week); }
+
+/* Undoes `week` and plays it again, on new dice. */
+function resim(league, week) {
+  const undone = rewind.undo(league, week);
+  return { undone, played: playNext(league) };
 }
 
 function offseason(league) {
   if (league.phase !== 'offseason') { throw new Error('The offseason starts after the Super Bowl (phase: ' + league.phase + ').'); }
+  rewind.clear(league);
   return startOffseason(league, rngFor(league, 'offseason'));
 }
 
@@ -128,5 +148,6 @@ function sixLine(s) {
 
 module.exports = {
   rngFor, hooks, open, save, nextStep, playNext, playOn, playPlayoffs, offseason, draft, importSite, queue, sixNow, sixLine,
+  undo, resim, savePoints: rewind.points,
   approve: trades.approve, reject: trades.reject, proposeOwn: trades.proposeOwn
 };

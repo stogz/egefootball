@@ -37,6 +37,12 @@ function worldDir(explicit) {
 function loadLeague(world) {
   const league = io.has(world, 'league.json') ? io.read(world, 'league.json') : io.data('league-2023.json');
   league.world = world;
+  return ready(league);
+}
+
+/* What every load does to the league as saved: pay filled in, the six read
+   from the site, the lookups built. */
+function ready(league) {
   fillPay(league);
   syncSix(league);
   index(league);
@@ -54,13 +60,16 @@ function fillPay(league) {
   });
 }
 
-function saveLeague(league) {
+/* The league as it is saved, without the folder and the lookups. */
+function saved(league) {
   const out = Object.assign({}, league);
   delete out.world;
   delete out.byId;
   delete out.byTeam;
-  io.write(league.world, 'league.json', out);
+  return out;
 }
+
+function saveLeague(league) { io.write(league.world, 'league.json', saved(league)); }
 
 /* Lookups rebuilt after anything moves. */
 function index(league) {
@@ -91,4 +100,4 @@ function teamOf(league, key) { return league.teams.find((t) => t.key === key); }
 function rosterOf(league, key) { return league.byTeam.get(key) || []; }
 function side(league, key) { return { team: teamOf(league, key), roster: rosterOf(league, key) }; }
 
-module.exports = { loadLeague, saveLeague, index, syncSix, teamOf, rosterOf, side, worldDir };
+module.exports = { loadLeague, saveLeague, saved, ready, index, syncSix, teamOf, rosterOf, side, worldDir };
