@@ -297,7 +297,7 @@ EGE.teams = {
    replaced under the same file name never reaches a new post. The Discord
    posts put this on the end of the headshot's address, which makes it a new
    address. Change it whenever a headshot in headshot/ is replaced. */
-EGE.headshotVersion = '2026-10-17';
+EGE.headshotVersion = '2026-10-20';
 
 EGE.players = [
   {
