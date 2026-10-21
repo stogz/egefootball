@@ -302,6 +302,30 @@ command line a `live.json` in the world folder stands in for them, with the
 same rows: `{ "boosters": [game_boosters rows], "inventory":
 [player_inventory rows] }`.
 
+**What a team does, for an admin** (`lib/tendencies.js`, `tendencies CHI`,
+or the Tendencies panel on an NFL team's page). The numbers above that the
+engine reads off a team to call its plays, each with where it ranks among
+the 32: how often it throws, play-action, outside runs, the share of
+designed runs its quarterback keeps (its tendency scaled by the starter's
+mobility: 1.6 times it for a Justin Fields or a Jalen Hurts, down to a
+fifth of it for a quarterback who cannot run), the depth of its throws and how its targets split; on defense
+man, two high, blitz and the box. Then who gets the ball: carries and
+targets a game expected from the lineup as it is (the team against every
+other team twice, nobody hurt, the six's connections counted) beside the
+season's. What decides a back's carries is all here: how often his team
+runs, how many of those runs its quarterback keeps, and the split between
+the two backs, the first getting 1.4 times the second's share at the same
+overall, more the better he is than the second. The engine has no fatigue,
+hot hand or usage rule that changes week to week; the score does the rest
+(a team 14 down in the second half throws more, 14 up runs more).
+
+**Every game's record** in `games-YEAR.json` keeps its score, scoring
+plays, leaders, injuries and the six's lines, and since 2026-10-21 both
+teams' numbers (`teams`: plays, dropbacks, carries, yards, third downs,
+time of possession...) and a box score (`box`: everybody who threw, ran,
+was thrown to, or got a sack or a pick). `games 12` (or **Week stats** on
+the NFL Sim tab) shows a week from it (`lib/weeks.js`).
+
 Before a game the sim can give an **assessment** (`matchup`): each side's
 offense against the other's defense, unit by unit — "Detroit's pass rush
 against Seattle's protection", "Seattle's deep passing against Detroit's
@@ -642,6 +666,8 @@ node nfl-sim/sim.js rankings                    team ratings, units and schemes 
 node nfl-sim/sim.js team DET                    roster, depth chart, ages, ceilings, fit, payroll
 node nfl-sim/sim.js player "Sam Stogsdill"      a player's card, fit in every scheme, this season's stats
 node nfl-sim/sim.js matchup DET SEA             Detroit at Seattle, sized up (--neutral for a neutral field)
+node nfl-sim/sim.js tendencies CHI              how a team calls plays and who gets the ball, expected and so far
+node nfl-sim/sim.js games [12] [--season 2024]  a week as played: the six's lines, every score and its leaders
 node nfl-sim/sim.js offseason                   aging through free agency, then the pre-draft trades
 node nfl-sim/sim.js trades [all]                the proposals waiting on Sam (all: every one ever)
 node nfl-sim/sim.js approve 2024-O3             apply a trade
@@ -747,6 +773,8 @@ nfl-sim/
     trades.js            proposals, the queue (big free-agent moves too), approving
     trade-finder.js      teams a player would suit better, and the trades for him
     fit.js               fit as 0-5 stars, players and teams (an admin's only)
+    tendencies.js        how a team calls plays and who gets the ball (an admin's only)
+    weeks.js             a week as it was played, from the game log (an admin's only)
     edits.js             ratings, archetypes, contracts and signings set by hand
     boosts.js            the six's boosters and connections from the site
     rewind.js            save points, to undo or resim a week

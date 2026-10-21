@@ -107,6 +107,29 @@ function sixIn(league, game, result) {
   return out;
 }
 
+/* What the game's record keeps of each team's numbers, and of each player
+   who threw, ran, was thrown to, or got a sack or a pick (an admin's week
+   on the NFL Sim tab). */
+const TEAM_KEPT = ['plays', 'dropbacks', 'carries', 'yards', 'passYds', 'rushYds', 'firstDowns', 'third', 'thirdMade',
+                   'sacks', 'ints', 'fumblesLost', 'top'];
+const LINE_KEPT = ['passCmp', 'passAtt', 'passYds', 'passTd', 'passInt', 'sacked', 'rushAtt', 'rushYds', 'rushTd', 'rushLong',
+                   'targets', 'rec', 'recYds', 'recTd', 'recLong', 'fumLost', 'sacks', 'ints', 'defTd'];
+
+function kept(from, keys) {
+  const out = {};
+  keys.forEach((k) => { if (from[k]) { out[k] = from[k]; } });
+  return out;
+}
+
+function boxOf(league, result) {
+  return Object.keys(result.box).map((id) => {
+    const line = result.box[id];
+    if (!(line.passAtt || line.rushAtt || line.targets || line.sacks || line.ints || line.defTd)) { return null; }
+    const p = league.byId.get(id);
+    return Object.assign({ name: line.name, pos: line.pos, team: line.team }, p && p.ege ? { ege: p.ege } : {}, kept(line, LINE_KEPT));
+  }).filter(Boolean);
+}
+
 /* Adds a game's box score to the season totals and keeps a short record of
    the game. */
 function record(league, game, result, log) {
@@ -128,7 +151,9 @@ function record(league, game, result, log) {
     scoring: result.scoring.map((s) => 'Q' + s.qtr + ' ' + s.clock + ' ' + s.team + ' ' + s.text + ' (' + s.score.join('-') + ')'),
     passing: leaders('passYds'), rushing: leaders('rushYds'), receiving: leaders('recYds'),
     injuries: result.injuries.map((i) => i.name + ' (' + i.team + ', ' + i.what + ', ' + (i.season ? 'season' : i.games + ' wk') + ')'),
-    six: sixIn(league, game, result)
+    six: sixIn(league, game, result),
+    teams: result.stats.map((s) => kept(s, TEAM_KEPT)),
+    box: boxOf(league, result)
   });
 }
 

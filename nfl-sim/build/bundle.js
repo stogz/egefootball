@@ -93,7 +93,9 @@ parts.push(`
     rewind: load('rewind'),
     history: load('history'),
     fit: load('fit'),
-    tradeFinder: load('trade-finder')
+    tradeFinder: load('trade-finder'),
+    tendencies: load('tendencies'),
+    weeks: load('weeks')
   };
 })();
 `);

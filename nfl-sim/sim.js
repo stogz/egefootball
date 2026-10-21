@@ -20,6 +20,9 @@
      node nfl-sim/sim.js team DET               roster, schemes, fit, contracts
      node nfl-sim/sim.js player "Sam Stogsdill"
      node nfl-sim/sim.js matchup DET SEA        Detroit at Seattle, sized up
+     node nfl-sim/sim.js tendencies CHI         how a team calls plays and who gets the ball
+     node nfl-sim/sim.js games [12] [--season YEAR]   a week as played: the six's lines, every
+                                                score, leaders and box score (alone: the last week)
      node nfl-sim/sim.js offseason              aging, contracts, schemes, trade proposals
      node nfl-sim/sim.js draft [--place cooper-clark=LAC[:2]]
      node nfl-sim/sim.js draft-order [YEAR]     every round's order and who owns each pick
@@ -68,6 +71,8 @@ const trades = require('./lib/trades');
 const draftPlan = require('./lib/draft-plan');
 const edits = require('./lib/edits');
 const { findTrades } = require('./lib/trade-finder');
+const tendencies = require('./lib/tendencies');
+const weeks = require('./lib/weeks');
 const history = require('./lib/history');
 const { depthChart } = require('./lib/lineup');
 const { OFFENSE, DEFENSE, fitOf, schemeFor } = require('./lib/schemes');
@@ -312,6 +317,42 @@ function main() {
       say(describe(assess(league, home, away, { neutral: !!neutral, games: Number(gamesArg) || 1000 })));
       break;
     }
+    case 'tendencies': {
+      const key = (rest[0] || '').toUpperCase();
+      if (!teamOf(league, key)) { say('No team ' + rest[0] + '.'); break; }
+      const t = tendencies.forTeam(league, key);
+      const pct = (k) => {
+        const c = t.calls[k];
+        return k + ' ' + (k === 'box' ? c.value.toFixed(2) : Math.round(c.value * 100) + '%') + ' (' + c.rank + ')';
+      };
+      say(TEAMS[key].name + ': ' + t.offense + ' offense, ' + t.defense + ' defense' + (t.qb ? ', ' + t.qb + ' at quarterback' : '') +
+        '. Ranks among the 32 in brackets, most first.');
+      say('Calls:    ' + ['pass', 'screen', 'short', 'mid', 'deep', 'playAction', 'outside', 'qbRun'].map(pct).join(', '));
+      say('Targets:  ' + ['WR', 'TE', 'RB'].map(pct).join(', '));
+      say('Defense:  ' + ['man', 'twoHigh', 'blitz', 'box'].map(pct).join(', '));
+      say('A game, expected (' + tendencies.ROUNDS + ' games against every team) and this season:');
+      [['Carries', t.carries], ['Targets', t.targets]].forEach(([label, rows]) => {
+        say('  ' + label + ': ' + rows.map((r) => r.name + ' ' + r.expected.toFixed(1) + ' / ' +
+          (r.games ? r.perGame.toFixed(1) + ' (' + r.total + ' in ' + r.games + ')' : '-')).join(', '));
+      });
+      break;
+    }
+    case 'games': {
+      const all = weeks.played(league).filter((w) => !seasonArg || w.season === Number(seasonArg));
+      const at = rest[0] ? all.filter((w) => w.week === Number(rest[0]))[0] : all[0];
+      if (!at) { say('The sim has not played ' + (rest[0] ? 'Week ' + rest[0] : 'a week') + (seasonArg ? ' of ' + seasonArg : '') + '.'); break; }
+      const w = weeks.week(league, at.season, at.week);
+      say(w.label + ' of ' + w.season + ':');
+      w.six.forEach((x) => say('  ' + x.name + ' (' + x.team + ') ' + x.result + (x.home ? ' vs ' : ' at ') + x.opponent + ': ' +
+        (x.out ? 'out (' + x.out + ')' : (x.text || 'no touches') + (x.points === null ? '' : ', ' + x.points + ' FPTS')) +
+        (x.booster ? ', ' + x.booster.toFixed(1) + 'x' : '') + (x.hurt ? ', hurt: ' + x.hurt.what + ' (' + x.hurt.games + ' wk)' : '')));
+      say('');
+      w.games.forEach((g) => {
+        say(scoreLine(g) + '. Passing ' + g.passing.join(', ') + '; rushing ' + g.rushing.join(', ') + '; receiving ' + g.receiving.join(', '));
+        if (g.injuries.length) { say('  Hurt: ' + g.injuries.join('; ')); }
+      });
+      break;
+    }
     case 'offseason': {
       const r = run.offseason(league);
       say('Into the ' + r.season + ' offseason. ' + (r.champion ? TEAMS[r.champion].name + ' won the Super Bowl.' : ''));
@@ -494,7 +535,7 @@ function main() {
       break;
     }
     default:
-      say('Unknown command ' + command + '. Commands: status, week, season, playoffs, resim, undo, standings, rankings, team, player, matchup, offseason, draft, draft-order, upload-draft, trades, approve, reject, trade, edit, contract, release, archetype, scheme, find-trades, rosters, report, reset, import-site, site, export.');
+      say('Unknown command ' + command + '. Commands: status, week, season, playoffs, resim, undo, standings, rankings, team, player, matchup, tendencies, games, offseason, draft, draft-order, upload-draft, trades, approve, reject, trade, edit, contract, release, archetype, scheme, find-trades, rosters, report, reset, import-site, site, export.');
       done();
       return;
   }

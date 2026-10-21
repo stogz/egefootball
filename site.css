@@ -4357,6 +4357,120 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-teamrings { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 18px; }
 .ege-payroll__form { max-width: 290px; padding: 6px 0; border-bottom: 0; }
 
+/* An admin's Tendencies panel on an NFL team's page: each number on the
+   league's range, lowest to highest, the average a tick and the team a
+   dot; then who gets the ball, expected and so far. */
+.ege-tend { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 18px 40px; }
+.ege-tend__group { min-width: 0; }
+.ege-tend__title {
+  margin: 0 0 8px;
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-accent-deep);
+}
+.ege-tend__row {
+  display: grid;
+  grid-template-columns: 7.25rem minmax(80px, 1fr) 2.75rem 2.25rem;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  font-size: var(--fb-small);
+}
+.ege-tend__label { overflow: hidden; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.ege-tend__track {
+  position: relative;
+  height: 8px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-tint-wash);
+  cursor: help;
+}
+.ege-tend__avg {
+  position: absolute;
+  top: -5px;
+  bottom: -5px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--fb-ink);
+}
+.ege-tend__dot {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border: 2px solid var(--fb-ink);
+  background: var(--fb-accent);
+}
+.ege-tend__value { font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
+.ege-tend__rank { color: var(--fb-muted); text-align: right; }
+.ege-tend__usage { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 18px 40px; margin-top: 22px; }
+.ege-tend__table .fb-table { min-width: 0; }
+.ege-tend__table td { padding-top: 6px; padding-bottom: 6px; }
+.ege-tend__table tbody tr { cursor: default; }
+.ege-tend__table tr.is-six td { background: var(--fb-tint-clay); font-weight: 800; }
+.ege-tend__pos { font-size: var(--fb-label); font-weight: 700; color: var(--fb-muted); }
+
+/* The NFL Sim tab's week stats: the six's lines, then a card a game that
+   opens to its box score. */
+.ege-simweek { display: grid; gap: 14px; }
+.ege-simweek__six { border-top: var(--fb-border-thin) solid var(--fb-ink); }
+.ege-simweek__sixrow {
+  display: grid;
+  grid-template-areas: "name opp line fpts";
+  grid-template-columns: 12rem 10.5rem minmax(0, 1fr) 5.5rem;
+  align-items: center;
+  gap: 4px 14px;
+  padding: 8px 4px;
+  border-bottom: var(--fb-border-thin) solid rgba(32, 38, 26, .2);
+  font-size: var(--fb-small);
+}
+.ege-simweek__name { display: flex; grid-area: name; align-items: center; min-width: 0; font-weight: 800; }
+.ege-simweek__opp { grid-area: opp; white-space: nowrap; }
+.ege-simweek__line { grid-area: line; min-width: 0; }
+.ege-simweek__fpts { grid-area: fpts; font-weight: 800; text-align: right; white-space: nowrap; }
+@media (max-width: 620px) {
+  .ege-simweek__sixrow { grid-template-areas: "name opp" "line fpts"; grid-template-columns: minmax(0, 1fr) auto; }
+  .ege-simweek__opp { text-align: right; }
+}
+.ege-simweek__tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 6px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  font-size: var(--fb-label);
+  font-weight: 800;
+  white-space: nowrap;
+}
+.ege-simweek__tag.is-hurt { border-color: #c62828; background: rgba(198, 40, 40, .12); color: #9b1010; }
+.ege-simweek__games { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 10px; align-items: start; }
+.ege-simweek__game { border: var(--fb-border-thin) solid var(--fb-ink); background: var(--fb-cream); }
+.ege-simweek__game[open] { grid-column: 1 / -1; }
+.ege-simweek__head { display: grid; gap: 8px; padding: 10px 12px; cursor: pointer; list-style: none; }
+.ege-simweek__head::-webkit-details-marker { display: none; }
+.ege-simweek__head:hover { background: var(--fb-tint-wash); }
+.ege-simweek__score { display: grid; gap: 4px; }
+.ege-simweek__side { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ege-simweek__side.is-won { font-weight: 800; }
+.ege-simweek__pts { font-family: var(--fb-font-display); font-size: 1.125rem; font-variant-numeric: tabular-nums; }
+.ege-simweek__ot { margin-right: 8px; font-family: var(--fb-font-body); font-size: var(--fb-label); font-weight: 800; color: var(--fb-muted); }
+.ege-simweek__leaders { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; margin: 0; font-size: var(--fb-small); }
+.ege-simweek__leaders dt { font-size: var(--fb-label); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--fb-accent-deep); }
+.ege-simweek__leaders dd { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ege-simweek__more {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px 24px;
+  padding: 12px;
+  border-top: var(--fb-border-thin) solid var(--fb-ink);
+}
+.ege-simweek__team .ege-sim__movetitle { margin-bottom: 2px; }
+.ege-simweek__totals { margin: 0 0 6px; }
+.ege-simweek__lines { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; font-size: var(--fb-small); }
+.ege-simweek__lines li.is-six { padding: 0 4px; background: var(--fb-tint-clay); }
+.ege-simweek__who { font-weight: 800; }
+
 /* An admin's offense and defense overalls, beside the switch: the overall
    box in its tier's colours, laid on its side and shrunk to the head's
    height, OFF or DEF where OVR goes. */

@@ -59,7 +59,8 @@ EGE.nflSimAdmin = (function () {
     live: null,           /* the six's boosters and connections, read before each step */
     again: '',            /* the week picked to resim or undo */
     editor: { group: '', id: '' },
-    rosters: { team: '', season: null }
+    rosters: { team: '', season: null },
+    week: ''              /* "season:week" picked in the week stats; the last one played when blank */
   };
 
   function emptyDeal() { return [{ key: '', players: [], picks: [] }, { key: '', players: [], picks: [] }]; }
@@ -415,6 +416,7 @@ EGE.nflSimAdmin = (function () {
       sim().run.save(league);
       return saveWorld().then(function () {
         state.last = made;
+        state.week = '';
         /* The step is kept whatever happens to the stored weeks, which the
            next step (or opening the tab) stores again, and the rosters,
            which can be sent again with Update rosters now. */
@@ -675,6 +677,132 @@ EGE.nflSimAdmin = (function () {
     return lines;
   }
 
+  /* --- a week as it was played -------------------------------------------
+
+     For an admin (Sam, 2026-10-21): what one week of the sim produced, the
+     week just played unless another is picked, out on the site or not.
+     The six's lines first, then every game's score and leaders, each
+     opening to both teams' numbers, the box score, the scoring plays and
+     who got hurt (lib/weeks.js). Weeks played before the box scores were
+     kept open to the scoring and injuries only. */
+
+  function drawWeek(body, league) {
+    var weeks = sim().weeks;
+    var all = weeks.played(league);
+    if (!all.length) { return; }
+    var part = section('Week stats');
+    var wrap = el('div', 'ege-simweek');
+    function paint() {
+      wrap.innerHTML = '';
+      var at = all.filter(function (w) { return w.season + ':' + w.week === state.week; })[0] || all[0];
+      var r = row();
+      r.appendChild(select('Week', all.map(function (w) {
+        return { value: w.season + ':' + w.week,
+                 text: w.label + (w.season !== league.season ? ' of ' + w.season : '') + (EGE.isPublished(w.season, w.week) ? '' : ' \u00b7 not out') };
+      }), at.season + ':' + at.week, function (value) {
+        state.week = value;
+        paint();
+      }).box);
+      wrap.appendChild(r);
+      var w = weeks.week(league, at.season, at.week);
+      if (w.six.length) { wrap.appendChild(sixWeek(w)); }
+      var games = el('div', 'ege-simweek__games');
+      w.games.forEach(function (g) { games.appendChild(gameCard(g, weeks)); });
+      wrap.appendChild(games);
+    }
+    paint();
+    part.appendChild(wrap);
+    body.appendChild(part);
+  }
+
+  function sixWeek(w) {
+    var list = el('div', 'ege-simweek__six');
+    w.six.forEach(function (x) {
+      var item = el('div', 'ege-simweek__sixrow');
+      var who = el('span', 'ege-simweek__name');
+      who.appendChild(teamMark(x.team, x.name));
+      item.appendChild(who);
+      item.appendChild(el('span', 'ege-simweek__opp', x.result + (x.home || x.neutral ? ' vs. ' : ' at ') + nick(x.opponent)));
+      var line = el('span', 'ege-simweek__line', x.out ? 'Out: ' + x.out : x.text || 'No touches');
+      if (x.booster) { line.appendChild(el('span', 'ege-simweek__tag', x.booster.toFixed(1) + 'x')); }
+      if (x.hurt) { line.appendChild(el('span', 'ege-simweek__tag is-hurt', x.hurt.what + ' \u00b7 ' + x.hurt.games + ' wk')); }
+      item.appendChild(line);
+      item.appendChild(el('span', 'ege-simweek__fpts', x.points === null ? '' : x.points + ' FPTS'));
+      list.appendChild(item);
+    });
+    return list;
+  }
+
+  /* "62 plays · 38 dropbacks · 24 runs · 380 yds · 3rd 5/12 · 31:20" */
+  function teamNumbers(t) {
+    var top = t.top || 0;
+    return [(t.plays || 0) + ' plays', (t.dropbacks || 0) + ' dropbacks', ((t.plays || 0) - (t.dropbacks || 0)) + ' runs',
+      (t.yards || 0) + ' yds', '3rd ' + (t.thirdMade || 0) + '/' + (t.third || 0),
+      Math.floor(top / 60) + ':' + String(Math.round(top % 60)).padStart(2, '0')].join(' \u00b7 ');
+  }
+
+  function gameCard(g, weeks) {
+    var card = el('details', 'ege-simweek__game');
+    var top = el('summary', 'ege-simweek__head');
+    var score = el('div', 'ege-simweek__score');
+    [[g.away, g.score[1]], [g.home, g.score[0]]].forEach(function (side, i) {
+      var won = side[1] > g.score[i ? 1 : 0];
+      var line = el('div', 'ege-simweek__side' + (won ? ' is-won' : ''));
+      line.appendChild(teamMark(side[0]));
+      var pts = el('span', 'ege-simweek__pts', String(side[1]));
+      if (won && g.ot) { pts.insertBefore(el('span', 'ege-simweek__ot', 'OT'), pts.firstChild); }
+      line.appendChild(pts);
+      score.appendChild(line);
+    });
+    top.appendChild(score);
+    var leaders = el('dl', 'ege-simweek__leaders');
+    [['Pass', g.passing], ['Rush', g.rushing], ['Rec', g.receiving]].forEach(function (l) {
+      if (!l[1].length) { return; }
+      leaders.appendChild(el('dt', null, l[0]));
+      leaders.appendChild(el('dd', null, l[1][0]));
+    });
+    top.appendChild(leaders);
+    card.appendChild(top);
+
+    var more = el('div', 'ege-simweek__more');
+    if (g.box) {
+      [[g.away, 1], [g.home, 0]].forEach(function (side) {
+        var box = el('div', 'ege-simweek__team');
+        var title = el('h5', 'ege-sim__movetitle');
+        title.appendChild(teamMark(side[0]));
+        box.appendChild(title);
+        if (g.teams && g.teams[side[1]]) { box.appendChild(el('p', 'fb-meta ege-simweek__totals', teamNumbers(g.teams[side[1]]))); }
+        var list = el('ul', 'ege-simweek__lines');
+        var lines = g.box.filter(function (l) { return l.team === side[0]; });
+        lines.filter(function (l) { return l.passAtt || l.rushAtt || l.targets; }).sort(function (a, b) {
+          return ((b.passAtt || 0) - (a.passAtt || 0)) || ((b.rushAtt || 0) + (b.targets || 0) - (a.rushAtt || 0) - (a.targets || 0));
+        }).forEach(function (l) {
+          var li = el('li', l.ege ? 'is-six' : null);
+          li.appendChild(el('span', 'ege-simweek__who', l.name + ' ' + l.pos));
+          li.appendChild(document.createTextNode(' ' + weeks.lineText(l)));
+          list.appendChild(li);
+        });
+        var defense = lines.filter(function (l) { return l.sacks || l.ints || l.defTd; }).map(function (l) {
+          return l.name + (l.sacks ? ' ' + l.sacks + ' sk' : '') + (l.ints ? ' ' + l.ints + ' INT' : '') + (l.defTd ? ' ' + l.defTd + ' TD' : '');
+        });
+        if (defense.length) {
+          var li = el('li');
+          li.appendChild(el('span', 'ege-simweek__who', 'Defense'));
+          li.appendChild(document.createTextNode(' ' + defense.join(', ')));
+          list.appendChild(li);
+        }
+        box.appendChild(list);
+        more.appendChild(box);
+      });
+    }
+    [['Scoring', g.scoring], ['Hurt', g.injuries]].forEach(function (part) {
+      if (!part[1].length) { return; }
+      more.appendChild(moveList(part[0], part[1]));
+    });
+    card.appendChild(more);
+    return card;
+  }
+
   /* Any of the six not in the league yet, or in an uploaded draft, can be
      put on a team by hand, in a round if wanted; left alone, he goes where
      the site has him or where his grade takes him. */
@@ -769,16 +897,7 @@ EGE.nflSimAdmin = (function () {
       var tr = el('tr', p.ege ? 'ege-sim__ege' : null);
       tr.appendChild(el('td', 'num', String(p.n)));
       var where = el('td');
-      var team = el('span', 'ege-sim__team');
-      var logo = EGE.logoFor ? EGE.logoFor(teamName(p.team)) : null;
-      if (logo) {
-        var img = el('img', 'ege-sim__logo');
-        img.src = logo;
-        img.alt = '';
-        team.appendChild(img);
-      }
-      team.appendChild(el('span', null, nick(p.team) + (p.from && p.from !== p.team ? ' (from ' + nick(p.from) + ')' : '')));
-      where.appendChild(team);
+      where.appendChild(teamMark(p.team, nick(p.team) + (p.from && p.from !== p.team ? ' (from ' + nick(p.from) + ')' : '')));
       tr.appendChild(where);
       tr.appendChild(el('td', null, p.name));
       tr.appendChild(el('td', null, p.pos || ''));
@@ -788,6 +907,20 @@ EGE.nflSimAdmin = (function () {
     table.appendChild(tbody);
     wrap.appendChild(table);
     return wrap;
+  }
+
+  /* A team's logo and a name for it (its nickname unless `text` says). */
+  function teamMark(key, text) {
+    var team = el('span', 'ege-sim__team');
+    var logo = EGE.logoFor ? EGE.logoFor(teamName(key)) : null;
+    if (logo) {
+      var img = el('img', 'ege-sim__logo');
+      img.src = logo;
+      img.alt = '';
+      team.appendChild(img);
+    }
+    team.appendChild(el('span', null, text || nick(key)));
+    return team;
   }
 
   function checkUpload() {
@@ -1545,6 +1678,7 @@ EGE.nflSimAdmin = (function () {
     drawStatus(body, league);
     drawLast(body);
     drawPlay(body, league);
+    drawWeek(body, league);
     drawUpload(body, league);
     drawTrades(body, league);
     drawEditor(body, league);
@@ -1589,7 +1723,10 @@ EGE.nflSimAdmin = (function () {
   function ready() {
     if (state.files) { return Promise.resolve(); }
     if (!state.loading) {
-      state.loading = loadBundle().then(loadWorld).catch(function (err) {
+      /* The connections too, which the Tendencies panel counts. */
+      state.loading = loadBundle().then(loadWorld).then(function () {
+        return loadLive().catch(function () { return null; });
+      }).catch(function (err) {
         state.error = err.message || String(err);
       }).then(function () {
         state.loading = null;

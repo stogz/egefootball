@@ -543,6 +543,19 @@ Under the bar:
   builder, filled in). The trade deadline and the six's one team a season
   hold as everywhere else.
 
+  **Tendencies**, for an admin only and never in client viewer mode (Sam,
+  2026-10-21), between the roster and the payroll on the season the sim is
+  playing: what the sim reads off the team to call its plays (pass rate,
+  play-action, outside runs, the share of designed runs its quarterback
+  keeps, screens and short, intermediate and deep throws, how its targets
+  split between receivers, tight ends and backs; on defense man, two high,
+  blitz and men in the box), each on the league's range with the average
+  marked, the team's place and its rank, and who gets the ball: carries and
+  targets a game, **Expected** from the lineup now (the team played against
+  every other team twice, nobody hurt, the six's connections counted) and
+  as the season has gone (`nfl-sim/lib/tendencies.js`). From the sim's
+  world, never from the published rosters.
+
   **The page ends with the payroll**, for everybody (Sam, 2026-10-21):
   payroll, the salary cap and the cap space (in red, how far over), a bar,
   and **Contracts**, every player's (the linemen, kickers and punters the
@@ -2709,7 +2722,15 @@ plays is **stored** for the site (Supabase `sim_weeks`, laid over the season
 files by `js/stored-weeks.js`), so **Publish Week N** under Play puts it out
 the way the Weeks tab's Publish does (the credits and diamonds it pays, the
 Discord posts) with nothing committed, and the next week can be played
-straight after: Play Week 5, Publish Week 5, Play Week 6. A stored week is
+straight after: Play Week 5, Publish Week 5, Play Week 6. **Week stats**,
+under Play, is what a week produced, the week just played unless another
+is picked (each marked *not out* until it is published): the six's lines
+and fantasy points, then a card for every game with its score and its
+passing, rushing and receiving leaders, which opens to both teams' plays,
+dropbacks, runs, yards, third downs and time of possession, every player
+who threw, ran or was thrown to, sacks and picks, the scoring plays and
+who got hurt (`nfl-sim/lib/weeks.js`). Games played before 2026-10-21 have
+no box score, so theirs open to the scoring and injuries only. A stored week is
 the whole week as the sim played it, for each of the six in the NFL: their
 results, stat lines, big plays and injuries, every other NFL score for the
 standings, and their playoff games as they reach them. Nobody but an admin
