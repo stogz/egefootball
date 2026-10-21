@@ -86,7 +86,13 @@ EGE.stats[2024] = {
         ] },
       { week:  3, date: '2024-09-22', kickoff: '4:25pm',
         opponent: 'Arizona Cardinals', home: false, conference: false,
-        result: null, booster: null, stats: null },
+        result: { teamScore: 12, opponentScore: 18 }, booster: null,
+        stats: {
+          receptions: 6, receivingYards: 44, receivingYac: 10,
+          receivingTd: 0, receivingLong: 19, targets: 9, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 7.3, totalYards: 44, totalTd: 0
+        } },
       { week:  4, date: '2024-09-30', kickoff: '8:15pm',
         opponent: 'Seattle Seahawks', home: true, conference: false,
         result: null, booster: null, stats: null },
@@ -159,7 +165,13 @@ EGE.stats[2024] = {
         } },
       { week:  3, date: '2024-09-22', kickoff: '12:00pm',
         opponent: 'Indianapolis Colts', home: false, conference: false,
-        result: null, booster: null, stats: null },
+        result: { teamScore: 41, opponentScore: 16 }, booster: null,
+        stats: {
+          carries: 9, rushingYards: 44, rushingTd: 0, rushingLong: 21,
+          receptions: 2, receivingYards: 13, receivingYac: 7,
+          receivingTd: 0, receivingLong: 8, targets: 3, fumbles: 1,
+          rushingAvg: 4.9, receivingAvg: 6.5, totalYards: 57, totalTd: 0
+        } },
       { week:  4, date: '2024-09-29', kickoff: '12:00pm',
         opponent: 'Los Angeles Rams', home: true, conference: false,
         result: null, booster: null, stats: null },
@@ -235,8 +247,18 @@ EGE.stats[2024] = {
           '4 yard receiving touchdown'
         ] },
       { week:  3, date: '2024-09-22', kickoff: '1:00pm',
-        opponent: 'Cleveland Browns', home: false, conference: false,
-        result: null, booster: null, stats: null },
+        opponent: 'Cleveland Browns', home: false, conference: false, overtime: true,
+        result: { teamScore: 19, opponentScore: 13 }, booster: null,
+        stats: {
+          receptions: 5, receivingYards: 42, receivingYac: 4,
+          receivingTd: 2, receivingLong: 19, targets: 8, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 8.4, totalYards: 42, totalTd: 2
+        },
+        bigPlays: [
+          '14 yard receiving touchdown',
+          '4 yard game-winning receiving touchdown'
+        ] },
       { week:  4, date: '2024-09-26', kickoff: '8:15pm',
         opponent: 'Dallas Cowboys', home: true, conference: false, division: true,
         result: null, booster: null, stats: null },
@@ -305,7 +327,16 @@ EGE.stats[2024] = {
         } },
       { week:  3, date: '2024-09-22', kickoff: '1:00pm',
         opponent: 'Denver Broncos', home: true, conference: false,
-        result: null, booster: null, stats: null },
+        result: { teamScore: 26, opponentScore: 14 }, booster: null,
+        stats: {
+          completions: 23, attempts: 27, passingYards: 204,
+          passingYac: 68, passingTd: 0, interceptions: 0, carries: 3,
+          rushingYards: -1, rushingTd: 1, rushingLong: 1, sacks: 5,
+          fumbles: 0, passingAvg: 8.9, rating: 98.1, rushingAvg: -0.3
+        },
+        bigPlays: [
+          '1 yard rushing touchdown'
+        ] },
       { week:  4, date: '2024-09-29', kickoff: '1:00pm',
         opponent: 'Philadelphia Eagles', home: true, conference: false,
         result: null, booster: null, stats: null },
@@ -378,7 +409,17 @@ EGE.stats[2024] = {
         } },
       { week:  3, date: '2024-09-22', kickoff: '1:05pm',
         opponent: 'Miami Dolphins', home: true, conference: false,
-        result: null, booster: null, stats: null },
+        result: { teamScore: 44, opponentScore: 20 }, booster: null,
+        stats: {
+          carries: 12, rushingYards: 108, rushingTd: 2, rushingLong: 65,
+          receptions: 0, receivingYards: 0, receivingYac: 0,
+          receivingTd: 0, receivingLong: 0, targets: 0, fumbles: 0,
+          rushingAvg: 9, totalYards: 108, totalTd: 2
+        },
+        bigPlays: [
+          '65 yard rushing touchdown',
+          '3 yard rushing touchdown'
+        ] },
       { week:  4, date: '2024-09-30', kickoff: '5:15pm',
         opponent: 'Detroit Lions', home: false, conference: false,
         result: null, booster: null, stats: null },
@@ -454,7 +495,16 @@ EGE.stats[2024] = {
         ] },
       { week:  3, date: '2024-09-22', kickoff: '12:00pm',
         opponent: 'Minnesota Vikings', home: false, conference: false,
-        result: null, booster: null, stats: null },
+        result: { teamScore: 10, opponentScore: 27 }, booster: null,
+        stats: {
+          completions: 25, attempts: 35, passingYards: 279,
+          passingYac: 115, passingTd: 1, interceptions: 0, carries: 2,
+          rushingYards: 1, rushingTd: 0, rushingLong: 2, sacks: 3,
+          fumbles: 1, passingAvg: 11.2, rating: 104.3, rushingAvg: 0.5
+        },
+        bigPlays: [
+          '9 yard passing touchdown'
+        ] },
       { week:  4, date: '2024-09-29', kickoff: '12:00pm',
         opponent: 'Jacksonville Jaguars', home: true, conference: false, division: true,
         result: null, booster: null, stats: null },
