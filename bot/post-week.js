@@ -118,6 +118,11 @@ function allPublished(season) {
     .catch(function () { return supabase('published_weeks?select=season,week,posted_at' + rest); });
 }
 
+/* The NFL Sim tab's stored weeks (sim_weeks, js/stored-weeks.js). */
+function storedWeeks() {
+  return supabase('sim_weeks?select=season,week,part,games,scores,saved_at');
+}
+
 function markPosted(season, week, leagues, done) {
   const body = { posted_leagues: leagues };
   if (done) { body.posted_at = new Date().toISOString(); }
@@ -191,6 +196,15 @@ async function main() {
     const weeks = EGE.publishedWeeks[row.season] || (EGE.publishedWeeks[row.season] = []);
     weeks.push(row.week);
   });
+
+  /* And lay the weeks the NFL sim stored over the season files, as the
+     browser does: a week published from the NFL Sim tab may be in no file
+     yet. */
+  try {
+    EGE.storedWeeks.apply(await storedWeeks());
+  } catch (err) {
+    console.log('(no stored weeks: ' + err.message + ')');
+  }
 
   const owed = args.week !== null
     ? [{ season: args.season || EGE.currentSeason, week: args.week }]

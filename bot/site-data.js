@@ -27,9 +27,12 @@ const BEFORE = [
   'data/statline.js'
 ];
 
-/* After them: the accessors that read across seasons, and the post builder. */
+/* After them: the accessors that read across seasons, the NFL sim's
+   stored weeks laid over them (once bot/post-week.js has read them), and
+   the post builder. */
 const AFTER = [
   'data/games.js',
+  'js/stored-weeks.js',
   'js/discord-post.js'
 ];
 

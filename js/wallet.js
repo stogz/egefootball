@@ -734,6 +734,15 @@ EGE.wallet = (function () {
     var c = client();
     if (!c) { EGE.publishedWeeks = {}; return Promise.resolve({}); }
 
+    /* Then the weeks the NFL sim has stored, which nobody but an admin can
+       read until a week is out: read after the list, so a week that has
+       just gone out is never on it without its games. */
+    return readPublished(c).then(function (weeks) {
+      return loadStoredWeeks().then(function () { return weeks; });
+    });
+  }
+
+  function readPublished(c) {
     return c.from(PUBLISHED).select('season, week, posted_at')
       .then(function (res) {
         /* Same rule as the boosts: a failed request keeps what was already
@@ -753,6 +762,24 @@ EGE.wallet = (function () {
         return bySeason;
       })
       .catch(function () { return EGE.publishedWeeks || {}; });
+  }
+
+  /* The weeks the NFL Sim tab played and stored (sim_weeks), laid over the
+     season files (js/stored-weeks.js): every row this visitor may read,
+     which is the published weeks' for everybody and all of them for an
+     admin. Whether anything changed. A failed read, or a database without
+     the table yet, keeps what was laid over already. */
+  var STORED = 'sim_weeks';
+
+  function loadStoredWeeks() {
+    var c = client();
+    if (!c || !EGE.storedWeeks) { return Promise.resolve(false); }
+    return c.from(STORED).select('season, week, part, games, scores, saved_at')
+      .then(function (res) {
+        if (res.error) { return false; }
+        return EGE.storedWeeks.apply(res.data || []);
+      })
+      .catch(function () { return false; });
   }
 
   /* Every published week with when it went out and whether Discord has had
@@ -1427,6 +1454,7 @@ EGE.wallet = (function () {
     awardCredits: awardCredits,
     clearLockedRows: clearLockedRows,
     loadPublishedWeeks: loadPublishedWeeks,
+    loadStoredWeeks: loadStoredWeeks,
     publishedRows: publishedRows,
     publishWeek: publishWeek,
     unpublishWeek: unpublishWeek,

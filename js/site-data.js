@@ -1,9 +1,10 @@
 /* ==========================================================================
    EGE Football — the files that change, loaded past the cache
-   The season lives in stats/{year}.js and nowhere else. There is no stats
-   table in Supabase and no second copy anywhere: change a touchdown in that
-   file and the schedule, the game log, the season totals, the Discord post
-   and the credits that touchdown is worth all move with it.
+   The season lives in stats/{year}.js, with the NFL sim's weeks that are
+   not written into it yet laid over it from Supabase (js/stored-weeks.js).
+   Change a touchdown in that file and the schedule, the game log, the season
+   totals, the Discord post and the credits that touchdown is worth all move
+   with it.
 
    That only holds if the browser reads the file rather than its own copy of
    it. A static host serves everything with a cache lifetime — GitHub Pages

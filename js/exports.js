@@ -376,6 +376,7 @@ EGE.exports = (function () {
     lines.push('  season: ' + season + ',');
     lines.push('  level: ' + quote(forSeason.level || '') + ',');
     lines.push('');
+    storedLines(forSeason.stored).forEach(function (line) { lines.push(line); });
     playoffLines(forSeason).forEach(function (line) { lines.push(line); });
     lines.push('  games: {');
 
@@ -473,6 +474,23 @@ EGE.exports = (function () {
       out.push('    ],');
     });
 
+    out.push('  },');
+    out.push('');
+    return out;
+  }
+
+  /* The weeks the NFL sim stored that are written into the file, and when
+     each was saved (js/stored-weeks.js). A file with none writes nothing,
+     so every season before them comes out as it went in. */
+  function storedLines(stored) {
+    var weeks = Object.keys(stored || {}).map(Number).sort(function (a, b) { return a - b; });
+    if (!weeks.length) { return []; }
+    var out = ['  /* Weeks the NFL Sim tab stored, written in here, and when each was',
+               '     saved: a stored week saved after this replaces the file\'s. */',
+               '  stored: {'];
+    weeks.forEach(function (week, at) {
+      out.push('    ' + week + ': ' + quote(stored[week]) + (at < weeks.length - 1 ? ',' : ''));
+    });
     out.push('  },');
     out.push('');
     return out;
