@@ -153,5 +153,42 @@ EGE.nflSimResults = {
       { week: 18, home: 'Tennessee Titans', away: 'Jacksonville Jaguars', score: [10, 15] },
       { week: 18, home: 'Washington Commanders', away: 'Dallas Cowboys', score: [20, 23] }
     ]
+  },
+  2024: {
+    from: 1,
+    games: [
+      { week:  1, home: 'Atlanta Falcons', away: 'Pittsburgh Steelers', score: [7, 17] },
+      { week:  1, home: 'Buffalo Bills', away: 'Arizona Cardinals', score: [35, 28] },
+      { week:  1, home: 'Chicago Bears', away: 'Tennessee Titans', score: [35, 7] },
+      { week:  1, home: 'Cincinnati Bengals', away: 'New England Patriots', score: [24, 13] },
+      { week:  1, home: 'Cleveland Browns', away: 'Dallas Cowboys', score: [26, 6] },
+      { week:  1, home: 'Detroit Lions', away: 'Los Angeles Rams', score: [27, 10] },
+      { week:  1, home: 'Indianapolis Colts', away: 'Houston Texans', score: [41, 16] },
+      { week:  1, home: 'Kansas City Chiefs', away: 'Baltimore Ravens', score: [16, 39] },
+      { week:  1, home: 'Los Angeles Chargers', away: 'Las Vegas Raiders', score: [24, 10] },
+      { week:  1, home: 'Miami Dolphins', away: 'Jacksonville Jaguars', score: [28, 21] },
+      { week:  1, home: 'New Orleans Saints', away: 'Carolina Panthers', score: [21, 24] },
+      { week:  1, home: 'New York Giants', away: 'Minnesota Vikings', score: [31, 21] },
+      { week:  1, home: 'Philadelphia Eagles', away: 'Green Bay Packers', score: [24, 10], neutral: true },
+      { week:  1, home: 'San Francisco 49ers', away: 'New York Jets', score: [39, 17] },
+      { week:  1, home: 'Seattle Seahawks', away: 'Denver Broncos', score: [27, 5] },
+      { week:  1, home: 'Tampa Bay Buccaneers', away: 'Washington Commanders', score: [34, 9] },
+      { week:  2, home: 'Arizona Cardinals', away: 'Los Angeles Rams', score: [34, 28], overtime: true },
+      { week:  2, home: 'Baltimore Ravens', away: 'Las Vegas Raiders', score: [37, 13] },
+      { week:  2, home: 'Carolina Panthers', away: 'Los Angeles Chargers', score: [26, 16] },
+      { week:  2, home: 'Dallas Cowboys', away: 'New Orleans Saints', score: [20, 26], overtime: true },
+      { week:  2, home: 'Denver Broncos', away: 'Pittsburgh Steelers', score: [15, 23] },
+      { week:  2, home: 'Detroit Lions', away: 'Tampa Bay Buccaneers', score: [27, 16] },
+      { week:  2, home: 'Green Bay Packers', away: 'Indianapolis Colts', score: [42, 7] },
+      { week:  2, home: 'Houston Texans', away: 'Chicago Bears', score: [23, 20] },
+      { week:  2, home: 'Jacksonville Jaguars', away: 'Cleveland Browns', score: [24, 3] },
+      { week:  2, home: 'Kansas City Chiefs', away: 'Cincinnati Bengals', score: [26, 23] },
+      { week:  2, home: 'Miami Dolphins', away: 'Buffalo Bills', score: [17, 21] },
+      { week:  2, home: 'Minnesota Vikings', away: 'San Francisco 49ers', score: [20, 27] },
+      { week:  2, home: 'New England Patriots', away: 'Seattle Seahawks', score: [16, 6] },
+      { week:  2, home: 'Philadelphia Eagles', away: 'Atlanta Falcons', score: [30, 24] },
+      { week:  2, home: 'Tennessee Titans', away: 'New York Jets', score: [9, 35] },
+      { week:  2, home: 'Washington Commanders', away: 'New York Giants', score: [13, 23] }
+    ]
   }
 };
