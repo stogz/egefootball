@@ -4306,7 +4306,7 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-falist__name { overflow: hidden; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
 .ege-falist__meta { font-size: var(--fb-small); color: var(--fb-muted); }
 .ege-falist__sign { flex: none; padding: 3px 10px; font-size: var(--fb-label); }
-/* A team's schemes and status, over its rooms, for an admin. */
+/* A team's schemes and status, over its rooms, for everybody. */
 .ege-nflsys { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 0 0 16px; }
 .ege-nflsys__fact { min-width: 0; }
 .ege-nflsys dt {
@@ -4330,6 +4330,8 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-teamchip--nfl .ege-room__class { flex: none; }
 /* The overall box, and anything keeping him out just before it. */
 .ege-teamchip__end { display: flex; align-items: stretch; gap: 5px; }
+/* Red all through (Sam, 2026-10-21): a dotted red edge, red at 40% behind,
+   and red words, deep enough to read on it. */
 .ege-injbox {
   display: flex;
   flex: none;
@@ -4337,16 +4339,18 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
   align-items: center;
   justify-content: center;
   gap: 2px;
-  width: 38px;
-  padding: 5px 2px 6px;
-  border: var(--fb-border) solid var(--fb-ink);
-  background: #c62828;
-  color: #fff;
+  min-width: 40px;
+  padding: 5px 4px 6px;
+  border: var(--fb-border) dotted #c62828;
+  background: rgba(198, 40, 40, .4);
+  color: #9b1010;
   text-align: center;
   cursor: help;
 }
 .ege-injbox__label { font-size: .5625rem; font-weight: 800; letter-spacing: .12em; }
-.ege-injbox__value { font-family: var(--fb-font-display); font-size: 1.0625rem; line-height: 1; }
+.ege-injbox__value { font-family: var(--fb-font-display); font-size: 1.0625rem; line-height: 1; white-space: nowrap; }
+.ege-injbox__unit { margin-left: 2px; font-family: var(--fb-font-body); font-size: .5625rem; font-weight: 800; letter-spacing: .06em; }
+.ege-injbox.is-season .ege-injbox__value { font-size: .625rem; letter-spacing: .02em; }
 
 /* An admin's fit stars: the site's orange (Sam, 2026-10-21), five
    outlines with the share filled laid over them. */
@@ -4369,6 +4373,9 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
   -webkit-text-stroke: 1px var(--fb-ink);
 }
 .ege-teamchip__meta .ege-fitstars { margin-left: 2px; }
+/* Height and weight, then the stars, which drop under them on a card too
+   narrow for both beside an OUT box. */
+.ege-teamchip__size { flex-wrap: wrap; row-gap: 3px; }
 .ege-nflsys dd .ege-fitstars { margin-left: 8px; font-size: .875rem; }
 .ege-person__arch .ege-fitstars { margin-left: 10px; font-family: var(--fb-font-body); font-size: 1rem; }
 

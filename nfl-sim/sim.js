@@ -36,7 +36,8 @@
      node nfl-sim/sim.js archetype sam-stogsdill "Power Back"   one of the six's archetype
                                                 (no archetype: back to the one his skills give)
      node nfl-sim/sim.js scheme DET offense "Air Raid"   switch a team's scheme (it keeps it)
-    node nfl-sim/sim.js find-trades "Name"     teams he would suit better that would trade for him
+     node nfl-sim/sim.js find-trades "Name" [--refresh 1]   teams he would suit better that
+                                                would trade for him (--refresh: another set)
      node nfl-sim/sim.js rosters DET [YEAR]     a team's roster that season, and who came and went
      node nfl-sim/sim.js report                 a written report into the world folder
      node nfl-sim/sim.js reset --force          start over from the 2023 kickoff
@@ -94,6 +95,7 @@ const seasonArg = flag('season');
 const ovrArg = flag('ovr');
 const apyArg = flag('apy');
 const potArg = flag('pot');
+const refreshArg = flag('refresh');
 function bool(name) {
   const at = args.indexOf('--' + name);
   if (at !== -1) { args.splice(at, 1); }
@@ -456,7 +458,7 @@ function main() {
     case 'find-trades': {
       const p = findPlayer(league, rest.join(' '));
       if (!p) { say('No player ' + rest.join(' ') + '.'); break; }
-      const r = findTrades(league, p.id);
+      const r = findTrades(league, p.id, { refresh: refreshArg ? Number(refreshArg) : 0 });
       const stars = (f) => (f ? f.stars + ' stars in ' + f.scheme : 'no scheme fit');
       say(p.name + ' (' + p.pos + ', ' + p.ovr + ', ' + p.team + '): ' + stars(r.here) + (r.starts ? ', starting' : ', not starting') + '.');
       if (!r.results.length) { say('No team he would suit better can make a deal for him.'); }
@@ -466,6 +468,7 @@ function main() {
           (t.starts ? ', would start' + (t.over ? ' over ' + t.over.name + ' (' + t.over.ovr + ')' : '') : '') + '.');
         say('  ' + t.summary);
         t.incoming.filter((i) => i.fit).forEach((i) => say('  ' + i.text + ': ' + stars(i.fit) + ' with the ' + TEAMS[p.team].name + '.'));
+        t.extras.filter((i) => i.fit).forEach((i) => say('  ' + i.text + ': ' + stars(i.fit) + ' with the ' + TEAMS[t.team].name + '.'));
         say('  ' + (t.room >= 0 ? '$' + t.room + 'M under the cap after.' : '$' + -t.room + 'M over the cap after.'));
       });
       break;

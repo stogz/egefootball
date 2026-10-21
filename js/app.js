@@ -1941,12 +1941,13 @@
 
   /* A sim row as a room's row. One of the six is his own: the overall,
      headshot and size his page has. Everybody else is the sim's, with
-     ESPN's headshot. For an admin, his fit on the team in stars too. */
+     ESPN's headshot. His fit on the team in stars too, for everybody (Sam,
+     2026-10-21): an admin's from the world, anybody else's as published. */
   function nflRow(sim, season, key, admin) {
     var player = sim.ege ? EGE.playerBySlug(sim.ege) : null;
     return {
       admin: admin || null,
-      fit: admin && admin.fits ? admin.fits.players[sim.name + '|' + sim.pos] || null : null,
+      fit: admin && admin.fits ? admin.fits.players[sim.name + '|' + sim.pos] || null : publicFit(sim, season, key),
       out: nflOut(sim, player, season),
       name: player ? player.name : sim.name,
       overall: player ? EGE.overallFor(player) : sim.ovr,
@@ -1988,7 +1989,7 @@
     text.appendChild(meta);
     var size = [EGE.heightText(row), EGE.weightText(row)].filter(Boolean).join(' · ');
     if (size || row.fit) {
-      var third = el('span', 'ege-teamchip__meta');
+      var third = el('span', 'ege-teamchip__meta ege-teamchip__size');
       if (size) { third.appendChild(el('span', null, size)); }
       if (row.fit) { third.appendChild(starsEl(row.fit.stars, 'Fit in ' + row.fit.scheme)); }
       text.appendChild(third);
@@ -2005,37 +2006,65 @@
     return item;
   }
 
+  /* His fit as the published rosters have it: stars, read in the team's
+     offense or defense. */
+  var OFFENSE_POS = ['QB', 'RB', 'FB', 'WR', 'TE', 'OT', 'IOL'];
+
+  function publicFit(sim, season, key) {
+    if (typeof sim.fit !== 'number') { return null; }
+    var all = EGE.nflRosters.get(season);
+    var system = all && all.systems ? all.systems[key] : null;
+    var scheme = system ? (OFFENSE_POS.indexOf(sim.pos) !== -1 ? system.offense : system.defense) : null;
+    return { scheme: scheme || 'the scheme', stars: sim.fit };
+  }
+
+  /* The last week of the NFL's regular season, and of its playoffs. */
+  var NFL_LAST_WEEK = 18;
+  var NFL_SUPER_BOWL_WEEK = 22;
+
   /* What is keeping a player off the field, as the page may say it: one of
      the six's from the site's own injury report (EGE.injuryFor), which knows
      only what is out; anybody else's from the sim's roster, held back from
      all but an admin until the week he was hurt in is out on the site.
-     { what, games, back }, games and back null when he is out for the
-     season; null when he is not hurt. */
+     { what, games, back, season }: season when he will not be back before
+     the season is over (games and back null then); null when he is not
+     hurt. */
   function nflOut(sim, player, season) {
     if (player) {
       var report = EGE.injuryFor(player, season);
       if (!report) { return null; }
-      return { what: report.injury || 'injured', games: report.back ? report.back - report.week : null, back: report.back };
+      if (!report.back) { return { what: report.injury || 'injured', games: null, back: null, season: true }; }
+      return { what: report.injury || 'injured', games: report.back - report.week, back: report.back, season: false };
     }
     var out = sim.out;
     if (!out) { return null; }
     if (!EGE.wallet.admin() && out.week && season === EGE.currentSeason && !EGE.isPublished(season, out.week)) { return null; }
-    return { what: out.what, games: out.games || null, back: null };
+    /* The rosters' week is the one the league plays next, his first to miss. */
+    var all = EGE.nflRosters.get(season);
+    var week = all && all.week;
+    var last = all && all.phase === 'playoffs' ? NFL_SUPER_BOWL_WEEK : NFL_LAST_WEEK;
+    var back = out.games && week ? week + out.games : null;
+    if (!out.games || (back && back > last)) { return { what: out.what, games: null, back: null, season: true }; }
+    return { what: out.what, games: out.games, back: back, season: false };
   }
 
   function injuryText(out) {
     var what = String(out.what || 'injured').replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); });
+    if (out.season) { return what + ' · out for the season'; }
     if (out.back) { return what + ' · back Week ' + out.back; }
-    return what + (out.games ? ' · out ' + out.games + ' more ' + (out.games === 1 ? 'game' : 'games') : ' · out for the season');
+    return what + ' · out ' + out.games + ' more ' + (out.games === 1 ? 'week' : 'weeks');
   }
 
-  /* The overall box's red neighbour: OUT, and the games he has left to
-     miss, or IR for the season. */
+  /* The overall box's red neighbour (Sam, 2026-10-21): OUT over the weeks
+     he has left to miss, or OUT SEASON when he will not be back before the
+     season is over. */
   function injuryBox(out) {
-    var box = el('span', 'ege-injbox');
+    var box = el('span', 'ege-injbox' + (out.season ? ' is-season' : ''));
     box.title = injuryText(out);
     box.appendChild(el('span', 'ege-injbox__label', 'OUT'));
-    box.appendChild(el('span', 'ege-injbox__value', out.games ? String(out.games) : 'IR'));
+    var value = el('span', 'ege-injbox__value', out.season ? 'SEASON' : String(out.games));
+    if (!out.season) { value.appendChild(el('span', 'ege-injbox__unit', 'WK')); }
+    box.appendChild(value);
     return box;
   }
 
@@ -2077,7 +2106,8 @@
       return;
     }
     var admin = nflAdmin(key, season);
-    if (admin) { body.appendChild(nflSystem(admin)); }
+    var system = admin || (all.systems && all.systems[key]) ? nflSystem(admin, all.systems ? all.systems[key] : null) : null;
+    if (system) { body.appendChild(system); }
     renderPayroll(key, season, all, admin);
     var grid = el('div', 'ege-rooms');
     NFL_ROOMS[rosterSide].forEach(function (room) {
@@ -2135,19 +2165,32 @@
 
   var STATUS_NAMES = { compete: 'Competing', retool: 'Retooling', rebuild: 'Rebuilding' };
 
-  /* The schemes each with how well the team is built for it, in stars
-     (Sam, 2026-10-21; nfl-sim/lib/fit.js). */
-  function nflSystem(admin) {
-    var info = admin.edits.teamInfo(admin.league, admin.key);
-    var built = admin.fits.team || {};
+  /* Over the rooms, for everybody (Sam, 2026-10-21): the team's schemes,
+     each with how well it is built for it in stars (nfl-sim/lib/fit.js),
+     and its status. An admin's from the world, with the schemes as
+     dropdowns; anybody else's as the rosters were published, as words. */
+  function nflSystem(admin, published) {
+    var info;
+    var built;
+    if (admin) {
+      info = admin.edits.teamInfo(admin.league, admin.key);
+      built = admin.fits.team || {};
+    } else {
+      info = published;
+      built = {
+        offense: typeof published.offenseStars === 'number' ? { stars: published.offenseStars } : null,
+        defense: typeof published.defenseStars === 'number' ? { stars: published.defenseStars } : null
+      };
+    }
     var line = el('dl', 'ege-nflsys');
     [['Offense', info.offense, built.offense, 'offense'], ['Defense', info.defense, built.defense, 'defense'],
       ['Status', STATUS_NAMES[info.mode] || info.mode]]
       .forEach(function (fact) {
         var cell = el('div', 'ege-nflsys__fact');
         cell.appendChild(el('dt', null, fact[0]));
-        var dd = el('dd', null, fact[3] ? null : fact[1]);
-        if (fact[3]) { dd.appendChild(schemePick(admin, fact[3], fact[1])); }
+        var pick = admin && fact[3];
+        var dd = el('dd', null, pick ? null : fact[1]);
+        if (pick) { dd.appendChild(schemePick(admin, fact[3], fact[1])); }
         if (fact[2]) { dd.appendChild(starsEl(fact[2].stars, 'Built for the ' + fact[1] + ' ' + fact[0].toLowerCase())); }
         cell.appendChild(dd);
         line.appendChild(cell);
@@ -2660,19 +2703,34 @@
 
      Find trades in an admin's pop-up: the teams the player would suit
      better -- their system, their status, his role -- that have what it
-     takes to get him (nfl-sim/lib/trade-finder.js), each a trade to make
-     now, propose, or take to the NFL Sim tab's trade builder. */
+     takes to get him (nfl-sim/lib/trade-finder.js), some with more of his
+     team's players or picks going with him, each a trade to make now,
+     propose, or take to the NFL Sim tab's trade builder. Refresh asks for
+     another set, leaving out the ones shown already where it can. */
   function nflTradeFinder(row, panel, tools) {
     var admin = row.admin;
     var sim = row.sim;
     var find = el('button', 'fb-btn ege-person__edit', 'Find trades');
     find.type = 'button';
     tools.appendChild(find);
+    /* Beside Find trades, not with the trades: a button taken out of the
+       page as it is pressed reads as a press outside the pop-up. */
+    var again = el('button', 'fb-btn ege-person__edit', 'Refresh');
+    again.type = 'button';
+    again.hidden = true;
+    tools.appendChild(again);
     var out = el('div', 'ege-finder');
     out.hidden = true;
     panel.appendChild(out);
-    find.addEventListener('click', function () {
+    var asked = 0;
+    var seen = [];
+    find.addEventListener('click', function () { search(0); });
+    again.addEventListener('click', function () { search(asked + 1); });
+    function search(refresh) {
+      asked = refresh;
+      if (!refresh) { seen = []; }
       find.disabled = true;
+      again.disabled = true;
       out.hidden = false;
       out.innerHTML = '';
       var wait = el('p', 'ege-finder__wait');
@@ -2688,11 +2746,12 @@
           var league = EGE.nflSimAdmin.peek() || admin.league;
           var now = admin.edits.playerOn(league, row.team, sim.name, sim.pos);
           if (!now) { throw new Error(row.name + ' is no longer with this team.'); }
-          found = EGE.nflSim.tradeFinder.findTrades(league, now.id);
+          found = EGE.nflSim.tradeFinder.findTrades(league, now.id, { refresh: refresh, seen: seen });
         } catch (err) {
           problem = err.message || String(err);
         }
         find.disabled = false;
+        again.disabled = false;
         out.innerHTML = '';
         if (problem) {
           out.appendChild(el('p', 'ege-note ege-note--error', problem));
@@ -2702,9 +2761,13 @@
           out.appendChild(el('p', 'ege-room__empty', 'No team he would suit better can make a deal for him.'));
           return;
         }
-        found.results.forEach(function (t) { out.appendChild(foundTrade(row, found, t)); });
+        again.hidden = false;
+        found.results.forEach(function (t) {
+          if (seen.indexOf(t.key) === -1) { seen.push(t.key); }
+          out.appendChild(foundTrade(row, found, t));
+        });
       }, 60);
-    });
+    }
   }
 
   function foundTrade(row, found, t) {
@@ -2734,19 +2797,24 @@
     box.appendChild(head);
 
     var lines = el('ul', 'ege-finder__lines');
-    var seller = EGE.nfl.teams[found.player.team] ? EGE.nfl.teams[found.player.team].name.split(' ').slice(-1)[0] : found.player.team;
-    /* What his team gets, each player with how he fits its schemes (Sam,
-       2026-10-21). */
-    var gets = el('li', 'ege-finder__gets');
-    gets.appendChild(el('span', null, seller + ' get'));
-    var incoming = el('ul', 'ege-finder__incoming');
-    (t.incoming || t.gets.map(function (text) { return { text: text, fit: null }; })).forEach(function (one) {
-      var item = el('li', null, one.text);
-      if (one.fit) { item.appendChild(starsEl(one.fit.stars, 'Fit in ' + one.fit.scheme)); }
-      incoming.appendChild(item);
-    });
-    gets.appendChild(incoming);
-    lines.appendChild(gets);
+    var nickOf = function (key) { return EGE.nfl.teams[key] ? EGE.nfl.teams[key].name.split(' ').slice(-1)[0] : key; };
+    /* A side's list, each player with how he fits the schemes of the team
+       he goes to (Sam, 2026-10-21). */
+    function side(label, items) {
+      var gets = el('li', 'ege-finder__gets');
+      gets.appendChild(el('span', null, label));
+      var list = el('ul', 'ege-finder__incoming');
+      items.forEach(function (one) {
+        var item = el('li', null, one.text);
+        if (one.fit) { item.appendChild(starsEl(one.fit.stars, 'Fit in ' + one.fit.scheme)); }
+        list.appendChild(item);
+      });
+      gets.appendChild(list);
+      lines.appendChild(gets);
+    }
+    side(nickOf(found.player.team) + ' get', t.incoming || t.gets.map(function (text) { return { text: text, fit: null }; }));
+    /* What his team puts in with him. */
+    if (t.extras && t.extras.length) { side(nickOf(t.team) + ' also get', t.extras); }
     if (t.starts) { lines.appendChild(el('li', null, 'Starts' + (t.over ? ' over ' + t.over.name + ' (' + t.over.ovr + ')' : ''))); }
     lines.appendChild(el('li', null, t.room >= 0 ? moneyText(t.room) + ' cap space after' : moneyText(-t.room) + ' over the cap after'));
     box.appendChild(lines);

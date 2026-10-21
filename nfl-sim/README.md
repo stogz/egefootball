@@ -566,10 +566,18 @@ his team takes, from its picks for the next three drafts and its players of
 62 or better (none at his position, no kicker or punter, never its
 quarterback, a starter of 85 or more or one of the six): one to four of
 them, at most two players, with both teams under the cap afterwards or no
-further over it than they were. The best six come back as the trade
-builder's two sides, to make, propose or open in the builder, each player
-the seller would get with his stars in its schemes (`incoming`). The
-deadline and the six's one team a season hold as for any trade.
+further over it than they were. His team can put more in with him (Sam,
+2026-10-21): for each team, the four of its own players and picks (the same
+rules) that team values most above what his team does are tried with him
+one at a time, and the package must then cover both, so a bigger one comes
+out even (`extras`, each player with his stars in the buyer's schemes). The
+best six come back, one a team and as many with extras as without where
+there are enough of both, as the trade builder's two sides, to make,
+propose or open in the builder, each player the seller would get with his
+stars in its schemes (`incoming`). `refresh` (1, 2, ...; `find-trades
+--refresh 1`, or **Refresh** in the pop-up) shakes each trade's place up a
+little and puts the ones already shown (`seen`) to the back, for another
+set. The deadline and the six's one team a season hold as for any trade.
 
 On the admin page Sam builds his own trade from dropdowns: a team on each
 side, then its players and picks added one at a time (one side can be
@@ -647,7 +655,8 @@ node nfl-sim/sim.js contract "Drake Maye" --apy 12 --through 2027
 node nfl-sim/sim.js release "Drake Maye"        cut a player
 node nfl-sim/sim.js archetype [cooper-clark "Receiving Back"]
                                                 the six's archetypes, or set one ("" clears it)
-node nfl-sim/sim.js find-trades "Khalil Herbert" teams he would suit better, and the trades
+node nfl-sim/sim.js find-trades "Khalil Herbert" [--refresh 1]
+                                                teams he would suit better, and the trades
 node nfl-sim/sim.js rosters DET [2025]          a team's roster that season, who came and who went
 node nfl-sim/sim.js draft                       the draft, cut to 53, the next season's schedule
 node nfl-sim/sim.js draft --place cooper-clark=LAC --place isaac-vitel=DET:2
@@ -680,8 +689,10 @@ weeks as usual.
 Sim tab (see the site's README). There the world is kept in Supabase
 (`nfl_sim_files`, admin only) instead of a folder, and after every step the
 rosters are published to `nfl_sim_rosters` (`site.js publicRosters`: every
-player on every team, with nothing private about him, and the salary cap
-for the season and the three after it). `lib/io.js` is what makes that
+player on every team, with nothing private about him and his fit in his
+team's schemes in stars, the salary cap for the season and the three after
+it, and each team's `systems`: its offense and defense, its stars for each
+and its status, which the Teams pages show everybody since 2026-10-21). `lib/io.js` is what makes that
 work: everything the sim reads or writes goes through it, to files on the
 command line and to memory, filled from Supabase, on the page.
 `build/bundle.js` writes `js/nfl-sim.js`, every module in `lib/` and the data

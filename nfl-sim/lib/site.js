@@ -22,6 +22,8 @@
 const io = require('./io');
 const { TEAMS, KEYS, keyForName } = require('./teams');
 const { capFor } = require('./value');
+const { playerFit, teamFit } = require('./fit');
+const { OFFENSE, DEFENSE } = require('./schemes');
 
 /* The sim's key for a team the six play for on the site ('detroit' is DET). */
 function simKey(siteKey) { return KEYS.filter((k) => TEAMS[k].site === siteKey)[0] || null; }
@@ -343,7 +345,10 @@ const CAP_YEARS = 4;
 /* Every team's players as the Teams pages and the player pop-up show them,
    best first: every player, the linemen, kickers and punters the rooms
    leave out too, since the Teams pages' line rating and payroll count them
-   (Sam, 2026-10-21). With them, the salary cap for the next few seasons. */
+   (Sam, 2026-10-21), each with his fit in the team's schemes in stars.
+   With them, the salary cap for the next few seasons, and each team's
+   system: its offense and defense with how well it is built for them in
+   stars, and its status (Sam, 2026-10-21: for everybody to see). */
 function publicRosters(league) {
   let site = null;
   try { site = io.site(); } catch (err) { site = null; }
@@ -364,6 +369,8 @@ function publicRosters(league) {
         };
         if (p.espn) { row.espn = String(p.espn); }
         if (p.ege) { row.ege = p.ege; }
+        const fit = playerFit(league, p, t.key);
+        if (fit) { row.fit = fit.stars; }
         /* The week he was hurt, so the Teams pages hold an injury back until
            that week is out on the site. */
         if (p.injury) {
@@ -374,7 +381,18 @@ function publicRosters(league) {
   });
   const caps = {};
   for (let y = league.season; y < league.season + CAP_YEARS; y += 1) { caps[y] = capFor(y); }
-  return { season: league.season, phase: league.phase, week: league.week || null, savedAt: new Date().toISOString(), caps, teams };
+  const systems = {};
+  league.teams.forEach((t) => {
+    const built = teamFit(league, t.key) || {};
+    systems[t.key] = {
+      offense: OFFENSE[t.offense] ? OFFENSE[t.offense].name : t.offense || null,
+      defense: DEFENSE[t.defense] ? DEFENSE[t.defense].name : t.defense || null,
+      offenseStars: built.offense ? built.offense.stars : null,
+      defenseStars: built.defense ? built.defense.stars : null,
+      mode: t.mode || 'compete'
+    };
+  });
+  return { season: league.season, phase: league.phase, week: league.week || null, savedAt: new Date().toISOString(), caps, systems, teams };
 }
 
 module.exports = { siteResults, sixEdits, seasonFileText, simResults, resultsFileText, siteFiles, publicRosters, simKey };

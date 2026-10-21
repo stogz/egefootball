@@ -478,8 +478,10 @@ Under the bar:
   team ratings, which stay private.
 
   **An injured player's box says so** beside his overall (Sam, 2026-10-21):
-  a red box, **OUT** over the games he has left, or **IR** for the season;
-  the pop-up's Injury line says what it is and for how long. The six's come
+  a dotted red edge, red at 40% behind and red words, **OUT** over the
+  weeks he has left (**3 WK**), or **OUT SEASON** when he will not be back
+  before the regular season ends (the Super Bowl, in the playoffs); the
+  pop-up's Injury line says what it is and for how long. The six's come
   from the site's own injury report (`EGE.injuryFor`, so the week's
   publishing decides); everybody else's from the sim (`out` in the rosters:
   what, games left and the week he went down), held back from anybody but
@@ -493,9 +495,7 @@ Under the bar:
 
   **An admin edits the roster right there** (Sam, 2026-10-21), on the
   season the NFL sim is playing, once the page has loaded the sim's world
-  (`EGE.nflSimAdmin.ready`). Above the roster: the team's **Offense**,
-  **Defense** and **Status** (*Competing*, *Retooling*, *Rebuilding*, the
-  sim's mode). Under every room's worst player, a dashed **+** box opens a
+  (`EGE.nflSimAdmin.ready`). Under every room's worst player, a dashed **+** box opens a
   list of the free agents at that position (overall, age, what he asks) and
   **Sign** puts him on the team at his market pay. A pop-up has **Edit**
   for anybody but the six: overall, ceiling, archetype and every skill.
@@ -506,14 +506,18 @@ Under the bar:
   rosters again (`EGE.nflSimAdmin.change`, `lib/edits.js`). None of it shows
   in client viewer mode.
 
-  **An admin sees fit as stars, 0–5 in halves**, in the site's orange
-  (Sam, 2026-10-21): after
-  each box's size line, how well he fits the team's scheme on his side of
-  the ball, and after the Offense and Defense facts, how well the team has
-  built around each (`EGE.nflSim.fit`, `nfl-sim/lib/fit.js`). The pop-up
-  has them after the archetype. The Offense and Defense are dropdowns: a
-  scheme picked is the team's from its next game, and it keeps it until
-  its coaches are fired (`setScheme`). The + under a room lists the free
+  **Above the roster, for everybody** (Sam, 2026-10-21): the team's
+  **Offense** and **Defense**, each with stars for how well the team has
+  built around it, and its **Status** (*Competing*, *Retooling*,
+  *Rebuilding*, the sim's mode). **Fit is stars, 0–5 in halves**, in the
+  site's orange: after each box's size line (and after the archetype in
+  the pop-up), how well he fits the team's scheme on his side of the ball
+  (`nfl-sim/lib/fit.js`). Everybody else's come from the published rosters
+  (`systems`, and each player's `fit`); an admin's from the sim's world.
+  The OFF/DEF overalls by the switch stay an admin's alone. For an admin
+  the Offense and Defense are dropdowns, words for anybody else and in
+  client viewer mode: a scheme picked is the team's from its next game,
+  and it keeps it until its coaches are fired (`setScheme`). The + under a room lists the free
   agents at its positions, best first, each with his stars in the team's
   scheme and his own **Sign**. **Edit** takes his contract too (*$M a
   year*, *Through*: raise it, cut it, extend it) and has **Release**, asked
@@ -523,7 +527,11 @@ Under the bar:
   that suit him better and can pay what his team asks (a spinner while it
   looks): the team, its status and record, his stars in its scheme, what
   his team gets (each player with his stars in his team's scheme), whom he
-  would start over, and the cap after. **Make the
+  would start over, and the cap after. Some have his team put in more
+  with him, a player or pick the other team wants, so a bigger package
+  comes out even: *Chargers also get*, each player with his stars in their
+  scheme. **Refresh**, beside Find trades, asks for another set, leaving
+  out the ones already shown where it can. **Make the
   trade**, **Propose**, or **Open in builder** (the NFL Sim tab's trade
   builder, filled in). The trade deadline and the six's one team a season
   hold as everywhere else.
