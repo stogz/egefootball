@@ -12,9 +12,10 @@
 
    The Teams pages use the rest, for an admin: a player's archetype and
    skills too (editPlayer), a free agent signed onto a team (signFreeAgent),
-   a team's schemes and mode (teamInfo), a contract set by hand or a player
-   cut (setContract, releasePlayer), a team's payroll (teamPay), and the
-   six's archetypes, the one thing about them set here (setSixArchetype).
+   a team's schemes and mode (teamInfo) and a scheme picked by hand
+   (setScheme), a contract set by hand or a player cut (setContract,
+   releasePlayer), a team's payroll (teamPay), and the six's archetypes,
+   the one thing about them set here (setSixArchetype).
    ========================================================================== */
 
 'use strict';
@@ -25,6 +26,8 @@ const { sign, release, payroll, onTeam } = require('./rosters');
 const { marketPay, capFor } = require('./value');
 const { sixFromSite } = require('./ege');
 const { OFFENSE, DEFENSE } = require('./schemes');
+const { playerFit } = require('./fit');
+const { adopt } = require('./offseason');
 const { index } = require('./league');
 const { seeded, hash } = require('./rng');
 const { TEAMS } = require('./teams');
@@ -144,10 +147,14 @@ function editPlayer(league, id, want) {
 }
 
 /* The free agents at some positions, best first, with what each asks. */
-function freeAgents(league, positions, limit) {
+function freeAgents(league, positions, limit, key) {
   return league.players.filter((p) => p.status === 'fa' && positions.indexOf(p.pos) !== -1)
     .sort((a, b) => b.ovr - a.ovr || a.age - b.age).slice(0, limit || 60)
-    .map((p) => ({ id: p.id, name: p.name, pos: p.pos, age: p.age, ovr: p.ovr, ask: marketPay(p, league.season) }));
+    .map((p) => {
+      const fit = key ? playerFit(league, p, key) : null;
+      return { id: p.id, name: p.name, pos: p.pos, age: p.age, ovr: p.ovr, ask: marketPay(p, league.season),
+               fit: fit ? { scheme: fit.scheme, stars: fit.stars } : null };
+    });
 }
 
 /* Signs a free agent onto a team at what the market pays him. */
@@ -167,6 +174,25 @@ function teamInfo(league, key) {
   if (!t) { return null; }
   return { season: league.season, offense: OFFENSE[t.offense] ? OFFENSE[t.offense].name : t.offense,
            defense: DEFENSE[t.defense] ? DEFENSE[t.defense].name : t.defense, mode: t.mode || 'compete' };
+}
+
+/* A team's offense or defense picked by hand: its tendencies move to the
+   new scheme's the way a new staff's do (offseason.js adopt), from the
+   next game. The team keeps it until Sam changes it or its coaches are
+   fired; it is not switched for fit in the offseason. */
+function setScheme(league, key, side, scheme) {
+  const t = league.teams.find((x) => x.key === key);
+  if (!t) { throw new Error('No team ' + key + '.'); }
+  const all = side === 'offense' ? OFFENSE : side === 'defense' ? DEFENSE : null;
+  if (!all) { throw new Error('A scheme is an offense or a defense.'); }
+  const want = all[scheme] ? scheme : Object.keys(all).find((k) => all[k].name.toLowerCase() === String(scheme).toLowerCase());
+  if (!want) { throw new Error(scheme + ' is not ' + (side === 'offense' ? 'an offense' : 'a defense') + '.'); }
+  const before = all[t[side]] ? all[t[side]].name : t[side];
+  if (want === t[side]) { return { team: key, side, before, after: before, same: true }; }
+  adopt(t, side, want, league.season);
+  t[side + 'Set'] = league.season;
+  log(league, 'scheme', key, TEAMS[key].name + ' switch to ' + (/^[AEIOU]/.test(all[want].name) ? 'an ' : 'a ') + all[want].name + ' ' + side);
+  return { team: key, side, before, after: all[want].name };
 }
 
 const IN_SEASON = ['regular', 'deadline', 'playoffs'];
@@ -219,12 +245,16 @@ function releasePlayer(league, id) {
 }
 
 /* A team's payroll against this season's cap, every player on it counted:
-   the linemen, kickers and punters the Teams pages do not list too. */
+   the linemen, kickers and punters the Teams pages do not list too. With
+   it the cap for this season and the next three, the years its contracts
+   are shown for. */
 function teamPay(league, key) {
   if (!TEAMS[key]) { return null; }
   const pay = payroll(league, key);
   const cap = capFor(league.season);
-  return { season: league.season, payroll: round1(pay), cap, room: round1(cap - pay), players: onTeam(league, key).length };
+  const caps = {};
+  for (let y = league.season; y < league.season + 4; y += 1) { caps[y] = capFor(y); }
+  return { season: league.season, payroll: round1(pay), cap, room: round1(cap - pay), players: onTeam(league, key).length, caps };
 }
 
 /* The six's archetypes. Their skills are the website's, so an archetype is
@@ -264,5 +294,5 @@ function setSixArchetype(league, slug, archetype) {
   return { name: site.name, before, after };
 }
 
-module.exports = { draftClass, classYear, setRatings, playerOn, editPlayer, freeAgents, signFreeAgent, teamInfo, setContract,
-                   releasePlayer, teamPay, sixArchetypes, setSixArchetype };
+module.exports = { draftClass, classYear, setRatings, playerOn, editPlayer, freeAgents, signFreeAgent, teamInfo, setScheme,
+                   setContract, releasePlayer, teamPay, sixArchetypes, setSixArchetype, SCHEMES: { offense: OFFENSE, defense: DEFENSE } };

@@ -567,8 +567,9 @@ his team takes, from its picks for the next three drafts and its players of
 quarterback, a starter of 85 or more or one of the six): one to four of
 them, at most two players, with both teams under the cap afterwards or no
 further over it than they were. The best six come back as the trade
-builder's two sides, to make, propose or open in the builder. The deadline
-and the six's one team a season hold as for any trade.
+builder's two sides, to make, propose or open in the builder, each player
+the seller would get with his stars in its schemes (`incoming`). The
+deadline and the six's one team a season hold as for any trade.
 
 On the admin page Sam builds his own trade from dropdowns: a team on each
 side, then its players and picks added one at a time (one side can be
@@ -587,8 +588,13 @@ where teams grade him. The six are rated on the website, not here.
 The Teams pages give an admin the rest of `lib/edits.js` on the season being
 played: `editPlayer` (overall, ceiling, archetype and any skill — new skills
 make the overall they average to, `skills.js overallOf`, unless an overall
-comes too), `freeAgents` and `signFreeAgent` (the + under a room; he signs
-at `marketPay`), and `teamInfo` (schemes and mode). Archetypes come from
+comes too), `freeAgents` and `signFreeAgent` (the + under a room, each free
+agent with his stars in the team's scheme; he signs at `marketPay`),
+`teamInfo` (schemes and mode) and `setScheme` (`scheme DET offense "Air
+Raid"`, or the Offense and Defense dropdowns): the team's tendencies move
+to the new scheme's the way a new staff's do (`offseason.js adopt`), and
+it keeps the scheme (`offenseSet`, `defenseSet`) through the offseason's
+fit switches until its coaches are fired. Archetypes come from
 `ARCHETYPES` in `skills.js`; one picked by hand sets `archetypeSet`, and
 `reRate` and development leave it alone from then on. Contracts too:
 `setContract` sets what he is paid a year (up to $80M) and the last season
@@ -597,8 +603,8 @@ an extension (`contract "Name" --apy 12 --through 2027`); `releasePlayer`
 cuts him (`release "Name"`: a free agent from then on, no dead money, and
 his team a man short until it signs somebody; one of the six only between
 seasons); `teamPay` is a team's payroll, every player counted, against
-`capFor`. Every edit is a transaction (`kind` `edit`, `signing`, `contract`
-or `release`).
+`capFor`, with the cap for this season and the next three. Every edit is a
+transaction (`kind` `edit`, `signing`, `scheme`, `contract` or `release`).
 
 **The six's archetypes** are set here, though their ratings are the
 website's (`archetype SLUG "Power Back"`, or the NFL Sim tab's **The six’s
@@ -673,7 +679,9 @@ weeks as usual.
 **The admin page.** The same commands, as buttons, are the admin page's NFL
 Sim tab (see the site's README). There the world is kept in Supabase
 (`nfl_sim_files`, admin only) instead of a folder, and after every step the
-rosters are published to `nfl_sim_rosters`. `lib/io.js` is what makes that
+rosters are published to `nfl_sim_rosters` (`site.js publicRosters`: every
+player on every team, with nothing private about him, and the salary cap
+for the season and the three after it). `lib/io.js` is what makes that
 work: everything the sim reads or writes goes through it, to files on the
 command line and to memory, filled from Supabase, on the page.
 `build/bundle.js` writes `js/nfl-sim.js`, every module in `lib/` and the data

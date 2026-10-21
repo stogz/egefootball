@@ -458,7 +458,24 @@ Under the bar:
   then his contract (*$1.1M a year through 2024*) and any injury. One of the
   six's has a button through to his page. A click off the box closes it.
   Nothing private is in the rosters: no team ratings, no potential, nothing
-  about how long a player will last.
+  about how long a player will last. Since 2026-10-21 they carry every
+  player, the linemen, kickers and punters the rooms leave out too, and the
+  salary cap for the season and the three after it (`caps`), for the line
+  rating and the payroll below; rosters published before then have
+  neither until they are published again.
+
+  **Under the rooms, five ratings for everybody** (Sam, 2026-10-21), drawn
+  the way the scouting report draws a defense: a ring filled to the
+  rating, the number in it, and where it ranks in the NFL. The Offense side
+  has **Offensive Line**, **Passing** and **Rushing**, the Defense side
+  **Rush Defense** and **Pass Defense** (the scouting report's own two).
+  Each is on the overall scale, worked out in the browser from the
+  starters' ratings in the rosters (`EGE.nflRosters.ratings`): the line
+  from its five starters' pass and run blocking; passing from the
+  quarterback's throwing (45%), his targets (35%) and the pass protection
+  (20%); rushing from the backs (45%), the run blocking (40%), the tight
+  end's blocking and the quarterback's legs. They are not the sim's own
+  team ratings, which stay private.
 
   **An injured player's box says so** beside his overall (Sam, 2026-10-21):
   a red box, **OUT** over the games he has left, or **IR** for the season;
@@ -469,7 +486,7 @@ Under the bar:
   an admin until that week is published.
 
   **Every NFL team has a page**, `#teams/kansas-city-chiefs`. The six's
-  teams keep their standings and schedule; any other team's page is its
+  teams keep their standings; any other team's page is its
   header (record, streak, place in the division) and its roster, nothing
   else. Every NFL team's mark sits on its colour from `data/nfl.js`, the
   way the six's teams' do.
@@ -489,26 +506,36 @@ Under the bar:
   rosters again (`EGE.nflSimAdmin.change`, `lib/edits.js`). None of it shows
   in client viewer mode.
 
-  **An admin sees fit as stars, 0–5 in halves** (Sam, 2026-10-21): after
+  **An admin sees fit as stars, 0–5 in halves**, in the site's orange
+  (Sam, 2026-10-21): after
   each box's size line, how well he fits the team's scheme on his side of
   the ball, and after the Offense and Defense facts, how well the team has
   built around each (`EGE.nflSim.fit`, `nfl-sim/lib/fit.js`). The pop-up
-  has them after the archetype. **Edit** takes his contract too (*$M a
+  has them after the archetype. The Offense and Defense are dropdowns: a
+  scheme picked is the team's from its next game, and it keeps it until
+  its coaches are fired (`setScheme`). The + under a room lists the free
+  agents at its positions, best first, each with his stars in the team's
+  scheme and his own **Sign**. **Edit** takes his contract too (*$M a
   year*, *Through*: raise it, cut it, extend it) and has **Release**, asked
   twice; for one of the six, Edit is just his archetype and contract.
   **Find trades** looks at every other team for him — its schemes, its
   status and record, whether he would start there — and lists up to six
   that suit him better and can pay what his team asks (a spinner while it
   looks): the team, its status and record, his stars in its scheme, what
-  his team gets, whom he would start over, and the cap after. **Make the
+  his team gets (each player with his stars in his team's scheme), whom he
+  would start over, and the cap after. **Make the
   trade**, **Propose**, or **Open in builder** (the NFL Sim tab's trade
   builder, filled in). The trade deadline and the six's one team a season
   hold as everywhere else.
 
-  **The page ends with the payroll** for an admin: payroll, the salary cap
-  and the cap space (in red, how far over), a bar, and **Contracts**, every
-  player's (the linemen, kickers and punters the rooms leave out too), each
-  with its own **Edit**.
+  **The page ends with the payroll**, for everybody (Sam, 2026-10-21):
+  payroll, the salary cap and the cap space (in red, how far over), a bar,
+  and **Contracts**, every player's (the linemen, kickers and punters the
+  rooms leave out too) with what he is paid this season and the next three
+  (his yearly average while his deal runs), then the total, the cap and
+  the space left for each year. Every heading sorts, as a game log's do.
+  An admin's comes from the sim's world, with an **Edit** on every
+  contract; everybody else's from the published rosters.
 
   **The NFL's marks are the site's own**, in `icon/nfl/`, from a set Sam
   sent (2026-10-20), not ESPN's: the team pages, the pop-up, the schedules
@@ -551,11 +578,7 @@ Under the bar:
   **Chg**. Ties go to head-to-head, then the division record, then the
   conference record, then the points differential. The division column
   says *NFC West* (*W* on a phone).
-- **Schedule** — the team's games as anybody can see them, with results as
-  they are published and the postseason as far as the next game, the same
-  rule a player's schedule follows. No credits, boosters or ODEF grades:
-  those belong to a player. NFL opponents are cities and links, as on a
-  player's schedule.
+- **No schedule** (Sam, 2026-10-21): the games are on the players' pages.
 
 The quarterback rooms are also where a QB Connection is picked from (see
 the shop).

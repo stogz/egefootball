@@ -35,7 +35,8 @@
      node nfl-sim/sim.js release "Name"         cut him: a free agent from now on
      node nfl-sim/sim.js archetype sam-stogsdill "Power Back"   one of the six's archetype
                                                 (no archetype: back to the one his skills give)
-     node nfl-sim/sim.js find-trades "Name"     teams he would suit better that would trade for him
+     node nfl-sim/sim.js scheme DET offense "Air Raid"   switch a team's scheme (it keeps it)
+    node nfl-sim/sim.js find-trades "Name"     teams he would suit better that would trade for him
      node nfl-sim/sim.js rosters DET [YEAR]     a team's roster that season, and who came and went
      node nfl-sim/sim.js report                 a written report into the world folder
      node nfl-sim/sim.js reset --force          start over from the 2023 kickoff
@@ -440,6 +441,18 @@ function main() {
       say(r.name + ': ' + (r.before || 'no archetype') + ' to ' + r.after + '.');
       break;
     }
+    case 'scheme': {
+      const key = (rest[0] || '').toUpperCase();
+      const side = rest[1] === 'offense' || rest[1] === 'defense' ? rest[1] : null;
+      if (!TEAMS[key] || !side || rest.length < 3) {
+        say('Usage: scheme TEAM offense|defense "Scheme". Offenses: ' + Object.keys(edits.SCHEMES.offense).map((k) => edits.SCHEMES.offense[k].name).join(', ') +
+          '. Defenses: ' + Object.keys(edits.SCHEMES.defense).map((k) => edits.SCHEMES.defense[k].name).join(', ') + '.');
+        break;
+      }
+      const r = edits.setScheme(league, key, side, rest.slice(2).join(' '));
+      say(TEAMS[key].name + ' ' + side + ': ' + r.before + ' to ' + r.after + '.');
+      break;
+    }
     case 'find-trades': {
       const p = findPlayer(league, rest.join(' '));
       if (!p) { say('No player ' + rest.join(' ') + '.'); break; }
@@ -452,6 +465,7 @@ function main() {
         say(TEAMS[t.team].name + ' (' + t.mode + (t.record ? ', ' + t.record : '') + '): ' + stars(t.fit) +
           (t.starts ? ', would start' + (t.over ? ' over ' + t.over.name + ' (' + t.over.ovr + ')' : '') : '') + '.');
         say('  ' + t.summary);
+        t.incoming.filter((i) => i.fit).forEach((i) => say('  ' + i.text + ': ' + stars(i.fit) + ' with the ' + TEAMS[p.team].name + '.'));
         say('  ' + (t.room >= 0 ? '$' + t.room + 'M under the cap after.' : '$' + -t.room + 'M over the cap after.'));
       });
       break;
@@ -477,7 +491,7 @@ function main() {
       break;
     }
     default:
-      say('Unknown command ' + command + '. Commands: status, week, season, playoffs, resim, undo, standings, rankings, team, player, matchup, offseason, draft, draft-order, upload-draft, trades, approve, reject, trade, edit, contract, release, archetype, find-trades, rosters, report, reset, import-site, site, export.');
+      say('Unknown command ' + command + '. Commands: status, week, season, playoffs, resim, undo, standings, rankings, team, player, matchup, offseason, draft, draft-order, upload-draft, trades, approve, reject, trade, edit, contract, release, archetype, scheme, find-trades, rosters, report, reset, import-site, site, export.');
       done();
       return;
   }

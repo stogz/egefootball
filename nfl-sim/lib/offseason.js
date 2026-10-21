@@ -126,6 +126,7 @@ function adopt(team, side, scheme, season) {
   team[side] = scheme;
   team[side + 'Tendencies'] = next;
   team.schemeSince = season;
+  delete team[side + 'Set'];
 }
 
 function best(map, exclude) {
@@ -169,6 +170,8 @@ function modesAndSchemes(league, rng, ratings, lastRecords) {
     const fireChance = wins <= 4 ? 0.6 : wins <= 6 ? 0.3 : wins <= 8 ? 0.08 : wins <= 10 ? 0.02 : 0;
     const f = fits(t, roster);
     if (rng() < fireChance) {
+      delete t.offenseSet;
+      delete t.defenseSet;
       const offPick = rng() < 0.65 ? best(f.offense) : Object.keys(OFFENSE)[Math.floor(rng() * 5)];
       const defPick = rng() < 0.65 ? best(f.defense) : Object.keys(DEFENSE)[Math.floor(rng() * 5)];
       const changes = [];
@@ -179,15 +182,16 @@ function modesAndSchemes(league, rng, ratings, lastRecords) {
       return;
     }
     /* Same staff: a switch only when the roster now clearly fits another
-       scheme, or a rebuilding team wants to try something. */
+       scheme, or a rebuilding team wants to try something; never one Sam
+       picked (edits.js setScheme). */
     const offBest = best(f.offense);
-    if (offBest !== t.offense && (f.offense[offBest] - f.offense[t.offense] > 1.2 || (t.mode === 'rebuild' && rng() < 0.15))) {
+    if (!t.offenseSet && offBest !== t.offense && (f.offense[offBest] - f.offense[t.offense] > 1.2 || (t.mode === 'rebuild' && rng() < 0.15))) {
       notes.push(nick(t.key) + ' move from ' + OFFENSE[t.offense].name + ' to ' + OFFENSE[offBest].name + ' (fit ' +
         f.offense[t.offense].toFixed(1) + ' to ' + f.offense[offBest].toFixed(1) + ')');
       adopt(t, 'offense', offBest, league.season);
     }
     const defBest = best(f.defense);
-    if (defBest !== t.defense && (f.defense[defBest] - f.defense[t.defense] > 1.2 || (t.mode === 'rebuild' && rng() < 0.15))) {
+    if (!t.defenseSet && defBest !== t.defense && (f.defense[defBest] - f.defense[t.defense] > 1.2 || (t.mode === 'rebuild' && rng() < 0.15))) {
       notes.push(nick(t.key) + ' move from ' + DEFENSE[t.defense].name + ' to ' + DEFENSE[defBest].name + ' (fit ' +
         f.defense[t.defense].toFixed(1) + ' to ' + f.defense[defBest].toFixed(1) + ')');
       adopt(t, 'defense', defBest, league.season);
@@ -315,4 +319,4 @@ function finishOffseason(league, rng, place) {
   return report;
 }
 
-module.exports = { startOffseason, finishOffseason, firstModes, the99s, fits, ageOn };
+module.exports = { startOffseason, finishOffseason, firstModes, the99s, fits, ageOn, adopt };

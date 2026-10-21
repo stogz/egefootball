@@ -199,27 +199,9 @@
           <div class="ege-standings" id="teamStandingsBody"></div>
         </div>
 
-        <div class="fb-panel ege-section-gap" id="teamSchedulePanel">
-          <div class="fb-panel__head">
-            <h3>Schedule</h3>
-            <button class="ege-collapse" type="button"
-                    data-collapses="teamSchedulePanel" aria-controls="teamSchedulePanel"
-                    aria-expanded="true" aria-label="Hide the schedule"></button>
-          </div>
-          <div class="fb-tablewrap">
-            <table class="fb-table ege-schedule">
-              <thead>
-                <tr><th>Wk</th><th>Date</th><th>Opponent</th><th class="num">Result</th></tr>
-              </thead>
-              <tbody id="teamScheduleBody"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- For an admin only, on an NFL team in the season the sim is
-             playing: its payroll against the salary cap, and every contract
-             (renderPayroll in app.js). Never drawn for anybody else, nor in
-             client viewer mode. -->
+        <!-- On an NFL team's page, for everybody: its payroll against the
+             salary cap, and every contract for this season and the next
+             three (renderPayroll in app.js); an admin can edit them. -->
         <div class="fb-panel ege-section-gap" id="teamPayrollPanel" hidden>
           <div class="fb-panel__head">
             <h3>Payroll</h3>

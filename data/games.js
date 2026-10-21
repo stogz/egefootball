@@ -139,11 +139,32 @@ EGE.streakFor = function (player, season) {
 
 /* --- the conference races ---------------------------------------------- */
 
+/* A season's leagues: data/conferences.js's, and the NFL's two conferences
+   from data/nfl.js for a season with no NFL block written there (2024 on,
+   whose games are all the sim's, data/nfl-results.js). */
+EGE.leaguesIn = function (season) {
+  var year = season || EGE.currentSeason;
+  var leagues = Object.assign({}, (EGE.conferences || {})[year] || {});
+  var hasNfl = Object.keys(leagues).some(function (id) { return leagues[id].nfl; });
+  if (hasNfl || !EGE.nfl || !EGE.nfl.teams) { return leagues; }
+  ['AFC', 'NFC'].forEach(function (conf) {
+    var divisions = {};
+    Object.keys(EGE.nfl.teams).forEach(function (key) {
+      var team = EGE.nfl.teams[key];
+      if (team.conf !== conf) { return; }
+      var name = conf + ' ' + team.div;
+      (divisions[name] = divisions[name] || []).push(team.name);
+    });
+    leagues[conf.toLowerCase()] = { name: conf, nfl: true, divisions: divisions, games: [], nonConference: [] };
+  });
+  return leagues;
+};
+
 /* The conference and division a school plays in that season, from
-   data/conferences.js, or null for one that is not in there. */
+   EGE.leaguesIn, or null for one that is not in there. */
 EGE.conferenceOf = function (school, season) {
   var year = season || EGE.currentSeason;
-  var leagues = (EGE.conferences || {})[year] || {};
+  var leagues = EGE.leaguesIn(year);
   var found = null;
   Object.keys(leagues).forEach(function (id) {
     var divisions = leagues[id].divisions;
@@ -340,7 +361,7 @@ EGE.nflResults = function (season, through) {
 };
 
 function nflDivisionTable(found, year, through) {
-  var leagues = EGE.conferences[year];
+  var leagues = EGE.leaguesIn(year);
   var where = {};
   Object.keys(leagues).forEach(function (id) {
     if (!leagues[id].nfl) { return; }

@@ -1275,9 +1275,10 @@ module.exports = { runDraft, toPlayer, madeClass, makeName, rookiePay, pickOvera
 
    The Teams pages use the rest, for an admin: a player's archetype and
    skills too (editPlayer), a free agent signed onto a team (signFreeAgent),
-   a team's schemes and mode (teamInfo), a contract set by hand or a player
-   cut (setContract, releasePlayer), a team's payroll (teamPay), and the
-   six's archetypes, the one thing about them set here (setSixArchetype).
+   a team's schemes and mode (teamInfo) and a scheme picked by hand
+   (setScheme), a contract set by hand or a player cut (setContract,
+   releasePlayer), a team's payroll (teamPay), and the six's archetypes,
+   the one thing about them set here (setSixArchetype).
    ========================================================================== */
 
 'use strict';
@@ -1288,6 +1289,8 @@ const { sign, release, payroll, onTeam } = require('./rosters');
 const { marketPay, capFor } = require('./value');
 const { sixFromSite } = require('./ege');
 const { OFFENSE, DEFENSE } = require('./schemes');
+const { playerFit } = require('./fit');
+const { adopt } = require('./offseason');
 const { index } = require('./league');
 const { seeded, hash } = require('./rng');
 const { TEAMS } = require('./teams');
@@ -1407,10 +1410,14 @@ function editPlayer(league, id, want) {
 }
 
 /* The free agents at some positions, best first, with what each asks. */
-function freeAgents(league, positions, limit) {
+function freeAgents(league, positions, limit, key) {
   return league.players.filter((p) => p.status === 'fa' && positions.indexOf(p.pos) !== -1)
     .sort((a, b) => b.ovr - a.ovr || a.age - b.age).slice(0, limit || 60)
-    .map((p) => ({ id: p.id, name: p.name, pos: p.pos, age: p.age, ovr: p.ovr, ask: marketPay(p, league.season) }));
+    .map((p) => {
+      const fit = key ? playerFit(league, p, key) : null;
+      return { id: p.id, name: p.name, pos: p.pos, age: p.age, ovr: p.ovr, ask: marketPay(p, league.season),
+               fit: fit ? { scheme: fit.scheme, stars: fit.stars } : null };
+    });
 }
 
 /* Signs a free agent onto a team at what the market pays him. */
@@ -1430,6 +1437,25 @@ function teamInfo(league, key) {
   if (!t) { return null; }
   return { season: league.season, offense: OFFENSE[t.offense] ? OFFENSE[t.offense].name : t.offense,
            defense: DEFENSE[t.defense] ? DEFENSE[t.defense].name : t.defense, mode: t.mode || 'compete' };
+}
+
+/* A team's offense or defense picked by hand: its tendencies move to the
+   new scheme's the way a new staff's do (offseason.js adopt), from the
+   next game. The team keeps it until Sam changes it or its coaches are
+   fired; it is not switched for fit in the offseason. */
+function setScheme(league, key, side, scheme) {
+  const t = league.teams.find((x) => x.key === key);
+  if (!t) { throw new Error('No team ' + key + '.'); }
+  const all = side === 'offense' ? OFFENSE : side === 'defense' ? DEFENSE : null;
+  if (!all) { throw new Error('A scheme is an offense or a defense.'); }
+  const want = all[scheme] ? scheme : Object.keys(all).find((k) => all[k].name.toLowerCase() === String(scheme).toLowerCase());
+  if (!want) { throw new Error(scheme + ' is not ' + (side === 'offense' ? 'an offense' : 'a defense') + '.'); }
+  const before = all[t[side]] ? all[t[side]].name : t[side];
+  if (want === t[side]) { return { team: key, side, before, after: before, same: true }; }
+  adopt(t, side, want, league.season);
+  t[side + 'Set'] = league.season;
+  log(league, 'scheme', key, TEAMS[key].name + ' switch to ' + (/^[AEIOU]/.test(all[want].name) ? 'an ' : 'a ') + all[want].name + ' ' + side);
+  return { team: key, side, before, after: all[want].name };
 }
 
 const IN_SEASON = ['regular', 'deadline', 'playoffs'];
@@ -1482,12 +1508,16 @@ function releasePlayer(league, id) {
 }
 
 /* A team's payroll against this season's cap, every player on it counted:
-   the linemen, kickers and punters the Teams pages do not list too. */
+   the linemen, kickers and punters the Teams pages do not list too. With
+   it the cap for this season and the next three, the years its contracts
+   are shown for. */
 function teamPay(league, key) {
   if (!TEAMS[key]) { return null; }
   const pay = payroll(league, key);
   const cap = capFor(league.season);
-  return { season: league.season, payroll: round1(pay), cap, room: round1(cap - pay), players: onTeam(league, key).length };
+  const caps = {};
+  for (let y = league.season; y < league.season + 4; y += 1) { caps[y] = capFor(y); }
+  return { season: league.season, payroll: round1(pay), cap, room: round1(cap - pay), players: onTeam(league, key).length, caps };
 }
 
 /* The six's archetypes. Their skills are the website's, so an archetype is
@@ -1527,8 +1557,8 @@ function setSixArchetype(league, slug, archetype) {
   return { name: site.name, before, after };
 }
 
-module.exports = { draftClass, classYear, setRatings, playerOn, editPlayer, freeAgents, signFreeAgent, teamInfo, setContract,
-                   releasePlayer, teamPay, sixArchetypes, setSixArchetype };
+module.exports = { draftClass, classYear, setRatings, playerOn, editPlayer, freeAgents, signFreeAgent, teamInfo, setScheme,
+                   setContract, releasePlayer, teamPay, sixArchetypes, setSixArchetype, SCHEMES: { offense: OFFENSE, defense: DEFENSE } };
 
   };
 
@@ -3557,6 +3587,7 @@ function adopt(team, side, scheme, season) {
   team[side] = scheme;
   team[side + 'Tendencies'] = next;
   team.schemeSince = season;
+  delete team[side + 'Set'];
 }
 
 function best(map, exclude) {
@@ -3600,6 +3631,8 @@ function modesAndSchemes(league, rng, ratings, lastRecords) {
     const fireChance = wins <= 4 ? 0.6 : wins <= 6 ? 0.3 : wins <= 8 ? 0.08 : wins <= 10 ? 0.02 : 0;
     const f = fits(t, roster);
     if (rng() < fireChance) {
+      delete t.offenseSet;
+      delete t.defenseSet;
       const offPick = rng() < 0.65 ? best(f.offense) : Object.keys(OFFENSE)[Math.floor(rng() * 5)];
       const defPick = rng() < 0.65 ? best(f.defense) : Object.keys(DEFENSE)[Math.floor(rng() * 5)];
       const changes = [];
@@ -3610,15 +3643,16 @@ function modesAndSchemes(league, rng, ratings, lastRecords) {
       return;
     }
     /* Same staff: a switch only when the roster now clearly fits another
-       scheme, or a rebuilding team wants to try something. */
+       scheme, or a rebuilding team wants to try something; never one Sam
+       picked (edits.js setScheme). */
     const offBest = best(f.offense);
-    if (offBest !== t.offense && (f.offense[offBest] - f.offense[t.offense] > 1.2 || (t.mode === 'rebuild' && rng() < 0.15))) {
+    if (!t.offenseSet && offBest !== t.offense && (f.offense[offBest] - f.offense[t.offense] > 1.2 || (t.mode === 'rebuild' && rng() < 0.15))) {
       notes.push(nick(t.key) + ' move from ' + OFFENSE[t.offense].name + ' to ' + OFFENSE[offBest].name + ' (fit ' +
         f.offense[t.offense].toFixed(1) + ' to ' + f.offense[offBest].toFixed(1) + ')');
       adopt(t, 'offense', offBest, league.season);
     }
     const defBest = best(f.defense);
-    if (defBest !== t.defense && (f.defense[defBest] - f.defense[t.defense] > 1.2 || (t.mode === 'rebuild' && rng() < 0.15))) {
+    if (!t.defenseSet && defBest !== t.defense && (f.defense[defBest] - f.defense[t.defense] > 1.2 || (t.mode === 'rebuild' && rng() < 0.15))) {
       notes.push(nick(t.key) + ' move from ' + DEFENSE[t.defense].name + ' to ' + DEFENSE[defBest].name + ' (fit ' +
         f.defense[t.defense].toFixed(1) + ' to ' + f.defense[defBest].toFixed(1) + ')');
       adopt(t, 'defense', defBest, league.season);
@@ -3746,7 +3780,7 @@ function finishOffseason(league, rng, place) {
   return report;
 }
 
-module.exports = { startOffseason, finishOffseason, firstModes, the99s, fits, ageOn };
+module.exports = { startOffseason, finishOffseason, firstModes, the99s, fits, ageOn, adopt };
 
   };
 
@@ -5223,6 +5257,7 @@ module.exports = { startSeason, playWeek, playRound, importWeeks, startPlayoffs,
 
 const io = require('./io');
 const { TEAMS, KEYS, keyForName } = require('./teams');
+const { capFor } = require('./value');
 
 /* The sim's key for a team the six play for on the site ('detroit' is DET). */
 function simKey(siteKey) { return KEYS.filter((k) => TEAMS[k].site === siteKey)[0] || null; }
@@ -5537,18 +5572,20 @@ function siteFiles(league, season) {
 
 /* --------------------------------------------------------- out: rosters -- */
 
-/* The positions the Teams pages show: the offense's skill players and the
-   defense. */
-const SHOWN = ['QB', 'RB', 'FB', 'WR', 'TE', 'EDGE', 'DI', 'LB', 'CB', 'S'];
+/* How many seasons of the salary cap go out with the rosters: this one and
+   the three after it, the years a team's contracts are shown for. */
+const CAP_YEARS = 4;
 
 /* Every team's players as the Teams pages and the player pop-up show them,
-   best first. */
+   best first: every player, the linemen, kickers and punters the rooms
+   leave out too, since the Teams pages' line rating and payroll count them
+   (Sam, 2026-10-21). With them, the salary cap for the next few seasons. */
 function publicRosters(league) {
   let site = null;
   try { site = io.site(); } catch (err) { site = null; }
   const teams = {};
   league.teams.forEach((t) => {
-    teams[t.key] = (league.byTeam.get(t.key) || []).filter((p) => SHOWN.indexOf(p.pos) !== -1)
+    teams[t.key] = (league.byTeam.get(t.key) || []).slice()
       .sort((a, b) => b.ovr - a.ovr || a.name.localeCompare(b.name))
       .map((p) => {
         const sitePlayer = p.ege && site ? site.playerBySlug(p.ege) : null;
@@ -5571,7 +5608,9 @@ function publicRosters(league) {
         return row;
       });
   });
-  return { season: league.season, phase: league.phase, week: league.week || null, savedAt: new Date().toISOString(), teams };
+  const caps = {};
+  for (let y = league.season; y < league.season + CAP_YEARS; y += 1) { caps[y] = capFor(y); }
+  return { season: league.season, phase: league.phase, week: league.week || null, savedAt: new Date().toISOString(), caps, teams };
 }
 
 module.exports = { siteResults, sixEdits, seasonFileText, simResults, resultsFileText, siteFiles, publicRosters, simKey };
@@ -6064,7 +6103,8 @@ module.exports = { TEAMS, KEYS, keyForName, divisionOf };
    cheapest package his team takes from what it has to give up -- picks for
    the next three drafts and up to two players -- with both teams under the
    cap. The best of those come back as trades in the trade builder's two
-   sides, ready to make or propose.
+   sides, ready to make or propose, with how each player his team would get
+   fits its schemes.
    ========================================================================== */
 
 'use strict';
@@ -6169,7 +6209,8 @@ function standing(roster, p, joining) {
 }
 
 /* Up to `limit` trades for a player, best first:
-   { player, here, results: [{ team, mode, record, fit, starts, over, summary, gets, sides, room }] }. */
+   { player, here, results: [{ team, mode, record, fit, starts, over, summary, gets, incoming, sides, room }] }.
+   `incoming` is what his team gets, each player with his fit there. */
 function findTrades(league, id, opts) {
   opts = opts || {};
   const p = league.byId.get(id);
@@ -6213,6 +6254,10 @@ function findTrades(league, id, opts) {
       over: then.over ? { name: then.over.name, ovr: then.over.ovr } : null,
       room: round1(pack.buyerRoom),
       gets: pack.items.map(describeItem),
+      incoming: pack.items.map((i) => {
+        const f = i.kind === 'player' ? playerFit(league, i.player, seller) : null;
+        return { text: describeItem(i), fit: f ? { scheme: f.scheme, stars: f.stars } : null };
+      }),
       summary: nick(buyer.key) + ' get ' + describeItem(item) + '; ' + nick(seller) + ' get ' + pack.items.map(describeItem).join(' and ') + '.',
       sides: [{ key: buyer.key, players, picks }, { key: seller, players: [p.id], picks: [] }],
       values: { buyer: { gets: round1(worth), gives: round1(pack.cost) }, seller: { gets: round1(pack.got), gives: round1(price) } }

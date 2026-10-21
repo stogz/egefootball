@@ -16,7 +16,8 @@
    cheapest package his team takes from what it has to give up -- picks for
    the next three drafts and up to two players -- with both teams under the
    cap. The best of those come back as trades in the trade builder's two
-   sides, ready to make or propose.
+   sides, ready to make or propose, with how each player his team would get
+   fits its schemes.
    ========================================================================== */
 
 'use strict';
@@ -121,7 +122,8 @@ function standing(roster, p, joining) {
 }
 
 /* Up to `limit` trades for a player, best first:
-   { player, here, results: [{ team, mode, record, fit, starts, over, summary, gets, sides, room }] }. */
+   { player, here, results: [{ team, mode, record, fit, starts, over, summary, gets, incoming, sides, room }] }.
+   `incoming` is what his team gets, each player with his fit there. */
 function findTrades(league, id, opts) {
   opts = opts || {};
   const p = league.byId.get(id);
@@ -165,6 +167,10 @@ function findTrades(league, id, opts) {
       over: then.over ? { name: then.over.name, ovr: then.over.ovr } : null,
       room: round1(pack.buyerRoom),
       gets: pack.items.map(describeItem),
+      incoming: pack.items.map((i) => {
+        const f = i.kind === 'player' ? playerFit(league, i.player, seller) : null;
+        return { text: describeItem(i), fit: f ? { scheme: f.scheme, stars: f.stars } : null };
+      }),
       summary: nick(buyer.key) + ' get ' + describeItem(item) + '; ' + nick(seller) + ' get ' + pack.items.map(describeItem).join(' and ') + '.',
       sides: [{ key: buyer.key, players, picks }, { key: seller, players: [p.id], picks: [] }],
       values: { buyer: { gets: round1(worth), gives: round1(pack.cost) }, seller: { gets: round1(pack.got), gives: round1(price) } }

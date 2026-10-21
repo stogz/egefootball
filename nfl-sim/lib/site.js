@@ -21,6 +21,7 @@
 
 const io = require('./io');
 const { TEAMS, KEYS, keyForName } = require('./teams');
+const { capFor } = require('./value');
 
 /* The sim's key for a team the six play for on the site ('detroit' is DET). */
 function simKey(siteKey) { return KEYS.filter((k) => TEAMS[k].site === siteKey)[0] || null; }
@@ -335,18 +336,20 @@ function siteFiles(league, season) {
 
 /* --------------------------------------------------------- out: rosters -- */
 
-/* The positions the Teams pages show: the offense's skill players and the
-   defense. */
-const SHOWN = ['QB', 'RB', 'FB', 'WR', 'TE', 'EDGE', 'DI', 'LB', 'CB', 'S'];
+/* How many seasons of the salary cap go out with the rosters: this one and
+   the three after it, the years a team's contracts are shown for. */
+const CAP_YEARS = 4;
 
 /* Every team's players as the Teams pages and the player pop-up show them,
-   best first. */
+   best first: every player, the linemen, kickers and punters the rooms
+   leave out too, since the Teams pages' line rating and payroll count them
+   (Sam, 2026-10-21). With them, the salary cap for the next few seasons. */
 function publicRosters(league) {
   let site = null;
   try { site = io.site(); } catch (err) { site = null; }
   const teams = {};
   league.teams.forEach((t) => {
-    teams[t.key] = (league.byTeam.get(t.key) || []).filter((p) => SHOWN.indexOf(p.pos) !== -1)
+    teams[t.key] = (league.byTeam.get(t.key) || []).slice()
       .sort((a, b) => b.ovr - a.ovr || a.name.localeCompare(b.name))
       .map((p) => {
         const sitePlayer = p.ege && site ? site.playerBySlug(p.ege) : null;
@@ -369,7 +372,9 @@ function publicRosters(league) {
         return row;
       });
   });
-  return { season: league.season, phase: league.phase, week: league.week || null, savedAt: new Date().toISOString(), teams };
+  const caps = {};
+  for (let y = league.season; y < league.season + CAP_YEARS; y += 1) { caps[y] = capFor(y); }
+  return { season: league.season, phase: league.phase, week: league.week || null, savedAt: new Date().toISOString(), caps, teams };
 }
 
 module.exports = { siteResults, sixEdits, seasonFileText, simResults, resultsFileText, siteFiles, publicRosters, simKey };

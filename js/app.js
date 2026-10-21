@@ -2078,7 +2078,7 @@
     }
     var admin = nflAdmin(key, season);
     if (admin) { body.appendChild(nflSystem(admin)); }
-    renderPayroll(admin);
+    renderPayroll(key, season, all, admin);
     var grid = el('div', 'ege-rooms');
     NFL_ROOMS[rosterSide].forEach(function (room) {
       var inRoom = rows.filter(function (sim) { return room.pos.indexOf(sim.pos) !== -1; })
@@ -2089,6 +2089,20 @@
       grid.appendChild(roomEl(room, inRoom, admin ? signBox(admin, room) : null));
     });
     body.appendChild(grid);
+    var rings = EGE.nflRosters.ratings(season, key, rosterSide);
+    if (rings) { body.appendChild(teamRings(rings)); }
+  }
+
+  /* Under the rooms, for everybody (Sam, 2026-10-21): the side's ratings
+     as the scouting report draws a defense's, a ring filled to the
+     rating with where it ranks in the NFL (EGE.nflRosters.ratings). */
+  function teamRings(rings) {
+    var row = el('div', 'ege-teamrings');
+    rings.forEach(function (r) {
+      row.appendChild(scoutRing({ score: r.score, short: r.short, rank: r.rank, of: r.of,
+        text: r.short + ': ' + r.score + ', ' + EGE.ordinal(r.rank).toLowerCase() + ' of ' + r.of + ' in the NFL' }));
+    });
+    return row;
   }
 
   /* --- an admin's hand on an NFL roster -----------------------------------
@@ -2127,12 +2141,13 @@
     var info = admin.edits.teamInfo(admin.league, admin.key);
     var built = admin.fits.team || {};
     var line = el('dl', 'ege-nflsys');
-    [['Offense', info.offense, built.offense], ['Defense', info.defense, built.defense],
+    [['Offense', info.offense, built.offense, 'offense'], ['Defense', info.defense, built.defense, 'defense'],
       ['Status', STATUS_NAMES[info.mode] || info.mode]]
       .forEach(function (fact) {
         var cell = el('div', 'ege-nflsys__fact');
         cell.appendChild(el('dt', null, fact[0]));
-        var dd = el('dd', null, fact[1]);
+        var dd = el('dd', null, fact[3] ? null : fact[1]);
+        if (fact[3]) { dd.appendChild(schemePick(admin, fact[3], fact[1])); }
         if (fact[2]) { dd.appendChild(starsEl(fact[2].stars, 'Built for the ' + fact[1] + ' ' + fact[0].toLowerCase())); }
         cell.appendChild(dd);
         line.appendChild(cell);
@@ -2140,22 +2155,92 @@
     return line;
   }
 
+  /* The team's offense or defense as a dropdown (Sam, 2026-10-21): another
+     scheme picked is the team's from its next game, and it keeps it
+     (lib/edits.js setScheme). */
+  function schemePick(admin, side, now) {
+    var all = admin.edits.SCHEMES[side];
+    var pick = el('select', 'fb-select ege-nflsys__pick');
+    pick.setAttribute('aria-label', side === 'offense' ? 'Offense' : 'Defense');
+    Object.keys(all).forEach(function (k) {
+      var option = el('option', null, all[k].name);
+      option.value = k;
+      if (all[k].name === now) { option.selected = true; }
+      pick.appendChild(option);
+    });
+    pick.addEventListener('change', function () {
+      pick.disabled = true;
+      EGE.nflSimAdmin.change(function (league) {
+        return admin.edits.setScheme(league, admin.key, side, pick.value);
+      }).then(function () {
+        if (nflShown === admin.key + ':' + admin.season) { renderNflRoster(admin.key, admin.season); }
+      }, function (err) {
+        pick.disabled = false;
+        pick.value = Object.keys(all).filter(function (k) { return all[k].name === now; })[0] || pick.value;
+        var line = pick.closest('.ege-nflsys');
+        var problem = el('p', 'ege-note ege-note--error', err.message || String(err));
+        if (line) { line.parentNode.insertBefore(problem, line.nextSibling); }
+      });
+    });
+    return pick;
+  }
+
   /* --- payroll, at the foot of the page -------------------------------------
 
-     For an admin, an NFL team's payroll against the salary cap, every
-     player counted (the linemen, kickers and punters the rooms leave out
-     too), with every contract under it to change or cut. */
-  function renderPayroll(admin) {
+     Everybody sees an NFL team's payroll against the salary cap (Sam,
+     2026-10-21), every player counted (the linemen, kickers and punters
+     the rooms leave out too), and under it every contract, this season and
+     the next three, sortable by any heading. An admin's comes from the
+     sim's world on the season it is playing, with an Edit on every
+     contract; everybody else's from the published rosters, which carry
+     every player and the caps since 2026-10-21. */
+  var PAY_YEARS = 4;
+  var paySort = { key: null, dir: DOWN, team: null };
+
+  function payrollOf(key, season, all, admin) {
+    if (admin) {
+      var pay = admin.edits.teamPay(admin.league, admin.key);
+      return {
+        caps: pay.caps,
+        players: (admin.league.byTeam.get(admin.key) || []).map(function (p) {
+          return { id: p.id, name: p.name, pos: p.pos, ege: p.ege || null, ovr: p.ovr, contract: p.contract || null };
+        })
+      };
+    }
+    var rows = all && all.teams ? all.teams[key] : null;
+    if (!rows || !all.caps || !all.caps[season]) { return null; }
+    return {
+      caps: all.caps,
+      players: rows.map(function (p) {
+        return { name: p.name, pos: p.pos, ege: p.ege || null, ovr: p.ovr, contract: p.contract || null };
+      })
+    };
+  }
+
+  /* What he is paid in `year`: his yearly average while his deal runs. */
+  function payIn(p, year) {
+    return p.contract && p.contract.through >= year ? p.contract.apy || 0 : 0;
+  }
+
+  function renderPayroll(key, season, all, admin) {
     var panel = document.getElementById('teamPayrollPanel');
     var body = document.getElementById('teamPayrollBody');
     body.innerHTML = '';
-    var pay = admin ? admin.edits.teamPay(admin.league, admin.key) : null;
-    panel.hidden = !pay;
-    if (!pay) { return; }
-    var over = pay.room < 0;
+    var book = key ? payrollOf(key, season, all, admin) : null;
+    panel.hidden = !book;
+    if (!book) { return; }
+    var years = [];
+    for (var y = season; y < season + PAY_YEARS; y += 1) { years.push(y); }
+    var total = function (year) {
+      return Math.round(book.players.reduce(function (sum, p) { return sum + payIn(p, year); }, 0) * 10) / 10;
+    };
+    var payroll = total(season);
+    var cap = book.caps[season];
+    var room = Math.round((cap - payroll) * 10) / 10;
+    var over = room < 0;
     var facts = el('dl', 'ege-nflsys ege-payroll__facts');
-    [['Payroll', moneyText(pay.payroll)], ['Salary cap', moneyText(pay.cap)],
-      [over ? 'Over the cap' : 'Cap space', moneyText(Math.abs(pay.room))]].forEach(function (pair, i) {
+    [['Payroll', moneyText(payroll)], ['Salary cap', moneyText(cap)],
+      [over ? 'Over the cap' : 'Cap space', moneyText(Math.abs(room))]].forEach(function (pair, i) {
       var cell = el('div', 'ege-nflsys__fact' + (i === 2 && over ? ' is-over' : ''));
       cell.appendChild(el('dt', null, pair[0]));
       cell.appendChild(el('dd', null, pair[1]));
@@ -2164,47 +2249,109 @@
     body.appendChild(facts);
     var bar = el('div', 'ege-payroll__bar' + (over ? ' is-over' : ''));
     bar.setAttribute('role', 'img');
-    bar.setAttribute('aria-label', Math.round(pay.payroll / pay.cap * 100) + '% of the cap');
+    bar.setAttribute('aria-label', Math.round(payroll / cap * 100) + '% of the cap');
     var fill = el('span', 'ege-payroll__fill');
-    fill.style.width = Math.min(100, pay.payroll / pay.cap * 100) + '%';
+    fill.style.width = Math.min(100, payroll / cap * 100) + '%';
     bar.appendChild(fill);
     body.appendChild(bar);
 
-    var list = (admin.league.byTeam.get(admin.key) || []).slice().sort(function (a, b) {
-      return ((b.contract && b.contract.apy) || 0) - ((a.contract && a.contract.apy) || 0) || b.ovr - a.ovr;
-    });
+    if (paySort.team !== key) { paySort = { key: 'y0', dir: DOWN, team: key }; }
     var more = el('details', 'ege-payroll__all');
-    more.appendChild(el('summary', null, 'Contracts (' + list.length + ')'));
+    more.appendChild(el('summary', null, 'Contracts (' + book.players.length + ')'));
     var wrap = el('div', 'fb-tablewrap');
     var table = el('table', 'fb-table ege-payroll__table');
-    var head = el('tr');
-    ['Pos', 'Player', 'A year', 'Through', ''].forEach(function (h, i) { head.appendChild(el('th', i === 2 || i === 3 ? 'num' : null, h)); });
+    var columns = [{ key: 'player', label: 'Player' }, { key: 'pos', label: 'Pos' }].concat(years.map(function (year, i) {
+      return { key: 'y' + i, label: String(year), year: year, num: true };
+    }));
     var thead = el('thead');
-    thead.appendChild(head);
-    table.appendChild(thead);
     var tbody = el('tbody');
-    list.forEach(function (p) { tbody.appendChild(payrollRow(admin, p)); });
+    var tfoot = el('tfoot');
+    function value(p, column) {
+      if (column.key === 'player') { return p.name; }
+      if (column.key === 'pos') { return p.pos; }
+      return payIn(p, column.year);
+    }
+    function draw() {
+      var at = 0;
+      columns.forEach(function (c, i) { if (c.key === paySort.key) { at = i; } });
+      var column = columns[at];
+      var list = book.players.slice().sort(function (a, b) {
+        var left = value(a, column);
+        var right = value(b, column);
+        var order = typeof left === 'string' ? left.localeCompare(right) : left - right;
+        if (paySort.dir === DOWN) { order = -order; }
+        return order || payIn(b, season) - payIn(a, season) || (b.ovr || 0) - (a.ovr || 0) || a.name.localeCompare(b.name);
+      });
+      thead.innerHTML = '';
+      var head = el('tr');
+      columns.forEach(function (c) {
+        var sorted = c.key === paySort.key;
+        var th = el('th', (c.num ? 'num ' : '') + 'is-sortable' + (sorted ? ' is-sorted' : ''));
+        var button = el('button', 'ege-sort', c.label);
+        button.type = 'button';
+        if (sorted) { button.appendChild(sortMark(paySort.dir)); }
+        button.addEventListener('click', function () {
+          if (paySort.key === c.key) {
+            paySort.dir = paySort.dir === DOWN ? UP : DOWN;
+          } else {
+            paySort.key = c.key;
+            paySort.dir = c.num ? DOWN : UP;
+          }
+          draw();
+        });
+        th.appendChild(button);
+        head.appendChild(th);
+      });
+      if (admin) { head.appendChild(el('th')); }
+      thead.appendChild(head);
+      tbody.innerHTML = '';
+      list.forEach(function (p) { tbody.appendChild(payrollRow(admin, p, years, at, columns.length + (admin ? 1 : 0))); });
+    }
+    draw();
+    [['Total', function (year) { return moneyText(total(year)); }, null],
+      ['Salary cap', function (year) { return moneyText(book.caps[year]); }, null],
+      ['Cap space', function (year) {
+        var left = Math.round((book.caps[year] - total(year)) * 10) / 10;
+        return (left < 0 ? '−' : '') + moneyText(Math.abs(left));
+      }, function (year) { return book.caps[year] - total(year) < 0; }]].forEach(function (line) {
+      var tr = el('tr');
+      var label = el('td', null, line[0]);
+      label.colSpan = 2;
+      tr.appendChild(label);
+      years.forEach(function (year) {
+        tr.appendChild(el('td', 'num' + (line[2] && line[2](year) ? ' is-over' : ''), book.caps[year] ? line[1](year) : '–'));
+      });
+      if (admin) { tr.appendChild(el('td')); }
+      tfoot.appendChild(tr);
+    });
+    table.appendChild(thead);
     table.appendChild(tbody);
+    table.appendChild(tfoot);
     wrap.appendChild(table);
     more.appendChild(wrap);
     body.appendChild(more);
   }
 
-  /* A contract's row, and under it while it is being changed, the form. */
-  function payrollRow(admin, p) {
+  /* A contract's row, its years' pay in it, and under it while an admin is
+     changing it, the form. */
+  function payrollRow(admin, p, years, sortedAt, width) {
     var rows = document.createDocumentFragment();
     var tr = el('tr', p.ege ? 'ege-payroll__six' : null);
-    tr.appendChild(el('td', null, p.pos));
     tr.appendChild(el('td', null, p.name));
-    tr.appendChild(el('td', 'num', p.contract ? moneyText(p.contract.apy) : '–'));
-    tr.appendChild(el('td', 'num', p.contract ? String(p.contract.through) : '–'));
+    tr.appendChild(el('td', null, p.pos));
+    years.forEach(function (year) {
+      var amount = payIn(p, year);
+      tr.appendChild(el('td', 'num', amount ? moneyText(amount) : '–'));
+    });
+    if (tr.children[sortedAt]) { tr.children[sortedAt].classList.add('is-sorted-cell'); }
+    rows.appendChild(tr);
+    if (!admin) { return rows; }
     var cell = el('td', 'num');
     var edit = el('button', 'fb-btn ege-payroll__edit', 'Edit');
     edit.type = 'button';
     edit.setAttribute('aria-label', 'Edit ' + p.name + '’s contract');
     cell.appendChild(edit);
     tr.appendChild(cell);
-    rows.appendChild(tr);
     var open = null;
     function close() {
       if (open) { open.remove(); open = null; }
@@ -2215,7 +2362,7 @@
       edit.disabled = true;
       open = el('tr', 'ege-payroll__formrow');
       var wide = el('td');
-      wide.colSpan = 5;
+      wide.colSpan = width;
       var form = contractForm(admin, { id: p.id, name: p.name, ege: p.ege || null, contract: p.contract, season: admin.season }, close,
         function () { renderNflRoster(admin.key, admin.season); });
       form.classList.add('ege-payroll__form');
@@ -2321,8 +2468,9 @@
     return b;
   }
 
-  /* The + under a room: a free agent at its positions, best first, signed
-     at what the market pays him. */
+  /* The + under a room: the free agents at its positions, best first, each
+     with how he would fit the team's scheme (Sam, 2026-10-21) and a Sign
+     that puts him on the team at what the market pays him. */
   function signBox(admin, room) {
     var holder = el('div', 'ege-room__sign');
     function shut() {
@@ -2339,34 +2487,39 @@
       var form = el('div', 'ege-room__signform');
       var problem = el('p', 'ege-note ege-note--error');
       problem.hidden = true;
-      var list = admin.edits.freeAgents(EGE.nflSimAdmin.peek() || admin.league, room.pos, 80);
+      var list = admin.edits.freeAgents(EGE.nflSimAdmin.peek() || admin.league, room.pos, 80, admin.key);
       if (!list.length) {
         form.appendChild(el('p', 'ege-room__empty', 'No free agents.'));
       } else {
-        var pick = el('select', 'fb-select');
-        pick.setAttribute('aria-label', 'Free agent');
+        var agents = el('ul', 'ege-falist');
+        agents.setAttribute('aria-label', 'Free agents');
         list.forEach(function (fa) {
-          var option = el('option', null, fa.pos + ' · ' + fa.name + ' · ' + fa.ovr + ' · ' + fa.age + ' · ' + moneyText(fa.ask));
-          option.value = fa.id;
-          pick.appendChild(option);
-        });
-        form.appendChild(pick);
-        var sign = el('button', 'fb-btn fb-btn--primary', 'Sign');
-        sign.type = 'button';
-        sign.addEventListener('click', function () {
-          sign.disabled = true;
-          problem.hidden = true;
-          EGE.nflSimAdmin.change(function (league) {
-            return admin.edits.signFreeAgent(league, pick.value, admin.key);
-          }).then(function () {
-            if (nflShown === admin.key + ':' + admin.season) { renderNflRoster(admin.key, admin.season); }
-          }, function (err) {
-            sign.disabled = false;
-            problem.textContent = err.message || String(err);
-            problem.hidden = false;
+          var item = el('li', 'ege-falist__row');
+          var who = el('span', 'ege-falist__who');
+          who.appendChild(el('span', 'ege-falist__name', fa.name));
+          who.appendChild(el('span', 'ege-falist__meta', [fa.pos, fa.ovr, 'age ' + fa.age, moneyText(fa.ask)].join(' · ')));
+          item.appendChild(who);
+          if (fa.fit) { item.appendChild(starsEl(fa.fit.stars, 'Fit in ' + fa.fit.scheme)); }
+          var sign = el('button', 'fb-btn ege-falist__sign', 'Sign');
+          sign.type = 'button';
+          sign.setAttribute('aria-label', 'Sign ' + fa.name);
+          sign.addEventListener('click', function () {
+            sign.disabled = true;
+            problem.hidden = true;
+            EGE.nflSimAdmin.change(function (league) {
+              return admin.edits.signFreeAgent(league, fa.id, admin.key);
+            }).then(function () {
+              if (nflShown === admin.key + ':' + admin.season) { renderNflRoster(admin.key, admin.season); }
+            }, function (err) {
+              sign.disabled = false;
+              problem.textContent = err.message || String(err);
+              problem.hidden = false;
+            });
           });
+          item.appendChild(sign);
+          agents.appendChild(item);
         });
-        form.appendChild(sign);
+        form.appendChild(agents);
       }
       var cancel = el('button', 'fb-btn', 'Cancel');
       cancel.type = 'button';
@@ -2582,7 +2735,18 @@
 
     var lines = el('ul', 'ege-finder__lines');
     var seller = EGE.nfl.teams[found.player.team] ? EGE.nfl.teams[found.player.team].name.split(' ').slice(-1)[0] : found.player.team;
-    lines.appendChild(el('li', 'ege-finder__gets', seller + ' get ' + t.gets.join(', ')));
+    /* What his team gets, each player with how he fits its schemes (Sam,
+       2026-10-21). */
+    var gets = el('li', 'ege-finder__gets');
+    gets.appendChild(el('span', null, seller + ' get'));
+    var incoming = el('ul', 'ege-finder__incoming');
+    (t.incoming || t.gets.map(function (text) { return { text: text, fit: null }; })).forEach(function (one) {
+      var item = el('li', null, one.text);
+      if (one.fit) { item.appendChild(starsEl(one.fit.stars, 'Fit in ' + one.fit.scheme)); }
+      incoming.appendChild(item);
+    });
+    gets.appendChild(incoming);
+    lines.appendChild(gets);
     if (t.starts) { lines.appendChild(el('li', null, 'Starts' + (t.over ? ' over ' + t.over.name + ' (' + t.over.ovr + ')' : ''))); }
     lines.appendChild(el('li', null, t.room >= 0 ? moneyText(t.room) + ' cap space after' : moneyText(-t.room) + ' over the cap after'));
     box.appendChild(lines);
@@ -3277,46 +3441,6 @@
     body.appendChild(standingsTable(conference, entry.team.school));
   }
 
-  /* The team's games as everybody can see them: the same fixtures, the same
-     rule about how far into the postseason anybody can see, and no credits,
-     boosters or grades -- those belong to a player. */
-  function renderTeamSchedule(entry, season) {
-    var body = document.getElementById('teamScheduleBody');
-    body.innerHTML = '';
-    var games = EGE.scheduleFor(entry.players[0], season);
-    var firstPlayoff = games.filter(function (game) { return game.playoff; })[0];
-    games.forEach(function (game) {
-      var row = el('tr');
-      if (game === firstPlayoff) { row.classList.add('ege-schedule__break'); }
-      row.appendChild(el('td', 'ege-schedule__week', game.week));
-      row.appendChild(el('td', null, gameDate(game)));
-
-      var opponent = el('td', 'ege-schedule__opponent');
-      if (game.bye) {
-        opponent.appendChild(el('span', 'ege-schedule__bye', 'Bye'));
-      } else {
-        opponent.appendChild(el('span', 'ege-schedule__side', game.home || game.neutral ? 'vs' : 'at'));
-        opponentName(opponent, game);
-      }
-      if (marksGame(game)) {
-        var conf = el('abbr', 'ege-schedule__conf', '*');
-        conf.title = markWord(game) + ' game';
-        opponent.appendChild(conf);
-      }
-      if (game.playoff) {
-        var post = el('abbr', 'ege-schedule__conf', '**');
-        post.title = postseasonWord(game) + ' game';
-        opponent.appendChild(post);
-      }
-      row.appendChild(opponent);
-
-      var result = el('td', 'num ege-schedule__result');
-      result.appendChild(resultTag(game));
-      row.appendChild(result);
-      body.appendChild(row);
-    });
-  }
-
   /* `slug` is the address after #teams/. */
   function renderTeam(slug) {
     var page = teamPage(slug);
@@ -3327,7 +3451,6 @@
     if (!found) { return; }
 
     fillTeamsBar(TEAM_BAR, page.years, page.season);
-    document.getElementById('teamSchedulePanel').hidden = !entry;
     if (!entry) {
       renderNflHead(page.nfl, page.season);
       renderNflRoster(page.nfl, page.season);
@@ -3338,7 +3461,6 @@
     renderTeamHead(entry, page.season);
     renderTeamRoster(entry, page.season, page.nfl);
     renderTeamStandings(entry, page.season);
-    renderTeamSchedule(entry, page.season);
     document.title = entry.team.school + ' — EGE Football';
   }
 
