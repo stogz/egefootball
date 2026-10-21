@@ -4977,7 +4977,7 @@ module.exports = { rateTeams, schemeFit, PER_POINT };
    EGE Football NFL sim — the 32 teams
    Keyed by nflverse's abbreviations (LA is the Rams, LAC the Chargers), the
    same keys every data file here uses. `site` is the team's key in
-   EGE.teams on the website, for the three the six are on.
+   EGE.teams on the website, for the ones the six are on.
    ========================================================================== */
 
 'use strict';
@@ -5000,17 +5000,17 @@ const TEAMS = {
   LAC: { name: 'Los Angeles Chargers', conf: 'AFC', div: 'West' },
   LV: { name: 'Las Vegas Raiders', conf: 'AFC', div: 'West' },
   DAL: { name: 'Dallas Cowboys', conf: 'NFC', div: 'East' },
-  NYG: { name: 'New York Giants', conf: 'NFC', div: 'East' },
+  NYG: { name: 'New York Giants', conf: 'NFC', div: 'East', site: 'newYorkGiants' },
   PHI: { name: 'Philadelphia Eagles', conf: 'NFC', div: 'East' },
   WAS: { name: 'Washington Commanders', conf: 'NFC', div: 'East' },
-  CHI: { name: 'Chicago Bears', conf: 'NFC', div: 'North' },
+  CHI: { name: 'Chicago Bears', conf: 'NFC', div: 'North', site: 'chicago' },
   DET: { name: 'Detroit Lions', conf: 'NFC', div: 'North', site: 'detroit' },
   GB: { name: 'Green Bay Packers', conf: 'NFC', div: 'North' },
   MIN: { name: 'Minnesota Vikings', conf: 'NFC', div: 'North' },
   ATL: { name: 'Atlanta Falcons', conf: 'NFC', div: 'South' },
   CAR: { name: 'Carolina Panthers', conf: 'NFC', div: 'South' },
   NO: { name: 'New Orleans Saints', conf: 'NFC', div: 'South' },
-  TB: { name: 'Tampa Bay Buccaneers', conf: 'NFC', div: 'South' },
+  TB: { name: 'Tampa Bay Buccaneers', conf: 'NFC', div: 'South', site: 'tampaBay' },
   ARI: { name: 'Arizona Cardinals', conf: 'NFC', div: 'West' },
   LA: { name: 'Los Angeles Rams', conf: 'NFC', div: 'West' },
   SF: { name: 'San Francisco 49ers', conf: 'NFC', div: 'West' },

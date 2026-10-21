@@ -52,14 +52,19 @@ window.EGE = window.EGE || {};
    drafted and play it in the NFL, and Paxon, Cooper and Isaac stay in
    college. Its `level` names both, for the places that say what a season
    is for everybody at once (the home page, the Teams pages); a player's own
-   page says his own, from EGE.levelFor. */
+   page says his own, from EGE.levelFor.
+
+   2024 has all six in the NFL: Cooper, Paxon and Isaac were drafted too.
+   It has no `class`, since an NFL season's class is each player's own year
+   in the league (EGE.classFor). */
 EGE.seasons = [
   { year: 2018, level: 'High School Varsity', tier: 'highSchool', class: 'Junior Year' },
   { year: 2019, level: 'High School Varsity', tier: 'highSchool', class: 'Senior Year' },
   { year: 2020, level: 'College Football',    tier: 'college',    class: 'Freshman Year' },
   { year: 2021, level: 'College Football',    tier: 'college',    class: 'Sophomore Year' },
   { year: 2022, level: 'College Football',    tier: 'college',    class: 'Junior Year' },
-  { year: 2023, level: 'NFL & College Football', tier: 'college', class: 'Senior Year', optional: true }
+  { year: 2023, level: 'NFL & College Football', tier: 'college', class: 'Senior Year', optional: true },
+  { year: 2024, level: 'NFL',                 tier: 'nfl' }
 ];
 
 /* What each level of football is called on a player's own page. */
@@ -251,6 +256,39 @@ EGE.teams = {
     logo: 'icon/nfl/Texans.png',
     ground: '#03202F',
     zone: 'America/Chicago'
+  },
+
+  /* From 2024: the teams that drafted Cooper (Chicago, 7th), Paxon (the
+     Giants, 34th) and Isaac (Tampa Bay, 39th). */
+  chicago: {
+    school: 'Chicago Bears',
+    short: 'Bears',
+    tier: 'nfl',
+    league: 'NFC North',
+    conference: 'NFC',
+    logo: 'icon/nfl/Bears.png',
+    ground: '#0B162A',
+    zone: 'America/Chicago'
+  },
+  newYorkGiants: {
+    school: 'New York Giants',
+    short: 'Giants',
+    tier: 'nfl',
+    league: 'NFC East',
+    conference: 'NFC',
+    logo: 'icon/nfl/Giants.png',
+    ground: '#0B2265',
+    zone: 'America/New_York'
+  },
+  tampaBay: {
+    school: 'Tampa Bay Buccaneers',
+    short: 'Buccaneers',
+    tier: 'nfl',
+    league: 'NFC South',
+    conference: 'NFC',
+    logo: 'icon/nfl/Buccaneers.png',
+    ground: '#A71930',
+    zone: 'America/New_York'
   }
 };
 
@@ -300,6 +338,8 @@ EGE.players = [
     last: 'Clark',
     team: 'carlsbad',
     college: 'usc',           // from 2020
+    /* Drafted 7th by Chicago in 2024, with Carolina's pick. */
+    transfers: { 2024: 'chicago' },
     position: 'RB',
     jersey: 25,
     height: 68,               // inches
@@ -320,7 +360,8 @@ EGE.players = [
     last: 'Hatch',
     team: 'bloomington',
     college: 'northDakotaState', // from 2020
-    transfers: { 2022: 'northCarolina' },
+    /* Drafted 34th by the Giants in 2024. */
+    transfers: { 2022: 'northCarolina', 2024: 'newYorkGiants' },
     position: 'WR',
     /* A tight end in high school, a receiver full-time from 2020. Only the
        header of an old season's page says so; everything else -- his
@@ -348,7 +389,8 @@ EGE.players = [
     last: 'Vitel',
     team: 'bloomington',
     college: 'illinois',      // from 2020
-    transfers: { 2022: 'texas' },
+    /* Drafted 39th by Tampa Bay in 2024. */
+    transfers: { 2022: 'texas', 2024: 'tampaBay' },
     position: 'QB',
     jersey: 8,
     /* Redshirted his freshman year: 2020 used no eligibility, so from 2021
