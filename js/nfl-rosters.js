@@ -272,7 +272,111 @@
     return out;
   }
 
+  /* --- the rating rings under a roster ------------------------------------
+
+     Five ratings everybody sees at the foot of an NFL team's roster (Sam,
+     2026-10-21), each on the overall scale and ranked across the league:
+     the offensive line, the passing game and the running game, and on
+     defense the run defense and the pass defense the scouting report rates
+     (MATCHUPS). Worked out from the players' own ratings in the rosters,
+     the starters as above, like everything else here. The line needs the
+     linemen, which rosters published before 2026-10-21 do not have: until
+     they are published again a team's offense has no rings. */
+  function mix(p, weights) {
+    var total = 0;
+    var weight = 0;
+    Object.keys(weights).forEach(function (k) { total += skill(p, k) * weights[k]; weight += weights[k]; });
+    return total / weight;
+  }
+
+  function receiving(p) {
+    if (!p) { return 55; }
+    if (p.pos === 'WR') { return mix(p, { route: 0.3, hands: 0.25, deep: 0.15, yac: 0.15, speed: 0.15 }); }
+    if (p.pos === 'TE') { return mix(p, { route: 0.35, hands: 0.35, yac: 0.15, deep: 0.15 }); }
+    return skill(p, 'hands');
+  }
+
+  var RATINGS = {
+    offense: [
+      { key: 'line', short: 'Offensive Line', score: function (at) {
+        return (passPro(at) + runBlock(at)) / 2;
+      } },
+      { key: 'passing', short: 'Passing', score: function (at) {
+        var qb = at('QB', 0) ? mix(at('QB', 0), { accuracy: 0.35, deep: 0.2, arm: 0.15, poise: 0.3 }) : 55;
+        var targets = weighted([[at('WR', 0), 1.2], [at('WR', 1), 1.1], [at('WR', 2), 0.8], [at('TE', 0), 0.8],
+          [at('RB', 0), 0.25]], receiving);
+        return 0.45 * qb + 0.35 * targets + 0.2 * passPro(at);
+      } },
+      { key: 'rushing', short: 'Rushing', score: function (at) {
+        var backs = weighted([[at('RB', 0), 1], [at('RB', 1), 0.3]], function (p) {
+          return mix(p, { vision: 0.3, power: 0.25, elusive: 0.25, speed: 0.2 });
+        });
+        return 0.45 * backs + 0.4 * runBlock(at) + 0.08 * skill(at('TE', 0), 'block') + 0.07 * skill(at('QB', 0), 'mobility');
+      } }
+    ],
+    defense: [
+      { key: 'runD', short: 'Rush Defense', score: function (at) { return MATCHUPS.rush.score(at); } },
+      { key: 'passD', short: 'Pass Defense', score: function (at) { return MATCHUPS.QB.score(at); } }
+    ]
+  };
+
+  function passPro(at) {
+    return weighted([[at('OT', 0), 1.2], [at('OT', 1), 1.1], [at('IOL', 0), 0.9], [at('IOL', 1), 0.9], [at('IOL', 2), 0.9]],
+      function (p) { return skill(p, 'passBlock'); });
+  }
+
+  function runBlock(at) {
+    return weighted([[at('OT', 0), 0.9], [at('OT', 1), 0.9], [at('IOL', 0), 1.1], [at('IOL', 1), 1.1], [at('IOL', 2), 1.1]],
+      function (p) { return skill(p, 'runBlock'); });
+  }
+
+  /* Every team's five, worked out once a season's rosters: { key: { line:
+     { score, rank, of }, ... } }, a rating left out where a team's rows
+     cannot give it. */
+  var rated = {};
+  function allRatings(season) {
+    var all = cache[season];
+    if (!all || !all.teams) { return null; }
+    if (rated[season] && rated[season].from === all) { return rated[season].teams; }
+    var teams = {};
+    Object.keys(all.teams).forEach(function (key) {
+      var rows = all.teams[key] || [];
+      var at = depth(rows);
+      var lined = rows.some(function (p) { return p.pos === 'OT' || p.pos === 'IOL'; });
+      teams[key] = {};
+      Object.keys(RATINGS).forEach(function (side) {
+        if (side === 'offense' && !lined) { return; }
+        RATINGS[side].forEach(function (r) { teams[key][r.key] = { score: r.score(at) }; });
+      });
+    });
+    Object.keys(RATINGS).forEach(function (side) {
+      RATINGS[side].forEach(function (r) {
+        var keys = Object.keys(teams).filter(function (key) { return teams[key][r.key]; })
+          .sort(function (a, b) { return teams[b][r.key].score - teams[a][r.key].score; });
+        keys.forEach(function (key, i) {
+          teams[key][r.key].rank = i + 1;
+          teams[key][r.key].of = keys.length;
+        });
+      });
+    });
+    rated[season] = { from: all, teams: teams };
+    return teams;
+  }
+
+  /* One team's rings for a side of the ball, [{ key, short, score, rank,
+     of }], or null. */
+  function ratings(season, key, side) {
+    var teams = allRatings(season);
+    var mine = teams ? teams[key] : null;
+    if (!mine) { return null; }
+    var list = (RATINGS[side] || []).filter(function (r) { return mine[r.key]; }).map(function (r) {
+      return { key: r.key, short: r.short, score: Math.round(mine[r.key].score), rank: mine[r.key].rank, of: mine[r.key].of };
+    });
+    return list.length ? list : null;
+  }
+
   EGE.nflRosters = {
+    ratings: ratings,
     load: load,
     get: function (season) { return cache[season]; },
     /* The admin page, having just published a season's rosters. */

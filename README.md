@@ -447,7 +447,11 @@ Under the bar:
   pages. **Every box opens a pop-up**, in the overlay the cards and
   trophies use: a band in the team's colour with the headshot, the name and
   the team's mark straight on the colour, no box round it (Sam,
-  2026-10-20). The headshot stands on the band's bottom edge and is sized
+  2026-10-20). Behind them, the team's mark again in two tones, the band's
+  colour and a fifth darker (a little lighter on a band too near black to
+  go darker), so big it runs off both ends of the band and is cut off
+  there (Sam, 2026-10-21): the mark is turned black where it is darker
+  than a light grey and white elsewhere, and laid over the colour. The headshot stands on the band's bottom edge and is sized
   so the top of the head just clears the top of the box, about 5% of the
   picture; every headshot is placed the same way. The name is centred in
   the band both ways (Sam, 2026-10-20): the mark's column is as wide as
@@ -458,27 +462,47 @@ Under the bar:
   then his contract (*$1.1M a year through 2024*) and any injury. One of the
   six's has a button through to his page. A click off the box closes it.
   Nothing private is in the rosters: no team ratings, no potential, nothing
-  about how long a player will last.
+  about how long a player will last. Since 2026-10-21 they carry every
+  player, the linemen, kickers and punters the rooms leave out too, and the
+  salary cap for the season and the three after it (`caps`), for the line
+  rating and the payroll below, each team's system (`systems`) and every
+  player's fit (`fit`). Rosters published before then have none of it
+  until they are published again, which an admin's visit to any NFL team
+  page, in client viewer mode too, does once by itself
+  (`EGE.nflSimAdmin.republish`).
+
+  **Under the rooms, five ratings for everybody** (Sam, 2026-10-21), drawn
+  the way the scouting report draws a defense: a ring filled to the
+  rating, the number in it, and where it ranks in the NFL. The Offense side
+  has **Offensive Line**, **Passing** and **Rushing**, the Defense side
+  **Rush Defense** and **Pass Defense** (the scouting report's own two).
+  Each is on the overall scale, worked out in the browser from the
+  starters' ratings in the rosters (`EGE.nflRosters.ratings`): the line
+  from its five starters' pass and run blocking; passing from the
+  quarterback's throwing (45%), his targets (35%) and the pass protection
+  (20%); rushing from the backs (45%), the run blocking (40%), the tight
+  end's blocking and the quarterback's legs. They are not the sim's own
+  team ratings, which stay private.
 
   **An injured player's box says so** beside his overall (Sam, 2026-10-21):
-  a red box, **OUT** over the games he has left, or **IR** for the season;
-  the pop-up's Injury line says what it is and for how long. The six's come
+  a square as tall as the overall box, a dotted red edge, a light red
+  wash behind (25%) and red words, **OUT** over the
+  weeks he has left (**3 WK**), or **OUT SEASON** when he will not be back
+  before the regular season ends (the Super Bowl, in the playoffs); the
+  pop-up's Injury line says what it is and for how long. The six's come
   from the site's own injury report (`EGE.injuryFor`, so the week's
   publishing decides); everybody else's from the sim (`out` in the rosters:
   what, games left and the week he went down), held back from anybody but
   an admin until that week is published.
 
-  **Every NFL team has a page**, `#teams/kansas-city-chiefs`. The six's
-  teams keep their standings and schedule; any other team's page is its
-  header (record, streak, place in the division) and its roster, nothing
-  else. Every NFL team's mark sits on its colour from `data/nfl.js`, the
+  **Every NFL team has a page**, `#teams/kansas-city-chiefs`: its
+  header (record, streak, place in the division), its roster and its
+  payroll. Every NFL team's mark sits on its colour from `data/nfl.js`, the
   way the six's teams' do.
 
   **An admin edits the roster right there** (Sam, 2026-10-21), on the
   season the NFL sim is playing, once the page has loaded the sim's world
-  (`EGE.nflSimAdmin.ready`). Above the roster: the team's **Offense**,
-  **Defense** and **Status** (*Competing*, *Retooling*, *Rebuilding*, the
-  sim's mode). Under every room's worst player, a dashed **+** box opens a
+  (`EGE.nflSimAdmin.ready`). Under every room's worst player, a dashed **+** box opens a
   list of the free agents at that position (overall, age, what he asks) and
   **Sign** puts him on the team at his market pay. A pop-up has **Edit**
   for anybody but the six: overall, ceiling, archetype and every skill.
@@ -489,26 +513,44 @@ Under the bar:
   rosters again (`EGE.nflSimAdmin.change`, `lib/edits.js`). None of it shows
   in client viewer mode.
 
-  **An admin sees fit as stars, 0–5 in halves** (Sam, 2026-10-21): after
-  each box's size line, how well he fits the team's scheme on his side of
-  the ball, and after the Offense and Defense facts, how well the team has
-  built around each (`EGE.nflSim.fit`, `nfl-sim/lib/fit.js`). The pop-up
-  has them after the archetype. **Edit** takes his contract too (*$M a
+  **Above the roster, for everybody** (Sam, 2026-10-21): the team's
+  **Offense** and **Defense**, each with stars for how well the team has
+  built around it, and its **Status** (*Competing*, *Retooling*,
+  *Rebuilding*, the sim's mode). **Fit is stars, 0–5 in halves**, in the
+  site's orange: after each box's size line (and after the archetype in
+  the pop-up), how well he fits the team's scheme on his side of the ball
+  (`nfl-sim/lib/fit.js`). Everybody else's come from the published rosters
+  (`systems`, and each player's `fit`); an admin's from the sim's world.
+  The OFF/DEF overalls by the switch stay an admin's alone. For an admin
+  the Offense and Defense are dropdowns, words for anybody else and in
+  client viewer mode: a scheme picked is the team's from its next game,
+  and it keeps it until its coaches are fired (`setScheme`). The + under a room lists the free
+  agents at its positions, best first, each with his stars in the team's
+  scheme and his own **Sign**. **Edit** takes his contract too (*$M a
   year*, *Through*: raise it, cut it, extend it) and has **Release**, asked
   twice; for one of the six, Edit is just his archetype and contract.
   **Find trades** looks at every other team for him — its schemes, its
   status and record, whether he would start there — and lists up to six
   that suit him better and can pay what his team asks (a spinner while it
   looks): the team, its status and record, his stars in its scheme, what
-  his team gets, whom he would start over, and the cap after. **Make the
+  his team gets (each player with his stars in his team's scheme), whom he
+  would start over, and the cap after. Some have his team put in more
+  with him, a player or pick the other team wants, so a bigger package
+  comes out even: *Chargers also get*, each player with his stars in their
+  scheme. **Refresh**, beside Find trades, asks for another set, leaving
+  out the ones already shown where it can. **Make the
   trade**, **Propose**, or **Open in builder** (the NFL Sim tab's trade
   builder, filled in). The trade deadline and the six's one team a season
   hold as everywhere else.
 
-  **The page ends with the payroll** for an admin: payroll, the salary cap
-  and the cap space (in red, how far over), a bar, and **Contracts**, every
-  player's (the linemen, kickers and punters the rooms leave out too), each
-  with its own **Edit**.
+  **The page ends with the payroll**, for everybody (Sam, 2026-10-21):
+  payroll, the salary cap and the cap space (in red, how far over), a bar,
+  and **Contracts**, every player's (the linemen, kickers and punters the
+  rooms leave out too) with what he is paid this season and the next three
+  (his yearly average while his deal runs), then the total, the cap and
+  the space left for each year. Every heading sorts, as a game log's do.
+  An admin's comes from the sim's world, with an **Edit** on every
+  contract; everybody else's from the published rosters.
 
   **The NFL's marks are the site's own**, in `icon/nfl/`, from a set Sam
   sent (2026-10-20), not ESPN's: the team pages, the pop-up, the schedules
@@ -522,40 +564,11 @@ Under the bar:
   picked out in orange. From the week the sim takes over, the standings use
   the sim's scores (`data/nfl-results.js`) in place of the real ones in
   `data/conferences.js`.
-- **Conference Standings** — the whole conference as one table: the dark
-  row of headings once at the top and every school under it, the school's
-  own division first, a rule where the next division starts, and the
-  division in a short **Div** column (*East*, or just *E* on a phone). The
-  **#** is the division place, the conference record (**Conf**), the overall
-  record (**Ovr**, every game — see below), the conference streak (**Strk**,
-  *W3* in green or *L1* in red), conference points for and against and the
-  differential, and **Chg**, how many places a school has moved since the
-  week before the latest one published — a green ▲ up or a red ▼ down.
-  Every heading sorts, the way the game log's do: biggest first, then
-  smallest, then back to the standings (the place and the school's name go
-  1 and A first). Sorted, the divisions mix; the # stays each school's
-  division place. There is no line under the table (Sam took the
-  "Through week N" note off, 2026-10-17); the overall record moves every
-  week, including weeks with no conference games in them. The school's own
-  row is picked out in orange and nothing else is marked. On a phone the
-  points and differential drop out and a long school name is cut short; the
-  rest scrolls sideways. `EGE.conferenceTables` in `data/games.js` works out
-  the movement by drawing the table as it stood a week earlier, and
-  `EGE.overallRecord` the overall record.
-
-  **An NFL team's** is its conference's — *NFC Standings*, *AFC
-  Standings* — four divisions of four, ordered **the way the NFL orders a
-  division**: every game counts, so the columns are the record (**W-L**),
-  the division record (**vDiv**), the conference record (**vConf**), the
-  streak over every game, points for and against, the differential and
-  **Chg**. Ties go to head-to-head, then the division record, then the
-  conference record, then the points differential. The division column
-  says *NFC West* (*W* on a phone).
-- **Schedule** — the team's games as anybody can see them, with results as
-  they are published and the postseason as far as the next game, the same
-  rule a player's schedule follows. No credits, boosters or ODEF grades:
-  those belong to a player. NFL opponents are cities and links, as on a
-  player's schedule.
+- **No standings** (Sam, 2026-10-21): the header's record and division
+  place say where a team stands; the whole league is the NFL Standings at
+  the foot of the index. `EGE.conferenceTables` in `data/games.js`, which
+  drew the old Conference Standings panel, is still there.
+- **No schedule** (Sam, 2026-10-21): the games are on the players' pages.
 
 The quarterback rooms are also where a QB Connection is picked from (see
 the shop).

@@ -1383,7 +1383,8 @@ EGE.nflSimAdmin = (function () {
      hands over the league as saved once they are in, and change(fn) runs
      fn on it, saves the world and publishes the season's rosters, the way
      a step here does. Anything that throws before the save keeps nothing.
-     useDeal() hands a trade the page's trade finder found to the builder. */
+     useDeal() hands a trade the page's trade finder found to the builder,
+     and republish() publishes the season's rosters again as they are. */
 
   function ready() {
     if (state.files) { return Promise.resolve(); }
@@ -1400,6 +1401,19 @@ EGE.nflSimAdmin = (function () {
   }
 
   function loaded() { return Boolean(state.files) && hasWorld(); }
+
+  /* The season's rosters published again from the world as it is, nothing
+     changed: how rosters published before the pages read something new
+     from them (each team's system and fit, 2026-10-21) catch up. Only for
+     the season the world is in. */
+  function republish(season) {
+    return ready().then(function () {
+      if (!hasWorld() || state.busy) { return false; }
+      var league = openLeague();
+      if (league.season !== season) { return false; }
+      return publishRosters(league).then(function () { return true; });
+    });
+  }
 
   function peek() { return loaded() ? openLeague() : null; }
 
@@ -1442,5 +1456,5 @@ EGE.nflSimAdmin = (function () {
     });
   }
 
-  return { render: render, ready: ready, loaded: loaded, peek: peek, change: change, useDeal: useDeal };
+  return { render: render, ready: ready, loaded: loaded, peek: peek, change: change, useDeal: useDeal, republish: republish };
 })();

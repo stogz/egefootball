@@ -1,5 +1,5 @@
 /* ==========================================================================
-   EGE Football NFL sim — fit as stars, for an admin's eyes
+   EGE Football NFL sim — fit as stars
    A player's fit in a scheme (schemes.js fitOf) is in overall points, and
    what counts as a big number differs by position: linebackers and linemen
    spread far wider than tight ends. So a fit is read against the spread of
@@ -12,7 +12,8 @@
    A team's stars say how well it has built around its schemes: each
    starter's fit read the same way, the quarterback counting double, and
    the team set against the other 31, a star and a quarter a standard
-   deviation. Neither is ever shown to anyone but an admin.
+   deviation. Both go out with the published rosters for everybody to
+   see (Sam, 2026-10-21; site.js publicRosters).
    ========================================================================== */
 
 'use strict';
