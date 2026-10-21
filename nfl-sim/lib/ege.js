@@ -17,7 +17,7 @@
 'use strict';
 
 const io = require('./io');
-const { SKILLS, skillsFrom } = require('./skills');
+const { SKILLS, skillsFrom, archetypeOf } = require('./skills');
 
 /* Born in 2001: they were high school juniors in 2018. Nothing on the
    site says otherwise, and the sim needs an age. */
@@ -59,7 +59,8 @@ function average(values, keys) {
 }
 
 /* One of the six as a sim player: overall, skills and durability from the
-   site, the rest left to whoever calls (team, contract). */
+   site, the archetype his skills give him (unless one was set by hand,
+   league.egeArchetypes), the rest left to whoever calls (team, contract). */
 function simPlayer(site, player) {
   const values = site.valuesFor(player) || {};
   const ovr = site.overallFor(player);
@@ -72,6 +73,7 @@ function simPlayer(site, player) {
     const raw = average(values, map[skill] || []);
     z[skill] = raw === null ? 0 : (raw - ovr) / 6;
   });
+  const skills = skillsFrom(pos, ovr, z);
   return {
     id: 'ege:' + player.slug,
     ege: player.slug,
@@ -82,7 +84,8 @@ function simPlayer(site, player) {
     weight: player.weight || null,
     ovr,
     pot: ovr,
-    skills: skillsFrom(pos, ovr, z),
+    skills,
+    archetype: archetypeOf(pos, skills, ovr),
     longevity: 50,
     durability: typeof values.injury === 'number' ? values.injury : 70
   };

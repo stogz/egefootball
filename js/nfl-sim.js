@@ -1161,6 +1161,7 @@ function runDraft(league, order, rng, place, plan) {
   const prospects = list.map((pr) => toPlayer(pr, season, rng));
   applyEdits(league, prospects);
   egeProspects(season, real.ege).forEach((p) => {
+    if ((league.egeArchetypes || {})[p.ege]) { p.archetype = league.egeArchetypes[p.ege]; }
     prospects.push(p);
     if (!place[p.ege] && p.siteTeam) { place[p.ege] = p.siteTeam; }
   });
@@ -1274,15 +1275,18 @@ module.exports = { runDraft, toPlayer, madeClass, makeName, rookiePay, pickOvera
 
    The Teams pages use the rest, for an admin: a player's archetype and
    skills too (editPlayer), a free agent signed onto a team (signFreeAgent),
-   and a team's schemes and mode (teamInfo).
+   a team's schemes and mode (teamInfo), a contract set by hand or a player
+   cut (setContract, releasePlayer), a team's payroll (teamPay), and the
+   six's archetypes, the one thing about them set here (setSixArchetype).
    ========================================================================== */
 
 'use strict';
 
 const { reRate, overallOf, archetypeOf, ARCHETYPES, SKILLS } = require('./skills');
 const { realClass, expected } = require('./draft');
-const { sign } = require('./rosters');
-const { marketPay } = require('./value');
+const { sign, release, payroll, onTeam } = require('./rosters');
+const { marketPay, capFor } = require('./value');
+const { sixFromSite } = require('./ege');
 const { OFFENSE, DEFENSE } = require('./schemes');
 const { index } = require('./league');
 const { seeded, hash } = require('./rng');
@@ -1354,7 +1358,8 @@ function playerOn(league, key, name, pos) {
   const p = (league.byTeam.get(key) || []).find((x) => x.name === name && x.pos === pos);
   if (!p) { return null; }
   return { id: p.id, ege: p.ege || null, ovr: p.ovr, pot: Math.max(p.pot || p.ovr, p.ovr), archetype: p.archetype || null,
-           skills: Object.assign({}, p.skills || {}), archetypes: ARCHETYPES[p.pos] || [] };
+           skills: Object.assign({}, p.skills || {}), archetypes: ARCHETYPES[p.pos] || [],
+           contract: p.contract ? { apy: p.contract.apy, through: p.contract.through } : null, season: league.season };
 }
 
 /* Any of a player's overall, ceiling, archetype and skills (whatever is
@@ -1427,7 +1432,103 @@ function teamInfo(league, key) {
            defense: DEFENSE[t.defense] ? DEFENSE[t.defense].name : t.defense, mode: t.mode || 'compete' };
 }
 
-module.exports = { draftClass, classYear, setRatings, playerOn, editPlayer, freeAgents, signFreeAgent, teamInfo };
+const IN_SEASON = ['regular', 'deadline', 'playoffs'];
+
+function round1(v) { return Math.round(v * 10) / 10; }
+
+/* A player's contract set by hand: what he is paid a year ($M) and the
+   last season it runs through, either left out to keep it. A later season
+   extends it; more or less pay moves his team's payroll the same. The six
+   too: what they are paid is the sim's business, not the website's. */
+function setContract(league, id, want) {
+  const p = league.byId.get(id);
+  if (!p || p.status !== 'active' || !TEAMS[p.team]) { throw new Error((p ? p.name : id) + ' is not on a team.'); }
+  const before = { apy: p.contract ? p.contract.apy : null, through: p.contract ? p.contract.through : null };
+  const after = Object.assign({}, before);
+  if (want.apy !== undefined && want.apy !== null && want.apy !== '') {
+    const n = Number(want.apy);
+    if (!isFinite(n) || n < 0.5 || n > 80) { throw new Error('Pay goes from $0.5M to $80M a year.'); }
+    after.apy = round1(n);
+  }
+  if (want.through !== undefined && want.through !== null && want.through !== '') {
+    const n = Number(want.through);
+    if (!Number.isInteger(n) || n < league.season || n > league.season + 7) {
+      throw new Error('A contract runs through ' + league.season + ' at the earliest and ' + (league.season + 7) + ' at the latest.');
+    }
+    after.through = n;
+  }
+  if (typeof after.apy !== 'number' || typeof after.through !== 'number') { throw new Error('Give his pay and the last season.'); }
+  if (after.apy === before.apy && after.through === before.through) { return { name: p.name, before, after, same: true }; }
+  p.contract = { through: after.through, apy: after.apy };
+  log(league, 'contract', id, p.name + ': $' + before.apy + 'M through ' + before.through + ' to $' + after.apy + 'M through ' + after.through);
+  return { name: p.name, before, after };
+}
+
+/* A player cut: a free agent from now on, and his pay off the payroll (the
+   sim keeps no dead money). The team stays a man short until it signs
+   somebody. One of the six only between seasons: the website keeps one
+   team a season for them, and his transfers need changing by hand. */
+function releasePlayer(league, id) {
+  const p = league.byId.get(id);
+  if (!p || p.status !== 'active' || !TEAMS[p.team]) { throw new Error((p ? p.name : id) + ' is not on a team.'); }
+  if (p.ege && IN_SEASON.indexOf(league.phase) !== -1) {
+    throw new Error(p.name + ' can only be cut between seasons: the website keeps one team a season for the six.');
+  }
+  const from = p.team;
+  release(p, league.season);
+  index(league);
+  log(league, 'release', id, p.name + ' released by the ' + TEAMS[from].name);
+  return { name: p.name, pos: p.pos, from, ege: p.ege || null };
+}
+
+/* A team's payroll against this season's cap, every player on it counted:
+   the linemen, kickers and punters the Teams pages do not list too. */
+function teamPay(league, key) {
+  if (!TEAMS[key]) { return null; }
+  const pay = payroll(league, key);
+  const cap = capFor(league.season);
+  return { season: league.season, payroll: round1(pay), cap, room: round1(cap - pay), players: onTeam(league, key).length };
+}
+
+/* The six's archetypes. Their skills are the website's, so an archetype is
+   only what they are called, and one set by hand stays his whatever his
+   skills do from then on (league.egeArchetypes, read in league.js
+   syncSix). It is kept for one still in college too, and given him at his
+   draft. None (or '') puts back the one his skills give him. */
+function sixArchetypes(league) {
+  const six = sixFromSite(league.season);
+  const set = league.egeArchetypes || {};
+  return Object.keys(six).map((slug) => {
+    const site = six[slug].player;
+    const p = league.byId.get('ege:' + slug);
+    const now = p && p.status !== 'retired' ? p : null;
+    return { slug, name: site.name, pos: site.pos, team: now && TEAMS[now.team] ? now.team : null,
+             archetype: set[slug] || (now && now.archetype) || site.archetype || null, set: Boolean(set[slug]),
+             archetypes: ARCHETYPES[site.pos] || [] };
+  });
+}
+
+function setSixArchetype(league, slug, archetype) {
+  const six = sixFromSite(league.season);
+  if (!six[slug]) { throw new Error('No ' + slug + ' among the six.'); }
+  const site = six[slug].player;
+  const p = league.byId.get('ege:' + slug);
+  const before = (p && p.archetype) || (league.egeArchetypes || {})[slug] || site.archetype || null;
+  if (archetype) {
+    if ((ARCHETYPES[site.pos] || []).indexOf(archetype) === -1) { throw new Error(archetype + ' is not a ' + site.pos + ' archetype.'); }
+    league.egeArchetypes = Object.assign({}, league.egeArchetypes, { [slug]: archetype });
+  } else if (league.egeArchetypes) {
+    delete league.egeArchetypes[slug];
+    if (!Object.keys(league.egeArchetypes).length) { delete league.egeArchetypes; }
+  }
+  const after = archetype || archetypeOf(site.pos, p && p.skills ? p.skills : site.skills, p ? p.ovr : site.ovr);
+  if (p) { p.archetype = after; }
+  log(league, 'edit', 'ege:' + slug, site.name + ': ' + (before || 'no archetype') + ' to ' + after + (archetype ? '' : ' (from his skills)'));
+  return { name: site.name, before, after };
+}
+
+module.exports = { draftClass, classYear, setRatings, playerOn, editPlayer, freeAgents, signFreeAgent, teamInfo, setContract,
+                   releasePlayer, teamPay, sixArchetypes, setSixArchetype };
 
   };
 
@@ -1451,7 +1552,7 @@ module.exports = { draftClass, classYear, setRatings, playerOn, editPlayer, free
 'use strict';
 
 const io = require('./io');
-const { SKILLS, skillsFrom } = require('./skills');
+const { SKILLS, skillsFrom, archetypeOf } = require('./skills');
 
 /* Born in 2001: they were high school juniors in 2018. Nothing on the
    site says otherwise, and the sim needs an age. */
@@ -1493,7 +1594,8 @@ function average(values, keys) {
 }
 
 /* One of the six as a sim player: overall, skills and durability from the
-   site, the rest left to whoever calls (team, contract). */
+   site, the archetype his skills give him (unless one was set by hand,
+   league.egeArchetypes), the rest left to whoever calls (team, contract). */
 function simPlayer(site, player) {
   const values = site.valuesFor(player) || {};
   const ovr = site.overallFor(player);
@@ -1506,6 +1608,7 @@ function simPlayer(site, player) {
     const raw = average(values, map[skill] || []);
     z[skill] = raw === null ? 0 : (raw - ovr) / 6;
   });
+  const skills = skillsFrom(pos, ovr, z);
   return {
     id: 'ege:' + player.slug,
     ege: player.slug,
@@ -1516,7 +1619,8 @@ function simPlayer(site, player) {
     weight: player.weight || null,
     ovr,
     pot: ovr,
-    skills: skillsFrom(pos, ovr, z),
+    skills,
+    archetype: archetypeOf(pos, skills, ovr),
     longevity: 50,
     durability: typeof values.injury === 'number' ? values.injury : 70
   };
@@ -1539,6 +1643,143 @@ function sixFromSite(season) {
 }
 
 module.exports = { sixFromSite, simPlayer, loadSite, BORN };
+
+  };
+
+  sources["fit"] = function (module, exports, require, __dirname) {
+/* ==========================================================================
+   EGE Football NFL sim — fit as stars, for an admin's eyes
+   A player's fit in a scheme (schemes.js fitOf) is in overall points, and
+   what counts as a big number differs by position: linebackers and linemen
+   spread far wider than tight ends. So a fit is read against the spread of
+   fits at his position across every scheme on his side of the ball, among
+   the league's players of 70 or better (the same players fits are centred
+   on), and turned into 0-5 stars in halves: 2.5 is an ordinary fit, each
+   standard deviation is a star, and five stars is about the best one
+   player in thirty.
+
+   A team's stars say how well it has built around its schemes: each
+   starter's fit read the same way, the quarterback counting double, and
+   the team set against the other 31, a star and a quarter a standard
+   deviation. Neither is ever shown to anyone but an admin.
+   ========================================================================== */
+
+'use strict';
+
+const { OFFENSE, DEFENSE, fitOf, schemeFor, offenseOf, defenseOf } = require('./schemes');
+const { depthChart } = require('./lineup');
+
+const OFFENSE_POS = ['QB', 'RB', 'WR', 'TE', 'OT', 'IOL'];
+
+/* The starters each side's stars are read from, and how much each counts. */
+const STARTERS = {
+  offense: [['QB', 1, 2], ['RB', 1, 1], ['WR', 3, 1], ['TE', 1, 1], ['OT', 2, 0.8], ['IOL', 3, 0.8]],
+  defense: [['EDGE', 2, 1], ['DI', 2, 1], ['LB', 2, 1], ['CB', 3, 1], ['S', 2, 1]]
+};
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+/* 0-5 in halves from a z-score, `per` stars a standard deviation. */
+function starsFrom(z, per) { return clamp(Math.round((2.5 + (per || 1) * z) * 2) / 2, 0, 5); }
+
+/* The spread of fits at each position, worked out once a league. */
+const spreads = new WeakMap();
+
+function spreadOf(league, pos) {
+  let all = spreads.get(league);
+  if (!all) {
+    all = {};
+    const good = league.players.filter((p) => p.status === 'active' && p.ovr >= 70 && !p.ege && p.skills);
+    [OFFENSE, DEFENSE].forEach((group) => Object.keys(group).forEach((key) => {
+      const scheme = group[key];
+      Object.keys(scheme.demands).forEach((ps) => {
+        const list = all[ps] = all[ps] || [];
+        good.forEach((p) => { if (p.pos === ps) { list.push(fitOf(p, scheme)); } });
+      });
+    }));
+    Object.keys(all).forEach((ps) => {
+      const list = all[ps];
+      const mean = list.reduce((s, v) => s + v, 0) / Math.max(1, list.length);
+      const sd = Math.sqrt(list.reduce((s, v) => s + (v - mean) * (v - mean), 0) / Math.max(1, list.length));
+      all[ps] = sd > 0.2 ? sd : 1;
+    });
+    spreads.set(league, all);
+  }
+  return all[pos] || 1;
+}
+
+/* A player's fit on a team (his own, or one he might go to): the scheme,
+   the fit in overall points, and the stars. Null for a position no scheme
+   asks anything of (fullbacks, kickers, punters). */
+function playerFit(league, p, key) {
+  const team = league.teams.find((t) => t.key === key);
+  const scheme = team ? schemeFor(team, p.pos) : null;
+  if (!scheme || !p.skills) { return null; }
+  const fit = fitOf(p, scheme);
+  const z = fit / spreadOf(league, p.pos);
+  return { scheme: scheme.name, side: OFFENSE_POS.indexOf(p.pos) !== -1 ? 'offense' : 'defense', fit, z, stars: starsFrom(z) };
+}
+
+/* How well a team's starters, injured ones too, fit its schemes, as one
+   number a side: their fits in standard deviations, averaged. */
+function rawTeamFit(league, team) {
+  const chart = depthChart(team, (league.byTeam.get(team.key) || []).map((p) => (p.injury ? Object.assign({}, p, { injury: null }) : p)));
+  const out = {};
+  Object.keys(STARTERS).forEach((side) => {
+    const scheme = side === 'offense' ? offenseOf(team) : defenseOf(team);
+    let total = 0;
+    let weight = 0;
+    STARTERS[side].forEach(([pos, n, w]) => {
+      (chart[pos] || []).slice(0, n).forEach((p) => {
+        total += w * fitOf(p, scheme) / spreadOf(league, pos);
+        weight += w;
+      });
+    });
+    out[side] = weight ? total / weight : 0;
+  });
+  return out;
+}
+
+const teamSpreads = new WeakMap();
+
+/* A team's stars for its offense and its defense, set against the league. */
+function teamFit(league, key) {
+  let all = teamSpreads.get(league);
+  if (!all) {
+    const raw = {};
+    league.teams.forEach((t) => { raw[t.key] = rawTeamFit(league, t); });
+    all = { raw, sides: {} };
+    Object.keys(STARTERS).forEach((side) => {
+      const list = Object.keys(raw).map((k) => raw[k][side]);
+      const mean = list.reduce((s, v) => s + v, 0) / list.length;
+      const sd = Math.sqrt(list.reduce((s, v) => s + (v - mean) * (v - mean), 0) / list.length) || 1;
+      all.sides[side] = { mean, sd };
+    });
+    teamSpreads.set(league, all);
+  }
+  const team = league.teams.find((t) => t.key === key);
+  if (!team) { return null; }
+  const out = {};
+  Object.keys(STARTERS).forEach((side) => {
+    const s = all.sides[side];
+    const scheme = side === 'offense' ? offenseOf(team) : defenseOf(team);
+    out[side] = { scheme: scheme.name, stars: starsFrom((all.raw[key][side] - s.mean) / s.sd, 1.25) };
+  });
+  return out;
+}
+
+/* Everything a team's page shows an admin at once: the team's stars and
+   every player's, by name and position (all the published rosters carry). */
+function forTeam(league, key) {
+  const players = {};
+  (league.byTeam.get(key) || []).forEach((p) => {
+    const f = playerFit(league, p, key);
+    if (f) { players[p.name + '|' + p.pos] = { scheme: f.scheme, stars: f.stars }; }
+  });
+  return { team: teamFit(league, key), players };
+}
+
+module.exports = { playerFit, teamFit, forTeam, starsFrom };
 
   };
 
@@ -2984,6 +3225,7 @@ const io = require('./io');
 const { sixFromSite } = require('./ege');
 const { marketPay } = require('./value');
 const { centreOn } = require('./schemes');
+const { archetypeOf } = require('./skills');
 
 const PROJECT_WORLD = '/mnt/project-files/nfl-sim/world';
 
@@ -3046,7 +3288,9 @@ function index(league) {
   });
 }
 
-/* The six's overall, skills and durability, from the site as it is now. */
+/* The six's overall, skills and durability, from the site as it is now,
+   and the archetype those skills give, unless Sam set one by hand
+   (lib/edits.js setSixArchetype). */
 function syncSix(league) {
   let six;
   try { six = sixFromSite(league.season); } catch (err) { return; }
@@ -3057,6 +3301,7 @@ function syncSix(league) {
     p.pot = Math.max(site.ovr, p.pot || 0);
     p.skills = site.skills;
     p.durability = site.durability;
+    p.archetype = (league.egeArchetypes || {})[p.ege] || archetypeOf(p.pos, p.skills, p.ovr);
   });
 }
 
@@ -5318,7 +5563,11 @@ function publicRosters(league) {
         };
         if (p.espn) { row.espn = String(p.espn); }
         if (p.ege) { row.ege = p.ege; }
-        if (p.injury) { row.out = { what: p.injury.what, games: p.injury.games >= 20 ? null : p.injury.games }; }
+        /* The week he was hurt, so the Teams pages hold an injury back until
+           that week is out on the site. */
+        if (p.injury) {
+          row.out = { what: p.injury.what, games: p.injury.games >= 20 ? null : p.injury.games, week: p.injury.week || 0 };
+        }
         return row;
       });
   });
@@ -5796,6 +6045,193 @@ module.exports = { TEAMS, KEYS, keyForName, divisionOf };
 
   };
 
+  sources["trade-finder"] = function (module, exports, require, __dirname) {
+/* ==========================================================================
+   EGE Football NFL sim — the trade finder
+   Sam picks a player on a team page and asks where he would be better off.
+   Every other team is looked at for him, and suits him better when, all
+   told, it is a better place for him than where he is:
+
+   - its system: his fit in its schemes against his fit now, in stars
+     (lib/fit.js);
+   - its status: competing, retooling or rebuilding, and its record;
+   - his role: starting there when he is not starting here. A team he
+     would not start for while he starts now never suits him better, and
+     a rebuilding team never does for a player of 29 or more.
+
+   Each team that suits him better and comes out ahead by its own numbers
+   (lib/trades.js valueOf, the view every trade is weighed by) offers the
+   cheapest package his team takes from what it has to give up -- picks for
+   the next three drafts and up to two players -- with both teams under the
+   cap. The best of those come back as trades in the trade builder's two
+   sides, ready to make or propose.
+   ========================================================================== */
+
+'use strict';
+
+const { valueOf, slotFinder, record, describeItem, pickId } = require('./trades');
+const { playerFit } = require('./fit');
+const { starterLevels, onTeam, byPos, payroll, SLOTS } = require('./rosters');
+const { capFor } = require('./value');
+const { locked } = require('./draft-plan');
+const { DEADLINE_WEEK } = require('./season');
+const { recordText } = require('./standings');
+const { TEAMS } = require('./teams');
+
+const IN_SEASON = ['regular', 'deadline', 'playoffs'];
+const SHOWN = 6;
+/* How much a team's status is worth to a player, in stars. */
+const MODE = { compete: 1, retool: 0.5, rebuild: 0 };
+
+function nick(key) { return TEAMS[key] ? TEAMS[key].name.split(' ').slice(-1)[0] : key; }
+
+function round1(v) { return Math.round(v * 10) / 10; }
+
+/* Whether trades can be made now, and of him. */
+function check(league, p) {
+  if (!p || p.status !== 'active' || !TEAMS[p.team]) { throw new Error((p ? p.name : 'He') + ' is not on a team.'); }
+  if (league.phase === 'playoffs' || (league.phase === 'regular' && league.week > DEADLINE_WEEK)) {
+    throw new Error('The trade deadline has passed. Trades open again in the offseason.');
+  }
+  if (p.ege && IN_SEASON.indexOf(league.phase) !== -1) {
+    throw new Error('The six can only be traded in the offseason: the website keeps one team a season for them.');
+  }
+}
+
+/* What a team can give for him: its picks for the next three drafts (not
+   one an uploaded draft covers) and its players of 62 or better, starters
+   too, but none at his own position, no kicker or punter, never its
+   quarterback or a starter of 85 or more, and never one of the six. */
+function assetsOf(league, key, pos) {
+  const picks = league.picks.filter((pick) => pick.owner === key && pick.year >= league.season &&
+    pick.year <= league.season + 2 && !locked(league, pick)).map((pick) => ({ kind: 'pick', pick }));
+  const roster = onTeam(league, key);
+  const core = (p) => {
+    const rank = byPos(roster, p.pos).indexOf(p);
+    return rank < (SLOTS[p.pos] || 0) && (p.ovr >= 85 || p.pos === 'QB');
+  };
+  const players = roster.filter((p) => !p.ege && p.pos !== pos && p.pos !== 'K' && p.pos !== 'P' && p.ovr >= 62 && !core(p) &&
+    !(p.injury && p.injury.games >= 4)).map((player) => ({ kind: 'player', player }));
+  return picks.concat(players);
+}
+
+/* The cheapest package, by the buyer's own numbers, the seller takes for
+   him: one to four assets, at most two of them players, with both teams
+   under the cap afterwards (or no further over it than they were). */
+function packageFor(league, buyer, seller, p, price, worth, slotOf, levels) {
+  const cap = capFor(league.season);
+  const apy = (p.contract && p.contract.apy) || 0;
+  const buyerPay = payroll(league, buyer);
+  const sellerPay = payroll(league, seller);
+  /* The dozen cheapest and the dozen dearest: the cheap ones for a backup,
+     the dear ones for a star. */
+  const all = assetsOf(league, buyer, p.pos).map((a) => ({
+    a, toSeller: valueOf(league, a, seller, slotOf, levels, false), fromBuyer: valueOf(league, a, buyer, slotOf, levels, true),
+    player: a.kind === 'player' ? 1 : 0, pay: a.kind === 'player' && a.player.contract ? a.player.contract.apy || 0 : 0
+  })).filter((x) => x.toSeller > 0.3).sort((x, y) => x.toSeller - y.toSeller);
+  const assets = all.length <= 24 ? all : all.slice(0, 12).concat(all.slice(-12));
+  let best = null;
+  const consider = (combo) => {
+    let got = 0;
+    let cost = 0;
+    let players = 0;
+    let sent = 0;
+    combo.forEach((x) => { got += x.toSeller; cost += x.fromBuyer; players += x.player; sent += x.pay; });
+    if (players > 2 || got < price || cost > worth) { return; }
+    if (best && (cost > best.cost + 1e-9 || (Math.abs(cost - best.cost) < 1e-9 && combo.length >= best.items.length))) { return; }
+    if (buyerPay + apy - sent > Math.max(cap, buyerPay)) { return; }
+    if (sellerPay - apy + sent > Math.max(cap, sellerPay)) { return; }
+    best = { items: combo.map((x) => x.a), got, cost, buyerRoom: cap - (buyerPay + apy - sent) };
+  };
+  const n = assets.length;
+  for (let i = 0; i < n; i += 1) {
+    consider([assets[i]]);
+    for (let j = i + 1; j < n; j += 1) {
+      consider([assets[i], assets[j]]);
+      for (let k = j + 1; k < n; k += 1) {
+        consider([assets[i], assets[j], assets[k]]);
+        for (let m = k + 1; m < n; m += 1) { consider([assets[i], assets[j], assets[k], assets[m]]); }
+      }
+    }
+  }
+  return best;
+}
+
+/* Where he stands in a team's room: starting (and over whom, on a team
+   he would join), or not. */
+function standing(roster, p, joining) {
+  const slots = SLOTS[p.pos] || 0;
+  const room = byPos(roster.filter((x) => x.id !== p.id), p.pos);
+  if (!slots) { return { starts: false, over: null }; }
+  if (!joining) { return { starts: byPos(roster, p.pos).indexOf(p) < slots, over: null }; }
+  const last = room[slots - 1];
+  return { starts: !last || p.ovr > last.ovr, over: last && p.ovr > last.ovr ? last : null };
+}
+
+/* Up to `limit` trades for a player, best first:
+   { player, here, results: [{ team, mode, record, fit, starts, over, summary, gets, sides, room }] }. */
+function findTrades(league, id, opts) {
+  opts = opts || {};
+  const p = league.byId.get(id);
+  check(league, p);
+  const seller = p.team;
+  const levels = starterLevels(league);
+  const slotOf = slotFinder(league);
+  const item = { kind: 'player', player: p };
+  const price = valueOf(league, item, seller, slotOf, levels, true);
+  const here = playerFit(league, p, seller);
+  const now = standing(onTeam(league, seller), p, false);
+  const found = [];
+  const from = league.teams.find((t) => t.key === seller);
+  const fromRec = record(league, seller);
+  league.teams.forEach((buyer) => {
+    if (buyer.key === seller) { return; }
+    if (buyer.mode === 'rebuild' && p.age >= 29) { return; }
+    const there = playerFit(league, p, buyer.key);
+    const then = standing(onTeam(league, buyer.key), p, true);
+    if (now.starts && !then.starts) { return; }
+    const rec = record(league, buyer.key);
+    const system = there && here ? there.stars - here.stars : 0;
+    const status = MODE[buyer.mode || 'compete'] - MODE[from.mode || 'compete'] +
+      (rec && fromRec ? 1.5 * (rec.pct - fromRec.pct) : 0);
+    const role = then.starts && !now.starts ? 1 : 0;
+    const suits = system + status + role;
+    if (suits <= 0) { return; }
+    const worth = valueOf(league, item, buyer.key, slotOf, levels, false);
+    const pack = packageFor(league, buyer.key, seller, p, price, worth, slotOf, levels);
+    if (!pack) { return; }
+    const score = suits + (worth - pack.cost) / Math.max(1, worth);
+    const players = pack.items.filter((i) => i.kind === 'player').map((i) => i.player.id);
+    const picks = pack.items.filter((i) => i.kind === 'pick').map((i) => pickId(i.pick));
+    found.push({
+      score,
+      team: buyer.key,
+      mode: buyer.mode || 'compete',
+      record: rec ? recordText(rec) : null,
+      fit: there ? { scheme: there.scheme, stars: there.stars } : null,
+      starts: then.starts,
+      over: then.over ? { name: then.over.name, ovr: then.over.ovr } : null,
+      room: round1(pack.buyerRoom),
+      gets: pack.items.map(describeItem),
+      summary: nick(buyer.key) + ' get ' + describeItem(item) + '; ' + nick(seller) + ' get ' + pack.items.map(describeItem).join(' and ') + '.',
+      sides: [{ key: buyer.key, players, picks }, { key: seller, players: [p.id], picks: [] }],
+      values: { buyer: { gets: round1(worth), gives: round1(pack.cost) }, seller: { gets: round1(pack.got), gives: round1(price) } }
+    });
+  });
+  found.sort((a, b) => b.score - a.score);
+  return {
+    player: { id: p.id, name: p.name, pos: p.pos, ovr: p.ovr, age: p.age, team: seller },
+    here: here ? { scheme: here.scheme, stars: here.stars } : null,
+    starts: now.starts,
+    looked: league.teams.length - 1,
+    results: found.slice(0, opts.limit || SHOWN).map((r) => { delete r.score; return r; })
+  };
+}
+
+module.exports = { findTrades };
+
+  };
+
   sources["trades"] = function (module, exports, require, __dirname) {
 /* ==========================================================================
    EGE Football NFL sim — trades, and Sam's approval
@@ -6243,7 +6679,8 @@ function proposeOwn(league, input) {
   return t;
 }
 
-module.exports = { propose, closeWindow, queueMoves, approve, reject, proposeOwn, loadQueue, pickId, pickLabel };
+module.exports = { propose, closeWindow, queueMoves, approve, reject, proposeOwn, loadQueue, pickId, pickLabel,
+                   valueOf, slotFinder, record, describeItem, POS_WORD };
 
   };
 
@@ -6440,6 +6877,8 @@ module.exports = { POSITION, TOP_PAY, capFor, marketPay, playerValue, pickPoints
     draftPlan: load('draft-plan'),
     edits: load('edits'),
     rewind: load('rewind'),
-    history: load('history')
+    history: load('history'),
+    fit: load('fit'),
+    tradeFinder: load('trade-finder')
   };
 })();

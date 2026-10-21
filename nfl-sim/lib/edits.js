@@ -12,15 +12,18 @@
 
    The Teams pages use the rest, for an admin: a player's archetype and
    skills too (editPlayer), a free agent signed onto a team (signFreeAgent),
-   and a team's schemes and mode (teamInfo).
+   a team's schemes and mode (teamInfo), a contract set by hand or a player
+   cut (setContract, releasePlayer), a team's payroll (teamPay), and the
+   six's archetypes, the one thing about them set here (setSixArchetype).
    ========================================================================== */
 
 'use strict';
 
 const { reRate, overallOf, archetypeOf, ARCHETYPES, SKILLS } = require('./skills');
 const { realClass, expected } = require('./draft');
-const { sign } = require('./rosters');
-const { marketPay } = require('./value');
+const { sign, release, payroll, onTeam } = require('./rosters');
+const { marketPay, capFor } = require('./value');
+const { sixFromSite } = require('./ege');
 const { OFFENSE, DEFENSE } = require('./schemes');
 const { index } = require('./league');
 const { seeded, hash } = require('./rng');
@@ -92,7 +95,8 @@ function playerOn(league, key, name, pos) {
   const p = (league.byTeam.get(key) || []).find((x) => x.name === name && x.pos === pos);
   if (!p) { return null; }
   return { id: p.id, ege: p.ege || null, ovr: p.ovr, pot: Math.max(p.pot || p.ovr, p.ovr), archetype: p.archetype || null,
-           skills: Object.assign({}, p.skills || {}), archetypes: ARCHETYPES[p.pos] || [] };
+           skills: Object.assign({}, p.skills || {}), archetypes: ARCHETYPES[p.pos] || [],
+           contract: p.contract ? { apy: p.contract.apy, through: p.contract.through } : null, season: league.season };
 }
 
 /* Any of a player's overall, ceiling, archetype and skills (whatever is
@@ -165,4 +169,100 @@ function teamInfo(league, key) {
            defense: DEFENSE[t.defense] ? DEFENSE[t.defense].name : t.defense, mode: t.mode || 'compete' };
 }
 
-module.exports = { draftClass, classYear, setRatings, playerOn, editPlayer, freeAgents, signFreeAgent, teamInfo };
+const IN_SEASON = ['regular', 'deadline', 'playoffs'];
+
+function round1(v) { return Math.round(v * 10) / 10; }
+
+/* A player's contract set by hand: what he is paid a year ($M) and the
+   last season it runs through, either left out to keep it. A later season
+   extends it; more or less pay moves his team's payroll the same. The six
+   too: what they are paid is the sim's business, not the website's. */
+function setContract(league, id, want) {
+  const p = league.byId.get(id);
+  if (!p || p.status !== 'active' || !TEAMS[p.team]) { throw new Error((p ? p.name : id) + ' is not on a team.'); }
+  const before = { apy: p.contract ? p.contract.apy : null, through: p.contract ? p.contract.through : null };
+  const after = Object.assign({}, before);
+  if (want.apy !== undefined && want.apy !== null && want.apy !== '') {
+    const n = Number(want.apy);
+    if (!isFinite(n) || n < 0.5 || n > 80) { throw new Error('Pay goes from $0.5M to $80M a year.'); }
+    after.apy = round1(n);
+  }
+  if (want.through !== undefined && want.through !== null && want.through !== '') {
+    const n = Number(want.through);
+    if (!Number.isInteger(n) || n < league.season || n > league.season + 7) {
+      throw new Error('A contract runs through ' + league.season + ' at the earliest and ' + (league.season + 7) + ' at the latest.');
+    }
+    after.through = n;
+  }
+  if (typeof after.apy !== 'number' || typeof after.through !== 'number') { throw new Error('Give his pay and the last season.'); }
+  if (after.apy === before.apy && after.through === before.through) { return { name: p.name, before, after, same: true }; }
+  p.contract = { through: after.through, apy: after.apy };
+  log(league, 'contract', id, p.name + ': $' + before.apy + 'M through ' + before.through + ' to $' + after.apy + 'M through ' + after.through);
+  return { name: p.name, before, after };
+}
+
+/* A player cut: a free agent from now on, and his pay off the payroll (the
+   sim keeps no dead money). The team stays a man short until it signs
+   somebody. One of the six only between seasons: the website keeps one
+   team a season for them, and his transfers need changing by hand. */
+function releasePlayer(league, id) {
+  const p = league.byId.get(id);
+  if (!p || p.status !== 'active' || !TEAMS[p.team]) { throw new Error((p ? p.name : id) + ' is not on a team.'); }
+  if (p.ege && IN_SEASON.indexOf(league.phase) !== -1) {
+    throw new Error(p.name + ' can only be cut between seasons: the website keeps one team a season for the six.');
+  }
+  const from = p.team;
+  release(p, league.season);
+  index(league);
+  log(league, 'release', id, p.name + ' released by the ' + TEAMS[from].name);
+  return { name: p.name, pos: p.pos, from, ege: p.ege || null };
+}
+
+/* A team's payroll against this season's cap, every player on it counted:
+   the linemen, kickers and punters the Teams pages do not list too. */
+function teamPay(league, key) {
+  if (!TEAMS[key]) { return null; }
+  const pay = payroll(league, key);
+  const cap = capFor(league.season);
+  return { season: league.season, payroll: round1(pay), cap, room: round1(cap - pay), players: onTeam(league, key).length };
+}
+
+/* The six's archetypes. Their skills are the website's, so an archetype is
+   only what they are called, and one set by hand stays his whatever his
+   skills do from then on (league.egeArchetypes, read in league.js
+   syncSix). It is kept for one still in college too, and given him at his
+   draft. None (or '') puts back the one his skills give him. */
+function sixArchetypes(league) {
+  const six = sixFromSite(league.season);
+  const set = league.egeArchetypes || {};
+  return Object.keys(six).map((slug) => {
+    const site = six[slug].player;
+    const p = league.byId.get('ege:' + slug);
+    const now = p && p.status !== 'retired' ? p : null;
+    return { slug, name: site.name, pos: site.pos, team: now && TEAMS[now.team] ? now.team : null,
+             archetype: set[slug] || (now && now.archetype) || site.archetype || null, set: Boolean(set[slug]),
+             archetypes: ARCHETYPES[site.pos] || [] };
+  });
+}
+
+function setSixArchetype(league, slug, archetype) {
+  const six = sixFromSite(league.season);
+  if (!six[slug]) { throw new Error('No ' + slug + ' among the six.'); }
+  const site = six[slug].player;
+  const p = league.byId.get('ege:' + slug);
+  const before = (p && p.archetype) || (league.egeArchetypes || {})[slug] || site.archetype || null;
+  if (archetype) {
+    if ((ARCHETYPES[site.pos] || []).indexOf(archetype) === -1) { throw new Error(archetype + ' is not a ' + site.pos + ' archetype.'); }
+    league.egeArchetypes = Object.assign({}, league.egeArchetypes, { [slug]: archetype });
+  } else if (league.egeArchetypes) {
+    delete league.egeArchetypes[slug];
+    if (!Object.keys(league.egeArchetypes).length) { delete league.egeArchetypes; }
+  }
+  const after = archetype || archetypeOf(site.pos, p && p.skills ? p.skills : site.skills, p ? p.ovr : site.ovr);
+  if (p) { p.archetype = after; }
+  log(league, 'edit', 'ege:' + slug, site.name + ': ' + (before || 'no archetype') + ' to ' + after + (archetype ? '' : ' (from his skills)'));
+  return { name: site.name, before, after };
+}
+
+module.exports = { draftClass, classYear, setRatings, playerOn, editPlayer, freeAgents, signFreeAgent, teamInfo, setContract,
+                   releasePlayer, teamPay, sixArchetypes, setSixArchetype };

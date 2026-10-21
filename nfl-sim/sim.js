@@ -31,6 +31,11 @@
      node nfl-sim/sim.js trade "DET: Andrew Parr, 2025 R2 / SEA: Kenneth Walker"
      node nfl-sim/sim.js edit "Drake Maye" --ovr 85 [--pot 95]   set a player's overall
                                                 and ceiling (a prospect too, before his draft)
+     node nfl-sim/sim.js contract "Name" [--apy 12.5] [--through 2027]   set his contract
+     node nfl-sim/sim.js release "Name"         cut him: a free agent from now on
+     node nfl-sim/sim.js archetype sam-stogsdill "Power Back"   one of the six's archetype
+                                                (no archetype: back to the one his skills give)
+     node nfl-sim/sim.js find-trades "Name"     teams he would suit better that would trade for him
      node nfl-sim/sim.js rosters DET [YEAR]     a team's roster that season, and who came and went
      node nfl-sim/sim.js report                 a written report into the world folder
      node nfl-sim/sim.js reset --force          start over from the 2023 kickoff
@@ -60,6 +65,7 @@ const { assess, describe } = require('./lib/assess');
 const trades = require('./lib/trades');
 const draftPlan = require('./lib/draft-plan');
 const edits = require('./lib/edits');
+const { findTrades } = require('./lib/trade-finder');
 const history = require('./lib/history');
 const { depthChart } = require('./lib/lineup');
 const { OFFENSE, DEFENSE, fitOf, schemeFor } = require('./lib/schemes');
@@ -85,6 +91,7 @@ const gamesArg = flag('games');
 const throughArg = flag('through');
 const seasonArg = flag('season');
 const ovrArg = flag('ovr');
+const apyArg = flag('apy');
 const potArg = flag('pot');
 function bool(name) {
   const at = args.indexOf('--' + name);
@@ -405,6 +412,50 @@ function main() {
         r.before.ovr + ' to ' + r.after.ovr + ', ceiling ' + r.before.pot + ' to ' + r.after.pot + '.');
       break;
     }
+    case 'contract': {
+      const p = findPlayer(league, rest.join(' '));
+      if (!p || (apyArg === null && throughArg === null)) { say('Usage: contract "Player Name" [--apy 12.5] [--through 2027]'); break; }
+      const r = edits.setContract(league, p.id, { apy: apyArg, through: throughArg });
+      say(r.name + ': $' + r.before.apy + 'M a year through ' + r.before.through + ' to $' + r.after.apy + 'M a year through ' +
+        r.after.through + '.');
+      break;
+    }
+    case 'release': {
+      const p = findPlayer(league, rest.join(' '));
+      if (!p) { say('No player ' + rest.join(' ') + '.'); break; }
+      const r = edits.releasePlayer(league, p.id);
+      say(r.name + ' is released by the ' + TEAMS[r.from].name + '.' +
+        (r.ege ? ' Take him off the ' + TEAMS[r.from].name + ' in his transfers on the website.' : ''));
+      break;
+    }
+    case 'archetype': {
+      const six = edits.sixArchetypes(league);
+      const one = six.find((x) => x.slug === rest[0]);
+      if (!one) {
+        say('Usage: archetype SLUG ["Archetype"]');
+        six.forEach((x) => say('  ' + x.slug.padEnd(16) + (x.archetype || '-') + (x.set ? ' (set by hand)' : '') + '; ' + x.archetypes.join(', ')));
+        break;
+      }
+      const r = edits.setSixArchetype(league, one.slug, rest.slice(1).join(' '));
+      say(r.name + ': ' + (r.before || 'no archetype') + ' to ' + r.after + '.');
+      break;
+    }
+    case 'find-trades': {
+      const p = findPlayer(league, rest.join(' '));
+      if (!p) { say('No player ' + rest.join(' ') + '.'); break; }
+      const r = findTrades(league, p.id);
+      const stars = (f) => (f ? f.stars + ' stars in ' + f.scheme : 'no scheme fit');
+      say(p.name + ' (' + p.pos + ', ' + p.ovr + ', ' + p.team + '): ' + stars(r.here) + (r.starts ? ', starting' : ', not starting') + '.');
+      if (!r.results.length) { say('No team he would suit better can make a deal for him.'); }
+      r.results.forEach((t) => {
+        say('');
+        say(TEAMS[t.team].name + ' (' + t.mode + (t.record ? ', ' + t.record : '') + '): ' + stars(t.fit) +
+          (t.starts ? ', would start' + (t.over ? ' over ' + t.over.name + ' (' + t.over.ovr + ')' : '') : '') + '.');
+        say('  ' + t.summary);
+        say('  ' + (t.room >= 0 ? '$' + t.room + 'M under the cap after.' : '$' + -t.room + 'M over the cap after.'));
+      });
+      break;
+    }
     case 'rosters': {
       const key = (rest[0] || '').toUpperCase();
       const year = Number(rest[1]) || league.season;
@@ -426,7 +477,7 @@ function main() {
       break;
     }
     default:
-      say('Unknown command ' + command + '. Commands: status, week, season, playoffs, resim, undo, standings, rankings, team, player, matchup, offseason, draft, draft-order, upload-draft, trades, approve, reject, trade, edit, rosters, report, reset, import-site, site, export.');
+      say('Unknown command ' + command + '. Commands: status, week, season, playoffs, resim, undo, standings, rankings, team, player, matchup, offseason, draft, draft-order, upload-draft, trades, approve, reject, trade, edit, contract, release, archetype, find-trades, rosters, report, reset, import-site, site, export.');
       done();
       return;
   }

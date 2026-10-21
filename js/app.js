@@ -1941,11 +1941,13 @@
 
   /* A sim row as a room's row. One of the six is his own: the overall,
      headshot and size his page has. Everybody else is the sim's, with
-     ESPN's headshot. */
+     ESPN's headshot. For an admin, his fit on the team in stars too. */
   function nflRow(sim, season, key, admin) {
     var player = sim.ege ? EGE.playerBySlug(sim.ege) : null;
     return {
       admin: admin || null,
+      fit: admin && admin.fits ? admin.fits.players[sim.name + '|' + sim.pos] || null : null,
+      out: nflOut(sim, player, season),
       name: player ? player.name : sim.name,
       overall: player ? EGE.overallFor(player) : sim.ovr,
       height: player && player.height ? player.height : sim.height,
@@ -1985,13 +1987,70 @@
     }
     text.appendChild(meta);
     var size = [EGE.heightText(row), EGE.weightText(row)].filter(Boolean).join(' · ');
-    if (size) { text.appendChild(el('span', 'ege-teamchip__meta', size)); }
+    if (size || row.fit) {
+      var third = el('span', 'ege-teamchip__meta');
+      if (size) { third.appendChild(el('span', null, size)); }
+      if (row.fit) { third.appendChild(starsEl(row.fit.stars, 'Fit in ' + row.fit.scheme)); }
+      text.appendChild(third);
+    }
     card.appendChild(text);
 
+    /* Anything keeping him out, beside his overall (Sam, 2026-10-21). */
+    var end = el('span', 'ege-teamchip__end');
+    if (row.out) { end.appendChild(injuryBox(row.out)); }
     var box = overallBox(row.overall, 'ege-ovrbox--chip');
-    if (box) { card.appendChild(box); }
+    if (box) { end.appendChild(box); }
+    card.appendChild(end);
     item.appendChild(card);
     return item;
+  }
+
+  /* What is keeping a player off the field, as the page may say it: one of
+     the six's from the site's own injury report (EGE.injuryFor), which knows
+     only what is out; anybody else's from the sim's roster, held back from
+     all but an admin until the week he was hurt in is out on the site.
+     { what, games, back }, games and back null when he is out for the
+     season; null when he is not hurt. */
+  function nflOut(sim, player, season) {
+    if (player) {
+      var report = EGE.injuryFor(player, season);
+      if (!report) { return null; }
+      return { what: report.injury || 'injured', games: report.back ? report.back - report.week : null, back: report.back };
+    }
+    var out = sim.out;
+    if (!out) { return null; }
+    if (!EGE.wallet.admin() && out.week && season === EGE.currentSeason && !EGE.isPublished(season, out.week)) { return null; }
+    return { what: out.what, games: out.games || null, back: null };
+  }
+
+  function injuryText(out) {
+    var what = String(out.what || 'injured').replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); });
+    if (out.back) { return what + ' · back Week ' + out.back; }
+    return what + (out.games ? ' · out ' + out.games + ' more ' + (out.games === 1 ? 'game' : 'games') : ' · out for the season');
+  }
+
+  /* The overall box's red neighbour: OUT, and the games he has left to
+     miss, or IR for the season. */
+  function injuryBox(out) {
+    var box = el('span', 'ege-injbox');
+    box.title = injuryText(out);
+    box.appendChild(el('span', 'ege-injbox__label', 'OUT'));
+    box.appendChild(el('span', 'ege-injbox__value', out.games ? String(out.games) : 'IR'));
+    return box;
+  }
+
+  /* 0-5 stars in halves: five grey ones with the gold ones laid over them,
+     cut off at the share filled. */
+  function starsEl(stars, title) {
+    var box = el('span', 'ege-fitstars');
+    box.title = title ? title + ': ' + stars + ' of 5' : stars + ' of 5';
+    box.setAttribute('aria-label', box.title);
+    box.setAttribute('role', 'img');
+    box.appendChild(el('span', 'ege-fitstars__empty', '\u2605\u2605\u2605\u2605\u2605'));
+    var full = el('span', 'ege-fitstars__full', '\u2605\u2605\u2605\u2605\u2605');
+    full.style.width = (stars / 5 * 100) + '%';
+    box.appendChild(full);
+    return box;
   }
 
   /* `key` is the sim's (DET). Drawn as soon as the season's rosters are
@@ -2002,6 +2061,7 @@
     nflShown = key + ':' + season;
     body.innerHTML = '';
     renderUnitOveralls(key, season);
+    renderPayroll(null);
 
     var all = EGE.nflRosters.get(season);
     if (all === undefined) {
@@ -2018,6 +2078,7 @@
     }
     var admin = nflAdmin(key, season);
     if (admin) { body.appendChild(nflSystem(admin)); }
+    renderPayroll(admin);
     var grid = el('div', 'ege-rooms');
     NFL_ROOMS[rosterSide].forEach(function (room) {
       var inRoom = rows.filter(function (sim) { return room.pos.indexOf(sim.pos) !== -1; })
@@ -2055,22 +2116,209 @@
     }
     var league = EGE.nflSimAdmin.peek();
     if (!league || league.season !== season || !league.byTeam.has(key)) { return null; }
-    return { key: key, season: season, league: league, edits: EGE.nflSim.edits };
+    return { key: key, season: season, league: league, edits: EGE.nflSim.edits, fits: EGE.nflSim.fit.forTeam(league, key) };
   }
 
   var STATUS_NAMES = { compete: 'Competing', retool: 'Retooling', rebuild: 'Rebuilding' };
 
+  /* The schemes each with how well the team is built for it, in stars
+     (Sam, 2026-10-21; nfl-sim/lib/fit.js). */
   function nflSystem(admin) {
     var info = admin.edits.teamInfo(admin.league, admin.key);
+    var built = admin.fits.team || {};
     var line = el('dl', 'ege-nflsys');
-    [['Offense', info.offense], ['Defense', info.defense], ['Status', STATUS_NAMES[info.mode] || info.mode]]
-      .forEach(function (pair) {
+    [['Offense', info.offense, built.offense], ['Defense', info.defense, built.defense],
+      ['Status', STATUS_NAMES[info.mode] || info.mode]]
+      .forEach(function (fact) {
         var cell = el('div', 'ege-nflsys__fact');
-        cell.appendChild(el('dt', null, pair[0]));
-        cell.appendChild(el('dd', null, pair[1]));
+        cell.appendChild(el('dt', null, fact[0]));
+        var dd = el('dd', null, fact[1]);
+        if (fact[2]) { dd.appendChild(starsEl(fact[2].stars, 'Built for the ' + fact[1] + ' ' + fact[0].toLowerCase())); }
+        cell.appendChild(dd);
         line.appendChild(cell);
       });
     return line;
+  }
+
+  /* --- payroll, at the foot of the page -------------------------------------
+
+     For an admin, an NFL team's payroll against the salary cap, every
+     player counted (the linemen, kickers and punters the rooms leave out
+     too), with every contract under it to change or cut. */
+  function renderPayroll(admin) {
+    var panel = document.getElementById('teamPayrollPanel');
+    var body = document.getElementById('teamPayrollBody');
+    body.innerHTML = '';
+    var pay = admin ? admin.edits.teamPay(admin.league, admin.key) : null;
+    panel.hidden = !pay;
+    if (!pay) { return; }
+    var over = pay.room < 0;
+    var facts = el('dl', 'ege-nflsys ege-payroll__facts');
+    [['Payroll', moneyText(pay.payroll)], ['Salary cap', moneyText(pay.cap)],
+      [over ? 'Over the cap' : 'Cap space', moneyText(Math.abs(pay.room))]].forEach(function (pair, i) {
+      var cell = el('div', 'ege-nflsys__fact' + (i === 2 && over ? ' is-over' : ''));
+      cell.appendChild(el('dt', null, pair[0]));
+      cell.appendChild(el('dd', null, pair[1]));
+      facts.appendChild(cell);
+    });
+    body.appendChild(facts);
+    var bar = el('div', 'ege-payroll__bar' + (over ? ' is-over' : ''));
+    bar.setAttribute('role', 'img');
+    bar.setAttribute('aria-label', Math.round(pay.payroll / pay.cap * 100) + '% of the cap');
+    var fill = el('span', 'ege-payroll__fill');
+    fill.style.width = Math.min(100, pay.payroll / pay.cap * 100) + '%';
+    bar.appendChild(fill);
+    body.appendChild(bar);
+
+    var list = (admin.league.byTeam.get(admin.key) || []).slice().sort(function (a, b) {
+      return ((b.contract && b.contract.apy) || 0) - ((a.contract && a.contract.apy) || 0) || b.ovr - a.ovr;
+    });
+    var more = el('details', 'ege-payroll__all');
+    more.appendChild(el('summary', null, 'Contracts (' + list.length + ')'));
+    var wrap = el('div', 'fb-tablewrap');
+    var table = el('table', 'fb-table ege-payroll__table');
+    var head = el('tr');
+    ['Pos', 'Player', 'A year', 'Through', ''].forEach(function (h, i) { head.appendChild(el('th', i === 2 || i === 3 ? 'num' : null, h)); });
+    var thead = el('thead');
+    thead.appendChild(head);
+    table.appendChild(thead);
+    var tbody = el('tbody');
+    list.forEach(function (p) { tbody.appendChild(payrollRow(admin, p)); });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    more.appendChild(wrap);
+    body.appendChild(more);
+  }
+
+  /* A contract's row, and under it while it is being changed, the form. */
+  function payrollRow(admin, p) {
+    var rows = document.createDocumentFragment();
+    var tr = el('tr', p.ege ? 'ege-payroll__six' : null);
+    tr.appendChild(el('td', null, p.pos));
+    tr.appendChild(el('td', null, p.name));
+    tr.appendChild(el('td', 'num', p.contract ? moneyText(p.contract.apy) : '–'));
+    tr.appendChild(el('td', 'num', p.contract ? String(p.contract.through) : '–'));
+    var cell = el('td', 'num');
+    var edit = el('button', 'fb-btn ege-payroll__edit', 'Edit');
+    edit.type = 'button';
+    edit.setAttribute('aria-label', 'Edit ' + p.name + '’s contract');
+    cell.appendChild(edit);
+    tr.appendChild(cell);
+    rows.appendChild(tr);
+    var open = null;
+    function close() {
+      if (open) { open.remove(); open = null; }
+      edit.disabled = false;
+    }
+    edit.addEventListener('click', function () {
+      if (open) { return; }
+      edit.disabled = true;
+      open = el('tr', 'ege-payroll__formrow');
+      var wide = el('td');
+      wide.colSpan = 5;
+      var form = contractForm(admin, { id: p.id, name: p.name, ege: p.ege || null, contract: p.contract, season: admin.season }, close,
+        function () { renderNflRoster(admin.key, admin.season); });
+      form.classList.add('ege-payroll__form');
+      wide.appendChild(form);
+      open.appendChild(wide);
+      tr.parentNode.insertBefore(open, tr.nextSibling);
+    });
+    return rows;
+  }
+
+  /* A contract's two numbers to type in -- what he is paid a year and the
+     last season it runs through -- with Save, Cancel and Release (asked
+     twice). `done` runs once a change is saved, `cancel` on Cancel. */
+  function contractForm(admin, now, cancel, done) {
+    var form = el('div', 'ege-person__form ege-contract');
+    var fields = contractFields(now);
+    form.appendChild(fields.box);
+    var problem = el('p', 'ege-note ege-note--error');
+    problem.hidden = true;
+    var buttons = el('div', 'fb-row fb-row--wrap');
+    var save = el('button', 'fb-btn fb-btn--primary', 'Save');
+    save.type = 'button';
+    var back = el('button', 'fb-btn', 'Cancel');
+    back.type = 'button';
+    buttons.appendChild(save);
+    buttons.appendChild(back);
+    buttons.appendChild(releaseButton(admin, now, problem, done));
+    form.appendChild(buttons);
+    form.appendChild(problem);
+    back.addEventListener('click', cancel);
+    save.addEventListener('click', function () {
+      var deal = fields.read();
+      if (!deal) { cancel(); return; }
+      save.disabled = true;
+      problem.hidden = true;
+      EGE.nflSimAdmin.change(function (league) {
+        return admin.edits.setContract(league, now.id, deal);
+      }).then(done, function (err) {
+        save.disabled = false;
+        problem.textContent = err.message || String(err);
+        problem.hidden = false;
+      });
+    });
+    return form;
+  }
+
+  function contractFields(now) {
+    var box = el('div', 'ege-person__fields');
+    var c = now.contract || {};
+    function field(label, value, step, min, max) {
+      var wrap = el('label', 'ege-person__field');
+      wrap.appendChild(el('span', null, label));
+      var input = el('input', 'fb-input');
+      input.type = 'number';
+      input.step = step;
+      input.min = min;
+      input.max = max;
+      input.inputMode = 'decimal';
+      input.value = value == null ? '' : String(value);
+      wrap.appendChild(input);
+      box.appendChild(wrap);
+      return input;
+    }
+    var apy = field('$M a year', c.apy, '0.1', '0.5', '80');
+    var through = field('Through', c.through, '1', String(now.season), String(now.season + 7));
+    return {
+      box: box,
+      /* What changed, or null for nothing. */
+      read: function () {
+        var want = {};
+        if (apy.value !== '' && Number(apy.value) !== c.apy) { want.apy = apy.value; }
+        if (through.value !== '' && Number(through.value) !== c.through) { want.through = through.value; }
+        return Object.keys(want).length ? want : null;
+      }
+    };
+  }
+
+  /* Release, then Release {name}? to be sure. */
+  function releaseButton(admin, now, problem, done) {
+    var b = el('button', 'fb-btn ege-contract__cut', 'Release');
+    b.type = 'button';
+    var armed = false;
+    b.addEventListener('click', function () {
+      if (!armed) {
+        armed = true;
+        b.textContent = 'Release ' + now.name + '?';
+        b.classList.add('is-armed');
+        return;
+      }
+      b.disabled = true;
+      problem.hidden = true;
+      EGE.nflSimAdmin.change(function (league) {
+        return admin.edits.releasePlayer(league, now.id);
+      }).then(function () {
+        EGE.cardsView.closeOverlay();
+        done();
+      }, function (err) {
+        b.disabled = false;
+        problem.textContent = err.message || String(err);
+        problem.hidden = false;
+      });
+    });
+    return b;
   }
 
   /* The + under a room: a free agent at its positions, best first, signed
@@ -2132,17 +2380,21 @@
   }
 
   /* Edit in an NFL player's pop-up: his overall, ceiling, archetype and
-     skills in place of the ratings line, saved straight to the sim. */
-  function nflEditor(row, panel, rating) {
+     skills in place of the ratings line, and his contract, saved straight
+     to the sim; Release in it cuts him. One of the six is rated on the
+     website, so his are only his archetype (a name: his skills are the
+     site's) and his contract. */
+  function nflEditor(row, panel, rating, tools) {
     var admin = row.admin;
     var sim = row.sim;
     var now = admin.edits.playerOn(EGE.nflSimAdmin.peek() || admin.league, row.team, sim.name, sim.pos);
     if (!now) { return; }
+    now.name = row.name;
     var edit = el('button', 'fb-btn ege-person__edit', 'Edit');
     edit.type = 'button';
-    panel.appendChild(edit);
+    tools.appendChild(edit);
     edit.addEventListener('click', function () {
-      edit.hidden = true;
+      tools.hidden = true;
       var form = el('div', 'ege-person__form');
       function number(label, value, min) {
         var field = el('label', 'ege-person__field');
@@ -2158,10 +2410,12 @@
         return { field: field, input: input };
       }
       var top = el('div', 'ege-person__fields');
-      var ovr = number('Overall', now.ovr, 40);
-      var pot = number('Ceiling', now.pot, 40);
-      top.appendChild(ovr.field);
-      top.appendChild(pot.field);
+      var ovr = now.ege ? null : number('Overall', now.ovr, 40);
+      var pot = now.ege ? null : number('Ceiling', now.pot, 40);
+      if (ovr) {
+        top.appendChild(ovr.field);
+        top.appendChild(pot.field);
+      }
       var archField = el('label', 'ege-person__field ege-person__field--wide');
       archField.appendChild(el('span', null, 'Archetype'));
       var arch = el('select', 'fb-select');
@@ -2175,14 +2429,18 @@
       top.appendChild(archField);
       form.appendChild(top);
 
-      var skillBox = el('div', 'ege-person__fields');
       var skillInputs = {};
-      Object.keys(now.skills).forEach(function (skill) {
-        var one = number(skillName(skill, sim.pos), now.skills[skill], 30);
-        skillInputs[skill] = one.input;
-        skillBox.appendChild(one.field);
-      });
-      form.appendChild(skillBox);
+      if (!now.ege) {
+        var skillBox = el('div', 'ege-person__fields');
+        Object.keys(now.skills).forEach(function (skill) {
+          var one = number(skillName(skill, sim.pos), now.skills[skill], 30);
+          skillInputs[skill] = one.input;
+          skillBox.appendChild(one.field);
+        });
+        form.appendChild(skillBox);
+      }
+      var deal = contractFields(now);
+      form.appendChild(deal.box);
 
       var problem = el('p', 'ege-note ege-note--error');
       problem.hidden = true;
@@ -2193,6 +2451,9 @@
       cancel.type = 'button';
       buttons.appendChild(save);
       buttons.appendChild(cancel);
+      buttons.appendChild(releaseButton(admin, now, problem, function () {
+        if (nflShown === row.team + ':' + row.season) { renderNflRoster(row.team, row.season); }
+      }));
       form.appendChild(buttons);
       form.appendChild(problem);
       rating.hidden = true;
@@ -2201,23 +2462,27 @@
       cancel.addEventListener('click', function () {
         form.remove();
         rating.hidden = false;
-        edit.hidden = false;
+        tools.hidden = false;
       });
       save.addEventListener('click', function () {
         var want = {};
-        if (Number(ovr.input.value) !== now.ovr) { want.ovr = ovr.input.value; }
-        if (Number(pot.input.value) !== now.pot) { want.pot = pot.input.value; }
-        if (arch.value && arch.value !== now.archetype) { want.archetype = arch.value; }
+        if (ovr && Number(ovr.input.value) !== now.ovr) { want.ovr = ovr.input.value; }
+        if (pot && Number(pot.input.value) !== now.pot) { want.pot = pot.input.value; }
+        var archetype = arch.value && arch.value !== now.archetype ? arch.value : null;
+        if (archetype && !now.ege) { want.archetype = archetype; }
         var skills = {};
         Object.keys(skillInputs).forEach(function (skill) {
           if (Number(skillInputs[skill].value) !== now.skills[skill]) { skills[skill] = skillInputs[skill].value; }
         });
         if (Object.keys(skills).length) { want.skills = skills; }
-        if (!Object.keys(want).length) { cancel.click(); return; }
+        var contract = deal.read();
+        if (!Object.keys(want).length && !contract && !(archetype && now.ege)) { cancel.click(); return; }
         save.disabled = true;
         problem.hidden = true;
         EGE.nflSimAdmin.change(function (league) {
-          return admin.edits.editPlayer(league, now.id, want);
+          if (Object.keys(want).length) { admin.edits.editPlayer(league, now.id, want); }
+          if (archetype && now.ege) { admin.edits.setSixArchetype(league, now.ege, archetype); }
+          if (contract) { admin.edits.setContract(league, now.id, contract); }
         }).then(function () {
           if (nflShown === row.team + ':' + row.season) { renderNflRoster(row.team, row.season); }
           var all = EGE.nflRosters.get(row.season);
@@ -2236,6 +2501,140 @@
         });
       });
     });
+  }
+
+  /* --- the trade finder ------------------------------------------------------
+
+     Find trades in an admin's pop-up: the teams the player would suit
+     better -- their system, their status, his role -- that have what it
+     takes to get him (nfl-sim/lib/trade-finder.js), each a trade to make
+     now, propose, or take to the NFL Sim tab's trade builder. */
+  function nflTradeFinder(row, panel, tools) {
+    var admin = row.admin;
+    var sim = row.sim;
+    var find = el('button', 'fb-btn ege-person__edit', 'Find trades');
+    find.type = 'button';
+    tools.appendChild(find);
+    var out = el('div', 'ege-finder');
+    out.hidden = true;
+    panel.appendChild(out);
+    find.addEventListener('click', function () {
+      find.disabled = true;
+      out.hidden = false;
+      out.innerHTML = '';
+      var wait = el('p', 'ege-finder__wait');
+      wait.appendChild(el('span', 'ege-finder__spin'));
+      wait.appendChild(el('span', null, 'Finding trades…'));
+      out.appendChild(wait);
+      out.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      /* A frame for the wheel to show before the search holds the page. */
+      window.setTimeout(function () {
+        var found = null;
+        var problem = null;
+        try {
+          var league = EGE.nflSimAdmin.peek() || admin.league;
+          var now = admin.edits.playerOn(league, row.team, sim.name, sim.pos);
+          if (!now) { throw new Error(row.name + ' is no longer with this team.'); }
+          found = EGE.nflSim.tradeFinder.findTrades(league, now.id);
+        } catch (err) {
+          problem = err.message || String(err);
+        }
+        find.disabled = false;
+        out.innerHTML = '';
+        if (problem) {
+          out.appendChild(el('p', 'ege-note ege-note--error', problem));
+          return;
+        }
+        if (!found.results.length) {
+          out.appendChild(el('p', 'ege-room__empty', 'No team he would suit better can make a deal for him.'));
+          return;
+        }
+        found.results.forEach(function (t) { out.appendChild(foundTrade(row, found, t)); });
+      }, 60);
+    });
+  }
+
+  function foundTrade(row, found, t) {
+    var box = el('div', 'ege-finder__trade');
+    var head = el('div', 'ege-finder__head');
+    var mark = el('span', 'ege-finder__mark');
+    mark.style.background = (EGE.nfl.teams[t.team] || {}).color || '';
+    var logoSrc = EGE.nfl.logo(t.team);
+    if (logoSrc) {
+      var logo = el('img');
+      logo.src = logoSrc;
+      logo.alt = '';
+      logo.addEventListener('error', function () { logo.remove(); });
+      mark.appendChild(logo);
+    }
+    head.appendChild(mark);
+    var who = el('div', 'ege-finder__who');
+    who.appendChild(el('span', 'ege-finder__team', EGE.nfl.teams[t.team] ? EGE.nfl.teams[t.team].name : t.team));
+    who.appendChild(el('span', 'ege-finder__meta', [STATUS_NAMES[t.mode] || t.mode, t.record].filter(Boolean).join(' · ')));
+    head.appendChild(who);
+    if (t.fit) {
+      var fit = el('span', 'ege-finder__fit');
+      fit.appendChild(starsEl(t.fit.stars, 'Fit in ' + t.fit.scheme));
+      fit.appendChild(el('span', 'ege-finder__scheme', t.fit.scheme));
+      head.appendChild(fit);
+    }
+    box.appendChild(head);
+
+    var lines = el('ul', 'ege-finder__lines');
+    var seller = EGE.nfl.teams[found.player.team] ? EGE.nfl.teams[found.player.team].name.split(' ').slice(-1)[0] : found.player.team;
+    lines.appendChild(el('li', 'ege-finder__gets', seller + ' get ' + t.gets.join(', ')));
+    if (t.starts) { lines.appendChild(el('li', null, 'Starts' + (t.over ? ' over ' + t.over.name + ' (' + t.over.ovr + ')' : ''))); }
+    lines.appendChild(el('li', null, t.room >= 0 ? moneyText(t.room) + ' cap space after' : moneyText(-t.room) + ' over the cap after'));
+    box.appendChild(lines);
+
+    var problem = el('p', 'ege-note ege-note--error');
+    problem.hidden = true;
+    var buttons = el('div', 'fb-row fb-row--wrap');
+    function act(text, primary, fn) {
+      var b = el('button', 'fb-btn' + (primary ? ' fb-btn--primary' : ''), text);
+      b.type = 'button';
+      b.addEventListener('click', function () { fn(b); });
+      buttons.appendChild(b);
+      return b;
+    }
+    function settle(text) {
+      buttons.innerHTML = '';
+      buttons.appendChild(el('span', 'ege-finder__done', text));
+    }
+    function failed(b) {
+      return function (err) {
+        b.disabled = false;
+        problem.textContent = err.message || String(err);
+        problem.hidden = false;
+      };
+    }
+    act('Make the trade', true, function (b) {
+      b.disabled = true;
+      problem.hidden = true;
+      EGE.nflSimAdmin.change(function (league) {
+        var made = EGE.nflSim.run.proposeOwn(league, t.sides);
+        EGE.nflSim.run.approve(league, made.id);
+        return made;
+      }).then(function () {
+        settle('Traded');
+        if (nflShown === row.team + ':' + row.season) { renderNflRoster(row.team, row.season); }
+      }, failed(b));
+    });
+    act('Propose', false, function (b) {
+      b.disabled = true;
+      problem.hidden = true;
+      EGE.nflSimAdmin.change(function (league) {
+        return EGE.nflSim.run.proposeOwn(league, t.sides);
+      }).then(function (made) { settle('Proposed ' + made.id); }, failed(b));
+    });
+    act('Open in builder', false, function () {
+      EGE.nflSimAdmin.useDeal(t.sides);
+      EGE.cardsView.closeOverlay();
+      window.location.hash = '#admin/sim';
+    });
+    box.appendChild(buttons);
+    box.appendChild(problem);
+    return box;
   }
 
   /* Beside the Offense and Defense switch, for an admin and nobody else
@@ -2380,7 +2779,9 @@
     var ovr = overallBox(row.overall, 'ege-ovrbox--chip');
     if (ovr) { rating.appendChild(ovr); }
     var kind = el('div', 'ege-person__kind');
-    kind.appendChild(el('span', 'ege-person__arch', sim.archetype || POSITION_NAMES[sim.pos] || sim.pos));
+    var arch = el('span', 'ege-person__arch', sim.archetype || POSITION_NAMES[sim.pos] || sim.pos);
+    if (row.fit) { arch.appendChild(starsEl(row.fit.stars, 'Fit in ' + row.fit.scheme)); }
+    kind.appendChild(arch);
     var skills = el('ul', 'ege-person__skills');
     Object.keys(sim.skills || {}).sort(function (a, b) { return sim.skills[b] - sim.skills[a]; })
       .forEach(function (skill) {
@@ -2402,20 +2803,22 @@
     line('Contract', sim.contract
       ? moneyText(sim.contract.apy) + ' a year through ' + sim.contract.through
       : 'None');
-    if (sim.out) {
-      var what = String(sim.out.what || 'injured').replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); });
-      line('Injury', what + (sim.out.games ? ' · out ' + sim.out.games + ' more ' +
-        (sim.out.games === 1 ? 'game' : 'games') : ' · out for the season'));
-    }
+    if (row.out) { line('Injury', injuryText(row.out)); }
     panel.appendChild(foot);
-
-    if (row.admin && !row.player && EGE.wallet.admin()) { nflEditor(row, panel, rating); }
 
     if (row.player) {
       var go = el('a', 'fb-btn fb-btn--primary ege-person__go', row.player.first + '’s page →');
       go.href = '#' + row.player.slug;
       go.addEventListener('click', function () { EGE.cardsView.closeOverlay(); });
       panel.appendChild(go);
+    }
+
+    /* An admin's Edit and Find trades, on the season the sim is playing. */
+    if (row.admin && EGE.wallet.admin()) {
+      var tools = el('div', 'fb-row fb-row--wrap ege-person__tools');
+      panel.appendChild(tools);
+      nflEditor(row, panel, rating, tools);
+      nflTradeFinder(row, panel, tools);
     }
     box.appendChild(panel);
     stage.appendChild(box);
@@ -2847,6 +3250,7 @@
     nflShown = null;
     document.getElementById('rosterSwitch').hidden = true;
     renderUnitOveralls(null, season);
+    renderPayroll(null);
     var body = document.getElementById('teamRosterBody');
     body.innerHTML = '';
     var rooms = EGE.rosterFor(entry.key, season);

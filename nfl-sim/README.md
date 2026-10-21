@@ -176,6 +176,17 @@ NFL player of 70 or better fits every scheme at 0 — so no scheme looks
 better for everybody. Teams draft, trade and sign by fit, and change scheme
 when their roster fits another one better.
 
+**Stars, for an admin** (`lib/fit.js`). A fit is in overall points, and
+how wide fits run differs by position (linebackers and linemen far wider
+than tight ends), so for the Teams pages it is read against the spread of
+fits at his position across every scheme on his side of the ball, among the
+league's players of 70 or better: 2.5 stars is an ordinary fit, each
+standard deviation a star, five stars about the best one in thirty, in
+halves. A team's stars for its offense and its defense are its starters'
+fits read the same way (the quarterback counting double, injured starters
+too), set against the other 31 teams at a star and a quarter a standard
+deviation. Only an admin ever sees either.
+
 Fit is not a bonus added on top in games; it falls out of how games are
 played. A short-throwing, scrambling quarterback throws few deep balls, so a
 Ja'Marr Chase beside him gets few deep targets and what makes him great is
@@ -542,6 +553,23 @@ too: the sim says what each side thinks of it and queues it like any other.
 When one of the six changes teams in the sim, the website's transfers have
 to be updated by hand; the sim says so.
 
+**The trade finder** (`lib/trade-finder.js`, `find-trades "Name"`, or **Find
+trades** in a player's pop-up on the Teams pages) looks at every other team
+for one player and keeps those that suit him better, all told: his stars in
+its scheme against his stars now, its status (competing 1, retooling ½,
+rebuilding 0) and record against his team's, and a star for a starting job
+he does not have now. A team he would not start for while he starts now
+never suits him better, and a rebuilding one never does for a player of 29
+or more. Each that suits him and comes out ahead by its own numbers
+(`valueOf`, the view every trade is weighed by) offers the cheapest package
+his team takes, from its picks for the next three drafts and its players of
+62 or better (none at his position, no kicker or punter, never its
+quarterback, a starter of 85 or more or one of the six): one to four of
+them, at most two players, with both teams under the cap afterwards or no
+further over it than they were. The best six come back as the trade
+builder's two sides, to make, propose or open in the builder. The deadline
+and the six's one team a season hold as for any trade.
+
 On the admin page Sam builds his own trade from dropdowns: a team on each
 side, then its players and picks added one at a time (one side can be
 empty). **Make the trade** puts it straight through; **Propose** queues it
@@ -562,8 +590,23 @@ make the overall they average to, `skills.js overallOf`, unless an overall
 comes too), `freeAgents` and `signFreeAgent` (the + under a room; he signs
 at `marketPay`), and `teamInfo` (schemes and mode). Archetypes come from
 `ARCHETYPES` in `skills.js`; one picked by hand sets `archetypeSet`, and
-`reRate` and development leave it alone from then on. Every edit is a
-transaction (`kind` `edit` or `signing`).
+`reRate` and development leave it alone from then on. Contracts too:
+`setContract` sets what he is paid a year (up to $80M) and the last season
+it runs through (this season to seven years out), so a raise, a pay cut or
+an extension (`contract "Name" --apy 12 --through 2027`); `releasePlayer`
+cuts him (`release "Name"`: a free agent from then on, no dead money, and
+his team a man short until it signs somebody; one of the six only between
+seasons); `teamPay` is a team's payroll, every player counted, against
+`capFor`. Every edit is a transaction (`kind` `edit`, `signing`, `contract`
+or `release`).
+
+**The six's archetypes** are set here, though their ratings are the
+website's (`archetype SLUG "Power Back"`, or the NFL Sim tab's **The six’s
+archetypes**): `setSixArchetype` keeps it in `league.egeArchetypes`, which
+`syncSix` puts back every time the world loads and the draft gives a
+prospect of the six. With none set, his archetype is the one his skills
+make (`archetypeOf`). Like anyone's, it is a name, and his skills decide how
+he plays.
 
 ## 9. Running it
 
@@ -593,6 +636,12 @@ node nfl-sim/sim.js trade "DET: Andrew Parr, 2025 R2 / SEA: Kenneth Walker"
                                                 Sam's own trade: each side lists what that team gives
 node nfl-sim/sim.js edit "Drake Maye" --ovr 85 [--pot 95]
                                                 set a player's overall and ceiling (a prospect too)
+node nfl-sim/sim.js contract "Drake Maye" --apy 12 --through 2027
+                                                change what a player is paid and for how long
+node nfl-sim/sim.js release "Drake Maye"        cut a player
+node nfl-sim/sim.js archetype [cooper-clark "Receiving Back"]
+                                                the six's archetypes, or set one ("" clears it)
+node nfl-sim/sim.js find-trades "Khalil Herbert" teams he would suit better, and the trades
 node nfl-sim/sim.js rosters DET [2025]          a team's roster that season, who came and who went
 node nfl-sim/sim.js draft                       the draft, cut to 53, the next season's schedule
 node nfl-sim/sim.js draft --place cooper-clark=LAC --place isaac-vitel=DET:2
@@ -669,7 +718,9 @@ nfl-sim/
     draft.js             draft classes, ceilings, the draft
     draft-plan.js        a draft written by hand, and draft orders set by hand
     trades.js            proposals, the queue (big free-agent moves too), approving
-    edits.js             ratings, archetypes and signings set by hand
+    trade-finder.js      teams a player would suit better, and the trades for him
+    fit.js               fit as 0-5 stars, players and teams (an admin's only)
+    edits.js             ratings, archetypes, contracts and signings set by hand
     boosts.js            the six's boosters and connections from the site
     rewind.js            save points, to undo or resim a week
     history.js           every team's roster, season by season

@@ -215,6 +215,20 @@
             </table>
           </div>
         </div>
+
+        <!-- For an admin only, on an NFL team in the season the sim is
+             playing: its payroll against the salary cap, and every contract
+             (renderPayroll in app.js). Never drawn for anybody else, nor in
+             client viewer mode. -->
+        <div class="fb-panel ege-section-gap" id="teamPayrollPanel" hidden>
+          <div class="fb-panel__head">
+            <h3>Payroll</h3>
+            <button class="ege-collapse" type="button"
+                    data-collapses="teamPayrollPanel" aria-controls="teamPayrollPanel"
+                    aria-expanded="true" aria-label="Hide the payroll"></button>
+          </div>
+          <div class="fb-panel__body" id="teamPayrollBody"></div>
+        </div>
       </div>
     </section>
 

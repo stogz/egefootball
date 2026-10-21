@@ -4305,6 +4305,72 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-teamchip--nfl .ege-teamchip__meta { min-width: 0; }
 .ege-teamchip__arch { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .ege-teamchip--nfl .ege-room__class { flex: none; }
+/* The overall box, and anything keeping him out just before it. */
+.ege-teamchip__end { display: flex; align-items: stretch; gap: 5px; }
+.ege-injbox {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 38px;
+  padding: 5px 2px 6px;
+  border: var(--fb-border) solid var(--fb-ink);
+  background: #c62828;
+  color: #fff;
+  text-align: center;
+  cursor: help;
+}
+.ege-injbox__label { font-size: .5625rem; font-weight: 800; letter-spacing: .12em; }
+.ege-injbox__value { font-family: var(--fb-font-display); font-size: 1.0625rem; line-height: 1; }
+
+/* An admin's fit stars: the recruiting stars' gold, five outlines with the
+   share filled laid over them. */
+.ege-fitstars {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  font-size: .8125rem;
+  line-height: 1;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.ege-fitstars__empty { color: transparent; -webkit-text-stroke: 1px rgba(32, 38, 26, .4); }
+.ege-fitstars__full {
+  position: absolute;
+  inset: 0 auto 0 0;
+  overflow: hidden;
+  color: #f2b705;
+  -webkit-text-stroke: 1px var(--fb-ink);
+}
+.ege-teamchip__meta .ege-fitstars { margin-left: 2px; }
+.ege-nflsys dd .ege-fitstars { margin-left: 8px; font-size: .875rem; }
+.ege-person__arch .ege-fitstars { margin-left: 10px; font-family: var(--fb-font-body); font-size: 1rem; }
+
+/* An admin's payroll at the foot of an NFL team's page. */
+.ege-payroll__facts { margin-bottom: 10px; }
+.ege-nflsys__fact.is-over dd { color: #c62828; }
+.ege-payroll__bar {
+  height: 14px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-tint-wash);
+}
+.ege-payroll__fill { display: block; height: 100%; background: var(--fb-grass); }
+.ege-payroll__bar.is-over .ege-payroll__fill { background: #c62828; }
+.ege-payroll__all { margin-top: 14px; }
+.ege-payroll__all summary {
+  cursor: pointer;
+  font-size: var(--fb-small);
+  font-weight: 800;
+  color: var(--fb-accent-deep);
+}
+.ege-payroll__all .fb-tablewrap { margin-top: 8px; }
+.ege-payroll__six td { background: var(--fb-tint-clay); }
+.ege-payroll__edit { padding: 2px 10px; font-size: var(--fb-label); }
+.ege-payroll__formrow td { background: var(--fb-tint-wash); }
+.ege-payroll__form { max-width: 270px; padding: 6px 0; border-bottom: 0; }
 
 /* An admin's offense and defense overalls, beside the switch: the overall
    box in its tier's colours, laid on its side and shrunk to the head's
@@ -4519,6 +4585,42 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-person__field--wide { grid-column: span 2; }
 .ege-person__field .fb-input,
 .ege-person__field .fb-select { width: 100%; min-width: 0; }
+.ege-person__tools { gap: 8px; }
+.ege-contract__cut { margin-left: auto; }
+.ege-contract__cut.is-armed { background: #c62828; border-color: var(--fb-ink); color: #fff; }
+
+/* The trade finder, under an admin's tools in the pop-up. */
+.ege-finder { display: grid; gap: 10px; padding-top: 12px; border-top: var(--fb-border-thin) solid rgba(29, 36, 22, .2); }
+.ege-finder[hidden] { display: none; }
+.ege-finder__wait { display: flex; align-items: center; gap: 10px; margin: 0; font-weight: 700; color: var(--fb-muted); }
+.ege-finder__spin {
+  width: 18px;
+  height: 18px;
+  border: 3px solid var(--fb-sand);
+  border-top-color: var(--fb-accent);
+  border-radius: 50%;
+  animation: ege-finder-spin .8s linear infinite;
+}
+@keyframes ege-finder-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ege-finder__spin { animation-duration: 2.4s; } }
+.ege-finder__trade {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: #fff;
+}
+.ege-finder__head { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+.ege-finder__mark { display: grid; place-items: center; width: 36px; height: 36px; }
+.ege-finder__mark img { width: 30px; height: 30px; object-fit: contain; }
+.ege-finder__who { display: grid; min-width: 0; }
+.ege-finder__team { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ege-finder__meta { font-size: var(--fb-small); color: var(--fb-muted); }
+.ege-finder__fit { display: grid; justify-items: end; gap: 2px; }
+.ege-finder__scheme { font-size: var(--fb-label); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--fb-accent-deep); }
+.ege-finder__lines { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; font-size: .8125rem; color: var(--fb-muted); }
+.ege-finder__gets { font-weight: 700; color: var(--fb-ink); }
+.ege-finder__done { font-weight: 800; color: var(--fb-grass); }
 
 @media (max-width: 520px) {
   .ege-person__band { --face-h: 80px; gap: 8px; padding: 0 10px; }

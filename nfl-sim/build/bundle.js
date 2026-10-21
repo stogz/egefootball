@@ -91,7 +91,9 @@ parts.push(`
     draftPlan: load('draft-plan'),
     edits: load('edits'),
     rewind: load('rewind'),
-    history: load('history')
+    history: load('history'),
+    fit: load('fit'),
+    tradeFinder: load('trade-finder')
   };
 })();
 `);
