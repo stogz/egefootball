@@ -242,6 +242,55 @@ a play. Players get hurt during plays (more often the less durable they are)
 — most for a game or two, a few for the season — and the next man up plays
 until he is back.
 
+### The six's boosters and connections
+
+Two things the six buy on the website come into their games
+(`lib/boosts.js`):
+
+- **A booster** on a game does not make him play 1.5, 2 or 2.5 times as
+  well. It makes a good game likelier: the game is played more than once
+  and one version is kept. With a 1.5x it is the better of two for him (on
+  fantasy points), with a 2.0x the best of three, and with a 2.5x one of
+  his best four of twelve, which locks in a solid to great game without
+  handing him his best one every time. Whether any of the six gets hurt is
+  settled by the first version, so a booster never keeps anybody healthy.
+  Played 1,500 times each, Sam against Arizona:
+
+  | | Under his median | Under his bottom quarter | Over his top quarter |
+  | --- | --- | --- | --- |
+  | No booster | 48% | 24% | 26% |
+  | 1.5x | 23% | 7% | 45% |
+  | 2.0x | 13% | 3% | 56% |
+  | 2.5x | 4% | 2% | 68% |
+
+  A booster is read from the season file once its week is out, and from
+  Supabase's `game_boosters` before that. Wagers change nothing. The other
+  games of the week are played on the same dice either way.
+- **A connection** counts while that quarterback is the one playing. A
+  receiver, back or tight end with a QB Connection is looked for more and
+  caught a little more often; a quarterback's O-Line Connection means fewer
+  pressures and sacks. Each level is worth about 1.7 times the one before,
+  so I to III change little, IV and V are noticeable, and VI is a Mahomes
+  and Kelce connection; past VI it still grows, by less each time. Andrew
+  with Jared Goff against Green Bay (1,500 games a level):
+
+  | Level | – | I | II | III | IV | V | VI | X |
+  | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+  | Targets a game | 5.6 | 5.7 | 5.9 | 6.3 | 7.0 | 8.0 | 9.6 | 10.3 |
+  | Share of the targets | 17% | 18% | 18% | 20% | 22% | 25% | 30% | 32% |
+
+  A back starts from far fewer targets and goes to about three times his
+  share at VI. Jaykeb with his line against Indianapolis is sacked on 7.1%
+  of dropbacks without it, 5.9% at IV and 3.8% at VI.
+
+  The connections come from `player_inventory` (`qb-connection`, the level
+  in `quantity`, the quarterback in `target`).
+
+On the admin page both are read from Supabase before every step. On the
+command line a `live.json` in the world folder stands in for them, with the
+same rows: `{ "boosters": [game_boosters rows], "inventory":
+[player_inventory rows] }`.
+
 Before a game the sim can give an **assessment** (`matchup`): each side's
 offense against the other's defense, unit by unit — "Detroit's pass rush
 against Seattle's protection", "Seattle's deep passing against Detroit's
@@ -276,6 +325,16 @@ A whole season and its playoffs take about half a second.
   Bowl on a neutral field.
 - **The trade deadline** comes after Week 9: the season stops there while
   any proposals wait on Sam (section 8).
+- **Playing a week again** (`lib/rewind.js`). Before the sim plays a week
+  or a playoff round, the league and the trade queue are kept as that
+  week's save point (`rewind-{season}-{week}.json`; playoff rounds are
+  Weeks 19-22, as on the site). `resim 12` puts the league back to before
+  Week 12 and plays it again on new dice; `undo 12` only goes back. Either
+  way every week played after it is undone, and so is anything done since:
+  an edit, a signing, a trade approved. Every undo moves the world on to a
+  new take, so nothing after it comes out the same way. A week out on the
+  website can't be undone, nor one before it, and weeks taken in from the
+  site have no save point. The offseason clears the season's save points.
 
 The world plays its own 2023 season from the kickoff league. The site's 2023
 results are not read in: the sim is its own world from Week 1 of 2023 on, and
@@ -519,6 +578,8 @@ node nfl-sim/sim.js status                      where the league is, and what is
 node nfl-sim/sim.js week                        play the next week (or playoff round)
 node nfl-sim/sim.js season                      play on to the deadline, or the end of the regular season
 node nfl-sim/sim.js playoffs                    play the postseason
+node nfl-sim/sim.js resim 12                    play Week 12 again on new dice (19-22: a playoff round)
+node nfl-sim/sim.js undo [12]                   back to before Week 12 (alone: what can be undone)
 node nfl-sim/sim.js standings
 node nfl-sim/sim.js rankings                    team ratings, units and schemes (private)
 node nfl-sim/sim.js team DET                    roster, depth chart, ages, ceilings, fit, payroll
@@ -576,7 +637,8 @@ for the offseason, F for a big free-agent move or S for Sam's own, and a
 number.
 
 Every command that plays games is seeded from the world and where the league
-is, so the same world always plays out the same way.
+is (and how many times a week has been undone), so the same world always
+plays out the same way.
 
 ## 10. Files
 
@@ -608,6 +670,8 @@ nfl-sim/
     draft-plan.js        a draft written by hand, and draft orders set by hand
     trades.js            proposals, the queue (big free-agent moves too), approving
     edits.js             ratings, archetypes and signings set by hand
+    boosts.js            the six's boosters and connections from the site
+    rewind.js            save points, to undo or resim a week
     history.js           every team's roster, season by season
     offseason.js         the offseason, in order
     rng.js               the seeded dice

@@ -9,8 +9,16 @@
    the browser.
 
    A store is { data(name), has(world, name), read(world, name),
-   write(world, name, value), site() }. data() and read() hand back a fresh
-   copy every time, because the sim changes what it is given.
+   write(world, name, value), remove(world, name), site(), live(world) }.
+   data() and read() hand back a fresh copy every time, because the sim
+   changes what it is given.
+
+   live() is what the six have riding on their games that only Supabase
+   knows: the boosters stuck on games still to come (game_boosters rows) and
+   their connections (player_inventory rows), lib/boosts.js. The admin page
+   reads them before every step; on the command line a live.json in the
+   world folder, { boosters: [...], inventory: [...] } in the same rows,
+   stands in for them.
    ========================================================================== */
 
 'use strict';
@@ -34,6 +42,11 @@ function fileStore() {
       const file = path.join(world, name);
       fs.writeFileSync(file + '.tmp', JSON.stringify(value));
       fs.renameSync(file + '.tmp', file);
+    },
+    remove(world, name) { fs.rmSync(path.join(world, name), { force: true }); },
+    live(world) {
+      const file = path.join(world, 'live.json');
+      return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : {};
     },
     /* The website's EGE object, loaded the way tools/ load it: the data,
        every season file, the season helpers and the file writer. */
@@ -66,5 +79,7 @@ module.exports = {
   has: (world, name) => get().has(world, name),
   read: (world, name) => get().read(world, name),
   write: (world, name, value) => get().write(world, name, value),
-  site: () => get().site()
+  remove: (world, name) => get().remove(world, name),
+  site: () => get().site(),
+  live: (world) => (get().live ? get().live(world) || {} : {})
 };
