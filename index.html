@@ -189,6 +189,19 @@
           <div class="fb-panel__body" id="teamRosterBody"></div>
         </div>
 
+        <!-- On an NFL team's page, for an admin only and never in client
+             viewer mode: how the sim calls its plays and who gets the ball
+             (renderTendencies in app.js). -->
+        <div class="fb-panel ege-section-gap" id="teamTendPanel" hidden>
+          <div class="fb-panel__head">
+            <h3>Tendencies</h3>
+            <button class="ege-collapse" type="button"
+                    data-collapses="teamTendPanel" aria-controls="teamTendPanel"
+                    aria-expanded="true" aria-label="Hide the tendencies"></button>
+          </div>
+          <div class="fb-panel__body" id="teamTendBody"></div>
+        </div>
+
         <!-- On an NFL team's page, for everybody: its payroll against the
              salary cap, and every contract for this season and the next
              three (renderPayroll in app.js); an admin can edit them. -->

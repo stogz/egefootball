@@ -1017,6 +1017,10 @@ function scramble(g, mode) {
   advance(g, gain);
 }
 
+/* How often the quarterback keeps a designed run: the team's tendency,
+   more with legs like his and less without. */
+function qbRunChance(off, qb) { return off.qbRun * clamp((skill(qb, 'mobility') - 60) / 20, 0.2, 1.6); }
+
 function run(g, mode) {
   const rng = g.rng;
   const o = g.poss;
@@ -1052,7 +1056,7 @@ function run(g, mode) {
   let carrier;
   let qbRun = false;
   let outside = rng() < off.outside * (room <= 3 ? 0.5 : 1);
-  if (rng() < off.qbRun * clamp((mob - 60) / 20, 0.2, 1.6)) {
+  if (rng() < qbRunChance(off, qb)) {
     carrier = qb;
     qbRun = true;
   } else if (rng() < 0.025) {
@@ -1232,4 +1236,4 @@ function playGame(home, away, rng, opts) {
   };
 }
 
-module.exports = { playGame, fgChance, HOME_EDGE, prepare };
+module.exports = { playGame, fgChance, HOME_EDGE, prepare, qbRunChance };

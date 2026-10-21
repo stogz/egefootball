@@ -1837,6 +1837,7 @@
     body.innerHTML = '';
     renderUnitOveralls(key, season);
     renderPayroll(null);
+    renderTendencies(null);
 
     var all = EGE.nflRosters.get(season);
     if (all === undefined) {
@@ -1856,6 +1857,7 @@
     var system = admin || (all.systems && all.systems[key]) ? nflSystem(admin, all.systems ? all.systems[key] : null) : null;
     if (system) { body.appendChild(system); }
     renderPayroll(key, season, all, admin);
+    renderTendencies(admin);
     var grid = el('div', 'ege-rooms');
     NFL_ROOMS[rosterSide].forEach(function (room) {
       var inRoom = rows.filter(function (sim) { return room.pos.indexOf(sim.pos) !== -1; })
@@ -1987,6 +1989,96 @@
       });
     });
     return pick;
+  }
+
+  /* --- how the sim plays a team, for an admin --------------------------------
+
+     For an admin only, and never in client viewer mode (Sam, 2026-10-21):
+     on the season the sim is playing, what its engine reads off the team
+     to call plays, each on the league's range from lowest to highest with
+     its average marked and the team's rank, and who gets the ball: carries
+     and targets a game, expected from the lineup now and as the season has
+     gone (nfl-sim/lib/tendencies.js). From the sim's world, never from the
+     published rosters. */
+  var TENDENCIES = [
+    ['Play calling', [['pass', 'Pass'], ['playAction', 'Play-action'], ['outside', 'Outside runs'], ['qbRun', 'QB runs']]],
+    ['Throws', [['screen', 'Screens'], ['short', 'Short'], ['mid', 'Intermediate'], ['deep', 'Deep']]],
+    ['Targets', [['WR', 'Receivers'], ['TE', 'Tight ends'], ['RB', 'Backs']]],
+    ['Defense', [['man', 'Man'], ['twoHigh', 'Two high'], ['blitz', 'Blitz'], ['box', 'In the box']]]
+  ];
+
+  function tendencyText(key, value) {
+    return key === 'box' ? value.toFixed(1) : Math.round(value * 100) + '%';
+  }
+
+  function renderTendencies(admin) {
+    var panel = document.getElementById('teamTendPanel');
+    var body = document.getElementById('teamTendBody');
+    body.innerHTML = '';
+    panel.hidden = !admin;
+    if (!admin) { return; }
+    var t;
+    try {
+      t = EGE.nflSim.tendencies.forTeam(admin.league, admin.key);
+    } catch (err) {
+      body.appendChild(el('p', 'ege-note ege-note--error', err.message || String(err)));
+      return;
+    }
+    var groups = el('div', 'ege-tend');
+    TENDENCIES.forEach(function (group) {
+      var box = el('div', 'ege-tend__group');
+      box.appendChild(el('h4', 'ege-tend__title', group[0]));
+      group[1].forEach(function (item) {
+        var c = t.calls[item[0]];
+        var spread = c.max - c.min || 1;
+        var line = el('div', 'ege-tend__row');
+        var label = el('span', 'ege-tend__label', item[1]);
+        if (item[0] === 'qbRun' && t.qb) { label.title = t.qb; }
+        line.appendChild(label);
+        var track = el('span', 'ege-tend__track');
+        track.title = 'NFL ' + tendencyText(item[0], c.min) + '\u2013' + tendencyText(item[0], c.max) +
+          ', average ' + tendencyText(item[0], c.average);
+        var avg = el('span', 'ege-tend__avg');
+        avg.style.left = ((c.average - c.min) / spread * 100) + '%';
+        track.appendChild(avg);
+        var dot = el('span', 'ege-tend__dot');
+        dot.style.left = ((c.value - c.min) / spread * 100) + '%';
+        track.appendChild(dot);
+        line.appendChild(track);
+        line.appendChild(el('span', 'ege-tend__value', tendencyText(item[0], c.value)));
+        line.appendChild(el('span', 'ege-tend__rank', EGE.ordinal(c.rank).toLowerCase()));
+        box.appendChild(line);
+      });
+      groups.appendChild(box);
+    });
+    body.appendChild(groups);
+    var usage = el('div', 'ege-tend__usage');
+    [['Carries a game', t.carries], ['Targets a game', t.targets]].forEach(function (list) {
+      var wrap = el('div', 'fb-tablewrap ege-tend__table');
+      var table = el('table', 'fb-table');
+      var head = el('tr');
+      [[list[0]], ['Expected', 'num'], [String(t.season), 'num']].forEach(function (h) { head.appendChild(el('th', h[1] || null, h[0])); });
+      var thead = el('thead');
+      thead.appendChild(head);
+      table.appendChild(thead);
+      var tbody = el('tbody');
+      list[1].forEach(function (r) {
+        var tr = el('tr', r.ege ? 'is-six' : null);
+        var who = el('td');
+        who.appendChild(document.createTextNode(r.name + ' '));
+        who.appendChild(el('span', 'ege-tend__pos', r.pos));
+        tr.appendChild(who);
+        tr.appendChild(el('td', 'num', r.expected ? r.expected.toFixed(1) : '\u2013'));
+        var now = el('td', 'num', r.games ? r.perGame.toFixed(1) : '\u2013');
+        if (r.games) { now.title = r.total + ' in ' + r.games + (r.games === 1 ? ' game' : ' games'); }
+        tr.appendChild(now);
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      wrap.appendChild(table);
+      usage.appendChild(wrap);
+    });
+    body.appendChild(usage);
   }
 
   /* --- payroll, at the foot of the page -------------------------------------
@@ -3265,6 +3357,7 @@
     document.getElementById('rosterSwitch').hidden = true;
     renderUnitOveralls(null, season);
     renderPayroll(null);
+    renderTendencies(null);
     var body = document.getElementById('teamRosterBody');
     body.innerHTML = '';
     var rooms = EGE.rosterFor(entry.key, season);
