@@ -11,6 +11,10 @@
      node nfl-sim/sim.js week                   play the next week (or playoff round)
      node nfl-sim/sim.js season                 play to the end of the regular season
      node nfl-sim/sim.js playoffs               play the playoffs
+     node nfl-sim/sim.js resim 12               play Week 12 again on new dice (19-22: a playoff
+                                                round); weeks after it are undone
+     node nfl-sim/sim.js undo 12                back to before Week 12 (undo alone: the weeks
+                                                that can be undone)
      node nfl-sim/sim.js standings
      node nfl-sim/sim.js rankings               team ratings (private)
      node nfl-sim/sim.js team DET               roster, schemes, fit, contracts
@@ -125,7 +129,13 @@ function weekReport(league, r) {
     say('Injuries:');
     notable.forEach((i) => say('  ' + i.name + ' (' + i.team + ', ' + i.pos + '): ' + i.what + ', ' + (i.season ? 'out for the season' : i.games + ' weeks')));
   }
+  (r.boosted || []).forEach((b) => say('Booster: ' + b.name + ' ' + b.multiplier.toFixed(1) + 'x, ' + b.points + ' fantasy points'));
   if (r.deadline) { say(''); say('Trade deadline: ' + r.deadline + ' proposals are waiting (node nfl-sim/sim.js trades). Play resumes with the next week, and anything not approved by then expires.'); }
+}
+
+function undoneLines(u) {
+  if (u.later.length) { say('Undone too: ' + u.later.join(', ') + '.'); }
+  if (u.changes) { say('Undone: ' + u.changes + (u.changes === 1 ? ' change' : ' changes') + ' made since (edits, signings, trades).'); }
 }
 
 function showStandings(league) {
@@ -183,6 +193,24 @@ function main() {
       const r = run.playPlayoffs(league);
       r.rounds.forEach((round) => { weekReport(league, round); say(''); });
       say('Champion: ' + TEAMS[r.champion].name);
+      break;
+    }
+    case 'resim': {
+      const r = run.resim(league, Number(rest[0]));
+      say(r.undone.label + ' again.');
+      undoneLines(r.undone);
+      weekReport(league, r.played);
+      break;
+    }
+    case 'undo': {
+      if (!rest[0]) {
+        const points = run.savePoints(league);
+        say(points.length ? 'Can be undone: ' + points.map((p) => p.label + ' (' + p.week + ')').join(', ') + '.' : 'Nothing to undo.');
+        break;
+      }
+      const u = run.undo(league, Number(rest[0]));
+      say('Back to before ' + u.label + ' of ' + league.season + '.');
+      undoneLines(u);
       break;
     }
     case 'import-site': {
@@ -449,7 +477,7 @@ function main() {
       break;
     }
     default:
-      say('Unknown command ' + command + '. Commands: status, week, season, playoffs, standings, rankings, team, player, matchup, offseason, draft, draft-order, upload-draft, trades, approve, reject, trade, edit, contract, release, archetype, find-trades, rosters, report, reset, import-site, site, export.');
+      say('Unknown command ' + command + '. Commands: status, week, season, playoffs, resim, undo, standings, rankings, team, player, matchup, offseason, draft, draft-order, upload-draft, trades, approve, reject, trade, edit, contract, release, archetype, find-trades, rosters, report, reset, import-site, site, export.');
       done();
       return;
   }
@@ -459,7 +487,7 @@ function main() {
 
 function reset(world) {
   if (!force) { say('This starts the world over from the 2023 kickoff. Run "reset --force" to do it.'); return; }
-  const mine = /^(league|trades|games-\d+|stats-\d+|rosters-\d+|ratings-.+)\.json$/;
+  const mine = /^(league|trades|games-\d+|stats-\d+|rosters-\d+|ratings-.+|rewind-\d+-\d+)\.json$/;
   if (fs.existsSync(world)) {
     fs.readdirSync(world).filter((f) => mine.test(f)).forEach((f) => fs.unlinkSync(path.join(world, f)));
     fs.rmSync(path.join(world, 'reports'), { recursive: true, force: true });

@@ -60,8 +60,10 @@ parts.push(`
   }
 
   /* A world kept in memory: files is { name: JSON text }, filled from
-     Supabase and saved back by the page. dirty collects what changed. */
-  function memoryStore(files, dirty, site) {
+     Supabase and saved back by the page. dirty collects what changed (a
+     file removed is dirty and gone). live is the Supabase rows the six's
+     boosters and connections come from (lib/boosts.js). */
+  function memoryStore(files, dirty, site, live) {
     return {
       data: function (name) {
         if (!data[name]) { throw new Error('No ' + name + ' in the NFL sim.'); }
@@ -70,14 +72,16 @@ parts.push(`
       has: function (world, name) { return Object.prototype.hasOwnProperty.call(files, name); },
       read: function (world, name) { return JSON.parse(files[name]); },
       write: function (world, name, value) { files[name] = JSON.stringify(value); dirty[name] = true; },
-      site: function () { return site; }
+      remove: function (world, name) { delete files[name]; dirty[name] = true; },
+      site: function () { return site; },
+      live: function () { return live || {}; }
     };
   }
 
   window.EGE = window.EGE || {};
   window.EGE.nflSim = {
     /* Points the sim at a world held in memory, and the site at the page. */
-    use: function (files, dirty, site) { load('io').use(memoryStore(files, dirty, site || window.EGE)); },
+    use: function (files, dirty, site, live) { load('io').use(memoryStore(files, dirty, site || window.EGE, live)); },
     run: load('run'),
     site: load('site'),
     season: load('season'),
@@ -86,6 +90,7 @@ parts.push(`
     trades: load('trades'),
     draftPlan: load('draft-plan'),
     edits: load('edits'),
+    rewind: load('rewind'),
     history: load('history'),
     fit: load('fit'),
     tradeFinder: load('trade-finder')

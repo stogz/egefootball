@@ -2691,7 +2691,19 @@ has already put out as played (the six's games from their season file,
 everybody else's real scores) and the sim plays every NFL game after them.
 Then: play a week or on to the deadline / the end of the regular season, the
 playoffs a round at a time or all at once, the offseason and the draft (with
-a team and round for any of the six still in college). **Upload the {year}
+a team and round for any of the six still in college). Under Play, a week
+the sim has played this season (or a playoff round) can be picked and
+**Resim** plays it again on new dice, or **Undo** goes back to before it.
+Either way every week played after it is undone, and so is anything changed
+since (the week's entry says how many changes); a week that is out on the
+site, or one before it, can't be. Each week's save point is kept in
+`nfl_sim_files` as `rewind-{season}-{week}.json`, fetched only when it is
+used, and the offseason clears them. Before every step the six's boosters on
+their games (`game_boosters`, then the season file once a week is out) and
+their QB and O-Line Connections (`player_inventory`) are read for the sim:
+a booster makes a good game likelier (a 2.5x locks in a solid to great one),
+and a connection counts while that quarterback is playing (see
+`nfl-sim/README.md`, section 5). **Upload the {year}
 draft** takes the first rounds of the next draft written by hand, pasted or
 from a file (the Discord lists, `7. :CHI: Cooper Clark`; numbered lines; a
 CSV with Pick, Team and Player; or JSON), checks every pick against the order

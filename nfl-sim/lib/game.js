@@ -22,6 +22,12 @@
    Players get hurt during the game (more often the less durable they are)
    and the next man up plays the rest of it.
 
+   A connection one of the six bought on the site (`opts.links`, from
+   lib/boosts.js) counts while his quarterback is the one playing: a
+   receiver, back or tight end with it is looked for more and caught a
+   little more often, and a quarterback with his line is pressured and
+   sacked less. Its strength runs 0 to 1 at VI (CHEMISTRY).
+
    No back, receiver or tight end scores a fourth touchdown in a game (Sam's
    rule for the six, kept for everybody): once he has three he is not the
    one the ball goes to near the goal line, and anything that would have
@@ -73,6 +79,12 @@ const PRESSURE = { screen: -0.2, short: -0.1, mid: 0.03, deep: 0.09 };
    free, and a scheme pays off through the players who fit it. */
 const NORM = { pass: 0.552, short: 0.576, mid: 0.306, deep: 0.118, screen: 0.098 };
 const LEAN = { short: 0.3, mid: 0.8, deep: 1.2, screen: 0.5 };
+/* What a connection of strength 1 (VI) does: how much more he is looked
+   for (a tight end gets a Kelce's three targets in ten; a back, who starts
+   from far fewer, about three times his share), how much likelier a throw
+   to him is caught and how much less often it is picked off, and how much
+   less a quarterback with his line is pressured and sacked. */
+const CHEMISTRY = { looks: { WR: 1.15, TE: 1.15, RB: 2.2 }, complete: 0.04, picked: 0.3, pressure: 0.06, sacked: 0.3 };
 
 /* Injuries: what is hurt, by how long it keeps a player out. */
 const SEVERITY = [
@@ -100,8 +112,17 @@ function group(p) {
 
 /* ---------------------------------------------------------------- setup -- */
 
+/* A connection of the player's with this quarterback (or, for a
+   quarterback, with his line): its strength, or 0. */
+function chemistry(links, p, qb) {
+  const rows = links && p && links[p.id];
+  if (!rows) { return 0; }
+  const key = p === qb ? null : String(qb.name || '').toLowerCase().replace(/[^a-z]/g, '');
+  return rows.reduce((best, r) => (r.key === key && r.s > best ? r.s : best), 0);
+}
+
 /* The game-day lineup plus what the engine reads off it on every pass. */
-function prepare(day) {
+function prepare(day, links) {
   const T = day.offense.targets;
   const list = [
     [day.wrs[0], 'wr', 0, T.WR * 0.38], [day.wrs[1], 'wr', 1, T.WR * 0.33], [day.wrs[2], 'wr', 2, T.WR * 0.29],
@@ -112,7 +133,8 @@ function prepare(day) {
   if (day.rbs[1]) { list.push([day.rbs[1], 'rb', 1, T.RB * 0.32]); }
   day.targets = list.map(([p, slot, i, share]) => {
     const g = group(p);
-    const t = { p, slot, i, share, group: g, after: blend(p, AFTER[g]), speed: skill(p, g === 'RB' ? 'speed' : 'speed'), catch: {} };
+    const t = { p, slot, i, share, group: g, after: blend(p, AFTER[g]), speed: skill(p, g === 'RB' ? 'speed' : 'speed'), catch: {},
+                chem: chemistry(links, p, day.qb) };
     ['screen', 'short', 'mid', 'deep'].forEach((kind) => { t.catch[kind] = blend(p, CATCH[g][kind]); });
     return t;
   });
@@ -121,18 +143,19 @@ function prepare(day) {
   day.highSafety = Math.max(skill(day.s[0], 'range'), skill(day.s[1], 'range'));
   day.lbCover = (skill(day.lb[0], 'cover') + skill(day.lb[1], 'cover')) / 2;
   day.rushers = day.edge.concat(day.di);
+  day.protect = chemistry(links, day.qb, day.qb);
   return day;
 }
 
-function makeSide(entry, idx) {
-  const s = { idx, team: entry.team, roster: entry.roster, out: new Set(), timeouts: 3, day: null };
+function makeSide(entry, idx, links) {
+  const s = { idx, team: entry.team, roster: entry.roster, out: new Set(), timeouts: 3, day: null, links: links || null };
   refresh(s);
   return s;
 }
 
 function refresh(s) {
   const roster = s.out.size ? s.roster.filter((p) => !s.out.has(p.id)) : s.roster;
-  s.day = prepare(gameDay(s.team, roster));
+  s.day = prepare(gameDay(s.team, roster), s.links);
 }
 
 function teamStats() {
@@ -686,7 +709,8 @@ function twoHighChance(def, O) {
 
 function pickTarget(O, kind, rng, skip) {
   const list = skip ? O.targets.filter((t) => !skip(t.p)) : O.targets;
-  return rng.pick(list.length ? list : O.targets, (t) => t.share * SUIT[t.group][kind] * Math.exp((t.catch[kind] - MID) / 45));
+  return rng.pick(list.length ? list : O.targets, (t) => t.share * SUIT[t.group][kind] * Math.exp((t.catch[kind] - MID) / 45) *
+    (1 + CHEMISTRY.looks[t.group] * t.chem));
 }
 
 /* Who covers the target, and how well, for this call. */
@@ -773,12 +797,14 @@ function pass(g, mode) {
   const mob = skill(qb, 'mobility');
   const pPress = clamp(0.3 + 0.006 * (D.passRush - O.passBlock) + (blitz ? 0.1 : 0) + PRESSURE[kind] + (pa ? 0.03 : 0) +
                        0.4 * (off.pass - NORM.pass) -
-                       0.002 * (poise - MID) - 0.006 * edge, 0.06, 0.65);
+                       0.002 * (poise - MID) - 0.006 * edge - CHEMISTRY.pressure * O.protect,
+                       0.06 - 0.02 * Math.min(1, O.protect), 0.65);
   const pressured = rng() < pPress;
   if (pressured) {
     st.pressures += 1;
     hurt(g, o, qb, 0.0025);
-    const pSack = clamp(0.22 - 0.004 * (poise - MID) - 0.003 * (mob - MID) + (blitz ? 0.02 : 0) + (kind === 'deep' ? 0.04 : 0), 0.06, 0.45);
+    const pSack = clamp(0.22 - 0.004 * (poise - MID) - 0.003 * (mob - MID) + (blitz ? 0.02 : 0) + (kind === 'deep' ? 0.04 : 0), 0.06, 0.45) *
+                  (1 - CHEMISTRY.sacked * O.protect);
     const pScramble = kind === 'screen' ? 0 : clamp(0.12 + 0.006 * (mob - MID), 0.02, 0.35);
     const x = rng();
     if (x < pSack) { sack(g, blitz); return; }
@@ -819,7 +845,7 @@ function pass(g, mode) {
   const qbSkill = blend(qb, THROW[kind]);
   const rec = t.catch[kind];
   let pComp = COMPLETE[kind] + 0.0032 * (qbSkill - MID) + 0.0032 * (rec - cov) + (pa ? 0.035 : 0) +
-              (blitz && !pressured ? 0.03 : 0) + 0.0048 * edge - LEAN[kind] * (off[kind] - NORM[kind]);
+              (blitz && !pressured ? 0.03 : 0) + 0.0048 * edge - LEAN[kind] * (off[kind] - NORM[kind]) + CHEMISTRY.complete * t.chem;
   if (pressured) { pComp -= 0.15 - 0.003 * (poise - MID); }
   /* A short field is a crowded one. */
   if (room <= 20 && kind !== 'screen') { pComp -= room <= 10 ? 0.08 : 0.04; }
@@ -827,7 +853,7 @@ function pass(g, mode) {
   const decision = 0.6 * poise + 0.4 * skill(qb, 'accuracy');
   const hands = 0.5 * skill(defender, defender.pos === 'LB' ? 'cover' : 'ball') + 0.5 * D.ballSkills;
   const pInt = clamp(PICKED[kind] * Math.exp(-(decision - MID) / 36) * Math.exp((hands - MID) / 32) *
-                     Math.exp(-(rec - cov) / 55) * (pressured ? 1.6 : 1), 0.001, 0.15);
+                     Math.exp(-(rec - cov) / 55) * (pressured ? 1.6 : 1) * (1 - CHEMISTRY.picked * Math.min(1, t.chem)), 0.001, 0.15);
   const x = rng();
   let air = airYards(kind, rng, room);
 
@@ -1154,8 +1180,8 @@ function endQuarter(g) {
 }
 
 /* Plays one game. `home` and `away` are { team, roster }; `opts` takes
-   `playoff` (overtime until somebody wins), `neutral` (no home edge) and
-   `noInjuries`. Returns the score, team stats, every player's box score,
+   `playoff` (overtime until somebody wins), `neutral` (no home edge),
+   `noInjuries` and `links` (connections, by player id). Returns the score, team stats, every player's box score,
    the scoring plays and who got hurt. */
 function playGame(home, away, rng, opts) {
   opts = opts || {};
@@ -1163,7 +1189,7 @@ function playGame(home, away, rng, opts) {
     rng,
     opts,
     playoff: !!opts.playoff,
-    sides: [makeSide(home, 0), makeSide(away, 1)],
+    sides: [makeSide(home, 0, opts.links), makeSide(away, 1, opts.links)],
     score: [0, 0],
     qtr: 1,
     clock: QUARTER,

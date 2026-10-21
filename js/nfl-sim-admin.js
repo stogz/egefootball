@@ -16,7 +16,13 @@
    The world -- every player, the games, the trade queue, and everything the
    sim knows about how good a team is -- is kept in Supabase, in
    nfl_sim_files, which only an admin can read. Team ratings are never shown
-   here or anywhere on the site.
+   here or anywhere on the site. So are the save points of the weeks played
+   this season (rewind-{season}-{week}.json, lib/rewind.js), which are not
+   loaded with the world: one is fetched only to resim or undo its week.
+
+   Before every step the six's boosters on their games (game_boosters) and
+   their connections (player_inventory) are read for the sim
+   (lib/boosts.js).
 
    The sim itself is js/nfl-sim.js (built by nfl-sim/build/bundle.js), about
    1.4 MB, loaded the first time the tab is opened. Each step reads the
@@ -38,6 +44,7 @@ EGE.nflSimAdmin = (function () {
   var SEED = 'ege-nfl';
   var WORLD = 'supabase';
   var PUBLISH_KEY = 'ege.nflSim.publishRosters';
+  var SAVE_POINT = /^rewind-/;
 
   var state = {
     files: null,          /* name -> JSON text, once loaded */
@@ -49,6 +56,8 @@ EGE.nflSimAdmin = (function () {
     error: null,
     upload: { text: '', checked: null, showSaved: false },  /* a draft written by hand, before it is kept */
     deal: null,           /* the trade builder's two sides */
+    live: null,           /* the six's boosters and connections, read before each step */
+    again: '',            /* the week picked to resim or undo */
     editor: { group: '', id: '' },
     rosters: { team: '', season: null }
   };
@@ -151,9 +160,9 @@ EGE.nflSimAdmin = (function () {
   function loadWorld() {
     var c = client();
     if (!c) { return Promise.reject(new Error('Not connected to Supabase.')); }
-    return c.from(FILES).select('name, body, updated_at').then(function (res) {
+    return c.from(FILES).select('name, body, updated_at').not('name', 'like', 'rewind-%').then(function (res) {
       if (res.error) { throw new Error(schemaHint(res.error.message)); }
-      return Promise.all((res.data || []).map(function (row) {
+      return Promise.all((res.data || []).filter(function (row) { return !SAVE_POINT.test(row.name); }).map(function (row) {
         return unpack(row.body).then(function (text) { return { name: row.name, text: text, at: row.updated_at }; });
       }));
     }).then(function (rows) {
@@ -168,31 +177,79 @@ EGE.nflSimAdmin = (function () {
   }
 
   /* Only what changed, and only if nobody has saved the world from
-     somewhere else since this page loaded it. */
+     somewhere else since this page loaded it. Save points go first, one at
+     a time (each is the size of the league), and then leave the page's
+     memory; the files the step removed go last. */
   function saveWorld() {
     var names = Object.keys(state.dirty);
     if (!names.length) { return Promise.resolve(); }
     var c = client();
     if (!c) { return Promise.reject(new Error('Not connected to Supabase.')); }
+    var kept = names.filter(function (name) { return state.files[name] !== undefined; });
+    var gone = names.filter(function (name) { return state.files[name] === undefined; });
+    var points = kept.filter(function (name) { return SAVE_POINT.test(name); });
+    var world = kept.filter(function (name) { return !SAVE_POINT.test(name); });
+    var now = new Date().toISOString();
+    function row(name) {
+      return pack(state.files[name]).then(function (body) { return { name: name, body: body, updated_at: now }; });
+    }
     note('Saving…');
     return c.from(FILES).select('name, updated_at').then(function (res) {
       if (res.error) { throw new Error(schemaHint(res.error.message)); }
-      var moved = (res.data || []).some(function (row) { return state.stamps[row.name] !== row.updated_at; });
+      var moved = (res.data || []).some(function (r) { return !SAVE_POINT.test(r.name) && state.stamps[r.name] !== r.updated_at; });
       if (moved) {
         throw new Error('The world was saved from another tab or device since this page loaded it. ' +
           'Reload the page and try again; nothing from this step was kept.');
       }
-      var now = new Date().toISOString();
-      return Promise.all(names.map(function (name) {
-        return pack(state.files[name]).then(function (body) { return { name: name, body: body, updated_at: now }; });
-      }));
+      return points.reduce(function (chain, name) {
+        return chain.then(function () { return row(name); }).then(function (r) {
+          return c.from(FILES).upsert([r], { onConflict: 'name' });
+        }).then(function (res) {
+          if (res.error) { throw new Error(schemaHint(res.error.message)); }
+        });
+      }, Promise.resolve());
+    }).then(function () {
+      return Promise.all(world.map(row));
     }).then(function (rows) {
-      return c.from(FILES).upsert(rows, { onConflict: 'name' }).select('name, updated_at');
+      return rows.length ? c.from(FILES).upsert(rows, { onConflict: 'name' }).select('name, updated_at') : { data: [] };
     }).then(function (res) {
       if (res.error) { throw new Error(schemaHint(res.error.message)); }
-      (res.data || []).forEach(function (row) { state.stamps[row.name] = row.updated_at; });
+      (res.data || []).forEach(function (r) { state.stamps[r.name] = r.updated_at; });
+      return gone.length ? c.from(FILES).delete().in('name', gone) : { error: null };
+    }).then(function (res) {
+      if (res.error) { throw new Error(schemaHint(res.error.message)); }
+      gone.forEach(function (name) { delete state.stamps[name]; });
+      Object.keys(state.files).forEach(function (name) { if (SAVE_POINT.test(name)) { delete state.files[name]; } });
       state.dirty = {};
       note('Saved ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + '.');
+    });
+  }
+
+  /* A week's save point, into the page's memory for the step that undoes
+     it. */
+  function fetchSavePoint(name) {
+    var c = client();
+    if (!c) { return Promise.reject(new Error('Not connected to Supabase.')); }
+    return c.from(FILES).select('name, body').eq('name', name).maybeSingle().then(function (res) {
+      if (res.error) { throw new Error(schemaHint(res.error.message)); }
+      if (!res.data) { throw new Error('That week’s save point is missing.'); }
+      return unpack(res.data.body);
+    }).then(function (text) { state.files[name] = text; });
+  }
+
+  /* The six's boosters on games still to come and their connections, as
+     Supabase has them now. A step does not play without them. */
+  function loadLive() {
+    var c = client();
+    if (!c) { return Promise.reject(new Error('Not connected to Supabase.')); }
+    return Promise.all([
+      c.from('game_boosters').select('email, season, week, item_key'),
+      c.from('player_inventory').select('email, item_key, item_name, target, quantity, active').eq('item_key', 'qb-connection')
+    ]).then(function (got) {
+      got.forEach(function (res) {
+        if (res.error) { throw new Error('Could not read the boosters and connections: ' + res.error.message); }
+      });
+      state.live = { boosters: got[0].data || [], inventory: got[1].data || [] };
     });
   }
 
@@ -213,7 +270,7 @@ EGE.nflSimAdmin = (function () {
 
   /* The league as saved, read fresh: what every step starts from. */
   function openLeague() {
-    sim().use(state.files, state.dirty, EGE);
+    sim().use(state.files, state.dirty, EGE, state.live);
     return sim().run.open(WORLD, SEED);
   }
 
@@ -221,14 +278,17 @@ EGE.nflSimAdmin = (function () {
 
   /* Runs `fn(league)` and keeps what it did: the league and every file it
      wrote saved, the rosters published. Anything that throws -- the sim
-     refusing, or the save -- leaves the world as it was. */
-  function step(fn) {
+     refusing, or the save -- leaves the world as it was. `first` is a file
+     to fetch before it (a save point). */
+  function step(fn, first) {
     if (state.busy) { return Promise.resolve(); }
     state.busy = true;
     state.error = null;
     draw();
     var before = Object.assign({}, state.files);
     return new Promise(function (resolve) { window.setTimeout(resolve, 30); }).then(function () {
+      return Promise.all([loadLive(), first ? fetchSavePoint(first) : null]);
+    }).then(function () {
       var league = openLeague();
       var made = fn(league);
       sim().run.save(league);
@@ -267,6 +327,9 @@ EGE.nflSimAdmin = (function () {
   function weekLines(r) {
     var lines = [(r.round || 'Week ' + r.week) + ': ' + r.games.map(scoreLine).join(', ')];
     lines = lines.concat(injuryLines(r.injuries || []));
+    (r.boosted || []).forEach(function (b) {
+      lines.push('Booster: ' + b.name + ' ' + b.multiplier.toFixed(1) + 'x, ' + b.points + ' FPTS');
+    });
     if (r.deadline) { lines.push('The trade deadline is open: ' + r.deadline + ' proposals are waiting below.'); }
     return lines;
   }
@@ -409,7 +472,52 @@ EGE.nflSimAdmin = (function () {
       drawDraft(part, r, league);
     }
     part.appendChild(r);
+    drawAgain(part, league);
     body.appendChild(part);
+  }
+
+  /* A week played this season, picked to play again on new dice or to go
+     back to before it. Weeks after it are undone either way, and so is
+     anything changed since; nothing from before a week that is out on the
+     site can be. */
+  function drawAgain(part, league) {
+    var points = sim().run.savePoints(league);
+    if (!points.length) { return; }
+    var r = row();
+    var label = el('label', 'ege-field ege-field--inline');
+    var pick = el('select', 'fb-select');
+    pick.setAttribute('aria-label', 'Week to resim');
+    points.forEach(function (p) {
+      var option = el('option', null, p.label + (p.changes ? ' · undoes ' + p.changes + (p.changes === 1 ? ' change' : ' changes') : ''));
+      option.value = p.week;
+      pick.appendChild(option);
+    });
+    if (points.some(function (p) { return String(p.week) === state.again; })) { pick.value = state.again; }
+    pick.addEventListener('change', function () { state.again = pick.value; });
+    label.appendChild(pick);
+    r.appendChild(label);
+    function file() { return sim().rewind.fileFor(league.season, Number(pick.value)); }
+    r.appendChild(button('Resim', false, function () {
+      state.again = pick.value;
+      step(function (l) {
+        var got = sim().run.resim(l, Number(pick.value));
+        return { title: got.undone.label + ' again', lines: weekLines(got.played).concat(undoneLines(got.undone)) };
+      }, file());
+    }));
+    r.appendChild(button('Undo', false, function () {
+      step(function (l) {
+        var got = sim().run.undo(l, Number(pick.value));
+        return { title: 'Back to before ' + got.label, lines: undoneLines(got) };
+      }, file());
+    }));
+    part.appendChild(r);
+  }
+
+  function undoneLines(u) {
+    var lines = [];
+    if (u.later.length) { lines.push('Undone too: ' + u.later.join(', ') + '.'); }
+    if (u.changes) { lines.push('Undone: ' + u.changes + (u.changes === 1 ? ' change' : ' changes') + ' made since.'); }
+    return lines;
   }
 
   /* Any of the six not in the league yet, or in an uploaded draft, can be

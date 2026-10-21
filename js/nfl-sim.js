@@ -373,6 +373,162 @@ module.exports = { assess, describe, nickname };
 
   };
 
+  sources["boosts"] = function (module, exports, require, __dirname) {
+/* ==========================================================================
+   EGE Football NFL sim — what the six bring to a game from the website
+   Two things the six buy on the site change how their games are played:
+
+   - A booster on a game (1.5x, 2.0x, 2.5x). It does not make him play
+     twice as well; it makes a good game likelier. The game is played more
+     than once and one version is kept: with a 1.5x the better of two for
+     him, with a 2.0x the best of three, and with a 2.5x one of his best
+     four of twelve, which locks in a solid to great game without handing
+     him his best one every time. Whether any of the six gets hurt is
+     settled by the first version, so a booster never keeps anybody
+     healthy. Wagers are not boosters and change nothing here.
+   - A connection: QB Connection with his quarterback (more targets, a
+     little more often caught), or a quarterback's O-Line Connection (fewer
+     pressures and sacks). It counts only while that quarterback is the
+     one playing. What a level is worth snowballs (strength): next to
+     nothing at I and II, noticeable from IV, and at VI a Mahomes and
+     Kelce connection where the ball keeps finding him. Past VI it still
+     grows, by less each time. lib/game.js uses it.
+
+   A booster is read from the season file once its week is out (where the
+   admin wrote it), and from Supabase's game_boosters before that; the
+   connections from player_inventory. The Supabase rows come through
+   io.live(): the admin page reads them before every step.
+   ========================================================================== */
+
+'use strict';
+
+const io = require('./io');
+
+const MULTIPLIERS = { 'boost-1-5': 1.5, 'boost-2-0': 2, 'boost-2-5': 2.5 };
+
+/* How many times a boosted game is played, and how many of his best of
+   those the kept one is picked from. */
+const TRIES = { 1.5: [2, 1], 2: [3, 1], 2.5: [12, 4] };
+
+/* Fantasy points, as data/economy.js scores them, off a box score line. */
+function fantasyPoints(line) {
+  if (!line) { return 0; }
+  return (line.passYds || 0) / 25 + (line.passTd || 0) * 4 - (line.passInt || 0) * 2 +
+    (line.rushYds || 0) / 10 + (line.rushTd || 0) * 6 + (line.recYds || 0) / 10 + (line.recTd || 0) * 6 +
+    (line.rec || 0) * 0.5 - (line.fumLost || 0) * 2;
+}
+
+/* What a connection level is worth, 0 to 1 at VI and a little past it
+   after. Each level is worth about 1.7 times the one before. */
+function strength(level) {
+  const n = Math.max(0, Math.floor(Number(level) || 0));
+  if (n <= 6) { return (Math.exp(0.55 * n) - 1) / (Math.exp(0.55 * 6) - 1); }
+  return 1 + 0.25 * (1 - Math.pow(0.6, n - 6));
+}
+
+/* A quarterback named the same way however it was typed. */
+function nameKey(name) { return String(name || '').toLowerCase().replace(/[^a-z]/g, ''); }
+
+/* Which quarterback an inventory row is with: `target`, or the name after
+   the dash in an old row's title (EGE.connectionQuarterback). */
+function quarterbackOf(row) {
+  if (row.target) { return row.target; }
+  const parts = String(row.item_name || '').split(' — ');
+  return parts.length > 1 ? parts.slice(1).join(' — ') : null;
+}
+
+/* Everything the six have on this season's games and with their
+   quarterbacks and lines: { boosters: { slug: { week: 1.5 } },
+   links: { playerId: [{ qb: name or null for the line, level, s }] } }. */
+function read(league) {
+  let site = null;
+  try { site = io.site(); } catch (err) { site = null; }
+  const live = io.live(league.world) || {};
+  const slugOf = {};
+  const position = {};
+  ((site && site.players) || []).forEach((p) => {
+    if (p.email) { slugOf[p.email.toLowerCase()] = p.slug; }
+    position[p.slug] = p.position;
+  });
+  const games = site && site.stats && site.stats[league.season] ? site.stats[league.season].games || {} : {};
+  const boosters = {};
+  Object.keys(games).forEach((slug) => (games[slug] || []).forEach((g) => {
+    if (MULTIPLIERS[g.booster]) { (boosters[slug] = boosters[slug] || {})[g.week] = MULTIPLIERS[g.booster]; }
+  }));
+  (live.boosters || []).forEach((r) => {
+    const slug = slugOf[String(r.email || '').toLowerCase()];
+    const week = Number(r.week);
+    if (!slug || Number(r.season) !== league.season || !MULTIPLIERS[r.item_key]) { return; }
+    const written = (games[slug] || []).filter((g) => g.week === week)[0];
+    if (written && written.booster) { return; }
+    (boosters[slug] = boosters[slug] || {})[week] = MULTIPLIERS[r.item_key];
+  });
+  const links = {};
+  (live.inventory || []).forEach((r) => {
+    const slug = slugOf[String(r.email || '').toLowerCase()];
+    if (!slug || r.item_key !== 'qb-connection' || r.active === false) { return; }
+    const level = typeof r.quantity === 'number' ? r.quantity : 1;
+    const qb = position[slug] === 'QB' ? null : quarterbackOf(r);
+    if (position[slug] !== 'QB' && !qb) { return; }
+    (links['ege:' + slug] = links['ege:' + slug] || []).push({ qb, key: qb ? nameKey(qb) : null, level, s: strength(level) });
+  });
+  return { boosters, links };
+}
+
+/* The boosters on a game, for the six in it who are healthy going in:
+   [{ id, slug, name, multiplier }]. */
+function onGame(extras, game, rosters) {
+  const out = [];
+  rosters.forEach((roster) => roster.forEach((p) => {
+    if (!p.ege || (p.injury && p.injury.games > 0)) { return; }
+    const m = (extras.boosters[p.ege] || {})[game.week];
+    if (m) { out.push({ id: p.id, slug: p.ege, name: p.name, multiplier: m }); }
+  }));
+  return out;
+}
+
+/* Which of the six a version of the game hurt. */
+function hurtIn(result) {
+  return result.injuries.filter((i) => i.ege).map((i) => i.id).sort().join('|');
+}
+
+/* Each version's place for these players, 0 (worst) to 1 (best), on their
+   fantasy points, averaged over them. */
+function places(versions, boosted) {
+  const n = versions.length;
+  const total = versions.map(() => 0);
+  boosted.forEach((b) => {
+    const points = versions.map((v) => fantasyPoints(v.box[b.id]));
+    points.forEach((x, i) => {
+      const below = points.filter((y) => y < x).length;
+      const same = points.filter((y) => y === x).length - 1;
+      total[i] += n > 1 ? (below + same / 2) / (n - 1) : 1;
+    });
+  });
+  return total.map((t) => t / boosted.length);
+}
+
+/* The version of a boosted game that is kept. `first` is the game as
+   played; `again()` plays it once more; `rng` picks among the best. */
+function choose(first, again, boosted, rng) {
+  const top = Math.max.apply(null, boosted.map((b) => b.multiplier));
+  const [tries, best] = TRIES[top] || [1, 1];
+  const versions = [first];
+  const hurt = hurtIn(first);
+  for (let i = 1; i < tries; i += 1) {
+    const v = again();
+    if (hurtIn(v) === hurt) { versions.push(v); }
+  }
+  const place = places(versions, boosted);
+  const order = versions.map((v, i) => i).sort((a, b) => place[b] - place[a] || a - b);
+  const band = Math.max(1, Math.round(best * versions.length / tries));
+  return versions[order[Math.floor(rng() * band)]];
+}
+
+module.exports = { read, onGame, choose, strength, fantasyPoints, nameKey, MULTIPLIERS, TRIES };
+
+  };
+
   sources["draft-plan"] = function (module, exports, require, __dirname) {
 /* ==========================================================================
    EGE Football NFL sim — a draft written by hand
@@ -1652,6 +1808,12 @@ module.exports = { playerFit, teamFit, forTeam, starsFrom };
    Players get hurt during the game (more often the less durable they are)
    and the next man up plays the rest of it.
 
+   A connection one of the six bought on the site (`opts.links`, from
+   lib/boosts.js) counts while his quarterback is the one playing: a
+   receiver, back or tight end with it is looked for more and caught a
+   little more often, and a quarterback with his line is pressured and
+   sacked less. Its strength runs 0 to 1 at VI (CHEMISTRY).
+
    No back, receiver or tight end scores a fourth touchdown in a game (Sam's
    rule for the six, kept for everybody): once he has three he is not the
    one the ball goes to near the goal line, and anything that would have
@@ -1703,6 +1865,12 @@ const PRESSURE = { screen: -0.2, short: -0.1, mid: 0.03, deep: 0.09 };
    free, and a scheme pays off through the players who fit it. */
 const NORM = { pass: 0.552, short: 0.576, mid: 0.306, deep: 0.118, screen: 0.098 };
 const LEAN = { short: 0.3, mid: 0.8, deep: 1.2, screen: 0.5 };
+/* What a connection of strength 1 (VI) does: how much more he is looked
+   for (a tight end gets a Kelce's three targets in ten; a back, who starts
+   from far fewer, about three times his share), how much likelier a throw
+   to him is caught and how much less often it is picked off, and how much
+   less a quarterback with his line is pressured and sacked. */
+const CHEMISTRY = { looks: { WR: 1.15, TE: 1.15, RB: 2.2 }, complete: 0.04, picked: 0.3, pressure: 0.06, sacked: 0.3 };
 
 /* Injuries: what is hurt, by how long it keeps a player out. */
 const SEVERITY = [
@@ -1730,8 +1898,17 @@ function group(p) {
 
 /* ---------------------------------------------------------------- setup -- */
 
+/* A connection of the player's with this quarterback (or, for a
+   quarterback, with his line): its strength, or 0. */
+function chemistry(links, p, qb) {
+  const rows = links && p && links[p.id];
+  if (!rows) { return 0; }
+  const key = p === qb ? null : String(qb.name || '').toLowerCase().replace(/[^a-z]/g, '');
+  return rows.reduce((best, r) => (r.key === key && r.s > best ? r.s : best), 0);
+}
+
 /* The game-day lineup plus what the engine reads off it on every pass. */
-function prepare(day) {
+function prepare(day, links) {
   const T = day.offense.targets;
   const list = [
     [day.wrs[0], 'wr', 0, T.WR * 0.38], [day.wrs[1], 'wr', 1, T.WR * 0.33], [day.wrs[2], 'wr', 2, T.WR * 0.29],
@@ -1742,7 +1919,8 @@ function prepare(day) {
   if (day.rbs[1]) { list.push([day.rbs[1], 'rb', 1, T.RB * 0.32]); }
   day.targets = list.map(([p, slot, i, share]) => {
     const g = group(p);
-    const t = { p, slot, i, share, group: g, after: blend(p, AFTER[g]), speed: skill(p, g === 'RB' ? 'speed' : 'speed'), catch: {} };
+    const t = { p, slot, i, share, group: g, after: blend(p, AFTER[g]), speed: skill(p, g === 'RB' ? 'speed' : 'speed'), catch: {},
+                chem: chemistry(links, p, day.qb) };
     ['screen', 'short', 'mid', 'deep'].forEach((kind) => { t.catch[kind] = blend(p, CATCH[g][kind]); });
     return t;
   });
@@ -1751,18 +1929,19 @@ function prepare(day) {
   day.highSafety = Math.max(skill(day.s[0], 'range'), skill(day.s[1], 'range'));
   day.lbCover = (skill(day.lb[0], 'cover') + skill(day.lb[1], 'cover')) / 2;
   day.rushers = day.edge.concat(day.di);
+  day.protect = chemistry(links, day.qb, day.qb);
   return day;
 }
 
-function makeSide(entry, idx) {
-  const s = { idx, team: entry.team, roster: entry.roster, out: new Set(), timeouts: 3, day: null };
+function makeSide(entry, idx, links) {
+  const s = { idx, team: entry.team, roster: entry.roster, out: new Set(), timeouts: 3, day: null, links: links || null };
   refresh(s);
   return s;
 }
 
 function refresh(s) {
   const roster = s.out.size ? s.roster.filter((p) => !s.out.has(p.id)) : s.roster;
-  s.day = prepare(gameDay(s.team, roster));
+  s.day = prepare(gameDay(s.team, roster), s.links);
 }
 
 function teamStats() {
@@ -2316,7 +2495,8 @@ function twoHighChance(def, O) {
 
 function pickTarget(O, kind, rng, skip) {
   const list = skip ? O.targets.filter((t) => !skip(t.p)) : O.targets;
-  return rng.pick(list.length ? list : O.targets, (t) => t.share * SUIT[t.group][kind] * Math.exp((t.catch[kind] - MID) / 45));
+  return rng.pick(list.length ? list : O.targets, (t) => t.share * SUIT[t.group][kind] * Math.exp((t.catch[kind] - MID) / 45) *
+    (1 + CHEMISTRY.looks[t.group] * t.chem));
 }
 
 /* Who covers the target, and how well, for this call. */
@@ -2403,12 +2583,14 @@ function pass(g, mode) {
   const mob = skill(qb, 'mobility');
   const pPress = clamp(0.3 + 0.006 * (D.passRush - O.passBlock) + (blitz ? 0.1 : 0) + PRESSURE[kind] + (pa ? 0.03 : 0) +
                        0.4 * (off.pass - NORM.pass) -
-                       0.002 * (poise - MID) - 0.006 * edge, 0.06, 0.65);
+                       0.002 * (poise - MID) - 0.006 * edge - CHEMISTRY.pressure * O.protect,
+                       0.06 - 0.02 * Math.min(1, O.protect), 0.65);
   const pressured = rng() < pPress;
   if (pressured) {
     st.pressures += 1;
     hurt(g, o, qb, 0.0025);
-    const pSack = clamp(0.22 - 0.004 * (poise - MID) - 0.003 * (mob - MID) + (blitz ? 0.02 : 0) + (kind === 'deep' ? 0.04 : 0), 0.06, 0.45);
+    const pSack = clamp(0.22 - 0.004 * (poise - MID) - 0.003 * (mob - MID) + (blitz ? 0.02 : 0) + (kind === 'deep' ? 0.04 : 0), 0.06, 0.45) *
+                  (1 - CHEMISTRY.sacked * O.protect);
     const pScramble = kind === 'screen' ? 0 : clamp(0.12 + 0.006 * (mob - MID), 0.02, 0.35);
     const x = rng();
     if (x < pSack) { sack(g, blitz); return; }
@@ -2449,7 +2631,7 @@ function pass(g, mode) {
   const qbSkill = blend(qb, THROW[kind]);
   const rec = t.catch[kind];
   let pComp = COMPLETE[kind] + 0.0032 * (qbSkill - MID) + 0.0032 * (rec - cov) + (pa ? 0.035 : 0) +
-              (blitz && !pressured ? 0.03 : 0) + 0.0048 * edge - LEAN[kind] * (off[kind] - NORM[kind]);
+              (blitz && !pressured ? 0.03 : 0) + 0.0048 * edge - LEAN[kind] * (off[kind] - NORM[kind]) + CHEMISTRY.complete * t.chem;
   if (pressured) { pComp -= 0.15 - 0.003 * (poise - MID); }
   /* A short field is a crowded one. */
   if (room <= 20 && kind !== 'screen') { pComp -= room <= 10 ? 0.08 : 0.04; }
@@ -2457,7 +2639,7 @@ function pass(g, mode) {
   const decision = 0.6 * poise + 0.4 * skill(qb, 'accuracy');
   const hands = 0.5 * skill(defender, defender.pos === 'LB' ? 'cover' : 'ball') + 0.5 * D.ballSkills;
   const pInt = clamp(PICKED[kind] * Math.exp(-(decision - MID) / 36) * Math.exp((hands - MID) / 32) *
-                     Math.exp(-(rec - cov) / 55) * (pressured ? 1.6 : 1), 0.001, 0.15);
+                     Math.exp(-(rec - cov) / 55) * (pressured ? 1.6 : 1) * (1 - CHEMISTRY.picked * Math.min(1, t.chem)), 0.001, 0.15);
   const x = rng();
   let air = airYards(kind, rng, room);
 
@@ -2784,8 +2966,8 @@ function endQuarter(g) {
 }
 
 /* Plays one game. `home` and `away` are { team, roster }; `opts` takes
-   `playoff` (overtime until somebody wins), `neutral` (no home edge) and
-   `noInjuries`. Returns the score, team stats, every player's box score,
+   `playoff` (overtime until somebody wins), `neutral` (no home edge),
+   `noInjuries` and `links` (connections, by player id). Returns the score, team stats, every player's box score,
    the scoring plays and who got hurt. */
 function playGame(home, away, rng, opts) {
   opts = opts || {};
@@ -2793,7 +2975,7 @@ function playGame(home, away, rng, opts) {
     rng,
     opts,
     playoff: !!opts.playoff,
-    sides: [makeSide(home, 0), makeSide(away, 1)],
+    sides: [makeSide(home, 0, opts.links), makeSide(away, 1, opts.links)],
     score: [0, 0],
     qtr: 1,
     clock: QUARTER,
@@ -2943,8 +3125,16 @@ module.exports = { keep, snapshot, seasons, rostersIn, changes };
    the browser.
 
    A store is { data(name), has(world, name), read(world, name),
-   write(world, name, value), site() }. data() and read() hand back a fresh
-   copy every time, because the sim changes what it is given.
+   write(world, name, value), remove(world, name), site(), live(world) }.
+   data() and read() hand back a fresh copy every time, because the sim
+   changes what it is given.
+
+   live() is what the six have riding on their games that only Supabase
+   knows: the boosters stuck on games still to come (game_boosters rows) and
+   their connections (player_inventory rows), lib/boosts.js. The admin page
+   reads them before every step; on the command line a live.json in the
+   world folder, { boosters: [...], inventory: [...] } in the same rows,
+   stands in for them.
    ========================================================================== */
 
 'use strict';
@@ -2968,6 +3158,11 @@ function fileStore() {
       const file = path.join(world, name);
       fs.writeFileSync(file + '.tmp', JSON.stringify(value));
       fs.renameSync(file + '.tmp', file);
+    },
+    remove(world, name) { fs.rmSync(path.join(world, name), { force: true }); },
+    live(world) {
+      const file = path.join(world, 'live.json');
+      return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : {};
     },
     /* The website's EGE object, loaded the way tools/ load it: the data,
        every season file, the season helpers and the file writer. */
@@ -3000,7 +3195,9 @@ module.exports = {
   has: (world, name) => get().has(world, name),
   read: (world, name) => get().read(world, name),
   write: (world, name, value) => get().write(world, name, value),
-  site: () => get().site()
+  remove: (world, name) => get().remove(world, name),
+  site: () => get().site(),
+  live: (world) => (get().live ? get().live(world) || {} : {})
 };
 
   };
@@ -3046,6 +3243,12 @@ function worldDir(explicit) {
 function loadLeague(world) {
   const league = io.has(world, 'league.json') ? io.read(world, 'league.json') : io.data('league-2023.json');
   league.world = world;
+  return ready(league);
+}
+
+/* What every load does to the league as saved: pay filled in, the six read
+   from the site, the lookups built. */
+function ready(league) {
   fillPay(league);
   syncSix(league);
   index(league);
@@ -3063,13 +3266,16 @@ function fillPay(league) {
   });
 }
 
-function saveLeague(league) {
+/* The league as it is saved, without the folder and the lookups. */
+function saved(league) {
   const out = Object.assign({}, league);
   delete out.world;
   delete out.byId;
   delete out.byTeam;
-  io.write(league.world, 'league.json', out);
+  return out;
 }
+
+function saveLeague(league) { io.write(league.world, 'league.json', saved(league)); }
 
 /* Lookups rebuilt after anything moves. */
 function index(league) {
@@ -3103,7 +3309,7 @@ function teamOf(league, key) { return league.teams.find((t) => t.key === key); }
 function rosterOf(league, key) { return league.byTeam.get(key) || []; }
 function side(league, key) { return { team: teamOf(league, key), roster: rosterOf(league, key) }; }
 
-module.exports = { loadLeague, saveLeague, index, syncSix, teamOf, rosterOf, side, worldDir };
+module.exports = { loadLeague, saveLeague, saved, ready, index, syncSix, teamOf, rosterOf, side, worldDir };
 
   };
 
@@ -3544,6 +3750,115 @@ module.exports = { startOffseason, finishOffseason, firstModes, the99s, fits, ag
 
   };
 
+  sources["rewind"] = function (module, exports, require, __dirname) {
+/* ==========================================================================
+   EGE Football NFL sim — playing a week again
+   Before the sim plays a week (or a playoff round), the league as it stands
+   and the trade queue are kept in the world as that week's save point,
+   rewind-{season}-{week}.json. Undoing a week puts the league back to it:
+   the week's scores, injuries and stats are gone, and so is every week
+   played after it and anything done since -- an edit, a signing, a trade
+   approved -- and the game log loses those weeks too. To resim is to undo
+   and play the week again.
+
+   Every undo moves the world on to a new take (league.take, which the dice
+   are seeded with: lib/run.js), so the week comes out differently, and so
+   does everything after it.
+
+   Weeks taken in from the site have no save point. A week that is out on
+   the website cannot be undone, and nor can one before it: the site has
+   shown it and paid for it. Save points last until the offseason, which
+   clears them.
+   ========================================================================== */
+
+'use strict';
+
+const io = require('./io');
+const { saved, ready } = require('./league');
+const { readWorld, writeWorld, lastWeek, ROUNDS } = require('./season');
+
+function fileFor(season, week) { return 'rewind-' + season + '-' + week + '.json'; }
+
+/* The week the league plays next: a regular-season week, or the playoff
+   round in the weeks after it (19-22, as on the site). */
+function nextWeek(league) {
+  if (league.phase === 'playoffs') { return lastWeek(league) + league.playoffs.rounds.length + 1; }
+  return league.week;
+}
+
+function labelFor(league, week) {
+  const last = lastWeek(league);
+  return week > last ? ROUNDS[week - last - 1] || 'Week ' + week : 'Week ' + week;
+}
+
+/* Keeps the league as it is now as the save point of the week it plays
+   next. Called just before that week is played. */
+function mark(league) {
+  if (league.phase !== 'regular' && league.phase !== 'deadline' && league.phase !== 'playoffs') { return; }
+  const week = nextWeek(league);
+  const list = (league.rewinds || []).filter((r) => !(r.season === league.season && r.week >= week));
+  league.rewinds = list;
+  io.write(league.world, fileFor(league.season, week), {
+    season: league.season, week, league: saved(league), trades: readWorld(league, 'trades.json', [])
+  });
+  list.push({ season: league.season, week, label: labelFor(league, week), changes: (league.transactions || []).length });
+}
+
+function published(season, week) {
+  let site = null;
+  try { site = io.site(); } catch (err) { site = null; }
+  return Boolean(site && site.isPublished && site.isPublished(season, week));
+}
+
+/* The weeks of this season that can be played again, newest first:
+   { week, label, later (weeks played after it), changes (made since) }.
+   None from before a week that is out on the site. */
+function points(league) {
+  const list = (league.rewinds || []).filter((r) => r.season === league.season).sort((a, b) => b.week - a.week);
+  const now = (league.transactions || []).length;
+  const out = [];
+  for (let i = 0; i < list.length; i += 1) {
+    if (published(league.season, list[i].week)) { break; }
+    out.push({ week: list[i].week, label: list[i].label, later: list.slice(0, i).map((r) => r.label).reverse(),
+               changes: Math.max(0, now - list[i].changes) });
+  }
+  return out;
+}
+
+/* Puts the league back to where it was before `week`. Returns what went:
+   { week, label, later, changes }. */
+function undo(league, week) {
+  const point = points(league).filter((p) => p.week === Number(week))[0];
+  if (!point) {
+    const known = (league.rewinds || []).some((r) => r.season === league.season && r.week === Number(week));
+    throw new Error(known ? 'Week ' + week + ', or a week after it, is already out on the site.' :
+      'There is no save point for Week ' + week + ' of ' + league.season + '.');
+  }
+  const name = fileFor(league.season, point.week);
+  if (!io.has(league.world, name)) { throw new Error('The save point for ' + point.label + ' is missing.'); }
+  const back = io.read(league.world, name);
+  const take = (league.take || 0) + 1;
+  const world = league.world;
+  Object.keys(league).forEach((k) => { delete league[k]; });
+  Object.assign(league, back.league, { world, take });
+  ready(league);
+  const log = 'games-' + league.season + '.json';
+  writeWorld(league, log, readWorld(league, log, []).filter((g) => g.season !== league.season || g.week < point.week));
+  writeWorld(league, 'trades.json', back.trades || []);
+  return point;
+}
+
+/* The season is over: its save points go. */
+function clear(league) {
+  const last = lastWeek(league) + ROUNDS.length;
+  for (let week = 1; week <= last; week += 1) { io.remove(league.world, fileFor(league.season, week)); }
+  league.rewinds = [];
+}
+
+module.exports = { mark, points, undo, clear, fileFor };
+
+  };
+
   sources["rng"] = function (module, exports, require, __dirname) {
 /* ==========================================================================
    EGE Football NFL sim — dice
@@ -3964,7 +4279,9 @@ module.exports = { SLOTS, MIN, TARGET, MAX, CAMP, ROSTER, onTeam, payroll, room,
 
    Every step that plays games is seeded from the world's seed and where the
    league is, so the same world always plays out the same way, wherever it
-   is run.
+   is run. Each week the sim plays is kept first as a save point, so it can
+   be undone or played again (lib/rewind.js); every undo moves the world to
+   a new take, and the dice with it.
    ========================================================================== */
 
 'use strict';
@@ -3977,9 +4294,11 @@ const trades = require('./trades');
 const { TEAMS } = require('./teams');
 const { siteResults } = require('./site');
 const { applyOfficial } = require('./draft-plan');
+const rewind = require('./rewind');
 
 function rngFor(league, what) {
-  return seeded((league.seed || 'ege-nfl') + ':' + league.season + ':' + league.phase + ':' + (league.week || 0) + ':' + what);
+  return seeded((league.seed || 'ege-nfl') + (league.take ? ':take' + league.take : '') + ':' + league.season + ':' +
+    league.phase + ':' + (league.week || 0) + ':' + what);
 }
 
 function hooks() {
@@ -4017,8 +4336,9 @@ function nextStep(league) {
 
 /* The next week of the regular season, or the next playoff round. */
 function playNext(league) {
-  if (league.phase === 'playoffs') { return season.playRound(league, rngFor(league, 'round')); }
   if (league.phase === 'offseason' || league.phase === 'draft') { throw new Error('The season is over: run the offseason, then the draft.'); }
+  rewind.mark(league);
+  if (league.phase === 'playoffs') { return season.playRound(league, rngFor(league, 'round')); }
   return season.playWeek(league, rngFor(league, 'week'), hooks());
 }
 
@@ -4029,6 +4349,7 @@ function playOn(league) {
   let first = true;
   while (league.phase === 'regular' || (league.phase === 'deadline' && first)) {
     first = false;
+    rewind.mark(league);
     const r = season.playWeek(league, rngFor(league, 'week'), hooks());
     weeks.push(r);
     if (r.deadline) { break; }
@@ -4039,12 +4360,26 @@ function playOn(league) {
 function playPlayoffs(league) {
   if (league.phase !== 'playoffs') { throw new Error('The playoffs are not on (phase: ' + league.phase + ').'); }
   const rounds = [];
-  while (league.phase === 'playoffs') { rounds.push(season.playRound(league, rngFor(league, 'round'))); }
+  while (league.phase === 'playoffs') {
+    rewind.mark(league);
+    rounds.push(season.playRound(league, rngFor(league, 'round')));
+  }
   return { rounds, champion: league.playoffs.champion };
+}
+
+/* Puts the league back to before `week` of this season (a playoff round
+   is the week it was played in, 19 to 22). Returns what was undone. */
+function undo(league, week) { return rewind.undo(league, week); }
+
+/* Undoes `week` and plays it again, on new dice. */
+function resim(league, week) {
+  const undone = rewind.undo(league, week);
+  return { undone, played: playNext(league) };
 }
 
 function offseason(league) {
   if (league.phase !== 'offseason') { throw new Error('The offseason starts after the Super Bowl (phase: ' + league.phase + ').'); }
+  rewind.clear(league);
   return startOffseason(league, rngFor(league, 'offseason'));
 }
 
@@ -4084,6 +4419,7 @@ function sixLine(s) {
 
 module.exports = {
   rngFor, hooks, open, save, nextStep, playNext, playOn, playPlayoffs, offseason, draft, importSite, queue, sixNow, sixLine,
+  undo, resim, savePoints: rewind.points,
   approve: trades.approve, reject: trades.reject, proposeOwn: trades.proposeOwn
 };
 
@@ -4524,6 +4860,8 @@ module.exports = { OFFENSE, DEFENSE, fitOf, offenseOf, defenseOf, schemeFor, cen
    The six get one injury a season between them, the way Sam has always
    drawn them (weighted by the injury rating, which is their durability
    here): once one of them is hurt, the rest of the season spares them.
+   Their boosters and connections from the site come into their games
+   (lib/boosts.js).
 
    Weeks the website has already played can be taken as they happened
    (importWeeks) instead of simulated, and the season goes on from there.
@@ -4533,6 +4871,8 @@ module.exports = { OFFENSE, DEFENSE, fitOf, offenseOf, defenseOf, schemeFor, cen
 
 const io = require('./io');
 const { playGame } = require('./game');
+const boosts = require('./boosts');
+const { seeded } = require('./rng');
 const { standings } = require('./standings');
 const { scheduleFor } = require('./schedule');
 const { side, index } = require('./league');
@@ -4606,6 +4946,8 @@ function sixIn(league, game, result) {
       if (hurt) { entry.hurt = { what: hurt.what, games: hurt.games }; }
       const tds = (result.tds || []).filter((t) => t.id === p.id || t.qb === p.id);
       if (tds.length) { entry.tds = tds.map((t) => ({ how: t.how, yards: t.yards, mine: t.id === p.id, winning: winning(result, t) })); }
+      const boosted = (result.boosted || []).filter((b) => b.id === p.id)[0];
+      if (boosted) { entry.booster = boosted.multiplier; }
       out[p.ege] = entry;
     });
   });
@@ -4656,9 +4998,20 @@ function heal(league) {
   });
 }
 
-function play(league, game, rng, opts) {
-  const spareEge = league.egeHurt === league.season;
-  return playGame(side(league, game.home), side(league, game.away), rng, Object.assign({ spareEge }, opts));
+/* One game. A booster on it has the game played again on dice of its own,
+   so the other games of the week are played the same either way. */
+function play(league, game, rng, opts, extras) {
+  const home = side(league, game.home);
+  const away = side(league, game.away);
+  const o = Object.assign({ spareEge: league.egeHurt === league.season, links: extras ? extras.links : null }, opts);
+  const first = playGame(home, away, rng, o);
+  const boosted = extras ? boosts.onGame(extras, game, [home.roster, away.roster]) : [];
+  if (!boosted.length) { return first; }
+  const dice = seeded([league.seed || 'ege-nfl', league.take || 0, league.season, game.week, game.home, game.away, 'boost'].join(':'));
+  const kept = boosts.choose(first, () => playGame(home, away, dice, o), boosted, dice);
+  kept.boosted = boosted.map((b) => ({ id: b.id, name: b.name, multiplier: b.multiplier,
+                                       points: Math.round(boosts.fantasyPoints(kept.box[b.id]) * 10) / 10 }));
+  return kept;
 }
 
 /* Plays the current week. Returns what happened, for the report. */
@@ -4671,15 +5024,17 @@ function playWeek(league, rng, hooks) {
   const week = league.week;
   const games = league.schedule.filter((g) => g.week === week && !g.score);
   const log = readWorld(league, 'games-' + league.season + '.json', []);
-  const out = { week, games: [], injuries: [] };
+  const extras = boosts.read(league);
+  const out = { week, games: [], injuries: [], boosted: [] };
   games.forEach((g) => {
-    const r = play(league, g, rng, { neutral: !!g.neutral });
+    const r = play(league, g, rng, { neutral: !!g.neutral }, extras);
     g.score = r.score;
     if (r.ot) { g.ot = true; }
     hurt(league, r.injuries);
     record(league, g, r, log);
     out.games.push({ home: g.home, away: g.away, score: r.score, ot: r.ot });
     out.injuries.push.apply(out.injuries, r.injuries);
+    out.boosted.push.apply(out.boosted, r.boosted || []);
   });
   heal(league);
   writeWorld(league, 'games-' + league.season + '.json', log);
@@ -4789,12 +5144,13 @@ function playRound(league, rng) {
   const name = ROUNDS[po.rounds.length];
   const games = nextRound(league);
   const log = readWorld(league, 'games-' + league.season + '.json', []);
-  const out = { round: name, games: [], injuries: [] };
+  const extras = boosts.read(league);
+  const out = { round: name, games: [], injuries: [], boosted: [] };
   games.forEach((g) => {
     g.playoff = true;
     g.round = name;
     g.week = lastWeek(league) + po.rounds.length + 1;
-    const r = play(league, g, rng, { neutral: !!g.neutral, playoff: true });
+    const r = play(league, g, rng, { neutral: !!g.neutral, playoff: true }, extras);
     g.score = r.score;
     if (r.ot) { g.ot = true; }
     g.winner = r.winner;
@@ -4802,6 +5158,7 @@ function playRound(league, rng) {
     record(league, g, r, log);
     out.games.push(g);
     out.injuries.push.apply(out.injuries, r.injuries);
+    out.boosted.push.apply(out.boosted, r.boosted || []);
   });
   heal(league);
   writeWorld(league, 'games-' + league.season + '.json', log);
@@ -6489,8 +6846,10 @@ module.exports = { POSITION, TOP_PAY, capFor, marketPay, playerValue, pickPoints
   }
 
   /* A world kept in memory: files is { name: JSON text }, filled from
-     Supabase and saved back by the page. dirty collects what changed. */
-  function memoryStore(files, dirty, site) {
+     Supabase and saved back by the page. dirty collects what changed (a
+     file removed is dirty and gone). live is the Supabase rows the six's
+     boosters and connections come from (lib/boosts.js). */
+  function memoryStore(files, dirty, site, live) {
     return {
       data: function (name) {
         if (!data[name]) { throw new Error('No ' + name + ' in the NFL sim.'); }
@@ -6499,14 +6858,16 @@ module.exports = { POSITION, TOP_PAY, capFor, marketPay, playerValue, pickPoints
       has: function (world, name) { return Object.prototype.hasOwnProperty.call(files, name); },
       read: function (world, name) { return JSON.parse(files[name]); },
       write: function (world, name, value) { files[name] = JSON.stringify(value); dirty[name] = true; },
-      site: function () { return site; }
+      remove: function (world, name) { delete files[name]; dirty[name] = true; },
+      site: function () { return site; },
+      live: function () { return live || {}; }
     };
   }
 
   window.EGE = window.EGE || {};
   window.EGE.nflSim = {
     /* Points the sim at a world held in memory, and the site at the page. */
-    use: function (files, dirty, site) { load('io').use(memoryStore(files, dirty, site || window.EGE)); },
+    use: function (files, dirty, site, live) { load('io').use(memoryStore(files, dirty, site || window.EGE, live)); },
     run: load('run'),
     site: load('site'),
     season: load('season'),
@@ -6515,6 +6876,7 @@ module.exports = { POSITION, TOP_PAY, capFor, marketPay, playerValue, pickPoints
     trades: load('trades'),
     draftPlan: load('draft-plan'),
     edits: load('edits'),
+    rewind: load('rewind'),
     history: load('history'),
     fit: load('fit'),
     tradeFinder: load('trade-finder')

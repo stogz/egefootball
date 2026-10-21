@@ -13,6 +13,8 @@
    The six get one injury a season between them, the way Sam has always
    drawn them (weighted by the injury rating, which is their durability
    here): once one of them is hurt, the rest of the season spares them.
+   Their boosters and connections from the site come into their games
+   (lib/boosts.js).
 
    Weeks the website has already played can be taken as they happened
    (importWeeks) instead of simulated, and the season goes on from there.
@@ -22,6 +24,8 @@
 
 const io = require('./io');
 const { playGame } = require('./game');
+const boosts = require('./boosts');
+const { seeded } = require('./rng');
 const { standings } = require('./standings');
 const { scheduleFor } = require('./schedule');
 const { side, index } = require('./league');
@@ -95,6 +99,8 @@ function sixIn(league, game, result) {
       if (hurt) { entry.hurt = { what: hurt.what, games: hurt.games }; }
       const tds = (result.tds || []).filter((t) => t.id === p.id || t.qb === p.id);
       if (tds.length) { entry.tds = tds.map((t) => ({ how: t.how, yards: t.yards, mine: t.id === p.id, winning: winning(result, t) })); }
+      const boosted = (result.boosted || []).filter((b) => b.id === p.id)[0];
+      if (boosted) { entry.booster = boosted.multiplier; }
       out[p.ege] = entry;
     });
   });
@@ -145,9 +151,20 @@ function heal(league) {
   });
 }
 
-function play(league, game, rng, opts) {
-  const spareEge = league.egeHurt === league.season;
-  return playGame(side(league, game.home), side(league, game.away), rng, Object.assign({ spareEge }, opts));
+/* One game. A booster on it has the game played again on dice of its own,
+   so the other games of the week are played the same either way. */
+function play(league, game, rng, opts, extras) {
+  const home = side(league, game.home);
+  const away = side(league, game.away);
+  const o = Object.assign({ spareEge: league.egeHurt === league.season, links: extras ? extras.links : null }, opts);
+  const first = playGame(home, away, rng, o);
+  const boosted = extras ? boosts.onGame(extras, game, [home.roster, away.roster]) : [];
+  if (!boosted.length) { return first; }
+  const dice = seeded([league.seed || 'ege-nfl', league.take || 0, league.season, game.week, game.home, game.away, 'boost'].join(':'));
+  const kept = boosts.choose(first, () => playGame(home, away, dice, o), boosted, dice);
+  kept.boosted = boosted.map((b) => ({ id: b.id, name: b.name, multiplier: b.multiplier,
+                                       points: Math.round(boosts.fantasyPoints(kept.box[b.id]) * 10) / 10 }));
+  return kept;
 }
 
 /* Plays the current week. Returns what happened, for the report. */
@@ -160,15 +177,17 @@ function playWeek(league, rng, hooks) {
   const week = league.week;
   const games = league.schedule.filter((g) => g.week === week && !g.score);
   const log = readWorld(league, 'games-' + league.season + '.json', []);
-  const out = { week, games: [], injuries: [] };
+  const extras = boosts.read(league);
+  const out = { week, games: [], injuries: [], boosted: [] };
   games.forEach((g) => {
-    const r = play(league, g, rng, { neutral: !!g.neutral });
+    const r = play(league, g, rng, { neutral: !!g.neutral }, extras);
     g.score = r.score;
     if (r.ot) { g.ot = true; }
     hurt(league, r.injuries);
     record(league, g, r, log);
     out.games.push({ home: g.home, away: g.away, score: r.score, ot: r.ot });
     out.injuries.push.apply(out.injuries, r.injuries);
+    out.boosted.push.apply(out.boosted, r.boosted || []);
   });
   heal(league);
   writeWorld(league, 'games-' + league.season + '.json', log);
@@ -278,12 +297,13 @@ function playRound(league, rng) {
   const name = ROUNDS[po.rounds.length];
   const games = nextRound(league);
   const log = readWorld(league, 'games-' + league.season + '.json', []);
-  const out = { round: name, games: [], injuries: [] };
+  const extras = boosts.read(league);
+  const out = { round: name, games: [], injuries: [], boosted: [] };
   games.forEach((g) => {
     g.playoff = true;
     g.round = name;
     g.week = lastWeek(league) + po.rounds.length + 1;
-    const r = play(league, g, rng, { neutral: !!g.neutral, playoff: true });
+    const r = play(league, g, rng, { neutral: !!g.neutral, playoff: true }, extras);
     g.score = r.score;
     if (r.ot) { g.ot = true; }
     g.winner = r.winner;
@@ -291,6 +311,7 @@ function playRound(league, rng) {
     record(league, g, r, log);
     out.games.push(g);
     out.injuries.push.apply(out.injuries, r.injuries);
+    out.boosted.push.apply(out.boosted, r.boosted || []);
   });
   heal(league);
   writeWorld(league, 'games-' + league.season + '.json', log);
