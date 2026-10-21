@@ -2,8 +2,10 @@
    EGE Football — the NFL sim, on the admin page
    The NFL Sim tab: the same sim as node nfl-sim/sim.js, run in the browser.
    It plays the league a week, a stretch or a phase at a time, holds the
-   trades that wait for an approval, runs the offseason and the draft (with
-   any first rounds uploaded as written), and hands the site what it needs:
+   trades and big free-agent moves that wait for an approval, runs the
+   offseason and the draft (with any first rounds uploaded as written), has
+   a trade builder, a player editor and every team's roster season by
+   season, and hands the site what it needs:
 
    - the six's games and every other NFL score, as stats/{year}.js and
      data/nfl-results.js to download and commit, the way the Season File
@@ -45,8 +47,14 @@ EGE.nflSimAdmin = (function () {
     loading: null,
     last: null,           /* { title, lines } from the last step */
     error: null,
-    upload: { text: '', checked: null, showSaved: false }   /* a draft written by hand, before it is kept */
+    upload: { text: '', checked: null, showSaved: false },  /* a draft written by hand, before it is kept */
+    deal: null,           /* the trade builder's two sides */
+    editor: { group: '', id: '' },
+    rosters: { team: '', season: null }
   };
+
+  function emptyDeal() { return [{ key: '', players: [], picks: [] }, { key: '', players: [], picks: [] }]; }
+  state.deal = emptyDeal();
 
   function el(tag, className, text) {
     var node = document.createElement(tag);
@@ -389,6 +397,7 @@ EGE.nflSimAdmin = (function () {
           if (got.leftInFreeAgency.length) { lines.push('Hit free agency: ' + got.leftInFreeAgency.join(', ')); }
           if (got.signings.length) { lines.push('Signed: ' + got.signings.join('; ')); }
           got.schemes.forEach(function (n) { lines.push(n); });
+          if (got.moves.length) { lines.push(got.moves.length + ' big free-agent moves are waiting below.'); }
           lines.push(got.trades.length + ' pre-draft trade proposals are waiting below.');
           return { title: 'The ' + got.season + ' offseason', lines: lines };
         });
@@ -627,7 +636,8 @@ EGE.nflSimAdmin = (function () {
       (t.reasons || []).forEach(function (reason) { why.appendChild(el('li', null, reason)); });
       box.appendChild(why);
       var r = row();
-      r.appendChild(el('span', 'fb-meta', t.id + (t.ege ? ' · moves one of the six' : '') + (t.proposedBy === 'Sam' ? ' · yours' : '')));
+      r.appendChild(el('span', 'fb-meta', t.id + (t.kind === 'move' ? ' · free agency' : '') + (t.ege ? ' · moves one of the six' : '') +
+        (t.proposedBy === 'Sam' ? ' · yours' : '')));
       r.appendChild(button('Approve', true, function () {
         step(function (l) {
           var notes = sim().run.approve(l, t.id) || [];
@@ -641,27 +651,288 @@ EGE.nflSimAdmin = (function () {
       part.appendChild(box);
     });
 
-    /* A trade of your own, in the command line's words. */
-    var own = row();
-    var label = el('label', 'ege-field ege-sim__own');
-    label.appendChild(el('span', 'fb-eyebrow', 'Propose a trade'));
-    var input = el('input', 'fb-input');
-    input.type = 'text';
-    input.placeholder = 'DET: Andrew Parr, 2025 R2 / SEA: Kenneth Walker';
-    input.autocomplete = 'off';
-    input.spellcheck = false;
-    label.appendChild(input);
-    own.appendChild(label);
-    own.appendChild(button('Propose', false, function () {
-      var text = input.value.trim();
-      if (!text) { return; }
-      step(function (l) {
-        var t = sim().run.proposeOwn(l, text);
-        return { title: 'Proposed ' + t.id, lines: [t.summary].concat(t.reasons || []).concat(['Approve it above to make it happen.']) };
-      });
-    }));
-    part.appendChild(own);
+    part.appendChild(dealBuilder(league));
     body.appendChild(part);
+  }
+
+  /* --- the trade builder --------------------------------------------------
+
+     A team on each side, then its players and picks added one at a time
+     from dropdowns. Make the trade puts it through at once; Propose queues
+     it above with what both teams think of it. */
+
+  var POS_ORDER = ['QB', 'RB', 'FB', 'WR', 'TE', 'OT', 'IOL', 'EDGE', 'DI', 'LB', 'CB', 'S', 'K', 'P'];
+
+  function byPosition(players) {
+    return players.slice().sort(function (a, b) {
+      return POS_ORDER.indexOf(a.pos) - POS_ORDER.indexOf(b.pos) || b.ovr - a.ovr || a.name.localeCompare(b.name);
+    });
+  }
+
+  function playerText(p) { return p.pos + ' · ' + p.name + ' · ' + p.ovr; }
+
+  function teamKeys() {
+    return Object.keys(EGE.nfl.teams).sort(function (a, b) { return teamName(a).localeCompare(teamName(b)); });
+  }
+
+  function select(label, options, value, onChange) {
+    var box = el('label', 'ege-field');
+    box.appendChild(el('span', 'fb-eyebrow', label));
+    var pick = el('select', 'fb-select');
+    options.forEach(function (o) {
+      var option = el('option', null, o.text);
+      option.value = o.value;
+      pick.appendChild(option);
+    });
+    pick.value = value;
+    pick.disabled = state.busy;
+    if (onChange) { pick.addEventListener('change', function () { onChange(pick.value); }); }
+    box.appendChild(pick);
+    return { box: box, select: pick };
+  }
+
+  /* A team's picks it can trade: not one an uploaded draft covers. */
+  function picksOf(league, key) {
+    return league.picks.filter(function (p) { return p.owner === key && !sim().draftPlan.locked(league, p); })
+      .sort(function (a, b) { return a.year - b.year || a.round - b.round; });
+  }
+
+  function dealBuilder(league) {
+    var wrap = el('div', 'ege-sim__builder');
+    function paint() {
+      wrap.innerHTML = '';
+      var grid = el('div', 'ege-sim__sides');
+      state.deal.forEach(function (side, i) {
+        var col = el('div', 'ege-sim__side');
+        var teams = [{ value: '', text: 'Pick a team' }].concat(teamKeys().map(function (k) { return { value: k, text: teamName(k) }; }));
+        col.appendChild(select(i ? 'Second team gives' : 'First team gives', teams, side.key, function (key) {
+          state.deal[i] = { key: key, players: [], picks: [] };
+          paint();
+        }).box);
+        if (side.key) {
+          var roster = byPosition(league.byTeam.get(side.key) || []).filter(function (p) { return side.players.indexOf(p.id) === -1; });
+          var add = row();
+          var who = select('Player', roster.map(function (p) { return { value: p.id, text: playerText(p) }; }), roster[0] ? roster[0].id : '');
+          add.appendChild(who.box);
+          add.appendChild(button('Add', false, function () {
+            if (!who.select.value) { return; }
+            side.players.push(who.select.value);
+            paint();
+          }, !roster.length));
+          col.appendChild(add);
+          var picks = picksOf(league, side.key).filter(function (p) { return side.picks.indexOf(sim().trades.pickId(p)) === -1; });
+          var addPick = row();
+          var which = select('Pick', picks.map(function (p) { return { value: sim().trades.pickId(p), text: sim().trades.pickLabel(p) }; }),
+            picks[0] ? sim().trades.pickId(picks[0]) : '');
+          addPick.appendChild(which.box);
+          addPick.appendChild(button('Add', false, function () {
+            if (!which.select.value) { return; }
+            side.picks.push(which.select.value);
+            paint();
+          }, !picks.length));
+          col.appendChild(addPick);
+          var chips = el('div', 'ege-sim__chips');
+          side.players.forEach(function (id, n) {
+            var p = league.byId.get(id);
+            chips.appendChild(chip(p ? playerText(p) : id, function () { side.players.splice(n, 1); paint(); }));
+          });
+          side.picks.forEach(function (id, n) {
+            var pick = league.picks.find(function (x) { return sim().trades.pickId(x) === id; });
+            chips.appendChild(chip(pick ? sim().trades.pickLabel(pick) : id, function () { side.picks.splice(n, 1); paint(); }));
+          });
+          if (side.players.length || side.picks.length) { col.appendChild(chips); }
+        }
+        grid.appendChild(col);
+      });
+      wrap.appendChild(grid);
+      var ready = state.deal[0].key && state.deal[1].key &&
+        state.deal.some(function (side) { return side.players.length || side.picks.length; });
+      var go = row();
+      go.appendChild(button('Make the trade', true, function () {
+        var sides = state.deal;
+        step(function (l) {
+          var t = sim().run.proposeOwn(l, sides);
+          var notes = sim().run.approve(l, t.id) || [];
+          state.deal = emptyDeal();
+          return { title: 'Traded', lines: [t.summary].concat(notes) };
+        });
+      }, !ready));
+      go.appendChild(button('Propose', false, function () {
+        var sides = state.deal;
+        step(function (l) {
+          var t = sim().run.proposeOwn(l, sides);
+          state.deal = emptyDeal();
+          return { title: 'Proposed ' + t.id, lines: [t.summary].concat(t.reasons || []) };
+        });
+      }, !ready));
+      wrap.appendChild(go);
+    }
+    paint();
+    return wrap;
+  }
+
+  function chip(text, onRemove) {
+    var b = el('button', 'fb-chip ege-sim__chip');
+    b.type = 'button';
+    b.disabled = state.busy;
+    b.appendChild(el('span', null, text));
+    b.appendChild(el('span', 'ege-sim__x', '×'));
+    b.setAttribute('aria-label', 'Remove ' + text);
+    b.addEventListener('click', onRemove);
+    return b;
+  }
+
+  /* --- the player editor --------------------------------------------------
+
+     Any player's overall and ceiling: a team, the free agents, or the
+     class the next draft takes (lib/edits.js). The six are rated on the
+     website, so they are not here. */
+
+  function drawEditor(body, league) {
+    var part = section('Player editor');
+    var wrap = el('div');
+    var edits = sim().edits;
+    var draftClass = edits.draftClass(league);
+    function playersIn(group) {
+      if (group === 'CLASS') {
+        return draftClass.players.slice().sort(function (a, b) { return a.grade - b.grade; });
+      }
+      if (group === 'FA') {
+        return league.players.filter(function (p) { return p.status === 'fa' && !p.ege; })
+          .sort(function (a, b) { return b.ovr - a.ovr; }).slice(0, 200);
+      }
+      return byPosition((league.byTeam.get(group) || []).filter(function (p) { return !p.ege; }));
+    }
+    function paint() {
+      wrap.innerHTML = '';
+      var ed = state.editor;
+      var groups = [{ value: '', text: 'Pick a team' }].concat(teamKeys().map(function (k) { return { value: k, text: teamName(k) }; }));
+      groups.push({ value: 'FA', text: 'Free agents' });
+      if (draftClass.players.length) { groups.push({ value: 'CLASS', text: draftClass.year + ' draft class' }); }
+      var r = row();
+      r.appendChild(select('Team', groups, ed.group, function (group) {
+        state.editor = { group: group, id: '' };
+        paint();
+      }).box);
+      var list = ed.group ? playersIn(ed.group) : [];
+      var player = null;
+      if (list.length) {
+        if (!list.some(function (p) { return p.id === ed.id; })) { ed.id = list[0].id; }
+        player = list.find(function (p) { return p.id === ed.id; });
+        r.appendChild(select('Player', list.map(function (p) { return { value: p.id, text: playerText(p) }; }), ed.id, function (id) {
+          ed.id = id;
+          paint();
+        }).box);
+      }
+      wrap.appendChild(r);
+      if (!player) { return; }
+      var nums = row();
+      var ovr = number('Overall', player.ovr);
+      var pot = number('Ceiling', Math.max(player.pot || player.ovr, player.ovr));
+      nums.appendChild(ovr.box);
+      nums.appendChild(pot.box);
+      nums.appendChild(button('Save', true, function () {
+        var id = player.id;
+        var want = { ovr: ovr.input.value, pot: pot.input.value };
+        step(function (l) {
+          var got = edits.setRatings(l, id, want);
+          return { title: got.name, lines: ['Overall ' + got.before.ovr + ' to ' + got.after.ovr + ', ceiling ' + got.before.pot + ' to ' + got.after.pot + '.'] };
+        });
+      }));
+      wrap.appendChild(nums);
+    }
+    paint();
+    part.appendChild(wrap);
+    body.appendChild(part);
+  }
+
+  function number(label, value) {
+    var box = el('label', 'ege-field ege-sim__num');
+    box.appendChild(el('span', 'fb-eyebrow', label));
+    var input = el('input', 'fb-input');
+    input.type = 'number';
+    input.min = '40';
+    input.max = '99';
+    input.step = '1';
+    input.inputMode = 'numeric';
+    input.value = String(value);
+    box.appendChild(input);
+    return { box: box, input: input };
+  }
+
+  /* --- rosters by season --------------------------------------------------
+
+     Every team's roster as each season ended (and this one as it stands),
+     with who came and who went since the season before (lib/history.js). */
+
+  function drawRosters(body, league) {
+    var part = section('Rosters by season');
+    var wrap = el('div');
+    var history = sim().history;
+    var years = history.seasons(league);
+    function paint() {
+      wrap.innerHTML = '';
+      var st = state.rosters;
+      if (!st.team) { st.team = teamKeys()[0]; }
+      if (years.indexOf(st.season) === -1) { st.season = years[0]; }
+      var r = row();
+      r.appendChild(select('Team', teamKeys().map(function (k) { return { value: k, text: teamName(k) }; }), st.team, function (key) {
+        st.team = key;
+        paint();
+      }).box);
+      r.appendChild(select('Season', years.map(function (y) { return { value: String(y), text: String(y) }; }), String(st.season), function (y) {
+        st.season = Number(y);
+        paint();
+      }).box);
+      wrap.appendChild(r);
+      var shot = history.rostersIn(league, st.season);
+      var team = shot && shot.teams[st.team];
+      if (!team) { return; }
+      wrap.appendChild(el('p', 'fb-meta', team.players.length + ' players' + (team.record ? ' · ' + team.record : '')));
+      var moves = history.changes(league, st.team, st.season);
+      if (moves) {
+        var lists = el('div', 'ege-sim__moves');
+        lists.appendChild(moveList('Arrived', moves.arrived.map(function (a) {
+          return playerText(a.player) + (a.from ? ' · from ' + nick(a.from) : a.how === 'draft' ? ' · drafted' : ' · signed');
+        })));
+        lists.appendChild(moveList('Left', moves.left.map(function (m) {
+          return playerText(m.player) + (m.to ? ' · to ' + nick(m.to) : ' · ' + m.how);
+        })));
+        wrap.appendChild(lists);
+      }
+      var tableWrap = el('div', 'fb-tablewrap ege-sim__roster');
+      var table = el('table', 'fb-table');
+      var head = el('tr');
+      ['Pos', 'Player', 'Age', 'OVR'].forEach(function (h) { head.appendChild(el('th', null, h)); });
+      var thead = el('thead');
+      thead.appendChild(head);
+      table.appendChild(thead);
+      var tbody = el('tbody');
+      team.players.forEach(function (p) {
+        var tr = el('tr', p.ege ? 'ege-sim__ege' : null);
+        tr.appendChild(el('td', null, p.pos));
+        tr.appendChild(el('td', null, p.name));
+        tr.appendChild(el('td', 'num', p.age ? String(p.age) : ''));
+        tr.appendChild(el('td', 'num', String(p.ovr)));
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      tableWrap.appendChild(table);
+      wrap.appendChild(tableWrap);
+    }
+    paint();
+    part.appendChild(wrap);
+    body.appendChild(part);
+  }
+
+  function moveList(title, lines) {
+    var box = el('div');
+    box.appendChild(el('h5', 'ege-sim__movetitle', title + ' (' + lines.length + ')'));
+    var list = el('ul', 'ege-sim__lines');
+    lines.forEach(function (line) { list.appendChild(el('li', null, line)); });
+    if (!lines.length) { list.appendChild(el('li', null, 'Nobody')); }
+    box.appendChild(list);
+    return box;
   }
 
   function drawSix(body, league) {
@@ -894,7 +1165,7 @@ EGE.nflSimAdmin = (function () {
     var next = league.phase === 'regular' || league.phase === 'deadline' ? ' · Week ' + league.week + ' next' : '';
     box.appendChild(el('p', 'ege-sim__where', league.season + ' · ' + phase + next));
     var pending = sim().run.queue(league).length;
-    if (pending) { box.appendChild(el('p', 'fb-meta', pending + (pending === 1 ? ' trade is' : ' trades are') + ' waiting for you.')); }
+    if (pending) { box.appendChild(el('p', 'fb-meta', pending + ' waiting for your approval.')); }
     var champ = (league.history || []).slice(-1)[0];
     if (champ && champ.champion) { box.appendChild(el('p', 'fb-meta', 'Last champion: ' + teamName(champ.champion) + ' (' + champ.season + ').')); }
     body.appendChild(box);
@@ -940,6 +1211,8 @@ EGE.nflSimAdmin = (function () {
     drawPlay(body, league);
     drawUpload(body, league);
     drawTrades(body, league);
+    drawEditor(body, league);
+    drawRosters(body, league);
     drawSix(body, league);
     drawStandings(body, league);
     drawSite(body, league);

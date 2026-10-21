@@ -84,7 +84,9 @@ parts.push(`
     standings: load('standings'),
     teams: load('teams'),
     trades: load('trades'),
-    draftPlan: load('draft-plan')
+    draftPlan: load('draft-plan'),
+    edits: load('edits'),
+    history: load('history')
   };
 })();
 `);

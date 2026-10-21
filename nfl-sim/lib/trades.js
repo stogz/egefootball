@@ -13,6 +13,9 @@
    ones still waiting when their window closes expire. A trade that moves
    one of the six is marked: the website's transfers have to be updated by
    hand for it.
+
+   A star leaving his team in free agency waits in the same queue (a move,
+   queueMoves): he stays where he was until Sam approves it.
    ========================================================================== */
 
 'use strict';
@@ -37,7 +40,8 @@ function nick(key) { return TEAMS[key] ? TEAMS[key].name.split(' ').slice(-1)[0]
 function ordinal(n) { return n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'); }
 function pickId(p) { return p.year + '-R' + p.round + '-' + p.from; }
 function pickLabel(p) {
-  return p.year + ' ' + ordinal(p.round) + '-round pick' + (p.from !== p.owner ? ' (' + nick(p.from) + "'s)" : '');
+  const whose = nick(p.from) + (/s$/.test(nick(p.from)) ? "'" : "'s");
+  return p.year + ' ' + ordinal(p.round) + '-round pick' + (p.from !== p.owner ? ' (' + whose + ')' : '');
 }
 
 function loadQueue(league) { return readWorld(league, 'trades.json', []); }
@@ -74,6 +78,8 @@ function valueOf(league, item, teamKey, slotOf, levels, giving) {
   }
   return playerValue(p, league.season, { mode: team.mode, need, fit });
 }
+
+function listOf(items) { return items.length ? items.map(describeItem).join(' and ') : 'nothing'; }
 
 function describeItem(item) {
   if (item.kind === 'pick') { return pickLabel(item.pick); }
@@ -123,6 +129,7 @@ function propose(league, window, rng) {
   const levels = starterLevels(league);
   const slotOf = slotFinder(league);
   const candidates = [];
+  const moving = new Set(loadQueue(league).filter((t) => t.kind === 'move' && t.status === 'pending').map((t) => t.player));
   league.teams.forEach((buyer) => {
     const rec = record(league, buyer.key);
     if (buyer.mode === 'rebuild') { return; }
@@ -139,7 +146,7 @@ function propose(league, window, rng) {
         const srec = record(league, seller.key);
         const sellerRoster = onTeam(league, seller.key);
         byPos(sellerRoster, pos).forEach((p, rank) => {
-          if (p.ovr < floor + 4 || (p.injury && p.injury.games >= 4)) { return; }
+          if (p.ovr < floor + 4 || (p.injury && p.injury.games >= 4) || moving.has(p.id)) { return; }
           /* The website keeps one team a season for the six, so they only
              move in the offseason. */
           if (p.ege && window === 'deadline') { return; }
@@ -177,7 +184,7 @@ function propose(league, window, rng) {
     sellers[c.seller] = (sellers[c.seller] || 0) + 1;
     used.add(c.player.id);
     c.pack.items.forEach((i) => used.add(i.kind === 'pick' ? pickId(i.pick) : i.player.id));
-    const before = queue.filter((t) => t.season === league.season && t.window === window).length;
+    const before = queue.filter((t) => t.season === league.season && t.window === window && t.kind !== 'move').length;
     const proposal = build(league, c, window, before + made.length + 1);
     made.push(proposal);
   });
@@ -234,7 +241,49 @@ function closeWindow(league, window) {
   return n;
 }
 
+/* Stars who would have left in free agency (lib/rosters.js freeAgency's
+   `held`), each queued like a trade. Until Sam approves, a player stays
+   with his old team on the deal the new one offered. */
+function queueMoves(league, held, window) {
+  if (!held.length) { return []; }
+  const queue = loadQueue(league);
+  const before = queue.filter((t) => t.season === league.season && t.kind === 'move').length;
+  const made = held.map((h, i) => {
+    const p = h.player;
+    const years = h.contract.through - league.season + 1;
+    const room = byPos(onTeam(league, h.to), p.pos);
+    const current = room[(SLOTS[p.pos] || 1) - 1];
+    return {
+      id: league.season + '-F' + (before + i + 1),
+      kind: 'move', season: league.season, window, status: 'pending', proposedBy: 'AI', ege: false,
+      teams: [h.to, h.from], player: p.id, from: h.from, to: h.to, contract: h.contract,
+      summary: p.name + ' (' + p.pos + ', ' + p.ovr + ', age ' + p.age + ') leaves the ' + nick(h.from) + ' for the ' + nick(h.to) +
+        ': ' + years + (years === 1 ? ' year' : ' years') + ', $' + h.contract.apy + 'M a year.',
+      reasons: [current && current.ovr < p.ovr ? 'The ' + nick(h.to) + ' would start him over ' + current.name + ' (' + current.ovr + ').'
+        : 'The ' + nick(h.to) + ' would add him to their ' + POS_WORD[p.pos] + 's.',
+      'Turned down, he stays with the ' + nick(h.from) + ' on the same deal.']
+    };
+  });
+  saveQueue(league, queue.concat(made));
+  return made;
+}
+
 function findPick(league, id) { return league.picks.find((p) => pickId(p) === id); }
+
+/* A free-agent move, approved: he goes, on the deal he was offered. */
+function approveMove(league, queue, t) {
+  const p = league.byId.get(t.player);
+  if (!p || p.team !== t.from || p.status !== 'active') { throw new Error((p ? p.name : t.player) + ' is no longer with ' + t.from + '.'); }
+  p.team = t.to;
+  p.contract = Object.assign({}, t.contract);
+  t.status = 'approved';
+  t.approvedAt = { season: league.season, phase: league.phase, week: league.week };
+  saveQueue(league, queue);
+  (league.transactions = league.transactions || []).push({ season: league.season, week: league.week, phase: league.phase,
+                                                           kind: 'signing', id: t.id, summary: t.summary });
+  index(league);
+  return [];
+}
 
 /* Applies an approved trade. Returns notes for Sam (one of the six moved,
    or why it could not go through). */
@@ -243,6 +292,7 @@ function approve(league, id) {
   const t = queue.find((x) => x.id === id);
   if (!t) { throw new Error('No trade ' + id + '.'); }
   if (t.status !== 'pending') { throw new Error('Trade ' + id + ' is ' + t.status + '.'); }
+  if (t.kind === 'move') { return approveMove(league, queue, t); }
   const [a, b] = t.teams;
   const notes = [];
   /* Everything still where it was when the trade was put together? */
@@ -297,13 +347,16 @@ function reject(league, id) {
   saveQueue(league, queue);
 }
 
-/* Sam's own trade, written "DET: Andrew Parr, 2024 R2 / SEA: Kenneth
-   Walker". Each team's side is what it gives. It is checked against both
-   teams' numbers and queued for approval like any other. */
-function proposeOwn(league, text) {
+/* Sam's own trade: each team's side is what it gives. From the command
+   line it is written "DET: Andrew Parr, 2024 R2 / SEA: Kenneth Walker";
+   from the admin page's trade builder it comes as two sides of ids,
+   [{ key, players: [id], picks: ['2025-R2-DET'] }, ...], one of which may
+   be empty. It is checked against both teams' numbers and queued for
+   approval like any other. */
+function readOwn(league, text) {
   const sides = text.split('/').map((s) => s.trim()).filter(Boolean);
   if (sides.length !== 2) { throw new Error('Write it as "DET: player, 2025 R2 / SEA: player".'); }
-  const parsed = sides.map((s) => {
+  return sides.map((s) => {
     const m = /^([A-Z]{2,3})\s*:\s*(.+)$/.exec(s);
     if (!m || !TEAMS[m[1]]) { throw new Error('Start each side with a team key, like "DET:".'); }
     const items = m[2].split(',').map((x) => x.trim()).filter(Boolean).map((x) => {
@@ -328,6 +381,33 @@ function proposeOwn(league, text) {
     });
     return { key: m[1], items };
   });
+}
+
+function pickOwn(league, sides) {
+  if (!Array.isArray(sides) || sides.length !== 2) { throw new Error('A trade has two sides.'); }
+  const parsed = sides.map((side) => {
+    const key = side && side.key;
+    if (!TEAMS[key]) { throw new Error('Pick a team for each side.'); }
+    const players = (side.players || []).map((id) => {
+      const p = league.byId.get(id);
+      if (!p || p.team !== key || p.status !== 'active') { throw new Error((p ? p.name : id) + ' is not with ' + TEAMS[key].name + '.'); }
+      return { kind: 'player', player: p };
+    });
+    const picks = (side.picks || []).map((id) => {
+      const pick = findPick(league, id);
+      if (!pick || pick.owner !== key) { throw new Error(TEAMS[key].name + ' do not own the ' + id + ' pick.'); }
+      if (locked(league, pick)) { throw new Error('The ' + id + ' pick is in the uploaded ' + pick.year + ' draft.'); }
+      return { kind: 'pick', pick };
+    });
+    return { key, items: players.concat(picks) };
+  });
+  if (parsed[0].key === parsed[1].key) { throw new Error('Pick two different teams.'); }
+  if (!parsed[0].items.length && !parsed[1].items.length) { throw new Error('Add a player or a pick to the trade.'); }
+  return parsed;
+}
+
+function proposeOwn(league, input) {
+  const parsed = typeof input === 'string' ? readOwn(league, input) : pickOwn(league, input);
   const inSeason = ['regular', 'deadline', 'playoffs'].indexOf(league.phase) !== -1;
   if (inSeason && (league.phase === 'playoffs' || (league.phase === 'regular' && league.week > DEADLINE_WEEK))) {
     throw new Error('The trade deadline has passed. Trades open again in the offseason.');
@@ -357,12 +437,11 @@ function proposeOwn(league, text) {
       [A.key]: A.items.map((i) => (i.kind === 'pick' ? { pick: pickId(i.pick) } : { player: i.player.id })),
       [B.key]: B.items.map((i) => (i.kind === 'pick' ? { pick: pickId(i.pick) } : { player: i.player.id }))
     },
-    summary: nick(A.key) + ' get ' + B.items.map(describeItem).join(' and ') + '; ' + nick(B.key) + ' get ' +
-      A.items.map(describeItem).join(' and ') + '.',
+    summary: nick(A.key) + ' get ' + listOf(B.items) + '; ' + nick(B.key) + ' get ' + listOf(A.items) + '.',
     reasons: [verdict(A.key, va), verdict(B.key, vb)].concat(ege ? ['This moves one of the six: the website\'s transfers would need updating by hand.'] : [])
   };
   saveQueue(league, queue.concat([t]));
   return t;
 }
 
-module.exports = { propose, closeWindow, approve, reject, proposeOwn, loadQueue, pickId, pickLabel };
+module.exports = { propose, closeWindow, queueMoves, approve, reject, proposeOwn, loadQueue, pickId, pickLabel };

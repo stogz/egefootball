@@ -103,4 +103,25 @@ function archetypeOf(pos, s, ovr) {
   }
 }
 
-module.exports = { SKILLS, SPREAD, skillsFrom, archetypeOf };
+/* A player set to a new overall by hand (lib/edits.js): every skill moves
+   by the same amount, then they are evened up to average out to it again,
+   so he is the same kind of player, better or worse. */
+function reRate(p, ovr) {
+  const weights = SKILLS[p.pos];
+  const before = p.ovr;
+  p.ovr = ovr;
+  if (!weights) { return; }
+  const old = p.skills || {};
+  const raw = {};
+  let mean = 0;
+  Object.keys(weights).forEach((skill) => {
+    raw[skill] = (typeof old[skill] === 'number' ? old[skill] : before) + ovr - before;
+    mean += weights[skill] * raw[skill];
+  });
+  const shift = ovr - mean;
+  p.skills = {};
+  Object.keys(weights).forEach((skill) => { p.skills[skill] = Math.max(30, Math.min(99, Math.round(raw[skill] + shift))); });
+  p.archetype = archetypeOf(p.pos, p.skills, ovr);
+}
+
+module.exports = { SKILLS, SPREAD, skillsFrom, archetypeOf, reRate };

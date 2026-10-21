@@ -2334,6 +2334,43 @@ body::before {
 .ege-sim__round th { padding-top: 8px; padding-bottom: 6px; background: var(--fb-tint-wash); color: var(--fb-ink); cursor: default; }
 .ege-sim__team { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .ege-sim__logo { display: block; width: 20px; height: 20px; object-fit: contain; }
+/* The trade builder: a column a team, its players and picks added from
+   dropdowns, each one a chip to take back out. */
+.ege-sim__builder { display: grid; gap: 12px; margin-top: 4px; }
+.ege-sim__sides { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.ege-sim__side {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: #fff;
+}
+.ege-sim__side .ege-weekbar { align-items: flex-end; flex-wrap: nowrap; }
+.ege-sim__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ege-sim__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  background: var(--fb-tint-wash);
+  letter-spacing: .02em;
+  text-align: left;
+}
+.ege-sim__x { font-size: 14px; line-height: 1; }
+/* The player editor and rosters by season. */
+.ege-sim__part .ege-weekbar .ege-field { min-width: min(240px, 100%); }
+.ege-sim__part .ege-weekbar .ege-sim__num { min-width: 0; width: 6.5rem; }
+.ege-sim__part .ege-sim__side .ege-weekbar .ege-field { flex: 1 1 auto; min-width: 0; }
+.ege-sim__moves { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px 20px; margin: 4px 0 10px; }
+.ege-sim__movetitle { margin: 0 0 4px; font-size: var(--fb-small); font-weight: 800; }
+.ege-sim__moves .ege-sim__lines { max-height: 220px; }
+.ege-sim__roster { max-width: 640px; max-height: 480px; overflow-y: auto; }
+.ege-sim__roster .fb-table { min-width: 0; }
+.ege-sim__roster td { padding-top: 6px; padding-bottom: 6px; }
+.ege-sim__roster tbody tr { cursor: default; }
+.ege-sim__roster .ege-sim__ege td { font-weight: 800; }
 
 /* Rolling a week: a label and its control side by side, and a preview whose
    stat line is allowed to be the widest thing in the row. */

@@ -28,16 +28,17 @@
 const { develop, retireChance, holdScale } = require('./aging');
 const { standings, recordText } = require('./standings');
 const { draftOrder, startSeason, writeWorld } = require('./season');
-const { reSign, freeAgency, cutDown, fillHoles, onTeam, byPos, SLOTS, capCasualties } = require('./rosters');
+const { reSign, freeAgency, fillDepth, cutDown, fillHoles, onTeam, byPos, SLOTS, capCasualties } = require('./rosters');
 const { runDraft, makeName } = require('./draft');
 const { applyOfficial, planFor } = require('./draft-plan');
 const { rateTeams } = require('./team-ratings');
 const { OFFENSE, DEFENSE, fitOf, centreOn } = require('./schemes');
 const { gameDay } = require('./lineup');
-const { propose, closeWindow } = require('./trades');
+const { propose, closeWindow, queueMoves } = require('./trades');
 const { index, syncSix } = require('./league');
 const { TEAMS } = require('./teams');
 const { capFor } = require('./value');
+const { keep: keepRosters } = require('./history');
 
 const ING = { compete: 'competing', retool: 'retooling', rebuild: 'rebuilding' };
 function nick(key) { return TEAMS[key] ? TEAMS[key].name.split(' ').slice(-1)[0] : key; }
@@ -69,6 +70,7 @@ function archive(league) {
   Object.keys(table.divisions).forEach((d) => { entry.divisions[d] = table.divisions[d].map((r) => r.key); });
   (league.history = league.history || []).push(entry);
   writeWorld(league, 'stats-' + league.season + '.json', league.stats || {});
+  keepRosters(league);
   return entry;
 }
 
@@ -194,6 +196,18 @@ function modesAndSchemes(league, rng, ratings, lastRecords) {
   return notes;
 }
 
+/* ------------------------------------------------------------ big moves -- */
+
+/* A star (85 or better, or 80 now and 85 last season) who would leave the
+   team he played for last season waits for Sam: lib/rosters.js keeps him
+   where he was on the deal he was offered, and lib/trades.js queues the
+   move. Kickers, punters and the six never do. */
+function bigMove(league, lastSeason) {
+  const star = (p) => p.ovr >= 85 || (p.ovr >= 80 && (lastSeason.get(p.id) || 0) >= 85);
+  return (p, key) => star(p) && p.pos !== 'K' && p.pos !== 'P' && !p.ege && p.faSince === league.season &&
+    Boolean(p.lastTeam && TEAMS[p.lastTeam]) && p.lastTeam !== key;
+}
+
 /* ---------------------------------------------------------- part one -- */
 
 function startOffseason(league, rng) {
@@ -207,6 +221,7 @@ function startOffseason(league, rng) {
   league.players.forEach((p) => { delete p.injury; });
 
   /* A year older. */
+  const lastSeason = new Map(league.players.filter((p) => p.status === 'active').map((p) => [p.id, p.ovr]));
   league.season += 1;
   const changes = [];
   league.players.forEach((p) => {
@@ -250,9 +265,12 @@ function startOffseason(league, rng) {
   const re = reSign(league, rng);
   report.leftInFreeAgency = re.freed.filter((p) => p.ovr >= 80).map((p) => p.name + ' (' + p.pos + ', ' + p.ovr + ')');
   index(league);
-  const signed = freeAgency(league, rng, { reserve: 0.05 * capFor(league.season) });
+  const held = [];
+  const signed = freeAgency(league, rng, { reserve: 0.05 * capFor(league.season), hold: bigMove(league, lastSeason), held });
   report.signings = signed.filter((p) => p.ovr >= 78).map((p) => p.name + ' (' + p.pos + ', ' + p.ovr + ') to ' + p.team +
     ', $' + p.contract.apy + 'M through ' + p.contract.through);
+  index(league);
+  report.depth = fillDepth(league, rng, makeName).length;
   index(league);
 
   /* Ratings, modes, coaches and schemes. */
@@ -263,6 +281,7 @@ function startOffseason(league, rng) {
   /* Pre-draft trades for Sam. */
   league.phase = 'draft';
   applyOfficial(league);
+  report.moves = queueMoves(league, held, 'offseason');
   report.trades = propose(league, 'offseason', rng);
   return report;
 }

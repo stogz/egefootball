@@ -339,7 +339,24 @@ In two parts, so Sam can look at the pre-draft trades between them.
    him most, fits him best and can pay him, keeping some room back for its
    draft class. Contenders pay for veterans; rebuilding teams stay away from
    anyone 29 or older. An older player gets less than a young one of the same
-   overall.
+   overall. A room that already has its bench signs only a player who would
+   start, and none takes more than a camp's worth (four quarterbacks, six
+   backs, five tight ends, nine receivers...).
+
+   **Big moves wait for Sam.** A star — 85 or better, or 80 and an 85 last
+   season — who would leave the team he played for goes into the queue like
+   a trade (`2024-F1`, F for free agency): "Christian McCaffrey (RB, 99, age
+   28) leaves the 49ers for the Chiefs: 4 years, $14.1M a year." Until Sam
+   approves, the player stays with his old team on the deal the new one
+   offered, and the new team keeps the money and the spot set aside;
+   approved, he goes. Turned down or left waiting until the draft, he stays.
+   Kickers, punters and the six never wait. About ten a year.
+
+   **Depth.** Then every team fills each room to a full bench before the
+   draft — three quarterbacks, four backs and a fullback, six receivers,
+   three tight ends, four tackles, five interior linemen, five edge rushers,
+   five interior defensive linemen, five linebackers, six corners, four
+   safeties — with the best free agents it can pay, or camp bodies.
 6. **Modes, coaches and schemes.** Each team is in one of three modes —
    **compete**, **retool** or **rebuild** — from its rating, its record and
    the age of its best players, which decides what it buys and sells. A team
@@ -391,14 +408,27 @@ In two parts, so Sam can look at the pre-draft trades between them.
    whatever the sim's own 2023 standings say; the trades are made the first
    time a world opens (only for a pick nobody has traded since).
 3. Free agency again for the leftovers, then **rosters are cut to 53**: the
-   least valuable go, never one of the six.
+   least valuable go, never one of the six. Every 53 keeps a real bench: at
+   least two quarterbacks, three backs, five receivers, three tight ends,
+   four tackles, five interior linemen and four at each defensive spot (four
+   safeties, five corners), and never more than a room uses (three
+   quarterbacks, five backs, seven receivers, four tight ends...).
 4. The new season's schedule.
 
 Run for years, the league holds steady: in seven seasons tested (2023–2029)
 the average overall stayed at 74–75, with about 400 players at 80 or better
 and 80–105 at 90 or better (2023 has 403 and 90), every team at 53, payrolls
 around the cap, every scheme in use, and two to eight trade proposals a
-window.
+window. With the fuller benches (tested 2024–2028): 400–440 at 80 or better,
+every team at 53 with three or four backs and three or four tight ends, and
+9–15 big free-agent moves waiting on Sam each spring.
+
+**Every season's rosters are kept** (`lib/history.js`). When a season ends,
+every team's roster — every position, with its record — is saved in the
+world as `rosters-{season}.json`. `rosters DET 2025` (or Rosters by season
+on the admin page) shows a team's roster in any season kept, and who
+arrived (from which team, drafted or signed) and who left (to which team,
+retired or released) since the season before.
 
 ## 8. Trades and Sam's approval
 
@@ -453,6 +483,20 @@ too: the sim says what each side thinks of it and queues it like any other.
 When one of the six changes teams in the sim, the website's transfers have
 to be updated by hand; the sim says so.
 
+On the admin page Sam builds his own trade from dropdowns: a team on each
+side, then its players and picks added one at a time (one side can be
+empty). **Make the trade** puts it straight through; **Propose** queues it
+with what both teams think of it.
+
+**Sam's edits** (`lib/edits.js`). Any player's overall and ceiling can be set
+by hand — `edit "Drake Maye" --ovr 85 --pot 95`, or the admin page's player
+editor. His skills all move by the same amount, so he is the same kind of
+player and plays like the new number from the next game; his ceiling is
+never below his overall. From there he ages and develops like anybody else,
+toward the new ceiling. A prospect in a real class not drafted yet can be
+edited too: the numbers are kept until the draft, and a new overall moves
+where teams grade him. The six are rated on the website, not here.
+
 ## 9. Running it
 
 Everything runs with Node from the repository root, nothing to install. The
@@ -477,6 +521,9 @@ node nfl-sim/sim.js approve 2024-O3             apply a trade
 node nfl-sim/sim.js reject 2024-O3              turn one down
 node nfl-sim/sim.js trade "DET: Andrew Parr, 2025 R2 / SEA: Kenneth Walker"
                                                 Sam's own trade: each side lists what that team gives
+node nfl-sim/sim.js edit "Drake Maye" --ovr 85 [--pot 95]
+                                                set a player's overall and ceiling (a prospect too)
+node nfl-sim/sim.js rosters DET [2025]          a team's roster that season, who came and who went
 node nfl-sim/sim.js draft                       the draft, cut to 53, the next season's schedule
 node nfl-sim/sim.js draft --place cooper-clark=LAC --place isaac-vitel=DET:2
                                                 put one of the six on a team (in a round)
@@ -516,7 +563,8 @@ they read in one file; run it again after changing either.
 A year goes `season` (stopping at the deadline if there are trades), `trades`,
 `approve`/`reject`, `season`, `playoffs`, `offseason`, `trades`,
 `approve`/`reject`, `draft`. Trade ids are the season, D for the deadline, O
-for the offseason or S for Sam's own, and a number.
+for the offseason, F for a big free-agent move or S for Sam's own, and a
+number.
 
 Every command that plays games is seeded from the world and where the league
 is, so the same world always plays out the same way.
@@ -546,10 +594,12 @@ nfl-sim/
     season.js            weeks, injuries, the deadline, the playoffs
     aging.js             development, decline, retirement, the rating scale
     value.js             what players, picks and contracts are worth; the cap
-    rosters.js           needs, contracts, free agency, cutdowns
+    rosters.js           needs, contracts, free agency, depth, cutdowns
     draft.js             draft classes, ceilings, the draft
     draft-plan.js        a draft written by hand, and draft orders set by hand
-    trades.js            proposals, the queue, approving
+    trades.js            proposals, the queue (big free-agent moves too), approving
+    edits.js             overalls and ceilings set by hand
+    history.js           every team's roster, season by season
     offseason.js         the offseason, in order
     rng.js               the seeded dice
   build/                 builds data/ from nflverse

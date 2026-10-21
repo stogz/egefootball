@@ -19,7 +19,7 @@
 'use strict';
 
 const io = require('./io');
-const { skillsFrom, archetypeOf, SKILLS } = require('./skills');
+const { skillsFrom, archetypeOf, reRate, SKILLS } = require('./skills');
 const { fitOf, schemeFor } = require('./schemes');
 const { capFor, pickPoints, POSITION } = require('./value');
 const { starterLevels, needAt, onTeam } = require('./rosters');
@@ -76,14 +76,17 @@ function realClass(season) {
    most for the 2024 class (two real seasons to go on), less for 2025 (a
    rookie year, which undersells a ceiling), not at all for 2026. A class
    the sim made has its ceilings already. */
+function ceilingOf(pr, season, drawn) {
+  const seasons = pr.realPeak ? Math.max(0, 2026 - season) : 0;
+  return typeof pr.ceiling === 'number' ? pr.ceiling :
+    seasons >= 2 ? 0.65 * (pr.realPeak + 1) + 0.35 * ceilingAt(pr.grade) :
+    seasons === 1 ? 0.4 * (pr.realPeak + 3) + 0.6 * drawn : drawn;
+}
+
 function toPlayer(pr, season, rng) {
   const age = pr.age || 22;
   const ovr = Math.round(clamp(pickOverall(pr.grade, pr.pos) + rng.gauss() * 2.5, 48, 86));
-  const drawn = ceilingAt(pr.grade) + rng.gauss() * CEILING_SD;
-  const seasons = pr.realPeak ? Math.max(0, 2026 - season) : 0;
-  const pot = typeof pr.ceiling === 'number' ? pr.ceiling :
-    seasons >= 2 ? 0.65 * (pr.realPeak + 1) + 0.35 * ceilingAt(pr.grade) :
-    seasons === 1 ? 0.4 * (pr.realPeak + 3) + 0.6 * drawn : drawn;
+  const pot = ceilingOf(pr, season, ceilingAt(pr.grade) + rng.gauss() * CEILING_SD);
   const z = {};
   Object.keys(SKILLS[pr.pos] || {}).forEach((k) => { z[k] = rng.gauss() * 0.9; });
   const speedKey = SPEED_SKILL[pr.pos];
@@ -100,6 +103,31 @@ function toPlayer(pr, season, rng) {
   };
 }
 
+/* What a prospect is expected to come in as, before the draw: the player
+   editor's starting numbers for a class not drafted yet. */
+function expected(pr, season) {
+  const ovr = Math.round(clamp(pickOverall(pr.grade, pr.pos), 48, 86));
+  return { ovr, pot: Math.round(clamp(ceilingOf(pr, season, ceilingAt(pr.grade)), ovr, 97)) };
+}
+
+/* The pick a player of this overall goes at (pickOverall backwards). */
+function gradeFor(ovr, pos) { return Math.round(clamp(Math.exp((77 + (ROOKIE_READY[pos] || 0) - ovr) / 2.6), 1, 257)); }
+
+/* Overalls and ceilings Sam set by hand before the class was drafted
+   (lib/edits.js). A new overall moves where he is graded too, so the
+   teams see him the way Sam rates him. */
+function applyEdits(league, prospects) {
+  const edits = league.prospectEdits || {};
+  prospects.forEach((p) => {
+    const e = edits[p.id];
+    if (!e) { return; }
+    if (e.ovr) { reRate(p, e.ovr); p.grade = gradeFor(e.ovr, p.pos); }
+    p.pot = Math.max(p.ovr, e.pot || p.pot);
+    delete edits[p.id];
+  });
+  if (league.prospectEdits && !Object.keys(edits).length) { delete league.prospectEdits; }
+}
+
 /* The six from the website, as prospects: graded where a player of their
    site overall would go. */
 function egeProspects(season, slugs) {
@@ -107,7 +135,7 @@ function egeProspects(season, slugs) {
   const six = sixFromSite(season);
   return slugs.filter((s) => six[s]).map((s) => {
     const p = six[s].player;
-    const grade = Math.round(clamp(Math.exp((77 + (ROOKIE_READY[p.pos] || 0) - p.ovr) / 2.6), 1, 257));
+    const grade = gradeFor(p.ovr, p.pos);
     let siteTeam = null;
     Object.keys(TEAMS).forEach((k) => { if (TEAMS[k].site && TEAMS[k].site === six[s].siteTeam) { siteTeam = k; } });
     return Object.assign({}, p, { age: season - 2001, entry: season, status: 'prospect', grade, siteTeam });
@@ -190,6 +218,7 @@ function runDraft(league, order, rng, place, plan) {
   const real = realClass(season);
   const list = real.list || madeClass(season, rng);
   const prospects = list.map((pr) => toPlayer(pr, season, rng));
+  applyEdits(league, prospects);
   egeProspects(season, real.ege).forEach((p) => {
     prospects.push(p);
     if (!place[p.ege] && p.siteTeam) { place[p.ege] = p.siteTeam; }
@@ -285,4 +314,4 @@ function runDraft(league, order, rng, place, plan) {
   return results;
 }
 
-module.exports = { runDraft, toPlayer, madeClass, makeName, rookiePay, pickOverall, picksInOrder };
+module.exports = { runDraft, toPlayer, madeClass, makeName, rookiePay, pickOverall, picksInOrder, realClass, expected };
