@@ -3,7 +3,7 @@
    Every NFL team, keyed the way the NFL sim keys them (nflverse's
    abbreviations: LA is the Rams, LAC the Chargers), for the Teams pages:
    the name, the conference and division, and the colour a player's
-   pop-up is drawn on. `site` is the team's key in EGE.teams for the three
+   pop-up is drawn on. `site` is the team's key in EGE.teams for the ones
    the six play for, which have pages of their own already; every other
    team's page is its roster and nothing else.
 
@@ -36,17 +36,17 @@ EGE.nfl = {
   LAC: { name: 'Los Angeles Chargers', conf: 'AFC', div: 'West', color: '#007BC7' },
   LV: { name: 'Las Vegas Raiders', conf: 'AFC', div: 'West', color: '#000000' },
   DAL: { name: 'Dallas Cowboys', conf: 'NFC', div: 'East', color: '#002244' },
-  NYG: { name: 'New York Giants', conf: 'NFC', div: 'East', color: '#0B2265' },
+  NYG: { name: 'New York Giants', conf: 'NFC', div: 'East', color: '#0B2265', site: 'newYorkGiants' },
   PHI: { name: 'Philadelphia Eagles', conf: 'NFC', div: 'East', color: '#004C54' },
   WAS: { name: 'Washington Commanders', conf: 'NFC', div: 'East', color: '#5A1414' },
-  CHI: { name: 'Chicago Bears', conf: 'NFC', div: 'North', color: '#0B162A' },
+  CHI: { name: 'Chicago Bears', conf: 'NFC', div: 'North', color: '#0B162A', site: 'chicago' },
   DET: { name: 'Detroit Lions', conf: 'NFC', div: 'North', color: '#0076B6', site: 'detroit' },
   GB: { name: 'Green Bay Packers', conf: 'NFC', div: 'North', color: '#203731' },
   MIN: { name: 'Minnesota Vikings', conf: 'NFC', div: 'North', color: '#4F2683' },
   ATL: { name: 'Atlanta Falcons', conf: 'NFC', div: 'South', color: '#A71930' },
   CAR: { name: 'Carolina Panthers', conf: 'NFC', div: 'South', color: '#0085CA' },
   NO: { name: 'New Orleans Saints', conf: 'NFC', div: 'South', color: '#101820' },
-  TB: { name: 'Tampa Bay Buccaneers', conf: 'NFC', div: 'South', color: '#A71930' },
+  TB: { name: 'Tampa Bay Buccaneers', conf: 'NFC', div: 'South', color: '#A71930', site: 'tampaBay' },
   ARI: { name: 'Arizona Cardinals', conf: 'NFC', div: 'West', color: '#97233F' },
   LA: { name: 'Los Angeles Rams', conf: 'NFC', div: 'West', color: '#003594' },
   SF: { name: 'San Francisco 49ers', conf: 'NFC', div: 'West', color: '#AA0000' },

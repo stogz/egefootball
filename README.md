@@ -48,7 +48,9 @@ college that year. `EGE.leagueOf(player, season)` turns that into the
 league his week goes out with, `'nfl'` or `'college'`, and
 `EGE.levelFor(player, season)` into the words on his page, *NFL* or
 *College Football*. Sam and Jaykeb are no longer teammates from 2023, and
-the shared-fixture rule stops with them.
+the shared-fixture rule stops with them. The 2024 draft does the same for
+the other three: Cooper's `{ 2024: 'chicago' }`, Paxon's
+`{ 2024: 'newYorkGiants' }` and Isaac's `{ 2024: 'tampaBay' }`.
 
 Everything marked TBD is genuinely unknown right now and should stay TBD in code
 and data until it is confirmed — no placeholder guesses that later read as facts.
@@ -68,7 +70,7 @@ without it.
 
 ## Timeline
 
-Six seasons, one per simulated year. This ladder is official — schedule and stat
+Seven seasons, one per simulated year. This ladder is official — schedule and stat
 data is authored per season below.
 
 | Season | Level | Class |
@@ -79,6 +81,7 @@ data is authored per season below.
 | 2021 | College football | Sophomore year |
 | 2022 | College football | Junior year |
 | 2023 | NFL & college football | Rookie year (NFL), senior year (college) |
+| 2024 | NFL | Second year (Sam, Andrew, Jaykeb), rookie year (Paxon, Cooper, Isaac) |
 
 The simulation opens on the **2018 junior-year high school season** — that is
 what gets built first. High school graduation is spring 2020, after the 2019
@@ -2328,6 +2331,16 @@ player's line drawn under the same rules as the regular season:
   touchdown; Cooper 31 carries for 157 yards and 2 touchdowns, and 6
   catches for 77. Both files carry it from their own side, as week 2's
   Lions–Seahawks game does.
+
+**2024** is set up and waiting, with all six in the NFL: Cooper went 7th to
+Chicago, Paxon 34th to the Giants and Isaac 39th to Tampa Bay.
+`stats/2024.js` holds each of their teams' real 2024 regular season from
+nflverse's `games.csv`, weeks 1 to 18 with the bye in its week, the
+kickoffs in each team's own time and every result still to come. The Bears'
+London game (week 6, Jacksonville) and the Giants' Munich game (week 10,
+Carolina) are `neutral`. `EGE.currentSeason` is still 2023, so only an
+admin sees 2024 until it is rolled over to, and it has no block in
+`data/conferences.js` yet.
 
 ### Conference standings
 
