@@ -9,6 +9,10 @@
    - Free agency: the best free agents first, each to the team that needs
      him most, fits him best and can pay him. Contenders pay for veterans;
      rebuilding teams do not.
+   - Depth: every room carries its bench -- three backs and three tight
+     ends at least on a 53, and no more than a room uses (MIN, TARGET and
+     MAX below). In the offseason each team fills every room to its target
+     before the draft, and camp rosters stop at CAMP a position.
    - Cutdown: 53 a team, the least valuable released.
    ========================================================================== */
 
@@ -19,10 +23,15 @@ const { fitOf, schemeFor } = require('./schemes');
 const { CURVES } = require('./aging');
 const { skillsFrom, archetypeOf, SKILLS } = require('./skills');
 
-/* Starters a position puts on the field, and what a 53 holds. */
+/* Starters a position puts on the field, and what a 53 holds: at least
+   MIN (45 in all), about TARGET (53), never more than MAX -- the way NFL
+   53s run, with a real bench at every position. CAMP is the most a room
+   takes in the offseason, when rosters run to 75. */
 const SLOTS = { QB: 1, RB: 1, FB: 0, WR: 3, TE: 1, OT: 2, IOL: 3, EDGE: 2, DI: 2, LB: 2, CB: 3, S: 2, K: 1, P: 1 };
-const MIN = { QB: 2, RB: 2, FB: 0, WR: 4, TE: 2, OT: 3, IOL: 4, EDGE: 3, DI: 3, LB: 3, CB: 4, S: 3, K: 1, P: 1 };
+const MIN = { QB: 2, RB: 3, FB: 0, WR: 5, TE: 3, OT: 4, IOL: 5, EDGE: 4, DI: 4, LB: 4, CB: 5, S: 4, K: 1, P: 1 };
 const TARGET = { QB: 3, RB: 4, FB: 1, WR: 6, TE: 3, OT: 4, IOL: 5, EDGE: 5, DI: 5, LB: 5, CB: 6, S: 4, K: 1, P: 1 };
+const MAX = { QB: 3, RB: 5, FB: 1, WR: 7, TE: 4, OT: 5, IOL: 6, EDGE: 6, DI: 6, LB: 6, CB: 7, S: 5, K: 1, P: 1 };
+const CAMP = { QB: 4, RB: 6, FB: 2, WR: 9, TE: 5, OT: 7, IOL: 8, EDGE: 8, DI: 8, LB: 8, CB: 9, S: 7, K: 2, P: 2 };
 const ROSTER = 53;
 const OFFSEASON_ROSTER = 75;
 
@@ -159,7 +168,12 @@ function reSign(league, rng) {
 }
 
 /* Free agency: best first, each to the team that wants him most and can
-   pay him, keeping `reserve` ($M) back for the draft class. */
+   pay him, keeping `reserve` ($M) back for the draft class. A room already
+   at its camp size signs nobody, and one at its target only a player who
+   would start. `hold(p, key)`, if given, says a signing has to wait for
+   Sam (a star leaving his team): he goes back to his old team on the terms
+   offered, the money and the spot stay set aside at the new one, and the
+   move is pushed onto `held` for the queue (lib/trades.js). */
 function freeAgency(league, rng, opts) {
   opts = opts || {};
   const limit = opts.limit || OFFSEASON_ROSTER;
@@ -168,6 +182,7 @@ function freeAgency(league, rng, opts) {
   const pool = league.players.filter((p) => p.status === 'fa').sort((a, b) => b.ovr - a.ovr);
   const sizes = {};
   const rooms = {};
+  const promised = {};
   league.teams.forEach((t) => {
     sizes[t.key] = onTeam(league, t.key).length;
     rooms[t.key] = room(league, t.key) - (opts.reserve || 0);
@@ -178,9 +193,13 @@ function freeAgency(league, rng, opts) {
     let bestScore = opts.minScore === undefined ? 0.2 : opts.minScore;
     league.teams.forEach((t) => {
       if (sizes[t.key] >= limit || rooms[t.key] < ask + 1) { return; }
-      const need = needAt(league, t.key, p.pos, levels);
-      const roster = onTeam(league, t.key);
-      const count = roster.filter((x) => x.pos === p.pos).length;
+      const roster = onTeam(league, t.key).concat(promised[t.key] || []);
+      const room = byPos(roster, p.pos);
+      const count = room.length;
+      if (count >= (CAMP[p.pos] || 2)) { return; }
+      const starts = count < (SLOTS[p.pos] || 0) || (SLOTS[p.pos] && p.ovr > room[SLOTS[p.pos] - 1].ovr);
+      if (count >= (TARGET[p.pos] || 0) && !starts) { return; }
+      const need = needAt(league, t.key, p.pos, levels, roster);
       const short = count < (MIN[p.pos] || 0) ? 0.6 : count < (TARGET[p.pos] || 0) ? 0.15 : -0.3;
       const fit = fitOf(p, schemeFor(t, p.pos));
       let score = need * (POSITION[p.pos] || 0.8) + short + 0.04 * fit + rng() * 0.25;
@@ -188,7 +207,13 @@ function freeAgency(league, rng, opts) {
       if (t.mode === 'compete' && p.ovr >= 80) { score += 0.15; }
       if (score > bestScore) { bestScore = score; best = t; }
     });
-    if (best) {
+    if (best && opts.hold && opts.hold(p, best.key)) {
+      const to = best.key;
+      sign(p, p.lastTeam, league, rng, ask * (0.9 + rng() * 0.25));
+      [to, p.team].forEach((key) => { sizes[key] += 1; rooms[key] -= p.contract.apy; });
+      (promised[to] = promised[to] || []).push(p);
+      if (opts.held) { opts.held.push({ player: p, from: p.team, to, contract: Object.assign({}, p.contract) }); }
+    } else if (best) {
       sign(p, best.key, league, rng, ask * (0.9 + rng() * 0.25));
       sizes[best.key] += 1;
       rooms[best.key] -= p.contract.apy;
@@ -198,7 +223,9 @@ function freeAgency(league, rng, opts) {
   return signed;
 }
 
+/* Released or not re-signed: a free agent, who remembers whose he was. */
 function release(p, season) {
+  if (p.team && p.team !== 'FA') { p.lastTeam = p.team; }
   p.team = 'FA';
   p.status = 'fa';
   p.faSince = season;
@@ -215,6 +242,7 @@ function trim(league, key, n, rng) {
   Object.keys(MIN).forEach((pos) => byPos(healthy, pos).slice(0, MIN[pos]).forEach((p) => keep.add(p)));
   const out = roster.filter((p) => !keep.has(p)).map((p) => {
     const count = byPos(roster, p.pos).indexOf(p);
+    if (count >= (MAX[p.pos] || 3)) { return [p, -1 + rng() * 0.01]; }
     const surplus = count >= (TARGET[p.pos] || 3) ? 0.5 : 1;
     return [p, playerValue(p, league.season, { mode: team.mode }) * surplus + p.ovr / 100 + rng() * 0.01];
   }).sort((a, b) => a[1] - b[1]).slice(0, n).map(([p]) => p);
@@ -252,6 +280,25 @@ function bestAffordable(league, key, pos, maxAge) {
   const space = Math.max(room(league, key) - 1, capFor(league.season) / capFor(2024) * 1.2);
   return league.players.filter((p) => p.status === 'fa' && p.pos === pos && (!maxAge || p.age <= maxAge) &&
     marketPay(p, league.season) <= space).sort((a, b) => b.ovr - a.ovr)[0];
+}
+
+/* Before the draft every room fills to its target -- the backups and
+   camp bodies a team carries into the spring -- with the best free agent
+   it can pay there, or a made-up replacement-level player. */
+function fillDepth(league, rng, makeName) {
+  const added = [];
+  league.teams.forEach((t) => {
+    Object.keys(TARGET).forEach((pos) => {
+      let count = onTeam(league, t.key).filter((p) => p.pos === pos).length;
+      while (count < TARGET[pos] && onTeam(league, t.key).length < OFFSEASON_ROSTER) {
+        const p = bestAffordable(league, t.key, pos) || replacement(league, pos, rng, makeName);
+        sign(p, t.key, league, rng, marketPay(p, league.season));
+        added.push(p);
+        count += 1;
+      }
+    });
+  });
+  return added;
 }
 
 /* A team short at a position after everything else signs a camp body
@@ -296,5 +343,5 @@ function replacement(league, pos, rng, makeName) {
   return p;
 }
 
-module.exports = { SLOTS, MIN, TARGET, ROSTER, onTeam, payroll, room, starterLevels, needAt, needs, reSign, freeAgency,
-                   cutDown, trim, addPlayers, fillHoles, sign, release, byPos, capCasualties };
+module.exports = { SLOTS, MIN, TARGET, MAX, CAMP, ROSTER, onTeam, payroll, room, starterLevels, needAt, needs, reSign,
+                   freeAgency, cutDown, trim, addPlayers, fillDepth, fillHoles, sign, release, byPos, capCasualties };

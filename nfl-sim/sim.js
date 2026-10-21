@@ -25,6 +25,9 @@
      node nfl-sim/sim.js approve 2024-O3
      node nfl-sim/sim.js reject 2024-O3
      node nfl-sim/sim.js trade "DET: Andrew Parr, 2025 R2 / SEA: Kenneth Walker"
+     node nfl-sim/sim.js edit "Drake Maye" --ovr 85 [--pot 95]   set a player's overall
+                                                and ceiling (a prospect too, before his draft)
+     node nfl-sim/sim.js rosters DET [YEAR]     a team's roster that season, and who came and went
      node nfl-sim/sim.js report                 a written report into the world folder
      node nfl-sim/sim.js reset --force          start over from the 2023 kickoff
 
@@ -52,6 +55,8 @@ const { rateTeams } = require('./lib/team-ratings');
 const { assess, describe } = require('./lib/assess');
 const trades = require('./lib/trades');
 const draftPlan = require('./lib/draft-plan');
+const edits = require('./lib/edits');
+const history = require('./lib/history');
 const { depthChart } = require('./lib/lineup');
 const { OFFENSE, DEFENSE, fitOf, schemeFor } = require('./lib/schemes');
 const { payroll } = require('./lib/rosters');
@@ -75,6 +80,8 @@ const neutral = flag('neutral');
 const gamesArg = flag('games');
 const throughArg = flag('through');
 const seasonArg = flag('season');
+const ovrArg = flag('ovr');
+const potArg = flag('pot');
 function bool(name) {
   const at = args.indexOf('--' + name);
   if (at !== -1) { args.splice(at, 1); }
@@ -121,7 +128,8 @@ function showStandings(league) {
 }
 
 function showTrade(t) {
-  say(t.id + ' [' + t.status + (t.ege ? ', moves one of the six' : '') + (t.proposedBy === 'Sam' ? ', yours' : '') + ']');
+  say(t.id + ' [' + t.status + (t.kind === 'move' ? ', free agency' : '') + (t.ege ? ', moves one of the six' : '') +
+    (t.proposedBy === 'Sam' ? ', yours' : '') + ']');
   say('  ' + t.summary);
   t.reasons.forEach((r) => say('  - ' + r));
 }
@@ -279,6 +287,11 @@ function main() {
       if (r.signings.length) { say('Signed: ' + r.signings.join('; ')); }
       if (r.schemes.length) { say(''); say('Coaches and schemes:'); r.schemes.forEach((n) => say('  ' + n)); }
       say('');
+      if (r.moves.length) {
+        say(r.moves.length + ' big free-agent moves are waiting (each player stays put unless you approve):');
+        r.moves.forEach(showTrade);
+        say('');
+      }
       say(r.trades.length + ' pre-draft trade proposals are waiting:');
       r.trades.forEach(showTrade);
       say('');
@@ -355,13 +368,37 @@ function main() {
       say('Queued: approve it with "approve ' + t.id + '".');
       break;
     }
+    case 'edit': {
+      const name = rest.join(' ').toLowerCase();
+      const p = findPlayer(league, rest.join(' ')) || edits.draftClass(league).players.find((x) => x.name.toLowerCase() === name);
+      if (!p || (ovrArg === null && potArg === null)) { say('Usage: edit "Player Name" --ovr 85 [--pot 95]'); break; }
+      const r = edits.setRatings(league, p.id, { ovr: ovrArg, pot: potArg });
+      say(r.name + ' (' + r.pos + (r.team ? ', ' + r.team : r.prospect ? ', ' + r.prospect + ' draft class' : '') + '): overall ' +
+        r.before.ovr + ' to ' + r.after.ovr + ', ceiling ' + r.before.pot + ' to ' + r.after.pot + '.');
+      break;
+    }
+    case 'rosters': {
+      const key = (rest[0] || '').toUpperCase();
+      const year = Number(rest[1]) || league.season;
+      const shot = history.rostersIn(league, year);
+      if (!TEAMS[key] || !shot) { say('Usage: rosters TEAM [YEAR]. Seasons kept: ' + history.seasons(league).join(', ') + '.'); break; }
+      const team = shot.teams[key];
+      say(TEAMS[key].name + ', ' + year + (team.record ? ' (' + team.record + ')' : '') + ': ' + team.players.length + ' players.');
+      team.players.forEach((p) => say('  ' + p.pos.padEnd(5) + p.name + ' ' + p.ovr + ' (' + p.age + ')'));
+      const c = history.changes(league, key, year);
+      if (c) {
+        say('Arrived: ' + (c.arrived.map((a) => a.player.name + (a.from ? ' from ' + a.from : a.how === 'draft' ? ' (draft)' : ' (signed)')).join(', ') || 'nobody'));
+        say('Left: ' + (c.left.map((l) => l.player.name + (l.to ? ' to ' + l.to : ' (' + l.how + ')')).join(', ') || 'nobody'));
+      }
+      break;
+    }
     case 'report': {
       const file = writeReport(league);
       say('Wrote ' + file);
       break;
     }
     default:
-      say('Unknown command ' + command + '. Commands: status, week, season, playoffs, standings, rankings, team, player, matchup, offseason, draft, draft-order, upload-draft, trades, approve, reject, trade, report, reset, import-site, site, export.');
+      say('Unknown command ' + command + '. Commands: status, week, season, playoffs, standings, rankings, team, player, matchup, offseason, draft, draft-order, upload-draft, trades, approve, reject, trade, edit, rosters, report, reset, import-site, site, export.');
       done();
       return;
   }
@@ -371,7 +408,7 @@ function main() {
 
 function reset(world) {
   if (!force) { say('This starts the world over from the 2023 kickoff. Run "reset --force" to do it.'); return; }
-  const mine = /^(league|trades|games-\d+|stats-\d+|ratings-.+)\.json$/;
+  const mine = /^(league|trades|games-\d+|stats-\d+|rosters-\d+|ratings-.+)\.json$/;
   if (fs.existsSync(world)) {
     fs.readdirSync(world).filter((f) => mine.test(f)).forEach((f) => fs.unlinkSync(path.join(world, f)));
     fs.rmSync(path.join(world, 'reports'), { recursive: true, force: true });

@@ -2653,7 +2653,15 @@ those picks go exactly as written, can't be traded while they wait, and the
 sim drafts the rest. The 2024 draft goes in the order from the 2024 mock
 draft doc in every round, whatever the sim's own 2023 said
 (`nfl-sim/data/draft-orders.json`). Trades wait for
-**Approve** or **Reject**, and Sam can type in his own. **Put it on the
+**Approve** or **Reject**, and so does any star (85 or better) who would
+leave his team in free agency: he stays put unless Sam approves the move.
+Sam's own trades come from a builder: a team on each side, players and
+picks added from dropdowns, then **Make the trade** (straight through) or
+**Propose** (queued with what both teams think). The **Player editor** sets
+any player's overall and ceiling — on a team, a free agent, or a prospect
+in the class the next draft takes — and **Rosters by season** shows every
+team's roster as each season ended (and this one as it stands), with who
+arrived and who left since the season before. **Put it on the
 site** downloads `stats/{year}.js` (the six's games as the sim played them,
 and their playoff games as they reach them) and `data/nfl-results.js` (every
 other NFL score) to commit, then the weeks are published on the Weeks tab as
