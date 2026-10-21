@@ -3418,3 +3418,66 @@ grant select, insert, update, delete on public.nfl_sim_rosters to authenticated;
 grant select, insert, update, delete on public.nfl_sim_files to authenticated;
 
 notify pgrst, 'reload schema';
+
+-- ---------------------------------------------------------------------------
+-- The weeks the NFL sim has played
+--
+-- The NFL Sim tab stores every week it plays here, so a week can be played,
+-- published and the next one played with nothing committed in between. The
+-- site lays these over stats/{year}.js and data/nfl-results.js when it
+-- loads (js/stored-weeks.js), and Download the season files on the tab
+-- writes them into those files whenever wanted. Two rows a week:
+--
+--   results   the six's results, stat lines, big plays and injuries
+--             (`games`, by slug) and every NFL score that week (`scores`).
+--             Nobody but an admin reads it until the week is published.
+--   fixtures  the six's playoff games that week, which no season file has
+--             until the sim has played the round. Readable once the week
+--             before it is out, so the game is on the schedule, and can take
+--             a wager, ahead of its own week.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.sim_weeks (
+  season   integer     not null check (season between 2018 and 2100),
+  week     integer     not null check (week between 0 and 40),
+  part     text        not null check (part in ('results', 'fixtures')),
+  games    jsonb       not null default '{}'::jsonb,
+  scores   jsonb       not null default '[]'::jsonb,
+  saved_at timestamptz not null default now(),
+  primary key (season, week, part)
+);
+
+alter table public.sim_weeks enable row level security;
+
+drop policy if exists "sim weeks read once they are out" on public.sim_weeks;
+create policy "sim weeks read once they are out"
+  on public.sim_weeks for select to anon, authenticated
+  using (
+    public.is_admin()
+    or exists (
+      select 1 from public.published_weeks p
+       where p.season = sim_weeks.season
+         and p.week = case when sim_weeks.part = 'fixtures' then sim_weeks.week - 1 else sim_weeks.week end
+    )
+  );
+
+drop policy if exists "sim weeks added by an admin" on public.sim_weeks;
+create policy "sim weeks added by an admin"
+  on public.sim_weeks for insert to authenticated
+  with check (public.is_admin());
+
+drop policy if exists "sim weeks changed by an admin" on public.sim_weeks;
+create policy "sim weeks changed by an admin"
+  on public.sim_weeks for update to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "sim weeks removed by an admin" on public.sim_weeks;
+create policy "sim weeks removed by an admin"
+  on public.sim_weeks for delete to authenticated
+  using (public.is_admin());
+
+revoke insert, update, delete on public.sim_weeks from anon;
+grant select on public.sim_weeks to anon, authenticated;
+grant select, insert, update, delete on public.sim_weeks to authenticated;
+
+notify pgrst, 'reload schema';

@@ -306,6 +306,14 @@ function resultsFileText(season, results) {
     const r = all[year];
     lines.push('  ' + year + ': {');
     lines.push('    from: ' + r.from + ',');
+    /* The weeks folded in from the admin page's stored weeks, and when each
+       was saved (js/stored-weeks.js). */
+    const stamped = Object.keys(r.stored || {}).map(Number).sort((a, b) => a - b);
+    if (stamped.length) {
+      lines.push('    stored: {');
+      stamped.forEach((week, j) => { lines.push('      ' + week + ': ' + q(r.stored[week]) + (j < stamped.length - 1 ? ',' : '')); });
+      lines.push('    },');
+    }
     lines.push('    games: [');
     r.games.forEach((g, j) => {
       const flags = (g.overtime ? ', overtime: true' : '') + (g.neutral ? ', neutral: true' : '');
@@ -334,6 +342,81 @@ function siteFiles(league, season) {
       season, from: results.from, games: results.games.length, stats, results: text
     }));
   });
+}
+
+/* ----------------------------------------------------- out: stored weeks -- */
+
+/* Every week the sim has played of `season`, as the admin page stores it
+   for the site to lay over the season files (sim_weeks, js/stored-weeks.js),
+   so a week can go out with nothing committed. { from, imported, weeks },
+   the weeks oldest first, each { week, games, scores, fixtures }:
+
+   - games: the six's results, stat lines (completed the way the season
+     file writes them), big plays and injuries, by slug;
+   - scores: every NFL score that week, regular season only, as
+     data/nfl-results.js has them;
+   - fixtures: the six's playoff games that week, whether or not the season
+     file has a row for them yet, or null in the regular season.
+
+   `from` is the first week the sim played itself and `imported` the weeks
+   it took in from the site, which are the site's own. Worked out from the
+   season file as committed: the page lays the stored weeks off first. */
+function weekRows(league, season) {
+  const site = io.site();
+  const name = 'games-' + season + '.json';
+  const log = io.has(league.world, name) ? io.read(league.world, name) : [];
+  const imported = {};
+  log.filter((g) => g.season === season && g.imported).forEach((g) => { imported[g.week] = true; });
+  const played = log.filter((g) => g.season === season && !g.imported && g.score);
+  if (!played.length) { return { from: null, imported: Object.keys(imported).map(Number), weeks: [] }; }
+  const from = Math.min.apply(null, played.map((g) => g.week));
+  const made = sixEdits(log, season, from);
+  const file = ((site.stats || {})[season] || {}).games || {};
+  const weeks = {};
+  const weekOf = (n) => weeks[n] || (weeks[n] = { week: n, games: {}, scores: [], fixtures: null });
+  played.forEach((g) => { weekOf(g.week); });
+
+  Object.keys(made.edits).forEach((slug) => {
+    const player = site.playerBySlug(slug);
+    const list = file[slug] || [];
+    const regular = list.filter((g) => !g.playoff);
+    const lastDate = regular.filter((g) => g.date).map((g) => g.date).sort().pop() || season + 1 + '-01-07';
+    const lastWeek = Math.max.apply(null, regular.map((g) => g.week).concat([0]));
+    Object.keys(made.edits[slug]).forEach((n) => {
+      const e = made.edits[slug][n];
+      const have = list.filter((g) => g.week === e.week)[0];
+      if (have && !e.playoff && have.opponent !== e.opponent) {
+        throw new Error(slug + '’s Week ' + e.week + ' is against ' + have.opponent + ' on the site but ' + e.opponent + ' in the sim.');
+      }
+      const w = weekOf(e.week);
+      w.games[slug] = {
+        result: e.result, stats: site.statline.complete(player.position, e.stats), bigPlays: e.bigPlays,
+        overtime: e.overtime, injured: Boolean(e.injured), injury: e.injury || null,
+        health: typeof e.health === 'number' ? e.health : null
+      };
+      if (e.playoff) {
+        w.fixtures = w.fixtures || {};
+        w.fixtures[slug] = {
+          week: e.week, date: have && have.date ? have.date : playoffDate(lastDate, e.week - lastWeek - 1),
+          kickoff: have ? have.kickoff || null : null, name: e.name, opponent: e.opponent, home: e.home,
+          conference: false, neutral: Boolean(e.neutral), playoff: true, result: null, booster: null, stats: null
+        };
+      }
+    });
+  });
+
+  const results = simResults(league, season);
+  (results ? results.games : []).forEach((g) => {
+    const score = { home: g.home, away: g.away, score: g.score.slice() };
+    if (g.overtime) { score.overtime = true; }
+    if (g.neutral) { score.neutral = true; }
+    weekOf(g.week).scores.push(score);
+  });
+  return {
+    from,
+    imported: Object.keys(imported).map(Number),
+    weeks: Object.keys(weeks).map(Number).sort((a, b) => a - b).map((n) => weeks[n])
+  };
 }
 
 /* --------------------------------------------------------- out: rosters -- */
@@ -395,4 +478,4 @@ function publicRosters(league) {
   return { season: league.season, phase: league.phase, week: league.week || null, savedAt: new Date().toISOString(), caps, systems, teams };
 }
 
-module.exports = { siteResults, sixEdits, seasonFileText, simResults, resultsFileText, siteFiles, publicRosters, simKey };
+module.exports = { siteResults, sixEdits, seasonFileText, simResults, resultsFileText, siteFiles, weekRows, publicRosters, simKey };

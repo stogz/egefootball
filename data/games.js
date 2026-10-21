@@ -1,7 +1,8 @@
 /* ==========================================================================
    EGE Football — reading the seasons
-   Every game lives in stats/{year}.js. This is how the rest of the site gets
-   at them, and the one place that decides what "played" means.
+   Every game lives in stats/{year}.js (with the NFL sim's stored weeks laid
+   over it, js/stored-weeks.js). This is how the rest of the site gets at
+   them, and the one place that decides what "played" means.
 
    Published, not just filled in
    -----------------------------

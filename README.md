@@ -2704,7 +2704,17 @@ has already put out as played (the six's games from their season file,
 everybody else's real scores) and the sim plays every NFL game after them.
 Then: play a week or on to the deadline / the end of the regular season, the
 playoffs a round at a time or all at once, the offseason and the draft (with
-a team and round for any of the six still in college). Under Play, a week
+a team and round for any of the six still in college). Every week the sim
+plays is **stored** for the site (Supabase `sim_weeks`, laid over the season
+files by `js/stored-weeks.js`), so **Publish Week N** under Play puts it out
+the way the Weeks tab's Publish does (the credits and diamonds it pays, the
+Discord posts) with nothing committed, and the next week can be played
+straight after: Play Week 5, Publish Week 5, Play Week 6. A stored week is
+the whole week as the sim played it, for each of the six in the NFL: their
+results, stat lines, big plays and injuries, every other NFL score for the
+standings, and their playoff games as they reach them. Nobody but an admin
+can read one until its week is out (a playoff game's fixture once the week
+before it is), and a week that is out stays as it went out. Under Play, a week
 the sim has played this season (or a playoff round) can be picked and
 **Resim** plays it again on new dice, or **Undo** goes back to before it.
 Either way every week played after it is undone, and so is anything changed
@@ -2737,10 +2747,13 @@ the six's (the website keeps their ratings, the sim keeps this), and
 **Rosters by season** shows every
 team's roster as each season ended (and this one as it stands), with who
 arrived and who left since the season before. **Put it on the
-site** downloads `stats/{year}.js` (the six's games as the sim played them,
-and their playoff games as they reach them) and `data/nfl-results.js` (every
-other NFL score) to commit, then the weeks are published on the Weeks tab as
-usual. After each step the rosters go to `nfl_sim_rosters` for the Teams
+site** downloads `stats/{year}.js` and `data/nfl-results.js` with the
+stored weeks written in (and the stickers on weeks that are out), to commit
+whenever it suits -- the end of the season, or any time -- and says which
+stored weeks the committed files do not have yet. Each file keeps `stored`,
+when each week written in was saved: a week stored after that (played again,
+or undone) is laid over the file's copy, and a correction made in the file
+afterwards stands. After each step the rosters go to `nfl_sim_rosters` for the Teams
 pages (a box turns that off). The world can be downloaded, loaded back and
 started over. A step that fails saves nothing, and a world saved from
 another tab since the page loaded it is refused rather than overwritten.
@@ -2905,11 +2918,11 @@ Built so far:
   inventory, admins, the stickers stuck on games (and the trigger holding
   them to five a season), the credit awards a season pays out, diamonds and
   their awards, which weeks are published (and which leagues' Discord
-  posts have gone), the two Discord webhooks, and the card collection. Run
+  posts have gone), the two Discord webhooks, the card collection, and the
+  NFL sim's world, rosters and stored weeks (`sim_weeks`). Run
   it in the Supabase SQL editor; it is safe to run again, and it must be
   re-run after pulling a change that adds a table. **Re-run it after
-  pulling this change** so `discord_webhooks` and
-  `published_weeks.posted_leagues` are in the database.
+  pulling this change** so `sim_weeks` is in the database.
 - `supabase/functions/post-week/` — an edge function that posts a week to
   the college or NFL channel for an admin, from the saved webhook or its
   own secret, for a league with no webhook saved on the admin page.
@@ -2939,6 +2952,10 @@ Built so far:
 - `data/nfl.js` — the 32 NFL teams: name, division, colour, page address.
 - `data/nfl-results.js` — the NFL scores the sim played, written by the NFL
   Sim tab or `node nfl-sim/sim.js site`.
+- `js/stored-weeks.js` — the weeks the NFL Sim tab stored in `sim_weeks`,
+  laid over the season files and `data/nfl-results.js` whenever the
+  published weeks load (and by the Discord bot), so a week can be played and
+  published with nothing committed.
 - `data/economy.js` — every number about credits in one place: what a rating
   point costs, how much overall a point is worth, what a touchdown pays, and
   the tuning behind all of it. Nothing else in the site invents a price. What
@@ -2949,8 +2966,9 @@ Built so far:
   ratings locked. Small on purpose: the admin portal rewrites this whole file
   when a season is rolled over.
 - `stats/{year}.js` — one per season: every fixture, and the score, stat line
-  and booster for each once it has been played. Nothing else holds a schedule,
-  and nothing else holds a stat.
+  and booster for each once it has been played. Nothing else holds a schedule;
+  the only other stat lines are the NFL Sim tab's stored weeks, until they are
+  written in here (`js/stored-weeks.js`).
 - `js/site-data.js` — the list of seasons, and the tags it writes for the
   three files the admin regenerates, cache-busted so a committed correction is
   on the site rather than ten minutes behind it.

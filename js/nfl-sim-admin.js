@@ -266,6 +266,127 @@ EGE.nflSimAdmin = (function () {
     });
   }
 
+  /* --- the weeks played, stored for the site ------------------------------
+
+     After every step the weeks the sim has played this season go to
+     sim_weeks, the way the site lays them over the season file
+     (js/stored-weeks.js), so Publish puts a week out with nothing to commit.
+     A week that is out stays as it went out. A week undone goes, or is
+     stored empty when the file already has it, so the file's copy cannot
+     come back. Only what changed is written. */
+
+  var WEEKS = 'sim_weeks';
+
+  /* JSON with every object's keys in order: what Postgres hands back has
+     its own order. */
+  function stable(value) {
+    return JSON.stringify(value, function (key, v) {
+      if (!v || typeof v !== 'object' || Array.isArray(v)) { return v; }
+      return Object.keys(v).sort().reduce(function (out, k) { out[k] = v[k]; return out; }, {});
+    });
+  }
+
+  function sameWeek(had, want) {
+    var results = had.results;
+    var fixtures = had.fixtures;
+    return Boolean(results) &&
+      stable(results.games) === stable(want.games) && stable(results.scores) === stable(want.scores) &&
+      (want.fixtures ? Boolean(fixtures) && stable(fixtures.games) === stable(want.fixtures) : !fixtures);
+  }
+
+  function weekRow(season, week, part, games, scores, at) {
+    return { season: season, week: week, part: part, games: games || {}, scores: scores || [], saved_at: at };
+  }
+
+  function writeWeeks(season, put, drop) {
+    var c = client();
+    if (!c) { return Promise.reject(new Error('Not connected to Supabase.')); }
+    var first = put.length ? c.from(WEEKS).upsert(put, { onConflict: 'season,week,part' }) : Promise.resolve({ error: null });
+    return first.then(function (res) {
+      if (res.error) { throw new Error(weekHint(res.error.message)); }
+      return Promise.all(['results', 'fixtures'].map(function (part) {
+        var weeks = drop.filter(function (d) { return d.part === part; }).map(function (d) { return d.week; });
+        return weeks.length ? c.from(WEEKS).delete().eq('season', season).eq('part', part).in('week', weeks) : { error: null };
+      }));
+    }).then(function (all) {
+      all.forEach(function (res) { if (res.error) { throw new Error(weekHint(res.error.message)); } });
+    });
+  }
+
+  function weekHint(message) {
+    return message + (/sim_weeks/.test(message) ? ' Run supabase/schema.sql again first.' : '');
+  }
+
+  /* Brings sim_weeks in line with the league's season. Resolves to whether
+     anything was written. */
+  function syncWeeks(league) {
+    var season = league.season;
+    var stored = EGE.storedWeeks;
+    if (!stored) { return Promise.resolve(false); }
+    if (!EGE.stats[season]) {
+      var started = (league.schedule || []).some(function (g) { return g.score; });
+      return started ? Promise.reject(new Error('There is no stats/' + season + '.js with the ' + season + ' schedule yet.')) : Promise.resolve(false);
+    }
+    var made = stored.pristine(function () { return sim().site.weekRows(league, season); });
+    return EGE.wallet.loadStoredWeeks().then(function () {
+      var have = stored.rows(season);
+      var at = new Date().toISOString();
+      var put = [];
+      var drop = [];
+      var played = {};
+      var imported = {};
+      made.imported.forEach(function (week) { imported[week] = true; });
+
+      made.weeks.forEach(function (w) {
+        played[w.week] = true;
+        var had = have[w.week] || {};
+        if (EGE.isPublished(season, w.week) && (had.results || had.fixtures || stored.filed(season, w.week))) { return; }
+        if (sameWeek(had, w)) { return; }
+        put.push(weekRow(season, w.week, 'results', w.games, w.scores, at));
+        if (w.fixtures) { put.push(weekRow(season, w.week, 'fixtures', w.fixtures, [], at)); } else if (had.fixtures) {
+          drop.push({ week: w.week, part: 'fixtures' });
+        }
+      });
+
+      var gone = {};
+      Object.keys(have).concat(stored.filedWeeks(season)).forEach(function (week) { gone[week] = true; });
+      Object.keys(gone).map(Number).forEach(function (week) {
+        if (played[week] || imported[week] || EGE.isPublished(season, week)) { return; }
+        var had = have[week] || {};
+        if (stored.filed(season, week) || stored.stamped(season, week)) {
+          var empty = { games: {}, scores: [], fixtures: {} };
+          if (sameWeek(had, empty)) { return; }
+          put.push(weekRow(season, week, 'results', {}, [], at));
+          put.push(weekRow(season, week, 'fixtures', {}, [], at));
+          return;
+        }
+        if (had.results) { drop.push({ week: week, part: 'results' }); }
+        if (had.fixtures) { drop.push({ week: week, part: 'fixtures' }); }
+      });
+
+      if (!put.length && !drop.length) { return false; }
+      return writeWeeks(season, put, drop).then(function () {
+        return EGE.wallet.loadStoredWeeks();
+      }).then(function () {
+        if (EGE.adminWeeks) { EGE.adminWeeks.refresh(); }
+        return true;
+      });
+    });
+  }
+
+  /* The stored weeks not out yet, oldest first, as { season, week }. */
+  function waiting() {
+    var out = [];
+    (EGE.seasonsPlayed ? EGE.seasonsPlayed() : []).forEach(function (season) {
+      var rows = EGE.storedWeeks ? EGE.storedWeeks.rows(season) : {};
+      Object.keys(rows).map(Number).sort(function (a, b) { return a - b; }).forEach(function (week) {
+        var r = rows[week].results;
+        if (r && Object.keys(r.games || {}).length && !EGE.isPublished(season, week)) { out.push({ season: season, week: week }); }
+      });
+    });
+    return out;
+  }
+
   /* --- the league -------------------------------------------------------- */
 
   /* The league as saved, read fresh: what every step starts from. */
@@ -294,8 +415,13 @@ EGE.nflSimAdmin = (function () {
       sim().run.save(league);
       return saveWorld().then(function () {
         state.last = made;
-        /* The step is kept whatever happens to the rosters; they can be
-           sent again with Update rosters now. */
+        /* The step is kept whatever happens to the stored weeks, which the
+           next step (or opening the tab) stores again, and the rosters,
+           which can be sent again with Update rosters now. */
+        return syncWeeks(league).catch(function (err) {
+          state.error = 'Saved, but the weeks were not stored for the site: ' + (err.message || err);
+        });
+      }).then(function () {
         return publishing() ? publishRosters(league).catch(function (err) {
           state.error = 'Saved, but the Teams pages were not updated: ' + (err.message || err);
         }) : null;
@@ -405,14 +531,43 @@ EGE.nflSimAdmin = (function () {
     body.appendChild(part);
   }
 
+  /* What a stored week is called on its button: its round in the playoffs. */
+  function weekLabel(league, at) {
+    var point = at.season === league.season ? sim().run.savePoints(league).filter(function (p) { return p.week === at.week; })[0] : null;
+    return (point ? point.label : 'Week ' + at.week) + (at.season !== league.season ? ' of ' + at.season : '');
+  }
+
+  /* Puts a stored week out the way the Weeks tab's Publish does: the week,
+     the credits and diamonds it pays, and the Discord posts. */
+  function publishStored(at, label) {
+    if (state.busy || !EGE.adminWeeks) { return; }
+    state.busy = true;
+    state.error = null;
+    draw();
+    EGE.adminWeeks.publish(at.season, at.week).then(function (res) {
+      if (res && !res.ok) { state.error = res.message; return; }
+      state.last = { title: label + ' is out', lines: res && res.message ? [res.message] : [] };
+    }, function (err) {
+      state.error = err.message || String(err);
+    }).then(function () {
+      state.busy = false;
+      draw();
+    });
+  }
+
   function drawPlay(body, league) {
     var part = section('Play');
     var r = row();
     var season = sim().season;
     var phase = league.phase;
+    var next = waiting()[0];
+    if (next) {
+      var nextLabel = weekLabel(league, next);
+      r.appendChild(button('Publish ' + nextLabel, true, function () { publishStored(next, nextLabel); }));
+    }
     if (phase === 'regular' || phase === 'deadline') {
       var deadlineAhead = phase === 'regular' && league.week <= season.DEADLINE_WEEK;
-      r.appendChild(button('Play Week ' + league.week, true, function () {
+      r.appendChild(button('Play Week ' + league.week, !next, function () {
         step(function (l) { return { title: 'Week ' + l.week, lines: weekLines(sim().run.playNext(l)) }; });
       }));
       r.appendChild(button(deadlineAhead ? 'Play to the trade deadline' : 'Play the rest of the regular season', false, function () {
@@ -429,7 +584,7 @@ EGE.nflSimAdmin = (function () {
       }
     } else if (phase === 'playoffs') {
       var round = season.ROUNDS[league.playoffs.rounds.length];
-      r.appendChild(button('Play the ' + (ROUND_BUTTONS[round] || round), true, function () {
+      r.appendChild(button('Play the ' + (ROUND_BUTTONS[round] || round), !next, function () {
         step(function (l) {
           var got = sim().run.playNext(l);
           var lines = weekLines(got);
@@ -1140,11 +1295,49 @@ EGE.nflSimAdmin = (function () {
     }).sort();
   }
 
+  /* The season files with the stored weeks written in: what the site
+     shows, the way it shows it. A sticker on a week that is out goes into
+     the file with it, which is where a published week's sticker lives. */
+  function seasonFiles(year) {
+    var league = openLeague();
+    var first = league.season === year ? syncWeeks(league) : Promise.resolve();
+    return first.then(function () {
+      return EGE.wallet.loadGameBoosters(year);
+    }).then(function () {
+      var edits = { season: year, weeks: {} };
+      EGE.weeksIn(year).forEach(function (week) {
+        if (!EGE.isPublished(year, week)) { return; }
+        EGE.gamesInWeek(week, year).forEach(function (entry) {
+          var g = entry.game;
+          var live = ((EGE.gameBoosters || {})[entry.player.slug] || {})[week];
+          if (g.bye || g.booster || !live || live.season !== year) { return; }
+          (edits.weeks[week] = edits.weeks[week] || {})[entry.player.slug] = {
+            result: g.result, booster: live.item_key, line: live.line === null || live.line === undefined ? null : Number(live.line),
+            stats: g.stats, bigPlays: g.bigPlays, overtime: g.overtime, injured: g.injured, injury: g.injury, health: g.health
+          };
+        });
+      });
+      return EGE.exports.seasonFile(year, edits);
+    }).then(function (stats) {
+      var results = (EGE.nflSimResults || {})[year] || null;
+      return { stats: stats, results: sim().site.resultsFileText(year, results) };
+    });
+  }
+
+  /* "Weeks 4–7" */
+  function weeksText(weeks) {
+    var runs = [];
+    weeks.forEach(function (week) {
+      var last = runs[runs.length - 1];
+      if (last && week === last[1] + 1) { last[1] = week; } else { runs.push([week, week]); }
+    });
+    return (weeks.length === 1 ? 'Week ' : 'Weeks ') + runs.map(function (run) {
+      return run[0] === run[1] ? String(run[0]) : run[0] + '\u2013' + run[1];
+    }).join(', ');
+  }
+
   function drawSite(body, league) {
-    var part = section('Put it on the site',
-      'Download both files and commit them: stats/{year}.js (the six’s games as the sim played them, ' +
-      'and their playoff games as they reach them) and data/nfl-results.js (every other NFL score). ' +
-      'Then publish the weeks on the Weeks tab as usual; nothing shows until a week is out.');
+    var part = section('Put it on the site');
     var years = playedSeasons();
     var r = row();
     if (!years.length) {
@@ -1160,17 +1353,14 @@ EGE.nflSimAdmin = (function () {
       });
       label.appendChild(pick);
       r.appendChild(label);
-      r.appendChild(button('Download the season files', true, function () {
+      r.appendChild(button('Download the season files', false, function () {
         var year = Number(pick.value);
         state.error = null;
-        var l = openLeague();
-        sim().site.siteFiles(l, year).then(function (files) {
-          if (!files) { throw new Error('The sim has not played any of ' + year + '.'); }
+        seasonFiles(year).then(function (files) {
           EGE.exports.download(year + '.js', files.stats);
           window.setTimeout(function () { EGE.exports.download('nfl-results.js', files.results); }, 400);
           state.last = { title: 'Downloaded ' + year + '.js and nfl-results.js',
-            lines: ['Put ' + year + '.js in stats/ and nfl-results.js in data/, then commit both. ' +
-              'The sim’s games start at Week ' + files.from + '.'] };
+            lines: ['Put ' + year + '.js in stats/ and nfl-results.js in data/.'] };
           draw();
         }).catch(function (err) {
           state.error = err.message || String(err);
@@ -1179,6 +1369,10 @@ EGE.nflSimAdmin = (function () {
       }));
     }
     part.appendChild(r);
+    var unfiled = EGE.storedWeeks ? EGE.storedWeeks.overFile(league.season) : [];
+    if (unfiled.length) {
+      part.appendChild(el('p', 'fb-meta', 'Not in stats/' + league.season + '.js yet: ' + weeksText(unfiled)));
+    }
 
     var pub = row();
     var check = el('label', 'ege-sim__check');
@@ -1368,7 +1562,13 @@ EGE.nflSimAdmin = (function () {
     if (state.files || state.busy) { draw(); return; }
     if (state.loading) { state.loading.then(draw); return; }
     draw();
-    state.loading = loadBundle().then(loadWorld).catch(function (err) {
+    state.loading = loadBundle().then(loadWorld).then(function () {
+      /* Anything played and not stored yet (a step whose storing failed)
+         goes now. */
+      return hasWorld() ? syncWeeks(openLeague()).catch(function (err) {
+        state.error = 'The weeks were not stored for the site: ' + (err.message || err);
+      }) : null;
+    }).catch(function (err) {
       state.error = err.message || String(err);
     }).then(function () {
       state.loading = null;

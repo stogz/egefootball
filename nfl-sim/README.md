@@ -698,6 +698,14 @@ command line and to memory, filled from Supabase, on the page.
 `build/bundle.js` writes `js/nfl-sim.js`, every module in `lib/` and the data
 they read in one file; run it again after changing either.
 
+**Stored weeks.** On the admin page every week the sim plays is also stored
+in Supabase (`sim_weeks`, from `site.js weekRows`): the six's games as their
+season file would have them and every other score of the week. The site lays
+them over `stats/{year}.js` and `data/nfl-results.js` (`js/stored-weeks.js`),
+so a week can be played, published from the tab and the next one played
+without committing anything; the tab's download writes them into the files
+whenever wanted. `site` here still writes the files from the world.
+
 A year goes `season` (stopping at the deadline if there are trades), `trades`,
 `approve`/`reject`, `season`, `playoffs`, `offseason`, `trades`,
 `approve`/`reject`, `draft`. Trade ids are the season, D for the deadline, O

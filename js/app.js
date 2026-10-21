@@ -5620,9 +5620,10 @@
      The week goes out first. If Discord will not take it the week still
      stands — the scheduled bot posts anything published it has not sent, so
      a failure here is a delay rather than a hole. */
-  function publishWeek(season, week) {
+  function publishWeek(season, week, quiet) {
+    var said = null;
     return EGE.wallet.publishWeek(season, week).then(function (res) {
-      if (!res.ok) { sayAdmin(res.message, true); return; }
+      if (!res.ok) { sayAdmin(res.message, true); said = res; return; }
 
       /* Credits before Discord, and waited on. It used to fire the payment
          off and compose the message without it, so the one thing the admin
@@ -5631,16 +5632,29 @@
          hangs cannot hold up the credits. */
       return payTheWeek(season).then(function (paid) {
         return sendWeekToDiscord(season, week).then(function (posted) {
-          sayAdmin('Week ' + week + ' is out. ' + creditLine(paid) + ' ' + posted.message,
-                   !posted.ok || Boolean(paid.missed.length));
+          var line = creditLine(paid) + ' ' + posted.message;
+          var trouble = !posted.ok || Boolean(paid.missed.length);
+          if (!quiet || trouble) { sayAdmin('Week ' + week + ' is out. ' + line, trouble); }
+          said = { ok: true, message: line };
         });
       });
     }).then(function () {
       return refreshAdminView();
     }).then(function () {
       redrawEverything();
+      return said;
     });
   }
+
+  /* The NFL Sim tab puts its stored weeks out with the same click (and
+     says so itself), and tells the Weeks tab when it has stored one. */
+  EGE.adminWeeks = {
+    publish: function (season, week) { return publishWeek(season, week, true); },
+    refresh: function () {
+      if (!isAdmin()) { return Promise.resolve(); }
+      return refreshAdminView().then(redrawEverything);
+    }
+  };
 
   var LEAGUE_NAMES = { nfl: 'NFL', college: 'college' };
 
@@ -7150,7 +7164,7 @@
      order Postgres hands the rows back in -- checked every minute now, a
      reshuffle must not pass for a change. */
   function liveState() {
-    return JSON.stringify([EGE.publishedWeeks, EGE.appliedBoosts], function (key, value) {
+    return JSON.stringify([EGE.publishedWeeks, EGE.appliedBoosts, EGE.storedWeeks ? EGE.storedWeeks.version() : 0], function (key, value) {
       if (!value || typeof value !== 'object' || Array.isArray(value)) { return value; }
       return Object.keys(value).sort().reduce(function (out, k) { out[k] = value[k]; return out; }, {});
     });
