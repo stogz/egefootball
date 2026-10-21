@@ -3984,72 +3984,6 @@ button.ege-owned__item { cursor: pointer; }
    the two: the stack's own gap is the separation. */
 .ege-items--joined { padding-top: 0; }
 
-/* --- conference standings ------------------------------------------------- */
-
-/* The whole conference in one table on a team's page: the dark row of
-   headings once at the top, and every school under it, the team's own
-   division first with a rule where the next starts. The division is a short
-   column of its own; every heading sorts, as the game log's do. The team's
-   row is picked out in the accent, and that is all. */
-.ege-standings { display: grid; gap: 0; }
-/* A grid item is as wide as its table unless told otherwise, which pushes
-   the table past the panel instead of letting it scroll inside it. */
-.ege-standings__division { min-width: 0; }
-.ege-standings__divletter { display: none; }
-/* A division after the first starts under a rule across the whole table. */
-.ege-standings__table tbody tr.is-divstart > td {
-  border-top: var(--fb-border-thin) solid rgba(29, 36, 22, .45);
-}
-.ege-standings__divcol {
-  width: 1%;
-  white-space: nowrap;
-  font-size: .75rem;
-  font-weight: 800;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: var(--fb-muted);
-}
-/* Sorting: the heading is a button filling its cell, and the sorted column
-   is shaded the whole way down, the same as the game log. */
-.ege-standings__table th.is-sortable { padding: 0; }
-.ege-standings__table th.num .ege-sort { justify-content: flex-end; }
-.ege-standings__table td.is-sorted-cell { background: rgba(229, 110, 40, .12); }
-.ege-standings__table { min-width: 0; width: 100%; }
-.ege-standings__placehead,
-.ege-standings__place { width: 1%; white-space: nowrap; font-family: var(--fb-font-display); }
-.ege-standings__team { white-space: nowrap; }
-.ege-standings__table tbody tr { cursor: default; }
-/* The orange row, with the accent bar down its first cell. */
-.ege-standings__table tbody tr.is-ours > td,
-.ege-standings__table tbody tr.is-ours:hover > td { background: var(--fb-tint-clay); }
-.ege-standings__table tbody tr.is-ours > td:first-of-type { box-shadow: inset 4px 0 0 var(--fb-accent); }
-.ege-standings__diff.is-up { color: var(--fb-grass); }
-.ege-standings__diff.is-down { color: var(--fb-accent-deep); }
-/* Places moved since last week: green up, red down -- the streak's colours. */
-.ege-standings__change { font-weight: 800; white-space: nowrap; }
-.ege-standings__change.is-up { color: #2e7d32; }
-.ege-standings__change.is-down { color: #c62828; }
-.ege-standings__arrow { margin-right: 3px; font-size: .75em; }
-
-@media (max-width: 620px) {
-  .ege-standings__table th, .ege-standings__table td { padding-left: 8px; padding-right: 8px; }
-  /* Points for and against fold into the differential on a phone. */
-  .ege-standings__pts { display: none; }
-  .ege-standings__table th.is-sortable { padding: 0; }
-  .ege-standings__table th.is-sortable .ege-sort { padding: 8px; }
-  .ege-standings__divlong { display: none; }
-  .ege-standings__divletter { display: inline; }
-  /* A long school name cut short rather than pushing the last column off
-     the screen. */
-  .ege-standings__team .fb-name {
-    display: inline-block;
-    max-width: 7.5rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    vertical-align: bottom;
-  }
-}
-
 /* --- the teams ---------------------------------------------------------------
 
    The index is a stack of cards, one school to a row, top to bottom: its
@@ -4330,8 +4264,9 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-teamchip--nfl .ege-room__class { flex: none; }
 /* The overall box, and anything keeping him out just before it. */
 .ege-teamchip__end { display: flex; align-items: stretch; gap: 5px; }
-/* Red all through (Sam, 2026-10-21): a dotted red edge, red at 40% behind,
-   and red words, deep enough to read on it. */
+/* Red all through (Sam, 2026-10-21): a dotted red edge, a light red wash
+   behind, and red words, deep enough to read on it. A square as tall as
+   the overall box beside it. */
 .ege-injbox {
   display: flex;
   flex: none;
@@ -4339,10 +4274,14 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
   align-items: center;
   justify-content: center;
   gap: 2px;
-  min-width: 40px;
-  padding: 5px 4px 6px;
+  box-sizing: border-box;
+  /* As wide as the overall box is tall: its 3px edges, 5px and 6px of
+     padding and 2px gap, then its label's and number's lines (.625rem at
+     1.55, 1.5rem at .96). The height is the overall box's, stretched. */
+  width: calc(19px + 2.40875rem);
+  padding: 2px;
   border: var(--fb-border) dotted #c62828;
-  background: rgba(198, 40, 40, .4);
+  background: rgba(198, 40, 40, .25);
   color: #9b1010;
   text-align: center;
   cursor: help;
@@ -4519,11 +4458,40 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
   grid-template-columns: var(--face-w) minmax(0, 1fr) var(--face-w);
   align-items: end;
   gap: 12px;
+  position: relative;
+  isolation: isolate;
   padding: 0 14px;
   background: var(--fb-ink);
   border-bottom: var(--fb-border) solid var(--fb-ink);
   color: #fff;
 }
+/* The team's mark behind everything in the band, wider than the band and
+   cut off at both ends and top and bottom, in two tones: the mark is made
+   black where it is darker than a light grey and white elsewhere, then
+   laid over the band's colour so the white leaves it as it is and the
+   black takes it a fifth darker. A band too near black goes a shade
+   lighter instead, the same way turned round. */
+.ege-person__wash {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  opacity: .2;
+}
+.ege-person__wash img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 120%;
+  max-width: none;
+  height: auto;
+  transform: translate(-50%, -50%);
+  filter: grayscale(1) brightness(.83) contrast(1000);
+}
+.ege-person__wash.is-light { mix-blend-mode: screen; opacity: .1; }
+.ege-person__wash.is-light img { filter: grayscale(1) brightness(.83) contrast(1000) invert(1); }
 /* The headshot stands on the band's bottom edge, and the top of his head
    just clears the box: about 5% of the picture above its top border. A
    headshot's crown sits about 4.5% down its own picture (ESPN's and the

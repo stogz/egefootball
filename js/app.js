@@ -1512,14 +1512,11 @@
   }
 
 
-  /* --- the conference standings --------------------------------------------
+  /* --- a team's mark --------------------------------------------------------
 
-     The whole conference rather than the one line in the header: every
-     division, the team's own first, ordered the way EGE.divisionTable orders
-     them, with the team's row picked out so who is above it and who is
-     below it reads at a glance. Conference games only -- nobody outside the
-     six has a non-conference result to count -- as of the published weeks,
-     the same as the record. */
+     A team's logo, small, for a row of a table (the NFL standings on the
+     Teams index). Team pages have no standings panel since 2026-10-21
+     (Sam): the header's record and place say it. */
 
   function schoolMark(name) {
     var src = EGE.logoFor && EGE.logoFor(name);
@@ -1534,257 +1531,6 @@
     logo.addEventListener('error', function () { logo.remove(); });
     return logo;
   }
-
-  /* The whole conference as one table: one row of headings at the top, and
-     every school under it -- the team's own division first, each division
-     in its own order, a rule where the next one starts and its name, short,
-     in a column of its own. Every heading sorts the table the way the game
-     log's do: biggest first, then smallest, then back to the standings.
-     Sorted, the divisions mix: the question then is who scored the most in
-     the conference, not who leads the East.
-
-     The place (#) is always the division place, whatever the table is
-     sorted on, so a school's standing never changes with a click. */
-  var standSort = { key: null, dir: null };   /* set on the first draw: DOWN is declared further down */
-  var standSchool = null;
-  var standDrawn = null;               /* what renderTeamStandings drew last */
-
-  /* 'Big Ten East' within the Big Ten is 'East'. */
-  function shortDivision(division, conference) {
-    var short = division.indexOf(conference + ' ') === 0 ? division.slice(conference.length + 1) : division;
-    return short || division;
-  }
-
-  function winPct(wins, losses) {
-    return wins + losses ? wins / (wins + losses) : null;
-  }
-
-  /* What each column sorts on: a number, biggest first on the first click,
-     or null for a school with nothing to sort on yet, which always goes
-     last. The place and the school's name read better smallest and A first,
-     so theirs are turned round to match. */
-  var STANDING_SORTS = {
-    place: function (row) { return row.started ? -row.place : null; },
-    team: null,
-    div: null,
-    conf: function (row) {
-      var pct = winPct(row.wins, row.losses);
-      return pct === null ? null : pct * 1000 + row.wins;
-    },
-    overall: function (row) {
-      if (!row.overall) { return null; }
-      var pct = winPct(row.overall.wins, row.overall.losses);
-      return pct === null ? null : pct * 1000 + row.overall.wins;
-    },
-    /* An NFL row's games inside its division and its conference. */
-    divrec: function (row) {
-      if (!row.divisionRecord) { return null; }
-      var pct = winPct(row.divisionRecord.wins, row.divisionRecord.losses);
-      return pct === null ? null : pct * 1000 + row.divisionRecord.wins;
-    },
-    confrec: function (row) {
-      if (!row.conferenceRecord) { return null; }
-      var pct = winPct(row.conferenceRecord.wins, row.conferenceRecord.losses);
-      return pct === null ? null : pct * 1000 + row.conferenceRecord.wins;
-    },
-    streak: function (row) { return row.streak ? (row.streak.won ? 1 : -1) * row.streak.count : null; },
-    pf: function (row) { return row.wins + row.losses ? row.pointsFor : null; },
-    pa: function (row) { return row.wins + row.losses ? row.pointsAgainst : null; },
-    diff: function (row) { return row.wins + row.losses ? row.pointsFor - row.pointsAgainst : null; },
-    change: function (row) { return typeof row.change === 'number' ? row.change : null; }
-  };
-
-  function sortStandings(rows) {
-    var key = standSort.key;
-    if (!key) { return rows; }
-    var dir = standSort.dir;
-    var text = key === 'team' ? 'school' : key === 'div' ? 'divShort' : null;
-    return rows.slice().sort(function (a, b) {
-      if (text) {
-        var order = a[text].localeCompare(b[text]) || (a.order - b.order);
-        return dir === DOWN ? order : -order;
-      }
-      var left = STANDING_SORTS[key](a);
-      var right = STANDING_SORTS[key](b);
-      /* Level, or nothing to sort on: the standings' own order. */
-      if (left === right) { return a.order - b.order; }
-      if (left === null) { return 1; }
-      if (right === null) { return -1; }
-      return dir === DOWN ? right - left : left - right;
-    });
-  }
-
-  function standingsHead(label, key, title, className) {
-    var sorted = standSort.key === key;
-    var th = el('th', (className ? className + ' ' : '') + 'is-sortable' + (sorted ? ' is-sorted' : ''));
-    var button = el('button', 'ege-sort', label);
-    button.type = 'button';
-    button.dataset.sortKey = key;
-    if (title) { button.title = title; }
-    if (sorted) { button.appendChild(sortMark(standSort.dir)); }
-    th.appendChild(button);
-    return th;
-  }
-
-  function standingsTable(conference, school) {
-    var tables = conference.tables;
-    if (standSchool !== school) {
-      standSchool = school;
-      standSort = { key: null, dir: DOWN };
-    }
-    var divided = tables.length > 1;
-    var withOverall = conference.overall;
-    /* An NFL table is on the whole record, with the games inside the
-       division and the conference as columns of their own. */
-    var nfl = Boolean(conference.nfl);
-
-    /* Every school, in the standings' own order, carrying what it needs. */
-    var rows = [];
-    tables.forEach(function (table) {
-      var started = table.rows.some(function (row) { return row.wins + row.losses; });
-      table.rows.forEach(function (row, i) {
-        rows.push(Object.assign({}, row, {
-          place: i + 1,
-          started: started,
-          divShort: shortDivision(table.division, conference.conference),
-          division: table.division,
-          divStart: i === 0 && rows.length > 0,
-          order: rows.length
-        }));
-      });
-    });
-    var shown = sortStandings(rows);
-
-    var wrap = el('div', 'ege-standings__division');
-    var scroller = el('div', 'fb-tablewrap');
-    var t = el('table', 'fb-table ege-standings__table');
-    var head = el('tr');
-    var columns = [
-      ['#', 'place', 'Place in the division', 'num ege-standings__placehead'],
-      ['Team', 'team', 'School', null]
-    ];
-    if (divided) { columns.push(['Div', 'div', 'Division', 'ege-standings__divcol']); }
-    if (nfl) {
-      columns.push(['W-L', 'conf', 'Record, every game', 'num'],
-                   ['vDiv', 'divrec', 'Record against the division', 'num'],
-                   ['vConf', 'confrec', 'Record against the ' + conference.conference, 'num'],
-                   ['Strk', 'streak', 'Streak', 'num'],
-                   ['PF', 'pf', 'Points for', 'num ege-standings__pts'],
-                   ['PA', 'pa', 'Points against', 'num ege-standings__pts'],
-                   ['Diff', 'diff', 'Point differential', 'num ege-standings__pts']);
-    } else {
-      columns.push(['Conf', 'conf', 'Conference record', 'num']);
-      if (withOverall) { columns.push(['Ovr', 'overall', 'Overall record, every game', 'num']); }
-      columns.push(['Strk', 'streak', 'Conference streak', 'num'],
-                   ['PF', 'pf', 'Conference points for', 'num ege-standings__pts'],
-                   ['PA', 'pa', 'Conference points against', 'num ege-standings__pts'],
-                   ['Diff', 'diff', 'Conference point differential', 'num ege-standings__pts']);
-    }
-    columns.push(['Chg', 'change', 'Places moved since the week before', 'num']);
-    columns.forEach(function (col) { head.appendChild(standingsHead(col[0], col[1], col[2], col[3])); });
-    var thead = el('thead');
-    thead.appendChild(head);
-    t.appendChild(thead);
-    var sortedAt = columns.map(function (col) { return col[1]; }).indexOf(standSort.key);
-
-    var body = el('tbody');
-    shown.forEach(function (row) {
-      var tr = el('tr');
-      if (row.school === school) { tr.classList.add('is-ours'); }
-      /* A rule where the next division starts, in the standings' own order;
-         sorted, the divisions are mixed and there is nowhere to draw one. */
-      if (row.divStart && !standSort.key) { tr.classList.add('is-divstart'); }
-
-      tr.appendChild(el('td', 'num ege-standings__place', row.started ? String(row.place) : '–'));
-
-      var name = el('td', 'ege-standings__team');
-      var mark = schoolMark(row.school);
-      if (mark) { name.appendChild(mark); }
-      name.appendChild(el('span', 'fb-name', row.school));
-      tr.appendChild(name);
-
-      /* East in full, or E on a phone. */
-      if (divided) {
-        var div = el('td', 'ege-standings__divcol');
-        div.appendChild(el('span', 'ege-standings__divlong', row.divShort));
-        div.appendChild(el('span', 'ege-standings__divletter', row.divShort.charAt(0)));
-        div.title = row.division;
-        tr.appendChild(div);
-      }
-
-      tr.appendChild(el('td', 'num', row.wins + '-' + row.losses));
-      if (withOverall) {
-        tr.appendChild(el('td', 'num', row.overall ? row.overall.wins + '-' + row.overall.losses : '–'));
-      }
-      if (nfl) {
-        [row.divisionRecord, row.conferenceRecord].forEach(function (record) {
-          tr.appendChild(el('td', 'num', record ? record.wins + '-' + record.losses : '–'));
-        });
-      }
-
-      /* The run it is on in conference play (in the NFL, every game), green
-         for wins, red for losses. */
-      var streakCell = el('td', 'num');
-      if (row.streak) {
-        var run = el('span', 'ege-streak ege-streak--' + (row.streak.won ? 'win' : 'loss'), row.streak.text);
-        run.title = row.streak.count + (nfl ? ' ' : ' conference ') + (row.streak.won ? 'win' : 'loss') +
-          (row.streak.count === 1 ? '' : (row.streak.won ? 's' : 'es')) + ' in a row';
-        streakCell.appendChild(run);
-      } else {
-        streakCell.appendChild(el('span', 'ege-schedule__pending', '–'));
-      }
-      tr.appendChild(streakCell);
-
-      tr.appendChild(el('td', 'num ege-standings__pts', String(row.pointsFor)));
-      tr.appendChild(el('td', 'num ege-standings__pts', String(row.pointsAgainst)));
-      var diff = row.pointsFor - row.pointsAgainst;
-      tr.appendChild(el('td', 'num ege-standings__pts ege-standings__diff' +
-        (diff > 0 ? ' is-up' : diff < 0 ? ' is-down' : ''), (diff > 0 ? '+' : '') + diff));
-
-      /* How many places it has moved since the week before: a green arrow up,
-         a red one down, a dash for none. */
-      var change = el('td', 'num ege-standings__change');
-      if (row.change > 0 || row.change < 0) {
-        var up = row.change > 0;
-        change.classList.add(up ? 'is-up' : 'is-down');
-        change.appendChild(el('span', 'ege-standings__arrow', up ? '▲' : '▼'));
-        change.appendChild(document.createTextNode(String(Math.abs(row.change))));
-        change.title = (up ? 'Up ' : 'Down ') + Math.abs(row.change) +
-          (Math.abs(row.change) === 1 ? ' place' : ' places') + ' since last week';
-      } else {
-        change.appendChild(el('span', 'ege-schedule__pending', '–'));
-        if (row.change === 0) { change.title = 'No change since last week'; }
-      }
-      tr.appendChild(change);
-
-      if (sortedAt !== -1 && tr.children[sortedAt]) { tr.children[sortedAt].classList.add('is-sorted-cell'); }
-      body.appendChild(tr);
-    });
-    t.appendChild(body);
-    scroller.appendChild(t);
-    wrap.appendChild(scroller);
-
-    /* No note under the table: Sam took the "Through week N" line off every
-       team page (2026-10-17). */
-    return wrap;
-  }
-
-  /* One listener on the panel: the headings are redrawn on every sort. The
-     column already sorted turns round, and a third click puts the standings
-     back in their own order. */
-  document.getElementById('teamStandingsBody').addEventListener('click', function (event) {
-    var button = event.target.closest('.ege-sort');
-    if (!button || !standDrawn) { return; }
-    var key = button.dataset.sortKey;
-    if (standSort.key !== key) {
-      standSort = { key: key, dir: DOWN };
-    } else if (standSort.dir === DOWN) {
-      standSort = { key: key, dir: UP };
-    } else {
-      standSort = { key: null, dir: DOWN };
-    }
-    renderTeamStandings(standDrawn.entry, standDrawn.season);
-  });
 
   /* --- the teams: position rooms ------------------------------------------
 
@@ -2105,6 +1851,7 @@
       body.appendChild(el('p', 'ege-room__empty', 'No roster yet for ' + season + '.'));
       return;
     }
+    catchUp(all, key, season);
     var admin = nflAdmin(key, season);
     var system = admin || (all.systems && all.systems[key]) ? nflSystem(admin, all.systems ? all.systems[key] : null) : null;
     if (system) { body.appendChild(system); }
@@ -2121,6 +1868,20 @@
     body.appendChild(grid);
     var rings = EGE.nflRosters.ratings(season, key, rosterSide);
     if (rings) { body.appendChild(teamRings(rings)); }
+  }
+
+  /* Rosters the sim published before they carried each team's system and
+     every player's fit (2026-10-21) show neither to anybody. An admin's
+     visit, in client viewer mode too, has them published again from the
+     world, once a page load, and the page drawn again with them. */
+  var caughtUp = false;
+
+  function catchUp(all, key, season) {
+    if (caughtUp || all.systems || !all.savedAt || !EGE.nflSimAdmin || !EGE.wallet.realAdmin()) { return; }
+    caughtUp = true;
+    EGE.nflSimAdmin.republish(season).then(function (done) {
+      if (done && nflShown === key + ':' + season) { renderNflRoster(key, season); }
+    }, function () { /* as they were: the NFL Sim tab's Update rosters now still works */ });
   }
 
   /* Under the rooms, for everybody (Sam, 2026-10-21): the side's ratings
@@ -2949,15 +2710,37 @@
     }
   }
 
+  /* A colour too near black for a shade darker to show (the Steelers',
+     the Raiders', the Bears' navy): their mark behind the band goes a shade
+     lighter instead. */
+  function nearBlack(hex) {
+    var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || '');
+    return Boolean(m) && Math.max(parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)) < 48;
+  }
+
   function openNflPlayer(row) {
     var sim = row.sim;
     var team = EGE.nfl.teams[row.team] || {};
     var stage = EGE.cardsView.openOverlay(POSITION_NAMES[sim.pos] || sim.pos, 'ege-rip__stage--person');
     var box = el('div', 'ege-person');
+    var logoSrc = EGE.nfl.logo(row.team);
 
-    /* Line one: the band. */
+    /* Line one: the band. Behind it, the team's mark in two tones, the
+       band's colour and a shade darker, so big it runs off both ends (Sam,
+       2026-10-21). The mark that reads on cream (the Jets' green one) has
+       the darker parts to show. */
     var band = el('div', 'ege-person__band');
     band.style.background = team.color || '';
+    var washSrc = team.name && EGE.logoFor(team.name);
+    if (washSrc && team.color) {
+      var wash = el('span', 'ege-person__wash' + (nearBlack(team.color) ? ' is-light' : ''));
+      var washImg = el('img');
+      washImg.src = washSrc;
+      washImg.alt = '';
+      washImg.addEventListener('error', function () { wash.remove(); });
+      wash.appendChild(washImg);
+      band.appendChild(wash);
+    }
     var face = el('span', 'ege-person__face');
     var src = nflPhoto(row, true);
     if (src) {
@@ -2971,7 +2754,6 @@
     var name = el('h3', 'ege-person__name', row.name);
     band.appendChild(name);
     var mark = el('span', 'ege-person__mark');
-    var logoSrc = EGE.nfl.logo(row.team);
     if (logoSrc) {
       var logo = el('img');
       logo.src = logoSrc;
@@ -3495,20 +3277,6 @@
     }
   }
 
-  function renderTeamStandings(entry, season) {
-    var panel = document.getElementById('teamStandingsPanel');
-    var body = document.getElementById('teamStandingsBody');
-    var conference = EGE.conferenceTables(entry.team.school, season);
-    body.innerHTML = '';
-    panel.hidden = !conference;
-    if (!conference) { return; }
-    /* The NFC's, say, for an NFL team: the conference is the whole table. */
-    document.getElementById('teamStandingsTitle').textContent =
-      conference.nfl ? conference.conference + ' Standings' : 'Conference Standings';
-    standDrawn = { entry: entry, season: season };
-    body.appendChild(standingsTable(conference, entry.team.school));
-  }
-
   /* `slug` is the address after #teams/. */
   function renderTeam(slug) {
     var page = teamPage(slug);
@@ -3522,13 +3290,11 @@
     if (!entry) {
       renderNflHead(page.nfl, page.season);
       renderNflRoster(page.nfl, page.season);
-      document.getElementById('teamStandingsPanel').hidden = true;
       document.title = EGE.nfl.teams[page.nfl].name + ' — EGE Football';
       return;
     }
     renderTeamHead(entry, page.season);
     renderTeamRoster(entry, page.season, page.nfl);
-    renderTeamStandings(entry, page.season);
     document.title = entry.team.school + ' — EGE Football';
   }
 

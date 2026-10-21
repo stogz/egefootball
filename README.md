@@ -447,7 +447,11 @@ Under the bar:
   pages. **Every box opens a pop-up**, in the overlay the cards and
   trophies use: a band in the team's colour with the headshot, the name and
   the team's mark straight on the colour, no box round it (Sam,
-  2026-10-20). The headshot stands on the band's bottom edge and is sized
+  2026-10-20). Behind them, the team's mark again in two tones, the band's
+  colour and a fifth darker (a little lighter on a band too near black to
+  go darker), so big it runs off both ends of the band and is cut off
+  there (Sam, 2026-10-21): the mark is turned black where it is darker
+  than a light grey and white elsewhere, and laid over the colour. The headshot stands on the band's bottom edge and is sized
   so the top of the head just clears the top of the box, about 5% of the
   picture; every headshot is placed the same way. The name is centred in
   the band both ways (Sam, 2026-10-20): the mark's column is as wide as
@@ -461,8 +465,11 @@ Under the bar:
   about how long a player will last. Since 2026-10-21 they carry every
   player, the linemen, kickers and punters the rooms leave out too, and the
   salary cap for the season and the three after it (`caps`), for the line
-  rating and the payroll below; rosters published before then have
-  neither until they are published again.
+  rating and the payroll below, each team's system (`systems`) and every
+  player's fit (`fit`). Rosters published before then have none of it
+  until they are published again, which an admin's visit to any NFL team
+  page, in client viewer mode too, does once by itself
+  (`EGE.nflSimAdmin.republish`).
 
   **Under the rooms, five ratings for everybody** (Sam, 2026-10-21), drawn
   the way the scouting report draws a defense: a ring filled to the
@@ -478,7 +485,8 @@ Under the bar:
   team ratings, which stay private.
 
   **An injured player's box says so** beside his overall (Sam, 2026-10-21):
-  a dotted red edge, red at 40% behind and red words, **OUT** over the
+  a square as tall as the overall box, a dotted red edge, a light red
+  wash behind (25%) and red words, **OUT** over the
   weeks he has left (**3 WK**), or **OUT SEASON** when he will not be back
   before the regular season ends (the Super Bowl, in the playoffs); the
   pop-up's Injury line says what it is and for how long. The six's come
@@ -487,10 +495,9 @@ Under the bar:
   what, games left and the week he went down), held back from anybody but
   an admin until that week is published.
 
-  **Every NFL team has a page**, `#teams/kansas-city-chiefs`. The six's
-  teams keep their standings; any other team's page is its
-  header (record, streak, place in the division) and its roster, nothing
-  else. Every NFL team's mark sits on its colour from `data/nfl.js`, the
+  **Every NFL team has a page**, `#teams/kansas-city-chiefs`: its
+  header (record, streak, place in the division), its roster and its
+  payroll. Every NFL team's mark sits on its colour from `data/nfl.js`, the
   way the six's teams' do.
 
   **An admin edits the roster right there** (Sam, 2026-10-21), on the
@@ -557,35 +564,10 @@ Under the bar:
   picked out in orange. From the week the sim takes over, the standings use
   the sim's scores (`data/nfl-results.js`) in place of the real ones in
   `data/conferences.js`.
-- **Conference Standings** — the whole conference as one table: the dark
-  row of headings once at the top and every school under it, the school's
-  own division first, a rule where the next division starts, and the
-  division in a short **Div** column (*East*, or just *E* on a phone). The
-  **#** is the division place, the conference record (**Conf**), the overall
-  record (**Ovr**, every game — see below), the conference streak (**Strk**,
-  *W3* in green or *L1* in red), conference points for and against and the
-  differential, and **Chg**, how many places a school has moved since the
-  week before the latest one published — a green ▲ up or a red ▼ down.
-  Every heading sorts, the way the game log's do: biggest first, then
-  smallest, then back to the standings (the place and the school's name go
-  1 and A first). Sorted, the divisions mix; the # stays each school's
-  division place. There is no line under the table (Sam took the
-  "Through week N" note off, 2026-10-17); the overall record moves every
-  week, including weeks with no conference games in them. The school's own
-  row is picked out in orange and nothing else is marked. On a phone the
-  points and differential drop out and a long school name is cut short; the
-  rest scrolls sideways. `EGE.conferenceTables` in `data/games.js` works out
-  the movement by drawing the table as it stood a week earlier, and
-  `EGE.overallRecord` the overall record.
-
-  **An NFL team's** is its conference's — *NFC Standings*, *AFC
-  Standings* — four divisions of four, ordered **the way the NFL orders a
-  division**: every game counts, so the columns are the record (**W-L**),
-  the division record (**vDiv**), the conference record (**vConf**), the
-  streak over every game, points for and against, the differential and
-  **Chg**. Ties go to head-to-head, then the division record, then the
-  conference record, then the points differential. The division column
-  says *NFC West* (*W* on a phone).
+- **No standings** (Sam, 2026-10-21): the header's record and division
+  place say where a team stands; the whole league is the NFL Standings at
+  the foot of the index. `EGE.conferenceTables` in `data/games.js`, which
+  drew the old Conference Standings panel, is still there.
 - **No schedule** (Sam, 2026-10-21): the games are on the players' pages.
 
 The quarterback rooms are also where a QB Connection is picked from (see
