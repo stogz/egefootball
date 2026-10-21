@@ -497,6 +497,15 @@ toward the new ceiling. A prospect in a real class not drafted yet can be
 edited too: the numbers are kept until the draft, and a new overall moves
 where teams grade him. The six are rated on the website, not here.
 
+The Teams pages give an admin the rest of `lib/edits.js` on the season being
+played: `editPlayer` (overall, ceiling, archetype and any skill — new skills
+make the overall they average to, `skills.js overallOf`, unless an overall
+comes too), `freeAgents` and `signFreeAgent` (the + under a room; he signs
+at `marketPay`), and `teamInfo` (schemes and mode). Archetypes come from
+`ARCHETYPES` in `skills.js`; one picked by hand sets `archetypeSet`, and
+`reRate` and development leave it alone from then on. Every edit is a
+transaction (`kind` `edit` or `signing`).
+
 ## 9. Running it
 
 Everything runs with Node from the repository root, nothing to install. The
@@ -598,7 +607,7 @@ nfl-sim/
     draft.js             draft classes, ceilings, the draft
     draft-plan.js        a draft written by hand, and draft orders set by hand
     trades.js            proposals, the queue (big free-agent moves too), approving
-    edits.js             overalls and ceilings set by hand
+    edits.js             ratings, archetypes and signings set by hand
     history.js           every team's roster, season by season
     offseason.js         the offseason, in order
     rng.js               the seeded dice

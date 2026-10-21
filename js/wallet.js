@@ -309,6 +309,14 @@ EGE.wallet = (function () {
     if (!item) { return fail('That item is not in the shop.'); }
     if (item.needsTarget && !target) { return fail('Choose which attribute to raise.'); }
 
+    /* An NFL quarterback room is the sim's, so its rosters have to be in
+       before the quarterback is checked against it. */
+    var teamKey = player ? EGE.teamKeyFor(player, EGE.currentSeason) : null;
+    if (EGE.needsQuarterback(item, player) && teamKey && EGE.nfl.keyForSite(teamKey) &&
+        EGE.nflRosters.get(EGE.currentSeason) === undefined) {
+      return EGE.nflRosters.load(EGE.currentSeason).then(function () { return buy(email, item, target, player); });
+    }
+
     /* A connection is with somebody. The page will not let the button go
        without one picked, and it has to be a quarterback on his own team. */
     var quarterback = null;
@@ -1306,10 +1314,12 @@ EGE.wallet = (function () {
   }
 
   /* Hands an item over without charging for it. A level-based connection
-     that is already there goes up a level instead of doubling. */
-  function grant(email, item, target) {
+     that is already there goes up `levels` levels (one unless asked)
+     instead of doubling; a new one starts at that many. */
+  function grant(email, item, target, levels) {
     var c = client();
     if (!c) { return fail(offline()); }
+    var add = item && item.levels ? Math.max(1, Math.floor(Number(levels) || 1)) : 1;
 
     var player = playerByEmail(email);
     var quarterback = EGE.needsQuarterback(item, player) ? (target || null) : null;
@@ -1320,7 +1330,7 @@ EGE.wallet = (function () {
     function insert(rows) {
       var held = item.levels ? stackedRow(rows, item.key, quarterback) : null;
       if (held) {
-        var next = quantityOf(held) + 1;
+        var next = quantityOf(held) + add;
         return c.from(INVENTORY).update({
           quantity: next,
           item_name: EGE.connectionName(item, player, quarterback, next)
@@ -1329,7 +1339,8 @@ EGE.wallet = (function () {
       return c.from(INVENTORY).insert({
         email: email,
         item_key: item.key,
-        item_name: quarterback ? EGE.connectionName(item, player, quarterback, 1) : item.name,
+        quantity: add,
+        item_name: item.levels ? EGE.connectionName(item, player, quarterback, add) : item.name,
         target: target || null,
         effects: item.needsTarget ? effectsForTarget(item, target) : rollEffects(item),
         credits: 0,
@@ -1342,8 +1353,23 @@ EGE.wallet = (function () {
     return (item.levels ? inventoryFor(email) : Promise.resolve([])).then(insert)
       .then(function (res) {
         if (res.error) { return { ok: false, message: res.error.message }; }
-        return { ok: true, message: item.name + ' granted.' };
+        return { ok: true, message: item.name + (add > 1 ? ' +' + add + ' levels' : '') + ' granted.' };
       });
+  }
+
+  /* An admin sets a level-based connection to any level at all. */
+  function setLevel(row, level) {
+    var c = client();
+    if (!c) { return fail(offline()); }
+    var item = EGE.shopItem(row.item_key);
+    var n = Math.floor(Number(level));
+    if (!item || !item.levels) { return fail('Only a connection has levels.'); }
+    if (!(n >= 1)) { return fail('A level is 1 or more.'); }
+    var name = EGE.connectionName(item, playerByEmail(row.email), row.target, n);
+    return c.from(INVENTORY).update({ quantity: n, item_name: name }).eq('id', row.id).then(function (res) {
+      if (res.error) { return { ok: false, message: res.error.message }; }
+      return { ok: true, message: name + '.' };
+    });
   }
 
   /* A season-bound row is spent the moment the season turns over. */
@@ -1394,6 +1420,7 @@ EGE.wallet = (function () {
     decrement: decrement,
     quantityOf: quantityOf,
     grant: grant,
+    setLevel: setLevel,
     awardsFor: awardsFor,
     allAwards: allAwards,
     syncAwards: syncAwards,

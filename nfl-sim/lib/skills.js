@@ -55,6 +55,24 @@ function skillsFrom(pos, ovr, z) {
   return out;
 }
 
+/* Every archetype a position has, the names archetypeOf gives. */
+const ARCHETYPES = {
+  QB: ['Dual Threat', 'Gunslinger', 'Field General', 'Pocket Passer'],
+  RB: ['Power Back', 'Elusive Back', 'Speed Back', 'Receiving Back', 'Zone Runner'],
+  FB: ['Fullback'],
+  WR: ['Deep Threat', 'Physical Receiver', 'Playmaker', 'Route Technician', 'Possession Receiver'],
+  TE: ['Blocking Tight End', 'Vertical Threat', 'Complete Tight End', 'Possession Tight End'],
+  OT: ['Pass Protector', 'Road Grader'],
+  IOL: ['Pass Protector', 'Road Grader'],
+  EDGE: ['Speed Rusher', 'Power Rusher', 'Run Stopper'],
+  DI: ['Interior Rusher', 'Nose Tackle', 'Three-Down Lineman'],
+  LB: ['Coverage Linebacker', 'Blitzer', 'Run Stopper'],
+  CB: ['Man Corner', 'Zone Corner', 'Slot Corner'],
+  S: ['Centerfielder', 'Box Safety', 'Hybrid Safety'],
+  K: ['Big Leg', 'Accurate Kicker'],
+  P: ['Punter']
+};
+
 /* A name for what he is, from his strongest skills. */
 function archetypeOf(pos, s, ovr) {
   const top = (keys) => keys.slice().sort((a, b) => s[b] - s[a])[0];
@@ -105,7 +123,8 @@ function archetypeOf(pos, s, ovr) {
 
 /* A player set to a new overall by hand (lib/edits.js): every skill moves
    by the same amount, then they are evened up to average out to it again,
-   so he is the same kind of player, better or worse. */
+   so he is the same kind of player, better or worse. An archetype Sam set
+   by hand stays. */
 function reRate(p, ovr) {
   const weights = SKILLS[p.pos];
   const before = p.ovr;
@@ -121,7 +140,14 @@ function reRate(p, ovr) {
   const shift = ovr - mean;
   p.skills = {};
   Object.keys(weights).forEach((skill) => { p.skills[skill] = Math.max(30, Math.min(99, Math.round(raw[skill] + shift))); });
-  p.archetype = archetypeOf(p.pos, p.skills, ovr);
+  if (!p.archetypeSet) { p.archetype = archetypeOf(p.pos, p.skills, ovr); }
 }
 
-module.exports = { SKILLS, SPREAD, skillsFrom, archetypeOf, reRate };
+/* The overall a set of skills averages out to. */
+function overallOf(pos, s) {
+  const weights = SKILLS[pos];
+  if (!weights) { return null; }
+  return Math.round(Object.keys(weights).reduce((sum, skill) => sum + weights[skill] * (s[skill] || 0), 0));
+}
+
+module.exports = { SKILLS, SPREAD, ARCHETYPES, skillsFrom, archetypeOf, reRate, overallOf };

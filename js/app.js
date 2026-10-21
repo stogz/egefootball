@@ -1878,11 +1878,14 @@
     return item;
   }
 
-  function roomEl(room, rows) {
+  /* `foot`, if given, goes under the room's last player: an admin's + on
+     an NFL room (signBox). */
+  function roomEl(room, rows, foot) {
     var box = el('div', 'ege-room');
     box.appendChild(el('h4', 'ege-room__title', room.title));
     if (!rows.length) {
       box.appendChild(el('p', 'ege-room__empty', 'Nobody listed.'));
+      if (foot) { box.appendChild(foot); }
       return box;
     }
     /* Best first, and never folding one of the six away: a room shows down
@@ -1905,6 +1908,7 @@
       more.appendChild(rest);
       box.appendChild(more);
     }
+    if (foot) { box.appendChild(foot); }
     return box;
   }
 
@@ -1938,9 +1942,10 @@
   /* A sim row as a room's row. One of the six is his own: the overall,
      headshot and size his page has. Everybody else is the sim's, with
      ESPN's headshot. */
-  function nflRow(sim, season, key) {
+  function nflRow(sim, season, key, admin) {
     var player = sim.ege ? EGE.playerBySlug(sim.ege) : null;
     return {
+      admin: admin || null,
       name: player ? player.name : sim.name,
       overall: player ? EGE.overallFor(player) : sim.ovr,
       height: player && player.height ? player.height : sim.height,
@@ -2011,16 +2016,226 @@
       body.appendChild(el('p', 'ege-room__empty', 'No roster yet for ' + season + '.'));
       return;
     }
+    var admin = nflAdmin(key, season);
+    if (admin) { body.appendChild(nflSystem(admin)); }
     var grid = el('div', 'ege-rooms');
     NFL_ROOMS[rosterSide].forEach(function (room) {
       var inRoom = rows.filter(function (sim) { return room.pos.indexOf(sim.pos) !== -1; })
-        .map(function (sim) { return nflRow(sim, season, key); })
+        .map(function (sim) { return nflRow(sim, season, key, admin); })
         .sort(function (a, b) {
           return ((b.overall || 0) - (a.overall || 0)) || (b.player ? 1 : 0) - (a.player ? 1 : 0);
         });
-      grid.appendChild(roomEl(room, inRoom));
+      grid.appendChild(roomEl(room, inRoom, admin ? signBox(admin, room) : null));
     });
     body.appendChild(grid);
+  }
+
+  /* --- an admin's hand on an NFL roster -----------------------------------
+
+     For an admin, and never in client viewer mode, an NFL team's page in
+     the season the sim is playing is where its roster is edited too (Sam,
+     2026-10-21): the team's schemes and status over the rooms, a + under
+     each room's last player to sign a free agent, and Edit in each
+     player's pop-up for his overall, ceiling, archetype and skills. The sim
+     and its world load the first time (js/nfl-sim-admin.js); every change
+     is saved to the world and the season's rosters published at once. */
+  var simLoad = 'idle';
+
+  function nflAdmin(key, season) {
+    if (!EGE.wallet.admin() || !EGE.nflSimAdmin) { return null; }
+    if (!EGE.nflSimAdmin.loaded()) {
+      if (simLoad === 'idle') {
+        simLoad = 'loading';
+        EGE.nflSimAdmin.ready().catch(function () { return null; }).then(function () {
+          simLoad = 'done';
+          if (EGE.nflSimAdmin.loaded() && nflShown === key + ':' + season) { renderNflRoster(key, season); }
+        });
+      }
+      return null;
+    }
+    var league = EGE.nflSimAdmin.peek();
+    if (!league || league.season !== season || !league.byTeam.has(key)) { return null; }
+    return { key: key, season: season, league: league, edits: EGE.nflSim.edits };
+  }
+
+  var STATUS_NAMES = { compete: 'Competing', retool: 'Retooling', rebuild: 'Rebuilding' };
+
+  function nflSystem(admin) {
+    var info = admin.edits.teamInfo(admin.league, admin.key);
+    var line = el('dl', 'ege-nflsys');
+    [['Offense', info.offense], ['Defense', info.defense], ['Status', STATUS_NAMES[info.mode] || info.mode]]
+      .forEach(function (pair) {
+        var cell = el('div', 'ege-nflsys__fact');
+        cell.appendChild(el('dt', null, pair[0]));
+        cell.appendChild(el('dd', null, pair[1]));
+        line.appendChild(cell);
+      });
+    return line;
+  }
+
+  /* The + under a room: a free agent at its positions, best first, signed
+     at what the market pays him. */
+  function signBox(admin, room) {
+    var holder = el('div', 'ege-room__sign');
+    function shut() {
+      holder.innerHTML = '';
+      var plus = el('button', 'ege-room__plus', '+');
+      plus.type = 'button';
+      plus.title = 'Sign a free agent';
+      plus.setAttribute('aria-label', 'Sign a free agent to ' + room.title.toLowerCase());
+      plus.addEventListener('click', open);
+      holder.appendChild(plus);
+    }
+    function open() {
+      holder.innerHTML = '';
+      var form = el('div', 'ege-room__signform');
+      var problem = el('p', 'ege-note ege-note--error');
+      problem.hidden = true;
+      var list = admin.edits.freeAgents(EGE.nflSimAdmin.peek() || admin.league, room.pos, 80);
+      if (!list.length) {
+        form.appendChild(el('p', 'ege-room__empty', 'No free agents.'));
+      } else {
+        var pick = el('select', 'fb-select');
+        pick.setAttribute('aria-label', 'Free agent');
+        list.forEach(function (fa) {
+          var option = el('option', null, fa.pos + ' · ' + fa.name + ' · ' + fa.ovr + ' · ' + fa.age + ' · ' + moneyText(fa.ask));
+          option.value = fa.id;
+          pick.appendChild(option);
+        });
+        form.appendChild(pick);
+        var sign = el('button', 'fb-btn fb-btn--primary', 'Sign');
+        sign.type = 'button';
+        sign.addEventListener('click', function () {
+          sign.disabled = true;
+          problem.hidden = true;
+          EGE.nflSimAdmin.change(function (league) {
+            return admin.edits.signFreeAgent(league, pick.value, admin.key);
+          }).then(function () {
+            if (nflShown === admin.key + ':' + admin.season) { renderNflRoster(admin.key, admin.season); }
+          }, function (err) {
+            sign.disabled = false;
+            problem.textContent = err.message || String(err);
+            problem.hidden = false;
+          });
+        });
+        form.appendChild(sign);
+      }
+      var cancel = el('button', 'fb-btn', 'Cancel');
+      cancel.type = 'button';
+      cancel.addEventListener('click', shut);
+      form.appendChild(cancel);
+      holder.appendChild(form);
+      holder.appendChild(problem);
+    }
+    shut();
+    return holder;
+  }
+
+  /* Edit in an NFL player's pop-up: his overall, ceiling, archetype and
+     skills in place of the ratings line, saved straight to the sim. */
+  function nflEditor(row, panel, rating) {
+    var admin = row.admin;
+    var sim = row.sim;
+    var now = admin.edits.playerOn(EGE.nflSimAdmin.peek() || admin.league, row.team, sim.name, sim.pos);
+    if (!now) { return; }
+    var edit = el('button', 'fb-btn ege-person__edit', 'Edit');
+    edit.type = 'button';
+    panel.appendChild(edit);
+    edit.addEventListener('click', function () {
+      edit.hidden = true;
+      var form = el('div', 'ege-person__form');
+      function number(label, value, min) {
+        var field = el('label', 'ege-person__field');
+        field.appendChild(el('span', null, label));
+        var input = el('input', 'fb-input');
+        input.type = 'number';
+        input.min = String(min);
+        input.max = '99';
+        input.step = '1';
+        input.inputMode = 'numeric';
+        input.value = String(value);
+        field.appendChild(input);
+        return { field: field, input: input };
+      }
+      var top = el('div', 'ege-person__fields');
+      var ovr = number('Overall', now.ovr, 40);
+      var pot = number('Ceiling', now.pot, 40);
+      top.appendChild(ovr.field);
+      top.appendChild(pot.field);
+      var archField = el('label', 'ege-person__field ege-person__field--wide');
+      archField.appendChild(el('span', null, 'Archetype'));
+      var arch = el('select', 'fb-select');
+      now.archetypes.forEach(function (name) {
+        var option = el('option', null, name);
+        option.value = name;
+        arch.appendChild(option);
+      });
+      arch.value = now.archetype || '';
+      archField.appendChild(arch);
+      top.appendChild(archField);
+      form.appendChild(top);
+
+      var skillBox = el('div', 'ege-person__fields');
+      var skillInputs = {};
+      Object.keys(now.skills).forEach(function (skill) {
+        var one = number(skillName(skill, sim.pos), now.skills[skill], 30);
+        skillInputs[skill] = one.input;
+        skillBox.appendChild(one.field);
+      });
+      form.appendChild(skillBox);
+
+      var problem = el('p', 'ege-note ege-note--error');
+      problem.hidden = true;
+      var buttons = el('div', 'fb-row fb-row--wrap');
+      var save = el('button', 'fb-btn fb-btn--primary', 'Save');
+      save.type = 'button';
+      var cancel = el('button', 'fb-btn', 'Cancel');
+      cancel.type = 'button';
+      buttons.appendChild(save);
+      buttons.appendChild(cancel);
+      form.appendChild(buttons);
+      form.appendChild(problem);
+      rating.hidden = true;
+      rating.parentNode.insertBefore(form, rating.nextSibling);
+
+      cancel.addEventListener('click', function () {
+        form.remove();
+        rating.hidden = false;
+        edit.hidden = false;
+      });
+      save.addEventListener('click', function () {
+        var want = {};
+        if (Number(ovr.input.value) !== now.ovr) { want.ovr = ovr.input.value; }
+        if (Number(pot.input.value) !== now.pot) { want.pot = pot.input.value; }
+        if (arch.value && arch.value !== now.archetype) { want.archetype = arch.value; }
+        var skills = {};
+        Object.keys(skillInputs).forEach(function (skill) {
+          if (Number(skillInputs[skill].value) !== now.skills[skill]) { skills[skill] = skillInputs[skill].value; }
+        });
+        if (Object.keys(skills).length) { want.skills = skills; }
+        if (!Object.keys(want).length) { cancel.click(); return; }
+        save.disabled = true;
+        problem.hidden = true;
+        EGE.nflSimAdmin.change(function (league) {
+          return admin.edits.editPlayer(league, now.id, want);
+        }).then(function () {
+          if (nflShown === row.team + ':' + row.season) { renderNflRoster(row.team, row.season); }
+          var all = EGE.nflRosters.get(row.season);
+          var fresh = all && all.teams && (all.teams[row.team] || []).filter(function (one) {
+            return one.name === sim.name && one.pos === sim.pos;
+          })[0];
+          if (fresh) {
+            openNflPlayer(nflRow(fresh, row.season, row.team, nflAdmin(row.team, row.season)));
+          } else {
+            EGE.cardsView.closeOverlay();
+          }
+        }, function (err) {
+          save.disabled = false;
+          problem.textContent = err.message || String(err);
+          problem.hidden = false;
+        });
+      });
+    });
   }
 
   /* Beside the Offense and Defense switch, for an admin and nobody else
@@ -2193,6 +2408,8 @@
         (sim.out.games === 1 ? 'game' : 'games') : ' · out for the season'));
     }
     panel.appendChild(foot);
+
+    if (row.admin && !row.player && EGE.wallet.admin()) { nflEditor(row, panel, rating); }
 
     if (row.player) {
       var go = el('a', 'fb-btn fb-btn--primary ege-person__go', row.player.first + '’s page →');
@@ -3878,6 +4095,29 @@
     });
   }
 
+  /* A quarterback picker's options after its first `keep`: the player's
+     team's room -- in the NFL the sim's, once its rosters are in, asked for
+     here the first time (EGE.quarterbacksFor). */
+  function fillQuarterbacks(select, player, keep) {
+    function fill() {
+      var was = select.value;
+      while (select.options.length > keep) { select.remove(select.options.length - 1); }
+      EGE.quarterbacksFor(player, EGE.currentSeason).forEach(function (name) {
+        var option = el('option', null, name);
+        option.value = name;
+        select.appendChild(option);
+      });
+      if (was) { select.value = was; }
+      if (select.selectedIndex === -1 && select.options.length) { select.selectedIndex = 0; }
+      if (select.value !== was) { select.dispatchEvent(new Event('change')); }
+    }
+    fill();
+    var key = EGE.teamKeyFor(player, EGE.currentSeason);
+    if (key && EGE.nfl.keyForSite(key) && EGE.nflRosters.get(EGE.currentSeason) === undefined) {
+      EGE.nflRosters.load(EGE.currentSeason).then(fill);
+    }
+  }
+
   function buildShopItem(item) {
     var card = el('div', 'ege-item');
 
@@ -3947,11 +4187,7 @@
       var choose = el('option', null, 'Choose a quarterback\u2026');
       choose.value = '';
       picker.appendChild(choose);
-      EGE.quarterbacksFor(shopState.player, EGE.currentSeason).forEach(function (name) {
-        var option = el('option', null, name);
-        option.value = name;
-        picker.appendChild(option);
-      });
+      fillQuarterbacks(picker, shopState.player, 1);
       field.appendChild(picker);
       card.appendChild(field);
     }
@@ -4355,6 +4591,29 @@
       actions.appendChild(toggle);
     }
 
+    /* A connection's level, set to anything. */
+    if (options.admin && item && item.levels) {
+      var level = el('input', 'fb-input ege-account__levels');
+      level.type = 'number';
+      level.min = '1';
+      level.step = '1';
+      level.inputMode = 'numeric';
+      level.value = String(quantity);
+      level.setAttribute('aria-label', 'Level');
+      level.title = 'Level';
+      actions.appendChild(level);
+      var setLevel = el('button', 'fb-btn', 'Set level');
+      setLevel.type = 'button';
+      setLevel.addEventListener('click', function () {
+        setLevel.disabled = true;
+        EGE.wallet.setLevel(row, level.value).then(function (res) {
+          options.report(res.message, !res.ok);
+          options.refresh();
+        });
+      });
+      actions.appendChild(setLevel);
+    }
+
     if (options.admin) {
       var remove = el('button', 'fb-btn fb-btn--ghost', 'Remove');
       remove.type = 'button';
@@ -4678,27 +4937,35 @@
     });
     granter.appendChild(pick);
 
-    /* A QB Connection handed over is still with somebody. */
+    /* A QB Connection handed over is still with somebody, and can go up
+       any number of levels at once. */
     var qbPick = el('select', 'fb-select ege-account__grant');
-    EGE.quarterbacksFor(player, EGE.currentSeason).forEach(function (name) {
-      var opt = el('option', null, name);
-      opt.value = name;
-      qbPick.appendChild(opt);
-    });
+    fillQuarterbacks(qbPick, player, 0);
     qbPick.setAttribute('aria-label', 'Which quarterback');
+    var levels = el('input', 'fb-input ege-account__levels');
+    levels.type = 'number';
+    levels.min = '1';
+    levels.step = '1';
+    levels.value = '1';
+    levels.inputMode = 'numeric';
+    levels.setAttribute('aria-label', 'Levels');
+    levels.title = 'Levels';
     function showQbPick() {
-      qbPick.hidden = !EGE.needsQuarterback(EGE.shopItem(pick.value), player);
+      var item = EGE.shopItem(pick.value);
+      qbPick.hidden = !EGE.needsQuarterback(item, player);
+      levels.hidden = !(item && item.levels);
     }
     pick.addEventListener('change', showQbPick);
     showQbPick();
     granter.appendChild(qbPick);
+    granter.appendChild(levels);
 
     var give = el('button', 'fb-btn', 'Grant');
     give.type = 'button';
     give.addEventListener('click', function () {
       give.disabled = true;
       EGE.wallet.grant(player.email, EGE.shopItem(pick.value),
-                       qbPick.hidden ? null : qbPick.value || null).then(function (res) {
+                       qbPick.hidden ? null : qbPick.value || null, levels.hidden ? 1 : levels.value).then(function (res) {
         give.disabled = false;
         sayAdmin(res.message, !res.ok);
         refreshAdminView();
