@@ -188,7 +188,23 @@ EGE.nflSimResults = {
       { week:  2, home: 'New England Patriots', away: 'Seattle Seahawks', score: [16, 6] },
       { week:  2, home: 'Philadelphia Eagles', away: 'Atlanta Falcons', score: [30, 24] },
       { week:  2, home: 'Tennessee Titans', away: 'New York Jets', score: [9, 35] },
-      { week:  2, home: 'Washington Commanders', away: 'New York Giants', score: [13, 23] }
+      { week:  2, home: 'Washington Commanders', away: 'New York Giants', score: [13, 23] },
+      { week:  3, home: 'Arizona Cardinals', away: 'Detroit Lions', score: [18, 12] },
+      { week:  3, home: 'Atlanta Falcons', away: 'Kansas City Chiefs', score: [24, 30], overtime: true },
+      { week:  3, home: 'Buffalo Bills', away: 'Jacksonville Jaguars', score: [34, 20] },
+      { week:  3, home: 'Cincinnati Bengals', away: 'Washington Commanders', score: [20, 23] },
+      { week:  3, home: 'Cleveland Browns', away: 'New York Giants', score: [13, 19], overtime: true },
+      { week:  3, home: 'Dallas Cowboys', away: 'Baltimore Ravens', score: [9, 17] },
+      { week:  3, home: 'Indianapolis Colts', away: 'Chicago Bears', score: [16, 41] },
+      { week:  3, home: 'Las Vegas Raiders', away: 'Carolina Panthers', score: [29, 11] },
+      { week:  3, home: 'Los Angeles Rams', away: 'San Francisco 49ers', score: [31, 21] },
+      { week:  3, home: 'Minnesota Vikings', away: 'Houston Texans', score: [27, 10] },
+      { week:  3, home: 'New Orleans Saints', away: 'Philadelphia Eagles', score: [38, 31] },
+      { week:  3, home: 'New York Jets', away: 'New England Patriots', score: [13, 23] },
+      { week:  3, home: 'Pittsburgh Steelers', away: 'Los Angeles Chargers', score: [3, 32] },
+      { week:  3, home: 'Seattle Seahawks', away: 'Miami Dolphins', score: [44, 20] },
+      { week:  3, home: 'Tampa Bay Buccaneers', away: 'Denver Broncos', score: [26, 14] },
+      { week:  3, home: 'Tennessee Titans', away: 'Green Bay Packers', score: [21, 14] }
     ]
   }
 };
