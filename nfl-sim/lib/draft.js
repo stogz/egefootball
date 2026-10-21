@@ -220,6 +220,7 @@ function runDraft(league, order, rng, place, plan) {
   const prospects = list.map((pr) => toPlayer(pr, season, rng));
   applyEdits(league, prospects);
   egeProspects(season, real.ege).forEach((p) => {
+    if ((league.egeArchetypes || {})[p.ege]) { p.archetype = league.egeArchetypes[p.ege]; }
     prospects.push(p);
     if (!place[p.ege] && p.siteTeam) { place[p.ege] = p.siteTeam; }
   });

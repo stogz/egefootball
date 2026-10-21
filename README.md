@@ -460,6 +460,14 @@ Under the bar:
   Nothing private is in the rosters: no team ratings, no potential, nothing
   about how long a player will last.
 
+  **An injured player's box says so** beside his overall (Sam, 2026-10-21):
+  a red box, **OUT** over the games he has left, or **IR** for the season;
+  the pop-up's Injury line says what it is and for how long. The six's come
+  from the site's own injury report (`EGE.injuryFor`, so the week's
+  publishing decides); everybody else's from the sim (`out` in the rosters:
+  what, games left and the week he went down), held back from anybody but
+  an admin until that week is published.
+
   **Every NFL team has a page**, `#teams/kansas-city-chiefs`. The six's
   teams keep their standings and schedule; any other team's page is its
   header (record, streak, place in the division) and its roster, nothing
@@ -480,6 +488,27 @@ Under the bar:
   decide how he plays. Each change saves the world and publishes the
   rosters again (`EGE.nflSimAdmin.change`, `lib/edits.js`). None of it shows
   in client viewer mode.
+
+  **An admin sees fit as stars, 0–5 in halves** (Sam, 2026-10-21): after
+  each box's size line, how well he fits the team's scheme on his side of
+  the ball, and after the Offense and Defense facts, how well the team has
+  built around each (`EGE.nflSim.fit`, `nfl-sim/lib/fit.js`). The pop-up
+  has them after the archetype. **Edit** takes his contract too (*$M a
+  year*, *Through*: raise it, cut it, extend it) and has **Release**, asked
+  twice; for one of the six, Edit is just his archetype and contract.
+  **Find trades** looks at every other team for him — its schemes, its
+  status and record, whether he would start there — and lists up to six
+  that suit him better and can pay what his team asks (a spinner while it
+  looks): the team, its status and record, his stars in its scheme, what
+  his team gets, whom he would start over, and the cap after. **Make the
+  trade**, **Propose**, or **Open in builder** (the NFL Sim tab's trade
+  builder, filled in). The trade deadline and the six's one team a season
+  hold as everywhere else.
+
+  **The page ends with the payroll** for an admin: payroll, the salary cap
+  and the cap space (in red, how far over), a bar, and **Contracts**, every
+  player's (the linemen, kickers and punters the rooms leave out too), each
+  with its own **Edit**.
 
   **The NFL's marks are the site's own**, in `icon/nfl/`, from a set Sam
   sent (2026-10-20), not ESPN's: the team pages, the pop-up, the schedules
@@ -2678,7 +2707,9 @@ Sam's own trades come from a builder: a team on each side, players and
 picks added from dropdowns, then **Make the trade** (straight through) or
 **Propose** (queued with what both teams think). The **Player editor** sets
 any player's overall and ceiling — on a team, a free agent, or a prospect
-in the class the next draft takes — and **Rosters by season** shows every
+in the class the next draft takes — **The six’s archetypes** sets each of
+the six's (the website keeps their ratings, the sim keeps this), and
+**Rosters by season** shows every
 team's roster as each season ended (and this one as it stands), with who
 arrived and who left since the season before. **Put it on the
 site** downloads `stats/{year}.js` (the six's games as the sim played them,

@@ -361,7 +361,11 @@ function publicRosters(league) {
         };
         if (p.espn) { row.espn = String(p.espn); }
         if (p.ege) { row.ege = p.ege; }
-        if (p.injury) { row.out = { what: p.injury.what, games: p.injury.games >= 20 ? null : p.injury.games }; }
+        /* The week he was hurt, so the Teams pages hold an injury back until
+           that week is out on the site. */
+        if (p.injury) {
+          row.out = { what: p.injury.what, games: p.injury.games >= 20 ? null : p.injury.games, week: p.injury.week || 0 };
+        }
         return row;
       });
   });

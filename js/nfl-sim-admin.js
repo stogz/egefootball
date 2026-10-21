@@ -970,6 +970,37 @@ EGE.nflSimAdmin = (function () {
     body.appendChild(part);
   }
 
+  /* The six's archetypes: a name only, since their skills are the
+     website's, and kept for the ones still in college until their draft
+     (lib/edits.js setSixArchetype). Their pop-ups on the Teams pages set
+     the same thing. */
+  function drawArchetypes(body, league) {
+    var part = section('The six’s archetypes');
+    sim().edits.sixArchetypes(league).forEach(function (s) {
+      var line = row();
+      line.appendChild(el('span', 'ege-sim__who', s.name));
+      var pick = el('select', 'fb-select');
+      pick.setAttribute('aria-label', s.name + '’s archetype');
+      s.archetypes.forEach(function (name) {
+        var option = el('option', null, name);
+        option.value = name;
+        pick.appendChild(option);
+      });
+      pick.value = s.archetype || '';
+      pick.disabled = state.busy;
+      pick.addEventListener('change', function () {
+        var want = pick.value;
+        step(function (l) {
+          var got = sim().edits.setSixArchetype(l, s.slug, want);
+          return { title: got.name, lines: ['Archetype ' + (got.before || 'none') + ' to ' + got.after + '.'] };
+        });
+      });
+      line.appendChild(pick);
+      part.appendChild(line);
+    });
+    body.appendChild(part);
+  }
+
   function drawStandings(body, league) {
     if (!league.schedule || !league.schedule.some(function (g) { return g.score; })) { return; }
     var table = sim().standings.standings(league.schedule, league.season);
@@ -1217,6 +1248,7 @@ EGE.nflSimAdmin = (function () {
     drawEditor(body, league);
     drawRosters(body, league);
     drawSix(body, league);
+    drawArchetypes(body, league);
     drawStandings(body, league);
     drawSite(body, league);
     drawWorld(body);
@@ -1242,7 +1274,8 @@ EGE.nflSimAdmin = (function () {
      The sim and the world load the first time it is asked for; peek()
      hands over the league as saved once they are in, and change(fn) runs
      fn on it, saves the world and publishes the season's rosters, the way
-     a step here does. Anything that throws before the save keeps nothing. */
+     a step here does. Anything that throws before the save keeps nothing.
+     useDeal() hands a trade the page's trade finder found to the builder. */
 
   function ready() {
     if (state.files) { return Promise.resolve(); }
@@ -1293,5 +1326,13 @@ EGE.nflSimAdmin = (function () {
     });
   }
 
-  return { render: render, ready: ready, loaded: loaded, peek: peek, change: change };
+  /* A trade found on a team's page (its trade finder), put in the trade
+     builder here: [{ key, players: [id], picks: [id] }, ...]. */
+  function useDeal(sides) {
+    state.deal = sides.map(function (side) {
+      return { key: side.key, players: (side.players || []).slice(), picks: (side.picks || []).slice() };
+    });
+  }
+
+  return { render: render, ready: ready, loaded: loaded, peek: peek, change: change, useDeal: useDeal };
 })();

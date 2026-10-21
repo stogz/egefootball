@@ -20,6 +20,7 @@ const io = require('./io');
 const { sixFromSite } = require('./ege');
 const { marketPay } = require('./value');
 const { centreOn } = require('./schemes');
+const { archetypeOf } = require('./skills');
 
 const PROJECT_WORLD = '/mnt/project-files/nfl-sim/world';
 
@@ -73,7 +74,9 @@ function index(league) {
   });
 }
 
-/* The six's overall, skills and durability, from the site as it is now. */
+/* The six's overall, skills and durability, from the site as it is now,
+   and the archetype those skills give, unless Sam set one by hand
+   (lib/edits.js setSixArchetype). */
 function syncSix(league) {
   let six;
   try { six = sixFromSite(league.season); } catch (err) { return; }
@@ -84,6 +87,7 @@ function syncSix(league) {
     p.pot = Math.max(site.ovr, p.pot || 0);
     p.skills = site.skills;
     p.durability = site.durability;
+    p.archetype = (league.egeArchetypes || {})[p.ege] || archetypeOf(p.pos, p.skills, p.ovr);
   });
 }
 

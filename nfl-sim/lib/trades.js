@@ -444,4 +444,5 @@ function proposeOwn(league, input) {
   return t;
 }
 
-module.exports = { propose, closeWindow, queueMoves, approve, reject, proposeOwn, loadQueue, pickId, pickLabel };
+module.exports = { propose, closeWindow, queueMoves, approve, reject, proposeOwn, loadQueue, pickId, pickLabel,
+                   valueOf, slotFinder, record, describeItem, POS_WORD };
