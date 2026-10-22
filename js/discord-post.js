@@ -651,6 +651,9 @@ EGE.discordPost = (function () {
       };
       var logo = EGE.nfl && EGE.nfl.logo(side.team);
       if (logo) { embed.thumbnail = { url: asset(siteUrl, logo) }; }
+      /* The week posts' spacer (see finishEmbed), so every team's embed is
+         the full width whatever is in it. */
+      embed.image = { url: asset(siteUrl, 'icon/spacer.png') };
       return embed;
     });
 

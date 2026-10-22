@@ -2665,7 +2665,9 @@ lists), each pick as its year and round, its number once the draft order is
 known, and whose it was when it was not the giving team's own. The footer
 says when in the sim it happened (*2024 Week 5*, *2024 trade deadline*,
 *2025 offseason*). The marks are the site's own pictures: a webhook can only
-use the server's `:CHI:` emoji by their ids.
+use the server's `:CHI:` emoji by their ids. Each embed carries the week
+posts' transparent spacer, `icon/spacer.png`, so every one is the full
+width whatever is in it.
 
 Its webhook goes in the third box under the week list, *Trades bot
 webhook*, kept in `discord_webhooks` as `trades` (run `supabase/schema.sql`
