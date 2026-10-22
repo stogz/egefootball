@@ -490,6 +490,16 @@ In two parts, so Sam can look at the pre-draft trades between them.
    then go exactly as written, the six included, and the sim drafts the
    rest. While the draft waits, the picks it covers are out of every trade.
 
+   **Picks out to 2030** (`lib/picks.js`, Sam 2026-10-22). Every team has
+   its own seven picks in every draft through 2030, and six drafts ahead
+   after that: as each draft is held the year six out is added (2031 at
+   the 2025 draft). A world saved with fewer is filled in the next time it
+   opens. Picks more than three drafts off are valued with their slot
+   drifting back to the middle of the round (nobody knows where a team
+   will be). The AI's own trades and the packages the trade finder builds
+   still use only the next three drafts' picks; Sam's trade builder and a
+   pick's own trade finder take any of them.
+
    **An order set by hand** (`data/draft-orders.json`). A year can have its
    order fixed: the first round, the teams tied on record (who take turns
    each round, the first of them in one round picking last of them in the
@@ -602,6 +612,15 @@ stars in its schemes (`incoming`). `refresh` (1, 2, ...; `find-trades
 --refresh 1`, or **Refresh** in the pop-up) shakes each trade's place up a
 little and puts the ones already shown (`seen`) to the back, for another
 set. The deadline and the six's one team a season hold as for any trade.
+
+A pick is shopped the same way (`findPickTrades`, `find-trades 2026-R1-DET`,
+or **Find trades** in a pick's pop-up on the Teams pages' Picks side, Sam
+2026-10-22): every other team that comes out ahead by its own numbers
+offers the cheapest package the pick's owner takes, alone or with one of
+the owner's own players or picks it wants, under the same rules. The best
+for the owner come first: its surplus, the buyer's, and half a point for
+each player coming in who would start for it. Each says the owner's cap
+space after.
 
 On the admin page Sam builds his own trade from dropdowns: a team on each
 side, then its players and picks added one at a time (one side can be
@@ -769,9 +788,10 @@ nfl-sim/
     value.js             what players, picks and contracts are worth; the cap
     rosters.js           needs, contracts, free agency, depth, cutdowns
     draft.js             draft classes, ceilings, the draft
-    draft-plan.js        a draft written by hand, and draft orders set by hand
+    draft-plan.js        a draft written by hand, draft orders set by hand, every team's picks
+    picks.js             how far out the picks go (2030, then six drafts ahead)
     trades.js            proposals, the queue (big free-agent moves too), approving
-    trade-finder.js      teams a player would suit better, and the trades for him
+    trade-finder.js      teams a player would suit better, and the trades for him (or a pick)
     fit.js               fit as 0-5 stars, players and teams (an admin's only)
     tendencies.js        how a team calls plays and who gets the ball (an admin's only)
     weeks.js             a week as it was played, from the game log (an admin's only)
