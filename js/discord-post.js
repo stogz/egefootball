@@ -30,6 +30,8 @@
    each to its own channel, each with only that league's players in it and
    headed by that league's own week -- the NFL's Playoffs Week One is not
    the colleges'.
+
+   A third bot posts nothing but trades: buildTradePost, at the bottom.
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -589,10 +591,81 @@ EGE.discordPost = (function () {
     }).filter(Boolean);
   }
 
+  /* --- a trade ---------------------------------------------------------------
+
+     The trades bot's message: every trade an admin puts through in the NFL
+     sim (js/nfl-sim-admin.js), in a channel of its own (Sam, 2026-10-22).
+     Headed Trade, then an embed per team in its colour with its mark,
+     saying what it receives:
+
+       ## Trade
+       Chicago Bears receive                       [Bears]
+       • WR DJ Moore · 84 OVR
+       Carolina Panthers receive                   [Panthers]
+       • 2024 1st-round pick, No. 1
+       • 2025 2nd-round pick (Raiders')
+
+     One of the six is underlined and bold, as in the draft lists. The marks
+     are the site's own pictures rather than the server's :CHI: emoji, which
+     a webhook can only use by their ids.
+
+     `trade` is { when, sides: [{ team, gets }] }: each team's key and what
+     it receives, a player { pos, name, ovr, six } or a pick { year, round,
+     n, from } -- `n` once the draft's order is known, `from` only when the
+     pick was not the giving team's own. `when` is the footer's "2024 Week
+     5". */
+  function escaped(text) {
+    return plain(text).replace(/([\\*_~|])/g, '\\$1');
+  }
+
+  function ordinal(n) {
+    var tens = n % 100;
+    return n + (tens >= 11 && tens <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' })[n % 10] || 'th');
+  }
+
+  function nickname(key) {
+    var team = EGE.nfl && EGE.nfl.teams[key];
+    return team ? team.name.split(' ').slice(-1)[0] : key;
+  }
+
+  function tradeLine(item) {
+    if (item.year) {
+      var whose = item.from ? nickname(item.from) : '';
+      return '• ' + item.year + ' ' + ordinal(item.round) + '-round pick' +
+        (item.n ? ', No. ' + item.n : '') +
+        (whose ? ' (' + whose + (/s$/.test(whose) ? "'" : "'s") + ')' : '');
+    }
+    var name = escaped(item.name);
+    return '• ' + item.pos + ' ' + (item.six ? '__**' + name + '**__' : name) +
+      ' · ' + item.ovr + ' OVR';
+  }
+
+  function buildTradePost(trade, options) {
+    var siteUrl = (options && options.siteUrl) || SITE;
+    var embeds = trade.sides.map(function (side) {
+      var team = (EGE.nfl && EGE.nfl.teams[side.team]) || { name: side.team };
+      var embed = {
+        color: team.color ? parseInt(team.color.slice(1), 16) : COLOR_UPCOMING,
+        title: team.name + ' receive',
+        description: side.gets.length ? side.gets.map(tradeLine).join('\n') : 'Nothing'
+      };
+      var logo = EGE.nfl && EGE.nfl.logo(side.team);
+      if (logo) { embed.thumbnail = { url: asset(siteUrl, logo) }; }
+      return embed;
+    });
+
+    var last = embeds[embeds.length - 1];
+    last.footer = { text: 'EGE Football Simulation' + (trade.when ? ' · ' + trade.when : '') };
+    last.timestamp = new Date().toISOString();
+
+    return { content: '## Trade', embeds: embeds, allowed_mentions: { parse: [] } };
+  }
+
   return {
     SITE: SITE,
     buildWeekPost: buildWeekPost,
     buildWeekPosts: buildWeekPosts,
-    buildEmbed: buildEmbed
+    buildEmbed: buildEmbed,
+    buildTradePost: buildTradePost
   };
 })();

@@ -859,16 +859,20 @@ EGE.wallet = (function () {
 
   /* --- the Discord channels ------------------------------------------------
 
-     One bot per league: the colleges' channel and the NFL's. Their webhook
-     URLs are pasted into the admin page once and kept in Supabase's
-     discord_webhooks table, which only an admin can read or write -- never
-     in this repository, which is public, so anyone could read a URL in it
-     and post to the channel as the bot. */
+     One bot per league: the colleges' channel and the NFL's. And a third,
+     the trades bot, in a channel of its own: every trade an admin puts
+     through in the NFL sim (Sam, 2026-10-22). Their webhook URLs are pasted
+     into the admin page once and kept in Supabase's discord_webhooks table
+     (the trades bot's under 'trades'), which only an admin can read or
+     write -- never in this repository, which is public, so anyone could
+     read a URL in it and post to the channel as the bot. */
   var WEBHOOKS = 'discord_webhooks';
   var WEBHOOK_PATTERN = /^https:\/\/(?:(?:canary|ptb)\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/;
+  var TRADES = 'trades';
 
-  /* { college: url, nfl: url }, with whichever have been saved. An empty
-     object for anybody who is not an admin, or before the table exists. */
+  /* { college: url, nfl: url, trades: url }, with whichever have been
+     saved. An empty object for anybody who is not an admin, or before the
+     table exists. */
   function loadWebhooks() {
     var c = client();
     if (!c) { return Promise.resolve({}); }
@@ -885,7 +889,7 @@ EGE.wallet = (function () {
   function saveWebhook(league, url) {
     var c = client();
     if (!c) { return fail(offline()); }
-    if (EGE.LEAGUES.indexOf(league) === -1) { return fail('No such league: ' + league + '.'); }
+    if (EGE.LEAGUES.indexOf(league) === -1 && league !== TRADES) { return fail('No such league: ' + league + '.'); }
     var clean = String(url || '').trim();
     if (!WEBHOOK_PATTERN.test(clean)) {
       return fail('That is not a Discord webhook URL. Copy it from the channel\u2019s ' +
@@ -919,6 +923,17 @@ EGE.wallet = (function () {
     return loadWebhooks().then(function (hooks) {
       if (hooks[which]) { return postToWebhook(hooks[which], payload); }
       return postThroughFunction(payload, which);
+    });
+  }
+
+  /* Sends a built trade to the trades bot's channel. With no trades webhook
+     saved there is nobody to tell, and that is not a failure: { ok: true,
+     skipped: true }. No edge function either way -- the trades bot is only
+     ever the webhook saved on the admin page. */
+  function postTradeToDiscord(payload) {
+    return loadWebhooks().then(function (hooks) {
+      if (!hooks[TRADES]) { return { ok: true, skipped: true }; }
+      return postToWebhook(hooks[TRADES], payload);
     });
   }
 
@@ -1462,6 +1477,7 @@ EGE.wallet = (function () {
     loadWebhooks: loadWebhooks,
     saveWebhook: saveWebhook,
     postWeekToDiscord: postWeekToDiscord,
+    postTradeToDiscord: postTradeToDiscord,
     clearPublishedBoosters: clearPublishedBoosters
   };
 })();

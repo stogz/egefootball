@@ -2652,6 +2652,28 @@ A failed direct post never falls back to the function: a request that reached
 Discord but whose reply the browser could not read looks exactly like one that
 never arrived, and trying the other route would post the week twice.
 
+### The trades bot
+
+A third bot, in a channel of its own, posts nothing but trades (Sam,
+2026-10-22): every trade that goes through in the NFL sim — approved from
+the queue, made in the builder, or made from a team page's trade finder —
+the moment it is saved. A free-agent move is a signing, not a trade, and is
+not posted. The message is headed **Trade**, with an embed per team in its
+colour and with its mark, saying what it receives: each player as position,
+name and overall (one of the six underlined and bold, as in the draft
+lists), each pick as its year and round, its number once the draft order is
+known, and whose it was when it was not the giving team's own. The footer
+says when in the sim it happened (*2024 Week 5*, *2024 trade deadline*,
+*2025 offseason*). The marks are the site's own pictures: a webhook can only
+use the server's `:CHI:` emoji by their ids.
+
+Its webhook goes in the third box under the week list, *Trades bot
+webhook*, kept in `discord_webhooks` as `trades` (run `supabase/schema.sql`
+again first: the table took the two leagues only). There is no edge
+function or scheduled bot behind it; with no webhook saved, trades simply
+are not posted. A post that does not land leaves the trade made and says
+so.
+
 ### The season editor
 
 **Season File**, under the week list, is every game in a week as the file has
@@ -2779,7 +2801,8 @@ pick trade made before the 2023 kickoff moves its 2024 or 2025 pick
 leave his team in free agency: he stays put unless Sam approves the move.
 Sam's own trades come from a builder: a team on each side, players and
 picks added from dropdowns, then **Make the trade** (straight through) or
-**Propose** (queued with what both teams think). The **Player editor** sets
+**Propose** (queued with what both teams think). Every trade that goes
+through is posted by the trades bot (see *The trades bot*). The **Player editor** sets
 any player's overall and ceiling — on a team, a free agent, or a prospect
 in the class the next draft takes — **The six’s archetypes** sets each of
 the six's (the website keeps their ratings, the sim keeps this), and
@@ -2957,11 +2980,13 @@ Built so far:
   inventory, admins, the stickers stuck on games (and the trigger holding
   them to five a season), the credit awards a season pays out, diamonds and
   their awards, which weeks are published (and which leagues' Discord
-  posts have gone), the two Discord webhooks, the card collection, and the
-  NFL sim's world, rosters and stored weeks (`sim_weeks`). Run
+  posts have gone), the Discord webhooks (the two leagues' and the trades
+  bot's), the card collection, and the NFL sim's world, rosters and stored
+  weeks (`sim_weeks`). Run
   it in the Supabase SQL editor; it is safe to run again, and it must be
   re-run after pulling a change that adds a table. **Re-run it after
-  pulling this change** so `sim_weeks` is in the database.
+  pulling this change** so `discord_webhooks` takes the trades bot's
+  webhook.
 - `supabase/functions/post-week/` — an edge function that posts a week to
   the college or NFL channel for an admin, from the saved webhook or its
   own secret, for a league with no webhook saved on the admin page.
@@ -3061,7 +3086,7 @@ Built so far:
   in, and how a season of them adds up.
 - `js/discord-post.js` — one week as a Discord message. Loaded by the browser
   so the publish button can build it, and by the bot so a scheduled run builds
-  exactly the same thing.
+  exactly the same thing. Also a trade, for the trades bot.
 - `js/exports.js` — builds the files a season leaves behind:
   a published week, the locked ratings, the season log, and the season
   pointer. Reads Supabase, writes nothing.

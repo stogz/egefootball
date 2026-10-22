@@ -651,7 +651,8 @@
 
           <p class="fb-meta" id="discordNote"></p>
 
-          <!-- The two Discord bots, one per league. Pasted here once and kept
+          <!-- The Discord bots: one per league, and the trades bot, which
+               posts every trade made in the NFL sim. Pasted here once and kept
                in Supabase (discord_webhooks), which only an admin can read --
                never in this repository, which is public. Folded away: they
                are set once and left. -->
@@ -670,6 +671,12 @@
                      spellcheck="false">
             </label>
             <button class="fb-btn fb-btn--sm" id="hookNflSave" type="button">Save</button>
+            <label class="ege-field">
+              <span class="fb-eyebrow">Trades bot webhook</span>
+              <input class="fb-input" id="hookTrades" type="password" autocomplete="off"
+                     spellcheck="false">
+            </label>
+            <button class="fb-btn fb-btn--sm" id="hookTradesSave" type="button">Save</button>
           </div>
           </details>
         </div>

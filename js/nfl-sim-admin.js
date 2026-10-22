@@ -412,11 +412,16 @@ EGE.nflSimAdmin = (function () {
       return Promise.all([loadLive(), first ? fetchSavePoint(first) : null]);
     }).then(function () {
       var league = openLeague();
+      var had = approvedIds(league);
       var made = fn(league);
       sim().run.save(league);
+      var posts = tradePosts(league, had);
       return saveWorld().then(function () {
         state.last = made;
         state.week = '';
+        return postTrades(posts);
+      }).then(function (problem) {
+        if (problem) { state.error = problem; }
         /* The step is kept whatever happens to the stored weeks, which the
            next step (or opening the tab) stores again, and the rosters,
            which can be sent again with Update rosters now. */
@@ -436,6 +441,78 @@ EGE.nflSimAdmin = (function () {
     }).then(function () {
       state.busy = false;
       draw();
+    });
+  }
+
+  /* --- the trades bot ---------------------------------------------------
+
+     Every trade a step puts through -- approved from the queue, made in the
+     builder, or made from a team page's trade finder -- goes to the trades
+     bot's channel once the world is saved (EGE.discordPost.buildTradePost).
+     Found by what the step approved, so no way of making one is missed. A
+     free-agent move is a signing, not a trade, and stays out. */
+  function approvedIds(league) {
+    return sim().run.queue(league, true).filter(function (t) { return t.status === 'approved'; })
+      .map(function (t) { return t.id; });
+  }
+
+  function tradeWhen(at) {
+    var s = at.season;
+    return ({ preseason: s + ' preseason', regular: s + ' Week ' + at.week, deadline: s + ' trade deadline',
+              playoffs: s + ' playoffs', offseason: (s + 1) + ' offseason', draft: s + ' offseason' })[at.phase] || String(s);
+  }
+
+  /* What one team sends, as the post lists it. The six at the website's
+     overall, which is theirs. */
+  function tradeItem(league, give, from, numbers) {
+    if (give.player) {
+      var p = league.byId.get(give.player);
+      if (!p) { return { pos: '', name: give.player, ovr: '' }; }
+      var six = p.ege && EGE.playerBySlug ? EGE.playerBySlug(p.ege) : null;
+      return { pos: p.pos, name: p.name, ovr: six ? EGE.overallFor(six) : p.ovr, six: Boolean(p.ege) };
+    }
+    var id = /^(\d{4})-R(\d+)-(\w+)$/.exec(give.pick) || [];
+    var year = Number(id[1]);
+    var round = Number(id[2]);
+    return { year: year, round: round, n: numbers[give.pick] || null, from: id[3] !== from ? id[3] : null };
+  }
+
+  function tradePosts(league, had) {
+    var trades = sim().run.queue(league, true).filter(function (t) {
+      return t.status === 'approved' && t.kind !== 'move' && had.indexOf(t.id) === -1;
+    });
+    if (!trades.length) { return []; }
+    /* Each pick's number in its draft, where the order is known. */
+    var numbers = {};
+    var board = sim().draftPlan.board(league);
+    Object.keys(board).forEach(function (key) {
+      board[key].forEach(function (p) {
+        if (p.n) { numbers[p.year + '-R' + p.round + '-' + p.from] = p.n; }
+      });
+    });
+    return trades.map(function (t) {
+      return EGE.discordPost.buildTradePost({
+        when: tradeWhen(t.approvedAt || league),
+        sides: t.teams.map(function (key, i) {
+          var other = t.teams[1 - i];
+          return { team: key, gets: (t.gives[other] || []).map(function (give) { return tradeItem(league, give, other, numbers); }) };
+        })
+      });
+    });
+  }
+
+  /* One after another, so they land in the order they were made. A post
+     that does not land leaves the trade made: what it says is why, or null
+     when every one went (or there is no trades webhook to send to). */
+  function postTrades(posts) {
+    return posts.reduce(function (chain, payload) {
+      return chain.then(function (problem) {
+        return EGE.wallet.postTradeToDiscord(payload).then(function (res) {
+          return problem || (res.ok ? null : res.message);
+        }, function (err) { return problem || err.message || String(err); });
+      });
+    }, Promise.resolve(null)).then(function (problem) {
+      return problem ? 'Traded, but the trades bot did not post it: ' + problem : null;
     });
   }
 
@@ -1763,23 +1840,33 @@ EGE.nflSimAdmin = (function () {
       var saved = false;
       var league;
       var made;
+      var posts;
+      var posted;
       return Promise.resolve().then(function () {
         league = openLeague();
+        var had = approvedIds(league);
         made = fn(league);
         sim().run.save(league);
+        posts = tradePosts(league, had);
         return saveWorld();
       }).then(function () {
         saved = true;
+        return postTrades(posts);
+      }).then(function (problem) {
+        posted = problem;
         return publishRosters(league);
       }).then(function () {
         state.busy = false;
+        if (posted) { throw new Error(posted); }
         return made;
-      }, function (err) {
+      }).catch(function (err) {
         if (!saved) {
           state.files = before;
           state.dirty = {};
         }
         state.busy = false;
+        /* Kept anyway: the page says so rather than offering it again. */
+        if (saved && err && typeof err === 'object') { err.saved = true; }
         throw err;
       });
     });
