@@ -429,11 +429,13 @@ Under the bar:
   2026-10-19): `data/nfl-rosters.json`, which `node nfl-sim/sim.js export`
   writes, or whatever the admin page's NFL Sim tab last published to
   `nfl_sim_rosters` in Supabase — whichever was saved later for the season
-  (`js/nfl-rosters.js`). An **Offense / Defense** switch at the top right of
-  the panel, the same as the schedule's Games / Tournament, picks the side:
-  quarterbacks, backs (a fullback with them), receivers and tight ends, or
-  the defensive line (edge rushers and tackles), linebackers, cornerbacks
-  and safeties. **An admin also sees the team's offense and defense as two
+  (`js/nfl-rosters.js`). An **Offense / Defense / Picks** switch at the top
+  right of the panel, the same as the schedule's Games / Tournament, picks
+  the side: quarterbacks, backs (a fullback with them), receivers, tight
+  ends, the offensive line (tackles, guards and centers, its five starters
+  showing) and the kickers (punters with them), two rooms a line (Sam,
+  2026-10-22); or the defensive line (edge rushers and tackles),
+  linebackers, cornerbacks and safeties; or the team's draft picks (below). **An admin also sees the team's offense and defense as two
   overalls**, *OFF* and *DEF* boxes in their tier's colours left of the
   switch (Sam, 2026-10-20): each the starters' overalls weighted by how
   much the spot matters (the quarterback a third of the offense; the
@@ -463,7 +465,8 @@ Under the bar:
   six's has a button through to his page. A click off the box closes it.
   Nothing private is in the rosters: no team ratings, no potential, nothing
   about how long a player will last. Since 2026-10-21 they carry every
-  player, the linemen, kickers and punters the rooms leave out too, and the
+  player, the linemen, kickers and punters too (the rooms show them since
+  2026-10-22), and the
   salary cap for the season and the three after it (`caps`), for the line
   rating and the payroll below, each team's system (`systems`) and every
   player's fit (`fit`). Rosters published before then have none of it
@@ -556,12 +559,26 @@ Under the bar:
   as the season has gone (`nfl-sim/lib/tendencies.js`). From the sim's
   world, never from the published rosters.
 
+  **Picks**, the switch's third side (Sam, 2026-10-22): every draft the
+  sim has picks for, out to 2030 and on (`nfl-sim/lib/picks.js`), a line a
+  year and a column a round. A pick the team owns is the mark of the team
+  it came from in a white box, an orange edge when it traded for it, with
+  its number on a tag once that draft's order is known; one it traded
+  away is the mark of the team that has it now, faded in a dashed box.
+  Everybody sees them, from the published rosters (`picks`); an admin's
+  come from the sim's world and each opens a pop-up (a band in the colour
+  of the team it came from, then the draft, round, number and whose it
+  was) with **Find trades** and **Refresh**: the teams that would give the
+  most for it, the same trades, buttons and builder as a player's. Rosters
+  published before 2026-10-22 have no picks until an admin's visit
+  publishes them again.
+
   **The page ends with the payroll**, for everybody (Sam, 2026-10-21):
   payroll, the salary cap and the cap space (in red, how far over), a bar,
-  and **Contracts**, every player's (the linemen, kickers and punters the
-  rooms leave out too) with what he is paid this season and the next three
-  (his yearly average while his deal runs), then the total, the cap and
-  the space left for each year. Every heading sorts, as a game log's do.
+  and **Contracts**, every player's with his overall (**OVR**, Sam 2026-10-22; one of the
+  six's from his own page) and what he is paid this season and the next
+  three (his yearly average while his deal runs), then the total, the cap
+  and the space left for each year. Every heading sorts, as a game log's do.
   An admin's comes from the sim's world, with an **Edit** on every
   contract; everybody else's from the published rosters.
 

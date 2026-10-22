@@ -168,11 +168,11 @@
                  (EGE.nflRosters.unitOveralls). Never drawn for anybody else,
                  nor in client viewer mode. -->
             <div class="ege-unitovr" id="rosterRatings" hidden></div>
-            <!-- An NFL team's two sides of the ball, the same switch as the
-                 schedule's Games and Tournament. Drawn in app.js for NFL
-                 teams only. -->
+            <!-- An NFL team's two sides of the ball and its draft picks,
+                 the same switch as the schedule's Games and Tournament.
+                 Drawn in app.js for NFL teams only. -->
             <div class="ege-switch" id="rosterSwitch" role="group"
-                 aria-label="Which side of the ball" hidden>
+                 aria-label="Which part of the roster" hidden>
               <label class="ege-switch__option">
                 <input type="radio" name="rosterSide" value="offense" checked>
                 <span>Offense</span>
@@ -180,6 +180,10 @@
               <label class="ege-switch__option">
                 <input type="radio" name="rosterSide" value="defense">
                 <span>Defense</span>
+              </label>
+              <label class="ege-switch__option">
+                <input type="radio" name="rosterSide" value="picks">
+                <span>Picks</span>
               </label>
             </div>
             <button class="ege-collapse" type="button"

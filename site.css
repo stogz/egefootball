@@ -4350,12 +4350,84 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 }
 .ege-payroll__table tfoot tr + tr td { border-top: 0; }
 .ege-payroll__table td.is-over { color: #c62828; }
+.ege-payroll__table td.ege-payroll__ovr { font-weight: 800; }
 /* The team's schemes, a dropdown each for an admin. */
 .ege-nflsys__pick { padding: 4px 8px; font-size: var(--fb-small); }
 .ege-nflsys dd { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 0; }
 /* The ratings under the rooms, as the scouting report rings its defense. */
 .ege-teamrings { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 18px; }
 .ege-payroll__form { max-width: 290px; padding: 6px 0; border-bottom: 0; }
+
+/* The Picks side: a line a draft, a column a round. A pick the team owns
+   is the mark of the team it came from in a white box (an orange edge
+   when it traded for it), its number on a tag once the order is known;
+   one it traded away is the mark of the team with it now, faded in a
+   dashed box. An admin's open a pop-up. */
+.ege-picks__table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.ege-picks__table th {
+  padding: 0 2px 6px;
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--fb-accent-deep);
+}
+.ege-picks__table thead th:first-child { width: 48px; }
+.ege-picks__table td,
+.ege-picks__table .ege-picks__year {
+  padding: 8px 2px;
+  border-top: var(--fb-border-thin) solid rgba(29, 36, 22, .2);
+  vertical-align: middle;
+}
+.ege-picks__table .ege-picks__year {
+  font-family: var(--fb-font-display);
+  font-size: 1rem;
+  letter-spacing: 0;
+  text-align: left;
+  color: var(--fb-ink);
+}
+.ege-picks__cell { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.ege-pick {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: #fff;
+  color: var(--fb-ink);
+  font: inherit;
+}
+.ege-pick.is-theirs { border: 2px solid var(--fb-accent); }
+.ege-pick.is-gone { border: var(--fb-border-thin) dashed rgba(29, 36, 22, .45); background: transparent; }
+.ege-pick.is-gone .ege-pick__mark { opacity: .35; filter: grayscale(1); }
+button.ege-pick { cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; }
+button.ege-pick:hover,
+button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2px 2px 0 var(--fb-ink); }
+.ege-pick__mark { display: grid; place-items: center; width: 28px; height: 28px; font-size: 10px; font-weight: 800; }
+.ege-pick__mark img { width: 100%; height: 100%; object-fit: contain; }
+.ege-pick__n {
+  position: absolute;
+  right: -5px;
+  bottom: -6px;
+  min-width: 16px;
+  padding: 0 3px;
+  background: var(--fb-ink);
+  color: var(--fb-cream);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 14px;
+  text-align: center;
+}
+@media (max-width: 520px) {
+  .ege-picks__table thead th:first-child { width: 40px; }
+  .ege-picks__table .ege-picks__year { font-size: .875rem; }
+  .ege-picks__cell { gap: 4px; }
+  .ege-pick { width: 32px; height: 32px; }
+  .ege-pick__mark { width: 24px; height: 24px; }
+}
 
 /* An admin's Tendencies panel on an NFL team's page: each number on the
    league's range, lowest to highest, the average a tick and the team a
@@ -4759,6 +4831,16 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
   .ege-person__fact { grid-column: span 2; }
   .ege-person__fact:nth-child(-n+2) { grid-column: span 3; }
   .ege-person__body { padding: 12px; }
+}
+/* A pick's pop-up: no headshot, so the band is as tall as the mark, the
+   name centred between two columns as wide as it; four facts a line. */
+.ege-person--pick .ege-person__band { --face-w: 76px; padding: 10px 14px; }
+.ege-person--pick .ege-person__face { height: auto; margin: 0; }
+.ege-person--pick .ege-person__facts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.ege-person--pick .ege-person__fact,
+.ege-person--pick .ege-person__fact:nth-child(-n+2) { grid-column: auto; }
+@media (max-width: 520px) {
+  .ege-person--pick .ege-person__band { --face-w: 52px; padding: 8px 10px; }
 }
 
 

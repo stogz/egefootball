@@ -41,6 +41,7 @@
      node nfl-sim/sim.js scheme DET offense "Air Raid"   switch a team's scheme (it keeps it)
      node nfl-sim/sim.js find-trades "Name" [--refresh 1]   teams he would suit better that
                                                 would trade for him (--refresh: another set)
+     node nfl-sim/sim.js find-trades 2026-R1-DET   the same for a pick
      node nfl-sim/sim.js rosters DET [YEAR]     a team's roster that season, and who came and went
      node nfl-sim/sim.js report                 a written report into the world folder
      node nfl-sim/sim.js reset --force          start over from the 2023 kickoff
@@ -70,7 +71,7 @@ const { assess, describe } = require('./lib/assess');
 const trades = require('./lib/trades');
 const draftPlan = require('./lib/draft-plan');
 const edits = require('./lib/edits');
-const { findTrades } = require('./lib/trade-finder');
+const { findTrades, findPickTrades } = require('./lib/trade-finder');
 const tendencies = require('./lib/tendencies');
 const weeks = require('./lib/weeks');
 const history = require('./lib/history');
@@ -497,6 +498,18 @@ function main() {
       break;
     }
     case 'find-trades': {
+      if (/^\d{4}-R\d-[A-Z]{2,3}$/i.test(rest[0] || '')) {
+        const r = findPickTrades(league, rest[0].toUpperCase(), { refresh: refreshArg ? Number(refreshArg) : 0 });
+        say(TEAMS[r.team].name + ': ' + r.pick.label + '.');
+        if (!r.results.length) { say('No team can make a deal for it.'); }
+        r.results.forEach((t) => {
+          say('');
+          say(TEAMS[t.team].name + ' (' + t.mode + (t.record ? ', ' + t.record : '') + ').');
+          say('  ' + t.summary);
+          say('  The ' + TEAMS[r.team].name + ' ' + (t.room >= 0 ? '$' + t.room + 'M under the cap after.' : '$' + -t.room + 'M over the cap after.'));
+        });
+        break;
+      }
       const p = findPlayer(league, rest.join(' '));
       if (!p) { say('No player ' + rest.join(' ') + '.'); break; }
       const r = findTrades(league, p.id, { refresh: refreshArg ? Number(refreshArg) : 0 });

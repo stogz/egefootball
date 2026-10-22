@@ -1636,7 +1636,7 @@
     }
     /* Best first, and never folding one of the six away: a room shows down
        to whichever of them is lowest, however far down that is. */
-    var shown = ROOM_SHOWN;
+    var shown = room.shown || ROOM_SHOWN;
     rows.forEach(function (row, i) { if (row.player) { shown = Math.max(shown, i + 1); } });
 
     var list = el('ol', 'ege-room__list');
@@ -1663,14 +1663,18 @@
      An NFL team's page is the NFL sim's roster (js/nfl-rosters.js), not
      data/rosters.js: every player on the team with his overall, his years
      in the league, his size and his archetype, on two sides of the ball
-     picked with the switch in the panel's head. A fullback is in with the
-     backs, and the edge rushers and the tackles are one line. */
+     picked with the switch in the panel's head, or its draft picks. A
+     fullback is in with the backs, and the edge rushers and the tackles are
+     one line. The offense ends with the line, its five starters showing,
+     and the kickers and punters beside it (Sam, 2026-10-22). */
   var NFL_ROOMS = {
     offense: [
       { key: 'QB', title: 'Quarterbacks', pos: ['QB'] },
       { key: 'RB', title: 'Running Backs', pos: ['RB', 'FB'] },
       { key: 'WR', title: 'Receivers', pos: ['WR'] },
-      { key: 'TE', title: 'Tight Ends', pos: ['TE'] }
+      { key: 'TE', title: 'Tight Ends', pos: ['TE'] },
+      { key: 'OL', title: 'Offensive Line', pos: ['OT', 'IOL'], shown: 5 },
+      { key: 'K', title: 'Kickers', pos: ['K', 'P'] }
     ],
     defense: [
       { key: 'DL', title: 'Defensive Line', pos: ['EDGE', 'DI'] },
@@ -1858,6 +1862,10 @@
     if (system) { body.appendChild(system); }
     renderPayroll(key, season, all, admin);
     renderTendencies(admin);
+    if (rosterSide === 'picks') {
+      body.appendChild(nflPicks(key, season, all, admin));
+      return;
+    }
     var grid = el('div', 'ege-rooms');
     NFL_ROOMS[rosterSide].forEach(function (room) {
       var inRoom = rows.filter(function (sim) { return room.pos.indexOf(sim.pos) !== -1; })
@@ -1873,13 +1881,14 @@
   }
 
   /* Rosters the sim published before they carried each team's system and
-     every player's fit (2026-10-21) show neither to anybody. An admin's
-     visit, in client viewer mode too, has them published again from the
-     world, once a page load, and the page drawn again with them. */
+     every player's fit (2026-10-21), or its picks (2026-10-22), show none
+     of it to anybody. An admin's visit, in client viewer mode too, has them
+     published again from the world, once a page load, and the page drawn
+     again with them. */
   var caughtUp = false;
 
   function catchUp(all, key, season) {
-    if (caughtUp || all.systems || !all.savedAt || !EGE.nflSimAdmin || !EGE.wallet.realAdmin()) { return; }
+    if (caughtUp || (all.systems && all.picks) || !all.savedAt || !EGE.nflSimAdmin || !EGE.wallet.realAdmin()) { return; }
     caughtUp = true;
     EGE.nflSimAdmin.republish(season).then(function (done) {
       if (done && nflShown === key + ':' + season) { renderNflRoster(key, season); }
@@ -1896,6 +1905,186 @@
         text: r.short + ': ' + r.score + ', ' + EGE.ordinal(r.rank).toLowerCase() + ' of ' + r.of + ' in the NFL' }));
     });
     return row;
+  }
+
+  /* --- an NFL team's draft picks --------------------------------------------
+
+     The switch's third side (Sam, 2026-10-22): every draft the sim has
+     picks for, out to 2030 and on (nfl-sim/lib/picks.js), a line a year
+     and a column a round. Each pick the team owns is the mark of the team
+     it came from -- its own, or one it traded for -- with its number once
+     the draft's order is known; one it traded away is the mark of the team
+     that has it now, faded. An admin's come from the sim's world and open
+     a pop-up with Find trades; anybody else's are the published rosters'
+     (`picks`), to look at. */
+  var PICK_ROUNDS = 7;
+
+  /* { years, owned: { 'year:round': [pick] }, gone: { 'year:round': [pick] } },
+     each pick { year, round, from, owner, n, locked }; null with none. */
+  function picksOf(key, all, admin) {
+    var board = null;
+    if (admin) {
+      board = EGE.nflSim.draftPlan.board(admin.league);
+    } else if (all && all.picks) {
+      board = {};
+      Object.keys(all.picks).forEach(function (owner) {
+        board[owner] = all.picks[owner].map(function (p) {
+          return { year: p.year, round: p.round, from: p.from || owner, n: p.n || null };
+        });
+      });
+    }
+    if (!board || !board[key]) { return null; }
+    var out = { years: [], owned: {}, gone: {} };
+    function put(list, p) {
+      var at = p.year + ':' + p.round;
+      (list[at] = list[at] || []).push(p);
+      if (out.years.indexOf(p.year) === -1) { out.years.push(p.year); }
+    }
+    Object.keys(board).forEach(function (owner) {
+      board[owner].forEach(function (p) {
+        var pick = Object.assign({ owner: owner }, p);
+        if (owner === key) { put(out.owned, pick); } else if (p.from === key) { put(out.gone, pick); }
+      });
+    });
+    out.years.sort(function (a, b) { return a - b; });
+    return out.years.length ? out : null;
+  }
+
+  function teamNick(key) {
+    var team = EGE.nfl.teams[key];
+    return team ? team.name.split(' ').slice(-1)[0] : key;
+  }
+
+  function pickName(p) {
+    return p.year + ' ' + EGE.ordinal(p.round).toLowerCase() + ' round';
+  }
+
+  function pickMark(key) {
+    var mark = el('span', 'ege-pick__mark');
+    var team = EGE.nfl.teams[key];
+    var src = team && EGE.logoFor(team.name);
+    if (src) {
+      var img = el('img');
+      img.src = src;
+      img.alt = '';
+      img.addEventListener('error', function () { img.remove(); });
+      mark.appendChild(img);
+    } else {
+      mark.textContent = key;
+    }
+    return mark;
+  }
+
+  function nflPicks(key, season, all, admin) {
+    var picks = picksOf(key, all, admin);
+    if (!picks) { return el('p', 'ege-room__empty', 'No picks yet.'); }
+    var wrap = el('div', 'fb-tablewrap ege-picks');
+    var table = el('table', 'ege-picks__table');
+    var head = el('tr');
+    head.appendChild(el('th', null, ''));
+    for (var r = 1; r <= PICK_ROUNDS; r += 1) { head.appendChild(el('th', null, EGE.ordinal(r).toLowerCase())); }
+    var thead = el('thead');
+    thead.appendChild(head);
+    table.appendChild(thead);
+    var tbody = el('tbody');
+    picks.years.forEach(function (year) {
+      var tr = el('tr');
+      tr.appendChild(el('th', 'ege-picks__year', String(year)));
+      for (var round = 1; round <= PICK_ROUNDS; round += 1) {
+        var td = el('td');
+        var cell = el('div', 'ege-picks__cell');
+        (picks.owned[year + ':' + round] || []).forEach(function (p) {
+          cell.appendChild(pickChip(p, key, season, admin));
+        });
+        (picks.gone[year + ':' + round] || []).forEach(function (p) {
+          var chip = el('span', 'ege-pick is-gone');
+          chip.title = pickName(p) + ' · traded to the ' + teamNick(p.owner);
+          chip.appendChild(pickMark(p.owner));
+          cell.appendChild(chip);
+        });
+        td.appendChild(cell);
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    return wrap;
+  }
+
+  function pickChip(p, key, season, admin) {
+    var chip = el(admin ? 'button' : 'span', 'ege-pick' + (p.from !== key ? ' is-theirs' : ''));
+    var name = pickName(p) + (p.from !== key ? ' · ' + teamNick(p.from) + '’' : '') + (p.n ? ' · No. ' + p.n : '');
+    chip.title = name;
+    chip.appendChild(pickMark(p.from));
+    if (p.n) { chip.appendChild(el('span', 'ege-pick__n', String(p.n))); }
+    if (admin) {
+      chip.type = 'button';
+      chip.setAttribute('aria-label', name);
+      chip.addEventListener('click', function () {
+        openNflPick({ pick: p, team: key, season: season, admin: admin });
+      });
+    }
+    return chip;
+  }
+
+  /* A pick up close, for an admin: a band in the colour of the team it
+     came from, with that team's mark; the year, round, number and whose it
+     was; then Find trades. */
+  function openNflPick(at) {
+    var p = at.pick;
+    var team = EGE.nfl.teams[p.from] || {};
+    var stage = EGE.cardsView.openOverlay('Draft pick', 'ege-rip__stage--person');
+    var box = el('div', 'ege-person ege-person--pick');
+    var band = el('div', 'ege-person__band');
+    band.style.background = team.color || '';
+    var washSrc = team.name && EGE.logoFor(team.name);
+    if (washSrc && team.color) {
+      var wash = el('span', 'ege-person__wash' + (nearBlack(team.color) ? ' is-light' : ''));
+      var washImg = el('img');
+      washImg.src = washSrc;
+      washImg.alt = '';
+      washImg.addEventListener('error', function () { wash.remove(); });
+      wash.appendChild(washImg);
+      band.appendChild(wash);
+    }
+    band.appendChild(el('span', 'ege-person__face'));
+    band.appendChild(el('h3', 'ege-person__name', p.year + ' ' + EGE.ordinal(p.round).toLowerCase() + ' round'));
+    var mark = el('span', 'ege-person__mark');
+    var logoSrc = EGE.nfl.logo(p.from);
+    if (logoSrc) {
+      var logo = el('img');
+      logo.src = logoSrc;
+      logo.alt = team.name || '';
+      logo.title = team.name || '';
+      logo.addEventListener('error', function () { logo.remove(); });
+      mark.appendChild(logo);
+    }
+    band.appendChild(mark);
+    box.appendChild(band);
+
+    var panel = el('div', 'ege-person__body');
+    var facts = el('dl', 'ege-person__facts');
+    [['Draft', String(p.year)], ['Round', EGE.ordinal(p.round).toLowerCase()], ['Pick', p.n ? 'No. ' + p.n : '–'],
+      ['From', teamNick(p.from)]].forEach(function (pair) {
+      var cell = el('div', 'ege-person__fact');
+      cell.appendChild(el('dt', null, pair[0]));
+      cell.appendChild(el('dd', null, pair[1]));
+      facts.appendChild(cell);
+    });
+    panel.appendChild(facts);
+    if (at.admin && EGE.wallet.admin()) {
+      var tools = el('div', 'fb-row fb-row--wrap ege-person__tools');
+      panel.appendChild(tools);
+      var id = p.year + '-R' + p.round + '-' + p.from;
+      tradeFinder(panel, tools, at, 'No team can make a deal for it.', function (league, opts) {
+        return EGE.nflSim.tradeFinder.findPickTrades(league, id, opts);
+      });
+    }
+    box.appendChild(panel);
+    stage.appendChild(box);
+    var close = stage.querySelector('.ege-rip__close');
+    if (close) { close.focus({ preventScroll: true }); }
   }
 
   /* --- an admin's hand on an NFL roster -----------------------------------
@@ -2084,9 +2273,9 @@
   /* --- payroll, at the foot of the page -------------------------------------
 
      Everybody sees an NFL team's payroll against the salary cap (Sam,
-     2026-10-21), every player counted (the linemen, kickers and punters
-     the rooms leave out too), and under it every contract, this season and
-     the next three, sortable by any heading. An admin's comes from the
+     2026-10-21), every player counted, and under it every contract with
+     his overall (Sam, 2026-10-22), this season and the next three,
+     sortable by any heading. An admin's comes from the
      sim's world on the season it is playing, with an Edit on every
      contract; everybody else's from the published rosters, which carry
      every player and the caps since 2026-10-21. */
@@ -2099,7 +2288,7 @@
       return {
         caps: pay.caps,
         players: (admin.league.byTeam.get(admin.key) || []).map(function (p) {
-          return { id: p.id, name: p.name, pos: p.pos, ege: p.ege || null, ovr: p.ovr, contract: p.contract || null };
+          return { id: p.id, name: p.name, pos: p.pos, ege: p.ege || null, ovr: payOverall(p), contract: p.contract || null };
         })
       };
     }
@@ -2108,9 +2297,16 @@
     return {
       caps: all.caps,
       players: rows.map(function (p) {
-        return { name: p.name, pos: p.pos, ege: p.ege || null, ovr: p.ovr, contract: p.contract || null };
+        return { name: p.name, pos: p.pos, ege: p.ege || null, ovr: payOverall(p), contract: p.contract || null };
       })
     };
+  }
+
+  /* His overall as his box in the rooms has it: one of the six's from his
+     own page. */
+  function payOverall(p) {
+    var player = p.ege ? EGE.playerBySlug(p.ege) : null;
+    return player ? EGE.overallFor(player) : p.ovr;
   }
 
   /* What he is paid in `year`: his yearly average while his deal runs. */
@@ -2156,15 +2352,17 @@
     more.appendChild(el('summary', null, 'Contracts (' + book.players.length + ')'));
     var wrap = el('div', 'fb-tablewrap');
     var table = el('table', 'fb-table ege-payroll__table');
-    var columns = [{ key: 'player', label: 'Player' }, { key: 'pos', label: 'Pos' }].concat(years.map(function (year, i) {
-      return { key: 'y' + i, label: String(year), year: year, num: true };
-    }));
+    var columns = [{ key: 'player', label: 'Player' }, { key: 'pos', label: 'Pos' }, { key: 'ovr', label: 'OVR', num: true }]
+      .concat(years.map(function (year, i) {
+        return { key: 'y' + i, label: String(year), year: year, num: true };
+      }));
     var thead = el('thead');
     var tbody = el('tbody');
     var tfoot = el('tfoot');
     function value(p, column) {
       if (column.key === 'player') { return p.name; }
       if (column.key === 'pos') { return p.pos; }
+      if (column.key === 'ovr') { return p.ovr || 0; }
       return payIn(p, column.year);
     }
     function draw() {
@@ -2212,7 +2410,7 @@
       }, function (year) { return book.caps[year] - total(year) < 0; }]].forEach(function (line) {
       var tr = el('tr');
       var label = el('td', null, line[0]);
-      label.colSpan = 2;
+      label.colSpan = 3;
       tr.appendChild(label);
       years.forEach(function (year) {
         tr.appendChild(el('td', 'num' + (line[2] && line[2](year) ? ' is-over' : ''), book.caps[year] ? line[1](year) : '–'));
@@ -2235,6 +2433,7 @@
     var tr = el('tr', p.ege ? 'ege-payroll__six' : null);
     tr.appendChild(el('td', null, p.name));
     tr.appendChild(el('td', null, p.pos));
+    tr.appendChild(el('td', 'num ege-payroll__ovr', p.ovr ? String(p.ovr) : '–'));
     years.forEach(function (year) {
       var amount = payIn(p, year);
       tr.appendChild(el('td', 'num', amount ? moneyText(amount) : '–'));
@@ -2559,13 +2758,27 @@
      takes to get him (nfl-sim/lib/trade-finder.js), some with more of his
      team's players or picks going with him, each a trade to make now,
      propose, or take to the NFL Sim tab's trade builder. Refresh asks for
-     another set, leaving out the ones shown already where it can. */
+     another set, leaving out the ones shown already where it can. A pick's
+     pop-up has the same (Sam, 2026-10-22): the teams that would give the
+     most for it. */
   function nflTradeFinder(row, panel, tools) {
     var admin = row.admin;
     var sim = row.sim;
-    var find = el('button', 'fb-btn ege-person__edit', 'Find trades');
-    find.type = 'button';
-    tools.appendChild(find);
+    tradeFinder(panel, tools, row, 'No team he would suit better can make a deal for him.', function (league, opts) {
+      var now = admin.edits.playerOn(league, row.team, sim.name, sim.pos);
+      if (!now) { throw new Error(row.name + ' is no longer with this team.'); }
+      return EGE.nflSim.tradeFinder.findTrades(league, now.id, opts);
+    });
+  }
+
+  /* Find trades and Refresh in `tools`, the trades found under them in
+     `panel`. `find(league, { refresh, seen })` looks; `at` is the page's
+     { admin, team, season }. */
+  function tradeFinder(panel, tools, at, none, find) {
+    var admin = at.admin;
+    var button = el('button', 'fb-btn ege-person__edit', 'Find trades');
+    button.type = 'button';
+    tools.appendChild(button);
     /* Beside Find trades, not with the trades: a button taken out of the
        page as it is pressed reads as a press outside the pop-up. */
     var again = el('button', 'fb-btn ege-person__edit', 'Refresh');
@@ -2577,12 +2790,12 @@
     panel.appendChild(out);
     var asked = 0;
     var seen = [];
-    find.addEventListener('click', function () { search(0); });
+    button.addEventListener('click', function () { search(0); });
     again.addEventListener('click', function () { search(asked + 1); });
     function search(refresh) {
       asked = refresh;
       if (!refresh) { seen = []; }
-      find.disabled = true;
+      button.disabled = true;
       again.disabled = true;
       out.hidden = false;
       out.innerHTML = '';
@@ -2596,14 +2809,11 @@
         var found = null;
         var problem = null;
         try {
-          var league = EGE.nflSimAdmin.peek() || admin.league;
-          var now = admin.edits.playerOn(league, row.team, sim.name, sim.pos);
-          if (!now) { throw new Error(row.name + ' is no longer with this team.'); }
-          found = EGE.nflSim.tradeFinder.findTrades(league, now.id, { refresh: refresh, seen: seen });
+          found = find(EGE.nflSimAdmin.peek() || admin.league, { refresh: refresh, seen: seen });
         } catch (err) {
           problem = err.message || String(err);
         }
-        find.disabled = false;
+        button.disabled = false;
         again.disabled = false;
         out.innerHTML = '';
         if (problem) {
@@ -2611,19 +2821,19 @@
           return;
         }
         if (!found.results.length) {
-          out.appendChild(el('p', 'ege-room__empty', 'No team he would suit better can make a deal for him.'));
+          out.appendChild(el('p', 'ege-room__empty', none));
           return;
         }
         again.hidden = false;
         found.results.forEach(function (t) {
           if (seen.indexOf(t.key) === -1) { seen.push(t.key); }
-          out.appendChild(foundTrade(row, found, t));
+          out.appendChild(foundTrade(at, found, t));
         });
       }, 60);
     }
   }
 
-  function foundTrade(row, found, t) {
+  function foundTrade(at, found, t) {
     var box = el('div', 'ege-finder__trade');
     var head = el('div', 'ege-finder__head');
     var mark = el('span', 'ege-finder__mark');
@@ -2665,11 +2875,13 @@
       gets.appendChild(list);
       lines.appendChild(gets);
     }
-    side(nickOf(found.player.team) + ' get', t.incoming || t.gets.map(function (text) { return { text: text, fit: null }; }));
+    side(nickOf(found.team) + ' get', t.incoming || t.gets.map(function (text) { return { text: text, fit: null }; }));
     /* What his team puts in with him. */
     if (t.extras && t.extras.length) { side(nickOf(t.team) + ' also get', t.extras); }
     if (t.starts) { lines.appendChild(el('li', null, 'Starts' + (t.over ? ' over ' + t.over.name + ' (' + t.over.ovr + ')' : ''))); }
-    lines.appendChild(el('li', null, t.room >= 0 ? moneyText(t.room) + ' cap space after' : moneyText(-t.room) + ' over the cap after'));
+    /* The cap after: the team getting him, or the team selling a pick. */
+    lines.appendChild(el('li', null, (found.pick ? nickOf(found.team) + ': ' : '') +
+      (t.room >= 0 ? moneyText(t.room) + ' cap space after' : moneyText(-t.room) + ' over the cap after')));
     box.appendChild(lines);
 
     var problem = el('p', 'ege-note ege-note--error');
@@ -2702,7 +2914,7 @@
         return made;
       }).then(function () {
         settle('Traded');
-        if (nflShown === row.team + ':' + row.season) { renderNflRoster(row.team, row.season); }
+        if (nflShown === at.team + ':' + at.season) { renderNflRoster(at.team, at.season); }
       }, failed(b));
     });
     act('Propose', false, function (b) {
@@ -2761,12 +2973,14 @@
      off it puts it away. */
   var POSITION_NAMES = {
     QB: 'Quarterback', RB: 'Running Back', FB: 'Fullback', WR: 'Wide Receiver', TE: 'Tight End',
+    OT: 'Offensive Tackle', IOL: 'Interior Lineman', K: 'Kicker', P: 'Punter',
     EDGE: 'Edge Rusher', DI: 'Defensive Tackle', LB: 'Linebacker', CB: 'Cornerback', S: 'Safety'
   };
   var SKILL_NAMES = {
     accuracy: 'Accuracy', deep: 'Deep', arm: 'Arm', poise: 'Poise', mobility: 'Mobility',
     power: 'Power', elusive: 'Elusiveness', speed: 'Speed', vision: 'Vision', hands: 'Hands',
     block: 'Blocking', route: 'Route Running', yac: 'After the Catch', size: 'Size',
+    passBlock: 'Pass Blocking', runBlock: 'Run Blocking',
     rush: 'Pass Rush', run: 'Run Defense', cover: 'Coverage', blitz: 'Blitzing',
     man: 'Man Coverage', zone: 'Zone Coverage', ball: 'Ball Skills', tackle: 'Tackling',
     range: 'Range', box: 'In the Box'
@@ -2774,6 +2988,7 @@
 
   function skillName(skill, pos) {
     if (skill === 'deep') { return pos === 'QB' ? 'Deep Ball' : 'Deep Routes'; }
+    if (skill === 'power' && (pos === 'K' || pos === 'P')) { return 'Leg Power'; }
     return SKILL_NAMES[skill] || skill;
   }
 

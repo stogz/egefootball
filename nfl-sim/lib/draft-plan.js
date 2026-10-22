@@ -27,6 +27,7 @@ const io = require('./io');
 const { TEAMS, KEYS } = require('./teams');
 const { sixFromSite } = require('./ege');
 const { picksInOrder } = require('./draft');
+const { nextDraft } = require('./picks');
 
 function nick(key) { return TEAMS[key] ? TEAMS[key].name.split(' ').slice(-1)[0] : key; }
 
@@ -98,6 +99,35 @@ function planFor(league, year) { return (league.draftPlans || {})[year] || null;
 function locked(league, pick) {
   const plan = planFor(league, pick.year);
   return Boolean(plan && pick.round <= plan.rounds);
+}
+
+/* Every pick from the next draft on, by the team that owns it, as the
+   Teams pages show them: { DET: [{ year, round, from, n, locked }] }, each
+   team's by year and round. `n` is the pick's number in its draft where
+   that draft's order is known (one set by hand, or the sim's own once the
+   offseason has worked it out); `locked`, a pick an uploaded draft
+   covers. */
+function board(league) {
+  const first = nextDraft(league);
+  const out = {};
+  league.teams.forEach((t) => { out[t.key] = []; });
+  const numbers = {};
+  new Set(league.picks.filter((p) => p.year >= first).map((p) => p.year)).forEach((year) => {
+    (slotsFor(league, year) || []).forEach((s) => { numbers[year + ':' + s.round + ':' + s.from] = s.n; });
+  });
+  league.picks.forEach((p) => {
+    if (p.year < first || !out[p.owner]) { return; }
+    const row = { year: p.year, round: p.round, from: p.from };
+    const n = numbers[p.year + ':' + p.round + ':' + p.from];
+    if (n) { row.n = n; }
+    if (locked(league, p)) { row.locked = true; }
+    out[p.owner].push(row);
+  });
+  Object.keys(out).forEach((key) => {
+    out[key].sort((a, b) => a.year - b.year || a.round - b.round || (a.n || 999) - (b.n || 999) ||
+      (a.from === key ? -1 : b.from === key ? 1 : a.from.localeCompare(b.from)));
+  });
+  return out;
 }
 
 /* -------------------------------------------------------------- reading -- */
@@ -401,5 +431,5 @@ function saved(league) {
 }
 
 module.exports = {
-  officialRounds, applyOfficial, draftYear, slotsFor, ready, planFor, locked, readDraft, teamKey, check, save, remove, saved
+  officialRounds, applyOfficial, draftYear, slotsFor, ready, planFor, locked, board, readDraft, teamKey, check, save, remove, saved
 };

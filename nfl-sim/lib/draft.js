@@ -25,6 +25,7 @@ const { capFor, pickPoints, POSITION } = require('./value');
 const { starterLevels, needAt, onTeam } = require('./rosters');
 const { sixFromSite } = require('./ege');
 const { TEAMS } = require('./teams');
+const { fillPicks } = require('./picks');
 
 /* How ready a rookie at each position is, against where he was picked
    (build/ratings.js uses the same numbers for the 2023 class). */
@@ -306,12 +307,9 @@ function runDraft(league, order, rng, place, plan) {
     p.ovr = Math.max(48, p.ovr - 2);
     if (!league.byId.has(p.id)) { league.players.push(p); league.byId.set(p.id, p); }
   });
-  /* The year's picks are used; the year three out is added. */
+  /* The year's picks are used; the year six out is added (lib/picks.js). */
   league.picks = league.picks.filter((p) => p.year !== season);
-  const future = season + 3;
-  if (!league.picks.some((p) => p.year === future)) {
-    league.teams.forEach((t) => { for (let r = 1; r <= 7; r += 1) { league.picks.push({ year: future, round: r, from: t.key, owner: t.key }); } });
-  }
+  fillPicks(league, season + 1);
   return results;
 }
 

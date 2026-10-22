@@ -21,13 +21,19 @@
    builder's two sides, ready to make or propose, with how each player
    coming in fits his new team's schemes.
 
+   A pick can be shopped the same way (Sam, 2026-10-22, from the Picks on
+   a team's page): every other team that comes out ahead by its own numbers
+   offers the cheapest package the pick's owner takes for it, the best of
+   them for the owner first, and a player who would start for it counts
+   for more.
+
    Refresh asks again: each trade's place is shaken up a little and the
    ones already shown go to the back, so another set comes up.
    ========================================================================== */
 
 'use strict';
 
-const { valueOf, slotFinder, record, describeItem, pickId } = require('./trades');
+const { valueOf, slotFinder, record, describeItem, pickId, pickLabel } = require('./trades');
 const { playerFit } = require('./fit');
 const { starterLevels, onTeam, byPos, payroll, SLOTS } = require('./rosters');
 const { capFor } = require('./value');
@@ -49,12 +55,16 @@ function nick(key) { return TEAMS[key] ? TEAMS[key].name.split(' ').slice(-1)[0]
 
 function round1(v) { return Math.round(v * 10) / 10; }
 
-/* Whether trades can be made now, and of him. */
-function check(league, p) {
-  if (!p || p.status !== 'active' || !TEAMS[p.team]) { throw new Error((p ? p.name : 'He') + ' is not on a team.'); }
+function checkWindow(league) {
   if (league.phase === 'playoffs' || (league.phase === 'regular' && league.week > DEADLINE_WEEK)) {
     throw new Error('The trade deadline has passed. Trades open again in the offseason.');
   }
+}
+
+/* Whether trades can be made now, and of him. */
+function check(league, p) {
+  if (!p || p.status !== 'active' || !TEAMS[p.team]) { throw new Error((p ? p.name : 'He') + ' is not on a team.'); }
+  checkWindow(league);
   if (p.ege && IN_SEASON.indexOf(league.phase) !== -1) {
     throw new Error('The six can only be traded in the offseason: the website keeps one team a season for them.');
   }
@@ -115,7 +125,7 @@ function packageFor(league, buyer, seller, sending, price, worth, offers) {
     if (best && (cost > best.cost + 1e-9 || (Math.abs(cost - best.cost) < 1e-9 && combo.length >= best.items.length))) { return; }
     if (buyerPay + apy - sent > Math.max(cap, buyerPay)) { return; }
     if (sellerPay - apy + sent > Math.max(cap, sellerPay)) { return; }
-    best = { items: combo.map((x) => x.a), got, cost, buyerRoom: cap - (buyerPay + apy - sent) };
+    best = { items: combo.map((x) => x.a), got, cost, buyerRoom: cap - (buyerPay + apy - sent), sellerRoom: cap - (sellerPay - apy + sent) };
   };
   const n = assets.length;
   for (let i = 0; i < n; i += 1) {
@@ -164,8 +174,73 @@ function choose(found, limit, rng, seen) {
   return picked.sort((a, b) => b.rank - a.rank);
 }
 
+/* What the seller has to put in with what it sends: its own players and
+   picks, `item` left out, each as it values it. */
+function ownOf(league, seller, item, slotOf, levels) {
+  const same = (a) => (a.kind === 'player' ? item.kind === 'player' && a.player.id === item.player.id
+    : item.kind === 'pick' && pickId(a.pick) === pickId(item.pick));
+  return assetsOf(league, seller, null).filter((a) => !same(a))
+    .map((a) => ({ a, fromSeller: valueOf(league, a, seller, slotOf, levels, true) }));
+}
+
+/* Every deal one buyer makes for `item`: alone, then with each of the few
+   things of the seller's (`own`) the buyer wants most above what the
+   seller does. `price` is what the seller asks for `item`, `worth` what
+   it is to the buyer; `pos` the position the buyer gives none at.
+   [{ sending, added, gives, gets, pack }] */
+function dealsFor(league, buyer, seller, item, price, worth, own, pos, slotOf, levels) {
+  const offers = offersOf(league, buyer, seller, pos, slotOf, levels);
+  const tries = [[]].concat(own.map((x) => Object.assign({ toBuyer: valueOf(league, x.a, buyer, slotOf, levels, false) }, x))
+    .filter((x) => x.toBuyer > 0.3)
+    .sort((x, y) => (y.toBuyer - y.fromSeller) - (x.toBuyer - x.fromSeller))
+    .slice(0, EXTRAS).map((x) => [x]));
+  const out = [];
+  tries.forEach((extra) => {
+    const sending = [item].concat(extra.map((x) => x.a));
+    const gives = price + extra.reduce((sum, x) => sum + x.fromSeller, 0);
+    const gets = worth + extra.reduce((sum, x) => sum + x.toBuyer, 0);
+    const pack = packageFor(league, buyer, seller, sending, gives, gets, offers);
+    if (pack) { out.push({ sending, added: extra.map((x) => x.a), gives, gets, pack }); }
+  });
+  return out;
+}
+
+function idOf(a) { return a.kind === 'player' ? a.player.id : pickId(a.pick); }
+
+/* A deal as the page shows it: what each side gets, each player with his
+   stars in the schemes of the team he goes to, and as the trade builder's
+   two sides. */
+function shown(league, buyer, seller, d) {
+  const rec = record(league, buyer.key);
+  const fitIn = (i, key) => {
+    const f = i.kind === 'player' ? playerFit(league, i.player, key) : null;
+    return { text: describeItem(i), fit: f ? { scheme: f.scheme, stars: f.stars } : null };
+  };
+  const ids = (list, kind) => list.filter((i) => i.kind === kind).map(idOf);
+  return {
+    key: [buyer.key].concat(d.added.map(idOf)).join(':'),
+    team: buyer.key,
+    mode: buyer.mode || 'compete',
+    record: rec ? recordText(rec) : null,
+    room: round1(d.pack.buyerRoom),
+    gets: d.pack.items.map(describeItem),
+    incoming: d.pack.items.map((i) => fitIn(i, seller)),
+    extras: d.added.map((a) => fitIn(a, buyer.key)),
+    summary: nick(buyer.key) + ' get ' + d.sending.map(describeItem).join(' and ') + '; ' + nick(seller) + ' get ' +
+      d.pack.items.map(describeItem).join(' and ') + '.',
+    sides: [{ key: buyer.key, players: ids(d.pack.items, 'player'), picks: ids(d.pack.items, 'pick') },
+      { key: seller, players: ids(d.sending, 'player'), picks: ids(d.sending, 'pick') }],
+    values: { buyer: { gets: round1(d.gets), gives: round1(d.pack.cost) }, seller: { gets: round1(d.pack.got), gives: round1(d.gives) } }
+  };
+}
+
+function finish(found, opts, seed) {
+  const rng = opts.refresh ? seeded('finder:' + seed + ':' + opts.refresh) : null;
+  return choose(found, opts.limit || SHOWN, rng, opts.seen).map((r) => { delete r.score; delete r.rank; return r; });
+}
+
 /* Up to `limit` trades for a player, best first:
-   { player, here, results: [{ key, team, mode, record, fit, starts, over, summary, gets, incoming, extras, sides, room }] }.
+   { player, team, here, results: [{ key, team, mode, record, fit, starts, over, summary, gets, incoming, extras, sides, room }] }.
    `incoming` is what his team gets, each player with his fit there;
    `extras` what his team puts in with him, each player with his fit on the
    team getting him. `refresh` (1, 2, ...) asks for another set, and `seen`
@@ -184,8 +259,7 @@ function findTrades(league, id, opts) {
   const found = [];
   const from = league.teams.find((t) => t.key === seller);
   const fromRec = record(league, seller);
-  const own = assetsOf(league, seller, null).filter((a) => a.kind !== 'player' || a.player.id !== p.id)
-    .map((a) => ({ a, fromSeller: valueOf(league, a, seller, slotOf, levels, true) }));
+  const own = ownOf(league, seller, item, slotOf, levels);
   league.teams.forEach((buyer) => {
     if (buyer.key === seller) { return; }
     if (buyer.mode === 'rebuild' && p.age >= 29) { return; }
@@ -200,58 +274,63 @@ function findTrades(league, id, opts) {
     const suits = system + status + role;
     if (suits <= 0) { return; }
     const worth = valueOf(league, item, buyer.key, slotOf, levels, false);
-    const offers = offersOf(league, buyer.key, seller, p.pos, slotOf, levels);
-    const fitIn = (i, key) => {
-      const f = i.kind === 'player' ? playerFit(league, i.player, key) : null;
-      return { text: describeItem(i), fit: f ? { scheme: f.scheme, stars: f.stars } : null };
-    };
-    /* Him alone, then him with each of the few things of his team's this
-       team wants most above what his team does. */
-    const tries = [[]].concat(own.map((x) => Object.assign({ toBuyer: valueOf(league, x.a, buyer.key, slotOf, levels, false) }, x))
-      .filter((x) => x.toBuyer > 0.3)
-      .sort((x, y) => (y.toBuyer - y.fromSeller) - (x.toBuyer - x.fromSeller))
-      .slice(0, EXTRAS).map((x) => [x]));
-    tries.forEach((extra) => {
-      const sending = [item].concat(extra.map((x) => x.a));
-      const gives = price + extra.reduce((sum, x) => sum + x.fromSeller, 0);
-      const gets = worth + extra.reduce((sum, x) => sum + x.toBuyer, 0);
-      const pack = packageFor(league, buyer.key, seller, sending, gives, gets, offers);
-      if (!pack) { return; }
-      const added = extra.map((x) => x.a);
-      const players = pack.items.filter((i) => i.kind === 'player').map((i) => i.player.id);
-      const picks = pack.items.filter((i) => i.kind === 'pick').map((i) => pickId(i.pick));
-      found.push({
-        key: [buyer.key].concat(added.map((a) => (a.kind === 'player' ? a.player.id : pickId(a.pick)))).join(':'),
-        score: suits + (gets - pack.cost) / Math.max(1, gets),
-        team: buyer.key,
-        mode: buyer.mode || 'compete',
-        record: rec ? recordText(rec) : null,
+    dealsFor(league, buyer.key, seller, item, price, worth, own, p.pos, slotOf, levels).forEach((d) => {
+      found.push(Object.assign(shown(league, buyer, seller, d), {
+        score: suits + (d.gets - d.pack.cost) / Math.max(1, d.gets),
         fit: there ? { scheme: there.scheme, stars: there.stars } : null,
         starts: then.starts,
-        over: then.over ? { name: then.over.name, ovr: then.over.ovr } : null,
-        room: round1(pack.buyerRoom),
-        gets: pack.items.map(describeItem),
-        incoming: pack.items.map((i) => fitIn(i, seller)),
-        extras: added.map((a) => fitIn(a, buyer.key)),
-        summary: nick(buyer.key) + ' get ' + sending.map(describeItem).join(' and ') + '; ' + nick(seller) + ' get ' +
-          pack.items.map(describeItem).join(' and ') + '.',
-        sides: [{ key: buyer.key, players, picks }, {
-          key: seller,
-          players: [p.id].concat(added.filter((a) => a.kind === 'player').map((a) => a.player.id)),
-          picks: added.filter((a) => a.kind === 'pick').map((a) => pickId(a.pick))
-        }],
-        values: { buyer: { gets: round1(gets), gives: round1(pack.cost) }, seller: { gets: round1(pack.got), gives: round1(gives) } }
-      });
+        over: then.over ? { name: then.over.name, ovr: then.over.ovr } : null
+      }));
     });
   });
-  const rng = opts.refresh ? seeded('finder:' + p.id + ':' + opts.refresh) : null;
   return {
     player: { id: p.id, name: p.name, pos: p.pos, ovr: p.ovr, age: p.age, team: seller },
+    team: seller,
     here: here ? { scheme: here.scheme, stars: here.stars } : null,
     starts: now.starts,
     looked: league.teams.length - 1,
-    results: choose(found, opts.limit || SHOWN, rng, opts.seen).map((r) => { delete r.score; delete r.rank; return r; })
+    results: finish(found, opts, p.id)
   };
 }
 
-module.exports = { findTrades };
+/* Up to `limit` trades for a pick ('2026-R1-CAR'), best for the team that
+   owns it first: { pick, team, results }, each result as findTrades's,
+   with no fit or starting job of its own, and `room` the owner's cap
+   space after. */
+function findPickTrades(league, id, opts) {
+  opts = opts || {};
+  const pick = league.picks.find((x) => pickId(x) === id);
+  if (!pick) { throw new Error('There is no ' + id + ' pick: that draft has been held.'); }
+  checkWindow(league);
+  if (locked(league, pick)) { throw new Error('The ' + pickLabel(pick) + ' is in the uploaded ' + pick.year + ' draft.'); }
+  const seller = pick.owner;
+  const levels = starterLevels(league);
+  const slotOf = slotFinder(league);
+  const item = { kind: 'pick', pick };
+  const price = valueOf(league, item, seller, slotOf, levels, true);
+  const own = ownOf(league, seller, item, slotOf, levels);
+  const roster = onTeam(league, seller);
+  const found = [];
+  league.teams.forEach((buyer) => {
+    if (buyer.key === seller) { return; }
+    const worth = valueOf(league, item, buyer.key, slotOf, levels, false);
+    dealsFor(league, buyer.key, seller, item, price, worth, own, null, slotOf, levels).forEach((d) => {
+      const starters = d.pack.items.filter((i) => i.kind === 'player' && standing(roster, i.player, true).starts).length;
+      found.push(Object.assign(shown(league, buyer, seller, d), {
+        score: (d.pack.got - d.gives) / Math.max(1, d.gives) + (d.gets - d.pack.cost) / Math.max(1, d.gets) + 0.5 * starters,
+        fit: null,
+        starts: false,
+        over: null,
+        room: round1(d.pack.sellerRoom)
+      }));
+    });
+  });
+  return {
+    pick: { id, year: pick.year, round: pick.round, from: pick.from, owner: seller, label: pickLabel(pick) },
+    team: seller,
+    looked: league.teams.length - 1,
+    results: finish(found, opts, id)
+  };
+}
+
+module.exports = { findTrades, findPickTrades };

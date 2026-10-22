@@ -559,6 +559,7 @@ const io = require('./io');
 const { TEAMS, KEYS } = require('./teams');
 const { sixFromSite } = require('./ege');
 const { picksInOrder } = require('./draft');
+const { nextDraft } = require('./picks');
 
 function nick(key) { return TEAMS[key] ? TEAMS[key].name.split(' ').slice(-1)[0] : key; }
 
@@ -630,6 +631,35 @@ function planFor(league, year) { return (league.draftPlans || {})[year] || null;
 function locked(league, pick) {
   const plan = planFor(league, pick.year);
   return Boolean(plan && pick.round <= plan.rounds);
+}
+
+/* Every pick from the next draft on, by the team that owns it, as the
+   Teams pages show them: { DET: [{ year, round, from, n, locked }] }, each
+   team's by year and round. `n` is the pick's number in its draft where
+   that draft's order is known (one set by hand, or the sim's own once the
+   offseason has worked it out); `locked`, a pick an uploaded draft
+   covers. */
+function board(league) {
+  const first = nextDraft(league);
+  const out = {};
+  league.teams.forEach((t) => { out[t.key] = []; });
+  const numbers = {};
+  new Set(league.picks.filter((p) => p.year >= first).map((p) => p.year)).forEach((year) => {
+    (slotsFor(league, year) || []).forEach((s) => { numbers[year + ':' + s.round + ':' + s.from] = s.n; });
+  });
+  league.picks.forEach((p) => {
+    if (p.year < first || !out[p.owner]) { return; }
+    const row = { year: p.year, round: p.round, from: p.from };
+    const n = numbers[p.year + ':' + p.round + ':' + p.from];
+    if (n) { row.n = n; }
+    if (locked(league, p)) { row.locked = true; }
+    out[p.owner].push(row);
+  });
+  Object.keys(out).forEach((key) => {
+    out[key].sort((a, b) => a.year - b.year || a.round - b.round || (a.n || 999) - (b.n || 999) ||
+      (a.from === key ? -1 : b.from === key ? 1 : a.from.localeCompare(b.from)));
+  });
+  return out;
 }
 
 /* -------------------------------------------------------------- reading -- */
@@ -933,7 +963,7 @@ function saved(league) {
 }
 
 module.exports = {
-  officialRounds, applyOfficial, draftYear, slotsFor, ready, planFor, locked, readDraft, teamKey, check, save, remove, saved
+  officialRounds, applyOfficial, draftYear, slotsFor, ready, planFor, locked, board, readDraft, teamKey, check, save, remove, saved
 };
 
   };
@@ -966,6 +996,7 @@ const { capFor, pickPoints, POSITION } = require('./value');
 const { starterLevels, needAt, onTeam } = require('./rosters');
 const { sixFromSite } = require('./ege');
 const { TEAMS } = require('./teams');
+const { fillPicks } = require('./picks');
 
 /* How ready a rookie at each position is, against where he was picked
    (build/ratings.js uses the same numbers for the 2023 class). */
@@ -1247,12 +1278,9 @@ function runDraft(league, order, rng, place, plan) {
     p.ovr = Math.max(48, p.ovr - 2);
     if (!league.byId.has(p.id)) { league.players.push(p); league.byId.set(p.id, p); }
   });
-  /* The year's picks are used; the year three out is added. */
+  /* The year's picks are used; the year six out is added (lib/picks.js). */
   league.picks = league.picks.filter((p) => p.year !== season);
-  const future = season + 3;
-  if (!league.picks.some((p) => p.year === future)) {
-    league.teams.forEach((t) => { for (let r = 1; r <= 7; r += 1) { league.picks.push({ year: future, round: r, from: t.key, owner: t.key }); } });
-  }
+  fillPicks(league, season + 1);
   return results;
 }
 
@@ -3261,6 +3289,7 @@ const { sixFromSite } = require('./ege');
 const { marketPay } = require('./value');
 const { centreOn } = require('./schemes');
 const { archetypeOf } = require('./skills');
+const { fillPicks } = require('./picks');
 
 const PROJECT_WORLD = '/mnt/project-files/nfl-sim/world';
 
@@ -3281,10 +3310,12 @@ function loadLeague(world) {
   return ready(league);
 }
 
-/* What every load does to the league as saved: pay filled in, the six read
-   from the site, the lookups built. */
+/* What every load does to the league as saved: pay filled in, the picks
+   out to 2030 and beyond (lib/picks.js), the six read from the site, the
+   lookups built. */
 function ready(league) {
   fillPay(league);
+  fillPicks(league);
   syncSix(league);
   index(league);
   centreOn(league);
@@ -3786,6 +3817,49 @@ function finishOffseason(league, rng, place) {
 }
 
 module.exports = { startOffseason, finishOffseason, firstModes, the99s, fits, ageOn, adopt };
+
+  };
+
+  sources["picks"] = function (module, exports, require, __dirname) {
+/* ==========================================================================
+   EGE Football NFL sim — how far out the picks go
+   Every team has its own seven picks in every draft through 2030 (Sam,
+   2026-10-22), and keeps six drafts ahead after that: as each draft is
+   held, the year six out is added. A world saved with fewer is filled in
+   the next time it opens (lib/league.js ready), never touching a pick that
+   is already there or one already used.
+   ========================================================================== */
+
+'use strict';
+
+const THROUGH = 2030;
+const AHEAD = 6;
+const ROUNDS = 7;
+
+/* The next draft: this one while the league is at it, otherwise next
+   spring's. */
+function nextDraft(league) { return league.phase === 'draft' ? league.season : league.season + 1; }
+
+/* The last draft there are picks for. */
+function lastDraft(league) { return Math.max(THROUGH, league.season + AHEAD); }
+
+/* Adds every team's own picks for each draft from `first` (the next one
+   unless given) to the last that has none yet. Returns the years added. */
+function fillPicks(league, first) {
+  league.picks = league.picks || [];
+  const have = new Set(league.picks.map((p) => p.year));
+  const added = [];
+  for (let year = first || nextDraft(league); year <= lastDraft(league); year += 1) {
+    if (have.has(year)) { continue; }
+    league.teams.forEach((t) => {
+      for (let round = 1; round <= ROUNDS; round += 1) { league.picks.push({ year, round, from: t.key, owner: t.key }); }
+    });
+    added.push(year);
+  }
+  return added;
+}
+
+module.exports = { THROUGH, AHEAD, nextDraft, lastDraft, fillPicks };
 
   };
 
@@ -5290,6 +5364,7 @@ const { TEAMS, KEYS, keyForName } = require('./teams');
 const { capFor } = require('./value');
 const { playerFit, teamFit } = require('./fit');
 const { OFFENSE, DEFENSE } = require('./schemes');
+const { board } = require('./draft-plan');
 
 /* The sim's key for a team the six play for on the site ('detroit' is DET). */
 function simKey(siteKey) { return KEYS.filter((k) => TEAMS[k].site === siteKey)[0] || null; }
@@ -5692,9 +5767,10 @@ function weekRows(league, season) {
 const CAP_YEARS = 4;
 
 /* Every team's players as the Teams pages and the player pop-up show them,
-   best first: every player, the linemen, kickers and punters the rooms
-   leave out too, since the Teams pages' line rating and payroll count them
-   (Sam, 2026-10-21), each with his fit in the team's schemes in stars.
+   best first: every player, the linemen, kickers and punters too, since
+   the Teams pages' line rating and payroll count them (Sam, 2026-10-21)
+   and the rooms show them (2026-10-22), each with his fit in the team's
+   schemes in stars.
    With them, the salary cap for the next few seasons, and each team's
    system: its offense and defense with how well it is built for them in
    stars, and its status (Sam, 2026-10-21: for everybody to see). */
@@ -5741,7 +5817,21 @@ function publicRosters(league) {
       mode: t.mode || 'compete'
     };
   });
-  return { season: league.season, phase: league.phase, week: league.week || null, savedAt: new Date().toISOString(), caps, systems, teams };
+  /* Every team's picks out to 2030 and beyond (lib/picks.js): the year
+     and round, whose pick it was when it is not the team's own, and its
+     number once the draft's order is known. */
+  const owned = board(league);
+  const picks = {};
+  Object.keys(owned).forEach((key) => {
+    picks[key] = owned[key].map((p) => {
+      const row = { year: p.year, round: p.round };
+      if (p.from !== key) { row.from = p.from; }
+      if (p.n) { row.n = p.n; }
+      return row;
+    });
+  });
+  return { season: league.season, phase: league.phase, week: league.week || null, savedAt: new Date().toISOString(), caps, systems,
+           picks, teams };
 }
 
 module.exports = { siteResults, sixEdits, seasonFileText, simResults, resultsFileText, siteFiles, weekRows, publicRosters, simKey };
@@ -6385,13 +6475,19 @@ module.exports = { forTeam, callsOf, CALLS, ROUNDS };
    builder's two sides, ready to make or propose, with how each player
    coming in fits his new team's schemes.
 
+   A pick can be shopped the same way (Sam, 2026-10-22, from the Picks on
+   a team's page): every other team that comes out ahead by its own numbers
+   offers the cheapest package the pick's owner takes for it, the best of
+   them for the owner first, and a player who would start for it counts
+   for more.
+
    Refresh asks again: each trade's place is shaken up a little and the
    ones already shown go to the back, so another set comes up.
    ========================================================================== */
 
 'use strict';
 
-const { valueOf, slotFinder, record, describeItem, pickId } = require('./trades');
+const { valueOf, slotFinder, record, describeItem, pickId, pickLabel } = require('./trades');
 const { playerFit } = require('./fit');
 const { starterLevels, onTeam, byPos, payroll, SLOTS } = require('./rosters');
 const { capFor } = require('./value');
@@ -6413,12 +6509,16 @@ function nick(key) { return TEAMS[key] ? TEAMS[key].name.split(' ').slice(-1)[0]
 
 function round1(v) { return Math.round(v * 10) / 10; }
 
-/* Whether trades can be made now, and of him. */
-function check(league, p) {
-  if (!p || p.status !== 'active' || !TEAMS[p.team]) { throw new Error((p ? p.name : 'He') + ' is not on a team.'); }
+function checkWindow(league) {
   if (league.phase === 'playoffs' || (league.phase === 'regular' && league.week > DEADLINE_WEEK)) {
     throw new Error('The trade deadline has passed. Trades open again in the offseason.');
   }
+}
+
+/* Whether trades can be made now, and of him. */
+function check(league, p) {
+  if (!p || p.status !== 'active' || !TEAMS[p.team]) { throw new Error((p ? p.name : 'He') + ' is not on a team.'); }
+  checkWindow(league);
   if (p.ege && IN_SEASON.indexOf(league.phase) !== -1) {
     throw new Error('The six can only be traded in the offseason: the website keeps one team a season for them.');
   }
@@ -6479,7 +6579,7 @@ function packageFor(league, buyer, seller, sending, price, worth, offers) {
     if (best && (cost > best.cost + 1e-9 || (Math.abs(cost - best.cost) < 1e-9 && combo.length >= best.items.length))) { return; }
     if (buyerPay + apy - sent > Math.max(cap, buyerPay)) { return; }
     if (sellerPay - apy + sent > Math.max(cap, sellerPay)) { return; }
-    best = { items: combo.map((x) => x.a), got, cost, buyerRoom: cap - (buyerPay + apy - sent) };
+    best = { items: combo.map((x) => x.a), got, cost, buyerRoom: cap - (buyerPay + apy - sent), sellerRoom: cap - (sellerPay - apy + sent) };
   };
   const n = assets.length;
   for (let i = 0; i < n; i += 1) {
@@ -6528,8 +6628,73 @@ function choose(found, limit, rng, seen) {
   return picked.sort((a, b) => b.rank - a.rank);
 }
 
+/* What the seller has to put in with what it sends: its own players and
+   picks, `item` left out, each as it values it. */
+function ownOf(league, seller, item, slotOf, levels) {
+  const same = (a) => (a.kind === 'player' ? item.kind === 'player' && a.player.id === item.player.id
+    : item.kind === 'pick' && pickId(a.pick) === pickId(item.pick));
+  return assetsOf(league, seller, null).filter((a) => !same(a))
+    .map((a) => ({ a, fromSeller: valueOf(league, a, seller, slotOf, levels, true) }));
+}
+
+/* Every deal one buyer makes for `item`: alone, then with each of the few
+   things of the seller's (`own`) the buyer wants most above what the
+   seller does. `price` is what the seller asks for `item`, `worth` what
+   it is to the buyer; `pos` the position the buyer gives none at.
+   [{ sending, added, gives, gets, pack }] */
+function dealsFor(league, buyer, seller, item, price, worth, own, pos, slotOf, levels) {
+  const offers = offersOf(league, buyer, seller, pos, slotOf, levels);
+  const tries = [[]].concat(own.map((x) => Object.assign({ toBuyer: valueOf(league, x.a, buyer, slotOf, levels, false) }, x))
+    .filter((x) => x.toBuyer > 0.3)
+    .sort((x, y) => (y.toBuyer - y.fromSeller) - (x.toBuyer - x.fromSeller))
+    .slice(0, EXTRAS).map((x) => [x]));
+  const out = [];
+  tries.forEach((extra) => {
+    const sending = [item].concat(extra.map((x) => x.a));
+    const gives = price + extra.reduce((sum, x) => sum + x.fromSeller, 0);
+    const gets = worth + extra.reduce((sum, x) => sum + x.toBuyer, 0);
+    const pack = packageFor(league, buyer, seller, sending, gives, gets, offers);
+    if (pack) { out.push({ sending, added: extra.map((x) => x.a), gives, gets, pack }); }
+  });
+  return out;
+}
+
+function idOf(a) { return a.kind === 'player' ? a.player.id : pickId(a.pick); }
+
+/* A deal as the page shows it: what each side gets, each player with his
+   stars in the schemes of the team he goes to, and as the trade builder's
+   two sides. */
+function shown(league, buyer, seller, d) {
+  const rec = record(league, buyer.key);
+  const fitIn = (i, key) => {
+    const f = i.kind === 'player' ? playerFit(league, i.player, key) : null;
+    return { text: describeItem(i), fit: f ? { scheme: f.scheme, stars: f.stars } : null };
+  };
+  const ids = (list, kind) => list.filter((i) => i.kind === kind).map(idOf);
+  return {
+    key: [buyer.key].concat(d.added.map(idOf)).join(':'),
+    team: buyer.key,
+    mode: buyer.mode || 'compete',
+    record: rec ? recordText(rec) : null,
+    room: round1(d.pack.buyerRoom),
+    gets: d.pack.items.map(describeItem),
+    incoming: d.pack.items.map((i) => fitIn(i, seller)),
+    extras: d.added.map((a) => fitIn(a, buyer.key)),
+    summary: nick(buyer.key) + ' get ' + d.sending.map(describeItem).join(' and ') + '; ' + nick(seller) + ' get ' +
+      d.pack.items.map(describeItem).join(' and ') + '.',
+    sides: [{ key: buyer.key, players: ids(d.pack.items, 'player'), picks: ids(d.pack.items, 'pick') },
+      { key: seller, players: ids(d.sending, 'player'), picks: ids(d.sending, 'pick') }],
+    values: { buyer: { gets: round1(d.gets), gives: round1(d.pack.cost) }, seller: { gets: round1(d.pack.got), gives: round1(d.gives) } }
+  };
+}
+
+function finish(found, opts, seed) {
+  const rng = opts.refresh ? seeded('finder:' + seed + ':' + opts.refresh) : null;
+  return choose(found, opts.limit || SHOWN, rng, opts.seen).map((r) => { delete r.score; delete r.rank; return r; });
+}
+
 /* Up to `limit` trades for a player, best first:
-   { player, here, results: [{ key, team, mode, record, fit, starts, over, summary, gets, incoming, extras, sides, room }] }.
+   { player, team, here, results: [{ key, team, mode, record, fit, starts, over, summary, gets, incoming, extras, sides, room }] }.
    `incoming` is what his team gets, each player with his fit there;
    `extras` what his team puts in with him, each player with his fit on the
    team getting him. `refresh` (1, 2, ...) asks for another set, and `seen`
@@ -6548,8 +6713,7 @@ function findTrades(league, id, opts) {
   const found = [];
   const from = league.teams.find((t) => t.key === seller);
   const fromRec = record(league, seller);
-  const own = assetsOf(league, seller, null).filter((a) => a.kind !== 'player' || a.player.id !== p.id)
-    .map((a) => ({ a, fromSeller: valueOf(league, a, seller, slotOf, levels, true) }));
+  const own = ownOf(league, seller, item, slotOf, levels);
   league.teams.forEach((buyer) => {
     if (buyer.key === seller) { return; }
     if (buyer.mode === 'rebuild' && p.age >= 29) { return; }
@@ -6564,61 +6728,66 @@ function findTrades(league, id, opts) {
     const suits = system + status + role;
     if (suits <= 0) { return; }
     const worth = valueOf(league, item, buyer.key, slotOf, levels, false);
-    const offers = offersOf(league, buyer.key, seller, p.pos, slotOf, levels);
-    const fitIn = (i, key) => {
-      const f = i.kind === 'player' ? playerFit(league, i.player, key) : null;
-      return { text: describeItem(i), fit: f ? { scheme: f.scheme, stars: f.stars } : null };
-    };
-    /* Him alone, then him with each of the few things of his team's this
-       team wants most above what his team does. */
-    const tries = [[]].concat(own.map((x) => Object.assign({ toBuyer: valueOf(league, x.a, buyer.key, slotOf, levels, false) }, x))
-      .filter((x) => x.toBuyer > 0.3)
-      .sort((x, y) => (y.toBuyer - y.fromSeller) - (x.toBuyer - x.fromSeller))
-      .slice(0, EXTRAS).map((x) => [x]));
-    tries.forEach((extra) => {
-      const sending = [item].concat(extra.map((x) => x.a));
-      const gives = price + extra.reduce((sum, x) => sum + x.fromSeller, 0);
-      const gets = worth + extra.reduce((sum, x) => sum + x.toBuyer, 0);
-      const pack = packageFor(league, buyer.key, seller, sending, gives, gets, offers);
-      if (!pack) { return; }
-      const added = extra.map((x) => x.a);
-      const players = pack.items.filter((i) => i.kind === 'player').map((i) => i.player.id);
-      const picks = pack.items.filter((i) => i.kind === 'pick').map((i) => pickId(i.pick));
-      found.push({
-        key: [buyer.key].concat(added.map((a) => (a.kind === 'player' ? a.player.id : pickId(a.pick)))).join(':'),
-        score: suits + (gets - pack.cost) / Math.max(1, gets),
-        team: buyer.key,
-        mode: buyer.mode || 'compete',
-        record: rec ? recordText(rec) : null,
+    dealsFor(league, buyer.key, seller, item, price, worth, own, p.pos, slotOf, levels).forEach((d) => {
+      found.push(Object.assign(shown(league, buyer, seller, d), {
+        score: suits + (d.gets - d.pack.cost) / Math.max(1, d.gets),
         fit: there ? { scheme: there.scheme, stars: there.stars } : null,
         starts: then.starts,
-        over: then.over ? { name: then.over.name, ovr: then.over.ovr } : null,
-        room: round1(pack.buyerRoom),
-        gets: pack.items.map(describeItem),
-        incoming: pack.items.map((i) => fitIn(i, seller)),
-        extras: added.map((a) => fitIn(a, buyer.key)),
-        summary: nick(buyer.key) + ' get ' + sending.map(describeItem).join(' and ') + '; ' + nick(seller) + ' get ' +
-          pack.items.map(describeItem).join(' and ') + '.',
-        sides: [{ key: buyer.key, players, picks }, {
-          key: seller,
-          players: [p.id].concat(added.filter((a) => a.kind === 'player').map((a) => a.player.id)),
-          picks: added.filter((a) => a.kind === 'pick').map((a) => pickId(a.pick))
-        }],
-        values: { buyer: { gets: round1(gets), gives: round1(pack.cost) }, seller: { gets: round1(pack.got), gives: round1(gives) } }
-      });
+        over: then.over ? { name: then.over.name, ovr: then.over.ovr } : null
+      }));
     });
   });
-  const rng = opts.refresh ? seeded('finder:' + p.id + ':' + opts.refresh) : null;
   return {
     player: { id: p.id, name: p.name, pos: p.pos, ovr: p.ovr, age: p.age, team: seller },
+    team: seller,
     here: here ? { scheme: here.scheme, stars: here.stars } : null,
     starts: now.starts,
     looked: league.teams.length - 1,
-    results: choose(found, opts.limit || SHOWN, rng, opts.seen).map((r) => { delete r.score; delete r.rank; return r; })
+    results: finish(found, opts, p.id)
   };
 }
 
-module.exports = { findTrades };
+/* Up to `limit` trades for a pick ('2026-R1-CAR'), best for the team that
+   owns it first: { pick, team, results }, each result as findTrades's,
+   with no fit or starting job of its own, and `room` the owner's cap
+   space after. */
+function findPickTrades(league, id, opts) {
+  opts = opts || {};
+  const pick = league.picks.find((x) => pickId(x) === id);
+  if (!pick) { throw new Error('There is no ' + id + ' pick: that draft has been held.'); }
+  checkWindow(league);
+  if (locked(league, pick)) { throw new Error('The ' + pickLabel(pick) + ' is in the uploaded ' + pick.year + ' draft.'); }
+  const seller = pick.owner;
+  const levels = starterLevels(league);
+  const slotOf = slotFinder(league);
+  const item = { kind: 'pick', pick };
+  const price = valueOf(league, item, seller, slotOf, levels, true);
+  const own = ownOf(league, seller, item, slotOf, levels);
+  const roster = onTeam(league, seller);
+  const found = [];
+  league.teams.forEach((buyer) => {
+    if (buyer.key === seller) { return; }
+    const worth = valueOf(league, item, buyer.key, slotOf, levels, false);
+    dealsFor(league, buyer.key, seller, item, price, worth, own, null, slotOf, levels).forEach((d) => {
+      const starters = d.pack.items.filter((i) => i.kind === 'player' && standing(roster, i.player, true).starts).length;
+      found.push(Object.assign(shown(league, buyer, seller, d), {
+        score: (d.pack.got - d.gives) / Math.max(1, d.gives) + (d.gets - d.pack.cost) / Math.max(1, d.gets) + 0.5 * starters,
+        fit: null,
+        starts: false,
+        over: null,
+        room: round1(d.pack.sellerRoom)
+      }));
+    });
+  });
+  return {
+    pick: { id, year: pick.year, round: pick.round, from: pick.from, owner: seller, label: pickLabel(pick) },
+    team: seller,
+    looked: league.teams.length - 1,
+    results: finish(found, opts, id)
+  };
+}
+
+module.exports = { findTrades, findPickTrades };
 
   };
 
@@ -7203,11 +7372,14 @@ function pickPoints(n) {
 const POINTS_PER_UNIT = 15;
 
 /* A pick's value: its slot (where the team that owns it is expected to
-   finish if it is not set yet) and how far off it is. */
+   finish if it is not set yet) and how far off it is. More than three
+   drafts off, nobody knows where a team will be: the slot drifts back to
+   the middle of the round. */
 function pickValue(pick, season, slotOf, view) {
-  const slot = typeof pick.slot === 'number' ? pick.slot : (slotOf ? slotOf(pick.from) : 16);
-  const n = (pick.round - 1) * 32 + slot;
   const yearsOut = Math.max(0, pick.year - season - (pick.thisDraft ? 1 : 0));
+  let slot = typeof pick.slot === 'number' ? pick.slot : (slotOf ? slotOf(pick.from) : 16);
+  if (typeof pick.slot !== 'number' && yearsOut > 3) { slot = 16.5 + (slot - 16.5) * Math.pow(0.6, yearsOut - 3); }
+  const n = (pick.round - 1) * 32 + slot;
   let v = pickPoints(n) / POINTS_PER_UNIT * Math.pow(0.85, yearsOut);
   if (view && view.mode === 'rebuild') { v *= 1.2; }
   if (view && view.mode === 'compete') { v *= 0.85; }

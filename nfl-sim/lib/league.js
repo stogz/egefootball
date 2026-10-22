@@ -21,6 +21,7 @@ const { sixFromSite } = require('./ege');
 const { marketPay } = require('./value');
 const { centreOn } = require('./schemes');
 const { archetypeOf } = require('./skills');
+const { fillPicks } = require('./picks');
 
 const PROJECT_WORLD = '/mnt/project-files/nfl-sim/world';
 
@@ -41,10 +42,12 @@ function loadLeague(world) {
   return ready(league);
 }
 
-/* What every load does to the league as saved: pay filled in, the six read
-   from the site, the lookups built. */
+/* What every load does to the league as saved: pay filled in, the picks
+   out to 2030 and beyond (lib/picks.js), the six read from the site, the
+   lookups built. */
 function ready(league) {
   fillPay(league);
+  fillPicks(league);
   syncSix(league);
   index(league);
   centreOn(league);

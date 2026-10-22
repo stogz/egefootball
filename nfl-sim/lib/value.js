@@ -126,11 +126,14 @@ function pickPoints(n) {
 const POINTS_PER_UNIT = 15;
 
 /* A pick's value: its slot (where the team that owns it is expected to
-   finish if it is not set yet) and how far off it is. */
+   finish if it is not set yet) and how far off it is. More than three
+   drafts off, nobody knows where a team will be: the slot drifts back to
+   the middle of the round. */
 function pickValue(pick, season, slotOf, view) {
-  const slot = typeof pick.slot === 'number' ? pick.slot : (slotOf ? slotOf(pick.from) : 16);
-  const n = (pick.round - 1) * 32 + slot;
   const yearsOut = Math.max(0, pick.year - season - (pick.thisDraft ? 1 : 0));
+  let slot = typeof pick.slot === 'number' ? pick.slot : (slotOf ? slotOf(pick.from) : 16);
+  if (typeof pick.slot !== 'number' && yearsOut > 3) { slot = 16.5 + (slot - 16.5) * Math.pow(0.6, yearsOut - 3); }
+  const n = (pick.round - 1) * 32 + slot;
   let v = pickPoints(n) / POINTS_PER_UNIT * Math.pow(0.85, yearsOut);
   if (view && view.mode === 'rebuild') { v *= 1.2; }
   if (view && view.mode === 'compete') { v *= 0.85; }

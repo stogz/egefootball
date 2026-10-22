@@ -24,6 +24,7 @@ const { TEAMS, KEYS, keyForName } = require('./teams');
 const { capFor } = require('./value');
 const { playerFit, teamFit } = require('./fit');
 const { OFFENSE, DEFENSE } = require('./schemes');
+const { board } = require('./draft-plan');
 
 /* The sim's key for a team the six play for on the site ('detroit' is DET). */
 function simKey(siteKey) { return KEYS.filter((k) => TEAMS[k].site === siteKey)[0] || null; }
@@ -426,9 +427,10 @@ function weekRows(league, season) {
 const CAP_YEARS = 4;
 
 /* Every team's players as the Teams pages and the player pop-up show them,
-   best first: every player, the linemen, kickers and punters the rooms
-   leave out too, since the Teams pages' line rating and payroll count them
-   (Sam, 2026-10-21), each with his fit in the team's schemes in stars.
+   best first: every player, the linemen, kickers and punters too, since
+   the Teams pages' line rating and payroll count them (Sam, 2026-10-21)
+   and the rooms show them (2026-10-22), each with his fit in the team's
+   schemes in stars.
    With them, the salary cap for the next few seasons, and each team's
    system: its offense and defense with how well it is built for them in
    stars, and its status (Sam, 2026-10-21: for everybody to see). */
@@ -475,7 +477,21 @@ function publicRosters(league) {
       mode: t.mode || 'compete'
     };
   });
-  return { season: league.season, phase: league.phase, week: league.week || null, savedAt: new Date().toISOString(), caps, systems, teams };
+  /* Every team's picks out to 2030 and beyond (lib/picks.js): the year
+     and round, whose pick it was when it is not the team's own, and its
+     number once the draft's order is known. */
+  const owned = board(league);
+  const picks = {};
+  Object.keys(owned).forEach((key) => {
+    picks[key] = owned[key].map((p) => {
+      const row = { year: p.year, round: p.round };
+      if (p.from !== key) { row.from = p.from; }
+      if (p.n) { row.n = p.n; }
+      return row;
+    });
+  });
+  return { season: league.season, phase: league.phase, week: league.week || null, savedAt: new Date().toISOString(), caps, systems,
+           picks, teams };
 }
 
 module.exports = { siteResults, sixEdits, seasonFileText, simResults, resultsFileText, siteFiles, weekRows, publicRosters, simKey };
