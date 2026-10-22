@@ -2915,7 +2915,15 @@
       }).then(function () {
         settle('Traded');
         if (nflShown === at.team + ':' + at.season) { renderNflRoster(at.team, at.season); }
-      }, failed(b));
+      }, function (err) {
+        /* Made, but something after it did not go (the trades bot's post,
+           say): it says so rather than offering the trade again. */
+        if (!err.saved) { return failed(b)(err); }
+        settle('Traded');
+        problem.textContent = err.message || String(err);
+        problem.hidden = false;
+        if (nflShown === at.team + ':' + at.season) { renderNflRoster(at.team, at.season); }
+      });
     });
     act('Propose', false, function (b) {
       b.disabled = true;
@@ -6699,12 +6707,13 @@
 
   /* --- the Discord channels ----------------------------------------------
 
-     The two bots' webhooks, pasted in once. They are kept in Supabase where
-     only an admin can read them, never in the site's files: the repository
-     is public, and anybody with a webhook URL can post to its channel. A
-     saved one is never put back into the box -- it says it is saved, with
-     the last few characters to tell which it is. */
-  var HOOK_FIELDS = { college: 'hookCollege', nfl: 'hookNfl' };
+     The bots' webhooks, pasted in once: the two leagues' and the trades
+     bot's, which posts every trade made in the NFL sim. They are kept in
+     Supabase where only an admin can read them, never in the site's files:
+     the repository is public, and anybody with a webhook URL can post to
+     its channel. A saved one is never put back into the box -- it says it
+     is saved, with the last few characters to tell which it is. */
+  var HOOK_FIELDS = { college: 'hookCollege', nfl: 'hookNfl', trades: 'hookTrades' };
   var hooksWired = false;
 
   function renderWebhooks() {
@@ -6719,7 +6728,7 @@
           EGE.wallet.saveWebhook(league, input.value).then(function (res) {
             button.disabled = false;
             if (res.ok) { input.value = ''; }
-            sayAdmin(res.ok ? 'Saved the ' + LEAGUE_NAMES[league] + ' webhook.' : res.message, !res.ok);
+            sayAdmin(res.ok ? 'Saved the ' + (LEAGUE_NAMES[league] || league) + ' webhook.' : res.message, !res.ok);
             renderWebhooks();
           });
         });
@@ -6732,7 +6741,7 @@
           ? 'Saved (\u2026' + hooks[league].slice(-6) + '). Paste a new one to replace it.'
           : 'Not set. Paste the channel\u2019s webhook URL.';
       });
-      var missing = Object.keys(HOOK_FIELDS).filter(function (league) { return !hooks[league]; });
+      var missing = EGE.LEAGUES.filter(function (league) { return !hooks[league]; });
       note.textContent = 'Publishing posts each league\u2019s week to its own channel: the NFL ' +
         'players to the NFL bot and the college players to the college bot. ' +
         (missing.length

@@ -698,19 +698,26 @@ alter table public.published_weeks
 -- ---------------------------------------------------------------------------
 -- The Discord bots' webhooks
 --
--- One per league: the colleges' channel and the NFL's. Pasted into the admin
--- page and kept here rather than in the site's files, because the repository
--- is public and anybody holding a webhook URL can post to its channel as the
--- bot. Only an admin can read or change one. The scheduled bot reads them
--- with the service role key, which passes RLS.
+-- One per league: the colleges' channel and the NFL's. And 'trades', the
+-- trades bot's channel, where every trade made in the NFL sim goes (Sam,
+-- 2026-10-22). Pasted into the admin page and kept here rather than in the
+-- site's files, because the repository is public and anybody holding a
+-- webhook URL can post to its channel as the bot. Only an admin can read or
+-- change one. The scheduled bot reads them with the service role key, which
+-- passes RLS.
 -- ---------------------------------------------------------------------------
 
 create table if not exists public.discord_webhooks (
-  league     text        primary key check (league in ('college', 'nfl')),
+  league     text        primary key check (league in ('college', 'nfl', 'trades')),
   url        text        not null
              check (url ~ '^https://((canary|ptb)\.)?discord(app)?\.com/api/webhooks/[0-9]+/[A-Za-z0-9_-]+$'),
   updated_at timestamptz not null default now()
 );
+
+-- A table made before the trades bot took the two leagues only.
+alter table public.discord_webhooks drop constraint if exists discord_webhooks_league_check;
+alter table public.discord_webhooks add constraint discord_webhooks_league_check
+  check (league in ('college', 'nfl', 'trades'));
 
 alter table public.discord_webhooks enable row level security;
 
