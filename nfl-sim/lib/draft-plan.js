@@ -18,7 +18,11 @@
    round as the NFL's do, and pick trades made before the 2023 kickoff,
    which the sim's starting league does not have. With one, every round of
    that draft goes in that order whatever the sim's own season said. 2024's
-   is the order in the "2024 NFL Combine and Mock Draft" doc.
+   is the order in the "2024 NFL Combine and Mock Draft" doc. A year can
+   list trades and no order (2025): its picks move and the sim's standings
+   set the order. A trade with no owner is a forfeited pick. Each trade
+   moves a pick only while its own team still has it, so the sim's own
+   trades always stand.
    ========================================================================== */
 
 'use strict';
@@ -40,7 +44,7 @@ function orders() { return io.data('draft-orders.json'); }
    last of them in the next. */
 function officialRounds(year) {
   const set = orders()[year];
-  if (!set) { return null; }
+  if (!set || !set.order) { return null; }
   const rounds = [];
   for (let r = 0; r < 7; r += 1) {
     const order = set.order.slice();
@@ -54,23 +58,39 @@ function officialRounds(year) {
   return rounds;
 }
 
-/* Puts the hand-set orders in force: the trades each names, once a year
-   and only for a pick nobody has traded since, and at the draft, its order
-   for every round. Run whenever the league is opened. */
+/* Puts the hand-set orders in force: the trades each names (an owner of
+   null is a pick forfeited), each once and only for a pick nobody has
+   traded since, and at the draft, its order for every round. Run whenever
+   the league is opened. Each year's done trades are kept by round and
+   team (league.officialTrades[year]). A world saved before 2026-10-22
+   kept only `true` for a year, when the file had 2024's first two rounds
+   alone: those count as done, and the rest are made now. */
 function applyOfficial(league) {
   const all = orders();
   league.officialTrades = league.officialTrades || {};
   Object.keys(all).forEach((year) => {
-    if (league.officialTrades[year] || Number(year) < league.season) { return; }
-    (all[year].trades || []).forEach((t) => {
-      const pick = league.picks.find((p) => p.year === Number(year) && p.round === t.round && p.from === t.from);
-      if (pick && pick.owner === t.from) { pick.owner = t.owner; }
+    const y = Number(year);
+    if (y < league.season || !league.picks.some((p) => p.year === y)) { return; }
+    const trades = all[year].trades || [];
+    const was = league.officialTrades[year];
+    const done = typeof was === 'object' ? was : {};
+    if (was === true) { trades.filter((t) => t.round <= 2).forEach((t) => { done[t.round + '-' + t.from] = true; }); }
+    trades.forEach((t) => {
+      const key = t.round + '-' + t.from;
+      if (done[key]) { return; }
+      const pick = league.picks.find((p) => p.year === y && p.round === t.round && p.from === t.from);
+      if (!pick) { return; }
+      if (pick.owner === t.from) {
+        if (t.owner) { pick.owner = t.owner; } else { league.picks.splice(league.picks.indexOf(pick), 1); }
+      }
+      done[key] = true;
     });
-    league.officialTrades[year] = true;
+    league.officialTrades[year] = done;
   });
-  if (league.phase === 'draft' && all[league.season]) {
-    league.draftRounds = officialRounds(league.season);
-    league.draftOrder = league.draftRounds[0];
+  const rounds = league.phase === 'draft' ? officialRounds(league.season) : null;
+  if (rounds) {
+    league.draftRounds = rounds;
+    league.draftOrder = rounds[0];
   }
 }
 

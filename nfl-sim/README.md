@@ -509,8 +509,16 @@ In two parts, so Sam can look at the pre-draft trades between them.
    seventh (Carolina's pick), Houston with Cleveland's first, Arizona with
    Houston's, New Orleans with Denver's second, Philadelphia with New
    Orleans' and Green Bay with the Jets'. It goes for all seven rounds,
-   whatever the sim's own 2023 standings say; the trades are made the first
-   time a world opens (only for a pick nobody has traded since).
+   whatever the sim's own 2023 standings say. Every real pick trade made
+   before the kickoff is there (from nflverse's trades.csv, 2026-10-22):
+   56 for 2024, Miami's forfeited third among them (an owner of `null`),
+   and 11 for 2025, a year listed with trades and no order, so its picks
+   move and the sim's standings still set it. Conditional picks are in
+   where the condition is known (Ridley, Hockenson, Mayfield, Reagor,
+   Mullens); swaps and conditions nobody can settle yet are left out. Each
+   trade is made once, the first time a world opens with it, and only for
+   a pick its own team still has, so the sim's trades always stand
+   (`league.officialTrades` keeps which are done).
 3. Free agency again for the leftovers, then **rosters are cut to 53**: the
    least valuable go, never one of the six. Every 53 keeps a real bench: at
    least two quarterbacks, three backs, five receivers, three tight ends,
@@ -815,7 +823,8 @@ nfl-sim/
   data/                  what the sim starts from (committed)
     league-2023.json     teams and players, Week 1 of 2023
     prospects.json       the 2024-2026 draft classes
-    draft-orders.json    draft orders set by hand (2024's, from the mock draft doc)
+    draft-orders.json    draft orders set by hand (2024's, from the mock draft doc) and the
+                         real pick trades made before the 2023 kickoff (2024, 2025)
     schedules.json       the real 2023-2026 regular seasons
     benchmarks-2023.json real 2023 averages, scores and lines
 ```
