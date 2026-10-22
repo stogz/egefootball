@@ -2772,7 +2772,8 @@ and the class (unknown players, a team that does not own the pick,
 duplicates, missing picks), shows them, and **Use this draft** keeps them:
 those picks go exactly as written, can't be traded while they wait, and the
 sim drafts the rest. The 2024 draft goes in the order from the 2024 mock
-draft doc in every round, whatever the sim's own 2023 said
+draft doc in every round, whatever the sim's own 2023 said, and every real
+pick trade made before the 2023 kickoff moves its 2024 or 2025 pick
 (`nfl-sim/data/draft-orders.json`). Trades wait for
 **Approve** or **Reject**, and so does any star (85 or better) who would
 leave his team in free agency: he stays put unless Sam approves the move.
