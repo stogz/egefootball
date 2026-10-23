@@ -70,7 +70,7 @@ without it.
 
 ## Timeline
 
-Seven seasons, one per simulated year. This ladder is official — schedule and stat
+Eight seasons, one per simulated year. This ladder is official — schedule and stat
 data is authored per season below.
 
 | Season | Level | Class |
@@ -82,6 +82,7 @@ data is authored per season below.
 | 2022 | College football | Junior year |
 | 2023 | NFL & college football | Rookie year (NFL), senior year (college) |
 | 2024 | NFL | Second year (Sam, Andrew, Jaykeb), rookie year (Paxon, Cooper, Isaac) |
+| 2025 | NFL | Third year (Sam, Andrew, Jaykeb), second year (Paxon, Cooper, Isaac) |
 
 The simulation opens on the **2018 junior-year high school season** — that is
 what gets built first. High school graduation is spring 2020, after the 2019
@@ -2433,6 +2434,15 @@ London game (week 6, Jacksonville) and the Giants' Munich game (week 10,
 Carolina) are `neutral`. `EGE.currentSeason` is still 2023, so only an
 admin sees 2024 until it is rolled over to, and it has no block in
 `data/conferences.js` yet.
+
+**2025** is set up the same way, with the six on the same teams.
+`stats/2025.js` holds each team's real 2025 regular season from
+nflverse's `games.csv`, weeks 1 to 18 with the bye in its week, the
+kickoffs in each team's own time and every result still to come; it
+matches the sim's 2025 schedule in `nfl-sim/data/schedules.json` game for
+game. None of the six's teams plays abroad in 2025, so nothing is
+`neutral`. The Seahawks and the Buccaneers close on the Saturday of week
+18, so the sim dates their playoff games from the Sunday after it.
 
 ### Conference standings
 

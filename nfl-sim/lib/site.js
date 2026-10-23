@@ -188,11 +188,13 @@ function sixEdits(log, season, from) {
 
 /* Playoff dates from the last Sunday of the regular season: the wild card
    round the Saturday after, the divisional round a week on, the title games
-   on the Sunday after that, and the Super Bowl a fortnight later. */
+   on the Sunday after that, and the Super Bowl a fortnight later. A team
+   whose last game was the Saturday (2025's Seahawks and Buccaneers) counts
+   from the Sunday after it, like everybody else. */
 function playoffDate(lastDate, round) {
   const days = [6, 13, 21, 35][round] || 6;
   const d = new Date(lastDate + 'T12:00:00Z');
-  d.setUTCDate(d.getUTCDate() + days);
+  d.setUTCDate(d.getUTCDate() + (7 - d.getUTCDay()) % 7 + days);
   return d.toISOString().slice(0, 10);
 }
 

@@ -56,7 +56,7 @@ window.EGE = window.EGE || {};
 
    2024 has all six in the NFL: Cooper, Paxon and Isaac were drafted too.
    It has no `class`, since an NFL season's class is each player's own year
-   in the league (EGE.classFor). */
+   in the league (EGE.classFor). 2025 is the same six on the same teams. */
 EGE.seasons = [
   { year: 2018, level: 'High School Varsity', tier: 'highSchool', class: 'Junior Year' },
   { year: 2019, level: 'High School Varsity', tier: 'highSchool', class: 'Senior Year' },
@@ -64,7 +64,8 @@ EGE.seasons = [
   { year: 2021, level: 'College Football',    tier: 'college',    class: 'Sophomore Year' },
   { year: 2022, level: 'College Football',    tier: 'college',    class: 'Junior Year' },
   { year: 2023, level: 'NFL & College Football', tier: 'college', class: 'Senior Year', optional: true },
-  { year: 2024, level: 'NFL',                 tier: 'nfl' }
+  { year: 2024, level: 'NFL',                 tier: 'nfl' },
+  { year: 2025, level: 'NFL',                 tier: 'nfl' }
 ];
 
 /* What each level of football is called on a player's own page. */
