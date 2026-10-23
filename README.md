@@ -322,7 +322,7 @@ holds:
   Championship trophy (Alabama). Jaykeb Stewart has the 2019 Florida Class
   6A State Championship trophy (Naples High School), Paxon Hatch the 2020
   and 2021 FCS National Championship trophies (North Dakota State) and the
-  2024 NFL Super Bowl trophy (New York Giants), and Cooper Clark
+  2025 NFL Super Bowl trophy (New York Giants), and Cooper Clark
   the 2019 CIF San Diego Section Open Division Championship trophy (Carlsbad
   High School), all of them a third again as tall. A player with no trophies has no trophy case at all: the panel
   only shows once there is at least one.
