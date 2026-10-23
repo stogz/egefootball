@@ -377,12 +377,20 @@ EGE.exports = (function () {
     lines.push('  level: ' + quote(forSeason.level || '') + ',');
     lines.push('');
     storedLines(forSeason.stored).forEach(function (line) { lines.push(line); });
+    tradeLines(forSeason.trades).forEach(function (line) { lines.push(line); });
     playoffLines(forSeason).forEach(function (line) { lines.push(line); });
     lines.push('  games: {');
 
     EGE.players.forEach(function (player) {
       var games = forSeason.games[player.slug] || [];
       var team = EGE.teamFor(player, season);
+      /* Every team his games were for, in order: more than one after a
+         trade. */
+      var teams = [];
+      games.forEach(function (game) {
+        var one = EGE.teamFor(player, season, game.week);
+        if (one && teams[teams.length - 1] !== one.school) { teams.push(one.school); }
+      });
       lines.push('');
 
       if (!games.length) {
@@ -391,7 +399,7 @@ EGE.exports = (function () {
         return;
       }
 
-      lines.push('    /* ' + player.name + ' — ' + (team ? team.school : 'school TBD') + ' */');
+      lines.push('    /* ' + player.name + ' — ' + (teams.length > 1 ? teams.join(', then ') : team ? team.school : 'school TBD') + ' */');
       lines.push('    ' + quote(player.slug) + ': [');
 
       games.forEach(function (game) {
@@ -490,6 +498,29 @@ EGE.exports = (function () {
                '  stored: {'];
     weeks.forEach(function (week, at) {
       out.push('    ' + week + ': ' + quote(stored[week]) + (at < weeks.length - 1 ? ',' : ''));
+    });
+    out.push('  },');
+    out.push('');
+    return out;
+  }
+
+  /* The six traded in the NFL sim, by slug, each { week, from, to }: from
+     that week on his games are `to`'s (EGE.tradesFor). A file with none
+     writes nothing, so every season before them comes out as it went in. */
+  function tradeLines(trades) {
+    var slugs = Object.keys(trades || {}).filter(function (slug) { return (trades[slug] || []).length; });
+    if (!slugs.length) { return []; }
+    var out = ['  /* The six traded in the NFL sim: from `week` on his games are the',
+               '     games of `to`, his team then, and the ones before it are as he',
+               '     played them. */',
+               '  trades: {'];
+    slugs.forEach(function (slug, at) {
+      out.push('    ' + quote(slug) + ': [');
+      trades[slug].forEach(function (trade, n) {
+        out.push('      { week: ' + trade.week + ', from: ' + quote(trade.from || null) + ', to: ' + quote(trade.to) + ' }' +
+          (n < trades[slug].length - 1 ? ',' : ''));
+      });
+      out.push('    ]' + (at < slugs.length - 1 ? ',' : ''));
     });
     out.push('  },');
     out.push('');
@@ -662,6 +693,10 @@ EGE.exports = (function () {
       '   opponent on the schedule and beside it in the Discord post. A game is',
       '   out of sight until the week before it is published, so a bowl is not',
       '   on anybody\'s schedule before the title game that sent them there.',
+      '',
+      '   `trades` is the six traded in the NFL sim that season, by slug: from',
+      "   `week` on he plays for `to` (a key in EGE.teams) and his games are its",
+      '   games, and the ones before it are the ones he played for `from`.',
       '   ========================================================================== */',
       ''
     ];

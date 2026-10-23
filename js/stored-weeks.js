@@ -31,6 +31,14 @@
    Everything laid over is undone before the next load is laid over, so a
    week pulled back, played again or undone leaves nothing behind.
 
+   The six's trades come first (sim_trades, one row a trade): from the
+   week he moved, his season file's games are his new team's, the row's
+   `games`, and the trade goes into the season's `trades` (EGE.tradesFor),
+   so every week before it stays as it was played. A file that has the
+   trade written in already keeps its own games. The weeks are laid over
+   the games as traded, and a stored week is worked out from them too:
+   pristine() takes the weeks off and leaves the trades on.
+
    Depends on: data/players.js, data/games.js, the season files and
    data/nfl-results.js. Read by the Discord bot too (bot/site-data.js).
    ========================================================================== */
@@ -50,7 +58,10 @@ EGE.storedWeeks = (function () {
   var SHELL = ['opponent', 'home', 'neutral', 'name'];
 
   var loaded = [];
+  var trades = [];
   var undo = [];
+  var undoTrades = [];
+  var stack = undo;
   var seen = '';
   var version = 0;
 
@@ -64,17 +75,17 @@ EGE.storedWeeks = (function () {
   }
 
   /* Every change goes through these three, each leaving behind how to put
-     it back. */
+     it back: on the trades' list while they are laid, the weeks' after. */
   function set(obj, key, value) {
     var had = own(obj, key);
     var old = obj[key];
-    undo.push(function () { if (had) { obj[key] = old; } else { delete obj[key]; } });
+    stack.push(function () { if (had) { obj[key] = old; } else { delete obj[key]; } });
     obj[key] = value;
   }
 
   function insert(list, at, item) {
     list.splice(at, 0, item);
-    undo.push(function () {
+    stack.push(function () {
       var i = list.indexOf(item);
       if (i !== -1) { list.splice(i, 1); }
     });
@@ -82,11 +93,16 @@ EGE.storedWeeks = (function () {
 
   function removeAt(list, at) {
     var item = list.splice(at, 1)[0];
-    undo.push(function () { list.splice(at, 0, item); });
+    stack.push(function () { list.splice(at, 0, item); });
   }
 
   function revert() {
     while (undo.length) { undo.pop()(); }
+  }
+
+  function revertTrades() {
+    revert();
+    while (undoTrades.length) { undoTrades.pop()(); }
   }
 
   /* { season: { week: { results, fixtures } } } */
@@ -185,6 +201,43 @@ EGE.storedWeeks = (function () {
     stampIn(entry, week, at);
   }
 
+  function byWeek(a, b) { return a.week - b.week; }
+
+  /* One trade: his games from its week on are the new team's, the ones
+     before it and any playoff game the file has stay -- and so does any
+     game the file already has a score in, which he has played. */
+  function layTrade(row) {
+    var forSeason = EGE.stats[row.season];
+    if (!forSeason || !row.slug || !row.to_team) { return; }
+    var week = Number(row.week);
+    var filed = ((forSeason.trades || {})[row.slug] || []).filter(function (t) { return t.week === week; })[0];
+    if (filed && filed.to === row.to_team) { return; }
+    if (!forSeason.trades) { set(forSeason, 'trades', {}); }
+    set(forSeason.trades, row.slug, (forSeason.trades[row.slug] || []).filter(function (t) { return t.week !== week; })
+      .concat([{ week: week, from: row.from_team || null, to: row.to_team }]).sort(byWeek));
+    var games = (forSeason.games[row.slug] || []).filter(function (g) {
+      return g.playoff || g.week < week || EGE.hasResult(g);
+    });
+    var played = {};
+    games.forEach(function (g) { played[g.week] = true; });
+    set(forSeason.games, row.slug, games.concat((row.games || []).filter(function (g) {
+      return !played[g.week];
+    }).map(copy)).sort(byWeek));
+  }
+
+  /* The trades over the files, after taking the last ones (and the weeks
+     over them) off. */
+  function layTrades(rows) {
+    revertTrades();
+    trades = rows || [];
+    stack = undoTrades;
+    try {
+      trades.slice().sort(function (a, b) { return a.season - b.season || a.week - b.week; }).forEach(layTrade);
+    } finally {
+      stack = undo;
+    }
+  }
+
   /* Puts these rows over the files, after taking the last ones off. */
   function lay(rows) {
     revert();
@@ -203,14 +256,17 @@ EGE.storedWeeks = (function () {
     });
   }
 
-  /* The rows from Supabase, every one this visitor can read. Whether
+  /* The rows from Supabase, every one this visitor can read, and the
+     trades (sim_trades; left out, the ones already laid stay). Whether
      anything moved, so the page knows to draw again. */
-  function apply(rows) {
+  function apply(rows, tradeRows) {
     var list = (rows || []).slice().sort(function (a, b) {
       return a.season - b.season || a.week - b.week || String(a.part).localeCompare(String(b.part));
     });
+    if (tradeRows !== undefined) { layTrades(tradeRows); }
     lay(list);
-    var now = JSON.stringify(list.map(function (row) { return [row.season, row.week, row.part, row.saved_at]; }));
+    var now = JSON.stringify(list.map(function (row) { return [row.season, row.week, row.part, row.saved_at]; })
+      .concat(trades.map(function (row) { return [row.season, row.slug, row.week, row.saved_at]; })));
     if (now === seen) { return false; }
     seen = now;
     version += 1;
@@ -219,8 +275,9 @@ EGE.storedWeeks = (function () {
     return true;
   }
 
-  /* `fn` run on the files as they are, nothing laid over, then everything
-     put back. What the NFL Sim tab works a stored week out from. */
+  /* `fn` run on the files as they are, with only the trades laid over,
+     then everything put back. What the NFL Sim tab works a stored week out
+     from. */
   function pristine(fn) {
     var rows = loaded;
     revert();
@@ -234,6 +291,11 @@ EGE.storedWeeks = (function () {
   /* The rows of a season as loaded: { week: { results, fixtures } }. */
   function rowsOf(season) {
     return index(loaded)[season] || {};
+  }
+
+  /* The trade rows as loaded. */
+  function tradeRows() {
+    return trades.slice();
   }
 
   /* Whether the season file itself has any of the six's NFL results that
@@ -285,6 +347,7 @@ EGE.storedWeeks = (function () {
     apply: apply,
     pristine: pristine,
     rows: rowsOf,
+    trades: tradeRows,
     filed: filed,
     stamped: stamped,
     filedWeeks: filedWeeks,

@@ -548,8 +548,7 @@ Under the bar:
   scheme. **Refresh**, beside Find trades, asks for another set, leaving
   out the ones already shown where it can. **Make the
   trade**, **Propose**, or **Open in builder** (the NFL Sim tab's trade
-  builder, filled in). The trade deadline and the six's one team a season
-  hold as everywhere else.
+  builder, filled in). The trade deadline holds as everywhere else.
 
   **Tendencies**, for an admin only and never in client viewer mode (Sam,
   2026-10-21), between the roster and the payroll on the season the sim is
@@ -2206,6 +2205,16 @@ the same thing, so they live on the same line.
   stats: { carries: 18, rushingYards: 132, rushingTd: 2, ... } },
 ```
 
+One of the six traded in the NFL sim during a season has the trade in his
+season's file, `trades: { 'andrew-parr': [ { week: 9, from: 'detroit', to:
+'dallas' } ] }`: from that week his games are the new team's, and every one
+before it stays as he played it, for the team he played it for. The NFL Sim
+tab stores a trade in Supabase (`sim_trades`) with the new team's games
+until **Download the season files** writes it in. His schedule says
+*Traded to Dallas* above the first game for the new team, the team pages
+of that season list him on both, and a team he joined or left mid-season
+shows its own record rather than his.
+
 `result` and `stats` are null until a game has been played. Nothing generates
 them — the numbers come from wherever you generate them and are typed in, by
 hand or through the season editor. `booster` is the performance booster that
@@ -2794,7 +2803,8 @@ before it is), and a week that is out stays as it went out. Under Play, a week
 the sim has played this season (or a playoff round) can be picked and
 **Resim** plays it again on new dice, or **Undo** goes back to before it.
 Either way every week played after it is undone, and so is anything changed
-since (the week's entry says how many changes); a week that is out on the
+since (the week's entry says how many changes), a trade of one of the six
+too; a week that is out on the
 site, or one before it, can't be. Each week's save point is kept in
 `nfl_sim_files` as `rewind-{season}-{week}.json`, fetched only when it is
 used, and the offseason clears them. Before every step the six's boosters on
@@ -2997,12 +3007,11 @@ Built so far:
   them to five a season), the credit awards a season pays out, diamonds and
   their awards, which weeks are published (and which leagues' Discord
   posts have gone), the Discord webhooks (the two leagues' and the trades
-  bot's), the card collection, and the NFL sim's world, rosters and stored
-  weeks (`sim_weeks`). Run
+  bot's), the card collection, and the NFL sim's world, rosters, stored
+  weeks (`sim_weeks`) and the six's trades (`sim_trades`). Run
   it in the Supabase SQL editor; it is safe to run again, and it must be
   re-run after pulling a change that adds a table. **Re-run it after
-  pulling this change** so `discord_webhooks` takes the trades bot's
-  webhook.
+  pulling this change** so `sim_trades` is there for the six's trades.
 - `supabase/functions/post-week/` — an edge function that posts a week to
   the college or NFL channel for an admin, from the saved webhook or its
   own secret, for a league with no webhook saved on the admin page.
@@ -3035,7 +3044,8 @@ Built so far:
 - `js/stored-weeks.js` — the weeks the NFL Sim tab stored in `sim_weeks`,
   laid over the season files and `data/nfl-results.js` whenever the
   published weeks load (and by the Discord bot), so a week can be played and
-  published with nothing committed.
+  published with nothing committed. The six's trades (`sim_trades`) go
+  under them the same way.
 - `data/economy.js` — every number about credits in one place: what a rating
   point costs, how much overall a point is worth, what a touchdown pays, and
   the tuning behind all of it. Nothing else in the site invents a price. What

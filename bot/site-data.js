@@ -17,9 +17,13 @@ const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
 
-/* Before the seasons: everything they lean on. */
+/* Before the seasons: everything they lean on, and every NFL team one of
+   the six can be traded to (data/nfl.js, with its marks from
+   data/logos.js). */
 const BEFORE = [
   'data/players.js',
+  'data/logos.js',
+  'data/nfl.js',
   'data/season.js',
   'data/ratings.js',
   'data/shop.js',

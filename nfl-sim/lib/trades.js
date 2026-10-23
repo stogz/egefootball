@@ -11,8 +11,8 @@
 
    Proposals live in the world folder's trades.json with their reasoning;
    ones still waiting when their window closes expire. A trade that moves
-   one of the six is marked: the website's transfers have to be updated by
-   hand for it.
+   one of the six is marked, and once it goes through his games from the
+   next week on are his new team's on the website (lib/six-trades.js).
 
    A star leaving his team in free agency waits in the same queue (a move,
    queueMoves): he stays where he was until Sam approves it.
@@ -28,6 +28,7 @@ const { locked } = require('./draft-plan');
 const { readWorld, writeWorld, DEADLINE_WEEK } = require('./season');
 const { standings, recordText } = require('./standings');
 const { TEAMS } = require('./teams');
+const sixTrades = require('./six-trades');
 const { index } = require('./league');
 const { seeded, hash } = require('./rng');
 
@@ -147,8 +148,7 @@ function propose(league, window, rng) {
         const sellerRoster = onTeam(league, seller.key);
         byPos(sellerRoster, pos).forEach((p, rank) => {
           if (p.ovr < floor + 4 || (p.injury && p.injury.games >= 4) || moving.has(p.id)) { return; }
-          /* The website keeps one team a season for the six, so they only
-             move in the offseason. */
+          /* In season the six move only in a trade Sam makes himself. */
           if (p.ege && window === 'deadline') { return; }
           const starter = rank < (SLOTS[pos] || 0);
           const why = seller.mode === 'rebuild' ? 'rebuild' : window === 'deadline' && srec && srec.pct <= 0.4 ? 'losing' :
@@ -222,7 +222,7 @@ function build(league, c, window, n) {
     reasons: [sellerWhy + ' and get ' + items.map(describeItem).join(' and ') + '.', buyerWhy + '.',
       'By their own numbers ' + nick(c.buyer) + ' value him at ' + c.worth.toFixed(1) + ' and give ' + c.pack.cost.toFixed(1) +
       '; ' + nick(c.seller) + ' value him at ' + c.price.toFixed(1) + ' and get ' + c.pack.got.toFixed(1) + '.'].concat(
-      ege ? ['This moves one of the six: the website\'s transfers would need updating by hand.'] : [],
+      ege ? ['This moves one of the six.'] : [],
       c.current && c.current.ege ? [c.current.name + ' would lose his starting spot to him.'] : [])
   };
 }
@@ -276,6 +276,7 @@ function approveMove(league, queue, t) {
   if (!p || p.team !== t.from || p.status !== 'active') { throw new Error((p ? p.name : t.player) + ' is no longer with ' + t.from + '.'); }
   p.team = t.to;
   p.contract = Object.assign({}, t.contract);
+  sixTrades.record(league, p, t.from, t.to);
   t.status = 'approved';
   t.approvedAt = { season: league.season, phase: league.phase, week: league.week };
   saveQueue(league, queue);
@@ -310,7 +311,8 @@ function approve(league, id) {
     if (g.player) {
       const p = league.byId.get(g.player);
       p.team = to;
-      if (p.ege) { notes.push(p.name + ' is now with ' + TEAMS[to].name + ': update his transfers on the website for ' + league.season + '.'); }
+      const moved = sixTrades.record(league, p, from, to);
+      if (moved) { notes.push(p.name + ' is with the ' + TEAMS[to].name + ' from ' + moved.season + ' Week ' + moved.week + '.'); }
     } else {
       findPick(league, g.pick).owner = to;
     }
@@ -412,9 +414,6 @@ function proposeOwn(league, input) {
   if (inSeason && (league.phase === 'playoffs' || (league.phase === 'regular' && league.week > DEADLINE_WEEK))) {
     throw new Error('The trade deadline has passed. Trades open again in the offseason.');
   }
-  if (inSeason && parsed.some((side) => side.items.some((i) => i.kind === 'player' && i.player.ege))) {
-    throw new Error('The six can only be traded in the offseason: the website keeps one team a season for them.');
-  }
   const levels = starterLevels(league);
   const slotOf = slotFinder(league);
   const [A, B] = parsed;
@@ -438,7 +437,7 @@ function proposeOwn(league, input) {
       [B.key]: B.items.map((i) => (i.kind === 'pick' ? { pick: pickId(i.pick) } : { player: i.player.id }))
     },
     summary: nick(A.key) + ' get ' + listOf(B.items) + '; ' + nick(B.key) + ' get ' + listOf(A.items) + '.',
-    reasons: [verdict(A.key, va), verdict(B.key, vb)].concat(ege ? ['This moves one of the six: the website\'s transfers would need updating by hand.'] : [])
+    reasons: [verdict(A.key, va), verdict(B.key, vb)].concat(ege ? ['This moves one of the six.'] : [])
   };
   saveQueue(league, queue.concat([t]));
   return t;

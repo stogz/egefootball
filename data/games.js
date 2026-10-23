@@ -119,6 +119,41 @@ EGE.recordFor = function (player, season) {
   return { wins: wins, losses: losses, text: wins + '-' + losses };
 };
 
+/* An NFL team's record that season, every game of it that is out: its
+   regular season from EGE.nflResults, and the postseason games of the six
+   on it. What a team's page says for a team one of the six was traded to
+   in the middle of the season, whose games before he got there are not
+   his. { wins, losses, text, streak }, the streak as EGE.streakFor's. */
+EGE.nflRecordFor = function (teamKey, season) {
+  var year = season || EGE.currentSeason;
+  var team = EGE.teams[teamKey];
+  if (!team) { return null; }
+  var games = [];
+  EGE.nflResults(year).forEach(function (game) {
+    if (game.home === team.school) { games.push({ week: game.week, won: game.score[0] > game.score[1] }); }
+    if (game.away === team.school) { games.push({ week: game.week, won: game.score[1] > game.score[0] }); }
+  });
+  var seen = {};
+  EGE.players.forEach(function (player) {
+    EGE.gamesPlayed(player, year).forEach(function (game) {
+      if (!game.playoff || seen[game.week] || EGE.teamKeyFor(player, year, game.week) !== teamKey) { return; }
+      seen[game.week] = true;
+      games.push({ week: game.week, won: game.result.teamScore > game.result.opponentScore });
+    });
+  });
+  games.sort(function (a, b) { return a.week - b.week; });
+  var wins = games.filter(function (game) { return game.won; }).length;
+  var losses = games.length - wins;
+  var streak = null;
+  if (games.length) {
+    var latest = games[games.length - 1].won;
+    var count = 0;
+    for (var i = games.length - 1; i >= 0 && games[i].won === latest; i -= 1) { count += 1; }
+    streak = { won: latest, count: count, text: (latest ? 'W' : 'L') + count };
+  }
+  return { wins: wins, losses: losses, text: wins + '-' + losses, streak: streak };
+};
+
 /* The run the team is on: how many results in a row, counting back from the
    latest published game, have gone the same way. Null before a game has been
    played. A tie counts as a loss, as it does in the record. */
@@ -335,9 +370,11 @@ EGE.nflResults = function (season, through) {
 
   EGE.players.forEach(function (player) {
     if (EGE.tierFor(year, player) !== 'nfl') { return; }
-    var team = EGE.teamFor(player, year);
     EGE.gamesPlayed(player, year).forEach(function (game) {
       if (game.playoff || game.week > upTo) { return; }
+      /* For the team he played it for: a trade moves him (EGE.teamKeyFor). */
+      var team = EGE.teamFor(player, year, game.week);
+      if (!team) { return; }
       add(game.week, team.school, game.opponent, [game.result.teamScore, game.result.opponentScore]);
     });
   });
@@ -451,7 +488,13 @@ function nflDivisionTable(found, year, through) {
    with no school, to null. */
 EGE.standingFor = function (player, season) {
   var year = season || EGE.currentSeason;
-  var team = EGE.teamFor(player, year);
+  return EGE.teamStandingFor(EGE.teamKeyFor(player, year), year);
+};
+
+/* The same for a team, by its key. */
+EGE.teamStandingFor = function (teamKey, season) {
+  var year = season || EGE.currentSeason;
+  var team = (teamKey && EGE.teams[teamKey]) || null;
   if (!team) { return null; }
 
   var table = EGE.divisionTable(team.school, year);
@@ -677,10 +720,10 @@ EGE.sideName = function (name) {
   return key ? EGE.nfl.city(key) : name;
 };
 
-/* The two sides of one of the player's games: his own team's name and the
-   opponent's, as the file has them. */
+/* The two sides of one of the player's games: his own team's name (the
+   team he played it for) and the opponent's, as the file has them. */
 EGE.wagerSides = function (player, game) {
-  var team = EGE.teamFor(player, game.season);
+  var team = EGE.teamFor(player, game.season, game.week);
   return { for: team ? team.school : player.name, against: game.opponent };
 };
 
@@ -854,19 +897,26 @@ EGE.teamKeyBySlug = function (slug) {
 };
 
 /* Every school one of the six is at that season, as
-   { key, team, players: [...] }, in the order the players are listed. */
+   { key, team, players: [...] }, in the order the players are listed. One
+   traded during the season is on each team he played for, the one he
+   ended with first. */
 EGE.teamsIn = function (season) {
   var year = season || EGE.currentSeason;
   var byKey = {};
   var order = [];
   EGE.players.forEach(function (player) {
-    var key = EGE.teamKeyFor(player, year);
-    if (!key || !EGE.teams[key]) { return; }
-    if (!byKey[key]) {
-      byKey[key] = { key: key, team: EGE.teams[key], players: [] };
-      order.push(byKey[key]);
-    }
-    byKey[key].players.push(player);
+    var keys = [EGE.teamKeyFor(player, year)];
+    EGE.tradesFor(player).filter(function (trade) { return trade.season === year; }).reverse().forEach(function (trade) {
+      keys.push(trade.from);
+    });
+    keys.forEach(function (key, i) {
+      if (!key || !EGE.teams[key] || keys.indexOf(key) !== i) { return; }
+      if (!byKey[key]) {
+        byKey[key] = { key: key, team: EGE.teams[key], players: [] };
+        order.push(byKey[key]);
+      }
+      byKey[key].players.push(player);
+    });
   });
   return order;
 };

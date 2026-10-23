@@ -592,8 +592,22 @@ both stay at 53. A trade that moves one of the six is marked, and so is one
 that would cost one of them his starting job. Sam can write his own trade
 too: the sim says what each side thinks of it and queues it like any other.
 
-When one of the six changes teams in the sim, the website's transfers have
-to be updated by hand; the sim says so.
+**The six, traded** (`lib/six-trades.js`, Sam 2026-10-23). Sam can trade
+one of the six like anybody else, in season too, up to the deadline; the
+teams never offer one of them at the deadline themselves. The games he has
+played stay on his page as the team he played them for. From the week he
+moves (the next one the league plays, or Week 1 of the next season between
+seasons) his schedule is the new team's: each game with its real date and
+kickoff on the team's own clock (`schedules.json`, nflverse's Eastern
+times), its bye, and nothing past the regular season. The league keeps
+every move (`egeTrades`), so undoing a week takes one back. The admin page
+stores each as a row of `sim_trades` with those games, which every page and
+the Discord bot lay over the season file (`js/stored-weeks.js`), and
+**Download the season files** writes it in (`trades` in stats/{year}.js).
+A wager on a game he no longer plays, or a booster on what is now his bye,
+comes off; the booster goes back in his drawer. On the command line `site`
+lays the moves over the season files it writes. Signing one of the six as a
+free agent moves him the same way.
 
 **The trade finder** (`lib/trade-finder.js`, `find-trades "Name"`, or **Find
 trades** in a player's pop-up on the Teams pages) looks at every other team
@@ -619,7 +633,7 @@ propose or open in the builder, each player the seller would get with his
 stars in its schemes (`incoming`). `refresh` (1, 2, ...; `find-trades
 --refresh 1`, or **Refresh** in the pop-up) shakes each trade's place up a
 little and puts the ones already shown (`seen`) to the back, for another
-set. The deadline and the six's one team a season hold as for any trade.
+set. The deadline holds as for any trade.
 
 A pick is shopped the same way (`findPickTrades`, `find-trades 2026-R1-DET`,
 or **Find trades** in a pick's pop-up on the Teams pages' Picks side, Sam
@@ -800,6 +814,7 @@ nfl-sim/
     picks.js             how far out the picks go (2030, then six drafts ahead)
     trades.js            proposals, the queue (big free-agent moves too), approving
     trade-finder.js      teams a player would suit better, and the trades for him (or a pick)
+    six-trades.js        the six, traded: when they move, and the new team's games for the site
     fit.js               fit as 0-5 stars, players and teams (an admin's only)
     tendencies.js        how a team calls plays and who gets the ball (an admin's only)
     weeks.js             a week as it was played, from the game log (an admin's only)
@@ -825,7 +840,7 @@ nfl-sim/
     prospects.json       the 2024-2026 draft classes
     draft-orders.json    draft orders set by hand (2024's, from the mock draft doc) and the
                          real pick trades made before the 2023 kickoff (2024, 2025)
-    schedules.json       the real 2023-2026 regular seasons
+    schedules.json       the real 2023-2026 regular seasons, with dates and Eastern kickoffs
     benchmarks-2023.json real 2023 averages, scores and lines
 ```
 

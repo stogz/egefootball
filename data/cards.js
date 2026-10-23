@@ -492,8 +492,9 @@ EGE.cards = (function () {
   var catalogue = null;
   var list = [];
 
+  /* The team is the one he played the game for: a trade moves him. */
   function base(player, game, season) {
-    var team = EGE.teamFor(player, season);
+    var team = EGE.teamFor(player, season, game.week);
     return {
       season: season,
       week: game.week,
@@ -501,7 +502,7 @@ EGE.cards = (function () {
       player: player,
       position: EGE.positionFor(player, season),
       team: team,
-      teamKey: EGE.teamKeyFor(player, season),
+      teamKey: EGE.teamKeyFor(player, season, game.week),
       opponent: game.opponent,
       versus: versus(game),
       event: game.name || null,

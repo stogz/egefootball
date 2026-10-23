@@ -31,6 +31,7 @@ const { adopt } = require('./offseason');
 const { index } = require('./league');
 const { seeded, hash } = require('./rng');
 const { TEAMS } = require('./teams');
+const sixTrades = require('./six-trades');
 
 /* The class the next draft takes: this season's before the draft, next
    season's from kickoff on. Only the real classes are known ahead. */
@@ -163,6 +164,7 @@ function signFreeAgent(league, id, key) {
   if (!p || p.status !== 'fa') { throw new Error((p ? p.name : id) + ' is not a free agent.'); }
   if (!TEAMS[key]) { throw new Error('No team ' + key + '.'); }
   sign(p, key, league, seeded(hash((league.seed || 'ege-nfl') + ':sign:' + league.season + ':' + id)), marketPay(p, league.season));
+  sixTrades.record(league, p, p.lastTeam || null, key);
   index(league);
   log(league, 'signing', id, p.name + ' signs with ' + TEAMS[key].name);
   return { name: p.name, pos: p.pos, ovr: p.ovr, contract: Object.assign({}, p.contract) };
@@ -229,13 +231,14 @@ function setContract(league, id, want) {
 
 /* A player cut: a free agent from now on, and his pay off the payroll (the
    sim keeps no dead money). The team stays a man short until it signs
-   somebody. One of the six only between seasons: the website keeps one
-   team a season for them, and his transfers need changing by hand. */
+   somebody. One of the six only between seasons, since his games on the
+   website are his team's, and his transfers need changing by hand unless
+   a team signs him here. */
 function releasePlayer(league, id) {
   const p = league.byId.get(id);
   if (!p || p.status !== 'active' || !TEAMS[p.team]) { throw new Error((p ? p.name : id) + ' is not on a team.'); }
   if (p.ege && IN_SEASON.indexOf(league.phase) !== -1) {
-    throw new Error(p.name + ' can only be cut between seasons: the website keeps one team a season for the six.');
+    throw new Error(p.name + ' can only be cut between seasons.');
   }
   const from = p.team;
   release(p, league.season);
