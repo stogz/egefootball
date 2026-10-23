@@ -375,6 +375,67 @@ EGE.nflSimAdmin = (function () {
     });
   }
 
+  /* --- the six's trades, stored for the site -----------------------------
+
+     A trade that moves one of the six goes to sim_trades with his new
+     team's games from the week he moves (lib/six-trades.js), so his page
+     has the new schedule at once. Kept in line with the league after every
+     step, before the weeks, which are worked out over the games as traded:
+     a trade undone goes. A new one takes any wager off the games it
+     replaces, and a booster off a week that is now his bye
+     (EGE.wallet.clearTradedStickers). */
+
+  var TRADES = 'sim_trades';
+
+  function tradeKey(t) { return t.season + '|' + t.slug + '|' + t.week; }
+
+  function tradeHint(message) {
+    return message + (/sim_trades/.test(message) ? ' Run supabase/schema.sql again first.' : '');
+  }
+
+  function syncTrades(league) {
+    var c = client();
+    if (!c || !EGE.storedWeeks) { return Promise.resolve(false); }
+    var want = sim().sixTrades.siteTrades(league);
+    return EGE.wallet.loadStoredWeeks().then(function () {
+      var have = {};
+      EGE.storedWeeks.trades().forEach(function (row) { have[tradeKey(row)] = row; });
+      var at = new Date().toISOString();
+      var put = [];
+      var fresh = [];
+      want.forEach(function (t) {
+        var had = have[tradeKey(t)];
+        delete have[tradeKey(t)];
+        if (had && had.to_team === t.to && had.from_team === t.from && stable(had.games) === stable(t.games)) { return; }
+        put.push({ season: t.season, slug: t.slug, week: t.week, from_team: t.from, to_team: t.to, games: t.games, saved_at: at });
+        if (!had || had.to_team !== t.to) { fresh.push(t); }
+      });
+      var drop = Object.keys(have).map(function (key) { return have[key]; });
+      if (!put.length && !drop.length) { return false; }
+      var first = put.length ? c.from(TRADES).upsert(put, { onConflict: 'season,slug,week' }) : Promise.resolve({ error: null });
+      return first.then(function (res) {
+        if (res.error) { throw new Error(tradeHint(res.error.message)); }
+        return Promise.all(drop.map(function (row) {
+          return c.from(TRADES).delete().eq('season', row.season).eq('slug', row.slug).eq('week', row.week);
+        }));
+      }).then(function (all) {
+        all.forEach(function (res) { if (res.error) { throw new Error(tradeHint(res.error.message)); } });
+        return EGE.wallet.loadStoredWeeks();
+      }).then(function () {
+        return fresh.reduce(function (chain, t) {
+          return chain.then(function () {
+            return EGE.wallet.clearTradedStickers(EGE.playerBySlug(t.slug), t.season, t.week, t.games);
+          });
+        }, Promise.resolve());
+      }).then(function () { return true; });
+    });
+  }
+
+  /* The trades, then the weeks over them. */
+  function syncSite(league) {
+    return syncTrades(league).then(function () { return syncWeeks(league); });
+  }
+
   /* The stored weeks not out yet, oldest first, as { season, week }. */
   function waiting() {
     var out = [];
@@ -422,11 +483,12 @@ EGE.nflSimAdmin = (function () {
         return postTrades(posts);
       }).then(function (problem) {
         if (problem) { state.error = problem; }
-        /* The step is kept whatever happens to the stored weeks, which the
-           next step (or opening the tab) stores again, and the rosters,
-           which can be sent again with Update rosters now. */
-        return syncWeeks(league).catch(function (err) {
-          state.error = 'Saved, but the weeks were not stored for the site: ' + (err.message || err);
+        /* The step is kept whatever happens to the stored weeks and
+           trades, which the next step (or opening the tab) stores again,
+           and the rosters, which can be sent again with Update rosters
+           now. */
+        return syncSite(league).catch(function (err) {
+          state.error = 'Saved, but the site was not brought up to date: ' + (err.message || err);
         });
       }).then(function () {
         return publishing() ? publishRosters(league).catch(function (err) {
@@ -1510,7 +1572,7 @@ EGE.nflSimAdmin = (function () {
      the file with it, which is where a published week's sticker lives. */
   function seasonFiles(year) {
     var league = openLeague();
-    var first = league.season === year ? syncWeeks(league) : Promise.resolve();
+    var first = league.season === year ? syncSite(league) : Promise.resolve();
     return first.then(function () {
       return EGE.wallet.loadGameBoosters(year);
     }).then(function () {
@@ -1776,8 +1838,8 @@ EGE.nflSimAdmin = (function () {
     state.loading = loadBundle().then(loadWorld).then(function () {
       /* Anything played and not stored yet (a step whose storing failed)
          goes now. */
-      return hasWorld() ? syncWeeks(openLeague()).catch(function (err) {
-        state.error = 'The weeks were not stored for the site: ' + (err.message || err);
+      return hasWorld() ? syncSite(openLeague()).catch(function (err) {
+        state.error = 'The site was not brought up to date: ' + (err.message || err);
       }) : null;
     }).catch(function (err) {
       state.error = err.message || String(err);
@@ -1854,6 +1916,12 @@ EGE.nflSimAdmin = (function () {
         return postTrades(posts);
       }).then(function (problem) {
         posted = problem;
+        /* One of the six traded from his pop-up: his new games go to the
+           site with it. */
+        return syncTrades(league).catch(function (err) {
+          posted = posted || 'Traded, but his new games are not on the site yet: ' + (err.message || err);
+        });
+      }).then(function () {
         return publishRosters(league);
       }).then(function () {
         state.busy = false;

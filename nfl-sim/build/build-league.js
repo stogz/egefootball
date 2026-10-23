@@ -4,7 +4,8 @@
 
      nfl-sim/data/league-2023.json   every team and player, Week 1 of 2023
      nfl-sim/data/prospects.json     the real 2024, 2025 and 2026 draft classes
-     nfl-sim/data/schedules.json     the real 2023-2026 regular seasons
+     nfl-sim/data/schedules.json     the real 2023-2026 regular seasons, with
+                                     each game's date and kickoff (Eastern)
      nfl-sim/data/benchmarks-2023.json  what really happened in 2023, to
                                         check the sim against
 
@@ -552,13 +553,15 @@ function buildProspects(people, combine, realRating, meaningful, evidence, egeSl
   return { classes, ege: { 2024: egeSlugs } };
 }
 
-/* The real regular seasons, 2023-2026: week, home, away. */
+/* The real regular seasons, 2023-2026: week, home, away, and the date and
+   Eastern kickoff, which a season file's rows are written from when one of
+   the six is traded (lib/six-trades.js). */
 function buildSchedules() {
   const out = {};
   read('games.csv', (r) => r.game_type === 'REG' && Number(r.season) >= 2023).forEach((r) => {
     const y = r.season;
     (out[y] = out[y] || []).push({ week: Number(r.week), home: r.home_team, away: r.away_team,
-                                    neutral: r.location === 'Neutral' || undefined });
+                                    neutral: r.location === 'Neutral' || undefined, date: r.gameday, time: r.gametime });
   });
   return out;
 }

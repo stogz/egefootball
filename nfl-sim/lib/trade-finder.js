@@ -43,7 +43,6 @@ const { recordText } = require('./standings');
 const { TEAMS } = require('./teams');
 const { seeded } = require('./rng');
 
-const IN_SEASON = ['regular', 'deadline', 'playoffs'];
 const SHOWN = 6;
 /* How many of his team's own players and picks are tried with him, for
    each team: the ones it values most above what his team does. */
@@ -65,9 +64,6 @@ function checkWindow(league) {
 function check(league, p) {
   if (!p || p.status !== 'active' || !TEAMS[p.team]) { throw new Error((p ? p.name : 'He') + ' is not on a team.'); }
   checkWindow(league);
-  if (p.ege && IN_SEASON.indexOf(league.phase) !== -1) {
-    throw new Error('The six can only be traded in the offseason: the website keeps one team a season for them.');
-  }
 }
 
 /* What a team can put in a trade: its picks for the next three drafts (not

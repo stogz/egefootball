@@ -22,7 +22,9 @@
    so his earlier seasons still say where he was then. Being drafted is a
    transfer too, to an NFL team -- `{ 2023: 'seattle' }` -- and an NFL
    team (`tier: 'nfl'` in EGE.teams) is what puts a player in the NFL
-   that season, whatever the rest of the six are doing.
+   that season, whatever the rest of the six are doing. A trade in the NFL
+   sim moves him from a week of a season on, and is kept in that season's
+   file (`trades` in stats/{year}.js, EGE.tradesFor) rather than here.
 
    `trophies` is what is in his trophy case on his page, oldest first:
    `{ name, season, image, about, scale }`. `image` is a picture of it under
@@ -468,18 +470,45 @@ EGE.weightText = function (player) {
    through the high school years, `college` from the first college one, and
    after a transfer the school he moved to (`transfers`, from the season he
    got there). A season left out means the live one. Null while a school is
-   unknown. */
-EGE.teamKeyFor = function (player, season) {
+   unknown.
+
+   A trade (EGE.tradesFor) moves him from its week on, so with a week this
+   is the team he played that week for, and without one the team he ended
+   the season with -- or is with now, in the season being played. */
+EGE.teamKeyFor = function (player, season, week) {
   if (!player) { return null; }
   var year = season || EGE.currentSeason;
   if (EGE.tierFor(year) === 'highSchool') { return player.team || null; }
   var key = player.college;
-  Object.keys(player.transfers || {}).map(Number).sort(function (a, b) {
-    return a - b;
-  }).forEach(function (from) {
-    if (from <= year) { key = player.transfers[from]; }
+  var upTo = typeof week === 'number' ? week : Infinity;
+  /* Oldest first, a transfer before any trade the same season: it is the
+     team he started that season with. */
+  var moves = Object.keys(player.transfers || {}).map(function (from) {
+    return { season: Number(from), week: 0, to: player.transfers[from] };
+  }).concat(EGE.tradesFor(player)).sort(function (a, b) {
+    return a.season - b.season || a.week - b.week;
+  });
+  moves.forEach(function (move) {
+    if (move.season < year || (move.season === year && move.week <= upTo)) { key = move.to; }
   });
   return key || null;
+};
+
+/* Every trade that moved a player, oldest first, as { season, week, from,
+   to }: from that week of that season he plays for `to`. Each season's
+   file keeps its own (`trades`, by slug), with the trades the NFL Sim tab
+   made that are not written into it yet laid over it (js/stored-weeks.js).
+   The games from that week on are the new team's. */
+EGE.tradesFor = function (player) {
+  var out = [];
+  if (!player) { return out; }
+  Object.keys(EGE.stats || {}).forEach(function (year) {
+    var trades = (EGE.stats[year] && EGE.stats[year].trades) || {};
+    (trades[player.slug] || []).forEach(function (trade) {
+      out.push({ season: Number(year), week: trade.week, from: trade.from, to: trade.to });
+    });
+  });
+  return out.sort(function (a, b) { return a.season - b.season || a.week - b.week; });
 };
 
 /* What a player's page header calls his position in a season: what he
@@ -491,9 +520,10 @@ EGE.positionFor = function (player, season) {
   return past || player.position || null;
 };
 
-/* The team a player suits up for that season, or null while it is unknown. */
-EGE.teamFor = function (player, season) {
-  var key = EGE.teamKeyFor(player, season);
+/* The team a player suits up for that season (that week of it, given one:
+   see EGE.teamKeyFor), or null while it is unknown. */
+EGE.teamFor = function (player, season, week) {
+  var key = EGE.teamKeyFor(player, season, week);
   return (key && EGE.teams[key]) || null;
 };
 

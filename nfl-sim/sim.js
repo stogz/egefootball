@@ -80,6 +80,8 @@ const { OFFENSE, DEFENSE, fitOf, schemeFor } = require('./lib/schemes');
 const { payroll } = require('./lib/rosters');
 const { capFor } = require('./lib/value');
 const { TEAMS } = require('./lib/teams');
+const sixTrades = require('./lib/six-trades');
+const io = require('./lib/io');
 
 const args = process.argv.slice(2);
 function flag(name) {
@@ -235,6 +237,7 @@ function main() {
     case 'site': {
       const year = Number(seasonArg) || league.season;
       const root = path.join(__dirname, '..');
+      sixTrades.layOver(io.site(), league);
       site.siteFiles(league, year).then((files) => {
         if (!files) { say('The sim has not played any of ' + year + ', so there is nothing to write.'); done(); return; }
         fs.writeFileSync(path.join(root, 'stats', year + '.js'), files.stats);

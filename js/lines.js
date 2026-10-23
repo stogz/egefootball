@@ -90,9 +90,10 @@
 
     EGE.players.forEach(function (player) {
       if (EGE.leagueOf(player, season) !== league) { return; }
-      var team = EGE.teamFor(player, season);
-      if (!team) { return; }
       EGE.gamesPlayed(player, season).forEach(function (game) {
+        /* For the team he played it for: a trade moves him. */
+        var team = EGE.teamFor(player, season, game.week);
+        if (!team) { return; }
         var ours = [game.result.teamScore, game.result.opponentScore];
         if (game.home || game.neutral) {
           add(game.week, team.school, game.opponent, ours, game.neutral);
@@ -277,7 +278,7 @@
   function hurt(season, week, school) {
     var cost = 0;
     EGE.players.forEach(function (player) {
-      var team = EGE.teamFor(player, season);
+      var team = EGE.teamFor(player, season, week);
       if (!team || team.school !== school) { return; }
       var game = EGE.gameInWeek(player, week, season);
       if (game && EGE.outInjured(player, game)) {
@@ -296,7 +297,7 @@
      `for` is his own team, as in a wager. */
   EGE.gameLine = function (player, game) {
     if (!player || !game || game.bye || !game.opponent) { return null; }
-    var team = EGE.teamFor(player, game.season);
+    var team = EGE.teamFor(player, game.season, game.week);
     if (!team) { return null; }
     var league = EGE.leagueOf(player, game.season);
     var rules = leagueRules(league);

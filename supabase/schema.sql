@@ -3487,4 +3487,55 @@ revoke insert, update, delete on public.sim_weeks from anon;
 grant select on public.sim_weeks to anon, authenticated;
 grant select, insert, update, delete on public.sim_weeks to authenticated;
 
+-- ---------------------------------------------------------------------------
+-- The six's trades in the NFL sim
+--
+-- One of the six traded on the NFL Sim tab plays for his new team from the
+-- week the league plays next (Sam, 2026-10-23). One row a trade: from
+-- `week` of `season` his games are `to_team`'s (`games`, the rows his
+-- season file has for them, each team by its key in EGE.teams), and every
+-- game before it stays as he played it. The tab keeps these in line with
+-- the league after every step, so a week undone takes a trade back with
+-- it, and the site lays them over stats/{year}.js (js/stored-weeks.js)
+-- until Download the season files writes them in. Everybody reads them: a
+-- trade is out the moment it is made.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.sim_trades (
+  season    integer     not null check (season between 2018 and 2100),
+  slug      text        not null,
+  week      integer     not null check (week between 0 and 40),
+  from_team text,
+  to_team   text        not null,
+  games     jsonb       not null default '[]'::jsonb,
+  saved_at  timestamptz not null default now(),
+  primary key (season, slug, week)
+);
+
+alter table public.sim_trades enable row level security;
+
+drop policy if exists "sim trades read by everybody" on public.sim_trades;
+create policy "sim trades read by everybody"
+  on public.sim_trades for select to anon, authenticated
+  using (true);
+
+drop policy if exists "sim trades added by an admin" on public.sim_trades;
+create policy "sim trades added by an admin"
+  on public.sim_trades for insert to authenticated
+  with check (public.is_admin());
+
+drop policy if exists "sim trades changed by an admin" on public.sim_trades;
+create policy "sim trades changed by an admin"
+  on public.sim_trades for update to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "sim trades removed by an admin" on public.sim_trades;
+create policy "sim trades removed by an admin"
+  on public.sim_trades for delete to authenticated
+  using (public.is_admin());
+
+revoke insert, update, delete on public.sim_trades from anon;
+grant select on public.sim_trades to anon, authenticated;
+grant select, insert, update, delete on public.sim_trades to authenticated;
+
 notify pgrst, 'reload schema';

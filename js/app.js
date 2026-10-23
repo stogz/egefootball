@@ -759,11 +759,12 @@
     return sticker;
   }
 
-  /* The mark of one side of a player's game: his own team's, or the
-     opponent's off ESPN (college and NFL only, as the schedule draws). */
+  /* The mark of one side of a player's game: his own team's (the one he
+     played it for), or the opponent's off ESPN (college and NFL only, as
+     the schedule draws). */
   function sideLogo(player, game, side) {
     if (side === 'for') {
-      var team = EGE.teamFor(player, game.season);
+      var team = EGE.teamFor(player, game.season, game.week);
       return team ? team.logo : null;
     }
     return EGE.tierFor(game.season) !== 'highSchool' && EGE.logoFor ? EGE.logoFor(game.opponent) : null;
@@ -1421,6 +1422,40 @@
     return true;
   }
 
+  /* Where a trade sent him, between his last game for one team and his
+     first for the next: the new team's mark and its city, a way through to
+     its page. A row nobody sees after it keeps the striping, as under the
+     scouting report. */
+  function appendTraded(body, key, season) {
+    var team = EGE.teams[key];
+    if (!team) { return; }
+    var nfl = EGE.nfl.keyForSite(key);
+    var row = el('tr', 'ege-traded');
+    var cell = el('td');
+    cell.colSpan = document.querySelectorAll('#scheduleTableWrap thead th:not([hidden])').length;
+    var link = el('a', 'ege-traded__link');
+    link.href = '#teams/' + EGE.teamSlug(key);
+    link.addEventListener('click', function () { teamsPicked = season; });
+    var src = EGE.logoFor && EGE.logoFor(team.school);
+    if (src) {
+      var logo = el('img', 'ege-teamlogo');
+      logo.src = src;
+      logo.alt = '';
+      logo.width = 20;
+      logo.height = 20;
+      logo.addEventListener('error', function () { logo.remove(); });
+      link.appendChild(logo);
+    }
+    link.appendChild(el('span', 'ege-traded__text', 'Traded to ' + (nfl ? EGE.nfl.city(nfl) : team.school)));
+    cell.appendChild(link);
+    row.appendChild(cell);
+    body.appendChild(row);
+    var keep = el('tr', 'ege-faceoff__keep');
+    keep.hidden = true;
+    keep.setAttribute('aria-hidden', 'true');
+    body.appendChild(keep);
+  }
+
   function renderSchedule(player) {
     var panel = document.getElementById('schedulePanel');
     var body = document.getElementById('scheduleBody');
@@ -1482,7 +1517,13 @@
        own, and every row after it changed colour. */
     var firstPlayoff = games.filter(function (game) { return game.playoff; })[0];
     var next = nextNflGame(player, season, games);
+    var was = null;
     games.forEach(function (game) {
+      /* A trade between two weeks: the games before it are the old team's,
+         as he played them, and the ones after it the new team's. */
+      var team = EGE.teamKeyFor(player, season, game.week);
+      if (was && team && team !== was) { appendTraded(body, team, season); }
+      was = team || was;
       var row = scheduleRow(game, game === firstPlayoff);
       body.appendChild(row);
       /* The game and its report boxed in together by a heavy rule above
@@ -3271,6 +3312,20 @@
     if (img) { img.classList.toggle('is-white', Boolean(team.whiteMark)); }
   }
 
+  /* A team's record that season. Everybody from the six on a team plays
+     its games, so the first of them speaks for it -- unless a trade moved
+     him in or out during the season, and then the team's own games do.
+     { text, streak, lead }. */
+  function teamRecord(entry, season) {
+    var whole = entry.players.filter(function (player) {
+      return !EGE.tradesFor(player).some(function (trade) { return trade.season === season && trade.week > 1; });
+    });
+    var lead = whole[0] || entry.players[0];
+    var own = !whole.length && entry.team.tier === 'nfl' ? EGE.nflRecordFor(entry.key, season) : null;
+    return own ? { text: own.text, streak: own.streak, lead: lead }
+      : { text: EGE.recordFor(lead, season).text, streak: EGE.streakFor(lead, season), lead: lead };
+  }
+
   function teamCard(entry, season) {
     var card = el('a', 'ege-card ege-teamcard');
     card.href = '#teams/' + EGE.teamSlug(entry.key);
@@ -3291,10 +3346,9 @@
     var text = el('div', 'ege-card__text');
     text.appendChild(el('h3', 'ege-card__name', entry.team.school));
 
-    var lead = entry.players[0];
-    var standing = EGE.standingFor(lead, season);
+    var standing = EGE.teamStandingFor(entry.key, season);
     text.appendChild(el('span', 'ege-card__school',
-      EGE.recordFor(lead, season).text + ' · ' + (standing
+      teamRecord(entry, season).text + ' · ' + (standing
         ? (standing.place ? EGE.ordinal(standing.place) + ' in ' : '') + standing.league
         : (entry.team.league || ''))));
 
@@ -3502,9 +3556,7 @@
     paintMark(mark, entry.team, logo);
     document.getElementById('teamName').textContent = entry.team.school;
 
-    /* Everybody from the six on a team plays its games, so the first of them
-       speaks for its record. */
-    var lead = entry.players[0];
+    var told = teamRecord(entry, season);
     var facts = document.getElementById('teamFacts');
     facts.innerHTML = '';
     function fact(label, value) {
@@ -3514,16 +3566,16 @@
       facts.appendChild(dd);
     }
 
-    var record = el('span', 'ege-record', EGE.recordFor(lead, season).text);
-    var streak = EGE.streakFor(lead, season);
-    if (streak && !EGE.seasonOverFor(lead, season)) {
+    var record = el('span', 'ege-record', told.text);
+    var streak = told.streak;
+    if (streak && !EGE.seasonOverFor(told.lead, season)) {
       record.appendChild(el('span', 'ege-record__dot', ' · '));
       record.appendChild(el('span', 'ege-streak ege-streak--' + (streak.won ? 'win' : 'loss'),
         streak.text + ' Streak'));
     }
     fact('Record', record);
 
-    var standing = EGE.standingFor(lead, season);
+    var standing = EGE.teamStandingFor(entry.key, season);
     fact(entry.team.tier === 'nfl' ? 'Division' : 'Conference', standing
       ? (standing.place ? EGE.ordinal(standing.place) + ' in ' : 'TBD in ') + standing.league
       : (entry.team.league || 'TBD'));

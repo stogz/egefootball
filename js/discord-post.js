@@ -418,7 +418,7 @@ EGE.discordPost = (function () {
   function buildEmbed(player, game, options) {
     var siteUrl = options.siteUrl || SITE;
     var season = options.season || EGE.currentSeason;
-    var team = EGE.teamFor(player, season);
+    var team = EGE.teamFor(player, season, game.week);
 
     /* The admin publishes and posts in one click, so the week may not have
        been marked published yet when this is built. `played` is told, not

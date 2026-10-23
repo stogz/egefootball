@@ -53,10 +53,11 @@ function siteResults(season, through) {
 
   const games = ((site.stats || {})[season] || {}).games || {};
   site.players.forEach((player) => {
-    const key = simKey(site.teamKeyFor(player, season));
-    if (!key) { return; }
     (games[player.slug] || []).forEach((g) => {
       if (g.bye || g.playoff || g.week > through || !g.result) { return; }
+      /* The team he played that week for: a trade moves him (EGE.teamKeyFor). */
+      const key = simKey(site.teamKeyFor(player, season, g.week));
+      if (!key) { return; }
       if (g.injured) { egeHurt = true; }
       const us = TEAMS[key].name;
       const r = g.result;

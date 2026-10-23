@@ -767,19 +767,22 @@ EGE.wallet = (function () {
   /* The weeks the NFL Sim tab played and stored (sim_weeks), laid over the
      season files (js/stored-weeks.js): every row this visitor may read,
      which is the published weeks' for everybody and all of them for an
-     admin. Whether anything changed. A failed read, or a database without
+     admin. Under them, the six's trades (sim_trades), which everybody
+     reads. Whether anything changed. A failed read, or a database without
      the table yet, keeps what was laid over already. */
   var STORED = 'sim_weeks';
+  var SIM_TRADES = 'sim_trades';
 
   function loadStoredWeeks() {
     var c = client();
     if (!c || !EGE.storedWeeks) { return Promise.resolve(false); }
-    return c.from(STORED).select('season, week, part, games, scores, saved_at')
-      .then(function (res) {
-        if (res.error) { return false; }
-        return EGE.storedWeeks.apply(res.data || []);
-      })
-      .catch(function () { return false; });
+    return Promise.all([
+      c.from(STORED).select('season, week, part, games, scores, saved_at'),
+      c.from(SIM_TRADES).select('season, slug, week, from_team, to_team, games, saved_at')
+    ]).then(function (res) {
+      if (res[0].error) { return false; }
+      return EGE.storedWeeks.apply(res[0].data || [], res[1].error ? undefined : res[1].data || []);
+    }).catch(function () { return false; });
   }
 
   /* Every published week with when it went out and whether Discord has had
@@ -1271,6 +1274,37 @@ EGE.wallet = (function () {
     }).catch(function () { return { returned: 0 }; });
   }
 
+  /* One of the six traded on the NFL Sim tab: his games from `week` of
+     `season` on are his new team's, `games`. A wager on one of those weeks
+     was taken at the old game's line, so it comes off; a booster stays on
+     its week unless that week is now his bye, and then goes back in his
+     drawer. A week already out is left alone. Run by the admin. */
+  function clearTradedStickers(player, season, week, games) {
+    var c = client();
+    if (!c || !player || !player.email) { return Promise.resolve({ cleared: 0 }); }
+    var byes = {};
+    (games || []).forEach(function (game) { if (game.bye) { byes[game.week] = true; } });
+
+    return c.from(GAME_BOOSTERS).select('*').eq('email', player.email).eq('season', season).then(function (res) {
+      var due = (res.error ? [] : res.data || []).filter(function (row) {
+        return row.week >= week && !EGE.isPublished(season, row.week) && (EGE.isWagerKey(row.item_key) || byes[row.week]);
+      });
+      return due.reduce(function (chain, row) {
+        return chain.then(function (cleared) {
+          var item = EGE.isWagerKey(row.item_key) ? null : EGE.shopItem(row.item_key);
+          return c.from(GAME_BOOSTERS).delete().eq('id', row.id).select('id').then(function (gone) {
+            if (gone.error || !gone.data || !gone.data.length) { return cleared; }
+            return (item ? backInDrawer(player.email, item) : Promise.resolve()).then(function () { return cleared + 1; });
+          });
+        });
+      }, Promise.resolve(0));
+    }).then(function (cleared) {
+      return (cleared && season === EGE.currentSeason ? loadGameBoosters(season) : Promise.resolve()).then(function () {
+        return { cleared: cleared };
+      });
+    }).catch(function () { return { cleared: 0 }; });
+  }
+
   /* --- using and toggling ------------------------------------------------ */
 
   /* A performance booster is spent the moment it is used: one comes off the
@@ -1470,6 +1504,7 @@ EGE.wallet = (function () {
     clearLockedRows: clearLockedRows,
     loadPublishedWeeks: loadPublishedWeeks,
     loadStoredWeeks: loadStoredWeeks,
+    clearTradedStickers: clearTradedStickers,
     publishedRows: publishedRows,
     publishWeek: publishWeek,
     unpublishWeek: unpublishWeek,
