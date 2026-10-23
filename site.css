@@ -7855,6 +7855,42 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-filtersell:disabled { opacity: .4; cursor: default; }
 .ege-filtersell--phone { display: none; }
 
+/* The cards that can be merged into a holo, an icon button the size of the
+   bin, dark while it is on. A white count on its top right corner says how
+   many there are, like the white counts on the page buttons. */
+.ege-filtermerge {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  min-width: 47px;
+  min-height: 47px;
+  padding: 0 12px;
+  align-self: stretch;
+}
+.ege-filtermerge.is-on { background: var(--fb-ink); color: var(--fb-cream); border-color: var(--fb-ink); }
+.ege-filtermerge:disabled { opacity: .4; cursor: default; }
+.ege-filtermerge--phone { display: none; }
+.ege-filtermerge__badge {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  z-index: 1;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  display: inline-grid;
+  place-items: center;
+  background: var(--fb-cream);
+  color: var(--fb-ink);
+  border: 2px solid var(--fb-ink);
+  border-radius: 999px !important;   /* the kit squares every corner */
+  font-size: .6875rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1;
+}
+.ege-filtermerge__badge[hidden] { display: none; }
+
 /* Picking: a tap picks rather than opens. A picked card is ringed in red
    with SELL on its corner; one held more than once has − and + over its
    foot for how many of it go. An Iconic cannot be picked and greys out. */
@@ -8326,6 +8362,8 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-filtersell--phone { display: inline-flex; flex: none; padding: 0 14px; }
   .ege-filtersell--phone .ege-filtersell__word { display: inline; }
   .ege-filterrow .ege-filtersell { display: none; }
+  .ege-filtermerge--phone { display: inline-grid; flex: none; }
+  .ege-filterrow .ege-filtermerge { display: none; }
   .ege-sellbar { padding: 10px; }
   .ege-sellbar__text { flex-basis: 100%; font-size: .875rem; }
   .ege-sellbar__actions { flex: 1 1 100%; }
