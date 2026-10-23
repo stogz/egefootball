@@ -53,10 +53,11 @@ EGE.cardsView = (function () {
     event: null,        /* the Gold Rush's card_events row; null until read or before the schema has it */
     eventClaims: {},    /* its sets this player has locked in, and its own key once the reward is in */
     locks: {},          /* card id -> when each traded Gold Rush copy can go again */
-    filter: { rarity: 'all', kind: 'all', player: 'all', sort: 'rarity' }
+    filter: { rarity: 'all', kind: 'all', player: 'all', sort: 'rarity', merge: false }
   };
 
-  var DEFAULT_FILTER = { rarity: 'all', kind: 'all', player: 'all', sort: 'rarity' };
+  /* `merge` shows only the cards that can be merged into a holo now. */
+  var DEFAULT_FILTER = { rarity: 'all', kind: 'all', player: 'all', sort: 'rarity', merge: false };
 
   var built = false;
 
@@ -1563,6 +1564,7 @@ EGE.cardsView = (function () {
      read when it is picked and again on every refresh. */
   function pickView(email) {
     if (email && state.sell) { sellMode(false); }
+    if (email) { state.filter.merge = false; }
     state.view = email || null;
     state.other = null;
     renderFilters();
@@ -1657,9 +1659,11 @@ EGE.cardsView = (function () {
       renderCollection();
     });
     rest.appendChild(clear);
-    /* Beside the bin, Quick sell: picks cards out of the binder to sell
-       together. On a phone it sits beside the Sort button instead, since
-       the bin is in the menu there. */
+    /* Beside the bin, the cards that can be merged into a holo, then Quick
+       sell, which picks cards out of the binder to sell together. On a
+       phone both sit beside the Sort button instead, since the bin is in
+       the menu there. */
+    rest.appendChild(mergeButton(''));
     rest.appendChild(sellButton(''));
 
     /* On a phone the whole row folds into a menu behind one Sort button
@@ -1668,7 +1672,7 @@ EGE.cardsView = (function () {
        a tap outside it or Escape closes it. On a desktop the row is always
        out and the button is hidden. */
     var changes = (state.view ? 1 : 0) +
-      Object.keys(f0).filter(function (k) { return f[k] !== f0[k]; }).length;
+      Object.keys(f0).filter(function (k) { return k !== 'merge' && f[k] !== f0[k]; }).length;
     var toggle = el('button', 'fb-btn ege-filtertoggle');
     toggle.type = 'button';
     toggle.setAttribute('aria-controls', 'collectionFilterMenu');
@@ -1678,6 +1682,7 @@ EGE.cardsView = (function () {
       '<span>Sort</span>' + (changes ? '<b class="ege-filtertoggle__count">' + changes + '</b>' : '');
     toggle.addEventListener('click', function () { openFilters(!state.filtersOpen); });
     bar.appendChild(toggle);
+    bar.appendChild(mergeButton('ege-filtermerge--phone'));
     bar.appendChild(sellButton('ege-filtersell--phone'));
 
     var done = el('button', 'fb-btn fb-btn--primary ege-filterdone', 'Done');
@@ -1688,6 +1693,53 @@ EGE.cardsView = (function () {
     rest.id = 'collectionFilterMenu';
     bar.classList.toggle('is-open', Boolean(state.filtersOpen));
     bar.appendChild(rest);
+  }
+
+  /* The merge button: the binder down to the cards there are three or more
+     of, the ones that can be merged into a holo, and back. It is holo, like
+     the count on those cards, and only there while something in your own
+     collection can be merged, with a white count on its corner saying how
+     many (Sam, 2026-10-23). */
+  function mergeButton(modifier) {
+    var b = el('button', 'fb-btn ege-filtermerge' + (modifier ? ' ' + modifier : ''));
+    b.type = 'button';
+    b.title = 'Cards you can merge into a holo';
+    /* Two arrows coming together into one, cut out of whatever is behind it
+       (see site.css), so it can be ink on holo and holo on ink. */
+    var icon = el('span', 'ege-filtermerge__icon');
+    icon.setAttribute('aria-hidden', 'true');
+    b.appendChild(icon);
+    b.appendChild(el('b', 'ege-filtermerge__badge'));
+    b.addEventListener('click', function () {
+      if (state.filtersOpen) { openFilters(false); }
+      pick('merge', !state.filter.merge);
+    });
+    markMerge(b);
+    return b;
+  }
+
+  /* How many of your cards can be merged into a holo now. */
+  function mergeCount() {
+    return Object.keys(state.owned).filter(function (id) {
+      var card = EGE.cards.byId(id);
+      return card && mergeable(card) && state.owned[id] >= EGE.cards.HOLO_OF;
+    }).length;
+  }
+
+  /* The merge buttons as the collection stands: there or not, on or off,
+     and the count. Redrawn with the binder, since a pack or a sale changes
+     it without the filters being drawn again. */
+  function markMerge(only) {
+    var n = state.view || !state.loaded ? 0 : mergeCount();
+    var on = Boolean(state.filter.merge);
+    var buttons = only ? [only] : document.querySelectorAll('#collectionFilters .ege-filtermerge');
+    Array.prototype.forEach.call(buttons, function (b) {
+      b.hidden = !n;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      b.setAttribute('aria-label', 'Cards you can merge into a holo, ' + n);
+      b.querySelector('.ege-filtermerge__badge').textContent = n;
+    });
   }
 
   /* The Quick sell button: into picking cards to sell, or back out. Only
@@ -1757,14 +1809,23 @@ EGE.cardsView = (function () {
     var f = state.filter;
     var v = viewed();
 
+    /* The last of them merged: the merge button goes, and the binder shows
+       everything again rather than nothing. */
+    if (f.merge && v.mine && v.loaded && !mergeCount()) {
+      f.merge = false;
+      renderFilters();
+    }
+
     var mine = Object.keys(v.owned).map(EGE.cards.byId).filter(Boolean);
     var shown = mine.filter(function (card) {
       return rarityFits(card, f.rarity) &&
         (f.kind === 'all' || card.kind === f.kind) &&
-        (f.player === 'all' || card.slug === f.player);
+        (f.player === 'all' || card.slug === f.player) &&
+        (!f.merge || (mergeable(card) && v.owned[card.id] >= EGE.cards.HOLO_OF));
     }).sort(sorter(f.sort, v.first));
 
     fillBinder(grid, shown, v);
+    markMerge();
 
     byId('collectionTitle').textContent = v.mine ? 'Your Collection' : v.name + '’s Collection';
 
@@ -1824,7 +1885,7 @@ EGE.cardsView = (function () {
 
   function fillBinder(grid, cards, v) {
     var f = state.filter;
-    var key = [state.view || '', f.kind, f.player, f.sort, f.rarity].join('|');
+    var key = [state.view || '', f.kind, f.player, f.sort, f.rarity, f.merge ? 'merge' : ''].join('|');
     /* The binder as it stands, card for card. Coming back to the page, or a
        refresh that changed nothing, used to throw every card away and draw
        it again -- the lag going back to Cards, worse the further it had
