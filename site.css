@@ -7856,9 +7856,11 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-filtersell--phone { display: none; }
 
 /* The cards that can be merged into a holo, an icon button the size of the
-   bin, dark while it is on. A white count on its top right corner says how
-   many there are, like the white counts on the page buttons. */
-.ege-filtermerge {
+   bin, holo like the ×3 on those cards, and ink with a holo icon while it
+   is on. Only there while something can be merged. A white count on its
+   top right corner says how many, like the white counts on the page
+   buttons. */
+.fb-btn.ege-filtermerge {
   position: relative;
   display: inline-grid;
   place-items: center;
@@ -7866,10 +7868,24 @@ html.ege-noscroll body { overflow: hidden; }
   min-height: 47px;
   padding: 0 12px;
   align-self: stretch;
+  background: linear-gradient(125deg, #ff8fd2, #ffc874 25%, #8cffa4 50%, #7de6ff 75%, #df98ff);
 }
-.ege-filtermerge.is-on { background: var(--fb-ink); color: var(--fb-cream); border-color: var(--fb-ink); }
-.ege-filtermerge:disabled { opacity: .4; cursor: default; }
-.ege-filtermerge--phone { display: none; }
+.fb-btn.ege-filtermerge:hover { filter: brightness(1.06); }
+.fb-btn.ege-filtermerge.is-on { background: var(--fb-ink); border-color: var(--fb-ink); }
+.ege-filtermerge[hidden],
+.fb-btn.ege-filtermerge--phone { display: none; }
+/* Two arrows coming together into one, as a mask, so the same icon is ink
+   on the holo and holo on the ink. */
+.ege-filtermerge__icon {
+  width: 22px;
+  height: 22px;
+  background: var(--fb-ink);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M17 20.41L18.41 19 15 15.59 13.59 17 17 20.41zM7.5 8H11v5.59L5.59 19 7 20.41l6-6V8h3.5L12 3.5 7.5 8z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M17 20.41L18.41 19 15 15.59 13.59 17 17 20.41zM7.5 8H11v5.59L5.59 19 7 20.41l6-6V8h3.5L12 3.5 7.5 8z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.ege-filtermerge.is-on .ege-filtermerge__icon {
+  background: linear-gradient(125deg, #ff8fd2, #ffc874 25%, #8cffa4 50%, #7de6ff 75%, #df98ff);
+}
 .ege-filtermerge__badge {
   position: absolute;
   top: -10px;
@@ -7889,7 +7905,6 @@ html.ege-noscroll body { overflow: hidden; }
   letter-spacing: 0;
   line-height: 1;
 }
-.ege-filtermerge__badge[hidden] { display: none; }
 
 /* Picking: a tap picks rather than opens. A picked card is ringed in red
    with SELL on its corner; one held more than once has − and + over its
@@ -8362,7 +8377,8 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-filtersell--phone { display: inline-flex; flex: none; padding: 0 14px; }
   .ege-filtersell--phone .ege-filtersell__word { display: inline; }
   .ege-filterrow .ege-filtersell { display: none; }
-  .ege-filtermerge--phone { display: inline-grid; flex: none; }
+  .fb-btn.ege-filtermerge--phone { display: inline-grid; flex: none; }
+  .fb-btn.ege-filtermerge--phone[hidden] { display: none; }
   .ege-filterrow .ege-filtermerge { display: none; }
   .ege-sellbar { padding: 10px; }
   .ege-sellbar__text { flex-basis: 100%; font-size: .875rem; }

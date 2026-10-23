@@ -1696,15 +1696,19 @@ EGE.cardsView = (function () {
   }
 
   /* The merge button: the binder down to the cards there are three or more
-     of, the ones that can be merged into a holo, and back. A white count
-     on its corner says how many there are (Sam, 2026-10-23). Only your own
-     collection can be merged from. */
+     of, the ones that can be merged into a holo, and back. It is holo, like
+     the count on those cards, and only there while something in your own
+     collection can be merged, with a white count on its corner saying how
+     many (Sam, 2026-10-23). */
   function mergeButton(modifier) {
     var b = el('button', 'fb-btn ege-filtermerge' + (modifier ? ' ' + modifier : ''));
     b.type = 'button';
-    /* Two arrows coming together into one. */
-    b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">' +
-      '<path fill="currentColor" d="M17 20.41L18.41 19 15 15.59 13.59 17 17 20.41zM7.5 8H11v5.59L5.59 19 7 20.41l6-6V8h3.5L12 3.5 7.5 8z"/></svg>';
+    b.title = 'Cards you can merge into a holo';
+    /* Two arrows coming together into one, cut out of whatever is behind it
+       (see site.css), so it can be ink on holo and holo on ink. */
+    var icon = el('span', 'ege-filtermerge__icon');
+    icon.setAttribute('aria-hidden', 'true');
+    b.appendChild(icon);
     b.appendChild(el('b', 'ege-filtermerge__badge'));
     b.addEventListener('click', function () {
       if (state.filtersOpen) { openFilters(false); }
@@ -1722,22 +1726,19 @@ EGE.cardsView = (function () {
     }).length;
   }
 
-  /* The merge buttons as the collection stands: on or off, and the count.
-     Redrawn with the binder, since a pack or a sale changes it without the
-     filters being drawn again. */
+  /* The merge buttons as the collection stands: there or not, on or off,
+     and the count. Redrawn with the binder, since a pack or a sale changes
+     it without the filters being drawn again. */
   function markMerge(only) {
     var n = state.view || !state.loaded ? 0 : mergeCount();
     var on = Boolean(state.filter.merge);
     var buttons = only ? [only] : document.querySelectorAll('#collectionFilters .ege-filtermerge');
     Array.prototype.forEach.call(buttons, function (b) {
+      b.hidden = !n;
       b.classList.toggle('is-on', on);
       b.setAttribute('aria-pressed', on ? 'true' : 'false');
-      b.disabled = Boolean(state.view);
-      b.title = state.view ? 'Only your own cards can be merged.' : 'Cards you can merge into a holo';
-      b.setAttribute('aria-label', 'Cards you can merge into a holo' + (n ? ', ' + n : ''));
-      var badge = b.querySelector('.ege-filtermerge__badge');
-      badge.textContent = n;
-      badge.hidden = !n;
+      b.setAttribute('aria-label', 'Cards you can merge into a holo, ' + n);
+      b.querySelector('.ege-filtermerge__badge').textContent = n;
     });
   }
 
@@ -1808,6 +1809,13 @@ EGE.cardsView = (function () {
     var f = state.filter;
     var v = viewed();
 
+    /* The last of them merged: the merge button goes, and the binder shows
+       everything again rather than nothing. */
+    if (f.merge && v.mine && v.loaded && !mergeCount()) {
+      f.merge = false;
+      renderFilters();
+    }
+
     var mine = Object.keys(v.owned).map(EGE.cards.byId).filter(Boolean);
     var shown = mine.filter(function (card) {
       return rarityFits(card, f.rarity) &&
@@ -1842,9 +1850,7 @@ EGE.cardsView = (function () {
     empty.hidden = !v.loaded || shown.length > 0;
     if (v.mine) {
       empty.textContent = mine.length
-        ? (f.merge && !mergeCount()
-          ? 'Nothing to merge yet. Three of one card make a holo.'
-          : f.rarity === 'holo' && !holos
+        ? (f.rarity === 'holo' && !holos
           ? 'No holos yet. Get three of one card, then open it and merge them.'
           : f.rarity === 'gold' && !golds
           ? 'No ' + GOLD.name + ' cards yet. They come out of ' + GOLD.name + ' Packs while the event is on.'
