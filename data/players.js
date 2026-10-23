@@ -349,10 +349,10 @@ EGE.players = [
     credits: 0,
     headshot: 'headshot/clark.png',
     trophies: [
-      { name: 'CIF-SDS Open Division Championship', season: 2019, scale: 1.35,
+      { name: 'CIF-SDS Open Division Championship', season: 2019, scale: 1.2,
         image: 'icon/trophies/clark-2019-cif-sds-open-division.webp',
         about: '2019 CIF San Diego Section Open Division Champion\nCarlsbad High School' },
-      { name: 'Offensive Rookie of the Year', season: 2024,
+      { name: 'Offensive Rookie of the Year', season: 2024, scale: 1.45,
         image: 'icon/trophies/clark-2024-offensive-rookie-of-the-year.webp',
         about: '2024 Offensive Rookie of the Year\nChicago Bears' }
     ]

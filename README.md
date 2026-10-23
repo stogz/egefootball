@@ -323,10 +323,11 @@ holds:
   Championship trophy (Alabama). Jaykeb Stewart has the 2019 Florida Class
   6A State Championship trophy (Naples High School), Paxon Hatch the 2020
   and 2021 FCS National Championship trophies (North Dakota State) and the
-  2025 NFL Super Bowl trophy (New York Giants), and Cooper Clark
-  the 2019 CIF San Diego Section Open Division Championship trophy (Carlsbad
-  High School), all of them a third again as tall, beside his 2024
-  Offensive Rookie of the Year trophy (Chicago Bears) at the usual size.
+  2025 NFL Super Bowl trophy (New York Giants), all of them a third again
+  as tall. Cooper Clark has the 2019 CIF San Diego Section Open Division
+  Championship trophy (Carlsbad High School), a fifth again as tall, and
+  his 2024 Offensive Rookie of the Year trophy (Chicago Bears), the
+  tallest at nearly half again (Sam, 2026-10-23).
   A player with no trophies has no trophy case at all: the panel
   only shows once there is at least one.
 
