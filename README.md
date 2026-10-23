@@ -325,7 +325,9 @@ holds:
   and 2021 FCS National Championship trophies (North Dakota State) and the
   2025 NFL Super Bowl trophy (New York Giants), and Cooper Clark
   the 2019 CIF San Diego Section Open Division Championship trophy (Carlsbad
-  High School), all of them a third again as tall. A player with no trophies has no trophy case at all: the panel
+  High School), all of them a third again as tall, beside his 2024
+  Offensive Rookie of the Year trophy (Chicago Bears) at the usual size.
+  A player with no trophies has no trophy case at all: the panel
   only shows once there is at least one.
 
 The schedule, the game log, the ratings and the trophy case each fold away
