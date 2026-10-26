@@ -3002,10 +3002,17 @@ EGE.cardsView = (function () {
     var extras = [];
     if (rw && rw.diamonds) { extras.push('+' + rw.diamonds + ' diamonds'); }
     if (rw && rw.booster) {
-      var name = boosterName(rw.booster);
-      extras.push((/^[0-9]/.test(name) ? 'a ' : '') + name + ' in your shop inventory');
+      var name = boostersText(rw);
+      extras.push((/^[0-9]/.test(name) && !(rw.boosters > 1) ? 'a ' : '') + name + ' in your shop inventory');
     }
     return extras;
+  }
+
+  /* A reward's booster, or its `boosters` of them: "2.5x Booster", "two
+     2.5x Boosters". */
+  function boostersText(rw) {
+    var name = boosterName(rw.booster);
+    return rw.boosters > 1 ? (rw.boosters === 2 ? 'two ' : rw.boosters + ' ') + name + 's' : name;
   }
 
   /* Slots that want the same thing are one line with a pip each, so "ten
@@ -3279,7 +3286,7 @@ EGE.cardsView = (function () {
     prize.appendChild(el('strong', null, 'Reward '));
     prize.appendChild(document.createTextNode(['The Iconic ' + ev.rewardName]
       .concat(ev.bonus.diamonds ? [ev.bonus.diamonds + ' diamonds'] : [])
-      .concat(ev.bonus.booster ? [boosterName(ev.bonus.booster)] : []).join(' \u00b7 ')));
+      .concat(ev.bonus.booster ? [boostersText(ev.bonus)] : []).join(' \u00b7 ')));
     var list = el('ul', 'ege-set__needs');
     sets.forEach(function (set) {
       var done = Boolean(claims[set.key]);

@@ -1916,7 +1916,8 @@ Mystic card arts (Paxon's 2025 week 16 performance, Isaac's 2022 week 12
 79-yard touchdown). A Mystic from the pack is one of the card art 55% of the
 time (`artShare`; Sam wanted the art a little likelier than any other
 Mystic), about one pack in 24. A Halloween card (`:hw`) wears Sam's pumpkin
-on a dark purple gradient sticker with no edge and no shine, and its back
+on a dark purple gradient sticker with the sunburst's dark edge, no shine
+and no shadow, and its back
 says *Trick or Treat*. The card art wears no sticker, so nothing covers the
 art.
 
@@ -1940,11 +1941,12 @@ be traded again for 48 hours. Card Art counts only art you pulled yourself
 | October | 15 different Epic-or-better cards from October games | Legendary+ · 20 diamonds · 1.5x Booster |
 | Witching Hour | a card of each of the six from October 25–31 | Epic+ · 12 diamonds · 1.5x Booster |
 | Monster Mash | a Legendary-or-better card of each of the six | Legendary+ · 15 diamonds · 1.5x Booster |
-| Halloween | the first six sets (not Witching Hour or Monster Mash) | the Iconic HALLOWEEN card · 100 diamonds · 2.5x Booster |
+| Halloween | all eight sets | the Iconic HALLOWEEN card · 100 diamonds · two 2.5x Boosters |
 
-Every reward card is a Halloween card. The HALLOWEEN card is a stand-in
-drawn by the page until Sam's art is in: put it in `icon/cards/` and set
-`HALLOWEEN.rewardImage` in `data/cards.js`.
+Every reward card is a Halloween card. The HALLOWEEN card is Sam's art of
+Paxon and Cooper in the 2023 Holiday Bowl (`icon/cards/halloween-iconic.webp`,
+week 19, 2023), with no sticker. Its two boosters are `"boosters": 2` in
+`card_events.rewards`, which `claim_event_reward()` gives one at a time.
 
 ### Trades
 

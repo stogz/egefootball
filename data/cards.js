@@ -367,10 +367,10 @@ EGE.cards = (function () {
      is any other Mystic: `artShare` of the time (55%, Sam, 2026-10-26, who
      wanted the art slightly likelier than the rest).
 
-     Finishing the six sets Sam named (`needs`) before it ends pays the
-     Iconic HALLOWEEN card ('r:halloween:hw'). Sam is still drawing it:
-     until `rewardImage` names his art the page draws a stand-in, so putting
-     his picture in icon/cards/ and its path here is all the swap takes.
+     Finishing all eight sets (`needs`, Witching Hour and Monster Mash
+     added by Sam, 2026-10-26) before it ends pays the Iconic HALLOWEEN card
+     ('r:halloween:hw'), Sam's art of Paxon and Cooper in the 2023 Holiday
+     Bowl, with 100 diamonds and two 2.5x Boosters.
 
      Halloween cards trade on the Gold Rush's terms: a copy that changes
      hands waits 48 hours before it can go again. */
@@ -394,13 +394,14 @@ EGE.cards = (function () {
     },
     reward: 'r:halloween:hw',
     rewardName: 'HALLOWEEN card',
-    /* Sam's art for the HALLOWEEN card, 750x1050 like the GOLD RUSH card's,
-       once it is done: 'icon/cards/halloween-iconic.webp'. */
-    rewardImage: null,
+    /* Sam's art for the HALLOWEEN card, 750x1050 like the GOLD RUSH card's
+       (USC v. UNC, week 19 2023). */
+    rewardImage: 'icon/cards/halloween-iconic.webp',
     rewardSeason: 2023,
-    bonus: { diamonds: 100, booster: 'boost-2-5' },
-    /* The sets the HALLOWEEN card needs, Sam's six. The other two are extra. */
-    needs: ['graveyard', 'card-art', 'trick-or-treat', 'ufo', 'holoween', 'october'],
+    bonus: { diamonds: 100, booster: 'boost-2-5', boosters: 2 },
+    /* The sets the HALLOWEEN card needs: all eight (Sam, 2026-10-26). */
+    needs: ['graveyard', 'card-art', 'trick-or-treat', 'ufo', 'holoween', 'october',
+            'witching-hour', 'monster-mash'],
     holds: inHalloween
   };
 
@@ -1174,15 +1175,15 @@ EGE.cards = (function () {
   }
 
   /* Halloween's sets: Sam's six (2026-10-26) in his order, then two more,
-     Witching Hour and Monster Mash, that pay their rewards but are not
-     needed for the HALLOWEEN card (HALLOWEEN.needs). Card Art wants a card
+     Witching Hour and Monster Mash; the HALLOWEEN card needs all eight
+     (HALLOWEEN.needs). Card Art wants a card
      the player pulled out of a Halloween Pack themselves (`pulled`): one
      traded for does not count, and claim_event_set checks the player's own
      packs for it.
 
      The rewards (Sam left them to us): the more packs a set takes, the
      better the card and the bigger the booster; the HALLOWEEN card pays the
-     most of anything, 100 diamonds and a 2.5x. Held in card_events.rewards
+     most of anything, 100 diamonds and two 2.5x. Held in card_events.rewards
      in supabase/schema.sql too; change the two together. Simulated at four
      cards a pack, one player alone, every week out: Card Art about 80 packs
      (it cannot be traded for), Graveyard 70, U.F.O. 60, October 20,

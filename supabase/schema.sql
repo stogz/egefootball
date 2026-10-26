@@ -2988,7 +2988,8 @@ notify pgrst, 'reload schema';
 -- pack is 18 diamonds for four Halloween cards (':hw'), a Legendary or
 -- better among them now and then in costume (':hc', a card of its own),
 -- and its sets pay like the Gold Rush's. Its Iconic HALLOWEEN card
--- ('r:halloween:hw') needs six of its eight sets (card_events.needs), and
+-- ('r:halloween:hw') needs all eight of its sets (card_events.needs) and
+-- comes with two 2.5x Boosters ("boosters": 2 in its rewards), and
 -- its Card Art set only takes card art the player pulled from a Halloween
 -- Pack themselves (card_events.pulled, checked against card_packs).
 -- ===========================================================================
@@ -3043,8 +3044,8 @@ on conflict (key) do update
   set name = excluded.name, days = excluded.days, sets = excluded.sets, reward = excluded.reward,
       rewards = excluded.rewards;
 
--- Halloween: its eight sets (eventSets in data/cards.js), the six Sam named
--- that the HALLOWEEN card needs, and what each pays (HALLOWEEN.rewards and
+-- Halloween: its eight sets (eventSets in data/cards.js), all of which the
+-- HALLOWEEN card needs, and what each pays (HALLOWEEN.rewards and
 -- HALLOWEEN.bonus there; change them together).
 insert into public.card_events (key, name, days, sets, reward, rewards, tags, needs, pulled)
 values ('halloween', 'Halloween', 7,
@@ -3059,9 +3060,10 @@ values ('halloween', 'Halloween', 7,
           "ufo":            {"diamonds": 25, "booster": "boost-2-0"},
           "holoween":       {"diamonds": 30, "booster": "boost-2-0"},
           "trick-or-treat": {"diamonds": 40, "booster": "boost-2-5"},
-          "halloween":      {"diamonds": 100, "booster": "boost-2-5"}}'::jsonb,
+          "halloween":      {"diamonds": 100, "booster": "boost-2-5", "boosters": 2}}'::jsonb,
         array['hw', 'hc'],
-        array['graveyard', 'card-art', 'trick-or-treat', 'ufo', 'holoween', 'october'],
+        array['graveyard', 'card-art', 'trick-or-treat', 'ufo', 'holoween', 'october',
+              'witching-hour', 'monster-mash'],
         array['card-art'])
 on conflict (key) do update
   set name = excluded.name, days = excluded.days, sets = excluded.sets, reward = excluded.reward,
@@ -3363,6 +3365,7 @@ declare
   v_pay      jsonb;
   v_diamonds integer;
   v_booster  text;
+  v_boosters integer;
 begin
   if v_email is null then
     raise exception 'sign in first';
@@ -3386,10 +3389,13 @@ begin
   if v_booster is not null and v_booster not in ('boost-1-5', 'boost-2-0', 'boost-2-5') then
     v_booster := null;
   end if;
+  -- How many of it: "boosters" (two with the HALLOWEEN card), one if unset.
+  v_boosters := least(greatest(coalesce((v_pay ->> 'boosters')::integer, 1), 1), 5);
 
   insert into public.card_event_claims (email, event_key, set_key, reward)
   values (v_email, p_event, p_event,
-          jsonb_build_object('card', e.reward, 'diamonds', v_diamonds, 'booster', v_booster))
+          jsonb_build_object('card', e.reward, 'diamonds', v_diamonds, 'booster', v_booster,
+                             'boosters', case when v_booster is null then 0 else v_boosters end))
   on conflict (email, event_key, set_key) do nothing;
   if not found then
     raise exception 'You already have the % card.', e.name;
@@ -3401,7 +3407,9 @@ begin
   on conflict (email) do update
     set diamonds = pd.diamonds + v_diamonds, updated_at = now();
   if v_booster is not null then
-    perform public.give_booster(v_email, v_booster);
+    for i in 1 .. v_boosters loop
+      perform public.give_booster(v_email, v_booster);
+    end loop;
   end if;
   return e.reward;
 end;

@@ -5723,13 +5723,11 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-tcard--gold .ege-tcard__holo,
 .ege-tcard--stickered .ege-tcard__holo { top: 27cqw; }
 
-/* Halloween's sticker (Sam, 2026-10-26): the same sunburst in a dark
-   purple gradient, no shine and no dark die-cut edge round it, and Sam's
-   pumpkin standing over the top of it. The pumpkin sits outside the
+/* Halloween's sticker (Sam, 2026-10-26): the same sunburst with its dark
+   die-cut edge, in a dark purple gradient with no shine and no shadow, and
+   Sam's pumpkin standing over the top of it. The pumpkin sits outside the
    sunburst's cut, so it is not clipped to it. */
-.ege-sticker--purple { background: none; }
 .ege-sticker--purple .ege-sticker__face {
-  inset: 0;
   background: linear-gradient(135deg, #7a44c6 0%, #5a2aa2 45%, #34126b 100%);
 }
 .ege-sticker--purple .ege-sticker__face::before,
@@ -5745,7 +5743,6 @@ html.ege-noscroll body { overflow: hidden; }
   display: grid;
   place-items: center;
   transform: rotate(9deg);
-  filter: drop-shadow(.6cqw .8cqw .6cqw rgba(0, 0, 0, .5));
   pointer-events: none;
 }
 .ege-tcard__sticker--pumpkin .ege-sticker {
@@ -5761,12 +5758,11 @@ html.ege-noscroll body { overflow: hidden; }
   height: auto;
   margin-top: -5%;
   transform: rotate(-9deg);
-  filter: drop-shadow(0 .4cqw .3cqw rgba(30, 6, 60, .55));
 }
 
-/* The HALLOWEEN card's stand-in until Sam's art is in (EGE.cards.HALLOWEEN
-   .rewardImage): the pumpkin and the event's name on the night, in the
-   Iconic frame. */
+/* An event's Iconic card before Sam's art for it is in (no `rewardImage`;
+   the HALLOWEEN card had it until 2026-10-26): the pumpkin and the event's
+   name on the night, in the Iconic frame. */
 .ege-tcard--stand .ege-tcard__standart {
   position: relative;
   flex: 1 1 auto;
