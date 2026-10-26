@@ -5754,9 +5754,9 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-tcard__pumpkin {
   position: relative;
   z-index: 1;
-  width: 62%;
+  width: 52%;
   height: auto;
-  margin-top: -5%;
+  margin-top: -4%;
   transform: rotate(-9deg);
 }
 
