@@ -1914,7 +1914,8 @@ it from the Cards tab of the admin page and it runs seven days. The
 from October games, the Graveyard and U.F.O. kinds of game below, and two
 Mystic card arts (Paxon's 2025 week 16 performance, Isaac's 2022 week 12
 79-yard touchdown). A Halloween card (`:hw`) wears Sam's pumpkin on a purple
-foil sticker with no edge, and its back says *Trick or Treat*.
+foil sticker with no edge, and its back says *Trick or Treat*. The card art
+wears no sticker, so nothing covers the art.
 
 **Costume cards** (`:hc`): a Legendary-or-better pull from a Halloween Pack
 has a 10% chance of coming out with the player's costume headshot

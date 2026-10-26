@@ -261,10 +261,20 @@ EGE.cardsView = (function () {
     if (opts.isNew) { node.appendChild(el('span', 'ege-tcard__new', 'New')); }
   }
 
+  /* Whether a card wears its event's sticker: every event card but the
+     reward, and Halloween's card art, whose art Sam wants clear of it
+     (2026-10-26). */
+  function stickered(card) {
+    return Boolean(card.eventKey) && !card.reward &&
+      !(card.art && card.eventKey === EGE.cards.HALLOWEEN.key);
+  }
+
   /* The classes an event's card wears: ege-tcard--event, and its own,
-     ege-tcard--ev-halloween; a Gold Rush card is ege-tcard--gold too. */
+     ege-tcard--ev-halloween; a Gold Rush card is ege-tcard--gold too, and
+     one with a sticker ege-tcard--stickered. */
   function eventClass(card) {
     return (card.eventKey ? ' ege-tcard--event ege-tcard--ev-' + card.eventKey : '') +
+      (stickered(card) ? ' ege-tcard--stickered' : '') +
       (card.gold ? ' ege-tcard--gold' : '') + (card.costume ? ' ege-tcard--costume' : '');
   }
 
@@ -281,7 +291,7 @@ EGE.cardsView = (function () {
     print.decoding = 'async';
     print.draggable = false;
     node.appendChild(print);
-    if (card.eventKey && !card.reward) { node.appendChild(stickerEl(card)); }
+    if (stickered(card)) { node.appendChild(stickerEl(card)); }
     cardTags(node, opts);
     return node;
   }
@@ -398,7 +408,7 @@ EGE.cardsView = (function () {
     /* An event's card wears its sticker in the corner the logo leaves
        free, under the score; a holo says so there too, under the sticker
        on an event's holo. */
-    if (card.eventKey) { art.appendChild(stickerEl(card)); }
+    if (stickered(card)) { art.appendChild(stickerEl(card)); }
     if (card.holo) { art.appendChild(el('span', 'ege-tcard__holo', 'Holo')); }
 
     if (card.kind === 'play') {

@@ -5721,7 +5721,7 @@ html.ege-noscroll body { overflow: hidden; }
   animation: ege-sheen 9s ease-in-out infinite;
 }
 .ege-tcard--gold .ege-tcard__holo,
-.ege-tcard--event .ege-tcard__holo { top: 27cqw; }
+.ege-tcard--stickered .ege-tcard__holo { top: 27cqw; }
 
 /* Halloween's sticker (Sam, 2026-10-26): the same sunburst in shiny purple
    foil, with no dark die-cut edge round it, and Sam's pumpkin standing
@@ -5768,9 +5768,9 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-tcard__pumpkin {
   position: relative;
   z-index: 1;
-  width: 74%;
+  width: 62%;
   height: auto;
-  margin-top: -6%;
+  margin-top: -5%;
   transform: rotate(-9deg);
   filter: drop-shadow(0 .4cqw .3cqw rgba(30, 6, 60, .55));
 }
