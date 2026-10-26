@@ -5720,7 +5720,77 @@ html.ege-noscroll body { overflow: hidden; }
 :is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard__sticker .ege-sticker__face::after {
   animation: ege-sheen 9s ease-in-out infinite;
 }
-.ege-tcard--gold .ege-tcard__holo { top: 27cqw; }
+.ege-tcard--gold .ege-tcard__holo,
+.ege-tcard--stickered .ege-tcard__holo { top: 27cqw; }
+
+/* Halloween's sticker (Sam, 2026-10-26): the same sunburst with its dark
+   die-cut edge, in a dark purple gradient with no shine and no shadow, and
+   Sam's pumpkin standing over the top of it. The pumpkin sits outside the
+   sunburst's cut, so it is not clipped to it. */
+.ege-sticker--purple .ege-sticker__face {
+  background: linear-gradient(135deg, #7a44c6 0%, #5a2aa2 45%, #34126b 100%);
+}
+.ege-sticker--purple .ege-sticker__face::before,
+.ege-sticker--purple .ege-sticker__face::after { content: none; }
+.ege-tcard__sticker--pumpkin {
+  --sticker-size: 25cqw;
+  position: absolute;
+  top: 1.4cqw;
+  right: 1.6cqw;
+  z-index: 4;
+  width: var(--sticker-size);
+  height: var(--sticker-size);
+  display: grid;
+  place-items: center;
+  transform: rotate(9deg);
+  pointer-events: none;
+}
+.ege-tcard__sticker--pumpkin .ege-sticker {
+  --sticker-size: 100%;
+  position: absolute;
+  inset: 0;
+  filter: none;
+}
+.ege-tcard__pumpkin {
+  position: relative;
+  z-index: 1;
+  width: 52%;
+  height: auto;
+  margin-top: -4%;
+  transform: rotate(-9deg);
+}
+
+/* An event's Iconic card before Sam's art for it is in (no `rewardImage`;
+   the HALLOWEEN card had it until 2026-10-26): the pumpkin and the event's
+   name on the night, in the Iconic frame. */
+.ege-tcard--stand .ege-tcard__standart {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4cqw;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(255, 140, 30, .45), rgba(255, 140, 30, 0) 55%),
+    radial-gradient(circle at 80% 12%, rgba(240, 226, 255, .5) 0 4cqw, rgba(240, 226, 255, 0) 4.4cqw),
+    linear-gradient(180deg, #1b0a33 0%, #3d1470 60%, #12061f 100%);
+  border-bottom: .8cqw solid var(--fb-ink);
+}
+.ege-tcard__standmark {
+  width: 56cqw;
+  height: auto;
+  filter: drop-shadow(0 0 4cqw rgba(255, 140, 30, .7));
+}
+.ege-tcard__standname {
+  font-family: var(--fb-font-display);
+  font-size: 13cqw;
+  line-height: 1;
+  text-transform: uppercase;
+  color: #ff8a1f;
+  text-shadow: .8cqw .8cqw 0 #12061f;
+}
 
 /* The GOLD RUSH card, printed from Sam's art, is the picture and nothing
    else. */
@@ -5845,6 +5915,23 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-tcard--backgold .ege-tcard__backword { color: #17120a; }
 .ege-tcard--backgold .ege-tcard__backword em { color: #fff6c8; text-shadow: .4cqw .4cqw 0 #17120a; }
 
+/* A Halloween card's back (Sam, 2026-10-26): the ball in pumpkin orange on
+   night purple and black, and Trick or Treat in place of the name. */
+.ege-tcard--back.ege-tcard--backhalloween { background: linear-gradient(135deg, #ff8a1f, #c24f00); }
+.ege-tcard--backhalloween .ege-tcard__face {
+  background:
+    radial-gradient(circle at 50% 44%, rgba(255, 138, 31, .32), rgba(255, 138, 31, 0) 52%),
+    repeating-linear-gradient(-45deg, #2a0f4d 0 7cqw, #12061f 7cqw 14cqw);
+}
+.ege-tcard--backhalloween .ege-tcard__backmark {
+  background: #ff8a1f;
+  border-color: #12061f;
+  box-shadow: 0 0 0 1cqw #ff8a1f;
+}
+.ege-tcard--backhalloween .ege-tcard__backmark::after { background: #12061f; }
+.ege-tcard--backhalloween .ege-tcard__backword { color: #f1e2ff; }
+.ege-tcard--backhalloween .ege-tcard__backword em { color: #ff8a1f; text-shadow: .4cqw .4cqw 0 #12061f; }
+
 /* --- packs --------------------------------------------------------------- */
 
 /* Every pack on one row on a computer, the Gold Rush Pack too (Sam,
@@ -5898,6 +5985,11 @@ html.ege-noscroll body { overflow: hidden; }
   background: linear-gradient(180deg, #fff6d6, #fff 46%);
   box-shadow: inset 0 6px 0 var(--fb-gold);
 }
+.ege-packtile--halloween {
+  background: linear-gradient(180deg, #f1e4ff, #fff 46%);
+  box-shadow: inset 0 6px 0 #ff8a1f;
+}
+.ege-packtile--halloween .ege-packtile__ends { background: #ff8a1f; }
 .ege-packtile__ends {
   margin: 0;
   padding: 2px 10px;
@@ -6071,6 +6163,40 @@ html.ege-noscroll body { overflow: hidden; }
   background:
     radial-gradient(circle at 50% 50%, #fff0a8 0 18%, #f0b82a 22% 36%, #8a5a0c 40% 46%, transparent 50%) 0 0 / 5cqw 5cqw,
     #251703;
+  border-top: .5cqw solid var(--pack-hi);
+}
+
+/* The Halloween Pack: night-purple foil with Sam's pumpkin big under the
+   prizm, orange bars, its name low across the bottom, and an orange glow
+   the way the Gold Rush Pack glows gold. */
+.ege-pack.ege-pack--halloween {
+  --foil: linear-gradient(135deg, #12061f 0%, #3d1470 20%, #8a4fd8 36%, #4a1a8c 52%,
+                          #b07cf2 68%, #2a0f4d 84%, #12061f 100%);
+  --pack-deep: #12061f;
+  --pack-hi: #ff8a1f;
+  filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 10px rgba(255, 138, 31, .7));
+  animation: ege-pumpkin-glow 3.2s ease-in-out var(--glow-phase, 0s) infinite;
+}
+@keyframes ege-pumpkin-glow {
+  0%, 100% { filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 8px rgba(255, 138, 31, .55)); }
+  50%      { filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 18px rgba(255, 160, 60, .95)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ege-pack.ege-pack--halloween { animation: none; }
+}
+.ege-pack--halloween .ege-pack__logo { top: 15%; max-height: 50%; max-width: 80cqw; }
+.ege-pack--halloween .ege-pack__name { top: auto; bottom: 17%; padding: 0 2cqw; font-size: 14cqw; }
+/* A row of little pumpkins on the night above the foot band. */
+.ege-pack--halloween .ege-pack__foot::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + .9cqw);
+  height: 5cqw;
+  background:
+    radial-gradient(ellipse 42% 36% at 50% 58%, #ff8a1f 0 92%, transparent 100%) 0 0 / 5cqw 5cqw,
+    #12061f;
   border-top: .5cqw solid var(--pack-hi);
 }
 
@@ -7145,14 +7271,42 @@ html.ege-noscroll body { overflow: hidden; }
   line-height: 1.5;
 }
 
+/* Two events at once are two of these, one under the other. */
+#eventSets { display: flex; flex-direction: column; gap: 28px; }
+
+/* Halloween's banner: night purple, pumpkin orange. */
+.ege-event--halloween {
+  background:
+    radial-gradient(circle at 88% 0%, rgba(255, 138, 31, .42), rgba(255, 138, 31, 0) 46%),
+    repeating-linear-gradient(115deg, rgba(176, 124, 242, .1) 0 10px, rgba(176, 124, 242, 0) 10px 22px),
+    #12061f;
+  box-shadow: 4px 4px 0 #ff8a1f;
+}
+.ege-event--halloween .ege-event__name {
+  background: linear-gradient(180deg, #ffd9a8 0%, #ff8a1f 46%, #c24f00 62%, #ffb05a 84%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.ege-event--halloween .ege-event__when { border-color: #ff8a1f; color: #ff8a1f; }
+
 /* Its sets are edged in gold; a set ready to lock in glows gold rather
-   than the Library's orange. */
+   than the Library's orange. Halloween's are edged in pumpkin orange and
+   glow purple. */
 .ege-set--event { border-color: var(--fb-ink); box-shadow: inset 0 4px 0 var(--fb-gold); }
 .ege-set--event.is-complete {
   border-color: #b57712;
   background: #fff8dc;
   box-shadow: inset 0 4px 0 var(--fb-gold), 4px 4px 0 var(--fb-gold);
 }
+.ege-set--ev-halloween { box-shadow: inset 0 4px 0 #ff8a1f; }
+.ege-set--ev-halloween.is-complete {
+  border-color: #6a2fc2;
+  background: #f4ecff;
+  box-shadow: inset 0 4px 0 #ff8a1f, 4px 4px 0 #7b3fd0;
+}
+.ege-set__pip--event.is-filled { background: var(--fb-gold); }
+.ege-set--ev-halloween .ege-set__pip--event.is-filled { background: #ff8a1f; }
+
 /* The last set shows the card it pays beside the six it needs. */
 .ege-set__final {
   display: flex;

@@ -1065,17 +1065,22 @@ as $$
   select p_id ~ '^(p:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}|h:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}:[0-9]{1,2})$';
 $$;
 
--- A Gold Rush card (the Gold Rush, at the end of this file): a card's id
--- with ':gr' on the end, one of the two card-art cards ('a:...:gr'), or the
--- GOLD RUSH card the event pays ('r:gold-rush:gr'). Only the Gold Rush Pack
--- and the event's reward give these out; every standard way in keeps to
--- is_card_id.
+-- A limited-time event's card (the events, at the end of this file): a
+-- card's id with the event's tag on the end -- ':gr' for the Gold Rush,
+-- ':hw' for Halloween, ':hc' for a Halloween costume card -- one of Sam's
+-- card-art cards ('a:...:gr', 'a:...:hw'; a play's has its place in the
+-- game too), or an event's own Iconic card ('r:gold-rush:gr',
+-- 'r:halloween:hw'). Only an event's pack and its rewards give these out;
+-- every standard way in keeps to is_card_id.
 create or replace function public.is_event_card_id(p_id text)
 returns boolean
 language sql
 immutable
 as $$
-  select coalesce(p_id ~ '^(p:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}|h:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}:[0-9]{1,2}|a:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}|r:gold-rush):gr$', false);
+  select coalesce(
+    p_id ~ '^(p:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}|h:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}:[0-9]{1,2}):(gr|hw|hc)$'
+    or p_id ~ '^a:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}(:[0-9]{1,2})?:(gr|hw)$'
+    or p_id in ('r:gold-rush:gr', 'r:halloween:hw'), false);
 $$;
 
 -- A holographic card: a card's id with ':holo' on the end. Only ever made
@@ -1227,6 +1232,17 @@ begin
     v_size := 4;
   end if;
 
+  -- The Halloween Pack: 18 diamonds, four Halloween cards (costume cards
+  -- among them now and then), and only while Halloween is on. Never the
+  -- HALLOWEEN card.
+  if p_pack = 'halloween' then
+    if not public.card_event_live('halloween') then
+      raise exception 'Halloween is not on, so its packs are not for sale.';
+    end if;
+    v_price := 18;
+    v_size := 4;
+  end if;
+
   -- A past season's pack, year-{season}: 14 diamonds, three cards, every
   -- one of them from that season.
   if p_pack ~ '^year-[0-9]{4}$' then
@@ -1248,8 +1264,12 @@ begin
   end if;
   foreach v_card in array p_cards loop
     if p_pack = 'gold-rush' then
-      if not public.is_event_card_id(v_card) or v_card like 'r:%' then
+      if not public.is_event_card_id(v_card) or v_card like 'r:%' or v_card !~ ':gr$' then
         raise exception 'Not a Gold Rush card: %', v_card;
+      end if;
+    elsif p_pack = 'halloween' then
+      if not public.is_event_card_id(v_card) or v_card like 'r:%' or v_card !~ ':(hw|hc)$' then
+        raise exception 'Not a Halloween card: %', v_card;
       end if;
     elsif not public.is_card_id(v_card) then
       raise exception 'Not a card: %', v_card;
@@ -1485,7 +1505,7 @@ begin
       raise exception 'Not a card: %', v_card;
     end if;
     if v_card like 'r:%' then
-      raise exception 'The GOLD RUSH card stays with whoever earned it.';
+      raise exception 'An event''s Iconic card stays with whoever earned it.';
     end if;
   end loop;
   if (select count(distinct c) from unnest(p_give) c) <> array_length(p_give, 1)
@@ -1498,12 +1518,12 @@ begin
   if not public.owns_cards(p_to, v_take) then
     raise exception 'They do not have all of those cards.';
   end if;
-  -- A Gold Rush card traded in the last 48 hours cannot go again yet.
+  -- An event's card traded in the last 48 hours cannot go again yet.
   if not public.cards_free(v_email, p_give) then
-    raise exception 'A Gold Rush card can be traded once every 48 hours, and one of yours was traded too recently.';
+    raise exception 'An event card can be traded once every 48 hours, and one of yours was traded too recently.';
   end if;
   if not public.cards_free(p_to, v_take) then
-    raise exception 'A Gold Rush card can be traded once every 48 hours, and one of theirs was traded too recently.';
+    raise exception 'An event card can be traded once every 48 hours, and one of theirs was traded too recently.';
   end if;
   if (select count(*) from public.card_trades
        where lower(from_email) = lower(v_email) and status = 'open') >= 10 then
@@ -1560,7 +1580,7 @@ begin
     return 'expired';
   end if;
 
-  -- A Gold Rush card that changes hands cools down for 48 hours with its
+  -- An event's card that changes hands cools down for 48 hours with its
   -- new owner (lock_traded_card does nothing to any other card).
   foreach v_card in array t.give loop
     perform public.take_card(t.from_email, v_card);
@@ -2223,7 +2243,7 @@ begin
     raise exception 'Not a card: %', p_card;
   end if;
   if p_card like 'r:%' then
-    raise exception 'The GOLD RUSH card stays with whoever earned it.';
+    raise exception 'An event''s Iconic card stays with whoever earned it.';
   end if;
   if p_rarity is null or p_rarity not in ('common', 'uncommon', 'rare', 'epic', 'legendary', 'mystic', 'iconic') then
     raise exception 'Not a rarity: %', p_rarity;
@@ -2252,9 +2272,9 @@ begin
   if coalesce(v_have, 0) < 1 then
     raise exception 'That card is not in your collection.';
   end if;
-  -- A sale is a trade: a Gold Rush card traded in the last 48 hours waits.
+  -- A sale is a trade: an event's card traded in the last 48 hours waits.
   if public.card_copies_free(v_email, p_card) < 1 then
-    raise exception 'A Gold Rush card can be traded once every 48 hours, and that one was traded too recently.';
+    raise exception 'An event card can be traded once every 48 hours, and that one was traded too recently.';
   end if;
 
   perform public.take_card(v_email, p_card);
@@ -2682,7 +2702,7 @@ begin
     raise exception 'Only a card can be merged into a holo: %', p_card;
   end if;
   v_holo := p_card || ':holo';
-  -- The GOLD RUSH card has no holo.
+  -- An event's Iconic card has no holo.
   if not public.is_holo_id(v_holo) then
     raise exception 'That card has no holo.';
   end if;
@@ -2704,9 +2724,9 @@ begin
    where email = v_email and card_id = p_card and quantity <= 0;
   perform public.give_card(v_email, v_holo);
 
-  -- Gold Rush copies still cooling down from a trade that went into it
-  -- take their cooldown into the holo, so merging cannot skip one.
-  if p_card like '%:gr' then
+  -- Event copies still cooling down from a trade that went into it take
+  -- their cooldown into the holo, so merging cannot skip one.
+  if p_card ~ ':(gr|hw|hc)$' then
     select count(*), max(locked_until) into v_locked, v_until
       from public.card_trade_locks
      where lower(email) = lower(v_email) and card_id = p_card and locked_until > now();
@@ -2963,6 +2983,15 @@ notify pgrst, 'reload schema';
 -- (card_trade_locks), so one set of cards cannot be passed round to finish
 -- everybody's sets. The cooldown is per copy: the others of that card a
 -- player already had trade as before.
+--
+-- Halloween (Sam, 2026-10-26) runs the same way on the same tables: its
+-- pack is 18 diamonds for four Halloween cards (':hw'), a Legendary or
+-- better among them now and then in costume (':hc', a card of its own),
+-- and its sets pay like the Gold Rush's. Its Iconic HALLOWEEN card
+-- ('r:halloween:hw') needs all eight of its sets (card_events.needs) and
+-- comes with two 2.5x Boosters ("boosters": 2 in its rewards), and
+-- its Card Art set only takes card art the player pulled from a Halloween
+-- Pack themselves (card_events.pulled, checked against card_packs).
 -- ===========================================================================
 
 create table if not exists public.card_events (
@@ -2980,6 +3009,14 @@ create table if not exists public.card_events (
 -- the event's own key what the reward card comes with:
 -- { "marathon": { "diamonds": 15, "booster": "boost-1-5" }, ... }.
 alter table public.card_events add column if not exists rewards jsonb not null default '{}'::jsonb;
+
+-- The tags on the end of the event's card ids ({gr}; {hw,hc}), the sets its
+-- reward card needs (null: every set), and the sets whose cards must have
+-- come out of the player's own packs of the event (the pack has the
+-- event's key).
+alter table public.card_events add column if not exists tags text[] not null default '{gr}';
+alter table public.card_events add column if not exists needs text[];
+alter table public.card_events add column if not exists pulled text[] not null default '{}';
 
 alter table public.card_events enable row level security;
 
@@ -3006,6 +3043,31 @@ values ('gold-rush', 'Gold Rush', 7,
 on conflict (key) do update
   set name = excluded.name, days = excluded.days, sets = excluded.sets, reward = excluded.reward,
       rewards = excluded.rewards;
+
+-- Halloween: its eight sets (eventSets in data/cards.js), all of which the
+-- HALLOWEEN card needs, and what each pays (HALLOWEEN.rewards and
+-- HALLOWEEN.bonus there; change them together).
+insert into public.card_events (key, name, days, sets, reward, rewards, tags, needs, pulled)
+values ('halloween', 'Halloween', 7,
+        array['graveyard', 'card-art', 'trick-or-treat', 'ufo', 'holoween', 'october',
+              'witching-hour', 'monster-mash'],
+        'r:halloween:hw',
+        '{"card-art":       {"diamonds": 10},
+          "witching-hour":  {"diamonds": 12, "booster": "boost-1-5"},
+          "monster-mash":   {"diamonds": 15, "booster": "boost-1-5"},
+          "october":        {"diamonds": 20, "booster": "boost-1-5"},
+          "graveyard":      {"diamonds": 20, "booster": "boost-2-0"},
+          "ufo":            {"diamonds": 25, "booster": "boost-2-0"},
+          "holoween":       {"diamonds": 30, "booster": "boost-2-0"},
+          "trick-or-treat": {"diamonds": 40, "booster": "boost-2-5"},
+          "halloween":      {"diamonds": 100, "booster": "boost-2-5", "boosters": 2}}'::jsonb,
+        array['hw', 'hc'],
+        array['graveyard', 'card-art', 'trick-or-treat', 'ufo', 'holoween', 'october',
+              'witching-hour', 'monster-mash'],
+        array['card-art'])
+on conflict (key) do update
+  set name = excluded.name, days = excluded.days, sets = excluded.sets, reward = excluded.reward,
+      rewards = excluded.rewards, tags = excluded.tags, needs = excluded.needs, pulled = excluded.pulled;
 
 -- Whether an event is on right now.
 create or replace function public.card_event_live(p_key text)
@@ -3042,7 +3104,7 @@ create policy "card event claims readable by owner or admin"
   on public.card_event_claims for select to authenticated
   using (email = auth.jwt() ->> 'email' or public.is_admin());
 
--- One row per Gold Rush copy that changed hands, until it can go again.
+-- One row per event copy that changed hands, until it can go again.
 -- Readable by any signed-in player, since the trade builder shows which of
 -- the other player's cards are cooling down.
 create table if not exists public.card_trade_locks (
@@ -3064,7 +3126,7 @@ create policy "card trade locks readable by players"
   using (true);
 
 -- How many copies of a card a collection can trade right now: all it has,
--- less the Gold Rush copies still cooling down.
+-- less the event copies still cooling down.
 create or replace function public.card_copies_free(p_email text, p_card text)
 returns integer
 language sql
@@ -3091,7 +3153,7 @@ as $$
 $$;
 
 -- A copy that has just changed hands: 48 hours before it can go again, if
--- it is a Gold Rush card. Old cooldowns are cleared out on the way.
+-- it is an event's card. Old cooldowns are cleared out on the way.
 create or replace function public.lock_traded_card(p_email text, p_card text)
 returns void
 language sql
@@ -3101,7 +3163,7 @@ as $$
   delete from public.card_trade_locks where locked_until < now() - interval '1 day';
   insert into public.card_trade_locks (email, card_id, locked_until)
   select lower(p_email), p_card, now() + interval '48 hours'
-   where p_card ~ ':gr(:holo)?$';
+   where p_card ~ ':(gr|hw|hc)(:holo)?$';
 $$;
 
 -- No more cooldowns on a card than copies of it left (a sale, a merge):
@@ -3181,10 +3243,12 @@ begin
 end;
 $$;
 
--- Locks in one of an event's sets: the page says which Gold Rush cards it
--- was made with, and they all have to be in the collection. Only while the
--- event is on, and once. Pays the set's reward: the card the page rolled
--- (a Gold Rush card, as a Library set's is any card -- the same trust),
+-- Locks in one of an event's sets: the page says which of the event's cards
+-- it was made with, and they all have to be in the collection -- and for a
+-- set in card_events.pulled, to have come out of a pack of the event's
+-- this player opened. Only while the event is on, and once. Pays the
+-- set's reward: the card the page rolled (one of the event's cards, as a
+-- Library set's is any card -- the same trust),
 -- and the diamonds and booster card_events.rewards holds for the set,
 -- whatever the page says. Returns { claimed: how many of the event's sets
 -- this player has locked in, diamonds: the balance after }.
@@ -3229,12 +3293,20 @@ begin
     raise exception 'A set is made of cards.';
   end if;
   foreach v_card in array p_cards loop
-    if v_card !~ ':gr(:holo)?$' or v_card like 'r:%' or not public.is_any_card_id(v_card) then
+    if v_card like 'r:%' or not public.is_any_card_id(v_card)
+       or not (substring(v_card from ':([a-z]+)(:holo)?$') = any(e.tags)) then
       raise exception 'Only % cards count for its sets: %', e.name, v_card;
+    end if;
+    if p_set = any(e.pulled) and not exists (
+         select 1 from public.card_packs
+          where email = v_email and pack_key = e.key
+            and regexp_replace(v_card, ':holo$', '') = any(cards)) then
+      raise exception 'That set takes a card you pulled from a % Pack yourself.', e.name;
     end if;
   end loop;
   if p_reward_card is not null
-     and (not public.is_event_card_id(p_reward_card) or p_reward_card like 'r:%') then
+     and (not public.is_event_card_id(p_reward_card) or p_reward_card like 'r:%'
+          or not (substring(p_reward_card from ':([a-z]+)$') = any(e.tags))) then
     raise exception 'Not a % card: %', e.name, p_reward_card;
   end if;
   if not public.owns_cards(v_email, p_cards) then
@@ -3277,9 +3349,10 @@ begin
 end;
 $$;
 
--- Every set locked in before the event ends: the event's reward card,
--- once, with what card_events.rewards holds under the event's own key.
--- Returns the card's id.
+-- Every set it needs (card_events.needs, else every set) locked in before
+-- the event ends: the event's reward card, once, with what
+-- card_events.rewards holds under the event's own key. Returns the card's
+-- id.
 create or replace function public.claim_event_reward(p_event text)
 returns text
 language plpgsql
@@ -3292,6 +3365,7 @@ declare
   v_pay      jsonb;
   v_diamonds integer;
   v_booster  text;
+  v_boosters integer;
 begin
   if v_email is null then
     raise exception 'sign in first';
@@ -3304,7 +3378,8 @@ begin
     raise exception 'The % is over.', e.name;
   end if;
   if (select count(*) from public.card_event_claims
-       where email = v_email and event_key = p_event and set_key = any(e.sets)) < cardinality(e.sets) then
+       where email = v_email and event_key = p_event and set_key = any(coalesce(e.needs, e.sets)))
+     < cardinality(coalesce(e.needs, e.sets)) then
     raise exception 'Lock in every % set first.', e.name;
   end if;
 
@@ -3314,10 +3389,13 @@ begin
   if v_booster is not null and v_booster not in ('boost-1-5', 'boost-2-0', 'boost-2-5') then
     v_booster := null;
   end if;
+  -- How many of it: "boosters" (two with the HALLOWEEN card), one if unset.
+  v_boosters := least(greatest(coalesce((v_pay ->> 'boosters')::integer, 1), 1), 5);
 
   insert into public.card_event_claims (email, event_key, set_key, reward)
   values (v_email, p_event, p_event,
-          jsonb_build_object('card', e.reward, 'diamonds', v_diamonds, 'booster', v_booster))
+          jsonb_build_object('card', e.reward, 'diamonds', v_diamonds, 'booster', v_booster,
+                             'boosters', case when v_booster is null then 0 else v_boosters end))
   on conflict (email, event_key, set_key) do nothing;
   if not found then
     raise exception 'You already have the % card.', e.name;
@@ -3329,7 +3407,9 @@ begin
   on conflict (email) do update
     set diamonds = pd.diamonds + v_diamonds, updated_at = now();
   if v_booster is not null then
-    perform public.give_booster(v_email, v_booster);
+    for i in 1 .. v_boosters loop
+      perform public.give_booster(v_email, v_booster);
+    end loop;
   end if;
   return e.reward;
 end;

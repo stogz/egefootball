@@ -184,6 +184,21 @@ EGE.cards = (function () {
            'Rare or better. Only Gold Rush cards complete the event’s sets.'
   });
 
+  /* The Halloween Pack, sold only while Halloween is on (see Halloween,
+     further down): four cards for 18 diamonds (Sam, 2026-10-26), on the Gold
+     Rush Pack's odds. A Legendary or better in one can come out in costume
+     (HALLOWEEN.costumeOdds). */
+  PACKS.push({
+    key: 'halloween',
+    name: 'Halloween Pack',
+    diamonds: 18,
+    size: 4,
+    floor: 'rare',
+    event: 'halloween',
+    odds: { common: 41.4, uncommon: 26, rare: 15, epic: 9, legendary: 7, mystic: 1.5, iconic: 0.1 },
+    blurb: 'Four Halloween cards, the last one Rare or better.'
+  });
+
   function pack(key) {
     return PACKS.filter(function (p) { return p.key === key; })[0] || null;
   }
@@ -215,9 +230,11 @@ EGE.cards = (function () {
   };
 
   /* The Gold Rush Pack's cover: gold foil and its name, nobody on it
-     (Sam, 2026-10-16). */
+     (Sam, 2026-10-16). The Halloween Pack's: purple foil with Sam's pumpkin
+     big behind its name. */
   var EVENT_COVERS = {
-    'gold-rush': { theme: 'goldrush' }
+    'gold-rush': { theme: 'goldrush' },
+    'halloween': { theme: 'halloween', logo: 'icon/cards/halloween-pumpkin.webp' }
   };
 
   /* The cover for a pack, or null. */
@@ -313,30 +330,114 @@ EGE.cards = (function () {
     days: 7,
     lockHours: 48,
     pack: 'gold-rush',
+    tag: ':gr',
     reward: 'r:gold-rush:gr',
+    rewardName: 'GOLD RUSH card',
     rewardImage: 'icon/cards/gold-rush-iconic.webp',
+    rewardSeason: 2019,
     /* Paid with the GOLD RUSH card, on top of it. */
-    bonus: { diamonds: 40, booster: 'boost-2-5' }
+    bonus: { diamonds: 40, booster: 'boost-2-5' },
+    holds: inGoldRush
   };
 
-  var EVENT_TAG = ':gr';
+  /* --- Halloween ---------------------------------------------------------------
+
+     The second limited-time event (Sam, 2026-10-26), run exactly like the
+     Gold Rush: an admin starts it for seven days, the shop sells a
+     Halloween Pack while it is on (four cards, 18 diamonds), and every card
+     in one is a Halloween card -- the card again with a pumpkin sticker on
+     it, ':hw' on the end of its id -- that never stacks with any other copy.
+     Only Halloween cards fill Halloween's sets; in the Library they count as
+     the card they are, like Gold Rush cards.
+
+     The pack holds the cards Halloween's sets ask for: every card from a
+     game played in October, and every card that fits the Graveyard or
+     U.F.O. sets whenever it was played (`holds`). It can also hold Sam's two
+     card-art cards, Paxon's 2025 week 16 and Isaac's 79 yard touchdown pass
+     in 2022 week 12 (CARD_ART).
+
+     A Legendary or better pulled from one comes out in costume one time in
+     `costumeOdds` (10%, Sam, 2026-10-26): the same card with the player's
+     costume headshot (headshot/halloween/) in place of his own, and a card
+     of its own again -- ':hc' on the end, 'p:2019:andrew-parr:12:hc' -- so
+     it never stacks with the plain Halloween copy, and three of it make a
+     holo of their own. Only a Halloween Pack ever gives one.
+
+     A Mystic out of one is one of the card art a little more often than it
+     is any other Mystic: `artShare` of the time (55%, Sam, 2026-10-26, who
+     wanted the art slightly likelier than the rest).
+
+     Finishing all eight sets (`needs`, Witching Hour and Monster Mash
+     added by Sam, 2026-10-26) before it ends pays the Iconic HALLOWEEN card
+     ('r:halloween:hw'), Sam's art of Paxon and Cooper in the 2023 Holiday
+     Bowl, with 100 diamonds and two 2.5x Boosters.
+
+     Halloween cards trade on the Gold Rush's terms: a copy that changes
+     hands waits 48 hours before it can go again. */
+  var HALLOWEEN = {
+    key: 'halloween',
+    name: 'Halloween',
+    days: 7,
+    lockHours: 48,
+    pack: 'halloween',
+    tag: ':hw',
+    costumeTag: ':hc',
+    costumeOdds: 0.10,
+    artShare: 0.55,
+    costumes: {
+      'andrew-parr':    'headshot/halloween/parr-halloween.png',
+      'cooper-clark':   'headshot/halloween/clark-halloween.png',
+      'paxon-hatch':    'headshot/halloween/hatch-halloween.png',
+      'isaac-vitel':    'headshot/halloween/vitel-halloween.png',
+      'sam-stogsdill':  'headshot/halloween/stogsdill-halloween.png',
+      'jaykeb-stewart': 'headshot/halloween/stewart-halloween.png'
+    },
+    reward: 'r:halloween:hw',
+    rewardName: 'HALLOWEEN card',
+    /* Sam's art for the HALLOWEEN card, 750x1050 like the GOLD RUSH card's
+       (USC v. UNC, week 19 2023). */
+    rewardImage: 'icon/cards/halloween-iconic.webp',
+    rewardSeason: 2023,
+    bonus: { diamonds: 100, booster: 'boost-2-5', boosters: 2 },
+    /* The sets the HALLOWEEN card needs: all eight (Sam, 2026-10-26). */
+    needs: ['graveyard', 'card-art', 'trick-or-treat', 'ufo', 'holoween', 'october',
+            'witching-hour', 'monster-mash'],
+    holds: inHalloween
+  };
+
+  var EVENTS = [GOLD_RUSH, HALLOWEEN];
+
+  function eventOf(key) {
+    return EVENTS.filter(function (e) { return e.key === key; })[0] || null;
+  }
+
+  /* The event a tag on the end of an id belongs to: ':gr', ':hw' or ':hc'. */
+  function eventOfTag(tag) {
+    return EVENTS.filter(function (e) { return e.tag === tag || e.costumeTag === tag; })[0] || null;
+  }
 
   /* Sam's card art: the card the page draws, with his photo of the game in
      the picture in place of the headshot (Sam, 2026-10-20), so it is a card
      like any other and makes a holo. `photo` is the picture with the helmet
      cut out above it, on a clear background; `rise` is how far the helmet
      stands above the picture, as a % of its width, and it comes up over the
-     PERFORMANCE strip and the score. */
+     PERFORMANCE strip and the score. `event` is the pack it comes out of. A
+     play's art has the play's place in the game on its id too. */
   var CARD_ART = [
-    { id: 'a:2019:sam-stogsdill:18:gr', of: 'p:2019:sam-stogsdill:18', rarity: 'mystic',
+    { id: 'a:2019:sam-stogsdill:18:gr', of: 'p:2019:sam-stogsdill:18', rarity: 'mystic', event: 'gold-rush',
       photo: 'icon/cards/sam-stogsdill-2019-wk18-cut.webp', rise: 7.62 },
-    { id: 'a:2019:cooper-clark:11:gr', of: 'p:2019:cooper-clark:11', rarity: 'mystic',
-      photo: 'icon/cards/cooper-clark-2019-wk11-cut.webp', rise: 9.52 }
+    { id: 'a:2019:cooper-clark:11:gr', of: 'p:2019:cooper-clark:11', rarity: 'mystic', event: 'gold-rush',
+      photo: 'icon/cards/cooper-clark-2019-wk11-cut.webp', rise: 9.52 },
+    { id: 'a:2025:paxon-hatch:16:hw', of: 'p:2025:paxon-hatch:16', rarity: 'mystic', event: 'halloween',
+      photo: 'icon/cards/paxon-hatch-2025-wk16-cut.webp', rise: 11.79 },
+    { id: 'a:2022:isaac-vitel:12:0:hw', of: 'h:2022:isaac-vitel:12:0', rarity: 'mystic', event: 'halloween',
+      photo: 'icon/cards/isaac-vitel-2022-wk12-cut.webp', rise: 9.81 }
   ];
 
-  /* A Gold Rush card, holo or not. */
-  function isEventId(id) { return /:gr(:holo)?$/.test(String(id || '')); }
-  function eventIdOf(id) { return baseIdOf(id) + EVENT_TAG; }
+  /* An event's card, holo or not: Gold Rush, Halloween or a costume. */
+  var EVENT_ID = /:(gr|hw|hc)(:holo)?$/;
+  function isEventId(id) { return EVENT_ID.test(String(id || '')); }
+  function eventIdOf(id, key) { return baseIdOf(id) + (eventOf(key) || GOLD_RUSH).tag; }
 
   /* Whether a card can go in a Gold Rush Pack: Sam or Cooper, or any
      rushing touchdown. */
@@ -345,6 +446,48 @@ EGE.cards = (function () {
   }
   function inGoldRush(card) {
     return card.slug === 'sam-stogsdill' || card.slug === 'cooper-clark' || isRushTd(card);
+  }
+
+  /* What Halloween's sets look for in a card. A game's numbers are its
+     whole stat line, so a play card of a game with a fumble is not a game
+     with a fumble: those are performances. */
+  function stat(card, key) {
+    var s = card.game && card.game.stats;
+    return s && typeof s[key] === 'number' ? s[key] : 0;
+  }
+  function isGame(card) { return card.kind === 'performance' && Boolean(card.game); }
+  function octoberGame(card) { return Boolean(card.game) && /^\d{4}-10-/.test(card.game.date || ''); }
+  /* October 25 to 31, the week of Halloween. */
+  function halloweenWeek(card) { return Boolean(card.game) && /^\d{4}-10-(2[5-9]|3[01])$/.test(card.game.date || ''); }
+  /* A passing or receiving touchdown of `yards` or more at that level. */
+  function longTd(yards, tier) {
+    return function (card) {
+      return card.kind === 'play' && card.play && (card.play.kind === 'pass' || card.play.kind === 'catch') &&
+        card.play.touchdown && card.play.yards >= yards && EGE.tierFor(card.season, card.player) === tier;
+    };
+  }
+
+  var GRAVEYARD = [
+    { label: 'Isaac pick-six', test: function (c) {
+      return c.slug === 'isaac-vitel' && c.kind === 'play' && c.play && c.play.kind === 'interception';
+    } },
+    { label: 'Game with a fumble', test: function (c) { return isGame(c) && stat(c, 'fumbles') >= 1; } },
+    { label: 'Game with 6+ sacks', test: function (c) { return isGame(c) && stat(c, 'sacks') >= 6; } },
+    { label: 'Game of 10 or fewer yards', test: function (c) {
+      return isGame(c) && stat(c, 'passingYards') + stat(c, 'rushingYards') + stat(c, 'receivingYards') <= 10;
+    } },
+    { label: 'Game with 3+ interceptions', test: function (c) { return isGame(c) && stat(c, 'interceptions') >= 3; } }
+  ];
+
+  var UFO = [
+    { label: '50+ yd NFL passing or receiving TD', test: longTd(50, 'nfl') },
+    { label: '70+ yd college passing or receiving TD', test: longTd(70, 'college') },
+    { label: '200+ receiving yard game', test: function (c) { return isGame(c) && stat(c, 'receivingYards') >= 200; } },
+    { label: '400+ passing yard game', test: function (c) { return isGame(c) && stat(c, 'passingYards') >= 400; } }
+  ];
+
+  function inHalloween(card) {
+    return octoberGame(card) || GRAVEYARD.concat(UFO).some(function (s) { return s.test(card); });
   }
 
   /* Whether the event is on, from its card_events row ({ starts_at,
@@ -565,25 +708,28 @@ EGE.cards = (function () {
 
   function ensure() { if (!catalogue) { build(); } }
 
-  /* The Iconic GOLD RUSH card, paid for finishing every Gold Rush set. It
-     is not a game, so most of what a card says is left blank; the page
-     prints Sam's art for it, the two backs' 2019 seasons. */
-  function rewardCard() {
+  /* An event's Iconic card, paid for finishing its sets: the GOLD RUSH
+     card, the HALLOWEEN card. It is not a game, so most of what a card says
+     is left blank; the page prints Sam's art for it (`print`), or draws a
+     stand-in while there is none yet (`stand`). */
+  function rewardCard(ev) {
     return {
-      id: GOLD_RUSH.reward, kind: 'reward', reward: true, gold: true, eventKey: GOLD_RUSH.key,
-      rarity: 'iconic', print: GOLD_RUSH.rewardImage, points: 0,
-      season: 2019, week: 0, slug: null,
-      player: { name: 'Gold Rush', first: 'Gold Rush', headshot: '' },
-      position: '', team: null, opponent: '', versus: 'Gold Rush', event: 'Gold Rush',
-      headline: 'Every Gold Rush set', line: 'Finished every Gold Rush set before it ended.',
+      id: ev.reward, kind: 'reward', reward: true, gold: ev === GOLD_RUSH, eventKey: ev.key,
+      rarity: 'iconic', print: ev.rewardImage || null, stand: !ev.rewardImage, points: 0,
+      season: ev.rewardSeason, week: 0, slug: null,
+      player: { name: ev.name, first: ev.name, headshot: '' },
+      position: '', team: null, opponent: '', versus: ev.name, event: ev.name,
+      headline: 'Every ' + ev.name + ' set', line: 'Finished every ' + ev.name + ' set before it ended.',
       playoff: false, game: null
     };
   }
 
   /* A holo is its card over again, marked holo, with the three cards'
-     points on it; a Gold Rush card is its card again, marked gold, and a
-     card-art card that card with Sam's photo and its own rarity. Each is
-     made the first time it is asked for. The GOLD RUSH card has no holo. */
+     points on it; an event's card is its card again, marked with the
+     event (and `gold` for the Gold Rush's), a costume card that with the
+     costume headshot, and a card-art card that card with Sam's photo and its
+     own rarity. Each is made the first time it is asked for. The reward
+     cards have no holo. */
   var made = {};
 
   function byId(id) {
@@ -591,6 +737,8 @@ EGE.cards = (function () {
     if (catalogue[id]) { return catalogue[id]; }
     if (made[id] !== undefined) { return made[id]; }
     var card = null;
+    var reward = EVENTS.filter(function (e) { return e.reward === id; })[0];
+    var tag = (String(id).match(/:(gr|hw|hc)$/) || [''])[0];
     if (isHoloId(id)) {
       var one = byId(baseIdOf(id));
       if (one && !one.reward) {
@@ -598,14 +746,19 @@ EGE.cards = (function () {
           id: id, baseId: one.id, holo: true, points: round2(one.points * HOLO_OF)
         });
       }
-    } else if (id === GOLD_RUSH.reward) {
-      card = rewardCard();
-    } else if (/:gr$/.test(String(id))) {
+    } else if (reward) {
+      card = rewardCard(reward);
+    } else if (tag) {
+      var ev = eventOfTag(tag);
       var art = CARD_ART.filter(function (a) { return a.id === id; })[0] || null;
-      var plain = catalogue[art ? art.of : String(id).slice(0, -EVENT_TAG.length)];
-      if (plain) {
-        card = Object.assign({}, plain, { id: id, plainId: plain.id, gold: true, eventKey: GOLD_RUSH.key });
+      var plain = catalogue[art ? art.of : String(id).slice(0, -tag.length)];
+      if (plain && ev && (!art || art.event === ev.key)) {
+        card = Object.assign({}, plain, { id: id, plainId: plain.id, gold: ev === GOLD_RUSH, eventKey: ev.key });
         if (art) { card.art = { photo: art.photo, rise: art.rise }; card.rarity = art.rarity; }
+        if (tag === ev.costumeTag) {
+          card.costume = (ev.costumes && ev.costumes[plain.slug]) || null;
+          if (!card.costume) { card = null; }
+        }
       }
     }
     made[id] = card;
@@ -614,23 +767,24 @@ EGE.cards = (function () {
 
   function all() { ensure(); return list; }
 
-  /* What a pack can hand out right now: published weeks only. A Gold Rush
-     Pack hands out the Gold Rush card of each, and the card art once its
-     week is out. */
+  /* What a pack can hand out right now: published weeks only. An event's
+     pack hands out the event's card of each it holds, and its card art once
+     its week is out. */
   function pullable(packKey) {
     var p = pack(packKey);
+    var ev = p && p.event ? eventOf(p.event) : null;
     var cards = all().filter(function (card) {
       if (!EGE.isPublished(card.season, card.week)) { return false; }
       if (p && p.seasonOnly && card.season !== EGE.currentSeason) { return false; }
       if (p && p.season && card.season !== p.season) { return false; }
-      if (p && p.event && !inGoldRush(card)) { return false; }
+      if (ev && !ev.holds(card)) { return false; }
       return true;
     });
-    if (!p || !p.event) { return cards; }
-    return cards.map(function (card) { return byId(eventIdOf(card.id)); }).concat(
+    if (!ev) { return cards; }
+    return cards.map(function (card) { return byId(card.id + ev.tag); }).concat(
       CARD_ART.filter(function (a) {
         var of = catalogue[a.of];
-        return of && EGE.isPublished(of.season, of.week);
+        return a.event === ev.key && of && EGE.isPublished(of.season, of.week);
       }).map(function (a) { return byId(a.id); }));
   }
 
@@ -729,6 +883,23 @@ EGE.cards = (function () {
     return cards.slice().sort(function (a, b) { return compare(b, a); });
   }
 
+  /* The costume copy of an event's card, or null: never of card art,
+     which has no headshot to swap, nor of a card already in costume. */
+  function costumeOf(card) {
+    var ev = card && eventOf(card.eventKey);
+    if (!ev || !ev.costumeTag || card.art || card.costume || card.holo || card.reward) { return null; }
+    return byId(card.plainId + ev.costumeTag);
+  }
+
+  /* A Mystic from `pool`: one of its card art `share` of the time, any
+     other Mystic the rest. */
+  function mysticOf(pool, rng, share) {
+    var arts = pool.filter(function (c) { return c.rarity === 'mystic' && c.art; });
+    var rest = pool.filter(function (c) { return c.rarity === 'mystic' && !c.art; });
+    var side = arts.length && (!rest.length || rng() < share) ? arts : rest;
+    return side.length ? side[Math.floor(rng() * side.length)] : null;
+  }
+
   /* What a pack has in it. Decided before it is paid for, so what is charged
      for and what is shown are the same cards, worst to best. */
   function rollPack(packKey, rng) {
@@ -741,10 +912,20 @@ EGE.cards = (function () {
     var legends = 0;
     var cap = legendaryCap(p);
     var odds = packOdds(p);
+    var ev = p.event ? eventOf(p.event) : null;
     for (var i = 0; i < p.size; i += 1) {
       var last = i === p.size - 1;
       var ceiling = legends >= cap ? 'epic' : big ? PACK_CAP : null;
       var card = drawOne(pool, random, last ? p.floor : null, ceiling, odds);
+      /* A Mystic out of a Halloween Pack is its card art `artShare` of the
+         time, and a Legendary or better that isn't art, now and then in
+         costume. */
+      if (card && ev && ev.artShare && card.rarity === 'mystic') {
+        card = mysticOf(pool, random, ev.artShare) || card;
+      }
+      if (card && ev && ev.costumeOdds && rankOf(card.rarity) >= rankOf(PACK_CAP) && random() < ev.costumeOdds) {
+        card = costumeOf(card) || card;
+      }
       if (card) {
         out.push(card);
         if (rankOf(card.rarity) >= rankOf(PACK_CAP)) { legends += 1; }
@@ -900,14 +1081,15 @@ EGE.cards = (function () {
      2026-10-16): a Gold Rush card at or above `floor`, diamonds, and a
      booster, more for the sets that take more packs to finish -- a 1.5x
      on the middling ones, the gold 2.0x on the two longest, and the 2.5x
-     with the GOLD RUSH card. The diamonds and the booster are held in
-     card_events.rewards in supabase/schema.sql, which pays them whatever
-     the page says; change the two together.
+     with the GOLD RUSH card (GOLD_RUSH.rewards, GOLD_RUSH.bonus). The
+     diamonds and the booster are held in card_events.rewards in
+     supabase/schema.sql, which pays them whatever the page says; change
+     the two together.
 
      A career set wants a performance from every season the player has
      cards in and a play from every one he has a play in -- neither back
      has a play card from 2018, so that year is the performance alone. */
-  var eventSetsCache = null;
+  var eventSetsCache = {};
 
   function playerOf(slug) {
     return EGE.players.filter(function (p) { return p.slug === slug; })[0] || null;
@@ -936,7 +1118,7 @@ EGE.cards = (function () {
   }
 
   /* Each set's reward, hardest last. */
-  var EVENT_REWARDS = {
+  GOLD_RUSH.rewards = {
     'card-art':        { floor: 'rare', diamonds: 8 },
     'sam-stogsdill':   { floor: 'epic', diamonds: 10, booster: 'boost-1-5',
                          from: ofPlayer('sam-stogsdill'), fromText: 'Sam' },
@@ -948,8 +1130,7 @@ EGE.cards = (function () {
                          from: ofPlayer('cooper-clark'), fromText: 'Cooper' }
   };
 
-  function eventSets() {
-    if (eventSetsCache) { return eventSetsCache; }
+  function goldRushSets() {
     var out = [careerSet('cooper-clark'), careerSet('sam-stogsdill')];
 
     out.push({
@@ -990,10 +1171,88 @@ EGE.cards = (function () {
       event: GOLD_RUSH.key,
       slots: [slot('Card art', function (c) { return Boolean(c.art) && !c.reward; })]
     });
-
-    out.forEach(function (set) { set.reward = EVENT_REWARDS[set.key]; });
-    eventSetsCache = out;
     return out;
+  }
+
+  /* Halloween's sets: Sam's six (2026-10-26) in his order, then two more,
+     Witching Hour and Monster Mash; the HALLOWEEN card needs all eight
+     (HALLOWEEN.needs). Card Art wants a card
+     the player pulled out of a Halloween Pack themselves (`pulled`): one
+     traded for does not count, and claim_event_set checks the player's own
+     packs for it.
+
+     The rewards (Sam left them to us): the more packs a set takes, the
+     better the card and the bigger the booster; the HALLOWEEN card pays the
+     most of anything, 100 diamonds and two 2.5x. Held in card_events.rewards
+     in supabase/schema.sql too; change the two together. Simulated at four
+     cards a pack, one player alone, every week out: Card Art about 80 packs
+     (it cannot be traded for), Graveyard 70, U.F.O. 60, October 20,
+     Holoween 120, and Trick or Treat, the hardest, nearer 400 at a 10%
+     costume chance, so the whole of it is a trading job. */
+  var SIX = ['isaac-vitel', 'paxon-hatch', 'cooper-clark', 'andrew-parr', 'sam-stogsdill', 'jaykeb-stewart'];
+
+  HALLOWEEN.rewards = {
+    'card-art':       { floor: 'epic', diamonds: 10 },
+    'witching-hour':  { floor: 'epic', diamonds: 12, booster: 'boost-1-5' },
+    'monster-mash':   { floor: 'legendary', diamonds: 15, booster: 'boost-1-5' },
+    'october':        { floor: 'legendary', diamonds: 20, booster: 'boost-1-5' },
+    'graveyard':      { floor: 'legendary', diamonds: 20, booster: 'boost-2-0' },
+    'ufo':            { floor: 'legendary', diamonds: 25, booster: 'boost-2-0' },
+    'holoween':       { floor: 'legendary', diamonds: 30, booster: 'boost-2-0' },
+    'trick-or-treat': { floor: 'mystic', diamonds: 40, booster: 'boost-2-5' }
+  };
+
+  function halloweenSets() {
+    var epic = rankOf('epic');
+    var legendary = rankOf('legendary');
+    function first(slug) { return playerOf(slug).first; }
+    return [
+      { key: 'graveyard', name: 'Graveyard',
+        slots: GRAVEYARD.map(function (s) { return slot(s.label, s.test); }) },
+      { key: 'card-art', name: 'Card Art', pulled: true,
+        slots: [slot('Card art you pulled', function (c) { return Boolean(c.art); })] },
+      { key: 'trick-or-treat', name: 'Trick or Treat',
+        slots: SIX.map(function (slug) {
+          return slot(first(slug) + ' costume', function (c) { return Boolean(c.costume) && c.slug === slug; });
+        }) },
+      { key: 'ufo', name: 'U.F.O.',
+        slots: UFO.map(function (s) { return slot(s.label, s.test); }) },
+      { key: 'holoween', name: 'Holoween',
+        slots: ['sam-stogsdill', 'cooper-clark', 'paxon-hatch', 'jaykeb-stewart', 'andrew-parr', 'isaac-vitel']
+          .map(function (slug) {
+            return slot(first(slug) + ' Epic+ holo', function (c) {
+              return c.holo && c.slug === slug && rankOf(c.rarity) >= epic;
+            });
+          }) },
+      { key: 'october', name: 'October',
+        slots: times(15, 'Epic+ from October', function (c) { return octoberGame(c) && rankOf(c.rarity) >= epic; }) },
+      { key: 'witching-hour', name: 'Witching Hour',
+        slots: SIX.map(function (slug) {
+          return slot(first(slug) + ', Oct 25\u201331', function (c) { return c.slug === slug && halloweenWeek(c); });
+        }) },
+      { key: 'monster-mash', name: 'Monster Mash',
+        slots: SIX.map(function (slug) {
+          return slot(first(slug) + ' Legendary+', function (c) { return c.slug === slug && rankOf(c.rarity) >= legendary; });
+        }) }
+    ].map(function (set) { set.event = HALLOWEEN.key; return set; });
+  }
+
+  /* An event's sets, each with its reward. */
+  function eventSets(key) {
+    var ev = eventOf(key || GOLD_RUSH.key);
+    if (!ev) { return []; }
+    if (eventSetsCache[ev.key]) { return eventSetsCache[ev.key]; }
+    var out = ev === GOLD_RUSH ? goldRushSets() : halloweenSets();
+    out.forEach(function (set) { set.reward = ev.rewards[set.key]; });
+    eventSetsCache[ev.key] = out;
+    return out;
+  }
+
+  /* The sets an event's own card needs: `needs`, or every set. */
+  function finalSets(key) {
+    var ev = eventOf(key);
+    var sets = eventSets(key);
+    return ev && ev.needs ? sets.filter(function (set) { return ev.needs.indexOf(set.key) !== -1; }) : sets;
   }
 
   /* Which owned card fills which slot. Slots in a set either want the same
@@ -1001,16 +1260,22 @@ EGE.cards = (function () {
      each one in turn is as good as any cleverer matching. Best cards are
      offered first, so the set shows off what it is made of. A holo is its
      card in a set: it counts where the card would, and the two of them
-     never fill two slots. A Gold Rush set takes Gold Rush cards and
-     nothing else. A Library set takes those too (Sam, 2026-10-20), each as
-     the card it is a Gold Rush copy of, so a card and its Gold Rush copy
-     never fill two slots either: the card-art cards count as the game they
-     are art of, and the GOLD RUSH card as an Iconic. */
-  function fill(set, ownedIds) {
+     never fill two slots. An event's set takes that event's cards and
+     nothing else, and in Halloween's a costume card is the same card as
+     its plain Halloween copy. A Library set takes those too (Sam, 2026-10-20),
+     each as the card it is a copy of, so a card and its event copies never
+     fill two slots either: the card-art cards count as the game they are
+     art of, and the reward cards as Iconics. `pulled` ({ id: true }) is
+     what the player has pulled out of the event's packs, for a set that
+     wants a card they pulled themselves. */
+  function fill(set, ownedIds, pulled) {
     var owned = ownedIds.map(byId).filter(function (c) {
-      return c && (!set.event || c.gold);
+      if (!c) { return false; }
+      if (!set.event) { return true; }
+      if (c.eventKey !== set.event || c.reward) { return false; }
+      return !set.pulled || Boolean(pulled && pulled[c.baseId || c.id]);
     }).sort(compare);
-    function same(c) { return set.event ? c.baseId || c.id : c.plainId || c.baseId || c.id; }
+    function same(c) { return set.event === GOLD_RUSH.key ? c.baseId || c.id : c.plainId || c.baseId || c.id; }
     var used = {};
     var filled = set.slots.map(function (s) {
       var card = owned.filter(function (c) { return !used[same(c)] && s.test(c); })[0] || null;
@@ -1023,10 +1288,13 @@ EGE.cards = (function () {
   }
 
   /* The card a set pays out with. From every published card, or the set's
-     own pool when it names one, at or above its floor. A Gold Rush set pays
-     a Gold Rush card, from what its pack holds. */
+     own pool when it names one, at or above its floor. An event's set pays
+     a card of that event's, from what its pack holds, never in costume and
+     never Halloween card art, which only a pack gives. */
   function rollReward(set, rng) {
-    var pool = set.event ? pullable(GOLD_RUSH.pack) : pullable(null);
+    var ev = set.event ? eventOf(set.event) : null;
+    var pool = ev ? pullable(ev.pack) : pullable(null);
+    if (ev === HALLOWEEN) { pool = pool.filter(function (c) { return !c.art; }); }
     if (set.reward.from) {
       var narrowed = pool.filter(set.reward.from);
       if (narrowed.length) { pool = narrowed; }
@@ -1387,13 +1655,19 @@ EGE.cards = (function () {
     legendaryCap: legendaryCap,
     packOdds: packOdds,
     GOLD_RUSH: GOLD_RUSH,
+    HALLOWEEN: HALLOWEEN,
+    EVENTS: EVENTS,
+    eventOf: eventOf,
     CARD_ART: CARD_ART,
     isEventId: isEventId,
     eventIdOf: eventIdOf,
+    costumeOf: costumeOf,
     isRushTd: isRushTd,
     inGoldRush: inGoldRush,
+    inHalloween: inHalloween,
     eventLive: eventLive,
     eventSets: eventSets,
-    rebuild: function () { catalogue = null; made = {}; setsCache = null; eventSetsCache = null; }
+    finalSets: finalSets,
+    rebuild: function () { catalogue = null; made = {}; setsCache = null; eventSetsCache = {}; }
   };
 })();

@@ -6,8 +6,9 @@
    emptied, its open trades cancelled and its goals reset) and Reset goals
    (every Library set claimable again, cards kept). Either for one player or for everybody,
    and only once RESET is typed. Each account's row also counts its Player
-   Card photos, with a Remove that takes them all down. And the Gold Rush:
-   Start runs it seven days from that moment, End now closes it early.
+   Card photos, with a Remove that takes them all down. And the limited-time
+   events, the Gold Rush and Halloween, a row each: Start runs one seven
+   days from that moment, End now closes it early.
 
    The resets are database functions that refuse anybody who is not in the
    admins table (supabase/schema.sql), whatever this page lets through.
@@ -95,42 +96,78 @@ EGE.cardsAdmin = (function () {
     });
   }
 
-  /* --- the Gold Rush --------------------------------------------------- */
-
-  var GOLD = EGE.cards.GOLD_RUSH;
+  /* --- the limited-time events ------------------------------------------ */
 
   function when(iso) {
     return new Date(iso).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric',
                                                      hour: 'numeric', minute: '2-digit' });
   }
 
-  function drawEvent() {
-    var state = byId('cardsEventState');
-    var start = byId('cardsEventStart');
-    var end = byId('cardsEventEnd');
-    return EGE.cardStore.eventFor(GOLD.key).then(function (e) {
-      if (!e) {
-        state.textContent = 'The event table could not be read. Run supabase/schema.sql.';
-        start.disabled = true;
-        end.disabled = true;
-        return;
-      }
-      var on = EGE.cards.eventLive(e);
-      state.textContent = on ? 'On until ' + when(e.ends_at) + '.'
-        : e.starts_at && new Date(e.starts_at).getTime() > Date.now() ? 'Starts ' + when(e.starts_at) + '.'
-        : e.ends_at ? 'Not on. Last ran ' + when(e.starts_at) + ' to ' + when(e.ends_at) + '.'
-        : 'Not started yet.';
-      start.disabled = on;
-      end.disabled = !on;
+  /* A row for each event: its name, where it stands, Start and End now. */
+  var eventRows = {};
+
+  function buildEvents() {
+    var holder = byId('cardsEvents');
+    holder.innerHTML = '';
+    EGE.cards.EVENTS.forEach(function (ev) {
+      var box = el('div', 'ege-demo');
+      box.appendChild(el('h4', 'ege-item__name', ev.name));
+      var bar = el('div', 'fb-row fb-row--wrap ege-weekbar');
+      var stateLine = el('span', 'fb-meta');
+      stateLine.setAttribute('role', 'status');
+      var start = el('button', 'fb-btn fb-btn--primary', 'Start ' + ev.days + ' days');
+      start.type = 'button';
+      start.disabled = true;
+      var end = el('button', 'fb-btn', 'End now');
+      end.type = 'button';
+      end.disabled = true;
+      start.addEventListener('click', function () {
+        eventAction(ev, start, EGE.cardStore.startEvent,
+          'Start ' + ev.name + ' for everybody now? It runs ' + ev.days + ' days from this moment.',
+          ev.name + ' is on.');
+      });
+      end.addEventListener('click', function () {
+        eventAction(ev, end, EGE.cardStore.endEvent,
+          'End ' + ev.name + ' now? Its pack leaves the shop and its sets close.',
+          ev.name + ' is over.');
+      });
+      bar.appendChild(stateLine);
+      bar.appendChild(start);
+      bar.appendChild(end);
+      box.appendChild(bar);
+      holder.appendChild(box);
+      eventRows[ev.key] = { state: stateLine, start: start, end: end };
     });
   }
 
-  function eventAction(button, action, ask, said) {
+  function drawEvents() {
+    return EGE.cardStore.events().then(function (rows) {
+      EGE.cards.EVENTS.forEach(function (ev) {
+        var row = eventRows[ev.key];
+        var e = rows && rows[ev.key];
+        if (!e) {
+          row.state.textContent = 'The event table could not be read. Run supabase/schema.sql.';
+          row.start.disabled = true;
+          row.end.disabled = true;
+          return;
+        }
+        var on = EGE.cards.eventLive(e);
+        row.state.textContent = on ? 'On until ' + when(e.ends_at) + '.'
+          : e.starts_at && new Date(e.starts_at).getTime() > Date.now() ? 'Starts ' + when(e.starts_at) + '.'
+          : e.ends_at ? 'Not on. Last ran ' + when(e.starts_at) + ' to ' + when(e.ends_at) + '.'
+          : 'Not started yet.';
+        row.start.disabled = on;
+        row.end.disabled = !on;
+      });
+    });
+  }
+
+  function eventAction(ev, button, action, ask, said) {
     if (!window.confirm(ask)) { return; }
     button.disabled = true;
-    action(GOLD.key).then(function (res) {
-      drawEvent().then(function () {
-        if (!res.ok) { byId('cardsEventState').textContent = res.message; }
+    action(ev.key).then(function (res) {
+      drawEvents().then(function () {
+        if (!res.ok) { eventRows[ev.key].state.textContent = res.message; }
         else { note(said); }
       });
     });
@@ -181,16 +218,7 @@ EGE.cardsAdmin = (function () {
       byId('cardsDemoNote').textContent = res.message || '';
     });
 
-    byId('cardsEventStart').addEventListener('click', function () {
-      eventAction(this, EGE.cardStore.startEvent,
-        'Start the ' + GOLD.name + ' for everybody now? It runs ' + GOLD.days + ' days from this moment.',
-        'The ' + GOLD.name + ' is on.');
-    });
-    byId('cardsEventEnd').addEventListener('click', function () {
-      eventAction(this, EGE.cardStore.endEvent,
-        'End the ' + GOLD.name + ' now? Its pack leaves the shop and its sets close.',
-        'The ' + GOLD.name + ' is over.');
-    });
+    buildEvents();
 
     byId('cardsAdminGoals').addEventListener('click', function () {
       if (!armed()) { return; }
@@ -212,7 +240,7 @@ EGE.cardsAdmin = (function () {
   function render() {
     wire();
     sync();
-    drawEvent();
+    drawEvents();
     return refresh();
   }
 
