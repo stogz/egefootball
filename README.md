@@ -1913,9 +1913,12 @@ it from the Cards tab of the admin page and it runs seven days. The
 **Halloween Pack** is 4 cards for 18 diamonds, the last one Rare or better,
 from October games, the Graveyard and U.F.O. kinds of game below, and two
 Mystic card arts (Paxon's 2025 week 16 performance, Isaac's 2022 week 12
-79-yard touchdown). A Halloween card (`:hw`) wears Sam's pumpkin on a purple
-foil sticker with no edge, and its back says *Trick or Treat*. The card art
-wears no sticker, so nothing covers the art.
+79-yard touchdown). A Mystic from the pack is one of the card art 55% of the
+time (`artShare`; Sam wanted the art a little likelier than any other
+Mystic), about one pack in 24. A Halloween card (`:hw`) wears Sam's pumpkin
+on a dark purple gradient sticker with no edge and no shine, and its back
+says *Trick or Treat*. The card art wears no sticker, so nothing covers the
+art.
 
 **Costume cards** (`:hc`): a Legendary-or-better pull from a Halloween Pack
 has a 10% chance of coming out with the player's costume headshot

@@ -5723,28 +5723,17 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-tcard--gold .ege-tcard__holo,
 .ege-tcard--stickered .ege-tcard__holo { top: 27cqw; }
 
-/* Halloween's sticker (Sam, 2026-10-26): the same sunburst in shiny purple
-   foil, with no dark die-cut edge round it, and Sam's pumpkin standing
-   over the top of it. The pumpkin sits outside the sunburst's cut, so it
-   is not clipped to it. */
+/* Halloween's sticker (Sam, 2026-10-26): the same sunburst in a dark
+   purple gradient, no shine and no dark die-cut edge round it, and Sam's
+   pumpkin standing over the top of it. The pumpkin sits outside the
+   sunburst's cut, so it is not clipped to it. */
 .ege-sticker--purple { background: none; }
-.ege-sticker--purple .ege-sticker__face { inset: 0; background: #7b3fd0; }
-.ege-sticker--purple .ege-sticker__face::before {
-  background:
-    radial-gradient(circle at 26% 24%, rgba(236, 214, 255, .95) 0%, rgba(236, 214, 255, 0) 48%),
-    radial-gradient(circle at 72% 72%, rgba(46, 12, 92, .6) 0%, rgba(46, 12, 92, 0) 52%),
-    linear-gradient(120deg, #3e1478 0%, #7b3fd0 15%, #d7b4ff 30%, #6a2fc2 43%,
-                    #b07cf2 56%, #f1e2ff 68%, #7d43d6 82%, #4a1a8c 100%);
-  background-size: 150% 150%, 150% 150%, 220% 220%;
-  animation: ege-metal-flow 7s ease-in-out infinite;
+.ege-sticker--purple .ege-sticker__face {
+  inset: 0;
+  background: linear-gradient(135deg, #7a44c6 0%, #5a2aa2 45%, #34126b 100%);
 }
-.ege-sticker--purple .ege-sticker__face::after {
-  background: linear-gradient(115deg,
-    rgba(255, 255, 255, .05) 10%, rgba(240, 220, 255, .4) 32%, rgba(255, 255, 255, .08) 46%,
-    rgba(214, 170, 255, .3) 66%, rgba(255, 255, 255, .04) 85%);
-  background-size: 200% 200%;
-  animation: ege-sheen 9s ease-in-out infinite;
-}
+.ege-sticker--purple .ege-sticker__face::before,
+.ege-sticker--purple .ege-sticker__face::after { content: none; }
 .ege-tcard__sticker--pumpkin {
   --sticker-size: 25cqw;
   position: absolute;
@@ -5773,14 +5762,6 @@ html.ege-noscroll body { overflow: hidden; }
   margin-top: -5%;
   transform: rotate(-9deg);
   filter: drop-shadow(0 .4cqw .3cqw rgba(30, 6, 60, .55));
-}
-.ege-tcard__sticker--pumpkin .ege-sticker__face::before,
-.ege-tcard__sticker--pumpkin .ege-sticker__face::after { animation: none; }
-:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard__sticker--pumpkin .ege-sticker__face::before {
-  animation: ege-metal-flow 7s ease-in-out infinite;
-}
-:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard__sticker--pumpkin .ege-sticker__face::after {
-  animation: ege-sheen 9s ease-in-out infinite;
 }
 
 /* The HALLOWEEN card's stand-in until Sam's art is in (EGE.cards.HALLOWEEN

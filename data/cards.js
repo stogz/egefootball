@@ -363,6 +363,10 @@ EGE.cards = (function () {
      it never stacks with the plain Halloween copy, and three of it make a
      holo of their own. Only a Halloween Pack ever gives one.
 
+     A Mystic out of one is one of the card art a little more often than it
+     is any other Mystic: `artShare` of the time (55%, Sam, 2026-10-26, who
+     wanted the art slightly likelier than the rest).
+
      Finishing the six sets Sam named (`needs`) before it ends pays the
      Iconic HALLOWEEN card ('r:halloween:hw'). Sam is still drawing it:
      until `rewardImage` names his art the page draws a stand-in, so putting
@@ -379,6 +383,7 @@ EGE.cards = (function () {
     tag: ':hw',
     costumeTag: ':hc',
     costumeOdds: 0.10,
+    artShare: 0.55,
     costumes: {
       'andrew-parr':    'headshot/halloween/parr-halloween.png',
       'cooper-clark':   'headshot/halloween/clark-halloween.png',
@@ -392,7 +397,7 @@ EGE.cards = (function () {
     /* Sam's art for the HALLOWEEN card, 750x1050 like the GOLD RUSH card's,
        once it is done: 'icon/cards/halloween-iconic.webp'. */
     rewardImage: null,
-    rewardSeason: 2025,
+    rewardSeason: 2023,
     bonus: { diamonds: 100, booster: 'boost-2-5' },
     /* The sets the HALLOWEEN card needs, Sam's six. The other two are extra. */
     needs: ['graveyard', 'card-art', 'trick-or-treat', 'ufo', 'holoween', 'october'],
@@ -885,6 +890,15 @@ EGE.cards = (function () {
     return byId(card.plainId + ev.costumeTag);
   }
 
+  /* A Mystic from `pool`: one of its card art `share` of the time, any
+     other Mystic the rest. */
+  function mysticOf(pool, rng, share) {
+    var arts = pool.filter(function (c) { return c.rarity === 'mystic' && c.art; });
+    var rest = pool.filter(function (c) { return c.rarity === 'mystic' && !c.art; });
+    var side = arts.length && (!rest.length || rng() < share) ? arts : rest;
+    return side.length ? side[Math.floor(rng() * side.length)] : null;
+  }
+
   /* What a pack has in it. Decided before it is paid for, so what is charged
      for and what is shown are the same cards, worst to best. */
   function rollPack(packKey, rng) {
@@ -902,8 +916,12 @@ EGE.cards = (function () {
       var last = i === p.size - 1;
       var ceiling = legends >= cap ? 'epic' : big ? PACK_CAP : null;
       var card = drawOne(pool, random, last ? p.floor : null, ceiling, odds);
-      /* A Legendary or better out of a Halloween Pack, now and then in
+      /* A Mystic out of a Halloween Pack is its card art `artShare` of the
+         time, and a Legendary or better that isn't art, now and then in
          costume. */
+      if (card && ev && ev.artShare && card.rarity === 'mystic') {
+        card = mysticOf(pool, random, ev.artShare) || card;
+      }
       if (card && ev && ev.costumeOdds && rankOf(card.rarity) >= rankOf(PACK_CAP) && random() < ev.costumeOdds) {
         card = costumeOf(card) || card;
       }
