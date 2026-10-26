@@ -828,6 +828,7 @@
                   <option value="legendary">Legendary</option>
                   <option value="mystic">Mystic</option>
                   <option value="iconic">Iconic</option>
+                  <option value="costume">Costume</option>
                 </select>
               </label>
               <button class="fb-btn fb-btn--primary" id="cardsDemoRip" type="button">Rip a demo</button>
@@ -835,20 +836,9 @@
             </div>
           </div>
 
-          <!-- the limited-time event: started here, runs its days from then -->
-          <div class="ege-demo">
-            <h4 class="ege-item__name">Gold Rush</h4>
-            <p class="fb-meta">
-              Starts the Gold Rush for everybody: seven days from the moment
-              it is started, with the Gold Rush Pack in the shop and the
-              Limited Time Event box on Achievements. End now closes it early.
-            </p>
-            <div class="fb-row fb-row--wrap ege-weekbar">
-              <span class="fb-meta" id="cardsEventState" role="status"></span>
-              <button class="fb-btn fb-btn--primary" id="cardsEventStart" type="button" disabled>Start 7 days</button>
-              <button class="fb-btn" id="cardsEventEnd" type="button" disabled>End now</button>
-            </div>
-          </div>
+          <!-- the limited-time events (js/cards-admin.js draws one row each):
+               started here, each runs its days from then -->
+          <div id="cardsEvents"></div>
 
           <p class="fb-meta">
             <strong>Clear library</strong> takes every card out of the

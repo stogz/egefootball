@@ -9,7 +9,7 @@
    with the week's total. A row opens that game in the player's game log.
    Other Earnings, under it, is everything else that paid them, newest first
    (Sam, 2026-10-20): the holos they have made since merging one started
-   paying (card_merges.diamonds), the Library and Gold Rush sets they have
+   paying (card_merges.diamonds), the Library and event sets they have
    completed (the diamonds in each claim's reward), and the cards they have
    sold on the market (each sale's price).
 
@@ -215,10 +215,10 @@ EGE.diamondsView = (function () {
     return Math.max(0, Number(reward && reward.diamonds) || 0);
   }
 
-  /* A set's name from its key, out of the Library's sets or the Gold
-     Rush's. */
+  /* A set's name from its key, out of the Library's sets or an event's
+     (`event` is its key). */
   function setName(key, event) {
-    var set = (event ? EGE.cards.eventSets() : EGE.cards.sets()).filter(function (one) {
+    var set = (event ? EGE.cards.eventSets(event) : EGE.cards.sets()).filter(function (one) {
       return one.key === key;
     })[0];
     return set ? set.name : key;
@@ -246,9 +246,10 @@ EGE.diamondsView = (function () {
       var paid = rewardDiamonds(claim.reward);
       if (!paid) { return; }
       var whole = claim.set_key === claim.event_key;
+      var ev = EGE.cards.eventOf(claim.event_key) || EGE.cards.GOLD_RUSH;
       out.push({ kind: 'set', at: claim.claimed_at, diamonds: paid, gold: true,
-                 name: whole ? 'Every ' + EGE.cards.GOLD_RUSH.name + ' set' : setName(claim.set_key, true),
-                 group: EGE.cards.GOLD_RUSH.name + (whole ? ' reward' : ' set') });
+                 name: whole ? 'Every ' + ev.name + ' set' : setName(claim.set_key, ev.key),
+                 group: ev.name + (whole ? ' reward' : ' set') });
     });
     (history.sales || []).forEach(function (sale) {
       if (!(sale.price > 0)) { return; }
@@ -291,7 +292,8 @@ EGE.diamondsView = (function () {
       if (item.kind === 'holo') {
         bits.push('Holo made');
         if (card) {
-          bits.push(EGE.cards.rarity(card.rarity).name + (card.gold ? ' ' + EGE.cards.GOLD_RUSH.name : ''));
+          bits.push(EGE.cards.rarity(card.rarity).name +
+            (card.eventKey ? ' ' + EGE.cards.eventOf(card.eventKey).name : '') + (card.costume ? ' costume' : ''));
           /* What it paid is a tenth of the holo's points, so those are
              the points it shows. */
           bits.push(points(card.points * EGE.cards.HOLO_OF) + ' FPTS holo');

@@ -1868,7 +1868,9 @@ toward every set it fits, and claiming uses nothing up.
 it is a Gold Rush copy of: a card and its Gold Rush copy are one card here
 and never fill two slots, the two card-art cards count as the games they are
 art of (at their own Mystic), and the GOLD RUSH card counts as an Iconic. The
-Gold Rush's own sets still take Gold Rush cards and nothing else.
+Gold Rush's own sets still take Gold Rush cards and nothing else. Halloween
+cards count the same way: a Halloween card, its costume card and the plain
+card are one card here.
 
 | Set | Needs | Reward |
 | --- | --- | --- |
@@ -1903,6 +1905,42 @@ set has not been claimed before, and, for anybody but an admin, holds the
 reward to 40 diamonds and the 1.5x. It was `p_credits` before diamonds, and
 Postgres will not rename an argument, so the schema drops the old function
 and creates it again.
+
+### Halloween
+
+A limited-time event like the Gold Rush (Sam, 2026-10-26): an admin starts
+it from the Cards tab of the admin page and it runs seven days. The
+**Halloween Pack** is 4 cards for 18 diamonds, the last one Rare or better,
+from October games, the Graveyard and U.F.O. kinds of game below, and two
+Mystic card arts (Paxon's 2025 week 16 performance, Isaac's 2022 week 12
+79-yard touchdown). A Halloween card (`:hw`) wears Sam's pumpkin on a purple
+foil sticker with no edge, and its back says *Trick or Treat*.
+
+**Costume cards** (`:hc`): a Legendary-or-better pull from a Halloween Pack
+has a 10% chance of coming out with the player's costume headshot
+(`headshot/halloween/`; Sam picked 10% over 0.5%, which made Trick or Treat
+out of reach). A costume card is its own card: it never stacks or merges
+with the Halloween copy of the same game. Only Halloween Packs give them.
+
+Only Halloween cards fill the event's sets, and a copy that is traded can't
+be traded again for 48 hours. Card Art counts only art you pulled yourself
+(checked against `card_packs`, on the page and in `claim_event_set()`).
+
+| Set | Needs | Reward |
+| --- | --- | --- |
+| Graveyard | Isaac pick-six; game with a fumble; 6+ sacks; 10 or fewer total yards; 3+ interceptions | Legendary+ · 20 diamonds · 2.0x Booster |
+| Card Art | a Halloween card art you pulled | Epic+ · 10 diamonds |
+| Trick or Treat | a costume card of each of the six | Mystic+ · 40 diamonds · 2.5x Booster |
+| U.F.O. | 50+ yd NFL passing or receiving TD; 70+ yd college one; 200+ receiving yard game; 400+ passing yard game | Legendary+ · 25 diamonds · 2.0x Booster |
+| Holoween | an Epic-or-better holo of each of the six | Legendary+ · 30 diamonds · 2.0x Booster |
+| October | 15 different Epic-or-better cards from October games | Legendary+ · 20 diamonds · 1.5x Booster |
+| Witching Hour | a card of each of the six from October 25–31 | Epic+ · 12 diamonds · 1.5x Booster |
+| Monster Mash | a Legendary-or-better card of each of the six | Legendary+ · 15 diamonds · 1.5x Booster |
+| Halloween | the first six sets (not Witching Hour or Monster Mash) | the Iconic HALLOWEEN card · 100 diamonds · 2.5x Booster |
+
+Every reward card is a Halloween card. The HALLOWEEN card is a stand-in
+drawn by the page until Sam's art is in: put it in `icon/cards/` and set
+`HALLOWEEN.rewardImage` in `data/cards.js`.
 
 ### Trades
 

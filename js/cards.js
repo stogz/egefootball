@@ -13,9 +13,10 @@
    sides at once or not at all, a sale takes the card and pays the diamonds
    together, a merge takes three copies and hands over the holo together, a
    spin is once a day, a showcase only takes cards its player owns, and only
-   an admin can reset anything. The Gold Rush's sets are locked in and its
-   reward claimed the same way, and a Gold Rush card that changes hands
-   waits 48 hours before the database lets it go again.
+   an admin can reset anything. A limited-time event's sets (the Gold
+   Rush, Halloween) are locked in and its reward claimed the same way, and
+   an event's card that changes hands waits 48 hours before the database
+   lets it go again.
 
    Depends on: js/auth.js, data/cards.js.
    ========================================================================== */
@@ -472,7 +473,7 @@ EGE.cardStore = (function () {
       function (n) { return { ok: true, diamonds: Number(n) }; });
   }
 
-  /* --- limited-time events (the Gold Rush) ----------------------------------- */
+  /* --- limited-time events (the Gold Rush, Halloween) -------------------------- */
 
   /* An event's card_events row: { key, name, days, sets, reward, starts_at,
      ends_at }, starts_at null until an admin starts it. Readable signed out
@@ -485,26 +486,62 @@ EGE.cardStore = (function () {
       .catch(function () { return null; });
   }
 
-  /* Which of an event's sets this player has locked in, keyed by set, and
-     the event's own key once its reward is claimed. */
-  function eventClaims(email, key) {
+  /* Every event's row, keyed by event. Null when they could not be read. */
+  function events() {
     var c = client();
-    if (!c || !email || !key) { return Promise.resolve({}); }
-    return c.from('card_event_claims').select('set_key, cards, claimed_at, reward')
-      .eq('email', email).eq('event_key', key)
+    if (!c) { return Promise.resolve(null); }
+    return c.from('card_events').select('*')
+      .then(function (res) {
+        if (res.error) { return null; }
+        var out = {};
+        (res.data || []).forEach(function (row) { out[row.key] = row; });
+        return out;
+      })
+      .catch(function () { return null; });
+  }
+
+  /* Which sets this player has locked in, by event then by set, and under
+     the event's own key once its reward is claimed:
+     { 'halloween': { 'graveyard': row, ... }, ... }. */
+  function eventClaims(email) {
+    var c = client();
+    if (!c || !email) { return Promise.resolve({}); }
+    return c.from('card_event_claims').select('event_key, set_key, cards, claimed_at, reward')
+      .eq('email', email)
       .then(function (res) {
         var out = {};
         if (res.error) { return out; }
-        (res.data || []).forEach(function (row) { out[row.set_key] = row; });
+        (res.data || []).forEach(function (row) {
+          (out[row.event_key] = out[row.event_key] || {})[row.set_key] = row;
+        });
+        return out;
+      })
+      .catch(function () { return {}; });
+  }
+
+  /* Every card this player has pulled out of one kind of pack, { id: true }:
+     what Halloween's Card Art set counts, since a card traded for does not.
+     Empty when it could not be read. */
+  function pulledFrom(email, packKey) {
+    var c = client();
+    if (!c || !email || !packKey) { return Promise.resolve({}); }
+    return c.from(PACKS).select('cards').eq('email', email).eq('pack_key', packKey)
+      .then(function (res) {
+        var out = {};
+        if (res.error) { return out; }
+        (res.data || []).forEach(function (row) {
+          (row.cards || []).forEach(function (id) { out[id] = true; });
+        });
         return out;
       })
       .catch(function () { return {}; });
   }
 
   /* Locks in one of an event's sets with the cards it was made with;
-     claim_event_set checks they are all Gold Rush cards in the collection,
-     and pays the reward: the card rolled here, and the set's diamonds and
-     booster, which it holds itself. */
+     claim_event_set checks they are all that event's cards in the
+     collection (and, for a set that says so, pulled from its packs by this
+     player), and pays the reward: the card rolled here, and the set's
+     diamonds and booster, which it holds itself. */
   function claimEventSet(set, filled) {
     if (!filled.complete) { return fail('That set is not complete yet.'); }
     var reward = set.reward ? EGE.cards.rollReward(set) : null;
@@ -527,7 +564,7 @@ EGE.cardStore = (function () {
     });
   }
 
-  /* The Gold Rush copies of this player's still cooling down after a trade
+  /* The event copies of this player's still cooling down after a trade
      or a market sale: { card id: [when each can go again] }, soonest
      first. Null when they could not be read. */
   function tradeLocks(email) {
@@ -621,7 +658,9 @@ EGE.cardStore = (function () {
     cancelListing: cancelListing,
     buyListing: buyListing,
     eventFor: eventFor,
+    events: events,
     eventClaims: eventClaims,
+    pulledFrom: pulledFrom,
     claimEventSet: claimEventSet,
     claimEventReward: claimEventReward,
     tradeLocks: tradeLocks,
