@@ -132,7 +132,7 @@ EGE.stats[2025] = {
         ] },
       { week:  4, date: '2025-09-28', kickoff: '1:00pm',
         opponent: 'Cleveland Browns', home: true, conference: false,
-        result: { teamScore: 26, opponentScore: 8 }, booster: 'wager-for', line: -10.5,
+        result: { teamScore: 26, opponentScore: 8 }, booster: null,
         stats: {
           receptions: 6, receivingYards: 49, receivingYac: 11,
           receivingTd: 0, receivingLong: 20, targets: 8, carries: 0,
@@ -141,7 +141,7 @@ EGE.stats[2025] = {
         } },
       { week:  5, date: '2025-10-05', kickoff: '4:25pm',
         opponent: 'Cincinnati Bengals', home: false, conference: false,
-        result: { teamScore: 13, opponentScore: 34 }, booster: 'wager-for', line: -4.5,
+        result: { teamScore: 13, opponentScore: 34 }, booster: null,
         stats: {
           receptions: 3, receivingYards: 14, receivingYac: 10,
           receivingTd: 0, receivingLong: 8, targets: 6, carries: 0,
@@ -207,7 +207,7 @@ EGE.stats[2025] = {
         } },
       { week: 12, date: '2025-11-24', kickoff: '8:15pm',
         opponent: 'San Francisco 49ers', home: false, conference: false,
-        result: { teamScore: 17, opponentScore: 6 }, booster: 'boost-1-5',
+        result: { teamScore: 17, opponentScore: 6 }, booster: null,
         stats: {
           receptions: 4, receivingYards: 25, receivingYac: 6,
           receivingTd: 0, receivingLong: 11, targets: 6, carries: 0,
@@ -256,7 +256,7 @@ EGE.stats[2025] = {
     'cooper-clark': [
       { week:  1, date: '2025-09-08', kickoff: '7:15pm',
         opponent: 'Minnesota Vikings', home: true, conference: false, division: true,
-        result: { teamScore: 37, opponentScore: 7 }, booster: 'boost-1-5',
+        result: { teamScore: 37, opponentScore: 7 }, booster: null,
         stats: {
           carries: 13, rushingYards: 130, rushingTd: 2, rushingLong: 34,
           receptions: 6, receivingYards: 49, receivingYac: 23,
@@ -269,7 +269,7 @@ EGE.stats[2025] = {
         ] },
       { week:  2, date: '2025-09-14', kickoff: '12:00pm',
         opponent: 'Detroit Lions', home: false, conference: false, division: true, overtime: true,
-        result: { teamScore: 10, opponentScore: 16 }, booster: 'boost-2-0',
+        result: { teamScore: 10, opponentScore: 16 }, booster: null,
         stats: {
           carries: 6, rushingYards: 20, rushingTd: 0, rushingLong: 6,
           receptions: 3, receivingYards: 26, receivingYac: 15,
@@ -351,7 +351,7 @@ EGE.stats[2025] = {
         } },
       { week: 10, date: '2025-11-09', kickoff: '12:00pm',
         opponent: 'New York Giants', home: true, conference: false,
-        result: { teamScore: 25, opponentScore: 15 }, booster: 'boost-2-0',
+        result: { teamScore: 25, opponentScore: 15 }, booster: null,
         stats: {
           carries: 16, rushingYards: 75, rushingTd: 1, rushingLong: 19,
           receptions: 5, receivingYards: 63, receivingYac: 61,
@@ -393,7 +393,7 @@ EGE.stats[2025] = {
         ] },
       { week: 14, date: '2025-12-07', kickoff: '3:25pm',
         opponent: 'Green Bay Packers', home: false, conference: false, division: true,
-        result: { teamScore: 15, opponentScore: 16 }, booster: 'wager-for', line: -2.5,
+        result: { teamScore: 15, opponentScore: 16 }, booster: null,
         stats: {
           carries: 19, rushingYards: 90, rushingTd: 0, rushingLong: 24,
           receptions: 4, receivingYards: 37, receivingYac: 23,
@@ -451,7 +451,7 @@ EGE.stats[2025] = {
         ] },
       { week:  3, date: '2025-09-21', kickoff: '8:20pm',
         opponent: 'Kansas City Chiefs', home: true, conference: false, overtime: true,
-        result: { teamScore: 27, opponentScore: 24 }, booster: 'boost-1-5',
+        result: { teamScore: 27, opponentScore: 24 }, booster: null,
         stats: {
           receptions: 13, receivingYards: 170, receivingYac: 52,
           receivingTd: 1, receivingLong: 21, targets: 16, carries: 0,
@@ -472,7 +472,7 @@ EGE.stats[2025] = {
         } },
       { week:  5, date: '2025-10-05', kickoff: '1:00pm',
         opponent: 'New Orleans Saints', home: false, conference: false,
-        result: { teamScore: 23, opponentScore: 13 }, booster: 'boost-1-5',
+        result: { teamScore: 23, opponentScore: 13 }, booster: null,
         stats: {
           receptions: 4, receivingYards: 60, receivingYac: 24,
           receivingTd: 0, receivingLong: 23, targets: 7, carries: 0,
@@ -499,7 +499,7 @@ EGE.stats[2025] = {
         } },
       { week:  8, date: '2025-10-26', kickoff: '1:00pm',
         opponent: 'Philadelphia Eagles', home: false, conference: false, division: true,
-        result: { teamScore: 3, opponentScore: 41 }, booster: 'wager-against', line: -4.5,
+        result: { teamScore: 3, opponentScore: 41 }, booster: null,
         stats: {
           receptions: 2, receivingYards: 34, receivingYac: 15,
           receivingTd: 0, receivingLong: 18, targets: 4, carries: 0,
@@ -526,7 +526,7 @@ EGE.stats[2025] = {
         } },
       { week: 11, date: '2025-11-16', kickoff: '1:00pm',
         opponent: 'Green Bay Packers', home: true, conference: false,
-        result: { teamScore: 16, opponentScore: 6 }, booster: 'boost-1-5',
+        result: { teamScore: 16, opponentScore: 6 }, booster: null,
         stats: {
           receptions: 5, receivingYards: 57, receivingYac: 9,
           receivingTd: 0, receivingLong: 20, targets: 10, carries: 0,
@@ -535,7 +535,7 @@ EGE.stats[2025] = {
         } },
       { week: 12, date: '2025-11-23', kickoff: '1:00pm',
         opponent: 'Detroit Lions', home: false, conference: false,
-        result: { teamScore: 24, opponentScore: 19 }, booster: 'boost-1-5',
+        result: { teamScore: 24, opponentScore: 19 }, booster: null,
         stats: {
           receptions: 9, receivingYards: 133, receivingYac: 52,
           receivingTd: 0, receivingLong: 27, targets: 12, carries: 0,
@@ -544,7 +544,7 @@ EGE.stats[2025] = {
         } },
       { week: 13, date: '2025-12-01', kickoff: '8:15pm',
         opponent: 'New England Patriots', home: false, conference: false,
-        result: { teamScore: 34, opponentScore: 9 }, booster: 'wager-for', line: -5.5,
+        result: { teamScore: 34, opponentScore: 9 }, booster: null,
         stats: {
           receptions: 5, receivingYards: 59, receivingYac: 37,
           receivingTd: 0, receivingLong: 29, targets: 5, carries: 1,
@@ -570,11 +570,16 @@ EGE.stats[2025] = {
         opponent: 'Minnesota Vikings', home: true, conference: false,
         result: { teamScore: 27, opponentScore: 22 }, booster: null,
         stats: {
-          receptions: 9, receivingYards: 131, receivingYac: 25,
-          receivingTd: 0, receivingLong: 27, targets: 13, carries: 0,
+          receptions: 13, receivingYards: 244, receivingYac: 107,
+          receivingTd: 3, receivingLong: 88, targets: 13, carries: 0,
           rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
-          receivingAvg: 14.6, totalYards: 131, totalTd: 0
-        } },
+          receivingAvg: 18.8, totalYards: 244, totalTd: 3
+        },
+        bigPlays: [
+          '88 yard receiving touchdown',
+          '12 yard receiving touchdown',
+          '4 yard receiving touchdown'
+        ] },
       { week: 17, date: '2025-12-28', kickoff: '4:05pm',
         opponent: 'Las Vegas Raiders', home: false, conference: false,
         result: null, booster: null, stats: null },
@@ -666,7 +671,7 @@ EGE.stats[2025] = {
         ] },
       { week:  7, date: '2025-10-20', kickoff: '7:00pm',
         opponent: 'Detroit Lions', home: false, conference: false,
-        result: { teamScore: 24, opponentScore: 17 }, booster: 'boost-2-0',
+        result: { teamScore: 24, opponentScore: 17 }, booster: null,
         stats: {
           completions: 25, attempts: 37, passingYards: 252,
           passingYac: 93, passingTd: 3, interceptions: 2, carries: 2,
@@ -717,7 +722,7 @@ EGE.stats[2025] = {
         } },
       { week: 12, date: '2025-11-23', kickoff: '8:20pm',
         opponent: 'Los Angeles Rams', home: false, conference: false, injured: true, injury: 'Shoulder', health: 80,
-        result: { teamScore: 0, opponentScore: 13 }, booster: 'boost-1-5',
+        result: { teamScore: 0, opponentScore: 13 }, booster: null,
         stats: {
           completions: 0, attempts: 0, passingYards: 0, passingYac: 0,
           passingTd: 0, interceptions: 0, carries: 0, rushingYards: 0,
@@ -796,7 +801,7 @@ EGE.stats[2025] = {
         ] },
       { week:  2, date: '2025-09-14', kickoff: '10:00am',
         opponent: 'Pittsburgh Steelers', home: false, conference: false,
-        result: { teamScore: 6, opponentScore: 12 }, booster: 'wager-for', line: -4.5,
+        result: { teamScore: 6, opponentScore: 12 }, booster: null,
         stats: {
           carries: 4, rushingYards: 13, rushingTd: 0, rushingLong: 14,
           receptions: 0, receivingYards: 0, receivingYac: 0,
@@ -832,7 +837,7 @@ EGE.stats[2025] = {
         } },
       { week:  6, date: '2025-10-12', kickoff: '1:00pm',
         opponent: 'Cleveland Browns', home: true, conference: false, division: true,
-        result: { teamScore: 38, opponentScore: 13 }, booster: 'boost-2-5',
+        result: { teamScore: 38, opponentScore: 13 }, booster: null,
         stats: {
           carries: 20, rushingYards: 97, rushingTd: 3, rushingLong: 20,
           receptions: 3, receivingYards: 19, receivingYac: 17,
@@ -846,7 +851,7 @@ EGE.stats[2025] = {
         ] },
       { week:  7, date: '2025-10-16', kickoff: '8:15pm',
         opponent: 'Cincinnati Bengals', home: false, conference: false, division: true, overtime: true,
-        result: { teamScore: 30, opponentScore: 33 }, booster: 'boost-2-0',
+        result: { teamScore: 30, opponentScore: 33 }, booster: null,
         stats: {
           carries: 18, rushingYards: 100, rushingTd: 1, rushingLong: 20,
           receptions: 6, receivingYards: 65, receivingYac: 43,
@@ -859,7 +864,7 @@ EGE.stats[2025] = {
         ] },
       { week:  8, date: '2025-10-26', kickoff: '8:20pm',
         opponent: 'Green Bay Packers', home: true, conference: false,
-        result: { teamScore: 26, opponentScore: 0 }, booster: 'boost-1-5',
+        result: { teamScore: 26, opponentScore: 0 }, booster: null,
         stats: {
           carries: 21, rushingYards: 78, rushingTd: 0, rushingLong: 12,
           receptions: 2, receivingYards: 6, receivingYac: 1,
@@ -868,7 +873,7 @@ EGE.stats[2025] = {
         } },
       { week:  9, date: '2025-11-02', kickoff: '1:00pm',
         opponent: 'Indianapolis Colts', home: true, conference: false,
-        result: { teamScore: 23, opponentScore: 33 }, booster: 'boost-1-5',
+        result: { teamScore: 23, opponentScore: 33 }, booster: null,
         stats: {
           carries: 18, rushingYards: 100, rushingTd: 2, rushingLong: 37,
           receptions: 6, receivingYards: 62, receivingYac: 44,
@@ -881,7 +886,7 @@ EGE.stats[2025] = {
         ] },
       { week: 10, date: '2025-11-09', kickoff: '8:20pm',
         opponent: 'Los Angeles Chargers', home: false, conference: false, overtime: true,
-        result: { teamScore: 22, opponentScore: 19 }, booster: 'boost-1-5',
+        result: { teamScore: 22, opponentScore: 19 }, booster: null,
         stats: {
           carries: 24, rushingYards: 139, rushingTd: 0, rushingLong: 25,
           receptions: 1, receivingYards: 5, receivingYac: 1,
@@ -903,7 +908,7 @@ EGE.stats[2025] = {
         ] },
       { week: 12, date: '2025-11-23', kickoff: '1:00pm',
         opponent: 'Chicago Bears', home: false, conference: false,
-        result: { teamScore: 32, opponentScore: 10 }, booster: 'wager-for', line: -0.5,
+        result: { teamScore: 32, opponentScore: 10 }, booster: null,
         stats: {
           carries: 13, rushingYards: 51, rushingTd: 2, rushingLong: 8,
           receptions: 2, receivingYards: 10, receivingYac: 8,
@@ -1042,7 +1047,7 @@ EGE.stats[2025] = {
         result: null, booster: null, stats: null },
       { week:  7, date: '2025-10-20', kickoff: '9:00pm',
         opponent: 'Seattle Seahawks', home: false, conference: false,
-        result: { teamScore: 16, opponentScore: 10 }, booster: 'boost-1-5',
+        result: { teamScore: 16, opponentScore: 10 }, booster: null,
         stats: {
           completions: 19, attempts: 32, passingYards: 179,
           passingYac: 49, passingTd: 1, interceptions: 1, carries: 4,
@@ -1054,7 +1059,7 @@ EGE.stats[2025] = {
         ] },
       { week:  8, date: '2025-10-26', kickoff: '12:00pm',
         opponent: 'San Francisco 49ers', home: true, conference: false,
-        result: { teamScore: 41, opponentScore: 14 }, booster: 'boost-1-5',
+        result: { teamScore: 41, opponentScore: 14 }, booster: null,
         stats: {
           completions: 24, attempts: 35, passingYards: 216,
           passingYac: 75, passingTd: 3, interceptions: 0, carries: 7,
