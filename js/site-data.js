@@ -48,7 +48,7 @@
   'use strict';
 
   /* One file per season. Add the next one here when it starts. */
-  var SEASONS = [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025];
+  var SEASONS = [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
 
   /* In the order they have always loaded in, then the NFL sim's scores,
      which the admin page's NFL Sim tab writes the same way. */

@@ -70,7 +70,7 @@ without it.
 
 ## Timeline
 
-Eight seasons, one per simulated year. This ladder is official — schedule and stat
+Nine seasons, one per simulated year. This ladder is official — schedule and stat
 data is authored per season below.
 
 | Season | Level | Class |
@@ -83,6 +83,7 @@ data is authored per season below.
 | 2023 | NFL & college football | Rookie year (NFL), senior year (college) |
 | 2024 | NFL | Second year (Sam, Andrew, Jaykeb), rookie year (Paxon, Cooper, Isaac) |
 | 2025 | NFL | Third year (Sam, Andrew, Jaykeb), second year (Paxon, Cooper, Isaac) |
+| 2026 | NFL | Fourth year (Sam, Andrew, Jaykeb), third year (Paxon, Cooper, Isaac) |
 
 The simulation opens on the **2018 junior-year high school season** — that is
 what gets built first. High school graduation is spring 2020, after the 2019
@@ -2557,6 +2558,17 @@ matches the sim's 2025 schedule in `nfl-sim/data/schedules.json` game for
 game. None of the six's teams plays abroad in 2025, so nothing is
 `neutral`. The Seahawks and the Buccaneers close on the Saturday of week
 18, so the sim dates their playoff games from the Sunday after it.
+
+**2026** is set up the same way, every result still to come, with each
+of the six on the team he finished 2025 with: Sam on the Steelers and
+Andrew on the Panthers after their 2025 trades. `stats/2026.js` holds
+each team's real 2026 regular season from `nfl-sim/data/schedules.json`,
+written the way the sim writes a traded player's games (`rowsFor` in
+`nfl-sim/lib/six-trades.js`), so it matches the sim game for game. The
+Steelers' week 7 game with the Saints and the Texans' week 6 game with
+the Jaguars are abroad, so they are `neutral`. A move the sim makes
+between seasons lands in the file's `trades` from week 1 and swaps in the
+new team's games, the same as one made in season.
 
 ### Conference standings
 

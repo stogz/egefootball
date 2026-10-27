@@ -1,0 +1,416 @@
+/* ==========================================================================
+   EGE Football — the 2026 season
+   The whole season in one file: who each of them plays, when, and what they
+   did in it. One of these per season, and nothing else holds a fixture or a
+   stat line — the schedule lives here too, because a game and what happened
+   in it are the same thing.
+
+   Filling it in
+   -------------
+   `result` and `stats` are null until a game has been played. Put the numbers
+   in by hand, or use the season editor on the admin page, which writes this
+   file back out for you.
+
+   `booster` is the performance booster that was riding on the game, as its
+   shop key — 'boost-2-5', 'boost-2-0', 'boost-1-5' — or a wager,
+   'wager-for' (his own team) or 'wager-against' (the other one), or null.
+   A wager has `line` beside it, the point spread it was taken at from the
+   side it took: -3.5 means that side had to win by 4. Once a week is
+   published this is where a booster lives for good, so the row behind it
+   can be cleared out of Supabase.
+
+   Nothing here shows on the site until the admin publishes that week. The
+   numbers can sit in the repository for as long as it takes.
+
+   `bigPlays` is an optional list of the moments worth calling out, one
+   string a play — '44 yard receiving touchdown bomb'. They go out under
+   the stat line in the Discord post. A game with none leaves it off.
+
+   `overtime: true` marks a game that went to overtime. The score is still
+   the final one; the flag only adds the OT beside it.
+
+   `conference: true` marks the games listed with an asterisk, and
+   `scouts: true` marks a game scouts will be at — what Intel buys is the
+   right to see it. In the NFL the asterisk is a division game instead,
+   `division: true`, and `conference` is always false.
+
+   `injured: true` marks a game the player missed hurt, and `injury` says
+   what with — 'Bruised Shoulder'. The Discord post shows it in red, as
+   DNP Injured: Bruised Shoulder, in place of his stat line. `health` is how
+   healthy he is that week, 0 to 100; while the week is the one being played
+   his page shows an injury report with it as a bar.
+
+   `neutral: true` marks a game at a neutral site — listed as vs, and home
+   is false because it is nobody's. A kickoff of null is one that has not
+   been set yet; it shows as a dash until it is.
+
+   `playoff: true` marks a postseason game: a playoff round, and in college
+   a conference title game or a bowl too. `name` says which game it is —
+   'SEC Championship', 'Rose Bowl — CFP Semifinal' — and shows under the
+   opponent on the schedule and beside it in the Discord post. A game is
+   out of sight until the week before it is published, so a bowl is not
+   on anybody's schedule before the title game that sent them there.
+
+   `trades` is the six traded in the NFL sim that season, by slug: from
+   `week` on he plays for `to` (a key in EGE.teams) and his games are its
+   games, and the ones before it are the ones he played for `from`.
+   ========================================================================== */
+
+window.EGE = window.EGE || {};
+EGE.stats = EGE.stats || {};
+
+EGE.stats[2026] = {
+  season: 2026,
+  level: 'NFL',
+
+  games: {
+
+    /* Andrew Parr — Carolina Panthers */
+    'andrew-parr': [
+      { week:  1, date: '2026-09-13', kickoff: '1:00pm',
+        opponent: 'Chicago Bears', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  2, date: '2026-09-20', kickoff: '1:00pm',
+        opponent: 'Atlanta Falcons', home: false, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week:  3, date: '2026-09-27', kickoff: '1:00pm',
+        opponent: 'Cleveland Browns', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  4, date: '2026-10-04', kickoff: '8:20pm',
+        opponent: 'Detroit Lions', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  5, date: '2026-10-11', kickoff: null,
+        opponent: null, home: false, conference: false, bye: true,
+        result: null, booster: null, stats: null },
+      { week:  6, date: '2026-10-18', kickoff: '1:00pm',
+        opponent: 'Philadelphia Eagles', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  7, date: '2026-10-25', kickoff: '1:00pm',
+        opponent: 'Tampa Bay Buccaneers', home: true, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week:  8, date: '2026-10-29', kickoff: '8:15pm',
+        opponent: 'Green Bay Packers', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  9, date: '2026-11-08', kickoff: '1:00pm',
+        opponent: 'Denver Broncos', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 10, date: '2026-11-15', kickoff: '1:00pm',
+        opponent: 'New Orleans Saints', home: false, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week: 11, date: '2026-11-22', kickoff: '1:00pm',
+        opponent: 'Baltimore Ravens', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 12, date: '2026-11-30', kickoff: '8:15pm',
+        opponent: 'Tampa Bay Buccaneers', home: false, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week: 13, date: '2026-12-06', kickoff: '4:25pm',
+        opponent: 'Minnesota Vikings', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 14, date: '2026-12-13', kickoff: '1:00pm',
+        opponent: 'New Orleans Saints', home: true, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week: 15, date: '2026-12-20', kickoff: '1:00pm',
+        opponent: 'Cincinnati Bengals', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 16, date: '2026-12-27', kickoff: '1:00pm',
+        opponent: 'Pittsburgh Steelers', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 17, date: '2027-01-03', kickoff: '1:00pm',
+        opponent: 'Seattle Seahawks', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 18, date: '2027-01-10', kickoff: '1:00pm',
+        opponent: 'Atlanta Falcons', home: true, conference: false, division: true,
+        result: null, booster: null, stats: null },
+    ],
+
+    /* Cooper Clark — Chicago Bears */
+    'cooper-clark': [
+      { week:  1, date: '2026-09-13', kickoff: '12:00pm',
+        opponent: 'Carolina Panthers', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  2, date: '2026-09-20', kickoff: '12:00pm',
+        opponent: 'Minnesota Vikings', home: true, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week:  3, date: '2026-09-28', kickoff: '7:15pm',
+        opponent: 'Philadelphia Eagles', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  4, date: '2026-10-04', kickoff: '12:00pm',
+        opponent: 'New York Jets', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  5, date: '2026-10-11', kickoff: '12:00pm',
+        opponent: 'Green Bay Packers', home: false, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week:  6, date: '2026-10-18', kickoff: '12:00pm',
+        opponent: 'Atlanta Falcons', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  7, date: '2026-10-22', kickoff: '7:15pm',
+        opponent: 'New England Patriots', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  8, date: '2026-11-02', kickoff: '7:15pm',
+        opponent: 'Seattle Seahawks', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  9, date: '2026-11-08', kickoff: '7:20pm',
+        opponent: 'Tampa Bay Buccaneers', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 10, date: '2026-11-15', kickoff: null,
+        opponent: null, home: false, conference: false, bye: true,
+        result: null, booster: null, stats: null },
+      { week: 11, date: '2026-11-22', kickoff: '12:00pm',
+        opponent: 'New Orleans Saints', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 12, date: '2026-11-26', kickoff: '12:00pm',
+        opponent: 'Detroit Lions', home: false, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week: 13, date: '2026-12-06', kickoff: '12:00pm',
+        opponent: 'Jacksonville Jaguars', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 14, date: '2026-12-13', kickoff: '12:00pm',
+        opponent: 'Miami Dolphins', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 15, date: '2026-12-19', kickoff: '7:20pm',
+        opponent: 'Buffalo Bills', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 16, date: '2026-12-25', kickoff: '12:00pm',
+        opponent: 'Green Bay Packers', home: true, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week: 17, date: '2027-01-03', kickoff: '3:25pm',
+        opponent: 'Detroit Lions', home: true, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week: 18, date: '2027-01-10', kickoff: '12:00pm',
+        opponent: 'Minnesota Vikings', home: false, conference: false, division: true,
+        result: null, booster: null, stats: null },
+    ],
+
+    /* Paxon Hatch — New York Giants */
+    'paxon-hatch': [
+      { week:  1, date: '2026-09-13', kickoff: '8:20pm',
+        opponent: 'Dallas Cowboys', home: true, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week:  2, date: '2026-09-21', kickoff: '8:15pm',
+        opponent: 'Los Angeles Rams', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  3, date: '2026-09-27', kickoff: '1:00pm',
+        opponent: 'Tennessee Titans', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  4, date: '2026-10-04', kickoff: '1:00pm',
+        opponent: 'Arizona Cardinals', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  5, date: '2026-10-11', kickoff: '1:00pm',
+        opponent: 'Washington Commanders', home: false, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week:  6, date: '2026-10-18', kickoff: '1:00pm',
+        opponent: 'New Orleans Saints', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  7, date: '2026-10-25', kickoff: '1:00pm',
+        opponent: 'Houston Texans', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  8, date: '2026-11-01', kickoff: null,
+        opponent: null, home: false, conference: false, bye: true,
+        result: null, booster: null, stats: null },
+      { week:  9, date: '2026-11-08', kickoff: '1:00pm',
+        opponent: 'Philadelphia Eagles', home: false, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week: 10, date: '2026-11-12', kickoff: '8:15pm',
+        opponent: 'Washington Commanders', home: true, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week: 11, date: '2026-11-22', kickoff: '1:00pm',
+        opponent: 'Jacksonville Jaguars', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 12, date: '2026-11-29', kickoff: '1:00pm',
+        opponent: 'Indianapolis Colts', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 13, date: '2026-12-06', kickoff: '1:00pm',
+        opponent: 'San Francisco 49ers', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 14, date: '2026-12-13', kickoff: '4:25pm',
+        opponent: 'Seattle Seahawks', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 15, date: '2026-12-20', kickoff: '1:00pm',
+        opponent: 'Cleveland Browns', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 16, date: '2026-12-28', kickoff: '8:15pm',
+        opponent: 'Detroit Lions', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 17, date: '2027-01-03', kickoff: '1:00pm',
+        opponent: 'Dallas Cowboys', home: false, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week: 18, date: '2027-01-10', kickoff: '1:00pm',
+        opponent: 'Philadelphia Eagles', home: true, conference: false, division: true,
+        result: null, booster: null, stats: null },
+    ],
+
+    /* Isaac Vitel — Tampa Bay Buccaneers */
+    'isaac-vitel': [
+      { week:  1, date: '2026-09-13', kickoff: '1:00pm',
+        opponent: 'Cincinnati Bengals', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  2, date: '2026-09-20', kickoff: '1:00pm',
+        opponent: 'Cleveland Browns', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  3, date: '2026-09-27', kickoff: '4:05pm',
+        opponent: 'Minnesota Vikings', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  4, date: '2026-10-04', kickoff: '1:00pm',
+        opponent: 'Green Bay Packers', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  5, date: '2026-10-08', kickoff: '8:15pm',
+        opponent: 'Dallas Cowboys', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  6, date: '2026-10-18', kickoff: '1:00pm',
+        opponent: 'Pittsburgh Steelers', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  7, date: '2026-10-25', kickoff: '1:00pm',
+        opponent: 'Carolina Panthers', home: false, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week:  8, date: '2026-11-01', kickoff: '1:00pm',
+        opponent: 'Atlanta Falcons', home: true, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week:  9, date: '2026-11-08', kickoff: '8:20pm',
+        opponent: 'Chicago Bears', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 10, date: '2026-11-15', kickoff: null,
+        opponent: null, home: false, conference: false, bye: true,
+        result: null, booster: null, stats: null },
+      { week: 11, date: '2026-11-22', kickoff: '1:00pm',
+        opponent: 'Detroit Lions', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 12, date: '2026-11-30', kickoff: '8:15pm',
+        opponent: 'Carolina Panthers', home: true, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week: 13, date: '2026-12-06', kickoff: '1:00pm',
+        opponent: 'Los Angeles Chargers', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 14, date: '2026-12-13', kickoff: '1:00pm',
+        opponent: 'Baltimore Ravens', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 15, date: '2026-12-20', kickoff: '1:00pm',
+        opponent: 'New Orleans Saints', home: true, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week: 16, date: '2026-12-27', kickoff: '1:00pm',
+        opponent: 'Atlanta Falcons', home: false, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week: 17, date: '2027-01-03', kickoff: '1:00pm',
+        opponent: 'Los Angeles Rams', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 18, date: '2027-01-10', kickoff: '1:00pm',
+        opponent: 'New Orleans Saints', home: false, conference: false, division: true,
+        result: null, booster: null, stats: null },
+    ],
+
+    /* Sam Stogsdill — Pittsburgh Steelers */
+    'sam-stogsdill': [
+      { week:  1, date: '2026-09-13', kickoff: '1:00pm',
+        opponent: 'Atlanta Falcons', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  2, date: '2026-09-20', kickoff: '1:00pm',
+        opponent: 'New England Patriots', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  3, date: '2026-09-27', kickoff: '1:00pm',
+        opponent: 'Cincinnati Bengals', home: true, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week:  4, date: '2026-10-01', kickoff: '8:15pm',
+        opponent: 'Cleveland Browns', home: false, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week:  5, date: '2026-10-11', kickoff: '1:00pm',
+        opponent: 'Indianapolis Colts', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  6, date: '2026-10-18', kickoff: '1:00pm',
+        opponent: 'Tampa Bay Buccaneers', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  7, date: '2026-10-25', kickoff: '9:30am',
+        opponent: 'New Orleans Saints', home: false, conference: false, neutral: true,
+        result: null, booster: null, stats: null },
+      { week:  8, date: '2026-11-01', kickoff: '1:00pm',
+        opponent: 'Cleveland Browns', home: true, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week:  9, date: '2026-11-08', kickoff: null,
+        opponent: null, home: false, conference: false, bye: true,
+        result: null, booster: null, stats: null },
+      { week: 10, date: '2026-11-15', kickoff: '8:20pm',
+        opponent: 'Cincinnati Bengals', home: false, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week: 11, date: '2026-11-22', kickoff: '4:25pm',
+        opponent: 'Philadelphia Eagles', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 12, date: '2026-11-27', kickoff: '3:00pm',
+        opponent: 'Denver Broncos', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 13, date: '2026-12-06', kickoff: '8:20pm',
+        opponent: 'Houston Texans', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 14, date: '2026-12-14', kickoff: '8:15pm',
+        opponent: 'Jacksonville Jaguars', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 15, date: '2026-12-20', kickoff: '1:00pm',
+        opponent: 'Baltimore Ravens', home: true, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week: 16, date: '2026-12-27', kickoff: '1:00pm',
+        opponent: 'Carolina Panthers', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 17, date: '2027-01-03', kickoff: '1:00pm',
+        opponent: 'Tennessee Titans', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 18, date: '2027-01-10', kickoff: '1:00pm',
+        opponent: 'Baltimore Ravens', home: false, conference: false, division: true,
+        result: null, booster: null, stats: null },
+    ],
+
+    /* Jaykeb Stewart — Houston Texans */
+    'jaykeb-stewart': [
+      { week:  1, date: '2026-09-13', kickoff: '12:00pm',
+        opponent: 'Buffalo Bills', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  2, date: '2026-09-20', kickoff: '12:00pm',
+        opponent: 'Cincinnati Bengals', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  3, date: '2026-09-27', kickoff: '12:00pm',
+        opponent: 'Indianapolis Colts', home: false, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week:  4, date: '2026-10-04', kickoff: '12:00pm',
+        opponent: 'Dallas Cowboys', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  5, date: '2026-10-11', kickoff: '12:00pm',
+        opponent: 'Tennessee Titans', home: false, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week:  6, date: '2026-10-18', kickoff: '8:30am',
+        opponent: 'Jacksonville Jaguars', home: false, conference: false, division: true, neutral: true,
+        result: null, booster: null, stats: null },
+      { week:  7, date: '2026-10-25', kickoff: '12:00pm',
+        opponent: 'New York Giants', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week:  8, date: '2026-11-01', kickoff: null,
+        opponent: null, home: false, conference: false, bye: true,
+        result: null, booster: null, stats: null },
+      { week:  9, date: '2026-11-08', kickoff: '3:05pm',
+        opponent: 'Los Angeles Chargers', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 10, date: '2026-11-15', kickoff: '12:00pm',
+        opponent: 'Cleveland Browns', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 11, date: '2026-11-19', kickoff: '7:15pm',
+        opponent: 'Indianapolis Colts', home: true, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week: 12, date: '2026-11-29', kickoff: '12:00pm',
+        opponent: 'Baltimore Ravens', home: true, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 13, date: '2026-12-06', kickoff: '7:20pm',
+        opponent: 'Pittsburgh Steelers', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 14, date: '2026-12-13', kickoff: '12:00pm',
+        opponent: 'Washington Commanders', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 15, date: '2026-12-20', kickoff: '12:00pm',
+        opponent: 'Jacksonville Jaguars', home: true, conference: false, division: true,
+        result: null, booster: null, stats: null },
+      { week: 16, date: '2026-12-24', kickoff: '7:15pm',
+        opponent: 'Philadelphia Eagles', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 17, date: '2027-01-04', kickoff: '7:15pm',
+        opponent: 'Green Bay Packers', home: false, conference: false,
+        result: null, booster: null, stats: null },
+      { week: 18, date: '2027-01-10', kickoff: '12:00pm',
+        opponent: 'Tennessee Titans', home: true, conference: false, division: true,
+        result: null, booster: null, stats: null },
+    ],
+  }
+};
