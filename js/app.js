@@ -3053,10 +3053,11 @@
 
      The card overlay, as a card or a trophy opens in: across the top a band
      in his team's colour with his headshot, the team's mark behind him and
-     out to his right, his name and his overall (Sam, 2026-10-26); under it
-     where he came from (college, draft, age, height, weight), then a line a
-     season from 2025 on, then his archetype and skills, then his contract.
-     A click anywhere off it puts it away. */
+     out to his right, his name and his overall (Sam, 2026-10-26); under it,
+     each under a centred title, Bio (college, draft, age, height, weight),
+     Stats (a line a season from 2025 on), Ratings (his archetype and
+     skills) and More (his contract). A click anywhere off it puts it
+     away. */
   var POSITION_NAMES = {
     QB: 'Quarterback', RB: 'Running Back', FB: 'Fullback', WR: 'Wide Receiver', TE: 'Tight End',
     OT: 'Offensive Tackle', IOL: 'Interior Lineman', K: 'Kicker', P: 'Punter',
@@ -3259,9 +3260,17 @@
     if (ovr) { band.appendChild(ovr); }
     box.appendChild(band);
 
+    /* Under it the parts, each under a title of its own, centred (Sam,
+       2026-10-26): Bio, Stats, Ratings and More. */
     var panel = el('div', 'ege-person__body');
+    function part(title) {
+      var section = el('section', 'ege-person__part');
+      section.appendChild(el('h4', 'ege-person__head', title));
+      panel.appendChild(section);
+      return section;
+    }
 
-    /* Line two: where he came from and his size. */
+    /* Bio: where he came from and his size. */
     var facts = el('dl', 'ege-person__facts');
     function fact(label, value, title) {
       var cell = el('div', 'ege-person__fact');
@@ -3279,13 +3288,13 @@
     fact('Age', typeof sim.age === 'number' ? String(sim.age) : '–');
     fact('Height', EGE.heightText(row) || '–');
     fact('Weight', EGE.weightText(row) || '–');
-    panel.appendChild(facts);
+    part('Bio').appendChild(facts);
 
-    /* Line three: his seasons. */
+    /* Stats: his seasons. */
     var seasons = seasonLines(sim);
-    if (seasons) { panel.appendChild(seasons); }
+    if (seasons) { part('Stats').appendChild(seasons); }
 
-    /* Line four: what kind, and the skills it comes from, best first. */
+    /* Ratings: what kind, and the skills it comes from, best first. */
     var rating = el('div', 'ege-person__rating');
     var kind = el('div', 'ege-person__kind');
     var arch = el('span', 'ege-person__arch', sim.archetype || POSITION_NAMES[sim.pos] || sim.pos);
@@ -3301,9 +3310,9 @@
       });
     kind.appendChild(skills);
     rating.appendChild(kind);
-    panel.appendChild(rating);
+    part('Ratings').appendChild(rating);
 
-    /* Line five: the contract, and anything keeping him off the field. */
+    /* More: the contract, and anything keeping him off the field. */
     var foot = el('dl', 'ege-person__deal');
     function line(label, value) {
       foot.appendChild(el('dt', null, label));
@@ -3317,21 +3326,22 @@
         : row.freeAgent ? 'Free agent' : 'None');
     }
     if (row.out) { line('Injury', injuryText(row.out)); }
-    panel.appendChild(foot);
+    var more = part('More');
+    more.appendChild(foot);
 
     if (row.player) {
       var go = el('a', 'fb-btn fb-btn--primary ege-person__go', row.player.first + '’s page →');
       go.href = '#' + row.player.slug;
       go.addEventListener('click', function () { EGE.cardsView.closeOverlay(); });
-      panel.appendChild(go);
+      more.appendChild(go);
     }
 
     /* An admin's Edit and Find trades, on the season the sim is playing. */
     if (row.admin && EGE.wallet.admin()) {
       var tools = el('div', 'fb-row fb-row--wrap ege-person__tools');
-      panel.appendChild(tools);
-      nflEditor(row, panel, rating, tools);
-      nflTradeFinder(row, panel, tools);
+      more.appendChild(tools);
+      nflEditor(row, more, rating, tools);
+      nflTradeFinder(row, more, tools);
     }
     box.appendChild(panel);
     stage.appendChild(box);
