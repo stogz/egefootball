@@ -3267,12 +3267,22 @@
         var markCell = el('td', 'ege-person__seasonmark');
         var src = team.name && EGE.logoFor(team.name);
         if (src) {
+          /* The mark is a link to that team's page for that season (Sam,
+             2026-10-27), lit up under the pointer. */
+          var go = el('a', 'ege-person__seasonteam');
+          go.href = '#teams/' + EGE.nfl.slug(entry.team);
+          go.title = team.name + ', ' + entry.season;
+          go.addEventListener('click', function () {
+            EGE.cardsView.closeOverlay();
+            if (location.hash === go.getAttribute('href')) { pickTeamsSeason(entry.season); }
+            else { teamsPicked = entry.season; }
+          });
           var img = el('img');
           img.src = src;
-          img.alt = team.name;
-          img.title = team.name;
-          img.addEventListener('error', function () { img.remove(); });
-          markCell.appendChild(img);
+          img.alt = team.name + ', ' + entry.season;
+          img.addEventListener('error', function () { go.remove(); });
+          go.appendChild(img);
+          markCell.appendChild(go);
         }
         tr.appendChild(markCell);
         tr.appendChild(el('td', 'ege-person__seasonyear', String(entry.season)));

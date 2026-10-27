@@ -4914,10 +4914,12 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
    with no lines round it or between the seasons (Sam, 2026-10-27); the
    same shade behind his ratings. */
 .ege-person--player { --shade: rgba(32, 38, 26, .045); }
-.ege-person__seasonwrap { padding: 4px 6px; background: var(--shade); }
+/* Both boxes with round corners, past the kit's square ones (style.css),
+   and the sorted column shaded from its heading down (Sam, 2026-10-27). */
+.ege-person__seasonwrap { padding: 4px 6px; border-radius: 10px !important; background: var(--shade); }
 .ege-person__seasons thead tr { background: none; }
 .ege-person__seasons th { color: var(--fb-ink); }
-.ege-person__seasons th.is-sorted { color: var(--fb-accent-deep); }
+.ege-person__seasons th.is-sorted { color: var(--fb-accent-deep); background: rgba(229, 110, 40, .12); }
 .ege-person__seasons { min-width: 520px; font-size: .875rem; }
 .ege-person__seasons th,
 .ege-person__seasons td { padding: 9px 10px; white-space: nowrap; }
@@ -4933,6 +4935,21 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
 .ege-person__seasons td.is-sorted-cell { background: rgba(229, 110, 40, .12); }
 .ege-person__seasons .ege-person__seasonmark { width: 30px; padding-right: 0; }
 .ege-person__seasonmark img { display: block; width: 26px; height: 26px; object-fit: contain; }
+/* The mark, a link to the team's page for the season: lit under the
+   pointer in the sorted column's orange, a touch bigger. */
+.ege-person__seasonteam {
+  display: block;
+  width: max-content;
+  margin: -4px;
+  padding: 4px;
+  border-radius: 8px !important;
+  transition: background-color .12s ease;
+}
+.ege-person__seasonteam img { transition: transform .12s ease; }
+.ege-person__seasonteam:hover,
+.ege-person__seasonteam:focus-visible { background: rgba(229, 110, 40, .22); outline: none; }
+.ege-person__seasonteam:hover img,
+.ege-person__seasonteam:focus-visible img { transform: scale(1.12); }
 .ege-person__seasons .ege-person__seasonyear { font-weight: 800; }
 /* The Career line, with no label to it (Sam, 2026-10-27), under a soft
    line, in heavier figures. */
@@ -4946,7 +4963,7 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
 }
-.ege-person--player .ege-person__rating { padding: 16px; background: var(--shade); }
+.ege-person--player .ege-person__rating { padding: 16px; border-radius: 10px !important; background: var(--shade); }
 .ege-person__arch { display: block; margin-bottom: 10px; font-family: var(--fb-font-display); font-size: 1.375rem; }
 .ege-person__skills { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .ege-person__skill {
