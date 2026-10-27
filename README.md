@@ -515,8 +515,11 @@ Under the bar:
   pop-up's Injury line says what it is and for how long. The six's come
   from the site's own injury report (`EGE.injuryFor`, so the week's
   publishing decides); everybody else's from the sim (`out` in the rosters:
-  what, games left and the week he went down), held back from anybody but
-  an admin until that week is published.
+  what, games left and the week he went down; a playoff injury carries
+  its round's week, 19-22), held back from everybody, an admin too, until
+  that week is published (Sam, 2026-10-27, `EGE.nflRosters.isOut`): the
+  box, the pop-up's Injury line, and the starters behind a team's rings,
+  the ODEF grades and the defenders a player will face.
 
   **Every NFL team has a page**, `#teams/kansas-city-chiefs`: its
   header (record, streak, place in the division), its roster and its

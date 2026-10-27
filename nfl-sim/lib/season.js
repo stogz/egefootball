@@ -159,11 +159,15 @@ function record(league, game, result, log) {
   });
 }
 
-function hurt(league, injuries) {
+/* `week` is the site's week the game was played in: a playoff round's
+   (19-22) rather than league.week, which stays at the week after the
+   regular season through the playoffs. The site holds an injury back
+   until that week is out. */
+function hurt(league, injuries, week) {
   injuries.forEach((i) => {
     const p = league.byId.get(i.id);
     if (!p) { return; }
-    p.injury = { games: i.games, what: i.what, season: league.season, week: league.week, fresh: true };
+    p.injury = { games: i.games, what: i.what, season: league.season, week: week || league.week, fresh: true };
     if (p.ege) { league.egeHurt = league.season; }
   });
 }
@@ -334,7 +338,7 @@ function playRound(league, rng) {
     g.score = r.score;
     if (r.ot) { g.ot = true; }
     g.winner = r.winner;
-    hurt(league, r.injuries);
+    hurt(league, r.injuries, g.week);
     record(league, g, r, log);
     out.games.push(g);
     out.injuries.push.apply(out.injuries, r.injuries);

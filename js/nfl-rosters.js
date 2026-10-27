@@ -80,10 +80,24 @@
      nickel on defense, eleven personnel on offense. A spot with nobody
      healthy in it counts as a 55, the sim's stand-in. */
 
-  function depth(rows) {
+  /* Out with an injury as the site may say it: hurt in a week that is out
+     on the site, or before the season (week 0). An injury shows nowhere,
+     an admin's pages included, before the week it happened in is
+     published (Sam, 2026-10-27): not in a pop-up or on a card, and not in
+     a team's rings, grades or the defenders a player will face. */
+  function isOut(row, season) {
+    var out = row && row.out;
+    return Boolean(out) && (!out.week || EGE.isPublished(season, out.week));
+  }
+
+  /* The weeks out on the site, so a list worked out before a week was
+     published is worked out again after. */
+  function outStamp(season) { return ((EGE.publishedWeeks || {})[season] || []).join(','); }
+
+  function depth(rows, season) {
     var d = {};
     rows.forEach(function (p) {
-      if (p.out) { return; }
+      if (isOut(p, season)) { return; }
       (d[p.pos] = d[p.pos] || []).push(p);
     });
     Object.keys(d).forEach(function (pos) {
@@ -184,11 +198,12 @@
     if (!all || !all.teams) { return null; }
     var kind = matchupFor(position);
     var id = season + ':' + kind;
-    if (ranked[id] && ranked[id].from === all) { return ranked[id].list; }
+    var stamp = outStamp(season);
+    if (ranked[id] && ranked[id].from === all && ranked[id].stamp === stamp) { return ranked[id].list; }
     var list = Object.keys(all.teams).map(function (key) {
-      return { key: key, score: MATCHUPS[kind].score(depth(all.teams[key])) };
+      return { key: key, score: MATCHUPS[kind].score(depth(all.teams[key], season)) };
     }).sort(function (a, b) { return b.score - a.score; });
-    ranked[id] = { from: all, list: list };
+    ranked[id] = { from: all, stamp: stamp, list: list };
     return list;
   }
 
@@ -240,7 +255,7 @@
     var all = cache[season];
     var rows = all && all.teams ? all.teams[key] : null;
     if (!rows || !rows.length) { return null; }
-    var at = depth(rows);
+    var at = depth(rows, season);
     return FACING[matchupFor(position)].map(function (slot) { return at(slot[0], slot[1]); })
       .filter(Boolean);
   }
@@ -262,7 +277,7 @@
     var rows = all && all.teams ? all.teams[key] : null;
     if (!rows || !rows.length) { return null; }
     var withOvr = rows.map(function (p) { return Object.assign({}, p, { ovr: ovrOf ? ovrOf(p) : p.ovr }); });
-    var at = depth(withOvr);
+    var at = depth(withOvr, season);
     var out = {};
     Object.keys(UNITS).forEach(function (side) {
       out[side] = Math.round(weighted(UNITS[side].map(function (slot) {
@@ -337,11 +352,12 @@
   function allRatings(season) {
     var all = cache[season];
     if (!all || !all.teams) { return null; }
-    if (rated[season] && rated[season].from === all) { return rated[season].teams; }
+    var stamp = outStamp(season);
+    if (rated[season] && rated[season].from === all && rated[season].stamp === stamp) { return rated[season].teams; }
     var teams = {};
     Object.keys(all.teams).forEach(function (key) {
       var rows = all.teams[key] || [];
-      var at = depth(rows);
+      var at = depth(rows, season);
       var lined = rows.some(function (p) { return p.pos === 'OT' || p.pos === 'IOL'; });
       teams[key] = {};
       Object.keys(RATINGS).forEach(function (side) {
@@ -359,7 +375,7 @@
         });
       });
     });
-    rated[season] = { from: all, teams: teams };
+    rated[season] = { from: all, stamp: stamp, teams: teams };
     return teams;
   }
 
@@ -384,6 +400,7 @@
     forget: function (season) { delete cache[season]; file = null; },
     defenseGrade: defenseGrade,
     facing: facing,
+    isOut: isOut,
     unitOveralls: unitOveralls,
     /* One team's players, best first, or null. */
     team: function (season, key) {

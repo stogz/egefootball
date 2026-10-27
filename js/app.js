@@ -1821,7 +1821,8 @@
   /* What is keeping a player off the field, as the page may say it: one of
      the six's from the site's own injury report (EGE.injuryFor), which knows
      only what is out; anybody else's from the sim's roster, held back from
-     all but an admin until the week he was hurt in is out on the site.
+     everybody, an admin too (Sam, 2026-10-27), until the week he was hurt
+     in is out on the site (EGE.nflRosters.isOut).
      { what, games, back, season }: season when he will not be back before
      the season is over (games and back null then); null when he is not
      hurt. */
@@ -1833,8 +1834,7 @@
       return { what: report.injury || 'injured', games: report.back - report.week, back: report.back, season: false };
     }
     var out = sim.out;
-    if (!out) { return null; }
-    if (!EGE.wallet.admin() && out.week && season === EGE.currentSeason && !EGE.isPublished(season, out.week)) { return null; }
+    if (!EGE.nflRosters.isOut(sim, season)) { return null; }
     /* The rosters' week is the one the league plays next, his first to miss. */
     var all = EGE.nflRosters.get(season);
     var week = all && all.week;
