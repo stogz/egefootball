@@ -607,6 +607,38 @@ Under the bar:
 The quarterback rooms are also where a QB Connection is picked from (see
 the shop).
 
+### Search — `#search`
+
+A magnifying glass at the end of the nav links (Sam, 2026-10-26), for
+everybody, signed in or not. It opens a page with one box; results come
+as it is typed, and the query rides in the address (`#search/{query}`), so
+Back from a team or a player's page comes back to the same results.
+
+- **Teams** first: every NFL team (by name, city or abbreviation: `DET`)
+  with its record and place in its division, and every school one of the
+  six played for. Each is a link to its page.
+- **Players**: the cards a team's page draws (`nflLine`), each with his
+  team's mark beside his overall, opening the same pop-up. They are the
+  NFL sim's, from the rosters the Teams pages open on (the latest live NFL
+  season): everybody on a roster, then **free agents** (FA where the team
+  mark goes; the pop-up's contract says Free agent), then the **retired**:
+  greyed, RETIRED where the overall was, the mark of the team he last
+  played for, and in the pop-up *Retired after the {year} season*. The six
+  are always in it. Up to 24 players, then *Show more*.
+- A name matches when every word typed starts a word of it ("jos all" is
+  Josh Allen), ignoring accents, dots and apostrophes ("cj" finds C.J.);
+  ties go to rostered players before free agents before the retired, then
+  the higher overall.
+
+The free agents and the retired come with the published rosters
+(`freeAgents` and `retired` in `nfl-sim/lib/site.js publicRosters`).
+Rosters published before 2026-10-26 have neither, so until the live
+season's rosters are published again only rostered players turn up; an
+admin's first visit to the search or an NFL team's page publishes them
+again from the world, as it does for anything else the rosters are missing.
+Players who retired before then lost their archetype and size in the world,
+so their cards show neither.
+
 ### Position-driven stat lines
 
 A player's position decides which stat columns their game log shows. Stat sets

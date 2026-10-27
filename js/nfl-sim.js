@@ -3774,10 +3774,11 @@ function startOffseason(league, rng) {
       p.team = null;
     }
   });
-  /* Retired players keep only who they were, to keep the world file small. */
+  /* Retired players keep only who they were, to keep the world file small:
+     his archetype and size too, for the site's search (2026-10-26). */
   league.players.forEach((p) => {
     if (p.status !== 'retired') { return; }
-    ['skills', 'contract', 'injury', 'faSince', 'archetype', 'archetypeSet', 'durability', 'longevity', 'height', 'weight', 'pfr', 'otc']
+    ['skills', 'contract', 'injury', 'faSince', 'archetypeSet', 'durability', 'longevity', 'pfr', 'otc']
       .forEach((k) => { delete p[k]; });
   });
   index(league);
@@ -5388,6 +5389,7 @@ const { capFor } = require('./value');
 const { playerFit, teamFit } = require('./fit');
 const { OFFENSE, DEFENSE } = require('./schemes');
 const { board } = require('./draft-plan');
+const { seasons, rostersIn } = require('./history');
 
 /* The sim's key for a team the six play for on the site ('detroit' is DET). */
 function simKey(siteKey) { return KEYS.filter((k) => TEAMS[k].site === siteKey)[0] || null; }
@@ -5808,12 +5810,10 @@ function publicRosters(league) {
     teams[t.key] = (league.byTeam.get(t.key) || []).slice()
       .sort((a, b) => b.ovr - a.ovr || a.name.localeCompare(b.name))
       .map((p) => {
-        const sitePlayer = p.ege && site ? site.playerBySlug(p.ege) : null;
-        const college = sitePlayer && site.teams[sitePlayer.college] ? site.teams[sitePlayer.college].school : p.college;
         const row = {
           name: p.name, pos: p.pos, ovr: p.ovr, age: p.age,
           years: p.entry ? league.season - p.entry + 1 : null,
-          height: p.height || null, weight: p.weight || null, archetype: p.archetype || null, college: college || null,
+          height: p.height || null, weight: p.weight || null, archetype: p.archetype || null, college: siteCollege(site, p),
           draft: p.draft && p.draft.pick ? { year: p.draft.year, round: p.draft.round, pick: p.draft.pick, team: p.draft.team || null } : null,
           skills: p.skills || null,
           contract: p.contract ? { apy: p.contract.apy, through: p.contract.through } : null
@@ -5857,7 +5857,61 @@ function publicRosters(league) {
     });
   });
   return { season: league.season, phase: league.phase, week: league.week || null, savedAt: new Date().toISOString(), caps, systems,
-           picks, teams };
+           picks, teams, freeAgents: freeAgents(league, site), retired: retiredPlayers(league, site) };
+}
+
+function siteCollege(site, p) {
+  const sitePlayer = p.ege && site ? site.playerBySlug(p.ege) : null;
+  return sitePlayer && site.teams[sitePlayer.college] ? site.teams[sitePlayer.college].school : p.college || null;
+}
+
+/* For the site's search (Sam, 2026-10-26): everybody nobody has signed,
+   as a roster row without a contract or a fit, best first. */
+function freeAgents(league, site) {
+  return league.players.filter((p) => p.status === 'fa' || (p.status === 'active' && !league.byTeam.has(p.team)))
+    .sort((a, b) => b.ovr - a.ovr || a.name.localeCompare(b.name))
+    .map((p) => {
+      const row = {
+        name: p.name, pos: p.pos, ovr: p.ovr, age: p.age,
+        years: p.entry ? league.season - p.entry + 1 : null,
+        height: p.height || null, weight: p.weight || null, archetype: p.archetype || null, college: siteCollege(site, p),
+        draft: p.draft && p.draft.pick ? { year: p.draft.year, round: p.draft.round, pick: p.draft.pick, team: p.draft.team || null } : null,
+        skills: p.skills || null
+      };
+      if (p.espn) { row.espn = String(p.espn); }
+      if (p.ege) { row.ege = p.ege; }
+      return row;
+    });
+}
+
+/* And everybody who has retired, with the season he retired before and the
+   team he last played for: the newest season kept in the world with him on
+   a roster (lib/history.js), or the one that let him go. A retired player
+   keeps only who he was in the world (lib/offseason.js), so no skills. */
+function retiredPlayers(league, site) {
+  const lastTeam = {};
+  seasons(league).filter((s) => s !== league.season).forEach((s) => {
+    const shot = rostersIn(league, s);
+    if (!shot || !shot.teams) { return; }
+    Object.keys(shot.teams).forEach((key) => {
+      (shot.teams[key].players || []).forEach((p) => {
+        if (!lastTeam[p.id]) { lastTeam[p.id] = key; }
+      });
+    });
+  });
+  return league.players.filter((p) => p.status === 'retired')
+    .sort((a, b) => (b.retired || 0) - (a.retired || 0) || b.ovr - a.ovr || a.name.localeCompare(b.name))
+    .map((p) => {
+      const row = {
+        name: p.name, pos: p.pos, ovr: p.ovr, age: p.age, retired: p.retired || null,
+        team: lastTeam[p.id] || (p.lastTeam && TEAMS[p.lastTeam] ? p.lastTeam : null),
+        height: p.height || null, weight: p.weight || null, archetype: p.archetype || null, college: siteCollege(site, p),
+        draft: p.draft && p.draft.pick ? { year: p.draft.year, round: p.draft.round, pick: p.draft.pick, team: p.draft.team || null } : null
+      };
+      if (p.espn) { row.espn = String(p.espn); }
+      if (p.ege) { row.ege = p.ege; }
+      return row;
+    });
 }
 
 module.exports = { siteResults, sixEdits, seasonFileText, simResults, resultsFileText, siteFiles, weekRows, publicRosters, simKey };

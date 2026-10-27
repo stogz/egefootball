@@ -759,7 +759,9 @@ rosters are published to `nfl_sim_rosters` (`site.js publicRosters`: every
 player on every team, with nothing private about him and his fit in his
 team's schemes in stars, the salary cap for the season and the three after
 it, and each team's `systems`: its offense and defense, its stars for each
-and its status, which the Teams pages show everybody since 2026-10-21). `lib/io.js` is what makes that
+and its status, which the Teams pages show everybody since 2026-10-21; and
+for the site's search, since 2026-10-26, the free agents and every retired
+player with the season he retired and the team he last played for). `lib/io.js` is what makes that
 work: everything the sim reads or writes goes through it, to files on the
 command line and to memory, filled from Supabase, on the page.
 `build/bundle.js` writes `js/nfl-sim.js`, every module in `lib/` and the data

@@ -254,10 +254,11 @@ function startOffseason(league, rng) {
       p.team = null;
     }
   });
-  /* Retired players keep only who they were, to keep the world file small. */
+  /* Retired players keep only who they were, to keep the world file small:
+     his archetype and size too, for the site's search (2026-10-26). */
   league.players.forEach((p) => {
     if (p.status !== 'retired') { return; }
-    ['skills', 'contract', 'injury', 'faSince', 'archetype', 'archetypeSet', 'durability', 'longevity', 'height', 'weight', 'pfr', 'otc']
+    ['skills', 'contract', 'injury', 'faSince', 'archetypeSet', 'durability', 'longevity', 'pfr', 'otc']
       .forEach((k) => { delete p[k]; });
   });
   index(league);

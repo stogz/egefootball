@@ -4324,6 +4324,65 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-injbox__unit { margin-left: 2px; font-family: var(--fb-font-body); font-size: .5625rem; font-weight: 800; letter-spacing: .06em; }
 .ege-injbox.is-season .ege-injbox__value { font-size: .625rem; letter-spacing: .02em; }
 
+/* --- the search ------------------------------------------------------------
+
+   The magnifying glass at the end of the nav, the box under the page's
+   title, and the results: teams, then players, two cards across like a
+   team's rooms and one on a phone. */
+.ege-navsearch { display: inline-flex; align-items: center; }
+.ege-navsearch svg { display: block; }
+.ege-search { max-width: 640px; margin: 0 auto 26px; }
+.ege-search__field {
+  width: 100%;
+  padding: 12px 14px;
+  border: var(--fb-border) solid var(--fb-ink);
+  box-shadow: 4px 4px 0 var(--fb-ink);
+  font-size: 1.125rem;
+}
+.ege-search__results { display: grid; gap: 22px; }
+.ege-search__list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 28px; }
+@media (max-width: 760px) { .ege-search__list { grid-template-columns: minmax(0, 1fr); } }
+.ege-search__more { justify-self: start; margin-top: 14px; }
+.ege-search__note { text-align: center; }
+/* A team's card: its mark on its colour where a player's picture goes. */
+.ege-teamchip--team:hover { background: var(--fb-tint-wash); }
+.ege-teamchip--team:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: 2px; }
+.ege-teamchip__mark { padding: 8px; }
+.ege-teamchip__mark.is-painted { background-image: none; }
+.ege-teamchip__mark img { object-fit: contain; object-position: center; }
+.ege-teamchip__mark img.is-white { filter: brightness(0) invert(1); }
+/* A player's team beside his overall, or FA. */
+.ege-teamchip__team { display: grid; flex: none; place-items: center; align-self: center; width: 34px; height: 34px; }
+.ege-teamchip__team img { width: 100%; height: 100%; object-fit: contain; }
+.ege-teamchip__team.is-fa {
+  border: var(--fb-border-thin) solid var(--fb-muted);
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .08em;
+  color: var(--fb-muted);
+  text-decoration: none;
+  cursor: help;
+}
+/* Retired: greyed, and RETIRED in stone where the overall was, the
+   overall box's size. */
+.ege-teamchip.is-retired { background: var(--fb-surface); box-shadow: 4px 4px 0 var(--fb-muted); }
+.ege-teamchip.is-retired .ege-teamchip__photo img,
+.ege-teamchip.is-retired .ege-teamchip__team img { filter: grayscale(1); opacity: .7; }
+.ege-retbox {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 54px;
+  border: var(--fb-border) solid var(--fb-muted);
+  background: var(--fb-sand);
+  color: var(--fb-muted);
+  font-size: .5625rem;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  cursor: help;
+}
+
 /* An admin's fit stars: the site's orange (Sam, 2026-10-21), five
    outlines with the share filled laid over them. */
 .ege-fitstars {
