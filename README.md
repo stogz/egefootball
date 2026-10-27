@@ -1444,7 +1444,8 @@ about 31:
 | --- | --- | --- |
 | QB | 0.55 | 15 |
 | RB | 0.50 | 15 |
-| TE, WR | 0.75 | 15 |
+| WR | 0.75 | 15 |
+| TE | 0.75 (1.00 from 2026, 5 a game at least) | 15 (20 from 2026) |
 
 The shares are worked out from the 2018 season's 72 stat lines, not picked.
 They make a breakout game (the average of each position's 75th and 90th
@@ -1456,6 +1457,17 @@ have paid nothing.
 
 Credits are **always rounded up** — there is no half a credit — and a game
 played never pays less than 1.
+
+**A tight end keeps all of his points from 2026** (Sam, 2026-10-27): 1 credit
+a fantasy point instead of 0.75, and never less than **5** for a game he plays
+(`EGE.economy.TE_SHARE`, `TE_MIN_CREDITS`). He spreads his credits over more
+ratings than anybody, so this smooths his climb. The diamonds come off the
+same credits, so a game pays him at least 5 diamonds too (more with a booster,
+10 in the playoffs), and his Player Card bonuses grow with them. A game he
+sits out hurt pays 1 like anybody's. On 2025's lines Andrew would have made
+160 credits instead of 116. It starts with 2026 (`TE_FROM`) because the ledger
+would top up every earlier game the next time a week in its season was
+published. Card grades are not touched: a tight end still grades on 0.68.
 
 **A playoff game pays 1.25 times the credits** — any game with
 `playoff: true`, the conference title games and bowls included. The fantasy

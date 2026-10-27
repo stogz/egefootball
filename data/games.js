@@ -792,7 +792,8 @@ EGE.outInjured = function (player, game) {
    doubles a game's credits or takes them away. */
 EGE.creditsFromGame = function (player, game) {
   if (!EGE.isFinal(game)) { return 0; }
-  return EGE.wageredCredits(EGE.economy.gameCredits(player, game.stats, game.season, game.playoff),
+  return EGE.wageredCredits(EGE.economy.gameCredits(player, game.stats, game.season, game.playoff,
+                                                    game.injured),
                             EGE.wagerOn(player, game));
 };
 
@@ -802,7 +803,7 @@ EGE.diamondsFromGame = function (player, game) {
   if (!EGE.isFinal(game)) { return 0; }
   var booster = EGE.boosterOn(player, game);
   return EGE.economy.gameDiamonds(player, game.stats, game.season, booster && booster.multiplier,
-                                  game.playoff);
+                                  game.playoff, game.injured);
 };
 
 /* --- how good the defense across the way is ------------------------------

@@ -92,7 +92,7 @@ EGE.cards = (function () {
      credit share (data/economy.js), except where a position grades on a
      share of its own here. A tight end's 0.75 made his big nights Mystic
      far more often than anybody else's (Sam, 2026-10-17), so a tight end
-     grades on 0.68. Credits still pay on the 0.75. */
+     grades on 0.68. Credits pay on the 0.75 (all of his points from 2026). */
   var GRADE_SHARE = { TE: 0.68 };
 
   function gradeShare(position) {

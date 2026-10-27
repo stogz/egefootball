@@ -6453,7 +6453,7 @@
          more, and the few from before that change are not worth a column. */
       var all = sums.td + sums.offseason;
       var owed = games.reduce(function (sum, game) {
-        return sum + EGE.economy.gameCredits(player, game.stats, season, game.playoff);
+        return sum + EGE.economy.gameCredits(player, game.stats, season, game.playoff, game.injured);
       }, 0);
       totals.all += all;
       totals.touchdowns += touchdowns;
@@ -6503,15 +6503,17 @@
     var waiting = totals.waiting
       ? ', and ' + totals.waiting + ' waiting on an account to be paid into.'
       : '.';
-    var shares = EGE.economy.FANTASY_SHARE;
+    function share(position) { return EGE.economy.fantasyShareFor(position, EGE.currentSeason); }
+    var teMin = EGE.economy.minimumCredits('TE', EGE.currentSeason);
 
     document.getElementById('awardsFoot').textContent = fantasySeason
       ? (totals.games
           ? totals.games + ' games played, ' + totals.all + ' credits' +
             (totals.diamonds ? ' and ' + totals.diamonds + ' diamonds' : '') + ' paid out' + waiting
           : 'No games posted yet. Every game pays its fantasy points (half PPR), ' +
-            'rounded up, at ' + shares.QB + ' for a quarterback, ' + shares.RB +
-            ' for a back and ' + shares.TE + ' for a tight end or receiver.')
+            'rounded up, at ' + share('QB') + ' for a quarterback, ' + share('RB') +
+            ' for a back, ' + share('WR') + ' for a receiver and ' + share('TE') +
+            ' for a tight end' + (teMin > 1 ? ' (' + teMin + ' a game at least).' : '.'))
       : (totals.touchdowns
           ? totals.touchdowns + ' touchdowns, ' + totals.all + ' credits paid out' + waiting
           : 'No touchdowns posted yet. Credits appear here as results go in — ' +

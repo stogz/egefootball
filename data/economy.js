@@ -141,7 +141,7 @@ EGE.economy = (function () {
      so nothing in the shop needs repricing.
 
      Always rounded up -- there is no half a credit -- and a game played never
-     pays less than 1, however badly it went. */
+     pays less than 1, however badly it went (a tight end 5, below). */
   var FANTASY = {
     passingYards: 1 / 25,
     passingTd: 4,
@@ -155,6 +155,20 @@ EGE.economy = (function () {
   };
 
   var FANTASY_SHARE = { QB: 0.55, RB: 0.5, TE: 0.75, WR: 0.75, DEFAULT: 0.5 };
+
+  /* A tight end keeps every one of his fantasy points, and a game he plays
+     never pays him less than 5 (Sam, 2026-10-27). He has more to spend his
+     credits on than anybody -- catching, blocking and carrying -- so this
+     smooths out his climb. A game he sits out hurt pays what anybody's
+     does. The diamonds are worked out off the credits, so the floor holds
+     for them too.
+
+     From 2026, the season live when it changed. The ledger tops up any
+     award that has grown, so the seasons before it would pay out again the
+     next time a week in one of them was published. */
+  var TE_SHARE = 1;
+  var TE_MIN_CREDITS = 5;
+  var TE_FROM = 2026;
 
   /* The first season paid this way. 2018 was paid for touchdowns as it went,
      and the ledger tops up any award that has grown, so paying it again on
@@ -171,9 +185,19 @@ EGE.economy = (function () {
     return Math.round(points * 100) / 100;
   }
 
-  function fantasyShareFor(position) {
+  function tightEndPaidInFull(position, season) {
+    return position === 'TE' && (season || EGE.currentSeason) >= TE_FROM;
+  }
+
+  function fantasyShareFor(position, season) {
+    if (tightEndPaidInFull(position, season)) { return TE_SHARE; }
     var share = FANTASY_SHARE[position];
     return typeof share === 'number' ? share : FANTASY_SHARE.DEFAULT;
+  }
+
+  /* The least a game pays: 1, or a tight end's 5 for a game he played. */
+  function minimumCredits(position, season, missed) {
+    return !missed && tightEndPaidInFull(position, season) ? TE_MIN_CREDITS : 1;
   }
 
   function paysFantasy(season) {
@@ -236,22 +260,25 @@ EGE.economy = (function () {
   /* --- what one game pays ----------------------------------------------- */
 
   /* `playoff` is the game's own flag. Left out, a game is paid as a
-     regular-season one. */
-  function gameCredits(player, stats, season, playoff) {
+     regular-season one. `missed` is the game's `injured` flag: a game sat
+     out hurt does not get a tight end's floor. */
+  function gameCredits(player, stats, season, playoff, missed) {
     if (!stats) { return 0; }
     if (!paysFantasy(season)) { return touchdownCredits(player, stats); }
 
-    var share = fantasyShareFor(player && player.position);
+    var position = player && player.position;
+    var share = fantasyShareFor(position, season);
     var times = playoffBoosted(season, playoff) ? PLAYOFF_CREDITS : 1;
     var credits = Math.ceil(Math.round(fantasyPoints(stats) * share * times * 100) / 100);
-    return Math.max(1, credits);
+    return Math.max(minimumCredits(position, season, missed), credits);
   }
 
   /* How a position is paid in a season, in a few words for the admin page. */
   function rateText(position, season) {
-    return paysFantasy(season)
-      ? fantasyShareFor(position) + '\u00d7 fantasy pts'
-      : tdRateFor(position) + ' a TD';
+    if (!paysFantasy(season)) { return tdRateFor(position) + ' a TD'; }
+    var floor = minimumCredits(position, season);
+    return fantasyShareFor(position, season) + '\u00d7 fantasy pts' +
+           (floor > 1 ? ', ' + floor + ' min' : '');
   }
 
   /* Every credit a player is owed for a season, worked out from the season
@@ -285,7 +312,7 @@ EGE.economy = (function () {
     EGE.gamesPlayed(player, year).forEach(function (game) {
       /* A wager doubles a game's credits or takes them away (EGE.wagerOn
          in data/games.js). A lost one pays nothing, so it is never paid. */
-      var plain = gameCredits(player, game.stats, year, game.playoff);
+      var plain = gameCredits(player, game.stats, year, game.playoff, game.injured);
       var wager = EGE.wagerOn ? EGE.wagerOn(player, game) : null;
       var credits = EGE.wageredCredits ? EGE.wageredCredits(plain, wager) : plain;
       if (!credits) { return; }
@@ -338,11 +365,11 @@ EGE.economy = (function () {
     return (season || EGE.currentSeason) >= DIAMONDS_FROM;
   }
 
-  function gameDiamonds(player, stats, season, multiplier, playoff) {
+  function gameDiamonds(player, stats, season, multiplier, playoff, missed) {
     if (!stats || !paysDiamonds(season)) { return 0; }
     /* The plain credits, before the playoff 1.25x: the playoff's own 2x is
        what a playoff game's diamonds are boosted by. */
-    var credits = gameCredits(player, stats, season);
+    var credits = gameCredits(player, stats, season, false, missed);
     var times = typeof multiplier === 'number' && multiplier > 0 ? multiplier : 1;
     times *= playoffDiamondTimes(season, playoff);
     return Math.ceil(Math.round(credits * times * 100) / 100);
@@ -361,7 +388,7 @@ EGE.economy = (function () {
     EGE.gamesPlayed(player, year).forEach(function (game) {
       var booster = EGE.boosterOn ? EGE.boosterOn(player, game) : null;
       var diamonds = gameDiamonds(player, game.stats, year, booster && booster.multiplier,
-                                  game.playoff);
+                                  game.playoff, game.injured);
       if (!diamonds) { return; }
       out.push({
         key: 'game-w' + game.week,
@@ -396,6 +423,10 @@ EGE.economy = (function () {
     FANTASY_FROM: FANTASY_FROM,
     fantasyPoints: fantasyPoints,
     fantasyShareFor: fantasyShareFor,
+    TE_SHARE: TE_SHARE,
+    TE_MIN_CREDITS: TE_MIN_CREDITS,
+    TE_FROM: TE_FROM,
+    minimumCredits: minimumCredits,
     paysFantasy: paysFantasy,
     gameCredits: gameCredits,
     PLAYOFF_CREDITS: PLAYOFF_CREDITS,
