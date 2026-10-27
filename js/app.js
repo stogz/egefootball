@@ -1944,13 +1944,27 @@
   /* Rosters the sim published before they carried each team's system and
      every player's fit (2026-10-21), or its picks (2026-10-22), show none
      of it to anybody; nor, for the live season, the free agents and the
-     retired the search finds (2026-10-26). An admin's visit, in client
-     viewer mode too, has them published again from the world, once a page
-     load, and `redraw` draws the page again with them. */
+     retired the search finds (2026-10-26); and the players' season lines
+     (2026-10-26) count only the weeks out when the rosters went out, so a
+     week published since, from the Weeks tab say, is missing from them.
+     An admin's visit, in client viewer mode too, has them published again
+     from the world, once a page load, and `redraw` draws the page again
+     with them. */
   var caughtUp = false;
 
+  /* Season lines start with 2025 (nfl-sim/lib/site.js LINES_FROM). */
+  function linesBehind(all, season) {
+    if (season < 2025 || season !== EGE.currentSeason) { return false; }
+    var last = 0;
+    for (var week = 1; week <= 22; week += 1) {
+      if (EGE.isPublished(season, week)) { last = week; }
+    }
+    return !(all.linesThrough >= last);
+  }
+
   function catchUp(all, season, redraw) {
-    var behind = !(all.systems && all.picks) || (season === EGE.currentSeason && !all.freeAgents);
+    var behind = !(all.systems && all.picks) || (season === EGE.currentSeason && !all.freeAgents) ||
+      linesBehind(all, season);
     if (caughtUp || !behind || !all.savedAt || !EGE.nflSimAdmin || !EGE.wallet.realAdmin()) { return; }
     caughtUp = true;
     EGE.nflSimAdmin.republish(season).then(function (done) {
@@ -3038,10 +3052,11 @@
   /* --- an NFL player up close ---------------------------------------------
 
      The card overlay, as a card or a trophy opens in: across the top a band
-     in his team's colour with his headshot, his name and the team's mark;
-     under it where he came from (college, draft, age, height, weight), then
-     his overall, archetype and skills, then his contract. A click anywhere
-     off it puts it away. */
+     in his team's colour with his headshot, the team's mark behind him and
+     out to his right, his name and his overall (Sam, 2026-10-26); under it
+     where he came from (college, draft, age, height, weight), then a line a
+     season from 2025 on, then his archetype and skills, then his contract.
+     A click anywhere off it puts it away. */
   var POSITION_NAMES = {
     QB: 'Quarterback', RB: 'Running Back', FB: 'Fullback', WR: 'Wide Receiver', TE: 'Tight End',
     OT: 'Offensive Tackle', IOL: 'Interior Lineman', K: 'Kicker', P: 'Punter',
@@ -3088,6 +3103,102 @@
     }
   }
 
+  /* His seasons, one line each (Sam, 2026-10-26): the mark of the team he
+     finished it with, the season, his age, and the numbers that matter most
+     at his position. 2025 on, the first season the sim kept everybody's
+     numbers, and only the weeks the website has put out (`seasons` in the
+     rosters, nfl-sim/lib/site.js seasonLines). A lineman's line is his
+     team and age: the sim keeps no numbers for blocking. */
+  function statNumber(n) { return Number(n || 0).toLocaleString('en-US'); }
+
+  function statShare(made, of) {
+    return function (l) { return l[of] ? (Math.round(1000 * (l[made] || 0) / l[of]) / 10).toFixed(1) : '–'; };
+  }
+
+  function statAverage(total, over) {
+    return function (l) { return l[over] ? ((l[total] || 0) / l[over]).toFixed(1) : '–'; };
+  }
+
+  function statCount(key) { return function (l) { return statNumber(l[key]); }; }
+
+  function statOf(made, tried) { return function (l) { return (l[made] || 0) + '/' + (l[tried] || 0); }; }
+
+  var GAMES_COLUMN = ['G', 'Games', statCount('games')];
+  var BACK_COLUMNS = [GAMES_COLUMN, ['CAR', 'Carries', statCount('rushAtt')], ['YDS', 'Rushing yards', statCount('rushYds')],
+    ['REC', 'Catches', statCount('rec')], ['REC YDS', 'Receiving yards', statCount('recYds')],
+    ['TD', 'Rushing and receiving touchdowns', function (l) { return statNumber((l.rushTd || 0) + (l.recTd || 0)); }]];
+  var CATCHER_COLUMNS = [GAMES_COLUMN, ['TGT', 'Targets', statCount('targets')], ['REC', 'Catches', statCount('rec')],
+    ['YDS', 'Receiving yards', statCount('recYds')], ['AVG', 'Yards a catch', statAverage('recYds', 'rec')],
+    ['TD', 'Receiving touchdowns', statCount('recTd')]];
+  var DEFENDER_COLUMNS = [GAMES_COLUMN, ['TKL', 'Tackles', statCount('tackles')], ['SACK', 'Sacks', statCount('sacks')],
+    ['INT', 'Interceptions', statCount('ints')], ['PD', 'Passes defended', statCount('passDef')],
+    ['FF', 'Forced fumbles', statCount('ff')]];
+  var SEASON_COLUMNS = {
+    QB: [GAMES_COLUMN, ['CMP%', 'Completion percentage', statShare('passCmp', 'passAtt')],
+      ['YDS', 'Passing yards', statCount('passYds')], ['TD', 'Passing touchdowns', statCount('passTd')],
+      ['INT', 'Interceptions thrown', statCount('passInt')], ['RUSH', 'Rushing yards', statCount('rushYds')]],
+    RB: BACK_COLUMNS,
+    FB: BACK_COLUMNS,
+    WR: CATCHER_COLUMNS,
+    TE: CATCHER_COLUMNS,
+    EDGE: DEFENDER_COLUMNS,
+    DI: DEFENDER_COLUMNS,
+    LB: DEFENDER_COLUMNS,
+    CB: DEFENDER_COLUMNS,
+    S: DEFENDER_COLUMNS,
+    K: [GAMES_COLUMN, ['FG', 'Field goals made and tried', statOf('fgm', 'fga')], ['FG%', 'Field goal percentage', statShare('fgm', 'fga')],
+      ['XP', 'Extra points made and tried', statOf('xpm', 'xpa')],
+      ['PTS', 'Points', function (l) { return statNumber(3 * (l.fgm || 0) + (l.xpm || 0)); }]],
+    P: [GAMES_COLUMN, ['PUNTS', 'Punts', statCount('punts')], ['YDS', 'Punting yards', statCount('puntYards')],
+      ['AVG', 'Yards a punt', statAverage('puntYards', 'punts')]]
+  };
+
+  function seasonLines(sim) {
+    var seasons = (sim.seasons || []).slice().sort(function (a, b) { return a.season - b.season; });
+    if (!seasons.length) { return null; }
+    var columns = SEASON_COLUMNS[sim.pos] || [];
+    var table = el('table', 'ege-person__seasons' + (columns.length ? '' : ' is-bare'));
+    var head = el('tr');
+    head.appendChild(el('th', 'ege-person__seasonmark'));
+    [['Season', 'Season'], ['Age', 'Age']].concat(columns).forEach(function (column) {
+      var th = el('th', null, column[0]);
+      th.scope = 'col';
+      if (column[1] !== column[0]) { th.title = column[1]; }
+      head.appendChild(th);
+    });
+    var thead = el('thead');
+    thead.appendChild(head);
+    table.appendChild(thead);
+    var body = el('tbody');
+    seasons.forEach(function (entry) {
+      var tr = el('tr');
+      var team = EGE.nfl.teams[entry.team] || {};
+      var markCell = el('td', 'ege-person__seasonmark');
+      var src = team.name && EGE.logoFor(team.name);
+      if (src) {
+        var img = el('img');
+        img.src = src;
+        img.alt = team.name;
+        img.title = team.name;
+        img.addEventListener('error', function () { img.remove(); });
+        markCell.appendChild(img);
+      }
+      tr.appendChild(markCell);
+      var year = el('th', 'ege-person__seasonyear', String(entry.season));
+      year.scope = 'row';
+      tr.appendChild(year);
+      tr.appendChild(el('td', null, typeof entry.age === 'number' ? String(entry.age) : '–'));
+      columns.forEach(function (column) {
+        tr.appendChild(el('td', null, entry.line ? column[2](entry.line) : '–'));
+      });
+      body.appendChild(tr);
+    });
+    table.appendChild(body);
+    var wrap = el('div', 'ege-person__seasonwrap');
+    wrap.appendChild(table);
+    return wrap;
+  }
+
   /* A colour too near black for a shade darker to show (the Steelers',
      the Raiders', the Bears' navy): their mark behind the band goes a shade
      lighter instead. */
@@ -3100,7 +3211,7 @@
     var sim = row.sim;
     var team = EGE.nfl.teams[row.team] || {};
     var stage = EGE.cardsView.openOverlay(POSITION_NAMES[sim.pos] || sim.pos, 'ege-rip__stage--person');
-    var box = el('div', 'ege-person');
+    var box = el('div', 'ege-person ege-person--player');
     var logoSrc = EGE.nfl.logo(row.team);
 
     /* Line one: the band. Behind it, the team's mark in two tones, the
@@ -3119,10 +3230,23 @@
       wash.appendChild(washImg);
       band.appendChild(wash);
     }
+    /* His headshot with the team's mark behind him, set off to his right
+       so it shows past his shoulder; his name; his overall where the mark
+       used to be (Sam, 2026-10-26). */
     var face = el('span', 'ege-person__face');
+    if (logoSrc) {
+      var mark = el('span', 'ege-person__behind');
+      var logo = el('img');
+      logo.src = logoSrc;
+      logo.alt = team.name || '';
+      logo.title = team.name || '';
+      logo.addEventListener('error', function () { mark.remove(); });
+      mark.appendChild(logo);
+      face.appendChild(mark);
+    }
     var src = nflPhoto(row, true);
     if (src) {
-      var img = el('img');
+      var img = el('img', 'ege-person__shot');
       img.src = src;
       img.alt = '';
       img.addEventListener('error', function () { img.remove(); });
@@ -3131,16 +3255,8 @@
     band.appendChild(face);
     var name = el('h3', 'ege-person__name', row.name);
     band.appendChild(name);
-    var mark = el('span', 'ege-person__mark');
-    if (logoSrc) {
-      var logo = el('img');
-      logo.src = logoSrc;
-      logo.alt = team.name || '';
-      logo.title = team.name || '';
-      logo.addEventListener('error', function () { logo.remove(); });
-      mark.appendChild(logo);
-    }
-    band.appendChild(mark);
+    var ovr = overallBox(row.overall, 'ege-ovrbox--chip ege-person__ovr');
+    if (ovr) { band.appendChild(ovr); }
     box.appendChild(band);
 
     var panel = el('div', 'ege-person__body');
@@ -3165,11 +3281,12 @@
     fact('Weight', EGE.weightText(row) || '–');
     panel.appendChild(facts);
 
-    /* Line three: how good, what kind, and the skills it comes from, best
-       first. */
+    /* Line three: his seasons. */
+    var seasons = seasonLines(sim);
+    if (seasons) { panel.appendChild(seasons); }
+
+    /* Line four: what kind, and the skills it comes from, best first. */
     var rating = el('div', 'ege-person__rating');
-    var ovr = overallBox(row.overall, 'ege-ovrbox--chip');
-    if (ovr) { rating.appendChild(ovr); }
     var kind = el('div', 'ege-person__kind');
     var arch = el('span', 'ege-person__arch', sim.archetype || POSITION_NAMES[sim.pos] || sim.pos);
     if (row.fit) { arch.appendChild(starsEl(row.fit.stars, 'Fit in ' + row.fit.scheme)); }
@@ -3186,7 +3303,7 @@
     rating.appendChild(kind);
     panel.appendChild(rating);
 
-    /* Line four: the contract, and anything keeping him off the field. */
+    /* Line five: the contract, and anything keeping him off the field. */
     var foot = el('dl', 'ege-person__deal');
     function line(label, value) {
       foot.appendChild(el('dt', null, label));
@@ -6299,6 +6416,12 @@
       return refreshAdminView();
     }).then(function () {
       redrawEverything();
+      /* From the Weeks tab, the NFL sim's rosters again if it is loaded, so
+         the players' season lines count the week (the NFL Sim tab's
+         Publish does its own). */
+      if (!quiet && said && said.ok && EGE.nflSimAdmin && EGE.nflSimAdmin.loaded()) {
+        EGE.nflSimAdmin.republish(season).catch(function () { return false; });
+      }
       return said;
     });
   }

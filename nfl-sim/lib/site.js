@@ -424,6 +424,100 @@ function weekRows(league, season) {
   };
 }
 
+/* ---------------------------------------------------- out: season lines -- */
+
+/* The first season a player's pop-up has his numbers for (Sam, 2026-10-26):
+   2025, the first the sim kept for everybody. */
+const LINES_FROM = 2025;
+
+/* What a season line carries: his games, and the numbers the pop-up shows
+   at one position or another. */
+const LINE_KEYS = ['games', 'passCmp', 'passAtt', 'passYds', 'passTd', 'passInt', 'rushAtt', 'rushYds', 'rushTd',
+                   'targets', 'rec', 'recYds', 'recTd', 'tackles', 'sacks', 'ints', 'passDef', 'ff', 'defTd',
+                   'fgm', 'fga', 'xpm', 'xpa', 'punts', 'puntYards'];
+
+/* A season's totals (stats-{season}.json, or the season being played) as
+   far as the website has put it out: every week not out yet is taken off,
+   line by line from the game log's box scores, so a pop-up never gives a
+   game away before it is published. { lines: by player id, through: the
+   last week counted, 0 for none }. A box line from before the lines had
+   ids is matched by name and position. */
+function linesOut(league, season, totals, site) {
+  const name = 'games-' + season + '.json';
+  const log = io.has(league.world, name) ? io.read(league.world, name) : [];
+  const isOut = (week) => Boolean(site && site.isPublished && site.isPublished(season, week));
+  const held = {};
+  let through = 0;
+  log.forEach((g) => {
+    if (isOut(g.week)) { through = Math.max(through, g.week); return; }
+    (g.box || []).forEach((l) => {
+      const key = l.id || l.name + '|' + l.pos;
+      const h = held[key] || (held[key] = { games: 0 });
+      h.games += 1;
+      LINE_KEYS.forEach((k) => { if (k !== 'games' && l[k]) { h[k] = (h[k] || 0) + l[k]; } });
+    });
+  });
+  const lines = {};
+  Object.keys(totals || {}).forEach((id) => {
+    const t = totals[id];
+    const h = held[id] || held[t.name + '|' + t.pos] || {};
+    const line = {};
+    LINE_KEYS.forEach((k) => {
+      const n = (t[k] || 0) - (h[k] || 0);
+      if (n) { line[k] = n; }
+    });
+    if (line.games) { lines[id] = line; }
+  });
+  return { lines, through };
+}
+
+/* Every player's seasons for his pop-up, 2025 on, by id: the season, the
+   team he finished it with, how old he was, and his line (none for a
+   season he was on a roster and never got one: a lineman, a backup who
+   never played). A season over takes the team and age from that season's
+   final rosters (rosters-{season}.json), or the team he last played for;
+   the season being played, his team now, or the last he played for if
+   nobody has him (a free agent the search finds). A season with no week
+   out on the site is left off. */
+function seasonLines(league, site) {
+  const out = new Map();
+  const add = (id, entry) => { if (!out.has(id)) { out.set(id, []); } out.get(id).push(entry); };
+  const through = {};
+  for (let season = LINES_FROM; season <= league.season; season += 1) {
+    const now = season === league.season;
+    if (!now && !io.has(league.world, 'stats-' + season + '.json')) { continue; }
+    const totals = now ? league.stats || {} : io.read(league.world, 'stats-' + season + '.json');
+    const got = linesOut(league, season, totals, site);
+    if (!got.through) { continue; }
+    through[season] = got.through;
+    const ago = league.season - season;
+    const ageThen = (p) => (typeof p.age === 'number' ? p.age - ago : null);
+    if (now) {
+      league.players.forEach((p) => {
+        const line = got.lines[p.id] || null;
+        const on = p.status === 'active' && TEAMS[p.team] ? p.team : null;
+        const team = on || (line && totals[p.id] ? totals[p.id].team : null);
+        if (team) { add(p.id, { season, team, age: ageThen(p), line }); }
+      });
+      continue;
+    }
+    const shot = io.has(league.world, 'rosters-' + season + '.json') ? io.read(league.world, 'rosters-' + season + '.json') : null;
+    const ended = {};
+    if (shot) {
+      Object.keys(shot.teams).forEach((key) => shot.teams[key].players.forEach((r) => { ended[r.id] = { team: key, age: r.age }; }));
+    }
+    const ids = new Set(Object.keys(ended).concat(Object.keys(got.lines)));
+    ids.forEach((id) => {
+      const p = league.byId.get(id);
+      const team = ended[id] ? ended[id].team : totals[id] ? totals[id].team : null;
+      if (!team) { return; }
+      const age = ended[id] && typeof ended[id].age === 'number' ? ended[id].age : p ? ageThen(p) : null;
+      add(id, { season, team, age, line: got.lines[id] || null });
+    });
+  }
+  return { byId: out, through };
+}
+
 /* --------------------------------------------------------- out: rosters -- */
 
 /* How many seasons of the salary cap go out with the rosters: this one and
@@ -437,10 +531,14 @@ const CAP_YEARS = 4;
    schemes in stars.
    With them, the salary cap for the next few seasons, and each team's
    system: its offense and defense with how well it is built for them in
-   stars, and its status (Sam, 2026-10-21: for everybody to see). */
+   stars, and its status (Sam, 2026-10-21: for everybody to see). Each
+   player carries his seasons from 2025 on, for his pop-up (seasonLines),
+   and `linesThrough` says how far into this season they count, so the
+   site can have them published again once another week is out. */
 function publicRosters(league) {
   let site = null;
   try { site = io.site(); } catch (err) { site = null; }
+  const lines = seasonLines(league, site);
   const teams = {};
   league.teams.forEach((t) => {
     teams[t.key] = (league.byTeam.get(t.key) || []).slice()
@@ -463,6 +561,7 @@ function publicRosters(league) {
         if (p.injury) {
           row.out = { what: p.injury.what, games: p.injury.games >= 20 ? null : p.injury.games, week: p.injury.week || 0 };
         }
+        if (lines.byId.has(p.id)) { row.seasons = lines.byId.get(p.id); }
         return row;
       });
   });
@@ -493,7 +592,8 @@ function publicRosters(league) {
     });
   });
   return { season: league.season, phase: league.phase, week: league.week || null, savedAt: new Date().toISOString(), caps, systems,
-           picks, teams, freeAgents: freeAgents(league, site), retired: retiredPlayers(league, site) };
+           picks, linesThrough: lines.through[league.season] || 0, teams, freeAgents: freeAgents(league, site, lines),
+           retired: retiredPlayers(league, site, lines) };
 }
 
 function siteCollege(site, p) {
@@ -503,7 +603,7 @@ function siteCollege(site, p) {
 
 /* For the site's search (Sam, 2026-10-26): everybody nobody has signed,
    as a roster row without a contract or a fit, best first. */
-function freeAgents(league, site) {
+function freeAgents(league, site, lines) {
   return league.players.filter((p) => p.status === 'fa' || (p.status === 'active' && !league.byTeam.has(p.team)))
     .sort((a, b) => b.ovr - a.ovr || a.name.localeCompare(b.name))
     .map((p) => {
@@ -516,6 +616,7 @@ function freeAgents(league, site) {
       };
       if (p.espn) { row.espn = String(p.espn); }
       if (p.ege) { row.ege = p.ege; }
+      if (lines && lines.byId.has(p.id)) { row.seasons = lines.byId.get(p.id); }
       return row;
     });
 }
@@ -524,7 +625,7 @@ function freeAgents(league, site) {
    team he last played for: the newest season kept in the world with him on
    a roster (lib/history.js), or the one that let him go. A retired player
    keeps only who he was in the world (lib/offseason.js), so no skills. */
-function retiredPlayers(league, site) {
+function retiredPlayers(league, site, lines) {
   const lastTeam = {};
   seasons(league).filter((s) => s !== league.season).forEach((s) => {
     const shot = rostersIn(league, s);
@@ -546,8 +647,9 @@ function retiredPlayers(league, site) {
       };
       if (p.espn) { row.espn = String(p.espn); }
       if (p.ege) { row.ege = p.ege; }
+      if (lines && lines.byId.has(p.id)) { row.seasons = lines.byId.get(p.id); }
       return row;
     });
 }
 
-module.exports = { siteResults, sixEdits, seasonFileText, simResults, resultsFileText, siteFiles, weekRows, publicRosters, simKey };
+module.exports = { siteResults, sixEdits, seasonFileText, simResults, resultsFileText, siteFiles, weekRows, publicRosters, seasonLines, simKey };

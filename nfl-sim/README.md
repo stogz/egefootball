@@ -757,7 +757,10 @@ Sim tab (see the site's README). There the world is kept in Supabase
 (`nfl_sim_files`, admin only) instead of a folder, and after every step the
 rosters are published to `nfl_sim_rosters` (`site.js publicRosters`: every
 player on every team, with nothing private about him and his fit in his
-team's schemes in stars, the salary cap for the season and the three after
+team's schemes in stars, his seasons from 2025 on for his pop-up (`seasons`:
+team, age and line, from `stats-{season}.json` and the season being played,
+less every week the site has not published, taken off by the game log's box
+scores, which keep every player's line with his id for it), the salary cap for the season and the three after
 it, and each team's `systems`: its offense and defense, its stars for each
 and its status, which the Teams pages show everybody since 2026-10-21; and
 for the site's search, since 2026-10-26, the free agents and every retired
