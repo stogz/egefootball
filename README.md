@@ -479,12 +479,14 @@ Under the bar:
   (the Bears' orange; white for a free agent), the text white or dark to
   suit it, with no line between it and the band; then, on the cream, his
   seasons, his ratings and his contract, with only space between them, no
-  titles or rules (Sam, 2026-10-27). His seasons are **a table like the game log**: the dark
-  heading row, every heading a button that sorts it (biggest first, then
-  turned round, then back to the order played), the sorted column shaded
-  down to a **Career** line that adds them up (averages and the passer
-  rating worked out again from the totals), with no hard lines round it
-  or through it; it scrolls sideways on a phone. A line a season
+  titles or rules (Sam, 2026-10-27). His seasons are **a table like the game log**: every
+  heading a button that sorts it (biggest first, then turned round, then
+  back to the order played), the sorted column shaded down to a **Career**
+  line that adds them up (averages and the passer rating worked out again
+  from the totals) under a soft line, with no label. The whole table,
+  headings in black too, is on one shade, the darker of the game log's two,
+  with no lines round it or between the seasons, and the ratings sit on the
+  same shade (Sam, 2026-10-27); it scrolls sideways on a phone. A line a season
   from 2025 on (Sam, 2026-10-26: the first season the sim kept everybody's
   numbers), oldest first: the mark of the team he finished it with, the
   season, his age, and his position's numbers (QB G, CMP%, YDS, TD, INT,

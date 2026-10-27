@@ -3284,12 +3284,14 @@
         tbody.appendChild(tr);
       });
 
-      /* The Career line runs one label across the mark, the season and the
-         age, so a number sits a cell further left in it than above. */
+      /* The Career line runs one cell across the mark, the season and the
+         age, so a number sits a cell further left in it than above. Its
+         label is for a screen reader only (Sam, 2026-10-27: not needed). */
       if (!tfoot) { return; }
       tfoot.innerHTML = '';
       var total = el('tr');
-      var label = el('td', null, 'Career');
+      var label = el('td');
+      label.appendChild(el('span', 'ege-visually-hidden', 'Career'));
       label.colSpan = 3;
       total.appendChild(label);
       stats.forEach(function (column) {
