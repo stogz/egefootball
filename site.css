@@ -4708,9 +4708,9 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
 
    In the card overlay, the page blurred behind it as for a trophy: a band in
    his team's colour with his headshot, the team's mark behind him, his name
-   and his overall, then a cream panel in parts, each under a centred title
-   (Sam, 2026-10-26): Bio, where he came from; Stats, his seasons; Ratings,
-   his archetype and skills; More, his contract. */
+   and his overall, then a cream panel: where he came from, then parts
+   under centred titles (Sam, 2026-10-26): Stats, his seasons; Ratings, his
+   archetype and skills; More, his contract. */
 .ege-rip__stage.ege-rip__stage--person { width: min(600px, 100%); }
 .ege-rip:has(.ege-rip__stage--person) {
   background:
@@ -4847,8 +4847,10 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
 .ege-person__body { display: grid; gap: 14px; padding: 14px 16px 16px; }
 .ege-person--player .ege-person__body { gap: 24px; padding: 20px 20px 22px; }
 .ege-person__part { display: grid; gap: 12px; min-width: 0; }
-/* A part's title, centred between two rules running out to the edges. */
+/* A part's title, centred between two rules running out to the edges,
+   in the rules' own colour (Sam, 2026-10-27). */
 .ege-person__head {
+  --rule: rgba(29, 36, 22, .2);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -4858,14 +4860,14 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
   font-weight: 800;
   letter-spacing: .2em;
   text-transform: uppercase;
-  color: var(--fb-accent-deep);
+  color: var(--rule);
 }
 .ege-person__head::before,
 .ege-person__head::after {
   content: '';
   flex: 1;
   height: var(--fb-border-thin);
-  background: rgba(29, 36, 22, .2);
+  background: var(--rule);
 }
 .ege-person__facts {
   display: grid;

@@ -3053,11 +3053,11 @@
 
      The card overlay, as a card or a trophy opens in: across the top a band
      in his team's colour with his headshot, the team's mark behind him and
-     out to his right, his name and his overall (Sam, 2026-10-26); under it,
-     each under a centred title, Bio (college, draft, age, height, weight),
-     Stats (a line a season from 2025 on), Ratings (his archetype and
-     skills) and More (his contract). A click anywhere off it puts it
-     away. */
+     out to his right, his name and his overall (Sam, 2026-10-26); under it
+     where he came from (college, draft, age, height, weight), then, each
+     under a centred title, Stats (a line a season from 2025 on), Ratings
+     (his archetype and skills) and More (his contract). A click anywhere
+     off it puts it away. */
   var POSITION_NAMES = {
     QB: 'Quarterback', RB: 'Running Back', FB: 'Fullback', WR: 'Wide Receiver', TE: 'Tight End',
     OT: 'Offensive Tackle', IOL: 'Interior Lineman', K: 'Kicker', P: 'Punter',
@@ -3260,8 +3260,9 @@
     if (ovr) { band.appendChild(ovr); }
     box.appendChild(band);
 
-    /* Under it the parts, each under a title of its own, centred (Sam,
-       2026-10-26): Bio, Stats, Ratings and More. */
+    /* Under it the parts, each after the first under a title of its own,
+       centred (Sam, 2026-10-26): Stats, Ratings and More. The bio leads
+       with no title (2026-10-27). */
     var panel = el('div', 'ege-person__body');
     function part(title) {
       var section = el('section', 'ege-person__part');
@@ -3270,7 +3271,7 @@
       return section;
     }
 
-    /* Bio: where he came from and his size. */
+    /* Where he came from and his size. */
     var facts = el('dl', 'ege-person__facts');
     function fact(label, value, title) {
       var cell = el('div', 'ege-person__fact');
@@ -3288,7 +3289,7 @@
     fact('Age', typeof sim.age === 'number' ? String(sim.age) : '–');
     fact('Height', EGE.heightText(row) || '–');
     fact('Weight', EGE.weightText(row) || '–');
-    part('Bio').appendChild(facts);
+    panel.appendChild(facts);
 
     /* Stats: his seasons. */
     var seasons = seasonLines(sim);

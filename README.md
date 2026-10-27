@@ -464,10 +464,10 @@ Under the bar:
   picture; every headshot is placed the same way. The name is centred
   between the headshot and the overall, and a
   name too long for its column is set smaller rather than broken inside a
-  word (`fitName`). Under the band the pop-up is in four parts, each
-  under a centred title between two rules (Sam, 2026-10-26): **Bio**,
-  **Stats**, **Ratings** and **More**. Bio is college, draft
-  (*2021 · R4 #112*), age, height and weight; Stats is **a line a season**
+  word (`fitName`). Under the band come college, draft
+  (*2021 · R4 #112*), age, height and weight, with no title; then three
+  parts, each under a centred title between two rules in the rules' own
+  colour (Sam, 2026-10-26/27): **Stats**, **Ratings** and **More**. Stats is **a line a season**
   from 2025 on (Sam, 2026-10-26: the first season the sim kept everybody's
   numbers), oldest first: the mark of the team he finished it with, the
   season, his age, and his position's numbers (QB G, CMP%, YDS, TD, INT,
