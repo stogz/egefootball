@@ -470,10 +470,11 @@ Under the bar:
   a half times the band's height, so more of it shows. The headshot stands on the band's bottom edge and is sized
   so the top of the head just clears the top of the box, about 5% of the
   picture; every headshot is placed the same way, and shows the picture's
-  whole width, shoulders and all (2026-10-27). The name is centred
-  between the headshot and the overall, and a
-  name too long for its column is set smaller rather than broken inside a
-  word (`fitName`). Under the band come college, draft
+  whole width, shoulders and all (2026-10-27). The name is in the band's
+  dead centre, first name over the rest on two lines, with the headshot,
+  the mark and the overall smaller and out at the two ends to give it room
+  (Sam, 2026-10-27); a name too long for its column is set smaller rather
+  than broken inside a word (`fitName`). Under the band come college, draft
   (*2021 · R4 #112*), age, height and weight in a thin strip on the team's second colour
   (the Bears' orange; white for a free agent), the text white or dark to
   suit it, with no line between it and the band; then, on the cream, his
@@ -482,8 +483,8 @@ Under the bar:
   heading row, every heading a button that sorts it (biggest first, then
   turned round, then back to the order played), the sorted column shaded
   down to a **Career** line that adds them up (averages and the passer
-  rating worked out again from the totals); it scrolls sideways on a
-  phone. A line a season
+  rating worked out again from the totals), with no hard lines round it
+  or through it; it scrolls sideways on a phone. A line a season
   from 2025 on (Sam, 2026-10-26: the first season the sim kept everybody's
   numbers), oldest first: the mark of the team he finished it with, the
   season, his age, and his position's numbers (QB G, CMP%, YDS, TD, INT,
@@ -497,7 +498,7 @@ Under the bar:
   published (the NFL Sim tab's Publish, the Weeks tab's when the sim is
   loaded, or an admin's visit to a team page when `linesThrough` is behind).
   The ratings are the archetype and his skills, best first; the contract
-  is *$1.1M a year through 2024*, with any injury under it. One of the
+  is *$1.1M a year through 2024*, with any injury under it in red. One of the
   six's has a button through to his page. A click off the box or Escape
   closes it.
   Nothing private is in the rosters: no team ratings, no potential, nothing

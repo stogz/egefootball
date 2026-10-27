@@ -3084,7 +3084,8 @@
 
   /* The pop-up's name at the size site.css gives it, or smaller when a
      long name would otherwise run wider than its column (VanValkenburg) or
-     past two lines. A name is never broken inside a word. */
+     past two lines. A name is never broken inside a word. A player's is
+     his first name over the rest (Sam, 2026-10-27). */
   function fitName(node) {
     node.style.fontSize = '';
     var size = parseFloat(window.getComputedStyle(node).fontSize);
@@ -3507,7 +3508,15 @@
       face.appendChild(img);
     }
     band.appendChild(face);
-    var name = el('h3', 'ege-person__name', row.name);
+    var name = el('h3', 'ege-person__name');
+    var gap = row.name.indexOf(' ');
+    if (gap > 0) {
+      name.appendChild(el('span', null, row.name.slice(0, gap)));
+      name.appendChild(document.createTextNode(' '));
+      name.appendChild(el('span', null, row.name.slice(gap + 1)));
+    } else {
+      name.appendChild(el('span', null, row.name));
+    }
     band.appendChild(name);
     var ovr = overallBox(row.overall, 'ege-ovrbox--chip ege-person__ovr');
     if (ovr) { band.appendChild(ovr); }
@@ -3581,9 +3590,9 @@
 
     /* His contract, and anything keeping him off the field. */
     var foot = el('dl', 'ege-person__deal');
-    function line(label, value) {
-      foot.appendChild(el('dt', null, label));
-      foot.appendChild(el('dd', null, value));
+    function line(label, value, cls) {
+      foot.appendChild(el('dt', cls || null, label));
+      foot.appendChild(el('dd', cls || null, value));
     }
     if (row.retired) {
       line('Status', retiredText(row.retired));
@@ -3592,7 +3601,8 @@
         ? moneyText(sim.contract.apy) + ' a year through ' + sim.contract.through
         : row.freeAgent ? 'Free agent' : 'None');
     }
-    if (row.out) { line('Injury', injuryText(row.out)); }
+    /* In red (Sam, 2026-10-27). */
+    if (row.out) { line('Injury', injuryText(row.out), 'is-hurt'); }
     var more = part();
     more.appendChild(foot);
 
