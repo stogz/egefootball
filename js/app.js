@@ -2115,16 +2115,7 @@
     var box = el('div', 'ege-person ege-person--pick');
     var band = el('div', 'ege-person__band');
     band.style.background = team.color || '';
-    var washSrc = team.name && EGE.logoFor(team.name);
-    if (washSrc && team.color) {
-      var wash = el('span', 'ege-person__wash' + (nearBlack(team.color) ? ' is-light' : ''));
-      var washImg = el('img');
-      washImg.src = washSrc;
-      washImg.alt = '';
-      washImg.addEventListener('error', function () { wash.remove(); });
-      wash.appendChild(washImg);
-      band.appendChild(wash);
-    }
+    bandWash(band, team);
     band.appendChild(el('span', 'ege-person__face'));
     band.appendChild(el('h3', 'ege-person__name', p.year + ' ' + EGE.ordinal(p.round).toLowerCase() + ' round'));
     var mark = el('span', 'ege-person__mark');
@@ -3054,10 +3045,10 @@
      The card overlay, as a card or a trophy opens in: across the top a band
      in his team's colour with his headshot, the team's mark behind him and
      out to his right, his name and his overall (Sam, 2026-10-26); under it
-     where he came from (college, draft, age, height, weight), then, each
-     under a centred title, Stats (a line a season from 2025 on), Ratings
-     (his archetype and skills) and More (his contract). A click anywhere
-     off it puts it away. */
+     where he came from (college, draft, age, height, weight), his seasons
+     in a table that sorts (a line a season from 2025 on), his archetype
+     and skills, and his contract, with no titles or rules between them
+     (2026-10-27). A click anywhere off it puts it away. */
   var POSITION_NAMES = {
     QB: 'Quarterback', RB: 'Running Back', FB: 'Fullback', WR: 'Wide Receiver', TE: 'Tight End',
     OT: 'Offensive Tackle', IOL: 'Interior Lineman', K: 'Kicker', P: 'Punter',
@@ -3109,35 +3100,69 @@
      at his position. 2025 on, the first season the sim kept everybody's
      numbers, and only the weeks the website has put out (`seasons` in the
      rosters, nfl-sim/lib/site.js seasonLines). A lineman's line is his
-     team and age: the sim keeps no numbers for blocking. */
+     team and age: the sim keeps no numbers for blocking.
+
+     A table like the game log (Sam, 2026-10-27): every heading sorts it,
+     biggest first, so the season he led in something is the top line, and
+     a Career line under it the way the game log has the season's. Each
+     column reads a number off a season's line, or null for nothing to
+     show (an average with nothing to average); `places` is how it is
+     written, and `show` writes it another way. */
   function statNumber(n) { return Number(n || 0).toLocaleString('en-US'); }
 
-  function statShare(made, of) {
-    return function (l) { return l[of] ? (Math.round(1000 * (l[made] || 0) / l[of]) / 10).toFixed(1) : '–'; };
+  function statCount(label, title, key) {
+    return { label: label, title: title, value: function (l) { return l[key] || 0; } };
   }
 
-  function statAverage(total, over) {
-    return function (l) { return l[over] ? ((l[total] || 0) / l[over]).toFixed(1) : '–'; };
+  function statShare(label, title, made, of) {
+    return {
+      label: label, title: title, places: 1,
+      value: function (l) { return l[of] ? 100 * (l[made] || 0) / l[of] : null; }
+    };
   }
 
-  function statCount(key) { return function (l) { return statNumber(l[key]); }; }
+  function statAverage(label, title, total, over) {
+    return {
+      label: label, title: title, places: 1,
+      value: function (l) { return l[over] ? (l[total] || 0) / l[over] : null; }
+    };
+  }
 
-  function statOf(made, tried) { return function (l) { return (l[made] || 0) + '/' + (l[tried] || 0); }; }
+  /* Made and tried, written together and sorted on the made. */
+  function statOf(label, title, made, tried) {
+    return {
+      label: label, title: title,
+      value: function (l) { return l[made] || 0; },
+      show: function (l) { return (l[made] || 0) + '/' + (l[tried] || 0); }
+    };
+  }
 
-  var GAMES_COLUMN = ['G', 'Games', statCount('games')];
-  var BACK_COLUMNS = [GAMES_COLUMN, ['CAR', 'Carries', statCount('rushAtt')], ['YDS', 'Rushing yards', statCount('rushYds')],
-    ['REC', 'Catches', statCount('rec')], ['REC YDS', 'Receiving yards', statCount('recYds')],
-    ['TD', 'Rushing and receiving touchdowns', function (l) { return statNumber((l.rushTd || 0) + (l.recTd || 0)); }]];
-  var CATCHER_COLUMNS = [GAMES_COLUMN, ['TGT', 'Targets', statCount('targets')], ['REC', 'Catches', statCount('rec')],
-    ['YDS', 'Receiving yards', statCount('recYds')], ['AVG', 'Yards a catch', statAverage('recYds', 'rec')],
-    ['TD', 'Receiving touchdowns', statCount('recTd')]];
-  var DEFENDER_COLUMNS = [GAMES_COLUMN, ['TKL', 'Tackles', statCount('tackles')], ['SACK', 'Sacks', statCount('sacks')],
-    ['INT', 'Interceptions', statCount('ints')], ['PD', 'Passes defended', statCount('passDef')],
-    ['FF', 'Forced fumbles', statCount('ff')]];
+  function statText(column, line) {
+    if (column.show) { return column.show(line); }
+    var value = column.value(line);
+    if (value === null) { return '–'; }
+    return column.places ? value.toFixed(column.places) : statNumber(value);
+  }
+
+  var GAMES_COLUMN = statCount('G', 'Games', 'games');
+  var BACK_COLUMNS = [GAMES_COLUMN, statCount('CAR', 'Carries', 'rushAtt'),
+    statCount('RUYDS', 'Rushing yards', 'rushYds'), statAverage('RUAVG', 'Yards a carry', 'rushYds', 'rushAtt'),
+    statCount('RUTD', 'Rushing touchdowns', 'rushTd'), statCount('REC', 'Catches', 'rec'),
+    statCount('REYDS', 'Receiving yards', 'recYds'), statCount('RETD', 'Receiving touchdowns', 'recTd')];
+  var CATCHER_COLUMNS = [GAMES_COLUMN, statCount('TGT', 'Targets', 'targets'), statCount('REC', 'Catches', 'rec'),
+    statCount('YDS', 'Receiving yards', 'recYds'), statAverage('AVG', 'Yards a catch', 'recYds', 'rec'),
+    statCount('TD', 'Receiving touchdowns', 'recTd')];
+  var DEFENDER_COLUMNS = [GAMES_COLUMN, statCount('TKL', 'Tackles', 'tackles'), statCount('SACK', 'Sacks', 'sacks'),
+    statCount('INT', 'Interceptions', 'ints'), statCount('PD', 'Passes defended', 'passDef'),
+    statCount('FF', 'Forced fumbles', 'ff'), statCount('TD', 'Defensive touchdowns', 'defTd')];
   var SEASON_COLUMNS = {
-    QB: [GAMES_COLUMN, ['CMP%', 'Completion percentage', statShare('passCmp', 'passAtt')],
-      ['YDS', 'Passing yards', statCount('passYds')], ['TD', 'Passing touchdowns', statCount('passTd')],
-      ['INT', 'Interceptions thrown', statCount('passInt')], ['RUSH', 'Rushing yards', statCount('rushYds')]],
+    QB: [GAMES_COLUMN, statShare('CMP%', 'Completion percentage', 'passCmp', 'passAtt'),
+      statCount('YDS', 'Passing yards', 'passYds'), statCount('TD', 'Passing touchdowns', 'passTd'),
+      statCount('INT', 'Interceptions thrown', 'passInt'),
+      { label: 'RTG', title: 'Passer rating', places: 1, value: function (l) {
+        return EGE.statline.passerRating(l.passCmp || 0, l.passAtt || 0, l.passYds || 0, l.passTd || 0, l.passInt || 0);
+      } },
+      statCount('RUYDS', 'Rushing yards', 'rushYds'), statCount('RUTD', 'Rushing touchdowns', 'rushTd')],
     RB: BACK_COLUMNS,
     FB: BACK_COLUMNS,
     WR: CATCHER_COLUMNS,
@@ -3147,65 +3172,283 @@
     LB: DEFENDER_COLUMNS,
     CB: DEFENDER_COLUMNS,
     S: DEFENDER_COLUMNS,
-    K: [GAMES_COLUMN, ['FG', 'Field goals made and tried', statOf('fgm', 'fga')], ['FG%', 'Field goal percentage', statShare('fgm', 'fga')],
-      ['XP', 'Extra points made and tried', statOf('xpm', 'xpa')],
-      ['PTS', 'Points', function (l) { return statNumber(3 * (l.fgm || 0) + (l.xpm || 0)); }]],
-    P: [GAMES_COLUMN, ['PUNTS', 'Punts', statCount('punts')], ['YDS', 'Punting yards', statCount('puntYards')],
-      ['AVG', 'Yards a punt', statAverage('puntYards', 'punts')]]
+    K: [GAMES_COLUMN, statOf('FG', 'Field goals made and tried', 'fgm', 'fga'),
+      statShare('FG%', 'Field goal percentage', 'fgm', 'fga'), statOf('XP', 'Extra points made and tried', 'xpm', 'xpa'),
+      { label: 'PTS', title: 'Points', value: function (l) { return 3 * (l.fgm || 0) + (l.xpm || 0); } }],
+    P: [GAMES_COLUMN, statCount('PUNTS', 'Punts', 'punts'), statCount('YDS', 'Punting yards', 'puntYards'),
+      statAverage('AVG', 'Yards a punt', 'puntYards', 'punts')]
   };
+
+  /* Every season's line added up, the averages worked out again from the
+     totals rather than averaged. */
+  function careerLine(seasons) {
+    var total = {};
+    seasons.forEach(function (entry) {
+      Object.keys(entry.line || {}).forEach(function (key) {
+        if (typeof entry.line[key] === 'number') { total[key] = (total[key] || 0) + entry.line[key]; }
+      });
+    });
+    return total;
+  }
 
   function seasonLines(sim) {
     var seasons = (sim.seasons || []).slice().sort(function (a, b) { return a.season - b.season; });
     if (!seasons.length) { return null; }
-    var columns = SEASON_COLUMNS[sim.pos] || [];
-    var table = el('table', 'ege-person__seasons' + (columns.length ? '' : ' is-bare'));
+    var stats = SEASON_COLUMNS[sim.pos] || [];
+    /* What sorts: the season and his age, then his position's numbers.
+       The team's mark leads every line and sorts nothing. */
+    var columns = [
+      { key: 'season', label: 'Season', value: function (entry) { return entry.season; } },
+      { key: 'age', label: 'Age', num: true, value: function (entry) { return typeof entry.age === 'number' ? entry.age : null; } }
+    ].concat(stats.map(function (column, at) {
+      return {
+        key: 'c' + at, label: column.label, title: column.title, num: true,
+        value: function (entry) { return entry.line ? column.value(entry.line) : null; }
+      };
+    }));
+    var played = seasons.filter(function (entry) { return entry.line; });
+    var career = stats.length && played.length > 1 ? careerLine(played) : null;
+    var sort = { key: null, dir: DOWN };
+
+    var table = el('table', 'fb-table ege-person__seasons' + (stats.length ? '' : ' is-bare'));
+    var thead = el('thead');
+    var tbody = el('tbody');
+    table.appendChild(thead);
+    table.appendChild(tbody);
+    var tfoot = career ? el('tfoot') : null;
+    if (tfoot) { table.appendChild(tfoot); }
+
+    /* The headings are made once and only marked on a sort: a click on
+       one that was taken away and made again would land nowhere in the
+       pop-up, and a click off the pop-up puts it away. */
     var head = el('tr');
     head.appendChild(el('th', 'ege-person__seasonmark'));
-    [['Season', 'Season'], ['Age', 'Age']].concat(columns).forEach(function (column) {
-      var th = el('th', null, column[0]);
+    var heads = columns.map(function (column) {
+      var th = el('th', (column.num ? 'num ' : '') + 'is-sortable');
       th.scope = 'col';
-      if (column[1] !== column[0]) { th.title = column[1]; }
+      var button = el('button', 'ege-sort', column.label);
+      button.type = 'button';
+      button.dataset.sortKey = column.key;
+      if (column.title) { button.title = column.title; }
+      th.appendChild(button);
       head.appendChild(th);
+      return th;
     });
-    var thead = el('thead');
     thead.appendChild(head);
-    table.appendChild(thead);
-    var body = el('tbody');
-    seasons.forEach(function (entry) {
-      var tr = el('tr');
-      var team = EGE.nfl.teams[entry.team] || {};
-      var markCell = el('td', 'ege-person__seasonmark');
-      var src = team.name && EGE.logoFor(team.name);
-      if (src) {
-        var img = el('img');
-        img.src = src;
-        img.alt = team.name;
-        img.title = team.name;
-        img.addEventListener('error', function () { img.remove(); });
-        markCell.appendChild(img);
-      }
-      tr.appendChild(markCell);
-      var year = el('th', 'ege-person__seasonyear', String(entry.season));
-      year.scope = 'row';
-      tr.appendChild(year);
-      tr.appendChild(el('td', null, typeof entry.age === 'number' ? String(entry.age) : '–'));
-      columns.forEach(function (column) {
-        tr.appendChild(el('td', null, entry.line ? column[2](entry.line) : '–'));
+
+    function draw() {
+      var at = -1;
+      columns.forEach(function (column, i) { if (column.key === sort.key) { at = i; } });
+      heads.forEach(function (th, i) {
+        th.classList.toggle('is-sorted', i === at);
+        var mark = th.querySelector('.ege-sort__mark');
+        if (mark) { mark.remove(); }
+        if (i === at) { th.firstChild.appendChild(sortMark(sort.dir)); }
       });
-      body.appendChild(tr);
+
+      /* Two seasons alike stay in the order they were played, and a season
+         with nothing to show goes to the bottom whichever way it runs. */
+      var order = seasons.slice();
+      if (at !== -1) {
+        order.sort(function (a, b) {
+          var left = columns[at].value(a);
+          var right = columns[at].value(b);
+          if (left === right) { return a.season - b.season; }
+          if (left === null) { return 1; }
+          if (right === null) { return -1; }
+          return sort.dir === DOWN ? right - left : left - right;
+        });
+      }
+      tbody.innerHTML = '';
+      order.forEach(function (entry) {
+        var tr = el('tr');
+        var team = EGE.nfl.teams[entry.team] || {};
+        var markCell = el('td', 'ege-person__seasonmark');
+        var src = team.name && EGE.logoFor(team.name);
+        if (src) {
+          var img = el('img');
+          img.src = src;
+          img.alt = team.name;
+          img.title = team.name;
+          img.addEventListener('error', function () { img.remove(); });
+          markCell.appendChild(img);
+        }
+        tr.appendChild(markCell);
+        tr.appendChild(el('td', 'ege-person__seasonyear', String(entry.season)));
+        tr.appendChild(el('td', 'num', typeof entry.age === 'number' ? String(entry.age) : '–'));
+        stats.forEach(function (column) {
+          tr.appendChild(el('td', 'num', entry.line ? statText(column, entry.line) : '–'));
+        });
+        if (at !== -1) { tr.children[at + 1].classList.add('is-sorted-cell'); }
+        tbody.appendChild(tr);
+      });
+
+      /* The Career line runs one label across the mark, the season and the
+         age, so a number sits a cell further left in it than above. */
+      if (!tfoot) { return; }
+      tfoot.innerHTML = '';
+      var total = el('tr');
+      var label = el('td', null, 'Career');
+      label.colSpan = 3;
+      total.appendChild(label);
+      stats.forEach(function (column) {
+        total.appendChild(el('td', 'num', statText(column, career)));
+      });
+      if (at > 1) { total.children[at - 1].classList.add('is-sorted-cell'); }
+      tfoot.appendChild(total);
+    }
+
+    /* As the game log's: biggest first, then turned round, then back to
+       the order the seasons were played in. */
+    thead.addEventListener('click', function (event) {
+      var button = event.target.closest('.ege-sort');
+      if (!button) { return; }
+      var key = button.dataset.sortKey;
+      if (sort.key !== key) {
+        sort = { key: key, dir: DOWN };
+      } else if (sort.dir === DOWN) {
+        sort = { key: key, dir: UP };
+      } else {
+        sort = { key: null, dir: DOWN };
+      }
+      draw();
     });
-    table.appendChild(body);
-    var wrap = el('div', 'ege-person__seasonwrap');
+    draw();
+
+    var wrap = el('div', 'fb-tablewrap ege-person__seasonwrap');
     wrap.appendChild(table);
     return wrap;
   }
 
-  /* A colour too near black for a shade darker to show (the Steelers',
-     the Raiders', the Bears' navy): their mark behind the band goes a shade
-     lighter instead. */
-  function nearBlack(hex) {
+  /* The team's mark behind the band in two tones (Sam, 2026-10-21): the
+     band's own colour, and a shade of it. Each mark's own colours are
+     split in two where they fall apart most (Otsu's method), lighter and
+     darker, rather than at one lightness for every mark, so a mark all in
+     dark colours (the Bears' navy and orange) still comes out as a drawing
+     rather than a blot or a few faint lines (2026-10-27). The shade is a
+     fifth darker than the band, or a shade lighter on a band too dark for
+     darker to show (the Bears', the Steelers', the Titans'). Worked out
+     once a mark and colour, on a canvas, as a picture. */
+  var washes = {};
+
+  function washShade(hex) {
     var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || '');
-    return Boolean(m) && Math.max(parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)) < 48;
+    if (!m) { return null; }
+    var rgb = [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)];
+    var light = rgb.map(function (c) { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); });
+    var dark = 0.2126 * light[0] + 0.7152 * light[1] + 0.0722 * light[2] < 0.03;
+    return rgb.map(function (c) { return Math.round(dark ? c + (255 - c) * 0.12 : c * 0.78); });
+  }
+
+  function teamWash(src, hex) {
+    var key = src + '|' + hex;
+    if (!washes[key]) {
+      washes[key] = new Promise(function (resolve, reject) {
+        var shade = washShade(hex);
+        if (!shade) { reject(new Error('No colour to shade')); return; }
+        var img = new Image();
+        img.onerror = reject;
+        img.onload = function () {
+          try { resolve(washOf(img, shade)); } catch (err) { reject(err); }
+        };
+        img.src = src;
+      });
+      washes[key].catch(function () { delete washes[key]; });
+    }
+    return washes[key];
+  }
+
+  /* How many of a mark's pixels are from lightness `lo` to `hi`, and the
+     lightness that splits those in two (the last on the darker side), or
+     -1 for all of one lightness. */
+  function weightOf(counts, lo, hi) {
+    var sum = 0;
+    for (var i = lo; i <= hi; i += 1) { sum += counts[i]; }
+    return sum;
+  }
+
+  function splitAt(counts, lo, hi) {
+    var all = 0;
+    var sumAll = 0;
+    var i;
+    for (i = lo; i <= hi; i += 1) { all += counts[i]; sumAll += i * counts[i]; }
+    var under = 0;
+    var sumUnder = 0;
+    var best = -1;
+    var cut = -1;
+    for (i = lo; i < hi; i += 1) {
+      under += counts[i];
+      sumUnder += i * counts[i];
+      var over = all - under;
+      if (!under || !over) { continue; }
+      var gap = sumUnder / under - (sumAll - sumUnder) / over;
+      var spread = under * over * gap * gap;
+      if (spread > best) { best = spread; cut = i; }
+    }
+    return cut;
+  }
+
+  /* The mark as its two tones, the shade and clear, with how wide it is
+     for its height. */
+  function washOf(img, shade) {
+    var canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    var data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    var px = data.data;
+    /* How light each pixel is, 0-255, and how many of the mark's own
+       pixels (not its clear surround) fall at each lightness. */
+    var lum = new Uint8Array(px.length / 4);
+    var counts = new Float64Array(256);
+    var i;
+    for (i = 0; i < lum.length; i += 1) {
+      lum[i] = Math.round(0.2126 * px[i * 4] + 0.7152 * px[i * 4 + 1] + 0.0722 * px[i * 4 + 2]);
+      counts[lum[i]] += px[i * 4 + 3] / 255;
+    }
+    /* Split in two, and where one side is a sliver (the white rim round
+       the Bears' mark, against its navy and orange), split the other side
+       instead. */
+    var cut = splitAt(counts, 0, 255);
+    var all = weightOf(counts, 0, 255);
+    var darker = cut === -1 ? all : weightOf(counts, 0, cut);
+    if (cut !== -1 && Math.min(darker, all - darker) < all * 0.2) {
+      var again = darker > all - darker ? splitAt(counts, 0, cut) : splitAt(counts, cut + 1, 255);
+      if (again !== -1) { cut = again; darker = weightOf(counts, 0, cut); }
+    }
+    /* The side that covers more of the mark in the shade, the other left
+       clear for the band to show through, so the mark is a solid shape
+       with its lines cut out of it; one with only the one colour in the
+       shade all over. Eased across a few steps of lightness so the edges
+       are not stepped. */
+    var shadeDark = darker >= all - darker;
+    for (i = 0; i < lum.length; i += 1) {
+      var on = cut === -1 ? 1 : Math.min(1, Math.max(0, (cut + 6.5 - lum[i]) / 12));
+      px[i * 4] = shade[0];
+      px[i * 4 + 1] = shade[1];
+      px[i * 4 + 2] = shade[2];
+      px[i * 4 + 3] = Math.round(px[i * 4 + 3] * (shadeDark ? on : 1 - on));
+    }
+    ctx.putImageData(data, 0, 0);
+    return { url: canvas.toDataURL(), aspect: canvas.width / canvas.height };
+  }
+
+  /* The wash at the back of a pop-up's band, in as soon as it is worked
+     out. The mark that reads on cream (the Jets' green one) is the one
+     with darker parts to show. */
+  function bandWash(band, team) {
+    var src = team.name && EGE.logoFor(team.name);
+    if (!src || !team.color) { return; }
+    var wash = el('span', 'ege-person__wash');
+    band.appendChild(wash);
+    teamWash(src, team.color).then(function (got) {
+      var img = el('img');
+      img.src = got.url;
+      img.alt = '';
+      wash.style.setProperty('--aspect', got.aspect);
+      wash.appendChild(img);
+    }, function () { wash.remove(); });
   }
 
   function openNflPlayer(row) {
@@ -3216,21 +3459,11 @@
     var logoSrc = EGE.nfl.logo(row.team);
 
     /* Line one: the band. Behind it, the team's mark in two tones, the
-       band's colour and a shade darker, so big it runs off both ends (Sam,
-       2026-10-21). The mark that reads on cream (the Jets' green one) has
-       the darker parts to show. */
+       band's colour and a shade of it, so big it runs off both ends (Sam,
+       2026-10-21). */
     var band = el('div', 'ege-person__band');
     band.style.background = team.color || '';
-    var washSrc = team.name && EGE.logoFor(team.name);
-    if (washSrc && team.color) {
-      var wash = el('span', 'ege-person__wash' + (nearBlack(team.color) ? ' is-light' : ''));
-      var washImg = el('img');
-      washImg.src = washSrc;
-      washImg.alt = '';
-      washImg.addEventListener('error', function () { wash.remove(); });
-      wash.appendChild(washImg);
-      band.appendChild(wash);
-    }
+    bandWash(band, team);
     /* His headshot with the team's mark behind him, set off to his right
        so it shows past his shoulder; his name; his overall where the mark
        used to be (Sam, 2026-10-26). */
@@ -3260,13 +3493,12 @@
     if (ovr) { band.appendChild(ovr); }
     box.appendChild(band);
 
-    /* Under it the parts, each after the first under a title of its own,
-       centred (Sam, 2026-10-26): Stats, Ratings and More. The bio leads
-       with no title (2026-10-27). */
+    /* Under it the parts, with no titles or rules between them (Sam,
+       2026-10-27): where he came from, his seasons, his ratings, and his
+       contract. */
     var panel = el('div', 'ege-person__body');
-    function part(title) {
+    function part() {
       var section = el('section', 'ege-person__part');
-      section.appendChild(el('h4', 'ege-person__head', title));
       panel.appendChild(section);
       return section;
     }
@@ -3291,11 +3523,11 @@
     fact('Weight', EGE.weightText(row) || '–');
     panel.appendChild(facts);
 
-    /* Stats: his seasons. */
+    /* His seasons. */
     var seasons = seasonLines(sim);
-    if (seasons) { part('Stats').appendChild(seasons); }
+    if (seasons) { part().appendChild(seasons); }
 
-    /* Ratings: what kind, and the skills it comes from, best first. */
+    /* His ratings: what kind, and the skills it comes from, best first. */
     var rating = el('div', 'ege-person__rating');
     var kind = el('div', 'ege-person__kind');
     var arch = el('span', 'ege-person__arch', sim.archetype || POSITION_NAMES[sim.pos] || sim.pos);
@@ -3311,9 +3543,9 @@
       });
     kind.appendChild(skills);
     rating.appendChild(kind);
-    part('Ratings').appendChild(rating);
+    part().appendChild(rating);
 
-    /* More: the contract, and anything keeping him off the field. */
+    /* His contract, and anything keeping him off the field. */
     var foot = el('dl', 'ege-person__deal');
     function line(label, value) {
       foot.appendChild(el('dt', null, label));
@@ -3327,7 +3559,7 @@
         : row.freeAgent ? 'Free agent' : 'None');
     }
     if (row.out) { line('Injury', injuryText(row.out)); }
-    var more = part('More');
+    var more = part();
     more.appendChild(foot);
 
     if (row.player) {

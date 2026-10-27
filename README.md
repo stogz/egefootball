@@ -456,33 +456,45 @@ Under the bar:
   trophies use: a band in the team's colour with the headshot, the team's
   mark straight on the colour behind him and set off to his right so it
   shows past his shoulder, the name, and his overall box at the right end
-  where the mark used to be (Sam, 2026-10-26). Behind them, the team's mark again in two tones, the band's
-  colour and a fifth darker (a little lighter on a band too near black to
-  go darker), so big it runs off both ends of the band and is cut off
-  there (Sam, 2026-10-21): the mark is turned black where it is darker
-  than a light grey and white elsewhere, and laid over the colour. The headshot stands on the band's bottom edge and is sized
+  where the mark used to be (Sam, 2026-10-26). The pop-up is 800px wide,
+  the band taller, the overall a 112px square and the name bigger than
+  they were (Sam, 2026-10-27). Behind them, the team's mark again in two
+  tones, the band's colour and a fifth darker (a little lighter on a band
+  too dark for darker to show), cut off top and bottom (Sam, 2026-10-21):
+  each mark's own colours are split in two where they fall apart most
+  (Otsu's method, a sliver such as the Bears' white rim set aside), the
+  side covering more of the mark is drawn in the shade and the other left
+  clear (`teamWash`, on a canvas), so the Bears' all-dark mark is a bear
+  and not a few faint lines (2026-10-27). A wide mark runs off both ends
+  of the band; one about as tall as it is wide is never more than two and
+  a half times the band's height, so more of it shows. The headshot stands on the band's bottom edge and is sized
   so the top of the head just clears the top of the box, about 5% of the
   picture; every headshot is placed the same way. The name is centred
   between the headshot and the overall, and a
   name too long for its column is set smaller rather than broken inside a
   word (`fitName`). Under the band come college, draft
-  (*2021 · R4 #112*), age, height and weight, with no title; then three
-  parts, each under a centred title between two rules in the rules' own
-  colour (Sam, 2026-10-26/27): **Stats**, **Ratings** and **More**. Stats is **a line a season**
+  (*2021 · R4 #112*), age, height and weight, then his seasons, his
+  ratings and his contract, with no titles or rules between them (Sam,
+  2026-10-27). His seasons are **a table like the game log**: the dark
+  heading row, every heading a button that sorts it (biggest first, then
+  turned round, then back to the order played), the sorted column shaded
+  down to a **Career** line that adds them up (averages and the passer
+  rating worked out again from the totals); it scrolls sideways on a
+  phone. A line a season
   from 2025 on (Sam, 2026-10-26: the first season the sim kept everybody's
   numbers), oldest first: the mark of the team he finished it with, the
   season, his age, and his position's numbers (QB G, CMP%, YDS, TD, INT,
-  RUSH; back G, CAR, YDS, REC, REC YDS, TD; receiver and tight end G, TGT,
-  REC, YDS, AVG, TD; defender G, TKL, SACK, INT, PD, FF; kicker G, FG,
-  FG%, XP, PTS; punter G, PUNTS, YDS, AVG; a lineman only his team and
-  age). The playoffs count in the season. The lines come with the
+  RTG, RUYDS, RUTD; back G, CAR, RUYDS, RUAVG, RUTD, REC, REYDS, RETD;
+  receiver and tight end G, TGT, REC, YDS, AVG, TD; defender G, TKL, SACK,
+  INT, PD, FF, TD; kicker G, FG, FG%, XP, PTS; punter G, PUNTS, YDS, AVG;
+  a lineman only his team and age). The playoffs count in the season. The lines come with the
   rosters (`seasons`, nfl-sim/lib/site.js `seasonLines`) and count only
   weeks out on the site: every week not published yet is taken off from
   the game log's box scores, and the rosters go out again when a week is
   published (the NFL Sim tab's Publish, the Weeks tab's when the sim is
   loaded, or an admin's visit to a team page when `linesThrough` is behind).
-  Ratings is the archetype and his skills, best first;
-  More is his contract (*$1.1M a year through 2024*) and any injury. One of the
+  The ratings are the archetype and his skills, best first; the contract
+  is *$1.1M a year through 2024*, with any injury under it. One of the
   six's has a button through to his page. A click off the box closes it.
   Nothing private is in the rosters: no team ratings, no potential, nothing
   about how long a player will last. Since 2026-10-21 they carry every
