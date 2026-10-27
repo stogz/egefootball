@@ -476,11 +476,9 @@ Under the bar:
   word (`fitName`). Under the band come college, draft
   (*2021 · R4 #112*), age, height and weight in a thin strip on the team's second colour
   (the Bears' orange; white for a free agent), the text white or dark to
-  suit it,
-  running straight into the dark heading of his seasons' table, which
-  runs from one side of the box to the other; then, on the cream, his
-  ratings and his contract, with no titles or rules between them (Sam,
-  2026-10-27). His seasons are **a table like the game log**: the dark
+  suit it, with no line between it and the band; then, on the cream, his
+  seasons, his ratings and his contract, with only space between them, no
+  titles or rules (Sam, 2026-10-27). His seasons are **a table like the game log**: the dark
   heading row, every heading a button that sorts it (biggest first, then
   turned round, then back to the order played), the sorted column shaded
   down to a **Career** line that adds them up (averages and the passer

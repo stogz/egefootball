@@ -3514,9 +3514,8 @@
     box.appendChild(band);
 
     /* Under it, with no titles or rules between them (Sam, 2026-10-27):
-       where he came from on white, running straight into his seasons'
-       table, edge to edge, then on the cream his ratings and his
-       contract. */
+       where he came from on a strip of the team's colours, then on the
+       cream his seasons' table, his ratings and his contract. */
     var panel = el('div', 'ege-person__body');
     function part() {
       var section = el('section', 'ege-person__part');
@@ -3560,7 +3559,7 @@
 
     /* His seasons. */
     var seasons = seasonLines(sim);
-    if (seasons) { box.appendChild(seasons); }
+    if (seasons) { part().appendChild(seasons); }
 
     /* His ratings: what kind, and the skills it comes from, best first. */
     var rating = el('div', 'ege-person__rating');
