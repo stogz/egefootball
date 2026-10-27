@@ -27,14 +27,14 @@ const BORN = 2001;
 const FROM_SITE = {
   QB: {
     accuracy: ['throwAccuracyShort', 'throwAccuracyMid'], deep: ['throwAccuracyDeep'],
-    arm: ['throwPower'], poise: ['throwUnderPressure', 'awareness', 'breakSack'],
+    arm: ['throwPower'], poise: ['throwUnderPressure', 'breakSack'],
     mobility: ['speed', 'acceleration', 'agility', 'throwOnTheRun']
   },
   RB: {
     power: ['trucking', 'breakTackle', 'strength', 'stiffArm'],
     elusive: ['jukeMove', 'spinMove', 'changeOfDirection', 'agility'],
-    speed: ['speed', 'acceleration'], vision: ['bcVision', 'awareness'],
-    hands: ['catching', 'routeRunningShort'], block: ['strength', 'awareness']
+    speed: ['speed', 'acceleration'], vision: ['bcVision'],
+    hands: ['catching', 'routeRunningShort'], block: ['strength', 'toughness']
   },
   WR: {
     deep: ['routeRunningDeep', 'speed'], route: ['routeRunningShort', 'routeRunningMedium', 'release'],

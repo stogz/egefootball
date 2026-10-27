@@ -7,7 +7,8 @@
      between his overall and his ceiling each year through 25, more after,
      so most are close to it by 27 or 28. On top of that each year is a roll of
      the dice (about ±2 points), and now and then a player breaks out and
-     finds a higher ceiling than anybody thought he had.
+     finds a higher ceiling than anybody thought he had. A player who
+     started his team's games grows faster (START below).
 
    - Past his position's peak a player declines, a little more every year.
      How fast depends on the position -- backs and corners live on their
@@ -92,25 +93,39 @@ const PHYSICAL = {
   LB: ['speed'], CB: ['speed', 'man'], S: ['speed', 'range'], K: ['power'], P: ['power']
 };
 
+/* Starting is experience (Sam, 2026-10-26): a player still growing who
+   started his team's games closes more of the gap to his ceiling, gains a
+   point on top of it (his ceiling too) and is likelier to break out, each
+   in proportion to the share of the games he started -- so Michael Penix
+   starting all season for Pittsburgh grows faster than he would have on
+   the bench, and a backup develops as before. */
+const START = { growth: 0.2, bonus: 0.75, breakout: 0.03 };
+
 /* One year of development for one player, in place. `rng` is the sim's
-   seeded random number generator; `gauss` a normal draw from it. Returns
-   what happened, for the offseason report. The six are left alone: their
+   seeded random number generator; `gauss` a normal draw from it; `started`
+   the share of last season's games he started, 0 to 1. Returns what
+   happened, for the offseason report. The six are left alone: their
    overalls come from the website. */
-function develop(player, rng, gauss) {
+function develop(player, rng, gauss, started) {
   if (player.ege) { return null; }
   const c = CURVES[player.pos] || CURVES.WR;
   const age = player.age;
   const before = player.ovr;
+  const share = Math.max(0, Math.min(1, started || 0));
   let change = 0;
   let note = null;
 
   if (age < c.peak || player.pot > player.ovr) {
     /* Still growing. Now and then a late bloomer finds more. */
-    if (age <= 26 && rng() < 0.04) {
+    if (age <= 26 && rng() < 0.04 + START.breakout * share) {
       player.pot = Math.min(99, player.pot + 3 + Math.floor(rng() * 6));
       note = 'breakout';
     }
-    change = (player.pot - player.ovr) * growthRate(age) + gauss() * (age <= 24 ? 2.0 : 1.5);
+    change = (player.pot - player.ovr) * growthRate(age) * (1 + START.growth * share) + gauss() * (age <= 24 ? 2.0 : 1.5);
+    if (share && age < c.peak) {
+      change += START.bonus * share;
+      player.pot = Math.min(99, Math.round(player.pot + START.bonus * share));
+    }
     /* A young player who stalls can lose a little of his ceiling too. */
     if (change < -1 && age <= 25 && player.pot > player.ovr) { player.pot -= 1; }
   }
@@ -220,4 +235,4 @@ function retireChance(player) {
   return Math.max(0, Math.min(0.97, p));
 }
 
-module.exports = { CURVES, develop, expectedChange, retireChance, moveSkills, growthRate, holdScale };
+module.exports = { CURVES, START, develop, expectedChange, retireChance, moveSkills, growthRate, holdScale };

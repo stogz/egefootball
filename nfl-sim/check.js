@@ -14,6 +14,17 @@
        node nfl-sim/check.js            three runs of the season
        node nfl-sim/check.js --runs 10  more runs, steadier numbers
 
+   And the offseason, in a world of its own from the 2023 kickoff
+   (--offseason, --years 3 by default): every draft takes at least four
+   full rounds and those picks are all on a 53 when it is over, every
+   team is at 53, the league keeps about as many 80s and 90s as it
+   started with, contenders spend nearly all of the cap and rebuilding
+   teams keep a little room, nobody is far over it, and a player who
+   started all season develops faster than the same player on the bench.
+   Each check passes or fails, and a failure exits with 1.
+
+       node nfl-sim/check.js --offseason [--years 3]
+
    Injuries happen inside games but do not carry over to the next week, so
    every game is played by the Week 1 rosters.
    ========================================================================== */
@@ -213,4 +224,90 @@ function main() {
 function pad(text, n) { text = String(text); return text.length >= n ? text + ' ' : text + ' '.repeat(n - text.length); }
 function fmt(v) { return v === undefined || v === null || Number.isNaN(v) ? '-' : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(3); }
 
-if (require.main === module) { main(); }
+/* ------------------------------------------------------------ offseason -- */
+
+function offseasonChecks() {
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const run = require('./lib/run');
+  const { MIN_ROUNDS } = require('./lib/draft');
+  const { onTeam, payroll, ROSTER, LEFT_OVER, KEEP_ROUNDS } = require('./lib/rosters');
+  const { capFor } = require('./lib/value');
+  const { develop } = require('./lib/aging');
+  const years = Number(arg('years', 3));
+  const world = fs.mkdtempSync(path.join(os.tmpdir(), 'nfl-sim-check-'));
+  const failures = [];
+  const check = (ok, text) => {
+    process.stdout.write((ok ? 'PASS  ' : 'FAIL  ') + text + '\n');
+    if (!ok) { failures.push(text); }
+  };
+  const started = Date.now();
+  try {
+    let league = run.open(world, 'check');
+    run.save(league);
+    for (let y = 0; y < years; y += 1) {
+      league = run.open(world, 'check');
+      while (league.phase === 'regular' || league.phase === 'deadline') { run.playOn(league); }
+      run.playPlayoffs(league);
+      run.offseason(league);
+      const r = run.draft(league, {});
+      run.save(league);
+      const year = league.season;
+      const cap = capFor(year);
+
+      for (let round = 1; round <= MIN_ROUNDS; round += 1) {
+        const n = r.draft.filter((d) => d.round === round && !d.undrafted).length;
+        check(n >= league.teams.length - 4, year + ' draft round ' + round + ': ' + n + ' picks');
+      }
+      const early = r.draft.filter((d) => d.round && d.round <= KEEP_ROUNDS && !d.undrafted);
+      const kept = early.filter((d) => { const p = league.byId.get(d.id); return p && p.status === 'active' && p.team === d.team; });
+      check(kept.length === early.length, year + ' draft rounds 1-' + KEEP_ROUNDS + ': ' + kept.length + ' of ' + early.length +
+        ' on their team\'s 53' + (kept.length < early.length ? ' (cut: ' + early.filter((d) => kept.indexOf(d) === -1).slice(0, 5).map((d) => d.n + ' ' + d.name).join(', ') + ')' : ''));
+      const sizes = league.teams.map((t) => onTeam(league, t.key).length);
+      check(sizes.every((n) => n === ROSTER), year + ' rosters: ' + Math.min.apply(null, sizes) + '-' + Math.max.apply(null, sizes));
+
+      const left = {};
+      league.teams.forEach((t) => { (left[t.mode] = left[t.mode] || []).push((cap - payroll(league, t.key)) / cap); });
+      const mean = (list) => list.reduce((a, b) => a + b, 0) / list.length;
+      Object.keys(left).forEach((mode) => {
+        const share = mean(left[mode]);
+        const want = LEFT_OVER[mode] === undefined ? LEFT_OVER.retool : LEFT_OVER[mode];
+        check(share <= want + 0.04, year + ' ' + mode + ' teams (' + left[mode].length + ') leave ' + (share * 100).toFixed(1) +
+          '% of the cap on average (aim ' + (want * 100).toFixed(0) + '%)');
+      });
+      const active = league.players.filter((p) => p.status === 'active' && !p.ege);
+      const n80 = active.filter((p) => p.ovr >= 80).length;
+      const n90 = active.filter((p) => p.ovr >= 90).length;
+      check(n80 >= 360 && n80 <= 480 && n90 >= 70 && n90 <= 130, year + ' players 80 or better: ' + n80 + ', 90 or better: ' + n90 +
+        ' (2023 kickoff: 403 and 90)');
+      const over = league.teams.filter((t) => payroll(league, t.key) > cap * 1.03);
+      check(!over.length, year + ' teams more than 3% over the cap: ' + (over.map((t) => t.key).join(', ') || 'none'));
+    }
+  } finally {
+    fs.rmSync(world, { recursive: true, force: true });
+  }
+
+  /* The same young players, a season starting against a season on the bench. */
+  const { seeded } = require('./lib/rng');
+  const grow = (share) => {
+    const rng = seeded('starts');
+    let total = 0;
+    for (let i = 0; i < 2000; i += 1) {
+      const p = { pos: 'QB', age: 24, ovr: 74, pot: 85, skills: null };
+      develop(p, rng, rng.gauss, share);
+      total += p.ovr - 74;
+    }
+    return total / 2000;
+  };
+  const bench = grow(0);
+  const starter = grow(1);
+  check(starter > bench + 1, 'a 24-year-old 74/85 grows ' + starter.toFixed(1) + ' a year starting, ' + bench.toFixed(1) + ' on the bench');
+  process.stdout.write('\n' + (failures.length ? failures.length + ' failed' : 'All passed') + ' (' +
+    ((Date.now() - started) / 1000).toFixed(1) + 's)\n');
+  if (failures.length) { process.exitCode = 1; }
+}
+
+if (require.main === module) {
+  if (process.argv.indexOf('--offseason') !== -1) { offseasonChecks(); } else { main(); }
+}

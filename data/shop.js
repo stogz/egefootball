@@ -183,9 +183,12 @@ EGE.shop = {
           creditsStep: 15,
           note: 'NFL only',
           tiers: ['nfl'],
-          description: 'Lowers your injury chance, and bought often enough it extends ' +
-                       'your career. Only available after your first NFL season. ' +
-                       '35, then 45, then 60, and 15 more each time after that.'
+          /* Injury +5 each time (Sam, 2026-10-26), chambers bought before
+             then included (EGE.rowEffects). */
+          effects: { injury: 5 },
+          countsBack: true,
+          description: 'Injury +5, which lowers your injury chance. Only available after your ' +
+                       'first NFL season. 35, then 45, then 60, and 15 more each time after that.'
         },
         {
           key: 'intel',
@@ -352,6 +355,17 @@ EGE.shopItems = function () {
 EGE.shopItem = function (key) {
   var found = EGE.shopItems().filter(function (entry) { return entry.item.key === key; })[0];
   return found ? found.item : null;
+};
+
+/* What a bought row adds to the ratings: its own effects, or, for a row of
+   an item that counts back (the Hyperbaric Chamber) bought before the item
+   had any, what the item does now. A season lock folds them into
+   data/ratings.js and zeroes them (EGE.wallet.clearLockedRows). */
+EGE.rowEffects = function (row) {
+  if (!row) { return null; }
+  if (row.effects && Object.keys(row.effects).length) { return row.effects; }
+  var item = EGE.shopItem(row.item_key);
+  return item && item.countsBack && item.effects ? item.effects : row.effects || null;
 };
 
 /* The attributes a stat booster may be spent on — see EGE.boostableFor in

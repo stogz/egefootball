@@ -5,8 +5,9 @@
    startOffseason (after the Super Bowl)
      1. the season goes into the history and its stats to stats-YEAR.json;
         everybody heals;
-     2. a year older: growth toward potential, decline past the peak,
-        cliffs (lib/aging.js); the rating scale held where it was; then
+     2. a year older: growth toward potential (faster for a player who
+        started his team's games), decline past the peak, cliffs
+        (lib/aging.js); the rating scale held where it was; then
         the 99s -- at most one a position, and the best at a position who
         reaches 96 is one;
      3. retirements;
@@ -19,7 +20,9 @@
    finishOffseason (the draft and after)
      7. pending trades expire; the draft, in a hand-set order if the year
         has one (lib/draft-plan.js), with any rounds Sam wrote himself;
-     8. free agency again for the leftovers; 53-man rosters;
+     8. free agency again for the leftovers; 53-man rosters; teams with
+        room left spend it (contenders nearly all of it), and any still
+        over the cap get under it;
      9. the new season's schedule.
    ========================================================================== */
 
@@ -27,8 +30,8 @@
 
 const { develop, retireChance, holdScale } = require('./aging');
 const { standings, recordText } = require('./standings');
-const { draftOrder, startSeason, writeWorld } = require('./season');
-const { reSign, freeAgency, fillDepth, cutDown, fillHoles, onTeam, byPos, SLOTS, capCasualties } = require('./rosters');
+const { draftOrder, startSeason, writeWorld, startedShare } = require('./season');
+const { reSign, freeAgency, fillDepth, cutDown, fillHoles, onTeam, byPos, SLOTS, capCasualties, spendRoom } = require('./rosters');
 const { runDraft, makeName } = require('./draft');
 const { applyOfficial, planFor } = require('./draft-plan');
 const { rateTeams } = require('./team-ratings');
@@ -223,6 +226,9 @@ function startOffseason(league, rng) {
   delete league.draftRounds;
   league.stats = {};
   league.players.forEach((p) => { delete p.injury; });
+  /* How much of the season each player started: starters develop faster. */
+  const started = startedShare(league);
+  delete league.starts;
 
   /* A year older. */
   const lastSeason = new Map(league.players.filter((p) => p.status === 'active').map((p) => [p.id, p.ovr]));
@@ -233,7 +239,7 @@ function startOffseason(league, rng) {
     const age = ageOn(p.born, league.season);
     if (age !== null) { p.age = age; }
     if (p.status !== 'active' && p.status !== 'fa') { return; }
-    const c = develop(p, rng, rng.gauss);
+    const c = develop(p, rng, rng.gauss, started.get(p.id) || 0);
     if (c && (Math.abs(c.after - c.before) >= 5 || c.note)) { changes.push(c); }
   });
   report.scale = holdScale(league);
@@ -311,8 +317,23 @@ function finishOffseason(league, rng, place) {
   index(league);
   fillHoles(league, rng, makeName);
   index(league);
+  const spent = spendRoom(league, rng);
+  report.spent = { signed: spent.signed.length, extended: spent.extended.length };
+  index(league);
+  /* Nobody starts the season over the cap: a team still over lets its
+     most overpaid veterans go and fills the 53 at the minimum. */
+  report.capCasualties = (report.capCasualties || []).concat(capCasualties(league).map((c) => c.player.name));
+  index(league);
+  fillHoles(league, rng, makeName);
+  index(league);
   league.players.forEach((p) => {
     if (p.status === 'active' && !p.team) { p.status = 'fa'; }
+  });
+  /* How many of each round made a 53. */
+  report.kept = {};
+  league.players.forEach((p) => {
+    if (!p.draft || p.draft.year !== league.season || !p.draft.pick) { return; }
+    report.kept[p.draft.round] = (report.kept[p.draft.round] || 0) + (p.status === 'active' && TEAMS[p.team] ? 1 : 0);
   });
   startSeason(league, rng);
   report.rosters = league.teams.map((t) => t.key + ' ' + onTeam(league, t.key).length).join(', ');

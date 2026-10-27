@@ -20,7 +20,8 @@
      between his overall and his ceiling each year through 25, more after,
      so most are close to it by 27 or 28. On top of that each year is a roll of
      the dice (about ±2 points), and now and then a player breaks out and
-     finds a higher ceiling than anybody thought he had.
+     finds a higher ceiling than anybody thought he had. A player who
+     started his team's games grows faster (START below).
 
    - Past his position's peak a player declines, a little more every year.
      How fast depends on the position -- backs and corners live on their
@@ -105,25 +106,39 @@ const PHYSICAL = {
   LB: ['speed'], CB: ['speed', 'man'], S: ['speed', 'range'], K: ['power'], P: ['power']
 };
 
+/* Starting is experience (Sam, 2026-10-26): a player still growing who
+   started his team's games closes more of the gap to his ceiling, gains a
+   point on top of it (his ceiling too) and is likelier to break out, each
+   in proportion to the share of the games he started -- so Michael Penix
+   starting all season for Pittsburgh grows faster than he would have on
+   the bench, and a backup develops as before. */
+const START = { growth: 0.2, bonus: 0.75, breakout: 0.03 };
+
 /* One year of development for one player, in place. `rng` is the sim's
-   seeded random number generator; `gauss` a normal draw from it. Returns
-   what happened, for the offseason report. The six are left alone: their
+   seeded random number generator; `gauss` a normal draw from it; `started`
+   the share of last season's games he started, 0 to 1. Returns what
+   happened, for the offseason report. The six are left alone: their
    overalls come from the website. */
-function develop(player, rng, gauss) {
+function develop(player, rng, gauss, started) {
   if (player.ege) { return null; }
   const c = CURVES[player.pos] || CURVES.WR;
   const age = player.age;
   const before = player.ovr;
+  const share = Math.max(0, Math.min(1, started || 0));
   let change = 0;
   let note = null;
 
   if (age < c.peak || player.pot > player.ovr) {
     /* Still growing. Now and then a late bloomer finds more. */
-    if (age <= 26 && rng() < 0.04) {
+    if (age <= 26 && rng() < 0.04 + START.breakout * share) {
       player.pot = Math.min(99, player.pot + 3 + Math.floor(rng() * 6));
       note = 'breakout';
     }
-    change = (player.pot - player.ovr) * growthRate(age) + gauss() * (age <= 24 ? 2.0 : 1.5);
+    change = (player.pot - player.ovr) * growthRate(age) * (1 + START.growth * share) + gauss() * (age <= 24 ? 2.0 : 1.5);
+    if (share && age < c.peak) {
+      change += START.bonus * share;
+      player.pot = Math.min(99, Math.round(player.pot + START.bonus * share));
+    }
     /* A young player who stalls can lose a little of his ceiling too. */
     if (change < -1 && age <= 25 && player.pot > player.ovr) { player.pot -= 1; }
   }
@@ -233,7 +248,7 @@ function retireChance(player) {
   return Math.max(0, Math.min(0.97, p));
 }
 
-module.exports = { CURVES, develop, expectedChange, retireChance, moveSkills, growthRate, holdScale };
+module.exports = { CURVES, START, develop, expectedChange, retireChance, moveSkills, growthRate, holdScale };
 
   };
 
@@ -992,7 +1007,9 @@ module.exports = {
 /* ==========================================================================
    EGE Football NFL sim — the draft
    Seven rounds in reverse order of the standings, with traded picks
-   going to whoever owns them.
+   going to whoever owns them; never fewer than four full rounds, and the
+   picks from those four stay on their teams through the cut to 53
+   (lib/rosters.js trim).
 
    The classes are the real 2024, 2025 and 2026 drafts (data/prospects.json),
    each prospect graded by where he really went and given a ceiling from how
@@ -1023,6 +1040,10 @@ const { fillPicks } = require('./picks');
 const ROOKIE_READY = { QB: -3, RB: 3, FB: 0, WR: 1, TE: -1, OT: -1, IOL: 0, EDGE: 0, DI: 0, LB: 0, CB: 0, S: 0, K: 4, P: 4 };
 const FORTY = { QB: 4.8, RB: 4.52, WR: 4.48, TE: 4.7, OT: 5.2, IOL: 5.25, EDGE: 4.7, DI: 4.95, LB: 4.65, CB: 4.45, S: 4.52 };
 const SPEED_SKILL = { QB: 'mobility', RB: 'speed', WR: 'speed', TE: 'speed', EDGE: 'speed', LB: 'speed', CB: 'speed', S: 'speed' };
+
+const ROUNDS = 7;
+/* The fewest full rounds a draft may have (Sam, 2026-10-26). */
+const MIN_ROUNDS = 4;
 
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
@@ -1188,7 +1209,7 @@ function madeClass(season, rng) {
 function picksInOrder(league, order, year) {
   const draftYear = year || league.season;
   const out = [];
-  for (let round = 1; round <= 7; round += 1) {
+  for (let round = 1; round <= ROUNDS; round += 1) {
     (Array.isArray(order[0]) ? order[round - 1] : order).forEach((key, i) => {
       const pick = league.picks.find((p) => p.year === draftYear && p.round === round && p.from === key);
       if (!pick) { return; }
@@ -1204,9 +1225,41 @@ function picksInOrder(league, order, year) {
    for each round; `place` is { slug: 'TEAM' or 'TEAM:round' } for the six;
    `plan` is a draft written by hand (lib/draft-plan.js), whose picks go
    exactly as written. */
+/* Every team in every round's order: a team the order left out picks
+   last in that round. */
+function fullOrder(league, order) {
+  const rounds = [];
+  for (let r = 0; r < ROUNDS; r += 1) {
+    const one = (Array.isArray(order[0]) ? order[r] || order[0] : order).slice();
+    league.teams.forEach((t) => { if (one.indexOf(t.key) === -1) { one.push(t.key); } });
+    rounds.push(one);
+  }
+  return rounds;
+}
+
+/* Every team's pick in every round of a draft is somewhere: a pick that is
+   missing, and was not forfeited (an owner of null in
+   data/draft-orders.json), goes back to its own team. Returns how many. */
+function restorePicks(league, year) {
+  const official = io.data('draft-orders.json')[year] || {};
+  const forfeited = new Set((official.trades || []).filter((t) => !t.owner).map((t) => t.round + '-' + t.from));
+  let added = 0;
+  league.teams.forEach((t) => {
+    for (let round = 1; round <= ROUNDS; round += 1) {
+      if (forfeited.has(round + '-' + t.key)) { continue; }
+      if (league.picks.some((p) => p.year === year && p.round === round && p.from === t.key)) { continue; }
+      league.picks.push({ year, round, from: t.key, owner: t.key });
+      added += 1;
+    }
+  });
+  return added;
+}
+
 function runDraft(league, order, rng, place, plan) {
   place = place || {};
   const season = league.season;
+  restorePicks(league, season);
+  order = fullOrder(league, order);
   const real = realClass(season);
   const list = real.list || madeClass(season, rng);
   const prospects = list.map((pr) => toPlayer(pr, season, rng));
@@ -1268,6 +1321,12 @@ function runDraft(league, order, rng, place, plan) {
     results.push({ n: slot.n, round: slot.round, team: team.key, from: slot.from, id: choice.id, name: choice.name,
                    pos: choice.pos, ovr: choice.ovr, pot: choice.pot, grade: choice.grade, ege: choice.ege || undefined });
   });
+  for (let round = 1; round <= MIN_ROUNDS; round += 1) {
+    if (results.filter((d) => d.round === round).length < league.teams.length - 4) {
+      throw new Error('The ' + season + ' draft has only ' + results.filter((d) => d.round === round).length +
+                      ' picks in round ' + round + '; every draft takes at least ' + MIN_ROUNDS + ' full rounds.');
+    }
+  }
   /* One of the six placed on a team with no pick left where asked (it
      traded the pick away) signs with it after the draft; one nobody took
      is a free agent like anybody else. */
@@ -1304,7 +1363,8 @@ function runDraft(league, order, rng, place, plan) {
   return results;
 }
 
-module.exports = { runDraft, toPlayer, madeClass, makeName, rookiePay, pickOverall, picksInOrder, realClass, expected };
+module.exports = { runDraft, toPlayer, madeClass, makeName, rookiePay, pickOverall, picksInOrder, realClass, expected,
+                   restorePicks, ROUNDS, MIN_ROUNDS };
 
   };
 
@@ -1643,14 +1703,14 @@ const BORN = 2001;
 const FROM_SITE = {
   QB: {
     accuracy: ['throwAccuracyShort', 'throwAccuracyMid'], deep: ['throwAccuracyDeep'],
-    arm: ['throwPower'], poise: ['throwUnderPressure', 'awareness', 'breakSack'],
+    arm: ['throwPower'], poise: ['throwUnderPressure', 'breakSack'],
     mobility: ['speed', 'acceleration', 'agility', 'throwOnTheRun']
   },
   RB: {
     power: ['trucking', 'breakTackle', 'strength', 'stiffArm'],
     elusive: ['jukeMove', 'spinMove', 'changeOfDirection', 'agility'],
-    speed: ['speed', 'acceleration'], vision: ['bcVision', 'awareness'],
-    hands: ['catching', 'routeRunningShort'], block: ['strength', 'awareness']
+    speed: ['speed', 'acceleration'], vision: ['bcVision'],
+    hands: ['catching', 'routeRunningShort'], block: ['strength', 'toughness']
   },
   WR: {
     deep: ['routeRunningDeep', 'speed'], route: ['routeRunningShort', 'routeRunningMedium', 'release'],
@@ -3525,8 +3585,9 @@ module.exports = { depthChart, gameDay, skill, healthy, standIn };
    startOffseason (after the Super Bowl)
      1. the season goes into the history and its stats to stats-YEAR.json;
         everybody heals;
-     2. a year older: growth toward potential, decline past the peak,
-        cliffs (lib/aging.js); the rating scale held where it was; then
+     2. a year older: growth toward potential (faster for a player who
+        started his team's games), decline past the peak, cliffs
+        (lib/aging.js); the rating scale held where it was; then
         the 99s -- at most one a position, and the best at a position who
         reaches 96 is one;
      3. retirements;
@@ -3539,7 +3600,9 @@ module.exports = { depthChart, gameDay, skill, healthy, standIn };
    finishOffseason (the draft and after)
      7. pending trades expire; the draft, in a hand-set order if the year
         has one (lib/draft-plan.js), with any rounds Sam wrote himself;
-     8. free agency again for the leftovers; 53-man rosters;
+     8. free agency again for the leftovers; 53-man rosters; teams with
+        room left spend it (contenders nearly all of it), and any still
+        over the cap get under it;
      9. the new season's schedule.
    ========================================================================== */
 
@@ -3547,8 +3610,8 @@ module.exports = { depthChart, gameDay, skill, healthy, standIn };
 
 const { develop, retireChance, holdScale } = require('./aging');
 const { standings, recordText } = require('./standings');
-const { draftOrder, startSeason, writeWorld } = require('./season');
-const { reSign, freeAgency, fillDepth, cutDown, fillHoles, onTeam, byPos, SLOTS, capCasualties } = require('./rosters');
+const { draftOrder, startSeason, writeWorld, startedShare } = require('./season');
+const { reSign, freeAgency, fillDepth, cutDown, fillHoles, onTeam, byPos, SLOTS, capCasualties, spendRoom } = require('./rosters');
 const { runDraft, makeName } = require('./draft');
 const { applyOfficial, planFor } = require('./draft-plan');
 const { rateTeams } = require('./team-ratings');
@@ -3743,6 +3806,9 @@ function startOffseason(league, rng) {
   delete league.draftRounds;
   league.stats = {};
   league.players.forEach((p) => { delete p.injury; });
+  /* How much of the season each player started: starters develop faster. */
+  const started = startedShare(league);
+  delete league.starts;
 
   /* A year older. */
   const lastSeason = new Map(league.players.filter((p) => p.status === 'active').map((p) => [p.id, p.ovr]));
@@ -3753,7 +3819,7 @@ function startOffseason(league, rng) {
     const age = ageOn(p.born, league.season);
     if (age !== null) { p.age = age; }
     if (p.status !== 'active' && p.status !== 'fa') { return; }
-    const c = develop(p, rng, rng.gauss);
+    const c = develop(p, rng, rng.gauss, started.get(p.id) || 0);
     if (c && (Math.abs(c.after - c.before) >= 5 || c.note)) { changes.push(c); }
   });
   report.scale = holdScale(league);
@@ -3831,8 +3897,23 @@ function finishOffseason(league, rng, place) {
   index(league);
   fillHoles(league, rng, makeName);
   index(league);
+  const spent = spendRoom(league, rng);
+  report.spent = { signed: spent.signed.length, extended: spent.extended.length };
+  index(league);
+  /* Nobody starts the season over the cap: a team still over lets its
+     most overpaid veterans go and fills the 53 at the minimum. */
+  report.capCasualties = (report.capCasualties || []).concat(capCasualties(league).map((c) => c.player.name));
+  index(league);
+  fillHoles(league, rng, makeName);
+  index(league);
   league.players.forEach((p) => {
     if (p.status === 'active' && !p.team) { p.status = 'fa'; }
+  });
+  /* How many of each round made a 53. */
+  report.kept = {};
+  league.players.forEach((p) => {
+    if (!p.draft || p.draft.year !== league.season || !p.draft.pick) { return; }
+    report.kept[p.draft.round] = (report.kept[p.draft.round] || 0) + (p.status === 'active' && TEAMS[p.team] ? 1 : 0);
   });
   startSeason(league, rng);
   report.rosters = league.teams.map((t) => t.key + ' ' + onTeam(league, t.key).length).join(', ');
@@ -4287,8 +4368,24 @@ function release(p, season) {
   p.faSince = season;
 }
 
+/* A team never cuts a pick from the first four rounds in the season
+   they were drafted (Sam, 2026-10-26: Luther Burden, a second-rounder, was
+   nowhere after the 2025 draft; in a test of it the cut to 53 let go two
+   first-rounders and a third of the second round). Real teams keep them;
+   later-round picks earn their place. */
+const KEEP_ROUNDS = 4;
+/* Worth in the cut for each point of growth a player 24 or younger has
+   left. */
+const UPSIDE = 0.03;
+
+function keptRookie(p, season) {
+  return Boolean(p.draft && p.draft.pick && p.draft.year === season && p.draft.round <= KEEP_ROUNDS);
+}
+
 /* Releases a team's `n` least valuable players, never one of the six, a
-   player on injured reserve, or one it needs to field each position. */
+   player on injured reserve, a pick from the first four rounds in his
+   rookie season, or one it needs to field each position. Only a team with
+   nobody else left to cut lets one of those picks go, the latest first. */
 function trim(league, key, n, rng) {
   if (n <= 0) { return []; }
   const team = league.teams.find((t) => t.key === key);
@@ -4296,12 +4393,32 @@ function trim(league, key, n, rng) {
   const healthy = roster.filter((p) => !p.injury);
   const keep = new Set(roster.filter((p) => p.ege || p.injury));
   Object.keys(MIN).forEach((pos) => byPos(healthy, pos).slice(0, MIN[pos]).forEach((p) => keep.add(p)));
-  const out = roster.filter((p) => !keep.has(p)).map((p) => {
-    const count = byPos(roster, p.pos).indexOf(p);
+  const rookies = roster.filter((p) => !keep.has(p) && keptRookie(p, league.season));
+  /* What each is worth to the team. A young player's room to grow counts
+     for him: teams keep a late-round rookie with upside over a veteran
+     backup of the same overall. */
+  const value = new Map();
+  roster.forEach((p) => {
+    const upside = p.age <= 24 ? UPSIDE * Math.max(0, (p.pot || p.ovr) - p.ovr) : 0;
+    value.set(p, [playerValue(p, league.season, { mode: team.mode }), p.ovr / 100 + upside + rng() * 0.01]);
+  });
+  const worth = (p) => value.get(p)[0] + value.get(p)[1];
+  /* Each room best first, those the team keeps anyway at the top: past
+     its target a player counts half, past its most he goes first. */
+  const place = new Map();
+  Object.keys(MAX).forEach((pos) => {
+    roster.filter((p) => p.pos === pos)
+      .sort((a, b) => (keep.has(b) || rookies.indexOf(b) !== -1) - (keep.has(a) || rookies.indexOf(a) !== -1) || worth(b) - worth(a))
+      .forEach((p, i) => place.set(p, i));
+  });
+  const out = roster.filter((p) => !keep.has(p) && rookies.indexOf(p) === -1).map((p) => {
+    const count = place.has(p) ? place.get(p) : 0;
     if (count >= (MAX[p.pos] || 3)) { return [p, -1 + rng() * 0.01]; }
     const surplus = count >= (TARGET[p.pos] || 3) ? 0.5 : 1;
-    return [p, playerValue(p, league.season, { mode: team.mode }) * surplus + p.ovr / 100 + rng() * 0.01];
-  }).sort((a, b) => a[1] - b[1]).slice(0, n).map(([p]) => p);
+    return [p, value.get(p)[0] * surplus + value.get(p)[1]];
+  }).sort((a, b) => a[1] - b[1]).map(([p]) => p)
+    .concat(rookies.sort((a, b) => b.draft.pick - a.draft.pick))
+    .slice(0, n);
   out.forEach((p) => release(p, league.season));
   return out;
 }
@@ -4379,6 +4496,66 @@ function fillHoles(league, rng, makeName) {
   return added;
 }
 
+/* What each kind of team leaves unspent once its 53 is set, as a share of
+   the cap (Sam, 2026-10-26: contenders spend all they can on the best
+   players they can get, rebuilding teams keep a little room). */
+const LEFT_OVER = { compete: 0.01, retool: 0.04, rebuild: 0.08 };
+/* What a team pays over the market for a free agent it wants. */
+const PREMIUM = { compete: 1.15, retool: 1.05, rebuild: 1 };
+
+/* Once the 53s are set, a team with more room than its kind keeps spends
+   it, contenders first: on free agents who would start for it (a
+   contender takes anybody good, a rebuilding team nobody over 27), each
+   replacing its least valuable player, then on extending the players whose
+   deals run out this year or next, best first, at what the market pays
+   them (or more, never less). Stars of 85 or more are left alone: a star
+   moving goes through Sam (lib/trades.js queueMoves). The six too. Returns
+   what was done. */
+function spendRoom(league, rng) {
+  const cap = capFor(league.season);
+  const levels = starterLevels(league);
+  const out = { signed: [], extended: [] };
+  const order = { compete: 0, retool: 1, rebuild: 2 };
+  league.teams.slice().sort((a, b) => (order[a.mode] || 1) - (order[b.mode] || 1) || (b.rating || 0) - (a.rating || 0)).forEach((t) => {
+    const mode = t.mode || 'retool';
+    const keep = cap * (LEFT_OVER[mode] === undefined ? LEFT_OVER.retool : LEFT_OVER[mode]);
+    const maxAge = mode === 'rebuild' ? 27 : mode === 'retool' ? 30 : 34;
+    const spare = () => room(league, t.key) - keep;
+
+    /* Free agents who would start. */
+    let signings = 0;
+    league.players.filter((p) => p.status === 'fa' && !p.ege && p.ovr >= 70 && p.ovr < 85 && p.age <= maxAge)
+      .sort((a, b) => b.ovr - a.ovr).forEach((p) => {
+        if (signings >= 3 || p.status !== 'fa' || spare() <= 0) { return; }
+        const pay = Math.round(marketPay(p, league.season) * (PREMIUM[mode] || 1) * 10) / 10;
+        if (pay > spare()) { return; }
+        const roster = onTeam(league, t.key);
+        const at = byPos(roster, p.pos);
+        const slots = SLOTS[p.pos] || 0;
+        if (!slots || (at.length >= slots && p.ovr < at[slots - 1].ovr + 2)) { return; }
+        if (needAt(league, t.key, p.pos, levels, roster) <= 0 && at.length >= slots && p.ovr < at[0].ovr) { return; }
+        sign(p, t.key, league, rng, pay);
+        trim(league, t.key, onTeam(league, t.key).length - ROSTER, rng);
+        signings += 1;
+        out.signed.push({ player: p, team: t.key, apy: p.contract.apy });
+      });
+
+    /* Extensions for the deals running out soonest, the best players first. */
+    onTeam(league, t.key)
+      .filter((p) => !p.ege && p.contract && p.contract.through <= league.season + 1 && p.ovr >= 68 && p.age <= maxAge)
+      .sort((a, b) => playerValue(b, league.season, { mode }) - playerValue(a, league.season, { mode }))
+      .forEach((p) => {
+        if (spare() <= 0) { return; }
+        const was = p.contract.apy || 0;
+        const apy = Math.round(Math.max(was, marketPay(p, league.season) * (0.98 + rng() * 0.12)) * 10) / 10;
+        if (apy - was > spare()) { return; }
+        p.contract = { through: league.season + contractYears(p.age, rng), apy };
+        out.extended.push({ player: p, team: t.key, from: was, apy });
+      });
+  });
+  return out;
+}
+
 let made = 0;
 function replacement(league, pos, rng, makeName) {
   made += 1;
@@ -4400,7 +4577,8 @@ function replacement(league, pos, rng, makeName) {
 }
 
 module.exports = { SLOTS, MIN, TARGET, MAX, CAMP, ROSTER, onTeam, payroll, room, starterLevels, needAt, needs, reSign,
-                   freeAgency, cutDown, trim, addPlayers, fillDepth, fillHoles, sign, release, byPos, capCasualties };
+                   freeAgency, cutDown, trim, addPlayers, fillDepth, fillHoles, sign, release, byPos, capCasualties, spendRoom,
+                   LEFT_OVER, KEEP_ROUNDS };
 
   };
 
@@ -5012,6 +5190,7 @@ const { seeded } = require('./rng');
 const { standings } = require('./standings');
 const { scheduleFor } = require('./schedule');
 const { side, index } = require('./league');
+const { gameDay } = require('./lineup');
 
 const DEADLINE_WEEK = 9;
 const ROUNDS = ['Wild Card', 'Divisional', 'Conference Championship', 'Super Bowl'];
@@ -5043,6 +5222,7 @@ function startSeason(league, rng) {
   league.phase = 'regular';
   league.playoffs = null;
   league.stats = {};
+  league.starts = { games: {}, ids: {} };
   league.players.forEach((p) => {
     if (p.status !== 'injured') { return; }
     const r = rng();
@@ -5159,6 +5339,48 @@ function heal(league) {
   });
 }
 
+/* Who starts: the quarterback, the first back, three receivers, the first
+   tight end, five linemen, the kicker and punter, and the eleven on
+   defense, as game day lines them up. */
+function starters(day) {
+  return [day.qb, day.rbs[0], day.tes[0], day.k, day.p].concat(day.wrs, day.ol, day.edge, day.di, day.lb, day.cb, day.s)
+    .filter((p) => p && !p.standIn);
+}
+
+/* A regular-season game's starters, for how much of the season each player
+   started (lib/aging.js gives a starter's development a lift). */
+function countStarts(league, game) {
+  const starts = league.starts || (league.starts = { games: {}, ids: {} });
+  [game.home, game.away].forEach((key) => {
+    const s = side(league, key);
+    if (!s.team) { return; }
+    starts.games[key] = (starts.games[key] || 0) + 1;
+    new Set(starters(gameDay(s.team, s.roster))).forEach((p) => { starts.ids[p.id] = (starts.ids[p.id] || 0) + 1; });
+  });
+}
+
+/* The share of his team's regular-season games each player started, 0 to
+   1, by id. Games the sim did not watch (taken in from the site, or played
+   before it counted starts) go by the depth chart at the end of the season,
+   nobody hurt. */
+function startedShare(league) {
+  const starts = league.starts || { games: {}, ids: {} };
+  const out = new Map();
+  league.teams.forEach((t) => {
+    const games = (league.schedule || []).filter((g) => !g.playoff && (g.home === t.key || g.away === t.key)).length || 17;
+    const unseen = Math.max(0, games - (starts.games[t.key] || 0));
+    const roster = (league.byTeam.get(t.key) || []).map((p) => (p.injury ? Object.assign({}, p, { injury: null }) : p));
+    const now = unseen ? new Set(starters(gameDay(t, roster)).map((p) => p.id)) : new Set();
+    roster.forEach((p) => {
+      const n = (starts.ids[p.id] || 0) + (now.has(p.id) ? unseen : 0);
+      out.set(p.id, Math.min(1, n / games));
+    });
+  });
+  /* Anyone who started somewhere and is not on a team now. */
+  Object.keys(starts.ids).forEach((id) => { if (!out.has(id)) { out.set(id, Math.min(1, starts.ids[id] / 17)); } });
+  return out;
+}
+
 /* One game. A booster on it has the game played again on dice of its own,
    so the other games of the week are played the same either way. */
 function play(league, game, rng, opts, extras) {
@@ -5188,6 +5410,7 @@ function playWeek(league, rng, hooks) {
   const extras = boosts.read(league);
   const out = { week, games: [], injuries: [], boosted: [] };
   games.forEach((g) => {
+    countStarts(league, g);
     const r = play(league, g, rng, { neutral: !!g.neutral }, extras);
     g.score = r.score;
     if (r.ot) { g.ot = true; }
@@ -5356,6 +5579,7 @@ function draftOrder(league) {
 }
 
 module.exports = { startSeason, playWeek, playRound, importWeeks, startPlayoffs, draftOrder, readWorld, writeWorld, lastWeek, lastPlaces,
+                   startedShare,
                    DEADLINE_WEEK, ROUNDS };
 
   };

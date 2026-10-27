@@ -1,7 +1,9 @@
 /* ==========================================================================
    EGE Football NFL sim — the draft
    Seven rounds in reverse order of the standings, with traded picks
-   going to whoever owns them.
+   going to whoever owns them; never fewer than four full rounds, and the
+   picks from those four stay on their teams through the cut to 53
+   (lib/rosters.js trim).
 
    The classes are the real 2024, 2025 and 2026 drafts (data/prospects.json),
    each prospect graded by where he really went and given a ceiling from how
@@ -32,6 +34,10 @@ const { fillPicks } = require('./picks');
 const ROOKIE_READY = { QB: -3, RB: 3, FB: 0, WR: 1, TE: -1, OT: -1, IOL: 0, EDGE: 0, DI: 0, LB: 0, CB: 0, S: 0, K: 4, P: 4 };
 const FORTY = { QB: 4.8, RB: 4.52, WR: 4.48, TE: 4.7, OT: 5.2, IOL: 5.25, EDGE: 4.7, DI: 4.95, LB: 4.65, CB: 4.45, S: 4.52 };
 const SPEED_SKILL = { QB: 'mobility', RB: 'speed', WR: 'speed', TE: 'speed', EDGE: 'speed', LB: 'speed', CB: 'speed', S: 'speed' };
+
+const ROUNDS = 7;
+/* The fewest full rounds a draft may have (Sam, 2026-10-26). */
+const MIN_ROUNDS = 4;
 
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
@@ -197,7 +203,7 @@ function madeClass(season, rng) {
 function picksInOrder(league, order, year) {
   const draftYear = year || league.season;
   const out = [];
-  for (let round = 1; round <= 7; round += 1) {
+  for (let round = 1; round <= ROUNDS; round += 1) {
     (Array.isArray(order[0]) ? order[round - 1] : order).forEach((key, i) => {
       const pick = league.picks.find((p) => p.year === draftYear && p.round === round && p.from === key);
       if (!pick) { return; }
@@ -213,9 +219,41 @@ function picksInOrder(league, order, year) {
    for each round; `place` is { slug: 'TEAM' or 'TEAM:round' } for the six;
    `plan` is a draft written by hand (lib/draft-plan.js), whose picks go
    exactly as written. */
+/* Every team in every round's order: a team the order left out picks
+   last in that round. */
+function fullOrder(league, order) {
+  const rounds = [];
+  for (let r = 0; r < ROUNDS; r += 1) {
+    const one = (Array.isArray(order[0]) ? order[r] || order[0] : order).slice();
+    league.teams.forEach((t) => { if (one.indexOf(t.key) === -1) { one.push(t.key); } });
+    rounds.push(one);
+  }
+  return rounds;
+}
+
+/* Every team's pick in every round of a draft is somewhere: a pick that is
+   missing, and was not forfeited (an owner of null in
+   data/draft-orders.json), goes back to its own team. Returns how many. */
+function restorePicks(league, year) {
+  const official = io.data('draft-orders.json')[year] || {};
+  const forfeited = new Set((official.trades || []).filter((t) => !t.owner).map((t) => t.round + '-' + t.from));
+  let added = 0;
+  league.teams.forEach((t) => {
+    for (let round = 1; round <= ROUNDS; round += 1) {
+      if (forfeited.has(round + '-' + t.key)) { continue; }
+      if (league.picks.some((p) => p.year === year && p.round === round && p.from === t.key)) { continue; }
+      league.picks.push({ year, round, from: t.key, owner: t.key });
+      added += 1;
+    }
+  });
+  return added;
+}
+
 function runDraft(league, order, rng, place, plan) {
   place = place || {};
   const season = league.season;
+  restorePicks(league, season);
+  order = fullOrder(league, order);
   const real = realClass(season);
   const list = real.list || madeClass(season, rng);
   const prospects = list.map((pr) => toPlayer(pr, season, rng));
@@ -277,6 +315,12 @@ function runDraft(league, order, rng, place, plan) {
     results.push({ n: slot.n, round: slot.round, team: team.key, from: slot.from, id: choice.id, name: choice.name,
                    pos: choice.pos, ovr: choice.ovr, pot: choice.pot, grade: choice.grade, ege: choice.ege || undefined });
   });
+  for (let round = 1; round <= MIN_ROUNDS; round += 1) {
+    if (results.filter((d) => d.round === round).length < league.teams.length - 4) {
+      throw new Error('The ' + season + ' draft has only ' + results.filter((d) => d.round === round).length +
+                      ' picks in round ' + round + '; every draft takes at least ' + MIN_ROUNDS + ' full rounds.');
+    }
+  }
   /* One of the six placed on a team with no pick left where asked (it
      traded the pick away) signs with it after the draft; one nobody took
      is a free agent like anybody else. */
@@ -313,4 +357,5 @@ function runDraft(league, order, rng, place, plan) {
   return results;
 }
 
-module.exports = { runDraft, toPlayer, madeClass, makeName, rookiePay, pickOverall, picksInOrder, realClass, expected };
+module.exports = { runDraft, toPlayer, madeClass, makeName, rookiePay, pickOverall, picksInOrder, realClass, expected,
+                   restorePicks, ROUNDS, MIN_ROUNDS };

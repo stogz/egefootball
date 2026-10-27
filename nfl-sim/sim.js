@@ -386,7 +386,12 @@ function main() {
       places.forEach((p) => { const [slug, where] = String(p).split('='); place[slug] = where; });
       const r = run.draft(league, place);
       say(r.season + ' draft' + (r.expired ? ' (' + r.expired + ' trade proposals expired)' : '') + ':');
-      r.draft.filter((d) => (d.round === 1 || d.ege) && !d.undrafted).forEach((d) => say('  ' + d.n + '. ' + d.team + ': ' + d.name + ' (' + d.pos + ', ' + d.ovr + '/' + d.pot + ')' + (d.ege ? '  <- one of the six' : '')));
+      for (let round = 1; round <= 7; round += 1) {
+        const picks = r.draft.filter((d) => d.round === round && !d.undrafted);
+        if (!picks.length) { continue; }
+        say('Round ' + round + ' (' + picks.length + ' picks, ' + r.kept[round] + ' on a 53):');
+        picks.forEach((d) => say('  ' + d.n + '. ' + d.team + ': ' + d.name + ' (' + d.pos + ', ' + d.ovr + '/' + d.pot + ')' + (d.ege ? '  <- one of the six' : '')));
+      }
       if (r.written) { say('  (picks 1-' + r.written + ' as uploaded)'); }
       r.draft.filter((d) => d.undrafted).forEach((d) => say('  ' + d.name + ' (one of the six) was not drafted' +
         (d.team !== 'FA' ? ': ' + TEAMS[d.team].name + ' had no pick where you placed him, so he signs with them as an undrafted rookie.' : ' and is a free agent.')));
