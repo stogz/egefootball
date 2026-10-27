@@ -483,7 +483,12 @@ Under the bar:
   heading a button that sorts it (biggest first, then turned round, then
   back to the order played), the sorted column shaded from its heading down to a **Career**
   line that adds them up (averages and the passer rating worked out again
-  from the totals) under a soft line, with no label. The whole table,
+  from the totals), with no label or line over it. A number that led the
+  league that season is in italics, with no key (Sam, 2026-10-27): the
+  most of it in any season's line in the live season's rosters, a share or
+  an average only on the NFL's minimum tries a game (14 passes, 6.25
+  carries, 1.875 catches, 1 field goal, 2.25 punts) times the most games
+  anybody played that season. The whole table,
   headings in black too, is on one shade, the darker of the game log's two,
   with no lines round it or between the seasons, and the ratings sit on the
   same shade, both boxes with round corners (Sam, 2026-10-27); it scrolls
@@ -504,7 +509,10 @@ Under the bar:
   The ratings are the archetype and his skills, best first; the contract
   is *$1.1M a year through 2024*, with any injury under it in red. One of the
   six's has a button through to his page. A click off the box or Escape
-  closes it.
+  closes it. Whatever season he is clicked in, a past season's roster
+  included, the pop-up is who he is now (Sam, 2026-10-27): his line in
+  the live season's rosters, found by his ESPN id, which of the six he is,
+  or his name, college and draft, with his overall now and every season.
   Nothing private is in the rosters: no team ratings, no potential, nothing
   about how long a player will last. Since 2026-10-21 they carry every
   player, the linemen, kickers and punters too (the rooms show them since

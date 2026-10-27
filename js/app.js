@@ -3115,16 +3115,19 @@
     return { label: label, title: title, value: function (l) { return l[key] || 0; } };
   }
 
-  function statShare(label, title, made, of) {
+  /* A share or an average leads the league only on enough tries: `least`
+     of them a game, the most games anybody played that season (the NFL's
+     own minimums, near enough). */
+  function statShare(label, title, made, of, least) {
     return {
-      label: label, title: title, places: 1,
+      label: label, title: title, places: 1, qualify: { key: of, least: least },
       value: function (l) { return l[of] ? 100 * (l[made] || 0) / l[of] : null; }
     };
   }
 
-  function statAverage(label, title, total, over) {
+  function statAverage(label, title, total, over, least) {
     return {
-      label: label, title: title, places: 1,
+      label: label, title: title, places: 1, qualify: { key: over, least: least },
       value: function (l) { return l[over] ? (l[total] || 0) / l[over] : null; }
     };
   }
@@ -3147,20 +3150,20 @@
 
   var GAMES_COLUMN = statCount('G', 'Games', 'games');
   var BACK_COLUMNS = [GAMES_COLUMN, statCount('CAR', 'Carries', 'rushAtt'),
-    statCount('RUYDS', 'Rushing yards', 'rushYds'), statAverage('RUAVG', 'Yards a carry', 'rushYds', 'rushAtt'),
+    statCount('RUYDS', 'Rushing yards', 'rushYds'), statAverage('RUAVG', 'Yards a carry', 'rushYds', 'rushAtt', 6.25),
     statCount('RUTD', 'Rushing touchdowns', 'rushTd'), statCount('REC', 'Catches', 'rec'),
     statCount('REYDS', 'Receiving yards', 'recYds'), statCount('RETD', 'Receiving touchdowns', 'recTd')];
   var CATCHER_COLUMNS = [GAMES_COLUMN, statCount('TGT', 'Targets', 'targets'), statCount('REC', 'Catches', 'rec'),
-    statCount('YDS', 'Receiving yards', 'recYds'), statAverage('AVG', 'Yards a catch', 'recYds', 'rec'),
+    statCount('YDS', 'Receiving yards', 'recYds'), statAverage('AVG', 'Yards a catch', 'recYds', 'rec', 1.875),
     statCount('TD', 'Receiving touchdowns', 'recTd')];
   var DEFENDER_COLUMNS = [GAMES_COLUMN, statCount('TKL', 'Tackles', 'tackles'), statCount('SACK', 'Sacks', 'sacks'),
     statCount('INT', 'Interceptions', 'ints'), statCount('PD', 'Passes defended', 'passDef'),
     statCount('FF', 'Forced fumbles', 'ff'), statCount('TD', 'Defensive touchdowns', 'defTd')];
   var SEASON_COLUMNS = {
-    QB: [GAMES_COLUMN, statShare('CMP%', 'Completion percentage', 'passCmp', 'passAtt'),
+    QB: [GAMES_COLUMN, statShare('CMP%', 'Completion percentage', 'passCmp', 'passAtt', 14),
       statCount('YDS', 'Passing yards', 'passYds'), statCount('TD', 'Passing touchdowns', 'passTd'),
       statCount('INT', 'Interceptions thrown', 'passInt'),
-      { label: 'RTG', title: 'Passer rating', places: 1, value: function (l) {
+      { label: 'RTG', title: 'Passer rating', places: 1, qualify: { key: 'passAtt', least: 14 }, value: function (l) {
         return EGE.statline.passerRating(l.passCmp || 0, l.passAtt || 0, l.passYds || 0, l.passTd || 0, l.passInt || 0);
       } },
       statCount('RUYDS', 'Rushing yards', 'rushYds'), statCount('RUTD', 'Rushing touchdowns', 'rushTd')],
@@ -3174,10 +3177,10 @@
     CB: DEFENDER_COLUMNS,
     S: DEFENDER_COLUMNS,
     K: [GAMES_COLUMN, statOf('FG', 'Field goals made and tried', 'fgm', 'fga'),
-      statShare('FG%', 'Field goal percentage', 'fgm', 'fga'), statOf('XP', 'Extra points made and tried', 'xpm', 'xpa'),
+      statShare('FG%', 'Field goal percentage', 'fgm', 'fga', 1), statOf('XP', 'Extra points made and tried', 'xpm', 'xpa'),
       { label: 'PTS', title: 'Points', value: function (l) { return 3 * (l.fgm || 0) + (l.xpm || 0); } }],
     P: [GAMES_COLUMN, statCount('PUNTS', 'Punts', 'punts'), statCount('YDS', 'Punting yards', 'puntYards'),
-      statAverage('AVG', 'Yards a punt', 'puntYards', 'punts')]
+      statAverage('AVG', 'Yards a punt', 'puntYards', 'punts', 2.25)]
   };
 
   /* Every season's line added up, the averages worked out again from the
@@ -3190,6 +3193,50 @@
       });
     });
     return total;
+  }
+
+  /* The league's best in a column in a season (Sam, 2026-10-27: a number
+     that led the league is in italics), from every season's line in the
+     live season's rosters: on a team, a free agent or retired. Nobody
+     leads with nothing, games played are nobody's lead, and a share or an
+     average needs its tries (`qualify`). Null for no leader. */
+  var leaders = { from: null, lines: {}, best: {} };
+
+  function leagueBest(column, season) {
+    if (column === GAMES_COLUMN) { return null; }
+    var live = searchSeason();
+    var all = live ? EGE.nflRosters.get(live) : null;
+    if (!all || !all.teams) { return null; }
+    if (leaders.from !== all) {
+      leaders = { from: all, lines: {}, best: {} };
+      var everybody = [];
+      Object.keys(all.teams).forEach(function (key) { everybody = everybody.concat(all.teams[key]); });
+      everybody.concat(all.freeAgents || [], all.retired || []).forEach(function (sim) {
+        (sim.seasons || []).forEach(function (entry) {
+          if (entry.line) { (leaders.lines[entry.season] = leaders.lines[entry.season] || []).push(entry.line); }
+        });
+      });
+    }
+    var key = season + '|' + column.title;
+    if (!(key in leaders.best)) {
+      var lines = leaders.lines[season] || [];
+      var games = 0;
+      lines.forEach(function (line) { games = Math.max(games, line.games || 0); });
+      var best = null;
+      lines.forEach(function (line) {
+        if (column.qualify && (line[column.qualify.key] || 0) < column.qualify.least * games) { return; }
+        var value = column.value(line);
+        if (value && (best === null || value > best)) { best = value; }
+      });
+      leaders.best[key] = best;
+    }
+    return leaders.best[key];
+  }
+
+  function ledLeague(column, entry) {
+    var best = entry.line ? leagueBest(column, entry.season) : null;
+    var value = best === null ? null : column.value(entry.line);
+    return value !== null && Math.abs(value - best) < 1e-9;
   }
 
   function seasonLines(sim) {
@@ -3288,7 +3335,8 @@
         tr.appendChild(el('td', 'ege-person__seasonyear', String(entry.season)));
         tr.appendChild(el('td', 'num', typeof entry.age === 'number' ? String(entry.age) : '–'));
         stats.forEach(function (column) {
-          tr.appendChild(el('td', 'num', entry.line ? statText(column, entry.line) : '–'));
+          tr.appendChild(el('td', 'num' + (ledLeague(column, entry) ? ' is-lead' : ''),
+            entry.line ? statText(column, entry.line) : '–'));
         });
         if (at !== -1) { tr.children[at + 1].classList.add('is-sorted-cell'); }
         tbody.appendChild(tr);
@@ -3477,7 +3525,36 @@
     }, function () { wash.remove(); });
   }
 
+  /* Whatever season he is clicked in, his pop-up is who he is now (Sam,
+     2026-10-27): his line in the live season's rosters, on a team, a free
+     agent or retired, with his overall now and every season he has played.
+     The season clicked in stands only when those rosters have no word of
+     him. */
   function openNflPlayer(row) {
+    var live = searchSeason();
+    if (!row.sim || !live || row.season === live) { showNflPlayer(row); return; }
+    EGE.nflRosters.load(live).then(function () {
+      showNflPlayer(nflNow(row.sim, live) || row);
+    }, function () { showNflPlayer(row); });
+  }
+
+  /* The same player in another season's rosters, which carry no id of the
+     sim's: his ESPN id, or which of the six he is, or else his name,
+     college and draft. */
+  function nflIdentity(sim) {
+    if (sim.espn) { return 'espn:' + sim.espn; }
+    if (sim.ege) { return 'ege:' + sim.ege; }
+    var d = sim.draft;
+    return [sim.name, sim.college || '', d ? d.year + '-' + d.round + '-' + d.pick : ''].join('|');
+  }
+
+  function nflNow(sim, season) {
+    var id = nflIdentity(sim);
+    var hits = searchPeople(season).filter(function (hit) { return hit.sim && nflIdentity(hit.sim) === id; });
+    return hits.length ? nflHitRow(hits[0], season) : null;
+  }
+
+  function showNflPlayer(row) {
     var sim = row.sim;
     var team = EGE.nfl.teams[row.team] || {};
     var stage = EGE.cardsView.openOverlay(POSITION_NAMES[sim.pos] || sim.pos, 'ege-rip__stage--person');
@@ -4258,14 +4335,20 @@
       return rosterLine({ name: player.name, player: player, overall: EGE.overallFor(player),
                           height: player.height, weight: player.weight });
     }
-    var row = nflRow(hit.sim, season, hit.key, null);
+    var row = nflHitRow(hit, season);
     row.where = searchMark(hit);
+    return nflLine(row);
+  }
+
+  /* One of the rosters' players as a card or a pop-up has him. */
+  function nflHitRow(hit, season) {
+    var row = nflRow(hit.sim, season, hit.key, null);
     if (hit.how === 'fa') { row.freeAgent = true; }
     if (hit.how === 'retired') {
       row.retired = hit.sim.retired || true;
       row.out = null;
     }
-    return nflLine(row);
+    return row;
   }
 
   function searchGroup(title, lines) {
