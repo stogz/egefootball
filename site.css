@@ -4790,11 +4790,14 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
    takes the mark's old place at the other end, so the name is centred
    between the two rather than on the band's own centre line. The headshot
    is the picture's full width, his shoulders whole (2026-10-27): ESPN's
-   are 350 by 254, the six's 4 by 3 (those lose a sliver at the bottom). */
+   are 350 by 254, the six's 4 by 3 (those lose a sliver at the bottom).
+   No line under it: it runs straight into the strip of his facts (Sam,
+   2026-10-27). */
 .ege-person--player .ege-person__band {
   --face-w: calc(var(--face-h) * 1.38);
   --peek: calc(var(--face-h) * .3);
   grid-template-columns: calc(var(--face-w) + var(--peek)) minmax(0, 1fr) auto;
+  border-bottom: 0;
 }
 /* The headshot stands on the band's bottom edge, and the top of his head
    just clears the box: about 5% of the picture above its top border. A
