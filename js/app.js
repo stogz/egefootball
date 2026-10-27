@@ -3084,7 +3084,8 @@
 
   /* The pop-up's name at the size site.css gives it, or smaller when a
      long name would otherwise run wider than its column (VanValkenburg) or
-     past two lines. A name is never broken inside a word. */
+     past two lines. A name is never broken inside a word. A player's is
+     his first name over the rest (Sam, 2026-10-27). */
   function fitName(node) {
     node.style.fontSize = '';
     var size = parseFloat(window.getComputedStyle(node).fontSize);
@@ -3114,16 +3115,19 @@
     return { label: label, title: title, value: function (l) { return l[key] || 0; } };
   }
 
-  function statShare(label, title, made, of) {
+  /* A share or an average leads the league only on enough tries: `least`
+     of them a game, the most games anybody played that season (the NFL's
+     own minimums, near enough). */
+  function statShare(label, title, made, of, least) {
     return {
-      label: label, title: title, places: 1,
+      label: label, title: title, places: 1, qualify: { key: of, least: least },
       value: function (l) { return l[of] ? 100 * (l[made] || 0) / l[of] : null; }
     };
   }
 
-  function statAverage(label, title, total, over) {
+  function statAverage(label, title, total, over, least) {
     return {
-      label: label, title: title, places: 1,
+      label: label, title: title, places: 1, qualify: { key: over, least: least },
       value: function (l) { return l[over] ? (l[total] || 0) / l[over] : null; }
     };
   }
@@ -3146,20 +3150,20 @@
 
   var GAMES_COLUMN = statCount('G', 'Games', 'games');
   var BACK_COLUMNS = [GAMES_COLUMN, statCount('CAR', 'Carries', 'rushAtt'),
-    statCount('RUYDS', 'Rushing yards', 'rushYds'), statAverage('RUAVG', 'Yards a carry', 'rushYds', 'rushAtt'),
+    statCount('RUYDS', 'Rushing yards', 'rushYds'), statAverage('RUAVG', 'Yards a carry', 'rushYds', 'rushAtt', 6.25),
     statCount('RUTD', 'Rushing touchdowns', 'rushTd'), statCount('REC', 'Catches', 'rec'),
     statCount('REYDS', 'Receiving yards', 'recYds'), statCount('RETD', 'Receiving touchdowns', 'recTd')];
   var CATCHER_COLUMNS = [GAMES_COLUMN, statCount('TGT', 'Targets', 'targets'), statCount('REC', 'Catches', 'rec'),
-    statCount('YDS', 'Receiving yards', 'recYds'), statAverage('AVG', 'Yards a catch', 'recYds', 'rec'),
+    statCount('YDS', 'Receiving yards', 'recYds'), statAverage('AVG', 'Yards a catch', 'recYds', 'rec', 1.875),
     statCount('TD', 'Receiving touchdowns', 'recTd')];
   var DEFENDER_COLUMNS = [GAMES_COLUMN, statCount('TKL', 'Tackles', 'tackles'), statCount('SACK', 'Sacks', 'sacks'),
     statCount('INT', 'Interceptions', 'ints'), statCount('PD', 'Passes defended', 'passDef'),
     statCount('FF', 'Forced fumbles', 'ff'), statCount('TD', 'Defensive touchdowns', 'defTd')];
   var SEASON_COLUMNS = {
-    QB: [GAMES_COLUMN, statShare('CMP%', 'Completion percentage', 'passCmp', 'passAtt'),
+    QB: [GAMES_COLUMN, statShare('CMP%', 'Completion percentage', 'passCmp', 'passAtt', 14),
       statCount('YDS', 'Passing yards', 'passYds'), statCount('TD', 'Passing touchdowns', 'passTd'),
       statCount('INT', 'Interceptions thrown', 'passInt'),
-      { label: 'RTG', title: 'Passer rating', places: 1, value: function (l) {
+      { label: 'RTG', title: 'Passer rating', places: 1, qualify: { key: 'passAtt', least: 14 }, value: function (l) {
         return EGE.statline.passerRating(l.passCmp || 0, l.passAtt || 0, l.passYds || 0, l.passTd || 0, l.passInt || 0);
       } },
       statCount('RUYDS', 'Rushing yards', 'rushYds'), statCount('RUTD', 'Rushing touchdowns', 'rushTd')],
@@ -3173,10 +3177,10 @@
     CB: DEFENDER_COLUMNS,
     S: DEFENDER_COLUMNS,
     K: [GAMES_COLUMN, statOf('FG', 'Field goals made and tried', 'fgm', 'fga'),
-      statShare('FG%', 'Field goal percentage', 'fgm', 'fga'), statOf('XP', 'Extra points made and tried', 'xpm', 'xpa'),
+      statShare('FG%', 'Field goal percentage', 'fgm', 'fga', 1), statOf('XP', 'Extra points made and tried', 'xpm', 'xpa'),
       { label: 'PTS', title: 'Points', value: function (l) { return 3 * (l.fgm || 0) + (l.xpm || 0); } }],
     P: [GAMES_COLUMN, statCount('PUNTS', 'Punts', 'punts'), statCount('YDS', 'Punting yards', 'puntYards'),
-      statAverage('AVG', 'Yards a punt', 'puntYards', 'punts')]
+      statAverage('AVG', 'Yards a punt', 'puntYards', 'punts', 2.25)]
   };
 
   /* Every season's line added up, the averages worked out again from the
@@ -3189,6 +3193,50 @@
       });
     });
     return total;
+  }
+
+  /* The league's best in a column in a season (Sam, 2026-10-27: a number
+     that led the league is in italics), from every season's line in the
+     live season's rosters: on a team, a free agent or retired. Nobody
+     leads with nothing, games played are nobody's lead, and a share or an
+     average needs its tries (`qualify`). Null for no leader. */
+  var leaders = { from: null, lines: {}, best: {} };
+
+  function leagueBest(column, season) {
+    if (column === GAMES_COLUMN) { return null; }
+    var live = searchSeason();
+    var all = live ? EGE.nflRosters.get(live) : null;
+    if (!all || !all.teams) { return null; }
+    if (leaders.from !== all) {
+      leaders = { from: all, lines: {}, best: {} };
+      var everybody = [];
+      Object.keys(all.teams).forEach(function (key) { everybody = everybody.concat(all.teams[key]); });
+      everybody.concat(all.freeAgents || [], all.retired || []).forEach(function (sim) {
+        (sim.seasons || []).forEach(function (entry) {
+          if (entry.line) { (leaders.lines[entry.season] = leaders.lines[entry.season] || []).push(entry.line); }
+        });
+      });
+    }
+    var key = season + '|' + column.title;
+    if (!(key in leaders.best)) {
+      var lines = leaders.lines[season] || [];
+      var games = 0;
+      lines.forEach(function (line) { games = Math.max(games, line.games || 0); });
+      var best = null;
+      lines.forEach(function (line) {
+        if (column.qualify && (line[column.qualify.key] || 0) < column.qualify.least * games) { return; }
+        var value = column.value(line);
+        if (value && (best === null || value > best)) { best = value; }
+      });
+      leaders.best[key] = best;
+    }
+    return leaders.best[key];
+  }
+
+  function ledLeague(column, entry) {
+    var best = entry.line ? leagueBest(column, entry.season) : null;
+    var value = best === null ? null : column.value(entry.line);
+    return value !== null && Math.abs(value - best) < 1e-9;
   }
 
   function seasonLines(sim) {
@@ -3266,29 +3314,42 @@
         var markCell = el('td', 'ege-person__seasonmark');
         var src = team.name && EGE.logoFor(team.name);
         if (src) {
+          /* The mark is a link to that team's page for that season (Sam,
+             2026-10-27), lit up under the pointer. */
+          var go = el('a', 'ege-person__seasonteam');
+          go.href = '#teams/' + EGE.nfl.slug(entry.team);
+          go.title = team.name + ', ' + entry.season;
+          go.addEventListener('click', function () {
+            EGE.cardsView.closeOverlay();
+            if (location.hash === go.getAttribute('href')) { pickTeamsSeason(entry.season); }
+            else { teamsPicked = entry.season; }
+          });
           var img = el('img');
           img.src = src;
-          img.alt = team.name;
-          img.title = team.name;
-          img.addEventListener('error', function () { img.remove(); });
-          markCell.appendChild(img);
+          img.alt = team.name + ', ' + entry.season;
+          img.addEventListener('error', function () { go.remove(); });
+          go.appendChild(img);
+          markCell.appendChild(go);
         }
         tr.appendChild(markCell);
         tr.appendChild(el('td', 'ege-person__seasonyear', String(entry.season)));
         tr.appendChild(el('td', 'num', typeof entry.age === 'number' ? String(entry.age) : '–'));
         stats.forEach(function (column) {
-          tr.appendChild(el('td', 'num', entry.line ? statText(column, entry.line) : '–'));
+          tr.appendChild(el('td', 'num' + (ledLeague(column, entry) ? ' is-lead' : ''),
+            entry.line ? statText(column, entry.line) : '–'));
         });
         if (at !== -1) { tr.children[at + 1].classList.add('is-sorted-cell'); }
         tbody.appendChild(tr);
       });
 
-      /* The Career line runs one label across the mark, the season and the
-         age, so a number sits a cell further left in it than above. */
+      /* The Career line runs one cell across the mark, the season and the
+         age, so a number sits a cell further left in it than above. Its
+         label is for a screen reader only (Sam, 2026-10-27: not needed). */
       if (!tfoot) { return; }
       tfoot.innerHTML = '';
       var total = el('tr');
-      var label = el('td', null, 'Career');
+      var label = el('td');
+      label.appendChild(el('span', 'ege-visually-hidden', 'Career'));
       label.colSpan = 3;
       total.appendChild(label);
       stats.forEach(function (column) {
@@ -3331,12 +3392,25 @@
      once a mark and colour, on a canvas, as a picture. */
   var washes = {};
 
-  function washShade(hex) {
+  function rgbOf(hex) {
     var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || '');
-    if (!m) { return null; }
-    var rgb = [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)];
+    return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : null;
+  }
+
+  /* How light a colour looks, 0 black to 1 white (the web's relative
+     luminance), and how far apart two of them read, 1 to 21. */
+  function luminance(rgb) {
     var light = rgb.map(function (c) { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); });
-    var dark = 0.2126 * light[0] + 0.7152 * light[1] + 0.0722 * light[2] < 0.03;
+    return 0.2126 * light[0] + 0.7152 * light[1] + 0.0722 * light[2];
+  }
+  function contrast(a, b) {
+    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+  }
+
+  function washShade(hex) {
+    var rgb = rgbOf(hex);
+    if (!rgb) { return null; }
+    var dark = luminance(rgb) < 0.03;
     return rgb.map(function (c) { return Math.round(dark ? c + (255 - c) * 0.12 : c * 0.78); });
   }
 
@@ -3451,11 +3525,46 @@
     }, function () { wash.remove(); });
   }
 
+  /* Whatever season he is clicked in, his pop-up is who he is now (Sam,
+     2026-10-27): his line in the live season's rosters, on a team, a free
+     agent or retired, with his overall now and every season he has played.
+     The season clicked in stands only when those rosters have no word of
+     him. */
   function openNflPlayer(row) {
+    var live = searchSeason();
+    if (!row.sim || !live || row.season === live) { showNflPlayer(row); return; }
+    EGE.nflRosters.load(live).then(function () {
+      showNflPlayer(nflNow(row.sim, live) || row);
+    }, function () { showNflPlayer(row); });
+  }
+
+  /* The same player in another season's rosters, which carry no id of the
+     sim's: his ESPN id, or which of the six he is, or else his name,
+     college and draft. */
+  function nflIdentity(sim) {
+    if (sim.espn) { return 'espn:' + sim.espn; }
+    if (sim.ege) { return 'ege:' + sim.ege; }
+    var d = sim.draft;
+    return [sim.name, sim.college || '', d ? d.year + '-' + d.round + '-' + d.pick : ''].join('|');
+  }
+
+  function nflNow(sim, season) {
+    var id = nflIdentity(sim);
+    var hits = searchPeople(season).filter(function (hit) { return hit.sim && nflIdentity(hit.sim) === id; });
+    return hits.length ? nflHitRow(hits[0], season) : null;
+  }
+
+  function showNflPlayer(row) {
     var sim = row.sim;
     var team = EGE.nfl.teams[row.team] || {};
     var stage = EGE.cardsView.openOverlay(POSITION_NAMES[sim.pos] || sim.pos, 'ege-rip__stage--person');
+    /* No title or close above it (Sam, 2026-10-27): a click off it or
+       Escape puts it away. */
+    var head = stage.querySelector('.ege-rip__head');
+    if (head) { head.remove(); }
     var box = el('div', 'ege-person ege-person--player');
+    box.tabIndex = -1;
+    box.setAttribute('aria-label', row.name + ', ' + (POSITION_NAMES[sim.pos] || sim.pos));
     var logoSrc = EGE.nfl.logo(row.team);
 
     /* Line one: the band. Behind it, the team's mark in two tones, the
@@ -3466,7 +3575,8 @@
     bandWash(band, team);
     /* His headshot with the team's mark behind him, set off to his right
        so it shows past his shoulder; his name; his overall where the mark
-       used to be (Sam, 2026-10-26). */
+       used to be (Sam, 2026-10-26). The headshot is the whole picture, his
+       shoulders not trimmed (2026-10-27). */
     var face = el('span', 'ege-person__face');
     if (logoSrc) {
       var mark = el('span', 'ege-person__behind');
@@ -3487,15 +3597,23 @@
       face.appendChild(img);
     }
     band.appendChild(face);
-    var name = el('h3', 'ege-person__name', row.name);
+    var name = el('h3', 'ege-person__name');
+    var gap = row.name.indexOf(' ');
+    if (gap > 0) {
+      name.appendChild(el('span', null, row.name.slice(0, gap)));
+      name.appendChild(document.createTextNode(' '));
+      name.appendChild(el('span', null, row.name.slice(gap + 1)));
+    } else {
+      name.appendChild(el('span', null, row.name));
+    }
     band.appendChild(name);
     var ovr = overallBox(row.overall, 'ege-ovrbox--chip ege-person__ovr');
     if (ovr) { band.appendChild(ovr); }
     box.appendChild(band);
 
-    /* Under it the parts, with no titles or rules between them (Sam,
-       2026-10-27): where he came from, his seasons, his ratings, and his
-       contract. */
+    /* Under it, with no titles or rules between them (Sam, 2026-10-27):
+       where he came from on a strip of the team's colours, then on the
+       cream his seasons' table, his ratings and his contract. */
     var panel = el('div', 'ege-person__body');
     function part() {
       var section = el('section', 'ege-person__part');
@@ -3513,7 +3631,9 @@
       cell.appendChild(dd);
       facts.appendChild(cell);
     }
-    fact('College', sim.college || '–');
+    /* The sim's list came with its ampersands written for a web page
+       (Texas A&amp;M). */
+    fact('College', sim.college ? sim.college.replace(/&amp;/g, '&') : '–');
     var d = sim.draft;
     var by = d && d.team && EGE.nfl.teams[d.team] ? EGE.nfl.teams[d.team].name : null;
     fact('Draft', d ? d.year + ' · R' + d.round + ' #' + d.pick : 'Undrafted',
@@ -3521,7 +3641,19 @@
     fact('Age', typeof sim.age === 'number' ? String(sim.age) : '–');
     fact('Height', EGE.heightText(row) || '–');
     fact('Weight', EGE.weightText(row) || '–');
-    panel.appendChild(facts);
+    /* On the team's second colour (Sam, 2026-10-27: the Bears' orange), in
+       white or ink, whichever reads better on it, the labels in the band's
+       colour where that reads on it too, or else a little fainter. */
+    var strip = rgbOf(team.accent);
+    if (strip) {
+      var lum = luminance(strip);
+      var bandRgb = rgbOf(team.color);
+      facts.classList.add('is-team');
+      facts.style.background = team.accent;
+      if (contrast(lum, 1) > contrast(lum, 0)) { facts.classList.add('is-dark'); }
+      if (bandRgb && contrast(lum, luminance(bandRgb)) >= 4.5) { facts.style.setProperty('--label', team.color); }
+    }
+    box.appendChild(facts);
 
     /* His seasons. */
     var seasons = seasonLines(sim);
@@ -3547,9 +3679,9 @@
 
     /* His contract, and anything keeping him off the field. */
     var foot = el('dl', 'ege-person__deal');
-    function line(label, value) {
-      foot.appendChild(el('dt', null, label));
-      foot.appendChild(el('dd', null, value));
+    function line(label, value, cls) {
+      foot.appendChild(el('dt', cls || null, label));
+      foot.appendChild(el('dd', cls || null, value));
     }
     if (row.retired) {
       line('Status', retiredText(row.retired));
@@ -3558,7 +3690,8 @@
         ? moneyText(sim.contract.apy) + ' a year through ' + sim.contract.through
         : row.freeAgent ? 'Free agent' : 'None');
     }
-    if (row.out) { line('Injury', injuryText(row.out)); }
+    /* In red (Sam, 2026-10-27). */
+    if (row.out) { line('Injury', injuryText(row.out), 'is-hurt'); }
     var more = part();
     more.appendChild(foot);
 
@@ -3580,9 +3713,7 @@
     stage.appendChild(box);
     fitName(name);
     if (document.fonts && document.fonts.ready) { document.fonts.ready.then(function () { fitName(name); }); }
-
-    var close = stage.querySelector('.ege-rip__close');
-    if (close) { close.focus({ preventScroll: true }); }
+    box.focus({ preventScroll: true });
   }
 
   /* Off the box closes it, as off a trophy does. */
@@ -4204,14 +4335,20 @@
       return rosterLine({ name: player.name, player: player, overall: EGE.overallFor(player),
                           height: player.height, weight: player.weight });
     }
-    var row = nflRow(hit.sim, season, hit.key, null);
+    var row = nflHitRow(hit, season);
     row.where = searchMark(hit);
+    return nflLine(row);
+  }
+
+  /* One of the rosters' players as a card or a pop-up has him. */
+  function nflHitRow(hit, season) {
+    var row = nflRow(hit.sim, season, hit.key, null);
     if (hit.how === 'fa') { row.freeAgent = true; }
     if (hit.how === 'retired') {
       row.retired = hit.sim.retired || true;
       row.out = null;
     }
-    return nflLine(row);
+    return row;
   }
 
   function searchGroup(title, lines) {

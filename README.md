@@ -453,7 +453,7 @@ Under the bar:
   chip (**R** for a rookie), then **height · weight**, with **no number**.
   The six's boxes use their own overall, headshot and size from their
   pages. **Every box opens a pop-up**, in the overlay the cards and
-  trophies use: a band in the team's colour with the headshot, the team's
+  trophies use, with no title or close button over it (Sam, 2026-10-27): a band in the team's colour with the headshot, the team's
   mark straight on the colour behind him and set off to his right so it
   shows past his shoulder, the name, and his overall box at the right end
   where the mark used to be (Sam, 2026-10-26). The pop-up is 800px wide,
@@ -469,18 +469,31 @@ Under the bar:
   of the band; one about as tall as it is wide is never more than two and
   a half times the band's height, so more of it shows. The headshot stands on the band's bottom edge and is sized
   so the top of the head just clears the top of the box, about 5% of the
-  picture; every headshot is placed the same way. The name is centred
-  between the headshot and the overall, and a
-  name too long for its column is set smaller rather than broken inside a
-  word (`fitName`). Under the band come college, draft
-  (*2021 · R4 #112*), age, height and weight, then his seasons, his
-  ratings and his contract, with no titles or rules between them (Sam,
-  2026-10-27). His seasons are **a table like the game log**: the dark
-  heading row, every heading a button that sorts it (biggest first, then
-  turned round, then back to the order played), the sorted column shaded
-  down to a **Career** line that adds them up (averages and the passer
-  rating worked out again from the totals); it scrolls sideways on a
-  phone. A line a season
+  picture; every headshot is placed the same way, and shows the picture's
+  whole width, shoulders and all (2026-10-27). The name is in the band's
+  dead centre, first name over the rest on two lines, with the headshot,
+  the mark and the overall smaller and out at the two ends to give it room
+  (Sam, 2026-10-27); a name too long for its column is set smaller rather
+  than broken inside a word (`fitName`). Under the band come college, draft
+  (*2021 · R4 #112*), age, height and weight in a thin strip on the team's second colour
+  (the Bears' orange; white for a free agent), the text white or dark to
+  suit it, with no line between it and the band; then, on the cream, his
+  seasons, his ratings and his contract, with only space between them, no
+  titles or rules (Sam, 2026-10-27). His seasons are **a table like the game log**: every
+  heading a button that sorts it (biggest first, then turned round, then
+  back to the order played), the sorted column shaded from its heading down to a **Career**
+  line that adds them up (averages and the passer rating worked out again
+  from the totals), with no label or line over it. A number that led the
+  league that season is in italics, with no key (Sam, 2026-10-27): the
+  most of it in any season's line in the live season's rosters, a share or
+  an average only on the NFL's minimum tries a game (14 passes, 6.25
+  carries, 1.875 catches, 1 field goal, 2.25 punts) times the most games
+  anybody played that season. The whole table,
+  headings in black too, is on one shade, the darker of the game log's two,
+  with no lines round it or between the seasons, and the ratings sit on the
+  same shade, both boxes with round corners (Sam, 2026-10-27); it scrolls
+  sideways on a phone. A season's team mark lights up under the pointer and
+  opens that team's page for that season. A line a season
   from 2025 on (Sam, 2026-10-26: the first season the sim kept everybody's
   numbers), oldest first: the mark of the team he finished it with, the
   season, his age, and his position's numbers (QB G, CMP%, YDS, TD, INT,
@@ -494,8 +507,12 @@ Under the bar:
   published (the NFL Sim tab's Publish, the Weeks tab's when the sim is
   loaded, or an admin's visit to a team page when `linesThrough` is behind).
   The ratings are the archetype and his skills, best first; the contract
-  is *$1.1M a year through 2024*, with any injury under it. One of the
-  six's has a button through to his page. A click off the box closes it.
+  is *$1.1M a year through 2024*, with any injury under it in red. One of the
+  six's has a button through to his page. A click off the box or Escape
+  closes it. Whatever season he is clicked in, a past season's roster
+  included, the pop-up is who he is now (Sam, 2026-10-27): his line in
+  the live season's rosters, found by his ESPN id, which of the six he is,
+  or his name, college and draft, with his overall now and every season.
   Nothing private is in the rosters: no team ratings, no potential, nothing
   about how long a player will last. Since 2026-10-21 they carry every
   player, the linemen, kickers and punters too (the rooms show them since
