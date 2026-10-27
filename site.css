@@ -4335,6 +4335,9 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-navsearch { display: inline-flex; align-items: center; }
 .ege-navsearch svg { display: block; }
 .ege-search { max-width: 640px; margin: 0 auto 26px; }
+/* The position and the sort, side by side under the box. */
+.ege-search__sorts { display: flex; gap: 10px; margin-top: 12px; }
+.ege-search__sorts .ege-filterselect { flex: 1 1 0; min-width: 0; }
 .ege-search__field {
   width: 100%;
   padding: 12px 14px;
@@ -4345,8 +4348,48 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-search__results { display: grid; gap: 22px; }
 .ege-search__list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 28px; }
 @media (max-width: 760px) { .ege-search__list { grid-template-columns: minmax(0, 1fr); } }
+/* Every team, with nothing typed: as many across as fit. */
+.ege-search__list.ege-search__list--teams { grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); }
 .ege-search__more { justify-self: start; margin-top: 14px; }
 .ege-search__note { text-align: center; }
+/* The number a sort put him in order by, just before his overall: the
+   overall box's size and type in ink on the cream, the draft's smaller. */
+.ege-sortbox {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  box-sizing: border-box;
+  min-width: 54px;
+  padding: 5px 4px 6px;
+  border: var(--fb-border) solid var(--fb-ink);
+  background: var(--fb-surface);
+  color: var(--fb-ink);
+  text-align: center;
+  white-space: nowrap;
+  cursor: help;
+}
+.ege-sortbox__label { font-size: .5625rem; font-weight: 800; letter-spacing: .12em; color: var(--fb-muted); }
+.ege-sortbox__value { font-family: var(--fb-font-display); font-size: 1.5rem; line-height: .96; }
+.ege-sortbox.is-wide .ege-sortbox__value { font-size: 1.0625rem; line-height: 1.2; }
+@media (max-width: 520px) {
+  .ege-search__sorts .ege-filterselect { padding: 10px 6px; font-size: 12px; letter-spacing: .02em; }
+}
+/* On a phone, or two narrow cards across, room for his name beside two
+   boxes: both a little smaller, and his team's mark on the corner of his
+   picture. */
+@media (max-width: 520px), (min-width: 761px) and (max-width: 960px) {
+  .ege-teamchip.is-sorted { position: relative; }
+  .ege-teamchip.is-sorted .ege-teamchip__team { position: absolute; bottom: 8px; left: 44px; width: 26px; height: 26px; }
+  .ege-teamchip.is-sorted .ege-teamchip__team.is-fa { background: var(--fb-cream); font-size: .5625rem; }
+  .ege-teamchip.is-sorted .ege-ovrbox--chip { width: 46px; padding: 4px 3px 5px; }
+  .ege-teamchip.is-sorted .ege-ovrbox--chip .ege-ovrbox__value,
+  .ege-teamchip.is-sorted .ege-sortbox__value { font-size: 1.25rem; }
+  .ege-teamchip.is-sorted .ege-sortbox { min-width: 46px; padding: 4px 3px 5px; }
+  .ege-teamchip.is-sorted .ege-sortbox.is-wide .ege-sortbox__value { font-size: .9375rem; }
+}
 /* A team's card: its mark on its colour where a player's picture goes. */
 .ege-teamchip--team:hover { background: var(--fb-tint-wash); }
 .ege-teamchip--team:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: 2px; }

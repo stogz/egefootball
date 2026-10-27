@@ -1762,12 +1762,13 @@
      number (Sam, 2026-10-19) -- and his overall. Every card opens the
      player's pop-up; one of the six is still picked out in orange, and his
      pop-up is the way to his page. In the search, his team's mark beside
-     his overall (`row.where`), and a retired player greyed with RETIRED in
+     his overall (`row.where`), the number the search is sorted by just
+     before it (`row.sorted`), and a retired player greyed with RETIRED in
      its place. */
   function nflLine(row) {
     var item = el('li', 'ege-room__player');
     var card = el('div', 'ege-teamchip ege-teamchip--nfl' + (row.player ? ' is-six' : '') +
-      (row.retired ? ' is-retired' : ''));
+      (row.retired ? ' is-retired' : '') + (row.sorted ? ' is-sorted' : ''));
     EGE.cardsView.pressable(card, row.name, function () { openNflPlayer(row); });
     card.appendChild(rosterFace(row));
 
@@ -1795,6 +1796,7 @@
     var end = el('span', 'ege-teamchip__end');
     if (row.where) { end.appendChild(row.where); }
     if (row.out) { end.appendChild(injuryBox(row.out)); }
+    if (row.sorted) { end.appendChild(row.sorted); }
     var box = row.retired ? retiredBox(row.retired) : overallBox(row.overall, 'ege-ovrbox--chip');
     if (box) { end.appendChild(box); }
     card.appendChild(end);
@@ -4193,10 +4195,18 @@
      pages have them: everybody on a roster, then the free agents and the
      retired, which the sim publishes with the rosters (publicRosters). A
      retired player is greyed, with RETIRED where his overall was and the
-     mark of the team he last played for. The six are always in it. */
+     mark of the team he last played for. The six are always in it.
+
+     With nothing typed (Sam, 2026-10-27), every player best first, the
+     retired left out, then every team. Under the box a position, which
+     narrows the players to it, and a sort: by overall, youngest or oldest,
+     the newest draft class first, or the best at one of the ratings, with
+     the number sorted by beside his overall. */
 
   var searchField = document.getElementById('searchField');
   var searchResults = document.getElementById('searchResults');
+  var searchPosPick = document.getElementById('searchPos');
+  var searchSortPick = document.getElementById('searchSort');
 
   /* Players shown, a page at a time behind "Show more". */
   var SEARCH_PAGE = 24;
@@ -4266,11 +4276,186 @@
     EGE.players.forEach(function (player) {
       if (!found[player.slug]) { people.push({ player: player, how: 'six', text: searchText(player.name) }); }
     });
-    searchPool = { season: season, from: all, people: people };
+    searchPool = { season: season, from: all, people: people, sorts: SEARCH_SORTS.concat(skillSorts(people)) };
     return people;
   }
 
   var SEARCH_ORDER = { six: 0, team: 0, fa: 1, retired: 2 };
+
+  /* The positions to pick from, in the order a roster has them. */
+  var SEARCH_POSITIONS = ['QB', 'RB', 'FB', 'WR', 'TE', 'OT', 'IOL', 'EDGE', 'DI', 'LB', 'CB', 'S', 'K', 'P'];
+  var searchPos = '';
+  var searchSort = 'overall';
+
+  function searchPosOf(hit) { return hit.sim ? hit.sim.pos : hit.player.position; }
+
+  /* His overall as his card has it: one of the six's is the site's own. */
+  function searchOverall(hit) {
+    var player = hit.player || (hit.sim.ege ? EGE.playerBySlug(hit.sim.ege) : null);
+    return player ? EGE.overallFor(player) : hit.sim.ovr;
+  }
+
+  function searchAge(hit) { return hit.sim && typeof hit.sim.age === 'number' ? hit.sim.age : null; }
+
+  /* What a card sorted by something other than his overall shows beside
+     it: the number it was sorted by, under a short name. */
+  function sortBox(label, value, title, wide) {
+    var box = el('span', 'ege-sortbox' + (wide ? ' is-wide' : ''));
+    box.title = title;
+    box.appendChild(el('span', 'ege-sortbox__label', label));
+    box.appendChild(el('span', 'ege-sortbox__value', value));
+    return box;
+  }
+
+  function ageBox(hit) {
+    var age = searchAge(hit);
+    return age === null ? null : sortBox('AGE', String(age), 'Age ' + age);
+  }
+
+  function draftBox(hit) {
+    var d = hit.sim ? hit.sim.draft : null;
+    if (!d) { return hit.sim ? sortBox('DRAFT', 'UDFA', 'Undrafted', true) : null; }
+    var by = d.team && EGE.nfl.teams[d.team] ? ', by the ' + EGE.nfl.teams[d.team].name : '';
+    return sortBox(d.year + ' R' + d.round, '#' + d.pick,
+      'Round ' + d.round + ', pick ' + d.pick + ' of the ' + d.year + ' draft' + by, true);
+  }
+
+  /* Each sort: whether the most comes first, the number it reads off a
+     player (null for none, last whatever the order), and the box it puts
+     beside his overall. The newest draft class first, in the order it
+     was picked. */
+  var SEARCH_SORTS = [
+    { key: 'overall', label: 'Overall', most: true, value: searchOverall },
+    { key: 'young', label: 'Youngest', most: false, value: searchAge, box: ageBox },
+    { key: 'old', label: 'Oldest', most: true, value: searchAge, box: ageBox },
+    { key: 'draft', label: 'Draft', most: true, box: draftBox, value: function (hit) {
+      var d = hit.sim ? hit.sim.draft : null;
+      return d ? d.year * 1000 - d.pick : null;
+    } }
+  ];
+
+  /* A rating's short name, over its number. */
+  var SKILL_SHORT = {
+    accuracy: 'ACC', deep: 'DEEP', arm: 'ARM', poise: 'POISE', mobility: 'MOB', power: 'POW', elusive: 'ELU',
+    speed: 'SPD', vision: 'VIS', hands: 'HNDS', block: 'BLK', route: 'RTE', yac: 'YAC', size: 'SIZE',
+    passBlock: 'PBLK', runBlock: 'RBLK', rush: 'RUSH', run: 'RUN D', cover: 'COV', blitz: 'BLITZ',
+    man: 'MAN', zone: 'ZONE', ball: 'BALL', tackle: 'TKL', range: 'RANGE', box: 'BOX'
+  };
+
+  /* A rating as the sort names it: the pop-up's name, with a kicker's
+     accuracy told apart from a quarterback's. */
+  function sortSkillName(skill, pos) {
+    return skill === 'accuracy' && pos === 'K' ? 'Kick Accuracy' : skillName(skill, pos);
+  }
+
+  /* A sort for every rating the players have, one a name, so Speed reads
+     everybody's speed and Deep Ball only a quarterback's, A to Z. `skills`
+     is the rating each position has by that name. */
+  function skillSorts(people) {
+    var had = {};
+    people.forEach(function (hit) {
+      if (!hit.sim || !hit.sim.skills) { return; }
+      var pos = had[hit.sim.pos] = had[hit.sim.pos] || {};
+      Object.keys(hit.sim.skills).forEach(function (skill) { pos[skill] = true; });
+    });
+    var sorts = [];
+    var named = {};
+    SEARCH_POSITIONS.forEach(function (pos) {
+      Object.keys(had[pos] || {}).forEach(function (skill) {
+        var label = sortSkillName(skill, pos);
+        if (!named[label]) {
+          named[label] = ratingSort(label);
+          sorts.push(named[label]);
+        }
+        named[label].skills[pos] = skill;
+      });
+    });
+    return sorts.sort(function (a, b) { return a.label.localeCompare(b.label); });
+  }
+
+  function ratingSort(label) {
+    var sort = { key: 'rating:' + label, label: label, most: true, rating: true, skills: {} };
+    function skillOf(hit) { return hit.sim && hit.sim.skills ? sort.skills[hit.sim.pos] || null : null; }
+    sort.value = function (hit) {
+      var skill = skillOf(hit);
+      return skill && typeof hit.sim.skills[skill] === 'number' ? hit.sim.skills[skill] : null;
+    };
+    sort.box = function (hit) {
+      var value = sort.value(hit);
+      return value === null ? null : sortBox(SKILL_SHORT[skillOf(hit)] || label.slice(0, 4).toUpperCase(),
+        String(value), label + ': ' + value);
+    };
+    return sort;
+  }
+
+  /* The sorts there are for the position picked: a rating only the
+     positions that have it. */
+  function searchSorts() {
+    return searchPool.sorts.filter(function (sort) { return !sort.rating || !searchPos || sort.skills[searchPos]; });
+  }
+
+  searchPosPick.appendChild(new Option('All positions', ''));
+  SEARCH_POSITIONS.forEach(function (pos) { searchPosPick.appendChild(new Option(POSITION_NAMES[pos], pos)); });
+
+  /* The sort picker, drawn again only when the sorts there are change,
+     its ratings under their own heading. One gone with the position
+     changed is back to the overall. */
+  function drawSortPick(sorts) {
+    if (!sorts.some(function (sort) { return sort.key === searchSort; })) { searchSort = 'overall'; }
+    var keys = sorts.map(function (sort) { return sort.key; }).join('|');
+    if (searchSortPick.getAttribute('data-sorts') !== keys) {
+      searchSortPick.innerHTML = '';
+      var ratings = null;
+      sorts.forEach(function (sort) {
+        var option = new Option(sort.label, sort.key);
+        if (!sort.rating) {
+          searchSortPick.appendChild(option);
+          return;
+        }
+        if (!ratings) {
+          ratings = el('optgroup');
+          ratings.label = 'Ratings';
+          searchSortPick.appendChild(ratings);
+        }
+        ratings.appendChild(option);
+      });
+      searchSortPick.setAttribute('data-sorts', keys);
+    }
+    searchSortPick.value = searchSort;
+  }
+
+  /* As typed: the best match first, then the active before the free
+     agents and the retired, the six first, then the better player. */
+  function byMatch(a, b) {
+    return a.score - b.score || SEARCH_ORDER[a.hit.how] - SEARCH_ORDER[b.hit.how] ||
+      (b.hit.sim && b.hit.sim.ege ? 1 : 0) - (a.hit.sim && a.hit.sim.ege ? 1 : 0) || b.ovr - a.ovr;
+  }
+
+  /* By a sort: the retired last, then the number sorted by (nobody's at
+     the end), then the better player, the six first, then by name. */
+  function bySort(sort) {
+    return function (a, b) {
+      var gone = (a.hit.how === 'retired' ? 1 : 0) - (b.hit.how === 'retired' ? 1 : 0);
+      if (gone) { return gone; }
+      if ((a.value === null) !== (b.value === null)) { return a.value === null ? 1 : -1; }
+      if (a.value !== b.value) { return sort.most ? b.value - a.value : a.value - b.value; }
+      return b.ovr - a.ovr || (b.six ? 1 : 0) - (a.six ? 1 : 0) || a.hit.text.localeCompare(b.hit.text);
+    };
+  }
+
+  /* Every team, with nothing typed: the NFL's best record first, then the
+     schools the six played for. */
+  function rankedTeams(season) {
+    var rows = {};
+    var teams = searchTeams();
+    teams.forEach(function (team) { if (team.key && season) { rows[team.key] = nflStanding(team.key, season).row; } });
+    function pct(row) { return row && row.wins + row.losses ? row.wins / (row.wins + row.losses) : 0.5; }
+    function wins(row) { return row ? row.wins : 0; }
+    return teams.sort(function (a, b) {
+      return (a.key ? 0 : 1) - (b.key ? 0 : 1) || pct(rows[b.key]) - pct(rows[a.key]) ||
+        wins(rows[b.key]) - wins(rows[a.key]) || a.name.localeCompare(b.name);
+    });
+  }
 
   /* A team in the results, drawn like a player's card: its mark on its
      colour, its name, and where it stands. */
@@ -4329,7 +4514,7 @@
     return mark;
   }
 
-  function searchPlayerLine(hit, season) {
+  function searchPlayerLine(hit, season, sort) {
     if (hit.how === 'six') {
       var player = hit.player;
       return rosterLine({ name: player.name, player: player, overall: EGE.overallFor(player),
@@ -4337,6 +4522,7 @@
     }
     var row = nflHitRow(hit, season);
     row.where = searchMark(hit);
+    if (sort && sort.box) { row.sorted = sort.box(hit); }
     return nflLine(row);
   }
 
@@ -4351,13 +4537,13 @@
     return row;
   }
 
-  function searchGroup(title, lines) {
+  function searchGroup(title, lines, modifier) {
     var panel = el('section', 'fb-panel ege-search__group');
     var head = el('div', 'fb-panel__head');
     head.appendChild(el('h3', null, title));
     panel.appendChild(head);
     var body = el('div', 'fb-panel__body');
-    var list = el('ol', 'ege-room__list ege-search__list');
+    var list = el('ol', 'ege-room__list ege-search__list' + (modifier ? ' ' + modifier : ''));
     lines.forEach(function (line) { list.appendChild(line); });
     body.appendChild(list);
     panel.appendChild(body);
@@ -4369,18 +4555,8 @@
   function renderSearch() {
     var query = searchText(searchField.value);
     searchResults.innerHTML = '';
-    if (!query) { return; }
     var words = query.split(' ');
     var season = searchSeason();
-
-    var teams = searchTeams().map(function (team) {
-      var scores = team.names.map(function (name) { return searchScore(searchText(name), words, query); })
-        .filter(function (score) { return score !== -1; });
-      if (team.key && team.key.toLowerCase() === query) { scores.push(0); }
-      return { team: team, score: scores.length ? Math.min.apply(null, scores) : -1 };
-    }).filter(function (hit) { return hit.score !== -1; }).sort(function (a, b) {
-      return a.score - b.score || a.team.name.localeCompare(b.team.name);
-    });
 
     /* The rosters, asked for the first time the search is used, and the
        results drawn again when they are in. */
@@ -4390,20 +4566,37 @@
     } else if (all) {
       catchUp(all, season, function () { if (onSearch()) { renderSearch(); } });
     }
-    var people = searchPeople(season).map(function (hit) {
-      return { hit: hit, score: searchScore(hit.text, words, query) };
-    }).filter(function (x) { return x.score !== -1; }).sort(function (a, b) {
-      return a.score - b.score || SEARCH_ORDER[a.hit.how] - SEARCH_ORDER[b.hit.how] ||
-        (b.hit.sim && b.hit.sim.ege ? 1 : 0) - (a.hit.sim && a.hit.sim.ege ? 1 : 0) ||
-        ((b.hit.sim || {}).ovr || 0) - ((a.hit.sim || {}).ovr || 0);
-    });
+    var pool = searchPeople(season);
+    var sorts = searchSorts();
+    drawSortPick(sorts);
+    var sort = sorts.filter(function (s) { return s.key === searchSort; })[0];
 
-    if (teams.length) {
-      searchResults.appendChild(searchGroup('Teams', teams.map(function (x) { return searchTeamLine(x.team, season); })));
-    }
+    /* Teams only with every position: as typed, the best match first;
+       with nothing typed, all of them. */
+    var teams = searchPos ? [] : !query ? rankedTeams(season) : searchTeams().map(function (team) {
+      var scores = team.names.map(function (name) { return searchScore(searchText(name), words, query); })
+        .filter(function (score) { return score !== -1; });
+      if (team.key && team.key.toLowerCase() === query) { scores.push(0); }
+      return { team: team, score: scores.length ? Math.min.apply(null, scores) : -1 };
+    }).filter(function (hit) { return hit.score !== -1; }).sort(function (a, b) {
+      return a.score - b.score || a.team.name.localeCompare(b.team.name);
+    }).map(function (hit) { return hit.team; });
+
+    var people = pool.filter(function (hit) {
+      return (!searchPos || searchPosOf(hit) === searchPos) && (query || hit.how !== 'retired');
+    }).map(function (hit) {
+      return { hit: hit, score: query ? searchScore(hit.text, words, query) : 0, ovr: searchOverall(hit),
+               value: sort.value(hit), six: Boolean(hit.player || hit.sim.ege) };
+    }).filter(function (x) { return x.score !== -1; })
+      .sort(query && sort.key === 'overall' ? byMatch : bySort(sort));
+
+    var teamGroup = teams.length ? searchGroup('Teams', teams.map(function (team) {
+      return searchTeamLine(team, season);
+    }), query ? null : 'ege-search__list--teams') : null;
+    if (teamGroup && query) { searchResults.appendChild(teamGroup); }
     if (people.length) {
       var group = searchGroup('Players', people.slice(0, searchShown).map(function (x) {
-        return searchPlayerLine(x.hit, season);
+        return searchPlayerLine(x.hit, season, sort);
       }));
       if (people.length > searchShown) {
         var more = el('button', 'fb-btn fb-btn--sm ege-search__more', 'Show more');
@@ -4416,6 +4609,7 @@
       }
       searchResults.appendChild(group);
     }
+    if (teamGroup && !query) { searchResults.appendChild(teamGroup); }
     if (all === undefined) {
       searchResults.appendChild(el('p', 'ege-note ege-search__note', 'Getting the players…'));
     } else if (!teams.length && !people.length) {
@@ -4450,6 +4644,17 @@
   /* Done typing on a phone: the keyboard goes, and the results are there. */
   searchField.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') { searchField.blur(); }
+  });
+
+  searchPosPick.addEventListener('change', function () {
+    searchPos = searchPosPick.value;
+    searchShown = SEARCH_PAGE;
+    renderSearch();
+  });
+  searchSortPick.addEventListener('change', function () {
+    searchSort = searchSortPick.value;
+    searchShown = SEARCH_PAGE;
+    renderSearch();
   });
 
 

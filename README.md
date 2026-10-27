@@ -679,6 +679,22 @@ Back from a team or a player's page comes back to the same results.
   Josh Allen), ignoring accents, dots and apostrophes ("cj" finds C.J.);
   ties go to rostered players before free agents before the retired, then
   the higher overall.
+- **Nothing typed** (Sam, 2026-10-27): every player best first (rostered
+  and free agents together, the retired left out), then every team, the NFL
+  by record and then the six's schools, as many across as fit.
+- **Position and sort**, two drop-downs under the box, for the players with
+  or without a query. A position narrows them to it and hides the teams. The
+  sort is *Overall* (as typed: the best match first), *Youngest*, *Oldest*,
+  *Draft* (the newest class first, in pick order, undrafted last), or any
+  rating the players have, best first, A to Z under *Ratings*: one per name
+  (Speed is everybody's speed; Deep Ball is a quarterback's, Deep Routes a
+  receiver's or tight end's; a kicker's accuracy is *Kick Accuracy*), and
+  with a position picked only its own. Anything but *Overall* puts the
+  number sorted by in a box just before his overall (AGE, the draft's year
+  and round over its pick, or the rating's short name), the retired after
+  everybody else and players without the number last. On a phone, or two
+  narrow cards across, both boxes shrink and the team's mark sits on the
+  corner of his picture.
 
 The free agents and the retired come with the published rosters
 (`freeAgents` and `retired` in `nfl-sim/lib/site.js publicRosters`).

@@ -232,8 +232,10 @@
     <!-- Any player or team as you type: the teams as links to their pages,
          the players as the cards a team's page draws, each opening his
          pop-up -- the free agents and the retired too, the retired greyed
-         and marked. The query rides in the address, #search/{query}, so
-         Back comes back to it. Built in app.js (renderSearch). -->
+         and marked. With nothing typed, every player best first and every
+         team. Under the box, a position and a sort for the players. The
+         query rides in the address, #search/{query}, so Back comes back to
+         it. Built in app.js (renderSearch). -->
     <section id="view-search" hidden>
       <header class="fb-hero fb-hero--centred">
         <div class="fb-hero__col">
@@ -244,6 +246,10 @@
         <input class="fb-input ege-search__field" id="searchField" type="search"
                placeholder="Player or team" aria-label="Search players and teams"
                autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+        <div class="ege-search__sorts">
+          <select class="fb-select ege-filterselect" id="searchPos" aria-label="Position"></select>
+          <select class="fb-select ege-filterselect" id="searchSort" aria-label="Sort"></select>
+        </div>
       </div>
       <div class="ege-search__results" id="searchResults"></div>
     </section>
