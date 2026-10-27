@@ -16,9 +16,9 @@
 
 window.EGE = window.EGE || {};
 
-EGE.currentSeason = 2025;
+EGE.currentSeason = 2026;
 
-EGE.lockedSeasons = [2018, 2019, 2020, 2021, 2022, 2023, 2024];
+EGE.lockedSeasons = [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025];
 
 /* Whether a season's ratings have been hardcoded already: either it has been
    rolled past, or data/ratings.js says it was locked at the end of it. The
