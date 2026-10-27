@@ -81,7 +81,13 @@ EGE.stats[2025] = {
     13: '2026-10-25T01:18:43.396Z',
     14: '2026-10-25T01:30:09.041Z',
     15: '2026-10-25T01:40:20.847Z',
-    16: '2026-10-26T16:30:27.156Z'
+    16: '2026-10-26T16:30:27.156Z',
+    17: '2026-10-26T22:20:55.354Z',
+    18: '2026-10-26T23:20:52.517Z',
+    19: '2026-10-26T23:30:20.633Z',
+    20: '2026-10-26T23:39:20.387Z',
+    21: '2026-10-26T23:47:12.352Z',
+    22: '2026-10-26T23:56:58.779Z'
   },
 
   /* The six traded in the NFL sim: from `week` on his games are the
@@ -132,7 +138,7 @@ EGE.stats[2025] = {
         ] },
       { week:  4, date: '2025-09-28', kickoff: '1:00pm',
         opponent: 'Cleveland Browns', home: true, conference: false,
-        result: { teamScore: 26, opponentScore: 8 }, booster: null,
+        result: { teamScore: 26, opponentScore: 8 }, booster: 'wager-for', line: -10.5,
         stats: {
           receptions: 6, receivingYards: 49, receivingYac: 11,
           receivingTd: 0, receivingLong: 20, targets: 8, carries: 0,
@@ -141,7 +147,7 @@ EGE.stats[2025] = {
         } },
       { week:  5, date: '2025-10-05', kickoff: '4:25pm',
         opponent: 'Cincinnati Bengals', home: false, conference: false,
-        result: { teamScore: 13, opponentScore: 34 }, booster: null,
+        result: { teamScore: 13, opponentScore: 34 }, booster: 'wager-for', line: -4.5,
         stats: {
           receptions: 3, receivingYards: 14, receivingYac: 10,
           receivingTd: 0, receivingLong: 8, targets: 6, carries: 0,
@@ -207,7 +213,7 @@ EGE.stats[2025] = {
         } },
       { week: 12, date: '2025-11-24', kickoff: '8:15pm',
         opponent: 'San Francisco 49ers', home: false, conference: false,
-        result: { teamScore: 17, opponentScore: 6 }, booster: null,
+        result: { teamScore: 17, opponentScore: 6 }, booster: 'boost-1-5',
         stats: {
           receptions: 4, receivingYards: 25, receivingYac: 6,
           receivingTd: 0, receivingLong: 11, targets: 6, carries: 0,
@@ -237,7 +243,7 @@ EGE.stats[2025] = {
         } },
       { week: 16, date: '2025-12-21', kickoff: '1:00pm',
         opponent: 'Tampa Bay Buccaneers', home: true, conference: false, division: true,
-        result: { teamScore: 33, opponentScore: 16 }, booster: null,
+        result: { teamScore: 33, opponentScore: 16 }, booster: 'boost-1-5',
         stats: {
           receptions: 5, receivingYards: 58, receivingYac: 10,
           receivingTd: 0, receivingLong: 22, targets: 7, carries: 0,
@@ -246,17 +252,55 @@ EGE.stats[2025] = {
         } },
       { week: 17, date: '2025-12-28', kickoff: '1:00pm',
         opponent: 'Seattle Seahawks', home: true, conference: false,
-        result: null, booster: null, stats: null },
+        result: { teamScore: 7, opponentScore: 14 }, booster: null,
+        stats: {
+          receptions: 2, receivingYards: 13, receivingYac: 5,
+          receivingTd: 0, receivingLong: 7, targets: 4, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 6.5, totalYards: 13, totalTd: 0
+        } },
       { week: 18, date: '2026-01-03', kickoff: '4:30pm',
         opponent: 'Tampa Bay Buccaneers', home: false, conference: false, division: true,
-        result: null, booster: null, stats: null },
+        result: { teamScore: 10, opponentScore: 13 }, booster: 'boost-1-5',
+        stats: {
+          receptions: 2, receivingYards: 83, receivingYac: 37,
+          receivingTd: 1, receivingLong: 54, targets: 3, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 41.5, totalYards: 83, totalTd: 1
+        },
+        bigPlays: [
+          '54 yard receiving touchdown'
+        ] },
+      { week: 19, date: '2026-01-10', kickoff: null,
+        name: 'NFC Wild Card',
+        opponent: 'Arizona Cardinals', home: false, conference: false, playoff: true,
+        result: { teamScore: 20, opponentScore: 17 }, booster: null,
+        stats: {
+          receptions: 6, receivingYards: 84, receivingYac: 32,
+          receivingTd: 1, receivingLong: 34, targets: 8, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 14, totalYards: 84, totalTd: 1
+        },
+        bigPlays: [
+          '16 yard game-winning receiving touchdown'
+        ] },
+      { week: 20, date: '2026-01-17', kickoff: null,
+        name: 'NFC Divisional Round',
+        opponent: 'Philadelphia Eagles', home: false, conference: false, playoff: true, overtime: true,
+        result: { teamScore: 29, opponentScore: 35 }, booster: null,
+        stats: {
+          receptions: 1, receivingYards: 18, receivingYac: 1,
+          receivingTd: 0, receivingLong: 18, targets: 4, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 18, totalYards: 18, totalTd: 0
+        } },
     ],
 
     /* Cooper Clark — Chicago Bears */
     'cooper-clark': [
       { week:  1, date: '2025-09-08', kickoff: '7:15pm',
         opponent: 'Minnesota Vikings', home: true, conference: false, division: true,
-        result: { teamScore: 37, opponentScore: 7 }, booster: null,
+        result: { teamScore: 37, opponentScore: 7 }, booster: 'boost-1-5',
         stats: {
           carries: 13, rushingYards: 130, rushingTd: 2, rushingLong: 34,
           receptions: 6, receivingYards: 49, receivingYac: 23,
@@ -269,7 +313,7 @@ EGE.stats[2025] = {
         ] },
       { week:  2, date: '2025-09-14', kickoff: '12:00pm',
         opponent: 'Detroit Lions', home: false, conference: false, division: true, overtime: true,
-        result: { teamScore: 10, opponentScore: 16 }, booster: null,
+        result: { teamScore: 10, opponentScore: 16 }, booster: 'boost-2-0',
         stats: {
           carries: 6, rushingYards: 20, rushingTd: 0, rushingLong: 6,
           receptions: 3, receivingYards: 26, receivingYac: 15,
@@ -351,7 +395,7 @@ EGE.stats[2025] = {
         } },
       { week: 10, date: '2025-11-09', kickoff: '12:00pm',
         opponent: 'New York Giants', home: true, conference: false,
-        result: { teamScore: 25, opponentScore: 15 }, booster: null,
+        result: { teamScore: 25, opponentScore: 15 }, booster: 'boost-2-0',
         stats: {
           carries: 16, rushingYards: 75, rushingTd: 1, rushingLong: 19,
           receptions: 5, receivingYards: 63, receivingYac: 61,
@@ -393,7 +437,7 @@ EGE.stats[2025] = {
         ] },
       { week: 14, date: '2025-12-07', kickoff: '3:25pm',
         opponent: 'Green Bay Packers', home: false, conference: false, division: true,
-        result: { teamScore: 15, opponentScore: 16 }, booster: null,
+        result: { teamScore: 15, opponentScore: 16 }, booster: 'wager-for', line: -2.5,
         stats: {
           carries: 19, rushingYards: 90, rushingTd: 0, rushingLong: 24,
           receptions: 4, receivingYards: 37, receivingYac: 23,
@@ -420,10 +464,35 @@ EGE.stats[2025] = {
         } },
       { week: 17, date: '2025-12-28', kickoff: '7:20pm',
         opponent: 'San Francisco 49ers', home: false, conference: false,
-        result: null, booster: null, stats: null },
+        result: { teamScore: 16, opponentScore: 14 }, booster: null,
+        stats: {
+          carries: 9, rushingYards: 46, rushingTd: 0, rushingLong: 9,
+          receptions: 1, receivingYards: 17, receivingYac: 17,
+          receivingTd: 0, receivingLong: 17, targets: 4, fumbles: 0,
+          rushingAvg: 5.1, receivingAvg: 17, totalYards: 63, totalTd: 0
+        } },
       { week: 18, date: '2026-01-04', kickoff: '3:25pm',
         opponent: 'Detroit Lions', home: true, conference: false, division: true,
-        result: null, booster: null, stats: null },
+        result: { teamScore: 12, opponentScore: 10 }, booster: 'wager-for', line: 0.5,
+        stats: {
+          carries: 16, rushingYards: 90, rushingTd: 0, rushingLong: 23,
+          receptions: 4, receivingYards: 42, receivingYac: 26,
+          receivingTd: 0, receivingLong: 19, targets: 6, fumbles: 0,
+          rushingAvg: 5.6, receivingAvg: 10.5, totalYards: 132, totalTd: 0
+        } },
+      { week: 19, date: '2026-01-10', kickoff: null,
+        name: 'NFC Wild Card',
+        opponent: 'Atlanta Falcons', home: false, conference: false, playoff: true, overtime: true,
+        result: { teamScore: 20, opponentScore: 22 }, booster: null,
+        stats: {
+          carries: 11, rushingYards: 25, rushingTd: 0, rushingLong: 6,
+          receptions: 3, receivingYards: 27, receivingYac: 15,
+          receivingTd: 1, receivingLong: 15, targets: 4, fumbles: 0,
+          rushingAvg: 2.3, receivingAvg: 9, totalYards: 52, totalTd: 1
+        },
+        bigPlays: [
+          '9 yard receiving touchdown'
+        ] },
     ],
 
     /* Paxon Hatch — New York Giants */
@@ -451,7 +520,7 @@ EGE.stats[2025] = {
         ] },
       { week:  3, date: '2025-09-21', kickoff: '8:20pm',
         opponent: 'Kansas City Chiefs', home: true, conference: false, overtime: true,
-        result: { teamScore: 27, opponentScore: 24 }, booster: null,
+        result: { teamScore: 27, opponentScore: 24 }, booster: 'boost-1-5',
         stats: {
           receptions: 13, receivingYards: 170, receivingYac: 52,
           receivingTd: 1, receivingLong: 21, targets: 16, carries: 0,
@@ -472,7 +541,7 @@ EGE.stats[2025] = {
         } },
       { week:  5, date: '2025-10-05', kickoff: '1:00pm',
         opponent: 'New Orleans Saints', home: false, conference: false,
-        result: { teamScore: 23, opponentScore: 13 }, booster: null,
+        result: { teamScore: 23, opponentScore: 13 }, booster: 'boost-1-5',
         stats: {
           receptions: 4, receivingYards: 60, receivingYac: 24,
           receivingTd: 0, receivingLong: 23, targets: 7, carries: 0,
@@ -499,7 +568,7 @@ EGE.stats[2025] = {
         } },
       { week:  8, date: '2025-10-26', kickoff: '1:00pm',
         opponent: 'Philadelphia Eagles', home: false, conference: false, division: true,
-        result: { teamScore: 3, opponentScore: 41 }, booster: null,
+        result: { teamScore: 3, opponentScore: 41 }, booster: 'wager-against', line: -4.5,
         stats: {
           receptions: 2, receivingYards: 34, receivingYac: 15,
           receivingTd: 0, receivingLong: 18, targets: 4, carries: 0,
@@ -526,7 +595,7 @@ EGE.stats[2025] = {
         } },
       { week: 11, date: '2025-11-16', kickoff: '1:00pm',
         opponent: 'Green Bay Packers', home: true, conference: false,
-        result: { teamScore: 16, opponentScore: 6 }, booster: null,
+        result: { teamScore: 16, opponentScore: 6 }, booster: 'boost-1-5',
         stats: {
           receptions: 5, receivingYards: 57, receivingYac: 9,
           receivingTd: 0, receivingLong: 20, targets: 10, carries: 0,
@@ -535,7 +604,7 @@ EGE.stats[2025] = {
         } },
       { week: 12, date: '2025-11-23', kickoff: '1:00pm',
         opponent: 'Detroit Lions', home: false, conference: false,
-        result: { teamScore: 24, opponentScore: 19 }, booster: null,
+        result: { teamScore: 24, opponentScore: 19 }, booster: 'boost-1-5',
         stats: {
           receptions: 9, receivingYards: 133, receivingYac: 52,
           receivingTd: 0, receivingLong: 27, targets: 12, carries: 0,
@@ -544,7 +613,7 @@ EGE.stats[2025] = {
         } },
       { week: 13, date: '2025-12-01', kickoff: '8:15pm',
         opponent: 'New England Patriots', home: false, conference: false,
-        result: { teamScore: 34, opponentScore: 9 }, booster: null,
+        result: { teamScore: 34, opponentScore: 9 }, booster: 'wager-for', line: -5.5,
         stats: {
           receptions: 5, receivingYards: 59, receivingYac: 37,
           receivingTd: 0, receivingLong: 29, targets: 5, carries: 1,
@@ -582,10 +651,35 @@ EGE.stats[2025] = {
         ] },
       { week: 17, date: '2025-12-28', kickoff: '4:05pm',
         opponent: 'Las Vegas Raiders', home: false, conference: false,
-        result: null, booster: null, stats: null },
+        result: { teamScore: 30, opponentScore: 3 }, booster: null,
+        stats: {
+          receptions: 3, receivingYards: 95, receivingYac: 83,
+          receivingTd: 1, receivingLong: 55, targets: 5, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 31.7, totalYards: 95, totalTd: 1
+        },
+        bigPlays: [
+          '22 yard receiving touchdown'
+        ] },
       { week: 18, date: '2026-01-04', kickoff: '1:00pm',
         opponent: 'Dallas Cowboys', home: true, conference: false, division: true,
-        result: null, booster: null, stats: null },
+        result: { teamScore: 30, opponentScore: 7 }, booster: null,
+        stats: {
+          receptions: 6, receivingYards: 72, receivingYac: 24,
+          receivingTd: 0, receivingLong: 26, targets: 10, carries: 1,
+          rushingYards: 9, rushingTd: 0, rushingLong: 9, fumbles: 0,
+          rushingAvg: 9, receivingAvg: 12, totalYards: 81, totalTd: 0
+        } },
+      { week: 19, date: '2026-01-10', kickoff: null,
+        name: 'NFC Wild Card',
+        opponent: 'Detroit Lions', home: false, conference: false, playoff: true,
+        result: { teamScore: 9, opponentScore: 22 }, booster: null,
+        stats: {
+          receptions: 7, receivingYards: 109, receivingYac: 24,
+          receivingTd: 0, receivingLong: 26, targets: 11, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, fumbles: 0,
+          receivingAvg: 15.6, totalYards: 109, totalTd: 0
+        } },
     ],
 
     /* Isaac Vitel — Tampa Bay Buccaneers */
@@ -671,7 +765,7 @@ EGE.stats[2025] = {
         ] },
       { week:  7, date: '2025-10-20', kickoff: '7:00pm',
         opponent: 'Detroit Lions', home: false, conference: false,
-        result: { teamScore: 24, opponentScore: 17 }, booster: null,
+        result: { teamScore: 24, opponentScore: 17 }, booster: 'boost-2-0',
         stats: {
           completions: 25, attempts: 37, passingYards: 252,
           passingYac: 93, passingTd: 3, interceptions: 2, carries: 2,
@@ -722,7 +816,7 @@ EGE.stats[2025] = {
         } },
       { week: 12, date: '2025-11-23', kickoff: '8:20pm',
         opponent: 'Los Angeles Rams', home: false, conference: false, injured: true, injury: 'Shoulder', health: 80,
-        result: { teamScore: 0, opponentScore: 13 }, booster: null,
+        result: { teamScore: 0, opponentScore: 13 }, booster: 'boost-1-5',
         stats: {
           completions: 0, attempts: 0, passingYards: 0, passingYac: 0,
           passingTd: 0, interceptions: 0, carries: 0, rushingYards: 0,
@@ -766,7 +860,7 @@ EGE.stats[2025] = {
         ] },
       { week: 16, date: '2025-12-21', kickoff: '1:00pm',
         opponent: 'Carolina Panthers', home: false, conference: false, division: true,
-        result: { teamScore: 16, opponentScore: 33 }, booster: null,
+        result: { teamScore: 16, opponentScore: 33 }, booster: 'boost-1-5',
         stats: {
           completions: 25, attempts: 36, passingYards: 253,
           passingYac: 116, passingTd: 2, interceptions: 2, carries: 1,
@@ -779,10 +873,29 @@ EGE.stats[2025] = {
         ] },
       { week: 17, date: '2025-12-28', kickoff: '1:00pm',
         opponent: 'Miami Dolphins', home: false, conference: false,
-        result: null, booster: null, stats: null },
+        result: { teamScore: 29, opponentScore: 21 }, booster: null,
+        stats: {
+          completions: 24, attempts: 41, passingYards: 245,
+          passingYac: 103, passingTd: 2, interceptions: 2, carries: 4,
+          rushingYards: 7, rushingTd: 0, rushingLong: 7, sacks: 7,
+          fumbles: 0, passingAvg: 10.2, rating: 71.7, rushingAvg: 1.8
+        },
+        bigPlays: [
+          '10 yard passing touchdown',
+          '3 yard passing touchdown'
+        ] },
       { week: 18, date: '2026-01-03', kickoff: '4:30pm',
         opponent: 'Carolina Panthers', home: true, conference: false, division: true,
-        result: null, booster: null, stats: null },
+        result: { teamScore: 13, opponentScore: 10 }, booster: 'boost-1-5',
+        stats: {
+          completions: 22, attempts: 32, passingYards: 247,
+          passingYac: 100, passingTd: 1, interceptions: 0, carries: 0,
+          rushingYards: 0, rushingTd: 0, rushingLong: 0, sacks: 6,
+          fumbles: 0, passingAvg: 11.2, rating: 102
+        },
+        bigPlays: [
+          '10 yard passing touchdown'
+        ] },
     ],
 
     /* Sam Stogsdill — Seattle Seahawks, then Pittsburgh Steelers */
@@ -801,7 +914,7 @@ EGE.stats[2025] = {
         ] },
       { week:  2, date: '2025-09-14', kickoff: '10:00am',
         opponent: 'Pittsburgh Steelers', home: false, conference: false,
-        result: { teamScore: 6, opponentScore: 12 }, booster: null,
+        result: { teamScore: 6, opponentScore: 12 }, booster: 'wager-for', line: -4.5,
         stats: {
           carries: 4, rushingYards: 13, rushingTd: 0, rushingLong: 14,
           receptions: 0, receivingYards: 0, receivingYac: 0,
@@ -837,7 +950,7 @@ EGE.stats[2025] = {
         } },
       { week:  6, date: '2025-10-12', kickoff: '1:00pm',
         opponent: 'Cleveland Browns', home: true, conference: false, division: true,
-        result: { teamScore: 38, opponentScore: 13 }, booster: null,
+        result: { teamScore: 38, opponentScore: 13 }, booster: 'boost-2-5',
         stats: {
           carries: 20, rushingYards: 97, rushingTd: 3, rushingLong: 20,
           receptions: 3, receivingYards: 19, receivingYac: 17,
@@ -851,7 +964,7 @@ EGE.stats[2025] = {
         ] },
       { week:  7, date: '2025-10-16', kickoff: '8:15pm',
         opponent: 'Cincinnati Bengals', home: false, conference: false, division: true, overtime: true,
-        result: { teamScore: 30, opponentScore: 33 }, booster: null,
+        result: { teamScore: 30, opponentScore: 33 }, booster: 'boost-2-0',
         stats: {
           carries: 18, rushingYards: 100, rushingTd: 1, rushingLong: 20,
           receptions: 6, receivingYards: 65, receivingYac: 43,
@@ -864,7 +977,7 @@ EGE.stats[2025] = {
         ] },
       { week:  8, date: '2025-10-26', kickoff: '8:20pm',
         opponent: 'Green Bay Packers', home: true, conference: false,
-        result: { teamScore: 26, opponentScore: 0 }, booster: null,
+        result: { teamScore: 26, opponentScore: 0 }, booster: 'boost-1-5',
         stats: {
           carries: 21, rushingYards: 78, rushingTd: 0, rushingLong: 12,
           receptions: 2, receivingYards: 6, receivingYac: 1,
@@ -873,7 +986,7 @@ EGE.stats[2025] = {
         } },
       { week:  9, date: '2025-11-02', kickoff: '1:00pm',
         opponent: 'Indianapolis Colts', home: true, conference: false,
-        result: { teamScore: 23, opponentScore: 33 }, booster: null,
+        result: { teamScore: 23, opponentScore: 33 }, booster: 'boost-1-5',
         stats: {
           carries: 18, rushingYards: 100, rushingTd: 2, rushingLong: 37,
           receptions: 6, receivingYards: 62, receivingYac: 44,
@@ -886,7 +999,7 @@ EGE.stats[2025] = {
         ] },
       { week: 10, date: '2025-11-09', kickoff: '8:20pm',
         opponent: 'Los Angeles Chargers', home: false, conference: false, overtime: true,
-        result: { teamScore: 22, opponentScore: 19 }, booster: null,
+        result: { teamScore: 22, opponentScore: 19 }, booster: 'boost-1-5',
         stats: {
           carries: 24, rushingYards: 139, rushingTd: 0, rushingLong: 25,
           receptions: 1, receivingYards: 5, receivingYac: 1,
@@ -908,7 +1021,7 @@ EGE.stats[2025] = {
         ] },
       { week: 12, date: '2025-11-23', kickoff: '1:00pm',
         opponent: 'Chicago Bears', home: false, conference: false,
-        result: { teamScore: 32, opponentScore: 10 }, booster: null,
+        result: { teamScore: 32, opponentScore: 10 }, booster: 'wager-for', line: -0.5,
         stats: {
           carries: 13, rushingYards: 51, rushingTd: 2, rushingLong: 8,
           receptions: 2, receivingYards: 10, receivingYac: 8,
@@ -972,10 +1085,37 @@ EGE.stats[2025] = {
         ] },
       { week: 17, date: '2025-12-28', kickoff: '1:00pm',
         opponent: 'Cleveland Browns', home: false, conference: false, division: true,
-        result: null, booster: null, stats: null },
+        result: { teamScore: 31, opponentScore: 16 }, booster: null,
+        stats: {
+          carries: 24, rushingYards: 123, rushingTd: 3, rushingLong: 41,
+          receptions: 2, receivingYards: 21, receivingYac: 5,
+          receivingTd: 0, receivingLong: 19, targets: 2, fumbles: 0,
+          rushingAvg: 5.1, receivingAvg: 10.5, totalYards: 144, totalTd: 3
+        },
+        bigPlays: [
+          '4 yard rushing touchdown',
+          '7 yard rushing touchdown',
+          '41 yard rushing touchdown'
+        ] },
       { week: 18, date: '2026-01-04', kickoff: '8:20pm',
         opponent: 'Baltimore Ravens', home: true, conference: false, division: true,
-        result: null, booster: null, stats: null },
+        result: { teamScore: 37, opponentScore: 0 }, booster: null,
+        stats: {
+          carries: 31, rushingYards: 141, rushingTd: 0, rushingLong: 19,
+          receptions: 3, receivingYards: 16, receivingYac: 6,
+          receivingTd: 0, receivingLong: 12, targets: 4, fumbles: 0,
+          rushingAvg: 4.5, receivingAvg: 5.3, totalYards: 157, totalTd: 0
+        } },
+      { week: 19, date: '2026-01-10', kickoff: null,
+        name: 'AFC Wild Card',
+        opponent: 'Cincinnati Bengals', home: true, conference: false, playoff: true,
+        result: { teamScore: 3, opponentScore: 31 }, booster: null,
+        stats: {
+          carries: 13, rushingYards: 19, rushingTd: 0, rushingLong: 7,
+          receptions: 5, receivingYards: 44, receivingYac: 27,
+          receivingTd: 0, receivingLong: 29, targets: 6, fumbles: 0,
+          rushingAvg: 1.5, receivingAvg: 8.8, totalYards: 63, totalTd: 0
+        } },
     ],
 
     /* Jaykeb Stewart — Houston Texans */
@@ -1047,7 +1187,7 @@ EGE.stats[2025] = {
         result: null, booster: null, stats: null },
       { week:  7, date: '2025-10-20', kickoff: '9:00pm',
         opponent: 'Seattle Seahawks', home: false, conference: false,
-        result: { teamScore: 16, opponentScore: 10 }, booster: null,
+        result: { teamScore: 16, opponentScore: 10 }, booster: 'boost-1-5',
         stats: {
           completions: 19, attempts: 32, passingYards: 179,
           passingYac: 49, passingTd: 1, interceptions: 1, carries: 4,
@@ -1059,7 +1199,7 @@ EGE.stats[2025] = {
         ] },
       { week:  8, date: '2025-10-26', kickoff: '12:00pm',
         opponent: 'San Francisco 49ers', home: true, conference: false,
-        result: { teamScore: 41, opponentScore: 14 }, booster: null,
+        result: { teamScore: 41, opponentScore: 14 }, booster: 'boost-1-5',
         stats: {
           completions: 24, attempts: 35, passingYards: 216,
           passingYac: 75, passingTd: 3, interceptions: 0, carries: 7,
@@ -1178,11 +1318,32 @@ EGE.stats[2025] = {
           '16 yard passing touchdown'
         ] },
       { week: 17, date: '2025-12-27', kickoff: '3:30pm',
-        opponent: 'Los Angeles Chargers', home: false, conference: false,
-        result: null, booster: null, stats: null },
+        opponent: 'Los Angeles Chargers', home: false, conference: false, overtime: true,
+        result: { teamScore: 24, opponentScore: 30 }, booster: 'boost-1-5',
+        stats: {
+          completions: 19, attempts: 37, passingYards: 201,
+          passingYac: 68, passingTd: 2, interceptions: 1, carries: 5,
+          rushingYards: 22, rushingTd: 0, rushingLong: 9, sacks: 2,
+          fumbles: 0, passingAvg: 10.6, rating: 74.3, rushingAvg: 4.4
+        },
+        bigPlays: [
+          '2 yard passing touchdown',
+          '7 yard passing touchdown'
+        ] },
       { week: 18, date: '2026-01-04', kickoff: '12:00pm',
         opponent: 'Indianapolis Colts', home: true, conference: false, division: true,
-        result: null, booster: null, stats: null },
+        result: { teamScore: 32, opponentScore: 14 }, booster: 'boost-1-5',
+        stats: {
+          completions: 27, attempts: 37, passingYards: 315,
+          passingYac: 128, passingTd: 3, interceptions: 1, carries: 3,
+          rushingYards: 32, rushingTd: 0, rushingLong: 15, sacks: 1,
+          fumbles: 0, passingAvg: 11.7, rating: 114.1, rushingAvg: 10.7
+        },
+        bigPlays: [
+          '14 yard passing touchdown',
+          '21 yard passing touchdown',
+          '10 yard passing touchdown'
+        ] },
     ],
   }
 };
