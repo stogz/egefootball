@@ -453,7 +453,7 @@ Under the bar:
   chip (**R** for a rookie), then **height · weight**, with **no number**.
   The six's boxes use their own overall, headshot and size from their
   pages. **Every box opens a pop-up**, in the overlay the cards and
-  trophies use: a band in the team's colour with the headshot, the team's
+  trophies use, with no title or close button over it (Sam, 2026-10-27): a band in the team's colour with the headshot, the team's
   mark straight on the colour behind him and set off to his right so it
   shows past his shoulder, the name, and his overall box at the right end
   where the mark used to be (Sam, 2026-10-26). The pop-up is 800px wide,
@@ -469,11 +469,14 @@ Under the bar:
   of the band; one about as tall as it is wide is never more than two and
   a half times the band's height, so more of it shows. The headshot stands on the band's bottom edge and is sized
   so the top of the head just clears the top of the box, about 5% of the
-  picture; every headshot is placed the same way. The name is centred
+  picture; every headshot is placed the same way, and shows the picture's
+  whole width, shoulders and all (2026-10-27). The name is centred
   between the headshot and the overall, and a
   name too long for its column is set smaller rather than broken inside a
   word (`fitName`). Under the band come college, draft
-  (*2021 · R4 #112*), age, height and weight, then his seasons, his
+  (*2021 · R4 #112*), age, height and weight in a short strip on white,
+  running straight into the dark heading of his seasons' table, which
+  runs from one side of the box to the other; then, on the cream, his
   ratings and his contract, with no titles or rules between them (Sam,
   2026-10-27). His seasons are **a table like the game log**: the dark
   heading row, every heading a button that sorts it (biggest first, then
@@ -495,7 +498,8 @@ Under the bar:
   loaded, or an admin's visit to a team page when `linesThrough` is behind).
   The ratings are the archetype and his skills, best first; the contract
   is *$1.1M a year through 2024*, with any injury under it. One of the
-  six's has a button through to his page. A click off the box closes it.
+  six's has a button through to his page. A click off the box or Escape
+  closes it.
   Nothing private is in the rosters: no team ratings, no potential, nothing
   about how long a player will last. Since 2026-10-21 they carry every
   player, the linemen, kickers and punters too (the rooms show them since

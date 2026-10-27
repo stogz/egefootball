@@ -3455,7 +3455,13 @@
     var sim = row.sim;
     var team = EGE.nfl.teams[row.team] || {};
     var stage = EGE.cardsView.openOverlay(POSITION_NAMES[sim.pos] || sim.pos, 'ege-rip__stage--person');
+    /* No title or close above it (Sam, 2026-10-27): a click off it or
+       Escape puts it away. */
+    var head = stage.querySelector('.ege-rip__head');
+    if (head) { head.remove(); }
     var box = el('div', 'ege-person ege-person--player');
+    box.tabIndex = -1;
+    box.setAttribute('aria-label', row.name + ', ' + (POSITION_NAMES[sim.pos] || sim.pos));
     var logoSrc = EGE.nfl.logo(row.team);
 
     /* Line one: the band. Behind it, the team's mark in two tones, the
@@ -3466,7 +3472,8 @@
     bandWash(band, team);
     /* His headshot with the team's mark behind him, set off to his right
        so it shows past his shoulder; his name; his overall where the mark
-       used to be (Sam, 2026-10-26). */
+       used to be (Sam, 2026-10-26). The headshot is the whole picture, his
+       shoulders not trimmed (2026-10-27). */
     var face = el('span', 'ege-person__face');
     if (logoSrc) {
       var mark = el('span', 'ege-person__behind');
@@ -3493,8 +3500,9 @@
     if (ovr) { band.appendChild(ovr); }
     box.appendChild(band);
 
-    /* Under it the parts, with no titles or rules between them (Sam,
-       2026-10-27): where he came from, his seasons, his ratings, and his
+    /* Under it, with no titles or rules between them (Sam, 2026-10-27):
+       where he came from on white, running straight into his seasons'
+       table, edge to edge, then on the cream his ratings and his
        contract. */
     var panel = el('div', 'ege-person__body');
     function part() {
@@ -3521,11 +3529,11 @@
     fact('Age', typeof sim.age === 'number' ? String(sim.age) : '–');
     fact('Height', EGE.heightText(row) || '–');
     fact('Weight', EGE.weightText(row) || '–');
-    panel.appendChild(facts);
+    box.appendChild(facts);
 
     /* His seasons. */
     var seasons = seasonLines(sim);
-    if (seasons) { part().appendChild(seasons); }
+    if (seasons) { box.appendChild(seasons); }
 
     /* His ratings: what kind, and the skills it comes from, best first. */
     var rating = el('div', 'ege-person__rating');
@@ -3580,9 +3588,7 @@
     stage.appendChild(box);
     fitName(name);
     if (document.fonts && document.fonts.ready) { document.fonts.ready.then(function () { fitName(name); }); }
-
-    var close = stage.querySelector('.ege-rip__close');
-    if (close) { close.focus({ preventScroll: true }); }
+    box.focus({ preventScroll: true });
   }
 
   /* Off the box closes it, as off a trophy does. */
