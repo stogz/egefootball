@@ -484,7 +484,9 @@ Under the bar:
   back to the order played), the sorted column shaded from its heading down to a **Career**
   line that adds them up (averages and the passer rating worked out again
   from the totals), with no label or line over it. A number that led the
-  league that season is in italics, with no key (Sam, 2026-10-27): the
+  league that season is in italics and underlined in orange, as a
+  schedule's team names are under the pointer, with no key (Sam,
+  2026-10-27): the
   most of it in any season's line in the live season's rosters, a share or
   an average only on the NFL's minimum tries a game (14 passes, 6.25
   carries, 1.875 catches, 1 field goal, 2.25 punts) times the most games

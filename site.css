@@ -4954,8 +4954,17 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
 /* The Career line, with no label to it and no line over it (Sam,
    2026-10-27), in heavier figures. */
 .ege-person__seasons tfoot td { font-weight: 800; }
-/* A number that led the league that season. */
-.ege-person__seasons td.is-lead { font-style: italic; font-weight: 800; }
+/* A number that led the league that season: in italics, underlined in
+   orange as a team's name is under the pointer in a schedule, but always
+   (Sam, 2026-10-27). */
+.ege-person__seasons td.is-lead {
+  font-style: italic;
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-color: var(--fb-accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
 /* A lineman's: only the team, the season and his age, kept together. */
 .ege-person__seasonwrap:has(.is-bare) { justify-self: start; }
 .ege-person__seasons.is-bare { width: auto; min-width: 0; }
