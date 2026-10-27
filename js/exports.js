@@ -263,9 +263,10 @@ EGE.exports = (function () {
           touchdowns: EGE.economy.touchdownsIn(game.stats),
           fantasyPoints: EGE.economy.fantasyPoints(game.stats),
           creditsEarned: EGE.wageredCredits(
-            EGE.economy.gameCredits(player, game.stats, season, game.playoff), wager),
+            EGE.economy.gameCredits(player, game.stats, season, game.playoff, game.injured), wager),
           diamondsEarned: EGE.economy.gameDiamonds(player, game.stats, season,
-                                                   booster && booster.multiplier, game.playoff)
+                                                   booster && booster.multiplier, game.playoff,
+                                                   game.injured)
         };
       }),
 
