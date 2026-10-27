@@ -19,6 +19,7 @@
   var viewTeams  = document.getElementById('view-teams');
   var viewTeam   = document.getElementById('view-team');
   var viewDiamonds = document.getElementById('view-diamonds');
+  var viewSearch = document.getElementById('view-search');
   var loginBtn   = document.getElementById('loginBtn');
   var loginModal = document.getElementById('loginModal');
 
@@ -1760,10 +1761,13 @@
      his seasons in the league beside it, and his height and weight -- no
      number (Sam, 2026-10-19) -- and his overall. Every card opens the
      player's pop-up; one of the six is still picked out in orange, and his
-     pop-up is the way to his page. */
+     pop-up is the way to his page. In the search, his team's mark beside
+     his overall (`row.where`), and a retired player greyed with RETIRED in
+     its place. */
   function nflLine(row) {
     var item = el('li', 'ege-room__player');
-    var card = el('div', 'ege-teamchip ege-teamchip--nfl' + (row.player ? ' is-six' : ''));
+    var card = el('div', 'ege-teamchip ege-teamchip--nfl' + (row.player ? ' is-six' : '') +
+      (row.retired ? ' is-retired' : ''));
     EGE.cardsView.pressable(card, row.name, function () { openNflPlayer(row); });
     card.appendChild(rosterFace(row));
 
@@ -1789,8 +1793,9 @@
 
     /* Anything keeping him out, beside his overall (Sam, 2026-10-21). */
     var end = el('span', 'ege-teamchip__end');
+    if (row.where) { end.appendChild(row.where); }
     if (row.out) { end.appendChild(injuryBox(row.out)); }
-    var box = overallBox(row.overall, 'ege-ovrbox--chip');
+    var box = row.retired ? retiredBox(row.retired) : overallBox(row.overall, 'ege-ovrbox--chip');
     if (box) { end.appendChild(box); }
     card.appendChild(end);
     item.appendChild(card);
@@ -1859,6 +1864,19 @@
     return box;
   }
 
+  /* A retired player's in the search, where his overall would be. The sim
+     retires a player as the season after his last begins, so `season` is
+     the one he did not play. */
+  function retiredText(season) {
+    return typeof season === 'number' ? 'Retired after the ' + (season - 1) + ' season' : 'Retired';
+  }
+
+  function retiredBox(season) {
+    var box = el('span', 'ege-retbox', 'Retired');
+    box.title = retiredText(season);
+    return box;
+  }
+
   /* 0-5 stars in halves: five grey ones with the gold ones laid over them,
      cut off at the share filled. */
   function starsEl(stars, title) {
@@ -1897,7 +1915,9 @@
       body.appendChild(el('p', 'ege-room__empty', 'No roster yet for ' + season + '.'));
       return;
     }
-    catchUp(all, key, season);
+    catchUp(all, season, function () {
+      if (nflShown === key + ':' + season) { renderNflRoster(key, season); }
+    });
     var admin = nflAdmin(key, season);
     var system = admin || (all.systems && all.systems[key]) ? nflSystem(admin, all.systems ? all.systems[key] : null) : null;
     if (system) { body.appendChild(system); }
@@ -1923,16 +1943,18 @@
 
   /* Rosters the sim published before they carried each team's system and
      every player's fit (2026-10-21), or its picks (2026-10-22), show none
-     of it to anybody. An admin's visit, in client viewer mode too, has them
-     published again from the world, once a page load, and the page drawn
-     again with them. */
+     of it to anybody; nor, for the live season, the free agents and the
+     retired the search finds (2026-10-26). An admin's visit, in client
+     viewer mode too, has them published again from the world, once a page
+     load, and `redraw` draws the page again with them. */
   var caughtUp = false;
 
-  function catchUp(all, key, season) {
-    if (caughtUp || (all.systems && all.picks) || !all.savedAt || !EGE.nflSimAdmin || !EGE.wallet.realAdmin()) { return; }
+  function catchUp(all, season, redraw) {
+    var behind = !(all.systems && all.picks) || (season === EGE.currentSeason && !all.freeAgents);
+    if (caughtUp || !behind || !all.savedAt || !EGE.nflSimAdmin || !EGE.wallet.realAdmin()) { return; }
     caughtUp = true;
     EGE.nflSimAdmin.republish(season).then(function (done) {
-      if (done && nflShown === key + ':' + season) { renderNflRoster(key, season); }
+      if (done) { redraw(); }
     }, function () { /* as they were: the NFL Sim tab's Update rosters now still works */ });
   }
 
@@ -3170,9 +3192,13 @@
       foot.appendChild(el('dt', null, label));
       foot.appendChild(el('dd', null, value));
     }
-    line('Contract', sim.contract
-      ? moneyText(sim.contract.apy) + ' a year through ' + sim.contract.through
-      : 'None');
+    if (row.retired) {
+      line('Status', retiredText(row.retired));
+    } else {
+      line('Contract', sim.contract
+        ? moneyText(sim.contract.apy) + ' a year through ' + sim.contract.through
+        : row.freeAgent ? 'Free agent' : 'None');
+    }
     if (row.out) { line('Injury', injuryText(row.out)); }
     panel.appendChild(foot);
 
@@ -3665,6 +3691,269 @@
     renderTeamRoster(entry, page.season, page.nfl);
     document.title = entry.team.school + ' — EGE Football';
   }
+
+  /* --- the search -----------------------------------------------------------
+
+     The magnifying glass at the end of the nav (Sam, 2026-10-26): any team
+     or player, as it is typed. A team is a link to its page: every NFL
+     team, and every school one of the six played for. A player is the card
+     a team's page draws for him, his team's mark beside his overall, and
+     opens the same pop-up. The players are the NFL sim's, as the Teams
+     pages have them: everybody on a roster, then the free agents and the
+     retired, which the sim publishes with the rosters (publicRosters). A
+     retired player is greyed, with RETIRED where his overall was and the
+     mark of the team he last played for. The six are always in it. */
+
+  var searchField = document.getElementById('searchField');
+  var searchResults = document.getElementById('searchResults');
+
+  /* Players shown, a page at a time behind "Show more". */
+  var SEARCH_PAGE = 24;
+  var searchShown = SEARCH_PAGE;
+
+  /* Lower case with no accents, and no dots or apostrophes: "C.J." is
+     "cj" and "Ja'Marr" is "jamarr". */
+  function searchText(text) {
+    return String(text || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+      .replace(/&amp;/g, '&').replace(/[.'’]/g, '').replace(/[^a-z0-9&]+/g, ' ').trim();
+  }
+
+  /* How well a name answers the query, best 0, or -1 for not at all: the
+     whole name, every word of the query starting a word of it ("allen" is
+     Josh Allen as much as Allen Lazard, and the better player comes
+     first), then anywhere in it with the spaces out. */
+  function searchScore(name, words, query) {
+    if (name === query) { return 0; }
+    var parts = name.split(' ');
+    if (words.every(function (w) { return parts.some(function (part) { return part.indexOf(w) === 0; }); })) { return 1; }
+    return name.replace(/ /g, '').indexOf(query.replace(/ /g, '')) !== -1 ? 2 : -1;
+  }
+
+  /* The season the search's players are from: the one the Teams pages
+     open on. */
+  function searchSeason() {
+    var live = nflSeasons().filter(function (year) { return year <= EGE.currentSeason; });
+    return live.length ? live[live.length - 1] : null;
+  }
+
+  function searchTeams() {
+    var teams = Object.keys(EGE.nfl.teams).map(function (key) {
+      var team = EGE.nfl.teams[key];
+      return { name: team.name, names: [team.name, EGE.nfl.city(key)], key: key, href: '#teams/' + EGE.nfl.slug(key),
+               logo: EGE.nfl.logo(key), ground: team.color };
+    });
+    Object.keys(EGE.teams).forEach(function (key) {
+      var team = EGE.teams[key];
+      if (team.tier === 'nfl' || !teamSeasons(key).length) { return; }
+      teams.push({ name: team.school, names: [team.school], href: '#teams/' + EGE.teamSlug(key), logo: team.logo,
+                   ground: team.ground, whiteMark: team.whiteMark, league: team.league });
+    });
+    return teams;
+  }
+
+  /* Everybody there is to find, worked out once a season's rosters:
+     { sim, key, how: 'team' | 'fa' | 'retired', text }, and { player, how:
+     'six' } for one of the six the rosters do not have. */
+  var searchPool = null;
+
+  function searchPeople(season) {
+    var all = season ? EGE.nflRosters.get(season) : null;
+    if (searchPool && searchPool.season === season && searchPool.from === all) { return searchPool.people; }
+    var people = [];
+    var found = {};
+    function add(sim, key, how) {
+      if (sim.ege) { found[sim.ege] = true; }
+      people.push({ sim: sim, key: key, how: how, text: searchText(sim.name) });
+    }
+    if (all && all.teams) {
+      Object.keys(all.teams).forEach(function (key) {
+        all.teams[key].forEach(function (sim) { add(sim, key, 'team'); });
+      });
+      (all.freeAgents || []).forEach(function (sim) { add(sim, null, 'fa'); });
+      (all.retired || []).forEach(function (sim) { add(sim, EGE.nfl.teams[sim.team] ? sim.team : null, 'retired'); });
+    }
+    EGE.players.forEach(function (player) {
+      if (!found[player.slug]) { people.push({ player: player, how: 'six', text: searchText(player.name) }); }
+    });
+    searchPool = { season: season, from: all, people: people };
+    return people;
+  }
+
+  var SEARCH_ORDER = { six: 0, team: 0, fa: 1, retired: 2 };
+
+  /* A team in the results, drawn like a player's card: its mark on its
+     colour, its name, and where it stands. */
+  function searchTeamLine(team, season) {
+    var item = el('li', 'ege-room__player');
+    var card = el('a', 'ege-teamchip ege-teamchip--team');
+    card.href = team.href;
+    var mark = el('span', 'ege-teamchip__photo ege-teamchip__mark');
+    var img = null;
+    if (team.logo) {
+      img = el('img');
+      img.src = team.logo;
+      img.alt = '';
+      img.loading = 'lazy';
+      img.addEventListener('error', function () { img.remove(); });
+      mark.appendChild(img);
+    }
+    paintMark(mark, team, img);
+    card.appendChild(mark);
+    var text = el('span', 'ege-teamchip__text');
+    text.appendChild(el('span', 'ege-teamchip__name', team.name));
+    var where = team.league || '';
+    if (team.key) {
+      var standing = season ? nflStanding(team.key, season) : null;
+      var conf = EGE.nfl.teams[team.key];
+      where = standing
+        ? standing.row.wins + '-' + standing.row.losses + ' · ' +
+          (standing.place ? EGE.ordinal(standing.place) + ' in ' : '') + standing.league
+        : conf.conf + ' ' + conf.div;
+    }
+    if (where) { text.appendChild(el('span', 'ege-teamchip__meta', where)); }
+    card.appendChild(text);
+    item.appendChild(card);
+    return item;
+  }
+
+  /* The mark beside a player's overall: his team's, the last one he played
+     for once he has retired, or FA. */
+  function searchMark(hit) {
+    if (hit.how === 'fa') {
+      var fa = el('abbr', 'ege-teamchip__team is-fa', 'FA');
+      fa.title = 'Free agent';
+      return fa;
+    }
+    var team = hit.key ? EGE.nfl.teams[hit.key] : null;
+    var src = team && EGE.logoFor ? EGE.logoFor(team.name) : null;
+    if (!src) { return null; }
+    var mark = el('span', 'ege-teamchip__team');
+    mark.title = hit.how === 'retired' ? 'Last played for the ' + team.name : team.name;
+    var img = el('img');
+    img.src = src;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.addEventListener('error', function () { mark.remove(); });
+    mark.appendChild(img);
+    return mark;
+  }
+
+  function searchPlayerLine(hit, season) {
+    if (hit.how === 'six') {
+      var player = hit.player;
+      return rosterLine({ name: player.name, player: player, overall: EGE.overallFor(player),
+                          height: player.height, weight: player.weight });
+    }
+    var row = nflRow(hit.sim, season, hit.key, null);
+    row.where = searchMark(hit);
+    if (hit.how === 'fa') { row.freeAgent = true; }
+    if (hit.how === 'retired') {
+      row.retired = hit.sim.retired || true;
+      row.out = null;
+    }
+    return nflLine(row);
+  }
+
+  function searchGroup(title, lines) {
+    var panel = el('section', 'fb-panel ege-search__group');
+    var head = el('div', 'fb-panel__head');
+    head.appendChild(el('h3', null, title));
+    panel.appendChild(head);
+    var body = el('div', 'fb-panel__body');
+    var list = el('ol', 'ege-room__list ege-search__list');
+    lines.forEach(function (line) { list.appendChild(line); });
+    body.appendChild(list);
+    panel.appendChild(body);
+    return panel;
+  }
+
+  function onSearch() { return /^#search(\/|$)/.test(window.location.hash); }
+
+  function renderSearch() {
+    var query = searchText(searchField.value);
+    searchResults.innerHTML = '';
+    if (!query) { return; }
+    var words = query.split(' ');
+    var season = searchSeason();
+
+    var teams = searchTeams().map(function (team) {
+      var scores = team.names.map(function (name) { return searchScore(searchText(name), words, query); })
+        .filter(function (score) { return score !== -1; });
+      if (team.key && team.key.toLowerCase() === query) { scores.push(0); }
+      return { team: team, score: scores.length ? Math.min.apply(null, scores) : -1 };
+    }).filter(function (hit) { return hit.score !== -1; }).sort(function (a, b) {
+      return a.score - b.score || a.team.name.localeCompare(b.team.name);
+    });
+
+    /* The rosters, asked for the first time the search is used, and the
+       results drawn again when they are in. */
+    var all = season ? EGE.nflRosters.get(season) : null;
+    if (all === undefined) {
+      EGE.nflRosters.load(season).then(function () { if (onSearch()) { renderSearch(); } });
+    } else if (all) {
+      catchUp(all, season, function () { if (onSearch()) { renderSearch(); } });
+    }
+    var people = searchPeople(season).map(function (hit) {
+      return { hit: hit, score: searchScore(hit.text, words, query) };
+    }).filter(function (x) { return x.score !== -1; }).sort(function (a, b) {
+      return a.score - b.score || SEARCH_ORDER[a.hit.how] - SEARCH_ORDER[b.hit.how] ||
+        (b.hit.sim && b.hit.sim.ege ? 1 : 0) - (a.hit.sim && a.hit.sim.ege ? 1 : 0) ||
+        ((b.hit.sim || {}).ovr || 0) - ((a.hit.sim || {}).ovr || 0);
+    });
+
+    if (teams.length) {
+      searchResults.appendChild(searchGroup('Teams', teams.map(function (x) { return searchTeamLine(x.team, season); })));
+    }
+    if (people.length) {
+      var group = searchGroup('Players', people.slice(0, searchShown).map(function (x) {
+        return searchPlayerLine(x.hit, season);
+      }));
+      if (people.length > searchShown) {
+        var more = el('button', 'fb-btn fb-btn--sm ege-search__more', 'Show more');
+        more.type = 'button';
+        more.addEventListener('click', function () {
+          searchShown += SEARCH_PAGE;
+          renderSearch();
+        });
+        group.querySelector('.fb-panel__body').appendChild(more);
+      }
+      searchResults.appendChild(group);
+    }
+    if (all === undefined) {
+      searchResults.appendChild(el('p', 'ege-note ege-search__note', 'Getting the players…'));
+    } else if (!teams.length && !people.length) {
+      searchResults.appendChild(el('p', 'ege-note ege-search__note', 'No matches.'));
+    }
+  }
+
+  /* #search/{query}: the box filled from the address, which is how Back
+     comes back to the same results. Straight into the box when the search
+     is opened empty. */
+  function openSearch(query, arriving) {
+    var wanted = '';
+    try { wanted = decodeURIComponent(query || ''); } catch (e) { wanted = query || ''; }
+    if (searchField.value !== wanted) {
+      searchField.value = wanted;
+      searchShown = SEARCH_PAGE;
+    }
+    renderSearch();
+    if (arriving && !wanted) { searchField.focus({ preventScroll: true }); }
+  }
+
+  searchField.addEventListener('input', function () {
+    searchShown = SEARCH_PAGE;
+    var hash = 'search' + (searchField.value ? '/' + encodeURIComponent(searchField.value) : '');
+    /* Into the address without a new page in the history, or route() seeing
+       one: what route() last drew is this. */
+    window.history.replaceState(null, '', '#' + hash);
+    routed = hash;
+    renderSearch();
+  });
+
+  /* Done typing on a phone: the keyboard goes, and the results are there. */
+  searchField.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { searchField.blur(); }
+  });
 
 
   /* --- the bracket ---------------------------------------------------------
@@ -6909,6 +7198,7 @@
     document.getElementById('navCards').classList.toggle('is-active', active === 'cards');
     document.getElementById('navAdmin').classList.toggle('is-active', active === 'admin');
     document.getElementById('navDiamonds').classList.toggle('is-active', active === 'diamonds');
+    document.getElementById('navSearch').classList.toggle('is-active', active === 'search');
   }
 
   function show(view) {
@@ -6920,6 +7210,7 @@
     viewTeams.hidden  = view !== viewTeams;
     viewTeam.hidden   = view !== viewTeam;
     viewDiamonds.hidden = view !== viewDiamonds;
+    viewSearch.hidden = view !== viewSearch;
   }
 
   /* The page route() last drew, so it can tell going somewhere from being
@@ -6960,6 +7251,11 @@
       EGE.diamondsView.render();
       setNav('diamonds');
       document.title = 'Diamonds \u2014 EGE Football';
+    } else if (hash === 'search' || hash.indexOf('search/') === 0) {
+      show(viewSearch);
+      setNav('search');
+      openSearch(hash.slice(7), moved);
+      document.title = 'Search \u2014 EGE Football';
     } else if (hash === 'admin' || hash.indexOf('admin/') === 0) {
       renderAdminView();
       show(viewAdmin);
