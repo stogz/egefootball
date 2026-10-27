@@ -11,7 +11,11 @@
 
    Colours are each team's first colour from nflverse, except where white
    on it would not read: the Saints are on their black and the Titans on
-   their navy.
+   their navy. `accent` is the colour that goes with it, under the band on
+   a player's pop-up (Sam, 2026-10-27: the Bears' orange): the team's
+   second colour, or its next where that is black, which would run into
+   the black heading of the table under it (the Bengals' and the Jets'
+   white).
 
    The rosters themselves are the sim's (data/nfl-rosters.json, or the
    latest the admin page published to Supabase). See js/app.js.
@@ -21,38 +25,38 @@ window.EGE = window.EGE || {};
 
 EGE.nfl = {
   teams: {
-  BUF: { name: 'Buffalo Bills', conf: 'AFC', div: 'East', color: '#00338D', site: 'buffalo', zone: 'America/New_York' },
-  MIA: { name: 'Miami Dolphins', conf: 'AFC', div: 'East', color: '#008E97', site: 'miami', zone: 'America/New_York' },
-  NE: { name: 'New England Patriots', conf: 'AFC', div: 'East', color: '#002244', site: 'newEngland', zone: 'America/New_York' },
-  NYJ: { name: 'New York Jets', conf: 'AFC', div: 'East', color: '#003F2D', site: 'newYorkJets', zone: 'America/New_York' },
-  BAL: { name: 'Baltimore Ravens', conf: 'AFC', div: 'North', color: '#241773', site: 'baltimore', zone: 'America/New_York' },
-  CIN: { name: 'Cincinnati Bengals', conf: 'AFC', div: 'North', color: '#FB4F14', site: 'cincinnati', zone: 'America/New_York' },
-  CLE: { name: 'Cleveland Browns', conf: 'AFC', div: 'North', color: '#FF3C00', site: 'cleveland', zone: 'America/New_York' },
-  PIT: { name: 'Pittsburgh Steelers', conf: 'AFC', div: 'North', color: '#000000', site: 'pittsburgh', zone: 'America/New_York' },
-  HOU: { name: 'Houston Texans', conf: 'AFC', div: 'South', color: '#03202F', site: 'houston', zone: 'America/Chicago' },
-  IND: { name: 'Indianapolis Colts', conf: 'AFC', div: 'South', color: '#002C5F', site: 'indianapolis', zone: 'America/Indiana/Indianapolis' },
-  JAX: { name: 'Jacksonville Jaguars', conf: 'AFC', div: 'South', color: '#006778', site: 'jacksonville', zone: 'America/New_York' },
-  TEN: { name: 'Tennessee Titans', conf: 'AFC', div: 'South', color: '#0C2340', site: 'tennessee', zone: 'America/Chicago' },
-  DEN: { name: 'Denver Broncos', conf: 'AFC', div: 'West', color: '#002244', site: 'denver', zone: 'America/Denver' },
-  KC: { name: 'Kansas City Chiefs', conf: 'AFC', div: 'West', color: '#E31837', site: 'kansasCity', zone: 'America/Chicago' },
-  LAC: { name: 'Los Angeles Chargers', conf: 'AFC', div: 'West', color: '#007BC7', site: 'losAngelesChargers', zone: 'America/Los_Angeles' },
-  LV: { name: 'Las Vegas Raiders', conf: 'AFC', div: 'West', color: '#000000', site: 'lasVegas', zone: 'America/Los_Angeles' },
-  DAL: { name: 'Dallas Cowboys', conf: 'NFC', div: 'East', color: '#002244', site: 'dallas', zone: 'America/Chicago' },
-  NYG: { name: 'New York Giants', conf: 'NFC', div: 'East', color: '#0B2265', site: 'newYorkGiants', zone: 'America/New_York' },
-  PHI: { name: 'Philadelphia Eagles', conf: 'NFC', div: 'East', color: '#004C54', site: 'philadelphia', zone: 'America/New_York' },
-  WAS: { name: 'Washington Commanders', conf: 'NFC', div: 'East', color: '#5A1414', site: 'washington', zone: 'America/New_York' },
-  CHI: { name: 'Chicago Bears', conf: 'NFC', div: 'North', color: '#0B162A', site: 'chicago', zone: 'America/Chicago' },
-  DET: { name: 'Detroit Lions', conf: 'NFC', div: 'North', color: '#0076B6', site: 'detroit', zone: 'America/Detroit' },
-  GB: { name: 'Green Bay Packers', conf: 'NFC', div: 'North', color: '#203731', site: 'greenBay', zone: 'America/Chicago' },
-  MIN: { name: 'Minnesota Vikings', conf: 'NFC', div: 'North', color: '#4F2683', site: 'minnesota', zone: 'America/Chicago' },
-  ATL: { name: 'Atlanta Falcons', conf: 'NFC', div: 'South', color: '#A71930', site: 'atlanta', zone: 'America/New_York' },
-  CAR: { name: 'Carolina Panthers', conf: 'NFC', div: 'South', color: '#0085CA', site: 'carolina', zone: 'America/New_York' },
-  NO: { name: 'New Orleans Saints', conf: 'NFC', div: 'South', color: '#101820', site: 'newOrleans', zone: 'America/Chicago' },
-  TB: { name: 'Tampa Bay Buccaneers', conf: 'NFC', div: 'South', color: '#A71930', site: 'tampaBay', zone: 'America/New_York' },
-  ARI: { name: 'Arizona Cardinals', conf: 'NFC', div: 'West', color: '#97233F', site: 'arizona', zone: 'America/Phoenix' },
-  LA: { name: 'Los Angeles Rams', conf: 'NFC', div: 'West', color: '#003594', site: 'losAngelesRams', zone: 'America/Los_Angeles' },
-  SF: { name: 'San Francisco 49ers', conf: 'NFC', div: 'West', color: '#AA0000', site: 'sanFrancisco', zone: 'America/Los_Angeles' },
-  SEA: { name: 'Seattle Seahawks', conf: 'NFC', div: 'West', color: '#002244', site: 'seattle', zone: 'America/Los_Angeles' }
+  BUF: { name: 'Buffalo Bills', conf: 'AFC', div: 'East', color: '#00338D', accent: '#C60C30', site: 'buffalo', zone: 'America/New_York' },
+  MIA: { name: 'Miami Dolphins', conf: 'AFC', div: 'East', color: '#008E97', accent: '#FC4C02', site: 'miami', zone: 'America/New_York' },
+  NE: { name: 'New England Patriots', conf: 'AFC', div: 'East', color: '#002244', accent: '#C60C30', site: 'newEngland', zone: 'America/New_York' },
+  NYJ: { name: 'New York Jets', conf: 'AFC', div: 'East', color: '#003F2D', accent: '#FFFFFF', site: 'newYorkJets', zone: 'America/New_York' },
+  BAL: { name: 'Baltimore Ravens', conf: 'AFC', div: 'North', color: '#241773', accent: '#9E7C0C', site: 'baltimore', zone: 'America/New_York' },
+  CIN: { name: 'Cincinnati Bengals', conf: 'AFC', div: 'North', color: '#FB4F14', accent: '#FFFFFF', site: 'cincinnati', zone: 'America/New_York' },
+  CLE: { name: 'Cleveland Browns', conf: 'AFC', div: 'North', color: '#FF3C00', accent: '#311D00', site: 'cleveland', zone: 'America/New_York' },
+  PIT: { name: 'Pittsburgh Steelers', conf: 'AFC', div: 'North', color: '#000000', accent: '#FFB612', site: 'pittsburgh', zone: 'America/New_York' },
+  HOU: { name: 'Houston Texans', conf: 'AFC', div: 'South', color: '#03202F', accent: '#A71930', site: 'houston', zone: 'America/Chicago' },
+  IND: { name: 'Indianapolis Colts', conf: 'AFC', div: 'South', color: '#002C5F', accent: '#A2AAAD', site: 'indianapolis', zone: 'America/Indiana/Indianapolis' },
+  JAX: { name: 'Jacksonville Jaguars', conf: 'AFC', div: 'South', color: '#006778', accent: '#D7A22A', site: 'jacksonville', zone: 'America/New_York' },
+  TEN: { name: 'Tennessee Titans', conf: 'AFC', div: 'South', color: '#0C2340', accent: '#4B92DB', site: 'tennessee', zone: 'America/Chicago' },
+  DEN: { name: 'Denver Broncos', conf: 'AFC', div: 'West', color: '#002244', accent: '#FB4F14', site: 'denver', zone: 'America/Denver' },
+  KC: { name: 'Kansas City Chiefs', conf: 'AFC', div: 'West', color: '#E31837', accent: '#FFB81C', site: 'kansasCity', zone: 'America/Chicago' },
+  LAC: { name: 'Los Angeles Chargers', conf: 'AFC', div: 'West', color: '#007BC7', accent: '#FFC20E', site: 'losAngelesChargers', zone: 'America/Los_Angeles' },
+  LV: { name: 'Las Vegas Raiders', conf: 'AFC', div: 'West', color: '#000000', accent: '#A5ACAF', site: 'lasVegas', zone: 'America/Los_Angeles' },
+  DAL: { name: 'Dallas Cowboys', conf: 'NFC', div: 'East', color: '#002244', accent: '#B0B7BC', site: 'dallas', zone: 'America/Chicago' },
+  NYG: { name: 'New York Giants', conf: 'NFC', div: 'East', color: '#0B2265', accent: '#A71930', site: 'newYorkGiants', zone: 'America/New_York' },
+  PHI: { name: 'Philadelphia Eagles', conf: 'NFC', div: 'East', color: '#004C54', accent: '#A5ACAF', site: 'philadelphia', zone: 'America/New_York' },
+  WAS: { name: 'Washington Commanders', conf: 'NFC', div: 'East', color: '#5A1414', accent: '#FFB612', site: 'washington', zone: 'America/New_York' },
+  CHI: { name: 'Chicago Bears', conf: 'NFC', div: 'North', color: '#0B162A', accent: '#C83803', site: 'chicago', zone: 'America/Chicago' },
+  DET: { name: 'Detroit Lions', conf: 'NFC', div: 'North', color: '#0076B6', accent: '#B0B7BC', site: 'detroit', zone: 'America/Detroit' },
+  GB: { name: 'Green Bay Packers', conf: 'NFC', div: 'North', color: '#203731', accent: '#FFB612', site: 'greenBay', zone: 'America/Chicago' },
+  MIN: { name: 'Minnesota Vikings', conf: 'NFC', div: 'North', color: '#4F2683', accent: '#FFC62F', site: 'minnesota', zone: 'America/Chicago' },
+  ATL: { name: 'Atlanta Falcons', conf: 'NFC', div: 'South', color: '#A71930', accent: '#A5ACAF', site: 'atlanta', zone: 'America/New_York' },
+  CAR: { name: 'Carolina Panthers', conf: 'NFC', div: 'South', color: '#0085CA', accent: '#BFC0BF', site: 'carolina', zone: 'America/New_York' },
+  NO: { name: 'New Orleans Saints', conf: 'NFC', div: 'South', color: '#101820', accent: '#D3BC8D', site: 'newOrleans', zone: 'America/Chicago' },
+  TB: { name: 'Tampa Bay Buccaneers', conf: 'NFC', div: 'South', color: '#A71930', accent: '#B1BABF', site: 'tampaBay', zone: 'America/New_York' },
+  ARI: { name: 'Arizona Cardinals', conf: 'NFC', div: 'West', color: '#97233F', accent: '#FFB612', site: 'arizona', zone: 'America/Phoenix' },
+  LA: { name: 'Los Angeles Rams', conf: 'NFC', div: 'West', color: '#003594', accent: '#FFD100', site: 'losAngelesRams', zone: 'America/Los_Angeles' },
+  SF: { name: 'San Francisco 49ers', conf: 'NFC', div: 'West', color: '#AA0000', accent: '#B3995D', site: 'sanFrancisco', zone: 'America/Los_Angeles' },
+  SEA: { name: 'Seattle Seahawks', conf: 'NFC', div: 'West', color: '#002244', accent: '#69BE28', site: 'seattle', zone: 'America/Los_Angeles' }
   }
 };
 

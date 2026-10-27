@@ -474,7 +474,9 @@ Under the bar:
   between the headshot and the overall, and a
   name too long for its column is set smaller rather than broken inside a
   word (`fitName`). Under the band come college, draft
-  (*2021 · R4 #112*), age, height and weight in a short strip on white,
+  (*2021 · R4 #112*), age, height and weight in a thin strip on the team's second colour
+  (the Bears' orange; white for a free agent), the text white or dark to
+  suit it,
   running straight into the dark heading of his seasons' table, which
   runs from one side of the box to the other; then, on the cream, his
   ratings and his contract, with no titles or rules between them (Sam,

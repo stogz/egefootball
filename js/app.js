@@ -3331,12 +3331,25 @@
      once a mark and colour, on a canvas, as a picture. */
   var washes = {};
 
-  function washShade(hex) {
+  function rgbOf(hex) {
     var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || '');
-    if (!m) { return null; }
-    var rgb = [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)];
+    return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : null;
+  }
+
+  /* How light a colour looks, 0 black to 1 white (the web's relative
+     luminance), and how far apart two of them read, 1 to 21. */
+  function luminance(rgb) {
     var light = rgb.map(function (c) { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); });
-    var dark = 0.2126 * light[0] + 0.7152 * light[1] + 0.0722 * light[2] < 0.03;
+    return 0.2126 * light[0] + 0.7152 * light[1] + 0.0722 * light[2];
+  }
+  function contrast(a, b) {
+    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+  }
+
+  function washShade(hex) {
+    var rgb = rgbOf(hex);
+    if (!rgb) { return null; }
+    var dark = luminance(rgb) < 0.03;
     return rgb.map(function (c) { return Math.round(dark ? c + (255 - c) * 0.12 : c * 0.78); });
   }
 
@@ -3521,7 +3534,9 @@
       cell.appendChild(dd);
       facts.appendChild(cell);
     }
-    fact('College', sim.college || '–');
+    /* The sim's list came with its ampersands written for a web page
+       (Texas A&amp;M). */
+    fact('College', sim.college ? sim.college.replace(/&amp;/g, '&') : '–');
     var d = sim.draft;
     var by = d && d.team && EGE.nfl.teams[d.team] ? EGE.nfl.teams[d.team].name : null;
     fact('Draft', d ? d.year + ' · R' + d.round + ' #' + d.pick : 'Undrafted',
@@ -3529,6 +3544,18 @@
     fact('Age', typeof sim.age === 'number' ? String(sim.age) : '–');
     fact('Height', EGE.heightText(row) || '–');
     fact('Weight', EGE.weightText(row) || '–');
+    /* On the team's second colour (Sam, 2026-10-27: the Bears' orange), in
+       white or ink, whichever reads better on it, the labels in the band's
+       colour where that reads on it too, or else a little fainter. */
+    var strip = rgbOf(team.accent);
+    if (strip) {
+      var lum = luminance(strip);
+      var bandRgb = rgbOf(team.color);
+      facts.classList.add('is-team');
+      facts.style.background = team.accent;
+      if (contrast(lum, 1) > contrast(lum, 0)) { facts.classList.add('is-dark'); }
+      if (bandRgb && contrast(lum, luminance(bandRgb)) >= 4.5) { facts.style.setProperty('--label', team.color); }
+    }
     box.appendChild(facts);
 
     /* His seasons. */

@@ -4882,10 +4882,18 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
   color: var(--fb-accent-deep);
 }
 .ege-person__facts dd { margin: 2px 0 0; font-weight: 700; font-size: .875rem; overflow-wrap: anywhere; }
-/* A player's on white across the box, under the band and straight onto
-   the dark heading of his seasons' table (Sam, 2026-10-27). */
-.ege-person--player .ege-person__facts { gap: 8px 16px; padding: 14px var(--edge) 15px; background: #fff; }
-.ege-person--player .ege-person__facts dd { margin-top: 2px; font-size: 1rem; }
+/* A player's runs across the box, thin, under the band and straight onto
+   the dark heading of his seasons' table, on his team's second colour
+   (Sam, 2026-10-27: the Bears' orange) in white or ink to suit it, the
+   labels in the band's colour where that reads on it (js/app.js); on white
+   for a free agent. */
+.ege-person--player .ege-person__facts { gap: 6px 16px; padding: 8px var(--edge) 9px; background: #fff; }
+.ege-person--player .ege-person__facts dt { line-height: 1.25; }
+.ege-person--player .ege-person__facts dd { margin-top: 1px; font-size: 1rem; line-height: 1.25; }
+.ege-person__facts.is-team { color: var(--fb-ink); }
+.ege-person__facts.is-team dt { color: var(--label, rgba(29, 36, 22, .72)); }
+.ege-person__facts.is-team.is-dark { color: #fff; }
+.ege-person__facts.is-team.is-dark dt { color: var(--label, rgba(255, 255, 255, .8)); }
 /* His seasons: the game log's table (Sam, 2026-10-27), its dark heading
    row and every heading a button that sorts it, the sorted column shaded
    down to the Career line; a line a season, the team's mark, the season
@@ -5046,7 +5054,7 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
   .ege-person__seasonmark img { width: 22px; height: 22px; }
   .ege-person--player { --edge: 12px; }
   .ege-person--player .ege-person__body { gap: 20px; padding-bottom: 18px; }
-  .ege-person--player .ege-person__facts { padding-block: 12px 13px; }
+  .ege-person--player .ege-person__facts { padding-block: 7px 8px; }
   .ege-person--player .ege-person__facts dd { font-size: .9375rem; }
   .ege-person__facts { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .ege-person__fact { grid-column: span 2; }
