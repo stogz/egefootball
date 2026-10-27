@@ -2303,6 +2303,9 @@ body::before {
   overflow-y: auto;
   font-size: var(--fb-small);
 }
+.ege-sim__round { margin-top: 8px; }
+.ege-sim__round > summary { cursor: pointer; font-weight: 700; font-size: var(--fb-small); }
+.ege-sim__round > .ege-sim__lines { margin-top: 6px; }
 .ege-sim__trade {
   display: grid;
   gap: 6px;

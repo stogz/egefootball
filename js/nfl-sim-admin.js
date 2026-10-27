@@ -1004,14 +1004,26 @@ EGE.nflSimAdmin = (function () {
         var lines = [];
         if (got.expired) { lines.push(got.expired + ' trade proposals expired.'); }
         if (got.written) { lines.push('Picks 1–' + got.written + ' as uploaded.'); }
-        got.draft.filter(function (d) { return (d.round === 1 || d.ege) && !d.undrafted; }).forEach(function (d) {
-          lines.push(d.n + '. ' + teamName(d.team) + ': ' + d.name + ' (' + d.pos + ', ' + d.ovr + ')' + (d.ege ? ' — one of the six' : ''));
+        got.draft.filter(function (d) { return d.ege && !d.undrafted; }).forEach(function (d) {
+          lines.push(d.n + '. ' + teamName(d.team) + ': ' + d.name + ' (' + d.pos + ', ' + d.ovr + ') — one of the six');
         });
         got.draft.filter(function (d) { return d.undrafted; }).forEach(function (d) {
           lines.push(d.name + ' was not drafted' + (d.team !== 'FA' ? ' and signs with the ' + teamName(d.team) + '.' : ' and is a free agent.'));
         });
         lines.push('Rosters are at 53 and the ' + l.season + ' schedule is set.');
-        return { title: 'The ' + got.season + ' draft', lines: lines };
+        /* Every round, each opening to its picks. */
+        var rounds = [];
+        for (var n = 1; n <= 7; n += 1) {
+          var picks = got.draft.filter(function (d) { return d.round === n && !d.undrafted; });
+          if (!picks.length) { continue; }
+          rounds.push({
+            title: 'Round ' + n + ' · ' + picks.length + ' picks, ' + ((got.kept || {})[n] || 0) + ' on a 53',
+            lines: picks.map(function (d) {
+              return d.n + '. ' + teamName(d.team) + ': ' + d.name + ' (' + d.pos + ', ' + d.ovr + ')' + (d.ege ? ' — one of the six' : '');
+            })
+          });
+        }
+        return { title: 'The ' + got.season + ' draft', lines: lines, rounds: rounds };
       });
     }));
   }
@@ -1796,6 +1808,15 @@ EGE.nflSimAdmin = (function () {
       state.last.lines.forEach(function (line) { list.appendChild(el('li', null, line)); });
       box.appendChild(list);
     }
+    (state.last.rounds || []).forEach(function (round, i) {
+      var part = el('details', 'ege-sim__round');
+      if (!i) { part.open = true; }
+      part.appendChild(el('summary', null, round.title));
+      var picks = el('ul', 'ege-sim__lines');
+      round.lines.forEach(function (line) { picks.appendChild(el('li', null, line)); });
+      part.appendChild(picks);
+      box.appendChild(part);
+    });
     body.appendChild(box);
   }
 

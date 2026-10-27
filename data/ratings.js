@@ -25,7 +25,6 @@ EGE.ratingGroups = [
       { key: 'acceleration', label: 'Acceleration' },
       { key: 'strength',     label: 'Strength' },
       { key: 'agility',      label: 'Agility' },
-      { key: 'awareness',    label: 'Awareness' },
       { key: 'jumping',      label: 'Jumping' },
       { key: 'injury',       label: 'Injury' },
       { key: 'stamina',      label: 'Stamina' },
@@ -104,13 +103,13 @@ EGE.positionWeights = {
     throwPower: 14, throwAccuracyShort: 12, throwAccuracyMid: 12,
     throwAccuracyDeep: 9, throwUnderPressure: 8, throwOnTheRun: 6,
     playAction: 4,
-    awareness: 12, speed: 3, acceleration: 2, agility: 2, strength: 1,
+    speed: 3, acceleration: 2, agility: 2, strength: 1,
     breakSack: 4, bcVision: 1, carrying: 1
   },
   /* These are backs who catch, not just carry, so hands and short routes
      count for something. */
   RB: {
-    speed: 10, acceleration: 8, agility: 6, awareness: 6, strength: 3,
+    speed: 10, acceleration: 8, agility: 6, strength: 3,
     toughness: 1, stamina: 1,
     carrying: 8, bcVision: 8, breakTackle: 7, changeOfDirection: 6,
     trucking: 4, jukeMove: 4, stiffArm: 3, spinMove: 3,
@@ -120,14 +119,14 @@ EGE.positionWeights = {
     catching: 12, catchInTraffic: 7, spectacularCatch: 6,
     routeRunningShort: 7, routeRunningMedium: 7, routeRunningDeep: 6,
     release: 6,
-    speed: 12, acceleration: 6, agility: 5, awareness: 7, jumping: 4,
+    speed: 12, acceleration: 6, agility: 5, jumping: 4,
     changeOfDirection: 3, carrying: 2, breakTackle: 1
   },
   TE: {
     catching: 11, catchInTraffic: 8, spectacularCatch: 4,
     routeRunningShort: 6, routeRunningMedium: 5, routeRunningDeep: 2,
     release: 4,
-    awareness: 9, speed: 7, acceleration: 4, strength: 4, agility: 3,
+    speed: 7, acceleration: 4, strength: 4, agility: 3,
     jumping: 3,
     runBlock: 7, passBlock: 4, impactBlocking: 3, runBlockPower: 2,
     leadBlock: 1,
@@ -137,7 +136,7 @@ EGE.positionWeights = {
   /* Used while a player's position is still TBD: a little of everything,
      with the athletic attributes counting most. */
   DEFAULT: {
-    speed: 10, acceleration: 6, agility: 6, strength: 5, awareness: 10,
+    speed: 10, acceleration: 6, agility: 6, strength: 5,
     jumping: 3,
     throwPower: 4, throwAccuracyShort: 4,
     catching: 8, routeRunningShort: 4,
@@ -156,6 +155,14 @@ EGE.positionWeights = {
    falls away just as quickly. */
 EGE.overallScale = { pivot: 50, stretch: 1.4 };
 
+/* Awareness came out of the attributes and the weights on 2026-10-26:
+   nothing on the site could raise it (Sam). It sat in the 30s and 40s for
+   all six, so taking it out alone would have lifted every overall, a
+   quarterback's by about seven. Sam kept the overalls where they were
+   instead: each position takes off what awareness had been costing it,
+   the six's average, and every point trained from here counts in full. */
+EGE.overallOffset = { QB: 7.3, RB: 2.4, WR: 3.5, TE: 3.7 };
+
 /* Placeholder attribute values, keyed by player slug.
 
    Everything between the two markers below is rewritten wholesale when a
@@ -170,7 +177,7 @@ EGE.overallScale = { pivot: 50, stretch: 1.4 };
 EGE.ratings = {
   'jaykeb-stewart': {
     /* General */
-    speed: 69, acceleration: 74, strength: 86, agility: 61, awareness: 42,
+    speed: 69, acceleration: 74, strength: 86, agility: 61,
     jumping: 65, injury: 64, stamina: 62, toughness: 59,
     /* Passing */
     throwPower: 86, throwUnderPressure: 86, throwAccuracyShort: 89,
@@ -186,7 +193,7 @@ EGE.ratings = {
   },
   'cooper-clark': {
     /* General */
-    speed: 78, acceleration: 78, strength: 92, agility: 69, awareness: 48,
+    speed: 78, acceleration: 78, strength: 92, agility: 69,
     jumping: 77, injury: 76, stamina: 70, toughness: 71,
     /* Passing */
     throwPower: 14, throwUnderPressure: 18, throwAccuracyShort: 12,
@@ -202,7 +209,7 @@ EGE.ratings = {
   },
   'andrew-parr': {
     /* General */
-    speed: 51, acceleration: 58, strength: 99, agility: 51, awareness: 44,
+    speed: 51, acceleration: 58, strength: 99, agility: 51,
     jumping: 70, injury: 64, stamina: 51, toughness: 70,
     /* Passing */
     throwPower: 17, throwUnderPressure: 8, throwAccuracyShort: 10,
@@ -222,7 +229,7 @@ EGE.ratings = {
   },
   'sam-stogsdill': {
     /* General */
-    speed: 72, acceleration: 77, strength: 99, agility: 61, awareness: 46,
+    speed: 72, acceleration: 77, strength: 99, agility: 61,
     jumping: 70, injury: 72, stamina: 64, toughness: 68,
     /* Passing */
     throwPower: 13, throwUnderPressure: 17, throwAccuracyShort: 12,
@@ -238,7 +245,7 @@ EGE.ratings = {
   },
   'isaac-vitel': {
     /* General */
-    speed: 53, acceleration: 56, strength: 62, agility: 46, awareness: 35,
+    speed: 53, acceleration: 56, strength: 62, agility: 46,
     jumping: 52, injury: 53, stamina: 47, toughness: 49,
     /* Passing */
     throwPower: 70, throwUnderPressure: 86, throwAccuracyShort: 82,
@@ -254,7 +261,7 @@ EGE.ratings = {
   },
   'paxon-hatch': {
     /* General */
-    speed: 70, acceleration: 80, strength: 88, agility: 75, awareness: 42,
+    speed: 70, acceleration: 80, strength: 88, agility: 75,
     jumping: 68, injury: 56, stamina: 78, toughness: 59,
     /* Passing */
     throwPower: 8, throwUnderPressure: 18, throwAccuracyShort: 12,
@@ -487,7 +494,7 @@ function egeOverallOf(values, position) {
   if (!key) { return null; }
 
   var scale = EGE.overallScale;
-  var overall = scale.pivot + scale.stretch * (key.average - scale.pivot);
+  var overall = scale.pivot + scale.stretch * (key.average - scale.pivot) - ((EGE.overallOffset || {})[position] || 0);
   return Math.max(1, Math.min(99, Math.round(overall)));
 }
 

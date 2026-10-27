@@ -332,6 +332,14 @@ against Seattle's protection", "Seattle's deep passing against Detroit's
 safeties" — the key one-on-ones, and the expected score and win chance over
 a thousand simulated games.
 
+**The offseason is checked too** (`node nfl-sim/check.js --offseason
+--years 6`): from the 2023 kickoff in a world of its own, every draft's
+first four rounds are full and all their picks are on a 53, every team is
+at 53, the league keeps 360–480 players at 80 or better and 70–130 at 90
+or better (2024–2029: 426–456 and 97–115), each kind of team leaves about
+the cap room it should, nobody is more than 3% over, and a starter develops
+faster than a backup. Each line passes or fails, and a failure exits 1.
+
 **Checked against the real 2023 season** (`node nfl-sim/check.js`, which
 plays the real 2023 schedule from the kickoff league). Points, plays, pass
 rate, completion rate, yards a throw and a carry, sacks, interceptions,
@@ -386,6 +394,19 @@ In two parts, so Sam can look at the pre-draft trades between them.
      his overall and his ceiling in a year through 25, more after, so most
      are close to it by 27 or 28 — when real players were. A roll of the dice
      on top, and now and then a player breaks out and finds a higher ceiling.
+   - **Starting is experience** (Sam, 2026-10-26). Every regular-season
+     game counts who started it (the quarterback, a back, three receivers,
+     a tight end, five linemen, the eleven on defense, the kicker and
+     punter, as game day lines them up), and a player still growing who
+     started his team's games closes a fifth more of the gap to his
+     ceiling, gains three quarters of a point on top (and his ceiling a
+     point), and is likelier to break out, each in proportion to the share
+     he started. A 24-year-old 74 with an 85 ceiling grows about 6 points a
+     year starting and 4.5 on the bench. Michael Penix starting for
+     Pittsburgh develops faster than he would as a backup; a backup
+     develops as he always did. Games the sim did not watch (taken in
+     from the site, or played before it counted) go by the end-of-season
+     depth chart.
    - Past his position's peak a player declines, a little more each year, and
      past its cliff age each year carries a chance of a sudden 5–12 point
      drop. Some players fade slowly and some fall off a cliff.
@@ -519,13 +540,36 @@ In two parts, so Sam can look at the pre-draft trades between them.
    trade is made once, the first time a world opens with it, and only for
    a pick its own team still has, so the sim's trades always stand
    (`league.officialTrades` keeps which are done).
+   Every draft has all seven rounds and never fewer than four full ones:
+   a team missing from an order picks last in that round, a pick missing
+   from the league (and not forfeited) goes back to its team, and a draft
+   that would still come up short stops with an error. The draft's report
+   on the admin page lists every round, each opening to its picks with
+   how many made a 53.
 3. Free agency again for the leftovers, then **rosters are cut to 53**: the
-   least valuable go, never one of the six. Every 53 keeps a real bench: at
+   least valuable go, never one of the six and never a pick from the first
+   four rounds of the draft just held (Sam, 2026-10-26: the 2025 cut had
+   let go two first-rounders and a third of the second round). A young
+   player's room to grow counts for him, so a late-round rookie with upside
+   beats a veteran backup of the same overall, and a room's extras go by
+   that worth, not by overall alone. Every 53 keeps a real bench: at
    least two quarterbacks, three backs, five receivers, three tight ends,
    four tackles, five interior linemen and four at each defensive spot (four
    safeties, five corners), and never more than a room uses (three
    quarterbacks, five backs, seven receivers, four tight ends...).
-4. The new season's schedule.
+4. **The room gets spent** (`spendRoom`, Sam 2026-10-26). With the 53s
+   set, a team with more cap room than its kind keeps — 1% of the cap
+   for a contender, 4% retooling, 8% rebuilding — spends it, contenders
+   first: on up to three free agents of 70 or better who would start for
+   it, at 15% over the market for a contender (a rebuilding team takes
+   nobody over 27), each replacing its least valuable player; then on
+   extending its players whose deals run out this year or next, the best
+   first, at what the market pays them. Stars of 85 or better and the six
+   are left out of it. A team still over the cap after all that lets its
+   most overpaid veterans go and signs minimum players to stay at 53.
+   Tested over 2024–2029: contenders leave 1–2% of the cap, rebuilding
+   teams 3–8%, nobody more than 3% over.
+5. The new season's schedule.
 
 Run for years, the league holds steady: in seven seasons tested (2023–2029)
 the average overall stayed at 74–75, with about 400 players at 80 or better

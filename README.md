@@ -728,18 +728,23 @@ attribute), and nothing else counts at all. Those are averaged by weight,
 and the average is stretched away from 50:
 
 ```
-overall = 50 + 1.4 × (key-attribute average − 50), kept within 1-99
+overall = 50 + 1.4 × (key-attribute average − 50) − position offset, kept within 1-99
 ```
 
 So a player whose key attributes are all in the 80s and 90s is a 99 — the
-Madden 99 tight end this was checked against (99 catching and awareness,
-high 80s speed and routes, blocking in the 60s, a 33 throw power) comes out
-at exactly 99. A tight end's key attributes are his hands, routes, awareness
-and athleticism, with blocking behind them; a quarterback's are his arm,
-accuracy and awareness; a back's are his speed, vision and ball carrying,
+Madden 99 tight end this was checked against (99 catching, high 80s speed
+and routes, blocking in the 60s, a 33 throw power) comes out at 99. A tight
+end's key attributes are his hands, routes and athleticism, with blocking
+behind them; a quarterback's are his arm and accuracy; a back's are his
+speed, vision and ball carrying,
 with his hands counting for something since these are backs who catch.
 The stretch lives in `EGE.overallScale`. Only QB, RB, WR and TE are
 weighted; anything else falls back to `DEFAULT`, a little of everything.
+There is no awareness: nothing on the site could raise it, so it was taken
+out of the attributes and every overall (Sam, 2026-10-26). To keep the
+overalls where they were, each position takes off a fixed amount after the
+stretch (`EGE.overallOffset`: QB 7.3, RB 2.4, WR 3.5, TE 3.7), what
+awareness had cost the six on average.
 
 The same attributes score very differently by position, which is the point:
 
@@ -1081,7 +1086,10 @@ On sale:
   same change straight to the database — **re-run `supabase/schema.sql`** to
   install it.
   **Hyperbaric Chamber** (35, then 45, then 60, then
-  15 more each time), **Intel** (15).
+  15 more each time): Injury +5 each, chambers bought before it did that
+  included (`countsBack`, `EGE.rowEffects`); the season lock folds it into
+  data/ratings.js and zeroes the rows, which stay to price the next one.
+  **Intel** (15).
 
 **Some things can't be bought yet.** An item can name the levels it belongs
 to, and the shop greys it out everywhere else with the reason on the card —
@@ -1127,8 +1135,8 @@ cost = 100 / (99 - rating + 1)
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Next point | 2 | 3 | 4 | 5 | 7 | 10 | 20 | 34 | 50 |
 
-**The general attributes are not for sale.** Speed, strength, stamina,
-awareness and the rest move only through offseason training, which is what
+**The general attributes are not for sale.** Speed, strength, stamina and
+the rest move only through offseason training, which is what
 keeps training worth a slot in the shop. A quarterback is left with passing
 and carrying to buy into; a tight end with catching, blocking and carrying.
 
@@ -3054,7 +3062,7 @@ Each of the six gets an account and a private portal.
   and `realAdmin()` still knows). It changes only what the page shows: the
   database still treats the account as an admin.
 - **Overalls** — a rating per attribute (speed, strength, catching, route
-  running, awareness, etc. — final attribute list TBD) plus a single overall.
+  running, etc. — final attribute list TBD) plus a single overall.
 - **Offseason workouts** — the progression mechanic. Between seasons a player
   spends workouts as boosts to raise specific attributes. Workouts are a limited
   resource, so choices have a cost.

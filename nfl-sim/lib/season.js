@@ -29,6 +29,7 @@ const { seeded } = require('./rng');
 const { standings } = require('./standings');
 const { scheduleFor } = require('./schedule');
 const { side, index } = require('./league');
+const { gameDay } = require('./lineup');
 
 const DEADLINE_WEEK = 9;
 const ROUNDS = ['Wild Card', 'Divisional', 'Conference Championship', 'Super Bowl'];
@@ -60,6 +61,7 @@ function startSeason(league, rng) {
   league.phase = 'regular';
   league.playoffs = null;
   league.stats = {};
+  league.starts = { games: {}, ids: {} };
   league.players.forEach((p) => {
     if (p.status !== 'injured') { return; }
     const r = rng();
@@ -182,6 +184,48 @@ function heal(league) {
   });
 }
 
+/* Who starts: the quarterback, the first back, three receivers, the first
+   tight end, five linemen, the kicker and punter, and the eleven on
+   defense, as game day lines them up. */
+function starters(day) {
+  return [day.qb, day.rbs[0], day.tes[0], day.k, day.p].concat(day.wrs, day.ol, day.edge, day.di, day.lb, day.cb, day.s)
+    .filter((p) => p && !p.standIn);
+}
+
+/* A regular-season game's starters, for how much of the season each player
+   started (lib/aging.js gives a starter's development a lift). */
+function countStarts(league, game) {
+  const starts = league.starts || (league.starts = { games: {}, ids: {} });
+  [game.home, game.away].forEach((key) => {
+    const s = side(league, key);
+    if (!s.team) { return; }
+    starts.games[key] = (starts.games[key] || 0) + 1;
+    new Set(starters(gameDay(s.team, s.roster))).forEach((p) => { starts.ids[p.id] = (starts.ids[p.id] || 0) + 1; });
+  });
+}
+
+/* The share of his team's regular-season games each player started, 0 to
+   1, by id. Games the sim did not watch (taken in from the site, or played
+   before it counted starts) go by the depth chart at the end of the season,
+   nobody hurt. */
+function startedShare(league) {
+  const starts = league.starts || { games: {}, ids: {} };
+  const out = new Map();
+  league.teams.forEach((t) => {
+    const games = (league.schedule || []).filter((g) => !g.playoff && (g.home === t.key || g.away === t.key)).length || 17;
+    const unseen = Math.max(0, games - (starts.games[t.key] || 0));
+    const roster = (league.byTeam.get(t.key) || []).map((p) => (p.injury ? Object.assign({}, p, { injury: null }) : p));
+    const now = unseen ? new Set(starters(gameDay(t, roster)).map((p) => p.id)) : new Set();
+    roster.forEach((p) => {
+      const n = (starts.ids[p.id] || 0) + (now.has(p.id) ? unseen : 0);
+      out.set(p.id, Math.min(1, n / games));
+    });
+  });
+  /* Anyone who started somewhere and is not on a team now. */
+  Object.keys(starts.ids).forEach((id) => { if (!out.has(id)) { out.set(id, Math.min(1, starts.ids[id] / 17)); } });
+  return out;
+}
+
 /* One game. A booster on it has the game played again on dice of its own,
    so the other games of the week are played the same either way. */
 function play(league, game, rng, opts, extras) {
@@ -211,6 +255,7 @@ function playWeek(league, rng, hooks) {
   const extras = boosts.read(league);
   const out = { week, games: [], injuries: [], boosted: [] };
   games.forEach((g) => {
+    countStarts(league, g);
     const r = play(league, g, rng, { neutral: !!g.neutral }, extras);
     g.score = r.score;
     if (r.ot) { g.ot = true; }
@@ -379,4 +424,5 @@ function draftOrder(league) {
 }
 
 module.exports = { startSeason, playWeek, playRound, importWeeks, startPlayoffs, draftOrder, readWorld, writeWorld, lastWeek, lastPlaces,
+                   startedShare,
                    DEADLINE_WEEK, ROUNDS };

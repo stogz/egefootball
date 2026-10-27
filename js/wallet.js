@@ -278,7 +278,8 @@ EGE.wallet = (function () {
           /* A row with effects is a workout or rating points, and those are in
              the ratings for good once bought -- there is no switch for them,
              so a row left switched off from before still counts. */
-          if (lapsed(row) || !row.effects) { return; }
+          var effects = EGE.rowEffects(row);
+          if (lapsed(row) || !effects) { return; }
 
           /* Rows are owned by an email; ratings are keyed by player. */
           var player = EGE.players.filter(function (p) {
@@ -287,8 +288,8 @@ EGE.wallet = (function () {
           if (!player) { return; }
 
           var forPlayer = boosts[player.slug] || (boosts[player.slug] = {});
-          Object.keys(row.effects).forEach(function (attr) {
-            forPlayer[attr] = (forPlayer[attr] || 0) + row.effects[attr];
+          Object.keys(effects).forEach(function (attr) {
+            forPlayer[attr] = (forPlayer[attr] || 0) + effects[attr];
           });
         });
 
@@ -1026,7 +1027,9 @@ EGE.wallet = (function () {
   /* Rating points and training are what the season lock folds into
      data/ratings.js, so once that file is in the repository these rows are
      saying it twice. Everything else stays: an unused performance booster is
-     still unused next season, and Intel lapses on its own.
+     still unused next season, and Intel lapses on its own. A Hyperbaric
+     Chamber stays too, since it prices the next one, but what it added is
+     in the file now, so its effects go to zero.
 
      Admin only in practice \u2014 the delete policy allows a player their own
      rows, which is no more than the inventory already lets them do. */
@@ -1039,6 +1042,15 @@ EGE.wallet = (function () {
     if (email) { query = query.eq('email', email); }
 
     return query.then(function (res) {
+      if (res.error) { return { ok: false, message: res.error.message }; }
+      var chamber = EGE.shopItem('hyperbaric');
+      var zero = {};
+      Object.keys((chamber && chamber.effects) || {}).forEach(function (key) { zero[key] = 0; });
+      var folded = c.from(INVENTORY).update({ effects: zero }).eq('item_key', 'hyperbaric');
+      if (email) { folded = folded.eq('email', email); }
+      return folded;
+    }).then(function (res) {
+      if (res.ok === false) { return res; }
       if (res.error) { return { ok: false, message: res.error.message }; }
       return { ok: true, message: 'Rating points and training cleared.' };
     });

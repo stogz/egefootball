@@ -5694,9 +5694,10 @@
     if (options.admin && isUpgrade) {
       card.appendChild(el('p', 'ege-item__text',
         (row.credits || 0) + ' credits spent, all of it in the rating.'));
-    } else if (options.admin && row.effects && Object.keys(row.effects).length) {
-      card.appendChild(el('p', 'ege-item__text', Object.keys(row.effects).map(function (attr) {
-        return targetLabel(attr) + ' ' + (row.effects[attr] > 0 ? '+' : '') + row.effects[attr];
+    } else if (options.admin && Object.keys(EGE.rowEffects(row) || {}).some(function (attr) { return EGE.rowEffects(row)[attr]; })) {
+      var did = EGE.rowEffects(row);
+      card.appendChild(el('p', 'ege-item__text', Object.keys(did).filter(function (attr) { return did[attr]; }).map(function (attr) {
+        return targetLabel(attr) + ' ' + (did[attr] > 0 ? '+' : '') + did[attr];
       }).join(', ')));
     }
 
@@ -5780,9 +5781,10 @@
   function boostSummary(rows) {
     var totals = {};
     rows.forEach(function (row) {
-      if (EGE.wallet.lapsed(row) || !row.effects) { return; }
-      Object.keys(row.effects).forEach(function (attr) {
-        totals[attr] = (totals[attr] || 0) + row.effects[attr];
+      var effects = EGE.rowEffects(row);
+      if (EGE.wallet.lapsed(row) || !effects) { return; }
+      Object.keys(effects).forEach(function (attr) {
+        totals[attr] = (totals[attr] || 0) + effects[attr];
       });
     });
     return totals;

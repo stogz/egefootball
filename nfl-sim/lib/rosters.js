@@ -231,8 +231,24 @@ function release(p, season) {
   p.faSince = season;
 }
 
+/* A team never cuts a pick from the first four rounds in the season
+   they were drafted (Sam, 2026-10-26: Luther Burden, a second-rounder, was
+   nowhere after the 2025 draft; in a test of it the cut to 53 let go two
+   first-rounders and a third of the second round). Real teams keep them;
+   later-round picks earn their place. */
+const KEEP_ROUNDS = 4;
+/* Worth in the cut for each point of growth a player 24 or younger has
+   left. */
+const UPSIDE = 0.03;
+
+function keptRookie(p, season) {
+  return Boolean(p.draft && p.draft.pick && p.draft.year === season && p.draft.round <= KEEP_ROUNDS);
+}
+
 /* Releases a team's `n` least valuable players, never one of the six, a
-   player on injured reserve, or one it needs to field each position. */
+   player on injured reserve, a pick from the first four rounds in his
+   rookie season, or one it needs to field each position. Only a team with
+   nobody else left to cut lets one of those picks go, the latest first. */
 function trim(league, key, n, rng) {
   if (n <= 0) { return []; }
   const team = league.teams.find((t) => t.key === key);
@@ -240,12 +256,32 @@ function trim(league, key, n, rng) {
   const healthy = roster.filter((p) => !p.injury);
   const keep = new Set(roster.filter((p) => p.ege || p.injury));
   Object.keys(MIN).forEach((pos) => byPos(healthy, pos).slice(0, MIN[pos]).forEach((p) => keep.add(p)));
-  const out = roster.filter((p) => !keep.has(p)).map((p) => {
-    const count = byPos(roster, p.pos).indexOf(p);
+  const rookies = roster.filter((p) => !keep.has(p) && keptRookie(p, league.season));
+  /* What each is worth to the team. A young player's room to grow counts
+     for him: teams keep a late-round rookie with upside over a veteran
+     backup of the same overall. */
+  const value = new Map();
+  roster.forEach((p) => {
+    const upside = p.age <= 24 ? UPSIDE * Math.max(0, (p.pot || p.ovr) - p.ovr) : 0;
+    value.set(p, [playerValue(p, league.season, { mode: team.mode }), p.ovr / 100 + upside + rng() * 0.01]);
+  });
+  const worth = (p) => value.get(p)[0] + value.get(p)[1];
+  /* Each room best first, those the team keeps anyway at the top: past
+     its target a player counts half, past its most he goes first. */
+  const place = new Map();
+  Object.keys(MAX).forEach((pos) => {
+    roster.filter((p) => p.pos === pos)
+      .sort((a, b) => (keep.has(b) || rookies.indexOf(b) !== -1) - (keep.has(a) || rookies.indexOf(a) !== -1) || worth(b) - worth(a))
+      .forEach((p, i) => place.set(p, i));
+  });
+  const out = roster.filter((p) => !keep.has(p) && rookies.indexOf(p) === -1).map((p) => {
+    const count = place.has(p) ? place.get(p) : 0;
     if (count >= (MAX[p.pos] || 3)) { return [p, -1 + rng() * 0.01]; }
     const surplus = count >= (TARGET[p.pos] || 3) ? 0.5 : 1;
-    return [p, playerValue(p, league.season, { mode: team.mode }) * surplus + p.ovr / 100 + rng() * 0.01];
-  }).sort((a, b) => a[1] - b[1]).slice(0, n).map(([p]) => p);
+    return [p, value.get(p)[0] * surplus + value.get(p)[1]];
+  }).sort((a, b) => a[1] - b[1]).map(([p]) => p)
+    .concat(rookies.sort((a, b) => b.draft.pick - a.draft.pick))
+    .slice(0, n);
   out.forEach((p) => release(p, league.season));
   return out;
 }
@@ -323,6 +359,66 @@ function fillHoles(league, rng, makeName) {
   return added;
 }
 
+/* What each kind of team leaves unspent once its 53 is set, as a share of
+   the cap (Sam, 2026-10-26: contenders spend all they can on the best
+   players they can get, rebuilding teams keep a little room). */
+const LEFT_OVER = { compete: 0.01, retool: 0.04, rebuild: 0.08 };
+/* What a team pays over the market for a free agent it wants. */
+const PREMIUM = { compete: 1.15, retool: 1.05, rebuild: 1 };
+
+/* Once the 53s are set, a team with more room than its kind keeps spends
+   it, contenders first: on free agents who would start for it (a
+   contender takes anybody good, a rebuilding team nobody over 27), each
+   replacing its least valuable player, then on extending the players whose
+   deals run out this year or next, best first, at what the market pays
+   them (or more, never less). Stars of 85 or more are left alone: a star
+   moving goes through Sam (lib/trades.js queueMoves). The six too. Returns
+   what was done. */
+function spendRoom(league, rng) {
+  const cap = capFor(league.season);
+  const levels = starterLevels(league);
+  const out = { signed: [], extended: [] };
+  const order = { compete: 0, retool: 1, rebuild: 2 };
+  league.teams.slice().sort((a, b) => (order[a.mode] || 1) - (order[b.mode] || 1) || (b.rating || 0) - (a.rating || 0)).forEach((t) => {
+    const mode = t.mode || 'retool';
+    const keep = cap * (LEFT_OVER[mode] === undefined ? LEFT_OVER.retool : LEFT_OVER[mode]);
+    const maxAge = mode === 'rebuild' ? 27 : mode === 'retool' ? 30 : 34;
+    const spare = () => room(league, t.key) - keep;
+
+    /* Free agents who would start. */
+    let signings = 0;
+    league.players.filter((p) => p.status === 'fa' && !p.ege && p.ovr >= 70 && p.ovr < 85 && p.age <= maxAge)
+      .sort((a, b) => b.ovr - a.ovr).forEach((p) => {
+        if (signings >= 3 || p.status !== 'fa' || spare() <= 0) { return; }
+        const pay = Math.round(marketPay(p, league.season) * (PREMIUM[mode] || 1) * 10) / 10;
+        if (pay > spare()) { return; }
+        const roster = onTeam(league, t.key);
+        const at = byPos(roster, p.pos);
+        const slots = SLOTS[p.pos] || 0;
+        if (!slots || (at.length >= slots && p.ovr < at[slots - 1].ovr + 2)) { return; }
+        if (needAt(league, t.key, p.pos, levels, roster) <= 0 && at.length >= slots && p.ovr < at[0].ovr) { return; }
+        sign(p, t.key, league, rng, pay);
+        trim(league, t.key, onTeam(league, t.key).length - ROSTER, rng);
+        signings += 1;
+        out.signed.push({ player: p, team: t.key, apy: p.contract.apy });
+      });
+
+    /* Extensions for the deals running out soonest, the best players first. */
+    onTeam(league, t.key)
+      .filter((p) => !p.ege && p.contract && p.contract.through <= league.season + 1 && p.ovr >= 68 && p.age <= maxAge)
+      .sort((a, b) => playerValue(b, league.season, { mode }) - playerValue(a, league.season, { mode }))
+      .forEach((p) => {
+        if (spare() <= 0) { return; }
+        const was = p.contract.apy || 0;
+        const apy = Math.round(Math.max(was, marketPay(p, league.season) * (0.98 + rng() * 0.12)) * 10) / 10;
+        if (apy - was > spare()) { return; }
+        p.contract = { through: league.season + contractYears(p.age, rng), apy };
+        out.extended.push({ player: p, team: t.key, from: was, apy });
+      });
+  });
+  return out;
+}
+
 let made = 0;
 function replacement(league, pos, rng, makeName) {
   made += 1;
@@ -344,4 +440,5 @@ function replacement(league, pos, rng, makeName) {
 }
 
 module.exports = { SLOTS, MIN, TARGET, MAX, CAMP, ROSTER, onTeam, payroll, room, starterLevels, needAt, needs, reSign,
-                   freeAgency, cutDown, trim, addPlayers, fillDepth, fillHoles, sign, release, byPos, capCasualties };
+                   freeAgency, cutDown, trim, addPlayers, fillDepth, fillHoles, sign, release, byPos, capCasualties, spendRoom,
+                   LEFT_OVER, KEEP_ROUNDS };
