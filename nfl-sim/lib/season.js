@@ -107,13 +107,16 @@ function sixIn(league, game, result) {
   return out;
 }
 
-/* What the game's record keeps of each team's numbers, and of each player
-   who threw, ran, was thrown to, or got a sack or a pick (an admin's week
-   on the NFL Sim tab). */
+/* What the game's record keeps of each team's numbers (an admin's week on
+   the NFL Sim tab), and of every player with a line: what the week's box
+   score shows, and the tackles, kicks and punts a pop-up's season line
+   counts, so the weeks not yet out on the site can be taken off a season's
+   totals (lib/site.js seasonLines). */
 const TEAM_KEPT = ['plays', 'dropbacks', 'carries', 'yards', 'passYds', 'rushYds', 'firstDowns', 'third', 'thirdMade',
                    'sacks', 'ints', 'fumblesLost', 'top'];
 const LINE_KEPT = ['passCmp', 'passAtt', 'passYds', 'passTd', 'passInt', 'sacked', 'rushAtt', 'rushYds', 'rushTd', 'rushLong',
-                   'targets', 'rec', 'recYds', 'recTd', 'recLong', 'fumLost', 'sacks', 'ints', 'defTd'];
+                   'targets', 'rec', 'recYds', 'recTd', 'recLong', 'fumLost', 'sacks', 'ints', 'defTd',
+                   'tackles', 'passDef', 'ff', 'fgm', 'fga', 'xpm', 'xpa', 'punts', 'puntYards'];
 
 function kept(from, keys) {
   const out = {};
@@ -124,10 +127,9 @@ function kept(from, keys) {
 function boxOf(league, result) {
   return Object.keys(result.box).map((id) => {
     const line = result.box[id];
-    if (!(line.passAtt || line.rushAtt || line.targets || line.sacks || line.ints || line.defTd)) { return null; }
     const p = league.byId.get(id);
-    return Object.assign({ name: line.name, pos: line.pos, team: line.team }, p && p.ege ? { ege: p.ege } : {}, kept(line, LINE_KEPT));
-  }).filter(Boolean);
+    return Object.assign({ id, name: line.name, pos: line.pos, team: line.team }, p && p.ege ? { ege: p.ege } : {}, kept(line, LINE_KEPT));
+  });
 }
 
 /* Adds a game's box score to the season totals and keeps a short record of
@@ -157,11 +159,15 @@ function record(league, game, result, log) {
   });
 }
 
-function hurt(league, injuries) {
+/* `week` is the site's week the game was played in: a playoff round's
+   (19-22) rather than league.week, which stays at the week after the
+   regular season through the playoffs. The site holds an injury back
+   until that week is out. */
+function hurt(league, injuries, week) {
   injuries.forEach((i) => {
     const p = league.byId.get(i.id);
     if (!p) { return; }
-    p.injury = { games: i.games, what: i.what, season: league.season, week: league.week, fresh: true };
+    p.injury = { games: i.games, what: i.what, season: league.season, week: week || league.week, fresh: true };
     if (p.ege) { league.egeHurt = league.season; }
   });
 }
@@ -332,7 +338,7 @@ function playRound(league, rng) {
     g.score = r.score;
     if (r.ot) { g.ot = true; }
     g.winner = r.winner;
-    hurt(league, r.injuries);
+    hurt(league, r.injuries, g.week);
     record(league, g, r, log);
     out.games.push(g);
     out.injuries.push.apply(out.injuries, r.injuries);

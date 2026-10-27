@@ -452,21 +452,36 @@ Under the bar:
   chip (**R** for a rookie), then **height · weight**, with **no number**.
   The six's boxes use their own overall, headshot and size from their
   pages. **Every box opens a pop-up**, in the overlay the cards and
-  trophies use: a band in the team's colour with the headshot, the name and
-  the team's mark straight on the colour, no box round it (Sam,
-  2026-10-20). Behind them, the team's mark again in two tones, the band's
+  trophies use: a band in the team's colour with the headshot, the team's
+  mark straight on the colour behind him and set off to his right so it
+  shows past his shoulder, the name, and his overall box at the right end
+  where the mark used to be (Sam, 2026-10-26). Behind them, the team's mark again in two tones, the band's
   colour and a fifth darker (a little lighter on a band too near black to
   go darker), so big it runs off both ends of the band and is cut off
   there (Sam, 2026-10-21): the mark is turned black where it is darker
   than a light grey and white elsewhere, and laid over the colour. The headshot stands on the band's bottom edge and is sized
   so the top of the head just clears the top of the box, about 5% of the
-  picture; every headshot is placed the same way. The name is centred in
-  the band both ways (Sam, 2026-10-20): the mark's column is as wide as
-  the headshot's, which is framed square to leave the name room, and a
+  picture; every headshot is placed the same way. The name is centred
+  between the headshot and the overall, and a
   name too long for its column is set smaller rather than broken inside a
-  word (`fitName`). Then college, draft
-  (*2021 · R4 #112*), age, height and weight; then the overall box, the archetype and his skills, best first;
-  then his contract (*$1.1M a year through 2024*) and any injury. One of the
+  word (`fitName`). Under the band come college, draft
+  (*2021 · R4 #112*), age, height and weight, with no title; then three
+  parts, each under a centred title between two rules in the rules' own
+  colour (Sam, 2026-10-26/27): **Stats**, **Ratings** and **More**. Stats is **a line a season**
+  from 2025 on (Sam, 2026-10-26: the first season the sim kept everybody's
+  numbers), oldest first: the mark of the team he finished it with, the
+  season, his age, and his position's numbers (QB G, CMP%, YDS, TD, INT,
+  RUSH; back G, CAR, YDS, REC, REC YDS, TD; receiver and tight end G, TGT,
+  REC, YDS, AVG, TD; defender G, TKL, SACK, INT, PD, FF; kicker G, FG,
+  FG%, XP, PTS; punter G, PUNTS, YDS, AVG; a lineman only his team and
+  age). The playoffs count in the season. The lines come with the
+  rosters (`seasons`, nfl-sim/lib/site.js `seasonLines`) and count only
+  weeks out on the site: every week not published yet is taken off from
+  the game log's box scores, and the rosters go out again when a week is
+  published (the NFL Sim tab's Publish, the Weeks tab's when the sim is
+  loaded, or an admin's visit to a team page when `linesThrough` is behind).
+  Ratings is the archetype and his skills, best first;
+  More is his contract (*$1.1M a year through 2024*) and any injury. One of the
   six's has a button through to his page. A click off the box closes it.
   Nothing private is in the rosters: no team ratings, no potential, nothing
   about how long a player will last. Since 2026-10-21 they carry every
@@ -500,8 +515,11 @@ Under the bar:
   pop-up's Injury line says what it is and for how long. The six's come
   from the site's own injury report (`EGE.injuryFor`, so the week's
   publishing decides); everybody else's from the sim (`out` in the rosters:
-  what, games left and the week he went down), held back from anybody but
-  an admin until that week is published.
+  what, games left and the week he went down; a playoff injury carries
+  its round's week, 19-22), held back from everybody, an admin too, until
+  that week is published (Sam, 2026-10-27, `EGE.nflRosters.isOut`): the
+  box, the pop-up's Injury line, and the starters behind a team's rings,
+  the ODEF grades and the defenders a player will face.
 
   **Every NFL team has a page**, `#teams/kansas-city-chiefs`: its
   header (record, streak, place in the division), its roster and its

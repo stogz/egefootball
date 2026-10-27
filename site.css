@@ -4707,9 +4707,10 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
 /* --- an NFL player up close -------------------------------------------------
 
    In the card overlay, the page blurred behind it as for a trophy: a band in
-   his team's colour with his headshot, name and the team's mark, then a
-   cream panel with where he came from, his overall, archetype and skills,
-   and his contract. */
+   his team's colour with his headshot, the team's mark behind him, his name
+   and his overall, then a cream panel: where he came from, then parts
+   under centred titles (Sam, 2026-10-26): Stats, his seasons; Ratings, his
+   archetype and skills; More, his contract. */
 .ege-rip__stage.ege-rip__stage--person { width: min(600px, 100%); }
 .ege-rip:has(.ege-rip__stage--person) {
   background:
@@ -4728,6 +4729,7 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
 .ege-person__band {
   --face-h: 124px;
   --face-w: var(--face-h);
+  --peek: 0px;
   display: grid;
   /* The mark's column is as wide as the headshot's, so the name's column,
      and the name centred in it, sit on the band's own centre line. The
@@ -4770,6 +4772,14 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
 }
 .ege-person__wash.is-light { mix-blend-mode: screen; opacity: .1; }
 .ege-person__wash.is-light img { filter: grayscale(1) brightness(.83) contrast(1000) invert(1); }
+/* A player's band (Sam, 2026-10-26): the headshot's column is wider by
+   the part of the team's mark that shows to his right, and his overall
+   takes the mark's old place at the other end, so the name is centred
+   between the two rather than on the band's own centre line. */
+.ege-person--player .ege-person__band {
+  --peek: calc(var(--face-h) * .3);
+  grid-template-columns: calc(var(--face-w) + var(--peek)) minmax(0, 1fr) auto;
+}
 /* The headshot stands on the band's bottom edge, and the top of his head
    just clears the box: about 5% of the picture above its top border. A
    headshot's crown sits about 4.5% down its own picture (ESPN's and the
@@ -4778,12 +4788,35 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
    sits higher or lower in its frame clears the top by a little more or
    less. */
 .ege-person__face {
+  position: relative;
   display: block;
-  width: var(--face-w);
+  width: calc(var(--face-w) + var(--peek));
   height: var(--face-h);
   margin-top: calc(-1 * var(--fb-border) - var(--face-h) * .095);
 }
-.ege-person__face img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.ege-person__shot {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: var(--face-w);
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+/* The team's mark behind him, in its own colours on the band's, at the
+   right of his column: past his shoulder, and beside his head where the
+   headshot is clear. It stays inside the band, top and bottom. */
+.ege-person__behind {
+  position: absolute;
+  right: 0;
+  bottom: calc(var(--face-h) * .1);
+  display: grid;
+  place-items: center;
+  width: calc(var(--face-h) * .74);
+  height: calc(var(--face-h) * .74);
+  pointer-events: none;
+}
+.ege-person__behind img { width: 100%; height: 100%; object-fit: contain; }
 /* Centred in the band both ways: across, by the matching columns either
    side, and down, in the band's one row. A long name wraps to two even
    lines rather than one long and one short. */
@@ -4797,7 +4830,11 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
   color: #fff;
   text-shadow: 2px 2px 0 rgba(0, 0, 0, .45);
 }
-/* Straight on the team's colour, as on the team's page. */
+/* His overall, where the team's mark was. */
+.ege-person__ovr { align-self: center; justify-self: end; }
+.ege-person__band .ege-ovrbox--chip { width: 64px; }
+.ege-person__band .ege-ovrbox--chip .ege-ovrbox__value { font-size: 1.75rem; }
+/* A pick's mark, straight on the team's colour, as on the team's page. */
 .ege-person__mark {
   align-self: center;
   justify-self: end;
@@ -4808,13 +4845,35 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
 }
 .ege-person__mark img { width: 100%; height: 100%; object-fit: contain; }
 .ege-person__body { display: grid; gap: 14px; padding: 14px 16px 16px; }
+.ege-person--player .ege-person__body { gap: 24px; padding: 20px 20px 22px; }
+.ege-person__part { display: grid; gap: 12px; min-width: 0; }
+/* A part's title, centred between two rules running out to the edges,
+   in the rules' own colour (Sam, 2026-10-27). */
+.ege-person__head {
+  --rule: rgba(29, 36, 22, .2);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  font-family: var(--fb-font-body);
+  font-size: .75rem;
+  font-weight: 800;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--rule);
+}
+.ege-person__head::before,
+.ege-person__head::after {
+  content: '';
+  flex: 1;
+  height: var(--fb-border-thin);
+  background: var(--rule);
+}
 .ege-person__facts {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.3fr) repeat(3, minmax(0, .8fr));
   gap: 10px 12px;
   margin: 0;
-  padding-bottom: 12px;
-  border-bottom: var(--fb-border-thin) solid rgba(29, 36, 22, .2);
 }
 .ege-person__fact { min-width: 0; }
 .ege-person__facts dt,
@@ -4826,16 +4885,44 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
   color: var(--fb-accent-deep);
 }
 .ege-person__facts dd { margin: 2px 0 0; font-weight: 700; font-size: .875rem; overflow-wrap: anywhere; }
+/* His seasons: a line each, the team's mark, the season and his age, then
+   his position's numbers, every number right-aligned under its heading. */
+.ege-person__seasonwrap { overflow-x: auto; }
+.ege-person__seasons {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .8125rem;
+  font-variant-numeric: tabular-nums;
+}
+.ege-person__seasons th,
+.ege-person__seasons td { padding: 4px 6px; text-align: right; white-space: nowrap; }
+.ege-person__seasons thead th {
+  padding-top: 0;
+  vertical-align: bottom;
+  white-space: normal;
+  line-height: 1.15;
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--fb-accent-deep);
+}
+/* A lineman's: only the team, the season and his age, kept together. */
+.ege-person__seasons.is-bare { width: auto; }
+.ege-person__seasons.is-bare th:nth-child(2) { padding-right: 24px; }
+.ege-person__seasons [title] { cursor: help; }
+.ege-person__seasons tbody tr + tr { border-top: 1px solid rgba(29, 36, 22, .12); }
+.ege-person__seasons td { font-weight: 700; }
+.ege-person__seasons .ege-person__seasonmark { width: 28px; padding-left: 0; padding-right: 4px; }
+.ege-person__seasonmark img { display: block; width: 24px; height: 24px; object-fit: contain; }
+.ege-person__seasons .ege-person__seasonyear,
+.ege-person__seasons thead th:nth-child(2) { text-align: left; }
+.ege-person__seasons .ege-person__seasonyear { font-weight: 800; }
 .ege-person__rating {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
-  gap: 14px;
-  padding-bottom: 12px;
-  border-bottom: var(--fb-border-thin) solid rgba(29, 36, 22, .2);
 }
-.ege-person__rating .ege-ovrbox--chip { width: 64px; }
-.ege-person__rating .ege-ovrbox--chip .ege-ovrbox__value { font-size: 1.75rem; }
 .ege-person__arch { display: block; margin-bottom: 8px; font-family: var(--fb-font-display); font-size: 1.125rem; }
 .ege-person__skills { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .ege-person__skill {
@@ -4919,14 +5006,24 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
 @media (max-width: 520px) {
   .ege-person__band { --face-h: 80px; gap: 8px; padding: 0 10px; }
   .ege-person__mark { width: 52px; height: 52px; }
+  .ege-person__band .ege-ovrbox--chip { width: 50px; padding: 4px 3px 5px; }
+  .ege-person__band .ege-ovrbox--chip .ege-ovrbox__value { font-size: 1.375rem; }
+  .ege-person__seasons { font-size: .75rem; }
+  .ege-person__seasons th,
+  .ege-person__seasons td { padding: 4px 3px; }
+  .ege-person__seasons .ege-person__seasonmark { width: 24px; padding-right: 3px; }
+  .ege-person__seasonmark img { width: 20px; height: 20px; }
+  .ege-person--player .ege-person__body { gap: 20px; padding: 16px 12px 18px; }
   .ege-person__facts { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .ege-person__fact { grid-column: span 2; }
   .ege-person__fact:nth-child(-n+2) { grid-column: span 3; }
   .ege-person__body { padding: 12px; }
 }
 /* A pick's pop-up: no headshot, so the band is as tall as the mark, the
-   name centred between two columns as wide as it; four facts a line. */
+   name centred between two columns as wide as it; four facts a line, and
+   a rule under them. */
 .ege-person--pick .ege-person__band { --face-w: 76px; padding: 10px 14px; }
+.ege-person--pick .ege-person__facts { padding-bottom: 12px; border-bottom: var(--fb-border-thin) solid rgba(29, 36, 22, .2); }
 .ege-person--pick .ege-person__face { height: auto; margin: 0; }
 .ege-person--pick .ege-person__facts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .ege-person--pick .ege-person__fact,

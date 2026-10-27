@@ -679,7 +679,9 @@ EGE.nflSimAdmin = (function () {
   }
 
   /* Puts a stored week out the way the Weeks tab's Publish does: the week,
-     the credits and diamonds it pays, and the Discord posts. */
+     the credits and diamonds it pays, and the Discord posts. Then the
+     rosters again, so the players' pop-ups count the week in their season
+     lines (publicRosters takes off every week not out yet). */
   function publishStored(at, label) {
     if (state.busy || !EGE.adminWeeks) { return; }
     state.busy = true;
@@ -688,6 +690,12 @@ EGE.nflSimAdmin = (function () {
     EGE.adminWeeks.publish(at.season, at.week).then(function (res) {
       if (res && !res.ok) { state.error = res.message; return; }
       state.last = { title: label + ' is out', lines: res && res.message ? [res.message] : [] };
+      return Promise.resolve().then(function () {
+        var league = openLeague();
+        if (league.season === at.season) { return publishRosters(league); }
+      }).catch(function (err) {
+        state.last.lines.push('The rosters did not go out again: ' + (err.message || err));
+      });
     }, function (err) {
       state.error = err.message || String(err);
     }).then(function () {
