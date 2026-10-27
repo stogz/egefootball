@@ -464,8 +464,10 @@ Under the bar:
   picture; every headshot is placed the same way. The name is centred
   between the headshot and the overall, and a
   name too long for its column is set smaller rather than broken inside a
-  word (`fitName`). Then college, draft
-  (*2021 · R4 #112*), age, height and weight; then **a line a season**
+  word (`fitName`). Under the band the pop-up is in four parts, each
+  under a centred title between two rules (Sam, 2026-10-26): **Bio**,
+  **Stats**, **Ratings** and **More**. Bio is college, draft
+  (*2021 · R4 #112*), age, height and weight; Stats is **a line a season**
   from 2025 on (Sam, 2026-10-26: the first season the sim kept everybody's
   numbers), oldest first: the mark of the team he finished it with, the
   season, his age, and his position's numbers (QB G, CMP%, YDS, TD, INT,
@@ -478,8 +480,8 @@ Under the bar:
   the game log's box scores, and the rosters go out again when a week is
   published (the NFL Sim tab's Publish, the Weeks tab's when the sim is
   loaded, or an admin's visit to a team page when `linesThrough` is behind).
-  Then the archetype and his skills, best first;
-  then his contract (*$1.1M a year through 2024*) and any injury. One of the
+  Ratings is the archetype and his skills, best first;
+  More is his contract (*$1.1M a year through 2024*) and any injury. One of the
   six's has a button through to his page. A click off the box closes it.
   Nothing private is in the rosters: no team ratings, no potential, nothing
   about how long a player will last. Since 2026-10-21 they carry every
