@@ -760,11 +760,14 @@ season, and the six's teams are orange.
 
 **The Free Agency Tracker** comes after a gap under the standings, titled
 for the season after the one the search has (*2027 Free Agency Tracker*
-all through 2026). Under the title, the **Biggest Buyers**: the six teams
+all through 2026). Its head is ESPN's red with their mark in white before
+the title (`icon/espn-white.png`, cut from the logo Sam sent) and a
+**LIVE** badge at the other end, its light blinking (still for anybody
+whose device asks for less motion). Under the title, the **Biggest Buyers**: the six teams
 with the most cap space next season, its cap less every contract that runs
 into it (as their payrolls on the Teams pages have it), each its mark, its
 city and the money in green, straight on the panel with no box, a link
-to its page. Six across, three on a narrow screen, two on a phone.
+to its page (the city turns orange under the pointer). Six across, three on a narrow screen, two on a phone.
 
 Then every player on a roster whose contract runs out with the season the
 search has (the latest live one, `contract.through`), the six included,

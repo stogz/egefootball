@@ -4403,6 +4403,40 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
    his name. */
 .ege-league__fa { margin-bottom: 64px; }
 .ege-league__fasorts { margin: 0 0 18px; }
+/* The tracker's head in ESPN's red (Sam, 2026-10-30): their mark in
+   white before the title, and LIVE at the other end with its light
+   blinking, still for anybody who has asked for less motion. */
+.ege-league__fa > .fb-panel__head { flex-wrap: nowrap; background: #e52534; color: #fff; }
+.ege-league__fatitle { display: flex; align-items: center; gap: 12px; min-width: 0; color: #fff; }
+.ege-league__espn { flex: none; width: 80px; height: auto; }
+.ege-live {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 9px 4px 8px;
+  border: var(--fb-border-thin) solid #fff;
+  font-size: .6875rem;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: #fff;
+}
+.ege-live__dot { width: 9px; height: 9px; border-radius: 50% !important; background: #fff; animation: ege-live-blink 1.4s ease-in-out infinite; }
+@keyframes ege-live-blink {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255, 255, 255, .7); }
+  50% { opacity: .25; box-shadow: 0 0 0 4px rgba(255, 255, 255, 0); }
+}
+@media (prefers-reduced-motion: reduce) { .ege-live__dot { animation: none; } }
+/* On a phone the title smaller, onto two lines if it must, so LIVE
+   keeps to its end of the head. */
+@media (max-width: 520px) {
+  .ege-league__fa .ege-league__fatitle { gap: 9px; font-size: 1.0625rem; line-height: 1.15; }
+  .ege-league__espn { width: 54px; }
+  .ege-live { gap: 5px; padding: 3px 6px; font-size: .625rem; letter-spacing: .1em; }
+  .ege-live__dot { width: 7px; height: 7px; }
+}
+
 /* The biggest buyers under the title: six teams across, three on a
    narrow screen and two on a phone, each its mark, its city and its cap
    space next season in green, on the panel itself with no box (Sam,
@@ -4412,7 +4446,7 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-league__buyerlist { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px 16px; margin: 0; padding: 0; list-style: none; }
 @media (max-width: 960px) { .ege-league__buyerlist { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .ege-buyer { display: flex; align-items: center; gap: 10px; color: var(--fb-ink); text-decoration: none; }
-@media (hover: hover) { .ege-buyer:hover .ege-buyer__name { text-decoration: underline; } }
+@media (hover: hover) { .ege-buyer:hover .ege-buyer__name { color: var(--fb-accent); } }
 .ege-buyer:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: 2px; }
 .ege-buyer .ege-game__logo { flex: none; width: 32px; height: 32px; }
 .ege-buyer__text { display: flex; flex-direction: column; min-width: 0; }
