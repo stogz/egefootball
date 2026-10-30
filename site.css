@@ -2794,6 +2794,11 @@ body::before {
   column-gap: 32px;
 }
 
+/* The NFL's, seven columns of cities: on a phone, wide enough for the
+   longest of them in one word -- Philadelphia, Jacksonville -- in bold
+   beside a seed and a score. */
+.ege-bracket--nfl { min-width: calc(var(--columns) * 152px + 8px); }
+
 /* The dark band, set the way the schedule's and the game log's heading rows
    are -- the site's ink, cream capitals -- and exactly as tall as theirs: a
    table heading is 11px of padding, a line of 10px capitals, and 11px more.

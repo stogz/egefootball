@@ -26,6 +26,8 @@ const { playerFit, teamFit } = require('./fit');
 const { OFFENSE, DEFENSE } = require('./schemes');
 const { board } = require('./draft-plan');
 const { seasons, rostersIn } = require('./history');
+const { standings } = require('./standings');
+const { nextRound, lastWeek, ROUNDS } = require('./season');
 
 /* The sim's key for a team the six play for on the site ('detroit' is DET). */
 function simKey(siteKey) { return KEYS.filter((k) => TEAMS[k].site === siteKey)[0] || null; }
@@ -280,6 +282,102 @@ function simResults(league, season) {
       neutral: g.neutral || undefined
     }))
   };
+}
+
+/* ------------------------------------------------------ out: the playoffs -- */
+
+/* The playoff draw of `season`, the site's NFL bracket (data/brackets.js),
+   for the rosters to carry (playoffsOut): a round at a time from the Wild
+   Card, each game with both teams by name, their seeds in their
+   conference, and the score once it is played. The Wild Card has each
+   conference's top seed in it too, as a bye, so the whole field is there
+   from the first round. The round the league plays next is in it before it
+   is played, without scores; each round knows which it is (`played`).
+
+   [{ week, round, played, games: [{ week, round, conf, home, away, seeds,
+   score, overtime, neutral, bye }] }], oldest first, or null before the
+   regular season is over. `conf` is the Super Bowl's 'SB'.
+
+   The seeds are the league's own while it is in that season's playoffs or
+   just past them. A season behind it has had its playoffs put away, so its
+   seeds are worked out again from its games the way they were then, and
+   the draw is only given if its Wild Card games agree with them. */
+function playoffDraw(league, season) {
+  const name = 'games-' + season + '.json';
+  const log = io.has(league.world, name) ? io.read(league.world, name) : [];
+  const ours = league.playoffs && league.playoffs.season === season && league.playoffs.seeds ? league.playoffs : null;
+  const played = log.filter((g) => g.season === season && g.playoff && g.score);
+  let seeds = ours ? ours.seeds : null;
+  if (!seeds) {
+    if (!played.length) { return null; }
+    seeds = standings(log.filter((g) => g.season === season && !g.playoff && g.score), season).seeds;
+  }
+  const seedOf = (key) => {
+    const at = seeds.AFC.indexOf(key);
+    return at !== -1 ? at + 1 : seeds.NFC.indexOf(key) + 1;
+  };
+  const entry = (g, round, week) => {
+    const out = {
+      week, round, conf: round === 'Super Bowl' ? 'SB' : TEAMS[g.home].conf,
+      home: TEAMS[g.home].name, away: TEAMS[g.away].name, seeds: [seedOf(g.home), seedOf(g.away)]
+    };
+    if (g.score) { out.score = g.score.slice(); }
+    if (g.ot) { out.overtime = true; }
+    if (g.neutral) { out.neutral = true; }
+    return out;
+  };
+
+  const rounds = [];
+  played.map((g) => g.week).filter((week, i, all) => all.indexOf(week) === i).sort((a, b) => a - b).forEach((week) => {
+    const games = played.filter((g) => g.week === week);
+    const round = games[0].round;
+    rounds.push({ week, round, played: true, games: games.map((g) => entry(g, round, week)) });
+  });
+  if (ours && league.phase === 'playoffs' && ours.rounds.length < ROUNDS.length) {
+    const round = ROUNDS[ours.rounds.length];
+    const week = lastWeek(league) + ours.rounds.length + 1;
+    rounds.push({ week, round, played: false, games: nextRound(league).map((g) => entry(g, round, week)) });
+  }
+  if (!rounds.length || rounds[0].round !== ROUNDS[0]) { return null; }
+
+  const opening = rounds[0];
+  const agrees = ['AFC', 'NFC'].every((conf) => [[2, 7], [3, 6], [4, 5]].every((pair) =>
+    opening.games.some((g) => g.conf === conf && g.seeds.join() === pair.join())));
+  if (!agrees) { return null; }
+  ['AFC', 'NFC'].forEach((conf) => {
+    opening.games.push({ week: opening.week, round: opening.round, conf, home: TEAMS[seeds[conf][0]].name, away: null,
+                         seeds: [1, null], bye: true });
+  });
+  return rounds;
+}
+
+/* Every season's playoff draw as far as the website has put it out, for
+   the bracket on the pages of the six whose teams made it (Sam,
+   2026-10-26): a round's games once the week before it is out, so the
+   field is there the moment the regular season's last week is, and their
+   scores once the round's own week is. Worked out again every time the
+   rosters go out, the way the season lines are, so nothing is out before
+   its week. { season: [game] }, each game as playoffDraw gives it. */
+function playoffsOut(league, site) {
+  const isOut = (season, week) => Boolean(site && site.isPublished && site.isPublished(season, week));
+  const out = {};
+  for (let season = 2023; season <= league.season; season += 1) {
+    const games = [];
+    (playoffDraw(league, season) || []).forEach((r) => {
+      if (!isOut(season, r.week - 1)) { return; }
+      const scored = r.played && isOut(season, r.week);
+      r.games.forEach((g) => {
+        const game = Object.assign({}, g);
+        if (!scored) {
+          delete game.score;
+          delete game.overtime;
+        }
+        games.push(game);
+      });
+    });
+    if (games.length) { out[season] = games; }
+  }
+  return out;
 }
 
 /* data/nfl-results.js: every season the sim has written, this one replaced
@@ -595,7 +693,8 @@ const CAP_YEARS = 4;
    stars, and its status (Sam, 2026-10-21: for everybody to see). Each
    player carries his seasons from 2025 on, for his pop-up (seasonLines),
    and `linesThrough` says how far into this season they count, so the
-   site can have them published again once another week is out. */
+   site can have them published again once another week is out. Every
+   season's playoff draw comes too, as far as it is out (playoffsOut). */
 function publicRosters(league) {
   let site = null;
   try { site = io.site(); } catch (err) { site = null; }
@@ -655,7 +754,7 @@ function publicRosters(league) {
   });
   return { season: league.season, phase: league.phase, week: league.week || null, savedAt: new Date().toISOString(), caps, systems,
            picks, linesThrough: lines.through[league.season] || 0, teams, freeAgents: freeAgents(league, site, lines),
-           retired: retiredPlayers(league, site, lines) };
+           retired: retiredPlayers(league, site, lines), playoffs: playoffsOut(league, site) };
 }
 
 function siteCollege(site, p) {
@@ -716,4 +815,5 @@ function retiredPlayers(league, site, lines) {
     });
 }
 
-module.exports = { siteResults, sixEdits, seasonFileText, simResults, resultsFileText, siteFiles, weekRows, boxRows, publicRosters, seasonLines, simKey };
+module.exports = { siteResults, sixEdits, seasonFileText, simResults, playoffDraw, playoffsOut, resultsFileText, siteFiles, weekRows, boxRows,
+                   publicRosters, seasonLines, simKey };

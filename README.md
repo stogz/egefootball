@@ -363,7 +363,11 @@ his name beside it in a column of its own, so they line up from card to
 card, and *View team →* on the right edge; narrower, they stack under the
 name and the faces go without the names. Above them is a season switcher
 across the full width of the page, as on a team's page — every college or
-NFL season, with ‹ and ›, starting on the live one.
+NFL season, with ‹ and ›, starting on the live one. A team is on the index
+for the team one of the six finished that season with, or is on now: when
+one of them is traded, the team he left drops off the moment the trade is
+made, unless another of the six is still there (Sam, 2026-10-26). The
+team's own page for that season still has the games he played for it.
 
 **A team's page, `#teams/{school}`** — `#teams/ohio-state` — has what a
 player page has above it: *← All Teams* and the season switcher, a
@@ -2426,8 +2430,9 @@ before it stays as he played it, for the team he played it for. The NFL Sim
 tab stores a trade in Supabase (`sim_trades`) with the new team's games
 until **Download the season files** writes it in. His schedule says
 *Traded to Dallas* above the first game for the new team, the team pages
-of that season list him on both, and a team he joined or left mid-season
-shows its own record rather than his.
+of that season list him on both (the Teams index only the one he is on
+now), and a team he joined or left mid-season shows its own record rather
+than his.
 
 `result` and `stats` are null until a game has been played. Nothing generates
 them — the numbers come from wherever you generate them and are typed in, by
@@ -2538,6 +2543,26 @@ The draws themselves — the seeds and the first-round matchups — are in
 the season switcher still shows 2018's draw when you look back at 2018. A
 school with no entry for a season (Bloomington in 2019, Carlsbad in 2018) has
 no Tournament switch that season.
+
+**The NFL's bracket is not written in by hand.** The NFL sim draws it when
+its regular season ends — seven teams a conference, seeded the way it
+seeds them (`nfl-sim/lib/site.js` `playoffDraw`) — and it goes out with
+the rosters the Teams pages read (`playoffs`, every season's draw so far),
+worked out again each time they are sent, so a round's matchups are in
+once the week before it is published and its scores once its own week is:
+nothing is out early. A player whose team made the playoffs (the one he
+finished the season with, after a trade) gets the Tournament switch as soon
+as the regular season's last week is published, and nobody else does. The
+AFC is down the left and the NFC down the right, the top seed's Wild Card
+bye included, teams by city; the rounds are Wild Card, Divisional,
+Conference Championship and the Super Bowl by number. The league reseeds
+after the Wild Card, so once its scores are out the game whose winner the
+top seed plays moves up beside his bye and every line still runs into the
+game its winner played. His own games are read off his season file like
+any other bracket's. Seasons played before the draw went out with the
+rosters (2023 to 2025) are worked out again from the sim's game logs, and
+appear once an admin has the rosters sent again — any step on the NFL Sim
+tab, Update rosters now, or an admin opening an NFL player's page.
 
 A new season is a new file and one more year in the `SEASONS` list at the top
 of `js/site-data.js`. The bot finds them on its own. A season's file can go in

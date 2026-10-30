@@ -423,6 +423,5 @@ function draftOrder(league) {
   });
 }
 
-module.exports = { startSeason, playWeek, playRound, importWeeks, startPlayoffs, draftOrder, readWorld, writeWorld, lastWeek, lastPlaces,
-                   startedShare,
-                   DEADLINE_WEEK, ROUNDS };
+module.exports = { startSeason, playWeek, playRound, importWeeks, startPlayoffs, nextRound, draftOrder, readWorld, writeWorld, lastWeek,
+                   lastPlaces, startedShare, DEADLINE_WEEK, ROUNDS };
