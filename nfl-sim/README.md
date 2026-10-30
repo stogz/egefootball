@@ -856,7 +856,10 @@ games out until the week before it is published and their scores until its
 own week is); and since 2026-10-30 the season's regular-season `schedule`
 (`scheduleOut`: each game's week and teams, no scores, null in the draft
 while the schedule kept is last season's) for the League page's weeks to
-come). `lib/io.js` is what makes that
+come); and for its upcoming free agents, on everybody whose contract runs
+out with the season, what the market would pay him next season (`market`,
+`marketPay`) and up to three teams likeliest to want him (`interest`,
+`six-offers.js interested`). `lib/io.js` is what makes that
 work: everything the sim reads or writes goes through it, to files on the
 command line and to memory, filled from Supabase, on the page.
 `build/bundle.js` writes `js/nfl-sim.js`, every module in `lib/` and the data

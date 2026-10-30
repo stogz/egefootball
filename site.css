@@ -4398,6 +4398,26 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-league__bar .ege-league__season { flex: 0 1 240px; }
 .ege-league__games { margin-bottom: 22px; }
 .ege-league__standings { margin-bottom: 64px; }
+/* The upcoming free agents, a gap either side: the position and the sort
+   over the cards, and each card the teams likeliest to want him under
+   his name. */
+.ege-league__fa { margin-bottom: 64px; }
+.ege-league__fasorts { margin: 0 0 18px; }
+.ege-teamchip__interest { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.ege-teamchip__interest .ege-game__logo { width: 20px; height: 20px; }
+/* The name over the suitors, the photo and the boxes either side of both.
+   A card too narrow for the row runs it on under the boxes. */
+.ege-teamchip.has-interest { grid-template-rows: auto auto; row-gap: 5px; }
+.ege-teamchip.has-interest .ege-teamchip__photo { grid-row: 1 / 3; }
+.ege-teamchip.has-interest .ege-teamchip__text { grid-column: 2; grid-row: 1; align-self: end; }
+.ege-teamchip.has-interest .ege-teamchip__end { grid-column: 3; grid-row: 1 / 3; }
+.ege-teamchip.has-interest .ege-teamchip__interest { grid-column: 2; grid-row: 2; align-self: start; }
+.ege-league__fa .ege-room__player { container-type: inline-size; }
+@container (max-width: 380px) {
+  .ege-teamchip.has-interest .ege-teamchip__end { grid-row: 1; }
+  .ege-teamchip.has-interest .ege-teamchip__interest { grid-column: 2 / 4; }
+}
+.ege-teamchip__label { font-size: .5625rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--fb-muted); }
 .ege-league__note { max-width: 640px; margin: 0 auto; background: var(--fb-cream); text-align: center; }
 .ege-league__grid {
   display: grid;
@@ -4986,22 +5006,25 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
 .ege-nflstand__team.is-ours:hover { background: var(--fb-tint-clay-2); }
 .ege-nflstand__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ege-nflstand__record { flex: none; margin-left: 10px; font-variant-numeric: tabular-nums; }
-/* The League's: IN or OUT in a column of its own before the record, a team
-   that is out faded, and the streak in a column after it. */
+/* The League's: X, Z or E in a square of its own before the record (X in
+   green, Z in ink, E outlined with the team faded), and the streak in a
+   column after it. */
 .ege-nflstand__mark {
   flex: none;
-  width: 34px;
+  box-sizing: border-box;
+  width: 18px;
+  height: 18px;
   margin-left: 8px;
-  padding: 2px 0;
-  font-size: .5625rem;
+  font-size: .6875rem;
   font-weight: 800;
-  letter-spacing: .1em;
-  line-height: 1.2;
+  line-height: 18px;
   text-align: center;
+  cursor: default;
 }
-.ege-nflstand__mark.is-in { background: #2e7d32; color: #fff; }
-.ege-nflstand__mark.is-out { border: var(--fb-border-thin) solid var(--fb-muted-2); color: var(--fb-muted); }
-.ege-nflstand__team.is-out > :not(.ege-nflstand__mark) { opacity: .6; }
+.ege-nflstand__mark.is-x { background: #2e7d32; color: #fff; }
+.ege-nflstand__mark.is-z { background: var(--fb-ink); color: var(--fb-cream); }
+.ege-nflstand__mark.is-e { border: var(--fb-border-thin) solid var(--fb-muted-2); color: var(--fb-muted); line-height: 14px; }
+.ege-nflstand__team.is-e > :not(.ege-nflstand__mark) { opacity: .6; }
 .ege-nflstand__streak { flex: none; width: 2.75em; text-align: right; font-variant-numeric: tabular-nums; }
 /* Two more columns a box than the Teams page's: a little wider, so a city
    fits beside them. Too narrow and it is cut short, never pushed out. */

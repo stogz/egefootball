@@ -239,7 +239,10 @@
          Close under it the standings: every division as it stood after the
          week on show, each team's streak beside its record, and who has
          clinched a playoff spot or been knocked out of one.
-         Then, after a gap, the search: any player as you type, as the cards a team's page
+         After a gap the upcoming free agents: everybody whose contract runs
+         out this season, with his market value and the teams likeliest to
+         want him, a position and a sort, and Show more.
+         Then the search: any player as you type, as the cards a team's page
          draws, each opening his pop-up -- the free agents and the retired
          too, the retired greyed and marked. With nothing typed, every player
          best first. Under the box, a position and a sort. The query rides in
@@ -262,6 +265,19 @@
       </div>
       <div class="ege-league__games" id="leagueGames"></div>
       <div class="ege-league__standings" id="leagueStandings" hidden></div>
+      <section class="fb-panel ege-league__fa" id="leagueFreeAgents" hidden>
+        <div class="fb-panel__head">
+          <h3>Upcoming Free Agents</h3>
+        </div>
+        <div class="fb-panel__body">
+          <div class="ege-search__sorts ege-league__fasorts">
+            <select class="fb-select ege-filterselect" id="faPos" aria-label="Position"></select>
+            <select class="fb-select ege-filterselect" id="faSort" aria-label="Sort"></select>
+          </div>
+          <ol class="ege-room__list ege-search__list" id="faList"></ol>
+          <button type="button" class="fb-btn fb-btn--sm ege-search__more" id="faMore" hidden>Show more</button>
+        </div>
+      </section>
       <div class="ege-search" id="leagueSearch">
         <div class="ege-search__box">
           <svg class="ege-search__icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">

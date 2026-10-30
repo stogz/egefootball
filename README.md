@@ -742,19 +742,45 @@ team's streak beside its record in green or red (*W6*, *L2*), counted the
 way the division table counts it. A team is a link to its page for that
 season, and the six's teams are orange.
 
-- **IN** (green) marks a team that has clinched a playoff spot and **OUT**
-  (outlined, the row faded) one eliminated from it, as the season goes:
-  seven a conference, the four division winners and three wild cards.
-  Worked out on wins alone (`nflPlayoffMarks`), every tie going against the
-  team for IN and for it for OUT, so a team is only marked once it is
-  certain, sometimes a week after the NFL would say so on its tie-breaks.
-  IN: losing out, no division rival can reach its wins, or at most two
-  teams that will not win their division can finish level with it or
-  better. OUT: winning out, a division rival already has more wins than it
-  can reach, and three teams that will not win their division already have
-  more too. Once all 17 games are played, the playoff draw decides.
+- A letter before the record marks where a team stands on the playoffs,
+  as the season goes (Sam, 2026-10-30): **X** (green) has clinched a spot,
+  **Z** (ink) has clinched its conference's first seed and the Wild Card
+  bye, and **E** (outlined, the row faded) is eliminated. Seven a
+  conference: the four division winners and three wild cards. Worked out on
+  wins alone (`nflPlayoffMarks`), every tie going against the team for X
+  and Z and for it for E, so a team is only marked once it is certain,
+  sometimes a week after the NFL would say so on its tie-breaks.
+  Z: losing out, no other team in the conference can reach its wins.
+  X: losing out, no division rival can reach its wins, or at most two teams
+  that will not win their division can finish level with it or better.
+  E: winning out, a division rival already has more wins than it can
+  reach, and three teams that will not win their division already have
+  more too. Once all 17 games are played, the playoff draw decides: the
+  byes are Z, the rest of the field X, everybody else E.
 
-**The search** comes after a gap under the standings: one box with a
+**Upcoming free agents** come after a gap under the standings: every
+player on a roster whose contract runs out with the season the search has
+(the latest live one, `contract.through`), the six included, as the
+search's cards. A
+**Position** pick and a **Sort** pick: Overall (the default), Market
+Value, then the search's sorts. Each card has his market value in a box
+before his overall (**VALUE**, *$21M*: what the sim's market would pay him
+a year next season, `market`), or the sorted number when another sort is
+picked, and under his name the marks of up to three teams likeliest to
+want him (**INTEREST**, `interest`). A card too narrow for them (a phone)
+runs them on under the boxes. Twelve, then *Show more*.
+
+- The interest is the sim's free agency's own want (`six-offers.js
+  interested`, the formula `makeOffers` uses, its luck at its middle): the
+  team's need at his spot, whether he would start, his fit in its scheme,
+  his own team keener, a contender keener for a starter, and a rebuilding
+  team cooler on anybody 29 or older; only teams with the cap room next
+  season for most of his price, and the keenest one if none wants him
+  enough. It says nothing of who will sign him: the sim re-signs or lets
+  go everybody else at the offseason as it always has, and the six still
+  pick from their own offers.
+
+**The search** comes after another gap: one box with a
 magnifying glass at its left, players only (no teams since 2026-10-30),
 results as it is typed, and the query rides in the address
 (`#league/{query}`), so Back from a player's page comes back to the same
