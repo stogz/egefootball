@@ -4327,13 +4327,183 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-injbox__unit { margin-left: 2px; font-family: var(--fb-font-body); font-size: .5625rem; font-weight: 800; letter-spacing: .06em; }
 .ege-injbox.is-season .ege-injbox__value { font-size: .625rem; letter-spacing: .02em; }
 
+/* --- the League ------------------------------------------------------------
+
+   The football at the end of the nav (Sam, 2026-10-30). Under the title
+   the week's bar, the season beside the week; then the week's games as
+   cards, as many across as fit and one on a phone, each the score and the
+   game's leaders. A game opened is drawn in ink, and its box score takes
+   the whole row under it, the cards after it filling in around it. */
+.ege-navleague { display: inline-flex; align-items: center; }
+.ege-navleague svg { display: block; }
+.ege-league__bar { max-width: 640px; margin: 0 auto 22px; }
+.ege-league__bar .ege-league__season { flex: 0 1 150px; }
+.ege-league__games { margin-bottom: 40px; }
+.ege-league__note { max-width: 640px; margin: 0 auto; background: var(--fb-cream); text-align: center; }
+.ege-league__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-auto-flow: row dense;
+  gap: 18px;
+}
+
+.ege-game {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: var(--fb-border) solid var(--fb-ink);
+  background: var(--fb-cream);
+  box-shadow: 5px 5px 0 rgba(0, 0, 0, .35);
+  color: var(--fb-ink);
+}
+.ege-game.is-six { box-shadow: 5px 5px 0 var(--fb-accent); }
+.ege-game.is-opener { cursor: pointer; }
+.ege-game.is-opener:hover { background: var(--fb-tint-wash); }
+.ege-game.is-open { background: var(--fb-ink); color: var(--fb-cream); }
+.ege-game:focus-visible { outline: var(--fb-border) solid var(--fb-accent); outline-offset: 2px; }
+.ege-game__score { display: grid; gap: 6px; padding: 12px 14px 10px; }
+.ege-game__side { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 10px; color: var(--fb-muted); }
+.ege-game.is-open .ege-game__side { color: rgba(245, 234, 216, .62); }
+.ege-game__side.is-won,
+.ege-game.is-open .ege-game__side.is-won { color: inherit; }
+.ege-game__logo { display: block; width: 30px; height: 30px; object-fit: contain; }
+.ege-game__team { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ege-game__pts { font-family: var(--fb-font-display); font-size: 1.5rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.ege-game__ot { margin-right: 8px; font-family: var(--fb-font-body); font-size: var(--fb-label); font-weight: 800; letter-spacing: .08em; vertical-align: middle; }
+.ege-game__leaders {
+  display: grid;
+  gap: 8px;
+  padding: 10px 14px 12px;
+  border-top: var(--fb-border-thin) solid rgba(29, 36, 22, .16);
+}
+.ege-game.is-open .ege-game__leaders { border-top-color: rgba(245, 234, 216, .2); }
+.ege-game__leader { display: grid; grid-template-columns: 38px minmax(0, 1fr) 18px; align-items: center; gap: 10px; }
+.ege-game__leader .ege-teamchip__photo { width: 38px; height: 38px; font-size: .75rem; }
+.ege-game__leader .ege-game__logo { width: 18px; height: 18px; }
+.ege-game__leader.is-six .ege-teamchip__photo { box-shadow: 0 0 0 var(--fb-border-thin) var(--fb-accent); }
+.ege-game__leader.is-six .ege-game__name { color: var(--fb-accent-deep); }
+.ege-game.is-open .ege-game__leader.is-six .ege-game__name { color: var(--fb-accent); }
+.ege-game__leader--text { grid-template-columns: 38px minmax(0, 1fr); }
+.ege-game__who { display: flex; flex-direction: column; min-width: 0; }
+.ege-game__name { font-size: .8125rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ege-game__line { font-size: var(--fb-small); color: var(--fb-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ege-game.is-open .ege-game__line { color: rgba(245, 234, 216, .72); }
+.ege-game__tag { font-size: var(--fb-label); font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--fb-accent-deep); }
+
+/* The box score: the whole row under its game. */
+.ege-boxscore { grid-column: 1 / -1; padding: 18px; display: grid; gap: 22px; }
+.ege-boxscore__top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+.ege-boxscore__sides { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+.ege-boxscore__team { display: grid; gap: 14px; min-width: 0; }
+.ege-boxscore__teamhead { font-size: 1.3125rem; }
+.ege-boxscore__teamlink { display: inline-flex; align-items: center; gap: 10px; color: var(--fb-ink); }
+.ege-boxscore__teamlink:hover { color: var(--fb-accent-deep); }
+.ege-boxscore__teamlink .ege-game__logo { width: 28px; height: 28px; }
+.ege-boxscore__switch { display: none; }
+.ege-boxscore__top > :only-child { grid-column: 1 / -1; }
+.ege-boxscore__col { display: grid; gap: 16px; min-width: 0; }
+.ege-boxscore__wrap { background-color: var(--fb-cream); }
+.ege-boxscore__table { min-width: 0; font-size: .8125rem; }
+.ege-boxscore__table th { padding: 8px 8px; }
+.ege-boxscore__table th:first-child { color: var(--fb-accent); }
+.ege-boxscore__table td { padding: 6px 8px; white-space: nowrap; }
+.ege-boxscore__table tbody tr { cursor: default; }
+.ege-boxscore__table tbody tr:hover { background: none; }
+.ege-boxscore__table tbody tr:nth-child(even):hover { background: rgba(32, 38, 26, .045); }
+.ege-boxscore__table tbody tr.is-six { background: var(--fb-tint-clay); }
+/* The name takes what the numbers leave, cut short before they are. */
+.ege-boxscore__lines td:first-child { width: 100%; max-width: 0; }
+.ege-boxscore__player { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.ege-boxscore__player .ege-teamchip__photo { flex: none; width: 28px; height: 28px; font-size: .625rem; }
+.ege-boxscore__player > .ege-boxscore__name { min-width: 0; }
+.ege-boxscore__short { display: none; }
+.ege-boxscore__name {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fb-ink);
+  font: inherit;
+  font-weight: 800;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+button.ege-boxscore__name,
+a.ege-boxscore__name { cursor: pointer; }
+button.ege-boxscore__name:hover,
+a.ege-boxscore__name:hover { color: var(--fb-accent-deep); text-decoration: underline; }
+.ege-boxscore__pos { flex: none; font-size: var(--fb-label); font-weight: 800; letter-spacing: .06em; color: var(--fb-muted); }
+.ege-boxscore__teamcell { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; }
+.ege-boxscore__teamcell .ege-game__logo { width: 22px; height: 22px; }
+.ege-boxscore__quarters td:first-child { width: 100%; }
+.ege-boxscore__quarters .num { min-width: 34px; }
+.ege-boxscore__quarters tbody tr { color: var(--fb-muted); }
+.ege-boxscore__quarters tbody tr.is-won { color: var(--fb-ink); }
+.ege-boxscore__total { font-weight: 800; }
+.ege-boxscore__compare th:nth-child(2),
+.ege-boxscore__compare td:nth-child(2) { text-align: center; }
+.ege-boxscore__compare td.ege-boxscore__away { text-align: left; }
+.ege-boxscore__compare th:first-child .ege-boxscore__teamcell,
+.ege-boxscore__compare th:last-child .ege-boxscore__teamcell { color: var(--fb-cream); }
+.ege-boxscore__compare th:last-child { text-align: right; }
+.ege-boxscore__stat { font-size: var(--fb-label); font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--fb-muted); }
+.ege-boxscore__scoring th .ege-game__logo,
+.ege-boxscore__scoring .ege-boxscore__play .ege-game__logo,
+.ege-boxscore__hurt .ege-game__logo { width: 20px; height: 20px; flex: none; }
+.ege-boxscore__scoring th .ege-game__logo { display: inline-block; vertical-align: middle; }
+.ege-boxscore__when { font-weight: 800; color: var(--fb-muted); }
+.ege-boxscore__play { display: flex; align-items: center; gap: 8px; white-space: normal; }
+.ege-boxscore__table td.is-zero { color: var(--fb-muted-2); }
+.ege-boxscore__scoring td:nth-child(2) { width: 100%; }
+.ege-boxscore__scoring td.is-scored { font-weight: 800; }
+.ege-boxscore__hurt td:first-child { width: 50%; }
+.ege-boxscore__hurt td:nth-child(2) { white-space: normal; }
+.ege-boxscore__scoring td:nth-child(2),
+.ege-boxscore__hurt td:first-child { white-space: normal; }
+.ege-boxscore__leaders { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0; }
+.ege-boxscore__leaders dt { font-size: var(--fb-label); font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--fb-accent-deep); }
+.ege-boxscore__leaders dd { margin: 0; }
+
+/* Narrower: the scoring over the teams' numbers; on a phone, one team's
+   players at a time. */
+@media (max-width: 900px) {
+  .ege-boxscore__top { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .ege-boxscore { padding: 12px; gap: 16px; }
+  .ege-boxscore__switch { display: flex; margin-left: 0; }
+  .ege-boxscore__switch .ege-switch__option { flex: 1 1 0; }
+  .ege-boxscore__switch .ege-switch__option span { text-align: center; padding: 9px 10px; }
+  .ege-boxscore__sides { grid-template-columns: minmax(0, 1fr); }
+  .ege-boxscore__sides[data-show='away'] .ege-boxscore__team--home,
+  .ege-boxscore__sides[data-show='home'] .ege-boxscore__team--away { display: none; }
+  .ege-league__grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .ege-boxscore__table { font-size: .75rem; }
+  .ege-boxscore__table th { padding: 8px 5px; }
+  .ege-boxscore__table td { padding: 6px 5px; }
+  .ege-boxscore__table th:first-child,
+  .ege-boxscore__table td:first-child { padding-left: 8px; }
+  .ege-boxscore__table th:last-child,
+  .ege-boxscore__table td:last-child { padding-right: 8px; }
+  .ege-boxscore__player { gap: 6px; }
+  .ege-boxscore__player .ege-teamchip__photo { width: 24px; height: 24px; }
+  .ege-boxscore__full,
+  .ege-boxscore__pos { display: none; }
+  .ege-boxscore__short { display: inline; }
+}
+/* The season and the week side by side on a phone: room for "Conference
+   Championships" in the week, the season only as wide as a year. */
+@media (max-width: 620px) {
+  .ege-league__bar { gap: 6px; }
+  .ege-league__bar .ege-league__season { flex: 0 0 96px; }
+  .ege-league__bar .ege-seasonbar__pick { padding: 0 26px 0 10px; background-position: right 9px center; font-size: 15px; }
+}
+
 /* --- the search ------------------------------------------------------------
 
-   The magnifying glass at the end of the nav, the box under the page's
-   title, and the results: teams, then players, two cards across like a
-   team's rooms and one on a phone. */
-.ege-navsearch { display: inline-flex; align-items: center; }
-.ege-navsearch svg { display: block; }
+   The box under the League's games, and the results: teams, then players,
+   two cards across like a team's rooms and one on a phone. */
 .ege-search { max-width: 640px; margin: 0 auto 26px; }
 /* The position and the sort, side by side under the box. */
 .ege-search__sorts { display: flex; gap: 10px; margin-top: 12px; }

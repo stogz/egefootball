@@ -424,6 +424,66 @@ function weekRows(league, season) {
   };
 }
 
+/* ------------------------------------------------------ out: box scores -- */
+
+/* Every game the sim has played, a row a week, for the League page (Sam,
+   2026-10-30): sim_box_scores, which nobody but an admin can read until
+   the week is published. { season, week, games, digest }, oldest first.
+   Each game is its score, both teams' numbers ([home, away], as the score
+   is), every player's line, the scoring plays and who got hurt, in the
+   order the schedule has them. A player is his name, position and team,
+   with his ESPN id for his headshot and which of the six he is: never the
+   sim's own id. A game played before the box scores were kept has its
+   leaders instead. Weeks taken in from the site are the site's, and left
+   out. `digest` changes whenever anything in the row does, so the NFL Sim
+   tab writes only the weeks that changed. */
+function boxRows(league) {
+  const rows = [];
+  for (let season = 2023; season <= league.season; season += 1) {
+    const name = 'games-' + season + '.json';
+    if (!io.has(league.world, name)) { continue; }
+    const weeks = {};
+    io.read(league.world, name).filter((g) => g.season === season && !g.imported && g.score).forEach((g) => {
+      const game = { home: g.home, away: g.away, score: g.score };
+      if (g.ot) { game.ot = true; }
+      if (g.neutral) { game.neutral = true; }
+      if (g.round) { game.round = g.round; }
+      if (g.box) {
+        game.teams = (g.teams || []).map((t) => Object.assign({}, t, t.top ? { top: Math.round(t.top) } : {}));
+        game.box = g.box.map((l) => {
+          const p = l.id ? league.byId.get(l.id) : null;
+          const line = { name: l.name, pos: l.pos, team: l.team };
+          if (p && p.espn) { line.espn = String(p.espn); }
+          if (l.ege || (p && p.ege)) { line.ege = l.ege || p.ege; }
+          Object.keys(l).forEach((k) => { if (typeof l[k] === 'number') { line[k] = l[k]; } });
+          return line;
+        });
+      } else {
+        game.leaders = { passing: g.passing || [], rushing: g.rushing || [], receiving: g.receiving || [] };
+      }
+      game.scoring = g.scoring || [];
+      game.injuries = g.injuries || [];
+      (weeks[g.week] || (weeks[g.week] = [])).push(game);
+    });
+    Object.keys(weeks).map(Number).sort((a, b) => a - b).forEach((week) => {
+      rows.push({ season, week, games: weeks[week], digest: digest(JSON.stringify(weeks[week])) });
+    });
+  }
+  return rows;
+}
+
+/* Two 32-bit FNV-1a hashes of the text, run different ways, as hex. */
+function digest(text) {
+  let a = 0x811c9dc5;
+  let b = 0x01000193;
+  for (let i = 0; i < text.length; i += 1) {
+    const c = text.charCodeAt(i);
+    a = Math.imul(a ^ c, 0x01000193);
+    b = Math.imul(b ^ c, 0x811c9dc5) + i;
+  }
+  return (a >>> 0).toString(16).padStart(8, '0') + (b >>> 0).toString(16).padStart(8, '0') + text.length.toString(16);
+}
+
 /* ---------------------------------------------------- out: season lines -- */
 
 /* The first season a player's pop-up has his numbers for (Sam, 2026-10-26):
@@ -652,4 +712,4 @@ function retiredPlayers(league, site, lines) {
     });
 }
 
-module.exports = { siteResults, sixEdits, seasonFileText, simResults, resultsFileText, siteFiles, weekRows, publicRosters, seasonLines, simKey };
+module.exports = { siteResults, sixEdits, seasonFileText, simResults, resultsFileText, siteFiles, weekRows, boxRows, publicRosters, seasonLines, simKey };

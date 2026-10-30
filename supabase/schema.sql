@@ -3619,3 +3619,59 @@ grant select on public.sim_trades to anon, authenticated;
 grant select, insert, update, delete on public.sim_trades to authenticated;
 
 notify pgrst, 'reload schema';
+
+-- ---------------------------------------------------------------------------
+-- Every NFL game's box score, for the League page
+--
+-- One row a week the NFL sim played (Sam, 2026-10-30): every game's score,
+-- both teams' numbers, every player's line, the scoring plays and who got
+-- hurt (nfl-sim/lib/site.js boxRows). Nothing private: a player is his
+-- name, position, team and ESPN id, never the sim's own id or ratings.
+-- The NFL Sim tab keeps these in line with the world after every step,
+-- `digest` telling it which weeks changed without reading them back.
+-- Nobody but an admin reads a week until it is published, so a score, a
+-- line or an injury is never out before its week is.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.sim_box_scores (
+  season   integer     not null check (season between 2023 and 2100),
+  week     integer     not null check (week between 1 and 40),
+  games    jsonb       not null default '[]'::jsonb,
+  digest   text        not null default '',
+  saved_at timestamptz not null default now(),
+  primary key (season, week)
+);
+
+alter table public.sim_box_scores enable row level security;
+
+drop policy if exists "sim box scores read once they are out" on public.sim_box_scores;
+create policy "sim box scores read once they are out"
+  on public.sim_box_scores for select to anon, authenticated
+  using (
+    public.is_admin()
+    or exists (
+      select 1 from public.published_weeks p
+       where p.season = sim_box_scores.season and p.week = sim_box_scores.week
+    )
+  );
+
+drop policy if exists "sim box scores added by an admin" on public.sim_box_scores;
+create policy "sim box scores added by an admin"
+  on public.sim_box_scores for insert to authenticated
+  with check (public.is_admin());
+
+drop policy if exists "sim box scores changed by an admin" on public.sim_box_scores;
+create policy "sim box scores changed by an admin"
+  on public.sim_box_scores for update to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "sim box scores removed by an admin" on public.sim_box_scores;
+create policy "sim box scores removed by an admin"
+  on public.sim_box_scores for delete to authenticated
+  using (public.is_admin());
+
+revoke insert, update, delete on public.sim_box_scores from anon;
+grant select on public.sim_box_scores to anon, authenticated;
+grant select, insert, update, delete on public.sim_box_scores to authenticated;
+
+notify pgrst, 'reload schema';

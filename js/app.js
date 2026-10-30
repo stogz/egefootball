@@ -19,7 +19,7 @@
   var viewTeams  = document.getElementById('view-teams');
   var viewTeam   = document.getElementById('view-team');
   var viewDiamonds = document.getElementById('view-diamonds');
-  var viewSearch = document.getElementById('view-search');
+  var viewLeague = document.getElementById('view-league');
   var loginBtn   = document.getElementById('loginBtn');
   var loginModal = document.getElementById('loginModal');
 
@@ -4187,8 +4187,8 @@
 
   /* --- the search -----------------------------------------------------------
 
-     The magnifying glass at the end of the nav (Sam, 2026-10-26): any team
-     or player, as it is typed. A team is a link to its page: every NFL
+     Under the League's games (Sam, 2026-10-30; a page of its own behind a
+     magnifying glass from 2026-10-26): any team or player, as it is typed. A team is a link to its page: every NFL
      team, and every school one of the six played for. A player is the card
      a team's page draws for him, his team's mark beside his overall, and
      opens the same pop-up. The players are the NFL sim's, as the Teams
@@ -4550,8 +4550,6 @@
     return panel;
   }
 
-  function onSearch() { return /^#search(\/|$)/.test(window.location.hash); }
-
   function renderSearch() {
     var query = searchText(searchField.value);
     searchResults.innerHTML = '';
@@ -4562,9 +4560,9 @@
        results drawn again when they are in. */
     var all = season ? EGE.nflRosters.get(season) : null;
     if (all === undefined) {
-      EGE.nflRosters.load(season).then(function () { if (onSearch()) { renderSearch(); } });
+      EGE.nflRosters.load(season).then(function () { if (onLeague()) { renderSearch(); renderLeague(); } });
     } else if (all) {
-      catchUp(all, season, function () { if (onSearch()) { renderSearch(); } });
+      catchUp(all, season, function () { if (onLeague()) { renderSearch(); renderLeague(); } });
     }
     var pool = searchPeople(season);
     var sorts = searchSorts();
@@ -4617,23 +4615,22 @@
     }
   }
 
-  /* #search/{query}: the box filled from the address, which is how Back
-     comes back to the same results. Straight into the box when the search
-     is opened empty. */
-  function openSearch(query, arriving) {
+  /* #league/{query}: the week's games, and the search's box filled from
+     the address, which is how Back comes back to the same results. */
+  function openLeague(query) {
     var wanted = '';
     try { wanted = decodeURIComponent(query || ''); } catch (e) { wanted = query || ''; }
     if (searchField.value !== wanted) {
       searchField.value = wanted;
       searchShown = SEARCH_PAGE;
     }
+    renderLeague();
     renderSearch();
-    if (arriving && !wanted) { searchField.focus({ preventScroll: true }); }
   }
 
   searchField.addEventListener('input', function () {
     searchShown = SEARCH_PAGE;
-    var hash = 'search' + (searchField.value ? '/' + encodeURIComponent(searchField.value) : '');
+    var hash = 'league' + (searchField.value ? '/' + encodeURIComponent(searchField.value) : '');
     /* Into the address without a new page in the history, or route() seeing
        one: what route() last drew is this. */
     window.history.replaceState(null, '', '#' + hash);
@@ -4655,6 +4652,725 @@
     searchSort = searchSortPick.value;
     searchShown = SEARCH_PAGE;
     renderSearch();
+  });
+
+
+  /* --- the League -----------------------------------------------------------
+
+     The football at the end of the nav (Sam, 2026-10-30): every NFL game of
+     a week, with the search under it. The bar picks the week -- the
+     season, the week, and a step either way that runs on into the season
+     next to it -- and only weeks out on the site are in it, an admin's
+     too. It opens on the latest week out with games in it.
+
+     A game is a card: both teams with the score, the winner in ink, and
+     the game's leaders passing, rushing and receiving with their
+     headshots; a game one of the six played in is picked out in orange,
+     his line on the card whatever it was. Opened, the whole box score goes
+     under it, across the page: the score by quarter, the teams' numbers
+     side by side, every player's line in a table for each team (both at
+     once, or one at a time on a phone), the scoring plays and who got
+     hurt. A name opens his pop-up, as the search's cards do.
+
+     The games are the NFL sim's box scores (js/box-scores.js). A week the
+     sim has none for -- 2023's first nine weeks, taken in from the site --
+     is the scores the season files have (EGE.nflResults), with the six's
+     lines from their own games. */
+
+  var leagueGames = document.getElementById('leagueGames');
+  var leagueBar = document.getElementById('leagueBar');
+  var leagueSeasonPick = document.getElementById('leagueSeasonPick');
+  var leagueWeekPick = document.getElementById('leagueWeekPick');
+  var leaguePrev = document.getElementById('leaguePrev');
+  var leagueNext = document.getElementById('leagueNext');
+
+  /* The week picked, { season, week }, or null for the latest; the game
+     opened, by season, week and teams, kept open through a redraw; and the
+     weeks the sim has box scores for, undefined until they are asked for. */
+  var leagueAt = null;
+  var leagueOpen = null;
+  var leagueIndex;
+
+  var ROUND_NAMES = { 19: 'Wild Card', 20: 'Divisional', 21: 'Conference Championships', 22: 'Super Bowl' };
+
+  function onLeague() { return /^#(league|search)(\/|$)/.test(window.location.hash); }
+
+  function weekName(week) { return ROUND_NAMES[week] || 'Week ' + week; }
+
+  /* Every NFL season's weeks with a game out, { season: [week] }: the
+     sim's box scores, and the season files' scores and the six's games. */
+  function leagueWeeks() {
+    var out = {};
+    nflSeasons().filter(function (year) { return year <= EGE.currentSeason; }).forEach(function (season) {
+      var seen = {};
+      ((leagueIndex || {})[season] || []).forEach(function (week) { seen[week] = true; });
+      EGE.nflResults(season).forEach(function (game) { seen[game.week] = true; });
+      EGE.players.forEach(function (player) {
+        if (EGE.tierFor(season, player) !== 'nfl') { return; }
+        EGE.gamesPlayed(player, season).forEach(function (game) { seen[game.week] = true; });
+      });
+      var weeks = Object.keys(seen).map(Number).filter(function (week) { return EGE.isPublished(season, week); })
+        .sort(function (a, b) { return a - b; });
+      if (weeks.length) { out[season] = weeks; }
+    });
+    return out;
+  }
+
+  /* Every week there is, oldest first, for the steps either way. */
+  function leagueStops(weeks) {
+    var stops = [];
+    Object.keys(weeks).map(Number).sort(function (a, b) { return a - b; }).forEach(function (season) {
+      weeks[season].forEach(function (week) { stops.push({ season: season, week: week }); });
+    });
+    return stops;
+  }
+
+  function fillLeagueBar(weeks, at) {
+    var stops = leagueStops(weeks);
+    leagueBar.hidden = !stops.length;
+    if (!stops.length) { return; }
+    leagueSeasonPick.innerHTML = '';
+    Object.keys(weeks).map(Number).sort(function (a, b) { return b - a; }).forEach(function (season) {
+      leagueSeasonPick.appendChild(new Option(String(season), String(season)));
+    });
+    leagueSeasonPick.value = String(at.season);
+    leagueWeekPick.innerHTML = '';
+    weeks[at.season].forEach(function (week) { leagueWeekPick.appendChild(new Option(weekName(week), String(week))); });
+    leagueWeekPick.value = String(at.week);
+    var i = leagueStopAt(stops, at);
+    leaguePrev.disabled = i <= 0;
+    leagueNext.disabled = i === -1 || i >= stops.length - 1;
+  }
+
+  function leagueStopAt(stops, at) {
+    for (var i = 0; i < stops.length; i += 1) {
+      if (stops[i].season === at.season && stops[i].week === at.week) { return i; }
+    }
+    return -1;
+  }
+
+  /* The week to show: the one picked while it is still there, the same
+     week of a season picked without one, or the latest. */
+  function leagueWeekAt(weeks) {
+    var seasons = Object.keys(weeks).map(Number).sort(function (a, b) { return a - b; });
+    if (!seasons.length) { return null; }
+    if (leagueAt && weeks[leagueAt.season]) {
+      var list = weeks[leagueAt.season];
+      if (list.indexOf(leagueAt.week) !== -1) { return leagueAt; }
+      var before = list.filter(function (week) { return week <= leagueAt.week; });
+      return { season: leagueAt.season, week: before.length ? before[before.length - 1] : list[0] };
+    }
+    var last = seasons[seasons.length - 1];
+    return { season: last, week: weeks[last][weeks[last].length - 1] };
+  }
+
+  /* One of the six's line from his own game, in a box score's keys. */
+  function siteLine(s) {
+    s = s || {};
+    return { passCmp: s.completions, passAtt: s.attempts, passYds: s.passingYards, passTd: s.passingTd,
+             passInt: s.interceptions, rushAtt: s.carries, rushYds: s.rushingYards, rushTd: s.rushingTd,
+             rushLong: s.rushingLong, targets: s.targets, rec: s.receptions, recYds: s.receivingYards,
+             recTd: s.receivingTd, recLong: s.receivingLong };
+  }
+
+  function teamPair(a, b) { return [a, b].sort().join('|'); }
+
+  /* A week's games: the sim's box scores where it has them, or else the
+     season files' scores, the six's own games first with home and away as
+     they played them. Each { home, away, score: [home, away], ot, box,
+     teams, leaders, scoring, injuries, six: [{ player, line }] }. Then the
+     six put on their games, from their box score lines or their own, and
+     their games first, in the site's order. */
+  function leagueGamesFor(season, week, rows) {
+    var games = [];
+    var byPair = {};
+    function add(game) {
+      var key = teamPair(game.home, game.away);
+      if (byPair[key]) { return; }
+      game.six = [];
+      game.scoring = game.scoring || [];
+      game.injuries = game.injuries || [];
+      byPair[key] = game;
+      games.push(game);
+    }
+    if (rows) {
+      rows.forEach(function (g) { add(Object.assign({}, g)); });
+    }
+    var theirs = [];
+    EGE.players.forEach(function (player) {
+      if (EGE.tierFor(season, player) !== 'nfl') { return; }
+      var game = EGE.gameInWeek(player, week, season);
+      if (!game || !EGE.isFinal(game)) { return; }
+      var team = EGE.teamFor(player, season, week);
+      var ours = team ? EGE.nfl.keyByName(team.school) : null;
+      var other = EGE.nfl.keyByName(game.opponent);
+      if (!ours || !other) { return; }
+      var home = game.home !== false;
+      var mine = [game.result.teamScore, game.result.opponentScore];
+      add({ home: home ? ours : other, away: home ? other : ours, score: home ? mine : mine.slice().reverse(),
+            ot: Boolean(game.overtime) });
+      theirs.push({ player: player, team: ours, other: other, line: siteLine(game.stats) });
+    });
+    if (!rows) {
+      EGE.nflResults(season).forEach(function (g) {
+        var home = EGE.nfl.keyByName(g.home);
+        var away = EGE.nfl.keyByName(g.away);
+        if (g.week === week && home && away) { add({ home: home, away: away, score: g.score.slice() }); }
+      });
+    }
+    theirs.forEach(function (x) {
+      var game = byPair[teamPair(x.team, x.other)];
+      var line = (game.box || []).filter(function (l) { return l.ege === x.player.slug; })[0];
+      game.six.push({ player: x.player, line: line || x.line });
+    });
+    games.forEach(function (game) {
+      (game.box || []).forEach(function (l) {
+        var player = l.ege ? EGE.playerBySlug(l.ege) : null;
+        if (player && !game.six.some(function (x) { return x.player === player; })) { game.six.push({ player: player, line: l }); }
+      });
+    });
+    function first(game) {
+      return Math.min.apply(null, game.six.map(function (x) { return EGE.players.indexOf(x.player); })
+        .concat([EGE.players.length]));
+    }
+    return games.map(function (game, i) { return { game: game, i: i }; }).sort(function (a, b) {
+      return first(a.game) - first(b.game) || a.i - b.i;
+    }).map(function (x) { return x.game; });
+  }
+
+  /* A line in words, or the part of it asked for: "26/42, 265 yds, 2 TD,
+     1 INT · 4 car, 12 yds". */
+  function boxLineText(l, part) {
+    var bits = [];
+    function td(n, what) { return n ? ', ' + n + ' ' + what : ''; }
+    if ((!part || part === 'pass') && l.passAtt) {
+      bits.push((l.passCmp || 0) + '/' + l.passAtt + ', ' + (l.passYds || 0) + ' yds' + td(l.passTd, 'TD') + td(l.passInt, 'INT'));
+    }
+    if ((!part || part === 'rush') && l.rushAtt) {
+      bits.push(l.rushAtt + ' car, ' + (l.rushYds || 0) + ' yds' + td(l.rushTd, 'TD'));
+    }
+    if ((!part || part === 'rec') && (l.rec || l.targets)) {
+      bits.push((l.rec || 0) + ' rec, ' + (l.recYds || 0) + ' yds' + td(l.recTd, 'TD'));
+    }
+    return bits.join(' · ');
+  }
+
+  /* Whoever a box score's line is, for his pop-up: in the live season's
+     rosters by his ESPN id or which of the six he is, or else by his name
+     and position where nobody else has them. */
+  var boxPeopleIndex = null;
+
+  function boxPerson(line) {
+    var live = searchSeason();
+    var all = live ? EGE.nflRosters.get(live) : null;
+    if (!all) { return null; }
+    if (!boxPeopleIndex || boxPeopleIndex.from !== all) {
+      var map = {};
+      searchPeople(live).forEach(function (hit) {
+        if (!hit.sim) { return; }
+        if (hit.sim.espn) { map['espn:' + hit.sim.espn] = hit; }
+        if (hit.sim.ege) { map['ege:' + hit.sim.ege] = hit; }
+        var key = hit.sim.name + '|' + hit.sim.pos;
+        map[key] = map[key] ? 'many' : hit;
+      });
+      boxPeopleIndex = { from: all, map: map };
+    }
+    var people = boxPeopleIndex.map;
+    var hit = (line.espn && people['espn:' + line.espn]) || (line.ege && people['ege:' + line.ege]) ||
+      people[line.name + '|' + line.pos];
+    return hit && hit !== 'many' ? nflHitRow(hit, live) : null;
+  }
+
+  function boxFace(line, player) {
+    return rosterFace({ name: player ? player.name : line.name, player: player || null,
+                        photo: Boolean(line.espn), espn: line.espn, nfl: true });
+  }
+
+  /* His name, a way to his pop-up when the rosters know him, or to his
+     page for one of the six they do not. On a phone, his first name cut
+     to its letter: M. Penix. */
+  function boxName(line) {
+    var player = line.ege ? EGE.playerBySlug(line.ege) : null;
+    var name = player ? player.name : line.name;
+    var row = boxPerson(line);
+    var node;
+    if (row) {
+      node = el('button', 'ege-boxscore__name');
+      node.type = 'button';
+      node.addEventListener('click', function () { openNflPlayer(row); });
+    } else if (player) {
+      node = el('a', 'ege-boxscore__name');
+      node.href = '#' + player.slug;
+    } else {
+      node = el('span', 'ege-boxscore__name');
+    }
+    var gap = name.indexOf(' ');
+    var first = gap > 0 ? name.slice(0, gap) : '';
+    node.appendChild(el('span', 'ege-boxscore__full', name));
+    node.appendChild(el('span', 'ege-boxscore__short',
+      first ? (/\./.test(first) ? first : first.charAt(0) + '.') + name.slice(gap) : name));
+    return node;
+  }
+
+  function leagueLogo(key, size) {
+    var team = EGE.nfl.teams[key];
+    var src = team && EGE.logoFor ? EGE.logoFor(team.name) : null;
+    if (!src) { return el('span', 'ege-game__logo'); }
+    var img = el('img', 'ege-game__logo');
+    img.src = src;
+    img.alt = '';
+    img.width = size;
+    img.height = size;
+    img.loading = 'lazy';
+    img.addEventListener('error', function () { img.remove(); });
+    return img;
+  }
+
+  /* A team's page that season. */
+  function leagueTeamLink(key, season, text) {
+    var a = el('a', 'ege-boxscore__teamlink');
+    a.href = '#teams/' + EGE.nfl.slug(key);
+    a.addEventListener('click', function () { teamsPicked = season; });
+    a.appendChild(leagueLogo(key, 28));
+    a.appendChild(el('span', null, text));
+    return a;
+  }
+
+  /* --- a game's card --- */
+
+  var LEADER_PARTS = [['pass', 'passYds'], ['rush', 'rushYds'], ['rec', 'recYds']];
+
+  /* The game's best passer, rusher and receiver, by yards. */
+  function gameLeaders(game) {
+    if (!game.box) { return []; }
+    return LEADER_PARTS.map(function (part) {
+      var best = null;
+      game.box.forEach(function (l) {
+        if ((l[part[1]] || 0) > 0 && (!best || l[part[1]] > best[part[1]])) { best = l; }
+      });
+      return best ? { line: best, part: part[0] } : null;
+    }).filter(Boolean);
+  }
+
+  function leaderRow(line, part, player, team) {
+    var row = el('div', 'ege-game__leader' + (player ? ' is-six' : ''));
+    row.appendChild(boxFace(line, player));
+    var text = el('span', 'ege-game__who');
+    var name = el('span', 'ege-game__name', player ? player.name : line.name);
+    text.appendChild(name);
+    var said = boxLineText(line, part);
+    var words = el('span', 'ege-game__line', said || '—');
+    if (said) { words.title = said; }
+    text.appendChild(words);
+    row.appendChild(text);
+    if (team) { row.appendChild(leagueLogo(team, 18)); }
+    return row;
+  }
+
+  function gameId(game, season, week) { return season + ':' + week + ':' + game.away + '@' + game.home; }
+
+  function gameCard(game, season, week) {
+    var id = gameId(game, season, week);
+    var opens = Boolean(game.box || game.leaders || game.scoring.length);
+    var card = el('article', 'ege-game' + (game.six.length ? ' is-six' : '') + (opens ? ' is-opener' : '') +
+      (leagueOpen === id ? ' is-open' : ''));
+    var score = el('div', 'ege-game__score');
+    [[game.away, 1], [game.home, 0]].forEach(function (side) {
+      var pts = game.score[side[1]];
+      var won = pts > game.score[1 - side[1]];
+      var row = el('div', 'ege-game__side' + (won ? ' is-won' : ''));
+      row.appendChild(leagueLogo(side[0], 30));
+      row.appendChild(el('span', 'ege-game__team', EGE.nfl.city(side[0])));
+      var num = el('span', 'ege-game__pts', String(pts));
+      if (won && game.ot) { num.insertBefore(el('span', 'ege-game__ot', 'OT'), num.firstChild); }
+      row.appendChild(num);
+      score.appendChild(row);
+    });
+    card.appendChild(score);
+
+    /* The leaders, then any of the six who are not one of them. */
+    var leaders = el('div', 'ege-game__leaders');
+    var shown = {};
+    gameLeaders(game).forEach(function (x) {
+      var six = x.line.ege ? EGE.playerBySlug(x.line.ege) : null;
+      if (six) { shown[six.slug] = true; }
+      leaders.appendChild(leaderRow(x.line, x.part, six, x.line.team));
+    });
+    (game.leaders ? LEADER_PARTS : []).forEach(function (part, i) {
+      var top = /^(.*) (-?\d+)$/.exec(game.leaders[['passing', 'rushing', 'receiving'][i]][0] || '');
+      if (!top) { return; }
+      var row = el('div', 'ege-game__leader ege-game__leader--text');
+      row.appendChild(el('span', 'ege-game__tag', part[0]));
+      var text = el('span', 'ege-game__who');
+      text.appendChild(el('span', 'ege-game__name', top[1]));
+      text.appendChild(el('span', 'ege-game__line', top[2] + ' yds'));
+      row.appendChild(text);
+      leaders.appendChild(row);
+    });
+    game.six.forEach(function (x) {
+      if (shown[x.player.slug]) { return; }
+      var team = EGE.teamFor(x.player, season, week);
+      leaders.appendChild(leaderRow(x.line, null, x.player, x.line.team || (team ? EGE.nfl.keyByName(team.school) : null)));
+    });
+    if (leaders.firstChild) { card.appendChild(leaders); }
+
+    if (opens) {
+      EGE.cardsView.pressable(card, EGE.nfl.city(game.away) + ' at ' + EGE.nfl.city(game.home) + ', box score', function () {
+        leagueOpen = leagueOpen === id ? null : id;
+        drawLeagueGames(season, week, leagueShown, true);
+      });
+      card.setAttribute('aria-expanded', leagueOpen === id ? 'true' : 'false');
+    }
+    return card;
+  }
+
+  /* --- the box score --- */
+
+  var SCORING_PLAY = /^Q(\d+) (\d+:\d\d) (\S+) (.*) \((\d+)-(\d+)\)$/;
+
+  /* "Q3 1:17 CHI Cole Kmet 17 pass from Justin Fields (13-21)", the score
+     home first, as { qtr, clock, team, text, home, away }. */
+  function scoringPlays(game) {
+    return game.scoring.map(function (text) {
+      var m = SCORING_PLAY.exec(text);
+      return m ? { qtr: Number(m[1]), clock: m[2], team: m[3], text: m[4], home: Number(m[5]), away: Number(m[6]) } : null;
+    }).filter(Boolean);
+  }
+
+  function boxTable(className, head, rows) {
+    var wrap = el('div', 'fb-tablewrap ege-boxscore__wrap');
+    var table = el('table', 'fb-table ege-boxscore__table ' + className);
+    var thead = el('thead');
+    var tr = el('tr');
+    head.forEach(function (h, i) {
+      var th = el('th', i ? 'num' : null);
+      if (typeof h === 'string') { th.textContent = h; } else { th.appendChild(h); }
+      tr.appendChild(th);
+    });
+    thead.appendChild(tr);
+    table.appendChild(thead);
+    var tbody = el('tbody');
+    rows.forEach(function (row) { tbody.appendChild(row); });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    return wrap;
+  }
+
+  /* A number, a nought quieter than the rest. */
+  function numCell(value, className) {
+    var text = value === null || value === undefined ? '0' : String(value);
+    return el('td', 'num' + (text === '0' ? ' is-zero' : '') + (className ? ' ' + className : ''), text);
+  }
+
+  /* The score a quarter at a time, worked out from the scoring plays, and
+     overtime when there was any. */
+  function lineScore(game) {
+    var plays = scoringPlays(game);
+    var end = [[0, 0]];
+    for (var q = 1; q <= 4; q += 1) {
+      var upTo = plays.filter(function (p) { return p.qtr <= q; });
+      var at = upTo[upTo.length - 1];
+      end.push(at ? [at.home, at.away] : end[q - 1]);
+    }
+    var heads = ['', '1', '2', '3', '4'].concat(game.ot ? ['OT'] : []).concat(['T']);
+    var rows = [[game.away, 1], [game.home, 0]].map(function (side) {
+      var i = side[1] ? 1 : 0;
+      var tr = el('tr', game.score[i] > game.score[1 - i] ? 'is-won' : null);
+      var team = el('td', 'ege-boxscore__teamcell');
+      team.appendChild(leagueLogo(side[0], 22));
+      team.appendChild(el('span', null, side[0]));
+      tr.appendChild(team);
+      for (var n = 1; n <= 4; n += 1) { tr.appendChild(numCell(end[n][i] - end[n - 1][i])); }
+      if (game.ot) { tr.appendChild(numCell(game.score[i] - end[4][i])); }
+      tr.appendChild(numCell(game.score[i], 'ege-boxscore__total'));
+      return tr;
+    });
+    return boxTable('ege-boxscore__quarters', heads, rows);
+  }
+
+  /* Both teams' numbers, side by side. Passing is net: the yards less
+     what was rushed for. */
+  function teamNumbers(game) {
+    var sides = [game.away, game.home].map(function (key) {
+      var t = (game.teams || [])[key === game.home ? 0 : 1] || {};
+      var rush = (game.box || []).filter(function (l) { return l.team === key; })
+        .reduce(function (sum, l) { return sum + (l.rushYds || 0); }, 0);
+      var top = Math.round(t.top || 0);
+      return [
+        t.yards || 0, (t.yards || 0) - rush, rush, t.firstDowns || 0,
+        (t.thirdMade || 0) + '-' + (t.third || 0), (t.ints || 0) + (t.fumblesLost || 0), t.sacks || 0,
+        Math.floor(top / 60) + ':' + String(top % 60).padStart(2, '0')
+      ];
+    });
+    var labels = ['Total yards', 'Passing', 'Rushing', 'First downs', 'Third down', 'Turnovers', 'Sacked', 'Possession'];
+    var rows = labels.map(function (label, i) {
+      var tr = el('tr');
+      tr.appendChild(numCell(sides[0][i], 'ege-boxscore__away'));
+      tr.appendChild(el('td', 'ege-boxscore__stat', label));
+      tr.appendChild(numCell(sides[1][i]));
+      return tr;
+    });
+    var away = el('span', 'ege-boxscore__teamcell');
+    away.appendChild(leagueLogo(game.away, 22));
+    away.appendChild(el('span', null, game.away));
+    var home = el('span', 'ege-boxscore__teamcell');
+    home.appendChild(el('span', null, game.home));
+    home.appendChild(leagueLogo(game.home, 22));
+    return boxTable('ege-boxscore__compare', [away, '', home], rows);
+  }
+
+  function rating(l) {
+    return EGE.statline.passerRating(l.passCmp || 0, l.passAtt, l.passYds || 0, l.passTd || 0, l.passInt || 0);
+  }
+
+  function avg(yards, n) { return n ? (Math.round((yards / n) * 10) / 10).toFixed(1) : '0.0'; }
+
+  /* Every player's line, a table for each part of the game. */
+  var BOX_PARTS = [
+    { title: 'Passing', has: function (l) { return l.passAtt; }, by: function (l) { return l.passAtt; },
+      cols: [['C/ATT', function (l) { return (l.passCmp || 0) + '/' + l.passAtt; }], ['YDS', 'passYds'], ['TD', 'passTd'],
+             ['INT', 'passInt'], ['SCK', 'sacked'], ['RTG', rating]] },
+    { title: 'Rushing', has: function (l) { return l.rushAtt; }, by: function (l) { return l.rushYds || 0; },
+      cols: [['CAR', 'rushAtt'], ['YDS', 'rushYds'], ['AVG', function (l) { return avg(l.rushYds || 0, l.rushAtt); }],
+             ['TD', 'rushTd'], ['LNG', 'rushLong']] },
+    { title: 'Receiving', has: function (l) { return l.rec || l.targets; }, by: function (l) { return l.recYds || 0; },
+      cols: [['REC', 'rec'], ['TGT', 'targets'], ['YDS', 'recYds'], ['AVG', function (l) { return avg(l.recYds || 0, l.rec); }],
+             ['TD', 'recTd'], ['LNG', 'recLong']] },
+    { title: 'Defense', has: function (l) { return l.tackles || l.sacks || l.ints || l.passDef || l.ff || l.defTd; },
+      by: function (l) { return (l.tackles || 0) + (l.sacks || 0) * 2 + (l.ints || 0) * 2; },
+      cols: [['TCKL', 'tackles'], ['SCK', 'sacks'], ['INT', 'ints'], ['PD', 'passDef'], ['FF', 'ff'], ['TD', 'defTd']] },
+    { title: 'Kicking', has: function (l) { return l.fga || l.xpa; }, by: function (l) { return l.fga || 0; },
+      cols: [['FG', function (l) { return (l.fgm || 0) + '/' + (l.fga || 0); }], ['XP', function (l) { return (l.xpm || 0) + '/' + (l.xpa || 0); }],
+             ['PTS', function (l) { return (l.fgm || 0) * 3 + (l.xpm || 0); }]] },
+    { title: 'Punting', has: function (l) { return l.punts; }, by: function (l) { return l.punts; },
+      cols: [['NO', 'punts'], ['YDS', 'puntYards'], ['AVG', function (l) { return avg(l.puntYards || 0, l.punts); }]] }
+  ];
+
+  function teamBox(game, key, season) {
+    var side = el('div', 'ege-boxscore__team');
+    var head = el('h4', 'ege-boxscore__teamhead');
+    head.appendChild(leagueTeamLink(key, season, EGE.nfl.teams[key].name));
+    side.appendChild(head);
+    var lines = game.box.filter(function (l) { return l.team === key; });
+    BOX_PARTS.forEach(function (part) {
+      var rows = lines.filter(part.has).sort(function (a, b) { return part.by(b) - part.by(a); }).map(function (l) {
+        var player = l.ege ? EGE.playerBySlug(l.ege) : null;
+        var tr = el('tr', player ? 'is-six' : null);
+        var cell = el('td');
+        var who = el('div', 'ege-boxscore__player');
+        who.appendChild(boxFace(l, player));
+        who.appendChild(boxName(l));
+        who.appendChild(el('span', 'ege-boxscore__pos', l.pos));
+        cell.appendChild(who);
+        tr.appendChild(cell);
+        part.cols.forEach(function (col) {
+          tr.appendChild(numCell(typeof col[1] === 'function' ? col[1](l) : l[col[1]] || 0));
+        });
+        return tr;
+      });
+      if (rows.length) {
+        side.appendChild(boxTable('ege-boxscore__lines', [part.title].concat(part.cols.map(function (c) { return c[0]; })), rows));
+      }
+    });
+    return side;
+  }
+
+  function scoringTable(game) {
+    var plays = scoringPlays(game);
+    var rows = plays.map(function (p) {
+      var tr = el('tr');
+      var when = el('td', 'ege-boxscore__when', (p.qtr > 4 ? 'OT' : 'Q' + p.qtr) + ' ' + p.clock);
+      tr.appendChild(when);
+      var cell = el('td');
+      var what = el('div', 'ege-boxscore__play');
+      what.appendChild(leagueLogo(p.team, 20));
+      what.appendChild(el('span', null, p.text));
+      cell.appendChild(what);
+      tr.appendChild(cell);
+      tr.appendChild(numCell(p.away, p.team === game.away ? 'is-scored' : null));
+      tr.appendChild(numCell(p.home, p.team === game.home ? 'is-scored' : null));
+      return tr;
+    });
+    return boxTable('ege-boxscore__scoring', ['Scoring', '', leagueLogo(game.away, 20), leagueLogo(game.home, 20)], rows);
+  }
+
+  /* "Lamar Jackson (BAL, ankle, 1 wk)" */
+  var HURT = /^(.*) \((\S+), (.*), (season|\d+ wk)\)$/;
+
+  function injuryTable(game) {
+    var rows = game.injuries.map(function (text) {
+      var m = HURT.exec(text);
+      var tr = el('tr');
+      var cell = el('td');
+      var who = el('div', 'ege-boxscore__play');
+      if (m) { who.appendChild(leagueLogo(m[2], 20)); }
+      who.appendChild(el('span', null, m ? m[1] : text));
+      cell.appendChild(who);
+      tr.appendChild(cell);
+      tr.appendChild(el('td', null, m ? m[3] : ''));
+      tr.appendChild(el('td', 'num', m ? (m[4] === 'season' ? 'Season' : m[4].replace(' wk', ' WK')) : ''));
+      return tr;
+    });
+    return boxTable('ege-boxscore__hurt', ['Injuries', '', 'Out'], rows);
+  }
+
+  var boxSide = {};
+
+  function boxScore(game, season, week) {
+    var id = gameId(game, season, week);
+    var box = el('section', 'fb-panel ege-boxscore');
+    box.setAttribute('aria-label', 'Box score: ' + EGE.nfl.teams[game.away].name + ' at ' + EGE.nfl.teams[game.home].name);
+    /* The score by quarter and how it was scored beside the teams'
+       numbers and who got hurt, then everybody's lines. */
+    var top = el('div', 'ege-boxscore__top');
+    var left = el('div', 'ege-boxscore__col');
+    var right = el('div', 'ege-boxscore__col');
+    if (game.scoring.length) {
+      left.appendChild(lineScore(game));
+      left.appendChild(scoringTable(game));
+    }
+    if (game.teams) { right.appendChild(teamNumbers(game)); }
+    if (game.injuries.length) { right.appendChild(injuryTable(game)); }
+    [left, right].forEach(function (col) { if (col.firstChild) { top.appendChild(col); } });
+    if (top.firstChild) { box.appendChild(top); }
+
+    if (game.box) {
+      /* Both teams side by side; on a phone, one at a time with a switch. */
+      var shown = boxSide[id] || 'away';
+      var sides = el('div', 'ege-boxscore__sides');
+      sides.setAttribute('data-show', shown);
+      var pick = el('div', 'ege-switch ege-boxscore__switch');
+      pick.setAttribute('role', 'radiogroup');
+      pick.setAttribute('aria-label', 'Team');
+      [['away', game.away], ['home', game.home]].forEach(function (side) {
+        var option = el('label', 'ege-switch__option');
+        var input = el('input');
+        input.type = 'radio';
+        input.name = 'boxSide-' + id;
+        input.value = side[0];
+        input.checked = shown === side[0];
+        input.addEventListener('change', function () {
+          boxSide[id] = side[0];
+          sides.setAttribute('data-show', side[0]);
+        });
+        option.appendChild(input);
+        option.appendChild(el('span', null, EGE.nfl.city(side[1])));
+        pick.appendChild(option);
+      });
+      box.appendChild(pick);
+      [['away', game.away], ['home', game.home]].forEach(function (side) {
+        var team = teamBox(game, side[1], season);
+        team.classList.add('ege-boxscore__team--' + side[0]);
+        sides.appendChild(team);
+      });
+      box.appendChild(sides);
+    } else if (game.leaders) {
+      var list = el('dl', 'ege-boxscore__leaders');
+      [['Passing', game.leaders.passing], ['Rushing', game.leaders.rushing], ['Receiving', game.leaders.receiving]]
+        .forEach(function (part) {
+          if (!part[1].length) { return; }
+          list.appendChild(el('dt', null, part[0]));
+          list.appendChild(el('dd', null, part[1].join(', ')));
+        });
+      box.appendChild(list);
+    }
+    return box;
+  }
+
+  /* --- the week --- */
+
+  /* The games on the page, for a card opened or shut to draw them again. */
+  var leagueShown = null;
+
+  /* `scroll`: a game just opened, brought up under the nav with its box
+     score below it. */
+  function drawLeagueGames(season, week, games, scroll) {
+    leagueShown = games;
+    leagueGames.setAttribute('data-drawn', season + ':' + week);
+    leagueGames.innerHTML = '';
+    if (!games.length) {
+      leagueGames.appendChild(el('p', 'ege-note ege-league__note', 'No games.'));
+      return;
+    }
+    var grid = el('div', 'ege-league__grid');
+    var opened = null;
+    games.forEach(function (game) {
+      var card = gameCard(game, season, week);
+      grid.appendChild(card);
+      if (leagueOpen === gameId(game, season, week)) {
+        opened = card;
+        grid.appendChild(boxScore(game, season, week));
+      }
+    });
+    leagueGames.appendChild(grid);
+    if (opened && scroll) {
+      var nav = document.querySelector('.fb-nav');
+      var top = opened.getBoundingClientRect().top + window.pageYOffset - (nav ? nav.offsetHeight : 0) - 14;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }
+  }
+
+  /* Which weeks have box scores is asked again once another week is out
+     (EGE.boxScores.weeks), the last answer standing until the new one is
+     in. A week's box scores are asked for the first time it is shown, and
+     drawn when they land unless somebody has moved on. */
+  var leagueAsked = null;
+
+  function renderLeague() {
+    var ask = EGE.boxScores.weeks();
+    if (ask !== leagueAsked) {
+      leagueAsked = ask;
+      ask.then(function (index) {
+        if (ask !== leagueAsked) { return; }
+        leagueIndex = index || {};
+        if (onLeague()) { renderLeague(); }
+      });
+    }
+    var weeks = leagueWeeks();
+    var at = leagueWeekAt(weeks);
+    var shown = at ? at.season + ':' + at.week : '';
+    leagueGames.setAttribute('data-week', shown);
+    if (leagueIndex === undefined || !at) {
+      leagueBar.hidden = true;
+      leagueGames.innerHTML = '';
+      leagueGames.removeAttribute('data-drawn');
+      if (leagueIndex === undefined) { leagueGames.appendChild(el('p', 'ege-note ege-league__note', 'Getting the games…')); }
+      return;
+    }
+    fillLeagueBar(weeks, at);
+    if (leagueIndex[at.season] && leagueIndex[at.season].indexOf(at.week) !== -1) {
+      if (leagueGames.getAttribute('data-drawn') !== shown) {
+        leagueGames.innerHTML = '';
+        leagueGames.appendChild(el('p', 'ege-note ege-league__note', 'Getting the games…'));
+      }
+      EGE.boxScores.week(at.season, at.week).then(function (rows) {
+        if (!onLeague() || leagueGames.getAttribute('data-week') !== shown) { return; }
+        drawLeagueGames(at.season, at.week, leagueGamesFor(at.season, at.week, rows));
+      });
+      return;
+    }
+    drawLeagueGames(at.season, at.week, leagueGamesFor(at.season, at.week, null));
+  }
+
+  function pickLeagueWeek(at) {
+    leagueAt = at;
+    leagueOpen = null;
+    renderLeague();
+  }
+
+  leagueSeasonPick.addEventListener('change', function () {
+    pickLeagueWeek({ season: Number(leagueSeasonPick.value), week: leagueAt ? leagueAt.week : Number(leagueWeekPick.value) });
+  });
+  leagueWeekPick.addEventListener('change', function () {
+    pickLeagueWeek({ season: Number(leagueSeasonPick.value), week: Number(leagueWeekPick.value) });
+  });
+  [[leaguePrev, -1], [leagueNext, 1]].forEach(function (pair) {
+    pair[0].addEventListener('click', function () {
+      var weeks = leagueWeeks();
+      var stops = leagueStops(weeks);
+      var next = stops[leagueStopAt(stops, leagueWeekAt(weeks)) + pair[1]];
+      if (next) { pickLeagueWeek(next); }
+    });
   });
 
 
@@ -7886,6 +8602,8 @@
     /* The teams carry records and overalls too. */
     if (hash === 'teams') { renderTeams(); }
     if (hash.indexOf('teams/') === 0) { renderTeam(hash.slice(6)); }
+    /* And the League's weeks are the ones out. */
+    if (onLeague()) { renderLeague(); }
   }
 
   /* The inventory arrives after a page may already have been drawn, so redraw
@@ -7910,7 +8628,7 @@
     document.getElementById('navCards').classList.toggle('is-active', active === 'cards');
     document.getElementById('navAdmin').classList.toggle('is-active', active === 'admin');
     document.getElementById('navDiamonds').classList.toggle('is-active', active === 'diamonds');
-    document.getElementById('navSearch').classList.toggle('is-active', active === 'search');
+    document.getElementById('navLeague').classList.toggle('is-active', active === 'league');
   }
 
   function show(view) {
@@ -7922,7 +8640,7 @@
     viewTeams.hidden  = view !== viewTeams;
     viewTeam.hidden   = view !== viewTeam;
     viewDiamonds.hidden = view !== viewDiamonds;
-    viewSearch.hidden = view !== viewSearch;
+    viewLeague.hidden = view !== viewLeague;
   }
 
   /* The page route() last drew, so it can tell going somewhere from being
@@ -7963,11 +8681,17 @@
       EGE.diamondsView.render();
       setNav('diamonds');
       document.title = 'Diamonds \u2014 EGE Football';
-    } else if (hash === 'search' || hash.indexOf('search/') === 0) {
-      show(viewSearch);
-      setNav('search');
-      openSearch(hash.slice(7), moved);
-      document.title = 'Search \u2014 EGE Football';
+    } else if (/^(league|search)(\/|$)/.test(hash)) {
+      /* The search's old address is the League's now. */
+      if (hash.indexOf('search') === 0) {
+        hash = 'league' + hash.slice(6);
+        window.history.replaceState(null, '', '#' + hash);
+        routed = hash;
+      }
+      show(viewLeague);
+      setNav('league');
+      openLeague(hash.slice(7));
+      document.title = 'League \u2014 EGE Football';
     } else if (hash === 'admin' || hash.indexOf('admin/') === 0) {
       renderAdminView();
       show(viewAdmin);
