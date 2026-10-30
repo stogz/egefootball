@@ -28,6 +28,8 @@
      node nfl-sim/sim.js draft-order [YEAR]     every round's order and who owns each pick
      node nfl-sim/sim.js upload-draft FILE      a draft written by hand (rounds 1-2, say), kept
                                                 for the draft (--check only checks it; --remove)
+     node nfl-sim/sim.js offers                 every team's offer for the six in free agency
+     node nfl-sim/sim.js accept sam-stogsdill SF   he signs the 49ers' offer
      node nfl-sim/sim.js trades [all]           the queue
      node nfl-sim/sim.js approve 2024-O3
      node nfl-sim/sim.js reject 2024-O3
@@ -182,6 +184,8 @@ function main() {
       if (last) { say('Last champion: ' + (last.champion ? TEAMS[last.champion].name : 'none') + ' (' + last.season + ')'); }
       const pending = trades.loadQueue(league).filter((t) => t.status === 'pending');
       say('Trades waiting for you: ' + pending.length);
+      const free = run.offers(league);
+      if (free.length) { say('In free agency, waiting on you: ' + free.map((w) => w.name).join(', ') + ' ("offers")'); }
       say('');
       sixLines(league).forEach((l) => say(l));
       break;
@@ -370,6 +374,11 @@ function main() {
       if (r.signings.length) { say('Signed: ' + r.signings.join('; ')); }
       if (r.schemes.length) { say(''); say('Coaches and schemes:'); r.schemes.forEach((n) => say('  ' + n)); }
       say('');
+      if (r.sixOffers.length) {
+        r.sixOffers.forEach((f) => say(f.name + ' is a free agent with ' + f.offers + (f.offers === 1 ? ' offer' : ' offers') + '.'));
+        say('Look at them with "offers" and take one with "accept SLUG TEAM" before the draft.');
+        say('');
+      }
       if (r.moves.length) {
         say(r.moves.length + ' big free-agent moves are waiting (each player stays put unless you approve):');
         r.moves.forEach(showTrade);
@@ -449,6 +458,29 @@ function main() {
       break;
     }
     case 'reject': trades.reject(league, rest[0]); say('Rejected ' + rest[0] + '.'); break;
+    case 'offers': {
+      const free = run.offers(league);
+      if (!free.length) { say('None of the six is a free agent.'); break; }
+      free.forEach((w) => {
+        say(w.name + ' (' + w.pos + ', ' + w.ovr + ', age ' + w.age + (w.from ? ', last with ' + w.from : '') + '), worth $' + w.ask + 'M a year:');
+        w.offers.forEach((o) => {
+          const role = o.role.starts ? 'starts' + (o.role.over ? ' over ' + o.role.over.name + ' (' + o.role.over.ovr + ')' : '') :
+            'behind ' + o.role.behind.name + ' (' + o.role.behind.ovr + ')';
+          say('  ' + o.team.padEnd(4) + String(o.years).padStart(2) + ' yrs  $' + String(o.apy).padStart(5) + 'M a year  $' +
+            String(o.total).padStart(6) + 'M through ' + o.through + '  ' + role + (o.fit ? '; ' + o.fit.scheme + ' ' + o.fit.stars + ' stars' : '') +
+            '; ' + o.mode + (o.record ? ', ' + o.record : '') + (o.own ? '  <- his team' : ''));
+        });
+        say('');
+      });
+      say('Take one with "accept SLUG TEAM", e.g. accept ' + free[0].slug + ' ' + free[0].offers[0].team + '.');
+      break;
+    }
+    case 'accept': {
+      const r = run.acceptOffer(league, rest[0], (rest[1] || '').toUpperCase());
+      say(r.summary);
+      if (r.moved) { say('On the website he is with the ' + TEAMS[r.team].name + ' from ' + r.moved.season + ' Week ' + r.moved.week + '.'); }
+      break;
+    }
     case 'trade': {
       const t = trades.proposeOwn(league, rest.join(' '));
       showTrade(t);
@@ -478,7 +510,7 @@ function main() {
       if (!p) { say('No player ' + rest.join(' ') + '.'); break; }
       const r = edits.releasePlayer(league, p.id);
       say(r.name + ' is released by the ' + TEAMS[r.from].name + '.' +
-        (r.ege ? ' Take him off the ' + TEAMS[r.from].name + ' in his transfers on the website.' : ''));
+        (r.ege ? ' ' + r.offers + (r.offers === 1 ? ' team has' : ' teams have') + ' made him an offer ("offers").' : ''));
       break;
     }
     case 'archetype': {

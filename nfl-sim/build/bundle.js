@@ -96,7 +96,8 @@ parts.push(`
     tradeFinder: load('trade-finder'),
     tendencies: load('tendencies'),
     weeks: load('weeks'),
-    sixTrades: load('six-trades')
+    sixTrades: load('six-trades'),
+    sixOffers: load('six-offers')
   };
 })();
 `);

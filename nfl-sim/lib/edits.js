@@ -32,6 +32,7 @@ const { index } = require('./league');
 const { seeded, hash } = require('./rng');
 const { TEAMS } = require('./teams');
 const sixTrades = require('./six-trades');
+const sixOffers = require('./six-offers');
 
 /* The class the next draft takes: this season's before the draft, next
    season's from kickoff on. Only the real classes are known ahead. */
@@ -165,6 +166,7 @@ function signFreeAgent(league, id, key) {
   if (!TEAMS[key]) { throw new Error('No team ' + key + '.'); }
   sign(p, key, league, seeded(hash((league.seed || 'ege-nfl') + ':sign:' + league.season + ':' + id)), marketPay(p, league.season));
   sixTrades.record(league, p, p.lastTeam || null, key);
+  if (p.ege) { sixOffers.drop(league, p.ege); }
   index(league);
   log(league, 'signing', id, p.name + ' signs with ' + TEAMS[key].name);
   return { name: p.name, pos: p.pos, ovr: p.ovr, contract: Object.assign({}, p.contract) };
@@ -232,8 +234,8 @@ function setContract(league, id, want) {
 /* A player cut: a free agent from now on, and his pay off the payroll (the
    sim keeps no dead money). The team stays a man short until it signs
    somebody. One of the six only between seasons, since his games on the
-   website are his team's, and his transfers need changing by hand unless
-   a team signs him here. */
+   website are his team's; every team that wants him makes him an offer,
+   for Sam to pick from on the NFL Sim tab (lib/six-offers.js). */
 function releasePlayer(league, id) {
   const p = league.byId.get(id);
   if (!p || p.status !== 'active' || !TEAMS[p.team]) { throw new Error((p ? p.name : id) + ' is not on a team.'); }
@@ -243,8 +245,9 @@ function releasePlayer(league, id) {
   const from = p.team;
   release(p, league.season);
   index(league);
+  const offers = p.ege ? sixOffers.makeOffers(league, p).offers.length : null;
   log(league, 'release', id, p.name + ' released by the ' + TEAMS[from].name);
-  return { name: p.name, pos: p.pos, from, ege: p.ege || null };
+  return { name: p.name, pos: p.pos, from, ege: p.ege || null, offers };
 }
 
 /* A team's payroll against this season's cap, every player on it counted:

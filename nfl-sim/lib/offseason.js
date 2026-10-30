@@ -11,13 +11,15 @@
         the 99s -- at most one a position, and the best at a position who
         reaches 96 is one;
      3. retirements;
-     4. cap casualties; expiring contracts re-signed or let go; free
-        agency;
+     4. cap casualties; expiring contracts re-signed or let go (the six's
+        always let go, and every team that wants one makes him an offer
+        for Sam to pick from, lib/six-offers.js); free agency;
      5. team ratings, then each team's mode (compete, retool, rebuild)
         and whether it changes coaches or schemes;
      6. pre-draft trade proposals for Sam.
 
-   finishOffseason (the draft and after)
+   finishOffseason (the draft and after), once each of the six in free
+   agency has signed
      7. pending trades expire; the draft, in a hand-set order if the year
         has one (lib/draft-plan.js), with any rounds Sam wrote himself;
      8. free agency again for the leftovers; 53-man rosters; teams with
@@ -42,6 +44,7 @@ const { index, syncSix } = require('./league');
 const { TEAMS } = require('./teams');
 const { capFor } = require('./value');
 const { keep: keepRosters } = require('./history');
+const sixOffers = require('./six-offers');
 
 const ING = { compete: 'competing', retool: 'retooling', rebuild: 'rebuilding' };
 function nick(key) { return TEAMS[key] ? TEAMS[key].name.split(' ').slice(-1)[0] : key; }
@@ -276,12 +279,17 @@ function startOffseason(league, rng) {
   const re = reSign(league, rng);
   report.leftInFreeAgency = re.freed.filter((p) => p.ovr >= 80).map((p) => p.name + ' (' + p.pos + ', ' + p.ovr + ')');
   index(league);
+  /* The six in free agency wait for Sam with their offers, and the teams
+     that made one keep the money (and his own team his place) for him. */
+  report.sixOffers = sixOffers.offerAll(league);
+  const holds = sixOffers.holds(league);
   const held = [];
-  const signed = freeAgency(league, rng, { reserve: 0.05 * capFor(league.season), hold: bigMove(league, lastSeason), held });
+  const signed = freeAgency(league, rng, { reserve: 0.05 * capFor(league.season), hold: bigMove(league, lastSeason), held,
+                                           setAside: holds.setAside, places: holds.places });
   report.signings = signed.filter((p) => p.ovr >= 78).map((p) => p.name + ' (' + p.pos + ', ' + p.ovr + ') to ' + p.team +
     ', $' + p.contract.apy + 'M through ' + p.contract.through);
   index(league);
-  report.depth = fillDepth(league, rng, makeName).length;
+  report.depth = fillDepth(league, rng, makeName, holds).length;
   index(league);
 
   /* Ratings, modes, coaches and schemes. */
@@ -301,6 +309,10 @@ function startOffseason(league, rng) {
 
 function finishOffseason(league, rng, place) {
   if (league.phase !== 'draft') { throw new Error('Not draft time (phase: ' + league.phase + ').'); }
+  const unsigned = sixOffers.unsigned(league);
+  if (unsigned.length) {
+    throw new Error('Pick where ' + unsigned.join(' and ') + (unsigned.length === 1 ? ' signs' : ' sign') + ' before the draft.');
+  }
   const report = { season: league.season };
   report.expired = closeWindow(league, 'offseason');
   /* A hand-set order goes for every round, and a draft written by hand
@@ -337,6 +349,8 @@ function finishOffseason(league, rng, place) {
     report.kept[p.draft.round] = (report.kept[p.draft.round] || 0) + (p.status === 'active' && TEAMS[p.team] ? 1 : 0);
   });
   startSeason(league, rng);
+  /* One of the six nobody drafted has offers too. */
+  sixOffers.fill(league);
   report.rosters = league.teams.map((t) => t.key + ' ' + onTeam(league, t.key).length).join(', ');
   return report;
 }

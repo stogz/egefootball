@@ -448,8 +448,25 @@ In two parts, so Sam can look at the pre-draft trades between them.
 4. **Contracts.** Each team re-signs the expiring players it still wants and
    can pay. It keeps nearly all its young starters and stars (extensions,
    fifth-year options and the franchise tag see to that), so only a few good
-   players reach the market, most of them older or not starting. The six are
-   always kept: where they play is Sam's call.
+   players reach the market, most of them older or not starting.
+
+   **The six's free agency is Sam's** (2026-10-30). When
+   one of the six's deals runs out he is a free agent, and every team that
+   wants him makes an offer (`lib/six-offers.js`): a team he would start
+   for, or one that needs his position badly enough, with the room to pay
+   him. It offers what the market pays his overall, more the keener it is
+   and the more it is out to win now, for as long as a player his age gets
+   (three or four years at 26); his own team always offers, and makes room
+   for him up to a point. In a six-season test each of them had 4 to 14
+   offers (a 92 quarterback asking $50M a year the fewest). The NFL Sim tab
+   lists them, a row a team: the deal, where he would stand there ("Starts
+   over Evan Engram (72)"), his fit in its scheme in stars, and whether it
+   is competing, retooling or rebuilding, with last season's record. Sign
+   takes one. Until then every team that offered keeps the money and his
+   spot through free agency, and the draft waits until all of them have
+   signed. A new team is his from Week 1 of the new season on the website
+   (`lib/six-trades.js`). One of the six cut between seasons, or not
+   drafted, gets offers the same way; the AI never signs any of them.
 5. **Free agency.** The best free agents first, each to the team that needs
    him most, fits him best and can pay him, keeping some room back for its
    draft class. Contenders pay for veterans; rebuilding teams stay away from
@@ -483,7 +500,8 @@ In two parts, so Sam can look at the pre-draft trades between them.
    back), or now and then when it is rebuilding and wants to try something.
 7. **Pre-draft trade proposals** for Sam (section 8).
 
-**`draft`**, once Sam has been through the trades:
+**`draft`**, once Sam has been through the trades and each of the six in
+free agency has signed:
 
 1. Anything still pending expires.
 2. **The draft.** Seven rounds in reverse order of the standings (playoff
@@ -754,6 +772,8 @@ node nfl-sim/sim.js matchup DET SEA             Detroit at Seattle, sized up (--
 node nfl-sim/sim.js tendencies CHI              how a team calls plays and who gets the ball, expected and so far
 node nfl-sim/sim.js games [12] [--season 2024]  a week as played: the six's lines, every score and its leaders
 node nfl-sim/sim.js offseason                   aging through free agency, then the pre-draft trades
+node nfl-sim/sim.js offers                      every team's offer for the six in free agency
+node nfl-sim/sim.js accept sam-stogsdill SF     he takes the 49ers' offer
 node nfl-sim/sim.js trades [all]                the proposals waiting on Sam (all: every one ever)
 node nfl-sim/sim.js approve 2024-O3             apply a trade
 node nfl-sim/sim.js reject 2024-O3              turn one down
@@ -864,6 +884,7 @@ nfl-sim/
     trades.js            proposals, the queue (big free-agent moves too), approving
     trade-finder.js      teams a player would suit better, and the trades for him (or a pick)
     six-trades.js        the six, traded: when they move, and the new team's games for the site
+    six-offers.js        the six in free agency: every team's offer, and the one Sam takes
     fit.js               fit as 0-5 stars, players and teams (an admin's only)
     tendencies.js        how a team calls plays and who gets the ball (an admin's only)
     weeks.js             a week as it was played, from the game log (an admin's only)

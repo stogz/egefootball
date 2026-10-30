@@ -8,7 +8,8 @@
      can pay; the rest become free agents.
    - Free agency: the best free agents first, each to the team that needs
      him most, fits him best and can pay him. Contenders pay for veterans;
-     rebuilding teams do not.
+     rebuilding teams do not. The six are never signed here: every team
+     that wants one makes him an offer and Sam picks (lib/six-offers.js).
    - Depth: every room carries its bench -- three backs and three tight
      ends at least on a 53, and no more than a room uses (MIN, TARGET and
      MAX below). In the offseason each team fills every room to its target
@@ -134,8 +135,9 @@ function capCasualties(league) {
    nearly all their young starters and stars -- extensions, fifth-year
    options and franchise tags see to that in the NFL, and a team will
    restructure other deals to make room -- so only a few good players reach
-   the market each year, most of them older or not starting. The six always
-   stay where they are: where they play is Sam's call. */
+   the market each year, most of them older or not starting. One of the six
+   is always a free agent when his deal runs out: where he plays next is
+   Sam's call, from the offers teams make him (lib/six-offers.js). */
 function reSign(league, rng) {
   const out = { kept: [], freed: [] };
   const cap = capFor(league.season);
@@ -145,6 +147,11 @@ function reSign(league, rng) {
       .sort((a, b) => b.ovr - a.ovr);
     let used = roster.filter((p) => expiring.indexOf(p) === -1).reduce((sum, p) => sum + ((p.contract && p.contract.apy) || 0), 0);
     expiring.forEach((p) => {
+      if (p.ege) {
+        release(p, league.season);
+        out.freed.push(p);
+        return;
+      }
       const rank = byPos(roster, p.pos).indexOf(p);
       const c = CURVES[p.pos] || CURVES.WR;
       const young = p.age <= c.peak + 1;
@@ -154,7 +161,7 @@ function reSign(league, rng) {
       if (t.mode === 'rebuild' && p.age >= 29) { want *= 0.4; }
       const ask = marketPay(p, league.season) * (0.95 + rng() * 0.15);
       const stretch = p.ovr >= 85 ? 0.08 * cap : 0;
-      if (p.ege || (rng() < want && cap + stretch - used - ask > 2)) {
+      if (rng() < want && cap + stretch - used - ask > 2) {
         sign(p, t.key, league, rng, ask);
         used += p.contract.apy;
         out.kept.push(p);
@@ -173,19 +180,23 @@ function reSign(league, rng) {
    would start. `hold(p, key)`, if given, says a signing has to wait for
    Sam (a star leaving his team): he goes back to his old team on the terms
    offered, the money and the spot stay set aside at the new one, and the
-   move is pushed onto `held` for the queue (lib/trades.js). */
+   move is pushed onto `held` for the queue (lib/trades.js). `setAside`
+   ({ key: $M }) is money a team keeps back for an offer it has made one
+   of the six, and `places` ({ key: [player] }) the six a team counts in
+   its rooms while it waits to hear from them. */
 function freeAgency(league, rng, opts) {
   opts = opts || {};
   const limit = opts.limit || OFFSEASON_ROSTER;
   const levels = starterLevels(league);
   const signed = [];
-  const pool = league.players.filter((p) => p.status === 'fa').sort((a, b) => b.ovr - a.ovr);
+  const pool = league.players.filter((p) => p.status === 'fa' && !p.ege).sort((a, b) => b.ovr - a.ovr);
   const sizes = {};
   const rooms = {};
   const promised = {};
   league.teams.forEach((t) => {
     sizes[t.key] = onTeam(league, t.key).length;
-    rooms[t.key] = room(league, t.key) - (opts.reserve || 0);
+    rooms[t.key] = room(league, t.key) - (opts.reserve || 0) - ((opts.setAside || {})[t.key] || 0);
+    if (opts.places && opts.places[t.key]) { promised[t.key] = opts.places[t.key].slice(); }
   });
   pool.forEach((p) => {
     const ask = marketPay(p, league.season);
@@ -311,23 +322,29 @@ function addPlayers(league, key, n, rng, makeName) {
 }
 
 /* The best free agent at a position a team can still pay (anybody at the
-   minimum, whatever its cap). */
-function bestAffordable(league, key, pos, maxAge) {
-  const space = Math.max(room(league, key) - 1, capFor(league.season) / capFor(2024) * 1.2);
-  return league.players.filter((p) => p.status === 'fa' && p.pos === pos && (!maxAge || p.age <= maxAge) &&
+   minimum, whatever its cap), less any money it is keeping back (`aside`,
+   $M). Never one of the six. */
+function bestAffordable(league, key, pos, maxAge, aside) {
+  const space = Math.max(room(league, key) - (aside || 0) - 1, capFor(league.season) / capFor(2024) * 1.2);
+  return league.players.filter((p) => p.status === 'fa' && !p.ege && p.pos === pos && (!maxAge || p.age <= maxAge) &&
     marketPay(p, league.season) <= space).sort((a, b) => b.ovr - a.ovr)[0];
 }
 
 /* Before the draft every room fills to its target -- the backups and
    camp bodies a team carries into the spring -- with the best free agent
-   it can pay there, or a made-up replacement-level player. */
-function fillDepth(league, rng, makeName) {
+   it can pay there, or a made-up replacement-level player. `holds` is what
+   the teams waiting on one of the six keep for him (lib/six-offers.js):
+   the money, and his place in the room. */
+function fillDepth(league, rng, makeName, holds) {
   const added = [];
+  const aside = (holds && holds.setAside) || {};
+  const places = (holds && holds.places) || {};
   league.teams.forEach((t) => {
     Object.keys(TARGET).forEach((pos) => {
-      let count = onTeam(league, t.key).filter((p) => p.pos === pos).length;
+      let count = onTeam(league, t.key).filter((p) => p.pos === pos).length +
+        (places[t.key] || []).filter((p) => p.pos === pos).length;
       while (count < TARGET[pos] && onTeam(league, t.key).length < OFFSEASON_ROSTER) {
-        const p = bestAffordable(league, t.key, pos) || replacement(league, pos, rng, makeName);
+        const p = bestAffordable(league, t.key, pos, null, aside[t.key]) || replacement(league, pos, rng, makeName);
         sign(p, t.key, league, rng, marketPay(p, league.season));
         added.push(p);
         count += 1;
@@ -441,4 +458,4 @@ function replacement(league, pos, rng, makeName) {
 
 module.exports = { SLOTS, MIN, TARGET, MAX, CAMP, ROSTER, onTeam, payroll, room, starterLevels, needAt, needs, reSign,
                    freeAgency, cutDown, trim, addPlayers, fillDepth, fillHoles, sign, release, byPos, capCasualties, spendRoom,
-                   LEFT_OVER, KEEP_ROUNDS };
+                   LEFT_OVER, KEEP_ROUNDS, PREMIUM };
