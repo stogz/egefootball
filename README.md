@@ -670,14 +670,30 @@ the shop).
 
 A football at the end of the nav links (Sam, 2026-10-30; a magnifying glass
 and a page called Search from 2026-10-26), for everybody, signed in or not.
-The old `#search` and `#search/{query}` addresses open it.
+The old `#search` and `#search/{query}` addresses open it. *Around the NFL*
+sits over the title, and the page is three sections on the grass, each
+under its own title: **Schedule**, **Standings** and **Search**. The bar
+and the search box run the width of the page.
 
-**The week's games** come first. Under the title a bar picks the week: the
+**Schedule**, the week's games, comes first. A bar picks the week: the
 season, the week (*Week 1* to *Week 18*, then *Wild Card*, *Divisional*,
 *Conference Championships*, *Super Bowl*), and a step either way that runs
-on into the next or last season. Only weeks out on the site are in it, an
-admin's too, from 2023 (the six's first NFL season) to the live season; it
-opens on the latest one with games in it.
+on into the next or last season. In it are the weeks out on the site with
+games in them, from 2023 (the six's first NFL season) to the live season,
+and the weeks still to come (Sam, 2026-10-30). It opens on the latest week
+out, and the nav's football goes back to it from anywhere.
+
+- **A week to come** is its games, both teams' marks and cities with their
+  records where the score goes, the six's games first with an orange edge
+  and each of them with his position. Nothing else, and they do not open:
+  an admin sees nothing of a week the sim has played before it is out
+  either. The games are the schedule the NFL sim publishes with the rosters
+  (`schedule` in `nfl-sim/lib/site.js publicRosters`), the playoff rounds as
+  far as they are drawn (`playoffs`), and the six's own games as their
+  schedules show them. Rosters published before 2026-10-30 have no
+  schedule, so until an admin's visit to the League page publishes the live
+  season's again (as it does for anything the rosters are missing), a week
+  to come shows only the six's games.
 
 - **A game** is a card, as many across as fit and one on a phone: both
   teams' marks and cities with the score (away on top, the winner in ink,
@@ -717,13 +733,17 @@ opens on the latest one with games in it.
   the leaders and the injuries.
   Read by `js/box-scores.js`.
 
-**The search** is under the games: one box, results as it is typed, and the
-query rides in the address (`#league/{query}`), so Back from a team or a
-player's page comes back to the same results.
+**Standings** are under the games: the Teams page's NFL standings, a box a
+division, as they stood after the week on show (a week to come has them as
+they are now), with each team's streak beside its record in green or red
+(*W6*, *L2*), counted the way the division table counts it. A team is a
+link to its page for that season, and the six's teams are orange.
 
-- **Teams** first: every NFL team (by name, city or abbreviation: `DET`)
-  with its record and place in its division, and every school one of the
-  six played for. Each is a link to its page.
+**Search** is under the standings: one box, players only (no teams since
+2026-10-30), results as it is typed, and the query rides in the address
+(`#league/{query}`), so Back from a player's page comes back to the same
+results.
+
 - **Players**: the cards a team's page draws (`nflLine`), each with his
   team's mark beside his overall, opening the same pop-up. They are the
   NFL sim's, from the rosters the Teams pages open on (the latest live NFL
@@ -737,10 +757,9 @@ player's page comes back to the same results.
   ties go to rostered players before free agents before the retired, then
   the higher overall.
 - **Nothing typed** (Sam, 2026-10-27): every player best first (rostered
-  and free agents together, the retired left out), then every team, the NFL
-  by record and then the six's schools, as many across as fit.
+  and free agents together, the retired left out).
 - **Position and sort**, two drop-downs under the box, for the players with
-  or without a query. A position narrows them to it and hides the teams. The
+  or without a query. A position narrows them to it. The
   sort is *Overall* (as typed: the best match first), *Youngest*, *Oldest*,
   *Draft* (the newest class first, in pick order, undrafted last), or any
   rating the players have, best first, A to Z under *Ratings*: one per name

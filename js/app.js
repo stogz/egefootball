@@ -1956,8 +1956,9 @@
   /* Rosters the sim published before they carried each team's system and
      every player's fit (2026-10-21), or its picks (2026-10-22), show none
      of it to anybody; nor, for the live season, the free agents and the
-     retired the search finds (2026-10-26), or the playoff draws the NFL
-     brackets are drawn from (2026-10-30); and the players' season lines
+     retired the search finds (2026-10-26), the playoff draws the NFL
+     brackets are drawn from (2026-10-30), or the schedule the League's
+     weeks to come are drawn from (2026-10-30); and the players' season lines
      (2026-10-26) count only the weeks out when the rosters went out, so a
      week published since, from the Weeks tab say, is missing from them.
      An admin's visit, in client viewer mode too, has them published again
@@ -1976,7 +1977,8 @@
   }
 
   function catchUp(all, season, redraw) {
-    var behind = !(all.systems && all.picks) || (season === EGE.currentSeason && !(all.freeAgents && all.playoffs)) ||
+    var behind = !(all.systems && all.picks) ||
+      (season === EGE.currentSeason && !(all.freeAgents && all.playoffs && all.schedule !== undefined)) ||
       linesBehind(all, season);
     if (caughtUp || !behind || !all.savedAt || !EGE.nflSimAdmin || !EGE.wallet.realAdmin()) { return; }
     caughtUp = true;
@@ -3943,15 +3945,16 @@
 
   var NFL_DIVISIONS = ['East', 'North', 'South', 'West'];
 
-  /* A division as it stands: { key, name, wins, losses, streak } top to
-     bottom. The site's own table where the season has one
+  /* A division as it stands, or as it stood after the week `through`:
+     { key, name, wins, losses, streak } top to bottom, the streak as
+     EGE.streakFor's. The site's own table where the season has one
      (EGE.divisionTable, with the league's tie-breaks); otherwise counted
      from every NFL result there is, best record first. */
-  function nflDivisionRows(conf, div, season) {
+  function nflDivisionRows(conf, div, season, through) {
     var keys = Object.keys(EGE.nfl.teams).filter(function (key) {
       return EGE.nfl.teams[key].conf === conf && EGE.nfl.teams[key].div === div;
     });
-    var table = EGE.divisionTable(EGE.nfl.teams[keys[0]].name, season);
+    var table = EGE.divisionTable(EGE.nfl.teams[keys[0]].name, season, through);
     if (table && table.nfl) {
       return table.rows.map(function (row) {
         return { key: EGE.nfl.keyByName(row.school), name: row.school, wins: row.wins,
@@ -3959,18 +3962,39 @@
       });
     }
     var rows = keys.map(function (key) {
-      return { key: key, name: EGE.nfl.teams[key].name, wins: 0, losses: 0, streak: null };
+      return { key: key, name: EGE.nfl.teams[key].name, wins: 0, losses: 0, streak: null, games: [] };
     });
-    EGE.nflResults(season).forEach(function (game) {
+    EGE.nflResults(season, through).forEach(function (game) {
       rows.forEach(function (row) {
         var ours = game.home === row.name ? game.score[0] : game.away === row.name ? game.score[1] : null;
         if (ours === null) { return; }
         var theirs = game.home === row.name ? game.score[1] : game.score[0];
         if (ours > theirs) { row.wins += 1; } else { row.losses += 1; }
+        row.games.push({ week: game.week, won: ours > theirs });
       });
+    });
+    rows.forEach(function (row) {
+      var games = row.games.sort(function (a, b) { return a.week - b.week; });
+      delete row.games;
+      if (!games.length) { return; }
+      var latest = games[games.length - 1].won;
+      var count = 0;
+      for (var i = games.length - 1; i >= 0 && games[i].won === latest; i -= 1) { count += 1; }
+      row.streak = { won: latest, count: count, text: (latest ? 'W' : 'L') + count };
     });
     function pct(row) { return row.wins + row.losses ? row.wins / (row.wins + row.losses) : 0.5; }
     return rows.sort(function (a, b) { return (pct(b) - pct(a)) || (b.wins - a.wins) || a.name.localeCompare(b.name); });
+  }
+
+  /* Every NFL team's row as nflDivisionRows has it, by key. */
+  function nflRecords(season, through) {
+    var rows = {};
+    ['AFC', 'NFC'].forEach(function (conf) {
+      NFL_DIVISIONS.forEach(function (div) {
+        nflDivisionRows(conf, div, season, through).forEach(function (row) { rows[row.key] = row; });
+      });
+    });
+    return rows;
   }
 
   /* Where an NFL team stands: its row and its place in the division. */
@@ -3995,27 +4019,43 @@
   }
 
   /* The whole league, a box for each division, every team a link to its
-     page and the six's teams picked out in orange. */
-  function nflStandingsBox(season) {
+     page and the six's teams picked out in orange. The League's (`league`:
+     { through }) is the table as it stood after the week on show, under
+     the page's own Standings, with each team's streak beside its record
+     (Sam, 2026-10-30). */
+  function nflStandingsBox(season, league) {
     var ours = nflOurs(season);
     var panel = el('section', 'fb-panel ege-nflstand');
-    var head = el('div', 'fb-panel__head');
-    head.appendChild(el('h3', null, 'NFL Standings'));
-    panel.appendChild(head);
+    if (!league) {
+      var head = el('div', 'fb-panel__head');
+      head.appendChild(el('h3', null, 'NFL Standings'));
+      panel.appendChild(head);
+    }
     var body = el('div', 'fb-panel__body ege-nflstand__grid');
     ['AFC', 'NFC'].forEach(function (conf) {
       NFL_DIVISIONS.forEach(function (div) {
         var box = el('div', 'ege-nflstand__div');
         box.appendChild(el('h4', 'ege-nflstand__title', conf + ' ' + div));
         var list = el('ol', 'ege-nflstand__list');
-        nflDivisionRows(conf, div, season).forEach(function (row) {
+        nflDivisionRows(conf, div, season, league ? league.through : undefined).forEach(function (row) {
           var item = el('li');
           var link = el('a', 'ege-nflstand__team' + (ours[row.key] ? ' is-ours' : ''));
           link.href = '#teams/' + EGE.nfl.slug(row.key);
+          if (league) { link.addEventListener('click', function () { teamsPicked = season; }); }
           var mark = schoolMark(row.name);
           if (mark) { link.appendChild(mark); }
           link.appendChild(el('span', 'ege-nflstand__name', row.name));
           link.appendChild(el('span', 'ege-nflstand__record', row.wins + '-' + row.losses));
+          if (league) {
+            var streak = row.streak;
+            var run = el('span', 'ege-nflstand__streak' + (streak ? ' ege-streak ege-streak--' + (streak.won ? 'win' : 'loss') : ''),
+              streak ? streak.text : '');
+            if (streak) {
+              run.title = streak.count + (streak.won ? ' win' : ' loss') +
+                (streak.count === 1 ? '' : (streak.won ? 's' : 'es')) + ' in a row';
+            }
+            link.appendChild(run);
+          }
           item.appendChild(link);
           list.appendChild(item);
         });
@@ -4210,8 +4250,8 @@
   /* --- the search -----------------------------------------------------------
 
      Under the League's games (Sam, 2026-10-30; a page of its own behind a
-     magnifying glass from 2026-10-26): any team or player, as it is typed. A team is a link to its page: every NFL
-     team, and every school one of the six played for. A player is the card
+     magnifying glass from 2026-10-26): any player, as it is typed, and no
+     teams (Sam, 2026-10-30). A player is the card
      a team's page draws for him, his team's mark beside his overall, and
      opens the same pop-up. The players are the NFL sim's, as the Teams
      pages have them: everybody on a roster, then the free agents and the
@@ -4220,7 +4260,7 @@
      mark of the team he last played for. The six are always in it.
 
      With nothing typed (Sam, 2026-10-27), every player best first, the
-     retired left out, then every team. Under the box a position, which
+     retired left out. Under the box a position, which
      narrows the players to it, and a sort: by overall, youngest or oldest,
      the newest draft class first, or the best at one of the ratings, with
      the number sorted by beside his overall. */
@@ -4257,21 +4297,6 @@
   function searchSeason() {
     var live = nflSeasons().filter(function (year) { return year <= EGE.currentSeason; });
     return live.length ? live[live.length - 1] : null;
-  }
-
-  function searchTeams() {
-    var teams = Object.keys(EGE.nfl.teams).map(function (key) {
-      var team = EGE.nfl.teams[key];
-      return { name: team.name, names: [team.name, EGE.nfl.city(key)], key: key, href: '#teams/' + EGE.nfl.slug(key),
-               logo: EGE.nfl.logo(key), ground: team.color };
-    });
-    Object.keys(EGE.teams).forEach(function (key) {
-      var team = EGE.teams[key];
-      if (team.tier === 'nfl' || !teamSeasons(key).length) { return; }
-      teams.push({ name: team.school, names: [team.school], href: '#teams/' + EGE.teamSlug(key), logo: team.logo,
-                   ground: team.ground, whiteMark: team.whiteMark, league: team.league });
-    });
-    return teams;
   }
 
   /* Everybody there is to find, worked out once a season's rosters:
@@ -4465,55 +4490,6 @@
     };
   }
 
-  /* Every team, with nothing typed: the NFL's best record first, then the
-     schools the six played for. */
-  function rankedTeams(season) {
-    var rows = {};
-    var teams = searchTeams();
-    teams.forEach(function (team) { if (team.key && season) { rows[team.key] = nflStanding(team.key, season).row; } });
-    function pct(row) { return row && row.wins + row.losses ? row.wins / (row.wins + row.losses) : 0.5; }
-    function wins(row) { return row ? row.wins : 0; }
-    return teams.sort(function (a, b) {
-      return (a.key ? 0 : 1) - (b.key ? 0 : 1) || pct(rows[b.key]) - pct(rows[a.key]) ||
-        wins(rows[b.key]) - wins(rows[a.key]) || a.name.localeCompare(b.name);
-    });
-  }
-
-  /* A team in the results, drawn like a player's card: its mark on its
-     colour, its name, and where it stands. */
-  function searchTeamLine(team, season) {
-    var item = el('li', 'ege-room__player');
-    var card = el('a', 'ege-teamchip ege-teamchip--team');
-    card.href = team.href;
-    var mark = el('span', 'ege-teamchip__photo ege-teamchip__mark');
-    var img = null;
-    if (team.logo) {
-      img = el('img');
-      img.src = team.logo;
-      img.alt = '';
-      img.loading = 'lazy';
-      img.addEventListener('error', function () { img.remove(); });
-      mark.appendChild(img);
-    }
-    paintMark(mark, team, img);
-    card.appendChild(mark);
-    var text = el('span', 'ege-teamchip__text');
-    text.appendChild(el('span', 'ege-teamchip__name', team.name));
-    var where = team.league || '';
-    if (team.key) {
-      var standing = season ? nflStanding(team.key, season) : null;
-      var conf = EGE.nfl.teams[team.key];
-      where = standing
-        ? standing.row.wins + '-' + standing.row.losses + ' · ' +
-          (standing.place ? EGE.ordinal(standing.place) + ' in ' : '') + standing.league
-        : conf.conf + ' ' + conf.div;
-    }
-    if (where) { text.appendChild(el('span', 'ege-teamchip__meta', where)); }
-    card.appendChild(text);
-    item.appendChild(card);
-    return item;
-  }
-
   /* The mark beside a player's overall: his team's, the last one he played
      for once he has retired, or FA. */
   function searchMark(hit) {
@@ -4559,13 +4535,13 @@
     return row;
   }
 
-  function searchGroup(title, lines, modifier) {
+  function searchGroup(title, lines) {
     var panel = el('section', 'fb-panel ege-search__group');
     var head = el('div', 'fb-panel__head');
     head.appendChild(el('h3', null, title));
     panel.appendChild(head);
     var body = el('div', 'fb-panel__body');
-    var list = el('ol', 'ege-room__list ege-search__list' + (modifier ? ' ' + modifier : ''));
+    var list = el('ol', 'ege-room__list ege-search__list');
     lines.forEach(function (line) { list.appendChild(line); });
     body.appendChild(list);
     panel.appendChild(body);
@@ -4591,17 +4567,6 @@
     drawSortPick(sorts);
     var sort = sorts.filter(function (s) { return s.key === searchSort; })[0];
 
-    /* Teams only with every position: as typed, the best match first;
-       with nothing typed, all of them. */
-    var teams = searchPos ? [] : !query ? rankedTeams(season) : searchTeams().map(function (team) {
-      var scores = team.names.map(function (name) { return searchScore(searchText(name), words, query); })
-        .filter(function (score) { return score !== -1; });
-      if (team.key && team.key.toLowerCase() === query) { scores.push(0); }
-      return { team: team, score: scores.length ? Math.min.apply(null, scores) : -1 };
-    }).filter(function (hit) { return hit.score !== -1; }).sort(function (a, b) {
-      return a.score - b.score || a.team.name.localeCompare(b.team.name);
-    }).map(function (hit) { return hit.team; });
-
     var people = pool.filter(function (hit) {
       return (!searchPos || searchPosOf(hit) === searchPos) && (query || hit.how !== 'retired');
     }).map(function (hit) {
@@ -4610,10 +4575,6 @@
     }).filter(function (x) { return x.score !== -1; })
       .sort(query && sort.key === 'overall' ? byMatch : bySort(sort));
 
-    var teamGroup = teams.length ? searchGroup('Teams', teams.map(function (team) {
-      return searchTeamLine(team, season);
-    }), query ? null : 'ege-search__list--teams') : null;
-    if (teamGroup && query) { searchResults.appendChild(teamGroup); }
     if (people.length) {
       var group = searchGroup('Players', people.slice(0, searchShown).map(function (x) {
         return searchPlayerLine(x.hit, season, sort);
@@ -4629,10 +4590,9 @@
       }
       searchResults.appendChild(group);
     }
-    if (teamGroup && !query) { searchResults.appendChild(teamGroup); }
     if (all === undefined) {
       searchResults.appendChild(el('p', 'ege-note ege-search__note', 'Getting the players…'));
-    } else if (!teams.length && !people.length) {
+    } else if (!people.length) {
       searchResults.appendChild(el('p', 'ege-note ege-search__note', 'No matches.'));
     }
   }
@@ -4680,10 +4640,13 @@
   /* --- the League -----------------------------------------------------------
 
      The football at the end of the nav (Sam, 2026-10-30): every NFL game of
-     a week, with the search under it. The bar picks the week -- the
-     season, the week, and a step either way that runs on into the season
-     next to it -- and only weeks out on the site are in it, an admin's
-     too. It opens on the latest week out with games in it.
+     a week under Schedule, the standings under that, and the search under
+     Standings. The bar picks the week -- the season, the week, and a step
+     either way that runs on into the season next to it. In it are the
+     weeks out on the site with games in them, and the weeks still to come
+     (Sam, 2026-10-30), whose games are only who plays whom: an admin sees
+     nothing of a week the sim has played before it is out either. It
+     opens on the latest week out, and the nav's football goes back to it.
 
      A game is a card: both teams with the score, the winner in ink, and
      the game's leaders passing, rushing and receiving with their
@@ -4697,9 +4660,13 @@
      The games are the NFL sim's box scores (js/box-scores.js). A week the
      sim has none for -- 2023's first nine weeks, taken in from the site --
      is the scores the season files have (EGE.nflResults), with the six's
-     lines from their own games. */
+     lines from their own games. A week to come is the schedule the sim
+     publishes with the rosters (`schedule`), the playoff rounds as far as
+     they are drawn (`playoffs`), and the six's own games as their
+     schedules show them. */
 
   var leagueGames = document.getElementById('leagueGames');
+  var leagueStandings = document.getElementById('leagueStandings');
   var leagueBar = document.getElementById('leagueBar');
   var leagueSeasonPick = document.getElementById('leagueSeasonPick');
   var leagueWeekPick = document.getElementById('leagueWeekPick');
@@ -4719,8 +4686,9 @@
 
   function weekName(week) { return ROUND_NAMES[week] || 'Week ' + week; }
 
-  /* Every NFL season's weeks with a game out, { season: [week] }: the
-     sim's box scores, and the season files' scores and the six's games. */
+  /* Every NFL season's weeks, { season: [week] }: the ones out with a game
+     in them -- the sim's box scores, and the season files' scores and the
+     six's games -- and the ones to come (leagueUpcoming). */
   function leagueWeeks() {
     var out = {};
     nflSeasons().filter(function (year) { return year <= EGE.currentSeason; }).forEach(function (season) {
@@ -4731,11 +4699,60 @@
         if (EGE.tierFor(season, player) !== 'nfl') { return; }
         EGE.gamesPlayed(player, season).forEach(function (game) { seen[game.week] = true; });
       });
-      var weeks = Object.keys(seen).map(Number).filter(function (week) { return EGE.isPublished(season, week); })
-        .sort(function (a, b) { return a - b; });
+      var weeks = Object.keys(seen).map(Number).filter(function (week) { return EGE.isPublished(season, week); });
+      Object.keys(leagueUpcoming(season)).map(Number).forEach(function (week) {
+        if (weeks.indexOf(week) === -1) { weeks.push(week); }
+      });
+      weeks.sort(function (a, b) { return a - b; });
       if (weeks.length) { out[season] = weeks; }
     });
     return out;
+  }
+
+  /* A season's games still to come, { week: [game] }, each { home, away,
+     upcoming, six: [{ player, team }] }, by the sim's keys: every game of a
+     week not out yet in the schedule the season's rosters carry, the
+     playoff rounds drawn so far without their scores, and the six's own
+     games as their schedules have them (EGE.scheduleFor keeps a playoff
+     game back until the week before it is out). Who plays whom and
+     nothing else, so a week the sim has played is no different before it
+     is out, an admin's page too. The six's games first, in the site's
+     order, then the schedule's. */
+  function leagueUpcoming(season) {
+    var all = EGE.nflRosters.get(season);
+    var weeks = {};
+    var byPair = {};
+    function add(week, home, away) {
+      if (!home || !away || EGE.isPublished(season, week)) { return null; }
+      var key = week + '|' + teamPair(home, away);
+      if (!byPair[key]) {
+        byPair[key] = { home: home, away: away, upcoming: true, six: [] };
+        (weeks[week] = weeks[week] || []).push(byPair[key]);
+      }
+      return byPair[key];
+    }
+    ((all && all.schedule) || []).forEach(function (g) { add(g.week, g.home, g.away); });
+    ((all && all.playoffs && all.playoffs[season]) || []).forEach(function (g) {
+      if (!g.bye) { add(g.week, EGE.nfl.keyByName(g.home), EGE.nfl.keyByName(g.away)); }
+    });
+    EGE.players.forEach(function (player) {
+      if (EGE.tierFor(season, player) !== 'nfl') { return; }
+      EGE.scheduleFor(player, season).forEach(function (game) {
+        if (game.bye || !game.opponent) { return; }
+        var team = EGE.teamFor(player, season, game.week);
+        var ours = team ? EGE.nfl.keyByName(team.school) : null;
+        var other = EGE.nfl.keyByName(game.opponent);
+        var found = game.home !== false ? add(game.week, ours, other) : add(game.week, other, ours);
+        if (found) { found.six.push({ player: player, team: ours }); }
+      });
+    });
+    Object.keys(weeks).forEach(function (week) {
+      weeks[week] = weeks[week].map(function (game, i) {
+        var first = game.six.length ? EGE.players.indexOf(game.six[0].player) : EGE.players.length;
+        return { game: game, first: first, i: i };
+      }).sort(function (a, b) { return a.first - b.first || a.i - b.i; }).map(function (x) { return x.game; });
+    });
+    return weeks;
   }
 
   /* Every week there is, oldest first, for the steps either way. */
@@ -4772,18 +4789,19 @@
   }
 
   /* The week to show: the one picked while it is still there, the same
-     week of a season picked without one, or the latest. */
+     week of a season picked without one, or the latest out (the first to
+     come when none is). */
   function leagueWeekAt(weeks) {
-    var seasons = Object.keys(weeks).map(Number).sort(function (a, b) { return a - b; });
-    if (!seasons.length) { return null; }
+    var stops = leagueStops(weeks);
+    if (!stops.length) { return null; }
     if (leagueAt && weeks[leagueAt.season]) {
       var list = weeks[leagueAt.season];
       if (list.indexOf(leagueAt.week) !== -1) { return leagueAt; }
       var before = list.filter(function (week) { return week <= leagueAt.week; });
       return { season: leagueAt.season, week: before.length ? before[before.length - 1] : list[0] };
     }
-    var last = seasons[seasons.length - 1];
-    return { season: last, week: weeks[last][weeks[last].length - 1] };
+    var out = stops.filter(function (at) { return EGE.isPublished(at.season, at.week); });
+    return out.length ? out[out.length - 1] : stops[0];
   }
 
   /* One of the six's line from his own game, in a box score's keys. */
@@ -5081,6 +5099,37 @@
     return card;
   }
 
+  /* A game to come: both teams with their records where the score goes,
+     and any of the six in it with his position. It does not open. */
+  function upcomingCard(game, records) {
+    var card = el('article', 'ege-game is-upcoming' + (game.six.length ? ' is-six' : ''));
+    var score = el('div', 'ege-game__score');
+    [game.away, game.home].forEach(function (key) {
+      var row = el('div', 'ege-game__side');
+      row.appendChild(leagueLogo(key, 30));
+      row.appendChild(el('span', 'ege-game__team', EGE.nfl.city(key)));
+      var rec = records[key];
+      row.appendChild(el('span', 'ege-game__rec', rec ? rec.wins + '-' + rec.losses : ''));
+      score.appendChild(row);
+    });
+    card.appendChild(score);
+    if (game.six.length) {
+      var leaders = el('div', 'ege-game__leaders');
+      game.six.forEach(function (x) {
+        var row = el('div', 'ege-game__leader is-six');
+        row.appendChild(boxFace({ name: x.player.name }, x.player));
+        var text = el('span', 'ege-game__who');
+        text.appendChild(el('span', 'ege-game__name', x.player.name));
+        text.appendChild(el('span', 'ege-game__line', POSITION_NAMES[x.player.position] || x.player.position));
+        row.appendChild(text);
+        row.appendChild(leagueLogo(x.team, 18));
+        leaders.appendChild(row);
+      });
+      card.appendChild(leaders);
+    }
+    return card;
+  }
+
   /* --- the box score --- */
 
   var SCORING_PLAY = /^Q(\d+) (\d+:\d\d) (\S+) (.*) \((\d+)-(\d+)\)$/;
@@ -5351,8 +5400,9 @@
     }
     var grid = el('div', 'ege-league__grid');
     var opened = null;
+    var records = games.some(function (game) { return game.upcoming; }) ? nflRecords(season) : null;
     games.forEach(function (game) {
-      var card = gameCard(game, season, week);
+      var card = game.upcoming ? upcomingCard(game, records) : gameCard(game, season, week);
       grid.appendChild(card);
       if (leagueOpen === gameId(game, season, week)) {
         opened = card;
@@ -5391,10 +5441,16 @@
       leagueBar.hidden = true;
       leagueGames.innerHTML = '';
       leagueGames.removeAttribute('data-drawn');
+      leagueStandings.hidden = true;
       if (leagueIndex === undefined) { leagueGames.appendChild(el('p', 'ege-note ege-league__note', 'Getting the games…')); }
       return;
     }
     fillLeagueBar(weeks, at);
+    drawLeagueStandings(at);
+    if (!EGE.isPublished(at.season, at.week)) {
+      drawLeagueGames(at.season, at.week, leagueUpcoming(at.season)[at.week] || []);
+      return;
+    }
     if (leagueIndex[at.season] && leagueIndex[at.season].indexOf(at.week) !== -1) {
       if (leagueGames.getAttribute('data-drawn') !== shown) {
         leagueGames.innerHTML = '';
@@ -5409,11 +5465,27 @@
     drawLeagueGames(at.season, at.week, leagueGamesFor(at.season, at.week, null));
   }
 
+  /* Under the games, the standings as they were after the week on show: a
+     week to come has the table as it is. */
+  function drawLeagueStandings(at) {
+    leagueStandings.hidden = false;
+    var box = document.getElementById('leagueStandingsBox');
+    box.innerHTML = '';
+    box.appendChild(nflStandingsBox(at.season, { through: at.week }));
+  }
+
   function pickLeagueWeek(at) {
     leagueAt = at;
     leagueOpen = null;
     renderLeague();
   }
+
+  /* The nav's football is the way back to the latest week out. */
+  document.getElementById('navLeague').addEventListener('click', function () {
+    leagueAt = null;
+    leagueOpen = null;
+    if (onLeague()) { renderLeague(); }
+  });
 
   leagueSeasonPick.addEventListener('change', function () {
     pickLeagueWeek({ season: Number(leagueSeasonPick.value), week: leagueAt ? leagueAt.week : Number(leagueWeekPick.value) });

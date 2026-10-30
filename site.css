@@ -4384,16 +4384,26 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 
 /* --- the League ------------------------------------------------------------
 
-   The football at the end of the nav (Sam, 2026-10-30). Under the title
-   the week's bar, the season beside the week; then the week's games as
-   cards, as many across as fit and one on a phone, each the score and the
-   game's leaders. A game opened is drawn in ink, and its box score takes
-   the whole row under it, the cards after it filling in around it. */
+   The football at the end of the nav (Sam, 2026-10-30). Three sections on
+   the grass, each under its own title: Schedule, Standings and Search.
+   Under Schedule the week's bar across the page, the season beside the
+   week; then the week's games as cards, as many across as fit and one on
+   a phone, each the score and the game's leaders. A game opened is drawn
+   in ink, and its box score takes the whole row under it, the cards after
+   it filling in around it. A game to come has the teams' records where
+   the score goes. */
 .ege-navleague { display: inline-flex; align-items: center; }
 .ege-navleague svg { display: block; }
-.ege-league__bar { max-width: 640px; margin: 0 auto 22px; }
-.ege-league__bar .ege-league__season { flex: 0 1 150px; }
+.ege-league__title {
+  margin: 0 0 16px;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  color: #fff;
+  text-shadow: 3px 3px 0 var(--fb-ink);
+}
+.ege-league__bar { margin: 0 0 22px; }
+.ege-league__bar .ege-league__season { flex: 0 1 240px; }
 .ege-league__games { margin-bottom: 40px; }
+.ege-league__standings { margin-bottom: 40px; }
 .ege-league__note { max-width: 640px; margin: 0 auto; background: var(--fb-cream); text-align: center; }
 .ege-league__grid {
   display: grid;
@@ -4429,6 +4439,8 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-game__logo { display: block; width: 30px; height: 30px; object-fit: contain; }
 .ege-game__team { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ege-game__pts { font-family: var(--fb-font-display); font-size: 1.5rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.ege-game__rec { font-size: .875rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.ege-game.is-upcoming .ege-game__side { color: var(--fb-ink); }
 .ege-game__ot { margin-right: 8px; font-family: var(--fb-font-body); font-size: var(--fb-label); font-weight: 800; letter-spacing: .08em; vertical-align: middle; }
 .ege-game__leaders {
   display: grid;
@@ -4561,9 +4573,10 @@ a.ege-boxscore__name:hover { color: var(--fb-accent-deep); text-decoration: unde
 
 /* --- the search ------------------------------------------------------------
 
-   The box under the League's games, and the results: teams, then players,
-   two cards across like a team's rooms and one on a phone. */
-.ege-search { max-width: 640px; margin: 0 auto 26px; }
+   The box under the League's standings, across the page, and the
+   players it finds, two cards across like a team's rooms and one on a
+   phone. */
+.ege-search { margin: 0 0 26px; }
 /* The position and the sort, side by side under the box. */
 .ege-search__sorts { display: flex; gap: 10px; margin-top: 12px; }
 .ege-search__sorts .ege-filterselect { flex: 1 1 0; min-width: 0; }
@@ -4577,8 +4590,6 @@ a.ege-boxscore__name:hover { color: var(--fb-accent-deep); text-decoration: unde
 .ege-search__results { display: grid; gap: 22px; }
 .ege-search__list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 28px; }
 @media (max-width: 760px) { .ege-search__list { grid-template-columns: minmax(0, 1fr); } }
-/* Every team, with nothing typed: as many across as fit. */
-.ege-search__list.ege-search__list--teams { grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); }
 .ege-search__more { justify-self: start; margin-top: 14px; }
 .ege-search__note { text-align: center; }
 /* The number a sort put him in order by, just before his overall: the
@@ -4619,13 +4630,6 @@ a.ege-boxscore__name:hover { color: var(--fb-accent-deep); text-decoration: unde
   .ege-teamchip.is-sorted .ege-sortbox { min-width: 46px; padding: 4px 3px 5px; }
   .ege-teamchip.is-sorted .ege-sortbox.is-wide .ege-sortbox__value { font-size: .9375rem; }
 }
-/* A team's card: its mark on its colour where a player's picture goes. */
-.ege-teamchip--team:hover { background: var(--fb-tint-wash); }
-.ege-teamchip--team:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: 2px; }
-.ege-teamchip__mark { padding: 8px; }
-.ege-teamchip__mark.is-painted { background-image: none; }
-.ege-teamchip__mark img { object-fit: contain; object-position: center; }
-.ege-teamchip__mark img.is-white { filter: brightness(0) invert(1); }
 /* A player's team beside his overall, or FA. */
 .ege-teamchip__team { display: grid; flex: none; place-items: center; align-self: center; width: 34px; height: 34px; }
 .ege-teamchip__team img { width: 100%; height: 100%; object-fit: contain; }
@@ -4978,6 +4982,8 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
 .ege-nflstand__team.is-ours:hover { background: var(--fb-tint-clay-2); }
 .ege-nflstand__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ege-nflstand__record { flex: none; margin-left: 10px; font-variant-numeric: tabular-nums; }
+/* The League's: the streak in a column of its own after the record. */
+.ege-nflstand__streak { flex: none; width: 2.75em; text-align: right; font-variant-numeric: tabular-nums; }
 
 /* --- an NFL player up close -------------------------------------------------
 

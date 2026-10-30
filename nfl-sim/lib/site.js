@@ -380,6 +380,19 @@ function playoffsOut(league, site) {
   return out;
 }
 
+/* The season's regular season as the schedule has it, for the weeks still
+   to come on the League page (Sam, 2026-10-30): each game's week and teams
+   by key, and nothing about how it went. Null while the schedule kept is
+   still last season's, before the draft's season starts. */
+function scheduleOut(league) {
+  if (league.phase === 'draft' || league.phase === 'preseason' || !league.schedule) { return null; }
+  return league.schedule.map((g) => {
+    const row = { week: g.week, home: g.home, away: g.away };
+    if (g.neutral) { row.neutral = true; }
+    return row;
+  });
+}
+
 /* data/nfl-results.js: every season the sim has written, this one replaced
    with `results` (or left out when there are none). */
 function resultsFileText(season, results) {
@@ -694,7 +707,8 @@ const CAP_YEARS = 4;
    player carries his seasons from 2025 on, for his pop-up (seasonLines),
    and `linesThrough` says how far into this season they count, so the
    site can have them published again once another week is out. Every
-   season's playoff draw comes too, as far as it is out (playoffsOut). */
+   season's playoff draw comes too, as far as it is out (playoffsOut), and
+   the season's schedule (scheduleOut). */
 function publicRosters(league) {
   let site = null;
   try { site = io.site(); } catch (err) { site = null; }
@@ -754,7 +768,7 @@ function publicRosters(league) {
   });
   return { season: league.season, phase: league.phase, week: league.week || null, savedAt: new Date().toISOString(), caps, systems,
            picks, linesThrough: lines.through[league.season] || 0, teams, freeAgents: freeAgents(league, site, lines),
-           retired: retiredPlayers(league, site, lines), playoffs: playoffsOut(league, site) };
+           retired: retiredPlayers(league, site, lines), playoffs: playoffsOut(league, site), schedule: scheduleOut(league) };
 }
 
 function siteCollege(site, p) {
