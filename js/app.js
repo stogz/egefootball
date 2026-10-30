@@ -1750,6 +1750,7 @@
       nfl: true,
       photo: Boolean(sim.espn),
       espn: sim.espn,
+      collegePhoto: Boolean(sim.collegePhoto),
       player: player,
       sim: sim,
       team: key,
@@ -3080,8 +3081,7 @@
   function nflPhoto(row, wide) {
     if (row.player) { return row.player.headshot; }
     if (!row.espn) { return null; }
-    return 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/' + row.espn +
-      '.png&w=' + (wide ? 350 : 96) + '&h=' + (wide ? 254 : 70);
+    return EGE.espnHeadshot(row.espn, row.collegePhoto, wide ? 350 : 96, wide ? 254 : 70);
   }
 
   /* The pop-up's name at the size site.css gives it, or smaller when a
@@ -4895,13 +4895,15 @@
      for a line without one, the rosters' id for him. */
   function boxFace(line, player) {
     var espn = line.espn;
+    var college = Boolean(line.collegePhoto);
     if (!player && !espn) {
       var hit = boxHit(line);
       player = hit && hit.sim.ege ? EGE.playerBySlug(hit.sim.ege) : null;
       espn = hit ? hit.sim.espn : null;
+      college = Boolean(hit && hit.sim.collegePhoto);
     }
     return rosterFace({ name: player ? player.name : line.name, player: player || null,
-                        photo: Boolean(espn), espn: espn, nfl: true });
+                        photo: Boolean(espn), espn: espn, collegePhoto: college, nfl: true });
   }
 
   /* His name, a way to his pop-up when the rosters know him, or to his
