@@ -1805,9 +1805,11 @@
 
     /* Anything keeping him out, beside his overall (Sam, 2026-10-21). */
     var end = el('span', 'ege-teamchip__end');
+    /* A free agent's value comes before his team's mark (Sam, 2026-10-30). */
+    if (row.sorted && row.sortedFirst) { end.appendChild(row.sorted); }
     if (row.where) { end.appendChild(row.where); }
     if (row.out) { end.appendChild(injuryBox(row.out)); }
-    if (row.sorted) { end.appendChild(row.sorted); }
+    if (row.sorted && !row.sortedFirst) { end.appendChild(row.sorted); }
     var box = row.retired ? retiredBox(row.retired) : overallBox(row.overall, 'ege-ovrbox--chip');
     if (box) { end.appendChild(box); }
     card.appendChild(end);
@@ -4720,14 +4722,15 @@
 
   function faMarket(hit) { return typeof hit.sim.market === 'number' ? hit.sim.market : null; }
 
-  /* His market value in green where a sort's box goes, no box round it
-     (Sam, 2026-10-30). */
+  /* His market value in green under VALUE, in the site's own type and no
+     box round it (Sam, 2026-10-30). */
   function marketBox(hit) {
     var value = faMarket(hit);
     if (value === null) { return null; }
-    var text = '$' + (value >= 10 ? Math.round(value) : value.toFixed(1)) + 'M';
-    var box = el('span', 'ege-faval', text);
+    var box = el('span', 'ege-faval');
     box.title = 'Market value: about $' + value.toFixed(1) + 'M a year';
+    box.appendChild(el('span', 'ege-faval__label', 'VALUE'));
+    box.appendChild(el('span', 'ege-faval__value', '$' + (value >= 10 ? Math.round(value) : value.toFixed(1)) + 'M'));
     return box;
   }
 
@@ -4808,6 +4811,7 @@
       var row = nflHitRow(x.hit, season);
       row.where = searchMark(x.hit);
       row.sorted = sort.box && sort !== FA_MARKET_SORT ? sort.box(x.hit) : marketBox(x.hit);
+      row.sortedFirst = true;
       if (x.hit.sim.interest && x.hit.sim.interest.length) { row.interest = x.hit.sim.interest; }
       faList.appendChild(nflLine(row));
     });

@@ -763,16 +763,18 @@ for the season after the one the search has (*2027 Free Agency Tracker*
 all through 2026). Under the title, the **Biggest Buyers**: the six teams
 with the most cap space next season, its cap less every contract that runs
 into it (as their payrolls on the Teams pages have it), each its mark, its
-city and the money in green, a link to its page. Six across, three on a
-narrow screen, two on a phone.
+city and the money in green, straight on the panel with no box, a link
+to its page. Six across, three on a narrow screen, two on a phone.
 
 Then every player on a roster whose contract runs out with the season the
 search has (the latest live one, `contract.through`), the six included,
 as the search's cards. A **Position** pick and a **Sort** pick: Overall
-(the default), Market Value, then the search's sorts. Each card has his
-market value in green before his overall, no box (*$21M*: what the sim's
-market would pay him a year next season, `market`), or the sorted number's
-box when another sort is picked, and under his name the marks of up to
+(the default), Market Value, then the search's sorts. Each card leads
+with **VALUE** over his market value in green, the site's own type and no
+box (*$21M*: what the sim's market would pay him a year next season,
+`market`), then his team's mark and his overall (on a phone the mark sits
+on his picture, as the search has it); another sort's box takes the
+value's place. Under his name are the marks of up to
 three teams likeliest to want him (**INTEREST**, `interest`). A card too
 narrow for them (a phone) runs them on under the boxes. Twelve, then
 *Show more*.
