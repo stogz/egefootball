@@ -24,9 +24,8 @@
 
    The file is written through js/exports.js, the same code the season
    editor saves with, so it comes out exactly as the editor would write it.
-   Then add the year to SEASONS in js/site-data.js. The site shows a season
-   from the day its file is in for the admin to edit, and to everyone else
-   once it is rolled over to.
+   The site shows a season from the day its file is in for the admin to
+   edit, and to everyone else once it is rolled over to.
    ========================================================================== */
 
 'use strict';

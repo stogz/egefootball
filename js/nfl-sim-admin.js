@@ -325,10 +325,11 @@ EGE.nflSimAdmin = (function () {
     var season = league.season;
     var stored = EGE.storedWeeks;
     if (!stored) { return Promise.resolve(false); }
-    if (!EGE.stats[season]) {
+    if (!hasSix(season)) {
       /* Before the draft the schedule kept is last season's. */
       var started = league.phase !== 'draft' && (league.schedule || []).some(function (g) { return g.score; });
-      return started ? Promise.reject(new Error('There is no stats/' + season + '.js with the ' + season + ' schedule yet.')) : Promise.resolve(false);
+      return started ? Promise.reject(new Error('There is no stats/' + season + '.js with the ' + season + ' schedule yet. ' +
+        'Download it under Put it on the site and put it in stats/.')) : Promise.resolve(false);
     }
     var made = stored.pristine(function () { return sim().site.weekRows(league, season); });
     return EGE.wallet.loadStoredWeeks().then(function () {
@@ -1768,13 +1769,40 @@ EGE.nflSimAdmin = (function () {
     }).sort();
   }
 
+  /* Whether a season's file has any of the six's games in it. */
+  function hasSix(year) {
+    var games = (EGE.stats[year] || {}).games || {};
+    return Object.keys(games).some(function (slug) { return games[slug].length; });
+  }
+
+  /* The season the sim has moved on to, with each of the six's whole
+     regular season from the sim's schedule wherever his file has none
+     (lib/six-trades.js seasonGames), so the next season's file comes out
+     of the download ready to go in stats/ (Sam, 2026-10-30). A season the
+     page has no file for gets an empty one first, for the trades to land
+     in. */
+  function fillSeason(league) {
+    var year = league.season;
+    var games = EGE.stats[year].games;
+    var made = sim().sixTrades.seasonGames(league, year);
+    Object.keys(made).forEach(function (slug) {
+      if (!(games[slug] || []).length) { games[slug] = made[slug]; }
+    });
+  }
+
   /* The season files with the stored weeks written in: what the site
      shows, the way it shows it. A sticker on a week that is out goes into
      the file with it, which is where a published week's sticker lives. */
   function seasonFiles(year) {
     var league = openLeague();
-    var first = league.season === year ? syncSite(league) : Promise.resolve();
+    var current = league.season === year;
+    if (current && !EGE.stats[year]) {
+      EGE.stats[year] = { season: year, level: 'NFL', games: {} };
+      EGE.fillLadder();
+    }
+    var first = current ? syncSite(league) : Promise.resolve();
     return first.then(function () {
+      if (current) { fillSeason(league); }
       return EGE.wallet.loadGameBoosters(year);
     }).then(function () {
       var edits = { season: year, weeks: {} };
@@ -1792,6 +1820,8 @@ EGE.nflSimAdmin = (function () {
       });
       return EGE.exports.seasonFile(year, edits);
     }).then(function (stats) {
+      /* A season the sim has not played a game of has no scores to write. */
+      if (playedSeasons().indexOf(year) === -1) { return { stats: stats, results: null }; }
       var results = (EGE.nflSimResults || {})[year] || null;
       return { stats: stats, results: sim().site.resultsFileText(year, results) };
     });
@@ -1812,6 +1842,8 @@ EGE.nflSimAdmin = (function () {
   function drawSite(body, league) {
     var part = section('Put it on the site');
     var years = playedSeasons();
+    /* And the season the sim has moved on to, from the offseason on. */
+    if (years.length && years.indexOf(league.season) === -1) { years.push(league.season); }
     var r = row();
     if (!years.length) {
       part.appendChild(el('p', 'fb-meta', 'The sim has not played a game of its own yet.'));
@@ -1831,9 +1863,13 @@ EGE.nflSimAdmin = (function () {
         state.error = null;
         seasonFiles(year).then(function (files) {
           EGE.exports.download(year + '.js', files.stats);
-          window.setTimeout(function () { EGE.exports.download('nfl-results.js', files.results); }, 400);
-          state.last = { title: 'Downloaded ' + year + '.js and nfl-results.js',
-            lines: ['Put ' + year + '.js in stats/ and nfl-results.js in data/.'] };
+          if (files.results) {
+            window.setTimeout(function () { EGE.exports.download('nfl-results.js', files.results); }, 400);
+          }
+          state.last = files.results
+            ? { title: 'Downloaded ' + year + '.js and nfl-results.js',
+                lines: ['Put ' + year + '.js in stats/ and nfl-results.js in data/.'] }
+            : { title: 'Downloaded ' + year + '.js', lines: ['Put ' + year + '.js in stats/.'] };
           draw();
         }).catch(function (err) {
           state.error = err.message || String(err);

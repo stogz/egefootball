@@ -601,7 +601,13 @@ free agency has signed:
    most overpaid veterans go and signs minimum players to stay at 53.
    Tested over 2024–2029: contenders leave 1–2% of the cap, rebuilding
    teams 3–8%, nobody more than 3% over.
-5. The new season's schedule.
+5. The new season's schedule. From 2027 on it is the sim's own, made from
+   how the divisions finished, and the same in every browser and on the
+   command line (a seeded shuffle, not a sort with a random comparison,
+   which each engine does its own way). The NFL Sim tab's **Download the
+   season files** gives the new season's `stats/{year}.js` from it as soon
+   as the offseason starts: each of the six's regular season on his team
+   (`six-trades.js seasonGames`).
 
 Run for years, the league holds steady: in seven seasons tested (2023–2029)
 the average overall stayed at 74–75, with about 400 players at 80 or better

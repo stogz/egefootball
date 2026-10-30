@@ -2565,11 +2565,22 @@ rosters (2023 to 2025) are worked out again from the sim's game logs, and
 appear once an admin has the rosters sent again — any step on the NFL Sim
 tab, Update rosters now, or an admin opening an NFL player's page.
 
-A new season is a new file and one more year in the `SEASONS` list at the top
-of `js/site-data.js`. The bot finds them on its own. A season's file can go in
-before the season is live: the site shows seasons up to `EGE.currentSeason`
-and no further, so a file for next year waits, editable from the admin page,
-until the season is rolled over.
+A new season is a new file and nothing else. `js/site-data.js` loads every
+season from 2018 to the one after `EGE.currentSeason`, the bot every file in
+`stats/`, and an NFL season after the last one on the ladder in
+`data/players.js` joins it once its file is in (`EGE.fillLadder`, Sam,
+2026-10-30). A season's file can go in before the season is live: the site
+shows seasons up to `EGE.currentSeason` and no further, so a file for next
+year waits, editable from the admin page, until the season is rolled over.
+Until it is there, the request for next year's file just misses.
+
+**The NFL Sim tab writes next season's file.** Once the sim's offseason is
+under way, the season it has moved on to is in the list under **Put it on
+the site**, and **Download the season files** gives its `{year}.js` with each
+of the six's whole regular season from the sim's own schedule, on the team
+he is with (a free agent on the one he left until he signs; signing anywhere
+else is a move from Week 1, laid over the file like a trade). Put it in
+`stats/` before the sim plays a game of that season.
 
 **2020** is the first college season, laid out from each school's real 2020
 schedule as it was announced before COVID-19 rewrote it — the non-conference
@@ -2586,8 +2597,8 @@ by `node tools/build-season.js 2021`, which reads the schedules from ESPN
 and saves through the same code as the season editor; it refuses to write
 over a file that is already there. Conference title games, bowls and
 playoffs are not in it — those go in once the regular season is played — and
-no game is marked for scouts yet. The year is in `SEASONS` in
-`js/site-data.js`, so the admin can edit and publish it now; it shows to
+no game is marked for scouts yet. Its file is in, so the admin can edit and
+publish it now; it shows to
 everybody once **Roll the season over** points `data/season.js` at it.
 Rosters (`data/rosters.js`), defense grades (`data/defenses.js`) and the
 conference races (`data/conferences.js`) all have 2021 in already.
@@ -2712,7 +2723,8 @@ no games at all. There is no real 2027 schedule, so the sim makes its own
 from how the 2026 divisions finish, and where the six play depends on
 free agency, so neither is known yet. With the file in, a trade or a
 signing the sim makes after the 2026 season has a 2027 season to land
-in. The schedule has to be written in before the sim plays a 2027 game.
+in. Once the sim's 2027 offseason is under way, the NFL Sim tab's download
+gives the file with the schedule in, to go over this one.
 
 ### Conference standings
 

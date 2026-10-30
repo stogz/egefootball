@@ -104,6 +104,19 @@ function balanceHomes(games) {
   }
 }
 
+/* `items` in a random order, the same one in every browser. A sort with a
+   random comparison is not: each engine sorts its own way, so Chrome and
+   Node made two different 2027 schedules from the same league. */
+function shuffle(items, rng) {
+  for (let i = items.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng() * (i + 1));
+    const t = items[i];
+    items[i] = items[j];
+    items[j] = t;
+  }
+  return items;
+}
+
 /* Spreads the games over 18 weeks so nobody plays twice in a week and each
    team has one bye between Weeks 5 and 14: byes are handed out first, then
    each week is a full matching of the teams still to play, built most-
@@ -112,7 +125,7 @@ function weeks(games, seed) {
   const rng = seeded(seed);
   const BYES = [0, 0, 0, 0, 2, 4, 4, 4, 4, 4, 4, 2, 2, 2, 0, 0, 0, 0];
   for (let attempt = 0; attempt < 2000; attempt += 1) {
-    const teams = KEYS.slice().sort(() => rng() - 0.5);
+    const teams = shuffle(KEYS.slice(), rng);
     const byeWeek = {};
     let at = 0;
     BYES.forEach((n, i) => { for (let k = 0; k < n; k += 1) { byeWeek[teams[at]] = i + 1; at += 1; } });
@@ -158,7 +171,7 @@ function matching(teams, left, rng) {
       if (!opts || o.length < opts.length) { pick = k; opts = o; }
     });
     if (!opts.length) { return false; }
-    opts.sort(() => rng() - 0.5);
+    shuffle(opts, rng);
     for (let i = 0; i < opts.length; i += 1) {
       const o = opts[i];
       free.delete(pick);
