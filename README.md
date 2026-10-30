@@ -657,12 +657,53 @@ Under the bar:
 The quarterback rooms are also where a QB Connection is picked from (see
 the shop).
 
-### Search — `#search`
+### League — `#league`
 
-A magnifying glass at the end of the nav links (Sam, 2026-10-26), for
-everybody, signed in or not. It opens a page with one box; results come
-as it is typed, and the query rides in the address (`#search/{query}`), so
-Back from a team or a player's page comes back to the same results.
+A football at the end of the nav links (Sam, 2026-10-30; a magnifying glass
+and a page called Search from 2026-10-26), for everybody, signed in or not.
+The old `#search` and `#search/{query}` addresses open it.
+
+**The week's games** come first. Under the title a bar picks the week: the
+season, the week (*Week 1* to *Week 18*, then *Wild Card*, *Divisional*,
+*Conference Championships*, *Super Bowl*), and a step either way that runs
+on into the next or last season. Only weeks out on the site are in it, an
+admin's too, from 2023 (the six's first NFL season) to the live season; it
+opens on the latest one with games in it.
+
+- **A game** is a card, as many across as fit and one on a phone: both
+  teams' marks and cities with the score (away on top, the winner in ink,
+  *OT* by the winner's score), then the game's leaders, the best passer,
+  rusher and receiver by yards, each with his headshot, his line and his
+  team's mark. A game one of the six played in comes first and has an
+  orange edge, with his line on the card whatever it was.
+- **Opened** (a tap on the card), the card goes dark and the **box score**
+  takes the whole row under it: the score a quarter at a time, the scoring
+  plays (quarter, clock, team and the play, with the score after it), both
+  teams' numbers side by side (total yards, net passing, rushing, first
+  downs, third downs, turnovers, sacked, possession), who got hurt and for
+  how long, then every player's line for each team in tables: Passing
+  (C/ATT, YDS, TD, INT, SCK, RTG), Rushing (CAR, YDS, AVG, TD, LNG),
+  Receiving (REC, TGT, YDS, AVG, TD, LNG), Defense (TCKL, SCK, INT, PD, FF,
+  TD), Kicking (FG, XP, PTS) and Punting (NO, YDS, AVG). The two teams sit
+  side by side; on a phone a switch shows one at a time and names are
+  shortened (M. Penix). The six's rows are orange. A name opens his
+  pop-up, the search's, by his ESPN id, which of the six he is, or his name
+  and position; a team's name opens its page for that season.
+- **Where the games come from**: the NFL sim's box scores, which the NFL Sim
+  tab writes to Supabase `sim_box_scores` (one row a week,
+  `nfl-sim/lib/site.js boxRows`) after every step and every time the tab
+  opens, only the weeks that changed (`digest`), and which nobody but an
+  admin can read before the week is published. Nothing private is in them:
+  a player is his name, position, team and ESPN id. A week the sim has no
+  box score for (2023's Weeks 1-9, taken in from the site) shows the
+  season files' scores (`EGE.nflResults`) with the six's lines from their
+  own games, and does not open. Games played before 2026-10-21 have no
+  player lines, so they open to the scoring, the leaders and the injuries.
+  Read by `js/box-scores.js`.
+
+**The search** is under the games: one box, results as it is typed, and the
+query rides in the address (`#league/{query}`), so Back from a team or a
+player's page comes back to the same results.
 
 - **Teams** first: every NFL team (by name, city or abbreviation: `DET`)
   with its record and place in its division, and every school one of the
@@ -700,7 +741,7 @@ The free agents and the retired come with the published rosters
 (`freeAgents` and `retired` in `nfl-sim/lib/site.js publicRosters`).
 Rosters published before 2026-10-26 have neither, so until the live
 season's rosters are published again only rostered players turn up; an
-admin's first visit to the search or an NFL team's page publishes them
+admin's first visit to the League page or an NFL team's page publishes them
 again from the world, as it does for anything else the rosters are missing.
 Players who retired before then lost their archetype and size in the world,
 so their cards show neither.
@@ -2967,7 +3008,9 @@ passing, rushing and receiving leaders, which opens to both teams' plays,
 dropbacks, runs, yards, third downs and time of possession, every player
 who threw, ran or was thrown to, sacks and picks, the scoring plays and
 who got hurt (`nfl-sim/lib/weeks.js`). Games played before 2026-10-21 have
-no box score, so theirs open to the scoring and injuries only. A stored week is
+no box score, so theirs open to the scoring and injuries only. The same box
+scores go to `sim_box_scores` for the League page (see *League*), behind
+the step: a problem storing them shows on the tab and the step stands. A stored week is
 the whole week as the sim played it, for each of the six in the NFL: their
 results, stat lines, big plays and injuries, every other NFL score for the
 standings, and their playoff games as they reach them. Nobody but an admin
@@ -3181,10 +3224,11 @@ Built so far:
   their awards, which weeks are published (and which leagues' Discord
   posts have gone), the Discord webhooks (the two leagues' and the trades
   bot's), the card collection, and the NFL sim's world, rosters, stored
-  weeks (`sim_weeks`) and the six's trades (`sim_trades`). Run
-  it in the Supabase SQL editor; it is safe to run again, and it must be
-  re-run after pulling a change that adds a table. **Re-run it after
-  pulling this change** so `sim_trades` is there for the six's trades.
+  weeks (`sim_weeks`), the six's trades (`sim_trades`) and every game's
+  box score (`sim_box_scores`). Run it in the Supabase SQL editor; it is
+  safe to run again, and it must be re-run after pulling a change that adds
+  a table. **Re-run it after pulling this change** so `sim_box_scores` is
+  there for the League page.
 - `supabase/functions/post-week/` — an edge function that posts a week to
   the college or NFL channel for an admin, from the saved webhook or its
   own secret, for a league with no webhook saved on the admin page.
@@ -3209,6 +3253,8 @@ Built so far:
 - `js/nfl-rosters.js` — every NFL team's roster for the Teams pages, from
   `data/nfl-rosters.json` or `nfl_sim_rosters` in Supabase, whichever is
   newer.
+- `js/box-scores.js` — every NFL game's box score for the League page,
+  from `sim_box_scores` in Supabase, a week at a time.
 - `js/lines.js` — the point spread on every game the six have left, for
   the wagers (see Wagers).
 - `data/nfl.js` — the 32 NFL teams: name, division, colour, page address.

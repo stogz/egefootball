@@ -46,11 +46,12 @@
         <a class="fb-navlink" href="#shop" id="navShop" hidden>Shop</a>
         <a class="fb-navlink" href="#cards" id="navCards" hidden>Cards<span class="ege-navbadge" id="navCardsBadge" hidden></span></a>
         <a class="fb-navlink" href="#admin" id="navAdmin" hidden>Admin</a>
-        <!-- Any player or team, from anywhere (Sam, 2026-10-26). -->
-        <a class="fb-navlink ege-navsearch" href="#search" id="navSearch" aria-label="Search" title="Search">
-          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
-            <circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="3"/>
-            <path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="3" stroke-linecap="square"/>
+        <!-- The League: every NFL game of a week, then any player or team
+             (Sam, 2026-10-26; a football since 2026-10-30). -->
+        <a class="fb-navlink ege-navleague" href="#league" id="navLeague" aria-label="League" title="League">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+            <path d="M3.5 20.5C3.5 11 11 3.5 20.5 3.5 20.5 13 13 20.5 3.5 20.5Z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
+            <path d="M9 15 15 9M9.2 12.2l2.6 2.6M10.7 10.7l2.6 2.6M12.2 9.2l2.6 2.6" stroke="currentColor" stroke-width="1.8"/>
           </svg>
         </a>
       </div>
@@ -228,21 +229,36 @@
       </div>
     </section>
 
-    <!-- ===== search =================================================== -->
-    <!-- Any player or team as you type: the teams as links to their pages,
-         the players as the cards a team's page draws, each opening his
-         pop-up -- the free agents and the retired too, the retired greyed
-         and marked. With nothing typed, every player best first and every
-         team. Under the box, a position and a sort for the players. The
-         query rides in the address, #search/{query}, so Back comes back to
-         it. Built in app.js (renderSearch). -->
-    <section id="view-search" hidden>
+    <!-- ===== the league =============================================== -->
+    <!-- Every NFL game of a week that is out (Sam, 2026-10-30): the scores,
+         each game's leaders, and the whole box score under the game when it
+         is opened, a week and a season at a time with the bar. Built in
+         app.js (renderLeague) from the NFL sim's box scores
+         (js/box-scores.js), or the season files' scores where a week has
+         none.
+         Under it the search: any player or team as you type, the teams as
+         links to their pages, the players as the cards a team's page draws,
+         each opening his pop-up -- the free agents and the retired too, the
+         retired greyed and marked. With nothing typed, every player best
+         first and every team. Under the box, a position and a sort for the
+         players. The query rides in the address, #league/{query}, so Back
+         comes back to it. Built in app.js (renderSearch). -->
+    <section id="view-league" hidden>
       <header class="fb-hero fb-hero--centred">
         <div class="fb-hero__col">
-          <h1 class="fb-hero__title">Search</h1>
+          <h1 class="fb-hero__title">League</h1>
         </div>
       </header>
-      <div class="ege-search">
+      <div class="ege-seasonbar ege-league__bar" id="leagueBar" hidden>
+        <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="leaguePrev"
+                aria-label="Week before">&lsaquo;</button>
+        <select class="fb-select ege-seasonbar__pick ege-league__season" id="leagueSeasonPick" aria-label="Season"></select>
+        <select class="fb-select ege-seasonbar__pick" id="leagueWeekPick" aria-label="Week"></select>
+        <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="leagueNext"
+                aria-label="Week after">&rsaquo;</button>
+      </div>
+      <div class="ege-league__games" id="leagueGames"></div>
+      <div class="ege-search" id="leagueSearch">
         <input class="fb-input ege-search__field" id="searchField" type="search"
                placeholder="Player or team" aria-label="Search players and teams"
                autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
@@ -1392,6 +1408,7 @@
 <script src="js/discord-post.js"></script>
 <script src="js/exports.js"></script>
 <script src="js/nfl-rosters.js"></script>
+<script src="js/box-scores.js"></script>
 <script src="js/lines.js"></script>
 <script src="js/nfl-sim-admin.js"></script>
 <script src="js/app.js"></script>

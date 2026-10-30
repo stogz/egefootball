@@ -431,9 +431,95 @@ EGE.nflSimAdmin = (function () {
     });
   }
 
-  /* The trades, then the weeks over them. */
+  /* --- every game's box score, for the League page ------------------------
+
+     Every week the sim has played goes to sim_box_scores (Sam, 2026-10-30):
+     each game's score, both teams' numbers, every line, the scoring and who
+     got hurt (lib/site.js boxRows), which everybody reads once the week is
+     published. Only the weeks whose digest changed are written, a few at a
+     time, since the first time is every week there is. A week undone goes,
+     unless it is out. Behind the page rather than in front of it: a step is
+     done when it is saved, and a sync asked for while one runs runs again
+     after it. */
+
+  var BOXES = 'sim_box_scores';
+  var BOX_BATCH = 3;
+  var boxing = null;
+  var boxAgain = false;
+
+  function boxHint(message) {
+    return message + (/sim_box_scores/.test(message) ? ' Run supabase/schema.sql again first.' : '');
+  }
+
+  function syncBoxes(league) {
+    if (boxing) {
+      boxAgain = true;
+      return boxing;
+    }
+    var c = client();
+    if (!c || !hasWorld()) { return Promise.resolve(false); }
+    function fail(err) {
+      boxing = null;
+      boxAgain = false;
+      state.error = 'The League page’s box scores were not brought up to date: ' + (err.message || err);
+      if (!state.busy) { draw(); }
+      return false;
+    }
+    var want;
+    try {
+      want = sim().site.boxRows(league || openLeague());
+    } catch (err) {
+      return Promise.resolve(fail(err));
+    }
+    boxing = c.from(BOXES).select('season, week, digest').then(function (res) {
+      if (res.error) { throw new Error(boxHint(res.error.message)); }
+      var have = {};
+      (res.data || []).forEach(function (row) { have[row.season + ':' + row.week] = row; });
+      var at = new Date().toISOString();
+      var put = want.filter(function (row) {
+        var had = have[row.season + ':' + row.week];
+        delete have[row.season + ':' + row.week];
+        return !had || had.digest !== row.digest;
+      }).map(function (row) {
+        return { season: row.season, week: row.week, games: row.games, digest: row.digest, saved_at: at };
+      });
+      var drop = Object.keys(have).map(function (key) { return have[key]; }).filter(function (row) {
+        return !EGE.isPublished(row.season, row.week);
+      });
+      var batches = [];
+      for (var i = 0; i < put.length; i += BOX_BATCH) { batches.push(put.slice(i, i + BOX_BATCH)); }
+      return batches.reduce(function (chain, batch) {
+        return chain.then(function () {
+          return c.from(BOXES).upsert(batch, { onConflict: 'season,week' }).then(function (res) {
+            if (res.error) { throw new Error(boxHint(res.error.message)); }
+          });
+        });
+      }, Promise.resolve()).then(function () {
+        return Promise.all(drop.map(function (row) {
+          return c.from(BOXES).delete().eq('season', row.season).eq('week', row.week);
+        }));
+      }).then(function (all) {
+        all.forEach(function (res) { if (res.error) { throw new Error(boxHint(res.error.message)); } });
+        if ((put.length || drop.length) && EGE.boxScores) { EGE.boxScores.forget(); }
+        return Boolean(put.length || drop.length);
+      });
+    }).then(function (done) {
+      boxing = null;
+      if (boxAgain) {
+        boxAgain = false;
+        return syncBoxes();
+      }
+      return done;
+    }, fail);
+    return boxing;
+  }
+
+  /* The trades, then the weeks over them; the box scores after, behind,
+     whether or not those went. */
   function syncSite(league) {
-    return syncTrades(league).then(function () { return syncWeeks(league); });
+    var done = syncTrades(league).then(function () { return syncWeeks(league); });
+    done.then(function () { syncBoxes(league); }, function () { syncBoxes(league); });
+    return done;
   }
 
   /* The stored weeks not out yet, oldest first, as { season, week }. */
