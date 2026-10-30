@@ -26,10 +26,12 @@ const DAY = 24 * 60 * 60 * 1000;
 
 /* The season and week he first plays for the new team: the week the
    league plays next in the regular season, or the next season's first
-   when the move is made between seasons. */
+   when the move is made between seasons. Before the draft the league is
+   already in the season to come (offseason.js moves it on), so that one's
+   Week 1. */
 function startOf(league) {
   if (league.phase === 'regular' || league.phase === 'deadline') { return { season: league.season, week: league.week }; }
-  if (league.phase === 'preseason') { return { season: league.season, week: 1 }; }
+  if (league.phase === 'preseason' || league.phase === 'draft') { return { season: league.season, week: 1 }; }
   return { season: league.season + 1, week: 1 };
 }
 
@@ -103,7 +105,9 @@ function zoneOf(key) {
 /* `key`'s regular season from `week` on, as season file rows: each game,
    and the bye if it is still to come. */
 function rowsFor(league, season, key, week) {
-  const schedule = league.season === season && league.schedule ? league.schedule : scheduleFor(season, lastPlaces(league));
+  /* Before the draft the schedule kept is last season's. */
+  const current = league.season === season && league.schedule && league.phase !== 'draft';
+  const schedule = current ? league.schedule : scheduleFor(season, lastPlaces(league));
   const real = {};
   (io.data('schedules.json')[season] || []).forEach((g) => { real[g.week + '|' + g.home + '|' + g.away] = g; });
   const zone = zoneOf(key);

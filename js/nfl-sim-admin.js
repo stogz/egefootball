@@ -5,7 +5,8 @@
    trades and big free-agent moves that wait for an approval, runs the
    offseason and the draft (with any first rounds uploaded as written), has
    a trade builder, a player editor and every team's roster season by
-   season, and hands the site what it needs:
+   season, lists every team's offer for any of the six in free agency for
+   an admin to pick from, and hands the site what it needs:
 
    - the six's games and every other NFL score, as stats/{year}.js and
      data/nfl-results.js to download and commit, the way the Season File
@@ -325,7 +326,8 @@ EGE.nflSimAdmin = (function () {
     var stored = EGE.storedWeeks;
     if (!stored) { return Promise.resolve(false); }
     if (!EGE.stats[season]) {
-      var started = (league.schedule || []).some(function (g) { return g.score; });
+      /* Before the draft the schedule kept is last season's. */
+      var started = league.phase !== 'draft' && (league.schedule || []).some(function (g) { return g.score; });
       return started ? Promise.reject(new Error('There is no stats/' + season + '.js with the ' + season + ' schedule yet.')) : Promise.resolve(false);
     }
     var made = stored.pristine(function () { return sim().site.weekRows(league, season); });
@@ -853,6 +855,9 @@ EGE.nflSimAdmin = (function () {
           if (got.leftInFreeAgency.length) { lines.push('Hit free agency: ' + got.leftInFreeAgency.join(', ')); }
           if (got.signings.length) { lines.push('Signed: ' + got.signings.join('; ')); }
           got.schemes.forEach(function (n) { lines.push(n); });
+          (got.sixOffers || []).forEach(function (f) {
+            lines.push(f.name + ' is a free agent: ' + f.offers + (f.offers === 1 ? ' offer' : ' offers') + ' below.');
+          });
           if (got.moves.length) { lines.push(got.moves.length + ' big free-agent moves are waiting below.'); }
           lines.push(got.trades.length + ' pre-draft trade proposals are waiting below.');
           return { title: 'The ' + got.season + ' offseason', lines: lines };
@@ -1041,7 +1046,8 @@ EGE.nflSimAdmin = (function () {
      the site has him or where his grade takes him. */
   function drawDraft(part, r, league) {
     var inLeague = {};
-    league.players.forEach(function (p) { if (p.ege && p.status === 'active') { inLeague[p.ege] = true; } });
+    /* A free agent too: he is in the league, waiting on his offers. */
+    league.players.forEach(function (p) { if (p.ege && (p.status === 'active' || p.status === 'fa')) { inLeague[p.ege] = true; } });
     var kept = sim().draftPlan.saved(league);
     (kept ? kept.picks : []).forEach(function (p) { if (p.ege) { inLeague[p.ege] = true; } });
     var waiting = EGE.players.filter(function (player) { return !inLeague[player.slug]; });
@@ -1079,6 +1085,8 @@ EGE.nflSimAdmin = (function () {
         part.appendChild(line);
       });
     }
+    var unsigned = sim().run.offers(league).map(function (w) { return w.name; });
+    if (unsigned.length) { part.appendChild(el('p', 'fb-meta', 'Sign ' + unsigned.join(' and ') + ' first.')); }
     r.appendChild(button('Run the ' + league.season + ' draft', true, function () {
       var place = {};
       Object.keys(picks).forEach(function (slug) {
@@ -1111,7 +1119,7 @@ EGE.nflSimAdmin = (function () {
         }
         return { title: 'The ' + got.season + ' draft', lines: lines, rounds: rounds };
       });
-    }));
+    }, unsigned.length > 0));
   }
 
   /* --- a draft written by hand -------------------------------------------
@@ -1265,6 +1273,93 @@ EGE.nflSimAdmin = (function () {
       }
       part.appendChild(preview);
     }
+    body.appendChild(part);
+  }
+
+  /* --- the six in free agency --------------------------------------------
+
+     None of the six signs anywhere on his own (Sam, 2026-10-30): when one's
+     deal runs out, every team that wants him makes an offer, his own team
+     too, and Sign takes one (nfl-sim/lib/six-offers.js). Each offer with
+     where he would stand there, his fit in its scheme, and what kind of
+     team it is. The draft waits until all of them have signed. */
+
+  var MODES = { compete: 'Competing', retool: 'Retooling', rebuild: 'Rebuilding' };
+
+  /* 0-5 stars in halves, as the Teams pages draw an admin's fit. */
+  function fitStars(stars, title) {
+    var box = el('span', 'ege-fitstars');
+    box.title = title + ': ' + stars + ' of 5';
+    box.setAttribute('aria-label', box.title);
+    box.setAttribute('role', 'img');
+    box.appendChild(el('span', 'ege-fitstars__empty', '\u2605\u2605\u2605\u2605\u2605'));
+    var full = el('span', 'ege-fitstars__full', '\u2605\u2605\u2605\u2605\u2605');
+    full.style.width = (stars / 5 * 100) + '%';
+    box.appendChild(full);
+    return box;
+  }
+
+  function money(m) { return '$' + (m >= 100 ? Math.round(m) : m.toFixed(1)) + 'M'; }
+
+  function roleText(role) {
+    if (role.starts) { return role.over ? 'Starts over ' + role.over.name + ' (' + role.over.ovr + ')' : 'Starts'; }
+    return 'Behind ' + role.behind.name + ' (' + role.behind.ovr + ')';
+  }
+
+  function drawFreeAgency(body, league) {
+    var free = sim().run.offers(league);
+    if (!free.length) { return; }
+    var part = section('Free agency');
+    free.forEach(function (w) {
+      var box = el('div', 'ege-sim__fa');
+      var head = el('div', 'ege-sim__fahead');
+      head.appendChild(el('span', 'ege-sim__faname', w.name));
+      head.appendChild(el('span', 'fb-meta', [w.pos, w.ovr + ' OVR', 'age ' + w.age].concat(w.from ? [nick(w.from)] : []).join(' \u00b7 ')));
+      box.appendChild(head);
+      var wrap = el('div', 'fb-tablewrap');
+      var table = el('table', 'fb-table ege-sim__offers');
+      var thead = el('thead');
+      var hr = el('tr');
+      ['Team', 'Contract', 'Role', 'Fit', 'Status', ''].forEach(function (h) { hr.appendChild(el('th', null, h)); });
+      thead.appendChild(hr);
+      table.appendChild(thead);
+      var tbody = el('tbody');
+      w.offers.forEach(function (o) {
+        var tr = el('tr');
+        var team = el('td');
+        team.appendChild(teamMark(o.team));
+        if (o.own) { team.appendChild(el('span', 'ege-sim__fatag', 'His team')); }
+        tr.appendChild(team);
+        var deal = el('td');
+        deal.appendChild(el('span', 'ege-sim__fadeal', o.years + (o.years === 1 ? ' yr' : ' yrs') + ', ' + money(o.apy) + ' a year'));
+        deal.appendChild(el('span', 'ege-sim__fatotal', money(o.total) + ' through ' + o.through));
+        tr.appendChild(deal);
+        tr.appendChild(el('td', null, roleText(o.role)));
+        var fit = el('td');
+        if (o.fit) {
+          var scheme = el('span', 'ege-sim__fafit');
+          scheme.appendChild(el('span', null, o.fit.scheme));
+          scheme.appendChild(fitStars(o.fit.stars, 'Fit in ' + o.fit.scheme));
+          fit.appendChild(scheme);
+        }
+        tr.appendChild(fit);
+        tr.appendChild(el('td', null, (MODES[o.mode] || o.mode) + (o.record ? ' \u00b7 ' + o.record : '')));
+        var act = el('td', 'ege-sim__faact');
+        act.appendChild(button('Sign', false, function () {
+          step(function (l) {
+            var got = sim().run.acceptOffer(l, w.slug, o.team);
+            return { title: got.name + (got.team === got.from ? ' re-signs with the ' : ' signs with the ') + teamName(got.team),
+                     lines: [got.summary] };
+          });
+        }));
+        tr.appendChild(act);
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      wrap.appendChild(table);
+      box.appendChild(wrap);
+      part.appendChild(box);
+    });
     body.appendChild(part);
   }
 
@@ -1878,7 +1973,7 @@ EGE.nflSimAdmin = (function () {
     var phase = PHASES[league.phase] || league.phase;
     var next = league.phase === 'regular' || league.phase === 'deadline' ? ' · Week ' + league.week + ' next' : '';
     box.appendChild(el('p', 'ege-sim__where', league.season + ' · ' + phase + next));
-    var pending = sim().run.queue(league).length;
+    var pending = sim().run.queue(league).length + sim().run.offers(league).length;
     if (pending) { box.appendChild(el('p', 'fb-meta', pending + ' waiting for your approval.')); }
     var champ = (league.history || []).slice(-1)[0];
     if (champ && champ.champion) { box.appendChild(el('p', 'fb-meta', 'Last champion: ' + teamName(champ.champion) + ' (' + champ.season + ').')); }
@@ -1932,6 +2027,7 @@ EGE.nflSimAdmin = (function () {
     drawStatus(body, league);
     drawLast(body);
     drawPlay(body, league);
+    drawFreeAgency(body, league);
     drawWeek(body, league);
     drawUpload(body, league);
     drawTrades(body, league);

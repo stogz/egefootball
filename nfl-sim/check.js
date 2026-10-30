@@ -251,6 +251,13 @@ function offseasonChecks() {
       while (league.phase === 'regular' || league.phase === 'deadline') { run.playOn(league); }
       run.playPlayoffs(league);
       run.offseason(league);
+      /* The six in free agency: offers from more than one team, his own
+         among them, and he takes the best of them. */
+      run.offers(league).forEach((w) => {
+        check(w.offers.length >= 2 && (!w.from || w.offers.some((o) => o.own)), league.season + ' ' + w.name + ' in free agency: ' +
+          w.offers.length + ' offers (' + w.offers.map((o) => o.team + ' $' + o.apy + 'M').join(', ') + ')');
+        run.acceptOffer(league, w.slug, w.offers[0].team);
+      });
       const r = run.draft(league, {});
       run.save(league);
       const year = league.season;

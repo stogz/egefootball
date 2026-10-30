@@ -1403,6 +1403,7 @@ const { index } = require('./league');
 const { seeded, hash } = require('./rng');
 const { TEAMS } = require('./teams');
 const sixTrades = require('./six-trades');
+const sixOffers = require('./six-offers');
 
 /* The class the next draft takes: this season's before the draft, next
    season's from kickoff on. Only the real classes are known ahead. */
@@ -1536,6 +1537,7 @@ function signFreeAgent(league, id, key) {
   if (!TEAMS[key]) { throw new Error('No team ' + key + '.'); }
   sign(p, key, league, seeded(hash((league.seed || 'ege-nfl') + ':sign:' + league.season + ':' + id)), marketPay(p, league.season));
   sixTrades.record(league, p, p.lastTeam || null, key);
+  if (p.ege) { sixOffers.drop(league, p.ege); }
   index(league);
   log(league, 'signing', id, p.name + ' signs with ' + TEAMS[key].name);
   return { name: p.name, pos: p.pos, ovr: p.ovr, contract: Object.assign({}, p.contract) };
@@ -1603,8 +1605,8 @@ function setContract(league, id, want) {
 /* A player cut: a free agent from now on, and his pay off the payroll (the
    sim keeps no dead money). The team stays a man short until it signs
    somebody. One of the six only between seasons, since his games on the
-   website are his team's, and his transfers need changing by hand unless
-   a team signs him here. */
+   website are his team's; every team that wants him makes him an offer,
+   for Sam to pick from on the NFL Sim tab (lib/six-offers.js). */
 function releasePlayer(league, id) {
   const p = league.byId.get(id);
   if (!p || p.status !== 'active' || !TEAMS[p.team]) { throw new Error((p ? p.name : id) + ' is not on a team.'); }
@@ -1614,8 +1616,9 @@ function releasePlayer(league, id) {
   const from = p.team;
   release(p, league.season);
   index(league);
+  const offers = p.ege ? sixOffers.makeOffers(league, p).offers.length : null;
   log(league, 'release', id, p.name + ' released by the ' + TEAMS[from].name);
-  return { name: p.name, pos: p.pos, from, ege: p.ege || null };
+  return { name: p.name, pos: p.pos, from, ege: p.ege || null, offers };
 }
 
 /* A team's payroll against this season's cap, every player on it counted:
@@ -3591,13 +3594,15 @@ module.exports = { depthChart, gameDay, skill, healthy, standIn };
         the 99s -- at most one a position, and the best at a position who
         reaches 96 is one;
      3. retirements;
-     4. cap casualties; expiring contracts re-signed or let go; free
-        agency;
+     4. cap casualties; expiring contracts re-signed or let go (the six's
+        always let go, and every team that wants one makes him an offer
+        for Sam to pick from, lib/six-offers.js); free agency;
      5. team ratings, then each team's mode (compete, retool, rebuild)
         and whether it changes coaches or schemes;
      6. pre-draft trade proposals for Sam.
 
-   finishOffseason (the draft and after)
+   finishOffseason (the draft and after), once each of the six in free
+   agency has signed
      7. pending trades expire; the draft, in a hand-set order if the year
         has one (lib/draft-plan.js), with any rounds Sam wrote himself;
      8. free agency again for the leftovers; 53-man rosters; teams with
@@ -3622,6 +3627,7 @@ const { index, syncSix } = require('./league');
 const { TEAMS } = require('./teams');
 const { capFor } = require('./value');
 const { keep: keepRosters } = require('./history');
+const sixOffers = require('./six-offers');
 
 const ING = { compete: 'competing', retool: 'retooling', rebuild: 'rebuilding' };
 function nick(key) { return TEAMS[key] ? TEAMS[key].name.split(' ').slice(-1)[0] : key; }
@@ -3856,12 +3862,17 @@ function startOffseason(league, rng) {
   const re = reSign(league, rng);
   report.leftInFreeAgency = re.freed.filter((p) => p.ovr >= 80).map((p) => p.name + ' (' + p.pos + ', ' + p.ovr + ')');
   index(league);
+  /* The six in free agency wait for Sam with their offers, and the teams
+     that made one keep the money (and his own team his place) for him. */
+  report.sixOffers = sixOffers.offerAll(league);
+  const holds = sixOffers.holds(league);
   const held = [];
-  const signed = freeAgency(league, rng, { reserve: 0.05 * capFor(league.season), hold: bigMove(league, lastSeason), held });
+  const signed = freeAgency(league, rng, { reserve: 0.05 * capFor(league.season), hold: bigMove(league, lastSeason), held,
+                                           setAside: holds.setAside, places: holds.places });
   report.signings = signed.filter((p) => p.ovr >= 78).map((p) => p.name + ' (' + p.pos + ', ' + p.ovr + ') to ' + p.team +
     ', $' + p.contract.apy + 'M through ' + p.contract.through);
   index(league);
-  report.depth = fillDepth(league, rng, makeName).length;
+  report.depth = fillDepth(league, rng, makeName, holds).length;
   index(league);
 
   /* Ratings, modes, coaches and schemes. */
@@ -3881,6 +3892,10 @@ function startOffseason(league, rng) {
 
 function finishOffseason(league, rng, place) {
   if (league.phase !== 'draft') { throw new Error('Not draft time (phase: ' + league.phase + ').'); }
+  const unsigned = sixOffers.unsigned(league);
+  if (unsigned.length) {
+    throw new Error('Pick where ' + unsigned.join(' and ') + (unsigned.length === 1 ? ' signs' : ' sign') + ' before the draft.');
+  }
   const report = { season: league.season };
   report.expired = closeWindow(league, 'offseason');
   /* A hand-set order goes for every round, and a draft written by hand
@@ -3917,6 +3932,8 @@ function finishOffseason(league, rng, place) {
     report.kept[p.draft.round] = (report.kept[p.draft.round] || 0) + (p.status === 'active' && TEAMS[p.team] ? 1 : 0);
   });
   startSeason(league, rng);
+  /* One of the six nobody drafted has offers too. */
+  sixOffers.fill(league);
   report.rosters = league.teams.map((t) => t.key + ' ' + onTeam(league, t.key).length).join(', ');
   return report;
 }
@@ -4146,7 +4163,8 @@ module.exports = { seeded, hash };
      can pay; the rest become free agents.
    - Free agency: the best free agents first, each to the team that needs
      him most, fits him best and can pay him. Contenders pay for veterans;
-     rebuilding teams do not.
+     rebuilding teams do not. The six are never signed here: every team
+     that wants one makes him an offer and Sam picks (lib/six-offers.js).
    - Depth: every room carries its bench -- three backs and three tight
      ends at least on a 53, and no more than a room uses (MIN, TARGET and
      MAX below). In the offseason each team fills every room to its target
@@ -4272,8 +4290,9 @@ function capCasualties(league) {
    nearly all their young starters and stars -- extensions, fifth-year
    options and franchise tags see to that in the NFL, and a team will
    restructure other deals to make room -- so only a few good players reach
-   the market each year, most of them older or not starting. The six always
-   stay where they are: where they play is Sam's call. */
+   the market each year, most of them older or not starting. One of the six
+   is always a free agent when his deal runs out: where he plays next is
+   Sam's call, from the offers teams make him (lib/six-offers.js). */
 function reSign(league, rng) {
   const out = { kept: [], freed: [] };
   const cap = capFor(league.season);
@@ -4283,6 +4302,11 @@ function reSign(league, rng) {
       .sort((a, b) => b.ovr - a.ovr);
     let used = roster.filter((p) => expiring.indexOf(p) === -1).reduce((sum, p) => sum + ((p.contract && p.contract.apy) || 0), 0);
     expiring.forEach((p) => {
+      if (p.ege) {
+        release(p, league.season);
+        out.freed.push(p);
+        return;
+      }
       const rank = byPos(roster, p.pos).indexOf(p);
       const c = CURVES[p.pos] || CURVES.WR;
       const young = p.age <= c.peak + 1;
@@ -4292,7 +4316,7 @@ function reSign(league, rng) {
       if (t.mode === 'rebuild' && p.age >= 29) { want *= 0.4; }
       const ask = marketPay(p, league.season) * (0.95 + rng() * 0.15);
       const stretch = p.ovr >= 85 ? 0.08 * cap : 0;
-      if (p.ege || (rng() < want && cap + stretch - used - ask > 2)) {
+      if (rng() < want && cap + stretch - used - ask > 2) {
         sign(p, t.key, league, rng, ask);
         used += p.contract.apy;
         out.kept.push(p);
@@ -4311,19 +4335,23 @@ function reSign(league, rng) {
    would start. `hold(p, key)`, if given, says a signing has to wait for
    Sam (a star leaving his team): he goes back to his old team on the terms
    offered, the money and the spot stay set aside at the new one, and the
-   move is pushed onto `held` for the queue (lib/trades.js). */
+   move is pushed onto `held` for the queue (lib/trades.js). `setAside`
+   ({ key: $M }) is money a team keeps back for an offer it has made one
+   of the six, and `places` ({ key: [player] }) the six a team counts in
+   its rooms while it waits to hear from them. */
 function freeAgency(league, rng, opts) {
   opts = opts || {};
   const limit = opts.limit || OFFSEASON_ROSTER;
   const levels = starterLevels(league);
   const signed = [];
-  const pool = league.players.filter((p) => p.status === 'fa').sort((a, b) => b.ovr - a.ovr);
+  const pool = league.players.filter((p) => p.status === 'fa' && !p.ege).sort((a, b) => b.ovr - a.ovr);
   const sizes = {};
   const rooms = {};
   const promised = {};
   league.teams.forEach((t) => {
     sizes[t.key] = onTeam(league, t.key).length;
-    rooms[t.key] = room(league, t.key) - (opts.reserve || 0);
+    rooms[t.key] = room(league, t.key) - (opts.reserve || 0) - ((opts.setAside || {})[t.key] || 0);
+    if (opts.places && opts.places[t.key]) { promised[t.key] = opts.places[t.key].slice(); }
   });
   pool.forEach((p) => {
     const ask = marketPay(p, league.season);
@@ -4449,23 +4477,29 @@ function addPlayers(league, key, n, rng, makeName) {
 }
 
 /* The best free agent at a position a team can still pay (anybody at the
-   minimum, whatever its cap). */
-function bestAffordable(league, key, pos, maxAge) {
-  const space = Math.max(room(league, key) - 1, capFor(league.season) / capFor(2024) * 1.2);
-  return league.players.filter((p) => p.status === 'fa' && p.pos === pos && (!maxAge || p.age <= maxAge) &&
+   minimum, whatever its cap), less any money it is keeping back (`aside`,
+   $M). Never one of the six. */
+function bestAffordable(league, key, pos, maxAge, aside) {
+  const space = Math.max(room(league, key) - (aside || 0) - 1, capFor(league.season) / capFor(2024) * 1.2);
+  return league.players.filter((p) => p.status === 'fa' && !p.ege && p.pos === pos && (!maxAge || p.age <= maxAge) &&
     marketPay(p, league.season) <= space).sort((a, b) => b.ovr - a.ovr)[0];
 }
 
 /* Before the draft every room fills to its target -- the backups and
    camp bodies a team carries into the spring -- with the best free agent
-   it can pay there, or a made-up replacement-level player. */
-function fillDepth(league, rng, makeName) {
+   it can pay there, or a made-up replacement-level player. `holds` is what
+   the teams waiting on one of the six keep for him (lib/six-offers.js):
+   the money, and his place in the room. */
+function fillDepth(league, rng, makeName, holds) {
   const added = [];
+  const aside = (holds && holds.setAside) || {};
+  const places = (holds && holds.places) || {};
   league.teams.forEach((t) => {
     Object.keys(TARGET).forEach((pos) => {
-      let count = onTeam(league, t.key).filter((p) => p.pos === pos).length;
+      let count = onTeam(league, t.key).filter((p) => p.pos === pos).length +
+        (places[t.key] || []).filter((p) => p.pos === pos).length;
       while (count < TARGET[pos] && onTeam(league, t.key).length < OFFSEASON_ROSTER) {
-        const p = bestAffordable(league, t.key, pos) || replacement(league, pos, rng, makeName);
+        const p = bestAffordable(league, t.key, pos, null, aside[t.key]) || replacement(league, pos, rng, makeName);
         sign(p, t.key, league, rng, marketPay(p, league.season));
         added.push(p);
         count += 1;
@@ -4579,7 +4613,7 @@ function replacement(league, pos, rng, makeName) {
 
 module.exports = { SLOTS, MIN, TARGET, MAX, CAMP, ROSTER, onTeam, payroll, room, starterLevels, needAt, needs, reSign,
                    freeAgency, cutDown, trim, addPlayers, fillDepth, fillHoles, sign, release, byPos, capCasualties, spendRoom,
-                   LEFT_OVER, KEEP_ROUNDS };
+                   LEFT_OVER, KEEP_ROUNDS, PREMIUM };
 
   };
 
@@ -4610,6 +4644,7 @@ const { TEAMS } = require('./teams');
 const { siteResults } = require('./site');
 const { applyOfficial } = require('./draft-plan');
 const rewind = require('./rewind');
+const sixOffers = require('./six-offers');
 
 function rngFor(league, what) {
   return seeded((league.seed || 'ege-nfl') + (league.take ? ':take' + league.take : '') + ':' + league.season + ':' +
@@ -4624,8 +4659,9 @@ function hooks() {
 }
 
 /* The league, ready for the next step: a world that has not started yet
-   gets its teams' first plans and its schedule, and any draft order set by
-   hand is put in force (lib/draft-plan.js). */
+   gets its teams' first plans and its schedule, any draft order set by
+   hand is put in force (lib/draft-plan.js), and any of the six who is a
+   free agent has his offers (lib/six-offers.js). */
 function open(world, seed) {
   const league = loadLeague(world);
   if (!league.seed) { league.seed = seed || 'ege-nfl'; }
@@ -4634,6 +4670,7 @@ function open(world, seed) {
     if (!(league.history || []).length) { firstModes(league); }
     season.startSeason(league, rngFor(league, 'start'));
   }
+  sixOffers.fill(league);
   return league;
 }
 
@@ -4713,10 +4750,12 @@ function queue(league, all) {
   return trades.loadQueue(league).filter((t) => all || t.status === 'pending');
 }
 
-/* The six, as they stand: who, where, how good, hurt, and their season. */
+/* The six, as they stand: who, where (a free agent too), how good, hurt,
+   and their season. */
 function sixNow(league) {
-  return league.players.filter((p) => p.ege && p.status === 'active').map((p) => ({
-    slug: p.ege, name: p.name, pos: p.pos, team: p.team, teamName: TEAMS[p.team] ? TEAMS[p.team].name : p.team, ovr: p.ovr,
+  return league.players.filter((p) => p.ege && (p.status === 'active' || p.status === 'fa')).map((p) => ({
+    slug: p.ege, name: p.name, pos: p.pos, team: p.team,
+    teamName: p.status === 'fa' ? 'Free agent' : TEAMS[p.team] ? TEAMS[p.team].name : p.team, ovr: p.ovr,
     out: p.injury ? { what: p.injury.what, games: p.injury.games } : null,
     stats: (league.stats || {})[p.id] || {}
   }));
@@ -4735,7 +4774,8 @@ function sixLine(s) {
 module.exports = {
   rngFor, hooks, open, save, nextStep, playNext, playOn, playPlayoffs, offseason, draft, importSite, queue, sixNow, sixLine,
   undo, resim, savePoints: rewind.points,
-  approve: trades.approve, reject: trades.reject, proposeOwn: trades.proposeOwn
+  approve: trades.approve, reject: trades.reject, proposeOwn: trades.proposeOwn,
+  offers: sixOffers.waiting, acceptOffer: sixOffers.accept
 };
 
   };
@@ -6310,6 +6350,232 @@ module.exports = { siteResults, sixEdits, seasonFileText, simResults, resultsFil
 
   };
 
+  sources["six-offers"] = function (module, exports, require, __dirname) {
+/* ==========================================================================
+   EGE Football NFL sim — the six in free agency
+   None of the six signs anywhere on his own (Sam, 2026-10-30). When one's
+   contract runs out, or he is cut between seasons, he is a free agent, and
+   every team that wants him makes him an offer -- his own team too. The
+   offers are kept in league.egeOffers until Sam picks one on the NFL Sim
+   tab (or with `sim.js accept`), and the draft waits until each of them
+   has signed.
+
+   A team makes an offer when he would start for it, or when it needs his
+   position badly enough, and it has the room to pay him. What it offers is
+   what the market pays his overall (lib/value.js), more the more it wants
+   him and the more it is out to win now, for as long as a player his age
+   gets; his own team always offers. While the offers stand, every team
+   that made one keeps the money back and his place in its room through
+   free agency (offseason.js), so whichever he takes, the team can still
+   pay him and has a spot for him; the rest fill their rooms in the draft
+   and the free agency after it.
+   ========================================================================== */
+
+'use strict';
+
+const { onTeam, room, byPos, needAt, starterLevels, SLOTS, PREMIUM } = require('./rosters');
+const { marketPay, capFor, POSITION } = require('./value');
+const { fitOf, schemeFor } = require('./schemes');
+const { playerFit } = require('./fit');
+const { index } = require('./league');
+const { seeded } = require('./rng');
+const { TEAMS } = require('./teams');
+const sixTrades = require('./six-trades');
+
+/* How much a team has to want him to make an offer. */
+const WANTS = 0.75;
+/* What a team keeps back for its draft class before the draft. */
+const DRAFT_RESERVE = 0.05;
+const IN_SEASON = ['regular', 'deadline', 'playoffs'];
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function round1(v) { return Math.round(v * 10) / 10; }
+
+/* The first season a deal signed now pays for: the next one once the
+   Super Bowl is played, this one from the draft on. */
+function firstSeason(league) { return league.phase === 'offseason' ? league.season + 1 : league.season; }
+
+/* What a team stretches its cap by to keep one of its own: restructured
+   deals and the like, as re-signing does for a star (rosters.js). */
+const STRETCH = 0.08;
+
+function yearsFor(age, rng, mode) {
+  const base = age <= 25 ? 4 : age <= 28 ? 3 : age <= 31 ? 2 : 1;
+  const longer = mode === 'rebuild' && age <= 27 ? 1 : 0;
+  return clamp(base + longer + (rng() < 0.35 ? 1 : 0) - (rng() < 0.3 ? 1 : 0), 1, 5);
+}
+
+/* Where he would stand on a team: starting (over whom, if anybody), or
+   behind whom. */
+function standing(league, p, key) {
+  const at = byPos(onTeam(league, key).filter((x) => x !== p), p.pos);
+  const slots = SLOTS[p.pos] || 1;
+  if (at.length < slots) { return { starts: true, over: null, behind: null }; }
+  const weakest = at[slots - 1];
+  if (p.ovr > weakest.ovr) { return { starts: true, over: { name: weakest.name, ovr: weakest.ovr }, behind: null }; }
+  return { starts: false, over: null, behind: { name: weakest.name, ovr: weakest.ovr } };
+}
+
+/* Money a team has offered the six, other than `slug`. */
+function setAside(league, but) {
+  const out = {};
+  Object.keys(league.egeOffers || {}).forEach((slug) => {
+    if (slug === but) { return; }
+    league.egeOffers[slug].offers.forEach((o) => { out[o.team] = (out[o.team] || 0) + o.apy; });
+  });
+  return out;
+}
+
+/* Every team's offer for one of the six who is a free agent, kept in
+   league.egeOffers, his own team's included. `season` is the first one the
+   deals pay for (the offseason's own, while it is run). */
+function makeOffers(league, p, season) {
+  season = season || firstSeason(league);
+  const rng = seeded((league.seed || 'ege-nfl') + (league.take ? ':take' + league.take : '') + ':offers:' + season + ':' + p.ege);
+  const levels = starterLevels(league);
+  const ask = marketPay(p, season);
+  const from = p.lastTeam && TEAMS[p.lastTeam] ? p.lastTeam : null;
+  const others = setAside(league, p.ege);
+  const reserve = IN_SEASON.indexOf(league.phase) === -1 ? DRAFT_RESERVE * capFor(season) : 0;
+  const offers = [];
+  let keenest = null;
+  league.teams.forEach((t) => {
+    const own = t.key === from;
+    const roster = onTeam(league, t.key).filter((x) => x !== p);
+    const where = standing(league, p, t.key);
+    const need = needAt(league, t.key, p.pos, levels, roster);
+    const fit = fitOf(p, schemeFor(t, p.pos));
+    let want = need * (POSITION[p.pos] || 0.8) + (where.starts ? 0.4 : -0.3) + 0.05 * clamp(fit, -4, 4) + rng() * 0.35;
+    if (own) { want += 0.3; }
+    if (t.mode === 'compete' && where.starts) { want += 0.15; }
+    if (t.mode === 'rebuild' && p.age >= 29) { want -= 0.5; }
+    const keen = clamp((want - WANTS) / 0.8, 0, 1);
+    let apy = ask * (0.9 + 0.25 * keen) * (PREMIUM[t.mode] || 1) * (0.97 + rng() * 0.06);
+    const years = yearsFor(p.age || 26, rng, t.mode);
+    const space = room(league, t.key) - (others[t.key] || 0) - reserve;
+    const offer = () => ({ team: t.key, own, years, apy: round1(apy), through: season + years - 1 });
+    if (!keenest || want > keenest.want) { keenest = { want, offer: offer() }; }
+    if (!own && want < WANTS) { return; }
+    if (own) {
+      /* His own team makes room for him, up to a point. */
+      apy = Math.min(apy, Math.max(space + STRETCH * capFor(season), ask));
+    } else if (apy > space) {
+      /* All it has, if that is close enough to what he is worth. */
+      if (space < ask * 0.85) { return; }
+      apy = space;
+    }
+    offers.push(offer());
+  });
+  /* Somebody always wants him: with no offer at all (no team of his own,
+     nobody with the room), the team keenest on him makes one. */
+  if (!offers.length && keenest) { offers.push(keenest.offer); }
+  offers.sort((a, b) => b.apy - a.apy || b.years - a.years);
+  league.egeOffers = league.egeOffers || {};
+  league.egeOffers[p.ege] = { season, from, offers };
+  return league.egeOffers[p.ege];
+}
+
+function freeSix(league) {
+  return league.players.filter((p) => p.ege && p.status === 'fa');
+}
+
+/* Fresh offers for every one of the six who is a free agent: the
+   offseason's, once the expiring deals are done (the league is in the new
+   season by then). Returns who has how many. */
+function offerAll(league) {
+  delete league.egeOffers;
+  return freeSix(league).map((p) => ({ slug: p.ege, name: p.name, from: p.lastTeam || null,
+                                        offers: makeOffers(league, p, league.season).offers.length }));
+}
+
+/* Offers for any of the six who is a free agent and has none for the
+   season (one cut, one not drafted), and none kept for anybody who has
+   signed since. */
+function fill(league) {
+  const free = new Set();
+  freeSix(league).forEach((p) => {
+    free.add(p.ege);
+    const had = (league.egeOffers || {})[p.ege];
+    if (!had || had.season !== firstSeason(league)) { makeOffers(league, p); }
+  });
+  Object.keys(league.egeOffers || {}).forEach((slug) => { if (!free.has(slug)) { drop(league, slug); } });
+}
+
+function drop(league, slug) {
+  if (!league.egeOffers) { return; }
+  delete league.egeOffers[slug];
+  if (!Object.keys(league.egeOffers).length) { delete league.egeOffers; }
+}
+
+/* Money set aside at each team for the six's offers, and the six each
+   team counts in its rooms, for free agency. */
+function holds(league) {
+  const places = {};
+  freeSix(league).forEach((p) => {
+    ((league.egeOffers || {})[p.ege] || { offers: [] }).offers.forEach((o) => {
+      (places[o.team] = places[o.team] || []).push(p);
+    });
+  });
+  return { setAside: setAside(league), places };
+}
+
+/* The six waiting on Sam, with every offer as the page shows it: the
+   terms, and where he would stand there now, how he fits its scheme, what
+   kind of team it is and how it did last season. */
+function waiting(league) {
+  const last = (league.history || []).slice(-1)[0];
+  return freeSix(league).map((p) => {
+    const had = (league.egeOffers || {})[p.ege] || { offers: [], from: p.lastTeam || null };
+    return {
+      slug: p.ege, id: p.id, name: p.name, pos: p.pos, ovr: p.ovr, age: p.age, archetype: p.archetype || null,
+      from: had.from, ask: marketPay(p, firstSeason(league)),
+      offers: had.offers.map((o) => {
+        const t = league.teams.find((x) => x.key === o.team);
+        const fit = playerFit(league, p, o.team);
+        return Object.assign({}, o, {
+          total: round1(o.apy * o.years),
+          role: standing(league, p, o.team),
+          fit: fit ? { scheme: fit.scheme, stars: fit.stars } : null,
+          mode: (t && t.mode) || 'retool',
+          record: last && last.records ? last.records[o.team] || null : null,
+          recordSeason: last ? last.season : null,
+          room: round1(room(league, o.team) - o.apy)
+        });
+      })
+    };
+  });
+}
+
+/* The names of the six still to sign, for the draft to wait on. */
+function unsigned(league) { return freeSix(league).map((p) => p.name); }
+
+/* He takes `key`'s offer: on its deal from the season it starts, and on
+   the site from that season's Week 1 if it is a new team (six-trades.js). */
+function accept(league, slug, key) {
+  const p = league.byId.get('ege:' + slug);
+  if (!p || p.status !== 'fa') { throw new Error((p ? p.name : slug) + ' is not a free agent.'); }
+  const had = (league.egeOffers || {})[slug];
+  const offer = had && had.offers.find((o) => o.team === key);
+  if (!offer) { throw new Error((TEAMS[key] ? 'The ' + TEAMS[key].name + ' have' : 'Nobody has') + ' made ' + p.name + ' an offer.'); }
+  const from = had.from;
+  p.team = key;
+  p.status = 'active';
+  p.contract = { through: offer.through, apy: offer.apy };
+  delete p.faSince;
+  const moved = sixTrades.record(league, p, from, key);
+  drop(league, slug);
+  index(league);
+  const summary = p.name + (key === from ? ' re-signs with the ' : ' signs with the ') + TEAMS[key].name + ': ' + offer.years +
+    (offer.years === 1 ? ' year' : ' years') + ', $' + offer.apy + 'M a year.';
+  (league.transactions = league.transactions || []).push({ season: league.season, week: league.week, phase: league.phase,
+                                                           kind: 'signing', id: p.id, summary });
+  return { name: p.name, pos: p.pos, team: key, from, years: offer.years, contract: Object.assign({}, p.contract), moved, summary };
+}
+
+module.exports = { makeOffers, offerAll, fill, drop, holds, waiting, unsigned, accept, firstSeason };
+
+  };
+
   sources["six-trades"] = function (module, exports, require, __dirname) {
 /* ==========================================================================
    EGE Football NFL sim — the six, traded
@@ -6339,10 +6605,12 @@ const DAY = 24 * 60 * 60 * 1000;
 
 /* The season and week he first plays for the new team: the week the
    league plays next in the regular season, or the next season's first
-   when the move is made between seasons. */
+   when the move is made between seasons. Before the draft the league is
+   already in the season to come (offseason.js moves it on), so that one's
+   Week 1. */
 function startOf(league) {
   if (league.phase === 'regular' || league.phase === 'deadline') { return { season: league.season, week: league.week }; }
-  if (league.phase === 'preseason') { return { season: league.season, week: 1 }; }
+  if (league.phase === 'preseason' || league.phase === 'draft') { return { season: league.season, week: 1 }; }
   return { season: league.season + 1, week: 1 };
 }
 
@@ -6416,7 +6684,9 @@ function zoneOf(key) {
 /* `key`'s regular season from `week` on, as season file rows: each game,
    and the bye if it is still to come. */
 function rowsFor(league, season, key, week) {
-  const schedule = league.season === season && league.schedule ? league.schedule : scheduleFor(season, lastPlaces(league));
+  /* Before the draft the schedule kept is last season's. */
+  const current = league.season === season && league.schedule && league.phase !== 'draft';
+  const schedule = current ? league.schedule : scheduleFor(season, lastPlaces(league));
   const real = {};
   (io.data('schedules.json')[season] || []).forEach((g) => { real[g.week + '|' + g.home + '|' + g.away] = g; });
   const zone = zoneOf(key);
@@ -8160,6 +8430,7 @@ module.exports = { played, week, lineText };
     tradeFinder: load('trade-finder'),
     tendencies: load('tendencies'),
     weeks: load('weeks'),
-    sixTrades: load('six-trades')
+    sixTrades: load('six-trades'),
+    sixOffers: load('six-offers')
   };
 })();

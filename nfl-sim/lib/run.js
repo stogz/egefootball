@@ -24,6 +24,7 @@ const { TEAMS } = require('./teams');
 const { siteResults } = require('./site');
 const { applyOfficial } = require('./draft-plan');
 const rewind = require('./rewind');
+const sixOffers = require('./six-offers');
 
 function rngFor(league, what) {
   return seeded((league.seed || 'ege-nfl') + (league.take ? ':take' + league.take : '') + ':' + league.season + ':' +
@@ -38,8 +39,9 @@ function hooks() {
 }
 
 /* The league, ready for the next step: a world that has not started yet
-   gets its teams' first plans and its schedule, and any draft order set by
-   hand is put in force (lib/draft-plan.js). */
+   gets its teams' first plans and its schedule, any draft order set by
+   hand is put in force (lib/draft-plan.js), and any of the six who is a
+   free agent has his offers (lib/six-offers.js). */
 function open(world, seed) {
   const league = loadLeague(world);
   if (!league.seed) { league.seed = seed || 'ege-nfl'; }
@@ -48,6 +50,7 @@ function open(world, seed) {
     if (!(league.history || []).length) { firstModes(league); }
     season.startSeason(league, rngFor(league, 'start'));
   }
+  sixOffers.fill(league);
   return league;
 }
 
@@ -127,10 +130,12 @@ function queue(league, all) {
   return trades.loadQueue(league).filter((t) => all || t.status === 'pending');
 }
 
-/* The six, as they stand: who, where, how good, hurt, and their season. */
+/* The six, as they stand: who, where (a free agent too), how good, hurt,
+   and their season. */
 function sixNow(league) {
-  return league.players.filter((p) => p.ege && p.status === 'active').map((p) => ({
-    slug: p.ege, name: p.name, pos: p.pos, team: p.team, teamName: TEAMS[p.team] ? TEAMS[p.team].name : p.team, ovr: p.ovr,
+  return league.players.filter((p) => p.ege && (p.status === 'active' || p.status === 'fa')).map((p) => ({
+    slug: p.ege, name: p.name, pos: p.pos, team: p.team,
+    teamName: p.status === 'fa' ? 'Free agent' : TEAMS[p.team] ? TEAMS[p.team].name : p.team, ovr: p.ovr,
     out: p.injury ? { what: p.injury.what, games: p.injury.games } : null,
     stats: (league.stats || {})[p.id] || {}
   }));
@@ -149,5 +154,6 @@ function sixLine(s) {
 module.exports = {
   rngFor, hooks, open, save, nextStep, playNext, playOn, playPlayoffs, offseason, draft, importSite, queue, sixNow, sixLine,
   undo, resim, savePoints: rewind.points,
-  approve: trades.approve, reject: trades.reject, proposeOwn: trades.proposeOwn
+  approve: trades.approve, reject: trades.reject, proposeOwn: trades.proposeOwn,
+  offers: sixOffers.waiting, acceptOffer: sixOffers.accept
 };

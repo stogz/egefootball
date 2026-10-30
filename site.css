@@ -2336,6 +2336,56 @@ body::before {
 .ege-sim__picks .ege-sim__ege td { font-weight: 800; }
 .ege-sim__round th { padding-top: 8px; padding-bottom: 6px; background: var(--fb-tint-wash); color: var(--fb-ink); cursor: default; }
 .ege-sim__team { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+/* The six in free agency: each one's offers, a row a team, the columns
+   lined up from one player's table to the next. */
+.ege-sim__fa { display: grid; gap: 8px; }
+.ege-sim__fa + .ege-sim__fa { margin-top: 14px; }
+.ege-sim__fahead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.ege-sim__faname { font-weight: 800; font-size: 1.0625rem; }
+.ege-sim__offers { table-layout: fixed; min-width: 780px; }
+.ege-sim__offers th:nth-child(1) { width: 19%; }
+.ege-sim__offers th:nth-child(2) { width: 18%; }
+.ege-sim__offers th:nth-child(3) { width: 25%; }
+.ege-sim__offers th:nth-child(4) { width: 15%; }
+.ege-sim__offers th:nth-child(5) { width: 14%; }
+.ege-sim__offers th:nth-child(6) { width: 9%; }
+.ege-sim__offers td { padding-top: 7px; padding-bottom: 7px; vertical-align: middle; }
+.ege-sim__offers tbody tr { cursor: default; }
+.ege-sim__fatag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  font-size: .6875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.ege-sim__fadeal { display: block; font-weight: 800; white-space: nowrap; }
+.ege-sim__fatotal { display: block; font-size: var(--fb-small); color: var(--fb-muted); white-space: nowrap; }
+.ege-sim__fafit { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.ege-sim__faact { text-align: right; }
+.ege-sim__faact .fb-btn { padding-top: 6px; padding-bottom: 6px; }
+/* On a phone each offer is a card, Sign beside the team, so nothing has to
+   be scrolled sideways to take one. */
+@media (max-width: 640px) {
+  .ege-sim__offers { display: block; min-width: 0; table-layout: auto; }
+  .ege-sim__offers thead { display: none; }
+  .ege-sim__offers tbody { display: block; border-top: var(--fb-border-thin) solid var(--fb-ink); }
+  .ege-sim__offers tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 3px 12px;
+    padding: 10px 2px;
+    border-bottom: 1px solid rgba(32, 38, 26, .14);
+  }
+  .ege-sim__offers td { display: block; grid-column: 1; padding: 0; border: 0; }
+  .ege-sim__offers td:first-child { margin-bottom: 2px; font-weight: 800; }
+  .ege-sim__offers td:empty { display: none; }
+  .ege-sim__offers .ege-sim__faact { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+}
 .ege-sim__logo { display: block; width: 20px; height: 20px; object-fit: contain; }
 /* The trade builder: a column a team, its players and picks added from
    dropdowns, each one a chip to take back out. */
