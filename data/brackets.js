@@ -35,6 +35,9 @@
    read exactly as it does in the matchup below.
 
    A matchup with no `b` is a bye.
+
+   The NFL's are not written in here: the NFL sim draws them, and they are
+   built further down from what it puts out.
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -529,9 +532,136 @@ window.EGE = window.EGE || {};
     var year = season || EGE.currentSeason;
     var team = EGE.teamKeyFor(player, year);
     if (!team) { return null; }
+    if (EGE.tierFor(year, player) === 'nfl') { return nflBracket(player, year, team); }
     var draws = EGE.brackets[year] || {};
     return draws[team] || null;
   };
+
+  /* --- the NFL's ------------------------------------------------------------
+
+     Not written in here: the NFL sim draws it once the regular season is
+     over and it goes out with the rosters (js/nfl-rosters.js playoffs), a
+     round at a time as the weeks are published. Seven teams a conference,
+     the AFC down the left and the NFC down the right, and the top seed off
+     in the Wild Card. After the Wild Card the league reseeds -- the top seed
+     plays the lowest seed left, the other two play each other -- so once its
+     scores are out the game whose winner the top seed plays is moved up
+     beside his bye, and every line runs into the game its winner played.
+     Until then the draw is the one the seeds give if every home team wins.
+
+     A player's bracket is his team's: the one he finished the season with,
+     or is on now, and only if it made the playoffs. Teams go by their city,
+     as an NFL schedule calls them (EGE.nfl.city). */
+  var NFL_ROUNDS = [
+    { label: 'Wild Card' },
+    { label: 'Divisional' },
+    { label: 'Conference Championship' }
+  ];
+
+  function roman(n) {
+    var out = '';
+    [[50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']].forEach(function (pair) {
+      while (n >= pair[0]) { out += pair[1]; n -= pair[0]; }
+    });
+    return out;
+  }
+
+  /* The draw as far as it is out: { first, seeds, games }, `first` the Wild
+     Card's week and `seeds` each conference's seven by name. Nothing until
+     the week before the Wild Card is published, however early the rosters
+     carry it. */
+  function nflDraw(year) {
+    var games = EGE.nflRosters && EGE.nflRosters.playoffs ? EGE.nflRosters.playoffs(year) : null;
+    if (!games || !games.length) { return null; }
+    var first = Math.min.apply(null, games.map(function (g) { return g.week; }));
+    if (!EGE.isPublished(year, first - 1)) { return null; }
+    var seeds = { AFC: [], NFC: [] };
+    games.forEach(function (g) {
+      if (g.week !== first || !seeds[g.conf]) { return; }
+      seeds[g.conf][g.seeds[0] - 1] = g.home;
+      if (g.away) { seeds[g.conf][g.seeds[1] - 1] = g.away; }
+    });
+    var whole = ['AFC', 'NFC'].every(function (conf) {
+      for (var i = 0; i < 7; i += 1) { if (!seeds[conf][i]) { return false; } }
+      return true;
+    });
+    return whole ? { first: first, seeds: seeds, games: games } : null;
+  }
+
+  function nflName(name) {
+    var key = EGE.nfl.keyByName(name);
+    return (key && EGE.nfl.city(key)) || name;
+  }
+
+  /* How a matchup came out, once its week is out: his own game read off his
+     season file, the way every other bracket reads it, and everybody
+     else's off the draw. */
+  function nflSettle(slot, week, bracket, player, year) {
+    if (!EGE.isPublished(year, week)) { return null; }
+    if (slot.a && !slot.b) { return { name: slot.a.name, bye: true }; }
+    if (!slot.a || !slot.b) { return null; }
+
+    if (slot.a.name === bracket.us || slot.b.name === bracket.us) {
+      var mine = EGE.gameInWeek(player, week, year);
+      if (mine && mine.playoff && EGE.isFinal(mine)) {
+        var won = mine.result.teamScore > mine.result.opponentScore;
+        var other = slot.a.name === bracket.us ? slot.b.name : slot.a.name;
+        return won
+          ? { name: bracket.us, hi: mine.result.teamScore, lo: mine.result.opponentScore }
+          : { name: other, hi: mine.result.opponentScore, lo: mine.result.teamScore };
+      }
+    }
+
+    var game = bracket.nfl.games.filter(function (g) {
+      return g.week === week && g.score &&
+        ((g.home === slot.a.full && g.away === slot.b.full) || (g.home === slot.b.full && g.away === slot.a.full));
+    })[0];
+    if (!game) { return null; }
+    var a = game.home === slot.a.full ? game.score[0] : game.score[1];
+    var b = game.home === slot.a.full ? game.score[1] : game.score[0];
+    return a > b ? { name: slot.a.name, hi: a, lo: b } : { name: slot.b.name, hi: b, lo: a };
+  }
+
+  /* One conference's Wild Card: the top seed's bye, then 4 v 5, 3 v 6 and
+     2 v 7 -- or, once they are all out, the one whose winner plays the top
+     seed straight after the bye. */
+  function nflOpeners(conf, draw, bracket, player, year) {
+    function team(seed) {
+      var name = draw.seeds[conf][seed - 1];
+      return { seed: seed, name: nflName(name), full: name };
+    }
+    var games = {};
+    [[4, 5], [3, 6], [2, 7]].forEach(function (pair) { games[pair[0]] = { a: team(pair[0]), b: team(pair[1]) }; });
+    var order = [4, 3, 2];
+    var through = order.map(function (top) {
+      var done = nflSettle(games[top], draw.first, bracket, player, year);
+      var game = games[top];
+      return done ? (done.name === game.a.name ? game.a.seed : game.b.seed) : null;
+    });
+    if (through.every(function (seed) { return seed !== null; })) {
+      var lowest = order[through.indexOf(Math.max.apply(null, through))];
+      order = [lowest].concat(order.filter(function (top) { return top !== lowest; }));
+    }
+    return [{ a: team(1), b: null }].concat(order.map(function (top) { return games[top]; }));
+  }
+
+  function nflBracket(player, year, teamKey) {
+    var draw = nflDraw(year);
+    var team = EGE.teams[teamKey];
+    if (!draw || !team) { return null; }
+    var field = draw.seeds.AFC.concat(draw.seeds.NFC);
+    if (field.indexOf(team.school) === -1) { return null; }
+    var bracket = {
+      title: year + ' NFL Playoffs',
+      us: nflName(team.school),
+      rounds: NFL_ROUNDS,
+      final: { label: 'Super Bowl ' + roman(year - 1965) },
+      nfl: draw
+    };
+    bracket.left = [{ label: 'AFC', games: nflOpeners('AFC', draw, bracket, player, year) }];
+    bracket.right = [{ label: 'NFC', games: nflOpeners('NFC', draw, bracket, player, year) }];
+    return bracket;
+  }
 
   /* --- how far the draw has got ---------------------------------------------
 
@@ -609,6 +739,12 @@ window.EGE = window.EGE || {};
 
     var forSeason = EGE.stats[year] || {};
     var rounds = ((forSeason.playoffs || {})[EGE.teamKeyFor(player, year)]) || [];
+    /* An NFL round is a week, one after the other from the Wild Card. */
+    function decide(slot, round, at) {
+      return bracket.nfl
+        ? nflSettle(slot, bracket.nfl.first + round, bracket, player, year)
+        : settle(slot, round, rounds, bracket, player, year, at);
+    }
 
     var openers = EGE.bracketOpeners(bracket.left)
       .concat(EGE.bracketOpeners(bracket.right));
@@ -628,7 +764,7 @@ window.EGE = window.EGE || {};
         var slot = r === 0
           ? { a: openers[i].game.a, b: openers[i].game.b }
           : { a: survivor(out[r - 1][i * 2]), b: survivor(out[r - 1][i * 2 + 1]) };
-        slot.result = settle(slot, r, rounds, bracket, player, year, i);
+        slot.result = decide(slot, r, i);
         here.push(slot);
       }
       out.push(here);
@@ -636,7 +772,7 @@ window.EGE = window.EGE || {};
 
     var last = out[depth - 1];
     var final = { a: survivor(last[0]), b: survivor(last[1]) };
-    final.result = settle(final, depth, rounds, bracket, player, year, 0);
+    final.result = decide(final, depth, 0);
 
     return {
       bracket: bracket,

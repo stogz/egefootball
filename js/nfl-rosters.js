@@ -391,9 +391,34 @@
     return list.length ? list : null;
   }
 
+  /* --- the playoff draw ----------------------------------------------------
+
+     Every season's playoff draw as far as the site has put it out (the
+     sim's playoffsOut): each game with both teams' seeds, the top seeds'
+     byes in the Wild Card, and the score once its week is out. The rosters
+     of every season carry every draw so far, so one gone by is in the live
+     season's rosters as well as its own: the newest of the two that has
+     it. Undefined until both are in, null for no draw. */
+  function playoffs(season) {
+    var own = cache[season];
+    var live = cache[EGE.currentSeason];
+    if (own === undefined || live === undefined) { return undefined; }
+    var best = null;
+    [own, live].forEach(function (all) {
+      if (all && all.playoffs && all.playoffs[season] && (!best || newer(best, all) === all)) { best = all; }
+    });
+    return best ? best.playoffs[season] : null;
+  }
+
+  function loadPlayoffs(season) {
+    return Promise.all([load(season), load(EGE.currentSeason)]).then(function () { return playoffs(season); });
+  }
+
   EGE.nflRosters = {
     ratings: ratings,
     load: load,
+    playoffs: playoffs,
+    loadPlayoffs: loadPlayoffs,
     get: function (season) { return cache[season]; },
     /* The admin page, having just published a season's rosters. */
     set: function (season, rosters) { cache[season] = rosters; },

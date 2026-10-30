@@ -651,7 +651,11 @@ EGE.scheduleFor = function (player, season) {
    title game is out. */
 EGE.bracketInSight = function (player, season) {
   var year = season || EGE.currentSeason;
-  if (!EGE.bracketFor || !EGE.bracketFor(player, year)) { return false; }
+  var bracket = EGE.bracketFor ? EGE.bracketFor(player, year) : null;
+  if (!bracket) { return false; }
+  /* The NFL's is drawn once the regular season is out, and only for a team
+     in it (data/brackets.js). */
+  if (bracket.nfl) { return true; }
   var rounds = ((EGE.stats[year] || {}).playoffs || {})[EGE.teamKeyFor(player, year)] || [];
   var from = rounds.length ? rounds[0].week : -Infinity;
   return EGE.scheduleFor(player, year).some(function (game) {

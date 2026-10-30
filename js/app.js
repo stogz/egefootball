@@ -1475,9 +1475,18 @@
        its grades come from are in. They arrive after the first draw, and
        the schedule is drawn again with them. */
     showGrades = games.some(function (game) { return EGE.defenseGrade(player, game); });
-    if (EGE.tierFor(season, player) === 'nfl' && EGE.nflRosters.get(season) === undefined) {
-      EGE.nflRosters.load(season).then(function () {
-        if (schedulePlayer === player && shownSeason() === season && !viewPlayer.hidden) { renderSchedule(player); }
+    /* The playoff draw comes with them, the live season's rosters too
+       (EGE.nflRosters.playoffs), and rosters out before they carried it are
+       sent again on an admin's visit. */
+    if (EGE.tierFor(season, player) === 'nfl' &&
+        (EGE.nflRosters.get(season) === undefined || EGE.nflRosters.playoffs(season) === undefined)) {
+      EGE.nflRosters.loadPlayoffs(season).then(function () {
+        var again = function () {
+          if (schedulePlayer === player && shownSeason() === season && !viewPlayer.hidden) { renderSchedule(player); }
+        };
+        var live = EGE.nflRosters.get(EGE.currentSeason);
+        if (live) { catchUp(live, EGE.currentSeason, again); }
+        again();
       });
     }
 
@@ -1947,7 +1956,8 @@
   /* Rosters the sim published before they carried each team's system and
      every player's fit (2026-10-21), or its picks (2026-10-22), show none
      of it to anybody; nor, for the live season, the free agents and the
-     retired the search finds (2026-10-26); and the players' season lines
+     retired the search finds (2026-10-26), or the playoff draws the NFL
+     brackets are drawn from (2026-10-30); and the players' season lines
      (2026-10-26) count only the weeks out when the rosters went out, so a
      week published since, from the Weeks tab say, is missing from them.
      An admin's visit, in client viewer mode too, has them published again
@@ -1966,7 +1976,7 @@
   }
 
   function catchUp(all, season, redraw) {
-    var behind = !(all.systems && all.picks) || (season === EGE.currentSeason && !all.freeAgents) ||
+    var behind = !(all.systems && all.picks) || (season === EGE.currentSeason && !(all.freeAgents && all.playoffs)) ||
       linesBehind(all, season);
     if (caughtUp || !behind || !all.savedAt || !EGE.nflSimAdmin || !EGE.wallet.realAdmin()) { return; }
     caughtUp = true;
@@ -3892,6 +3902,17 @@
     return card;
   }
 
+  /* The six's teams on the index: the one each of them finished the season
+     with, or is with now. A team one of them was traded away from drops off
+     once none of the six is left on it (Sam, 2026-10-26), the same week the
+     trade is made -- its own page still has the games he played for it. */
+  function teamsOnIndex(season) {
+    return EGE.teamsIn(season).map(function (entry) {
+      var still = entry.players.filter(function (player) { return EGE.teamKeyFor(player, season) === entry.key; });
+      return still.length ? { key: entry.key, team: entry.team, players: still } : null;
+    }).filter(Boolean);
+  }
+
   function renderTeams() {
     var season = teamsIndexSeason();
     var grid = document.getElementById('teamsGrid');
@@ -3905,7 +3926,7 @@
     /* The NFL above the NCAA, with a dotted line between the two, in a
        season that has both. No label on either: the line is enough (Sam,
        2026-10-17). */
-    var entries = EGE.teamsIn(season);
+    var entries = teamsOnIndex(season);
     var nfl = entries.filter(function (entry) { return entry.team.tier === 'nfl'; });
     var college = entries.filter(function (entry) { return entry.team.tier !== 'nfl'; });
     [nfl, college].forEach(function (group, at) {
@@ -3962,10 +3983,11 @@
              league: team.conf + ' ' + team.div };
   }
 
-  /* The sim's keys of the teams the six are on that season. */
+  /* The sim's keys of the teams the six are on that season, as the index
+     has them. */
   function nflOurs(season) {
     var ours = {};
-    EGE.teamsIn(season).forEach(function (entry) {
+    teamsOnIndex(season).forEach(function (entry) {
       var key = entry.team.tier === 'nfl' ? EGE.nfl.keyForSite(entry.key) : null;
       if (key) { ours[key] = true; }
     });
@@ -5591,6 +5613,7 @@
        columns across a panel built for nine; the stylesheet stops them at a
        box's width and puts the draw in the middle. */
     box.classList.toggle('ege-bracket--small', depth < 4);
+    box.classList.toggle('ege-bracket--nfl', Boolean(bracket.nfl));
 
     /* The round names over their columns, on the dark band every table on the
        site heads itself with: counting in from the left edge, the final,

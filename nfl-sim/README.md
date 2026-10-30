@@ -842,7 +842,12 @@ scores, which keep every player's line with his id for it), the salary cap for t
 it, and each team's `systems`: its offense and defense, its stars for each
 and its status, which the Teams pages show everybody since 2026-10-21; and
 for the site's search, since 2026-10-26, the free agents and every retired
-player with the season he retired and the team he last played for). `lib/io.js` is what makes that
+player with the season he retired and the team he last played for; and
+since 2026-10-30 every season's playoff draw, `playoffs`, for the NFL
+bracket on the six's pages: `playoffDraw` seeds it as `startPlayoffs` does,
+or again from a past season's game log, and `playoffsOut` keeps a round's
+games out until the week before it is published and their scores until its
+own week is). `lib/io.js` is what makes that
 work: everything the sim reads or writes goes through it, to files on the
 command line and to memory, filled from Supabase, on the page.
 `build/bundle.js` writes `js/nfl-sim.js`, every module in `lib/` and the data
