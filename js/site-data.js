@@ -41,21 +41,24 @@
    45KB a load today. That is the price of the season being current, and it is
    worth it.
 
-   Adding a season: put the year in SEASONS below. That is the whole of it.
+   Adding a season: put its stats/{year}.js in. Every season from 2018 to
+   the one after EGE.currentSeason is loaded, so the next season's file
+   (the NFL Sim tab writes it once the offseason is under way) loads the
+   moment it is there, and until then is a missed request and nothing more.
    ========================================================================== */
 
 (function () {
   'use strict';
 
-  /* One file per season. Add the next one here when it starts. */
-  var SEASONS = [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
+  /* One file per season, the first through the one after the season the
+     site is on. data/season.js says which that is, so it goes in first and
+     the rest are written once it has run (rest, below). */
+  var FIRST = 2018;
+  var SEASONS = [];
 
   /* In the order they have always loaded in, then the NFL sim's scores,
      which the admin page's NFL Sim tab writes the same way. */
-  var FILES = ['data/season.js', 'data/ratings.js'].concat(
-    SEASONS.map(function (year) { return 'stats/' + year + '.js'; }),
-    ['data/nfl-results.js']
-  );
+  var FILES = ['data/season.js'];
 
   /* A query string is a different URL, which is a different cache entry, which
      is a fetch. Opened from a file:// path there is no cache to get past and
@@ -63,14 +66,31 @@
      exist — so there it is left off. */
   var bust = window.location.protocol === 'file:' ? '' : '?t=' + Date.now();
 
-  FILES.forEach(function (url) {
+  function write(url) {
     document.write('<script src="' + url + bust + '"><\/script>');
-  });
+  }
+
+  /* Run by the tag written after data/season.js, so EGE.currentSeason is in.
+     A tag it writes goes in the parse stream straight after it, the same as
+     the ones above, so the order still holds. */
+  function rest() {
+    var last = (window.EGE.currentSeason || FIRST) + 1;
+    for (var year = FIRST; year <= last; year += 1) { SEASONS.push(year); }
+    var more = ['data/ratings.js'].concat(
+      SEASONS.map(function (y) { return 'stats/' + y + '.js'; }),
+      ['data/nfl-results.js']
+    );
+    more.forEach(function (url) { FILES.push(url); write(url); });
+  }
+
+  write(FILES[0]);
+  document.write('<script>EGE.siteData.rest()<\/script>');
 
   window.EGE = window.EGE || {};
   window.EGE.siteData = {
     SEASONS: SEASONS,
     FILES: FILES,
+    rest: rest,
 
     /* The version of this file that shipped in between fetched these three
        and handed js/app.js a promise to wait on before drawing anything. A

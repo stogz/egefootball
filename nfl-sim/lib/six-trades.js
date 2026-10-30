@@ -144,6 +144,21 @@ function siteTrades(league) {
   }));
 }
 
+/* The six's whole regular season in `season` as its file's rows, for a
+   season the sim has moved on to before the file has their games (Sam,
+   2026-10-30): each on the team he is with, and a free agent on the one he
+   left until he signs, since signing anywhere else is a move from Week 1
+   like any other. */
+function seasonGames(league, season) {
+  const out = {};
+  league.players.filter((p) => p.ege && (p.status === 'active' || p.status === 'fa')).forEach((p) => {
+    const offers = (league.egeOffers || {})[p.ege];
+    const key = p.status === 'fa' ? (offers && offers.from) || p.lastTeam : p.team;
+    if (key && TEAMS[key]) { out[p.ege] = rowsFor(league, season, key, 1); }
+  });
+  return out;
+}
+
 /* On the command line, where there is no Supabase to lay them over the
    season files from: each trade the files do not have yet put into the
    site's copy of them (as js/stored-weeks.js does on the page), so the
@@ -162,4 +177,4 @@ function layOver(site, league) {
   });
 }
 
-module.exports = { record, siteTrades, rowsFor, layOver, localKickoff, sundayOf };
+module.exports = { record, siteTrades, rowsFor, seasonGames, layOver, localKickoff, sundayOf };

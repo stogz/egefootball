@@ -43,6 +43,21 @@ EGE.seasonsPlayed = function () {
   return Object.keys(EGE.stats).map(Number).sort(function (a, b) { return a - b; });
 };
 
+/* An NFL season after the last one on the ladder in data/players.js joins
+   it once it has a file, so a new season needs nothing but its
+   stats/{year}.js (Sam, 2026-10-30). The NFL Sim tab runs it again when it
+   makes a season the page has no file for. */
+EGE.fillLadder = function () {
+  var last = EGE.seasons[EGE.seasons.length - 1];
+  EGE.seasonsPlayed().forEach(function (year) {
+    if (year <= last.year || last.tier !== 'nfl') { return; }
+    last = { year: year, level: 'NFL', tier: 'nfl' };
+    EGE.seasons.push(last);
+  });
+};
+
+EGE.fillLadder();
+
 /* A game arrives from the file knowing its week and its opponent but not
    whose it is or which season it belongs to. Stamping that on once means
    nothing downstream has to be told twice. */

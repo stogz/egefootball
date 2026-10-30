@@ -59,7 +59,8 @@ window.EGE = window.EGE || {};
    2024 has all six in the NFL: Cooper, Paxon and Isaac were drafted too.
    It has no `class`, since an NFL season's class is each player's own year
    in the league (EGE.classFor). 2025 is the same six on the same teams,
-   and 2026 the teams they finished 2025 on. */
+   and 2026 the teams they finished 2025 on. Every NFL season after 2026
+   joins the ladder once its stats/{year}.js is in (EGE.fillLadder). */
 EGE.seasons = [
   { year: 2018, level: 'High School Varsity', tier: 'highSchool', class: 'Junior Year' },
   { year: 2019, level: 'High School Varsity', tier: 'highSchool', class: 'Senior Year' },
