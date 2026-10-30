@@ -230,16 +230,16 @@
     </section>
 
     <!-- ===== the league =============================================== -->
-    <!-- Every NFL game of a week (Sam, 2026-10-30), under Schedule: the
-         scores, each game's leaders, and the whole box score under the game
+    <!-- Every NFL game of a week (Sam, 2026-10-30): the scores, each game's leaders, and the whole box score under the game
          when it is opened, a week and a season at a time with the bar, which
          goes on into the weeks to come and their games. Built in app.js
          (renderLeague) from the NFL sim's box scores (js/box-scores.js), or
          the season files' scores where a week has none, and for a week to
          come the schedule the rosters carry.
-         Under it Standings: every division as it stood after the week on
-         show, each team's streak beside its record.
-         Then Search: any player as you type, as the cards a team's page
+         Close under it the standings: every division as it stood after the
+         week on show, each team's streak beside its record, and who has
+         clinched a playoff spot or been knocked out of one.
+         Then, after a gap, the search: any player as you type, as the cards a team's page
          draws, each opening his pop-up -- the free agents and the retired
          too, the retired greyed and marked. With nothing typed, every player
          best first. Under the box, a position and a sort. The query rides in
@@ -252,7 +252,6 @@
           <h1 class="fb-hero__title">League</h1>
         </div>
       </header>
-      <h2 class="ege-league__title">Schedule</h2>
       <div class="ege-seasonbar ege-league__bar" id="leagueBar" hidden>
         <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="leaguePrev"
                 aria-label="Week before">&lsaquo;</button>
@@ -262,15 +261,17 @@
                 aria-label="Week after">&rsaquo;</button>
       </div>
       <div class="ege-league__games" id="leagueGames"></div>
-      <div class="ege-league__standings" id="leagueStandings" hidden>
-        <h2 class="ege-league__title">Standings</h2>
-        <div id="leagueStandingsBox"></div>
-      </div>
-      <h2 class="ege-league__title">Search</h2>
+      <div class="ege-league__standings" id="leagueStandings" hidden></div>
       <div class="ege-search" id="leagueSearch">
-        <input class="fb-input ege-search__field" id="searchField" type="search"
-               placeholder="Player" aria-label="Search players"
-               autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+        <div class="ege-search__box">
+          <svg class="ege-search__icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+            <circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="3"/>
+            <path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="3" stroke-linecap="square"/>
+          </svg>
+          <input class="fb-input ege-search__field" id="searchField" type="search"
+                 placeholder="Player" aria-label="Search players"
+                 autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+        </div>
         <div class="ege-search__sorts">
           <select class="fb-select ege-filterselect" id="searchPos" aria-label="Position"></select>
           <select class="fb-select ege-filterselect" id="searchSort" aria-label="Sort"></select>

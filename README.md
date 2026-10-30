@@ -671,11 +671,12 @@ the shop).
 A football at the end of the nav links (Sam, 2026-10-30; a magnifying glass
 and a page called Search from 2026-10-26), for everybody, signed in or not.
 The old `#search` and `#search/{query}` addresses open it. *Around the NFL*
-sits over the title, and the page is three sections on the grass, each
-under its own title: **Schedule**, **Standings** and **Search**. The bar
-and the search box run the width of the page.
+sits over the title. The page is the week's games, the standings close
+under them, and the search after a gap, with no titles over them (Sam,
+2026-10-30: tried and taken off). The bar and the search box run the width
+of the page.
 
-**Schedule**, the week's games, comes first. A bar picks the week: the
+**The week's games** come first. A bar picks the week: the
 season, the week (*Week 1* to *Week 18*, then *Wild Card*, *Divisional*,
 *Conference Championships*, *Super Bowl*), and a step either way that runs
 on into the next or last season. In it are the weeks out on the site with
@@ -733,14 +734,29 @@ out, and the nav's football goes back to it from anywhere.
   the leaders and the injuries.
   Read by `js/box-scores.js`.
 
-**Standings** are under the games: the Teams page's NFL standings, a box a
-division, as they stood after the week on show (a week to come has them as
-they are now), with each team's streak beside its record in green or red
-(*W6*, *L2*), counted the way the division table counts it. A team is a
-link to its page for that season, and the six's teams are orange.
+**The standings** are close under the games: the Teams page's NFL
+standings, a box a division, as they stood after the week on show (a week
+to come has them as they are now). The teams go by city, as the games have
+them, so a long name never pushes the columns out of the box, with each
+team's streak beside its record in green or red (*W6*, *L2*), counted the
+way the division table counts it. A team is a link to its page for that
+season, and the six's teams are orange.
 
-**Search** is under the standings: one box, players only (no teams since
-2026-10-30), results as it is typed, and the query rides in the address
+- **IN** (green) marks a team that has clinched a playoff spot and **OUT**
+  (outlined, the row faded) one eliminated from it, as the season goes:
+  seven a conference, the four division winners and three wild cards.
+  Worked out on wins alone (`nflPlayoffMarks`), every tie going against the
+  team for IN and for it for OUT, so a team is only marked once it is
+  certain, sometimes a week after the NFL would say so on its tie-breaks.
+  IN: losing out, no division rival can reach its wins, or at most two
+  teams that will not win their division can finish level with it or
+  better. OUT: winning out, a division rival already has more wins than it
+  can reach, and three teams that will not win their division already have
+  more too. Once all 17 games are played, the playoff draw decides.
+
+**The search** comes after a gap under the standings: one box with a
+magnifying glass at its left, players only (no teams since 2026-10-30),
+results as it is typed, and the query rides in the address
 (`#league/{query}`), so Back from a player's page comes back to the same
 results.
 

@@ -3986,6 +3986,63 @@
     return rows.sort(function (a, b) { return (pct(b) - pct(a)) || (b.wins - a.wins) || a.name.localeCompare(b.name); });
   }
 
+  /* Who is in the playoffs and who is out, as it stood after the week
+     `through`: { key: 'in' | 'out' }, a team that is neither left out (Sam,
+     2026-10-30). Seven a conference go, the four division winners and the
+     three best of the rest. Worked out on wins alone, with every tie
+     against the team for IN and for it for OUT, and with nobody's games
+     against each other taken into account, so a team is only ever marked
+     once it is certain, sometimes a week or so after the NFL would say so
+     on its tie-breaks:
+
+     - IN: losing every game it has left, it still wins its division (no
+       rival can reach its wins), or no more than two teams that do not win
+       a division can finish level with it or better. A division with k
+       teams that can reach it puts k - 1 of them past it as wild cards.
+     - OUT: winning every game it has left, a rival already has more wins
+       than it can get, and at least three teams that will not win their
+       division already have more too, k - 1 of a division's k.
+
+     Once every team has played all 17 games, the draw (leagueDraw) says,
+     when it is out. */
+  var NFL_GAMES = 17;
+
+  function nflPlayoffMarks(season, through) {
+    var rows = nflRecords(season, through);
+    var keys = Object.keys(rows);
+    var marks = {};
+    var done = keys.every(function (key) { return rows[key].wins + rows[key].losses >= NFL_GAMES; });
+    var draw = done ? leagueDraw(season) : null;
+    if (draw && draw.length) {
+      var field = {};
+      draw.forEach(function (g) {
+        [g.home, g.away].forEach(function (name) { if (name) { field[EGE.nfl.keyByName(name)] = true; } });
+      });
+      keys.forEach(function (key) { marks[key] = field[key] ? 'in' : 'out'; });
+      return marks;
+    }
+    function most(key) { return rows[key].wins + Math.max(0, NFL_GAMES - rows[key].wins - rows[key].losses); }
+    /* Past the team as wild cards: k - 1 of each division's k. */
+    function wildCards(rivals) {
+      var byDiv = {};
+      rivals.forEach(function (key) { byDiv[EGE.nfl.teams[key].div] = (byDiv[EGE.nfl.teams[key].div] || 0) + 1; });
+      return Object.keys(byDiv).reduce(function (n, div) { return n + byDiv[div] - 1; }, 0);
+    }
+    keys.forEach(function (key) {
+      var team = EGE.nfl.teams[key];
+      var others = keys.filter(function (other) { return other !== key && EGE.nfl.teams[other].conf === team.conf; });
+      var level = others.filter(function (other) { return most(other) >= rows[key].wins; });
+      var past = others.filter(function (other) { return rows[other].wins > most(key); });
+      function inDiv(list) { return list.some(function (other) { return EGE.nfl.teams[other].div === team.div; }); }
+      if (!inDiv(level) || wildCards(level) <= 2) {
+        marks[key] = 'in';
+      } else if (inDiv(past) && wildCards(past) >= 3) {
+        marks[key] = 'out';
+      }
+    });
+    return marks;
+  }
+
   /* Every NFL team's row as nflDivisionRows has it, by key. */
   function nflRecords(season, through) {
     var rows = {};
@@ -4020,11 +4077,14 @@
 
   /* The whole league, a box for each division, every team a link to its
      page and the six's teams picked out in orange. The League's (`league`:
-     { through }) is the table as it stood after the week on show, under
-     the page's own Standings, with each team's streak beside its record
-     (Sam, 2026-10-30). */
+     { through }) is the table as it stood after the week on show, with no
+     title, the teams by city as the League's games have them, and each
+     one's streak beside its record (Sam, 2026-10-30), and IN or OUT before
+     the record for a team that has clinched a playoff spot or is out of
+     the running (nflPlayoffMarks). */
   function nflStandingsBox(season, league) {
     var ours = nflOurs(season);
+    var marks = league ? nflPlayoffMarks(season, league.through) : {};
     var panel = el('section', 'fb-panel ege-nflstand');
     if (!league) {
       var head = el('div', 'fb-panel__head');
@@ -4044,7 +4104,16 @@
           if (league) { link.addEventListener('click', function () { teamsPicked = season; }); }
           var mark = schoolMark(row.name);
           if (mark) { link.appendChild(mark); }
-          link.appendChild(el('span', 'ege-nflstand__name', row.name));
+          link.appendChild(el('span', 'ege-nflstand__name', league ? EGE.nfl.city(row.key) : row.name));
+          if (league) {
+            var made = marks[row.key];
+            var tag = el('span', 'ege-nflstand__mark' + (made ? ' is-' + made : ''), made === 'in' ? 'IN' : made === 'out' ? 'OUT' : '');
+            if (made) {
+              tag.title = made === 'in' ? 'Clinched a playoff spot' : 'Eliminated from playoff contention';
+              link.classList.add('is-' + made);
+            }
+            link.appendChild(tag);
+          }
           link.appendChild(el('span', 'ege-nflstand__record', row.wins + '-' + row.losses));
           if (league) {
             var streak = row.streak;
@@ -4640,8 +4709,8 @@
   /* --- the League -----------------------------------------------------------
 
      The football at the end of the nav (Sam, 2026-10-30): every NFL game of
-     a week under Schedule, the standings under that, and the search under
-     Standings. The bar picks the week -- the season, the week, and a step
+     a week, the standings close under them, and the search after a gap
+     (2026-10-30: no titles over the three). The bar picks the week -- the season, the week, and a step
      either way that runs on into the season next to it. In it are the
      weeks out on the site with games in them, and the weeks still to come
      (Sam, 2026-10-30), whose games are only who plays whom: an admin sees
@@ -4709,6 +4778,16 @@
     return out;
   }
 
+  /* A season's playoff draw as far as it is out (EGE.nflRosters.playoffs),
+     or, before the season's own rosters are in, the live season's, which
+     carry every draw so far. Null for none. */
+  function leagueDraw(season) {
+    var draw = EGE.nflRosters.playoffs(season);
+    if (draw !== undefined) { return draw; }
+    var live = EGE.nflRosters.get(EGE.currentSeason);
+    return (live && live.playoffs && live.playoffs[season]) || null;
+  }
+
   /* A season's games still to come, { week: [game] }, each { home, away,
      upcoming, six: [{ player, team }] }, by the sim's keys: every game of a
      week not out yet in the schedule the season's rosters carry, the
@@ -4732,7 +4811,7 @@
       return byPair[key];
     }
     ((all && all.schedule) || []).forEach(function (g) { add(g.week, g.home, g.away); });
-    ((all && all.playoffs && all.playoffs[season]) || []).forEach(function (g) {
+    (leagueDraw(season) || []).forEach(function (g) {
       if (!g.bye) { add(g.week, EGE.nfl.keyByName(g.home), EGE.nfl.keyByName(g.away)); }
     });
     EGE.players.forEach(function (player) {
@@ -5469,9 +5548,8 @@
      week to come has the table as it is. */
   function drawLeagueStandings(at) {
     leagueStandings.hidden = false;
-    var box = document.getElementById('leagueStandingsBox');
-    box.innerHTML = '';
-    box.appendChild(nflStandingsBox(at.season, { through: at.week }));
+    leagueStandings.innerHTML = '';
+    leagueStandings.appendChild(nflStandingsBox(at.season, { through: at.week }));
   }
 
   function pickLeagueWeek(at) {

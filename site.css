@@ -4384,26 +4384,20 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 
 /* --- the League ------------------------------------------------------------
 
-   The football at the end of the nav (Sam, 2026-10-30). Three sections on
-   the grass, each under its own title: Schedule, Standings and Search.
-   Under Schedule the week's bar across the page, the season beside the
-   week; then the week's games as cards, as many across as fit and one on
+   The football at the end of the nav (Sam, 2026-10-30). The week's bar
+   across the page, the season beside the week; then the week's games as
+   cards, as many across as fit and one on
    a phone, each the score and the game's leaders. A game opened is drawn
    in ink, and its box score takes the whole row under it, the cards after
    it filling in around it. A game to come has the teams' records where
-   the score goes. */
+   the score goes. The standings sit close under the games, and the search
+   comes after a gap. */
 .ege-navleague { display: inline-flex; align-items: center; }
 .ege-navleague svg { display: block; }
-.ege-league__title {
-  margin: 0 0 16px;
-  font-size: clamp(1.75rem, 4vw, 2.5rem);
-  color: #fff;
-  text-shadow: 3px 3px 0 var(--fb-ink);
-}
 .ege-league__bar { margin: 0 0 22px; }
 .ege-league__bar .ege-league__season { flex: 0 1 240px; }
-.ege-league__games { margin-bottom: 40px; }
-.ege-league__standings { margin-bottom: 40px; }
+.ege-league__games { margin-bottom: 22px; }
+.ege-league__standings { margin-bottom: 64px; }
 .ege-league__note { max-width: 640px; margin: 0 auto; background: var(--fb-cream); text-align: center; }
 .ege-league__grid {
   display: grid;
@@ -4580,9 +4574,19 @@ a.ege-boxscore__name:hover { color: var(--fb-accent-deep); text-decoration: unde
 /* The position and the sort, side by side under the box. */
 .ege-search__sorts { display: flex; gap: 10px; margin-top: 12px; }
 .ege-search__sorts .ege-filterselect { flex: 1 1 0; min-width: 0; }
+/* The magnifying glass in the box, on the left of what is typed. */
+.ege-search__box { position: relative; }
+.ege-search__icon {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+  color: var(--fb-muted);
+  pointer-events: none;
+}
 .ege-search__field {
   width: 100%;
-  padding: 12px 14px;
+  padding: 12px 14px 12px 46px;
   border: var(--fb-border) solid var(--fb-ink);
   box-shadow: 4px 4px 0 var(--fb-ink);
   font-size: 1.125rem;
@@ -4967,7 +4971,7 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
   border-bottom: var(--fb-border-thin) solid var(--fb-ink);
   font-size: .9375rem;
 }
-.ege-nflstand__list { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.ege-nflstand__list { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
 .ege-nflstand__team {
   display: flex;
   align-items: center;
@@ -4982,8 +4986,26 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
 .ege-nflstand__team.is-ours:hover { background: var(--fb-tint-clay-2); }
 .ege-nflstand__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ege-nflstand__record { flex: none; margin-left: 10px; font-variant-numeric: tabular-nums; }
-/* The League's: the streak in a column of its own after the record. */
+/* The League's: IN or OUT in a column of its own before the record, a team
+   that is out faded, and the streak in a column after it. */
+.ege-nflstand__mark {
+  flex: none;
+  width: 34px;
+  margin-left: 8px;
+  padding: 2px 0;
+  font-size: .5625rem;
+  font-weight: 800;
+  letter-spacing: .1em;
+  line-height: 1.2;
+  text-align: center;
+}
+.ege-nflstand__mark.is-in { background: #2e7d32; color: #fff; }
+.ege-nflstand__mark.is-out { border: var(--fb-border-thin) solid var(--fb-muted-2); color: var(--fb-muted); }
+.ege-nflstand__team.is-out > :not(.ege-nflstand__mark) { opacity: .6; }
 .ege-nflstand__streak { flex: none; width: 2.75em; text-align: right; font-variant-numeric: tabular-nums; }
+/* Two more columns a box than the Teams page's: a little wider, so a city
+   fits beside them. Too narrow and it is cut short, never pushed out. */
+.ege-league__standings .ege-nflstand__grid { grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); }
 
 /* --- an NFL player up close -------------------------------------------------
 
