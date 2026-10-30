@@ -5671,13 +5671,14 @@ module.exports = { startSeason, playWeek, playRound, importWeeks, startPlayoffs,
 
 const io = require('./io');
 const { TEAMS, KEYS, keyForName } = require('./teams');
-const { capFor } = require('./value');
+const { capFor, marketPay } = require('./value');
 const { playerFit, teamFit } = require('./fit');
 const { OFFENSE, DEFENSE } = require('./schemes');
 const { board } = require('./draft-plan');
 const { seasons, rostersIn } = require('./history');
 const { standings } = require('./standings');
 const { nextRound, lastWeek, ROUNDS } = require('./season');
+const { interested } = require('./six-offers');
 
 /* The sim's key for a team the six play for on the site ('detroit' is DET). */
 function simKey(siteKey) { return KEYS.filter((k) => TEAMS[k].site === siteKey)[0] || null; }
@@ -6030,6 +6031,19 @@ function playoffsOut(league, site) {
   return out;
 }
 
+/* The season's regular season as the schedule has it, for the weeks still
+   to come on the League page (Sam, 2026-10-30): each game's week and teams
+   by key, and nothing about how it went. Null while the schedule kept is
+   still last season's, before the draft's season starts. */
+function scheduleOut(league) {
+  if (league.phase === 'draft' || league.phase === 'preseason' || !league.schedule) { return null; }
+  return league.schedule.map((g) => {
+    const row = { week: g.week, home: g.home, away: g.away };
+    if (g.neutral) { row.neutral = true; }
+    return row;
+  });
+}
+
 /* data/nfl-results.js: every season the sim has written, this one replaced
    with `results` (or left out when there are none). */
 function resultsFileText(season, results) {
@@ -6344,11 +6358,18 @@ const CAP_YEARS = 4;
    player carries his seasons from 2025 on, for his pop-up (seasonLines),
    and `linesThrough` says how far into this season they count, so the
    site can have them published again once another week is out. Every
-   season's playoff draw comes too, as far as it is out (playoffsOut). */
+   season's playoff draw comes too, as far as it is out (playoffsOut), and
+   the season's schedule (scheduleOut). A player whose contract runs out
+   this season carries what the market would pay him next season, $M a
+   year (`market`), and the teams likeliest to want him (`interest`,
+   six-offers.js interested), for the League page's upcoming free agents. */
 function publicRosters(league) {
   let site = null;
   try { site = io.site(); } catch (err) { site = null; }
   const lines = seasonLines(league, site);
+  const expiring = league.players.filter((p) => p.status === 'active' && TEAMS[p.team] && p.contract &&
+    p.contract.through <= league.season);
+  const wanted = interested(league, expiring);
   const teams = {};
   league.teams.forEach((t) => {
     teams[t.key] = (league.byTeam.get(t.key) || []).slice()
@@ -6373,6 +6394,10 @@ function publicRosters(league) {
           row.out = { what: p.injury.what, games: p.injury.games >= 20 ? null : p.injury.games, week: p.injury.week || 0 };
         }
         if (lines.byId.has(p.id)) { row.seasons = lines.byId.get(p.id); }
+        if (wanted.has(p)) {
+          row.market = marketPay(p, league.season + 1);
+          row.interest = wanted.get(p);
+        }
         return row;
       });
   });
@@ -6404,7 +6429,7 @@ function publicRosters(league) {
   });
   return { season: league.season, phase: league.phase, week: league.week || null, savedAt: new Date().toISOString(), caps, systems,
            picks, linesThrough: lines.through[league.season] || 0, teams, freeAgents: freeAgents(league, site, lines),
-           retired: retiredPlayers(league, site, lines), playoffs: playoffsOut(league, site) };
+           retired: retiredPlayers(league, site, lines), playoffs: playoffsOut(league, site), schedule: scheduleOut(league) };
 }
 
 function siteCollege(site, p) {
@@ -6595,6 +6620,55 @@ function makeOffers(league, p, season) {
   return league.egeOffers[p.ege];
 }
 
+/* The teams likeliest to want each player whose contract runs out this
+   season, for the League page's upcoming free agents (Sam, 2026-10-30):
+   a Map of player to keys, keenest first. Weighed as makeOffers weighs a
+   team's want for one of the six, with the chance in it at its middle:
+   the team's need at his position, whether he would start for it, his fit
+   in its scheme and its plans, his own team keener. Only teams with the
+   room to pay him next season (everybody's deals that run that far, less
+   the cap) count, and up to three over the line an offer takes, or the
+   keenest one when none is. */
+const INTERESTED = 3;
+
+function interested(league, players) {
+  const next = league.season + 1;
+  const levels = starterLevels(league);
+  const rooms = {};
+  const atPos = {};
+  league.teams.forEach((t) => {
+    const roster = onTeam(league, t.key);
+    rooms[t.key] = capFor(next) - roster.reduce((sum, p) =>
+      sum + (p.contract && p.contract.through >= next ? p.contract.apy || 0 : 0), 0);
+    atPos[t.key] = {};
+    roster.forEach((p) => { (atPos[t.key][p.pos] = atPos[t.key][p.pos] || []).push(p); });
+  });
+  const out = new Map();
+  players.forEach((p) => {
+    const ask = marketPay(p, next);
+    const wants = [];
+    league.teams.forEach((t) => {
+      const own = t.key === p.team;
+      if (rooms[t.key] < ask * 0.85) { return; }
+      const roster = (atPos[t.key][p.pos] || []).filter((x) => x !== p);
+      const at = byPos(roster, p.pos);
+      const slots = SLOTS[p.pos] || 1;
+      const starts = at.length < slots || p.ovr > at[slots - 1].ovr;
+      const need = needAt(league, t.key, p.pos, levels, roster);
+      const fit = fitOf(p, schemeFor(t, p.pos));
+      let want = need * (POSITION[p.pos] || 0.8) + (starts ? 0.4 : -0.3) + 0.05 * clamp(fit, -4, 4) + 0.175;
+      if (own) { want += 0.3; }
+      if (t.mode === 'compete' && starts) { want += 0.15; }
+      if (t.mode === 'rebuild' && p.age >= 29) { want -= 0.5; }
+      wants.push({ key: t.key, want });
+    });
+    wants.sort((a, b) => b.want - a.want || a.key.localeCompare(b.key));
+    const keen = wants.filter((w) => w.want >= WANTS).slice(0, INTERESTED);
+    out.set(p, (keen.length ? keen : wants.slice(0, 1)).map((w) => w.key));
+  });
+  return out;
+}
+
 function freeSix(league) {
   return league.players.filter((p) => p.ege && p.status === 'fa');
 }
@@ -6692,7 +6766,7 @@ function accept(league, slug, key) {
   return { name: p.name, pos: p.pos, team: key, from, years: offer.years, contract: Object.assign({}, p.contract), moved, summary };
 }
 
-module.exports = { makeOffers, offerAll, fill, drop, holds, waiting, unsigned, accept, firstSeason };
+module.exports = { makeOffers, offerAll, fill, drop, holds, waiting, unsigned, accept, firstSeason, interested };
 
   };
 

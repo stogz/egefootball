@@ -230,22 +230,28 @@
     </section>
 
     <!-- ===== the league =============================================== -->
-    <!-- Every NFL game of a week that is out (Sam, 2026-10-30): the scores,
-         each game's leaders, and the whole box score under the game when it
-         is opened, a week and a season at a time with the bar. Built in
-         app.js (renderLeague) from the NFL sim's box scores
-         (js/box-scores.js), or the season files' scores where a week has
-         none.
-         Under it the search: any player or team as you type, the teams as
-         links to their pages, the players as the cards a team's page draws,
-         each opening his pop-up -- the free agents and the retired too, the
-         retired greyed and marked. With nothing typed, every player best
-         first and every team. Under the box, a position and a sort for the
-         players. The query rides in the address, #league/{query}, so Back
-         comes back to it. Built in app.js (renderSearch). -->
+    <!-- Every NFL game of a week (Sam, 2026-10-30): the scores, each game's leaders, and the whole box score under the game
+         when it is opened, a week and a season at a time with the bar, which
+         goes on into the weeks to come and their games. Built in app.js
+         (renderLeague) from the NFL sim's box scores (js/box-scores.js), or
+         the season files' scores where a week has none, and for a week to
+         come the schedule the rosters carry.
+         Close under it the standings: every division as it stood after the
+         week on show, each team's streak beside its record, and who has
+         clinched a playoff spot or been knocked out of one.
+         After a gap the upcoming free agents: everybody whose contract runs
+         out this season, with his market value and the teams likeliest to
+         want him, a position and a sort, and Show more.
+         Then the search: any player as you type, as the cards a team's page
+         draws, each opening his pop-up -- the free agents and the retired
+         too, the retired greyed and marked. With nothing typed, every player
+         best first. Under the box, a position and a sort. The query rides in
+         the address, #league/{query}, so Back comes back to it. Built in
+         app.js (renderSearch). -->
     <section id="view-league" hidden>
       <header class="fb-hero fb-hero--centred">
         <div class="fb-hero__col">
+          <span class="fb-kicker">Around the NFL</span>
           <h1 class="fb-hero__title">League</h1>
         </div>
       </header>
@@ -258,10 +264,35 @@
                 aria-label="Week after">&rsaquo;</button>
       </div>
       <div class="ege-league__games" id="leagueGames"></div>
+      <div class="ege-league__standings" id="leagueStandings" hidden></div>
+      <section class="fb-panel ege-league__fa" id="leagueFreeAgents" hidden>
+        <div class="fb-panel__head">
+          <h3 class="ege-league__fatitle"><img class="ege-league__espn" src="icon/espn-white.png" alt="ESPN" width="80" height="20"><span id="faTitle">Free Agency Tracker</span></h3>
+          <span class="ege-live" role="img" aria-label="Live"><span class="ege-live__dot"></span>Live</span>
+        </div>
+        <div class="fb-panel__body">
+          <div class="ege-league__buyers" id="faBuyers" hidden>
+            <span class="ege-league__buyerslabel">Biggest Buyers</span>
+            <ol class="ege-league__buyerlist" id="faBuyerList"></ol>
+          </div>
+          <div class="ege-search__sorts ege-league__fasorts">
+            <select class="fb-select ege-filterselect" id="faPos" aria-label="Position"></select>
+            <select class="fb-select ege-filterselect" id="faSort" aria-label="Sort"></select>
+          </div>
+          <ol class="ege-room__list ege-search__list" id="faList"></ol>
+          <button type="button" class="fb-btn fb-btn--sm ege-search__more" id="faMore" hidden>Show more</button>
+        </div>
+      </section>
       <div class="ege-search" id="leagueSearch">
-        <input class="fb-input ege-search__field" id="searchField" type="search"
-               placeholder="Player or team" aria-label="Search players and teams"
-               autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+        <div class="ege-search__box">
+          <svg class="ege-search__icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+            <circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="3"/>
+            <path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="3" stroke-linecap="square"/>
+          </svg>
+          <input class="fb-input ege-search__field" id="searchField" type="search"
+                 placeholder="Player" aria-label="Search players"
+                 autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+        </div>
         <div class="ege-search__sorts">
           <select class="fb-select ege-filterselect" id="searchPos" aria-label="Position"></select>
           <select class="fb-select ege-filterselect" id="searchSort" aria-label="Sort"></select>

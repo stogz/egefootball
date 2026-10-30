@@ -21,13 +21,14 @@
 
 const io = require('./io');
 const { TEAMS, KEYS, keyForName } = require('./teams');
-const { capFor } = require('./value');
+const { capFor, marketPay } = require('./value');
 const { playerFit, teamFit } = require('./fit');
 const { OFFENSE, DEFENSE } = require('./schemes');
 const { board } = require('./draft-plan');
 const { seasons, rostersIn } = require('./history');
 const { standings } = require('./standings');
 const { nextRound, lastWeek, ROUNDS } = require('./season');
+const { interested } = require('./six-offers');
 
 /* The sim's key for a team the six play for on the site ('detroit' is DET). */
 function simKey(siteKey) { return KEYS.filter((k) => TEAMS[k].site === siteKey)[0] || null; }
@@ -380,6 +381,19 @@ function playoffsOut(league, site) {
   return out;
 }
 
+/* The season's regular season as the schedule has it, for the weeks still
+   to come on the League page (Sam, 2026-10-30): each game's week and teams
+   by key, and nothing about how it went. Null while the schedule kept is
+   still last season's, before the draft's season starts. */
+function scheduleOut(league) {
+  if (league.phase === 'draft' || league.phase === 'preseason' || !league.schedule) { return null; }
+  return league.schedule.map((g) => {
+    const row = { week: g.week, home: g.home, away: g.away };
+    if (g.neutral) { row.neutral = true; }
+    return row;
+  });
+}
+
 /* data/nfl-results.js: every season the sim has written, this one replaced
    with `results` (or left out when there are none). */
 function resultsFileText(season, results) {
@@ -694,11 +708,18 @@ const CAP_YEARS = 4;
    player carries his seasons from 2025 on, for his pop-up (seasonLines),
    and `linesThrough` says how far into this season they count, so the
    site can have them published again once another week is out. Every
-   season's playoff draw comes too, as far as it is out (playoffsOut). */
+   season's playoff draw comes too, as far as it is out (playoffsOut), and
+   the season's schedule (scheduleOut). A player whose contract runs out
+   this season carries what the market would pay him next season, $M a
+   year (`market`), and the teams likeliest to want him (`interest`,
+   six-offers.js interested), for the League page's upcoming free agents. */
 function publicRosters(league) {
   let site = null;
   try { site = io.site(); } catch (err) { site = null; }
   const lines = seasonLines(league, site);
+  const expiring = league.players.filter((p) => p.status === 'active' && TEAMS[p.team] && p.contract &&
+    p.contract.through <= league.season);
+  const wanted = interested(league, expiring);
   const teams = {};
   league.teams.forEach((t) => {
     teams[t.key] = (league.byTeam.get(t.key) || []).slice()
@@ -723,6 +744,10 @@ function publicRosters(league) {
           row.out = { what: p.injury.what, games: p.injury.games >= 20 ? null : p.injury.games, week: p.injury.week || 0 };
         }
         if (lines.byId.has(p.id)) { row.seasons = lines.byId.get(p.id); }
+        if (wanted.has(p)) {
+          row.market = marketPay(p, league.season + 1);
+          row.interest = wanted.get(p);
+        }
         return row;
       });
   });
@@ -754,7 +779,7 @@ function publicRosters(league) {
   });
   return { season: league.season, phase: league.phase, week: league.week || null, savedAt: new Date().toISOString(), caps, systems,
            picks, linesThrough: lines.through[league.season] || 0, teams, freeAgents: freeAgents(league, site, lines),
-           retired: retiredPlayers(league, site, lines), playoffs: playoffsOut(league, site) };
+           retired: retiredPlayers(league, site, lines), playoffs: playoffsOut(league, site), schedule: scheduleOut(league) };
 }
 
 function siteCollege(site, p) {

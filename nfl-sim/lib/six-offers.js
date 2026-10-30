@@ -122,6 +122,55 @@ function makeOffers(league, p, season) {
   return league.egeOffers[p.ege];
 }
 
+/* The teams likeliest to want each player whose contract runs out this
+   season, for the League page's upcoming free agents (Sam, 2026-10-30):
+   a Map of player to keys, keenest first. Weighed as makeOffers weighs a
+   team's want for one of the six, with the chance in it at its middle:
+   the team's need at his position, whether he would start for it, his fit
+   in its scheme and its plans, his own team keener. Only teams with the
+   room to pay him next season (everybody's deals that run that far, less
+   the cap) count, and up to three over the line an offer takes, or the
+   keenest one when none is. */
+const INTERESTED = 3;
+
+function interested(league, players) {
+  const next = league.season + 1;
+  const levels = starterLevels(league);
+  const rooms = {};
+  const atPos = {};
+  league.teams.forEach((t) => {
+    const roster = onTeam(league, t.key);
+    rooms[t.key] = capFor(next) - roster.reduce((sum, p) =>
+      sum + (p.contract && p.contract.through >= next ? p.contract.apy || 0 : 0), 0);
+    atPos[t.key] = {};
+    roster.forEach((p) => { (atPos[t.key][p.pos] = atPos[t.key][p.pos] || []).push(p); });
+  });
+  const out = new Map();
+  players.forEach((p) => {
+    const ask = marketPay(p, next);
+    const wants = [];
+    league.teams.forEach((t) => {
+      const own = t.key === p.team;
+      if (rooms[t.key] < ask * 0.85) { return; }
+      const roster = (atPos[t.key][p.pos] || []).filter((x) => x !== p);
+      const at = byPos(roster, p.pos);
+      const slots = SLOTS[p.pos] || 1;
+      const starts = at.length < slots || p.ovr > at[slots - 1].ovr;
+      const need = needAt(league, t.key, p.pos, levels, roster);
+      const fit = fitOf(p, schemeFor(t, p.pos));
+      let want = need * (POSITION[p.pos] || 0.8) + (starts ? 0.4 : -0.3) + 0.05 * clamp(fit, -4, 4) + 0.175;
+      if (own) { want += 0.3; }
+      if (t.mode === 'compete' && starts) { want += 0.15; }
+      if (t.mode === 'rebuild' && p.age >= 29) { want -= 0.5; }
+      wants.push({ key: t.key, want });
+    });
+    wants.sort((a, b) => b.want - a.want || a.key.localeCompare(b.key));
+    const keen = wants.filter((w) => w.want >= WANTS).slice(0, INTERESTED);
+    out.set(p, (keen.length ? keen : wants.slice(0, 1)).map((w) => w.key));
+  });
+  return out;
+}
+
 function freeSix(league) {
   return league.players.filter((p) => p.ege && p.status === 'fa');
 }
@@ -219,4 +268,4 @@ function accept(league, slug, key) {
   return { name: p.name, pos: p.pos, team: key, from, years: offer.years, contract: Object.assign({}, p.contract), moved, summary };
 }
 
-module.exports = { makeOffers, offerAll, fill, drop, holds, waiting, unsigned, accept, firstSeason };
+module.exports = { makeOffers, offerAll, fill, drop, holds, waiting, unsigned, accept, firstSeason, interested };

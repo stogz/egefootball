@@ -670,14 +670,31 @@ the shop).
 
 A football at the end of the nav links (Sam, 2026-10-30; a magnifying glass
 and a page called Search from 2026-10-26), for everybody, signed in or not.
-The old `#search` and `#search/{query}` addresses open it.
+The old `#search` and `#search/{query}` addresses open it. *Around the NFL*
+sits over the title. The page is the week's games, the standings close
+under them, and the search after a gap, with no titles over them (Sam,
+2026-10-30: tried and taken off). The bar and the search box run the width
+of the page.
 
-**The week's games** come first. Under the title a bar picks the week: the
+**The week's games** come first. A bar picks the week: the
 season, the week (*Week 1* to *Week 18*, then *Wild Card*, *Divisional*,
 *Conference Championships*, *Super Bowl*), and a step either way that runs
-on into the next or last season. Only weeks out on the site are in it, an
-admin's too, from 2023 (the six's first NFL season) to the live season; it
-opens on the latest one with games in it.
+on into the next or last season. In it are the weeks out on the site with
+games in them, from 2023 (the six's first NFL season) to the live season,
+and the weeks still to come (Sam, 2026-10-30). It opens on the latest week
+out, and the nav's football goes back to it from anywhere.
+
+- **A week to come** is its games, both teams' marks and cities with their
+  records where the score goes, the six's games first with an orange edge
+  and each of them with his position. Nothing else, and they do not open:
+  an admin sees nothing of a week the sim has played before it is out
+  either. The games are the schedule the NFL sim publishes with the rosters
+  (`schedule` in `nfl-sim/lib/site.js publicRosters`), the playoff rounds as
+  far as they are drawn (`playoffs`), and the six's own games as their
+  schedules show them. Rosters published before 2026-10-30 have no
+  schedule, so until an admin's visit to the League page publishes the live
+  season's again (as it does for anything the rosters are missing), a week
+  to come shows only the six's games.
 
 - **A game** is a card, as many across as fit and one on a phone: both
   teams' marks and cities with the score (away on top, the winner in ink,
@@ -717,13 +734,75 @@ opens on the latest one with games in it.
   the leaders and the injuries.
   Read by `js/box-scores.js`.
 
-**The search** is under the games: one box, results as it is typed, and the
-query rides in the address (`#league/{query}`), so Back from a team or a
-player's page comes back to the same results.
+**The standings** are close under the games: the Teams page's NFL
+standings, a box a division, as they stood after the week on show (a week
+to come has them as they are now). The teams go by city, as the games have
+them, so a long name never pushes the columns out of the box, with each
+team's streak beside its record in green or red (*W6*, *L2*), counted the
+way the division table counts it. A team is a link to its page for that
+season, and the six's teams are orange.
 
-- **Teams** first: every NFL team (by name, city or abbreviation: `DET`)
-  with its record and place in its division, and every school one of the
-  six played for. Each is a link to its page.
+- A letter before the record marks where a team stands on the playoffs,
+  as the season goes (Sam, 2026-10-30): **X** (green) has clinched a spot,
+  **Z** (ink) has clinched its conference's first seed and the Wild Card
+  bye, and **E** (outlined, the row faded) is eliminated. Seven a
+  conference: the four division winners and three wild cards. Worked out on
+  wins alone (`nflPlayoffMarks`), every tie going against the team for X
+  and Z and for it for E, so a team is only marked once it is certain,
+  sometimes a week after the NFL would say so on its tie-breaks.
+  Z: losing out, no other team in the conference can reach its wins.
+  X: losing out, no division rival can reach its wins, or at most two teams
+  that will not win their division can finish level with it or better.
+  E: winning out, a division rival already has more wins than it can
+  reach, and three teams that will not win their division already have
+  more too. Once all 17 games are played, the playoff draw decides: the
+  byes are Z, the rest of the field X, everybody else E.
+
+**The Free Agency Tracker** comes after a gap under the standings, titled
+for the season after the one the search has (*2027 Free Agency Tracker*
+all through 2026). Its head is ESPN's red with their mark in white before
+the title (`icon/espn-white.png`, cut from the logo Sam sent) and a
+**LIVE** badge at the other end, its light blinking (still for anybody
+whose device asks for less motion). Under the title, the **Biggest Buyers**: the six teams
+with the most cap space next season, its cap less every contract that runs
+into it (as their payrolls on the Teams pages have it), each its mark, its
+city and the money in green, straight on the panel with no box, a link
+to its page (the city turns orange under the pointer). Six across, three on a narrow screen, two on a phone.
+
+Then every player on a roster whose contract runs out with the season the
+search has (the latest live one, `contract.through`), the six included,
+as the search's cards. A **Position** pick and a **Sort** pick: Overall
+(the default), Market Value, then the search's sorts. Each card leads
+with **VALUE** over his market value in green, the site's own type and no
+box (*$21M*: what the sim's market would pay him a year next season,
+`market`), then his team's mark and his overall (on a phone the mark sits
+on his picture, as the search has it); another sort's box takes the
+value's place. Under his name are the marks of up to
+three teams likeliest to want him (**INTEREST**, `interest`). A card too
+narrow for them (a phone) runs them on under the boxes. Twelve, then
+*Show more*.
+
+- The interest is the sim's free agency's own want (`six-offers.js
+  interested`, the formula `makeOffers` uses, its luck at its middle): the
+  team's need at his spot, whether he would start, his fit in its scheme,
+  his own team keener, a contender keener for a starter, and a rebuilding
+  team cooler on anybody 29 or older; only teams with the cap room next
+  season for most of his price, and the keenest one if none wants him
+  enough. It says nothing of who will sign him: the sim re-signs or lets
+  go everybody else at the offseason as it always has, and the six still
+  pick from their own offers.
+- Both are worked out again every time the sim publishes the rosters:
+  after every step, and every trade, signing, release or edit, so a team
+  that trades for a quarterback stops wanting the ones about to be free.
+  Rosters published before they carried them are published again on an
+  admin's next visit, as for the schedule.
+
+**The search** comes after another gap: one box with a
+magnifying glass at its left, players only (no teams since 2026-10-30),
+results as it is typed, and the query rides in the address
+(`#league/{query}`), so Back from a player's page comes back to the same
+results.
+
 - **Players**: the cards a team's page draws (`nflLine`), each with his
   team's mark beside his overall, opening the same pop-up. They are the
   NFL sim's, from the rosters the Teams pages open on (the latest live NFL
@@ -737,10 +816,9 @@ player's page comes back to the same results.
   ties go to rostered players before free agents before the retired, then
   the higher overall.
 - **Nothing typed** (Sam, 2026-10-27): every player best first (rostered
-  and free agents together, the retired left out), then every team, the NFL
-  by record and then the six's schools, as many across as fit.
+  and free agents together, the retired left out).
 - **Position and sort**, two drop-downs under the box, for the players with
-  or without a query. A position narrows them to it and hides the teams. The
+  or without a query. A position narrows them to it. The
   sort is *Overall* (as typed: the best match first), *Youngest*, *Oldest*,
   *Draft* (the newest class first, in pick order, undrafted last), or any
   rating the players have, best first, A to Z under *Ratings*: one per name
