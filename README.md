@@ -687,8 +687,13 @@ opens on the latest one with games in it.
   TD), Kicking (FG, XP, PTS) and Punting (NO, YDS, AVG). The two teams sit
   side by side; on a phone a switch shows one at a time and names are
   shortened (M. Penix). The six's rows are orange. A name opens his
-  pop-up, the search's, by his ESPN id, which of the six he is, or his name
-  and position; a team's name opens its page for that season.
+  pop-up, the search's, by his ESPN id, which of the six he is, his name
+  and position, or his name alone; a team's name opens its page for that
+  season. The headshots are found the same way: lines from before
+  2026-10-27 carry no ESPN id, so their faces come from the live season's
+  rosters (free agents and the retired too). The card stays dark under the
+  pointer once it is open, and only lightens on hover where there is a
+  mouse.
 - **Where the games come from**: the NFL sim's box scores, which the NFL Sim
   tab writes to Supabase `sim_box_scores` (one row a week,
   `nfl-sim/lib/site.js boxRows`) after every step and every time the tab
@@ -698,7 +703,9 @@ opens on the latest one with games in it.
   box score for (2023's Weeks 1-9, taken in from the site) shows the
   season files' scores (`EGE.nflResults`) with the six's lines from their
   own games, and does not open. Games played before 2026-10-21 have no
-  player lines, so they open to the scoring, the leaders and the injuries.
+  player lines, so their cards show the leaders' names and yards (*182
+  pass yds*) with faces from the rosters, and they open to the scoring,
+  the leaders and the injuries.
   Read by `js/box-scores.js`.
 
 **The search** is under the games: one box, results as it is typed, and the

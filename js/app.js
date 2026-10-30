@@ -4855,12 +4855,15 @@
     return bits.join(' · ');
   }
 
-  /* Whoever a box score's line is, for his pop-up: in the live season's
-     rosters by his ESPN id or which of the six he is, or else by his name
-     and position where nobody else has them. */
+  /* Whoever a box score's line is, in the live season's rosters (free
+     agents and the retired too): by his ESPN id or which of the six he
+     is, or else by his name and position where nobody else has them, or
+     his name alone. A box score from before the sim kept ids (2023 to
+     2025) has only the name and position on a line, and a game with no
+     box score only the leaders' names. */
   var boxPeopleIndex = null;
 
-  function boxPerson(line) {
+  function boxHit(line) {
     var live = searchSeason();
     var all = live ? EGE.nflRosters.get(live) : null;
     if (!all) { return null; }
@@ -4870,20 +4873,35 @@
         if (!hit.sim) { return; }
         if (hit.sim.espn) { map['espn:' + hit.sim.espn] = hit; }
         if (hit.sim.ege) { map['ege:' + hit.sim.ege] = hit; }
-        var key = hit.sim.name + '|' + hit.sim.pos;
-        map[key] = map[key] ? 'many' : hit;
+        [hit.sim.name + '|' + hit.sim.pos, 'name:' + hit.sim.name].forEach(function (key) {
+          map[key] = map[key] ? 'many' : hit;
+        });
       });
       boxPeopleIndex = { from: all, map: map };
     }
     var people = boxPeopleIndex.map;
     var hit = (line.espn && people['espn:' + line.espn]) || (line.ege && people['ege:' + line.ege]) ||
-      people[line.name + '|' + line.pos];
-    return hit && hit !== 'many' ? nflHitRow(hit, live) : null;
+      people[line.name + '|' + line.pos] || people['name:' + line.name];
+    return hit && hit !== 'many' ? hit : null;
   }
 
+  /* For his pop-up. */
+  function boxPerson(line) {
+    var hit = boxHit(line);
+    return hit ? nflHitRow(hit, searchSeason()) : null;
+  }
+
+  /* One of the six's own headshot, or ESPN's: by the id on his line, or
+     for a line without one, the rosters' id for him. */
   function boxFace(line, player) {
+    var espn = line.espn;
+    if (!player && !espn) {
+      var hit = boxHit(line);
+      player = hit && hit.sim.ege ? EGE.playerBySlug(hit.sim.ege) : null;
+      espn = hit ? hit.sim.espn : null;
+    }
     return rosterFace({ name: player ? player.name : line.name, player: player || null,
-                        photo: Boolean(line.espn), espn: line.espn, nfl: true });
+                        photo: Boolean(espn), espn: espn, nfl: true });
   }
 
   /* His name, a way to his pop-up when the rosters know him, or to his
@@ -4996,21 +5014,36 @@
       if (six) { shown[six.slug] = true; }
       leaders.appendChild(leaderRow(x.line, x.part, six, x.line.team));
     });
+    function sixTeam(x) {
+      var team = EGE.teamFor(x.player, season, week);
+      return x.line.team || (team ? EGE.nfl.keyByName(team.school) : null);
+    }
+    /* A game with no box score has only the leaders' names and yards: his
+       face from the rosters, and one of the six with his own line. */
     (game.leaders ? LEADER_PARTS : []).forEach(function (part, i) {
       var top = /^(.*) (-?\d+)$/.exec(game.leaders[['passing', 'rushing', 'receiving'][i]][0] || '');
       if (!top) { return; }
+      var line = { name: top[1], pos: { pass: 'QB', rush: 'RB', rec: 'WR' }[part[0]] };
+      var hit = boxHit(line);
+      var mine = game.six.filter(function (x) {
+        return x.player.name === top[1] || Boolean(hit && hit.sim.ege === x.player.slug);
+      })[0];
+      if (mine) {
+        shown[mine.player.slug] = true;
+        leaders.appendChild(leaderRow(mine.line, part[0], mine.player, sixTeam(mine)));
+        return;
+      }
       var row = el('div', 'ege-game__leader ege-game__leader--text');
-      row.appendChild(el('span', 'ege-game__tag', part[0]));
+      row.appendChild(boxFace(line, null));
       var text = el('span', 'ege-game__who');
       text.appendChild(el('span', 'ege-game__name', top[1]));
-      text.appendChild(el('span', 'ege-game__line', top[2] + ' yds'));
+      text.appendChild(el('span', 'ege-game__line', top[2] + ' ' + part[0] + ' yds'));
       row.appendChild(text);
       leaders.appendChild(row);
     });
     game.six.forEach(function (x) {
       if (shown[x.player.slug]) { return; }
-      var team = EGE.teamFor(x.player, season, week);
-      leaders.appendChild(leaderRow(x.line, null, x.player, x.line.team || (team ? EGE.nfl.keyByName(team.school) : null)));
+      leaders.appendChild(leaderRow(x.line, null, x.player, sixTeam(x)));
     });
     if (leaders.firstChild) { card.appendChild(leaders); }
 

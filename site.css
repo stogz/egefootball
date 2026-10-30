@@ -4358,7 +4358,12 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 }
 .ege-game.is-six { box-shadow: 5px 5px 0 var(--fb-accent); }
 .ege-game.is-opener { cursor: pointer; }
-.ege-game.is-opener:hover { background: var(--fb-tint-wash); }
+/* Lighter under the pointer, but never once it is open: its words are
+   cream then. Only where there is a pointer, or a phone keeps a tapped
+   card hovered. */
+@media (hover: hover) {
+  .ege-game.is-opener:not(.is-open):hover { background: var(--fb-tint-wash); }
+}
 .ege-game.is-open { background: var(--fb-ink); color: var(--fb-cream); }
 .ege-game:focus-visible { outline: var(--fb-border) solid var(--fb-accent); outline-offset: 2px; }
 .ege-game__score { display: grid; gap: 6px; padding: 12px 14px 10px; }
@@ -4388,7 +4393,6 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-game__name { font-size: .8125rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ege-game__line { font-size: var(--fb-small); color: var(--fb-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ege-game.is-open .ege-game__line { color: rgba(245, 234, 216, .72); }
-.ege-game__tag { font-size: var(--fb-label); font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--fb-accent-deep); }
 
 /* The box score: the whole row under its game. */
 .ege-boxscore { grid-column: 1 / -1; padding: 18px; display: grid; gap: 22px; }
