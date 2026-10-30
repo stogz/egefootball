@@ -4692,18 +4692,22 @@
 
   /* --- the upcoming free agents ----------------------------------------
 
-     Between the standings and the search (Sam, 2026-10-30): everybody on
-     a roster whose contract runs out this season, so who will not be under
-     one next season, best first, a page at a time behind Show more. Each
-     is his card, his team's mark beside his overall, with what the market
-     would pay him a year in the box before it and the teams likeliest to
-     want him under his name (`market` and `interest`, which the sim
-     publishes with the rosters: nfl-sim/lib/six-offers.js interested). A
-     position and a sort as the search has, and the market value to sort
-     by too. Rosters published before they carried either show the players
-     without them. */
+     Between the standings and the search (Sam, 2026-10-30), the next
+     season's Free Agency Tracker: the teams with the most cap space then
+     under its title, and everybody on a roster whose contract runs out
+     this season, so who will not be under one next season, best first, a
+     page at a time behind Show more. Each is his card, his team's mark
+     beside his overall, with what the market would pay him a year in
+     green before it and the teams likeliest to want him under his name
+     (`market` and `interest`, which the sim publishes with the rosters:
+     nfl-sim/lib/six-offers.js interested). A position and a sort as the
+     search has, and the market value to sort by too. Rosters published
+     before they carried either show the players without them. */
 
   var faPanel = document.getElementById('leagueFreeAgents');
+  var faTitle = document.getElementById('faTitle');
+  var faBuyersBox = document.getElementById('faBuyers');
+  var faBuyerList = document.getElementById('faBuyerList');
   var faList = document.getElementById('faList');
   var faMore = document.getElementById('faMore');
   var faPosPick = document.getElementById('faPos');
@@ -4716,11 +4720,15 @@
 
   function faMarket(hit) { return typeof hit.sim.market === 'number' ? hit.sim.market : null; }
 
+  /* His market value in green where a sort's box goes, no box round it
+     (Sam, 2026-10-30). */
   function marketBox(hit) {
     var value = faMarket(hit);
     if (value === null) { return null; }
     var text = '$' + (value >= 10 ? Math.round(value) : value.toFixed(1)) + 'M';
-    return sortBox('VALUE', text, 'Market value: about $' + value.toFixed(1) + 'M a year', true);
+    var box = el('span', 'ege-faval', text);
+    box.title = 'Market value: about $' + value.toFixed(1) + 'M a year';
+    return box;
   }
 
   var FA_MARKET_SORT = { key: 'market', label: 'Market Value', most: true, value: faMarket, box: marketBox };
@@ -4739,6 +4747,41 @@
     return line;
   }
 
+  /* The biggest buyers: the teams with the most cap space next season,
+     its cap less every contract that runs into it, as their payrolls on
+     the Teams pages have it. */
+  var BUYERS = 6;
+
+  function faBuyers(all) {
+    var next = all.season + 1;
+    var cap = all.caps ? all.caps[next] : null;
+    if (!cap) { return []; }
+    return Object.keys(all.teams).filter(function (key) { return EGE.nfl.teams[key]; }).map(function (key) {
+      var spent = all.teams[key].reduce(function (sum, p) { return sum + payIn(p, next); }, 0);
+      return { key: key, room: Math.round((cap - spent) * 10) / 10 };
+    }).sort(function (a, b) { return b.room - a.room || (a.key < b.key ? -1 : 1); }).slice(0, BUYERS);
+  }
+
+  function drawBuyers(all) {
+    var buyers = faBuyers(all);
+    faBuyersBox.hidden = !buyers.length;
+    faBuyerList.innerHTML = '';
+    buyers.forEach(function (b) {
+      var item = el('li');
+      var link = el('a', 'ege-buyer');
+      link.href = '#teams/' + EGE.nfl.slug(b.key);
+      link.title = EGE.nfl.teams[b.key].name + ': ' + moneyText(b.room) + ' of cap space in ' + (all.season + 1);
+      link.addEventListener('click', function () { teamsPicked = all.season; });
+      link.appendChild(leagueLogo(b.key, 32));
+      var text = el('span', 'ege-buyer__text');
+      text.appendChild(el('span', 'ege-buyer__name', EGE.nfl.city(b.key)));
+      text.appendChild(el('span', 'ege-buyer__room', moneyText(b.room)));
+      link.appendChild(text);
+      item.appendChild(link);
+      faBuyerList.appendChild(item);
+    });
+  }
+
   function renderFreeAgents() {
     var season = searchSeason();
     var all = season ? EGE.nflRosters.get(season) : null;
@@ -4751,6 +4794,8 @@
     });
     faPanel.hidden = !pool.length;
     if (!pool.length) { return; }
+    faTitle.textContent = (all.season + 1) + ' Free Agency Tracker';
+    drawBuyers(all);
     var sorts = searchSorts(faPos);
     sorts = sorts.slice(0, 1).concat([FA_MARKET_SORT], sorts.slice(1));
     faSort = drawSortPick(faSortPick, sorts, faSort);

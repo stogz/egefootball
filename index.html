@@ -267,9 +267,13 @@
       <div class="ege-league__standings" id="leagueStandings" hidden></div>
       <section class="fb-panel ege-league__fa" id="leagueFreeAgents" hidden>
         <div class="fb-panel__head">
-          <h3>Upcoming Free Agents</h3>
+          <h3 id="faTitle">Free Agency Tracker</h3>
         </div>
         <div class="fb-panel__body">
+          <div class="ege-league__buyers" id="faBuyers" hidden>
+            <span class="ege-league__buyerslabel">Biggest Buyers</span>
+            <ol class="ege-league__buyerlist" id="faBuyerList"></ol>
+          </div>
           <div class="ege-search__sorts ege-league__fasorts">
             <select class="fb-select ege-filterselect" id="faPos" aria-label="Position"></select>
             <select class="fb-select ege-filterselect" id="faSort" aria-label="Sort"></select>
