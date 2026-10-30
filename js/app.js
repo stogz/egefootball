@@ -1961,8 +1961,9 @@
      every player's fit (2026-10-21), or its picks (2026-10-22), show none
      of it to anybody; nor, for the live season, the free agents and the
      retired the search finds (2026-10-26), the playoff draws the NFL
-     brackets are drawn from (2026-10-30), or the schedule the League's
-     weeks to come are drawn from (2026-10-30); and the players' season lines
+     brackets are drawn from (2026-10-30), the schedule the League's
+     weeks to come are drawn from (2026-10-30), or the upcoming free
+     agents' market value and suitors (2026-10-30); and the players' season lines
      (2026-10-26) count only the weeks out when the rosters went out, so a
      week published since, from the Weeks tab say, is missing from them.
      An admin's visit, in client viewer mode too, has them published again
@@ -1980,9 +1981,17 @@
     return !(all.linesThrough >= last);
   }
 
+  /* Somebody's contract always runs out, so rosters with nobody priced
+     went out before they carried it. */
+  function priced(all) {
+    return Object.keys(all.teams || {}).some(function (key) {
+      return (all.teams[key] || []).some(function (row) { return row.market !== undefined; });
+    });
+  }
+
   function catchUp(all, season, redraw) {
     var behind = !(all.systems && all.picks) ||
-      (season === EGE.currentSeason && !(all.freeAgents && all.playoffs && all.schedule !== undefined)) ||
+      (season === EGE.currentSeason && !(all.freeAgents && all.playoffs && all.schedule !== undefined && priced(all))) ||
       linesBehind(all, season);
     if (caughtUp || !behind || !all.savedAt || !EGE.nflSimAdmin || !EGE.wallet.realAdmin()) { return; }
     caughtUp = true;

@@ -779,6 +779,11 @@ runs them on under the boxes. Twelve, then *Show more*.
   enough. It says nothing of who will sign him: the sim re-signs or lets
   go everybody else at the offseason as it always has, and the six still
   pick from their own offers.
+- Both are worked out again every time the sim publishes the rosters:
+  after every step, and every trade, signing, release or edit, so a team
+  that trades for a quarterback stops wanting the ones about to be free.
+  Rosters published before they carried them are published again on an
+  admin's next visit, as for the schedule.
 
 **The search** comes after another gap: one box with a
 magnifying glass at its left, players only (no teams since 2026-10-30),
