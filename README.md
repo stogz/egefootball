@@ -452,7 +452,11 @@ Under the bar:
   the name **the archetype with his seasons in the league** in the class
   chip (**R** for a rookie), then **height · weight**, with **no number**.
   The six's boxes use their own overall, headshot and size from their
-  pages. **Every box opens a pop-up**, in the overlay the cards and
+  pages. Everybody else's headshot is ESPN's NFL one, except the 2027
+  class's: drafted in the sim before ESPN has an NFL picture of them, they
+  are marked `collegePhoto` and keep their ESPN college headshot in the NFL
+  too, on the team pages, the pop-up, the search and the box scores (Sam,
+  2026-10-30; `EGE.espnHeadshot` in `data/games.js`). **Every box opens a pop-up**, in the overlay the cards and
   trophies use, with no title or close button over it (Sam, 2026-10-27): a band in the team's colour with the headshot, the team's
   mark straight on the colour behind him and set off to his right so it
   shows past his shoulder, the name, and his overall box at the right end

@@ -454,6 +454,7 @@ function boxRows(league) {
           const p = l.id ? league.byId.get(l.id) : null;
           const line = { name: l.name, pos: l.pos, team: l.team };
           if (p && p.espn) { line.espn = String(p.espn); }
+          if (p && p.collegePhoto) { line.collegePhoto = true; }
           if (l.ege || (p && p.ege)) { line.ege = l.ege || p.ege; }
           Object.keys(l).forEach((k) => { if (typeof l[k] === 'number') { line[k] = l[k]; } });
           return line;
@@ -613,6 +614,7 @@ function publicRosters(league) {
           contract: p.contract ? { apy: p.contract.apy, through: p.contract.through } : null
         };
         if (p.espn) { row.espn = String(p.espn); }
+        if (p.collegePhoto) { row.collegePhoto = true; }
         if (p.ege) { row.ege = p.ege; }
         const fit = playerFit(league, p, t.key);
         if (fit) { row.fit = fit.stars; }
@@ -675,6 +677,7 @@ function freeAgents(league, site, lines) {
         skills: p.skills || null
       };
       if (p.espn) { row.espn = String(p.espn); }
+      if (p.collegePhoto) { row.collegePhoto = true; }
       if (p.ege) { row.ege = p.ege; }
       if (lines && lines.byId.has(p.id)) { row.seasons = lines.byId.get(p.id); }
       return row;
@@ -706,6 +709,7 @@ function retiredPlayers(league, site, lines) {
         draft: p.draft && p.draft.pick ? { year: p.draft.year, round: p.draft.round, pick: p.draft.pick, team: p.draft.team || null } : null
       };
       if (p.espn) { row.espn = String(p.espn); }
+      if (p.collegePhoto) { row.collegePhoto = true; }
       if (p.ege) { row.ege = p.ege; }
       if (lines && lines.byId.has(p.id)) { row.seasons = lines.byId.get(p.id); }
       return row;

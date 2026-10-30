@@ -4,7 +4,9 @@
    season stats, Next Gen Stats, Pro Football Reference's advanced stats,
    contracts, the draft and the combine, and the 2023 play-by-play the team
    schemes are read off. All of it is CSV on GitHub, which is reachable from
-   the cloud when ESPN and the stats sites are not.
+   the cloud when ESPN and the stats sites are not. So are cfbfastR's college
+   rosters (ESPN's own athlete ids), which the 2027 class is read off
+   (build/class-2027.js).
 
    Files are kept on disk after the first download, in the system's temp
    folder (or NFL_SIM_CACHE), never in the repository; delete the folder to
@@ -22,10 +24,12 @@ const { execFileSync } = require('child_process');
 const CACHE = process.env.NFL_SIM_CACHE || path.join(os.tmpdir(), 'ege-nflverse-cache');
 const RELEASES = 'https://github.com/nflverse/nflverse-data/releases/download/';
 const NFLDATA = 'https://raw.githubusercontent.com/nflverse/nfldata/master/data/';
+const CFBDATA = 'https://raw.githubusercontent.com/sportsdataverse/cfbfastR-data/main/rosters/csv/';
 
 /* Where each file lives. Release assets are `tag/file`. */
 function urlFor(name) {
   if (name === 'games.csv') { return NFLDATA + name; }
+  if (/^cfb_rosters_/.test(name)) { return CFBDATA + name; }
   const tags = [
     [/^roster_weekly_/, 'weekly_rosters'], [/^roster_/, 'rosters'],
     [/^depth_charts_/, 'depth_charts'], [/^snap_counts_/, 'snap_counts'],

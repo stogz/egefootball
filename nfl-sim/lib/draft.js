@@ -8,7 +8,10 @@
    The classes are the real 2024, 2025 and 2026 drafts (data/prospects.json),
    each prospect graded by where he really went and given a ceiling from how
    good he really became; Paxon, Cooper and Isaac are in the 2024 class,
-   rated from the website. After 2026 the sim makes its own classes.
+   rated from the website. The 2027 class is the real college players the
+   fall 2026 mock drafts and big boards name, graded by their consensus
+   (build/class-2027.js), with ESPN's college headshots. After 2027 the sim
+   makes its own classes.
 
    Each team's board is the prospect's grade, his position's worth, how
    badly the team needs the position and how well he fits its schemes, with
@@ -102,6 +105,7 @@ function toPlayer(pr, season, rng) {
   return {
     id: pr.id, name: pr.name, pos: pr.pos, team: null, born: pr.born, age,
     height: pr.height, weight: pr.weight, college: pr.college, entry: season, espn: pr.espn || undefined,
+    collegePhoto: pr.collegePhoto || undefined,
     ovr, pot: Math.round(clamp(pot, ovr, 97)),
     skills, archetype: archetypeOf(pr.pos, skills, ovr),
     longevity: Math.round(clamp(50 + rng.gauss() * 12, 15, 90)),

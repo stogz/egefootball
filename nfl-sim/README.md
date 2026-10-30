@@ -489,8 +489,22 @@ In two parts, so Sam can look at the pre-draft trades between them.
 2. **The draft.** Seven rounds in reverse order of the standings (playoff
    teams by how far they went), traded picks going to whoever owns them. The
    classes are the real 2024, 2025 and 2026 drafts — Caleb Williams, Jayden
-   Daniels, Malik Nabers, Brock Bowers… — graded by where they really went;
-   after 2026 the sim makes its own. Every prospect's ceiling is drawn for his
+   Daniels, Malik Nabers, Brock Bowers… — graded by where they really went.
+   **The 2027 class** (Sam, 2026-10-30: "based on a few mock drafts") is the
+   real college players of fall 2026 — Jeremiah Smith, Leonard Moore, Colin
+   Simmons, Arch Manning… — 338 of them, graded by the consensus of four
+   October first-round mocks (CBS, FanSided, FOX, PFF) and five big boards,
+   one of them 321 deep (`build/class-2027.js`, its lists in
+   `build/class-2027-sources.json`): his average spot on the nine lists, a
+   list that leaves him out counting him just past its end (or where the
+   deep board has him, if further) and a mock that leaves him out counting
+   him where the boards have him. Who he is — ESPN id, height, weight, class
+   — comes from cfbfastR's 2026 college rosters; ages go by class, as the
+   rosters have no birthdays. ESPN has no NFL picture of a player drafted
+   before the real 2027 draft, so the class is marked `collegePhoto` and the
+   website shows each one's college headshot, in the NFL too. Where they go
+   is still the sim's draft, by its order and every team's needs. After 2027
+   the sim makes its own classes. Every prospect's ceiling is drawn for his
    draft slot from what the players taken there in 2019–2022 became (a top-ten
    pick is an 88 on average, a seventh-rounder a 71, about 6.5 either way),
    leaning on how good he really became for the 2024 and 2025 classes. Teams
@@ -875,6 +889,8 @@ nfl-sim/
     rng.js               the seeded dice
   build/                 builds data/ from nflverse
     build-league.js      the 2023 league, prospects, schedules
+    class-2027.js        the 2027 class, from the mock drafts and big boards in
+                         class-2027-sources.json and the 2026 college rosters
     benchmarks.js        real 2023 league averages and games
     evidence.js          each player's seasons
     ratings.js           season scores and the overall curve
@@ -886,7 +902,7 @@ nfl-sim/
     bundle.js            js/nfl-sim.js, the sim for the admin page
   data/                  what the sim starts from (committed)
     league-2023.json     teams and players, Week 1 of 2023
-    prospects.json       the 2024-2026 draft classes
+    prospects.json       the 2024-2026 draft classes and the 2027 class
     draft-orders.json    draft orders set by hand (2024's, from the mock draft doc) and the
                          real pick trades made before the 2023 kickoff (2024, 2025)
     schedules.json       the real 2023-2026 regular seasons, with dates and Eastern kickoffs

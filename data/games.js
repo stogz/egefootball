@@ -1058,11 +1058,19 @@ EGE.rosterFor = function (teamKey, season) {
   return rooms;
 };
 
+/* ESPN's headshot for one of its athlete ids, at this size: his NFL one,
+   or his college one. A player in the NFL sim drafted before ESPN has an
+   NFL picture of him (the 2027 class, marked `collegePhoto`) keeps his
+   college headshot in the NFL too (Sam, 2026-10-30). */
+EGE.espnHeadshot = function (espn, college, width, height) {
+  return 'https://a.espncdn.com/combiner/i?img=/i/headshots/' + (college ? 'college-football' : 'nfl') +
+    '/players/full/' + espn + '.png&w=' + width + '&h=' + height;
+};
+
 /* An ESPN headshot for a roster player, or null where ESPN has none. */
 EGE.rosterPhoto = function (row) {
   if (!row || !row.photo || !row.espn) { return null; }
-  return 'https://a.espncdn.com/combiner/i?img=/i/headshots/' +
-    (row.nfl ? 'nfl' : 'college-football') + '/players/full/' + row.espn + '.png&w=96&h=70';
+  return EGE.espnHeadshot(row.espn, !row.nfl || row.collegePhoto, 96, 70);
 };
 
 /* An NFL team's quarterbacks as the NFL sim has them that season (the
@@ -1109,7 +1117,7 @@ EGE.quarterbackPhoto = function (player, season, name) {
   var sim = key ? EGE.simQuarterbacks(key, season || EGE.currentSeason) : null;
   var simRow = sim ? sim.filter(function (one) { return one.name === name && one.espn; })[0] : null;
   if (simRow) {
-    return 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/' + simRow.espn + '.png&w=96&h=70';
+    return EGE.espnHeadshot(simRow.espn, simRow.collegePhoto, 96, 70);
   }
   var rooms = key ? EGE.rosterFor(key, season) : null;
   var row = rooms ? rooms.QB.filter(function (one) { return one.name === name; })[0] : null;
