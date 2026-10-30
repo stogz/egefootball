@@ -395,7 +395,7 @@ EGE.exports = (function () {
       lines.push('');
 
       if (!games.length) {
-        lines.push('    /* ' + player.name + ' — no school yet, so no fixtures. */');
+        lines.push('    /* ' + player.name + (team && team.tier === 'nfl' ? ' — no fixtures yet. */' : ' — no school yet, so no fixtures. */'));
         lines.push('    ' + quote(player.slug) + ': [],');
         return;
       }

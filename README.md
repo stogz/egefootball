@@ -70,7 +70,7 @@ without it.
 
 ## Timeline
 
-Nine seasons, one per simulated year. This ladder is official — schedule and stat
+Ten seasons, one per simulated year. This ladder is official — schedule and stat
 data is authored per season below.
 
 | Season | Level | Class |
@@ -84,6 +84,7 @@ data is authored per season below.
 | 2024 | NFL | Second year (Sam, Andrew, Jaykeb), rookie year (Paxon, Cooper, Isaac) |
 | 2025 | NFL | Third year (Sam, Andrew, Jaykeb), second year (Paxon, Cooper, Isaac) |
 | 2026 | NFL | Fourth year (Sam, Andrew, Jaykeb), third year (Paxon, Cooper, Isaac) |
+| 2027 | NFL | Fifth year (Sam, Andrew, Jaykeb), fourth year (Paxon, Cooper, Isaac) |
 
 The simulation opens on the **2018 junior-year high school season** — that is
 what gets built first. High school graduation is spring 2020, after the 2019
@@ -2705,6 +2706,13 @@ Steelers' week 7 game with the Saints and the Texans' week 6 game with
 the Jaguars are abroad, so they are `neutral`. A move the sim makes
 between seasons lands in the file's `trades` from week 1 and swaps in the
 new team's games, the same as one made in season.
+
+**2027** is in as a blank file: `stats/2027.js` has each of the six with
+no games at all. There is no real 2027 schedule, so the sim makes its own
+from how the 2026 divisions finish, and where the six play depends on
+free agency, so neither is known yet. With the file in, a trade or a
+signing the sim makes after the 2026 season has a 2027 season to land
+in. The schedule has to be written in before the sim plays a 2027 game.
 
 ### Conference standings
 
