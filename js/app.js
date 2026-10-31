@@ -6132,8 +6132,8 @@
   var tickerKey = '';
 
   function tickerItem(tag, parts) {
-    var item = el('span', 'ege-ticker__item');
-    item.appendChild(el('span', 'ege-ticker__tag', tag));
+    var item = el('span', 'ege-newsbar__item');
+    item.appendChild(el('span', 'ege-newsbar__tag', tag));
     parts.forEach(function (part) {
       item.appendChild(typeof part === 'string' ? el('span', null, part) : part);
     });
@@ -6141,7 +6141,7 @@
   }
 
   function tickerTeam(key, text) {
-    var team = el('span', 'ege-ticker__team');
+    var team = el('span', 'ege-newsbar__team');
     team.appendChild(leagueLogo(key, 20));
     team.appendChild(el('span', null, text));
     return team;
@@ -6152,7 +6152,7 @@
   function tickerWho(l) {
     var player = l.ege ? EGE.playerBySlug(l.ege) : null;
     var who = tickerTeam(l.team, player ? player.name : l.name);
-    if (player) { who.lastChild.className = 'ege-ticker__six'; }
+    if (player) { who.lastChild.className = 'ege-newsbar__six'; }
     return who;
   }
 
@@ -6213,7 +6213,7 @@
     games.forEach(function (game) {
       game.six.forEach(function (x) {
         var text = boxLineText(x.line || {});
-        if (text) { items.push(tickerItem(weekName(at.week), [el('span', 'ege-ticker__six', x.player.name), text])); }
+        if (text) { items.push(tickerItem(weekName(at.week), [el('span', 'ege-newsbar__six', x.player.name), text])); }
       });
     });
     if (regular) {
@@ -6268,7 +6268,7 @@
     tickerKey = key;
     tickerTrack.innerHTML = '';
     if (!items.length) { return; }
-    var run = el('div', 'ege-ticker__run');
+    var run = el('div', 'ege-newsbar__run');
     items.forEach(function (item) { run.appendChild(item); });
     tickerTrack.appendChild(run);
     var again = run.cloneNode(true);
@@ -6277,7 +6277,7 @@
     tickerTrack.appendChild(again);
     /* As slow on a phone as on a wide screen: the time is the run's width. */
     window.requestAnimationFrame(function () {
-      tickerTrack.style.setProperty('--ticker-time', Math.max(20, run.offsetWidth / TICKER_SPEED) + 's');
+      tickerTrack.style.setProperty('--newsbar-time', Math.max(20, run.offsetWidth / TICKER_SPEED) + 's');
     });
   }
 

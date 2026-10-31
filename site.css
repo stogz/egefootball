@@ -4544,9 +4544,9 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-injreport__out:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: 1px; }
 /* The ticker along the bottom of the screen (Sam, 2026-10-31): orange
    under an ink rule, the run going right to left at the speed the page
-   sets (--ticker-time) and stopping under the pointer; each item a short
+   sets (--newsbar-time) and stopping under the pointer; each item a short
    ink tag and its words. The page leaves room for it at its foot. */
-.ege-ticker {
+.ege-newsbar {
   position: fixed;
   right: 0;
   bottom: 0;
@@ -4558,11 +4558,11 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
   background: var(--fb-accent);
   color: var(--fb-ink);
 }
-.ege-ticker__track { display: flex; width: max-content; animation: ege-ticker var(--ticker-time, 90s) linear infinite; }
-@media (hover: hover) { .ege-ticker:hover .ege-ticker__track { animation-play-state: paused; } }
-@keyframes ege-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-.ege-ticker__run { display: flex; flex: none; align-items: center; min-width: 100vw; }
-.ege-ticker__item {
+.ege-newsbar__track { display: flex; width: max-content; animation: ege-newsbar var(--newsbar-time, 90s) linear infinite; }
+@media (hover: hover) { .ege-newsbar:hover .ege-newsbar__track { animation-play-state: paused; } }
+@keyframes ege-newsbar { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.ege-newsbar__run { display: flex; flex: none; align-items: center; min-width: 100vw; }
+.ege-newsbar__item {
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -4574,7 +4574,7 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
   font-weight: 800;
   white-space: nowrap;
 }
-.ege-ticker__tag {
+.ege-newsbar__tag {
   padding: 3px 6px;
   background: var(--fb-ink);
   font-size: .625rem;
@@ -4582,16 +4582,16 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
   text-transform: uppercase;
   color: var(--fb-cream);
 }
-.ege-ticker__team { display: inline-flex; align-items: center; gap: 6px; }
-.ege-ticker .ege-game__logo { flex: none; width: 20px; height: 20px; }
+.ege-newsbar__team { display: inline-flex; align-items: center; gap: 6px; }
+.ege-newsbar .ege-game__logo { flex: none; width: 20px; height: 20px; }
 /* One of the six underlined, as the Discord posts have them. */
-.ege-ticker__six { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
-.ege-ticker__team + .ege-ticker__team { margin-left: 8px; }
-body:has(#view-league:not([hidden]) .ege-ticker:not([hidden])) { padding-bottom: calc(43px + env(safe-area-inset-bottom)); }
+.ege-newsbar__six { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.ege-newsbar__team + .ege-newsbar__team { margin-left: 8px; }
+body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom: calc(43px + env(safe-area-inset-bottom)); }
 @media (prefers-reduced-motion: reduce) {
-  .ege-ticker { overflow-x: auto; }
-  .ege-ticker__track { animation: none; }
-  .ege-ticker__run.is-again { display: none; }
+  .ege-newsbar { overflow-x: auto; }
+  .ege-newsbar__track { animation: none; }
+  .ege-newsbar__run.is-again { display: none; }
 }
 /* The Draft History (Sam, 2026-10-31): the week bar's switcher over it on
    the grass, [ ‹ ] [ year ] [ round ] [ › ], and under it a stat sheet,
