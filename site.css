@@ -8497,11 +8497,12 @@ html.ege-noscroll body { overflow: hidden; }
 /* The island: five icons on a capsule of liquid glass floating over the
    foot of the screen (Sam, 2026-10-31, after the example he sent,
    samasante/liquid-glass; it was solid ink before). Not a light or a dark
-   pane: clear glass, the page behind it only lightly blurred and a little
-   richer in colour, a bright rim, and -- in Chrome and Edge -- the page
-   bent at the edge like a lens, with a fringe of colour, by js/glass.js.
-   Safari and Firefox cannot bend what is behind an element, so there the
-   rim's highlight is drawn here instead. The picked page sits on an orange
+   pane: clear glass a shade darker than the page, only lightly blurred and
+   a little richer in colour, a bright rim, and -- in Chrome and Edge --
+   the page bent at the edge like a lens, with a fringe of colour, by
+   js/glass.js. Safari and Firefox (Zen too) cannot bend what is behind an
+   element, so there the rim's highlight and its fringe of colour are
+   drawn here instead. The picked page sits on an orange
    drop that glides from icon to icon and stretches as it goes
    (js/cards-view.js); the inputs stay real radios (hidden, but keyboard
    and screen reader reachable).
@@ -8511,10 +8512,9 @@ html.ege-noscroll body { overflow: hidden; }
    the fade painted the mask again, and iPhone Safari would now and then
    paint it with no picture at all, so icons vanished while you clicked
    around. Now each icon is two plain pictures (index.html) and only their
-   opacity changes: Sam's glyph in the site's orange with a soft white
-   halo for the pages not showing (Sam, 2026-10-31), which reads on the
-   cream pages and on a dark card behind the clear glass alike, and his
-   white glyph for the one on the orange drop. Nothing else in the island is
+   opacity changes: Sam's glyph in the site's orange for the pages not
+   showing, with no halo (Sam, 2026-10-31), and his white glyph for the one
+   on the orange drop. Nothing else in the island is
    repainted on a tap, the slider keeps a layer of its own rather than
    getting one at every glide, a tap's hover does not stick on a touch
    screen, and two quick taps do not zoom the page. */
@@ -8541,7 +8541,7 @@ html.ege-noscroll body { overflow: hidden; }
   grid-template-columns: repeat(5, minmax(0, 1fr));
   width: min(100%, 400px);
   padding: var(--gap);
-  background: rgba(255, 255, 255, .04);
+  background: rgba(0, 0, 0, .05);   /* a shade darker than clear (Sam) */
   /* Barely frosted, so the middle is clear (Sam, 2026-10-31). js/glass.js
      adds the bend to this in Chrome and Edge, with the same blur. */
   -webkit-backdrop-filter: blur(1px) saturate(1.15);
@@ -8560,9 +8560,11 @@ html.ege-noscroll body { overflow: hidden; }
   user-select: none;
   -webkit-touch-callout: none;
 }
-/* Where the page cannot be bent (Safari, Firefox): the highlight the bend
-   would have drawn, a bright edge pooling in the top left and bottom right
-   corners, and a soft glow just inside it. */
+/* Where the page cannot be bent (Safari, Firefox, Zen): what the bend
+   would have drawn. A bright edge pooling in the top left and bottom right
+   corners, and inside it the fringe glass throws where it splits the
+   light: warm along the top and left of the rim, cool along the bottom and
+   right, with a little gold all round (Sam, 2026-10-31). */
 .ege-cardtabs__inner:not(.is-liquid)::before {
   content: "";
   position: absolute;
@@ -8572,7 +8574,10 @@ html.ege-noscroll body { overflow: hidden; }
   box-shadow:
     inset 2px 2px 1.5px -1px rgba(255, 255, 255, .7),
     inset -2px -2px 1.5px -1px rgba(255, 255, 255, .45),
-    inset 0 0 10px rgba(255, 255, 255, .14);
+    inset 5px 3px 5px -2px rgba(255, 50, 110, .5),
+    inset -5px -3px 5px -2px rgba(30, 130, 255, .5),
+    inset 0 0 7px 1px rgba(255, 210, 60, .18),
+    inset 0 0 10px rgba(255, 255, 255, .12);
   pointer-events: none;
 }
 
@@ -8593,8 +8598,7 @@ html.ege-noscroll body { overflow: hidden; }
 }
 .ege-cardtab:has(input:focus-visible) { outline: 2px solid var(--fb-ink); outline-offset: -4px; border-radius: 999px !important; }
 
-/* Sam's glyphs, 26px. The orange one carries its halo in a margin of its
-   own, so it is drawn a little bigger to keep the glyph the same size. */
+/* Sam's glyphs, 26px: orange on the glass, white on the drop. */
 .ege-cardtab__icon {
   position: relative;
   display: block;
@@ -8614,12 +8618,6 @@ html.ege-noscroll body { overflow: hidden; }
   -webkit-user-drag: none;
   will-change: opacity;
   transition: opacity .3s ease;
-}
-.ege-cardtab__img--off {
-  top: calc(-26px * 10 / 128);
-  left: calc(-26px * 10 / 128);
-  width: calc(26px * 148 / 128);
-  height: calc(26px * 148 / 128);
 }
 .ege-cardtab__img--lit { opacity: 0; }
 .ege-cardtab.is-active .ege-cardtab__img--off { opacity: 0; }
