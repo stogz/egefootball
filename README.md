@@ -2281,10 +2281,20 @@ want, and send it. Asking for nothing makes it a gift. Each side has a
 **Sort** button over its cards, and under it a search box (any of a player,
 school, opponent, play, season or rarity, every word matching) with the
 kinds, the player, the season, the rarity (holos last) and the order: rarest
-first, highest score, newest pulls, by year or by game. The button counts
-what is changed, and the bin puts it all back. Every signed-in player
-can see every collection, so you can look through somebody's cards to choose
-from them; signed out, nobody can.
+first, highest score, newest pulls, by year or by game. The order has one
+more on each side: **Cards you can holo** on theirs shows only the cards one
+more copy of would make a holo of yours (you have two of it, or five, and so
+on), and **Cards they can holo** on yours the same for them, rarest first.
+The button counts what is changed, and the bin puts it all back. Every
+signed-in player can see every collection, so you can look through
+somebody's cards to choose from them; signed out, nobody can.
+
+Each side draws a few rows of cards and adds more as it is scrolled, and a
+tap only flips the card tapped in or out, so a big collection does not lag
+the builder. Sending an offer, taking one back or declining one reads the
+trades again and nothing else; only an accepted trade reloads the
+collection. The trades are read with the player's own address on one side
+or the other, so an admin is not sent every trade there is.
 
 Nothing moves until the other player accepts. Then both sides move in one
 transaction, after a check that both of you still have what was put up. A
