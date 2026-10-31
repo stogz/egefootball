@@ -674,7 +674,7 @@ The old `#search` and `#search/{query}` addresses open it. *Around the NFL*
 sits over the title. The page is the week's games, the standings close
 under them, and the search after a gap, with no titles over them (Sam,
 2026-10-30: tried and taken off). Between them, each in its own titled
-panel with a gap after it: Recent Injuries, the Free Agency Tracker, the
+panel with a gap after it: the Injury Report, the Free Agency Tracker, the
 Trade Report and the Draft History (Sam, 2026-10-31). The bar and the
 search box run the width of the page.
 
@@ -765,27 +765,33 @@ the League page: an orange bar under an ink rule, the news going slowly
 right to left (45 pixels a second, so as slow on a phone) and stopping
 under the pointer; for anybody whose device asks for less motion it stands
 still and scrolls by hand. Each item is a short ink tag and its words,
-from the latest week out whatever week the bar has picked: the six's lines
-(*WEEK 11* · their name underlined, as the Discord posts have it), every
-final score, winner first (*FINAL*, *FINAL/OT*), anybody that week put out
-three weeks or more and any of the six put out at all (*INJURY*), then the
-live season's six latest trades (*TRADE*: each team's mark, city and what it
-got). The page leaves room for it at its foot.
+from the latest week out whatever week the bar has picked, and about the
+whole league rather than only the six (Sam, 2026-10-31): the close finals,
+winner first (*FINAL*, *FINAL/OT*: eight points or less, or overtime; every
+playoff game and every game of the six's too), the week's five best
+fantasy scores on the site's own scoring (*FANTASY*), its passing,
+rushing, receiving and sack leaders, the six's lines (*WEEK 11*), who
+clinched a playoff spot or the first seed or was eliminated that week
+(*PLAYOFFS*, the standings' X, Z and E), every run of four or more wins or
+losses (*STREAK*), anybody that week put out three weeks or more and any of
+the six put out at all (*INJURY*), then the live season's four latest
+trades (*TRADE*: each team's mark, city and what it got). One of the six is
+underlined wherever he comes up, as the Discord posts have it. The
+playoffs and streaks are left out once the regular season is over. The
+page leaves room for it at its foot.
 
-**Recent Injuries** comes after a gap under the standings: everybody hurt
-in the week on show and the two weeks out before it that season (a week to
-come: the last three out), the latest week first, then the longest out,
-the six, the better player. Each is the search's card with what he hurt
-over the week, the mark of the team he was playing for, the red OUT box
-with the weeks the box score said he would miss (or SEASON), and his
-overall; on a phone, or two narrow cards across, the mark sits on his
-picture. Twelve, then *Show more*. It is read from the weeks' box scores
-(`injuries` in `sim_box_scores`), so a week shows nobody before it is out,
-an admin's page too, and a week the sim has no box scores for (2023's first
-nine) has nobody. A name is matched to the rosters by his line in that
-game's box score, or by his name (and his team, where two share it).
+**The Injury Report** comes after a gap under the standings: a black box at
+70% under a solid black dotted edge, titled *Injury Report* with a red plus,
+and every team with somebody out as the rosters stand, A to Z, four
+columns across (three, then two on a phone) in small white type. Each team
+is its mark and name, then its players in a roster's order, *LB, Devin Bush
+2 WK (Hamstring)*, the time out and what in red, SEASON where he will not be
+back before it is over; one of the six's name is orange. Each opens the
+player's pop-up. It is the live rosters through the same rule as every
+other injury on the site, so nobody shows who was hurt in a week not out
+yet, an admin's page too, and it is the same whatever week the bar shows.
 
-**The Free Agency Tracker** comes after a gap under Recent Injuries, titled
+**The Free Agency Tracker** comes after a gap under the Injury Report, titled
 for the season after the one the search has (*2027 Free Agency Tracker*
 all through 2026). Its head is ESPN's red with their mark in white before
 the title, which is in the site's own type rather than the display face

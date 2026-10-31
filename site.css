@@ -4486,7 +4486,7 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-teamchip__label { font-size: .5625rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--fb-muted); }
 
 /* The League's other lists (Sam, 2026-10-31), the tracker's gap after
-   each: Recent Injuries under the standings, then after the tracker the
+   each: the Injury Report under the standings, then after the tracker the
    Trade Report and the Draft History. */
 .ege-league__panel { margin-bottom: 64px; }
 
@@ -4516,11 +4516,40 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-nfltrade__get { font-size: .625rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--fb-muted); }
 @media (hover: hover) { .ege-nfltrade__team:hover .ege-nfltrade__city { color: var(--fb-accent); } }
 .ege-nfltrade__team:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: 2px; }
-/* A recent injury's OUT box, as narrow as its overall's beside it where
-   the card is laid out as a sorted one. */
-@media (max-width: 520px), (min-width: 761px) and (max-width: 960px) {
-  .ege-league__injuries .ege-teamchip.is-sorted .ege-injbox { width: 46px; }
+/* The Injury Report (Sam, 2026-10-31): a black box at 70% under a solid
+   black dotted edge, small white type four columns across (two on a
+   phone), each team's mark and name over its players, the time out and
+   what it is in red, and a plus beside the title. */
+.ege-injreport {
+  padding: 16px 18px 18px;
+  border: var(--fb-border) dotted #000;
+  background: rgba(0, 0, 0, .7);
+  color: #fff;
 }
+.ege-injreport__title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 14px;
+  font-family: var(--fb-font-body);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+  color: #fff;
+}
+.ege-injreport__plus { flex: none; fill: #ff4b4b; }
+.ege-injreport__teams { column-count: 4; column-gap: 22px; }
+@media (max-width: 960px) { .ege-injreport__teams { column-count: 3; } }
+@media (max-width: 680px) { .ege-injreport__teams { column-count: 2; column-gap: 16px; } }
+.ege-injreport__team { break-inside: avoid; margin: 0 0 12px; }
+.ege-injreport__head { display: flex; align-items: center; gap: 6px; margin: 0 0 3px; font-size: .75rem; font-weight: 800; }
+.ege-injreport__head .ege-game__logo { flex: none; width: 16px; height: 16px; }
+.ege-injreport__list { margin: 0; padding: 0 0 0 14px; font-size: .6875rem; line-height: 1.45; }
+.ege-injreport__out { cursor: pointer; }
+.ege-injreport__six { color: var(--fb-accent-hover); }
+.ege-injreport__red { font-weight: 800; color: #ff4b4b; }
+@media (hover: hover) { .ege-injreport__out:hover .ege-injreport__name { text-decoration: underline; } }
+.ege-injreport__out:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: 1px; }
 /* The ticker along the bottom of the screen (Sam, 2026-10-31): orange
    under an ink rule, the run going right to left at the speed the page
    sets (--ticker-time) and stopping under the pointer; each item a short
