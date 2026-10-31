@@ -673,8 +673,10 @@ and a page called Search from 2026-10-26), for everybody, signed in or not.
 The old `#search` and `#search/{query}` addresses open it. *Around the NFL*
 sits over the title. The page is the week's games, the standings close
 under them, and the search after a gap, with no titles over them (Sam,
-2026-10-30: tried and taken off). The bar and the search box run the width
-of the page.
+2026-10-30: tried and taken off). Between them, each in its own titled
+panel with a gap after it: Recent Injuries, the Free Agency Tracker, the
+Trade Report and the Draft History (Sam, 2026-10-31). The bar and the
+search box run the width of the page.
 
 **The week's games** come first. A bar picks the week: the
 season, the week (*Week 1* to *Week 18*, then *Wild Card*, *Divisional*,
@@ -758,7 +760,20 @@ season, and the six's teams are orange.
   more too. Once all 17 games are played, the playoff draw decides: the
   byes are Z, the rest of the field X, everybody else E.
 
-**The Free Agency Tracker** comes after a gap under the standings, titled
+**Recent Injuries** comes after a gap under the standings: everybody hurt
+in the week on show and the two weeks out before it that season (a week to
+come: the last three out), the latest week first, then the longest out,
+the six, the better player. Each is the search's card with what he hurt
+over the week, the mark of the team he was playing for, the red OUT box
+with the weeks the box score said he would miss (or SEASON), and his
+overall; on a phone, or two narrow cards across, the mark sits on his
+picture. Twelve, then *Show more*. It is read from the weeks' box scores
+(`injuries` in `sim_box_scores`), so a week shows nobody before it is out,
+an admin's page too, and a week the sim has no box scores for (2023's first
+nine) has nobody. A name is matched to the rosters by his line in that
+game's box score, or by his name (and his team, where two share it).
+
+**The Free Agency Tracker** comes after a gap under Recent Injuries, titled
 for the season after the one the search has (*2027 Free Agency Tracker*
 all through 2026). Its head is ESPN's red with their mark in white before
 the title (`icon/espn-white.png`, cut from the logo Sam sent) and a
@@ -796,6 +811,42 @@ narrow for them (a phone) runs them on under the boxes. Twelve, then
   that trades for a quarterback stops wanting the ones about to be free.
   Rosters published before they carried them are published again on an
   admin's next visit, as for the schedule.
+
+**The Trade Report** comes after a gap under the tracker: every trade Sam
+has approved in the NFL sim (not free-agent moves), the newest first, six
+at a time behind *Show more*, with a **Season** pick (an offseason trade
+is filed under the season it leads into, as the trades bot labels it) and
+a **Team** pick. Each trade is an ink strip with when it went through
+(*2027 Week 5*, *2027 Trade Deadline*, *2028 Offseason*), then each team,
+its mark and city over *RECEIVE* (a link to its page), and what it got,
+side by side (one over the other on a phone):
+
+- a player as his card, at the overall he had when the trade went through;
+- a pick not yet used as a card with its round where a face would be, its
+  year and round (*2028 Round 2*), its number once the draft's order is
+  known (*No. 40*), and the mark of the team whose pick it was;
+- a pick that has been used as the card of the player it became, with the
+  year and round and number under his name, that team's mark and his
+  overall now.
+
+They come with the rosters (`trades`, `site.js tradesOut`). Trades approved
+since 2026-10-31 keep each player's overall and each pick's number as they
+were (`ovrs` and `numbers` in `trades.json`); an older one shows the
+player's overall in that season's kept rosters, and a pick's number only
+while its draft is next. A used pick is found by its number, or, for drafts
+held since 2026-10-31, by whose pick it was (`draft.from`). Rosters
+published before 2026-10-31 have no trades, so the report is hidden until
+an admin's visit publishes them again.
+
+**The Draft History** comes after a gap under the Trade Report: every draft
+held since 2023, a **Draft** pick (the newest first) and a **Round** pick
+(Round 1 first, *All rounds* last), the picks in order, sixteen then *Show
+more*. Each is the player's card with his position and college under his
+name, then a **PICK** box with the pick's number, the mark of the team that
+made it, and his overall now (or RETIRED). The six are orange. It is every
+player in the live rosters, free agents and the retired included, with a
+`draft` from 2023 on, so a 2023 pick is only there if he was in the world
+at the 2023 kickoff.
 
 **The search** comes after another gap: one box with a
 magnifying glass at its left, players only (no teams since 2026-10-30),

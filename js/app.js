@@ -1780,22 +1780,30 @@
     var item = el('li', 'ege-room__player');
     var card = el('div', 'ege-teamchip ege-teamchip--nfl' + (row.player ? ' is-six' : '') +
       (row.retired ? ' is-retired' : '') + (row.sorted ? ' is-sorted' : '') + (row.interest ? ' has-interest' : ''));
-    EGE.cardsView.pressable(card, row.name, function () { openNflPlayer(row); });
-    card.appendChild(rosterFace(row));
+    if (row.sim) { EGE.cardsView.pressable(card, row.name, function () { openNflPlayer(row); }); }
+    card.appendChild(row.face || rosterFace(row));
 
     var text = el('span', 'ege-teamchip__text');
     text.appendChild(el('span', 'ege-teamchip__name', row.name));
     var meta = el('span', 'ege-teamchip__meta');
-    if (row.archetype) { meta.appendChild(el('span', 'ege-teamchip__arch', row.archetype)); }
-    var klass = nflClass(row.year);
-    if (klass) {
-      var chip = el('abbr', 'ege-room__class', klass.short);
-      chip.title = klass.name;
-      meta.appendChild(chip);
+    /* A League list's own lines in place of his archetype, class and size
+       (`row.note`, one or two): the injury and its week, the draft pick. */
+    var notes = row.note ? [].concat(row.note) : null;
+    if (notes) {
+      meta.appendChild(el('span', 'ege-teamchip__arch', notes[0]));
+    } else {
+      if (row.archetype) { meta.appendChild(el('span', 'ege-teamchip__arch', row.archetype)); }
+      var klass = nflClass(row.year);
+      if (klass) {
+        var chip = el('abbr', 'ege-room__class', klass.short);
+        chip.title = klass.name;
+        meta.appendChild(chip);
+      }
     }
     text.appendChild(meta);
+    if (notes && notes[1]) { text.appendChild(el('span', 'ege-teamchip__meta', notes[1])); }
     var size = [EGE.heightText(row), EGE.weightText(row)].filter(Boolean).join(' · ');
-    if (!row.interest && (size || row.fit)) {
+    if (!row.interest && !notes && (size || row.fit)) {
       var third = el('span', 'ege-teamchip__meta ege-teamchip__size');
       if (size) { third.appendChild(el('span', null, size)); }
       if (row.fit) { third.appendChild(starsEl(row.fit.stars, 'Fit in ' + row.fit.scheme)); }
@@ -1863,7 +1871,12 @@
   }
 
   function injuryText(out) {
-    var what = String(out.what || 'injured').replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); });
+    var what = injuryName(out.what);
+    /* As a week's box score reported it (the League's Recent Injuries). */
+    if (out.hurt) {
+      return what + ' in ' + weekName(out.hurt) + ': out ' +
+        (out.season ? 'for the season' : out.games + (out.games === 1 ? ' week' : ' weeks'));
+    }
     if (out.season) { return what + ' · out for the season'; }
     if (out.back) { return what + ' · back Week ' + out.back; }
     return what + ' · out ' + out.games + ' more ' + (out.games === 1 ? 'week' : 'weeks');
@@ -1964,8 +1977,9 @@
      of it to anybody; nor, for the live season, the free agents and the
      retired the search finds (2026-10-26), the playoff draws the NFL
      brackets are drawn from (2026-10-30), the schedule the League's
-     weeks to come are drawn from (2026-10-30), or the upcoming free
-     agents' market value and suitors (2026-10-30); and the players' season lines
+     weeks to come are drawn from (2026-10-30), the upcoming free
+     agents' market value and suitors (2026-10-30), or the trades the
+     League's trade report lists (2026-10-31); and the players' season lines
      (2026-10-26) count only the weeks out when the rosters went out, so a
      week published since, from the Weeks tab say, is missing from them.
      An admin's visit, in client viewer mode too, has them published again
@@ -1993,7 +2007,7 @@
 
   function catchUp(all, season, redraw) {
     var behind = !(all.systems && all.picks) ||
-      (season === EGE.currentSeason && !(all.freeAgents && all.playoffs && all.schedule !== undefined && priced(all))) ||
+      (season === EGE.currentSeason && !(all.freeAgents && all.playoffs && all.schedule !== undefined && all.trades && priced(all))) ||
       linesBehind(all, season);
     if (caughtUp || !behind || !all.savedAt || !EGE.nflSimAdmin || !EGE.wallet.realAdmin()) { return; }
     caughtUp = true;
@@ -4594,17 +4608,7 @@
       return fa;
     }
     var team = hit.key ? EGE.nfl.teams[hit.key] : null;
-    var src = team && EGE.logoFor ? EGE.logoFor(team.name) : null;
-    if (!src) { return null; }
-    var mark = el('span', 'ege-teamchip__team');
-    mark.title = hit.how === 'retired' ? 'Last played for the ' + team.name : team.name;
-    var img = el('img');
-    img.src = src;
-    img.alt = '';
-    img.loading = 'lazy';
-    img.addEventListener('error', function () { mark.remove(); });
-    mark.appendChild(img);
-    return mark;
+    return team ? cardMark(hit.key, hit.how === 'retired' ? 'Last played for the ' + team.name : team.name) : null;
   }
 
   function searchPlayerLine(hit, season, sort) {
@@ -4653,9 +4657,9 @@
        results drawn again when they are in. */
     var all = season ? EGE.nflRosters.get(season) : null;
     if (all === undefined) {
-      EGE.nflRosters.load(season).then(function () { if (onLeague()) { renderSearch(); renderLeague(); renderFreeAgents(); } });
+      EGE.nflRosters.load(season).then(function () { if (onLeague()) { renderSearch(); renderLeague(); renderLeagueLists(); } });
     } else if (all) {
-      catchUp(all, season, function () { if (onLeague()) { renderSearch(); renderLeague(); renderFreeAgents(); } });
+      catchUp(all, season, function () { if (onLeague()) { renderSearch(); renderLeague(); renderLeagueLists(); } });
     }
     var pool = searchPeople(season);
     var sorts = searchSorts(searchPos);
@@ -4835,6 +4839,260 @@
     renderFreeAgents();
   });
 
+  /* A picker for one of the League's lists, drawn again only when what is
+     in it changes: `options` is [[value, text]]. The value picked, or the
+     first one's when it is gone. */
+  function fillPick(pick, options, picked) {
+    var values = options.map(function (o) { return o[0]; });
+    if (values.indexOf(picked) === -1) { picked = values[0]; }
+    if (pick.getAttribute('data-options') !== values.join('|')) {
+      pick.innerHTML = '';
+      options.forEach(function (o) { pick.appendChild(new Option(o[1], o[0])); });
+      pick.setAttribute('data-options', values.join('|'));
+    }
+    pick.value = picked;
+    return picked;
+  }
+
+  /* A team's mark on a card in one of the League's lists. */
+  function cardMark(key, title) {
+    var team = key ? EGE.nfl.teams[key] : null;
+    var src = team && EGE.logoFor ? EGE.logoFor(team.name) : null;
+    if (!src) { return null; }
+    var mark = el('span', 'ege-teamchip__team');
+    mark.title = title || team.name;
+    var img = el('img');
+    img.src = src;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.addEventListener('error', function () { mark.remove(); });
+    mark.appendChild(img);
+    return mark;
+  }
+
+  /* Somebody the sim names ({ name, pos, espn, ege, collegePhoto }) as his
+     card has him: the live rosters' row for him, or, if they do not know
+     him, his name and face with nowhere to go. */
+  function namedRow(who) {
+    var hit = boxHit(who);
+    if (hit) { return nflHitRow(hit, searchSeason()); }
+    return { name: who.name, nfl: true, photo: Boolean(who.espn), espn: who.espn, collegePhoto: Boolean(who.collegePhoto),
+             player: who.ege ? EGE.playerBySlug(who.ege) : null };
+  }
+
+  /* --- the trade report ------------------------------------------------
+
+     After the free agents (Sam, 2026-10-31): every trade Sam has let
+     through, the newest first, a few at a time behind Show more, with a
+     season and a team to narrow it to. Each is when it went through, then
+     each team with what it got: a player as his card at the overall he
+     had then, and a pick as its year and round with whose it was (that
+     team's mark) and its number once the draft's order is known -- or,
+     once it has been used, the card of the player it became. The rosters
+     carry them (nfl-sim/lib/site.js tradesOut); rosters published before
+     that show no report. */
+
+  var tradesPanel = document.getElementById('leagueTrades');
+  var tradeList = document.getElementById('tradeList');
+  var tradeMore = document.getElementById('tradeMore');
+  var tradeSeasonPick = document.getElementById('tradeSeason');
+  var tradeTeamPick = document.getElementById('tradeTeam');
+
+  var TRADE_PAGE = 6;
+  var tradeShown = TRADE_PAGE;
+  var tradeSeason = '';
+  var tradeTeam = '';
+
+  var TRADE_WHEN = { preseason: 'Preseason', deadline: 'Trade Deadline', playoffs: 'Playoffs', offseason: 'Offseason',
+                     draft: 'Offseason' };
+
+  /* The season a trade is filed under: an offseason's is the one it leads
+     into, as the trades bot has it. */
+  function tradeYear(t) { return t.phase === 'offseason' ? t.season + 1 : t.season; }
+
+  function tradeWhen(t) {
+    if (t.phase === 'regular' && t.week) { return tradeYear(t) + ' ' + weekName(t.week); }
+    return tradeYear(t) + ' ' + (TRADE_WHEN[t.phase] || 'Season');
+  }
+
+  /* A pick in place of a face: its round. */
+  function pickFace(round) {
+    var face = el('span', 'ege-teamchip__photo ege-pickface');
+    face.appendChild(el('span', 'ege-pickface__label', 'RD'));
+    face.appendChild(el('span', 'ege-pickface__value', String(round)));
+    return face;
+  }
+
+  function tradeItemLine(item) {
+    var row;
+    if (item.name) {
+      row = namedRow(item);
+      if (typeof item.ovr === 'number') { row.overall = item.ovr; }
+      row.out = null;
+      row.retired = null;
+      return nflLine(row);
+    }
+    var label = item.year + ' Round ' + item.round;
+    var whose = cardMark(item.from, EGE.nfl.teams[item.from] ? EGE.nfl.city(item.from) + '’s pick' : null);
+    if (item.player) {
+      row = namedRow(item.player);
+      row.note = [label, item.n ? 'No. ' + item.n : ''];
+      row.out = null;
+    } else {
+      row = { name: label, nfl: true, note: item.n ? 'No. ' + item.n : '', face: pickFace(item.round) };
+    }
+    row.where = whose;
+    return nflLine(row);
+  }
+
+  function tradeCard(t) {
+    var card = el('article', 'ege-nfltrade');
+    card.appendChild(el('div', 'ege-nfltrade__when', tradeWhen(t)));
+    var sides = el('div', 'ege-nfltrade__sides');
+    t.sides.forEach(function (side) {
+      var box = el('section', 'ege-nfltrade__side');
+      var head = el('a', 'ege-nfltrade__team');
+      head.href = '#teams/' + EGE.nfl.slug(side.team);
+      head.addEventListener('click', function () { teamsPicked = Math.min(tradeYear(t), searchSeason()); });
+      head.appendChild(leagueLogo(side.team, 32));
+      head.appendChild(el('span', 'ege-nfltrade__city', EGE.nfl.city(side.team)));
+      head.appendChild(el('span', 'ege-nfltrade__get', 'Receive'));
+      box.appendChild(head);
+      var list = el('ol', 'ege-room__list ege-nfltrade__gets');
+      side.gets.forEach(function (item) { list.appendChild(tradeItemLine(item)); });
+      box.appendChild(list);
+      sides.appendChild(box);
+    });
+    card.appendChild(sides);
+    return card;
+  }
+
+  function renderTrades() {
+    var season = searchSeason();
+    var all = season ? EGE.nflRosters.get(season) : null;
+    var trades = (all && all.trades || []).filter(function (t) {
+      return t.sides.every(function (side) { return EGE.nfl.teams[side.team]; });
+    });
+    tradesPanel.hidden = !trades.length;
+    if (!trades.length) { return; }
+    var years = [];
+    var teams = [];
+    trades.forEach(function (t) {
+      if (years.indexOf(tradeYear(t)) === -1) { years.push(tradeYear(t)); }
+      t.sides.forEach(function (side) { if (teams.indexOf(side.team) === -1) { teams.push(side.team); } });
+    });
+    years.sort(function (a, b) { return b - a; });
+    teams.sort(function (a, b) { return EGE.nfl.city(a).localeCompare(EGE.nfl.city(b)); });
+    tradeSeason = fillPick(tradeSeasonPick, [['', 'All seasons']].concat(years.map(function (y) {
+      return [String(y), String(y)];
+    })), tradeSeason);
+    tradeTeam = fillPick(tradeTeamPick, [['', 'All teams']].concat(teams.map(function (key) {
+      return [key, EGE.nfl.city(key)];
+    })), tradeTeam);
+    var shown = trades.filter(function (t) {
+      return (!tradeSeason || String(tradeYear(t)) === tradeSeason) &&
+        (!tradeTeam || t.sides.some(function (side) { return side.team === tradeTeam; }));
+    });
+    tradeList.innerHTML = '';
+    shown.slice(0, tradeShown).forEach(function (t) { tradeList.appendChild(tradeCard(t)); });
+    if (!shown.length) { tradeList.appendChild(el('p', 'ege-note ege-search__note', 'No trades.')); }
+    tradeMore.hidden = shown.length <= tradeShown;
+  }
+
+  [[tradeSeasonPick, function (v) { tradeSeason = v; }], [tradeTeamPick, function (v) { tradeTeam = v; }]].forEach(function (pair) {
+    pair[0].addEventListener('change', function () {
+      pair[1](pair[0].value);
+      tradeShown = TRADE_PAGE;
+      renderTrades();
+    });
+  });
+  tradeMore.addEventListener('click', function () {
+    tradeShown += TRADE_PAGE;
+    renderTrades();
+  });
+
+  /* --- the draft history -----------------------------------------------
+
+     Last before the search (Sam, 2026-10-31): every draft since the world
+     began (2023), a round at a time, in the order the picks were made:
+     each player's card with his position and college, the pick's number
+     and the mark of the team that made it, and his overall now -- or
+     RETIRED. From the live rosters' players, the free agents and the
+     retired too, each of whom keeps where he was drafted. The newest
+     draft first, Round 1. */
+
+  var draftsPanel = document.getElementById('leagueDrafts');
+  var draftList = document.getElementById('draftList');
+  var draftMore = document.getElementById('draftMore');
+  var draftYearPick = document.getElementById('draftYear');
+  var draftRoundPick = document.getElementById('draftRound');
+
+  var DRAFTS_FROM = 2023;
+  var DRAFT_PAGE = 16;
+  var draftShown = DRAFT_PAGE;
+  var draftYear = '';
+  var draftRound = '1';
+
+  function draftLine(hit, season) {
+    var d = hit.sim.draft;
+    var row = nflHitRow(hit, season);
+    row.note = [POSITION_NAMES[hit.sim.pos] || hit.sim.pos, hit.sim.college || ''];
+    row.out = null;
+    var by = EGE.nfl.teams[d.team];
+    var via = d.from && EGE.nfl.teams[d.from] ? ', from the ' + EGE.nfl.teams[d.from].name : '';
+    row.sorted = sortBox('PICK', String(d.pick), 'Round ' + d.round + ', pick ' + d.pick + ' of the ' + d.year + ' draft' +
+      (by ? ', by the ' + by.name : '') + via);
+    row.sortedFirst = true;
+    row.where = cardMark(d.team, by ? 'Drafted by the ' + by.name : null);
+    return nflLine(row);
+  }
+
+  function renderDrafts() {
+    var season = searchSeason();
+    var all = season ? EGE.nflRosters.get(season) : null;
+    var drafted = !all || !all.teams ? [] : searchPeople(season).filter(function (hit) {
+      return hit.sim && hit.sim.draft && hit.sim.draft.year >= DRAFTS_FROM;
+    });
+    draftsPanel.hidden = !drafted.length;
+    if (!drafted.length) { return; }
+    var years = [];
+    drafted.forEach(function (hit) {
+      if (years.indexOf(hit.sim.draft.year) === -1) { years.push(hit.sim.draft.year); }
+    });
+    years.sort(function (a, b) { return b - a; });
+    draftYear = fillPick(draftYearPick, years.map(function (y) { return [String(y), y + ' Draft']; }), draftYear);
+    var year = drafted.filter(function (hit) { return String(hit.sim.draft.year) === draftYear; });
+    var rounds = [];
+    year.forEach(function (hit) { if (rounds.indexOf(hit.sim.draft.round) === -1) { rounds.push(hit.sim.draft.round); } });
+    rounds.sort(function (a, b) { return a - b; });
+    draftRound = fillPick(draftRoundPick, rounds.map(function (r) { return [String(r), 'Round ' + r]; })
+      .concat([['', 'All rounds']]), draftRound);
+    var picks = year.filter(function (hit) { return !draftRound || String(hit.sim.draft.round) === draftRound; })
+      .sort(function (a, b) { return a.sim.draft.pick - b.sim.draft.pick; });
+    draftList.innerHTML = '';
+    picks.slice(0, draftShown).forEach(function (hit) { draftList.appendChild(draftLine(hit, season)); });
+    draftMore.hidden = picks.length <= draftShown;
+  }
+
+  [[draftYearPick, function (v) { draftYear = v; }], [draftRoundPick, function (v) { draftRound = v; }]].forEach(function (pair) {
+    pair[0].addEventListener('change', function () {
+      pair[1](pair[0].value);
+      draftShown = DRAFT_PAGE;
+      renderDrafts();
+    });
+  });
+  draftMore.addEventListener('click', function () {
+    draftShown += DRAFT_PAGE;
+    renderDrafts();
+  });
+
+  /* Everything on the League that the rosters draw. */
+  function renderLeagueLists() {
+    renderFreeAgents();
+    renderTrades();
+    renderDrafts();
+  }
+
   /* #league/{query}: the week's games, and the search's box filled from
      the address, which is how Back comes back to the same results. */
   function openLeague(query) {
@@ -4846,7 +5104,7 @@
     }
     renderLeague();
     renderSearch();
-    renderFreeAgents();
+    renderLeagueLists();
   }
 
   searchField.addEventListener('input', function () {
@@ -5691,11 +5949,13 @@
       leagueGames.innerHTML = '';
       leagueGames.removeAttribute('data-drawn');
       leagueStandings.hidden = true;
+      drawLeagueInjuries(null);
       if (leagueIndex === undefined) { leagueGames.appendChild(el('p', 'ege-note ege-league__note', 'Getting the games…')); }
       return;
     }
     fillLeagueBar(weeks, at);
     drawLeagueStandings(at);
+    drawLeagueInjuries(at);
     if (!EGE.isPublished(at.season, at.week)) {
       drawLeagueGames(at.season, at.week, leagueUpcoming(at.season)[at.week] || []);
       return;
@@ -5721,6 +5981,107 @@
     leagueStandings.innerHTML = '';
     leagueStandings.appendChild(nflStandingsBox(at.season, { through: at.week }));
   }
+
+  /* --- recent injuries --------------------------------------------------
+
+     Under the standings (Sam, 2026-10-31): everybody hurt in the week on
+     show and the two out before it that season (a week to come: the last
+     three out), the latest week first and then the longest out, a page at
+     a time. Each is his card with what he hurt and the week, the mark of
+     the team he was playing for, and the red OUT box with the weeks the
+     box score said he would miss, or SEASON. From the box scores, so a
+     week shows nothing before it is out, an admin's page too, and the
+     weeks the sim has none for (2023's first nine) have nobody. */
+
+  var leagueInjuries = document.getElementById('leagueInjuries');
+  var injuryList = document.getElementById('injuryList');
+  var injuryMore = document.getElementById('injuryMore');
+
+  var INJURY_WEEKS = 3;
+  var INJURY_PAGE = 12;
+  var injuryShown = INJURY_PAGE;
+  var injuryAt = null;
+  var injuryKey = '';
+
+  function injuryName(what) {
+    return String(what || 'injured').replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); });
+  }
+
+  /* Whoever a box score's injury names, in the live rosters: by his line
+     in that game's box score where he has one (a lineman has none), or
+     by his name, and his name on that team where two share it. */
+  function injuredHit(name, team, line, season) {
+    if (line) { return boxHit(line); }
+    return boxHit({ name: name }) || searchPeople(season).filter(function (hit) {
+      return hit.sim && hit.sim.name === name && hit.key === team;
+    })[0] || null;
+  }
+
+  /* Each week's games (`rows`, as `weeks`), every injury in them. */
+  function recentInjuries(weeks, rows) {
+    var live = searchSeason();
+    var hurt = [];
+    rows.forEach(function (games, i) {
+      (games || []).forEach(function (game) {
+        (game.injuries || []).forEach(function (text) {
+          var m = HURT.exec(text);
+          if (!m) { return; }
+          var line = (game.box || []).filter(function (l) { return l.name === m[1] && l.team === m[2]; })[0] || null;
+          var hit = injuredHit(m[1], m[2], line, live);
+          hurt.push({ week: weeks[i], name: m[1], team: m[2], what: m[3], season: m[4] === 'season',
+                      games: m[4] === 'season' ? null : parseInt(m[4], 10), line: line, hit: hit,
+                      ovr: hit ? searchOverall(hit) : 0, six: Boolean(hit && hit.sim.ege) });
+        });
+      });
+    });
+    function length(x) { return x.season ? 99 : x.games; }
+    return hurt.sort(function (a, b) {
+      return b.week - a.week || length(b) - length(a) || (b.six ? 1 : 0) - (a.six ? 1 : 0) || b.ovr - a.ovr ||
+        a.name.localeCompare(b.name);
+    });
+  }
+
+  function injuryLine(x) {
+    var row = x.hit ? nflHitRow(x.hit, searchSeason()) : namedRow(x.line || { name: x.name });
+    row.note = [injuryName(x.what), weekName(x.week)];
+    row.out = { what: x.what, games: x.games, season: x.season, hurt: x.week };
+    row.retired = null;
+    row.where = cardMark(x.team);
+    /* Two boxes beside his name, so laid out as a sorted card is: on a
+       phone his team's mark on the corner of his picture. */
+    var line = nflLine(row);
+    line.firstChild.classList.add('is-sorted');
+    return line;
+  }
+
+  function drawLeagueInjuries(at) {
+    injuryAt = at;
+    var weeks = at ? ((leagueIndex || {})[at.season] || []).filter(function (week) {
+      return week <= at.week && EGE.isPublished(at.season, week);
+    }).slice(-INJURY_WEEKS) : [];
+    var key = at ? at.season + ':' + weeks.join(',') : '';
+    if (key !== injuryKey) {
+      injuryKey = key;
+      injuryShown = INJURY_PAGE;
+    }
+    if (!weeks.length) {
+      leagueInjuries.hidden = true;
+      return;
+    }
+    Promise.all(weeks.map(function (week) { return EGE.boxScores.week(at.season, week); })).then(function (rows) {
+      if (!onLeague() || injuryKey !== key) { return; }
+      var hurt = recentInjuries(weeks, rows);
+      leagueInjuries.hidden = !hurt.length;
+      injuryList.innerHTML = '';
+      hurt.slice(0, injuryShown).forEach(function (x) { injuryList.appendChild(injuryLine(x)); });
+      injuryMore.hidden = hurt.length <= injuryShown;
+    });
+  }
+
+  injuryMore.addEventListener('click', function () {
+    injuryShown += INJURY_PAGE;
+    drawLeagueInjuries(injuryAt);
+  });
 
   function pickLeagueWeek(at) {
     leagueAt = at;

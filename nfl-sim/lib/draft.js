@@ -312,7 +312,9 @@ function runDraft(league, order, rng, place, plan) {
     taken.add(choice.id);
     choice.team = team.key;
     choice.status = 'active';
-    choice.draft = { year: season, round: slot.round, pick: slot.n, team: team.key };
+    /* `from` is whose pick it was, so a traded pick can be followed to the
+       player it became (the League's trade report). */
+    choice.draft = { year: season, round: slot.round, pick: slot.n, team: team.key, from: slot.from };
     choice.contract = { through: season + 3, apy: rookiePay(slot.n, season) };
     delete choice.siteTeam;
     if (!league.byId.has(choice.id)) { league.players.push(choice); league.byId.set(choice.id, choice); }

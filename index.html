@@ -265,6 +265,15 @@
       </div>
       <div class="ege-league__games" id="leagueGames"></div>
       <div class="ege-league__standings" id="leagueStandings" hidden></div>
+      <section class="fb-panel ege-league__panel ege-league__injuries" id="leagueInjuries" hidden>
+        <div class="fb-panel__head">
+          <h3>Recent Injuries</h3>
+        </div>
+        <div class="fb-panel__body">
+          <ol class="ege-room__list ege-search__list" id="injuryList"></ol>
+          <button type="button" class="fb-btn fb-btn--sm ege-search__more" id="injuryMore" hidden>Show more</button>
+        </div>
+      </section>
       <section class="fb-panel ege-league__fa" id="leagueFreeAgents" hidden>
         <div class="fb-panel__head">
           <h3 class="ege-league__fatitle"><img class="ege-league__espn" src="icon/espn-white.png" alt="ESPN" width="80" height="20"><span id="faTitle">Free Agency Tracker</span></h3>
@@ -281,6 +290,32 @@
           </div>
           <ol class="ege-room__list ege-search__list" id="faList"></ol>
           <button type="button" class="fb-btn fb-btn--sm ege-search__more" id="faMore" hidden>Show more</button>
+        </div>
+      </section>
+      <section class="fb-panel ege-league__panel" id="leagueTrades" hidden>
+        <div class="fb-panel__head">
+          <h3>Trade Report</h3>
+        </div>
+        <div class="fb-panel__body">
+          <div class="ege-search__sorts ege-league__fasorts">
+            <select class="fb-select ege-filterselect" id="tradeSeason" aria-label="Season"></select>
+            <select class="fb-select ege-filterselect" id="tradeTeam" aria-label="Team"></select>
+          </div>
+          <div class="ege-nfltrades" id="tradeList"></div>
+          <button type="button" class="fb-btn fb-btn--sm ege-search__more" id="tradeMore" hidden>Show more</button>
+        </div>
+      </section>
+      <section class="fb-panel ege-league__panel" id="leagueDrafts" hidden>
+        <div class="fb-panel__head">
+          <h3>Draft History</h3>
+        </div>
+        <div class="fb-panel__body">
+          <div class="ege-search__sorts ege-league__fasorts">
+            <select class="fb-select ege-filterselect" id="draftYear" aria-label="Draft"></select>
+            <select class="fb-select ege-filterselect" id="draftRound" aria-label="Round"></select>
+          </div>
+          <ol class="ege-room__list ege-search__list" id="draftList"></ol>
+          <button type="button" class="fb-btn fb-btn--sm ege-search__more" id="draftMore" hidden>Show more</button>
         </div>
       </section>
       <div class="ege-search" id="leagueSearch">

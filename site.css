@@ -4482,6 +4482,47 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
   .ege-teamchip.has-interest .ege-teamchip__interest { grid-column: 2 / 4; }
 }
 .ege-teamchip__label { font-size: .5625rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--fb-muted); }
+
+/* The League's other lists (Sam, 2026-10-31), the tracker's gap after
+   each: Recent Injuries under the standings, then after the tracker the
+   Trade Report and the Draft History. */
+.ege-league__panel { margin-bottom: 64px; }
+
+/* A trade: when, on an ink strip, then each team and what it got, side
+   by side, one over the other on a phone. */
+.ege-nfltrades { display: grid; gap: 22px; }
+.ege-nfltrade { min-width: 0; border: var(--fb-border) solid var(--fb-ink); background: var(--fb-surface); }
+.ege-nfltrade__when {
+  padding: 7px 14px;
+  background: var(--fb-ink);
+  font-size: .6875rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-cream);
+}
+.ege-nfltrade__sides { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ege-nfltrade__side { min-width: 0; padding: 14px; }
+.ege-nfltrade__side + .ege-nfltrade__side { border-left: var(--fb-border) solid var(--fb-ink); }
+@media (max-width: 760px) {
+  .ege-nfltrade__sides { grid-template-columns: minmax(0, 1fr); }
+  .ege-nfltrade__side + .ege-nfltrade__side { border-top: var(--fb-border) solid var(--fb-ink); border-left: 0; }
+}
+.ege-nfltrade__team { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; color: var(--fb-ink); text-decoration: none; }
+.ege-nfltrade__team .ege-game__logo { flex: none; width: 32px; height: 32px; }
+.ege-nfltrade__city { overflow: hidden; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
+.ege-nfltrade__get { font-size: .625rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--fb-muted); }
+@media (hover: hover) { .ege-nfltrade__team:hover .ege-nfltrade__city { color: var(--fb-accent); } }
+.ege-nfltrade__team:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: 2px; }
+/* A recent injury's OUT box, as narrow as its overall's beside it where
+   the card is laid out as a sorted one. */
+@media (max-width: 520px), (min-width: 761px) and (max-width: 960px) {
+  .ege-league__injuries .ege-teamchip.is-sorted .ege-injbox { width: 46px; }
+}
+/* A pick not yet used: its round where a face would be. */
+.ege-pickface { display: flex; flex-direction: column; gap: 3px; background: var(--fb-ink); color: var(--fb-cream); }
+.ege-pickface__label { font-size: .5625rem; font-weight: 800; letter-spacing: .12em; }
+.ege-pickface__value { font-family: var(--fb-font-display); font-size: 1.75rem; line-height: .9; }
 .ege-league__note { max-width: 640px; margin: 0 auto; background: var(--fb-cream); text-align: center; }
 .ege-league__grid {
   display: grid;

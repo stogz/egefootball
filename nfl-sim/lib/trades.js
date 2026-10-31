@@ -24,7 +24,7 @@ const { playerValue, pickValue, POSITION } = require('./value');
 const { fitOf, schemeFor, offenseOf, defenseOf } = require('./schemes');
 const { starterLevels, needAt, onTeam, byPos, room, SLOTS, trim, addPlayers } = require('./rosters');
 const { makeName } = require('./draft');
-const { locked } = require('./draft-plan');
+const { locked, board } = require('./draft-plan');
 const { readWorld, writeWorld, DEADLINE_WEEK } = require('./season');
 const { standings, recordText } = require('./standings');
 const { TEAMS } = require('./teams');
@@ -306,6 +306,17 @@ function approve(league, id) {
       if (!pick || pick.owner !== from) { throw new Error('The ' + g.pick + ' pick is no longer ' + from + "'s."); }
       if (locked(league, pick)) { throw new Error('The ' + g.pick + ' pick is in the uploaded ' + pick.year + ' draft.'); }
     }
+  }));
+  /* As things stood when it went through, for the League's trade report:
+     each player's overall, and each pick's number where its draft's order
+     is known. */
+  const numbers = {};
+  const owned = board(league);
+  Object.keys(owned).forEach((key) => owned[key].forEach((p) => { if (p.n) { numbers[pickId(p)] = p.n; } }));
+  t.ovrs = {};
+  t.numbers = {};
+  [a, b].forEach((from) => (t.gives[from] || []).forEach((g) => {
+    if (g.player) { t.ovrs[g.player] = league.byId.get(g.player).ovr; } else if (numbers[g.pick]) { t.numbers[g.pick] = numbers[g.pick]; }
   }));
   [[a, b], [b, a]].forEach(([from, to]) => (t.gives[from] || []).forEach((g) => {
     if (g.player) {
