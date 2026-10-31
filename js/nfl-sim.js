@@ -1318,7 +1318,9 @@ function runDraft(league, order, rng, place, plan) {
     taken.add(choice.id);
     choice.team = team.key;
     choice.status = 'active';
-    choice.draft = { year: season, round: slot.round, pick: slot.n, team: team.key };
+    /* `from` is whose pick it was, so a traded pick can be followed to the
+       player it became (the League's trade report). */
+    choice.draft = { year: season, round: slot.round, pick: slot.n, team: team.key, from: slot.from };
     choice.contract = { through: season + 3, apy: rookiePay(slot.n, season) };
     delete choice.siteTeam;
     if (!league.byId.has(choice.id)) { league.players.push(choice); league.byId.set(choice.id, choice); }
@@ -5677,7 +5679,7 @@ const { OFFENSE, DEFENSE } = require('./schemes');
 const { board } = require('./draft-plan');
 const { seasons, rostersIn } = require('./history');
 const { standings } = require('./standings');
-const { nextRound, lastWeek, ROUNDS } = require('./season');
+const { nextRound, lastWeek, ROUNDS, readWorld } = require('./season');
 const { interested } = require('./six-offers');
 
 /* The sim's key for a team the six play for on the site ('detroit' is DET). */
@@ -6379,7 +6381,7 @@ function publicRosters(league) {
           name: p.name, pos: p.pos, ovr: p.ovr, age: p.age,
           years: p.entry ? league.season - p.entry + 1 : null,
           height: p.height || null, weight: p.weight || null, archetype: p.archetype || null, college: siteCollege(site, p),
-          draft: p.draft && p.draft.pick ? { year: p.draft.year, round: p.draft.round, pick: p.draft.pick, team: p.draft.team || null } : null,
+          draft: draftRow(p),
           skills: p.skills || null,
           contract: p.contract ? { apy: p.contract.apy, through: p.contract.through } : null
         };
@@ -6429,7 +6431,104 @@ function publicRosters(league) {
   });
   return { season: league.season, phase: league.phase, week: league.week || null, savedAt: new Date().toISOString(), caps, systems,
            picks, linesThrough: lines.through[league.season] || 0, teams, freeAgents: freeAgents(league, site, lines),
-           retired: retiredPlayers(league, site, lines), playoffs: playoffsOut(league, site), schedule: scheduleOut(league) };
+           retired: retiredPlayers(league, site, lines), playoffs: playoffsOut(league, site), schedule: scheduleOut(league),
+           trades: tradesOut(league) };
+}
+
+/* Where a player was drafted: the year, round, pick and team, and whose
+   pick it was when that was another team's. */
+function draftRow(p) {
+  const d = p.draft;
+  if (!d || !d.pick) { return null; }
+  const row = { year: d.year, round: d.round, pick: d.pick, team: d.team || null };
+  if (d.from && d.from !== d.team) { row.from = d.from; }
+  return row;
+}
+
+/* ------------------------------------------------------- out: trades -- */
+
+/* Who a trade's player or drafted pick is, for the site to find in the
+   rosters: no id, as nowhere else. */
+function tradePerson(p) {
+  const row = { name: p.name, pos: p.pos };
+  if (p.espn) { row.espn = String(p.espn); }
+  if (p.collegePhoto) { row.collegePhoto = true; }
+  if (p.ege) { row.ege = p.ege; }
+  return row;
+}
+
+/* Every trade Sam has approved, the newest first, for the League's trade
+   report (Sam, 2026-10-31): when it went through ({ season, phase, week }
+   as the league stood) and what each team got. A player is as he was
+   then: his overall kept with the trade, or for one made before trades
+   kept it, his overall in that season's rosters. A pick is its year,
+   round and whose it was, with its number once its draft's order is
+   known, and the player it became once it is used. A free-agent move is
+   a signing, and stays out. */
+function tradesOut(league) {
+  const queue = readWorld(league, 'trades.json', []);
+  const made = {};
+  (league.transactions || []).forEach((x, i) => { if (x.kind === 'trade') { made[x.id] = i; } });
+  const numbers = {};
+  const owned = board(league);
+  Object.keys(owned).forEach((key) => owned[key].forEach((p) => {
+    if (p.n) { numbers[p.year + '-R' + p.round + '-' + p.from] = p.n; }
+  }));
+  /* The drafted, by pick number and by whose pick it was (drafts held
+     since 2026-10-31 keep that). */
+  const byNumber = {};
+  const byPick = {};
+  league.players.forEach((p) => {
+    const d = p.draft;
+    if (!d || !d.pick) { return; }
+    byNumber[d.year + '#' + d.pick] = p;
+    if (d.from) { byPick[d.year + '-R' + d.round + '-' + d.from] = p; }
+  });
+  const then = {};
+  function ovrThen(id, season) {
+    if (!(season in then)) {
+      const shot = season === league.season ? null : rostersIn(league, season);
+      then[season] = {};
+      Object.keys((shot && shot.teams) || {}).forEach((key) => {
+        shot.teams[key].players.forEach((p) => { then[season][p.id] = p.ovr; });
+      });
+    }
+    return then[season][id];
+  }
+  return queue.map((t, i) => ({ t, i })).filter((x) => x.t.status === 'approved' && x.t.kind !== 'move')
+    .sort((x, y) => {
+      const a = x.t.approvedAt || { season: x.t.season };
+      const b = y.t.approvedAt || { season: y.t.season };
+      return b.season - a.season || (made[y.t.id] !== undefined ? made[y.t.id] : -1) - (made[x.t.id] !== undefined ? made[x.t.id] : -1) ||
+        y.i - x.i;
+    })
+    .map(({ t }) => {
+      const at = t.approvedAt || { season: t.season, phase: t.window === 'deadline' ? 'deadline' : 'offseason', week: null };
+      const item = (give) => {
+        if (give.player) {
+          const p = league.byId.get(give.player);
+          if (!p) { return null; }
+          const kept = (t.ovrs || {})[give.player];
+          const ovr = typeof kept === 'number' ? kept : ovrThen(p.id, at.season);
+          return Object.assign(tradePerson(p), { ovr: typeof ovr === 'number' ? ovr : p.ovr });
+        }
+        const m = /^(\d{4})-R(\d+)-(\w+)$/.exec(give.pick);
+        if (!m) { return null; }
+        const row = { year: Number(m[1]), round: Number(m[2]), from: m[3] };
+        const n = (t.numbers || {})[give.pick] || numbers[give.pick] || null;
+        if (n) { row.n = n; }
+        const became = (n && byNumber[row.year + '#' + n]) || byPick[give.pick];
+        if (became) {
+          row.n = became.draft.pick;
+          row.player = tradePerson(became);
+        }
+        return row;
+      };
+      return {
+        id: t.id, season: at.season, phase: at.phase || null, week: at.week || null,
+        sides: t.teams.map((key, i) => ({ team: key, gets: (t.gives[t.teams[1 - i]] || []).map(item).filter(Boolean) }))
+      };
+    });
 }
 
 function siteCollege(site, p) {
@@ -6447,7 +6546,7 @@ function freeAgents(league, site, lines) {
         name: p.name, pos: p.pos, ovr: p.ovr, age: p.age,
         years: p.entry ? league.season - p.entry + 1 : null,
         height: p.height || null, weight: p.weight || null, archetype: p.archetype || null, college: siteCollege(site, p),
-        draft: p.draft && p.draft.pick ? { year: p.draft.year, round: p.draft.round, pick: p.draft.pick, team: p.draft.team || null } : null,
+        draft: draftRow(p),
         skills: p.skills || null
       };
       if (p.espn) { row.espn = String(p.espn); }
@@ -6480,7 +6579,7 @@ function retiredPlayers(league, site, lines) {
         name: p.name, pos: p.pos, ovr: p.ovr, age: p.age, retired: p.retired || null,
         team: lastTeam[p.id] || (p.lastTeam && TEAMS[p.lastTeam] ? p.lastTeam : null),
         height: p.height || null, weight: p.weight || null, archetype: p.archetype || null, college: siteCollege(site, p),
-        draft: p.draft && p.draft.pick ? { year: p.draft.year, round: p.draft.round, pick: p.draft.pick, team: p.draft.team || null } : null
+        draft: draftRow(p)
       };
       if (p.espn) { row.espn = String(p.espn); }
       if (p.collegePhoto) { row.collegePhoto = true; }
@@ -7931,7 +8030,7 @@ const { playerValue, pickValue, POSITION } = require('./value');
 const { fitOf, schemeFor, offenseOf, defenseOf } = require('./schemes');
 const { starterLevels, needAt, onTeam, byPos, room, SLOTS, trim, addPlayers } = require('./rosters');
 const { makeName } = require('./draft');
-const { locked } = require('./draft-plan');
+const { locked, board } = require('./draft-plan');
 const { readWorld, writeWorld, DEADLINE_WEEK } = require('./season');
 const { standings, recordText } = require('./standings');
 const { TEAMS } = require('./teams');
@@ -8213,6 +8312,17 @@ function approve(league, id) {
       if (!pick || pick.owner !== from) { throw new Error('The ' + g.pick + ' pick is no longer ' + from + "'s."); }
       if (locked(league, pick)) { throw new Error('The ' + g.pick + ' pick is in the uploaded ' + pick.year + ' draft.'); }
     }
+  }));
+  /* As things stood when it went through, for the League's trade report:
+     each player's overall, and each pick's number where its draft's order
+     is known. */
+  const numbers = {};
+  const owned = board(league);
+  Object.keys(owned).forEach((key) => owned[key].forEach((p) => { if (p.n) { numbers[pickId(p)] = p.n; } }));
+  t.ovrs = {};
+  t.numbers = {};
+  [a, b].forEach((from) => (t.gives[from] || []).forEach((g) => {
+    if (g.player) { t.ovrs[g.player] = league.byId.get(g.player).ovr; } else if (numbers[g.pick]) { t.numbers[g.pick] = numbers[g.pick]; }
   }));
   [[a, b], [b, a]].forEach(([from, to]) => (t.gives[from] || []).forEach((g) => {
     if (g.player) {

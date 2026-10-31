@@ -4407,7 +4407,9 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
    white before the title, and LIVE at the other end with its light
    blinking, still for anybody who has asked for less motion. */
 .ege-league__fa > .fb-panel__head { flex-wrap: nowrap; background: #e52534; color: #fff; }
-.ege-league__fatitle { display: flex; align-items: center; gap: 12px; min-width: 0; color: #fff; }
+/* The title in the site's own type, not the display face (Sam,
+   2026-10-31). */
+.ege-league__fatitle { display: flex; align-items: center; gap: 12px; min-width: 0; font-family: var(--fb-font-body); font-weight: 800; color: #fff; }
 .ege-league__espn { flex: none; width: 80px; height: auto; }
 .ege-live {
   display: inline-flex;
@@ -4482,6 +4484,175 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
   .ege-teamchip.has-interest .ege-teamchip__interest { grid-column: 2 / 4; }
 }
 .ege-teamchip__label { font-size: .5625rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--fb-muted); }
+
+/* The League's other lists (Sam, 2026-10-31), the tracker's gap after
+   each: the Injury Report under the standings, then after the tracker the
+   Draft History. */
+.ege-league__panel { margin-bottom: 64px; }
+
+/* The Injury Report (Sam, 2026-10-31): right under the standings, a black
+   box at 70% under a solid black dotted edge, shut until the plus at the
+   right of its title opens it (a minus then), and small white type four
+   columns across (two on a phone), each team's mark and name over its
+   players, the time out and what it is in red, and a red plus beside the
+   title. */
+.ege-league__standings:has(+ .ege-injreport:not([hidden])) { margin-bottom: 22px; }
+.ege-injreport {
+  padding: 14px 18px;
+  border: 5px dotted #000;
+  background: rgba(0, 0, 0, .7);
+  color: #fff;
+}
+.ege-injreport__title { margin: 0; font-family: var(--fb-font-body); font-size: 1rem; font-weight: 800; letter-spacing: .02em; color: #fff; }
+.ege-injreport__toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ege-injreport__plus { flex: none; fill: #ff4b4b; }
+.ege-injreport__open { position: relative; flex: none; width: 28px; height: 28px; margin-left: auto; box-sizing: border-box; border: var(--fb-border-thin) solid #fff; }
+.ege-injreport__open::before,
+.ege-injreport__open::after { content: ""; position: absolute; top: 50%; left: 50%; width: 12px; height: 2px; background: #fff; transform: translate(-50%, -50%); }
+.ege-injreport__open::after { transform: translate(-50%, -50%) rotate(90deg); }
+.ege-injreport__toggle[aria-expanded="true"] .ege-injreport__open::after { display: none; }
+@media (hover: hover) {
+  .ege-injreport__toggle:hover .ege-injreport__open { border-color: var(--fb-accent); }
+  .ege-injreport__toggle:hover .ege-injreport__open::before,
+  .ege-injreport__toggle:hover .ege-injreport__open::after { background: var(--fb-accent); }
+}
+.ege-injreport__toggle:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: 3px; }
+.ege-injreport__teams { margin-top: 14px; column-count: 4; column-gap: 22px; }
+@media (max-width: 960px) { .ege-injreport__teams { column-count: 3; } }
+@media (max-width: 680px) { .ege-injreport__teams { column-count: 2; column-gap: 16px; } }
+.ege-injreport__team { break-inside: avoid; margin: 0 0 12px; }
+.ege-injreport__head { display: flex; align-items: center; gap: 6px; margin: 0 0 3px; font-size: .75rem; font-weight: 800; }
+.ege-injreport__head .ege-game__logo { flex: none; width: 16px; height: 16px; }
+.ege-injreport__list { margin: 0; padding: 0 0 0 14px; font-size: .6875rem; line-height: 1.45; }
+.ege-injreport__out { cursor: pointer; }
+.ege-injreport__six { color: var(--fb-accent-hover); }
+.ege-injreport__red { font-weight: 800; color: #ff4b4b; }
+@media (hover: hover) { .ege-injreport__out:hover .ege-injreport__name { text-decoration: underline; } }
+.ege-injreport__out:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: 1px; }
+/* The ticker along the bottom of the screen (Sam, 2026-10-31): orange
+   under an ink rule, the run going right to left at the speed the page
+   sets (--newsbar-time) and stopping under the pointer; each item a short
+   ink tag and its words. The page leaves room for it at its foot. */
+.ege-newsbar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 25;
+  overflow: hidden;
+  padding-bottom: env(safe-area-inset-bottom);
+  border-top: var(--fb-border) solid var(--fb-ink);
+  background: var(--fb-accent);
+  color: var(--fb-ink);
+}
+.ege-newsbar__track { display: flex; width: max-content; animation: ege-newsbar var(--newsbar-time, 90s) linear infinite; }
+@media (hover: hover) { .ege-newsbar:hover .ege-newsbar__track { animation-play-state: paused; } }
+@keyframes ege-newsbar { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.ege-newsbar__run { display: flex; flex: none; align-items: center; min-width: 100vw; }
+.ege-newsbar__item {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 22px;
+  border-right: var(--fb-border-thin) solid rgba(29, 36, 22, .3);
+  font-size: .875rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.ege-newsbar__tag {
+  padding: 3px 6px;
+  background: var(--fb-ink);
+  font-size: .625rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-cream);
+}
+.ege-newsbar__team { display: inline-flex; align-items: center; gap: 6px; }
+.ege-newsbar .ege-game__logo { flex: none; width: 20px; height: 20px; }
+/* One of the six underlined, as the Discord posts have them. */
+.ege-newsbar__six { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.ege-newsbar__team + .ege-newsbar__team { margin-left: 8px; }
+body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom: calc(43px + env(safe-area-inset-bottom)); }
+@media (prefers-reduced-motion: reduce) {
+  .ege-newsbar { overflow-x: auto; }
+  .ege-newsbar__track { animation: none; }
+  .ege-newsbar__run.is-again { display: none; }
+}
+/* The Draft History (Sam, 2026-10-31): the week bar's switcher over it on
+   the grass, [ ‹ ] [ year ] [ round ] [ › ], and under it a stat sheet,
+   one pick a row: the pick, the team that made it, his headshot, name,
+   position, age and school, then his career numbers grouped under an ink
+   head. Each headshot stands a little taller than its row, so it pokes
+   over the bottom of the one above (Sam: "10% or less"). Sideways on a
+   phone. */
+.ege-drafttable { min-width: 1130px; }
+.ege-drafttable th { cursor: default; }
+/* Every heading but the headshot's sorts the sheet (Sam, 2026-10-31), the
+   whole cell the button, and the column it sorted by shaded down. */
+.ege-drafttable thead th.is-sortable { padding: 0; }
+.ege-drafttable .ege-sort { padding: 9px 8px; }
+.ege-drafttable th.num .ege-sort { justify-content: flex-end; }
+.ege-drafttable th.is-sortable:first-child .ege-sort { padding-left: 16px; }
+.ege-drafttable th.is-sortable:last-child .ege-sort { padding-right: 16px; }
+.ege-drafttable td.is-sorted-cell { background: rgba(229, 110, 40, .12); }
+.ege-drafttable__ovr .ege-ovrbox,
+.ege-drafttable__ovr .ege-retbox { margin: 0 auto; }
+.ege-ovrbox--cell { width: 42px; gap: 1px; padding: 3px 2px 4px; border-width: var(--fb-border-thin); }
+.ege-ovrbox--cell .ege-ovrbox__label { font-size: .4375rem; letter-spacing: .14em; }
+.ege-ovrbox--cell .ege-ovrbox__value { font-size: 1.0625rem; }
+.ege-drafttable .ege-retbox { width: 42px; height: 34px; border-width: var(--fb-border-thin); font-size: .4375rem; letter-spacing: .06em; }
+.ege-drafttable th,
+.ege-drafttable td { padding: 0 8px; white-space: nowrap; }
+.ege-drafttable thead th { padding: 9px 8px; }
+.ege-drafttable th:first-child,
+.ege-drafttable td:first-child { padding-left: 16px; }
+.ege-drafttable th:last-child,
+.ege-drafttable td:last-child { padding-right: 16px; }
+.ege-drafttable__groups th { padding-bottom: 0; text-align: center; color: var(--fb-accent-hover); }
+.ege-drafttable .is-group { border-left: 1px solid rgba(245, 234, 216, .2); }
+.ege-drafttable tbody .is-group { border-left-color: rgba(32, 38, 26, .14); }
+.ege-drafttable tbody td { height: 46px; }
+.ege-drafttable tbody tr { cursor: pointer; }
+.ege-drafttable tbody tr.is-six { background: var(--fb-tint-clay); }
+.ege-drafttable__n { font-family: var(--fb-font-display); font-size: 1.125rem; }
+.ege-drafttable .ege-game__logo { display: block; width: 26px; height: 26px; }
+.ege-drafttable__facecell { width: 70px; min-width: 70px; }
+.ege-drafttable td.ege-drafttable__facecell { position: relative; padding: 0; }
+.ege-drafttable__face {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 70px;
+  height: 51px;
+  font-size: .75rem;
+  font-weight: 800;
+  color: var(--fb-muted-2);
+}
+.ege-drafttable__face img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: bottom; }
+.ege-drafttable__face.is-none { align-items: center; height: 46px; }
+.ege-drafttable__name { font-weight: 800; }
+.ege-drafttable tr.is-six .ege-drafttable__name { color: var(--fb-accent-deep); }
+@media (hover: hover) { .ege-drafttable tbody tr:hover .ege-drafttable__name { text-decoration: underline; } }
+.ege-drafttable__name:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: 2px; }
+.ege-drafts__more { display: block; margin: 18px auto 0; }
 .ege-league__note { max-width: 640px; margin: 0 auto; background: var(--fb-cream); text-align: center; }
 .ege-league__grid {
   display: grid;

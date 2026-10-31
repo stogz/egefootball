@@ -673,8 +673,10 @@ and a page called Search from 2026-10-26), for everybody, signed in or not.
 The old `#search` and `#search/{query}` addresses open it. *Around the NFL*
 sits over the title. The page is the week's games, the standings close
 under them, and the search after a gap, with no titles over them (Sam,
-2026-10-30: tried and taken off). The bar and the search box run the width
-of the page.
+2026-10-30: tried and taken off). Between them, each in its own titled
+panel with a gap after it: the Injury Report, the Free Agency Tracker and
+the Draft History (Sam, 2026-10-31). The bar and the
+search box run the width of the page.
 
 **The week's games** come first. A bar picks the week: the
 season, the week (*Week 1* to *Week 18*, then *Wild Card*, *Divisional*,
@@ -758,10 +760,44 @@ season, and the six's teams are orange.
   more too. Once all 17 games are played, the playoff draw decides: the
   byes are Z, the rest of the field X, everybody else E.
 
-**The Free Agency Tracker** comes after a gap under the standings, titled
+**The ticker** (Sam, 2026-10-31) runs along the bottom of the screen on
+the League page: an orange bar under an ink rule, the news going slowly
+right to left (45 pixels a second, so as slow on a phone) and stopping
+under the pointer; for anybody whose device asks for less motion it stands
+still and scrolls by hand. Each item is a short ink tag and its words,
+from the latest week out whatever week the bar has picked, and about the
+whole league rather than only the six (Sam, 2026-10-31): the close finals,
+winner first (*FINAL*, *FINAL/OT*: eight points or less, or overtime; every
+playoff game and every game of the six's too), the week's five best
+fantasy scores on the site's own scoring (*FANTASY*), its passing,
+rushing, receiving and sack leaders, the six's lines (*WEEK 11*), who
+clinched a playoff spot or the first seed or was eliminated that week
+(*PLAYOFFS*, the standings' X, Z and E), every run of four or more wins or
+losses (*STREAK*), anybody that week put out three weeks or more and any of
+the six put out at all (*INJURY*), then the live season's four latest
+trades (*TRADE*: each team's mark, city and what it got). One of the six is
+underlined wherever he comes up, as the Discord posts have it. The
+playoffs and streaks are left out once the regular season is over. The
+page leaves room for it at its foot.
+
+**The Injury Report** sits right under the standings, as close as they
+sit under the games: a black box at 70% under a thick solid black dotted
+edge, titled *Injury Report* with a red plus, shut until the plus button at
+the right of its title opens it (a minus then shuts it again; Sam,
+2026-10-31). Inside is every team with somebody out as the rosters stand, A to Z, four
+columns across (three, then two on a phone) in small white type. Each team
+is its mark and name, then its players in a roster's order, *LB, Devin Bush
+2 WK (Hamstring)*, the time out and what in red, SEASON where he will not be
+back before it is over; one of the six's name is orange. Each opens the
+player's pop-up. It is the live rosters through the same rule as every
+other injury on the site, so nobody shows who was hurt in a week not out
+yet, an admin's page too, and it is the same whatever week the bar shows.
+
+**The Free Agency Tracker** comes after a gap under the Injury Report, titled
 for the season after the one the search has (*2027 Free Agency Tracker*
 all through 2026). Its head is ESPN's red with their mark in white before
-the title (`icon/espn-white.png`, cut from the logo Sam sent) and a
+the title, which is in the site's own type rather than the display face
+(Sam, 2026-10-31) (`icon/espn-white.png`, cut from the logo Sam sent) and a
 **LIVE** badge at the other end, its light blinking (still for anybody
 whose device asks for less motion). Under the title, the **Biggest Buyers**: the six teams
 with the most cap space next season, its cap less every contract that runs
@@ -796,6 +832,41 @@ narrow for them (a phone) runs them on under the boxes. Twelve, then
   that trades for a quarterback stops wanting the ones about to be free.
   Rosters published before they carried them are published again on an
   admin's next visit, as for the schedule.
+
+**Trades** come with the rosters (`trades`, `site.js tradesOut`) for the
+ticker. A Trade Report section was built on them and taken off the page
+again (Sam, 2026-10-31: "we can come back and fix that later"); it is in
+the git history of PR #133. Trades approved since 2026-10-31 keep each
+player's overall and each pick's number as they were (`ovrs` and `numbers`
+in `trades.json`), and drafts held since then keep whose pick it was
+(`draft.from`). Rosters published before 2026-10-31 have no trades until an
+admin's visit publishes them again.
+
+**The Draft History** comes after a gap under the tracker: every draft
+held since 2023, with no title (Sam, 2026-10-31). The week bar's switcher
+sits over it on the grass, `[ ‹ ] [ year ] [ round ] [ › ]`, the arrows a
+draft back and on, keeping the round; the year opens on the newest draft
+and the round on Round 1 (*All rounds* last). Under it is a stat sheet, one
+pick a row in pick order, 32 then *Show more*: **No.** (the pick; its title
+says the round and, for a traded pick, whose it was), the **Team** that made
+it, his headshot, **Player**, **OVR** (his overall now in its tier's box,
+or RETIRED), **Pos**, **Age** the year he was drafted and **School**, then
+his career numbers under an ink head in groups:
+**Passing** C, Att, Yds, TD, Int; **Rushing** Car, Yds, TD; **Receiving**
+Rec, Yds, TD; **Defense** Solo (the sim's tackles), Int, Sk. A nought is
+left blank. Every heading but the headshot's sorts the sheet (Sam,
+2026-10-31): a number biggest first on the first click (the pick and the
+position from the top of the draft and a roster's order), words A to Z, a
+second click the other way; the column sorted by is shaded down, and two
+alike stay in draft order. Each headshot stands a little taller than its row (51px in 46),
+so it pokes over the bottom of the row above. The six's rows are tinted
+and their names orange; a row opens the player's pop-up. On a phone the
+sheet scrolls sideways. The numbers add up his seasons' lines in the
+rosters (`seasons`), so they start in 2025, the first season the sim kept
+everybody's, and count only weeks out on the site. It is every
+player in the live rosters, free agents and the retired included, with a
+`draft` from 2023 on, so a 2023 pick is only there if he was in the world
+at the 2023 kickoff.
 
 **The search** comes after another gap: one box with a
 magnifying glass at its left, players only (no teams since 2026-10-30),

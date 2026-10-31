@@ -265,6 +265,10 @@
       </div>
       <div class="ege-league__games" id="leagueGames"></div>
       <div class="ege-league__standings" id="leagueStandings" hidden></div>
+      <section class="ege-league__panel ege-injreport" id="leagueInjuries" hidden>
+        <h3 class="ege-injreport__title"><button type="button" class="ege-injreport__toggle" id="injuryToggle" aria-expanded="false" aria-controls="injuryList">Injury Report<svg class="ege-injreport__plus" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M5.5 1h5v4.5H15v5h-4.5V15h-5v-4.5H1v-5h4.5z"/></svg><span class="ege-injreport__open" aria-hidden="true"></span></button></h3>
+        <div class="ege-injreport__teams" id="injuryList" hidden></div>
+      </section>
       <section class="fb-panel ege-league__fa" id="leagueFreeAgents" hidden>
         <div class="fb-panel__head">
           <h3 class="ege-league__fatitle"><img class="ege-league__espn" src="icon/espn-white.png" alt="ESPN" width="80" height="20"><span id="faTitle">Free Agency Tracker</span></h3>
@@ -283,6 +287,34 @@
           <button type="button" class="fb-btn fb-btn--sm ege-search__more" id="faMore" hidden>Show more</button>
         </div>
       </section>
+      <section class="ege-league__panel ege-drafts" id="leagueDrafts" hidden>
+        <div class="ege-seasonbar ege-league__bar">
+          <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="draftPrev"
+                  aria-label="Draft before">&lsaquo;</button>
+          <select class="fb-select ege-seasonbar__pick ege-league__season" id="draftYear" aria-label="Draft"></select>
+          <select class="fb-select ege-seasonbar__pick" id="draftRound" aria-label="Round"></select>
+          <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="draftNext"
+                  aria-label="Draft after">&rsaquo;</button>
+        </div>
+        <div class="fb-panel">
+          <div class="fb-tablewrap">
+            <table class="fb-table ege-drafttable">
+              <thead>
+                <tr class="ege-drafttable__groups">
+                  <th colspan="8"></th>
+                  <th colspan="5" class="is-group">Passing</th>
+                  <th colspan="3" class="is-group">Rushing</th>
+                  <th colspan="3" class="is-group">Receiving</th>
+                  <th colspan="3" class="is-group">Defense</th>
+                </tr>
+                <tr id="draftHead"></tr>
+              </thead>
+              <tbody id="draftList"></tbody>
+            </table>
+          </div>
+        </div>
+        <button type="button" class="fb-btn fb-btn--inverse fb-btn--sm ege-drafts__more" id="draftMore" hidden>Show more</button>
+      </section>
       <div class="ege-search" id="leagueSearch">
         <div class="ege-search__box">
           <svg class="ege-search__icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
@@ -299,6 +331,9 @@
         </div>
       </div>
       <div class="ege-search__results" id="searchResults"></div>
+      <div class="ege-newsbar" id="leagueTicker" role="marquee" aria-label="Around the NFL" hidden>
+        <div class="ege-newsbar__track" id="tickerTrack"></div>
+      </div>
     </section>
 
     <!-- ===== shop ===================================================== -->
