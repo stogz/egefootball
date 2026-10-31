@@ -8494,23 +8494,25 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-cardpage.is-parked { content-visibility: hidden; }
 
 
-/* The island: five icons on a pill of frosted glass floating over the foot
-   of the screen, after Apple's glass tab bars (Sam, 2026-10-31; it was solid
-   ink before). The page shows through it, blurred and a little brighter,
-   under a white tint, a bright rim and a soft gloss across the top half.
-   The picked page sits on the orange slider that glides from icon to icon;
-   the inputs stay real radios (hidden, but keyboard and screen reader
+/* The island: five icons on a capsule of dark glass floating over the foot
+   of the screen, after Apple's Liquid Glass tab bars (Sam, 2026-10-31; it
+   was solid ink before). The page shows through it blurred, darkened and a
+   little richer in colour. Its rim catches the light along the top and the
+   left and faintly along the bottom and the right, and a soft gloss lies
+   across its top half. The picked page sits on an orange slider that
+   glides from icon to icon and stretches as it goes (js/cards-view.js); the
+   inputs stay real radios (hidden, but keyboard and screen reader
    reachable).
 
    Made to hold up on a phone (2026-10-31). The icons used to be CSS masks
    filled with the label's colour, which faded on every tap: each frame of
    the fade painted the mask again, and iPhone Safari would now and then
    paint it with no picture at all, so icons vanished while you clicked
-   around. Now each icon is two plain pictures (index.html), Sam's glyph in
-   ink and in white, and only their opacity changes. Nothing else in the
-   island is repainted on a tap, the slider keeps a layer of its own rather
-   than getting one at every glide, a tap's hover does not stick on a
-   touch screen, and two quick taps do not zoom the page. */
+   around. Now each icon is a plain picture of Sam's white glyph
+   (index.html) and only its opacity changes. Nothing else in the island is
+   repainted on a tap, the slider keeps a layer of its own rather than
+   getting one at every glide, a tap's hover does not stick on a touch
+   screen, and two quick taps do not zoom the page. */
 .ege-cardtabs {
   position: fixed;
   left: 0;
@@ -8524,7 +8526,7 @@ html.ege-noscroll body { overflow: hidden; }
 }
 .ege-cardtabs__inner {
   --gap: 6px;
-  --speed: .55s;
+  --speed: .5s;
   --ease: cubic-bezier(.22, .9, .25, 1);
   --tab: 0;
 
@@ -8534,18 +8536,17 @@ html.ege-noscroll body { overflow: hidden; }
   grid-template-columns: repeat(5, minmax(0, 1fr));
   width: min(100%, 400px);
   padding: var(--gap);
-  background: linear-gradient(180deg, rgba(255, 255, 255, .7), rgba(255, 255, 255, .45));
-  -webkit-backdrop-filter: blur(20px) saturate(1.8);
-  backdrop-filter: blur(20px) saturate(1.8);
-  border: 1px solid rgba(255, 255, 255, .7);
+  background: linear-gradient(180deg, rgba(26, 29, 23, .64), rgba(8, 10, 7, .76));
+  -webkit-backdrop-filter: blur(18px) saturate(1.8) brightness(.8);
+  backdrop-filter: blur(18px) saturate(1.8) brightness(.8);
+  border: 1px solid rgba(255, 255, 255, .1);
   border-radius: 999px !important;
-  /* A hairline of ink round the outside so it still has an edge over a
-     cream panel -- a line, not a drop shadow (Sam, 2026-10-13). */
+  /* The rim, lit from the top left, and a faint glow just inside the edge
+     where real glass bends the light. No drop shadow (Sam, 2026-10-13). */
   box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, .95),
-    inset 0 -1px 2px rgba(255, 255, 255, .45),
-    inset 0 0 14px rgba(255, 255, 255, .3),
-    0 0 0 .5px rgba(29, 36, 22, .28);
+    inset 1.5px 1.5px 1px -.5px rgba(255, 255, 255, .42),
+    inset -1px -1px 1px -.5px rgba(255, 255, 255, .16),
+    inset 0 0 14px rgba(255, 255, 255, .07);
   pointer-events: auto;
   touch-action: manipulation;
   -webkit-user-select: none;
@@ -8560,15 +8561,15 @@ html.ege-noscroll body { overflow: hidden; }
   z-index: 0;
   border-radius: inherit !important;
   background: linear-gradient(180deg,
-    rgba(255, 255, 255, .5) 0%,
-    rgba(255, 255, 255, .12) 46%,
-    rgba(255, 255, 255, 0) 54%,
-    rgba(255, 255, 255, .1) 100%);
+    rgba(255, 255, 255, .16) 0%,
+    rgba(255, 255, 255, .05) 45%,
+    rgba(255, 255, 255, 0) 55%,
+    rgba(255, 255, 255, .04) 100%);
   pointer-events: none;
 }
-/* No blur to be had: the same pill, frosted solid. */
+/* No blur to be had: the same capsule, dark and solid. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .ege-cardtabs__inner { background: rgba(251, 244, 230, .94); }
+  .ege-cardtabs__inner { background: rgba(24, 28, 20, .95); }
 }
 
 .ege-cardtab {
@@ -8586,41 +8587,38 @@ html.ege-noscroll body { overflow: hidden; }
   opacity: 0;
   pointer-events: none;
 }
-.ege-cardtab:has(input:focus-visible) { outline: 2px solid var(--fb-ink); outline-offset: -4px; border-radius: 999px !important; }
+.ege-cardtab:has(input:focus-visible) { outline: 2px solid var(--fb-cream); outline-offset: -4px; border-radius: 999px !important; }
 
-/* Sam's glyphs: the ink one on the glass, the white one on the slider. */
+/* Sam's white glyphs: dimmed on the glass, full white on the slider. */
 .ege-cardtab__icon {
-  position: relative;
   display: block;
   width: 26px;
   height: 26px;
   transition: transform var(--speed) var(--ease);
 }
 .ege-cardtab__img {
-  position: absolute;
-  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
   max-width: none;
   object-fit: contain;
-  opacity: .62;
+  opacity: .58;
   pointer-events: none;
   -webkit-user-drag: none;
   will-change: opacity;
   transition: opacity .3s ease;
 }
-.ege-cardtab__img--lit { opacity: 0; }
-.ege-cardtab.is-active .ege-cardtab__img { opacity: 0; }
-.ege-cardtab.is-active .ege-cardtab__img--lit { opacity: 1; }
+.ege-cardtab.is-active .ege-cardtab__img { opacity: 1; }
 .ege-cardtab.is-active .ege-cardtab__icon { transform: scale(1.08); }
 .ege-cardtab:active .ege-cardtab__icon { transform: scale(.9); transition-duration: .12s; }
 @media (hover: hover) {
-  .ege-cardtab:not(.is-active):hover .ege-cardtab__img:not(.ege-cardtab__img--lit) { opacity: .9; }
+  .ege-cardtab:not(.is-active):hover .ege-cardtab__img { opacity: .85; }
 }
 
-/* The liquid slider: exactly one column wide, moved a column per page,
-   the site's orange with the same glass gloss over it. */
+/* The liquid slider: exactly one column wide, moved a column per page.
+   The drop inside it is the site's orange with its own rim and gloss, and
+   is what stretches as it glides: a scale on the slider itself would
+   scale its glide too. */
 .ege-cardtabs__slider {
   position: absolute;
   top: var(--gap);
@@ -8628,21 +8626,27 @@ html.ege-noscroll body { overflow: hidden; }
   left: var(--gap);
   width: calc((100% - 2 * var(--gap)) / 5);
   z-index: 1;
-  background: var(--fb-accent);
-  border-radius: 999px !important;
   transform: translateX(calc(var(--tab) * 100%));
   will-change: transform;
   transition: transform var(--speed) var(--ease);
 }
-.ege-cardtabs__slider::after {
+.ege-cardtabs__drop {
+  position: absolute;
+  inset: 0;
+  display: block;
+  background: var(--fb-accent);
+  border-radius: 999px !important;
+}
+.ege-cardtabs__drop::after {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit !important;
-  background: linear-gradient(180deg, rgba(255, 255, 255, .3), rgba(255, 255, 255, 0) 55%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .26), rgba(255, 255, 255, 0) 55%);
   box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, .5),
-    inset 0 -2px 3px rgba(0, 0, 0, .18);
+    inset 1.5px 1.5px 1px -.5px rgba(255, 255, 255, .55),
+    inset -1px -1px 1px -.5px rgba(255, 255, 255, .22),
+    inset 0 -3px 6px rgba(120, 40, 0, .22);
 }
 @media (prefers-reduced-motion: reduce) {
   .ege-cardtabs__slider, .ege-cardtab__icon, .ege-cardtab__img { transition: none; }
