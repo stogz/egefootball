@@ -3678,10 +3678,29 @@ EGE.cardsView = (function () {
      one of them out again. Browsers without it hide the page as before. */
   var PARK = Boolean(window.CSS && window.CSS.supports && window.CSS.supports('content-visibility', 'hidden'));
 
+  /* The orange drop under the picked icon stretches wide and flat as it
+     sets off, more the further it goes, and wobbles back to round as it
+     lands, like the liquid in Apple's glass tab bars (Sam, 2026-10-31). A
+     transform on the drop alone, so the compositor runs it and nothing is
+     painted again. */
+  function stretchDrop(far) {
+    var drop = document.querySelector('#cardTabs .ege-cardtabs__drop');
+    if (!drop || !drop.animate) { return; }
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) { return; }
+    var wide = 1.12 + 0.06 * Math.min(far, 4);
+    drop.animate([
+      { transform: 'scale(1, 1)' },
+      { transform: 'scale(' + wide + ', .88)', offset: 0.3 },
+      { transform: 'scale(.96, 1.04)', offset: 0.68 },
+      { transform: 'scale(1, 1)' }
+    ], { duration: 520, easing: 'ease-out' });
+  }
+
   function setTab(tab, fromRoute) {
     tab = String(tab || '').replace(/\/+$/, '');        /* #cards/trades/ too */
     var next = TABS.indexOf(tab) === -1 ? 'cards' : tab;
     var moved = next !== state.tab;
+    var from = TABS.indexOf(state.tab);
     state.tab = next;
 
     Array.prototype.forEach.call(document.querySelectorAll('#cardsContent .ege-cardpage'), function (page) {
@@ -3700,6 +3719,7 @@ EGE.cardsView = (function () {
     });
     /* The slider glides under the picked icon, one fifth of the island per page. */
     byId('cardTabs').style.setProperty('--tab', TABS.indexOf(next));
+    if (moved && from !== -1) { stretchDrop(Math.abs(TABS.indexOf(next) - from)); }
     byId('cardsTitle').textContent = TAB_TITLES[next];
     document.title = TAB_TITLES[next] + ' — EGE Football';
 
