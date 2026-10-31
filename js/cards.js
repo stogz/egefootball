@@ -181,6 +181,19 @@ EGE.cardStore = (function () {
 
   /* --- trades ------------------------------------------------------------ */
 
+  /* Reads the trades with `email` on one side or the other. A player can
+     read no others anyway, but an admin can read every trade there is, and
+     was sent all of them on every check. `read(query)` finishes the query;
+     should the filter ever be refused, it is read the old way, everything
+     readable, which the callers sort through themselves. */
+  function tradesWith(email, columns, read) {
+    var c = client();
+    /* Quoted, since an address has dots in it. */
+    var who = '"' + String(email).replace(/["\\]/g, '') + '"';
+    return read(c.from(TRADES).select(columns).or('from_email.ilike.' + who + ',to_email.ilike.' + who))
+      .then(function (res) { return res.error ? read(c.from(TRADES).select(columns)) : res; });
+  }
+
   /* Every trade this player is on either side of, newest first. Only those
      two and an admin can read one. */
   function tradesFor(email) {
@@ -188,7 +201,7 @@ EGE.cardStore = (function () {
     if (!c || !email) { return Promise.resolve([]); }
     var me = email.toLowerCase();
 
-    return c.from(TRADES).select('*').order('created_at', { ascending: false })
+    return tradesWith(email, '*', function (q) { return q.order('created_at', { ascending: false }); })
       .then(function (res) {
         if (res.error) { return []; }
         return (res.data || []).filter(function (t) {
@@ -207,7 +220,7 @@ EGE.cardStore = (function () {
     if (!c || !email) { return Promise.resolve(null); }
     var me = email.toLowerCase();
 
-    return c.from(TRADES).select('id, status, seen_at, from_email, to_email')
+    return tradesWith(email, 'id, status, seen_at, from_email, to_email', function (q) { return q; })
       .then(function (res) {
         if (res.error) { return null; }
         return (res.data || []).filter(function (t) {
