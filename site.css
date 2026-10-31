@@ -4619,28 +4619,52 @@ body:has(#view-league:not([hidden]) .ege-ticker:not([hidden])) { padding-bottom:
   .ege-ticker__track { animation: none; }
   .ege-ticker__run.is-again { display: none; }
 }
-/* The Draft History (Sam, 2026-10-31): its head in ink, holding the week
-   bar's switcher, [ ‹ ] [ year ] [ round ] [ › ], the arrows a draft
-   back and on; under the title on a phone. Then the picks as a numbered
-   list, one card a row, the number the pick. */
-.ege-drafts__head { background: var(--fb-ink); color: var(--fb-cream); }
-.ege-drafts__head h3 { color: var(--fb-cream); }
-.ege-drafts__bar { flex: 0 1 460px; }
-.ege-drafts__bar .ege-drafts__year { flex: 0 1 140px; }
-@media (max-width: 760px) { .ege-drafts__bar { flex: 1 1 100%; } }
-@media (max-width: 620px) {
-  .ege-drafts__bar { gap: 6px; }
-  .ege-drafts__bar .ege-drafts__year { flex: 0 0 96px; }
-  .ege-drafts__bar .ege-seasonbar__pick { padding: 0 26px 0 10px; background-position: right 9px center; font-size: 15px; }
+/* The Draft History (Sam, 2026-10-31): the week bar's switcher over it on
+   the grass, [ ‹ ] [ year ] [ round ] [ › ], and under it a stat sheet,
+   one pick a row: the pick, the team that made it, his headshot, name,
+   position, age and school, then his career numbers grouped under an ink
+   head. Each headshot stands a little taller than its row, so it pokes
+   over the bottom of the one above (Sam: "10% or less"). Sideways on a
+   phone. */
+.ege-drafttable { min-width: 1080px; }
+.ege-drafttable th { cursor: default; }
+.ege-drafttable th,
+.ege-drafttable td { padding: 0 8px; white-space: nowrap; }
+.ege-drafttable thead th { padding: 9px 8px; }
+.ege-drafttable th:first-child,
+.ege-drafttable td:first-child { padding-left: 16px; }
+.ege-drafttable th:last-child,
+.ege-drafttable td:last-child { padding-right: 16px; }
+.ege-drafttable__groups th { padding-bottom: 0; text-align: center; color: var(--fb-accent-hover); }
+.ege-drafttable .is-group { border-left: 1px solid rgba(245, 234, 216, .2); }
+.ege-drafttable tbody .is-group { border-left-color: rgba(32, 38, 26, .14); }
+.ege-drafttable tbody td { height: 46px; }
+.ege-drafttable tbody tr { cursor: pointer; }
+.ege-drafttable tbody tr.is-six { background: var(--fb-tint-clay); }
+.ege-drafttable__n { font-family: var(--fb-font-display); font-size: 1.125rem; }
+.ege-drafttable .ege-game__logo { display: block; width: 26px; height: 26px; }
+.ege-drafttable__facecell { width: 70px; min-width: 70px; }
+.ege-drafttable td.ege-drafttable__facecell { position: relative; padding: 0; }
+.ege-drafttable__face {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 70px;
+  height: 51px;
+  font-size: .75rem;
+  font-weight: 800;
+  color: var(--fb-muted-2);
 }
-.ege-drafts__list { grid-template-columns: minmax(0, 1fr); max-width: 860px; margin: 0 auto; }
-.ege-drafts .ege-search__more { display: block; margin: 14px auto 0; }
-.ege-drafts__pick { display: grid; grid-template-columns: 3.5rem minmax(0, 1fr); align-items: center; gap: 12px; }
-.ege-drafts__n { font-family: var(--fb-font-display); font-size: 1.75rem; line-height: 1; text-align: right; color: var(--fb-ink); }
-@media (max-width: 520px) {
-  .ege-drafts__pick { grid-template-columns: 2.75rem minmax(0, 1fr); gap: 6px; }
-  .ege-drafts__n { font-size: 1.125rem; }
-}
+.ege-drafttable__face img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: bottom; }
+.ege-drafttable__face.is-none { align-items: center; height: 46px; }
+.ege-drafttable__name { font-weight: 800; }
+.ege-drafttable tr.is-six .ege-drafttable__name { color: var(--fb-accent-deep); }
+@media (hover: hover) { .ege-drafttable tbody tr:hover .ege-drafttable__name { text-decoration: underline; } }
+.ege-drafttable__name:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: 2px; }
+.ege-drafts__more { display: block; margin: 18px auto 0; }
 /* A pick not yet used: its round where a face would be. */
 .ege-pickface { display: flex; flex-direction: column; gap: 3px; background: var(--fb-ink); color: var(--fb-cream); }
 .ege-pickface__label { font-size: .5625rem; font-weight: 800; letter-spacing: .12em; }

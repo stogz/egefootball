@@ -300,22 +300,55 @@
           <button type="button" class="fb-btn fb-btn--sm ege-search__more" id="tradeMore" hidden>Show more</button>
         </div>
       </section>
-      <section class="fb-panel ege-league__panel ege-drafts" id="leagueDrafts" hidden>
-        <div class="fb-panel__head ege-drafts__head">
-          <h3>Draft History</h3>
-          <div class="ege-seasonbar ege-drafts__bar">
-            <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="draftPrev"
-                    aria-label="Draft before">&lsaquo;</button>
-            <select class="fb-select ege-seasonbar__pick ege-drafts__year" id="draftYear" aria-label="Draft"></select>
-            <select class="fb-select ege-seasonbar__pick" id="draftRound" aria-label="Round"></select>
-            <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="draftNext"
-                    aria-label="Draft after">&rsaquo;</button>
+      <section class="ege-league__panel ege-drafts" id="leagueDrafts" hidden>
+        <div class="ege-seasonbar ege-league__bar">
+          <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="draftPrev"
+                  aria-label="Draft before">&lsaquo;</button>
+          <select class="fb-select ege-seasonbar__pick ege-league__season" id="draftYear" aria-label="Draft"></select>
+          <select class="fb-select ege-seasonbar__pick" id="draftRound" aria-label="Round"></select>
+          <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="draftNext"
+                  aria-label="Draft after">&rsaquo;</button>
+        </div>
+        <div class="fb-panel">
+          <div class="fb-tablewrap">
+            <table class="fb-table ege-drafttable">
+              <thead>
+                <tr class="ege-drafttable__groups">
+                  <th colspan="7"></th>
+                  <th colspan="5" class="is-group">Passing</th>
+                  <th colspan="3" class="is-group">Rushing</th>
+                  <th colspan="3" class="is-group">Receiving</th>
+                  <th colspan="3" class="is-group">Defense</th>
+                </tr>
+                <tr>
+                  <th class="num" title="Pick">No.</th>
+                  <th>Team</th>
+                  <th class="ege-drafttable__facecell"><span class="ege-visually-hidden">Headshot</span></th>
+                  <th>Player</th>
+                  <th>Pos</th>
+                  <th class="num">Age</th>
+                  <th>School</th>
+                  <th class="num is-group" title="Completions">C</th>
+                  <th class="num" title="Attempts">Att</th>
+                  <th class="num" title="Passing yards">Yds</th>
+                  <th class="num" title="Passing touchdowns">TD</th>
+                  <th class="num" title="Interceptions thrown">Int</th>
+                  <th class="num is-group" title="Carries">Car</th>
+                  <th class="num" title="Rushing yards">Yds</th>
+                  <th class="num" title="Rushing touchdowns">TD</th>
+                  <th class="num is-group" title="Receptions">Rec</th>
+                  <th class="num" title="Receiving yards">Yds</th>
+                  <th class="num" title="Receiving touchdowns">TD</th>
+                  <th class="num is-group" title="Tackles">Solo</th>
+                  <th class="num" title="Interceptions">Int</th>
+                  <th class="num" title="Sacks">Sk</th>
+                </tr>
+              </thead>
+              <tbody id="draftList"></tbody>
+            </table>
           </div>
         </div>
-        <div class="fb-panel__body">
-          <ol class="ege-room__list ege-drafts__list" id="draftList"></ol>
-          <button type="button" class="fb-btn fb-btn--sm ege-search__more" id="draftMore" hidden>Show more</button>
-        </div>
+        <button type="button" class="fb-btn fb-btn--inverse fb-btn--sm ege-drafts__more" id="draftMore" hidden>Show more</button>
       </section>
       <div class="ege-search" id="leagueSearch">
         <div class="ege-search__box">

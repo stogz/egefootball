@@ -5009,13 +5009,17 @@
   /* --- the draft history -----------------------------------------------
 
      Last before the search (Sam, 2026-10-31): every draft since the world
-     began (2023), a round at a time, in the order the picks were made, as
-     a numbered list, the number the pick: each player's card with his
-     position and college, the mark of the team that made it, and his
-     overall now -- or RETIRED. The week bar's switcher picks the draft and
-     the round, its arrows a draft back and on. From the live rosters'
-     players, the free agents and the retired too, each of whom keeps where
-     he was drafted. The newest draft first, Round 1. */
+     began (2023), a round at a time, as a stat sheet in the order the picks
+     were made. The week bar's switcher over it picks the draft and the
+     round, its arrows a draft back and on. Each row is the pick, the mark
+     of the team that made it, his headshot, his name, position, his age
+     when he was drafted and his school, then his career numbers: passing,
+     rushing, receiving and on defense, a nought left blank. The numbers
+     are his seasons' lines in the rosters (`seasons`), which start in
+     2025, the first season the sim kept everybody's, and count only the
+     weeks out on the site. From the live rosters' players, the free agents
+     and the retired too, each of whom keeps where he was drafted. The
+     newest draft first, Round 1. Each row opens his pop-up. */
 
   var draftsPanel = document.getElementById('leagueDrafts');
   var draftList = document.getElementById('draftList');
@@ -5026,28 +5030,87 @@
   var draftNext = document.getElementById('draftNext');
 
   var DRAFTS_FROM = 2023;
-  var DRAFT_PAGE = 16;
+  var DRAFT_PAGE = 32;
   var draftShown = DRAFT_PAGE;
   var draftYear = '';
   var draftRound = '1';
   var draftYears = [];
 
+  /* A career line's columns, in the table's order. */
+  var DRAFT_STATS = ['passCmp', 'passAtt', 'passYds', 'passTd', 'passInt', 'rushAtt', 'rushYds', 'rushTd',
+                     'rec', 'recYds', 'recTd', 'tackles', 'ints', 'sacks'];
+  /* The first column of each group, ruled off from the one before. */
+  var DRAFT_GROUPS = { passCmp: true, rushAtt: true, rec: true, tackles: true };
+
+  /* His age the year he was drafted: the rosters have it as of the live
+     season, or of the one he retired before. */
+  function draftAge(sim, season) {
+    if (typeof sim.age !== 'number') { return null; }
+    var then = typeof sim.retired === 'number' ? sim.retired : season;
+    return sim.age - (then - sim.draft.year);
+  }
+
+  function draftFace(row) {
+    var face = el('span', 'ege-drafttable__face');
+    var src = row.player ? row.player.headshot : EGE.rosterPhoto(row);
+    var initials = row.name.split(' ').filter(function (part) { return /^[A-Z]/.test(part); })
+      .map(function (part) { return part.charAt(0); }).slice(0, 2).join('');
+    function none() {
+      face.classList.add('is-none');
+      face.textContent = initials;
+    }
+    if (!src) {
+      none();
+      return face;
+    }
+    var img = el('img');
+    img.src = src;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.addEventListener('error', function () {
+      img.remove();
+      none();
+    });
+    face.appendChild(img);
+    return face;
+  }
+
   function draftLine(hit, season) {
     var d = hit.sim.draft;
     var row = nflHitRow(hit, season);
-    row.note = [POSITION_NAMES[hit.sim.pos] || hit.sim.pos, hit.sim.college || ''];
-    row.out = null;
     var by = EGE.nfl.teams[d.team];
     var via = d.from && EGE.nfl.teams[d.from] ? ', from the ' + EGE.nfl.teams[d.from].name : '';
-    row.where = cardMark(d.team, by ? 'Drafted by the ' + by.name : null);
-    var line = nflLine(row);
-    line.classList.add('ege-drafts__pick');
-    /* Laid out as a sorted card is, so on a phone the mark sits on the
-       corner of his picture and his name has the room the number takes. */
-    line.firstChild.classList.add('is-sorted');
-    var n = el('span', 'ege-drafts__n', d.pick + '.');
+    var line = el('tr', row.player ? 'is-six' : null);
+    var n = el('td', 'num ege-drafttable__n', String(d.pick));
     n.title = 'Round ' + d.round + ', pick ' + d.pick + ' of the ' + d.year + ' draft' + (by ? ', by the ' + by.name : '') + via;
-    line.insertBefore(n, line.firstChild);
+    line.appendChild(n);
+    var team = el('td');
+    if (by) {
+      var logo = leagueLogo(d.team, 26);
+      logo.title = by.name;
+      team.appendChild(logo);
+    }
+    line.appendChild(team);
+    var face = el('td', 'ege-drafttable__facecell');
+    face.appendChild(draftFace(row));
+    line.appendChild(face);
+    var name = el('td');
+    name.appendChild(EGE.cardsView.pressable(el('span', 'ege-drafttable__name', row.name), row.name, function (e) {
+      e.stopPropagation();
+      openNflPlayer(row);
+    }));
+    line.appendChild(name);
+    line.appendChild(el('td', null, hit.sim.pos));
+    var age = draftAge(hit.sim, season);
+    line.appendChild(el('td', 'num', age === null ? '' : String(age)));
+    line.appendChild(el('td', null, hit.sim.college || ''));
+    var career = careerLine((hit.sim.seasons || []).filter(function (entry) { return entry.line; }));
+    DRAFT_STATS.forEach(function (key) {
+      var value = career[key] || 0;
+      line.appendChild(el('td', 'num' + (DRAFT_GROUPS[key] ? ' is-group' : ''), value ? statNumber(value) : ''));
+    });
+    line.addEventListener('click', function () { openNflPlayer(row); });
     return line;
   }
 

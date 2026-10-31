@@ -860,16 +860,22 @@ published before 2026-10-31 have no trades, so the report is hidden until
 an admin's visit publishes them again.
 
 **The Draft History** comes after a gap under the Trade Report: every draft
-held since 2023. Its head is in ink and holds the week bar's switcher (Sam,
-2026-10-31), `[ ‹ ] [ year ] [ round ] [ › ]`, the arrows a draft back and
-on, keeping the round; the year opens on the newest draft and the round on
-Round 1 (*All rounds* last). On a phone the switcher goes under the title.
-The picks are a numbered list, one card a row, the number in front of each
-the pick's (its title says the round and, for a traded pick, whose it was),
-sixteen then *Show more*. Each card is the player's with his position and
-college under his name, the mark of the team that made the pick (on the
-corner of his picture on a phone), and his overall now (or RETIRED). The
-six are orange. It is every
+held since 2023, with no title (Sam, 2026-10-31). The week bar's switcher
+sits over it on the grass, `[ ‹ ] [ year ] [ round ] [ › ]`, the arrows a
+draft back and on, keeping the round; the year opens on the newest draft
+and the round on Round 1 (*All rounds* last). Under it is a stat sheet, one
+pick a row in pick order, 32 then *Show more*: **No.** (the pick; its title
+says the round and, for a traded pick, whose it was), the **Team** that made
+it, his headshot, **Player**, **Pos**, **Age** the year he was drafted and
+**School**, then his career numbers under an ink head in groups:
+**Passing** C, Att, Yds, TD, Int; **Rushing** Car, Yds, TD; **Receiving**
+Rec, Yds, TD; **Defense** Solo (the sim's tackles), Int, Sk. A nought is
+left blank. Each headshot stands a little taller than its row (51px in 46),
+so it pokes over the bottom of the row above. The six's rows are tinted
+and their names orange; a row opens the player's pop-up. On a phone the
+sheet scrolls sideways. The numbers add up his seasons' lines in the
+rosters (`seasons`), so they start in 2025, the first season the sim kept
+everybody's, and count only weeks out on the site. It is every
 player in the live rosters, free agents and the retired included, with a
 `draft` from 2023 on, so a 2023 pick is only there if he was in the world
 at the 2023 kickoff.
