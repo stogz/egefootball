@@ -2246,10 +2246,11 @@ says *Trick or Treat*. The card art wears no sticker, so nothing covers the
 art.
 
 **Costume cards** (`:hc`): a Legendary-or-better pull from a Halloween Pack
-has a 10% chance of coming out with the player's costume headshot
+has a 20% chance of coming out with the player's costume headshot
 (`headshot/halloween/`; Sam picked 10% over 0.5%, which made Trick or Treat
-out of reach). A costume card is its own card: it never stacks or merges
-with the Halloween copy of the same game. Only Halloween Packs give them.
+out of reach, then raised it to 20% on 2026-10-31). A costume card is its
+own card: it never stacks or merges with the Halloween copy of the same
+game. Only Halloween Packs give them.
 
 Only Halloween cards fill the event's sets, and a copy that is traded can't
 be traded again for 48 hours. Card Art counts only art you pulled yourself
