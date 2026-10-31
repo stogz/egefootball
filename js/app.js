@@ -5985,10 +5985,18 @@
      a roster has them, "LB, Devin Bush 2 WK (Hamstring)", or SEASON where
      he will not be back before it is over. From the live rosters through
      nflOut, so nobody shows who was hurt in a week not out yet, an
-     admin's page too. Each opens his pop-up. */
+     admin's page too. Each opens his pop-up. Shut until the plus at the
+     right of its title opens it (Sam, 2026-10-31). */
 
   var leagueInjuries = document.getElementById('leagueInjuries');
   var injuryList = document.getElementById('injuryList');
+  var injuryToggle = document.getElementById('injuryToggle');
+
+  injuryToggle.addEventListener('click', function () {
+    var open = injuryToggle.getAttribute('aria-expanded') !== 'true';
+    injuryToggle.setAttribute('aria-expanded', String(open));
+    injuryList.hidden = !open;
+  });
 
   function injuryName(what) {
     return String(what || 'injured').replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); });

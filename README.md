@@ -780,9 +780,11 @@ underlined wherever he comes up, as the Discord posts have it. The
 playoffs and streaks are left out once the regular season is over. The
 page leaves room for it at its foot.
 
-**The Injury Report** comes after a gap under the standings: a black box at
-70% under a solid black dotted edge, titled *Injury Report* with a red plus,
-and every team with somebody out as the rosters stand, A to Z, four
+**The Injury Report** sits right under the standings, as close as they
+sit under the games: a black box at 70% under a thick solid black dotted
+edge, titled *Injury Report* with a red plus, shut until the plus button at
+the right of its title opens it (a minus then shuts it again; Sam,
+2026-10-31). Inside is every team with somebody out as the rosters stand, A to Z, four
 columns across (three, then two on a phone) in small white type. Each team
 is its mark and name, then its players in a roster's order, *LB, Devin Bush
 2 WK (Hamstring)*, the time out and what in red, SEASON where he will not be
