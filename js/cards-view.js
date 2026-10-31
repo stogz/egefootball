@@ -2511,9 +2511,26 @@ EGE.cardsView = (function () {
       if (res.status === 'expired') {
         say('That trade cannot go through any more: one of you no longer has a card it was for.', true);
       }
+      /* Only a trade that went through moves any cards; anything else is
+         just the trades read again. */
+      if (res.status !== 'accepted') { refreshTrades(); return; }
       if (EGE.showcase) { EGE.showcase.forget(); }
       refresh();
     });
+  }
+
+  /* The trades read again and redrawn, and nothing else: what an offer
+     sent, taken back or declined changes. An empty answer when there were
+     trades is a read that failed, and leaves them as they were. */
+  function refreshTrades() {
+    var player = state.player;
+    if (!player) { return Promise.resolve(); }
+    refreshing += 1;
+    return EGE.cardStore.tradesFor(player.email).then(function (trades) {
+      if (state.player !== player || (!trades.length && state.trades.length)) { return; }
+      state.trades = trades;
+      renderTrades();
+    }).then(function () { refreshing -= 1; }, function () { refreshing -= 1; });
   }
 
   function renderTrades() {
@@ -2613,10 +2630,19 @@ EGE.cardsView = (function () {
     return words.every(function (w) { return text.indexOf(w) !== -1; });
   }
 
+  /* Whether one more copy of a card would make a holo for whoever holds
+     `counts` ({ id: copies }): two of it, or five, and so on. */
+  function oneAway(card, counts) {
+    var n = (counts && counts[card.id]) || 0;
+    return mergeable(card) && n % EGE.cards.HOLO_OF === EGE.cards.HOLO_OF - 1;
+  }
+
   /* A Sort button and its menu. `onChange` redraws whatever it sorts; the
      menu itself is never redrawn, so the search box keeps its place while
-     it is typed in. Hands back { node, sort(cards, first) }. */
-  function finder(onChange) {
+     it is typed in. `holo`, given, adds { label } to the orders: just the
+     cards one more copy of would make a holo for whoever holds { counts() },
+     rarest first. Hands back { node, sort(cards, first) }. */
+  function finder(onChange, holo) {
     var f = Object.assign({}, FIND_DEFAULT);
     var wrap = el('div', 'ege-finder');
     var toggle = el('button', 'fb-btn ege-filtertoggle ege-finder__toggle');
@@ -2700,7 +2726,8 @@ EGE.cardsView = (function () {
         return [r.key, r.name];
       })).concat([['holo', 'Holo']]).concat(eventOptions())),
       sort: select('sort', 'Order', [['rarity', 'Rarest first'], ['points', 'Highest score'],
-        ['newest', 'Newest pulls'], ['year', 'By year'], ['game', 'By game']])
+        ['newest', 'Newest pulls'], ['year', 'By year'], ['game', 'By game']]
+        .concat(holo ? [['holo', holo.label]] : []))
     };
 
     var foot = el('div', 'ege-finder__foot');
@@ -2733,9 +2760,15 @@ EGE.cardsView = (function () {
       /* What of `cards` the menu lets through, in its order; `first` is
          when each was first pulled, for Newest pulls. */
       sort: function (cards, first) {
-        return cards.filter(function (card) { return finds(card, f); }).sort(sorter(f.sort, first || {}));
+        var only = f.sort === 'holo' && holo ? holo.counts() || {} : null;
+        return cards.filter(function (card) { return finds(card, f) && (!only || oneAway(card, only)); })
+          .sort(sorter(f.sort, first || {}));
       },
-      changed: function () { return changes() > 0; }
+      changed: function () { return changes() > 0; },
+      /* Showing the cards that would make a holo, and whether the copies
+         that decides it are still being read. */
+      holo: function () { return f.sort === 'holo'; },
+      waiting: function () { return f.sort === 'holo' && Boolean(holo) && holo.counts() === null; }
     };
   }
 
@@ -2774,7 +2807,12 @@ EGE.cardsView = (function () {
 
     /* One side of the offer: its title and count, its Sort button, and the
        cards. `side` says where its cards and its picks are, read afresh on
-       every draw since the other side's change with who it is with. */
+       every draw since the other side's change with who it is with.
+
+       A collection can be hundreds of cards, so a side draws a few rows and
+       adds more as its grid is scrolled, the way the binder does, and a tap
+       only flips the card tapped: drawing both whole collections, and again
+       on every tap, was the lag in trading (Sam, 2026-10-31). */
     function column(side) {
       var holder = el('div', 'ege-tradecol');
       var top = el('div', 'ege-tradecol__head');
@@ -2783,61 +2821,117 @@ EGE.cardsView = (function () {
       top.appendChild(title);
       top.appendChild(tag);
       holder.appendChild(top);
-      var find = finder(function () { fill(); });
+      var find = finder(function () { fill(); }, side.holo);
       holder.appendChild(find.node);
       var grid = el('div', 'ege-tradegrid');
       holder.appendChild(grid);
       cols.appendChild(holder);
 
+      var list = [];      /* the cards the menu lets through, in its order */
+      var drawn = 0;      /* how many of them are in the grid */
+      var marker = el('div', 'ege-binder__more');
+      marker.setAttribute('aria-hidden', 'true');
+      var watch = window.IntersectionObserver ? new window.IntersectionObserver(function (entries) {
+        var near = entries.some(function (e) { return e.isIntersecting; });
+        if (near && marker.isConnected) { more(perRow(grid) * 4); }
+      }, { root: grid, rootMargin: '0px 0px 360px 0px' }) : null;
+
+      function count() { tag.textContent = side.picked().length + ' / ' + MAX_SIDE; }
+
       function fill() {
         var owned = side.owned();
-        var picked = side.picked();
         title.textContent = side.title();
-        tag.textContent = picked.length + ' / ' + MAX_SIDE;
+        count();
+        if (watch) { watch.unobserve(marker); }
+        marker.remove();
         grid.innerHTML = '';
-        if (owned === null) {
+        grid.scrollTop = 0;
+        list = [];
+        drawn = 0;
+        if (owned === null || find.waiting()) {
           grid.appendChild(el('p', 'fb-meta', 'Loading\u2026'));
           return;
         }
-        /* An event's reward card never trades, so it is not offered; an
-           event's card none of whose copies are free yet is there, tagged
-           with how long it has left, but cannot be picked. */
+        /* An event's reward card never trades, so it is not offered. */
         var all = Object.keys(owned).map(EGE.cards.byId).filter(function (c) { return c && !c.reward; });
-        var cards = find.sort(all, side.first());
-        var locks = side.locks();
-        cards.forEach(function (card) {
-          var on = picked.indexOf(card.id) !== -1;
-          var node = cardEl(card, { count: owned[card.id] });
-          var locked = !on && lockTag(node, locks, owned, card.id);
-          if (on) { node.classList.add('is-picked'); }
-          node.setAttribute('aria-pressed', on ? 'true' : 'false');
-          pressable(node, describe(card) + (on ? ', in the offer' : locked ? ', traded too recently to trade again' : ''), function () {
-            var at = picked.indexOf(card.id);
-            if (at !== -1) { picked.splice(at, 1); }
-            else if (locked) {
-              build.note = card.player.first + '\u2019s ' + eventOfCard(card).name + ' card was traded in the last ' +
-                LOCK_HOURS + ' hours. It can be traded again in ' + waitText(lockedOf(locks, card.id)[0]) + '.';
-            }
-            else if (picked.length < MAX_SIDE) { picked.push(card.id); }
-            draw();
-          });
-          grid.appendChild(node);
-        });
-        if (!cards.length) {
+        list = find.sort(all, side.first());
+        if (!list.length) {
           grid.appendChild(el('p', 'fb-meta', all.length && find.changed()
             ? 'Nothing here matches that. Try another search.' : side.none()));
+          return;
         }
+        /* At least down to the last card in the offer, so one asked for
+           from its close-up is there to be scrolled to. */
+        var picked = side.picked();
+        var need = 0;
+        list.forEach(function (card, i) { if (picked.indexOf(card.id) !== -1) { need = i + 1; } });
+        more(Math.max(perRow(grid) * 6, need));
       }
-      return { fill: fill, grid: grid };
+
+      function more(n) {
+        var upto = Math.min(list.length, drawn + n);
+        var batch = document.createDocumentFragment();
+        for (var i = drawn; i < upto; i += 1) { batch.appendChild(cardNode(list[i])); }
+        drawn = upto;
+        marker.remove();
+        grid.appendChild(batch);
+        if (drawn >= list.length) { return; }
+        if (!watch) { more(list.length); return; }
+        /* Watched afresh each time it moves, so it is checked again
+           straight away: still in reach means another few rows. */
+        grid.appendChild(marker);
+        watch.unobserve(marker);
+        watch.observe(marker);
+      }
+
+      /* An event's card none of whose copies are free yet is there, tagged
+         with how long it has left, but cannot be picked. */
+      function cardNode(card) {
+        var owned = side.owned();
+        var on = side.picked().indexOf(card.id) !== -1;
+        var node = cardEl(card, { count: owned[card.id] });
+        var locked = !on && lockTag(node, side.locks(), owned, card.id);
+        function mark(isOn) {
+          node.classList.toggle('is-picked', isOn);
+          node.setAttribute('aria-pressed', isOn ? 'true' : 'false');
+          node.setAttribute('aria-label', describe(card) +
+            (isOn ? ', in the offer' : locked ? ', traded too recently to trade again' : ''));
+        }
+        pressable(node, null, function () {
+          var picked = side.picked();
+          var at = picked.indexOf(card.id);
+          if (at !== -1) {
+            picked.splice(at, 1);
+            mark(false);
+          } else if (locked) {
+            build.note = card.player.first + '\u2019s ' + eventOfCard(card).name + ' card was traded in the last ' +
+              LOCK_HOURS + ' hours. It can be traded again in ' + waitText(lockedOf(side.locks(), card.id)[0]) + '.';
+          } else if (picked.length < MAX_SIDE) {
+            picked.push(card.id);
+            mark(true);
+          }
+          count();
+          summarize();
+        });
+        mark(on);
+        return node;
+      }
+
+      return { fill: fill, grid: grid, holo: find.holo };
     }
 
+    /* Each side's Sort menu can also show just the cards one more copy of
+       would make a holo for the one who would get it: on their side, the
+       cards that finish one of yours, and on yours, the cards that finish
+       one of theirs (Sam, 2026-10-31). */
     var mineSide = column({
       title: function () { return 'You give'; },
       owned: function () { return state.owned; },
       first: function () { return state.first; },
       locks: function () { return state.locks; },
       picked: function () { return build.give; },
-      none: function () { return 'No cards of yours to offer here.'; }
+      none: function () { return 'No cards of yours to offer here.'; },
+      holo: { label: 'Cards they can holo', counts: function () { return build.theirs; } }
     });
     var theirsSide = column({
       title: function () { return 'You get from ' + firstName(build.to); },
@@ -2845,12 +2939,11 @@ EGE.cardsView = (function () {
       first: function () { return build.theirsFirst; },
       locks: function () { return build.theirsLocks; },
       picked: function () { return build.take; },
-      none: function () { return firstName(build.to) + ' has no cards here.'; }
+      none: function () { return firstName(build.to) + ' has no cards here.'; },
+      holo: { label: 'Cards you can holo', counts: function () { return state.owned; } }
     });
 
-    function draw() {
-      mineSide.fill();
-      theirsSide.fill();
+    function summarize() {
       var note = build.note;
       build.note = null;
       summary.textContent = note ? note
@@ -2864,6 +2957,14 @@ EGE.cardsView = (function () {
       send.disabled = !build.give.length || build.theirs === null;
     }
 
+    /* Their side, and yours too while it is showing the cards that would
+       finish one of their holos, since that is about whoever it is with. */
+    function drawTheirs() {
+      theirsSide.fill();
+      if (mineSide.holo()) { mineSide.fill(); }
+      summarize();
+    }
+
     /* `take` is what to ask them for straight away, once their cards are in
        and only what they still have. */
     function choose(email, take) {
@@ -2873,7 +2974,7 @@ EGE.cardsView = (function () {
       build.theirsFirst = {};
       build.theirsLocks = {};
       build.missing = null;
-      draw();
+      drawTheirs();
       Promise.all([EGE.cardStore.collectionFor(email), EGE.cardStore.tradeLocks(email)]).then(function (both) {
         var got = both[0];
         if (build.to !== email) { return; }
@@ -2890,7 +2991,7 @@ EGE.cardsView = (function () {
             ? firstName(email) + '\u2019s copy was traded in the last ' + LOCK_HOURS + ' hours and cannot be traded again yet.'
             : firstName(email) + ' does not have that card any more.';
         }
-        draw();
+        drawTheirs();
         /* The card asked for, scrolled into sight in their side. */
         var on = theirsSide.grid.querySelector('.is-picked');
         if (on) {
@@ -2910,10 +3011,11 @@ EGE.cardsView = (function () {
           return;
         }
         closeRip();
-        refresh();
+        refreshTrades();
       });
     });
 
+    mineSide.fill();
     choose(pick.value, ask && pick.value === ask.to ? ask.take : null);
     /* Focus goes on the builder, not the drop-down: a phone opens a
        focused drop-down's picker straight away. */
