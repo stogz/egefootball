@@ -300,16 +300,20 @@
           <button type="button" class="fb-btn fb-btn--sm ege-search__more" id="tradeMore" hidden>Show more</button>
         </div>
       </section>
-      <section class="fb-panel ege-league__panel" id="leagueDrafts" hidden>
-        <div class="fb-panel__head">
+      <section class="fb-panel ege-league__panel ege-drafts" id="leagueDrafts" hidden>
+        <div class="fb-panel__head ege-drafts__head">
           <h3>Draft History</h3>
+          <div class="ege-seasonbar ege-drafts__bar">
+            <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="draftPrev"
+                    aria-label="Draft before">&lsaquo;</button>
+            <select class="fb-select ege-seasonbar__pick ege-drafts__year" id="draftYear" aria-label="Draft"></select>
+            <select class="fb-select ege-seasonbar__pick" id="draftRound" aria-label="Round"></select>
+            <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="draftNext"
+                    aria-label="Draft after">&rsaquo;</button>
+          </div>
         </div>
         <div class="fb-panel__body">
-          <div class="ege-search__sorts ege-league__fasorts">
-            <select class="fb-select ege-filterselect" id="draftYear" aria-label="Draft"></select>
-            <select class="fb-select ege-filterselect" id="draftRound" aria-label="Round"></select>
-          </div>
-          <ol class="ege-room__list ege-search__list" id="draftList"></ol>
+          <ol class="ege-room__list ege-drafts__list" id="draftList"></ol>
           <button type="button" class="fb-btn fb-btn--sm ege-search__more" id="draftMore" hidden>Show more</button>
         </div>
       </section>

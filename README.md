@@ -860,11 +860,16 @@ published before 2026-10-31 have no trades, so the report is hidden until
 an admin's visit publishes them again.
 
 **The Draft History** comes after a gap under the Trade Report: every draft
-held since 2023, a **Draft** pick (the newest first) and a **Round** pick
-(Round 1 first, *All rounds* last), the picks in order, sixteen then *Show
-more*. Each is the player's card with his position and college under his
-name, then a **PICK** box with the pick's number, the mark of the team that
-made it, and his overall now (or RETIRED). The six are orange. It is every
+held since 2023. Its head is in ink and holds the week bar's switcher (Sam,
+2026-10-31), `[ ‹ ] [ year ] [ round ] [ › ]`, the arrows a draft back and
+on, keeping the round; the year opens on the newest draft and the round on
+Round 1 (*All rounds* last). On a phone the switcher goes under the title.
+The picks are a numbered list, one card a row, the number in front of each
+the pick's (its title says the round and, for a traded pick, whose it was),
+sixteen then *Show more*. Each card is the player's with his position and
+college under his name, the mark of the team that made the pick (on the
+corner of his picture on a phone), and his overall now (or RETIRED). The
+six are orange. It is every
 player in the live rosters, free agents and the retired included, with a
 `draft` from 2023 on, so a 2023 pick is only there if he was in the world
 at the 2023 kickoff.

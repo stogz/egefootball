@@ -4619,6 +4619,28 @@ body:has(#view-league:not([hidden]) .ege-ticker:not([hidden])) { padding-bottom:
   .ege-ticker__track { animation: none; }
   .ege-ticker__run.is-again { display: none; }
 }
+/* The Draft History (Sam, 2026-10-31): its head in ink, holding the week
+   bar's switcher, [ ‹ ] [ year ] [ round ] [ › ], the arrows a draft
+   back and on; under the title on a phone. Then the picks as a numbered
+   list, one card a row, the number the pick. */
+.ege-drafts__head { background: var(--fb-ink); color: var(--fb-cream); }
+.ege-drafts__head h3 { color: var(--fb-cream); }
+.ege-drafts__bar { flex: 0 1 460px; }
+.ege-drafts__bar .ege-drafts__year { flex: 0 1 140px; }
+@media (max-width: 760px) { .ege-drafts__bar { flex: 1 1 100%; } }
+@media (max-width: 620px) {
+  .ege-drafts__bar { gap: 6px; }
+  .ege-drafts__bar .ege-drafts__year { flex: 0 0 96px; }
+  .ege-drafts__bar .ege-seasonbar__pick { padding: 0 26px 0 10px; background-position: right 9px center; font-size: 15px; }
+}
+.ege-drafts__list { grid-template-columns: minmax(0, 1fr); max-width: 860px; margin: 0 auto; }
+.ege-drafts .ege-search__more { display: block; margin: 14px auto 0; }
+.ege-drafts__pick { display: grid; grid-template-columns: 3.5rem minmax(0, 1fr); align-items: center; gap: 12px; }
+.ege-drafts__n { font-family: var(--fb-font-display); font-size: 1.75rem; line-height: 1; text-align: right; color: var(--fb-ink); }
+@media (max-width: 520px) {
+  .ege-drafts__pick { grid-template-columns: 2.75rem minmax(0, 1fr); gap: 6px; }
+  .ege-drafts__n { font-size: 1.125rem; }
+}
 /* A pick not yet used: its round where a face would be. */
 .ege-pickface { display: flex; flex-direction: column; gap: 3px; background: var(--fb-ink); color: var(--fb-cream); }
 .ege-pickface__label { font-size: .5625rem; font-weight: 800; letter-spacing: .12em; }

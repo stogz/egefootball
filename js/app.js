@@ -5009,24 +5009,28 @@
   /* --- the draft history -----------------------------------------------
 
      Last before the search (Sam, 2026-10-31): every draft since the world
-     began (2023), a round at a time, in the order the picks were made:
-     each player's card with his position and college, the pick's number
-     and the mark of the team that made it, and his overall now -- or
-     RETIRED. From the live rosters' players, the free agents and the
-     retired too, each of whom keeps where he was drafted. The newest
-     draft first, Round 1. */
+     began (2023), a round at a time, in the order the picks were made, as
+     a numbered list, the number the pick: each player's card with his
+     position and college, the mark of the team that made it, and his
+     overall now -- or RETIRED. The week bar's switcher picks the draft and
+     the round, its arrows a draft back and on. From the live rosters'
+     players, the free agents and the retired too, each of whom keeps where
+     he was drafted. The newest draft first, Round 1. */
 
   var draftsPanel = document.getElementById('leagueDrafts');
   var draftList = document.getElementById('draftList');
   var draftMore = document.getElementById('draftMore');
   var draftYearPick = document.getElementById('draftYear');
   var draftRoundPick = document.getElementById('draftRound');
+  var draftPrev = document.getElementById('draftPrev');
+  var draftNext = document.getElementById('draftNext');
 
   var DRAFTS_FROM = 2023;
   var DRAFT_PAGE = 16;
   var draftShown = DRAFT_PAGE;
   var draftYear = '';
   var draftRound = '1';
+  var draftYears = [];
 
   function draftLine(hit, season) {
     var d = hit.sim.draft;
@@ -5035,11 +5039,16 @@
     row.out = null;
     var by = EGE.nfl.teams[d.team];
     var via = d.from && EGE.nfl.teams[d.from] ? ', from the ' + EGE.nfl.teams[d.from].name : '';
-    row.sorted = sortBox('PICK', String(d.pick), 'Round ' + d.round + ', pick ' + d.pick + ' of the ' + d.year + ' draft' +
-      (by ? ', by the ' + by.name : '') + via);
-    row.sortedFirst = true;
     row.where = cardMark(d.team, by ? 'Drafted by the ' + by.name : null);
-    return nflLine(row);
+    var line = nflLine(row);
+    line.classList.add('ege-drafts__pick');
+    /* Laid out as a sorted card is, so on a phone the mark sits on the
+       corner of his picture and his name has the room the number takes. */
+    line.firstChild.classList.add('is-sorted');
+    var n = el('span', 'ege-drafts__n', d.pick + '.');
+    n.title = 'Round ' + d.round + ', pick ' + d.pick + ' of the ' + d.year + ' draft' + (by ? ', by the ' + by.name : '') + via;
+    line.insertBefore(n, line.firstChild);
+    return line;
   }
 
   function renderDrafts() {
@@ -5055,7 +5064,10 @@
       if (years.indexOf(hit.sim.draft.year) === -1) { years.push(hit.sim.draft.year); }
     });
     years.sort(function (a, b) { return b - a; });
-    draftYear = fillPick(draftYearPick, years.map(function (y) { return [String(y), y + ' Draft']; }), draftYear);
+    draftYears = years;
+    draftYear = fillPick(draftYearPick, years.map(function (y) { return [String(y), String(y)]; }), draftYear);
+    draftPrev.disabled = years.indexOf(Number(draftYear)) >= years.length - 1;
+    draftNext.disabled = years.indexOf(Number(draftYear)) <= 0;
     var year = drafted.filter(function (hit) { return String(hit.sim.draft.year) === draftYear; });
     var rounds = [];
     year.forEach(function (hit) { if (rounds.indexOf(hit.sim.draft.round) === -1) { rounds.push(hit.sim.draft.round); } });
@@ -5072,6 +5084,16 @@
   [[draftYearPick, function (v) { draftYear = v; }], [draftRoundPick, function (v) { draftRound = v; }]].forEach(function (pair) {
     pair[0].addEventListener('change', function () {
       pair[1](pair[0].value);
+      draftShown = DRAFT_PAGE;
+      renderDrafts();
+    });
+  });
+  /* The newest draft is first in the list, so the one before is next in it. */
+  [[draftPrev, 1], [draftNext, -1]].forEach(function (pair) {
+    pair[0].addEventListener('click', function () {
+      var year = draftYears[draftYears.indexOf(Number(draftYear)) + pair[1]];
+      if (!year) { return; }
+      draftYear = String(year);
       draftShown = DRAFT_PAGE;
       renderDrafts();
     });
