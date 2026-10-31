@@ -1100,14 +1100,27 @@ as $$
                   false);
 $$;
 
--- Anything a collection can hold: a card, a Gold Rush card, or a holo of
--- either. What trades, showcases, quick sales and the market take.
+-- A Holo II: a holo's id with a 2 on the end ('...:holo2'). Three holos of
+-- one card merge into one (Sam, 2026-10-31), through merge_holo_card like
+-- a holo, and it goes no further.
+create or replace function public.is_holo2_id(p_id text)
+returns boolean
+language sql
+immutable
+as $$
+  select coalesce(p_id like '%:holo2' and public.is_holo_id(left(p_id, -1)), false);
+$$;
+
+-- Anything a collection can hold: a card, a Gold Rush card, or a holo or
+-- a Holo II of either. What trades, showcases, quick sales and the market
+-- take.
 create or replace function public.is_any_card_id(p_id text)
 returns boolean
 language sql
 immutable
 as $$
-  select public.is_card_id(p_id) or public.is_event_card_id(p_id) or public.is_holo_id(p_id);
+  select public.is_card_id(p_id) or public.is_event_card_id(p_id) or public.is_holo_id(p_id)
+         or public.is_holo2_id(p_id);
 $$;
 
 -- ---------------------------------------------------------------------------
@@ -1786,8 +1799,9 @@ notify pgrst, 'reload schema';
 -- Quick selling a card
 --
 -- One copy of a card back for a few diamonds, by its rarity: Common and
--- Uncommon 1, Rare and Epic 2, Legendary 3, Mystic 30, and a holo three
--- times its card. An Iconic cannot be sold at all, holo or not. The same
+-- Uncommon 1, Rare and Epic 2, Legendary 3, Mystic 30, a holo three times
+-- its card and a Holo II nine. An Iconic cannot be sold at all, holo or
+-- not. The same
 -- numbers as QUICK_SELL in data/cards.js; change both together.
 --
 -- The rarity comes from the page, which grades a card from the season files
@@ -1856,9 +1870,12 @@ begin
   if v_price is null then
     raise exception 'Not a rarity: %', p_rarity;
   end if;
-  -- A holo sells for the three cards it was made from.
+  -- A holo sells for the three cards it was made from, a Holo II for the
+  -- nine.
   if public.is_holo_id(p_card) then
     v_price := v_price * 3;
+  elsif public.is_holo2_id(p_card) then
+    v_price := v_price * 9;
   end if;
 
   select quantity into v_have
@@ -2647,12 +2664,21 @@ notify pgrst, 'reload schema';
 -- data/cards.js is the same 60, and the two are changed together.
 -- card_merges.diamonds keeps what each merge paid, which the diamonds page
 -- lists; a merge from before this pays nothing after it.
+--
+-- Holo II (Sam, 2026-10-31): three holos of one card merge the same way,
+-- into its Holo II ('{card}:holo2', is_holo2_id), carrying all nine cards'
+-- points. It pays a tenth of the Holo II's score the same way, turning
+-- down more than 180 (three times 60, the same margin). card_merges keeps
+-- the holo's id as the card merged. A Holo II merges no further.
+--
+-- Holo all (merge_holo_cards, after it): every merge the page asks for in
+-- one go, each one exactly as merge_holo_card makes it.
 -- ===========================================================================
 
 create table if not exists public.card_merges (
   id        uuid primary key default gen_random_uuid(),
   email     text        not null,
-  card_id   text        not null,          -- the card merged; the holo is card_id || ':holo'
+  card_id   text        not null,          -- the card merged; the holo is card_id || ':holo', a holo's Holo II '...:holo2'
   merged_at timestamptz not null default now()
 );
 
@@ -2668,9 +2694,10 @@ create policy "card merges readable by owner or admin"
   on public.card_merges for select to authenticated
   using (email = auth.jwt() ->> 'email' or public.is_admin());
 
--- Merges three copies of p_card into its holo and pays p_diamonds for it.
--- Returns { left: copies of the card left, diamonds: what it paid,
--- balance: the diamonds after }.
+-- Merges three copies of p_card into its holo (or three holos into their
+-- Holo II) and pays p_diamonds for it. Returns { left: copies of the card
+-- left, diamonds: what it paid, balance: the diamonds after, holo: what it
+-- made }.
 --
 -- It took the card alone and returned the copies left. Postgres will not
 -- change a function's arguments or what it returns in place, so the old
@@ -2695,15 +2722,16 @@ begin
   if v_email is null then
     raise exception 'sign in first';
   end if;
-  if v_bonus > 60 then
+  if p_card is null or not public.is_any_card_id(p_card) or public.is_holo2_id(p_card) then
+    raise exception 'Only a card or a holo can be merged: %', p_card;
+  end if;
+  if v_bonus > (case when public.is_holo_id(p_card) then 180 else 60 end) then
     raise exception 'That is more than a holo pays.';
   end if;
-  if p_card is null or not public.is_any_card_id(p_card) or public.is_holo_id(p_card) then
-    raise exception 'Only a card can be merged into a holo: %', p_card;
-  end if;
-  v_holo := p_card || ':holo';
+  -- A card makes its holo, a holo its Holo II.
+  v_holo := p_card || case when public.is_holo_id(p_card) then '2' else ':holo' end;
   -- An event's Iconic card has no holo.
-  if not public.is_holo_id(v_holo) then
+  if not (public.is_holo_id(v_holo) or public.is_holo2_id(v_holo)) then
     raise exception 'That card has no holo.';
   end if;
 
@@ -2715,7 +2743,7 @@ begin
      for update;
 
   if coalesce(v_have, 0) < 3 then
-    raise exception 'It takes three copies of a card to make its holo. You have %.', coalesce(v_have, 0);
+    raise exception 'It takes three copies of a card to merge it. You have %.', coalesce(v_have, 0);
   end if;
 
   update public.player_cards set quantity = quantity - 3
@@ -2726,7 +2754,7 @@ begin
 
   -- Event copies still cooling down from a trade that went into it take
   -- their cooldown into the holo, so merging cannot skip one.
-  if p_card ~ ':(gr|hw|hc)$' then
+  if p_card ~ ':(gr|hw|hc)(:holo)?$' then
     select count(*), max(locked_until) into v_locked, v_until
       from public.card_trade_locks
      where lower(email) = lower(v_email) and card_id = p_card and locked_until > now();
@@ -2754,12 +2782,65 @@ begin
     set diamonds = pd.diamonds + v_bonus, updated_at = now()
   returning diamonds into v_balance;
 
-  return jsonb_build_object('left', v_have - 3, 'diamonds', v_bonus, 'balance', v_balance);
+  return jsonb_build_object('left', v_have - 3, 'diamonds', v_bonus, 'balance', v_balance, 'holo', v_holo);
 end;
 $$;
 
 revoke all on function public.merge_holo_card(text, integer) from public, anon;
 grant execute on function public.merge_holo_card(text, integer) to authenticated;
+
+-- Holo all (Sam, 2026-10-31): p_cards[i] merged once for each time it is
+-- named, paying p_diamonds[i], in the order given, each one through
+-- merge_holo_card. One that cannot go (a copy traded away in another tab)
+-- is left out and the rest still go; the first reason one did not is
+-- `problem`. Returns { made: [what each merge made], diamonds: all it
+-- paid, balance: the diamonds after, problem }.
+create or replace function public.merge_holo_cards(p_cards text[], p_diamonds integer[])
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email   text := auth.jwt() ->> 'email';
+  v_n       integer := coalesce(array_length(p_cards, 1), 0);
+  v_made    text[] := '{}';
+  v_paid    integer := 0;
+  v_res     jsonb;
+  v_problem text;
+  v_balance integer;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  if v_n = 0 then
+    raise exception 'There is nothing to merge.';
+  end if;
+  if v_n > 300 then
+    raise exception 'That is more than can be merged at once.';
+  end if;
+  if coalesce(array_length(p_diamonds, 1), 0) <> v_n then
+    raise exception 'Each merge needs what it pays.';
+  end if;
+
+  for i in 1 .. v_n loop
+    begin
+      v_res := public.merge_holo_card(p_cards[i], p_diamonds[i]);
+      v_made := v_made || (v_res ->> 'holo');
+      v_paid := v_paid + coalesce((v_res ->> 'diamonds')::integer, 0);
+    exception when others then
+      v_problem := coalesce(v_problem, sqlerrm);
+    end;
+  end loop;
+
+  select diamonds into v_balance from public.player_diamonds where email = v_email;
+  return jsonb_build_object('made', to_jsonb(v_made), 'diamonds', v_paid,
+                            'balance', v_balance, 'problem', v_problem);
+end;
+$$;
+
+revoke all on function public.merge_holo_cards(text[], integer[]) from public, anon;
+grant execute on function public.merge_holo_cards(text[], integer[]) to authenticated;
 
 notify pgrst, 'reload schema';
 
@@ -3163,7 +3244,7 @@ as $$
   delete from public.card_trade_locks where locked_until < now() - interval '1 day';
   insert into public.card_trade_locks (email, card_id, locked_until)
   select lower(p_email), p_card, now() + interval '48 hours'
-   where p_card ~ ':(gr|hw|hc)(:holo)?$';
+   where p_card ~ ':(gr|hw|hc)(:holo2?)?$';
 $$;
 
 -- No more cooldowns on a card than copies of it left (a sale, a merge):
@@ -3294,13 +3375,13 @@ begin
   end if;
   foreach v_card in array p_cards loop
     if v_card like 'r:%' or not public.is_any_card_id(v_card)
-       or not (substring(v_card from ':([a-z]+)(:holo)?$') = any(e.tags)) then
+       or not (substring(v_card from ':([a-z]+)(:holo2?)?$') = any(e.tags)) then
       raise exception 'Only % cards count for its sets: %', e.name, v_card;
     end if;
     if p_set = any(e.pulled) and not exists (
          select 1 from public.card_packs
           where email = v_email and pack_key = e.key
-            and regexp_replace(v_card, ':holo$', '') = any(cards)) then
+            and regexp_replace(v_card, ':holo2?$', '') = any(cards)) then
       raise exception 'That set takes a card you pulled from a % Pack yourself.', e.name;
     end if;
   end loop;

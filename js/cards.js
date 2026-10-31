@@ -416,20 +416,41 @@ EGE.cardStore = (function () {
 
   /* --- holos ------------------------------------------------------------------ */
 
-  /* Merges three copies of `card` into its holo, for good, and is paid a
-     tenth of the holo's fantasy score for it (EGE.cards.holoBonus). Comes
-     back with the holo, how many copies of the card are left, what the
-     merge paid and the diamonds after. */
+  /* Merges three copies of `card` into its holo, or three holos into
+     their Holo II, for good, and is paid a tenth of what it makes for it
+     (EGE.cards.holoBonus). Comes back with what it made, how many copies
+     of the card are left, what the merge paid and the diamonds after. */
   function mergeHolo(card) {
-    if (!card || card.holo) { return fail('Only a card can be merged into a holo.'); }
+    if (!card || card.holo2) { return fail('A Holo II cannot be merged again.'); }
     if (card.reward) { return fail('That card has no holo.'); }
     return call('merge_holo_card', { p_card: card.id, p_diamonds: EGE.cards.holoBonus(card) }, function (data) {
       return {
         ok: true,
-        holo: EGE.cards.byId(EGE.cards.holoIdOf(card.id)),
+        holo: EGE.cards.byId(EGE.cards.mergedIdOf(card)),
         left: Number(data && data.left) || 0,
         paid: Number(data && data.diamonds) || 0,
         diamonds: data && typeof data.balance === 'number' ? data.balance : null
+      };
+    });
+  }
+
+  /* Holo all: every merge in `cards` (a card named once per merge) in one
+     call, merge_holo_cards. One that cannot go is left out and the rest
+     still go. Comes back with what was made, what it all paid, the
+     diamonds after and why one did not go, if one did not. */
+  function mergeAll(cards) {
+    var list = (cards || []).filter(function (card) { return card && !card.holo2 && !card.reward; });
+    if (!list.length) { return fail('There is nothing to merge.'); }
+    return call('merge_holo_cards', {
+      p_cards: list.map(function (card) { return card.id; }),
+      p_diamonds: list.map(function (card) { return EGE.cards.holoBonus(card); })
+    }, function (data) {
+      return {
+        ok: true,
+        made: ((data && data.made) || []).map(EGE.cards.byId).filter(Boolean),
+        paid: Number(data && data.diamonds) || 0,
+        diamonds: data && typeof data.balance === 'number' ? data.balance : null,
+        problem: (data && data.problem) || ''
       };
     });
   }
@@ -653,6 +674,7 @@ EGE.cardStore = (function () {
     spinToday: spinToday,
     spin: spin,
     mergeHolo: mergeHolo,
+    mergeAll: mergeAll,
     market: market,
     listCard: listCard,
     cancelListing: cancelListing,

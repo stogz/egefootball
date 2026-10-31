@@ -211,7 +211,7 @@ EGE.cardsView = (function () {
     var ev = eventOfCard(card);
     if (card.reward) { return 'The ' + ev.rewardName + ', Iconic, for finishing every ' + ev.name + ' set'; }
     return card.player.name + ', ' + r.name + (ev ? ' ' + ev.name : '') + (card.costume ? ' costume' : '') +
-      (card.holo ? ' holo ' : ' ') +
+      (card.holo2 ? ' Holo II ' : card.holo ? ' holo ' : ' ') +
       (card.art ? 'card art ' : '') + (card.kind === 'play' ? 'play' : 'performance') +
       ' card, ' + points(card.points) + ' fantasy points, ' + card.headline + ', week ' +
       card.week + ' ' + card.season;
@@ -251,11 +251,11 @@ EGE.cardsView = (function () {
   /* The count and the New tag, off the corners of any card. */
   function cardTags(node, opts) {
     if (opts.count > 1) {
-      /* Three or more of one card can be merged into its holo: the count
-         says so in holo colours. */
+      /* Three or more of one card can be merged into its holo, and three
+         holos into a Holo II: the count says so in holo colours. */
       var count = el('span', 'ege-tcard__count' + (opts.mergeable ? ' ege-tcard__count--merge' : ''),
         '\u00d7' + opts.count);
-      if (opts.mergeable) { count.title = 'Three of these make a holo'; }
+      if (opts.mergeable) { count.title = 'Three of these make a ' + (opts.mergeable === 2 ? 'Holo II' : 'holo'); }
       node.appendChild(count);
     }
     if (opts.isNew) { node.appendChild(el('span', 'ege-tcard__new', 'New')); }
@@ -358,7 +358,7 @@ EGE.cardsView = (function () {
     var team = card.team || {};
 
     var node = el('div', 'ege-tcard ege-tcard--' + card.rarity + ' ege-tcard--' + card.kind +
-      (card.holo ? ' ege-tcard--holo' : '') + eventClass(card) +
+      (card.holo ? ' ege-tcard--holo' : '') + (card.holo2 ? ' ege-tcard--holo2' : '') + eventClass(card) +
       (card.art ? ' ege-tcard--cut' : ''));
     node.style.setProperty('--rarity', r.color);
     node.style.setProperty('--ground', team.ground || '#2f4a2b');
@@ -407,9 +407,16 @@ EGE.cardsView = (function () {
 
     /* An event's card wears its sticker in the corner the logo leaves
        free, under the score; a holo says so there too, under the sticker
-       on an event's holo. */
+       on an event's holo. A Holo II's seal has its II on a chip of its
+       own. */
     if (stickered(card)) { art.appendChild(stickerEl(card)); }
-    if (card.holo) { art.appendChild(el('span', 'ege-tcard__holo', 'Holo')); }
+    if (card.holo2) {
+      var seal = el('span', 'ege-tcard__holo ege-tcard__holo--2', 'Holo');
+      seal.appendChild(el('b', 'ege-tcard__holonum', 'II'));
+      art.appendChild(seal);
+    } else if (card.holo) {
+      art.appendChild(el('span', 'ege-tcard__holo', 'Holo'));
+    }
 
     if (card.kind === 'play') {
       var big = el('div', 'ege-tcard__yards');
@@ -462,7 +469,7 @@ EGE.cardsView = (function () {
     face.appendChild(body);
 
     var foot = el('div', 'ege-tcard__foot');
-    foot.appendChild(el('span', 'ege-tcard__rarity', r.name + (card.holo ? ' Holo' : '')));
+    foot.appendChild(el('span', 'ege-tcard__rarity', r.name + (card.holo2 ? ' Holo II' : card.holo ? ' Holo' : '')));
     foot.appendChild(el('span', 'ege-tcard__when',
       (card.event ? card.event : 'Wk ' + card.week) + ' \u00b7 ' + card.season));
     face.appendChild(foot);
@@ -1070,7 +1077,8 @@ EGE.cardsView = (function () {
       var flip = el('div', 'ege-flip ege-flip--' + card.rarity);
       flip.style.setProperty('--i', i);
       flip.style.setProperty('--glow', r.color);
-      flip.dataset.rarity = card.rarity;
+      /* A Holo II turns over at least as big as a Legendary. */
+      flip.dataset.rarity = card.holo2 && !BUILDUP[card.rarity] ? 'legendary' : card.rarity;
       flip.dataset.label = describe(card) + (options.isNew[i] ? ', new' : '');
       flip.card = card;
       pressable(flip, 'Card ' + (i + 1) + ', face down. Turn it over.', function () {
@@ -1469,14 +1477,16 @@ EGE.cardsView = (function () {
 
      Three copies of a card merge into one holographic copy of it, with all
      three cards' fantasy points on it, for good (EGE.cards.HOLO_OF and
-     merge_holo_card in supabase/schema.sql). Two taps, like a quick sale:
+     merge_holo_card in supabase/schema.sql), and three holos of it merge
+     again into its Holo II (Sam, 2026-10-31). Two taps, like a quick sale:
      the first says what it does and that it cannot be undone, the second
      merges. The holo then comes out face down, the way a pull does, and
      turns over. */
   function mergeControl(card, parts) {
     var worth = points(card.points * EGE.cards.HOLO_OF);
     var bonus = EGE.cards.holoBonus(card);
-    var button = el('button', 'fb-btn ege-zoom__merge');
+    var into = card.holo ? 'Holo II' : 'Holo';
+    var button = el('button', 'fb-btn ege-zoom__merge' + (card.holo ? ' ege-zoom__merge--2' : ''));
     button.type = 'button';
     var armed = false;
     var timer = null;
@@ -1484,7 +1494,7 @@ EGE.cardsView = (function () {
     function disarm() {
       armed = false;
       button.classList.remove('is-armed');
-      button.textContent = 'Merge 3 into a Holo';
+      button.textContent = 'Merge 3 into a ' + into;
     }
     disarm();
 
@@ -1493,7 +1503,8 @@ EGE.cardsView = (function () {
         armed = true;
         button.classList.add('is-armed');
         button.textContent = 'Tap again to merge for good';
-        parts.status.textContent = 'Merging takes 3 of your copies and makes one holographic ' +
+        parts.status.textContent = 'Merging takes 3 of your ' + (card.holo ? 'holos' : 'copies') + ' and makes one ' +
+          (card.holo ? 'Holo II ' : 'holographic ') +
           card.player.first + ' card with all of their points, ' + worth + ' FPTS, and pays ' +
           bonus + (bonus === 1 ? ' diamond' : ' diamonds') + '. It cannot be undone.';
         timer = window.setTimeout(disarm, 6000);
@@ -1513,8 +1524,9 @@ EGE.cardsView = (function () {
         state.hold = true;
         closeRip();
         if (EGE.showcase) { EGE.showcase.forget(); }
-        openRip({ title: 'Holo made', cards: [res.holo], isNew: [isNew],
-                  extras: ['Three ' + card.player.first + ' cards merged into one, ' + worth + ' FPTS']
+        openRip({ title: into + ' made', cards: [res.holo], isNew: [isNew],
+                  extras: ['Three ' + card.player.first + (card.holo ? ' holos' : ' cards') +
+                           ' merged into one, ' + worth + ' FPTS']
                     .concat(res.paid ? ['+' + res.paid + (res.paid === 1 ? ' diamond' : ' diamonds')] : []),
                   onClose: function () { reveal([res.holo], [isNew]); } });
       });
@@ -1522,10 +1534,17 @@ EGE.cardsView = (function () {
     return button;
   }
 
-  /* Whether three copies of a card can be merged into a holo: not a holo
-     already, and not an event's reward card. */
+  /* Whether three copies of a card can be merged: a card into its holo, a
+     holo into its Holo II, but not a Holo II, and not an event's reward
+     card. */
   function mergeable(card) {
-    return !card.holo && !card.reward;
+    return !card.holo2 && !card.reward;
+  }
+
+  /* What the count on a card in your binder says about merging it: 0
+     nothing, 1 three of them make a holo, 2 three make a Holo II. */
+  function mergeMark(card, count) {
+    return mergeable(card) && count >= EGE.cards.HOLO_OF ? (card.holo ? 2 : 1) : 0;
   }
 
   /* Up close, a card of any rarity leans toward the pointer, as a holo
@@ -1715,6 +1734,7 @@ EGE.cardsView = (function () {
     rarity.appendChild(new Option('All rarities', 'all'));
     EGE.cards.RARITIES.forEach(function (r) { rarity.appendChild(new Option(r.name, r.key)); });
     rarity.appendChild(new Option('Holo', 'holo'));
+    rarity.appendChild(new Option('Holo II', 'holo2'));
     eventOptions().forEach(function (o) { rarity.appendChild(new Option(o[1], o[0])); });
     rarity.value = f.rarity;
     rarity.addEventListener('change', function () { pick('rarity', rarity.value); });
@@ -1782,7 +1802,7 @@ EGE.cardsView = (function () {
   function mergeButton(modifier) {
     var b = el('button', 'fb-btn ege-filtermerge' + (modifier ? ' ' + modifier : ''));
     b.type = 'button';
-    b.title = 'Cards you can merge into a holo';
+    b.title = 'Cards you can merge';
     /* Two arrows coming together into one, cut out of whatever is behind it
        (see site.css), so it can be ink on holo and holo on ink. */
     var icon = el('span', 'ege-filtermerge__icon');
@@ -1816,8 +1836,136 @@ EGE.cardsView = (function () {
       b.hidden = !n;
       b.classList.toggle('is-on', on);
       b.setAttribute('aria-pressed', on ? 'true' : 'false');
-      b.setAttribute('aria-label', 'Cards you can merge into a holo, ' + n);
+      b.setAttribute('aria-label', 'Cards you can merge, ' + n);
       b.querySelector('.ege-filtermerge__badge').textContent = n;
+    });
+  }
+
+  /* --- Holo all ------------------------------------------------------------
+
+     With the merge button on, a bar over the page buttons merges every card
+     the binder is showing in one go (Sam, 2026-10-31): each three copies of
+     a card into its holo and each three holos into a Holo II, as many times
+     as they go. The other filters still count, so Holo II on the rarity
+     drop-down makes only Holo IIs. Two taps, like merging one, then one
+     call to merge_holo_cards, and what it made comes out face down, the way
+     a merge does. A holo made here is not merged again in the same go: if
+     three of one come of it, the bar is still there for them after. */
+  var holoAll = { armed: false, busy: false, timer: null, note: '' };
+
+  /* Every merge the binder is showing, a card once for each time it goes. */
+  function holoAllMerges() {
+    var out = [];
+    binder.cards.forEach(function (card) {
+      var times = mergeable(card) ? Math.floor((state.owned[card.id] || 0) / EGE.cards.HOLO_OF) : 0;
+      for (var i = 0; i < times; i += 1) { out.push(card); }
+    });
+    return out;
+  }
+
+  function disarmHoloAll() {
+    window.clearTimeout(holoAll.timer);
+    holoAll.armed = false;
+  }
+
+  function drawMergeBar() {
+    var bar = byId('mergeBar');
+    if (!bar) {
+      bar = el('div', 'ege-sellbar ege-mergebar');
+      bar.id = 'mergeBar';
+      bar.setAttribute('role', 'region');
+      bar.setAttribute('aria-label', 'Holo all');
+      byId('cardPageCards').appendChild(bar);
+    }
+    var showing = Boolean(state.filter.merge) && !state.view && state.loaded && !state.sell && !state.hold;
+    var merges = showing ? holoAllMerges() : [];
+    var on = showing && (merges.length > 0 || holoAll.busy);
+    bar.hidden = !on;
+    byId('collectionPanel').classList.toggle('is-merging', on);
+    bar.innerHTML = '';
+    if (!on) { disarmHoloAll(); holoAll.note = ''; return; }
+
+    var holos = 0;
+    var twos = 0;
+    var pays = 0;
+    merges.forEach(function (card) {
+      if (card.holo) { twos += 1; } else { holos += 1; }
+      pays += EGE.cards.holoBonus(card);
+    });
+
+    var text = el('p', 'ege-sellbar__text');
+    text.setAttribute('role', 'status');
+    if (holoAll.note) {
+      text.textContent = holoAll.note;
+    } else {
+      text.appendChild(el('strong', null, [holos ? holos + (holos === 1 ? ' holo' : ' holos') : '',
+        twos ? twos + ' Holo II' : ''].filter(Boolean).join(' \u00b7 ')));
+      text.appendChild(document.createTextNode(' \u00b7 +'));
+      text.appendChild(price(pays));
+    }
+    bar.appendChild(text);
+
+    var row = el('div', 'ege-sellbar__actions');
+    var out = el('button', 'fb-btn fb-btn--sm', 'Done');
+    out.type = 'button';
+    out.disabled = holoAll.busy;
+    out.addEventListener('click', function () {
+      disarmHoloAll();
+      holoAll.note = '';
+      pick('merge', false);
+    });
+    var go = el('button', 'fb-btn fb-btn--sm ege-mergebar__go' + (holoAll.armed ? ' is-armed' : ''),
+      holoAll.busy ? 'Merging\u2026' : holoAll.armed ? 'Tap again to merge' : 'Holo all');
+    go.type = 'button';
+    go.disabled = holoAll.busy || !merges.length;
+    go.addEventListener('click', function () {
+      if (!holoAll.armed) {
+        holoAll.armed = true;
+        holoAll.note = '';
+        holoAll.timer = window.setTimeout(function () {
+          if (holoAll.armed && !holoAll.busy) { holoAll.armed = false; drawMergeBar(); }
+        }, 6000);
+        drawMergeBar();
+        return;
+      }
+      disarmHoloAll();
+      runHoloAll();
+    });
+    row.appendChild(out);
+    row.appendChild(go);
+    bar.appendChild(row);
+  }
+
+  function runHoloAll() {
+    var merges = holoAllMerges();
+    if (!merges.length || holoAll.busy) { return; }
+    holoAll.busy = true;
+    holoAll.note = '';
+    drawMergeBar();
+
+    EGE.cardStore.mergeAll(merges).then(function (res) {
+      holoAll.busy = false;
+      if (!res.ok) { holoAll.note = res.message; drawMergeBar(); return; }
+      walletChanged(null, res.diamonds);
+      holoAll.note = res.problem || '';
+      if (!res.made.length) { drawMergeBar(); refresh(); return; }
+
+      /* Worst first, like a pack; new if there was none of it before, and
+         only the first of two the same. */
+      var made = EGE.cards.packOrder(res.made);
+      var seen = {};
+      var isNew = made.map(function (card) {
+        var fresh = !state.owned[card.id] && !seen[card.id];
+        seen[card.id] = true;
+        return fresh;
+      });
+      state.hold = true;
+      if (EGE.showcase) { EGE.showcase.forget(); }
+      openRip({ title: made.length === 1 ? (made[0].holo2 ? 'Holo II made' : 'Holo made') : 'Holos made',
+                cards: made, isNew: isNew,
+                extras: res.paid ? ['+' + res.paid + (res.paid === 1 ? ' diamond' : ' diamonds')] : [],
+                onClose: function () { reveal(made, isNew); } });
+      drawMergeBar();
     });
   }
 
@@ -1850,10 +1998,12 @@ EGE.cardsView = (function () {
     if (toggle) { toggle.setAttribute('aria-expanded', open ? 'true' : 'false'); }
   }
 
-  /* The rarity drop-downs: a rarity, every holo, every card of an event
-     ('ev:halloween'), or every costume card. */
+  /* The rarity drop-downs: a rarity, every holo (Holo IIs too), every
+     Holo II, every card of an event ('ev:halloween'), or every costume
+     card. */
   function rarityFits(card, rarity) {
     return rarity === 'all' || (rarity === 'holo' ? Boolean(card.holo)
+      : rarity === 'holo2' ? Boolean(card.holo2)
       : rarity === 'costume' ? Boolean(card.costume)
       : rarity.indexOf('ev:') === 0 ? card.eventKey === rarity.slice(3) : card.rarity === rarity);
   }
@@ -1913,6 +2063,7 @@ EGE.cardsView = (function () {
 
     fillBinder(grid, shown, v);
     markMerge();
+    drawMergeBar();
 
     byId('collectionTitle').textContent = v.mine ? 'Your Collection' : v.name + '’s Collection';
 
@@ -1922,11 +2073,13 @@ EGE.cardsView = (function () {
        counted on their own, each event's: they are not among the ones out. */
     var different = {};
     var holos = 0;
+    var holo2s = 0;
     var events = {};
     mine.forEach(function (card) {
       if (card.eventKey) { events[card.eventKey] = (events[card.eventKey] || 0) + v.owned[card.id]; }
       else { different[card.baseId || card.id] = true; }
       if (card.holo) { holos += v.owned[card.id]; }
+      if (card.holo2) { holo2s += v.owned[card.id]; }
     });
     byId('collectionCount').textContent = v.loaded && !v.failed
       ? copies + (copies === 1 ? ' card' : ' cards') + ' · ' + Object.keys(different).length + ' of ' + out +
@@ -1941,6 +2094,8 @@ EGE.cardsView = (function () {
       empty.textContent = mine.length
         ? (f.rarity === 'holo' && !holos
           ? 'No holos yet. Get three of one card, then open it and merge them.'
+          : f.rarity === 'holo2' && !holo2s
+          ? 'No Holo IIs yet. Merge three holos of one card.'
           : f.rarity.indexOf('ev:') === 0 && !events[f.rarity.slice(3)]
           ? 'No ' + EGE.cards.eventOf(f.rarity.slice(3)).name + ' cards yet.'
           : 'Nothing you own matches that. Try another filter.')
@@ -2042,7 +2197,7 @@ EGE.cardsView = (function () {
   function binderCard(card, v) {
     var count = v.owned[card.id] || 0;
     var node = cardEl(card, { count: count, isNew: v.mine && state.fresh[card.id],
-                              mergeable: v.mine && mergeable(card) && count >= EGE.cards.HOLO_OF });
+                              mergeable: v.mine ? mergeMark(card, count) : 0 });
     node.dataset.id = card.id;
     if (v.mine) { lockTag(node, state.locks, state.owned, card.id); }
     pressable(node, describe(card) + (count > 1 ? ', ' + count + ' owned' : ''), function () {
@@ -2077,6 +2232,7 @@ EGE.cardsView = (function () {
     renderFilters();
     markBinder();
     drawSellBar();
+    drawMergeBar();
   }
 
   function pickForSale(card) {
@@ -2594,7 +2750,7 @@ EGE.cardsView = (function () {
       var team = card.team || {};
       findText[card.id] = [card.player.name, card.position, team.school, card.versus, card.headline,
         card.line, card.text, card.event, card.season, card.week ? 'week ' + card.week : '', EGE.cards.rarity(card.rarity).name,
-        card.reward ? 'reward' : card.kind === 'play' ? 'play' : 'performance', card.holo ? 'holo' : '',
+        card.reward ? 'reward' : card.kind === 'play' ? 'play' : 'performance', card.holo ? 'holo' : '', card.holo2 ? 'holo ii holo2' : '',
         card.eventKey ? EGE.cards.eventOf(card.eventKey).name : '', card.costume ? 'costume' : '',
         card.art ? 'card art' : '']
         .filter(Boolean).join(' ').toLowerCase();
@@ -2698,7 +2854,7 @@ EGE.cardsView = (function () {
         .map(function (y) { return [String(y), String(y)]; }))),
       rarity: select('rarity', 'Rarity', [['all', 'All rarities']].concat(EGE.cards.RARITIES.map(function (r) {
         return [r.key, r.name];
-      })).concat([['holo', 'Holo']]).concat(eventOptions())),
+      })).concat([['holo', 'Holo'], ['holo2', 'Holo II']]).concat(eventOptions())),
       sort: select('sort', 'Order', [['rarity', 'Rarest first'], ['points', 'Highest score'],
         ['newest', 'Newest pulls'], ['year', 'By year'], ['game', 'By game']])
     };
@@ -4688,7 +4844,7 @@ EGE.cardsView = (function () {
   });
 
   function busy() {
-    if (state.hold || rip || state.filtersOpen || state.sell || refreshing || polling || state.spinning) { return true; }
+    if (state.hold || rip || state.filtersOpen || state.sell || holoAll.busy || refreshing || polling || state.spinning) { return true; }
     if (Date.now() - touched < TOUCH_QUIET) { return true; }
     var a = document.activeElement;
     return Boolean(a && (a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' ||

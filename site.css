@@ -6472,6 +6472,175 @@ html.ege-noscroll body { overflow: hidden; }
   background: var(--fb-ink);
 }
 
+/* --- Holo II -------------------------------------------------------------
+
+   Three holos of one card merged again (Sam, 2026-10-31). Where a holo is
+   light, a Holo II is dark: a black prizm face with an oil-slick sheen, a
+   second frame inside the rarity's -- a ring of bright rainbow, the II --
+   and behind the player a night sky, a burst of saturated prism rays over
+   stars, with the player lit at the edges. The score, the nameplate and
+   the II on the seal are the brightest foil on it, the type on the dark
+   white or foil. Nothing is laid over the player, so the face always reads.
+
+   Held still in the binder like every foil. In a pack and up close the
+   ring runs through the colours, the sky turns slowly behind the player
+   and a soft light follows the pointer. */
+
+.ege-tcard--holo2 {
+  --holo2-band: linear-gradient(100deg, #ff4fc0 0%, #ffa94d 16%, #fff060 32%, #5dff9b 48%,
+                                #45dcff 64%, #7f86ff 80%, #e45cff 92%, #ff4fc0 100%);
+  --holo2-ring: conic-gradient(from 200deg, #ff4fc0, #ffa94d, #fff060, #5dff9b, #45dcff, #7f86ff, #e45cff, #ff4fc0);
+  --holo2-night: #0d0a1c;
+}
+/* Its glow is the rainbow's two ends, pink one way and blue the other. As
+   specific as the holo's own glow, and after it, so it wins. */
+.ege-tcard.ege-tcard--holo.ege-tcard--holo2:not(.ege-tcard--back) {
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, .35), -5px -5px 14px rgba(255, 79, 192, .55),
+              5px 5px 16px rgba(69, 220, 255, .55);
+}
+/* The ring: under the face, showing between it and the rarity's frame. */
+.ege-tcard--holo2::before {
+  content: '';
+  position: absolute;
+  inset: 1.5cqw;
+  background: var(--holo2-ring);
+  box-shadow: 0 0 0 .5cqw var(--fb-ink);
+}
+
+.ege-tcard--holo2 .ege-tcard__face {
+  background:
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0) 0 3.2cqw, rgba(255, 255, 255, .05) 3.2cqw 3.8cqw,
+                              rgba(255, 255, 255, 0) 3.8cqw 6.6cqw),
+    radial-gradient(ellipse at 0% 100%, rgba(255, 79, 192, .3), rgba(255, 79, 192, 0) 55%),
+    radial-gradient(ellipse at 100% 70%, rgba(69, 220, 255, .26), rgba(69, 220, 255, 0) 55%),
+    linear-gradient(160deg, #1b1236 0%, var(--holo2-night) 50%, #0e1630 100%);
+}
+.ege-tcard--holo2 .ege-tcard__top { background: var(--holo2-night); }
+.ege-tcard--holo2 .ege-tcard__kind {
+  background: var(--holo2-band);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.ege-tcard--holo2 .ege-tcard__score,
+.ege-tcard--holo2 .ege-tcard__plate {
+  background: var(--holo-lines), var(--holo2-band);
+  background-size: 100% 100%, 220% 220%;
+  background-position: 0 0, 10% 50%;
+  color: var(--fb-ink);
+}
+.ege-tcard--holo2 .ege-tcard__plate { background-position: 0 0, 70% 50%; }
+.ege-tcard--holo2 .ege-tcard__headline { color: #fff; }
+.ege-tcard--holo2 .ege-tcard__line { color: #b8b1da; }
+.ege-tcard--holo2 .ege-tcard__foot {
+  background: var(--holo2-night);
+  color: #fff;
+  border-top: .8cqw solid;
+  border-image: var(--holo2-band) 1;
+}
+.ege-tcard--holo2 .ege-tcard__rarity { text-shadow: none; }
+
+/* The sky behind the player, drawn on a square much bigger than the
+   picture and centred on where the head is, so it can turn about it up
+   close: a light behind the head, stars, a dark edge, fine rays, and the
+   prism's colours fanning out round it. The picture itself is the night
+   under it all. */
+.ege-tcard--holo2 .ege-tcard__art { background: var(--holo2-night); }
+.ege-tcard--holo2 .ege-tcard__art::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 36%;
+  width: 150cqw;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, .6) 0, rgba(255, 255, 255, 0) 17cqw),
+    radial-gradient(circle, rgba(255, 255, 255, .95) 0 .3cqw, rgba(255, 255, 255, 0) .45cqw) 0 0 / 9cqw 11cqw,
+    radial-gradient(circle, rgba(255, 255, 255, .7) 0 .22cqw, rgba(255, 255, 255, 0) .35cqw) 4cqw 6cqw / 13cqw 7cqw,
+    radial-gradient(circle, rgba(13, 10, 28, 0) 0 12cqw, rgba(13, 10, 28, .78) 52cqw),
+    repeating-conic-gradient(from 0deg, rgba(255, 255, 255, 0) 0deg 5deg, rgba(255, 255, 255, .2) 5deg 7deg),
+    conic-gradient(from 0deg, #ff4fc0, #ffa94d, #fff060, #5dff9b, #45dcff, #7f86ff, #e45cff, #ff4fc0);
+}
+/* A card-art card's picture lets its helmet out of the top, so its sky
+   is cut to the picture's own box and holds still. */
+.ege-tcard--cut.ege-tcard--holo2 .ege-tcard__art::before {
+  inset: 0;
+  width: auto;
+  aspect-ratio: auto;
+  translate: none;
+}
+
+/* The player lit at the edges, and the team's mark too, so a dark one
+   still reads on the night. A white mark stays white. */
+.ege-tcard--holo2 .ege-tcard__photo {
+  filter: drop-shadow(0 0 1.4cqw rgba(255, 255, 255, .7));
+}
+.ege-tcard--holo2 .ege-tcard__logo {
+  filter: drop-shadow(0 0 .5cqw rgba(255, 255, 255, .95)) drop-shadow(0 0 1.4cqw rgba(255, 255, 255, .5));
+}
+.ege-tcard--holo2 .ege-tcard__logo--white {
+  filter: brightness(0) invert(1) drop-shadow(0 .6cqw .8cqw rgba(0, 0, 0, .45));
+}
+/* None of a holo's rainbow over the picture: the player stays clear. */
+.ege-tcard--holo2 .ege-tcard__art::after,
+.ege-tcard--holo2 .ege-tcard__cut::after,
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--holo2 .ege-tcard__art::after,
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--holo2 .ege-tcard__cut::after { content: none; }
+
+.ege-tcard--holo2 .ege-tcard__yards b {
+  background: var(--holo2-band);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(.8cqw .8cqw 0 var(--fb-ink));
+}
+
+/* The seal: HOLO in white on the night, and its II on a chip of the
+   brightest foil. */
+.ege-tcard__holo--2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.2cqw;
+  padding-right: .9cqw;
+  background: var(--holo2-night);
+  color: #fff;
+}
+.ege-tcard__holonum {
+  padding: .2cqw 1.8cqw;
+  border-radius: 999px !important;
+  background: var(--holo2-band);
+  background-size: 200% 100%;
+  color: var(--fb-ink);
+  font-weight: 900;
+  letter-spacing: .06em;
+}
+
+/* In a pack and up close. */
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--holo2::before {
+  animation: ege-holo2-hue 6s linear infinite;
+}
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--holo2 .ege-tcard__face,
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--holo2 .ege-tcard__art { animation: none; }
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--holo2 .ege-tcard__art::before {
+  will-change: rotate;
+  animation: ege-holo2-turn 40s linear infinite;
+}
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--cut.ege-tcard--holo2 .ege-tcard__art::before { animation: none; }
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--holo2 .ege-tcard__kind {
+  animation: ege-holo-text 4s linear infinite;
+}
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--holo2 .ege-tcard__face::after {
+  background: radial-gradient(circle at var(--mx, 22%) var(--my, 12%), rgba(255, 255, 255, .4), rgba(255, 255, 255, 0) 34%);
+}
+@keyframes ege-holo2-hue { to { filter: hue-rotate(360deg); } }
+@keyframes ege-holo2-turn { to { rotate: 360deg; } }
+
 /* --- the Gold Rush ---------------------------------------------------------
 
    A Gold Rush card is the card again with a GOLD RUSH sticker on it, top
@@ -8964,7 +9133,23 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-sellbar__go.is-armed,
 .ege-sellbar__go.is-armed:hover { background: #d5392b; border-color: #d5392b; color: #fff; }
 /* Room under the binder, so the bar never sits on its last row. */
-.ege-collection.is-selling .fb-panel__body { padding-bottom: 120px; }
+.ege-collection.is-selling .fb-panel__body,
+.ege-collection.is-merging .fb-panel__body { padding-bottom: 120px; }
+/* Holo all, the same bar while the merge button is on: its button holo
+   like the merge button, and ink with gold once armed, like merging one. */
+.ege-sellbar .fb-btn.ege-mergebar__go,
+.ege-sellbar .fb-btn.ege-mergebar__go:hover {
+  color: var(--fb-ink);
+  background: linear-gradient(125deg, #ff8fd2, #ffc874 25%, #8cffa4 50%, #7de6ff 75%, #df98ff);
+}
+.ege-sellbar .fb-btn.ege-mergebar__go:hover { filter: brightness(1.06); }
+.ege-sellbar .fb-btn.ege-mergebar__go.is-armed,
+.ege-sellbar .fb-btn.ege-mergebar__go.is-armed:hover {
+  border-color: var(--fb-ink);
+  color: var(--fb-gold);
+  background: var(--fb-ink);
+  filter: none;
+}
 
 /* Who else has a card, up close: a face, a first name and a count each. */
 .ege-zoom__owners { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -9359,7 +9544,8 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-sellbar__text { flex-basis: 100%; font-size: .875rem; }
   .ege-sellbar__actions { flex: 1 1 100%; }
   .ege-sellbar__actions .fb-btn { flex: 1 1 auto; padding-left: 8px; padding-right: 8px; }
-  .ege-sellbar__go { flex-grow: 2; }
+  .ege-sellbar__go,
+  .ege-mergebar__go { flex-grow: 2; }
 
   .ege-rip__stage { gap: 16px; }
   .ege-rip__cards { gap: 10px; }
@@ -9395,6 +9581,8 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-rip__stage .ege-tcard--holo .ege-tcard__face *,
   .ege-rip__stage .ege-tcard--holo .ege-tcard__art::after,
   .ege-rip__stage .ege-tcard--holo .ege-tcard__cut::after,
+  .ege-rip__stage .ege-tcard--holo2::before,
+  .ege-rip__stage .ege-tcard--holo2 .ege-tcard__art::before,
   .ege-spin__go,
   .ege-spin__wheelwrap.is-jackpot .ege-spin__wheel,
   .ege-rip__stage .ege-tcard::after,

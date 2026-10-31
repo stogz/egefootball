@@ -290,17 +290,19 @@ EGE.diamondsView = (function () {
       top.appendChild(el('span', 'ege-dgame__name', card ? card.player.name : 'A card no longer out'));
       if (card) { top.appendChild(el('span', 'ege-dgame__score', cardWhat(card))); }
       if (item.kind === 'holo') {
-        bits.push('Holo made');
+        /* The card merged is a holo when what it made is a Holo II. */
+        var two = Boolean(card && card.holo);
+        bits.push(two ? 'Holo II made' : 'Holo made');
         if (card) {
           bits.push(EGE.cards.rarity(card.rarity).name +
             (card.eventKey ? ' ' + EGE.cards.eventOf(card.eventKey).name : '') + (card.costume ? ' costume' : ''));
           /* What it paid is a tenth of the holo's points, so those are
              the points it shows. */
-          bits.push(points(card.points * EGE.cards.HOLO_OF) + ' FPTS holo');
+          bits.push(points(card.points * EGE.cards.HOLO_OF) + (two ? ' FPTS Holo II' : ' FPTS holo'));
         }
       } else {
         bits.push('Sold on the Market' + (item.buyer ? ' to ' + item.buyer.first : ''));
-        bits.push(EGE.cards.rarity(rarityKey).name + (card && card.holo ? ' holo' : ''));
+        bits.push(EGE.cards.rarity(rarityKey).name + (card && card.holo2 ? ' Holo II' : card && card.holo ? ' holo' : ''));
       }
     }
     bits.push(day(item.at));
