@@ -8494,10 +8494,23 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-cardpage.is-parked { content-visibility: hidden; }
 
 
-/* The island: five icons on a dark pill floating over the foot of the
-   screen, after the Uiverse "liquid" radio group. The picked page sits on an
-   orange slider that glides from icon to icon; the inputs stay real radios
-   (hidden, but keyboard and screen reader reachable). */
+/* The island: five icons on a pill of frosted glass floating over the foot
+   of the screen, after Apple's glass tab bars (Sam, 2026-10-31; it was solid
+   ink before). The page shows through it, blurred and a little brighter,
+   under a white tint, a bright rim and a soft gloss across the top half.
+   The picked page sits on the orange slider that glides from icon to icon;
+   the inputs stay real radios (hidden, but keyboard and screen reader
+   reachable).
+
+   Made to hold up on a phone (2026-10-31). The icons used to be CSS masks
+   filled with the label's colour, which faded on every tap: each frame of
+   the fade painted the mask again, and iPhone Safari would now and then
+   paint it with no picture at all, so icons vanished while you clicked
+   around. Now each icon is two plain pictures (index.html), Sam's glyph in
+   ink and in white, and only their opacity changes. Nothing else in the
+   island is repainted on a tap, the slider keeps a layer of its own rather
+   than getting one at every glide, a tap's hover does not stick on a
+   touch screen, and two quick taps do not zoom the page. */
 .ege-cardtabs {
   position: fixed;
   left: 0;
@@ -8511,22 +8524,53 @@ html.ege-noscroll body { overflow: hidden; }
 }
 .ege-cardtabs__inner {
   --gap: 6px;
-  --radius: 20px;
   --speed: .55s;
   --ease: cubic-bezier(.22, .9, .25, 1);
   --tab: 0;
 
   position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   width: min(100%, 400px);
   padding: var(--gap);
-  background: var(--fb-ink);
-  border: 1px solid rgba(251, 244, 230, .12);
-  border-radius: var(--radius) !important;
-  overflow: hidden;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .7), rgba(255, 255, 255, .45));
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  backdrop-filter: blur(20px) saturate(1.8);
+  border: 1px solid rgba(255, 255, 255, .7);
+  border-radius: 999px !important;
+  /* A hairline of ink round the outside so it still has an edge over a
+     cream panel -- a line, not a drop shadow (Sam, 2026-10-13). */
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, .95),
+    inset 0 -1px 2px rgba(255, 255, 255, .45),
+    inset 0 0 14px rgba(255, 255, 255, .3),
+    0 0 0 .5px rgba(29, 36, 22, .28);
   pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
+/* The gloss: light on the top half, as on a curved piece of glass. */
+.ege-cardtabs__inner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit !important;
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, .5) 0%,
+    rgba(255, 255, 255, .12) 46%,
+    rgba(255, 255, 255, 0) 54%,
+    rgba(255, 255, 255, .1) 100%);
+  pointer-events: none;
+}
+/* No blur to be had: the same pill, frosted solid. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .ege-cardtabs__inner { background: rgba(251, 244, 230, .94); }
+}
+
 .ege-cardtab {
   position: relative;
   z-index: 2;
@@ -8534,38 +8578,49 @@ html.ege-noscroll body { overflow: hidden; }
   place-items: center;
   height: 52px;
   min-width: 0;
-  color: rgba(251, 244, 230, .5);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: color .35s ease, transform .2s ease;
 }
 .ege-cardtab input {
   position: absolute;
   opacity: 0;
   pointer-events: none;
 }
-.ege-cardtab:hover { color: rgba(251, 244, 230, .85); }
-.ege-cardtab:active { transform: scale(.94); }
-.ege-cardtab.is-active { color: #fff; }
-.ege-cardtab:has(input:focus-visible) { outline: 2px solid var(--fb-cream); outline-offset: -4px; border-radius: calc(var(--radius) - 6px) !important; }
+.ege-cardtab:has(input:focus-visible) { outline: 2px solid var(--fb-ink); outline-offset: -4px; border-radius: 999px !important; }
 
-/* Sam's white glyphs, used as masks so they take the label's colour. */
+/* Sam's glyphs: the ink one on the glass, the white one on the slider. */
 .ege-cardtab__icon {
+  position: relative;
+  display: block;
   width: 26px;
   height: 26px;
-  background: currentColor;
-  -webkit-mask: var(--icon) center / contain no-repeat;
-  mask: var(--icon) center / contain no-repeat;
   transition: transform var(--speed) var(--ease);
 }
+.ege-cardtab__img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: contain;
+  opacity: .62;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  will-change: opacity;
+  transition: opacity .3s ease;
+}
+.ege-cardtab__img--lit { opacity: 0; }
+.ege-cardtab.is-active .ege-cardtab__img { opacity: 0; }
+.ege-cardtab.is-active .ege-cardtab__img--lit { opacity: 1; }
 .ege-cardtab.is-active .ege-cardtab__icon { transform: scale(1.08); }
-.ege-cardtab__icon--cards        { --icon: url("icon/cardtabs/cards.png"); }
-.ege-cardtab__icon--players      { --icon: url("icon/cardtabs/players.png"); }
-.ege-cardtab__icon--shop         { --icon: url("icon/cardtabs/shop.png"); }
-.ege-cardtab__icon--trades       { --icon: url("icon/cardtabs/trades.png"); }
-.ege-cardtab__icon--achievements { --icon: url("icon/cardtabs/achievements.png"); }
+.ege-cardtab:active .ege-cardtab__icon { transform: scale(.9); transition-duration: .12s; }
+@media (hover: hover) {
+  .ege-cardtab:not(.is-active):hover .ege-cardtab__img:not(.ege-cardtab__img--lit) { opacity: .9; }
+}
 
-/* The liquid slider: exactly one column wide, moved a column per page. */
+/* The liquid slider: exactly one column wide, moved a column per page,
+   the site's orange with the same glass gloss over it. */
 .ege-cardtabs__slider {
   position: absolute;
   top: var(--gap);
@@ -8574,21 +8629,23 @@ html.ege-noscroll body { overflow: hidden; }
   width: calc((100% - 2 * var(--gap)) / 5);
   z-index: 1;
   background: var(--fb-accent);
-  border-radius: calc(var(--radius) - 6px) !important;
+  border-radius: 999px !important;
   transform: translateX(calc(var(--tab) * 100%));
-  transition: transform var(--speed) var(--ease), background .3s ease;
+  will-change: transform;
+  transition: transform var(--speed) var(--ease);
 }
 .ege-cardtabs__slider::after {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .3), rgba(255, 255, 255, 0) 55%);
   box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, .28),
-    inset 0 -2px 3px rgba(0, 0, 0, .3);
+    inset 0 1px 1px rgba(255, 255, 255, .5),
+    inset 0 -2px 3px rgba(0, 0, 0, .18);
 }
 @media (prefers-reduced-motion: reduce) {
-  .ege-cardtabs__slider, .ege-cardtab__icon { transition: none; }
+  .ege-cardtabs__slider, .ege-cardtab__icon, .ege-cardtab__img { transition: none; }
 }
 
 .ege-cardtab__badge {
