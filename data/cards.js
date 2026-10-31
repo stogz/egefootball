@@ -253,10 +253,10 @@ EGE.cards = (function () {
   var QUICK_SELL = { common: 1, uncommon: 1, rare: 2, epic: 2, legendary: 3, mystic: 30 };
 
   /* Null for a card that cannot be sold. A holo sells for the three cards
-     it was made from. */
+     it was made from, and a Holo II for the nine. */
   function sellPrice(card) {
     if (!card || !QUICK_SELL[card.rarity]) { return null; }
-    return QUICK_SELL[card.rarity] * (card.holo ? HOLO_OF : 1);
+    return QUICK_SELL[card.rarity] * (card.holo2 ? HOLO_OF * HOLO_OF : card.holo ? HOLO_OF : 1);
   }
 
   /* --- holographic cards ---------------------------------------------------
@@ -278,21 +278,45 @@ EGE.cards = (function () {
      than 1, so a 170-point holo pays 17. Most pay 2 to 4; the biggest, Sam's
      65.3-point Iconic (195.9 as a holo), pays 20. There is no cap:
      merge_holo_card pays it with the merge and only turns down more than
-     HOLO_BONUS_MAX, which no card comes near, so change the two together. */
+     HOLO_BONUS_MAX, which no card comes near, so change the two together.
+
+     Holo II (Sam, 2026-10-31): three holos of one card merge again, into a
+     Holo II of it -- '...:holo2' -- with all nine cards' points on it (nine
+     times the card's). It pays the same way, a tenth of the Holo II's
+     score rounded up, and merge_holo_card turns down more than
+     HOLO2_BONUS_MAX for one. Nothing merges a Holo II again. */
   var HOLO_SUFFIX = ':holo';
+  var HOLO2_SUFFIX = ':holo2';
   var HOLO_OF = 3;
   var HOLO_POINTS_PER_DIAMOND = 10;
   var HOLO_BONUS_MAX = 60;
+  var HOLO2_BONUS_MAX = 180;
 
-  function isHoloId(id) { return /:holo$/.test(String(id || '')); }
-  function baseIdOf(id) { return isHoloId(id) ? String(id).slice(0, -HOLO_SUFFIX.length) : id; }
+  /* 2 for a Holo II, 1 for a holo, 0 for a card. */
+  function holoLevelOf(id) {
+    var s = String(id || '');
+    return /:holo2$/.test(s) ? 2 : /:holo$/.test(s) ? 1 : 0;
+  }
+  function isHoloId(id) { return holoLevelOf(id) > 0; }
+  function baseIdOf(id) {
+    var level = holoLevelOf(id);
+    return level ? String(id).slice(0, -(level === 2 ? HOLO2_SUFFIX : HOLO_SUFFIX).length) : id;
+  }
   function holoIdOf(id) { return baseIdOf(id) + HOLO_SUFFIX; }
+  function holo2IdOf(id) { return baseIdOf(id) + HOLO2_SUFFIX; }
 
-  /* The diamonds merging three copies of `card` into its holo pays. Worked
-     in whole hundredths of a point, so a holo of exactly 170 is 17, never
-     17.000001 rounded up to 18. */
+  /* What three copies of `card` merge into: its holo, or a holo's Holo II.
+     Null for a Holo II, which goes no further. */
+  function mergedIdOf(card) {
+    if (!card || card.holo2) { return null; }
+    return card.holo ? holo2IdOf(card.id) : holoIdOf(card.id);
+  }
+
+  /* The diamonds merging three copies of `card` pays: a tenth of what they
+     make, three times its points. Worked in whole hundredths of a point,
+     so a holo of exactly 170 is 17, never 17.000001 rounded up to 18. */
   function holoBonus(card) {
-    if (!card || card.holo) { return 0; }
+    if (!card || card.holo2) { return 0; }
     var hundredths = Math.round((Number(card.points) || 0) * HOLO_OF * 100);
     return Math.max(1, Math.ceil(hundredths / (HOLO_POINTS_PER_DIAMOND * 100)));
   }
@@ -436,7 +460,7 @@ EGE.cards = (function () {
   ];
 
   /* An event's card, holo or not: Gold Rush, Halloween or a costume. */
-  var EVENT_ID = /:(gr|hw|hc)(:holo)?$/;
+  var EVENT_ID = /:(gr|hw|hc)(:holo2?)?$/;
   function isEventId(id) { return EVENT_ID.test(String(id || '')); }
   function eventIdOf(id, key) { return baseIdOf(id) + (eventOf(key) || GOLD_RUSH).tag; }
 
@@ -726,7 +750,7 @@ EGE.cards = (function () {
   }
 
   /* A holo is its card over again, marked holo, with the three cards'
-     points on it; an event's card is its card again, marked with the
+     points on it, and a Holo II the same with all nine's; an event's card is its card again, marked with the
      event (and `gold` for the Gold Rush's), a costume card that with the
      costume headshot, and a card-art card that card with Sam's photo and its
      own rarity. Each is made the first time it is asked for. The reward
@@ -742,9 +766,11 @@ EGE.cards = (function () {
     var tag = (String(id).match(/:(gr|hw|hc)$/) || [''])[0];
     if (isHoloId(id)) {
       var one = byId(baseIdOf(id));
+      var twice = holoLevelOf(id) === 2;
       if (one && !one.reward) {
         card = Object.assign({}, one, {
-          id: id, baseId: one.id, holo: true, points: round2(one.points * HOLO_OF)
+          id: id, baseId: one.id, holo: true, holo2: twice,
+          points: round2(one.points * (twice ? HOLO_OF * HOLO_OF : HOLO_OF))
         });
       }
     } else if (reward) {
@@ -1650,10 +1676,14 @@ EGE.cards = (function () {
     rollSpinOffer: rollSpinOffer,
     HOLO_OF: HOLO_OF,
     HOLO_BONUS_MAX: HOLO_BONUS_MAX,
+    HOLO2_BONUS_MAX: HOLO2_BONUS_MAX,
     holoBonus: holoBonus,
     isHoloId: isHoloId,
+    holoLevelOf: holoLevelOf,
     baseIdOf: baseIdOf,
     holoIdOf: holoIdOf,
+    holo2IdOf: holo2IdOf,
+    mergedIdOf: mergedIdOf,
     legendaryCap: legendaryCap,
     packOdds: packOdds,
     GOLD_RUSH: GOLD_RUSH,

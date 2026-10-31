@@ -1833,7 +1833,9 @@ same transaction as the merge, turns down only more than 60 (a page that has
 been tampered with; `HOLO_BONUS_MAX`, change both together) and keeps it in
 `card_merges.diamonds`. Holos made before PR #88 paid nothing, and those made
 between it and this paid a tenth of the one card's score, capped at 15; none
-are back-paid.
+are back-paid. A Holo II pays the same way, a tenth of its score (nine times
+the card's), so Sam's Iconic pays 59 as a Holo II; `merge_holo_card()` turns
+down more than 180 for one (`HOLO2_BONUS_MAX`).
 
 **The diamond balance in the nav opens the diamonds page** (`#diamonds`,
 `js/diamonds-view.js`). Recent Games is a box a week, newest first, six at a
@@ -2106,6 +2108,22 @@ and the rest scroll inside the panel, so the page below is never far away.
 scrolled toward its end, a few rows at a time, so a big collection is not
 hundreds of foil cards for a phone to run at once. Selling a card, ripping a
 pack or a refresh keeps the binder where it was scrolled to.
+
+**Holos, Holo II and Holo all** (Sam, 2026-10-31). Three copies of a card
+merge into its holo (`{card}:holo`, three times its points), and three holos
+of it merge again into its **Holo II** (`{card}:holo2`, nine times), both
+through `merge_holo_card()`; a Holo II goes no further. A Holo II is dark
+where a holo is light: a black prizm face, a rainbow ring inside the
+rarity's frame, and a night sky of prism rays and stars behind the player,
+with nothing laid over the player's face. It quick sells for nine of its
+card, and counts as its card in sets like a holo. The merge button over the
+binder shows every card and holo there are three of; while it is on, a bar
+over the page buttons says how many holos and Holo IIs that makes and what
+it pays, and **Holo all** (two taps) merges every one the binder is showing
+in one call, `merge_holo_cards()`, each as many times as it goes. The other
+filters still count, so Holo II on the rarity drop-down makes only Holo IIs.
+What it made comes out face down to turn over, the way one merge does. A
+holo made by Holo all is not merged again in the same go.
 
 Tap a card to hold it up close with the game it came from; the **→** button
 beside its stat line opens that player's page on the card's season and picks
@@ -2533,7 +2551,7 @@ slots, first, as many as fit, when the schema is re-run.
 
 The collection's filter row ends in a bin that resets every filter and the
 sort, and goes back to your own collection. Holos are picked from the rarity
-drop-down, after Iconic.
+drop-down, after Iconic (Holo IIs among them), and Holo IIs alone after that.
 
 Only problems show in the banner over the Cards pages and the Shop: an offer
 sent or taken back, a sale, a buy or a listing that went through shows in
