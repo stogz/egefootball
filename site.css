@@ -6372,11 +6372,13 @@ html.ege-noscroll body { overflow: hidden; }
                     rgba(140, 255, 164, .1) 50%, rgba(125, 230, 255, .14) 75%, rgba(223, 152, 255, .18));
 }
 
-/* An Iconic holo keeps its player clean (Sam, 2026-10-31): the rainbow,
-   the rays and the light stay behind him, and nothing is drawn over the
-   face, in the binder or up close. The pink frame says Iconic. */
-.ege-tcard--iconic.ege-tcard--holo .ege-tcard__art::after,
-.ege-tcard--iconic.ege-tcard--holo .ege-tcard__cut::after { content: none; }
+/* Up close an Iconic holo keeps its player clean (Sam, 2026-10-31): the
+   rainbow, the rays and the light stay behind him, and nothing is drawn
+   over the face. In the Library it wears the holo's rainbow over the
+   picture like every other holo (Sam, 2026-10-31), and never the Iconic's
+   wash on top of it. */
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--iconic.ege-tcard--holo .ege-tcard__art::after,
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--iconic.ege-tcard--holo .ege-tcard__cut::after { content: none; }
 
 /* The big yards and touchdowns in foil. A text shadow would cover a
    gradient clipped to the letters, so the ink edge is a drop shadow. */
