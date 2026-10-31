@@ -357,11 +357,12 @@ EGE.cards = (function () {
      in 2022 week 12 (CARD_ART).
 
      A Legendary or better pulled from one comes out in costume one time in
-     `costumeOdds` (10%, Sam, 2026-10-26): the same card with the player's
-     costume headshot (headshot/halloween/) in place of his own, and a card
-     of its own again -- ':hc' on the end, 'p:2019:andrew-parr:12:hc' -- so
-     it never stacks with the plain Halloween copy, and three of it make a
-     holo of their own. Only a Halloween Pack ever gives one.
+     `costumeOdds` (20%, Sam, 2026-10-31; 10% before): the same card with
+     the player's costume headshot (headshot/halloween/) in place of his
+     own, and a card of its own again -- ':hc' on the end,
+     'p:2019:andrew-parr:12:hc' -- so it never stacks with the plain
+     Halloween copy, and three of it make a holo of their own. Only a
+     Halloween Pack ever gives one.
 
      A Mystic out of one is one of the card art a little more often than it
      is any other Mystic: `artShare` of the time (55%, Sam, 2026-10-26, who
@@ -382,7 +383,7 @@ EGE.cards = (function () {
     pack: 'halloween',
     tag: ':hw',
     costumeTag: ':hc',
-    costumeOdds: 0.10,
+    costumeOdds: 0.20,
     artShare: 0.55,
     costumes: {
       'andrew-parr':    'headshot/halloween/parr-halloween.png',
@@ -1187,8 +1188,9 @@ EGE.cards = (function () {
      in supabase/schema.sql too; change the two together. Simulated at four
      cards a pack, one player alone, every week out: Card Art about 80 packs
      (it cannot be traded for), Graveyard 70, U.F.O. 60, October 20,
-     Holoween 120, and Trick or Treat, the hardest, nearer 400 at a 10%
-     costume chance, so the whole of it is a trading job. */
+     Holoween 120, and Trick or Treat, the hardest, about 200 at a 20%
+     costume chance (400 at the old 10%), so the whole of it is a trading
+     job. */
   var SIX = ['isaac-vitel', 'paxon-hatch', 'cooper-clark', 'andrew-parr', 'sam-stogsdill', 'jaykeb-stewart'];
 
   HALLOWEEN.rewards = {
