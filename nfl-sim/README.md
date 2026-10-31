@@ -859,10 +859,10 @@ while the schedule kept is last season's) for the League page's weeks to
 come); and for its upcoming free agents, on everybody whose contract runs
 out with the season, what the market would pay him next season (`market`,
 `marketPay`) and up to three teams likeliest to want him (`interest`,
-`six-offers.js interested`); and since 2026-10-31 every approved trade for
-the League page's Trade Report (`trades`, `tradesOut`: when, and what each
-team got, a player at his overall then, a pick with its number and the
-player it became). `lib/io.js` is what makes that
+`six-offers.js interested`); and since 2026-10-31 every approved trade, for
+the League page's ticker (`trades`, `tradesOut`: when, and what each team
+got, a player at his overall then, a pick with its number and the player it
+became). `lib/io.js` is what makes that
 work: everything the sim reads or writes goes through it, to files on the
 command line and to memory, filled from Supabase, on the page.
 `build/bundle.js` writes `js/nfl-sim.js`, every module in `lib/` and the data

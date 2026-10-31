@@ -4487,35 +4487,9 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 
 /* The League's other lists (Sam, 2026-10-31), the tracker's gap after
    each: the Injury Report under the standings, then after the tracker the
-   Trade Report and the Draft History. */
+   Draft History. */
 .ege-league__panel { margin-bottom: 64px; }
 
-/* A trade: when, on an ink strip, then each team and what it got, side
-   by side, one over the other on a phone. */
-.ege-nfltrades { display: grid; gap: 22px; }
-.ege-nfltrade { min-width: 0; border: var(--fb-border) solid var(--fb-ink); background: var(--fb-surface); }
-.ege-nfltrade__when {
-  padding: 7px 14px;
-  background: var(--fb-ink);
-  font-size: .6875rem;
-  font-weight: 800;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--fb-cream);
-}
-.ege-nfltrade__sides { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.ege-nfltrade__side { min-width: 0; padding: 14px; }
-.ege-nfltrade__side + .ege-nfltrade__side { border-left: var(--fb-border) solid var(--fb-ink); }
-@media (max-width: 760px) {
-  .ege-nfltrade__sides { grid-template-columns: minmax(0, 1fr); }
-  .ege-nfltrade__side + .ege-nfltrade__side { border-top: var(--fb-border) solid var(--fb-ink); border-left: 0; }
-}
-.ege-nfltrade__team { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; color: var(--fb-ink); text-decoration: none; }
-.ege-nfltrade__team .ege-game__logo { flex: none; width: 32px; height: 32px; }
-.ege-nfltrade__city { overflow: hidden; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
-.ege-nfltrade__get { font-size: .625rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--fb-muted); }
-@media (hover: hover) { .ege-nfltrade__team:hover .ege-nfltrade__city { color: var(--fb-accent); } }
-.ege-nfltrade__team:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: 2px; }
 /* The Injury Report (Sam, 2026-10-31): right under the standings, a black
    box at 70% under a solid black dotted edge, shut until the plus at the
    right of its title opens it (a minus then), and small white type four
@@ -4626,8 +4600,22 @@ body:has(#view-league:not([hidden]) .ege-ticker:not([hidden])) { padding-bottom:
    head. Each headshot stands a little taller than its row, so it pokes
    over the bottom of the one above (Sam: "10% or less"). Sideways on a
    phone. */
-.ege-drafttable { min-width: 1080px; }
+.ege-drafttable { min-width: 1130px; }
 .ege-drafttable th { cursor: default; }
+/* Every heading but the headshot's sorts the sheet (Sam, 2026-10-31), the
+   whole cell the button, and the column it sorted by shaded down. */
+.ege-drafttable thead th.is-sortable { padding: 0; }
+.ege-drafttable .ege-sort { padding: 9px 8px; }
+.ege-drafttable th.num .ege-sort { justify-content: flex-end; }
+.ege-drafttable th.is-sortable:first-child .ege-sort { padding-left: 16px; }
+.ege-drafttable th.is-sortable:last-child .ege-sort { padding-right: 16px; }
+.ege-drafttable td.is-sorted-cell { background: rgba(229, 110, 40, .12); }
+.ege-drafttable__ovr .ege-ovrbox,
+.ege-drafttable__ovr .ege-retbox { margin: 0 auto; }
+.ege-ovrbox--cell { width: 42px; gap: 1px; padding: 3px 2px 4px; border-width: var(--fb-border-thin); }
+.ege-ovrbox--cell .ege-ovrbox__label { font-size: .4375rem; letter-spacing: .14em; }
+.ege-ovrbox--cell .ege-ovrbox__value { font-size: 1.0625rem; }
+.ege-drafttable .ege-retbox { width: 42px; height: 34px; border-width: var(--fb-border-thin); font-size: .4375rem; letter-spacing: .06em; }
 .ege-drafttable th,
 .ege-drafttable td { padding: 0 8px; white-space: nowrap; }
 .ege-drafttable thead th { padding: 9px 8px; }
@@ -4665,10 +4653,6 @@ body:has(#view-league:not([hidden]) .ege-ticker:not([hidden])) { padding-bottom:
 @media (hover: hover) { .ege-drafttable tbody tr:hover .ege-drafttable__name { text-decoration: underline; } }
 .ege-drafttable__name:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: 2px; }
 .ege-drafts__more { display: block; margin: 18px auto 0; }
-/* A pick not yet used: its round where a face would be. */
-.ege-pickface { display: flex; flex-direction: column; gap: 3px; background: var(--fb-ink); color: var(--fb-cream); }
-.ege-pickface__label { font-size: .5625rem; font-weight: 800; letter-spacing: .12em; }
-.ege-pickface__value { font-family: var(--fb-font-display); font-size: 1.75rem; line-height: .9; }
 .ege-league__note { max-width: 640px; margin: 0 auto; background: var(--fb-cream); text-align: center; }
 .ege-league__grid {
   display: grid;

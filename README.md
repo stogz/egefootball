@@ -674,8 +674,8 @@ The old `#search` and `#search/{query}` addresses open it. *Around the NFL*
 sits over the title. The page is the week's games, the standings close
 under them, and the search after a gap, with no titles over them (Sam,
 2026-10-30: tried and taken off). Between them, each in its own titled
-panel with a gap after it: the Injury Report, the Free Agency Tracker, the
-Trade Report and the Draft History (Sam, 2026-10-31). The bar and the
+panel with a gap after it: the Injury Report, the Free Agency Tracker and
+the Draft History (Sam, 2026-10-31). The bar and the
 search box run the width of the page.
 
 **The week's games** come first. A bar picks the week: the
@@ -833,44 +833,32 @@ narrow for them (a phone) runs them on under the boxes. Twelve, then
   Rosters published before they carried them are published again on an
   admin's next visit, as for the schedule.
 
-**The Trade Report** comes after a gap under the tracker: every trade Sam
-has approved in the NFL sim (not free-agent moves), the newest first, six
-at a time behind *Show more*, with a **Season** pick (an offseason trade
-is filed under the season it leads into, as the trades bot labels it) and
-a **Team** pick. Each trade is an ink strip with when it went through
-(*2027 Week 5*, *2027 Trade Deadline*, *2028 Offseason*), then each team,
-its mark and city over *RECEIVE* (a link to its page), and what it got,
-side by side (one over the other on a phone):
+**Trades** come with the rosters (`trades`, `site.js tradesOut`) for the
+ticker. A Trade Report section was built on them and taken off the page
+again (Sam, 2026-10-31: "we can come back and fix that later"); it is in
+the git history of PR #133. Trades approved since 2026-10-31 keep each
+player's overall and each pick's number as they were (`ovrs` and `numbers`
+in `trades.json`), and drafts held since then keep whose pick it was
+(`draft.from`). Rosters published before 2026-10-31 have no trades until an
+admin's visit publishes them again.
 
-- a player as his card, at the overall he had when the trade went through;
-- a pick not yet used as a card with its round where a face would be, its
-  year and round (*2028 Round 2*), its number once the draft's order is
-  known (*No. 40*), and the mark of the team whose pick it was;
-- a pick that has been used as the card of the player it became, with the
-  year and round and number under his name, that team's mark and his
-  overall now.
-
-They come with the rosters (`trades`, `site.js tradesOut`). Trades approved
-since 2026-10-31 keep each player's overall and each pick's number as they
-were (`ovrs` and `numbers` in `trades.json`); an older one shows the
-player's overall in that season's kept rosters, and a pick's number only
-while its draft is next. A used pick is found by its number, or, for drafts
-held since 2026-10-31, by whose pick it was (`draft.from`). Rosters
-published before 2026-10-31 have no trades, so the report is hidden until
-an admin's visit publishes them again.
-
-**The Draft History** comes after a gap under the Trade Report: every draft
+**The Draft History** comes after a gap under the tracker: every draft
 held since 2023, with no title (Sam, 2026-10-31). The week bar's switcher
 sits over it on the grass, `[ ‹ ] [ year ] [ round ] [ › ]`, the arrows a
 draft back and on, keeping the round; the year opens on the newest draft
 and the round on Round 1 (*All rounds* last). Under it is a stat sheet, one
 pick a row in pick order, 32 then *Show more*: **No.** (the pick; its title
 says the round and, for a traded pick, whose it was), the **Team** that made
-it, his headshot, **Player**, **Pos**, **Age** the year he was drafted and
-**School**, then his career numbers under an ink head in groups:
+it, his headshot, **Player**, **OVR** (his overall now in its tier's box,
+or RETIRED), **Pos**, **Age** the year he was drafted and **School**, then
+his career numbers under an ink head in groups:
 **Passing** C, Att, Yds, TD, Int; **Rushing** Car, Yds, TD; **Receiving**
 Rec, Yds, TD; **Defense** Solo (the sim's tackles), Int, Sk. A nought is
-left blank. Each headshot stands a little taller than its row (51px in 46),
+left blank. Every heading but the headshot's sorts the sheet (Sam,
+2026-10-31): a number biggest first on the first click (the pick and the
+position from the top of the draft and a roster's order), words A to Z, a
+second click the other way; the column sorted by is shaded down, and two
+alike stay in draft order. Each headshot stands a little taller than its row (51px in 46),
 so it pokes over the bottom of the row above. The six's rows are tinted
 and their names orange; a row opens the player's pop-up. On a phone the
 sheet scrolls sideways. The numbers add up his seasons' lines in the
