@@ -5950,12 +5950,14 @@
       leagueGames.removeAttribute('data-drawn');
       leagueStandings.hidden = true;
       drawLeagueInjuries(null);
+      drawTicker(null);
       if (leagueIndex === undefined) { leagueGames.appendChild(el('p', 'ege-note ege-league__note', 'Getting the games…')); }
       return;
     }
     fillLeagueBar(weeks, at);
     drawLeagueStandings(at);
     drawLeagueInjuries(at);
+    drawTicker(weeks);
     if (!EGE.isPublished(at.season, at.week)) {
       drawLeagueGames(at.season, at.week, leagueUpcoming(at.season)[at.week] || []);
       return;
@@ -6082,6 +6084,129 @@
     injuryShown += INJURY_PAGE;
     drawLeagueInjuries(injuryAt);
   });
+
+  /* --- the ticker ---------------------------------------------------------
+
+     Along the bottom of the screen (Sam, 2026-10-31), an orange bar with the
+     news running slowly across it, held still under the pointer: from the
+     latest week out, whatever week the bar has picked, the six's lines and
+     every final score and anybody it put out three weeks or more (one of
+     the six at all), then the live season's latest trades. The run is
+     there twice, one after the other, so it goes round without a gap; for
+     anybody whose device asks for less motion it stands still and scrolls
+     by hand. The League's page only. */
+
+  var leagueTicker = document.getElementById('leagueTicker');
+  var tickerTrack = document.getElementById('tickerTrack');
+
+  var TICKER_SPEED = 45;   /* pixels a second */
+  var TICKER_TRADES = 6;
+  var tickerKey = '';
+
+  function tickerItem(tag, parts) {
+    var item = el('span', 'ege-ticker__item');
+    item.appendChild(el('span', 'ege-ticker__tag', tag));
+    parts.forEach(function (part) {
+      item.appendChild(typeof part === 'string' ? el('span', null, part) : part);
+    });
+    return item;
+  }
+
+  function tickerTeam(key, text) {
+    var team = el('span', 'ege-ticker__team');
+    team.appendChild(leagueLogo(key, 20));
+    team.appendChild(el('span', null, text));
+    return team;
+  }
+
+  /* What one team got in a trade, in words: "Laiatu Latu (EDGE, 83) and
+     2028 Round 3". */
+  function tickerGets(gets) {
+    var words = gets.map(function (item) {
+      if (item.name) { return item.name + ' (' + item.pos + (typeof item.ovr === 'number' ? ', ' + item.ovr : '') + ')'; }
+      return item.year + ' Round ' + item.round + (item.player ? ' (' + item.player.name + ')' : item.n ? ' (No. ' + item.n + ')' : '');
+    });
+    if (!words.length) { return 'nothing'; }
+    return words.length === 1 ? words[0] : words.slice(0, -1).join(', ') + ' and ' + words[words.length - 1];
+  }
+
+  function tickerItems(at, games) {
+    var items = [];
+    var tag = weekName(at.week);
+    games.forEach(function (game) {
+      game.six.forEach(function (x) {
+        var text = boxLineText(x.line || {});
+        if (text) { items.push(tickerItem(tag, [el('span', 'ege-ticker__six', x.player.name), text])); }
+      });
+    });
+    games.forEach(function (game) {
+      if (!game.score) { return; }
+      var home = game.score[0] >= game.score[1];
+      var first = home ? [game.home, game.score[0]] : [game.away, game.score[1]];
+      var second = home ? [game.away, game.score[1]] : [game.home, game.score[0]];
+      items.push(tickerItem('Final' + (game.ot ? '/OT' : ''), [
+        tickerTeam(first[0], EGE.nfl.city(first[0]) + ' ' + first[1]),
+        tickerTeam(second[0], EGE.nfl.city(second[0]) + ' ' + second[1])
+      ]));
+    });
+    games.forEach(function (game) {
+      game.injuries.forEach(function (text) {
+        var m = HURT.exec(text);
+        if (!m) { return; }
+        var line = (game.box || []).filter(function (l) { return l.name === m[1] && l.team === m[2]; })[0];
+        var weeks = m[4] === 'season' ? null : parseInt(m[4], 10);
+        if (!(line && line.ege) && weeks !== null && weeks < 3) { return; }
+        items.push(tickerItem('Injury', [tickerTeam(m[2], m[1]), injuryName(m[3]) + ', out ' +
+          (weeks === null ? 'for the season' : weeks + ' weeks')]));
+      });
+    });
+    var live = searchSeason();
+    var all = live ? EGE.nflRosters.get(live) : null;
+    ((all && all.trades) || []).filter(function (t) {
+      return tradeYear(t) >= live && t.sides.length === 2 && t.sides.every(function (side) { return EGE.nfl.teams[side.team]; });
+    }).slice(0, TICKER_TRADES).forEach(function (t) {
+      var parts = [];
+      t.sides.forEach(function (side) {
+        parts.push(tickerTeam(side.team, EGE.nfl.city(side.team) + ' get ' + tickerGets(side.gets)));
+      });
+      items.push(tickerItem('Trade', parts));
+    });
+    return items;
+  }
+
+  function fillTicker(items) {
+    var key = items.map(function (item) { return item.textContent; }).join('|');
+    leagueTicker.hidden = !items.length;
+    if (key === tickerKey) { return; }
+    tickerKey = key;
+    tickerTrack.innerHTML = '';
+    if (!items.length) { return; }
+    var run = el('div', 'ege-ticker__run');
+    items.forEach(function (item) { run.appendChild(item); });
+    tickerTrack.appendChild(run);
+    var again = run.cloneNode(true);
+    again.setAttribute('aria-hidden', 'true');
+    again.classList.add('is-again');
+    tickerTrack.appendChild(again);
+    /* As slow on a phone as on a wide screen: the time is the run's width. */
+    window.requestAnimationFrame(function () {
+      tickerTrack.style.setProperty('--ticker-time', Math.max(20, run.offsetWidth / TICKER_SPEED) + 's');
+    });
+  }
+
+  function drawTicker(weeks) {
+    var out = weeks ? leagueStops(weeks).filter(function (at) { return EGE.isPublished(at.season, at.week); }) : [];
+    var at = out[out.length - 1];
+    if (!at) {
+      fillTicker([]);
+      return;
+    }
+    var boxed = leagueIndex && leagueIndex[at.season] && leagueIndex[at.season].indexOf(at.week) !== -1;
+    (boxed ? EGE.boxScores.week(at.season, at.week) : Promise.resolve(null)).then(function (rows) {
+      if (!onLeague()) { return; }
+      fillTicker(tickerItems(at, leagueGamesFor(at.season, at.week, rows)));
+    });
+  }
 
   function pickLeagueWeek(at) {
     leagueAt = at;

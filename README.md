@@ -760,6 +760,18 @@ season, and the six's teams are orange.
   more too. Once all 17 games are played, the playoff draw decides: the
   byes are Z, the rest of the field X, everybody else E.
 
+**The ticker** (Sam, 2026-10-31) runs along the bottom of the screen on
+the League page: an orange bar under an ink rule, the news going slowly
+right to left (45 pixels a second, so as slow on a phone) and stopping
+under the pointer; for anybody whose device asks for less motion it stands
+still and scrolls by hand. Each item is a short ink tag and its words,
+from the latest week out whatever week the bar has picked: the six's lines
+(*WEEK 11* · their name underlined, as the Discord posts have it), every
+final score, winner first (*FINAL*, *FINAL/OT*), anybody that week put out
+three weeks or more and any of the six put out at all (*INJURY*), then the
+live season's six latest trades (*TRADE*: each team's mark, city and what it
+got). The page leaves room for it at its foot.
+
 **Recent Injuries** comes after a gap under the standings: everybody hurt
 in the week on show and the two weeks out before it that season (a week to
 come: the last three out), the latest week first, then the longest out,
@@ -776,7 +788,8 @@ game's box score, or by his name (and his team, where two share it).
 **The Free Agency Tracker** comes after a gap under Recent Injuries, titled
 for the season after the one the search has (*2027 Free Agency Tracker*
 all through 2026). Its head is ESPN's red with their mark in white before
-the title (`icon/espn-white.png`, cut from the logo Sam sent) and a
+the title, which is in the site's own type rather than the display face
+(Sam, 2026-10-31) (`icon/espn-white.png`, cut from the logo Sam sent) and a
 **LIVE** badge at the other end, its light blinking (still for anybody
 whose device asks for less motion). Under the title, the **Biggest Buyers**: the six teams
 with the most cap space next season, its cap less every contract that runs
