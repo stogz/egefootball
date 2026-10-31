@@ -65,8 +65,10 @@ EGE.glass = (function () {
     curvature: 0.3,     /* the gentle dome over the whole of it */
     bend: 0.45,         /* the extra bend in a thin band just inside the rim */
     bendWidth: 0.16,
-    dispersion: 0.32,   /* red, green and blue pulled apart at the edge */
-    frost: 6,           /* blur, px */
+    dispersion: 0.5,    /* red, green and blue pulled apart at the edge;
+                           up from the library's 0.32 (Sam, 2026-10-31) */
+    frost: 1,           /* blur, px; barely any, so the middle is clear
+                           (Sam, 2026-10-31; the library's is 6) */
     saturate: 1.15,
     sheen: 0.32,        /* the bright edge */
     sheenWidth: 3,

@@ -8511,9 +8511,10 @@ html.ege-noscroll body { overflow: hidden; }
    the fade painted the mask again, and iPhone Safari would now and then
    paint it with no picture at all, so icons vanished while you clicked
    around. Now each icon is two plain pictures (index.html) and only their
-   opacity changes: Sam's glyph in ink with a soft white halo, which reads
-   on the cream pages and on a dark card behind the clear glass alike, and
-   his white glyph for the orange drop. Nothing else in the island is
+   opacity changes: Sam's glyph in the site's orange with a soft white
+   halo for the pages not showing (Sam, 2026-10-31), which reads on the
+   cream pages and on a dark card behind the clear glass alike, and his
+   white glyph for the one on the orange drop. Nothing else in the island is
    repainted on a tap, the slider keeps a layer of its own rather than
    getting one at every glide, a tap's hover does not stick on a touch
    screen, and two quick taps do not zoom the page. */
@@ -8541,9 +8542,10 @@ html.ege-noscroll body { overflow: hidden; }
   width: min(100%, 400px);
   padding: var(--gap);
   background: rgba(255, 255, 255, .04);
-  /* js/glass.js adds the bend to this in Chrome and Edge. */
-  -webkit-backdrop-filter: blur(6px) saturate(1.15);
-  backdrop-filter: blur(6px) saturate(1.15);
+  /* Barely frosted, so the middle is clear (Sam, 2026-10-31). js/glass.js
+     adds the bend to this in Chrome and Edge, with the same blur. */
+  -webkit-backdrop-filter: blur(1px) saturate(1.15);
+  backdrop-filter: blur(1px) saturate(1.15);
   border-radius: 999px !important;
   /* The library's edge: a bright line along the top and a faint one all
      round. Outside, a hairline of ink so the capsule still has an outline
@@ -8591,8 +8593,8 @@ html.ege-noscroll body { overflow: hidden; }
 }
 .ege-cardtab:has(input:focus-visible) { outline: 2px solid var(--fb-ink); outline-offset: -4px; border-radius: 999px !important; }
 
-/* Sam's glyphs, 26px. The ink one carries its halo in a margin of its own,
-   so it is drawn a little bigger to keep the glyph the same size. */
+/* Sam's glyphs, 26px. The orange one carries its halo in a margin of its
+   own, so it is drawn a little bigger to keep the glyph the same size. */
 .ege-cardtab__icon {
   position: relative;
   display: block;
@@ -8613,20 +8615,19 @@ html.ege-noscroll body { overflow: hidden; }
   will-change: opacity;
   transition: opacity .3s ease;
 }
-.ege-cardtab__img--ink {
+.ege-cardtab__img--off {
   top: calc(-26px * 10 / 128);
   left: calc(-26px * 10 / 128);
   width: calc(26px * 148 / 128);
   height: calc(26px * 148 / 128);
-  opacity: .78;
 }
 .ege-cardtab__img--lit { opacity: 0; }
-.ege-cardtab.is-active .ege-cardtab__img--ink { opacity: 0; }
+.ege-cardtab.is-active .ege-cardtab__img--off { opacity: 0; }
 .ege-cardtab.is-active .ege-cardtab__img--lit { opacity: 1; }
 .ege-cardtab.is-active .ege-cardtab__icon { transform: scale(1.08); }
 .ege-cardtab:active .ege-cardtab__icon { transform: scale(.9); transition-duration: .12s; }
 @media (hover: hover) {
-  .ege-cardtab:not(.is-active):hover .ege-cardtab__img--ink { opacity: 1; }
+  .ege-cardtab:not(.is-active):not(:active):hover .ege-cardtab__icon { transform: scale(1.06); }
 }
 
 /* The liquid slider: exactly one column wide, moved a column per page.
