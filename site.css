@@ -6231,8 +6231,12 @@ html.ege-noscroll body { overflow: hidden; }
   box-shadow: 4px 4px 0 rgba(0, 0, 0, .35), 0 0 18px rgba(236, 95, 168, .65);
 }
 :is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--iconic { animation: ege-holo-flow 8s ease-in-out infinite; }
-/* The holo runs over the picture too, faintly, the way a real one does. */
-:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--iconic .ege-tcard__art::after {
+/* The holo runs over the picture too, faintly, the way a real one does.
+   Not on an Iconic holo, which has the holo's own rainbow there: the two
+   are the same layer, and this one's solid pastels won it while the holo's
+   drift took its opacity from .32 to nearly 1, whiting out the face (Sam,
+   2026-10-31). */
+:is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-tcard--iconic:not(.ege-tcard--holo) .ege-tcard__art::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -6367,6 +6371,12 @@ html.ege-noscroll body { overflow: hidden; }
     linear-gradient(125deg, rgba(255, 143, 210, .16), rgba(255, 200, 116, .08) 25%,
                     rgba(140, 255, 164, .1) 50%, rgba(125, 230, 255, .14) 75%, rgba(223, 152, 255, .18));
 }
+
+/* An Iconic holo keeps its player clean (Sam, 2026-10-31): the rainbow,
+   the rays and the light stay behind him, and nothing is drawn over the
+   face, in the binder or up close. The pink frame says Iconic. */
+.ege-tcard--iconic.ege-tcard--holo .ege-tcard__art::after,
+.ege-tcard--iconic.ege-tcard--holo .ege-tcard__cut::after { content: none; }
 
 /* The big yards and touchdowns in foil. A text shadow would cover a
    gradient clipped to the letters, so the ink edge is a drop shadow. */
