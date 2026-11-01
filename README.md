@@ -712,15 +712,16 @@ the number; it opens his pop-up. The headshot stands on the line's bottom
 edge with the top of his head out over its top, about 7.5% of the
 picture (Sam asked for 5-10%). The leader's line is bigger and on his
 team's colour, white type, with the team's mark big behind it in two
-tones as on a pop-up's band, but only ever in a darker shade of the
-colour so the type reads over it (a colour about as dark as black, the
+tones as on a pop-up's band, at 60% (Sam: 40% more see-through), and
+only ever in a darker shade of the colour so the type reads over it (a colour about as dark as black, the
 Steelers' and Raiders', is lifted a little first, so the mark still
 shows). A gold trophy by his number is alive: every few seconds a glint
 runs across it, it shakes on its base and two sparks wink, each box on
 its own beat, and it keeps still for reduced motion. Second has a silver
 trophy and third a bronze. Two alike go to the
 one who did it in fewer games, then by name, so there is always one of
-each. The week bar's switcher over them, `[ ‹ ] [ year ] [ › ]`, goes back
+each. The week bar's switcher over them, `[ ‹ ] [ year ] [ › ]` across the
+page's whole width (Sam, 2026-11-01), goes back
 a season and on, each season its own address; it opens on the newest. The
 numbers are the rosters' season lines (`seasons`), as the pop-up's are:
 from 2025, the first season the sim kept everybody's, counting only the
@@ -926,7 +927,7 @@ admin's visit publishes them again.
 (`#league/draft/{year}`, Sam 2026-11-01: "a page dedicated to each draft
 ... the entire draft from the first pick to the last"), *{year} Draft* its
 title. The week bar's switcher sits over it on the grass,
-`[ ‹ ] [ year ] [ › ]`, the arrows and the year going to another draft's
+`[ ‹ ] [ year ] [ › ]` across the page's whole width, the arrows and the year going to another draft's
 page; a year with no draft opens the newest. Under it is a stat sheet, every
 pick of the draft a row, first to last, with a *Round N* heading over each
 round while it runs in pick order: **No.** (the pick; its title

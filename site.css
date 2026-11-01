@@ -4396,6 +4396,9 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-navleague svg { display: block; }
 .ege-league__bar { margin: 0 0 22px; }
 .ege-league__bar .ege-league__season { flex: 0 1 240px; }
+/* The League Leaders' and a draft's year switcher run the page's whole
+   width, the year stretched between the arrows (Sam, 2026-11-01). */
+.ege-league__bar.ege-seasonbar--full .ege-seasonbar__pick { flex: 1 1 auto; }
 .ege-league__games { margin-bottom: 22px; }
 .ege-league__standings { margin-bottom: 64px; }
 /* The Free Agency Tracker, a gap either side: the position and the sort
@@ -4765,9 +4768,6 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
    on his team's colour with its mark behind in a darker shade (white
    type), with a gold trophy by his number; second a silver one and third
    a bronze. */
-.ege-leaders__bar { margin-bottom: 22px; }
-.ege-leaders__bar .ege-seasonbar__pick { flex: 0 1 240px; }
-.ege-leaders__bar { justify-content: center; }
 .ege-leaders { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; align-items: start; }
 @media (max-width: 760px) { .ege-leaders { grid-template-columns: minmax(0, 1fr); gap: 18px; } }
 .ege-leaders__box .fb-panel__head { padding: 12px 16px; }
@@ -4834,7 +4834,9 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
 @media (hover: hover) { .ege-leader:hover .ege-leader__name { text-decoration: underline; } }
 .ege-leader:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: -3px; }
 /* The leader: bigger, on his team's colour, the team's mark behind him in
-   a darker shade of it (.ege-person__wash, as on a pop-up's band). */
+   a darker shade of it (.ege-person__wash, as on a pop-up's band), at 60%
+   (Sam, 2026-11-01: 40% more see-through). */
+.ege-leader .ege-person__wash { opacity: .6; }
 .ege-leader.is-first {
   --row: 70px;
   position: relative;
@@ -5140,6 +5142,7 @@ a.ege-boxscore__name:hover { color: var(--fb-accent-deep); text-decoration: unde
 @media (max-width: 620px) {
   .ege-league__bar { gap: 6px; }
   .ege-league__bar .ege-league__season { flex: 0 0 96px; }
+  .ege-league__bar.ege-seasonbar--full .ege-seasonbar__pick { flex: 1 1 auto; }
   .ege-league__bar .ege-seasonbar__pick { padding: 0 26px 0 10px; background-position: right 9px center; font-size: 15px; }
 }
 
