@@ -4667,8 +4667,12 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
   gap: 16px;
   margin: 0 0 64px;
 }
+/* Five links: three across, the last two in the middle under them. */
+.ege-catalog { display: flex; flex-wrap: wrap; justify-content: center; }
+.ege-catalog > .ege-catalog__item { flex: 0 0 calc((100% - 32px) / 3); }
 @media (max-width: 760px) {
-  .ege-catalog { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .ege-catalog { gap: 12px; }
+  .ege-catalog > .ege-catalog__item { flex-basis: 100%; }
   .ege-draftyears { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 }
 .ege-catalog__item {
@@ -4731,11 +4735,115 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
 .ege-draftyears__first { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: .8125rem; font-weight: 700; color: var(--fb-muted); }
 .ege-draftyears__first > span:last-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .ege-draftyears__first .ege-game__logo { flex: none; width: 20px; height: 20px; }
-/* On a page of the catalog, the kicker goes back. */
-.ege-league__back { color: inherit; text-decoration: none; }
-.ege-league__back::before { content: "\2039\00a0"; }
-@media (hover: hover) { .ege-league__back:hover { color: var(--fb-accent-hover); } }
 #leagueFaPage .ege-league__fa { margin-bottom: 0; }
+/* The way back to the catalog on each of its pages (Sam, 2026-11-01): the
+   round button with its arrow a phone has on a player's page, at the top
+   left of the page, level with the kicker, at any width. */
+#view-league { position: relative; }
+.ege-league__return { position: absolute; top: 35px; left: 0; z-index: 2; }
+.ege-back--round {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  gap: 0;
+  border-radius: 50% !important;
+  font-size: 0;
+  letter-spacing: 0;
+}
+.ege-back--round::before {
+  content: "\2190";
+  font-size: 20px;
+  line-height: 1;
+}
+.ege-back--round[hidden] { display: none; }
+@media (max-width: 620px) { .ege-league__return { top: 12px; } }
+
+/* League Leaders (Sam, 2026-11-01): a box a stat, two columns of them, one
+   on a phone; in each the top ten, the rank, headshot, name with his
+   team's mark and position, and the number. The leader's line is larger,
+   on his team's colour (light type on a dark one), with a gold trophy by
+   his number; second a silver one and third a bronze. */
+.ege-leaders__bar { margin-bottom: 22px; }
+.ege-leaders__bar .ege-seasonbar__pick { flex: 0 1 240px; }
+.ege-leaders__bar { justify-content: center; }
+.ege-leaders { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; align-items: start; }
+@media (max-width: 760px) { .ege-leaders { grid-template-columns: minmax(0, 1fr); gap: 18px; } }
+.ege-leaders__box .fb-panel__head { padding: 12px 16px; }
+.ege-leaders__box .fb-panel__head h3 { font-size: 1.125rem; }
+.ege-leaders__list { margin: 0; padding: 0; list-style: none; }
+.ege-leader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 6px 16px 6px 12px;
+  border-top: 1px solid rgba(29, 36, 22, .12);
+  cursor: pointer;
+}
+.ege-leader:first-child { border-top: 0; }
+.ege-leader:nth-child(even) { background: rgba(29, 36, 22, .035); }
+.ege-leader__rank { flex: none; width: 22px; font-family: var(--fb-font-display); font-size: 1rem; text-align: center; }
+.ege-leader__face {
+  display: flex;
+  flex: none;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+  width: 44px;
+  height: 34px;
+  font-size: .6875rem;
+  font-weight: 800;
+  color: var(--fb-muted-2);
+}
+.ege-leader__face img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.ege-leader__face.is-none { align-items: center; background: var(--fb-sand); }
+.ege-leader__who { display: flex; flex: 1 1 auto; flex-direction: column; gap: 2px; min-width: 0; }
+.ege-leader__name { overflow: hidden; font-size: .875rem; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
+.ege-leader__meta { display: flex; align-items: center; gap: 5px; min-width: 0; font-size: .6875rem; font-weight: 700; color: var(--fb-muted); }
+.ege-leader__meta > span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ege-leader__meta .ege-game__logo { flex: none; width: 16px; height: 16px; }
+.ege-leader__end { display: flex; flex: none; align-items: center; gap: 6px; margin-left: auto; }
+.ege-leader__value { min-width: 2.5ch; font-family: var(--fb-font-display); font-size: 1.125rem; text-align: right; }
+.ege-leader.is-six .ege-leader__name { color: var(--fb-accent-deep); }
+@media (hover: hover) { .ege-leader:hover .ege-leader__name { text-decoration: underline; } }
+.ege-leader:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: -3px; }
+/* The leader: bigger, on his team's colour. */
+.ege-leader.is-first {
+  gap: 12px;
+  padding: 10px 16px 10px 12px;
+  border-bottom: var(--fb-border) solid var(--fb-ink);
+  background: var(--team, var(--fb-ink));
+  color: #fff;
+}
+.ege-leader.is-first + .ege-leader { border-top: 0; }
+.ege-leader.is-first .ege-leader__face { width: 70px; height: 54px; }
+.ege-leader.is-first .ege-leader__name { font-size: 1.0625rem; color: inherit; }
+.ege-leader.is-first .ege-leader__meta { font-size: .75rem; color: rgba(255, 255, 255, .82); }
+.ege-leader.is-first .ege-leader__meta .ege-game__logo { width: 20px; height: 20px; }
+.ege-leader.is-first .ege-leader__rank { font-size: 1.25rem; }
+.ege-leader.is-first .ege-leader__value { font-size: 1.75rem; }
+.ege-leader.is-first .ege-leader__face.is-none { background: rgba(255, 255, 255, .18); color: inherit; }
+.ege-leader.is-first.is-light { color: var(--fb-ink); }
+.ege-leader.is-first.is-light .ege-leader__meta { color: rgba(29, 36, 22, .75); }
+/* The trophies: gold, silver, bronze, each under an ink edge. */
+.ege-leader__trophy { display: block; flex: none; overflow: visible; }
+.ege-leader__trophy path,
+.ege-leader__trophy rect { stroke: var(--fb-ink); stroke-width: 1.3; stroke-linejoin: round; }
+/* The handles in the trophy's own colour, so they read on a dark team's
+   colour as on the cream. */
+.ege-leader__trophy .ege-leader__handles { fill: none; stroke: var(--metal); stroke-width: 2.4; }
+.ege-leader__trophy { --metal: var(--fb-gold); fill: var(--metal); }
+.ege-leader__trophy.is-silver { --metal: #b9c0c6; }
+.ege-leader__trophy.is-bronze { --metal: #c7804a; }
+.ege-leader.is-first .ege-leader__trophy { width: 26px; height: 26px; }
+@media (max-width: 520px) {
+  .ege-leader { padding-right: 12px; }
+  .ege-leader.is-first { gap: 10px; }
+  .ege-leader.is-first .ege-leader__face { width: 52px; height: 42px; }
+  .ege-leader.is-first .ege-leader__value { font-size: 1.5rem; }
+}
+
 /* A whole draft, a heading over each round. */
 .ege-drafts { margin: 0; }
 .ege-drafttable tbody tr.ege-drafttable__round { cursor: default; background: var(--fb-sand); }

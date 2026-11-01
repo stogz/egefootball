@@ -5369,24 +5369,224 @@
     renderMovement();
   });
 
+  /* --- the league leaders -----------------------------------------------
+
+     A page of the League's catalog (Sam, 2026-11-01): a season's top ten
+     in every stat the sim keeps, each in a box of its own, two columns of
+     them (one on a phone): the rank, his headshot, his name with his team's
+     mark and his position, and the number. The leader's line is his team's
+     colour, with a gold trophy by his number; second has a silver one and
+     third a bronze. The bar over them goes back a season and on. The lines
+     are the rosters' seasons (`seasons`, 2025 on), as the pop-up's are, so
+     they count only the weeks out on the site; a share or an average
+     needs its tries, as for the pop-up's italic leaders (`qualify`). */
+
+  var leadersGrid = document.getElementById('leadersGrid');
+  var leadersYearPick = document.getElementById('leadersYear');
+  var leadersPrev = document.getElementById('leadersPrev');
+  var leadersNext = document.getElementById('leadersNext');
+  var leadersYear = '';
+  var leadersYears = [];
+  var LEADERS_SHOWN = 10;
+
+  var LEADER_STATS = [
+    statCount('YDS', 'Passing Yards', 'passYds'),
+    statCount('TD', 'Passing Touchdowns', 'passTd'),
+    statCount('CMP', 'Completions', 'passCmp'),
+    { label: 'RTG', title: 'Passer Rating', places: 1, qualify: { key: 'passAtt', least: 14 }, value: function (l) {
+      return l.passAtt ? EGE.statline.passerRating(l.passCmp || 0, l.passAtt, l.passYds || 0, l.passTd || 0, l.passInt || 0) : null;
+    } },
+    statCount('YDS', 'Rushing Yards', 'rushYds'),
+    statCount('TD', 'Rushing Touchdowns', 'rushTd'),
+    statCount('CAR', 'Carries', 'rushAtt'),
+    statAverage('AVG', 'Yards per Carry', 'rushYds', 'rushAtt', 6.25),
+    statCount('REC', 'Receptions', 'rec'),
+    statCount('YDS', 'Receiving Yards', 'recYds'),
+    statCount('TD', 'Receiving Touchdowns', 'recTd'),
+    statCount('TGT', 'Targets', 'targets'),
+    statCount('TKL', 'Tackles', 'tackles'),
+    statCount('SACK', 'Sacks', 'sacks'),
+    statCount('INT', 'Interceptions', 'ints'),
+    statCount('PD', 'Passes Defended', 'passDef'),
+    statCount('FF', 'Forced Fumbles', 'ff'),
+    statCount('TD', 'Defensive Touchdowns', 'defTd'),
+    statCount('FG', 'Field Goals Made', 'fgm'),
+    statAverage('AVG', 'Punting Average', 'puntYards', 'punts', 2.25)
+  ];
+
+  var TROPHY_PLACES = ['gold', 'silver', 'bronze'];
+
+  /* A little trophy, its colour from its place (CSS). */
+  function trophyMark(place) {
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('width', '20');
+    svg.setAttribute('height', '20');
+    svg.setAttribute('class', 'ege-leader__trophy is-' + TROPHY_PLACES[place - 1]);
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', ['First', 'Second', 'Third'][place - 1]);
+    svg.innerHTML = '<path d="M6.5 5H3.5v1.5A3.5 3.5 0 0 0 7 10 M17.5 5h3v1.5A3.5 3.5 0 0 1 17 10" class="ege-leader__handles"/>' +
+      '<path d="M6.5 2.5h11v6a5.5 5.5 0 0 1-11 0z"/><rect x="10.5" y="14" width="3" height="4"/><rect x="7" y="18" width="10" height="3.5"/>';
+    return svg;
+  }
+
+  function leaderFace(row) {
+    var face = el('span', 'ege-leader__face');
+    var src = row.player ? row.player.headshot : EGE.rosterPhoto(row);
+    var initials = row.name.split(' ').filter(function (part) { return /^[A-Z]/.test(part); })
+      .map(function (part) { return part.charAt(0); }).slice(0, 2).join('');
+    function none() {
+      face.classList.add('is-none');
+      face.textContent = initials;
+    }
+    if (!src) {
+      none();
+      return face;
+    }
+    var img = el('img');
+    img.src = src;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.addEventListener('error', function () {
+      img.remove();
+      none();
+    });
+    face.appendChild(img);
+    return face;
+  }
+
+  /* Every season's lines in the live rosters, { season: [{ hit, entry }] }:
+     on a team, a free agent or retired. */
+  function leaderLines(live) {
+    var out = {};
+    searchPeople(live).forEach(function (hit) {
+      if (!hit.sim) { return; }
+      (hit.sim.seasons || []).forEach(function (entry) {
+        if (entry.line) { (out[entry.season] = out[entry.season] || []).push({ hit: hit, entry: entry }); }
+      });
+    });
+    return out;
+  }
+
+  /* A stat's top ten in a season: the most first, and of two alike the
+     one who did it in fewer games, then by name, so there is always one
+     leader, one second and one third for the trophies. */
+  function topTen(column, lines) {
+    var games = 0;
+    lines.forEach(function (x) { games = Math.max(games, x.entry.line.games || 0); });
+    var ranked = lines.map(function (x) {
+      var line = x.entry.line;
+      if (column.qualify && (line[column.qualify.key] || 0) < column.qualify.least * games) { return null; }
+      var value = column.value(line);
+      return value ? { hit: x.hit, entry: x.entry, value: value } : null;
+    }).filter(Boolean).sort(function (a, b) {
+      return b.value - a.value || (a.entry.line.games || 0) - (b.entry.line.games || 0) ||
+        a.hit.sim.name.localeCompare(b.hit.sim.name);
+    }).slice(0, LEADERS_SHOWN);
+    ranked.forEach(function (x, i) { x.rank = i + 1; });
+    return ranked;
+  }
+
+  function leaderLine(column, x, live) {
+    var row = nflHitRow(x.hit, live);
+    var team = EGE.nfl.teams[x.entry.team];
+    var first = x.rank === 1;
+    var line = el('li', 'ege-leader' + (first ? ' is-first' : '') + (row.player ? ' is-six' : ''));
+    if (first && team && team.color) {
+      line.style.setProperty('--team', team.color);
+      var rgb = rgbOf(team.color);
+      if (rgb && contrast(luminance(rgb), 1) < contrast(luminance(rgb), 0)) { line.classList.add('is-light'); }
+    }
+    line.appendChild(el('span', 'ege-leader__rank', String(x.rank)));
+    line.appendChild(leaderFace(row));
+    var who = el('span', 'ege-leader__who');
+    who.appendChild(el('span', 'ege-leader__name', row.name));
+    var meta = el('span', 'ege-leader__meta');
+    if (team) { meta.appendChild(leagueLogo(x.entry.team, first ? 20 : 16)); }
+    meta.appendChild(el('span', null, [x.hit.sim.pos, team ? EGE.nfl.city(x.entry.team) : ''].filter(Boolean).join(' · ')));
+    who.appendChild(meta);
+    line.appendChild(who);
+    var end = el('span', 'ege-leader__end');
+    if (x.rank <= 3) { end.appendChild(trophyMark(x.rank)); }
+    end.appendChild(el('span', 'ege-leader__value', column.places ? x.value.toFixed(column.places) : statNumber(x.value)));
+    line.appendChild(end);
+    EGE.cardsView.pressable(line, row.name + ', ' + statText(column, x.entry.line) + ' ' + column.title.toLowerCase(), function () {
+      openNflPlayer(row);
+    });
+    return line;
+  }
+
+  /* #league/leaders/{year}: a season with no lines is the newest one. */
+  function renderLeaders() {
+    var live = searchSeason();
+    var all = live ? EGE.nflRosters.get(live) : null;
+    var lines = all && all.teams ? leaderLines(live) : {};
+    var years = Object.keys(lines).map(Number).sort(function (a, b) { return b - a; });
+    leadersGrid.innerHTML = '';
+    leadersYearPick.parentNode.hidden = !years.length;
+    if (!years.length) {
+      leadersGrid.appendChild(el('p', 'ege-note ege-league__note', all === undefined ? 'Getting the numbers…' : 'No numbers yet.'));
+      return;
+    }
+    if (years.indexOf(Number(leadersYear)) === -1) {
+      leadersYear = String(years[0]);
+      window.history.replaceState(null, '', '#league/leaders/' + leadersYear);
+      routed = 'league/leaders/' + leadersYear;
+    }
+    leadersYears = years;
+    leadersYear = fillPick(leadersYearPick, years.map(function (y) { return [String(y), String(y)]; }), leadersYear);
+    leadersPrev.disabled = years.indexOf(Number(leadersYear)) >= years.length - 1;
+    leadersNext.disabled = years.indexOf(Number(leadersYear)) <= 0;
+    var season = lines[leadersYear];
+    LEADER_STATS.forEach(function (column) {
+      var top = topTen(column, season);
+      if (!top.length) { return; }
+      var box = el('section', 'fb-panel ege-leaders__box');
+      var head = el('div', 'fb-panel__head');
+      head.appendChild(el('h3', null, column.title));
+      box.appendChild(head);
+      var list = el('ol', 'ege-leaders__list');
+      top.forEach(function (x) { list.appendChild(leaderLine(column, x, live)); });
+      box.appendChild(list);
+      leadersGrid.appendChild(box);
+    });
+  }
+
+  function goLeaders(year) {
+    if (year) { window.location.hash = '#league/leaders/' + year; }
+  }
+
+  leadersYearPick.addEventListener('change', function () { goLeaders(leadersYearPick.value); });
+  /* The newest season is first in the list, so the one before is next in it. */
+  [[leadersPrev, 1], [leadersNext, -1]].forEach(function (pair) {
+    pair[0].addEventListener('click', function () {
+      goLeaders(leadersYears[leadersYears.indexOf(Number(leadersYear)) + pair[1]]);
+    });
+  });
+
   /* --- the League's pages --------------------------------------------
 
      The League is a catalog (Sam, 2026-11-01): #league is the week's
      games, the standings and the Injury Report as they were, then a link
      to each of the rest, which is a page of its own -- #league/free-agency,
-     #league/draft (and #league/draft/{year}), #league/movement. The
-     search stays at the foot of #league, its words in the address as
-     #league/search/{words}. The title over the page is the page's, and on
-     one of the catalog's the kicker over it goes back. */
+     #league/draft (and #league/draft/{year}), #league/movement,
+     #league/leaders (and /{year}) and #league/search (its words in the
+     address, #league/search/{words}). The title over the page is the
+     page's, and on one of the catalog's a round button at the top left
+     goes back to it (a draft's to the drafts), as a phone's does on a
+     player's page. */
 
-  var leagueKicker = document.getElementById('leagueKicker');
+  var leagueBack = document.getElementById('leagueBack');
   var leagueTitle = document.getElementById('leagueTitle');
   var LEAGUE_PAGES = {
     home: { box: document.getElementById('leagueHome'), title: 'League' },
     fa: { box: document.getElementById('leagueFaPage'), title: 'Free Agency', path: 'free-agency' },
     drafts: { box: document.getElementById('leagueDraftPage'), title: 'Draft', path: 'draft' },
     draft: { box: document.getElementById('leagueDraftPage'), title: 'Draft' },
-    moves: { box: document.getElementById('leagueMovePage'), title: 'Player Movement', path: 'movement' }
+    moves: { box: document.getElementById('leagueMovePage'), title: 'Player Movement', path: 'movement' },
+    leaders: { box: document.getElementById('leagueLeadersPage'), title: 'League Leaders', path: 'leaders' },
+    search: { box: document.getElementById('leagueSearchPage'), title: 'Search', path: 'search' }
   };
   var leaguePage = 'home';
 
@@ -5396,6 +5596,7 @@
     if (leaguePage === 'drafts') { renderDraftYears(); }
     if (leaguePage === 'draft') { renderDrafts(); }
     if (leaguePage === 'moves') { renderMovement(); }
+    if (leaguePage === 'leaders') { renderLeaders(); }
   }
 
   function showLeaguePage(page) {
@@ -5408,14 +5609,9 @@
     draftYearsBox.hidden = page !== 'drafts';
     draftsPanel.hidden = page !== 'draft';
     leagueTitle.textContent = on.title;
-    leagueKicker.innerHTML = '';
-    if (page === 'home') {
-      leagueKicker.textContent = 'Around the NFL';
-    } else {
-      var back = el('a', 'ege-league__back', page === 'draft' ? 'Drafts' : 'League');
-      back.href = page === 'draft' ? '#league/draft' : '#league';
-      leagueKicker.appendChild(back);
-    }
+    leagueBack.hidden = page === 'home';
+    leagueBack.href = page === 'draft' ? '#league/draft' : '#league';
+    leagueBack.textContent = page === 'draft' ? 'All Drafts' : 'League';
     document.title = on.title + ' — EGE Football';
   }
 
@@ -5432,16 +5628,21 @@
     } else if (parts[0] === 'draft') {
       page = parts[1] ? 'draft' : 'drafts';
       if (parts[1]) { draftYear = parts[1]; }
+    } else if (parts[0] === 'leaders') {
+      page = 'leaders';
+      if (parts[1]) { leadersYear = parts[1]; }
     } else if (parts[0] === 'search') {
+      page = 'search';
       words = parts.slice(1).join('/');
     } else if (path) {
+      page = 'search';
       words = path;
       window.history.replaceState(null, '', '#league/search/' + path);
       routed = 'league/search/' + path;
     }
     var wanted = '';
     try { wanted = decodeURIComponent(words); } catch (e) { wanted = words; }
-    if (page === 'home' && searchField.value !== wanted) {
+    if (page === 'search' && searchField.value !== wanted) {
       searchField.value = wanted;
       searchShown = SEARCH_PAGE;
     }
@@ -5454,7 +5655,7 @@
 
   searchField.addEventListener('input', function () {
     searchShown = SEARCH_PAGE;
-    var hash = 'league' + (searchField.value ? '/search/' + encodeURIComponent(searchField.value) : '');
+    var hash = 'league/search' + (searchField.value ? '/' + encodeURIComponent(searchField.value) : '');
     /* Into the address without a new page in the history, or route() seeing
        one: what route() last drew is this. */
     window.history.replaceState(null, '', '#' + hash);

@@ -673,27 +673,52 @@ and a page called Search from 2026-10-26), for everybody, signed in or not.
 The old `#search` and `#search/{query}` addresses open it. *Around the NFL*
 sits over the title. The page is the week's games, the standings close
 under them and the Injury Report, with no titles over them (Sam,
-2026-10-30: tried and taken off), then **the catalog**, then the search
-after a gap. The bar and the search box run the width of the page.
+2026-10-30: tried and taken off), then **the catalog**. The bar runs the
+width of the page.
 
 **The catalog** (Sam, 2026-11-01: "more like a catalog ... those links
 redirect you to a different page"): under the Injury Report, a card for
-each of the League's other pages, three across (one over the other on a
-phone), made the way the game cards are (Sam, 2026-11-01: "make it fit
+each of the League's other pages, three across and the last two in the
+middle under them (one over the other on a phone), made the way the game cards are (Sam, 2026-11-01: "make it fit
 with the website more"): cream under an ink edge and a hard shadow, a mark
 in an orange box (ESPN's red for Free Agency), the name in the display
 face and an arrow, lighter under the pointer with the name orange. Each is a page
-of its own under the same title bar, its name for the title and a kicker
-over it (*‹ League*) that goes back; the ticker runs along the bottom of
-every one of them.
+of its own under the same title bar, its name for the title, and at its top
+left, level with the kicker, a round button holding just a back arrow that
+goes back to the catalog (Sam, 2026-11-01: as a phone has on a player's or
+a team's page; a draft's goes back to the drafts); the ticker runs along
+the bottom of every one of them.
 
-- **Free Agency** (`#league/free-agency`, its tile edged in ESPN's red):
+- **Free Agency** (`#league/free-agency`, its mark in ESPN's red):
   the Free Agency Tracker below.
 - **Draft** (`#league/draft`): a tile for each draft since 2023, the
   newest first, its year and its No. 1 pick; each opens that draft's own
   page, `#league/draft/{year}` (the Draft History below).
 - **Player Movement** (`#league/movement`): the trades and contract
   signings, below.
+- **League Leaders** (`#league/leaders`, `#league/leaders/{year}`): below.
+- **Search** (`#league/search`, Sam 2026-11-01: moved off the League page
+  into the catalog): the search below.
+
+**League Leaders** (Sam, 2026-11-01): a season's top ten in every stat
+the sim keeps, each in a box of its own (a panel, the stat its title), two
+columns of them, one on a phone: Passing Yards, Passing Touchdowns,
+Completions, Passer Rating, Rushing Yards, Rushing Touchdowns, Carries,
+Yards per Carry, Receptions, Receiving Yards, Receiving Touchdowns,
+Targets, Tackles, Sacks, Interceptions, Passes Defended, Forced Fumbles,
+Defensive Touchdowns, Field Goals Made, Punting Average. Each line is the
+place, his headshot, his name over his team's mark, position and city, and
+the number; it opens his pop-up. The leader's line is bigger and on his
+team's colour (dark type on a light one), with a gold trophy by his
+number; second has a silver trophy and third a bronze. Two alike go to the
+one who did it in fewer games, then by name, so there is always one of
+each. The week bar's switcher over them, `[ ‹ ] [ year ] [ › ]`, goes back
+a season and on, each season its own address; it opens on the newest. The
+numbers are the rosters' season lines (`seasons`), as the pop-up's are:
+from 2025, the first season the sim kept everybody's, counting only the
+weeks out on the site; Passer Rating, Yards per Carry and Punting Average
+need the tries the pop-up's italic leaders need (`LEADER_STATS` in
+js/app.js).
 
 The standings and the Injury Report stay on the League page itself (Sam,
 2026-11-01).
@@ -917,7 +942,7 @@ player in the live rosters, free agents and the retired included, with a
 `draft` from 2023 on, so a 2023 pick is only there if he was in the world
 at the 2023 kickoff.
 
-**The search** comes after another gap: one box with a
+**The search** is the Search page (`#league/search`): one box with a
 magnifying glass at its left, players only (no teams since 2026-10-30),
 results as it is typed, and the query rides in the address
 (`#league/search/{query}`; an older `#league/{query}` is taken there), so

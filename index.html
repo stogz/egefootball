@@ -249,6 +249,9 @@
          the address, #league/{query}, so Back comes back to it. Built in
          app.js (renderSearch). -->
     <section id="view-league" hidden>
+      <!-- On a page of the catalog, the way back to it at the top left: a
+           round button with its arrow, as a phone has on a player's page. -->
+      <a class="fb-btn fb-btn--inverse ege-back ege-back--round ege-league__return" id="leagueBack" href="#league" hidden>League</a>
       <header class="fb-hero fb-hero--centred">
         <div class="fb-hero__col">
           <span class="fb-kicker" id="leagueKicker">Around the NFL</span>
@@ -285,7 +288,18 @@
             <span class="ege-catalog__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M4 8h15 M15 4l4 4-4 4 M20 16H5 M9 12l-4 4 4 4" fill="none" stroke="currentColor" stroke-width="2.2"/></svg></span>
             <span class="ege-catalog__name">Player Movement</span><span class="ege-catalog__go" aria-hidden="true"></span>
           </a>
+          <a class="ege-catalog__item" href="#league/leaders">
+            <span class="ege-catalog__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M7 3h10v6a5 5 0 0 1-10 0z M7 5H3v2a4 4 0 0 0 4 4 M17 5h4v2a4 4 0 0 1-4 4 M12 14v4 M8 21h8 M9 18h6" fill="none" stroke="currentColor" stroke-width="2.2"/></svg></span>
+            <span class="ege-catalog__name">League Leaders</span><span class="ege-catalog__go" aria-hidden="true"></span>
+          </a>
+          <a class="ege-catalog__item" href="#league/search">
+            <span class="ege-catalog__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2.4"/></svg></span>
+            <span class="ege-catalog__name">Search</span><span class="ege-catalog__go" aria-hidden="true"></span>
+          </a>
         </nav>
+      </div>
+      <!-- #league/search/{words}: players only. -->
+      <div id="leagueSearchPage" hidden>
         <div class="ege-search" id="leagueSearch">
           <div class="ege-search__box">
             <svg class="ege-search__icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
@@ -302,6 +316,18 @@
           </div>
         </div>
         <div class="ege-search__results" id="searchResults"></div>
+      </div>
+      <!-- #league/leaders/{year}: the top ten in every stat a season, two
+           columns of boxes, a year at a time. -->
+      <div id="leagueLeadersPage" hidden>
+        <div class="ege-seasonbar ege-league__bar ege-leaders__bar">
+          <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="leadersPrev"
+                  aria-label="Season before">&lsaquo;</button>
+          <select class="fb-select ege-seasonbar__pick" id="leadersYear" aria-label="Season"></select>
+          <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="leadersNext"
+                  aria-label="Season after">&rsaquo;</button>
+        </div>
+        <div class="ege-leaders" id="leadersGrid"></div>
       </div>
       <!-- #league/free-agency -->
       <div id="leagueFaPage" hidden>
