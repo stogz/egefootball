@@ -20,7 +20,7 @@
 
 'use strict';
 
-const { onTeam, room, byPos, needAt, starterLevels, SLOTS, PREMIUM } = require('./rosters');
+const { onTeam, room, byPos, needAt, starterLevels, SLOTS, PREMIUM, noteSigning } = require('./rosters');
 const { marketPay, capFor, POSITION } = require('./value');
 const { fitOf, schemeFor } = require('./schemes');
 const { playerFit } = require('./fit');
@@ -258,6 +258,7 @@ function accept(league, slug, key) {
   p.status = 'active';
   p.contract = { through: offer.through, apy: offer.apy };
   delete p.faSince;
+  noteSigning(league, p, key, from);
   const moved = sixTrades.record(league, p, from, key);
   drop(league, slug);
   index(league);

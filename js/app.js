@@ -4865,12 +4865,14 @@
     return mark;
   }
 
-  /* --- the draft history -----------------------------------------------
+  /* --- the drafts ------------------------------------------------------
 
-     Last before the search (Sam, 2026-10-31): every draft since the world
-     began (2023), a round at a time, as a stat sheet in the order the picks
-     were made. The week bar's switcher over it picks the draft and the
-     round, its arrows a draft back and on. Each row is the pick, the mark
+     A page of the League's catalog (Sam, 2026-11-01): #league/draft is
+     every draft since the world began (2023), the newest first, each with
+     its first pick; #league/draft/{year} is one draft, every pick from the
+     first to the last, as a stat sheet, a heading over each round while it
+     runs in the draft's order. The week bar's switcher over it picks the
+     draft, its arrows a draft back and on. Each row is the pick, the mark
      of the team that made it, his headshot, his name, his overall now,
      position, his age when he was drafted and his school, then his career
      numbers: passing,
@@ -4883,19 +4885,15 @@
 
   var draftsPanel = document.getElementById('leagueDrafts');
   var draftList = document.getElementById('draftList');
-  var draftMore = document.getElementById('draftMore');
   var draftYearPick = document.getElementById('draftYear');
-  var draftRoundPick = document.getElementById('draftRound');
+  var draftYearsBox = document.getElementById('draftYears');
   var draftPrev = document.getElementById('draftPrev');
   var draftNext = document.getElementById('draftNext');
 
   var draftHead = document.getElementById('draftHead');
 
   var DRAFTS_FROM = 2023;
-  var DRAFT_PAGE = 32;
-  var draftShown = DRAFT_PAGE;
   var draftYear = '';
-  var draftRound = '1';
   var draftYears = [];
 
   /* The sheet's columns, each read off a pick ({ hit, row, age, career }):
@@ -4956,7 +4954,6 @@
       button.addEventListener('click', function () {
         draftSort = draftSort.key === column.key ? { key: column.key, dir: draftSort.dir === DOWN ? UP : DOWN }
           : { key: column.key, dir: column.words || column.up ? UP : DOWN };
-        draftShown = DRAFT_PAGE;
         renderDrafts();
       });
       th.appendChild(button);
@@ -5079,86 +5076,395 @@
     return line;
   }
 
-  function renderDrafts() {
-    var season = searchSeason();
+  /* Everybody drafted since 2023 the rosters have, and the drafts, newest
+     first. */
+  function draftedPeople(season) {
     var all = season ? EGE.nflRosters.get(season) : null;
     var drafted = !all || !all.teams ? [] : searchPeople(season).filter(function (hit) {
       return hit.sim && hit.sim.draft && hit.sim.draft.year >= DRAFTS_FROM;
     });
-    draftsPanel.hidden = !drafted.length;
-    if (!drafted.length) { return; }
     var years = [];
     drafted.forEach(function (hit) {
       if (years.indexOf(hit.sim.draft.year) === -1) { years.push(hit.sim.draft.year); }
     });
     years.sort(function (a, b) { return b - a; });
+    return { drafted: drafted, years: years };
+  }
+
+  /* #league/draft: a tile for each draft, its year and its first pick. */
+  function renderDraftYears() {
+    var season = searchSeason();
+    var got = draftedPeople(season);
+    draftYearsBox.hidden = !got.years.length;
+    draftYearsBox.innerHTML = '';
+    got.years.forEach(function (year) {
+      var tile = el('a', 'ege-catalog__item ege-draftyears__item');
+      tile.href = '#league/draft/' + year;
+      tile.appendChild(el('span', 'ege-catalog__name', String(year)));
+      var first = got.drafted.filter(function (hit) { return hit.sim.draft.year === year && hit.sim.draft.pick === 1; })[0];
+      if (first) {
+        var row = nflHitRow(first, season);
+        var top = el('span', 'ege-draftyears__first');
+        if (EGE.nfl.teams[first.sim.draft.team]) { top.appendChild(leagueLogo(first.sim.draft.team, 20)); }
+        top.appendChild(el('span', null, 'No. 1 ' + row.name));
+        tile.appendChild(top);
+      }
+      tile.appendChild(el('span', 'ege-catalog__go'));
+      draftYearsBox.appendChild(tile);
+    });
+    if (!got.years.length) { draftYearsBox.appendChild(el('p', 'ege-note ege-league__note', 'No drafts yet.')); }
+  }
+
+  /* A heading row over a round, while the sheet runs in the draft's order. */
+  function draftRoundRow(round) {
+    var line = el('tr', 'ege-drafttable__round');
+    var cell = el('td', null, 'Round ' + round);
+    cell.colSpan = DRAFT_COLUMNS.length;
+    line.appendChild(cell);
+    return line;
+  }
+
+  /* #league/draft/{year}: the whole draft, first pick to last. A year
+     with no draft in the rosters is the newest one. */
+  function renderDrafts() {
+    var season = searchSeason();
+    var got = draftedPeople(season);
+    var years = got.years;
+    draftsPanel.hidden = !years.length;
+    if (!years.length) { return; }
+    if (years.indexOf(Number(draftYear)) === -1) {
+      draftYear = String(years[0]);
+      window.history.replaceState(null, '', '#league/draft/' + draftYear);
+      routed = 'league/draft/' + draftYear;
+    }
     draftYears = years;
+    leagueTitle.textContent = draftYear + ' Draft';
+    document.title = draftYear + ' Draft \u2014 EGE Football';
     draftYear = fillPick(draftYearPick, years.map(function (y) { return [String(y), String(y)]; }), draftYear);
     draftPrev.disabled = years.indexOf(Number(draftYear)) >= years.length - 1;
     draftNext.disabled = years.indexOf(Number(draftYear)) <= 0;
-    var year = drafted.filter(function (hit) { return String(hit.sim.draft.year) === draftYear; });
-    var rounds = [];
-    year.forEach(function (hit) { if (rounds.indexOf(hit.sim.draft.round) === -1) { rounds.push(hit.sim.draft.round); } });
-    rounds.sort(function (a, b) { return a - b; });
-    draftRound = fillPick(draftRoundPick, rounds.map(function (r) { return [String(r), 'Round ' + r]; })
-      .concat([['', 'All rounds']]), draftRound);
-    var picks = sortDrafts(year.filter(function (hit) {
-      return !draftRound || String(hit.sim.draft.round) === draftRound;
+    var picks = sortDrafts(got.drafted.filter(function (hit) {
+      return String(hit.sim.draft.year) === draftYear;
     }).map(function (hit) {
       return { hit: hit, row: nflHitRow(hit, season), age: draftAge(hit.sim, season),
                career: careerLine((hit.sim.seasons || []).filter(function (entry) { return entry.line; })) };
     }));
     markDraftHeads();
+    var rounds = draftSort.key === 'pick';
+    var round = null;
+    var rows = document.createDocumentFragment();
+    picks.forEach(function (x) {
+      if (rounds && x.hit.sim.draft.round !== round) {
+        round = x.hit.sim.draft.round;
+        rows.appendChild(draftRoundRow(round));
+      }
+      rows.appendChild(draftLine(x));
+    });
     draftList.innerHTML = '';
-    picks.slice(0, draftShown).forEach(function (x) { draftList.appendChild(draftLine(x)); });
-    draftMore.hidden = picks.length <= draftShown;
+    draftList.appendChild(rows);
   }
 
-  [[draftYearPick, function (v) { draftYear = v; }], [draftRoundPick, function (v) { draftRound = v; }]].forEach(function (pair) {
-    pair[0].addEventListener('change', function () {
-      pair[1](pair[0].value);
-      draftShown = DRAFT_PAGE;
-      renderDrafts();
-    });
-  });
+  /* Another draft is another page: into the address, which draws it. */
+  function goDraft(year) {
+    if (year) { window.location.hash = '#league/draft/' + year; }
+  }
+
+  draftYearPick.addEventListener('change', function () { goDraft(draftYearPick.value); });
   /* The newest draft is first in the list, so the one before is next in it. */
   [[draftPrev, 1], [draftNext, -1]].forEach(function (pair) {
     pair[0].addEventListener('click', function () {
-      var year = draftYears[draftYears.indexOf(Number(draftYear)) + pair[1]];
-      if (!year) { return; }
-      draftYear = String(year);
-      draftShown = DRAFT_PAGE;
-      renderDrafts();
+      goDraft(draftYears[draftYears.indexOf(Number(draftYear)) + pair[1]]);
     });
   });
-  draftMore.addEventListener('click', function () {
-    draftShown += DRAFT_PAGE;
-    renderDrafts();
-  });
 
-  /* Everything on the League that the rosters draw. */
-  function renderLeagueLists() {
-    renderFreeAgents();
-    renderDrafts();
+  /* --- player movement -------------------------------------------------
+
+     A page of the League's catalog (Sam, 2026-11-01: the trade report back,
+     "called player movement", with "contract signings included"): a
+     season's trades Sam let through and its contracts signed, the newest
+     first under when they happened, a page at a time behind Show more, with
+     a season, the kind of move and a team to narrow it to. A trade is each
+     team and what it got: a player as his card at the overall he had then,
+     and a pick as its year and round with whose it was and its number once
+     the draft's order is known, or the card of the player it became. A
+     signing is his card at the overall he had then, the team's mark, who
+     he left (or re-signed, extended) and his deal. The rosters carry both
+     (nfl-sim/lib/site.js tradesOut and signingsOut). */
+
+  var moveList = document.getElementById('moveList');
+  var moveMore = document.getElementById('moveMore');
+  var moveSeasonPick = document.getElementById('moveSeason');
+  var moveKindPick = document.getElementById('moveKind');
+  var moveTeamPick = document.getElementById('moveTeam');
+
+  var MOVE_PAGE = 24;
+  var moveShown = MOVE_PAGE;
+  var moveSeason = '';
+  var moveKind = '';
+  var moveTeam = '';
+  var MOVE_KINDS = [['', 'All moves'], ['trade', 'Trades'], ['sign', 'Signings']];
+
+  /* Whom a trade or a signing names, as the rosters have him now: his
+     card, or his name and face with nowhere to go. */
+  function namedRow(who) {
+    var hit = boxHit(who);
+    if (hit) { return nflHitRow(hit, searchSeason()); }
+    return { name: who.name, nfl: true, photo: Boolean(who.espn), espn: who.espn, collegePhoto: Boolean(who.collegePhoto),
+             player: who.ege ? EGE.playerBySlug(who.ege) : null };
   }
 
-  /* #league/{query}: the week's games, and the search's box filled from
-     the address, which is how Back comes back to the same results. */
-  function openLeague(query) {
+  /* When a move happened, to file and order it: the season (an offseason
+     trade's is the one it leads into, as the trades bot has it; a
+     signing's is filed so already), and the point in it, the offseason
+     first. */
+  function movePoint(phase, week) {
+    if (phase === 'offseason' || phase === 'draft') { return { at: 0, label: 'Offseason' }; }
+    if (phase === 'preseason') { return { at: 0.5, label: 'Preseason' }; }
+    if (phase === 'deadline') { return { at: (week || 0) + 0.5, label: 'Trade Deadline' }; }
+    if (phase === 'playoffs') { return { at: 30, label: 'Playoffs' }; }
+    return week ? { at: week, label: weekName(week) } : { at: 0.5, label: 'Season' };
+  }
+
+  function playerMoves(all) {
+    var out = [];
+    (all.trades || []).forEach(function (t) {
+      if (!t.sides.every(function (side) { return EGE.nfl.teams[side.team]; })) { return; }
+      var point = movePoint(t.phase, t.week);
+      out.push({ kind: 'trade', year: t.phase === 'offseason' ? t.season + 1 : t.season, at: point.at, label: point.label,
+                 teams: t.sides.map(function (side) { return side.team; }), trade: t, n: out.length });
+    });
+    (all.signings || []).forEach(function (x) {
+      if (!EGE.nfl.teams[x.team]) { return; }
+      var point = movePoint(x.phase, x.week);
+      out.push({ kind: 'sign', year: x.season, at: point.at, label: point.label, teams: [x.team, x.from].filter(Boolean),
+                 signing: x, n: out.length });
+    });
+    /* The newest first; at the same point the trades, then the signings
+       best first. */
+    return out.sort(function (a, b) {
+      return b.year - a.year || b.at - a.at || (a.kind === b.kind ? 0 : a.kind === 'trade' ? -1 : 1) ||
+        (a.kind === 'sign' ? b.signing.ovr - a.signing.ovr : 0) || a.n - b.n;
+    });
+  }
+
+  /* A pick in place of a face: its round. */
+  function pickFace(round) {
+    var face = el('span', 'ege-teamchip__photo ege-pickface');
+    face.appendChild(el('span', 'ege-pickface__label', 'RD'));
+    face.appendChild(el('span', 'ege-pickface__value', String(round)));
+    return face;
+  }
+
+  function tradeItemLine(item) {
+    var row;
+    if (item.name) {
+      row = namedRow(item);
+      if (typeof item.ovr === 'number') { row.overall = item.ovr; }
+      row.out = null;
+      row.retired = null;
+      return nflLine(row);
+    }
+    var label = item.year + ' Round ' + item.round;
+    var whose = cardMark(item.from, EGE.nfl.teams[item.from] ? EGE.nfl.city(item.from) + '’s pick' : null);
+    if (item.player) {
+      row = namedRow(item.player);
+      row.note = [label, item.n ? 'No. ' + item.n : ''];
+      row.out = null;
+    } else {
+      row = { name: label, nfl: true, note: item.n ? 'No. ' + item.n : '', face: pickFace(item.round) };
+    }
+    row.where = whose;
+    return nflLine(row);
+  }
+
+  function tradeCard(move) {
+    var t = move.trade;
+    var card = el('article', 'ege-nfltrade');
+    card.appendChild(el('div', 'ege-nfltrade__when', 'Trade'));
+    var sides = el('div', 'ege-nfltrade__sides');
+    t.sides.forEach(function (side) {
+      var box = el('section', 'ege-nfltrade__side');
+      var head = el('a', 'ege-nfltrade__team');
+      head.href = '#teams/' + EGE.nfl.slug(side.team);
+      head.addEventListener('click', function () { teamsPicked = Math.min(move.year, searchSeason()); });
+      head.appendChild(leagueLogo(side.team, 32));
+      head.appendChild(el('span', 'ege-nfltrade__city', EGE.nfl.city(side.team)));
+      head.appendChild(el('span', 'ege-nfltrade__get', 'Receive'));
+      box.appendChild(head);
+      var list = el('ol', 'ege-room__list ege-nfltrade__gets');
+      side.gets.forEach(function (item) { list.appendChild(tradeItemLine(item)); });
+      box.appendChild(list);
+      sides.appendChild(box);
+    });
+    card.appendChild(sides);
+    return card;
+  }
+
+  var SIGN_WORDS = { 're-sign': 'Re-signed', extend: 'Extended' };
+
+  function signingLine(move) {
+    var x = move.signing;
+    var row = namedRow(x);
+    row.overall = x.ovr;
+    row.out = null;
+    row.retired = null;
+    var how = SIGN_WORDS[x.kind] || (x.from && EGE.nfl.teams[x.from] ? 'Signed from ' + EGE.nfl.city(x.from) : 'Signed');
+    var deal = '';
+    if (typeof x.apy === 'number' && x.through) {
+      var years = x.through - x.season + 1;
+      deal = years + (years === 1 ? ' yr' : ' yrs') + ' · ' + moneyText(x.apy) + ' a year';
+    }
+    row.note = [how, deal];
+    row.where = cardMark(x.team);
+    return nflLine(row);
+  }
+
+  function renderMovement() {
+    var season = searchSeason();
+    var all = season ? EGE.nflRosters.get(season) : null;
+    var moves = all ? playerMoves(all) : [];
+    var years = [];
+    var teams = [];
+    moves.forEach(function (m) {
+      if (years.indexOf(m.year) === -1) { years.push(m.year); }
+      m.teams.forEach(function (key) { if (teams.indexOf(key) === -1) { teams.push(key); } });
+    });
+    years.sort(function (a, b) { return b - a; });
+    teams.sort(function (a, b) { return EGE.nfl.city(a).localeCompare(EGE.nfl.city(b)); });
+    moveSeason = fillPick(moveSeasonPick, years.map(function (y) { return [String(y), String(y)]; }), moveSeason);
+    moveKind = fillPick(moveKindPick, MOVE_KINDS, moveKind);
+    moveTeam = fillPick(moveTeamPick, [['', 'All teams']].concat(teams.map(function (key) {
+      return [key, EGE.nfl.city(key)];
+    })), moveTeam);
+    moveSeasonPick.hidden = !years.length;
+    var shown = moves.filter(function (m) {
+      return String(m.year) === moveSeason && (!moveKind || m.kind === moveKind) &&
+        (!moveTeam || m.teams.indexOf(moveTeam) !== -1);
+    });
+    moveList.innerHTML = '';
+    var group = null;
+    var list = null;
+    shown.slice(0, moveShown).forEach(function (m) {
+      var when = m.year + ' ' + m.label;
+      if (when !== group) {
+        group = when;
+        list = null;
+        moveList.appendChild(el('h3', 'ege-moves__when', when));
+      }
+      if (m.kind === 'trade') {
+        list = null;
+        moveList.appendChild(tradeCard(m));
+        return;
+      }
+      if (!list) {
+        list = el('ol', 'ege-room__list ege-search__list ege-moves__signings');
+        moveList.appendChild(list);
+      }
+      list.appendChild(signingLine(m));
+    });
+    if (!shown.length) { moveList.appendChild(el('p', 'ege-note ege-league__note', all ? 'No moves.' : 'Getting the moves…')); }
+    moveMore.hidden = shown.length <= moveShown;
+  }
+
+  [[moveSeasonPick, function (v) { moveSeason = v; }], [moveKindPick, function (v) { moveKind = v; }],
+   [moveTeamPick, function (v) { moveTeam = v; }]].forEach(function (pair) {
+    pair[0].addEventListener('change', function () {
+      pair[1](pair[0].value);
+      moveShown = MOVE_PAGE;
+      renderMovement();
+    });
+  });
+  moveMore.addEventListener('click', function () {
+    moveShown += MOVE_PAGE;
+    renderMovement();
+  });
+
+  /* --- the League's pages --------------------------------------------
+
+     The League is a catalog (Sam, 2026-11-01): #league is the week's
+     games, the standings and the Injury Report as they were, then a link
+     to each of the rest, which is a page of its own -- #league/free-agency,
+     #league/draft (and #league/draft/{year}), #league/movement. The
+     search stays at the foot of #league, its words in the address as
+     #league/search/{words}. The title over the page is the page's, and on
+     one of the catalog's the kicker over it goes back. */
+
+  var leagueKicker = document.getElementById('leagueKicker');
+  var leagueTitle = document.getElementById('leagueTitle');
+  var LEAGUE_PAGES = {
+    home: { box: document.getElementById('leagueHome'), title: 'League' },
+    fa: { box: document.getElementById('leagueFaPage'), title: 'Free Agency', path: 'free-agency' },
+    drafts: { box: document.getElementById('leagueDraftPage'), title: 'Draft', path: 'draft' },
+    draft: { box: document.getElementById('leagueDraftPage'), title: 'Draft' },
+    moves: { box: document.getElementById('leagueMovePage'), title: 'Player Movement', path: 'movement' }
+  };
+  var leaguePage = 'home';
+
+  /* What the rosters draw on the page on show. */
+  function renderLeagueLists() {
+    if (leaguePage === 'fa') { renderFreeAgents(); }
+    if (leaguePage === 'drafts') { renderDraftYears(); }
+    if (leaguePage === 'draft') { renderDrafts(); }
+    if (leaguePage === 'moves') { renderMovement(); }
+  }
+
+  function showLeaguePage(page) {
+    leaguePage = page;
+    var on = LEAGUE_PAGES[page];
+    Object.keys(LEAGUE_PAGES).forEach(function (key) {
+      if (LEAGUE_PAGES[key].box !== on.box) { LEAGUE_PAGES[key].box.hidden = true; }
+    });
+    on.box.hidden = false;
+    draftYearsBox.hidden = page !== 'drafts';
+    draftsPanel.hidden = page !== 'draft';
+    leagueTitle.textContent = on.title;
+    leagueKicker.innerHTML = '';
+    if (page === 'home') {
+      leagueKicker.textContent = 'Around the NFL';
+    } else {
+      var back = el('a', 'ege-league__back', page === 'draft' ? 'Drafts' : 'League');
+      back.href = page === 'draft' ? '#league/draft' : '#league';
+      leagueKicker.appendChild(back);
+    }
+    document.title = on.title + ' — EGE Football';
+  }
+
+  /* #league/{path}: the page it names, or the search's words in an older
+     address (#league/{words}, before the catalog). */
+  function openLeague(path) {
+    var parts = (path || '').split('/');
+    var page = 'home';
+    var words = '';
+    if (parts[0] === 'free-agency') {
+      page = 'fa';
+    } else if (parts[0] === 'movement') {
+      page = 'moves';
+    } else if (parts[0] === 'draft') {
+      page = parts[1] ? 'draft' : 'drafts';
+      if (parts[1]) { draftYear = parts[1]; }
+    } else if (parts[0] === 'search') {
+      words = parts.slice(1).join('/');
+    } else if (path) {
+      words = path;
+      window.history.replaceState(null, '', '#league/search/' + path);
+      routed = 'league/search/' + path;
+    }
     var wanted = '';
-    try { wanted = decodeURIComponent(query || ''); } catch (e) { wanted = query || ''; }
-    if (searchField.value !== wanted) {
+    try { wanted = decodeURIComponent(words); } catch (e) { wanted = words; }
+    if (page === 'home' && searchField.value !== wanted) {
       searchField.value = wanted;
       searchShown = SEARCH_PAGE;
     }
+    showLeaguePage(page);
     renderLeague();
+    /* The search is what asks for the rosters every page draws from. */
     renderSearch();
     renderLeagueLists();
   }
 
   searchField.addEventListener('input', function () {
     searchShown = SEARCH_PAGE;
-    var hash = 'league' + (searchField.value ? '/' + encodeURIComponent(searchField.value) : '');
+    var hash = 'league' + (searchField.value ? '/search/' + encodeURIComponent(searchField.value) : '');
     /* Into the address without a new page in the history, or route() seeing
        one: what route() last drew is this. */
     window.history.replaceState(null, '', '#' + hash);
@@ -9642,7 +9948,6 @@
       show(viewLeague);
       setNav('league');
       openLeague(hash.slice(7));
-      document.title = 'League \u2014 EGE Football';
     } else if (hash === 'admin' || hash.indexOf('admin/') === 0) {
       renderAdminView();
       show(viewAdmin);

@@ -87,12 +87,35 @@ function contractYears(age, rng) {
   return clamp(base + (rng() < 0.3 ? 1 : 0) - (rng() < 0.3 ? 1 : 0), 1, 5);
 }
 
-function sign(p, key, league, rng, apy) {
+/* Every contract signed, for the League's Player Movement page (Sam,
+   2026-11-01): when (season, phase, week as the league stood), who, the
+   team, the one he came from, the deal and his overall then. `kind` is
+   'sign' (a new team), 're-sign' (his own) or 'extend' (more years before
+   his deal is up). The draft's rookie deals stay out: the drafts have
+   their own pages. Kept in league.json, so an undo takes it back too. */
+function noteSigning(league, p, key, from, kind) {
+  /* Filed under the season it leads into, as the trades bot files an
+     offseason trade: between the playoffs and the new league year (the
+     finished season's stats still kept) that is the next one. */
+  const between = league.phase === 'offseason' && Object.keys(league.stats || {}).length > 0;
+  const off = league.phase === 'offseason' || league.phase === 'draft';
+  (league.signings = league.signings || []).push({
+    season: between ? league.season + 1 : league.season, phase: off ? 'offseason' : league.phase,
+    week: off ? null : league.week || null, id: p.id, team: key, from: from || null, kind: kind || (from === key ? 're-sign' : 'sign'),
+    apy: p.contract.apy, through: p.contract.through, ovr: p.ovr, age: p.age
+  });
+}
+
+/* `quiet`: not a signing to show (a star held for Sam's say: his move, or
+   staying, is noted when Sam decides). */
+function sign(p, key, league, rng, apy, quiet) {
   const years = contractYears(p.age, rng);
+  const was = p.status === 'active' && p.team && p.team !== 'FA' ? p.team : p.lastTeam || null;
   p.team = key;
   p.status = 'active';
   p.contract = { through: league.season + years - 1, apy: Math.round((apy || marketPay(p, league.season)) * 10) / 10 };
   delete p.faSince;
+  if (!quiet) { noteSigning(league, p, key, was); }
 }
 
 /* A team over the cap in the spring cuts the veterans it pays the most
@@ -220,7 +243,7 @@ function freeAgency(league, rng, opts) {
     });
     if (best && opts.hold && opts.hold(p, best.key)) {
       const to = best.key;
-      sign(p, p.lastTeam, league, rng, ask * (0.9 + rng() * 0.25));
+      sign(p, p.lastTeam, league, rng, ask * (0.9 + rng() * 0.25), true);
       [to, p.team].forEach((key) => { sizes[key] += 1; rooms[key] -= p.contract.apy; });
       (promised[to] = promised[to] || []).push(p);
       if (opts.held) { opts.held.push({ player: p, from: p.team, to, contract: Object.assign({}, p.contract) }); }
@@ -430,6 +453,7 @@ function spendRoom(league, rng) {
         const apy = Math.round(Math.max(was, marketPay(p, league.season) * (0.98 + rng() * 0.12)) * 10) / 10;
         if (apy - was > spare()) { return; }
         p.contract = { through: league.season + contractYears(p.age, rng), apy };
+        noteSigning(league, p, t.key, t.key, 'extend');
         out.extended.push({ player: p, team: t.key, from: was, apy });
       });
   });
@@ -457,5 +481,5 @@ function replacement(league, pos, rng, makeName) {
 }
 
 module.exports = { SLOTS, MIN, TARGET, MAX, CAMP, ROSTER, onTeam, payroll, room, starterLevels, needAt, needs, reSign,
-                   freeAgency, cutDown, trim, addPlayers, fillDepth, fillHoles, sign, release, byPos, capCasualties, spendRoom,
+                   freeAgency, cutDown, trim, addPlayers, fillDepth, fillHoles, sign, noteSigning, release, byPos, capCasualties, spendRoom,
                    LEFT_OVER, KEEP_ROUNDS, PREMIUM };
