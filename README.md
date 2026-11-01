@@ -677,9 +677,12 @@ under them and the Injury Report, with no titles over them (Sam,
 after a gap. The bar and the search box run the width of the page.
 
 **The catalog** (Sam, 2026-11-01: "more like a catalog ... those links
-redirect you to a different page"): under the Injury Report, a tile for
+redirect you to a different page"): under the Injury Report, a card for
 each of the League's other pages, three across (one over the other on a
-phone), ink with an orange arrow, orange under the pointer. Each is a page
+phone), made the way the game cards are (Sam, 2026-11-01: "make it fit
+with the website more"): cream under an ink edge and a hard shadow, a mark
+in an orange box (ESPN's red for Free Agency), the name in the display
+face and an arrow, lighter under the pointer with the name orange. Each is a page
 of its own under the same title bar, its name for the title and a kicker
 over it (*‹ League*) that goes back; the ticker runs along the bottom of
 every one of them.
@@ -918,7 +921,12 @@ at the 2023 kickoff.
 magnifying glass at its left, players only (no teams since 2026-10-30),
 results as it is typed, and the query rides in the address
 (`#league/search/{query}`; an older `#league/{query}` is taken there), so
-Back from a player's page comes back to the same results.
+Back from a player's page comes back to the same results. The cards sit
+straight on the grass under the box, with no *Players* panel or title round
+them (Sam, 2026-11-01: there is only one kind of thing to find). The
+League's drop-downs (the search's, the tracker's and Player Movement's) are
+dressed as the box is: white under the same ink edge and hard shadow, in
+the same plain type, with an ink chevron.
 
 - **Players**: the cards a team's page draws (`nflLine`), each with his
   team's mark beside his overall, opening the same pop-up. They are the

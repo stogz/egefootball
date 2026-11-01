@@ -4655,9 +4655,11 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
 .ege-drafts__more { display: block; margin: 18px auto 0; }
 
 /* The League's catalog (Sam, 2026-11-01): under the Injury Report, a
-   link to each page of its own, ink tiles with an orange arrow that go
-   orange under the pointer; three across, one over the other on a phone.
-   The drafts' page lays out its years the same way. */
+   card for each page of its own, the way the game cards are -- cream under
+   an ink edge and a hard shadow -- with its mark in an orange box (the
+   tracker's ESPN red for free agency), its name in the display face and an
+   arrow; lighter under the pointer, the name orange. Three across, one
+   over the other on a phone. The drafts' page lays out its years so. */
 .ege-catalog,
 .ege-draftyears {
   display: grid;
@@ -4667,61 +4669,66 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
 }
 @media (max-width: 760px) {
   .ege-catalog { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-  .ege-catalog__item { min-height: 66px; padding: 14px 60px 14px 18px; }
-  .ege-catalog__name { font-size: 1.3125rem; }
   .ege-draftyears { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 }
 .ege-catalog__item {
-  position: relative;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 8px;
+  align-items: center;
+  gap: 14px;
   min-width: 0;
-  min-height: 92px;
-  padding: 18px 64px 18px 20px;
+  padding: 14px 16px;
   border: var(--fb-border) solid var(--fb-ink);
-  background: var(--fb-ink);
-  box-shadow: var(--fb-shadow) var(--fb-shadow) 0 rgba(0, 0, 0, .35);
-  color: var(--fb-cream);
+  background: var(--fb-cream);
+  box-shadow: 5px 5px 0 rgba(0, 0, 0, .35);
+  color: var(--fb-ink);
   text-decoration: none;
-  transition: transform .12s ease, box-shadow .12s ease, background-color .12s ease;
 }
-.ege-catalog__name { font-family: var(--fb-font-display); font-size: 1.5rem; line-height: 1.05; color: #fff; }
-/* Free agency keeps the tracker's ESPN red down its edge. */
-.ege-catalog__item--fa { border-left: 10px solid #e52534; }
-.ege-catalog__go {
-  position: absolute;
-  top: 50%;
-  right: 18px;
-  width: 30px;
-  height: 30px;
+.ege-catalog__icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
   box-sizing: border-box;
-  border: var(--fb-border-thin) solid var(--fb-accent);
-  transform: translateY(-50%);
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-accent);
+  color: var(--fb-ink);
 }
-.ege-catalog__go::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 45%;
-  width: 8px;
-  height: 8px;
-  border-top: 3px solid var(--fb-accent);
-  border-right: 3px solid var(--fb-accent);
-  transform: translate(-50%, -50%) rotate(45deg);
+.ege-catalog__icon svg { display: block; }
+.ege-catalog__item--fa .ege-catalog__icon { background: #e52534; color: #fff; }
+.ege-catalog__text { display: flex; flex: 1 1 auto; flex-direction: column; gap: 5px; min-width: 0; }
+.ege-catalog__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--fb-font-display);
+  font-size: 1.375rem;
+  line-height: 1.05;
+}
+.ege-catalog__go {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  margin: 0 6px 0 auto;
+  border-top: 3px solid var(--fb-ink);
+  border-right: 3px solid var(--fb-ink);
+  transform: rotate(45deg);
 }
 @media (hover: hover) {
-  .ege-catalog__item:hover { background: var(--fb-accent); transform: translate(-2px, -2px); box-shadow: calc(var(--fb-shadow) + 2px) calc(var(--fb-shadow) + 2px) 0 rgba(0, 0, 0, .35); }
-  .ege-catalog__item:hover .ege-catalog__go { border-color: #fff; }
-  .ege-catalog__item:hover .ege-catalog__go::after { border-color: #fff; }
+  .ege-catalog__item:hover { background: var(--fb-tint-wash); }
+  .ege-catalog__item:hover .ege-catalog__name { color: var(--fb-accent-deep); }
+  .ege-catalog__item:hover .ege-catalog__go { border-color: var(--fb-accent); }
 }
-.ege-catalog__item:focus-visible { outline: 3px solid var(--fb-accent-hover); outline-offset: 3px; }
-@media (prefers-reduced-motion: reduce) { .ege-catalog__item { transition: none; } .ege-catalog__item:hover { transform: none; } }
-/* A draft's tile: its year, then its first pick. */
-.ege-draftyears__item { min-height: 104px; }
-.ege-draftyears__item .ege-catalog__name { font-size: 2rem; }
-.ege-draftyears__first { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: .8125rem; font-weight: 700; color: var(--fb-cream); }
+.ege-catalog__item:focus-visible { outline: 3px solid var(--fb-accent); outline-offset: 3px; }
+@media (max-width: 760px) {
+  .ege-catalog__item { padding: 12px 14px; }
+  .ege-catalog__icon { width: 40px; height: 40px; }
+  .ege-catalog__name { font-size: 1.25rem; }
+}
+/* A draft's card: its year, then its first pick. */
+.ege-draftyears__item { padding: 16px 18px; }
+.ege-draftyears__item .ege-catalog__name { font-size: 1.75rem; }
+.ege-draftyears__first { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: .8125rem; font-weight: 700; color: var(--fb-muted); }
 .ege-draftyears__first > span:last-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .ege-draftyears__first .ege-game__logo { flex: none; width: 20px; height: 20px; }
 /* On a page of the catalog, the kicker goes back. */
@@ -4965,6 +4972,30 @@ a.ege-boxscore__name:hover { color: var(--fb-accent-deep); text-decoration: unde
 /* The position and the sort, side by side under the box. */
 .ege-search__sorts { display: flex; gap: 10px; margin-top: 12px; }
 .ege-search__sorts .ege-filterselect { flex: 1 1 0; min-width: 0; }
+/* The drop-downs dressed as the search box is (Sam, 2026-11-01): white
+   under the same ink edge and hard shadow, the words in the same weight
+   and case, and an ink chevron in place of the browser's. On the League's
+   pages: the search, the tracker and Player Movement. */
+.ege-search__sorts .ege-filterselect {
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 11px 40px 11px 14px;
+  border: var(--fb-border) solid var(--fb-ink);
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%231d2416' stroke-width='2.2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 12px 8px;
+  box-shadow: 4px 4px 0 var(--fb-ink);
+  color: var(--fb-ink);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.ege-search__sorts .ege-filterselect:focus { border-color: var(--fb-accent); outline: 0; }
+.ege-search__sorts { gap: 14px; }
+.ege-search > .ege-search__sorts { margin-top: 16px; }
 /* The magnifying glass in the box, on the left of what is typed. */
 .ege-search__box { position: relative; }
 .ege-search__icon {
@@ -4986,6 +5017,10 @@ a.ege-boxscore__name:hover { color: var(--fb-accent-deep); text-decoration: unde
 .ege-search__list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 28px; }
 @media (max-width: 760px) { .ege-search__list { grid-template-columns: minmax(0, 1fr); } }
 .ege-search__more { justify-self: start; margin-top: 14px; }
+/* The players straight on the grass, no panel round them (Sam,
+   2026-11-01: there are only players to find now). */
+.ege-search__results > .ege-search__list { margin: 0; }
+.ege-search__results > .ege-search__more { justify-self: center; margin-top: 4px; }
 .ege-search__note { text-align: center; }
 /* The number a sort put him in order by, just before his overall: the
    overall box's size and type in ink on the cream, the draft's smaller. */
@@ -5010,7 +5045,8 @@ a.ege-boxscore__name:hover { color: var(--fb-accent-deep); text-decoration: unde
 .ege-sortbox__value { font-family: var(--fb-font-display); font-size: 1.5rem; line-height: .96; }
 .ege-sortbox.is-wide .ege-sortbox__value { font-size: 1.0625rem; line-height: 1.2; }
 @media (max-width: 520px) {
-  .ege-search__sorts .ege-filterselect { padding: 10px 6px; font-size: 12px; letter-spacing: .02em; }
+  .ege-search__sorts { gap: 10px; }
+  .ege-search__sorts .ege-filterselect { padding: 10px 30px 10px 10px; background-position: right 10px center; font-size: 15px; }
 }
 /* On a phone, or two narrow cards across, room for his name beside two
    boxes: both a little smaller, and his team's mark on the corner of his

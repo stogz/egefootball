@@ -4629,19 +4629,6 @@
     return row;
   }
 
-  function searchGroup(title, lines) {
-    var panel = el('section', 'fb-panel ege-search__group');
-    var head = el('div', 'fb-panel__head');
-    head.appendChild(el('h3', null, title));
-    panel.appendChild(head);
-    var body = el('div', 'fb-panel__body');
-    var list = el('ol', 'ege-room__list ege-search__list');
-    lines.forEach(function (line) { list.appendChild(line); });
-    body.appendChild(list);
-    panel.appendChild(body);
-    return panel;
-  }
-
   function renderSearch() {
     var query = searchText(searchField.value);
     searchResults.innerHTML = '';
@@ -4669,20 +4656,21 @@
     }).filter(function (x) { return x.score !== -1; })
       .sort(query && sort.key === 'overall' ? byMatch : bySort(sort));
 
+    /* Straight under the box, with no panel or title over them (Sam,
+       2026-11-01: players are all it finds now). */
     if (people.length) {
-      var group = searchGroup('Players', people.slice(0, searchShown).map(function (x) {
-        return searchPlayerLine(x.hit, season, sort);
-      }));
+      var list = el('ol', 'ege-room__list ege-search__list');
+      people.slice(0, searchShown).forEach(function (x) { list.appendChild(searchPlayerLine(x.hit, season, sort)); });
+      searchResults.appendChild(list);
       if (people.length > searchShown) {
-        var more = el('button', 'fb-btn fb-btn--sm ege-search__more', 'Show more');
+        var more = el('button', 'fb-btn fb-btn--inverse fb-btn--sm ege-search__more', 'Show more');
         more.type = 'button';
         more.addEventListener('click', function () {
           searchShown += SEARCH_PAGE;
           renderSearch();
         });
-        group.querySelector('.fb-panel__body').appendChild(more);
+        searchResults.appendChild(more);
       }
-      searchResults.appendChild(group);
     }
     if (all === undefined) {
       searchResults.appendChild(el('p', 'ege-note ege-search__note', 'Getting the players…'));
@@ -5100,14 +5088,16 @@
     got.years.forEach(function (year) {
       var tile = el('a', 'ege-catalog__item ege-draftyears__item');
       tile.href = '#league/draft/' + year;
-      tile.appendChild(el('span', 'ege-catalog__name', String(year)));
+      var text = el('span', 'ege-catalog__text');
+      text.appendChild(el('span', 'ege-catalog__name', String(year)));
+      tile.appendChild(text);
       var first = got.drafted.filter(function (hit) { return hit.sim.draft.year === year && hit.sim.draft.pick === 1; })[0];
       if (first) {
         var row = nflHitRow(first, season);
         var top = el('span', 'ege-draftyears__first');
         if (EGE.nfl.teams[first.sim.draft.team]) { top.appendChild(leagueLogo(first.sim.draft.team, 20)); }
         top.appendChild(el('span', null, 'No. 1 ' + row.name));
-        tile.appendChild(top);
+        text.appendChild(top);
       }
       tile.appendChild(el('span', 'ege-catalog__go'));
       draftYearsBox.appendChild(tile);
