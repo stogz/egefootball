@@ -22,7 +22,7 @@
 
 const { playerValue, pickValue, POSITION } = require('./value');
 const { fitOf, schemeFor, offenseOf, defenseOf } = require('./schemes');
-const { starterLevels, needAt, onTeam, byPos, room, SLOTS, trim, addPlayers } = require('./rosters');
+const { starterLevels, needAt, onTeam, byPos, room, SLOTS, trim, addPlayers, noteSigning } = require('./rosters');
 const { makeName } = require('./draft');
 const { locked, board } = require('./draft-plan');
 const { readWorld, writeWorld, DEADLINE_WEEK } = require('./season');
@@ -235,6 +235,9 @@ function closeWindow(league, window) {
     if (t.status === 'pending' && t.season === league.season && (!window || t.window === window)) {
       t.status = 'expired';
       n += 1;
+      /* A star's move left waiting: he stays, signed where he was. */
+      const p = t.kind === 'move' ? league.byId.get(t.player) : null;
+      if (p && p.status === 'active' && p.team === t.from && p.contract) { noteSigning(league, p, t.from, t.from, 're-sign'); }
     }
   });
   saveQueue(league, queue);
@@ -276,6 +279,7 @@ function approveMove(league, queue, t) {
   if (!p || p.team !== t.from || p.status !== 'active') { throw new Error((p ? p.name : t.player) + ' is no longer with ' + t.from + '.'); }
   p.team = t.to;
   p.contract = Object.assign({}, t.contract);
+  noteSigning(league, p, t.to, t.from, 'sign');
   sixTrades.record(league, p, t.from, t.to);
   t.status = 'approved';
   t.approvedAt = { season: league.season, phase: league.phase, week: league.week };
@@ -358,6 +362,10 @@ function reject(league, id) {
   if (t.status !== 'pending') { throw new Error('Trade ' + id + ' is ' + t.status + '.'); }
   t.status = 'rejected';
   saveQueue(league, queue);
+  /* A star's move turned down: he stays where he was, on the deal he was
+     offered, and that is his signing. */
+  const p = t.kind === 'move' ? league.byId.get(t.player) : null;
+  if (p && p.status === 'active' && p.team === t.from && p.contract) { noteSigning(league, p, t.from, t.from, 're-sign'); }
 }
 
 /* Sam's own trade: each team's side is what it gives. From the command

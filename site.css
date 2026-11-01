@@ -4396,6 +4396,9 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
 .ege-navleague svg { display: block; }
 .ege-league__bar { margin: 0 0 22px; }
 .ege-league__bar .ege-league__season { flex: 0 1 240px; }
+/* The League Leaders' and a draft's year switcher run the page's whole
+   width, the year stretched between the arrows (Sam, 2026-11-01). */
+.ege-league__bar.ege-seasonbar--full .ege-seasonbar__pick { flex: 1 1 auto; }
 .ege-league__games { margin-bottom: 22px; }
 .ege-league__standings { margin-bottom: 64px; }
 /* The Free Agency Tracker, a gap either side: the position and the sort
@@ -4653,6 +4656,328 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
 @media (hover: hover) { .ege-drafttable tbody tr:hover .ege-drafttable__name { text-decoration: underline; } }
 .ege-drafttable__name:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: 2px; }
 .ege-drafts__more { display: block; margin: 18px auto 0; }
+
+/* The League's catalog (Sam, 2026-11-01): under the Injury Report, a
+   card for each page of its own, the way the game cards are -- cream under
+   an ink edge and a hard shadow -- with its mark in an orange box (the
+   tracker's ESPN red for free agency), its name in the display face and an
+   arrow; lighter under the pointer, the name orange. Three across, one
+   over the other on a phone. The drafts' page lays out its years so. */
+.ege-catalog,
+.ege-draftyears {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0 0 64px;
+}
+/* Five links: three across, the last two in the middle under them. */
+.ege-catalog { display: flex; flex-wrap: wrap; justify-content: center; }
+.ege-catalog > .ege-catalog__item { flex: 0 0 calc((100% - 32px) / 3); }
+@media (max-width: 760px) {
+  .ege-catalog { gap: 12px; }
+  .ege-catalog > .ege-catalog__item { flex-basis: 100%; }
+  .ege-draftyears { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+}
+.ege-catalog__item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: var(--fb-border) solid var(--fb-ink);
+  background: var(--fb-cream);
+  box-shadow: 5px 5px 0 rgba(0, 0, 0, .35);
+  color: var(--fb-ink);
+  text-decoration: none;
+}
+.ege-catalog__icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  box-sizing: border-box;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-accent);
+  color: var(--fb-ink);
+}
+.ege-catalog__icon svg { display: block; }
+.ege-catalog__item--fa .ege-catalog__icon { background: #e52534; color: #fff; }
+.ege-catalog__text { display: flex; flex: 1 1 auto; flex-direction: column; gap: 5px; min-width: 0; }
+.ege-catalog__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--fb-font-display);
+  font-size: 1.375rem;
+  line-height: 1.05;
+}
+.ege-catalog__go {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  margin: 0 6px 0 auto;
+  border-top: 3px solid var(--fb-ink);
+  border-right: 3px solid var(--fb-ink);
+  transform: rotate(45deg);
+}
+@media (hover: hover) {
+  .ege-catalog__item:hover { background: var(--fb-tint-wash); }
+  .ege-catalog__item:hover .ege-catalog__name { color: var(--fb-accent-deep); }
+  .ege-catalog__item:hover .ege-catalog__go { border-color: var(--fb-accent); }
+}
+.ege-catalog__item:focus-visible { outline: 3px solid var(--fb-accent); outline-offset: 3px; }
+@media (max-width: 760px) {
+  .ege-catalog__item { padding: 12px 14px; }
+  .ege-catalog__icon { width: 40px; height: 40px; }
+  .ege-catalog__name { font-size: 1.25rem; }
+}
+/* A draft's card: its year, then its first pick. */
+.ege-draftyears__item { padding: 16px 18px; }
+.ege-draftyears__item .ege-catalog__name { font-size: 1.75rem; }
+.ege-draftyears__first { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: .8125rem; font-weight: 700; color: var(--fb-muted); }
+.ege-draftyears__first > span:last-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ege-draftyears__first .ege-game__logo { flex: none; width: 20px; height: 20px; }
+#leagueFaPage .ege-league__fa { margin-bottom: 0; }
+/* The way back to the catalog on each of its pages (Sam, 2026-11-01): the
+   round button with its arrow a phone has on a player's page, at the top
+   left of the page, level with the kicker, at any width. */
+#view-league { position: relative; }
+.ege-league__return { position: absolute; top: 35px; left: 0; z-index: 2; }
+.ege-back--round {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  gap: 0;
+  border-radius: 50% !important;
+  font-size: 0;
+  letter-spacing: 0;
+}
+.ege-back--round::before {
+  content: "\2190";
+  font-size: 20px;
+  line-height: 1;
+}
+.ege-back--round[hidden] { display: none; }
+@media (max-width: 620px) { .ege-league__return { top: 12px; } }
+
+/* League Leaders (Sam, 2026-11-01): a box a stat, two columns of them, one
+   on a phone; in each the top ten, the rank, headshot, name with his
+   team's mark and position, and the number. The leader's line is larger,
+   on his team's colour with its mark behind in a darker shade (white
+   type), with a gold trophy by his number; second a silver one and third
+   a bronze. */
+.ege-leaders { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; align-items: start; }
+@media (max-width: 760px) { .ege-leaders { grid-template-columns: minmax(0, 1fr); gap: 18px; } }
+.ege-leaders__box .fb-panel__head { padding: 12px 16px; }
+.ege-leaders__box .fb-panel__head h3 { font-size: 1.125rem; }
+.ege-leaders__list { margin: 0; padding: 0; list-style: none; }
+.ege-leader {
+  --row: 50px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: var(--row);
+  padding: 0 16px 0 12px;
+  border-top: 1px solid rgba(29, 36, 22, .12);
+  cursor: pointer;
+}
+.ege-leader:first-child { border-top: 0; }
+.ege-leader:nth-child(even) { background: rgba(29, 36, 22, .035); }
+.ege-leader__rank { flex: none; width: 22px; font-family: var(--fb-font-display); font-size: 1rem; text-align: center; }
+/* The headshot stands on the line's bottom edge with the top of his head
+   out over its top (Sam, 2026-11-01: 5-10% out). A crown sits about 4.5%
+   down its picture, so a picture 114% of the line's height puts it about
+   7.5% of the picture out. The column is as wide as ESPN's 350 by 254. On
+   top of the lines (z-index), so a head over the line above shows, the
+   leader's coloured line included. */
+.ege-leader__face {
+  position: relative;
+  z-index: 1;
+  display: block;
+  flex: none;
+  align-self: stretch;
+  width: calc(var(--row) * 1.14 * 1.38);
+  font-size: .6875rem;
+  font-weight: 800;
+  color: var(--fb-muted-2);
+}
+.ege-leader__face img {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  display: block;
+  width: auto;
+  max-width: none;
+  height: 114%;
+  transform: translateX(-50%);
+}
+.ege-leader__face.is-none {
+  display: grid;
+  place-items: center;
+  align-self: center;
+  width: calc(var(--row) * .88);
+  height: calc(var(--row) * .68);
+  margin: 0 calc(var(--row) * .3466);
+  background: var(--fb-sand);
+}
+.ege-leader__who { display: flex; flex: 1 1 auto; flex-direction: column; gap: 2px; min-width: 0; }
+.ege-leader__name { overflow: hidden; font-size: .875rem; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
+.ege-leader__meta { display: flex; align-items: center; gap: 5px; min-width: 0; font-size: .6875rem; font-weight: 700; color: var(--fb-muted); }
+.ege-leader__meta > span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ege-leader__meta .ege-game__logo { flex: none; width: 16px; height: 16px; }
+.ege-leader__end { display: flex; flex: none; align-items: center; gap: 6px; margin-left: auto; }
+.ege-leader__value { min-width: 2.5ch; font-family: var(--fb-font-display); font-size: 1.125rem; text-align: right; }
+.ege-leader.is-six .ege-leader__name { color: var(--fb-accent-deep); }
+@media (hover: hover) { .ege-leader:hover .ege-leader__name { text-decoration: underline; } }
+.ege-leader:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: -3px; }
+/* The leader: bigger, on his team's colour, the team's mark behind him in
+   a darker shade of it (.ege-person__wash, as on a pop-up's band), at 60%
+   (Sam, 2026-11-01: 40% more see-through). */
+.ege-leader .ege-person__wash { opacity: .6; }
+.ege-leader.is-first {
+  --row: 70px;
+  position: relative;
+  isolation: isolate;
+  gap: 12px;
+  border-bottom: var(--fb-border) solid var(--fb-ink);
+  background: var(--team, var(--fb-ink));
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+}
+.ege-leader.is-first + .ege-leader { border-top: 0; }
+.ege-leader.is-first .ege-leader__name { font-size: 1.0625rem; color: inherit; }
+.ege-leader.is-first .ege-leader__meta { font-size: .75rem; color: rgba(255, 255, 255, .85); }
+.ege-leader.is-first .ege-leader__meta .ege-game__logo { width: 20px; height: 20px; }
+.ege-leader.is-first .ege-leader__rank { font-size: 1.25rem; }
+.ege-leader.is-first .ege-leader__value { font-size: 1.75rem; }
+.ege-leader.is-first .ege-leader__face.is-none { background: rgba(255, 255, 255, .18); color: inherit; }
+/* The trophies: gold, silver, bronze, each under an ink edge. */
+.ege-leader__trophy { display: block; flex: none; overflow: visible; }
+.ege-leader__trophy path,
+.ege-leader__trophy rect { stroke: var(--fb-ink); stroke-width: 1.3; stroke-linejoin: round; }
+/* The handles in the trophy's own colour, so they read on a dark team's
+   colour as on the cream. */
+.ege-leader__trophy .ege-leader__handles { fill: none; stroke: var(--metal); stroke-width: 2.4; }
+.ege-leader__trophy { --metal: var(--fb-gold); fill: var(--metal); }
+.ege-leader__trophy.is-silver { --metal: #b9c0c6; }
+.ege-leader__trophy.is-bronze { --metal: #c7804a; }
+.ege-leader.is-first .ege-leader__trophy { width: 28px; height: 28px; }
+/* The leader's gold one, alive: every few seconds a glint runs across
+   the cup, the trophy gives a little shake on its base, and two sparks
+   wink beside it. Still for reduced motion. */
+.ege-leader__trophy.is-gold {
+  transform-origin: 50% 100%;
+  animation: ege-trophy-shake 3.6s ease-in-out var(--lag, 0s) infinite;
+}
+.ege-leader__trophy .ege-leader__glint {
+  fill: rgba(255, 255, 255, .85);
+  stroke: none;
+  animation: ege-trophy-glint 3.6s ease-in-out var(--lag, 0s) infinite;
+}
+.ege-leader__trophy .ege-leader__spark {
+  fill: #fff;
+  stroke: none;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ege-trophy-spark 3.6s ease-in-out calc(var(--lag, 0s) - 2.3s) infinite;
+}
+.ege-leader__trophy .ege-leader__spark + .ege-leader__spark { animation-delay: calc(var(--lag, 0s) - .5s); }
+@keyframes ege-trophy-glint {
+  0%, 18% { transform: translateX(0); }
+  46%, 100% { transform: translateX(30px); }
+}
+@keyframes ege-trophy-shake {
+  0%, 50%, 100% { transform: rotate(0) translateY(0); }
+  56% { transform: rotate(-9deg) translateY(-2px); }
+  62% { transform: rotate(7deg) translateY(-2px); }
+  68% { transform: rotate(-4deg) translateY(-1px); }
+  74% { transform: rotate(2deg) translateY(0); }
+  80% { transform: rotate(0) translateY(0); }
+}
+@keyframes ege-trophy-spark {
+  0%, 60%, 100% { opacity: 0; transform: scale(.2) rotate(0); }
+  72% { opacity: 1; transform: scale(1.15) rotate(45deg); }
+  84% { opacity: 0; transform: scale(.3) rotate(90deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ege-leader__trophy.is-gold,
+  .ege-leader__trophy .ege-leader__glint,
+  .ege-leader__trophy .ege-leader__spark { animation: none; }
+}
+/* On a phone the lines and headshots are a touch smaller, and the
+   leader's name may take two lines rather than be cut short. */
+@media (max-width: 520px) {
+  .ege-leader { --row: 46px; gap: 8px; padding-right: 12px; }
+  .ege-leader.is-first { --row: 58px; gap: 8px; }
+  .ege-leader.is-first .ege-leader__name { font-size: .9375rem; line-height: 1.15; white-space: normal; }
+  .ege-leader.is-first .ege-leader__value { font-size: 1.375rem; }
+  .ege-leader.is-first .ege-leader__trophy { width: 24px; height: 24px; }
+}
+
+/* A whole draft, a heading over each round. */
+.ege-drafts { margin: 0; }
+.ege-drafttable tbody tr.ege-drafttable__round { cursor: default; background: var(--fb-sand); }
+.ege-drafttable tbody tr.ege-drafttable__round td {
+  height: auto;
+  padding-top: 7px;
+  padding-bottom: 7px;
+  font-size: .6875rem;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--fb-accent-deep);
+  border-top: var(--fb-border-thin) solid var(--fb-ink);
+}
+
+/* Player Movement (Sam, 2026-11-01): when, in white on the grass, over
+   the trades and the signings then; a trade a card with each team and
+   what it got side by side (one over the other on a phone), the signings
+   cards two across. */
+.ege-moves__picks { margin: 0 0 22px; }
+.ege-moves__when {
+  margin: 30px 0 12px;
+  font-family: var(--fb-font-body);
+  font-size: .8125rem;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .45);
+}
+.ege-moves__when:first-child { margin-top: 0; }
+.ege-moves > .ege-nfltrade + .ege-nfltrade,
+.ege-moves > .ege-moves__signings + .ege-nfltrade,
+.ege-moves > .ege-nfltrade + .ege-moves__signings { margin-top: 16px; }
+.ege-nfltrade { min-width: 0; border: var(--fb-border) solid var(--fb-ink); background: var(--fb-surface); }
+.ege-nfltrade__when {
+  padding: 7px 14px;
+  background: var(--fb-ink);
+  font-size: .6875rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-cream);
+}
+.ege-nfltrade__sides { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ege-nfltrade__side { min-width: 0; padding: 14px; }
+.ege-nfltrade__side + .ege-nfltrade__side { border-left: var(--fb-border) solid var(--fb-ink); }
+@media (max-width: 760px) {
+  .ege-nfltrade__sides { grid-template-columns: minmax(0, 1fr); }
+  .ege-nfltrade__side + .ege-nfltrade__side { border-top: var(--fb-border) solid var(--fb-ink); border-left: 0; }
+}
+.ege-nfltrade__team { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; color: var(--fb-ink); text-decoration: none; }
+.ege-nfltrade__team .ege-game__logo { flex: none; width: 32px; height: 32px; }
+.ege-nfltrade__city { overflow: hidden; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
+.ege-nfltrade__get { font-size: .625rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--fb-muted); }
+@media (hover: hover) { .ege-nfltrade__team:hover .ege-nfltrade__city { color: var(--fb-accent); } }
+.ege-nfltrade__team:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: 2px; }
+.ege-pickface { display: flex; flex-direction: column; gap: 3px; background: var(--fb-ink); color: var(--fb-cream); }
+.ege-pickface__label { font-size: .5625rem; font-weight: 800; letter-spacing: .12em; }
+.ege-pickface__value { font-family: var(--fb-font-display); font-size: 1.75rem; line-height: .9; }
 .ege-league__note { max-width: 640px; margin: 0 auto; background: var(--fb-cream); text-align: center; }
 .ege-league__grid {
   display: grid;
@@ -4817,6 +5142,7 @@ a.ege-boxscore__name:hover { color: var(--fb-accent-deep); text-decoration: unde
 @media (max-width: 620px) {
   .ege-league__bar { gap: 6px; }
   .ege-league__bar .ege-league__season { flex: 0 0 96px; }
+  .ege-league__bar.ege-seasonbar--full .ege-seasonbar__pick { flex: 1 1 auto; }
   .ege-league__bar .ege-seasonbar__pick { padding: 0 26px 0 10px; background-position: right 9px center; font-size: 15px; }
 }
 
@@ -4829,6 +5155,30 @@ a.ege-boxscore__name:hover { color: var(--fb-accent-deep); text-decoration: unde
 /* The position and the sort, side by side under the box. */
 .ege-search__sorts { display: flex; gap: 10px; margin-top: 12px; }
 .ege-search__sorts .ege-filterselect { flex: 1 1 0; min-width: 0; }
+/* The drop-downs dressed as the search box is (Sam, 2026-11-01): white
+   under the same ink edge and hard shadow, the words in the same weight
+   and case, and an ink chevron in place of the browser's. On the League's
+   pages: the search, the tracker and Player Movement. */
+.ege-search__sorts .ege-filterselect {
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 11px 40px 11px 14px;
+  border: var(--fb-border) solid var(--fb-ink);
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%231d2416' stroke-width='2.2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 12px 8px;
+  box-shadow: 4px 4px 0 var(--fb-ink);
+  color: var(--fb-ink);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.ege-search__sorts .ege-filterselect:focus { border-color: var(--fb-accent); outline: 0; }
+.ege-search__sorts { gap: 14px; }
+.ege-search > .ege-search__sorts { margin-top: 16px; }
 /* The magnifying glass in the box, on the left of what is typed. */
 .ege-search__box { position: relative; }
 .ege-search__icon {
@@ -4850,6 +5200,10 @@ a.ege-boxscore__name:hover { color: var(--fb-accent-deep); text-decoration: unde
 .ege-search__list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 28px; }
 @media (max-width: 760px) { .ege-search__list { grid-template-columns: minmax(0, 1fr); } }
 .ege-search__more { justify-self: start; margin-top: 14px; }
+/* The players straight on the grass, no panel round them (Sam,
+   2026-11-01: there are only players to find now). */
+.ege-search__results > .ege-search__list { margin: 0; }
+.ege-search__results > .ege-search__more { justify-self: center; margin-top: 4px; }
 .ege-search__note { text-align: center; }
 /* The number a sort put him in order by, just before his overall: the
    overall box's size and type in ink on the cream, the draft's smaller. */
@@ -4874,7 +5228,8 @@ a.ege-boxscore__name:hover { color: var(--fb-accent-deep); text-decoration: unde
 .ege-sortbox__value { font-family: var(--fb-font-display); font-size: 1.5rem; line-height: .96; }
 .ege-sortbox.is-wide .ege-sortbox__value { font-size: 1.0625rem; line-height: 1.2; }
 @media (max-width: 520px) {
-  .ege-search__sorts .ege-filterselect { padding: 10px 6px; font-size: 12px; letter-spacing: .02em; }
+  .ege-search__sorts { gap: 10px; }
+  .ege-search__sorts .ege-filterselect { padding: 10px 30px 10px 10px; background-position: right 10px center; font-size: 15px; }
 }
 /* On a phone, or two narrow cards across, room for his name beside two
    boxes: both a little smaller, and his team's mark on the corner of his

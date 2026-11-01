@@ -672,11 +672,65 @@ A football at the end of the nav links (Sam, 2026-10-30; a magnifying glass
 and a page called Search from 2026-10-26), for everybody, signed in or not.
 The old `#search` and `#search/{query}` addresses open it. *Around the NFL*
 sits over the title. The page is the week's games, the standings close
-under them, and the search after a gap, with no titles over them (Sam,
-2026-10-30: tried and taken off). Between them, each in its own titled
-panel with a gap after it: the Injury Report, the Free Agency Tracker and
-the Draft History (Sam, 2026-10-31). The bar and the
-search box run the width of the page.
+under them and the Injury Report, with no titles over them (Sam,
+2026-10-30: tried and taken off), then **the catalog**. The bar runs the
+width of the page.
+
+**The catalog** (Sam, 2026-11-01: "more like a catalog ... those links
+redirect you to a different page"): under the Injury Report, a card for
+each of the League's other pages, three across and the last two in the
+middle under them (one over the other on a phone), made the way the game cards are (Sam, 2026-11-01: "make it fit
+with the website more"): cream under an ink edge and a hard shadow, a mark
+in an orange box (ESPN's red for Free Agency), the name in the display
+face and an arrow, lighter under the pointer with the name orange. Each is a page
+of its own under the same title bar, its name for the title, and at its top
+left, level with the kicker, a round button holding just a back arrow that
+goes back to the catalog (Sam, 2026-11-01: as a phone has on a player's or
+a team's page; a draft's goes back to the drafts); the ticker runs along
+the bottom of every one of them.
+
+- **Free Agency** (`#league/free-agency`, its mark in ESPN's red):
+  the Free Agency Tracker below.
+- **Draft** (`#league/draft`): a tile for each draft since 2023, the
+  newest first, its year and its No. 1 pick; each opens that draft's own
+  page, `#league/draft/{year}` (the Draft History below).
+- **Player Movement** (`#league/movement`): the trades and contract
+  signings, below.
+- **League Leaders** (`#league/leaders`, `#league/leaders/{year}`): below.
+- **Search** (`#league/search`, Sam 2026-11-01: moved off the League page
+  into the catalog): the search below.
+
+**League Leaders** (Sam, 2026-11-01): a season's top ten in every stat
+the sim keeps, each in a box of its own (a panel, the stat its title), two
+columns of them, one on a phone: Passing Yards, Passing Touchdowns,
+Completions, Passer Rating, Rushing Yards, Rushing Touchdowns, Carries,
+Yards per Carry, Receptions, Receiving Yards, Receiving Touchdowns,
+Targets, Tackles, Sacks, Interceptions, Passes Defended, Forced Fumbles,
+Defensive Touchdowns, Field Goals Made, Punting Average. Each line is the
+place, his headshot, his name over his team's mark, position and city, and
+the number; it opens his pop-up. The headshot stands on the line's bottom
+edge with the top of his head out over its top, about 7.5% of the
+picture (Sam asked for 5-10%). The leader's line is bigger and on his
+team's colour, white type, with the team's mark big behind it in two
+tones as on a pop-up's band, at 60% (Sam: 40% more see-through), and
+only ever in a darker shade of the colour so the type reads over it (a colour about as dark as black, the
+Steelers' and Raiders', is lifted a little first, so the mark still
+shows). A gold trophy by his number is alive: every few seconds a glint
+runs across it, it shakes on its base and two sparks wink, each box on
+its own beat, and it keeps still for reduced motion. Second has a silver
+trophy and third a bronze. Two alike go to the
+one who did it in fewer games, then by name, so there is always one of
+each. The week bar's switcher over them, `[ ‹ ] [ year ] [ › ]` across the
+page's whole width (Sam, 2026-11-01), goes back
+a season and on, each season its own address; it opens on the newest. The
+numbers are the rosters' season lines (`seasons`), as the pop-up's are:
+from 2025, the first season the sim kept everybody's, counting only the
+weeks out on the site; Passer Rating, Yards per Carry and Punting Average
+need the tries the pop-up's italic leaders need (`LEADER_STATS` in
+js/app.js).
+
+The standings and the Injury Report stay on the League page itself (Sam,
+2026-11-01).
 
 **The week's games** come first. A bar picks the week: the
 season, the week (*Week 1* to *Week 18*, then *Wild Card*, *Divisional*,
@@ -793,7 +847,7 @@ player's pop-up. It is the live rosters through the same rule as every
 other injury on the site, so nobody shows who was hurt in a week not out
 yet, an admin's page too, and it is the same whatever week the bar shows.
 
-**The Free Agency Tracker** comes after a gap under the Injury Report, titled
+**The Free Agency Tracker** is the Free Agency page (`#league/free-agency`), titled
 for the season after the one the search has (*2027 Free Agency Tracker*
 all through 2026). Its head is ESPN's red with their mark in white before
 the title, which is in the site's own type rather than the display face
@@ -833,21 +887,50 @@ narrow for them (a phone) runs them on under the boxes. Twelve, then
   Rosters published before they carried them are published again on an
   admin's next visit, as for the schedule.
 
-**Trades** come with the rosters (`trades`, `site.js tradesOut`) for the
-ticker. A Trade Report section was built on them and taken off the page
-again (Sam, 2026-10-31: "we can come back and fix that later"); it is in
-the git history of PR #133. Trades approved since 2026-10-31 keep each
+**Player Movement** (`#league/movement`, Sam 2026-11-01: the trade report
+back, "called player movement", with "contract signings included"): a
+season's trades and contracts signed, newest first, under when they
+happened in white on the grass (*2027 Offseason*, *2027 Week 6*, *2027
+Trade Deadline*), the trades before the signings at the same point. A
+**Season**, a **Moves** pick (*All moves*, *Trades*, *Signings*) and a
+**Team** narrow it; 24 then *Show more*.
+
+- A trade is a card under an ink *Trade* strip: each team (a link to its
+  page) with what it received, side by side, one over the other on a
+  phone. A player is his card at the overall he had then; a pick is its
+  year and round on an ink face with whose pick it was, and its number
+  once the draft's order is known, or the card of the player it became.
+- A signing is the player's card at the overall he had then, two across,
+  the team's mark by it and two lines under his name: *Signed from
+  {city}* (*Signed* from nowhere), *Re-signed* or *Extended*, then the deal,
+  *4 yrs · $12.1M a year*.
+- Both come with the rosters: `trades` (`site.js tradesOut`) and
+  `signings` (`site.js signingsOut`). The sim has noted every contract
+  since 2026-11-01 in `league.signings` (`rosters.js noteSigning`: free
+  agency, re-signing, extensions, the six's signings, a star's move Sam
+  approves, or his staying when it is turned down or left to expire),
+  filed under the season it leads into; the draft's rookie deals stay out.
+  The rosters carry the last three seasons' (the live one too), and only
+  signings of 70 or more (the six always), so the camp bodies a team fills
+  its rooms with stay off. For seasons before the sim kept them, a player
+  on a new team at a season's end who got there by neither a trade nor the
+  draft signed there, with the deal he is on if he still is; re-signings
+  from then are not known.
+
+Trades approved since 2026-10-31 keep each
 player's overall and each pick's number as they were (`ovrs` and `numbers`
 in `trades.json`), and drafts held since then keep whose pick it was
 (`draft.from`). Rosters published before 2026-10-31 have no trades until an
 admin's visit publishes them again.
 
-**The Draft History** comes after a gap under the tracker: every draft
-held since 2023, with no title (Sam, 2026-10-31). The week bar's switcher
-sits over it on the grass, `[ ‹ ] [ year ] [ round ] [ › ]`, the arrows a
-draft back and on, keeping the round; the year opens on the newest draft
-and the round on Round 1 (*All rounds* last). Under it is a stat sheet, one
-pick a row in pick order, 32 then *Show more*: **No.** (the pick; its title
+**The Draft History** is a page for each draft held since 2023
+(`#league/draft/{year}`, Sam 2026-11-01: "a page dedicated to each draft
+... the entire draft from the first pick to the last"), *{year} Draft* its
+title. The week bar's switcher sits over it on the grass,
+`[ ‹ ] [ year ] [ › ]` across the page's whole width, the arrows and the year going to another draft's
+page; a year with no draft opens the newest. Under it is a stat sheet, every
+pick of the draft a row, first to last, with a *Round N* heading over each
+round while it runs in pick order: **No.** (the pick; its title
 says the round and, for a traded pick, whose it was), the **Team** that made
 it, his headshot, **Player**, **OVR** (his overall now in its tier's box,
 or RETIRED), **Pos**, **Age** the year he was drafted and **School**, then
@@ -868,11 +951,16 @@ player in the live rosters, free agents and the retired included, with a
 `draft` from 2023 on, so a 2023 pick is only there if he was in the world
 at the 2023 kickoff.
 
-**The search** comes after another gap: one box with a
+**The search** is the Search page (`#league/search`): one box with a
 magnifying glass at its left, players only (no teams since 2026-10-30),
 results as it is typed, and the query rides in the address
-(`#league/{query}`), so Back from a player's page comes back to the same
-results.
+(`#league/search/{query}`; an older `#league/{query}` is taken there), so
+Back from a player's page comes back to the same results. The cards sit
+straight on the grass under the box, with no *Players* panel or title round
+them (Sam, 2026-11-01: there is only one kind of thing to find). The
+League's drop-downs (the search's, the tracker's and Player Movement's) are
+dressed as the box is: white under the same ink edge and hard shadow, in
+the same plain type, with an ink chevron.
 
 - **Players**: the cards a team's page draws (`nflLine`), each with his
   team's mark beside his overall, opening the same pop-up. They are the

@@ -4248,12 +4248,35 @@ function contractYears(age, rng) {
   return clamp(base + (rng() < 0.3 ? 1 : 0) - (rng() < 0.3 ? 1 : 0), 1, 5);
 }
 
-function sign(p, key, league, rng, apy) {
+/* Every contract signed, for the League's Player Movement page (Sam,
+   2026-11-01): when (season, phase, week as the league stood), who, the
+   team, the one he came from, the deal and his overall then. `kind` is
+   'sign' (a new team), 're-sign' (his own) or 'extend' (more years before
+   his deal is up). The draft's rookie deals stay out: the drafts have
+   their own pages. Kept in league.json, so an undo takes it back too. */
+function noteSigning(league, p, key, from, kind) {
+  /* Filed under the season it leads into, as the trades bot files an
+     offseason trade: between the playoffs and the new league year (the
+     finished season's stats still kept) that is the next one. */
+  const between = league.phase === 'offseason' && Object.keys(league.stats || {}).length > 0;
+  const off = league.phase === 'offseason' || league.phase === 'draft';
+  (league.signings = league.signings || []).push({
+    season: between ? league.season + 1 : league.season, phase: off ? 'offseason' : league.phase,
+    week: off ? null : league.week || null, id: p.id, team: key, from: from || null, kind: kind || (from === key ? 're-sign' : 'sign'),
+    apy: p.contract.apy, through: p.contract.through, ovr: p.ovr, age: p.age
+  });
+}
+
+/* `quiet`: not a signing to show (a star held for Sam's say: his move, or
+   staying, is noted when Sam decides). */
+function sign(p, key, league, rng, apy, quiet) {
   const years = contractYears(p.age, rng);
+  const was = p.status === 'active' && p.team && p.team !== 'FA' ? p.team : p.lastTeam || null;
   p.team = key;
   p.status = 'active';
   p.contract = { through: league.season + years - 1, apy: Math.round((apy || marketPay(p, league.season)) * 10) / 10 };
   delete p.faSince;
+  if (!quiet) { noteSigning(league, p, key, was); }
 }
 
 /* A team over the cap in the spring cuts the veterans it pays the most
@@ -4381,7 +4404,7 @@ function freeAgency(league, rng, opts) {
     });
     if (best && opts.hold && opts.hold(p, best.key)) {
       const to = best.key;
-      sign(p, p.lastTeam, league, rng, ask * (0.9 + rng() * 0.25));
+      sign(p, p.lastTeam, league, rng, ask * (0.9 + rng() * 0.25), true);
       [to, p.team].forEach((key) => { sizes[key] += 1; rooms[key] -= p.contract.apy; });
       (promised[to] = promised[to] || []).push(p);
       if (opts.held) { opts.held.push({ player: p, from: p.team, to, contract: Object.assign({}, p.contract) }); }
@@ -4591,6 +4614,7 @@ function spendRoom(league, rng) {
         const apy = Math.round(Math.max(was, marketPay(p, league.season) * (0.98 + rng() * 0.12)) * 10) / 10;
         if (apy - was > spare()) { return; }
         p.contract = { through: league.season + contractYears(p.age, rng), apy };
+        noteSigning(league, p, t.key, t.key, 'extend');
         out.extended.push({ player: p, team: t.key, from: was, apy });
       });
   });
@@ -4618,7 +4642,7 @@ function replacement(league, pos, rng, makeName) {
 }
 
 module.exports = { SLOTS, MIN, TARGET, MAX, CAMP, ROSTER, onTeam, payroll, room, starterLevels, needAt, needs, reSign,
-                   freeAgency, cutDown, trim, addPlayers, fillDepth, fillHoles, sign, release, byPos, capCasualties, spendRoom,
+                   freeAgency, cutDown, trim, addPlayers, fillDepth, fillHoles, sign, noteSigning, release, byPos, capCasualties, spendRoom,
                    LEFT_OVER, KEEP_ROUNDS, PREMIUM };
 
   };
@@ -6432,7 +6456,7 @@ function publicRosters(league) {
   return { season: league.season, phase: league.phase, week: league.week || null, savedAt: new Date().toISOString(), caps, systems,
            picks, linesThrough: lines.through[league.season] || 0, teams, freeAgents: freeAgents(league, site, lines),
            retired: retiredPlayers(league, site, lines), playoffs: playoffsOut(league, site), schedule: scheduleOut(league),
-           trades: tradesOut(league) };
+           trades: tradesOut(league), signings: signingsOut(league) };
 }
 
 /* Where a player was drafted: the year, round, pick and team, and whose
@@ -6531,6 +6555,79 @@ function tradesOut(league) {
     });
 }
 
+/* ----------------------------------------------------- out: signings -- */
+
+/* The fewest a signing is worth to the League's Player Movement page: the
+   backups and camp bodies a team fills its rooms with stay out (one of the
+   six never does). And how many seasons it goes back, the live one too,
+   to keep the rosters from growing every year. */
+const SIGNING_OVR = 70;
+const SIGNING_SEASONS = 3;
+
+/* Every contract signed (Sam, 2026-11-01: "contract signings included"),
+   the newest first, for the League's Player Movement page beside the
+   trades: who, where to and from, the deal and his overall then, and when
+   ({ season, phase, week }, filed under the season it leads into). The
+   sim has kept them since 2026-11-01 (rosters.js noteSigning); for the
+   seasons before, a player on a new team at a season's end who got there
+   by neither a trade nor the draft signed there, his deal the one he is on
+   if he still is (seasons with kept rosters only). */
+function signingsOut(league) {
+  const out = [];
+  const kept = league.signings || [];
+  const person = (id) => league.byId.get(id);
+  const since = league.season - SIGNING_SEASONS + 1;
+  kept.forEach((x) => {
+    const p = person(x.id);
+    if (!p || !TEAMS[x.team] || x.season < since || (x.ovr < SIGNING_OVR && !p.ege)) { return; }
+    const row = Object.assign(tradePerson(p), { season: x.season, phase: x.phase || null, week: x.week || null, kind: x.kind,
+                                                team: x.team, apy: x.apy, through: x.through, ovr: x.ovr });
+    if (x.from && TEAMS[x.from]) { row.from = x.from; }
+    out.push(row);
+  });
+  out.reverse();
+  /* Before the log: the seasons up to the first one in it, each against
+     the end of the one before. */
+  const first = kept.length ? kept[0].season : league.season;
+  const traded = {};
+  readWorld(league, 'trades.json', []).forEach((t) => {
+    if (t.status !== 'approved') { return; }
+    const at = t.approvedAt || { season: t.season, phase: t.window === 'deadline' ? 'deadline' : 'offseason' };
+    const year = at.phase === 'offseason' ? at.season + 1 : at.season;
+    const ids = t.kind === 'move' ? [t.player] : [].concat.apply([], Object.keys(t.gives || {}).map((k) => t.gives[k]))
+      .filter((g) => g.player).map((g) => g.player);
+    ids.forEach((id) => { (traded[year] = traded[year] || {})[id] = true; });
+  });
+  const logged = {};
+  kept.forEach((x) => { (logged[x.season] = logged[x.season] || {})[x.id] = true; });
+  const have = seasons(league);
+  have.filter((year) => year <= first && year >= since && have.indexOf(year - 1) !== -1).sort((a, b) => b - a).forEach((year) => {
+    const now = rostersIn(league, year);
+    const then = rostersIn(league, year - 1);
+    if (!now || !then) { return; }
+    const was = {};
+    Object.keys(then.teams).forEach((k) => then.teams[k].players.forEach((r) => { was[r.id] = k; }));
+    const found = [];
+    Object.keys(now.teams).forEach((key) => now.teams[key].players.forEach((r) => {
+      const p = person(r.id);
+      if (!p || !TEAMS[key] || was[r.id] === key || r.rookie || (p.draft && p.draft.year === year)) { return; }
+      /* New to the league that year: undrafted, or a camp body. */
+      if (!was[r.id] && p.entry === year) { return; }
+      if ((traded[year] || {})[r.id] || (logged[year] || {})[r.id]) { return; }
+      if (r.ovr < SIGNING_OVR && !p.ege) { return; }
+      const row = Object.assign(tradePerson(p), { season: year, phase: 'offseason', week: null, kind: 'sign', team: key, ovr: r.ovr });
+      if (was[r.id] && TEAMS[was[r.id]]) { row.from = was[r.id]; }
+      if (p.team === key && p.contract && p.contract.through >= year) {
+        row.apy = p.contract.apy;
+        row.through = p.contract.through;
+      }
+      found.push(row);
+    }));
+    found.sort((a, b) => b.ovr - a.ovr).forEach((row) => out.push(row));
+  });
+  return out;
+}
+
 function siteCollege(site, p) {
   const sitePlayer = p.ege && site ? site.playerBySlug(p.ege) : null;
   return sitePlayer && site.teams[sitePlayer.college] ? site.teams[sitePlayer.college].school : p.college || null;
@@ -6617,7 +6714,7 @@ module.exports = { siteResults, sixEdits, seasonFileText, simResults, playoffDra
 
 'use strict';
 
-const { onTeam, room, byPos, needAt, starterLevels, SLOTS, PREMIUM } = require('./rosters');
+const { onTeam, room, byPos, needAt, starterLevels, SLOTS, PREMIUM, noteSigning } = require('./rosters');
 const { marketPay, capFor, POSITION } = require('./value');
 const { fitOf, schemeFor } = require('./schemes');
 const { playerFit } = require('./fit');
@@ -6855,6 +6952,7 @@ function accept(league, slug, key) {
   p.status = 'active';
   p.contract = { through: offer.through, apy: offer.apy };
   delete p.faSince;
+  noteSigning(league, p, key, from);
   const moved = sixTrades.record(league, p, from, key);
   drop(league, slug);
   index(league);
@@ -8028,7 +8126,7 @@ module.exports = { findTrades, findPickTrades };
 
 const { playerValue, pickValue, POSITION } = require('./value');
 const { fitOf, schemeFor, offenseOf, defenseOf } = require('./schemes');
-const { starterLevels, needAt, onTeam, byPos, room, SLOTS, trim, addPlayers } = require('./rosters');
+const { starterLevels, needAt, onTeam, byPos, room, SLOTS, trim, addPlayers, noteSigning } = require('./rosters');
 const { makeName } = require('./draft');
 const { locked, board } = require('./draft-plan');
 const { readWorld, writeWorld, DEADLINE_WEEK } = require('./season');
@@ -8241,6 +8339,9 @@ function closeWindow(league, window) {
     if (t.status === 'pending' && t.season === league.season && (!window || t.window === window)) {
       t.status = 'expired';
       n += 1;
+      /* A star's move left waiting: he stays, signed where he was. */
+      const p = t.kind === 'move' ? league.byId.get(t.player) : null;
+      if (p && p.status === 'active' && p.team === t.from && p.contract) { noteSigning(league, p, t.from, t.from, 're-sign'); }
     }
   });
   saveQueue(league, queue);
@@ -8282,6 +8383,7 @@ function approveMove(league, queue, t) {
   if (!p || p.team !== t.from || p.status !== 'active') { throw new Error((p ? p.name : t.player) + ' is no longer with ' + t.from + '.'); }
   p.team = t.to;
   p.contract = Object.assign({}, t.contract);
+  noteSigning(league, p, t.to, t.from, 'sign');
   sixTrades.record(league, p, t.from, t.to);
   t.status = 'approved';
   t.approvedAt = { season: league.season, phase: league.phase, week: league.week };
@@ -8364,6 +8466,10 @@ function reject(league, id) {
   if (t.status !== 'pending') { throw new Error('Trade ' + id + ' is ' + t.status + '.'); }
   t.status = 'rejected';
   saveQueue(league, queue);
+  /* A star's move turned down: he stays where he was, on the deal he was
+     offered, and that is his signing. */
+  const p = t.kind === 'move' ? league.byId.get(t.player) : null;
+  if (p && p.status === 'active' && p.team === t.from && p.contract) { noteSigning(league, p, t.from, t.from, 're-sign'); }
 }
 
 /* Sam's own trade: each team's side is what it gives. From the command

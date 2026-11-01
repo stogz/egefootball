@@ -249,88 +249,147 @@
          the address, #league/{query}, so Back comes back to it. Built in
          app.js (renderSearch). -->
     <section id="view-league" hidden>
+      <!-- On a page of the catalog, the way back to it at the top left: a
+           round button with its arrow, as a phone has on a player's page. -->
+      <a class="fb-btn fb-btn--inverse ege-back ege-back--round ege-league__return" id="leagueBack" href="#league" hidden>League</a>
       <header class="fb-hero fb-hero--centred">
         <div class="fb-hero__col">
-          <span class="fb-kicker">Around the NFL</span>
-          <h1 class="fb-hero__title">League</h1>
+          <span class="fb-kicker" id="leagueKicker">Around the NFL</span>
+          <h1 class="fb-hero__title" id="leagueTitle">League</h1>
         </div>
       </header>
-      <div class="ege-seasonbar ege-league__bar" id="leagueBar" hidden>
-        <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="leaguePrev"
-                aria-label="Week before">&lsaquo;</button>
-        <select class="fb-select ege-seasonbar__pick ege-league__season" id="leagueSeasonPick" aria-label="Season"></select>
-        <select class="fb-select ege-seasonbar__pick" id="leagueWeekPick" aria-label="Week"></select>
-        <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="leagueNext"
-                aria-label="Week after">&rsaquo;</button>
+      <!-- #league: the week's games, the standings and the Injury Report as
+           they were, then the catalog, each entry a page of its own. -->
+      <div id="leagueHome">
+        <div class="ege-seasonbar ege-league__bar" id="leagueBar" hidden>
+          <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="leaguePrev"
+                  aria-label="Week before">&lsaquo;</button>
+          <select class="fb-select ege-seasonbar__pick ege-league__season" id="leagueSeasonPick" aria-label="Season"></select>
+          <select class="fb-select ege-seasonbar__pick" id="leagueWeekPick" aria-label="Week"></select>
+          <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="leagueNext"
+                  aria-label="Week after">&rsaquo;</button>
+        </div>
+        <div class="ege-league__games" id="leagueGames"></div>
+        <div class="ege-league__standings" id="leagueStandings" hidden></div>
+        <section class="ege-league__panel ege-injreport" id="leagueInjuries" hidden>
+          <h3 class="ege-injreport__title"><button type="button" class="ege-injreport__toggle" id="injuryToggle" aria-expanded="false" aria-controls="injuryList">Injury Report<svg class="ege-injreport__plus" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M5.5 1h5v4.5H15v5h-4.5V15h-5v-4.5H1v-5h4.5z"/></svg><span class="ege-injreport__open" aria-hidden="true"></span></button></h3>
+          <div class="ege-injreport__teams" id="injuryList" hidden></div>
+        </section>
+        <nav class="ege-catalog" id="leagueCatalog" aria-label="League">
+          <a class="ege-catalog__item ege-catalog__item--fa" href="#league/free-agency">
+            <span class="ege-catalog__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M6 3h9l4 4v14H6z M14 3v5h5 M9 12h7 M9 15.5h7 M9 19h4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="miter"/></svg></span>
+            <span class="ege-catalog__name">Free Agency</span><span class="ege-catalog__go" aria-hidden="true"></span>
+          </a>
+          <a class="ege-catalog__item" href="#league/draft">
+            <span class="ege-catalog__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M9 6h6v15H9z M3 11h6v10H3z M15 14h6v7h-6z" fill="none" stroke="currentColor" stroke-width="2.2"/></svg></span>
+            <span class="ege-catalog__name">Draft</span><span class="ege-catalog__go" aria-hidden="true"></span>
+          </a>
+          <a class="ege-catalog__item" href="#league/movement">
+            <span class="ege-catalog__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M4 8h15 M15 4l4 4-4 4 M20 16H5 M9 12l-4 4 4 4" fill="none" stroke="currentColor" stroke-width="2.2"/></svg></span>
+            <span class="ege-catalog__name">Player Movement</span><span class="ege-catalog__go" aria-hidden="true"></span>
+          </a>
+          <a class="ege-catalog__item" href="#league/leaders">
+            <span class="ege-catalog__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M7 3h10v6a5 5 0 0 1-10 0z M7 5H3v2a4 4 0 0 0 4 4 M17 5h4v2a4 4 0 0 1-4 4 M12 14v4 M8 21h8 M9 18h6" fill="none" stroke="currentColor" stroke-width="2.2"/></svg></span>
+            <span class="ege-catalog__name">League Leaders</span><span class="ege-catalog__go" aria-hidden="true"></span>
+          </a>
+          <a class="ege-catalog__item" href="#league/search">
+            <span class="ege-catalog__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2.4"/></svg></span>
+            <span class="ege-catalog__name">Search</span><span class="ege-catalog__go" aria-hidden="true"></span>
+          </a>
+        </nav>
       </div>
-      <div class="ege-league__games" id="leagueGames"></div>
-      <div class="ege-league__standings" id="leagueStandings" hidden></div>
-      <section class="ege-league__panel ege-injreport" id="leagueInjuries" hidden>
-        <h3 class="ege-injreport__title"><button type="button" class="ege-injreport__toggle" id="injuryToggle" aria-expanded="false" aria-controls="injuryList">Injury Report<svg class="ege-injreport__plus" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M5.5 1h5v4.5H15v5h-4.5V15h-5v-4.5H1v-5h4.5z"/></svg><span class="ege-injreport__open" aria-hidden="true"></span></button></h3>
-        <div class="ege-injreport__teams" id="injuryList" hidden></div>
-      </section>
-      <section class="fb-panel ege-league__fa" id="leagueFreeAgents" hidden>
-        <div class="fb-panel__head">
-          <h3 class="ege-league__fatitle"><img class="ege-league__espn" src="icon/espn-white.png" alt="ESPN" width="80" height="20"><span id="faTitle">Free Agency Tracker</span></h3>
-          <span class="ege-live" role="img" aria-label="Live"><span class="ege-live__dot"></span>Live</span>
-        </div>
-        <div class="fb-panel__body">
-          <div class="ege-league__buyers" id="faBuyers" hidden>
-            <span class="ege-league__buyerslabel">Biggest Buyers</span>
-            <ol class="ege-league__buyerlist" id="faBuyerList"></ol>
+      <!-- #league/search/{words}: players only. -->
+      <div id="leagueSearchPage" hidden>
+        <div class="ege-search" id="leagueSearch">
+          <div class="ege-search__box">
+            <svg class="ege-search__icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+              <circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="3"/>
+              <path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="3" stroke-linecap="square"/>
+            </svg>
+            <input class="fb-input ege-search__field" id="searchField" type="search"
+                   placeholder="Player" aria-label="Search players"
+                   autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
           </div>
-          <div class="ege-search__sorts ege-league__fasorts">
-            <select class="fb-select ege-filterselect" id="faPos" aria-label="Position"></select>
-            <select class="fb-select ege-filterselect" id="faSort" aria-label="Sort"></select>
-          </div>
-          <ol class="ege-room__list ege-search__list" id="faList"></ol>
-          <button type="button" class="fb-btn fb-btn--sm ege-search__more" id="faMore" hidden>Show more</button>
-        </div>
-      </section>
-      <section class="ege-league__panel ege-drafts" id="leagueDrafts" hidden>
-        <div class="ege-seasonbar ege-league__bar">
-          <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="draftPrev"
-                  aria-label="Draft before">&lsaquo;</button>
-          <select class="fb-select ege-seasonbar__pick ege-league__season" id="draftYear" aria-label="Draft"></select>
-          <select class="fb-select ege-seasonbar__pick" id="draftRound" aria-label="Round"></select>
-          <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="draftNext"
-                  aria-label="Draft after">&rsaquo;</button>
-        </div>
-        <div class="fb-panel">
-          <div class="fb-tablewrap">
-            <table class="fb-table ege-drafttable">
-              <thead>
-                <tr class="ege-drafttable__groups">
-                  <th colspan="8"></th>
-                  <th colspan="5" class="is-group">Passing</th>
-                  <th colspan="3" class="is-group">Rushing</th>
-                  <th colspan="3" class="is-group">Receiving</th>
-                  <th colspan="3" class="is-group">Defense</th>
-                </tr>
-                <tr id="draftHead"></tr>
-              </thead>
-              <tbody id="draftList"></tbody>
-            </table>
+          <div class="ege-search__sorts">
+            <select class="fb-select ege-filterselect" id="searchPos" aria-label="Position"></select>
+            <select class="fb-select ege-filterselect" id="searchSort" aria-label="Sort"></select>
           </div>
         </div>
-        <button type="button" class="fb-btn fb-btn--inverse fb-btn--sm ege-drafts__more" id="draftMore" hidden>Show more</button>
-      </section>
-      <div class="ege-search" id="leagueSearch">
-        <div class="ege-search__box">
-          <svg class="ege-search__icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
-            <circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="3"/>
-            <path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="3" stroke-linecap="square"/>
-          </svg>
-          <input class="fb-input ege-search__field" id="searchField" type="search"
-                 placeholder="Player" aria-label="Search players"
-                 autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
-        </div>
-        <div class="ege-search__sorts">
-          <select class="fb-select ege-filterselect" id="searchPos" aria-label="Position"></select>
-          <select class="fb-select ege-filterselect" id="searchSort" aria-label="Sort"></select>
-        </div>
+        <div class="ege-search__results" id="searchResults"></div>
       </div>
-      <div class="ege-search__results" id="searchResults"></div>
+      <!-- #league/leaders/{year}: the top ten in every stat a season, two
+           columns of boxes, a year at a time. -->
+      <div id="leagueLeadersPage" hidden>
+        <div class="ege-seasonbar ege-league__bar ege-seasonbar--full">
+          <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="leadersPrev"
+                  aria-label="Season before">&lsaquo;</button>
+          <select class="fb-select ege-seasonbar__pick" id="leadersYear" aria-label="Season"></select>
+          <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="leadersNext"
+                  aria-label="Season after">&rsaquo;</button>
+        </div>
+        <div class="ege-leaders" id="leadersGrid"></div>
+      </div>
+      <!-- #league/free-agency -->
+      <div id="leagueFaPage" hidden>
+        <section class="fb-panel ege-league__fa" id="leagueFreeAgents" hidden>
+          <div class="fb-panel__head">
+            <h3 class="ege-league__fatitle"><img class="ege-league__espn" src="icon/espn-white.png" alt="ESPN" width="80" height="20"><span id="faTitle">Free Agency Tracker</span></h3>
+            <span class="ege-live" role="img" aria-label="Live"><span class="ege-live__dot"></span>Live</span>
+          </div>
+          <div class="fb-panel__body">
+            <div class="ege-league__buyers" id="faBuyers" hidden>
+              <span class="ege-league__buyerslabel">Biggest Buyers</span>
+              <ol class="ege-league__buyerlist" id="faBuyerList"></ol>
+            </div>
+            <div class="ege-search__sorts ege-league__fasorts">
+              <select class="fb-select ege-filterselect" id="faPos" aria-label="Position"></select>
+              <select class="fb-select ege-filterselect" id="faSort" aria-label="Sort"></select>
+            </div>
+            <ol class="ege-room__list ege-search__list" id="faList"></ol>
+            <button type="button" class="fb-btn fb-btn--sm ege-search__more" id="faMore" hidden>Show more</button>
+          </div>
+        </section>
+      </div>
+      <!-- #league/draft: every draft; #league/draft/{year}: one, every pick. -->
+      <div id="leagueDraftPage" hidden>
+        <nav class="ege-draftyears" id="draftYears" aria-label="Drafts" hidden></nav>
+        <section class="ege-drafts" id="leagueDrafts" hidden>
+          <div class="ege-seasonbar ege-league__bar ege-seasonbar--full">
+            <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="draftPrev"
+                    aria-label="Draft before">&lsaquo;</button>
+            <select class="fb-select ege-seasonbar__pick ege-league__season" id="draftYear" aria-label="Draft"></select>
+            <button type="button" class="fb-btn fb-btn--inverse ege-seasonbar__step" id="draftNext"
+                    aria-label="Draft after">&rsaquo;</button>
+          </div>
+          <div class="fb-panel">
+            <div class="fb-tablewrap">
+              <table class="fb-table ege-drafttable">
+                <thead>
+                  <tr class="ege-drafttable__groups">
+                    <th colspan="8"></th>
+                    <th colspan="5" class="is-group">Passing</th>
+                    <th colspan="3" class="is-group">Rushing</th>
+                    <th colspan="3" class="is-group">Receiving</th>
+                    <th colspan="3" class="is-group">Defense</th>
+                  </tr>
+                  <tr id="draftHead"></tr>
+                </thead>
+                <tbody id="draftList"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+      <!-- #league/movement: trades and contract signings. -->
+      <div id="leagueMovePage" hidden>
+        <div class="ege-search__sorts ege-moves__picks">
+          <select class="fb-select ege-filterselect" id="moveSeason" aria-label="Season"></select>
+          <select class="fb-select ege-filterselect" id="moveKind" aria-label="Moves"></select>
+          <select class="fb-select ege-filterselect" id="moveTeam" aria-label="Team"></select>
+        </div>
+        <div class="ege-moves" id="moveList"></div>
+        <button type="button" class="fb-btn fb-btn--inverse fb-btn--sm ege-drafts__more" id="moveMore" hidden>Show more</button>
+      </div>
       <div class="ege-newsbar" id="leagueTicker" role="marquee" aria-label="Around the NFL" hidden>
         <div class="ege-newsbar__track" id="tickerTrack"></div>
       </div>
