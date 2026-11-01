@@ -3452,11 +3452,12 @@
     return rgb.map(function (c) { return Math.round(dark ? c + (255 - c) * 0.12 : c * 0.78); });
   }
 
-  function teamWash(src, hex) {
-    var key = src + '|' + hex;
+  /* `shade` (an [r, g, b]) in place of washShade's, where one is given. */
+  function teamWash(src, hex, shade) {
+    shade = shade || washShade(hex);
+    var key = src + '|' + (shade ? shade.join(',') : hex);
     if (!washes[key]) {
       washes[key] = new Promise(function (resolve, reject) {
-        var shade = washShade(hex);
         if (!shade) { reject(new Error('No colour to shade')); return; }
         var img = new Image();
         img.onerror = reject;
@@ -3549,12 +3550,12 @@
   /* The wash at the back of a pop-up's band, in as soon as it is worked
      out. The mark that reads on cream (the Jets' green one) is the one
      with darker parts to show. */
-  function bandWash(band, team) {
+  function bandWash(band, team, shade) {
     var src = team.name && EGE.logoFor(team.name);
     if (!src || !team.color) { return; }
     var wash = el('span', 'ege-person__wash');
     band.appendChild(wash);
-    teamWash(src, team.color).then(function (got) {
+    teamWash(src, team.color, shade).then(function (got) {
       var img = el('img');
       img.src = got.url;
       img.alt = '';
@@ -5416,8 +5417,14 @@
 
   var TROPHY_PLACES = ['gold', 'silver', 'bronze'];
 
-  /* A little trophy, its colour from its place (CSS). */
-  function trophyMark(place) {
+  var TROPHY_CUP = '<path d="M6.5 2.5h11v6a5.5 5.5 0 0 1-11 0z"/><rect x="10.5" y="14" width="3" height="4"/><rect x="7" y="18" width="10" height="3.5"/>';
+  var trophies = 0;
+
+  /* A little trophy, its colour from its place (CSS). The leader's gold
+     one is alive (Sam, 2026-11-01): a glint runs across it, it gives a
+     little shake, and two sparks wink at its shoulder, each box's on its
+     own beat (`lag`, seconds). */
+  function trophyMark(place, lag) {
     var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('viewBox', '0 0 24 24');
     svg.setAttribute('width', '20');
@@ -5425,9 +5432,32 @@
     svg.setAttribute('class', 'ege-leader__trophy is-' + TROPHY_PLACES[place - 1]);
     svg.setAttribute('role', 'img');
     svg.setAttribute('aria-label', ['First', 'Second', 'Third'][place - 1]);
-    svg.innerHTML = '<path d="M6.5 5H3.5v1.5A3.5 3.5 0 0 0 7 10 M17.5 5h3v1.5A3.5 3.5 0 0 1 17 10" class="ege-leader__handles"/>' +
-      '<path d="M6.5 2.5h11v6a5.5 5.5 0 0 1-11 0z"/><rect x="10.5" y="14" width="3" height="4"/><rect x="7" y="18" width="10" height="3.5"/>';
+    var html = '<path d="M6.5 5H3.5v1.5A3.5 3.5 0 0 0 7 10 M17.5 5h3v1.5A3.5 3.5 0 0 1 17 10" class="ege-leader__handles"/>' + TROPHY_CUP;
+    if (place === 1) {
+      trophies += 1;
+      var clip = 'ege-trophy-' + trophies;
+      svg.style.setProperty('--lag', -(lag || 0) + 's');
+      html += '<clipPath id="' + clip + '">' + TROPHY_CUP + '</clipPath>' +
+        '<g clip-path="url(#' + clip + ')"><g transform="rotate(24 12 12)"><rect class="ege-leader__glint" x="-7" y="-4" width="3.5" height="32"/></g></g>' +
+        '<path class="ege-leader__spark" d="M21.5 -1.9 L22.45 0.55 L24.9 1.5 L22.45 2.45 L21.5 4.9 L20.55 2.45 L18.1 1.5 L20.55 0.55z"/>' +
+        '<path class="ege-leader__spark" d="M2 11.9 L2.73 13.77 L4.6 14.5 L2.73 15.23 L2 17.1 L1.27 15.23 L-0.6 14.5 L1.27 13.77z"/>';
+    }
+    svg.innerHTML = html;
     return svg;
+  }
+
+  /* The leader's line: his team's colour, with its mark behind in a
+     darker shade of it, never a lighter one, so the type reads over it
+     (Sam, 2026-11-01). A colour about as dark as black is lifted a little
+     first, so that the mark still shows darker on it. */
+  function leaderTone(hex) {
+    var rgb = rgbOf(hex);
+    if (!rgb) { return null; }
+    var back = luminance(rgb) < 0.012 ? rgb.map(function (c) { return Math.round(c + (255 - c) * 0.1); }) : rgb;
+    return {
+      back: 'rgb(' + back.join(',') + ')',
+      shade: rgb.map(function (c) { return Math.round(c * 0.6); })
+    };
   }
 
   function leaderFace(row) {
@@ -5488,15 +5518,15 @@
     return ranked;
   }
 
-  function leaderLine(column, x, live) {
+  function leaderLine(column, x, live, lag) {
     var row = nflHitRow(x.hit, live);
     var team = EGE.nfl.teams[x.entry.team];
     var first = x.rank === 1;
     var line = el('li', 'ege-leader' + (first ? ' is-first' : '') + (row.player ? ' is-six' : ''));
-    if (first && team && team.color) {
-      line.style.setProperty('--team', team.color);
-      var rgb = rgbOf(team.color);
-      if (rgb && contrast(luminance(rgb), 1) < contrast(luminance(rgb), 0)) { line.classList.add('is-light'); }
+    var tone = first && team && team.color && leaderTone(team.color);
+    if (tone) {
+      line.style.setProperty('--team', tone.back);
+      bandWash(line, team, tone.shade);
     }
     line.appendChild(el('span', 'ege-leader__rank', String(x.rank)));
     line.appendChild(leaderFace(row));
@@ -5508,7 +5538,7 @@
     who.appendChild(meta);
     line.appendChild(who);
     var end = el('span', 'ege-leader__end');
-    if (x.rank <= 3) { end.appendChild(trophyMark(x.rank)); }
+    if (x.rank <= 3) { end.appendChild(trophyMark(x.rank, lag)); }
     end.appendChild(el('span', 'ege-leader__value', column.places ? x.value.toFixed(column.places) : statNumber(x.value)));
     line.appendChild(end);
     EGE.cardsView.pressable(line, row.name + ', ' + statText(column, x.entry.line) + ' ' + column.title.toLowerCase(), function () {
@@ -5539,7 +5569,7 @@
     leadersPrev.disabled = years.indexOf(Number(leadersYear)) >= years.length - 1;
     leadersNext.disabled = years.indexOf(Number(leadersYear)) <= 0;
     var season = lines[leadersYear];
-    LEADER_STATS.forEach(function (column) {
+    LEADER_STATS.forEach(function (column, n) {
       var top = topTen(column, season);
       if (!top.length) { return; }
       var box = el('section', 'fb-panel ege-leaders__box');
@@ -5547,7 +5577,7 @@
       head.appendChild(el('h3', null, column.title));
       box.appendChild(head);
       var list = el('ol', 'ege-leaders__list');
-      top.forEach(function (x) { list.appendChild(leaderLine(column, x, live)); });
+      top.forEach(function (x) { list.appendChild(leaderLine(column, x, live, (n * 0.7) % 4.2)); });
       box.appendChild(list);
       leadersGrid.appendChild(box);
     });

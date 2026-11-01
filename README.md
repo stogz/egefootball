@@ -708,9 +708,17 @@ Yards per Carry, Receptions, Receiving Yards, Receiving Touchdowns,
 Targets, Tackles, Sacks, Interceptions, Passes Defended, Forced Fumbles,
 Defensive Touchdowns, Field Goals Made, Punting Average. Each line is the
 place, his headshot, his name over his team's mark, position and city, and
-the number; it opens his pop-up. The leader's line is bigger and on his
-team's colour (dark type on a light one), with a gold trophy by his
-number; second has a silver trophy and third a bronze. Two alike go to the
+the number; it opens his pop-up. The headshot stands on the line's bottom
+edge with the top of his head out over its top, about 7.5% of the
+picture (Sam asked for 5-10%). The leader's line is bigger and on his
+team's colour, white type, with the team's mark big behind it in two
+tones as on a pop-up's band, but only ever in a darker shade of the
+colour so the type reads over it (a colour about as dark as black, the
+Steelers' and Raiders', is lifted a little first, so the mark still
+shows). A gold trophy by his number is alive: every few seconds a glint
+runs across it, it shakes on its base and two sparks wink, each box on
+its own beat, and it keeps still for reduced motion. Second has a silver
+trophy and third a bronze. Two alike go to the
 one who did it in fewer games, then by name, so there is always one of
 each. The week bar's switcher over them, `[ ‹ ] [ year ] [ › ]`, goes back
 a season and on, each season its own address; it opens on the newest. The

@@ -4762,8 +4762,9 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
 /* League Leaders (Sam, 2026-11-01): a box a stat, two columns of them, one
    on a phone; in each the top ten, the rank, headshot, name with his
    team's mark and position, and the number. The leader's line is larger,
-   on his team's colour (light type on a dark one), with a gold trophy by
-   his number; second a silver one and third a bronze. */
+   on his team's colour with its mark behind in a darker shade (white
+   type), with a gold trophy by his number; second a silver one and third
+   a bronze. */
 .ege-leaders__bar { margin-bottom: 22px; }
 .ege-leaders__bar .ege-seasonbar__pick { flex: 0 1 240px; }
 .ege-leaders__bar { justify-content: center; }
@@ -4773,31 +4774,55 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
 .ege-leaders__box .fb-panel__head h3 { font-size: 1.125rem; }
 .ege-leaders__list { margin: 0; padding: 0; list-style: none; }
 .ege-leader {
+  --row: 50px;
   display: flex;
   align-items: center;
   gap: 10px;
   min-width: 0;
-  padding: 6px 16px 6px 12px;
+  min-height: var(--row);
+  padding: 0 16px 0 12px;
   border-top: 1px solid rgba(29, 36, 22, .12);
   cursor: pointer;
 }
 .ege-leader:first-child { border-top: 0; }
 .ege-leader:nth-child(even) { background: rgba(29, 36, 22, .035); }
 .ege-leader__rank { flex: none; width: 22px; font-family: var(--fb-font-display); font-size: 1rem; text-align: center; }
+/* The headshot stands on the line's bottom edge with the top of his head
+   out over its top (Sam, 2026-11-01: 5-10% out). A crown sits about 4.5%
+   down its picture, so a picture 114% of the line's height puts it about
+   7.5% of the picture out. The column is as wide as ESPN's 350 by 254. On
+   top of the lines (z-index), so a head over the line above shows, the
+   leader's coloured line included. */
 .ege-leader__face {
-  display: flex;
+  position: relative;
+  z-index: 1;
+  display: block;
   flex: none;
-  align-items: flex-end;
-  justify-content: center;
-  overflow: hidden;
-  width: 44px;
-  height: 34px;
+  align-self: stretch;
+  width: calc(var(--row) * 1.14 * 1.38);
   font-size: .6875rem;
   font-weight: 800;
   color: var(--fb-muted-2);
 }
-.ege-leader__face img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
-.ege-leader__face.is-none { align-items: center; background: var(--fb-sand); }
+.ege-leader__face img {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  display: block;
+  width: auto;
+  max-width: none;
+  height: 114%;
+  transform: translateX(-50%);
+}
+.ege-leader__face.is-none {
+  display: grid;
+  place-items: center;
+  align-self: center;
+  width: calc(var(--row) * .88);
+  height: calc(var(--row) * .68);
+  margin: 0 calc(var(--row) * .3466);
+  background: var(--fb-sand);
+}
 .ege-leader__who { display: flex; flex: 1 1 auto; flex-direction: column; gap: 2px; min-width: 0; }
 .ege-leader__name { overflow: hidden; font-size: .875rem; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
 .ege-leader__meta { display: flex; align-items: center; gap: 5px; min-width: 0; font-size: .6875rem; font-weight: 700; color: var(--fb-muted); }
@@ -4808,24 +4833,25 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
 .ege-leader.is-six .ege-leader__name { color: var(--fb-accent-deep); }
 @media (hover: hover) { .ege-leader:hover .ege-leader__name { text-decoration: underline; } }
 .ege-leader:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: -3px; }
-/* The leader: bigger, on his team's colour. */
+/* The leader: bigger, on his team's colour, the team's mark behind him in
+   a darker shade of it (.ege-person__wash, as on a pop-up's band). */
 .ege-leader.is-first {
+  --row: 70px;
+  position: relative;
+  isolation: isolate;
   gap: 12px;
-  padding: 10px 16px 10px 12px;
   border-bottom: var(--fb-border) solid var(--fb-ink);
   background: var(--team, var(--fb-ink));
   color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
 }
 .ege-leader.is-first + .ege-leader { border-top: 0; }
-.ege-leader.is-first .ege-leader__face { width: 70px; height: 54px; }
 .ege-leader.is-first .ege-leader__name { font-size: 1.0625rem; color: inherit; }
-.ege-leader.is-first .ege-leader__meta { font-size: .75rem; color: rgba(255, 255, 255, .82); }
+.ege-leader.is-first .ege-leader__meta { font-size: .75rem; color: rgba(255, 255, 255, .85); }
 .ege-leader.is-first .ege-leader__meta .ege-game__logo { width: 20px; height: 20px; }
 .ege-leader.is-first .ege-leader__rank { font-size: 1.25rem; }
 .ege-leader.is-first .ege-leader__value { font-size: 1.75rem; }
 .ege-leader.is-first .ege-leader__face.is-none { background: rgba(255, 255, 255, .18); color: inherit; }
-.ege-leader.is-first.is-light { color: var(--fb-ink); }
-.ege-leader.is-first.is-light .ege-leader__meta { color: rgba(29, 36, 22, .75); }
 /* The trophies: gold, silver, bronze, each under an ink edge. */
 .ege-leader__trophy { display: block; flex: none; overflow: visible; }
 .ege-leader__trophy path,
@@ -4836,12 +4862,58 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
 .ege-leader__trophy { --metal: var(--fb-gold); fill: var(--metal); }
 .ege-leader__trophy.is-silver { --metal: #b9c0c6; }
 .ege-leader__trophy.is-bronze { --metal: #c7804a; }
-.ege-leader.is-first .ege-leader__trophy { width: 26px; height: 26px; }
+.ege-leader.is-first .ege-leader__trophy { width: 28px; height: 28px; }
+/* The leader's gold one, alive: every few seconds a glint runs across
+   the cup, the trophy gives a little shake on its base, and two sparks
+   wink beside it. Still for reduced motion. */
+.ege-leader__trophy.is-gold {
+  transform-origin: 50% 100%;
+  animation: ege-trophy-shake 3.6s ease-in-out var(--lag, 0s) infinite;
+}
+.ege-leader__trophy .ege-leader__glint {
+  fill: rgba(255, 255, 255, .85);
+  stroke: none;
+  animation: ege-trophy-glint 3.6s ease-in-out var(--lag, 0s) infinite;
+}
+.ege-leader__trophy .ege-leader__spark {
+  fill: #fff;
+  stroke: none;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ege-trophy-spark 3.6s ease-in-out calc(var(--lag, 0s) - 2.3s) infinite;
+}
+.ege-leader__trophy .ege-leader__spark + .ege-leader__spark { animation-delay: calc(var(--lag, 0s) - .5s); }
+@keyframes ege-trophy-glint {
+  0%, 18% { transform: translateX(0); }
+  46%, 100% { transform: translateX(30px); }
+}
+@keyframes ege-trophy-shake {
+  0%, 50%, 100% { transform: rotate(0) translateY(0); }
+  56% { transform: rotate(-9deg) translateY(-2px); }
+  62% { transform: rotate(7deg) translateY(-2px); }
+  68% { transform: rotate(-4deg) translateY(-1px); }
+  74% { transform: rotate(2deg) translateY(0); }
+  80% { transform: rotate(0) translateY(0); }
+}
+@keyframes ege-trophy-spark {
+  0%, 60%, 100% { opacity: 0; transform: scale(.2) rotate(0); }
+  72% { opacity: 1; transform: scale(1.15) rotate(45deg); }
+  84% { opacity: 0; transform: scale(.3) rotate(90deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ege-leader__trophy.is-gold,
+  .ege-leader__trophy .ege-leader__glint,
+  .ege-leader__trophy .ege-leader__spark { animation: none; }
+}
+/* On a phone the lines and headshots are a touch smaller, and the
+   leader's name may take two lines rather than be cut short. */
 @media (max-width: 520px) {
-  .ege-leader { padding-right: 12px; }
-  .ege-leader.is-first { gap: 10px; }
-  .ege-leader.is-first .ege-leader__face { width: 52px; height: 42px; }
-  .ege-leader.is-first .ege-leader__value { font-size: 1.5rem; }
+  .ege-leader { --row: 46px; gap: 8px; padding-right: 12px; }
+  .ege-leader.is-first { --row: 58px; gap: 8px; }
+  .ege-leader.is-first .ege-leader__name { font-size: .9375rem; line-height: 1.15; white-space: normal; }
+  .ege-leader.is-first .ege-leader__value { font-size: 1.375rem; }
+  .ege-leader.is-first .ege-leader__trophy { width: 24px; height: 24px; }
 }
 
 /* A whole draft, a heading over each round. */
