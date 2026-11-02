@@ -46,7 +46,7 @@ function load() {
   vm.createContext(sandbox);
   const stats = fs.readdirSync(path.join(ROOT, 'stats'))
     .filter((name) => /^\d{4}\.js$/.test(name)).sort().map((name) => 'stats/' + name);
-  ['data/players.js', 'data/season.js', 'data/ratings.js', 'data/shop.js', 'data/economy.js',
+  ['data/players.js', 'data/season.js', 'data/ratings.js', 'data/shop.js', 'data/economy.js', 'data/aging.js',
    'data/statline.js', 'data/brackets.js', 'data/conferences.js', 'data/logos.js']
     .concat(stats, ['data/games.js', 'js/exports.js'])
     .forEach(function (rel) {

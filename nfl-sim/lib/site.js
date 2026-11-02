@@ -157,6 +157,9 @@ function sixEdits(log, season, from) {
         edit.injury = title(e.out);
         (outRuns[slug] = outRuns[slug] || []).push(edit);
       }
+      /* What hurt him in this game and for how long, which is what it
+         costs him on the site (data/aging.js). */
+      if (e.hurt && !e.out) { edit.hurt = { injury: title(e.hurt.what), weeks: e.hurt.games }; }
       if (g.playoff) {
         const conf = TEAMS[e.team].conf;
         edit.playoff = true;
@@ -251,7 +254,8 @@ function seasonFileText(season, made) {
       }
       (weeks[week] = weeks[week] || {})[slug] = {
         result: e.result, booster: game.booster || null, stats: e.stats, bigPlays: e.bigPlays,
-        overtime: e.overtime, injured: Boolean(e.injured), injury: e.injury || null, health: e.health
+        overtime: e.overtime, injured: Boolean(e.injured), injury: e.injury || null, health: e.health,
+        hurt: e.hurt || null
       };
     });
   });
@@ -510,7 +514,7 @@ function weekRows(league, season) {
       w.games[slug] = {
         result: e.result, stats: site.statline.complete(player.position, e.stats), bigPlays: e.bigPlays,
         overtime: e.overtime, injured: Boolean(e.injured), injury: e.injury || null,
-        health: typeof e.health === 'number' ? e.health : null
+        health: typeof e.health === 'number' ? e.health : null, hurt: e.hurt || null
       };
       if (e.playoff) {
         w.fixtures = w.fixtures || {};

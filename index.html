@@ -477,6 +477,18 @@
         </div>
       </div>
 
+      <!-- what age and injuries took off him this season (data/aging.js) -->
+      <div class="fb-panel" id="wearPanel" hidden>
+        <div class="fb-panel__head">
+          <h3>Regression</h3>
+          <div class="ege-ovr ege-ovr--head" id="wearOverallBox" hidden>
+            <span class="ege-ovr__label">OVR</span>
+            <span class="ege-ovr__value" id="wearOverall">0</span>
+          </div>
+        </div>
+        <div class="fb-panel__body fb-stack" id="wearBody"></div>
+      </div>
+
       <div id="shopSections"></div>
 
       </div><!-- /shopContent -->
@@ -1548,6 +1560,7 @@
 <script src="data/shop.js"></script>
 <script src="data/economy.js"></script>
 <script src="data/statline.js"></script>
+<script src="data/aging.js"></script>
 
 <!-- The three files the admin page regenerates — the season pointer, the
      locked ratings and the season itself — are written out by this one with a

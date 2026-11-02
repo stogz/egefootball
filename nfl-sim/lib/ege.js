@@ -12,6 +12,10 @@
    Their site attributes are Madden's, so each sim skill is an average of
    the Madden attributes that make it up, moved so the skills average out to
    their site overall again.
+
+   Age and injuries take from their site numbers too (data/aging.js). The
+   site counts an injury once its week is out; the league knows of it from
+   the snap it happened on (league.egeInjuries), so it hands its own over.
    ========================================================================== */
 
 'use strict';
@@ -60,10 +64,13 @@ function average(values, keys) {
 
 /* One of the six as a sim player: overall, skills and durability from the
    site, the archetype his skills give him (unless one was set by hand,
-   league.egeArchetypes), the rest left to whoever calls (team, contract). */
-function simPlayer(site, player) {
-  const values = site.valuesFor(player) || {};
-  const ovr = site.overallFor(player);
+   league.egeArchetypes), the rest left to whoever calls (team, contract).
+   `injuries` are his this season as the league has them
+   ([{ week, injury, weeks }]), for what they cost him. */
+function simPlayer(site, player, injuries) {
+  const opts = injuries && injuries.length ? { injuries } : undefined;
+  const values = site.valuesFor(player, opts) || {};
+  const ovr = site.overallFor(player, opts);
   const pos = player.position;
   const map = FROM_SITE[pos] || {};
   /* Each skill's distance from his overall, read off the site, then put
@@ -91,13 +98,20 @@ function simPlayer(site, player) {
   };
 }
 
+/* The league's injuries to one of the six in the season the site is on. */
+function injuriesOf(site, hurts, slug) {
+  return (hurts || []).filter((h) => h.slug === slug && h.season === site.currentSeason)
+    .map((h) => ({ week: h.week, injury: h.injury, weeks: h.weeks }));
+}
+
 /* Every one of the six the site has, keyed by slug, with the NFL team the
-   site puts him on (or null while he is in college). */
-function sixFromSite(season) {
+   site puts him on (or null while he is in college). `hurts` is
+   league.egeInjuries. */
+function sixFromSite(season, hurts) {
   const site = loadSite();
   const out = {};
   site.players.forEach((player) => {
-    const p = simPlayer(site, player);
+    const p = simPlayer(site, player, injuriesOf(site, hurts, player.slug));
     const transfers = player.transfers || {};
     const years = Object.keys(transfers).map(Number).filter((y) => y <= season).sort();
     const key = years.length ? transfers[years[years.length - 1]] : null;

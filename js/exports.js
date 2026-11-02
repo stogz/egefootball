@@ -549,6 +549,9 @@ EGE.exports = (function () {
     var injured = edited ? edited.injured : game.injured;
     var injury = edited ? edited.injury : game.injury;
     var health = edited ? edited.health : game.health;
+    /* What hurt him in the game, from the NFL sim (data/aging.js). An edit
+       that never heard of it (the season editor) keeps the file's. */
+    var hurt = edited && 'hurt' in edited ? edited.hurt : game.hurt;
 
     /* A score is only a score with both halves of it. */
     var scored = result &&
@@ -576,6 +579,10 @@ EGE.exports = (function () {
     }
     /* Overtime needs a score to have gone to overtime in. */
     if (overtime && scored) { flags.push('overtime: true'); }
+    if (hurt && hurt.injury) {
+      flags.push('hurt: { injury: ' + quote(String(hurt.injury)) + ', weeks: ' +
+                 Math.max(1, Math.round(Number(hurt.weeks) || 1)) + ' }');
+    }
 
     var out = [
       '      { week: ' + pad(game.week) + ', date: ' + quote(game.date) +
@@ -683,6 +690,10 @@ EGE.exports = (function () {
       '   DNP Injured: Bruised Shoulder, in place of his stat line. `health` is how',
       '   healthy he is that week, 0 to 100; while the week is the one being played',
       '   his page shows an injury report with it as a bar.',
+      '',
+      "   `hurt: { injury: 'Torn ACL', weeks: 20 }` is what hurt him in a game he",
+      '   played, from the NFL sim, and for how many weeks. From 2027 it costs him',
+      '   attributes once that week is out (data/aging.js).',
       '',
       '   `neutral: true` marks a game at a neutral site — listed as vs, and home',
       '   is false because it is nobody\'s. A kickoff of null is one that has not',

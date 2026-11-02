@@ -10,11 +10,14 @@
    plays and top performers are kept in the world folder (games-YEAR.json),
    with the six's whole lines, touchdowns and injuries for their season file.
 
-   The six get one injury a season between them, the way Sam has always
-   drawn them (weighted by the injury rating, which is their durability
-   here): once one of them is hurt, the rest of the season spares them.
-   Their boosters and connections from the site come into their games
-   (lib/boosts.js).
+   The six get hurt the way everybody does, likelier the lower their injury
+   rating (their durability here), but not as often: once one of them is
+   hurt, the rest of the season is a fifth as likely to hurt another, and
+   it stops at two a season between them (Sam, 2026-11-02: slightly more
+   than the one a season he had always drawn). Each injury of theirs is
+   kept in league.egeInjuries, which costs them attributes on the site
+   (data/aging.js) from the snap it happened on. Their boosters and
+   connections from the site come into their games (lib/boosts.js).
 
    Weeks the website has already played can be taken as they happened
    (importWeeks) instead of simulated, and the season goes on from there.
@@ -33,6 +36,22 @@ const { gameDay } = require('./lineup');
 
 const DEADLINE_WEEK = 9;
 const ROUNDS = ['Wild Card', 'Divisional', 'Conference Championship', 'Super Bowl'];
+
+/* How likely the six are to get hurt once some of them have been this
+   season: full before the first, a fifth after it, none after the second. */
+const EGE_RISK = [1, 0.2, 0];
+
+/* How many of the six have been hurt this season. `egeHurt` is the season
+   one of them was, from before a second could happen. */
+function egeHurtCount(league) {
+  const n = league.egeHurts && league.egeHurts.season === league.season ? league.egeHurts.count : 0;
+  return Math.max(n, league.egeHurt === league.season ? 1 : 0);
+}
+
+function egeRisk(league) {
+  const n = egeHurtCount(league);
+  return n < EGE_RISK.length ? EGE_RISK[n] : 0;
+}
 
 /* --------------------------------------------------------------- files -- */
 
@@ -169,8 +188,16 @@ function hurt(league, injuries, week) {
   injuries.forEach((i) => {
     const p = league.byId.get(i.id);
     if (!p) { return; }
-    p.injury = { games: i.games, what: i.what, season: league.season, week: week || league.week, fresh: true };
-    if (p.ege) { league.egeHurt = league.season; }
+    const at = week || league.week;
+    p.injury = { games: i.games, what: i.what, season: league.season, week: at, fresh: true };
+    if (p.ege) {
+      league.egeHurts = { season: league.season, count: egeHurtCount(league) + 1 };
+      league.egeHurt = league.season;
+      /* What it costs him on the site (data/aging.js): this season's and
+         last's are all that are ever read. */
+      league.egeInjuries = (league.egeInjuries || []).filter((h) => h.season >= league.season - 1);
+      league.egeInjuries.push({ slug: p.ege, season: league.season, week: at, injury: i.what, weeks: i.games });
+    }
   });
 }
 
@@ -231,7 +258,7 @@ function startedShare(league) {
 function play(league, game, rng, opts, extras) {
   const home = side(league, game.home);
   const away = side(league, game.away);
-  const o = Object.assign({ spareEge: league.egeHurt === league.season, links: extras ? extras.links : null }, opts);
+  const o = Object.assign({ egeRisk: egeRisk(league), links: extras ? extras.links : null }, opts);
   const first = playGame(home, away, rng, o);
   const boosted = extras ? boosts.onGame(extras, game, [home.roster, away.roster]) : [];
   if (!boosted.length) { return first; }
@@ -286,7 +313,7 @@ function playWeek(league, rng, hooks) {
    deadline comes round after Week 9 as usual. `results` are
    { week, home, away, score: [home, away], ot } with team keys; which side
    is listed as home does not matter. `egeHurt` says one of the six has
-   already had his injury this season. */
+   already been hurt this season. */
 function importWeeks(league, results, through, hooks, opts) {
   if (league.phase !== 'regular') { throw new Error('Weeks can only be taken in during the regular season (phase: ' + league.phase + ').'); }
   const last = Math.min(through, lastWeek(league));
@@ -311,7 +338,10 @@ function importWeeks(league, results, through, hooks, opts) {
       if (proposals && proposals.length) { league.phase = 'deadline'; out.deadline = proposals.length; }
     }
   }
-  if (opts && opts.egeHurt) { league.egeHurt = league.season; }
+  if (opts && opts.egeHurt) {
+    league.egeHurt = league.season;
+    league.egeHurts = { season: league.season, count: Math.max(1, egeHurtCount(league)) };
+  }
   writeWorld(league, 'games-' + league.season + '.json', log);
   if (league.week > lastWeek(league)) {
     if (league.phase === 'deadline' && hooks && hooks.closeDeadline) { hooks.closeDeadline(league); }
@@ -424,4 +454,4 @@ function draftOrder(league) {
 }
 
 module.exports = { startSeason, playWeek, playRound, importWeeks, startPlayoffs, nextRound, draftOrder, readWorld, writeWorld, lastWeek,
-                   lastPlaces, startedShare, DEADLINE_WEEK, ROUNDS };
+                   lastPlaces, startedShare, egeRisk, DEADLINE_WEEK, ROUNDS, EGE_RISK };

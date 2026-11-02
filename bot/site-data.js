@@ -28,7 +28,8 @@ const BEFORE = [
   'data/ratings.js',
   'data/shop.js',
   'data/economy.js',
-  'data/statline.js'
+  'data/statline.js',
+  'data/aging.js'
 ];
 
 /* After them: the accessors that read across seasons, the NFL sim's

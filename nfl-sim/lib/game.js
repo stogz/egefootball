@@ -208,11 +208,15 @@ function scored(g, side, kind, text) {
 
 /* ------------------------------------------------------------- injuries -- */
 
+/* The less durable, the likelier. The six's chance is scaled by
+   `egeRisk` (lib/season.js: full until one of them is hurt, a fifth after
+   that, none after a second), and nothing at all with `spareEge`. */
 function hurt(g, side, p, base) {
   if (!p || p.standIn || g.opts.noInjuries) { return; }
-  if (p.ege && g.opts.spareEge) { return; }
+  const scale = p.ege ? (g.opts.spareEge ? 0 : typeof g.opts.egeRisk === 'number' ? g.opts.egeRisk : 1) : 1;
+  if (!scale) { return; }
   const risk = base * (1.5 - (typeof p.durability === 'number' ? p.durability : 70) / 100);
-  if (g.rng() < risk) { injure(g, side, p); }
+  if (g.rng() < (scale === 1 ? risk : risk * scale)) { injure(g, side, p); }
 }
 
 function injure(g, side, p) {
@@ -1185,8 +1189,10 @@ function endQuarter(g) {
 
 /* Plays one game. `home` and `away` are { team, roster }; `opts` takes
    `playoff` (overtime until somebody wins), `neutral` (no home edge),
-   `noInjuries` and `links` (connections, by player id). Returns the score, team stats, every player's box score,
-   the scoring plays and who got hurt. */
+   `noInjuries`, `egeRisk` and `spareEge` (how likely the six are to get
+   hurt, see hurt()) and `links` (connections, by player id). Returns the
+   score, team stats, every player's box score, the scoring plays and who
+   got hurt. */
 function playGame(home, away, rng, opts) {
   opts = opts || {};
   const g = {

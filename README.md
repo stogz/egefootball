@@ -1446,6 +1446,8 @@ On sale:
   15 more each time): Injury +5 each, chambers bought before it did that
   included (`countsBack`, `EGE.rowEffects`); the season lock folds it into
   data/ratings.js and zeroes the rows, which stay to price the next one.
+  Every chamber owned also takes 7.5% off each offseason's regression (see
+  below).
   **Intel** (15).
 
 **Some things can't be bought yet.** An item can name the levels it belongs
@@ -1471,6 +1473,41 @@ Each stat booster names the attribute in `data/ratings.js` it applies to, so
 buying one has somewhere to land once spending is built. Block Power is the
 one exception: the ratings carry run block power and pass block power
 separately, and which one it raises is still open.
+
+### Regression and injuries
+
+From the 2027 offseason (Sam, 2026-11-02) the six get older, and getting hurt
+costs them. All of it is in `data/aging.js`, worked out from seeded dice, so
+the site, the Discord bot and the NFL sim get the same numbers with nothing
+stored:
+
+- **Regression**, every offseason, by age (the six are born in 2001: 26 in
+  2027, 34 in 2035). Only physical attributes go (speed, acceleration,
+  agility, strength, jumping, stamina, toughness, injury, throw power, the
+  power and elusive moves); what is learned never does (throw accuracy,
+  route running, catching, BC Vision, blocking technique). It is about 3
+  points at 26, a −1 on a few things, and grows 45% a year: 6 at 28, 13 at
+  30, 28 at 32, 59 at 34. Not every attribute every year: a random few,
+  more of them and deeper as he ages, the athletic ones and the ones his
+  position counts likeliest. Each **Hyperbaric Chamber** owned takes 7.5% off
+  it (`EGE.aging.chamberCut`); a chamber only ever takes points off the end,
+  so it never moves a drop somewhere else.
+- **Injuries** cost attributes on what was hurt: a hand on catching (a
+  quarterback's on his throwing), an ankle on speed and jumping, a knee on
+  agility and change of direction, a torn muscle on strength, a concussion
+  on toughness. How much is the weeks out ^ 0.88: a one-week sprain is a
+  point, a month about 3, a torn ACL 14. The site counts an injury once the
+  week it happened in is out, from the game's `hurt: { injury, weeks }` in
+  the season file or stored week; the NFL sim counts it from the snap
+  (`league.egeInjuries`). The sim also hurts the six a little more often
+  than it did: about 1.4 injuries a season between them, up from one, still
+  likelier the lower the injury rating (nfl-sim/README.md, Seasons).
+
+`EGE.valuesFor` takes both off the live season's numbers until that season
+is locked, when they are folded into `data/ratings.js` like any purchase, so
+every page, overall and price shows them. The **Shop** has a **Regression**
+panel under Your Inventory: his age and what it took, his chambers' cut,
+each injury with its week and what it took, and the OVR it all cost.
 
 ### Rating points
 

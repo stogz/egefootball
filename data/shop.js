@@ -184,11 +184,14 @@ EGE.shop = {
           note: 'NFL only',
           tiers: ['nfl'],
           /* Injury +5 each time (Sam, 2026-10-26), chambers bought before
-             then included (EGE.rowEffects). */
+             then included (EGE.rowEffects). Each one owned also takes 7.5%
+             off every offseason's regression from 2027 (Sam, 2026-11-02;
+             EGE.aging.chamberCut in data/aging.js). */
           effects: { injury: 5 },
           countsBack: true,
-          description: 'Injury +5, which lowers your injury chance. Only available after your ' +
-                       'first NFL season. 35, then 45, then 60, and 15 more each time after that.'
+          description: 'Injury +5, which lowers your injury chance, and 7.5% less regression every ' +
+                       'offseason. Only available after your first NFL season. 35, then 45, then 60, ' +
+                       'and 15 more each time after that.'
         },
         {
           key: 'intel',

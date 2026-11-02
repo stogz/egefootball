@@ -265,7 +265,7 @@ EGE.wallet = (function () {
     var c = client();
     if (!c) { return Promise.resolve({}); }
 
-    return c.from(INVENTORY).select('email, effects, active, season')
+    return c.from(INVENTORY).select('email, item_key, quantity, effects, active, season')
       .then(function (res) {
         /* A request that failed says nothing about what has been bought, so
            whatever was there already stays -- nothing on the first load, and
@@ -273,12 +273,28 @@ EGE.wallet = (function () {
            the page dropping back to its base number for one bad request. */
         if (res.error) { return EGE.appliedBoosts || {}; }
         var boosts = {};
+        /* Hyperbaric Chambers owned, which take 7.5% each off the
+           offseason's regression (data/aging.js). Every chamber row has
+           effects, so everybody's are public. */
+        var chambers = {};
 
         (res.data || []).forEach(function (row) {
+          if (row.item_key === 'hyperbaric') {
+            var owner = EGE.players.filter(function (p) {
+              return p.email && row.email && p.email.toLowerCase() === row.email.toLowerCase();
+            })[0];
+            if (owner) {
+              chambers[owner.slug] = (chambers[owner.slug] || 0) +
+                (typeof row.quantity === 'number' ? row.quantity : 1);
+            }
+          }
+
           /* A row with effects is a workout or rating points, and those are in
              the ratings for good once bought -- there is no switch for them,
-             so a row left switched off from before still counts. */
-          var effects = EGE.rowEffects(row);
+             so a row left switched off from before still counts. Only what
+             the row itself carries: the same for its owner as for everybody
+             else, who cannot see a row that carries nothing. */
+          var effects = EGE.rowEffects({ effects: row.effects });
           if (lapsed(row) || !effects) { return; }
 
           /* Rows are owned by an email; ratings are keyed by player. */
@@ -294,6 +310,7 @@ EGE.wallet = (function () {
         });
 
         EGE.appliedBoosts = boosts;
+        EGE.appliedChambers = chambers;
         return boosts;
       })
       .catch(function () { return EGE.appliedBoosts || {}; });

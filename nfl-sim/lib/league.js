@@ -86,12 +86,13 @@ function index(league) {
   });
 }
 
-/* The six's overall, skills and durability, from the site as it is now,
+/* The six's overall, skills and durability, from the site as it is now
+   (less what their injuries in the league have cost them, data/aging.js),
    and the archetype those skills give, unless Sam set one by hand
    (lib/edits.js setSixArchetype). */
 function syncSix(league) {
   let six;
-  try { six = sixFromSite(league.season); } catch (err) { return; }
+  try { six = sixFromSite(league.season, league.egeInjuries); } catch (err) { return; }
   league.players.forEach((p) => {
     if (!p.ege || !six[p.ege]) { return; }
     const site = six[p.ege].player;
