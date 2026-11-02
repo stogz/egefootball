@@ -33,6 +33,7 @@ const { starterLevels, needAt, onTeam } = require('./rosters');
 const { sixFromSite } = require('./ege');
 const { TEAMS } = require('./teams');
 const { fillPicks } = require('./picks');
+const { seeded } = require('./rng');
 
 /* How ready a rookie at each position is, against where he was picked
    (build/ratings.js uses the same numbers for the 2023 class). */
@@ -106,6 +107,27 @@ const FIXED_ROOM = 3;
 
 function fixedGrade(pr) { return typeof pr.ovr === 'number' ? Math.min(pr.grade, gradeFor(pr.ovr, pr.pos)) : pr.grade; }
 
+/* How a prospect's skills lean, from his id alone. */
+function styleOf(pr) {
+  const own = seeded('style:' + pr.id);
+  const z = {};
+  Object.keys(SKILLS[pr.pos] || {}).forEach((k) => { z[k] = own.gauss() * 0.9; });
+  const speedKey = SPEED_SKILL[pr.pos];
+  if (speedKey && pr.forty) { z[speedKey] = clamp((FORTY[pr.pos] - pr.forty) / 0.08, -2.5, 2.5); }
+  return z;
+}
+
+/* A prospect as the teams see him before the draft: his expected overall
+   (or the one Sam set), how he is graded, his skills and archetype. For
+   the Mock Draft (lib/mock-draft.js). */
+function preview(pr, season, lift, edit) {
+  const guess = expected(pr, season, lift);
+  const ovr = edit && edit.ovr ? edit.ovr : guess.ovr;
+  const grade = edit && edit.ovr ? gradeFor(edit.ovr, pr.pos) : fixedGrade(pr);
+  const skills = skillsFrom(pr.pos, ovr, styleOf(pr));
+  return { id: pr.id, name: pr.name, pos: pr.pos, ovr, grade, rank: pr.grade, skills, archetype: archetypeOf(pr.pos, skills, ovr) };
+}
+
 function toPlayer(pr, season, rng, lift) {
   lift = lift || 0;
   const age = pr.age || 22;
@@ -115,11 +137,11 @@ function toPlayer(pr, season, rng, lift) {
   const ovr = fixed ? pr.ovr : drawn;
   const ceiling = ceilingOf(pr, season, ceilingAt(grade) + lift + rng.gauss() * CEILING_SD);
   const pot = fixed ? Math.max(ceiling, ovr + FIXED_ROOM) : ceiling;
-  const z = {};
-  Object.keys(SKILLS[pr.pos] || {}).forEach((k) => { z[k] = rng.gauss() * 0.9; });
-  const speedKey = SPEED_SKILL[pr.pos];
-  if (speedKey && pr.forty) { z[speedKey] = clamp((FORTY[pr.pos] - pr.forty) / 0.08, -2.5, 2.5); }
-  const skills = skillsFrom(pr.pos, ovr, z);
+  /* His style is his own, not the draft's dice: the same every time he
+     is looked at, so the archetype the Mock Draft shows is the one he
+     comes in with. (The dice still roll, to keep the draws after it.) */
+  Object.keys(SKILLS[pr.pos] || {}).forEach(() => rng.gauss());
+  const skills = skillsFrom(pr.pos, ovr, styleOf(pr));
   return {
     id: pr.id, name: pr.name, pos: pr.pos, team: null, born: pr.born, age,
     height: pr.height, weight: pr.weight, college: pr.college, entry: season, espn: pr.espn || undefined,
@@ -384,5 +406,5 @@ function runDraft(league, order, rng, place, plan) {
   return results;
 }
 
-module.exports = { runDraft, toPlayer, madeClass, makeName, rookiePay, pickOverall, picksInOrder, realClass, expected,
+module.exports = { runDraft, toPlayer, preview, gradeFor, madeClass, makeName, rookiePay, pickOverall, picksInOrder, realClass, expected,
                    restorePicks, ROUNDS, MIN_ROUNDS };

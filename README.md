@@ -691,6 +691,21 @@ the bottom of every one of them.
 
 - **Free Agency** (`#league/free-agency`, its mark in ESPN's red):
   the Free Agency Tracker below.
+- **Mock Draft** (`#league/mock-draft`, Sam 2026-11-02): the class the
+  next draft takes, each prospect's grade (F to A+, by where a player rated
+  like him goes: A+ a top-five pick, A to 16, A- to 32, B+ 48, B 64, B- 96,
+  then a letter step every 32 picks, F past 288), position, school and
+  archetype (the one he comes in with). A switch over the sheet flips it
+  between the **mock draft**, every pick by round in its projected order
+  under the logo of the team that holds it (a traded pick's first owner
+  small and faded beside it), and the **big board**, best first, with the
+  pick the mock has him at. The sim works it out with each roster publish
+  (`nfl-sim/lib/mock-draft.js`, `draftClass` on the rosters): the order is
+  the one set by hand, the sim's own once the offseason sets it, and the
+  standings as they are before that; each team takes the prospect its own
+  draft board likes best, needs changing as it picks, without the scouting
+  noise; picks in a draft Sam uploaded go as he wrote them. No overall,
+  ceiling or id goes out, only the letter.
 - **Draft** (`#league/draft`): a tile for each draft since 2023, the
   newest first, its year and its No. 1 pick; each opens that draft's own
   page, `#league/draft/{year}` (the Draft History below).

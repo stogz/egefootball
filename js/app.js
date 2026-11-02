@@ -5168,6 +5168,133 @@
     });
   });
 
+  /* --- the mock draft --------------------------------------------------
+
+     A page of the League's catalog, after Free Agency (Sam, 2026-11-02):
+     the class the next draft takes, each prospect's grade (F to A+),
+     position, school and archetype, as a mock draft -- every pick in its
+     projected order, by the team that holds it -- or, at the switch, as a
+     big board, best first, with where the mock has him going. The sim
+     works it out and sends it with the rosters (nfl-sim/lib/mock-draft.js):
+     the order is the standings as they are until the offseason sets it. */
+
+  var mockPanel = document.getElementById('mockPanel');
+  var mockHead = document.getElementById('mockHead');
+  var mockList = document.getElementById('mockList');
+  var mockNone = document.getElementById('mockNone');
+  var mockView = 'mock';
+
+  var MOCK_COLUMNS = {
+    mock: [['n', 'No.', 'num'], ['team', 'Team'], ['face', ''], ['name', 'Player'], ['grade', 'Grade'], ['pos', 'Pos'],
+      ['school', 'School'], ['arch', 'Archetype']],
+    board: [['n', 'Rank', 'num'], ['face', ''], ['name', 'Player'], ['grade', 'Grade'], ['pos', 'Pos'], ['school', 'School'],
+      ['arch', 'Archetype'], ['proj', 'Mock Pick']]
+  };
+
+  function gradeChip(grade) {
+    return el('span', 'ege-gradechip ege-gradechip--' + String(grade || 'F').charAt(0).toLowerCase(), grade || 'F');
+  }
+
+  function mockTeam(key, from) {
+    var box = el('span', 'ege-mocktable__team');
+    var logo = leagueLogo(key, 26);
+    var team = EGE.nfl.teams[key];
+    box.title = team ? team.name + (from && EGE.nfl.teams[from] ? ', from the ' + EGE.nfl.teams[from].name : '') : '';
+    box.appendChild(logo);
+    if (from && EGE.nfl.teams[from]) {
+      var via = leagueLogo(from, 16);
+      via.classList.add('ege-mocktable__via');
+      box.appendChild(via);
+    }
+    return box;
+  }
+
+  function mockLine(columns, prospect, n, pick) {
+    var line = el('tr');
+    columns.forEach(function (column) {
+      var cell = el('td', column[2] || null);
+      var key = column[0];
+      if (key === 'n') {
+        cell.classList.add('ege-drafttable__n');
+        cell.textContent = String(n);
+      } else if (key === 'team') {
+        if (pick) { cell.appendChild(mockTeam(pick.team, pick.from)); }
+      } else if (key === 'face') {
+        cell.className = 'ege-drafttable__facecell';
+        cell.appendChild(draftFace({ name: prospect.name, nfl: true, photo: Boolean(prospect.espn), espn: prospect.espn,
+                                     collegePhoto: Boolean(prospect.collegePhoto) }));
+      } else if (key === 'name') {
+        cell.appendChild(el('span', 'ege-drafttable__name', prospect.name));
+      } else if (key === 'grade') {
+        cell.appendChild(gradeChip(prospect.grade));
+      } else if (key === 'pos') {
+        cell.textContent = prospect.pos;
+      } else if (key === 'school') {
+        cell.textContent = prospect.college || '';
+      } else if (key === 'arch') {
+        cell.className = 'ege-mocktable__arch';
+        cell.textContent = prospect.archetype || '';
+      } else if (key === 'proj') {
+        if (pick) {
+          var proj = el('span', 'ege-mocktable__proj');
+          proj.appendChild(mockTeam(pick.team, pick.from));
+          proj.appendChild(el('span', null, 'No. ' + pick.n));
+          cell.appendChild(proj);
+        }
+      }
+      line.appendChild(cell);
+    });
+    return line;
+  }
+
+  function renderMockDraft() {
+    var season = searchSeason();
+    var all = season ? EGE.nflRosters.get(season) : null;
+    var got = all && all.draftClass && all.draftClass.prospects && all.draftClass.prospects.length ? all.draftClass : null;
+    mockPanel.hidden = !got;
+    mockNone.hidden = Boolean(got) || all === undefined;
+    if (!got) { return; }
+    var title = got.year + (mockView === 'board' ? ' Big Board' : ' Mock Draft');
+    leagueTitle.textContent = title;
+    document.title = title + ' \u2014 EGE Football';
+    var columns = MOCK_COLUMNS[mockView];
+    mockHead.innerHTML = '';
+    columns.forEach(function (column) { mockHead.appendChild(el('th', column[2] || null, column[1])); });
+    var rows = document.createDocumentFragment();
+    if (mockView === 'board') {
+      var pickOf = {};
+      got.mock.forEach(function (m) { pickOf[m.p] = m; });
+      got.prospects.map(function (p, i) { return i; }).sort(function (a, b) {
+        return got.prospects[a].rank - got.prospects[b].rank;
+      }).forEach(function (i) {
+        rows.appendChild(mockLine(columns, got.prospects[i], got.prospects[i].rank, pickOf[i]));
+      });
+    } else {
+      var round = null;
+      got.mock.forEach(function (m) {
+        if (m.round !== round) {
+          round = m.round;
+          var head = el('tr', 'ege-drafttable__round');
+          var cell = el('td', null, 'Round ' + round);
+          cell.colSpan = columns.length;
+          head.appendChild(cell);
+          rows.appendChild(head);
+        }
+        rows.appendChild(mockLine(columns, got.prospects[m.p], m.n, m));
+      });
+    }
+    mockList.innerHTML = '';
+    mockList.appendChild(rows);
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('input[name="mockView"]'), function (input) {
+    input.addEventListener('change', function () {
+      if (!input.checked) { return; }
+      mockView = input.value;
+      renderMockDraft();
+    });
+  });
+
   /* --- player movement -------------------------------------------------
 
      A page of the League's catalog (Sam, 2026-11-01: the trade report back,
@@ -5600,7 +5727,7 @@
      The League is a catalog (Sam, 2026-11-01): #league is the week's
      games, the standings and the Injury Report as they were, then a link
      to each of the rest, which is a page of its own -- #league/free-agency,
-     #league/draft (and #league/draft/{year}), #league/movement,
+     #league/mock-draft, #league/draft (and #league/draft/{year}), #league/movement,
      #league/leaders (and /{year}) and #league/search (its words in the
      address, #league/search/{words}). The title over the page is the
      page's, and on one of the catalog's a round button at the top left
@@ -5612,6 +5739,7 @@
   var LEAGUE_PAGES = {
     home: { box: document.getElementById('leagueHome'), title: 'League' },
     fa: { box: document.getElementById('leagueFaPage'), title: 'Free Agency', path: 'free-agency' },
+    mock: { box: document.getElementById('leagueMockPage'), title: 'Mock Draft', path: 'mock-draft' },
     drafts: { box: document.getElementById('leagueDraftPage'), title: 'Draft', path: 'draft' },
     draft: { box: document.getElementById('leagueDraftPage'), title: 'Draft' },
     moves: { box: document.getElementById('leagueMovePage'), title: 'Player Movement', path: 'movement' },
@@ -5623,6 +5751,7 @@
   /* What the rosters draw on the page on show. */
   function renderLeagueLists() {
     if (leaguePage === 'fa') { renderFreeAgents(); }
+    if (leaguePage === 'mock') { renderMockDraft(); }
     if (leaguePage === 'drafts') { renderDraftYears(); }
     if (leaguePage === 'draft') { renderDrafts(); }
     if (leaguePage === 'moves') { renderMovement(); }
@@ -5653,6 +5782,8 @@
     var words = '';
     if (parts[0] === 'free-agency') {
       page = 'fa';
+    } else if (parts[0] === 'mock-draft') {
+      page = 'mock';
     } else if (parts[0] === 'movement') {
       page = 'moves';
     } else if (parts[0] === 'draft') {

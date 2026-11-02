@@ -29,6 +29,7 @@ const { seasons, rostersIn } = require('./history');
 const { standings } = require('./standings');
 const { nextRound, lastWeek, ROUNDS, readWorld } = require('./season');
 const { interested } = require('./six-offers');
+const { mockDraft } = require('./mock-draft');
 
 /* The sim's key for a team the six play for on the site ('detroit' is DET). */
 function simKey(siteKey) { return KEYS.filter((k) => TEAMS[k].site === siteKey)[0] || null; }
@@ -780,7 +781,7 @@ function publicRosters(league) {
   return { season: league.season, phase: league.phase, week: league.week || null, savedAt: new Date().toISOString(), caps, systems,
            picks, linesThrough: lines.through[league.season] || 0, teams, freeAgents: freeAgents(league, site, lines),
            retired: retiredPlayers(league, site, lines), playoffs: playoffsOut(league, site), schedule: scheduleOut(league),
-           trades: tradesOut(league), signings: signingsOut(league) };
+           trades: tradesOut(league), signings: signingsOut(league), draftClass: mockDraft(league) };
 }
 
 /* Where a player was drafted: the year, round, pick and team, and whose

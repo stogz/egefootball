@@ -935,6 +935,7 @@ nfl-sim/
     rosters.js           needs, contracts, free agency, depth, cutdowns
     draft.js             draft classes, ceilings, the draft
     draft-plan.js        a draft written by hand, draft orders set by hand, every team's picks
+    mock-draft.js        the League's Mock Draft: the next class's grades, archetypes, big board and mock
     picks.js             how far out the picks go (2030, then six drafts ahead)
     trades.js            proposals, the queue (big free-agent moves too), approving
     trade-finder.js      teams a player would suit better, and the trades for him (or a pick)

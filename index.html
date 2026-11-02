@@ -280,6 +280,10 @@
             <span class="ege-catalog__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M6 3h9l4 4v14H6z M14 3v5h5 M9 12h7 M9 15.5h7 M9 19h4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="miter"/></svg></span>
             <span class="ege-catalog__name">Free Agency</span><span class="ege-catalog__go" aria-hidden="true"></span>
           </a>
+          <a class="ege-catalog__item" href="#league/mock-draft">
+            <span class="ege-catalog__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M4 5h3 M10 5h10 M4 12h3 M10 12h10 M4 19h3 M10 19h10" fill="none" stroke="currentColor" stroke-width="2.4"/></svg></span>
+            <span class="ege-catalog__name">Mock Draft</span><span class="ege-catalog__go" aria-hidden="true"></span>
+          </a>
           <a class="ege-catalog__item" href="#league/draft">
             <span class="ege-catalog__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M9 6h6v15H9z M3 11h6v10H3z M15 14h6v7h-6z" fill="none" stroke="currentColor" stroke-width="2.2"/></svg></span>
             <span class="ege-catalog__name">Draft</span><span class="ege-catalog__go" aria-hidden="true"></span>
@@ -349,6 +353,31 @@
             <button type="button" class="fb-btn fb-btn--sm ege-search__more" id="faMore" hidden>Show more</button>
           </div>
         </section>
+      </div>
+      <!-- #league/mock-draft: the next draft's class, as a mock draft (every
+           pick in its projected order) or a big board. -->
+      <div id="leagueMockPage" hidden>
+        <div class="ege-mock__bar">
+          <div class="ege-switch ege-mock__switch" role="group" aria-label="Mock draft or big board">
+            <label class="ege-switch__option">
+              <input type="radio" name="mockView" value="mock" checked>
+              <span>Mock Draft</span>
+            </label>
+            <label class="ege-switch__option">
+              <input type="radio" name="mockView" value="board">
+              <span>Big Board</span>
+            </label>
+          </div>
+        </div>
+        <div class="fb-panel" id="mockPanel" hidden>
+          <div class="fb-tablewrap">
+            <table class="fb-table ege-drafttable ege-mocktable">
+              <thead><tr id="mockHead"></tr></thead>
+              <tbody id="mockList"></tbody>
+            </table>
+          </div>
+        </div>
+        <p class="ege-note ege-league__note" id="mockNone" hidden>No class yet.</p>
       </div>
       <!-- #league/draft: every draft; #league/draft/{year}: one, every pick. -->
       <div id="leagueDraftPage" hidden>

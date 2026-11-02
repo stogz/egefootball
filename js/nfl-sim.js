@@ -1039,6 +1039,7 @@ const { starterLevels, needAt, onTeam } = require('./rosters');
 const { sixFromSite } = require('./ege');
 const { TEAMS } = require('./teams');
 const { fillPicks } = require('./picks');
+const { seeded } = require('./rng');
 
 /* How ready a rookie at each position is, against where he was picked
    (build/ratings.js uses the same numbers for the 2023 class). */
@@ -1112,6 +1113,27 @@ const FIXED_ROOM = 3;
 
 function fixedGrade(pr) { return typeof pr.ovr === 'number' ? Math.min(pr.grade, gradeFor(pr.ovr, pr.pos)) : pr.grade; }
 
+/* How a prospect's skills lean, from his id alone. */
+function styleOf(pr) {
+  const own = seeded('style:' + pr.id);
+  const z = {};
+  Object.keys(SKILLS[pr.pos] || {}).forEach((k) => { z[k] = own.gauss() * 0.9; });
+  const speedKey = SPEED_SKILL[pr.pos];
+  if (speedKey && pr.forty) { z[speedKey] = clamp((FORTY[pr.pos] - pr.forty) / 0.08, -2.5, 2.5); }
+  return z;
+}
+
+/* A prospect as the teams see him before the draft: his expected overall
+   (or the one Sam set), how he is graded, his skills and archetype. For
+   the Mock Draft (lib/mock-draft.js). */
+function preview(pr, season, lift, edit) {
+  const guess = expected(pr, season, lift);
+  const ovr = edit && edit.ovr ? edit.ovr : guess.ovr;
+  const grade = edit && edit.ovr ? gradeFor(edit.ovr, pr.pos) : fixedGrade(pr);
+  const skills = skillsFrom(pr.pos, ovr, styleOf(pr));
+  return { id: pr.id, name: pr.name, pos: pr.pos, ovr, grade, rank: pr.grade, skills, archetype: archetypeOf(pr.pos, skills, ovr) };
+}
+
 function toPlayer(pr, season, rng, lift) {
   lift = lift || 0;
   const age = pr.age || 22;
@@ -1121,11 +1143,11 @@ function toPlayer(pr, season, rng, lift) {
   const ovr = fixed ? pr.ovr : drawn;
   const ceiling = ceilingOf(pr, season, ceilingAt(grade) + lift + rng.gauss() * CEILING_SD);
   const pot = fixed ? Math.max(ceiling, ovr + FIXED_ROOM) : ceiling;
-  const z = {};
-  Object.keys(SKILLS[pr.pos] || {}).forEach((k) => { z[k] = rng.gauss() * 0.9; });
-  const speedKey = SPEED_SKILL[pr.pos];
-  if (speedKey && pr.forty) { z[speedKey] = clamp((FORTY[pr.pos] - pr.forty) / 0.08, -2.5, 2.5); }
-  const skills = skillsFrom(pr.pos, ovr, z);
+  /* His style is his own, not the draft's dice: the same every time he
+     is looked at, so the archetype the Mock Draft shows is the one he
+     comes in with. (The dice still roll, to keep the draws after it.) */
+  Object.keys(SKILLS[pr.pos] || {}).forEach(() => rng.gauss());
+  const skills = skillsFrom(pr.pos, ovr, styleOf(pr));
   return {
     id: pr.id, name: pr.name, pos: pr.pos, team: null, born: pr.born, age,
     height: pr.height, weight: pr.weight, college: pr.college, entry: season, espn: pr.espn || undefined,
@@ -1390,7 +1412,7 @@ function runDraft(league, order, rng, place, plan) {
   return results;
 }
 
-module.exports = { runDraft, toPlayer, madeClass, makeName, rookiePay, pickOverall, picksInOrder, realClass, expected,
+module.exports = { runDraft, toPlayer, preview, gradeFor, madeClass, makeName, rookiePay, pickOverall, picksInOrder, realClass, expected,
                    restorePicks, ROUNDS, MIN_ROUNDS };
 
   };
@@ -3608,6 +3630,116 @@ module.exports = { depthChart, gameDay, skill, healthy, standIn };
 
   };
 
+  sources["mock-draft"] = function (module, exports, require, __dirname) {
+/* ==========================================================================
+   EGE Football NFL sim — the Mock Draft
+   The League's Mock Draft page (Sam, 2026-11-02: "you should be able to
+   see the incoming prospects. A prospect grade from F to A+, their
+   positions, college, archetype, and just a mock draft order showing the
+   projected pick locations of each team ... an option to switch from a
+   mock draft to just a big board"):
+
+   - the class the next draft takes (lib/draft-plan.js draftYear), each
+     prospect as the teams see him (lib/draft.js preview: his expected
+     overall, or the one Sam set, and his archetype, which is the one he
+     comes in with);
+   - his grade, F to A+, from where a player rated like him goes;
+   - the big board, best grade first;
+   - the mock: every pick of the draft in its order, the one set by hand
+     where there is one, the sim's own once the offseason has worked it
+     out, and before that the standings as they are (the worst record
+     first). Each team takes the prospect its own board likes best, as the
+     sim's draft does (lib/draft.js runDraft), without the scouting noise,
+     its needs changing as it picks; a pick in a draft Sam wrote by hand
+     goes as he wrote it.
+
+   Nothing private goes out: no overall, ceiling or id, only the letter.
+   ========================================================================== */
+
+'use strict';
+
+const { realClass, preview, picksInOrder } = require('./draft');
+const { draftYear, slotsFor, planFor } = require('./draft-plan');
+const { draftOrder } = require('./season');
+const { starterLevels, needAt, onTeam } = require('./rosters');
+const { pickPoints, POSITION } = require('./value');
+const { fitOf, schemeFor } = require('./schemes');
+
+/* A grade by where a player of his rating goes: an A+ is a top-five pick,
+   an F one nobody drafts. */
+const LETTERS = [[5, 'A+'], [16, 'A'], [32, 'A-'], [48, 'B+'], [64, 'B'], [96, 'B-'], [128, 'C+'], [160, 'C'], [192, 'C-'],
+  [224, 'D+'], [256, 'D'], [288, 'D-']];
+
+function letterFor(grade) {
+  for (let i = 0; i < LETTERS.length; i += 1) { if (grade <= LETTERS[i][0]) { return LETTERS[i][1]; } }
+  return 'F';
+}
+
+/* Every pick of the year's draft in order, and whether that order is
+   only the standings so far. */
+function order(league, year) {
+  const known = slotsFor(league, year);
+  if (known) { return { slots: known, projected: false }; }
+  return { slots: picksInOrder(league, draftOrder(league), year), projected: true };
+}
+
+function mockDraft(league) {
+  const year = draftYear(league);
+  const real = realClass(year);
+  if (!real.list || !real.list.length) { return null; }
+  const edits = league.prospectEdits || {};
+  const views = real.list.map((pr) => preview(pr, year, real.lift, edits[pr.id]));
+  const at = new Map(views.map((v, i) => [v.id, i]));
+  const { slots, projected } = order(league, year);
+  const plan = planFor(league, year);
+  const written = {};
+  (plan ? plan.picks : []).forEach((w) => { written[w.n] = w; });
+  const levels = starterLevels(league);
+  const rosters = {};
+  const taken = new Set();
+  const mock = [];
+  slots.forEach((slot) => {
+    const w = written[slot.n];
+    const key = w ? w.team : slot.owner;
+    const team = league.teams.find((t) => t.key === key);
+    if (!team) { return; }
+    const roster = rosters[key] || (rosters[key] = onTeam(league, key).slice());
+    let choice = w && at.has(w.id) && !taken.has(w.id) ? views[at.get(w.id)] : null;
+    if (!choice) {
+      let best = -1;
+      views.forEach((p) => {
+        if (taken.has(p.id)) { return; }
+        const need = needAt(league, key, p.pos, levels, roster);
+        const fit = fitOf(p, schemeFor(team, p.pos));
+        const score = pickPoints(p.grade) * Math.sqrt(POSITION[p.pos] || 0.8) * (1 + 0.45 * need) * (1 + 0.02 * fit);
+        if (score > best) { best = score; choice = p; }
+      });
+    }
+    if (!choice) { return; }
+    taken.add(choice.id);
+    roster.push(choice);
+    const row = { n: slot.n, round: slot.round, team: key, p: at.get(choice.id) };
+    if (slot.from !== key) { row.from = slot.from; }
+    mock.push(row);
+  });
+  /* The big board: best grade first, the consensus between two alike. */
+  const prospects = views.map((v, i) => {
+    const pr = real.list[i];
+    const row = { name: pr.name, pos: pr.pos, college: pr.college || null, age: pr.age || null, height: pr.height || null,
+                  weight: pr.weight || null, archetype: v.archetype || null, grade: letterFor(v.grade), rank: 0 };
+    if (pr.espn) { row.espn = String(pr.espn); }
+    if (pr.collegePhoto) { row.collegePhoto = true; }
+    return row;
+  });
+  views.map((v, i) => i).sort((a, b) => views[a].grade - views[b].grade || views[a].rank - views[b].rank)
+    .forEach((i, n) => { prospects[i].rank = n + 1; });
+  return { year, projected, prospects, mock };
+}
+
+module.exports = { mockDraft, letterFor };
+
+  };
+
   sources["offseason"] = function (module, exports, require, __dirname) {
 /* ==========================================================================
    EGE Football NFL sim — the offseason
@@ -5727,6 +5859,7 @@ const { seasons, rostersIn } = require('./history');
 const { standings } = require('./standings');
 const { nextRound, lastWeek, ROUNDS, readWorld } = require('./season');
 const { interested } = require('./six-offers');
+const { mockDraft } = require('./mock-draft');
 
 /* The sim's key for a team the six play for on the site ('detroit' is DET). */
 function simKey(siteKey) { return KEYS.filter((k) => TEAMS[k].site === siteKey)[0] || null; }
@@ -6478,7 +6611,7 @@ function publicRosters(league) {
   return { season: league.season, phase: league.phase, week: league.week || null, savedAt: new Date().toISOString(), caps, systems,
            picks, linesThrough: lines.through[league.season] || 0, teams, freeAgents: freeAgents(league, site, lines),
            retired: retiredPlayers(league, site, lines), playoffs: playoffsOut(league, site), schedule: scheduleOut(league),
-           trades: tradesOut(league), signings: signingsOut(league) };
+           trades: tradesOut(league), signings: signingsOut(league), draftClass: mockDraft(league) };
 }
 
 /* Where a player was drafted: the year, round, pick and team, and whose
