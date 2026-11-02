@@ -12,9 +12,10 @@
 
    The six get hurt the way everybody does, likelier the lower their injury
    rating (their durability here), but not as often: once one of them is
-   hurt, the rest of the season is a fifth as likely to hurt another, and
-   it stops at two a season between them (Sam, 2026-11-02: slightly more
-   than the one a season he had always drawn). Each injury of theirs is
+   hurt, the rest of the season spares them. From 2028 (Sam, 2026-11-02:
+   slightly more than the one a season he had always drawn) the rest of the
+   season is a fifth as likely to hurt another instead, and it stops at two
+   a season between them. Each injury of theirs is
    kept in league.egeInjuries, which costs them attributes on the site
    (data/aging.js) from the snap it happened on. Their boosters and
    connections from the site come into their games (lib/boosts.js).
@@ -38,8 +39,12 @@ const DEADLINE_WEEK = 9;
 const ROUNDS = ['Wild Card', 'Divisional', 'Conference Championship', 'Super Bowl'];
 
 /* How likely the six are to get hurt once some of them have been this
-   season: full before the first, a fifth after it, none after the second. */
+   season: full before the first, a fifth after it, none after the second.
+   From 2028, with the rest of data/aging.js (EGE.aging.from); before it,
+   one a season, as Sam always drew them. */
 const EGE_RISK = [1, 0.2, 0];
+const EGE_RISK_BEFORE = [1, 0];
+const EGE_RISK_FROM = 2028;
 
 /* How many of the six have been hurt this season. `egeHurt` is the season
    one of them was, from before a second could happen. */
@@ -50,7 +55,8 @@ function egeHurtCount(league) {
 
 function egeRisk(league) {
   const n = egeHurtCount(league);
-  return n < EGE_RISK.length ? EGE_RISK[n] : 0;
+  const steps = league.season >= EGE_RISK_FROM ? EGE_RISK : EGE_RISK_BEFORE;
+  return n < steps.length ? steps[n] : 0;
 }
 
 /* --------------------------------------------------------------- files -- */

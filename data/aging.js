@@ -1,7 +1,9 @@
 /* ==========================================================================
    EGE Football — wear: age and injuries
-   From the 2027 offseason on (Sam, 2026-11-02) the six lose something every
-   offseason to age, and every injury costs them something too.
+   From the 2028 offseason on (Sam, 2026-11-02: "next season", their 2027
+   ratings stay as they are) the six lose something every offseason to age,
+   every injury costs them something too, and offseason training costs more
+   every year they get older.
 
    Regression. Each offseason takes points off physical attributes only --
    speed, strength, jumping and the rest. What is learned never goes: pass
@@ -28,21 +30,27 @@
 window.EGE = window.EGE || {};
 
 EGE.aging = {
-  /* The first season that regresses (its offseason) and whose injuries cost
-     anything. */
-  from: 2027,
+  /* The first season that regresses (its offseason), whose injuries cost
+     anything and whose training costs more. */
+  from: 2028,
 
   /* The six were high school juniors in 2018 (the NFL sim's age too), so a
-     season's age is the season less this: 26 in 2027, 34 in 2035. */
+     season's age is the season less this: 27 in 2028, 34 in 2035. */
   born: 2001,
 
   /* Points an offseason takes at `age`, and how much more each year after:
-     about 3 at 26, 6 at 28, 13 at 30, 28 at 32, 59 at 34. Never more than
+     about 4 at 27, 6 at 28, 13 at 30, 28 at 32, 59 at 34. Never more than
      `most`. */
   curve: { age: 26, points: 3, growth: 1.45, most: 90 },
 
   /* What each Hyperbaric Chamber owned takes off the regression. */
   chamberCut: 0.075,
+
+  /* How much dearer strength, cardio and overall training get each year
+     past `age` (Sam, 2026-11-02: muscle and speed are harder to build the
+     older he gets): 15% at 27, 52% at 29, twice at 31, three times at 34.
+     On top of doubling with each one bought in an offseason. */
+  training: { age: 26, growth: 1.15 },
 
   /* What age takes from, and how likely each is to be picked. Anything not
      here is learned and never regresses. One a player's position counts
@@ -120,6 +128,15 @@ EGE.chambersFor = function (player) {
 /* How old the six are in a season. */
 EGE.ageIn = function (season) {
   return (season || EGE.currentSeason) - EGE.aging.born;
+};
+
+/* What age multiplies an offseason workout's price by (data/shop.js
+   `ageing`): 1 before regression starts. */
+EGE.trainingPriceFactor = function (season) {
+  var year = season || EGE.currentSeason;
+  var T = EGE.aging.training;
+  if (year < EGE.aging.from) { return 1; }
+  return Math.pow(T.growth, Math.max(0, EGE.ageIn(year) - T.age));
 };
 
 (function () {

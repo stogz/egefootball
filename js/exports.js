@@ -692,7 +692,7 @@ EGE.exports = (function () {
       '   his page shows an injury report with it as a bar.',
       '',
       "   `hurt: { injury: 'Torn ACL', weeks: 20 }` is what hurt him in a game he",
-      '   played, from the NFL sim, and for how many weeks. From 2027 it costs him',
+      '   played, from the NFL sim, and for how many weeks. From 2028 it costs him',
       '   attributes once that week is out (data/aging.js).',
       '',
       '   `neutral: true` marks a game at a neutral site — listed as vs, and home',

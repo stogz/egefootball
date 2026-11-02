@@ -86,11 +86,14 @@ EGE.shop = {
       title: 'Offseason Training',
       /* Drawn inside the Rating Points panel, under the points, rather than
          as a panel of its own. Each workout's price doubles every time it is
-         bought, and goes back to the bottom when the season is locked. */
+         bought, and goes back to the bottom when the season is locked. From
+         2028 the bottom rises every year with age (`ageing`,
+         EGE.trainingPriceFactor in data/aging.js). */
       panel: 'upgrades',
       items: [
         {
           key: 'train-strength',
+          ageing: true,
           icon: 'icon/shop/small/strength.png',
           name: 'Strength Training',
           credits: 8,
@@ -108,6 +111,7 @@ EGE.shop = {
         },
         {
           key: 'train-cardio',
+          ageing: true,
           icon: 'icon/shop/small/cardio.png',
           name: 'Cardio Training',
           credits: 16,
@@ -123,6 +127,7 @@ EGE.shop = {
         },
         {
           key: 'train-overall',
+          ageing: true,
           icon: 'icon/shop/small/gym.png',
           name: 'Overall Training',
           credits: 20,
@@ -185,7 +190,7 @@ EGE.shop = {
           tiers: ['nfl'],
           /* Injury +5 each time (Sam, 2026-10-26), chambers bought before
              then included (EGE.rowEffects). Each one owned also takes 7.5%
-             off every offseason's regression from 2027 (Sam, 2026-11-02;
+             off every offseason's regression from 2028 (Sam, 2026-11-02;
              EGE.aging.chamberCut in data/aging.js). */
           effects: { injury: 5 },
           countsBack: true,
@@ -294,8 +299,10 @@ EGE.priceFor = function (item, owned) {
     if (times < ladder.length) { return ladder[times]; }
     return ladder[ladder.length - 1] + (item.creditsStep || 0) * (times - ladder.length + 1);
   }
-  if (!item.creditsStack || times < 1) { return item.credits; }
-  return Math.round(item.credits * Math.pow(item.creditsStack, times));
+  /* A workout costs more the older he is (data/aging.js). */
+  var age = item.ageing && EGE.trainingPriceFactor ? EGE.trainingPriceFactor(EGE.currentSeason) : 1;
+  if (!item.creditsStack || times < 1) { return Math.round(item.credits * age); }
+  return Math.round(item.credits * age * Math.pow(item.creditsStack, times));
 };
 
 /* How many of an item a player holds, counting a stacked row's quantity

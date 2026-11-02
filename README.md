@@ -1476,17 +1476,18 @@ separately, and which one it raises is still open.
 
 ### Regression and injuries
 
-From the 2027 offseason (Sam, 2026-11-02) the six get older, and getting hurt
-costs them. All of it is in `data/aging.js`, worked out from seeded dice, so
-the site, the Discord bot and the NFL sim get the same numbers with nothing
-stored:
+From the 2028 offseason (Sam, 2026-11-02: "next season", so the 2027
+ratings stay as they are) the six get older, getting hurt costs them, and
+training gets dearer. All of it is in `data/aging.js` (`EGE.aging.from`),
+worked out from seeded dice, so the site, the Discord bot and the NFL sim
+get the same numbers with nothing stored:
 
-- **Regression**, every offseason, by age (the six are born in 2001: 26 in
-  2027, 34 in 2035). Only physical attributes go (speed, acceleration,
+- **Regression**, every offseason, by age (the six are born in 2001: 27 in
+  2028, 34 in 2035). Only physical attributes go (speed, acceleration,
   agility, strength, jumping, stamina, toughness, injury, throw power, the
   power and elusive moves); what is learned never does (throw accuracy,
-  route running, catching, BC Vision, blocking technique). It is about 3
-  points at 26, a −1 on a few things, and grows 45% a year: 6 at 28, 13 at
+  route running, catching, BC Vision, blocking technique). It is about 4
+  points at 27, a −1 on a few things, and grows 45% a year: 6 at 28, 13 at
   30, 28 at 32, 59 at 34. Not every attribute every year: a random few,
   more of them and deeper as he ages, the athletic ones and the ones his
   position counts likeliest. Each **Hyperbaric Chamber** owned takes 7.5% off
@@ -1502,6 +1503,11 @@ stored:
   (`league.egeInjuries`). The sim also hurts the six a little more often
   than it did: about 1.4 injuries a season between them, up from one, still
   likelier the lower the injury rating (nfl-sim/README.md, Seasons).
+- **Training costs more with age.** Strength, cardio and overall training
+  (`ageing` in data/shop.js) cost 15% more for every year past 26
+  (`EGE.trainingPriceFactor`), before doubling with each one bought that
+  offseason: strength 9 / cardio 18 / overall 23 to start in 2028, 12 / 24 /
+  30 in 2030, 24 / 49 / 61 at 34.
 
 `EGE.valuesFor` takes both off the live season's numbers until that season
 is locked, when they are folded into `data/ratings.js` like any purchase, so

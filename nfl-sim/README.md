@@ -369,14 +369,14 @@ A whole season and its playoffs take about half a second.
   Bowl on a neutral field.
 - **The trade deadline** comes after Week 9: the season stops there while
   any proposals wait on Sam (section 8).
-- **The six's injuries** (Sam, 2026-11-02). They get hurt the way everybody
-  does, likelier the lower their injury rating, but not as often: once one
-  of them is hurt, the rest of the season is a fifth as likely to hurt
-  another, and two a season between them is the most (`EGE_RISK` in
-  `lib/season.js`). That is about 1.4 a season, up from the one a season
-  Sam always drew. Each is kept in `league.egeInjuries`, and the game he was
+- **The six's injuries.** They get hurt the way everybody does, likelier
+  the lower their injury rating, but not as often: once one of them is
+  hurt, the rest of the season spares them. From 2028 (Sam, 2026-11-02) the
+  rest of the season is a fifth as likely to hurt another instead, and two a
+  season between them is the most (`EGE_RISK` in `lib/season.js`). That is
+  about 1.4 a season, up from the one a season Sam always drew. Each is kept in `league.egeInjuries`, and the game he was
   hurt in carries `hurt: { injury, weeks }` into his season file and the
-  stored weeks. From 2027 an injury costs him attributes on the site, on
+  stored weeks. From 2028 an injury costs him attributes on the site, on
   what was hurt and more the longer it keeps him out (`data/aging.js`); the
   league takes it off him from the snap it happened on, the site once the
   week is out. Age takes from them every offseason there too: the sim still
