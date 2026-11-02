@@ -8775,6 +8775,28 @@
     return box;
   }
 
+  /* Under it, in the same dashed box: everything age and injuries have taken
+     off him this season, all together (data/aging.js). Nothing before
+     regression starts, or while nothing has been taken. */
+  function buildRegression(player) {
+    var wear = player && EGE.wearFor ? EGE.wearFor(player, EGE.currentSeason) : null;
+    var totals = wear ? wear.total : {};
+    var keys = Object.keys(totals).filter(function (key) { return totals[key] < 0; });
+    if (!keys.length) { return null; }
+
+    keys.sort(function (a, b) { return totals[a] - totals[b]; });
+
+    var box = el('div', 'ege-applied');
+    box.appendChild(el('span', 'fb-eyebrow', 'Regression'));
+
+    var list = el('div', 'fb-row fb-row--wrap');
+    keys.forEach(function (key) {
+      list.appendChild(el('span', 'fb-tag fb-tag--num fb-tag--clay', targetLabel(key) + ' ' + totals[key]));
+    });
+    box.appendChild(list);
+    return box;
+  }
+
   /* --- what a player owns, on one line --------------------------------------
 
      Under "Applied to your ratings": the boosters as their stickers, then
@@ -8917,6 +8939,8 @@
 
     var summary = buildBoostSummary(boostSummary(shopState.inventory));
     if (summary) { applied.appendChild(summary); }
+    var regression = buildRegression(shopState.player);
+    if (regression) { applied.appendChild(regression); }
 
     /* Rating points are not kept as things -- "Applied to your ratings"
        above says what they add up to, per attribute. What is left is what is
@@ -8925,73 +8949,11 @@
       return row.item_key !== 'upgrade';
     });
 
-    document.getElementById('inventoryEmpty').hidden = things.length > 0 || Boolean(summary);
+    document.getElementById('inventoryEmpty').hidden = things.length > 0 || Boolean(summary) || Boolean(regression);
 
     holder.hidden = !things.length;
     ownedStickers(things, holder);
     ownedItems(things, holder);
-  }
-
-  /* --- regression: what age and injuries took ----------------------------
-
-     Under the inventory, the live season's: the offseason's regression by
-     his age, what his chambers take off it, and each injury once its week is out,
-     every attribute it cost as a clay tag (data/aging.js). The OVR box is
-     what all of it comes to. Nothing at all before regression starts. */
-
-  function wearRow(label, drops, extra) {
-    var row = el('div', 'ege-wear__row');
-    row.appendChild(el('span', 'fb-eyebrow', label));
-    var list = el('div', 'fb-row fb-row--wrap');
-    drops.forEach(function (drop) {
-      list.appendChild(el('span', 'fb-tag fb-tag--num fb-tag--clay',
-        drop.label + ' \u2212' + Math.abs(drop.amount)));
-    });
-    if (extra) { list.appendChild(extra); }
-    if (!list.childNodes.length) { list.appendChild(el('span', 'fb-tag fb-tag--num fb-tag--outline', 'None')); }
-    row.appendChild(list);
-    return row;
-  }
-
-  /* How much overall it all cost: the overall with it put back, less the
-     overall now. */
-  function wearOverall(player, total) {
-    var values = EGE.valuesFor(player);
-    if (!values) { return 0; }
-    var whole = {};
-    Object.keys(values).forEach(function (key) {
-      whole[key] = Math.min(99, values[key] - (total[key] || 0));
-    });
-    return EGE.overallOfValues(values, player.position) - EGE.overallOfValues(whole, player.position);
-  }
-
-  function renderWear() {
-    var panel = document.getElementById('wearPanel');
-    var body = document.getElementById('wearBody');
-    var player = shopState.player;
-    var wear = player && EGE.wearFor ? EGE.wearFor(player, EGE.currentSeason) : null;
-    body.innerHTML = '';
-    panel.hidden = !(wear && (wear.regression || wear.injuries.length));
-    if (panel.hidden) { return; }
-
-    var reg = wear.regression;
-    if (reg) {
-      var saved = null;
-      if (reg.chambers) {
-        var cut = Math.min(100, Math.round(EGE.aging.chamberCut * reg.chambers * 1000) / 10);
-        saved = el('span', 'fb-tag fb-tag--num fb-tag--sage',
-          'Chamber \u00d7' + reg.chambers + ' \u2212' + cut + '%');
-        saved.title = reg.saved === 1 ? '1 point saved' : reg.saved + ' points saved';
-      }
-      body.appendChild(wearRow('Age ' + reg.age, reg.drops, saved));
-    }
-    wear.injuries.forEach(function (hurt) {
-      body.appendChild(wearRow('Week ' + hurt.week + ' \u00b7 ' + hurt.injury, hurt.drops));
-    });
-
-    var cost = wearOverall(player, wear.total);
-    document.getElementById('wearOverallBox').hidden = !cost;
-    document.getElementById('wearOverall').textContent = cost ? '\u2212' + Math.abs(cost) : '0';
   }
 
   /* --- admin ------------------------------------------------------------- */
@@ -10276,7 +10238,6 @@
       shopState.inventory = all[1];
       updateNavDiamonds(all[4]);
       renderInventory();
-      renderWear();
       refreshStackedPrices();
       refreshLevelPrices();
       refreshUpgrades();

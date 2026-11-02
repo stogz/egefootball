@@ -1150,17 +1150,8 @@ body::before {
   border: var(--fb-border-thin) dashed var(--fb-ink);
   background: var(--fb-tint-wash);
 }
-
-/* The Regression panel's rows: what took it, then what it took. */
-.ege-wear__row {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.ege-wear__row + .ege-wear__row {
-  padding-top: 14px;
-  border-top: var(--fb-border-thin) dashed var(--fb-ink);
-}
+/* Regression sits under what was bought, in a box of its own. */
+.ege-applied + .ege-applied { margin-top: 14px; }
 
 /* --- booster stickers ---------------------------------------------------- */
 

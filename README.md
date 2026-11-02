@@ -1511,9 +1511,9 @@ get the same numbers with nothing stored:
 
 `EGE.valuesFor` takes both off the live season's numbers until that season
 is locked, when they are folded into `data/ratings.js` like any purchase, so
-every page, overall and price shows them. The **Shop** has a **Regression**
-panel under Your Inventory: his age and what it took, his chambers' cut,
-each injury with its week and what it took, and the OVR it all cost.
+every page, overall and price shows them. In the **Shop**, Your Inventory
+has a dashed **Regression** box under "Applied to your ratings" with
+everything age and injuries took this season, added up per attribute.
 
 ### Rating points
 
