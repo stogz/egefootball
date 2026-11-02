@@ -4670,7 +4670,7 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
   gap: 16px;
   margin: 0 0 64px;
 }
-/* Five links: three across, the last two in the middle under them. */
+/* Six links: two rows of three. */
 .ege-catalog { display: flex; flex-wrap: wrap; justify-content: center; }
 .ege-catalog > .ege-catalog__item { flex: 0 0 calc((100% - 32px) / 3); }
 @media (max-width: 760px) {
@@ -10277,3 +10277,37 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-trophy__art,
   .ege-trophy__tip { transition: none; }
 }
+
+/* The Mock Draft (Sam, 2026-11-02): the next draft's class on the draft
+   sheet's look, a pick or a rank a row -- the team (and, small and faded,
+   whose pick it was), his headshot, name, grade, position, school and
+   archetype -- with the switch between the mock and the big board on the
+   grass above it. */
+.ege-mock__bar { display: flex; justify-content: center; margin: 0 0 18px; }
+.ege-mock__switch { margin-left: 0; box-shadow: 4px 4px 0 rgba(0, 0, 0, .35); }
+.ege-mock__switch .ege-switch__option span { padding: 9px 18px; }
+.ege-mocktable { min-width: 820px; }
+.ege-mocktable tbody tr { cursor: default; }
+.ege-mocktable__team { display: flex; align-items: center; gap: 4px; }
+.ege-mocktable__team .ege-game__logo.ege-mocktable__via { width: 16px; height: 16px; opacity: .55; }
+.ege-mocktable__proj { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.ege-mocktable__arch { color: var(--fb-muted); }
+.ege-gradechip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 28px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  font-family: var(--fb-font-display);
+  font-size: 1rem;
+  line-height: 1;
+  color: #fff;
+}
+.ege-gradechip--a { background: #2f7d3a; }
+.ege-gradechip--b { background: #2c6e8f; }
+.ege-gradechip--c { background: #c9971c; }
+.ege-gradechip--d { background: #d0642a; }
+.ege-gradechip--f { background: #b3261e; }

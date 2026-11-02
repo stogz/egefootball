@@ -521,8 +521,24 @@ free agency has signed:
    rosters have no birthdays. ESPN has no NFL picture of a player drafted
    before the real 2027 draft, so the class is marked `collegePhoto` and the
    website shows each one's college headshot, in the NFL too. Where they go
-   is still the sim's draft, by its order and every team's needs. After 2027
-   the sim makes its own classes. Every prospect's ceiling is drawn for his
+   is still the sim's draft, by its order and every team's needs.
+   **The 2028 class** (Sam, 2026-11-02: "a little better than the previous
+   draft class ... Keelon Russell should be a 84 overall upon draft night",
+   and Malachi Toney too) is built the same way, from the few 2028 lists
+   out yet (`build/class-2028.js`, `build/class-2028-sources.json`): first
+   everyone four first-round 2028 mocks name (WalterFootball, NBA Draft
+   Room, two from Draft Countdown), by his average pick, a mock that leaves
+   him out counting him 40th; then the 2028 players on WalterFootball's
+   position lists and the second- and third-year college players with the
+   most to show at each position in cfbfastR's 2025 and 2026 play-by-play
+   (yards and touchdowns; sacks, takeaways and breakups; for linemen, their
+   offense's yards), the positions taking turns by their share of a real
+   class, kickers from pick 180. 320 players, every one with an ESPN id and
+   so a college headshot. Nobody from an earlier class is in it (by ESPN id
+   or name), nor any 2026 senior. `lift` in prospects.json puts the class a
+   point and a half above 2027 at every pick, ceilings too, and a prospect's
+   `ovr` is his draft-night overall exactly: Russell and Toney are 84, graded
+   for the teams as 84s are. After 2028 the sim makes its own classes. Every prospect's ceiling is drawn for his
    draft slot from what the players taken there in 2019–2022 became (a top-ten
    pick is an 88 on average, a seventh-rounder a 71, about 6.5 either way),
    leaning on how good he really became for the 2024 and 2025 classes. Teams
@@ -919,6 +935,7 @@ nfl-sim/
     rosters.js           needs, contracts, free agency, depth, cutdowns
     draft.js             draft classes, ceilings, the draft
     draft-plan.js        a draft written by hand, draft orders set by hand, every team's picks
+    mock-draft.js        the League's Mock Draft: the next class's grades, archetypes, big board and mock
     picks.js             how far out the picks go (2030, then six drafts ahead)
     trades.js            proposals, the queue (big free-agent moves too), approving
     trade-finder.js      teams a player would suit better, and the trades for him (or a pick)
@@ -937,6 +954,8 @@ nfl-sim/
     build-league.js      the 2023 league, prospects, schedules
     class-2027.js        the 2027 class, from the mock drafts and big boards in
                          class-2027-sources.json and the 2026 college rosters
+    class-2028.js        the 2028 class, from the 2028 mocks and position lists in
+                         class-2028-sources.json, the college rosters and play-by-play
     benchmarks.js        real 2023 league averages and games
     evidence.js          each player's seasons
     ratings.js           season scores and the overall curve
@@ -948,7 +967,7 @@ nfl-sim/
     bundle.js            js/nfl-sim.js, the sim for the admin page
   data/                  what the sim starts from (committed)
     league-2023.json     teams and players, Week 1 of 2023
-    prospects.json       the 2024-2026 draft classes and the 2027 class
+    prospects.json       the 2024-2026 draft classes and the 2027 and 2028 classes
     draft-orders.json    draft orders set by hand (2024's, from the mock draft doc) and the
                          real pick trades made before the 2023 kickoff (2024, 2025)
     schedules.json       the real 2023-2026 regular seasons, with dates and Eastern kickoffs

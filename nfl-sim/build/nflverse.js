@@ -25,11 +25,14 @@ const CACHE = process.env.NFL_SIM_CACHE || path.join(os.tmpdir(), 'ege-nflverse-
 const RELEASES = 'https://github.com/nflverse/nflverse-data/releases/download/';
 const NFLDATA = 'https://raw.githubusercontent.com/nflverse/nfldata/master/data/';
 const CFBDATA = 'https://raw.githubusercontent.com/sportsdataverse/cfbfastR-data/main/rosters/csv/';
+const CFBSTATS = 'https://raw.githubusercontent.com/sportsdataverse/cfbfastR-data/main/player_stats/csv/';
 
 /* Where each file lives. Release assets are `tag/file`. */
 function urlFor(name) {
   if (name === 'games.csv') { return NFLDATA + name; }
   if (/^cfb_rosters_/.test(name)) { return CFBDATA + name; }
+  /* cfbfastR's college play-by-play stats (the 2028 class). */
+  if (/^cfb_player_stats_/.test(name)) { return CFBSTATS + name.replace(/^cfb_/, ''); }
   const tags = [
     [/^roster_weekly_/, 'weekly_rosters'], [/^roster_/, 'rosters'],
     [/^depth_charts_/, 'depth_charts'], [/^snap_counts_/, 'snap_counts'],

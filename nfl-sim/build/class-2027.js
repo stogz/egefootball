@@ -231,4 +231,4 @@ function main() {
 
 if (require.main === module) { main(); }
 
-module.exports = { consensus, collect, norm };
+module.exports = { consensus, collect, norm, key, school, shown, simPos, rosterIndex, rosterRow, GROUP };
