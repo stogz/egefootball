@@ -4347,12 +4347,12 @@
     if (!entry) {
       renderNflHead(page.nfl, page.season);
       renderNflRoster(page.nfl, page.season);
-      document.title = EGE.nfl.teams[page.nfl].name + ' — EGE Football';
+      document.title = EGE.nfl.teams[page.nfl].name;
       return;
     }
     renderTeamHead(entry, page.season);
     renderTeamRoster(entry, page.season, page.nfl);
-    document.title = entry.team.school + ' — EGE Football';
+    document.title = entry.team.school;
   }
 
   /* --- the search -----------------------------------------------------------
@@ -4374,6 +4374,9 @@
      the number sorted by beside his overall. */
 
   var searchField = document.getElementById('searchField');
+  /* The X on the right of the box, there while something is typed. */
+  var searchClear = document.getElementById('searchClear');
+  function showSearchClear() { searchClear.hidden = !searchField.value; }
   var searchResults = document.getElementById('searchResults');
   var searchPosPick = document.getElementById('searchPos');
   var searchSortPick = document.getElementById('searchSort');
@@ -4706,11 +4709,15 @@
   var faMore = document.getElementById('faMore');
   var faPosPick = document.getElementById('faPos');
   var faSortPick = document.getElementById('faSort');
+  var faTeamPick = document.getElementById('faTeam');
+  var faInterestPick = document.getElementById('faInterest');
 
   var FA_PAGE = 12;
   var faShown = FA_PAGE;
   var faPos = '';
   var faSort = 'overall';
+  var faTeam = '';
+  var faInterest = '';
 
   function faMarket(hit) { return typeof hit.sim.market === 'number' ? hit.sim.market : null; }
 
@@ -4795,7 +4802,29 @@
     sorts = sorts.slice(0, 1).concat([FA_MARKET_SORT], sorts.slice(1));
     faSort = drawSortPick(faSortPick, sorts, faSort);
     var sort = sorts.filter(function (s) { return s.key === faSort; })[0];
-    var people = pool.filter(function (hit) { return !faPos || hit.sim.pos === faPos; }).map(function (hit) {
+    /* Two team pickers (Sam, 2026-11-02): the team he is on now, and a
+       team that wants him, each listing only the teams that have one. */
+    var onTeams = [];
+    var wantTeams = [];
+    pool.forEach(function (hit) {
+      if (EGE.nfl.teams[hit.key] && onTeams.indexOf(hit.key) === -1) { onTeams.push(hit.key); }
+      (hit.sim.interest || []).forEach(function (key) {
+        if (EGE.nfl.teams[key] && wantTeams.indexOf(key) === -1) { wantTeams.push(key); }
+      });
+    });
+    function teamOptions(first, keys, words) {
+      keys.sort(function (a, b) { return EGE.nfl.city(a).localeCompare(EGE.nfl.city(b)); });
+      return [['', first]].concat(keys.map(function (key) { return [key, words(EGE.nfl.city(key))]; }));
+    }
+    faTeam = fillPick(faTeamPick, teamOptions('All teams', onTeams, function (city) { return city; }), faTeam);
+    faInterest = fillPick(faInterestPick, teamOptions('All interest', wantTeams, function (city) {
+      return 'Interest: ' + city;
+    }), faInterest);
+    faInterestPick.hidden = !wantTeams.length;
+    var people = pool.filter(function (hit) {
+      return (!faPos || hit.sim.pos === faPos) && (!faTeam || hit.key === faTeam) &&
+        (!faInterest || (hit.sim.interest || []).indexOf(faInterest) !== -1);
+    }).map(function (hit) {
       return { hit: hit, ovr: searchOverall(hit), value: sort.value(hit), six: Boolean(hit.sim.ege) };
     }).sort(bySort(sort));
     faList.innerHTML = '';
@@ -4808,6 +4837,7 @@
       faList.appendChild(nflLine(row));
     });
     faMore.hidden = people.length <= faShown;
+    if (!people.length) { faList.appendChild(el('li', 'ege-note ege-search__note ege-league__fanone', 'No matches.')); }
   }
 
   faPosPick.appendChild(new Option('All positions', ''));
@@ -4821,6 +4851,13 @@
     faSort = faSortPick.value;
     faShown = FA_PAGE;
     renderFreeAgents();
+  });
+  [[faTeamPick, function (v) { faTeam = v; }], [faInterestPick, function (v) { faInterest = v; }]].forEach(function (pair) {
+    pair[0].addEventListener('change', function () {
+      pair[1](pair[0].value);
+      faShown = FA_PAGE;
+      renderFreeAgents();
+    });
   });
   faMore.addEventListener('click', function () {
     faShown += FA_PAGE;
@@ -5134,7 +5171,7 @@
     }
     draftYears = years;
     leagueTitle.textContent = draftYear + ' Draft';
-    document.title = draftYear + ' Draft \u2014 EGE Football';
+    document.title = draftYear + ' Draft';
     draftYear = fillPick(draftYearPick, years.map(function (y) { return [String(y), String(y)]; }), draftYear);
     draftPrev.disabled = years.indexOf(Number(draftYear)) >= years.length - 1;
     draftNext.disabled = years.indexOf(Number(draftYear)) <= 0;
@@ -5260,7 +5297,7 @@
     if (!got) { return; }
     var title = got.year + (mockView === 'board' ? ' Big Board' : ' Mock Draft');
     leagueTitle.textContent = title;
-    document.title = title + ' \u2014 EGE Football';
+    document.title = title;
     var columns = MOCK_COLUMNS[mockView];
     mockHead.innerHTML = '';
     columns.forEach(function (column) { mockHead.appendChild(el('th', column[2] || null, column[1])); });
@@ -5321,7 +5358,8 @@
 
   var MOVE_PAGE = 24;
   var moveShown = MOVE_PAGE;
-  var moveSeason = '';
+  /* The newest season until another is picked, or every season (''). */
+  var moveSeason = null;
   var moveKind = '';
   var moveTeam = '';
   var MOVE_KINDS = [['', 'All moves'], ['trade', 'Trades'], ['sign', 'Signings']];
@@ -5453,14 +5491,17 @@
     });
     years.sort(function (a, b) { return b - a; });
     teams.sort(function (a, b) { return EGE.nfl.city(a).localeCompare(EGE.nfl.city(b)); });
-    moveSeason = fillPick(moveSeasonPick, years.map(function (y) { return [String(y), String(y)]; }), moveSeason);
+    if (moveSeason === null && years.length) { moveSeason = String(years[0]); }
+    moveSeason = fillPick(moveSeasonPick, [['', 'All years']].concat(years.map(function (y) {
+      return [String(y), String(y)];
+    })), moveSeason);
     moveKind = fillPick(moveKindPick, MOVE_KINDS, moveKind);
     moveTeam = fillPick(moveTeamPick, [['', 'All teams']].concat(teams.map(function (key) {
       return [key, EGE.nfl.city(key)];
     })), moveTeam);
     moveSeasonPick.hidden = !years.length;
     var shown = moves.filter(function (m) {
-      return String(m.year) === moveSeason && (!moveKind || m.kind === moveKind) &&
+      return (!moveSeason || String(m.year) === moveSeason) && (!moveKind || m.kind === moveKind) &&
         (!moveTeam || m.teams.indexOf(moveTeam) !== -1);
     });
     moveList.innerHTML = '';
@@ -5534,8 +5575,13 @@
     statAverage('AVG', 'Yards per Carry', 'rushYds', 'rushAtt', 6.25),
     statCount('REC', 'Receptions', 'rec'),
     statCount('YDS', 'Receiving Yards', 'recYds'),
+    statAverage('AVG', 'Yards per Catch', 'recYds', 'rec', 1.875),
     statCount('TD', 'Receiving Touchdowns', 'recTd'),
     statCount('TGT', 'Targets', 'targets'),
+    /* The site's own fantasy scoring a game played, for anybody who
+       played half the season's games or more (Sam, 2026-11-02). */
+    { label: 'FPTS', title: 'Fantasy Points per Game', places: 1, qualify: { key: 'games', least: 0.5 },
+      value: function (l) { return l.games ? lineFantasy(l) / l.games : null; } },
     statCount('TKL', 'Tackles', 'tackles'),
     statCount('SACK', 'Sacks', 'sacks'),
     statCount('INT', 'Interceptions', 'ints'),
@@ -5545,6 +5591,14 @@
     statCount('FG', 'Field Goals Made', 'fgm'),
     statAverage('AVG', 'Punting Average', 'puntYards', 'punts', 2.25)
   ];
+
+  /* A season line on the site's fantasy scoring (the lines keep no fumbles). */
+  function lineFantasy(l) {
+    return EGE.economy.fantasyPoints({
+      passingYards: l.passYds, passingTd: l.passTd, interceptions: l.passInt, rushingYards: l.rushYds,
+      rushingTd: l.rushTd, receivingYards: l.recYds, receivingTd: l.recTd, receptions: l.rec
+    });
+  }
 
   var TROPHY_PLACES = ['gold', 'silver', 'bronze'];
 
@@ -5775,7 +5829,7 @@
     leagueBack.hidden = page === 'home';
     leagueBack.href = page === 'draft' ? '#league/draft' : '#league';
     leagueBack.textContent = page === 'draft' ? 'All Drafts' : 'League';
-    document.title = on.title + ' — EGE Football';
+    document.title = on.title;
   }
 
   /* #league/{path}: the page it names, or the search's words in an older
@@ -5811,6 +5865,7 @@
       searchField.value = wanted;
       searchShown = SEARCH_PAGE;
     }
+    showSearchClear();
     showLeaguePage(page);
     renderLeague();
     /* The search is what asks for the rosters every page draws from. */
@@ -5819,6 +5874,7 @@
   }
 
   searchField.addEventListener('input', function () {
+    showSearchClear();
     searchShown = SEARCH_PAGE;
     var hash = 'league/search' + (searchField.value ? '/' + encodeURIComponent(searchField.value) : '');
     /* Into the address without a new page in the history, or route() seeing
@@ -5826,6 +5882,13 @@
     window.history.replaceState(null, '', '#' + hash);
     routed = hash;
     renderSearch();
+  });
+
+  /* Empties the box as typing it away would, and leaves it ready for more. */
+  searchClear.addEventListener('click', function () {
+    searchField.value = '';
+    searchField.dispatchEvent(new Event('input'));
+    searchField.focus();
   });
 
   /* Done typing on a phone: the keyboard goes, and the results are there. */
@@ -10274,7 +10337,7 @@
       renderTeams();
       show(viewTeams);
       setNav('teams');
-      document.title = 'Teams \u2014 EGE Football';
+      document.title = 'Teams';
     } else if (hash.indexOf('teams/') === 0) {
       show(viewTeam);
       setNav('teams');
@@ -10283,17 +10346,17 @@
       renderShop();
       show(viewShop);
       setNav('shop');
-      document.title = 'Shop \u2014 EGE Football';
+      document.title = 'Shop';
     } else if (hash === 'cards' || hash.indexOf('cards/') === 0) {
       show(viewCards);
       EGE.cardsView.render(hash.slice(6) || null);
       setNav('cards');
-      document.title = 'Cards \u2014 EGE Football';
+      document.title = 'Cards';
     } else if (hash === 'diamonds') {
       show(viewDiamonds);
       EGE.diamondsView.render();
       setNav('diamonds');
-      document.title = 'Diamonds \u2014 EGE Football';
+      document.title = 'Diamonds';
     } else if (/^(league|search)(\/|$)/.test(hash)) {
       /* The search's old address is the League's now. */
       if (hash.indexOf('search') === 0) {
@@ -10308,7 +10371,7 @@
       renderAdminView();
       show(viewAdmin);
       setNav('admin');
-      document.title = 'Admin \u2014 EGE Football';
+      document.title = 'Admin';
     } else if (player) {
       /* Shown first, then drawn. The season totals and the trophy shelves
          are laid out by measuring the page, and a hidden page measures as

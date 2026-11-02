@@ -3721,7 +3721,7 @@ EGE.cardsView = (function () {
     byId('cardTabs').style.setProperty('--tab', TABS.indexOf(next));
     if (moved && from !== -1) { stretchDrop(Math.abs(TABS.indexOf(next) - from)); }
     byId('cardsTitle').textContent = TAB_TITLES[next];
-    document.title = TAB_TITLES[next] + ' — EGE Football';
+    document.title = TAB_TITLES[next];
 
     var hash = '#cards' + (next === 'cards' ? '' : '/' + next);
     if (!fromRoute && window.location.hash !== hash && window.history && window.history.replaceState) {
