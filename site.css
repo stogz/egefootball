@@ -4406,6 +4406,13 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
    his name. */
 .ege-league__fa { margin-bottom: 64px; }
 .ege-league__fasorts { margin: 0 0 18px; }
+.ege-league__fanone { grid-column: 1 / -1; list-style: none; }
+/* Position, sort, team and interested team: four across, two by two on
+   a phone. */
+@media (max-width: 760px) {
+  .ege-league__fasorts { flex-wrap: wrap; }
+  .ege-search__sorts.ege-league__fasorts .ege-filterselect { flex: 1 1 calc(50% - 14px); }
+}
 /* The tracker's head in ESPN's red (Sam, 2026-10-30): their mark in
    white before the title, and LIVE at the other end with its light
    blinking, still for anybody who has asked for less motion. */
@@ -5191,11 +5198,33 @@ a.ege-boxscore__name:hover { color: var(--fb-accent-deep); text-decoration: unde
 }
 .ege-search__field {
   width: 100%;
-  padding: 12px 14px 12px 46px;
+  padding: 12px 48px 12px 46px;
   border: var(--fb-border) solid var(--fb-ink);
   box-shadow: 4px 4px 0 var(--fb-ink);
   font-size: 1.125rem;
 }
+/* An X on the right of the box while there is something in it, which
+   empties it (Sam, 2026-11-02), in place of the browser's own. */
+.ege-search__field::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; display: none; }
+.ege-search__clear {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fb-ink);
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+.ege-search__clear[hidden] { display: none; }
+.ege-search__clear:hover { color: var(--fb-accent); }
+.ege-search__clear:focus-visible { outline: 2px solid var(--fb-accent); outline-offset: -2px; }
 .ege-search__results { display: grid; gap: 22px; }
 .ege-search__list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 28px; }
 @media (max-width: 760px) { .ege-search__list { grid-template-columns: minmax(0, 1fr); } }

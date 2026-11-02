@@ -313,6 +313,11 @@
             <input class="fb-input ege-search__field" id="searchField" type="search"
                    placeholder="Player" aria-label="Search players"
                    autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+            <button type="button" class="ege-search__clear" id="searchClear" aria-label="Clear" hidden>
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+                <path d="M5 5l14 14M19 5L5 19" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square"/>
+              </svg>
+            </button>
           </div>
           <div class="ege-search__sorts">
             <select class="fb-select ege-filterselect" id="searchPos" aria-label="Position"></select>
@@ -348,6 +353,8 @@
             <div class="ege-search__sorts ege-league__fasorts">
               <select class="fb-select ege-filterselect" id="faPos" aria-label="Position"></select>
               <select class="fb-select ege-filterselect" id="faSort" aria-label="Sort"></select>
+              <select class="fb-select ege-filterselect" id="faTeam" aria-label="Team"></select>
+              <select class="fb-select ege-filterselect" id="faInterest" aria-label="Interested team"></select>
             </div>
             <ol class="ege-room__list ege-search__list" id="faList"></ol>
             <button type="button" class="fb-btn fb-btn--sm ege-search__more" id="faMore" hidden>Show more</button>
