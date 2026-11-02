@@ -10,8 +10,10 @@
    good he really became; Paxon, Cooper and Isaac are in the 2024 class,
    rated from the website. The 2027 class is the real college players the
    fall 2026 mock drafts and big boards name, graded by their consensus
-   (build/class-2027.js), with ESPN's college headshots. After 2027 the sim
-   makes its own classes.
+   (build/class-2027.js), with ESPN's college headshots; the 2028 class is
+   built the same way from the first 2028 mocks and the college stats
+   (build/class-2028.js), a point and a half better at every pick. After
+   2028 the sim makes its own classes.
 
    Each team's board is the prospect's grade, his position's worth, how
    badly the team needs the position and how well he fits its schemes, with
@@ -76,9 +78,12 @@ function rookiePay(pick, season) {
 
 /* --------------------------------------------------------------- classes -- */
 
+/* `lift` is how many points better than usual a class comes in at every
+   pick, ceilings too (the 2028 class, Sam 2026-11-02: "a little better
+   than the previous draft class"). */
 function realClass(season) {
   const all = io.data('prospects.json');
-  return { list: all.classes[season] || null, ege: (all.ege && all.ege[season]) || [] };
+  return { list: all.classes[season] || null, ege: (all.ege && all.ege[season]) || [], lift: (all.lift && all.lift[season]) || 0 };
 }
 
 /* A prospect as a player, rated from his grade. His ceiling is drawn for
@@ -93,10 +98,23 @@ function ceilingOf(pr, season, drawn) {
     seasons === 1 ? 0.4 * (pr.realPeak + 3) + 0.6 * drawn : drawn;
 }
 
-function toPlayer(pr, season, rng) {
+/* A prospect with an `ovr` comes in at exactly that on draft night (Sam
+   set Keelon Russell and Malachi Toney at 84 for 2028): the teams grade
+   him, and his ceiling is drawn, the way a player rated that goes, and he
+   still has a few points to grow (FIXED_ROOM). */
+const FIXED_ROOM = 3;
+
+function fixedGrade(pr) { return typeof pr.ovr === 'number' ? Math.min(pr.grade, gradeFor(pr.ovr, pr.pos)) : pr.grade; }
+
+function toPlayer(pr, season, rng, lift) {
+  lift = lift || 0;
   const age = pr.age || 22;
-  const ovr = Math.round(clamp(pickOverall(pr.grade, pr.pos) + rng.gauss() * 2.5, 48, 86));
-  const pot = ceilingOf(pr, season, ceilingAt(pr.grade) + rng.gauss() * CEILING_SD);
+  const fixed = typeof pr.ovr === 'number';
+  const grade = fixedGrade(pr);
+  const drawn = Math.round(clamp(pickOverall(pr.grade, pr.pos) + lift + rng.gauss() * 2.5, 48, 86));
+  const ovr = fixed ? pr.ovr : drawn;
+  const ceiling = ceilingOf(pr, season, ceilingAt(grade) + lift + rng.gauss() * CEILING_SD);
+  const pot = fixed ? Math.max(ceiling, ovr + FIXED_ROOM) : ceiling;
   const z = {};
   Object.keys(SKILLS[pr.pos] || {}).forEach((k) => { z[k] = rng.gauss() * 0.9; });
   const speedKey = SPEED_SKILL[pr.pos];
@@ -110,15 +128,18 @@ function toPlayer(pr, season, rng) {
     skills, archetype: archetypeOf(pr.pos, skills, ovr),
     longevity: Math.round(clamp(50 + rng.gauss() * 12, 15, 90)),
     durability: Math.round(clamp(72 + rng.gauss() * 10, 35, 95)),
-    status: 'prospect', grade: pr.grade
+    status: 'prospect', grade
   };
 }
 
 /* What a prospect is expected to come in as, before the draw: the player
    editor's starting numbers for a class not drafted yet. */
-function expected(pr, season) {
-  const ovr = Math.round(clamp(pickOverall(pr.grade, pr.pos), 48, 86));
-  return { ovr, pot: Math.round(clamp(ceilingOf(pr, season, ceilingAt(pr.grade)), ovr, 97)) };
+function expected(pr, season, lift) {
+  lift = lift || 0;
+  const fixed = typeof pr.ovr === 'number';
+  const ovr = fixed ? pr.ovr : Math.round(clamp(pickOverall(pr.grade, pr.pos) + lift, 48, 86));
+  const pot = ceilingOf(pr, season, ceilingAt(fixedGrade(pr)) + lift);
+  return { ovr, pot: Math.round(clamp(fixed ? Math.max(pot, ovr + FIXED_ROOM) : pot, ovr, 97)) };
 }
 
 /* The pick a player of this overall goes at (pickOverall backwards). */
@@ -260,7 +281,7 @@ function runDraft(league, order, rng, place, plan) {
   order = fullOrder(league, order);
   const real = realClass(season);
   const list = real.list || madeClass(season, rng);
-  const prospects = list.map((pr) => toPlayer(pr, season, rng));
+  const prospects = list.map((pr) => toPlayer(pr, season, rng, real.list ? real.lift : 0));
   applyEdits(league, prospects);
   egeProspects(season, real.ege).forEach((p) => {
     if ((league.egeArchetypes || {})[p.ege]) { p.archetype = league.egeArchetypes[p.ege]; }

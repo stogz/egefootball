@@ -41,9 +41,10 @@ function classYear(league) { return league.phase === 'draft' ? league.season : l
 function draftClass(league) {
   const year = classYear(league);
   const edits = league.prospectEdits || {};
-  return { year, players: (realClass(year).list || []).map((pr) => {
+  const real = realClass(year);
+  return { year, players: (real.list || []).map((pr) => {
     const e = edits[pr.id] || {};
-    const guess = expected(pr, year);
+    const guess = expected(pr, year, real.lift);
     return { id: pr.id, name: pr.name, pos: pr.pos, college: pr.college, grade: pr.grade,
              ovr: e.ovr || guess.ovr, pot: Math.max(e.ovr || guess.ovr, e.pot || guess.pot), edited: Boolean(e.ovr || e.pot) };
   }) };
