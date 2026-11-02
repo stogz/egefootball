@@ -4347,12 +4347,12 @@
     if (!entry) {
       renderNflHead(page.nfl, page.season);
       renderNflRoster(page.nfl, page.season);
-      document.title = EGE.nfl.teams[page.nfl].name + ' — EGE Football';
+      document.title = EGE.nfl.teams[page.nfl].name;
       return;
     }
     renderTeamHead(entry, page.season);
     renderTeamRoster(entry, page.season, page.nfl);
-    document.title = entry.team.school + ' — EGE Football';
+    document.title = entry.team.school;
   }
 
   /* --- the search -----------------------------------------------------------
@@ -5171,7 +5171,7 @@
     }
     draftYears = years;
     leagueTitle.textContent = draftYear + ' Draft';
-    document.title = draftYear + ' Draft \u2014 EGE Football';
+    document.title = draftYear + ' Draft';
     draftYear = fillPick(draftYearPick, years.map(function (y) { return [String(y), String(y)]; }), draftYear);
     draftPrev.disabled = years.indexOf(Number(draftYear)) >= years.length - 1;
     draftNext.disabled = years.indexOf(Number(draftYear)) <= 0;
@@ -5297,7 +5297,7 @@
     if (!got) { return; }
     var title = got.year + (mockView === 'board' ? ' Big Board' : ' Mock Draft');
     leagueTitle.textContent = title;
-    document.title = title + ' \u2014 EGE Football';
+    document.title = title;
     var columns = MOCK_COLUMNS[mockView];
     mockHead.innerHTML = '';
     columns.forEach(function (column) { mockHead.appendChild(el('th', column[2] || null, column[1])); });
@@ -5829,7 +5829,7 @@
     leagueBack.hidden = page === 'home';
     leagueBack.href = page === 'draft' ? '#league/draft' : '#league';
     leagueBack.textContent = page === 'draft' ? 'All Drafts' : 'League';
-    document.title = on.title + ' — EGE Football';
+    document.title = on.title;
   }
 
   /* #league/{path}: the page it names, or the search's words in an older
@@ -10337,7 +10337,7 @@
       renderTeams();
       show(viewTeams);
       setNav('teams');
-      document.title = 'Teams \u2014 EGE Football';
+      document.title = 'Teams';
     } else if (hash.indexOf('teams/') === 0) {
       show(viewTeam);
       setNav('teams');
@@ -10346,17 +10346,17 @@
       renderShop();
       show(viewShop);
       setNav('shop');
-      document.title = 'Shop \u2014 EGE Football';
+      document.title = 'Shop';
     } else if (hash === 'cards' || hash.indexOf('cards/') === 0) {
       show(viewCards);
       EGE.cardsView.render(hash.slice(6) || null);
       setNav('cards');
-      document.title = 'Cards \u2014 EGE Football';
+      document.title = 'Cards';
     } else if (hash === 'diamonds') {
       show(viewDiamonds);
       EGE.diamondsView.render();
       setNav('diamonds');
-      document.title = 'Diamonds \u2014 EGE Football';
+      document.title = 'Diamonds';
     } else if (/^(league|search)(\/|$)/.test(hash)) {
       /* The search's old address is the League's now. */
       if (hash.indexOf('search') === 0) {
@@ -10371,7 +10371,7 @@
       renderAdminView();
       show(viewAdmin);
       setNav('admin');
-      document.title = 'Admin \u2014 EGE Football';
+      document.title = 'Admin';
     } else if (player) {
       /* Shown first, then drawn. The season totals and the trophy shelves
          are laid out by measuring the page, and a hidden page measures as
