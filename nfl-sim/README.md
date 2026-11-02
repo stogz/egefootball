@@ -138,7 +138,8 @@ not good at the same things.
 - **Longevity** for a player 27 or older compares his real 2023–2025 to what
   his age alone would have done: Derrick Henry, who stayed great into his 30s,
   has a 92.
-- **Durability** is the share of games he played in 2020–2022.
+- **Durability** is the share of games he played in 2020–2022. The six's
+  is their injury rating on the site.
 
 ## 3. Schemes and fit
 
@@ -368,6 +369,18 @@ A whole season and its playoffs take about half a second.
   Bowl on a neutral field.
 - **The trade deadline** comes after Week 9: the season stops there while
   any proposals wait on Sam (section 8).
+- **The six's injuries.** They get hurt the way everybody does, likelier
+  the lower their injury rating, but not as often: once one of them is
+  hurt, the rest of the season spares them. From 2028 (Sam, 2026-11-02) the
+  rest of the season is a fifth as likely to hurt another instead, and two a
+  season between them is the most (`EGE_RISK` in `lib/season.js`). That is
+  about 1.4 a season, up from the one a season Sam always drew. Each is kept in `league.egeInjuries`, and the game he was
+  hurt in carries `hurt: { injury, weeks }` into his season file and the
+  stored weeks. From 2028 an injury costs him attributes on the site, on
+  what was hurt and more the longer it keeps him out (`data/aging.js`); the
+  league takes it off him from the snap it happened on, the site once the
+  week is out. Age takes from them every offseason there too: the sim still
+  never ages the six itself.
 - **Playing a week again** (`lib/rewind.js`). Before the sim plays a week
   or a playoff round, the league and the trade queue are kept as that
   week's save point (`rewind-{season}-{week}.json`; playoff rounds are
@@ -844,7 +857,7 @@ before the sim existed, so `import-site` takes those weeks as they were
 played: the six's games from `stats/2023.js` and everybody else's real
 scores from `data/conferences.js`. Nobody gets a box score for them;
 injuries heal week by week, the deadline comes after Week 9 as usual, and if
-one of the six was already hurt, that was his one injury of the season. From
+one of the six was already hurt, that counts as the season's first. From
 Week 10 the sim plays every NFL game. `site` writes the six's sim games into
 their season file (scores, stat lines, big plays, injuries, and their
 playoff games as their teams reach them; weeks it has not played yet are

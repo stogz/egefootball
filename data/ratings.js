@@ -388,8 +388,9 @@ EGE.boostsFor = function (player) {
    what the lock folded in (each attribute moved at least as far, the same
    way), they are the season's purchases and are counted from where the
    season started. Once they are cleared, or never were folded, the base is
-   the starting point as it always was. */
-function egeRowsStillFolded(player, base, boosts) {
+   the starting point as it always was. What age and injuries took that
+   season (`wear`, data/aging.js) was folded in with them. */
+function egeRowsStillFolded(player, base, boosts, wear) {
   var start = EGE.seasonStartValuesFor(player);
   var folded = Object.keys(base).filter(function (key) {
     return base[key] !== start[key];
@@ -398,27 +399,42 @@ function egeRowsStillFolded(player, base, boosts) {
 
   return folded.every(function (key) {
     var moved = base[key] - start[key];
-    var bought = boosts[key] || 0;
+    var bought = (boosts[key] || 0) + ((wear || {})[key] || 0);
     return moved > 0 ? bought >= moved : bought <= moved;
   });
 }
 
-/* Base ratings with everything bought folded in, never twice. Nothing leaves
-   1-99. */
-EGE.valuesFor = function (player) {
+/* What age and injuries have taken off this player in the live season,
+   { attribute: -n } (data/aging.js), or nothing where that file is not
+   loaded. */
+function egeWearOf(player, opts) {
+  if (opts && opts.noWear) { return {}; }
+  return EGE.wearFor ? EGE.wearFor(player, EGE.currentSeason, opts).total : {};
+}
+
+/* Base ratings with everything bought folded in, never twice, less what age
+   and injuries took this season (data/aging.js). Nothing leaves 1-99.
+   `opts.injuries` are injuries the caller knows of before the site shows
+   them (the NFL sim's own); `opts.noWear` leaves age and injuries out. */
+EGE.valuesFor = function (player, opts) {
   var base = (player && EGE.ratings[player.slug]) || null;
   if (!base) { return null; }
 
   var boosts = EGE.boostsFor(player);
-  if (!Object.keys(boosts).length) { return base; }
+  var wear = egeWearOf(player, opts);
+  if (!Object.keys(boosts).length && !Object.keys(wear).length) { return base; }
 
-  var from = egeRowsStillFolded(player, base, boosts)
-    ? EGE.seasonStartValuesFor(player)
-    : base;
+  /* While the rows a lock folded in are still there, the season is counted
+     from where it started, wear and all. Once they are cleared the base has
+     the season's wear in it already, so wear is only added on top while the
+     season is still open. */
+  var folded = egeRowsStillFolded(player, base, boosts, wear);
+  var from = folded ? EGE.seasonStartValuesFor(player) : base;
+  var worn = folded || !EGE.seasonLocked(EGE.currentSeason) ? wear : {};
 
   var out = {};
   Object.keys(from).forEach(function (key) {
-    var value = from[key] + (boosts[key] || 0);
+    var value = from[key] + (boosts[key] || 0) + (worn[key] || 0);
     out[key] = Math.max(1, Math.min(99, value));
   });
   return out;
@@ -503,9 +519,14 @@ function egeOverallOf(values, position) {
   return Math.max(1, Math.min(99, Math.round(overall)));
 }
 
-EGE.overallFor = function (player) {
+EGE.overallFor = function (player, opts) {
   if (!player || !EGE.ratings[player.slug]) { return null; }
-  return egeOverallOf(EGE.valuesFor(player), player.position);
+  return egeOverallOf(EGE.valuesFor(player, opts), player.position);
+};
+
+/* The overall a set of attribute values comes to at a position. */
+EGE.overallOfValues = function (values, position) {
+  return egeOverallOf(values, position);
 };
 
 /* The overall the live season started on. */

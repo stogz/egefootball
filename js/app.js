@@ -8775,6 +8775,28 @@
     return box;
   }
 
+  /* Under it, in the same dashed box: everything age and injuries have taken
+     off him this season, all together (data/aging.js). Nothing before
+     regression starts, or while nothing has been taken. */
+  function buildRegression(player) {
+    var wear = player && EGE.wearFor ? EGE.wearFor(player, EGE.currentSeason) : null;
+    var totals = wear ? wear.total : {};
+    var keys = Object.keys(totals).filter(function (key) { return totals[key] < 0; });
+    if (!keys.length) { return null; }
+
+    keys.sort(function (a, b) { return totals[a] - totals[b]; });
+
+    var box = el('div', 'ege-applied');
+    box.appendChild(el('span', 'fb-eyebrow', 'Regression'));
+
+    var list = el('div', 'fb-row fb-row--wrap');
+    keys.forEach(function (key) {
+      list.appendChild(el('span', 'fb-tag fb-tag--num fb-tag--clay', targetLabel(key) + ' ' + totals[key]));
+    });
+    box.appendChild(list);
+    return box;
+  }
+
   /* --- what a player owns, on one line --------------------------------------
 
      Under "Applied to your ratings": the boosters as their stickers, then
@@ -8917,6 +8939,8 @@
 
     var summary = buildBoostSummary(boostSummary(shopState.inventory));
     if (summary) { applied.appendChild(summary); }
+    var regression = buildRegression(shopState.player);
+    if (regression) { applied.appendChild(regression); }
 
     /* Rating points are not kept as things -- "Applied to your ratings"
        above says what they add up to, per attribute. What is left is what is
@@ -8925,7 +8949,7 @@
       return row.item_key !== 'upgrade';
     });
 
-    document.getElementById('inventoryEmpty').hidden = things.length > 0 || Boolean(summary);
+    document.getElementById('inventoryEmpty').hidden = things.length > 0 || Boolean(summary) || Boolean(regression);
 
     holder.hidden = !things.length;
     ownedStickers(things, holder);

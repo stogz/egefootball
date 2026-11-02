@@ -270,7 +270,7 @@ function teamPay(league, key) {
    syncSix). It is kept for one still in college too, and given him at his
    draft. None (or '') puts back the one his skills give him. */
 function sixArchetypes(league) {
-  const six = sixFromSite(league.season);
+  const six = sixFromSite(league.season, league.egeInjuries);
   const set = league.egeArchetypes || {};
   return Object.keys(six).map((slug) => {
     const site = six[slug].player;
@@ -283,7 +283,7 @@ function sixArchetypes(league) {
 }
 
 function setSixArchetype(league, slug, archetype) {
-  const six = sixFromSite(league.season);
+  const six = sixFromSite(league.season, league.egeInjuries);
   if (!six[slug]) { throw new Error('No ' + slug + ' among the six.'); }
   const site = six[slug].player;
   const p = league.byId.get('ege:' + slug);

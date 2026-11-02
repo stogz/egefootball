@@ -1690,7 +1690,7 @@ function teamPay(league, key) {
    syncSix). It is kept for one still in college too, and given him at his
    draft. None (or '') puts back the one his skills give him. */
 function sixArchetypes(league) {
-  const six = sixFromSite(league.season);
+  const six = sixFromSite(league.season, league.egeInjuries);
   const set = league.egeArchetypes || {};
   return Object.keys(six).map((slug) => {
     const site = six[slug].player;
@@ -1703,7 +1703,7 @@ function sixArchetypes(league) {
 }
 
 function setSixArchetype(league, slug, archetype) {
-  const six = sixFromSite(league.season);
+  const six = sixFromSite(league.season, league.egeInjuries);
   if (!six[slug]) { throw new Error('No ' + slug + ' among the six.'); }
   const site = six[slug].player;
   const p = league.byId.get('ege:' + slug);
@@ -1741,6 +1741,10 @@ module.exports = { draftClass, classYear, setRatings, playerOn, editPlayer, free
    Their site attributes are Madden's, so each sim skill is an average of
    the Madden attributes that make it up, moved so the skills average out to
    their site overall again.
+
+   Age and injuries take from their site numbers too (data/aging.js). The
+   site counts an injury once its week is out; the league knows of it from
+   the snap it happened on (league.egeInjuries), so it hands its own over.
    ========================================================================== */
 
 'use strict';
@@ -1789,10 +1793,13 @@ function average(values, keys) {
 
 /* One of the six as a sim player: overall, skills and durability from the
    site, the archetype his skills give him (unless one was set by hand,
-   league.egeArchetypes), the rest left to whoever calls (team, contract). */
-function simPlayer(site, player) {
-  const values = site.valuesFor(player) || {};
-  const ovr = site.overallFor(player);
+   league.egeArchetypes), the rest left to whoever calls (team, contract).
+   `injuries` are his this season as the league has them
+   ([{ week, injury, weeks }]), for what they cost him. */
+function simPlayer(site, player, injuries) {
+  const opts = injuries && injuries.length ? { injuries } : undefined;
+  const values = site.valuesFor(player, opts) || {};
+  const ovr = site.overallFor(player, opts);
   const pos = player.position;
   const map = FROM_SITE[pos] || {};
   /* Each skill's distance from his overall, read off the site, then put
@@ -1820,13 +1827,20 @@ function simPlayer(site, player) {
   };
 }
 
+/* The league's injuries to one of the six in the season the site is on. */
+function injuriesOf(site, hurts, slug) {
+  return (hurts || []).filter((h) => h.slug === slug && h.season === site.currentSeason)
+    .map((h) => ({ week: h.week, injury: h.injury, weeks: h.weeks }));
+}
+
 /* Every one of the six the site has, keyed by slug, with the NFL team the
-   site puts him on (or null while he is in college). */
-function sixFromSite(season) {
+   site puts him on (or null while he is in college). `hurts` is
+   league.egeInjuries. */
+function sixFromSite(season, hurts) {
   const site = loadSite();
   const out = {};
   site.players.forEach((player) => {
-    const p = simPlayer(site, player);
+    const p = simPlayer(site, player, injuriesOf(site, hurts, player.slug));
     const transfers = player.transfers || {};
     const years = Object.keys(transfers).map(Number).filter((y) => y <= season).sort();
     const key = years.length ? transfers[years[years.length - 1]] : null;
@@ -2189,11 +2203,15 @@ function scored(g, side, kind, text) {
 
 /* ------------------------------------------------------------- injuries -- */
 
+/* The less durable, the likelier. The six's chance is scaled by
+   `egeRisk` (lib/season.js: full until one of them is hurt, a fifth after
+   that, none after a second), and nothing at all with `spareEge`. */
 function hurt(g, side, p, base) {
   if (!p || p.standIn || g.opts.noInjuries) { return; }
-  if (p.ege && g.opts.spareEge) { return; }
+  const scale = p.ege ? (g.opts.spareEge ? 0 : typeof g.opts.egeRisk === 'number' ? g.opts.egeRisk : 1) : 1;
+  if (!scale) { return; }
   const risk = base * (1.5 - (typeof p.durability === 'number' ? p.durability : 70) / 100);
-  if (g.rng() < risk) { injure(g, side, p); }
+  if (g.rng() < (scale === 1 ? risk : risk * scale)) { injure(g, side, p); }
 }
 
 function injure(g, side, p) {
@@ -3166,8 +3184,10 @@ function endQuarter(g) {
 
 /* Plays one game. `home` and `away` are { team, roster }; `opts` takes
    `playoff` (overtime until somebody wins), `neutral` (no home edge),
-   `noInjuries` and `links` (connections, by player id). Returns the score, team stats, every player's box score,
-   the scoring plays and who got hurt. */
+   `noInjuries`, `egeRisk` and `spareEge` (how likely the six are to get
+   hurt, see hurt()) and `links` (connections, by player id). Returns the
+   score, team stats, every player's box score, the scoring plays and who
+   got hurt. */
 function playGame(home, away, rng, opts) {
   opts = opts || {};
   const g = {
@@ -3373,7 +3393,7 @@ function fileStore() {
       vm.createContext(sandbox);
       const stats = fs.readdirSync(path.join(ROOT, 'stats')).filter((n) => /^\d{4}\.js$/.test(n)).sort()
         .map((n) => 'stats/' + n);
-      ['data/players.js', 'data/season.js', 'data/ratings.js', 'data/shop.js', 'data/economy.js',
+      ['data/players.js', 'data/season.js', 'data/ratings.js', 'data/shop.js', 'data/economy.js', 'data/aging.js',
         'data/statline.js', 'data/brackets.js', 'data/conferences.js', 'data/logos.js', 'data/nfl.js', 'data/nfl-results.js']
         .concat(stats, ['data/games.js', 'js/exports.js'])
         .forEach((rel) => {
@@ -3490,12 +3510,13 @@ function index(league) {
   });
 }
 
-/* The six's overall, skills and durability, from the site as it is now,
+/* The six's overall, skills and durability, from the site as it is now
+   (less what their injuries in the league have cost them, data/aging.js),
    and the archetype those skills give, unless Sam set one by hand
    (lib/edits.js setSixArchetype). */
 function syncSix(league) {
   let six;
-  try { six = sixFromSite(league.season); } catch (err) { return; }
+  try { six = sixFromSite(league.season, league.egeInjuries); } catch (err) { return; }
   league.players.forEach((p) => {
     if (!p.ege || !six[p.ege]) { return; }
     const site = six[p.ege].player;
@@ -5409,11 +5430,15 @@ module.exports = { OFFENSE, DEFENSE, fitOf, offenseOf, defenseOf, schemeFor, cen
    plays and top performers are kept in the world folder (games-YEAR.json),
    with the six's whole lines, touchdowns and injuries for their season file.
 
-   The six get one injury a season between them, the way Sam has always
-   drawn them (weighted by the injury rating, which is their durability
-   here): once one of them is hurt, the rest of the season spares them.
-   Their boosters and connections from the site come into their games
-   (lib/boosts.js).
+   The six get hurt the way everybody does, likelier the lower their injury
+   rating (their durability here), but not as often: once one of them is
+   hurt, the rest of the season spares them. From 2028 (Sam, 2026-11-02:
+   slightly more than the one a season he had always drawn) the rest of the
+   season is a fifth as likely to hurt another instead, and it stops at two
+   a season between them. Each injury of theirs is
+   kept in league.egeInjuries, which costs them attributes on the site
+   (data/aging.js) from the snap it happened on. Their boosters and
+   connections from the site come into their games (lib/boosts.js).
 
    Weeks the website has already played can be taken as they happened
    (importWeeks) instead of simulated, and the season goes on from there.
@@ -5432,6 +5457,27 @@ const { gameDay } = require('./lineup');
 
 const DEADLINE_WEEK = 9;
 const ROUNDS = ['Wild Card', 'Divisional', 'Conference Championship', 'Super Bowl'];
+
+/* How likely the six are to get hurt once some of them have been this
+   season: full before the first, a fifth after it, none after the second.
+   From 2028, with the rest of data/aging.js (EGE.aging.from); before it,
+   one a season, as Sam always drew them. */
+const EGE_RISK = [1, 0.2, 0];
+const EGE_RISK_BEFORE = [1, 0];
+const EGE_RISK_FROM = 2028;
+
+/* How many of the six have been hurt this season. `egeHurt` is the season
+   one of them was, from before a second could happen. */
+function egeHurtCount(league) {
+  const n = league.egeHurts && league.egeHurts.season === league.season ? league.egeHurts.count : 0;
+  return Math.max(n, league.egeHurt === league.season ? 1 : 0);
+}
+
+function egeRisk(league) {
+  const n = egeHurtCount(league);
+  const steps = league.season >= EGE_RISK_FROM ? EGE_RISK : EGE_RISK_BEFORE;
+  return n < steps.length ? steps[n] : 0;
+}
 
 /* --------------------------------------------------------------- files -- */
 
@@ -5568,8 +5614,16 @@ function hurt(league, injuries, week) {
   injuries.forEach((i) => {
     const p = league.byId.get(i.id);
     if (!p) { return; }
-    p.injury = { games: i.games, what: i.what, season: league.season, week: week || league.week, fresh: true };
-    if (p.ege) { league.egeHurt = league.season; }
+    const at = week || league.week;
+    p.injury = { games: i.games, what: i.what, season: league.season, week: at, fresh: true };
+    if (p.ege) {
+      league.egeHurts = { season: league.season, count: egeHurtCount(league) + 1 };
+      league.egeHurt = league.season;
+      /* What it costs him on the site (data/aging.js): this season's and
+         last's are all that are ever read. */
+      league.egeInjuries = (league.egeInjuries || []).filter((h) => h.season >= league.season - 1);
+      league.egeInjuries.push({ slug: p.ege, season: league.season, week: at, injury: i.what, weeks: i.games });
+    }
   });
 }
 
@@ -5630,7 +5684,7 @@ function startedShare(league) {
 function play(league, game, rng, opts, extras) {
   const home = side(league, game.home);
   const away = side(league, game.away);
-  const o = Object.assign({ spareEge: league.egeHurt === league.season, links: extras ? extras.links : null }, opts);
+  const o = Object.assign({ egeRisk: egeRisk(league), links: extras ? extras.links : null }, opts);
   const first = playGame(home, away, rng, o);
   const boosted = extras ? boosts.onGame(extras, game, [home.roster, away.roster]) : [];
   if (!boosted.length) { return first; }
@@ -5685,7 +5739,7 @@ function playWeek(league, rng, hooks) {
    deadline comes round after Week 9 as usual. `results` are
    { week, home, away, score: [home, away], ot } with team keys; which side
    is listed as home does not matter. `egeHurt` says one of the six has
-   already had his injury this season. */
+   already been hurt this season. */
 function importWeeks(league, results, through, hooks, opts) {
   if (league.phase !== 'regular') { throw new Error('Weeks can only be taken in during the regular season (phase: ' + league.phase + ').'); }
   const last = Math.min(through, lastWeek(league));
@@ -5710,7 +5764,10 @@ function importWeeks(league, results, through, hooks, opts) {
       if (proposals && proposals.length) { league.phase = 'deadline'; out.deadline = proposals.length; }
     }
   }
-  if (opts && opts.egeHurt) { league.egeHurt = league.season; }
+  if (opts && opts.egeHurt) {
+    league.egeHurt = league.season;
+    league.egeHurts = { season: league.season, count: Math.max(1, egeHurtCount(league)) };
+  }
   writeWorld(league, 'games-' + league.season + '.json', log);
   if (league.week > lastWeek(league)) {
     if (league.phase === 'deadline' && hooks && hooks.closeDeadline) { hooks.closeDeadline(league); }
@@ -5823,7 +5880,7 @@ function draftOrder(league) {
 }
 
 module.exports = { startSeason, playWeek, playRound, importWeeks, startPlayoffs, nextRound, draftOrder, readWorld, writeWorld, lastWeek,
-                   lastPlaces, startedShare, DEADLINE_WEEK, ROUNDS };
+                   lastPlaces, startedShare, egeRisk, DEADLINE_WEEK, ROUNDS, EGE_RISK };
 
   };
 
@@ -5987,6 +6044,9 @@ function sixEdits(log, season, from) {
         edit.injury = title(e.out);
         (outRuns[slug] = outRuns[slug] || []).push(edit);
       }
+      /* What hurt him in this game and for how long, which is what it
+         costs him on the site (data/aging.js). */
+      if (e.hurt && !e.out) { edit.hurt = { injury: title(e.hurt.what), weeks: e.hurt.games }; }
       if (g.playoff) {
         const conf = TEAMS[e.team].conf;
         edit.playoff = true;
@@ -6081,7 +6141,8 @@ function seasonFileText(season, made) {
       }
       (weeks[week] = weeks[week] || {})[slug] = {
         result: e.result, booster: game.booster || null, stats: e.stats, bigPlays: e.bigPlays,
-        overtime: e.overtime, injured: Boolean(e.injured), injury: e.injury || null, health: e.health
+        overtime: e.overtime, injured: Boolean(e.injured), injury: e.injury || null, health: e.health,
+        hurt: e.hurt || null
       };
     });
   });
@@ -6340,7 +6401,7 @@ function weekRows(league, season) {
       w.games[slug] = {
         result: e.result, stats: site.statline.complete(player.position, e.stats), bigPlays: e.bigPlays,
         overtime: e.overtime, injured: Boolean(e.injured), injury: e.injury || null,
-        health: typeof e.health === 'number' ? e.health : null
+        health: typeof e.health === 'number' ? e.health : null, hurt: e.hurt || null
       };
       if (e.playoff) {
         w.fixtures = w.fixtures || {};

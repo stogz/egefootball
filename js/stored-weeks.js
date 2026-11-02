@@ -11,7 +11,9 @@
 
    - 'results': `games`, the six's results, stat lines, big plays and
      injuries ({ slug: { result, stats, bigPlays, overtime, injured,
-     injury, health } }), and `scores`, every NFL score of the week the way
+     injury, health, hurt } }; `hurt` is what hurt him in that game and
+     for how many weeks, data/aging.js), and `scores`, every NFL score of
+     the week the way
      data/nfl-results.js has them. Nobody but an admin can read it until the
      week is published.
    - 'fixtures': the six's playoff games that week ({ slug: game }), which
@@ -50,7 +52,8 @@ EGE.storedWeeks = (function () {
 
   /* What a results row sets on a game, and what a game the sim has no line
      for is left with. */
-  var EMPTY = { result: null, stats: null, bigPlays: [], overtime: false, injured: false, injury: null, health: null };
+  var EMPTY = { result: null, stats: null, bigPlays: [], overtime: false, injured: false, injury: null, health: null,
+                hurt: null };
   var FIELDS = Object.keys(EMPTY);
 
   /* What a playoff fixture can change on a game the file already has: the
