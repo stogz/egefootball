@@ -2000,9 +2000,13 @@
     });
   }
 
+  /* Rosters published before the Mock Draft (2026-11-02) have no
+     draftClass at all; once they do, it is null only when there is no
+     class to show. */
   function catchUp(all, season, redraw) {
     var behind = !(all.systems && all.picks) ||
-      (season === EGE.currentSeason && !(all.freeAgents && all.playoffs && all.schedule !== undefined && all.trades && priced(all))) ||
+      (season === EGE.currentSeason && !(all.freeAgents && all.playoffs && all.schedule !== undefined && all.trades && priced(all) &&
+        all.draftClass !== undefined)) ||
       linesBehind(all, season);
     if (caughtUp || !behind || !all.savedAt || !EGE.nflSimAdmin || !EGE.wallet.realAdmin()) { return; }
     caughtUp = true;
