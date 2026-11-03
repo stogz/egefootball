@@ -2030,6 +2030,12 @@ module.exports = { playerFit, teamFit, forTeam, starsFrom };
 
    Numbers are tuned so a league of average teams plays like the 2023 NFL;
    node nfl-sim/check.js holds it to that.
+
+   With `opts.log` the game also keeps every play as it happened, for Live
+   Mode (lib/live.js turns it into the snap-by-snap feed): who had the
+   ball where, the call, what came of it, and what it added to every line
+   and both teams' numbers. Keeping it never rolls a die, so a game comes
+   out the same with it or without it.
    ========================================================================== */
 
 'use strict';
@@ -2162,6 +2168,53 @@ function teamStats() {
            deepCompletions: 0, passTds: 0, rushTds: 0, explosivePass: 0, explosiveRun: 0 };
 }
 
+/* ---------------------------------------------------------- play by play -- */
+
+/* Where the game stands: quarter, clock, who has it, the yard line from his
+   own goal, down, distance and the score. */
+function situation(g) {
+  return { q: g.qtr, c: Math.max(0, Math.round(g.clock)), o: g.poss, yl: g.yl, dn: g.down, tg: g.togo, s: g.score.slice() };
+}
+
+/* A play starts: whatever was open is done. Nothing happens unless the
+   game is keeping its plays. */
+function begin(g) {
+  if (!g.plays) { return; }
+  end(g);
+  g.cur = { pre: situation(g), d: {} };
+}
+
+/* A play is over: where it left the ball, and what it added to both teams'
+   numbers (anything since the play before, the clock run between them
+   too). */
+function end(g) {
+  const e = g.cur;
+  if (!e) { return; }
+  g.cur = null;
+  e.post = situation(g);
+  e.sums = [0, 1].map((side) => {
+    const now = g.stats[side];
+    const was = g.teamWas[side];
+    const out = {};
+    Object.keys(now).forEach((k) => { if (now[k] !== was[k]) { out[k] = now[k] - was[k]; } });
+    return out;
+  });
+  g.teamWas = [Object.assign({}, g.stats[0]), Object.assign({}, g.stats[1])];
+  g.plays.push(e);
+}
+
+/* Fields of the play being written. */
+function note(g, fields) {
+  if (g.cur) { Object.assign(g.cur, fields); }
+}
+
+/* A player the play names, kept by id with his name, position and side. */
+function who(g, side, p) {
+  if (!p || !g.people) { return undefined; }
+  if (!g.people[p.id]) { g.people[p.id] = { name: p.name, pos: p.pos, side }; }
+  return p.id;
+}
+
 /* ------------------------------------------------------------ the record -- */
 
 function stat(g, side, p, key, n) {
@@ -2169,6 +2222,11 @@ function stat(g, side, p, key, n) {
   let line = g.box[p.id];
   if (!line) { line = g.box[p.id] = { name: p.name, pos: p.pos, team: g.sides[side].team.key }; }
   line[key] = (line[key] || 0) + n;
+  if (g.cur) {
+    who(g, side, p);
+    const d = g.cur.d[p.id] || (g.cur.d[p.id] = {});
+    d[key] = (d[key] || 0) + n;
+  }
 }
 
 /* Three touchdowns already, for anybody but a quarterback. */
@@ -2189,6 +2247,7 @@ function longest(g, side, p, key, n) {
   if (!p || p.standIn) { return; }
   stat(g, side, p, key, 0);
   if (n > g.box[p.id][key]) { g.box[p.id][key] = n; }
+  if (g.cur) { g.cur.d[p.id][key] = Math.max(g.cur.d[p.id][key] || 0, n); }
 }
 
 function clockText(g) {
@@ -2227,6 +2286,7 @@ function injure(g, side, p) {
   const what = row[3][Math.floor(g.rng() * row[3].length)];
   g.injuries.push({ id: p.id, name: p.name, team: s.team.key, pos: p.pos, games, what,
                     season: games >= 20, ege: p.ege || undefined, qtr: g.qtr });
+  if (g.cur) { (g.cur.hurt || (g.cur.hurt = [])).push(who(g, side, p)); }
   s.out.add(p.id);
   refresh(s);
 }
@@ -2358,6 +2418,7 @@ function touchdown(g, side, text) {
   g.stats[side].tds += 1;
   g.clockRunning = false;
   g.converted = true;
+  note(g, { tdBy: side });
   /* A walk-off touchdown in overtime has no try. */
   if (g.ot) {
     g.ot.done += 1;
@@ -2381,21 +2442,26 @@ function tryAfter(g, side) {
   if (goForTwo) {
     g.stats[side].twoPa += 1;
     const p = clamp(0.55 + 0.003 * (D.qb.ovr - MID) + 0.002 * (D.passBlock - opp.passRush) + 0.002 * (D.runBlockInside - opp.runDefInside), 0.3, 0.7);
-    if (g.rng() < p) { g.score[side] += 2; g.stats[side].twoPm += 1; }
+    const good = g.rng() < p;
+    if (good) { g.score[side] += 2; g.stats[side].twoPm += 1; }
+    note(g, { try: { two: true, good } });
     return;
   }
   g.stats[side].xpa += 1;
   stat(g, side, D.k, 'xpa', 1);
-  if (g.rng() < fgChance(D.k, 33)) {
+  const made = g.rng() < fgChance(D.k, 33);
+  if (made) {
     g.score[side] += 1;
     g.stats[side].xpm += 1;
     stat(g, side, D.k, 'xpm', 1);
   }
+  note(g, { try: { k: who(g, side, D.k), good: made } });
 }
 
 function safety(g) {
   const d = 1 - g.poss;
   g.score[d] += 2;
+  note(g, { safety: d });
   scored(g, d, 'Safety', 'Safety');
   possessionOver(g, false);
   if (g.over) { return; }
@@ -2404,6 +2470,10 @@ function safety(g) {
   const land = 20 + Math.round(43 + g.rng.gauss() * 5);
   const ret = Math.max(0, Math.round(8 + g.rng.gauss() * 6));
   g.clockRunning = false;
+  begin(g);
+  const R = g.sides[recv].day;
+  note(g, { k: 'free', team: 1 - recv, kicker: who(g, 1 - recv, g.sides[1 - recv].day.p),
+            ret: who(g, recv, R.wrs[2] || R.rbs[0]), yds: ret });
   startPossession(g, recv, clamp(100 - land + ret, 10, 60));
 }
 
@@ -2413,22 +2483,28 @@ function kickoff(g, kicker) {
   const recv = 1 - kicker;
   const K = g.sides[kicker].day.k;
   const R = g.sides[recv].day;
+  begin(g);
+  note(g, { k: 'kick', team: kicker, kicker: who(g, kicker, K) });
   g.stats[kicker].kickoffs += 1;
   g.clockRunning = false;
   const diff = diffFor(g, kicker);
   const onside = g.qtr >= 4 && g.clock <= 240 && diff < 0 && diff >= -16 && !g.over;
   if (onside) {
-    if (g.rng() < 0.08) { startPossession(g, kicker, 45); } else { startPossession(g, recv, 55); }
+    const kept = g.rng() < 0.08;
+    note(g, { onside: true, kept });
+    if (kept) { startPossession(g, kicker, 45); } else { startPossession(g, recv, 55); }
     tick(g, 3);
     return;
   }
   if (g.rng() < clamp(0.73 + 0.01 * (skill(K, 'power') - 80), 0.5, 0.92)) {
+    note(g, { tb: true });
     g.stats[kicker].touchbacks += 1;
     startPossession(g, recv, 25);
     return;
   }
   const returner = R.wrs[2] || R.rbs[0];
   if (g.rng() < 0.003) {
+    note(g, { ret: who(g, recv, returner), yds: 100 });
     tick(g, 12);
     startPossession(g, recv, 25);
     g.poss = recv;
@@ -2438,6 +2514,7 @@ function kickoff(g, kicker) {
   }
   let spot = Math.round(23 + g.rng.gauss() * 6);
   if (g.rng() < 0.025) { spot = 38 + Math.round(g.rng.exp(10)); }
+  note(g, { ret: who(g, recv, returner), yds: clamp(spot, 5, 70) });
   tick(g, 6);
   startPossession(g, recv, clamp(spot, 5, 70));
 }
@@ -2447,9 +2524,11 @@ function punt(g) {
   const d = 1 - o;
   const P = g.sides[o].day.p;
   const st = g.stats[o];
+  note(g, { k: 'punt', team: o, kicker: who(g, o, P) });
   st.punts += 1;
   stat(g, o, P, 'punts', 1);
   if (g.rng() < 0.003) {
+    note(g, { blocked: true });
     afterPlay(g, 6, true);
     turnover(g, 100 - Math.max(1, g.yl - 8));
     return;
@@ -2462,25 +2541,29 @@ function punt(g) {
   }
   stat(g, o, P, 'puntYards', gross);
   st.puntYards += gross;
+  note(g, { gross });
   const land = g.yl + gross;
+  const R = g.sides[d].day;
+  const returner = R.wrs[2] || R.rbs[0];
   let recvYl;
   let seconds = 8;
   if (land >= 100) {
+    note(g, { tb: true });
     recvYl = 20;
   } else if (land >= 90 || g.rng() < 0.45) {
+    note(g, { fair: land < 90, ret: who(g, d, returner) });
     recvYl = 100 - land;
   } else {
     let ret = Math.max(0, Math.round(8.5 + g.rng.gauss() * 6));
     if (g.rng() < 0.03) { ret += Math.round(g.rng.exp(18)); }
     recvYl = 100 - land + ret;
     seconds = 11;
+    note(g, { ret: who(g, d, returner), yds: Math.min(ret, land) });
     if (recvYl >= 100) {
       afterPlay(g, seconds, true);
       possessionOver(g, false);
       if (g.over) { return; }
       g.poss = d;
-      const R = g.sides[d].day;
-      const returner = R.wrs[2] || R.rbs[0];
       stat(g, d, returner, 'retTd', 1);
       touchdown(g, d, returner.name + ' punt return');
       return;
@@ -2498,6 +2581,7 @@ function fieldGoal(g) {
   stat(g, o, K, 'fga', 1);
   afterPlay(g, 5, true);
   const made = g.rng() < fgChance(K, dist) && g.rng() > 0.01;
+  note(g, { k: 'fg', team: o, kicker: who(g, o, K), dist, made });
   g.kicks.push({ team: g.sides[o].team.key, dist, made });
   if (made) {
     g.score[o] += 3;
@@ -2597,6 +2681,7 @@ function snap(g) {
   const mode = kneeling ? 'milk' : modeOf(g);
   runoff(g, mode);
   if (g.clock <= 0) { return; }
+  begin(g);
   if (kneeling) { kneel(g); return; }
   const o = g.poss;
   const O = g.sides[o].day;
@@ -2611,8 +2696,8 @@ function snap(g) {
 
   /* Pre-snap flags replay the down. */
   const r = g.rng();
-  if (r < 0.03) { flag(g, o, -5, false); return; }
-  if (r < 0.045) { flag(g, 1 - o, 5, false); return; }
+  if (r < 0.03) { note(g, { k: 'flag', team: o, flag: 'False start' }); flag(g, o, -5, false); return; }
+  if (r < 0.045) { note(g, { k: 'flag', team: o, flag: 'Offside' }); flag(g, 1 - o, 5, false); return; }
 
   const st = g.stats[o];
   const startDown = g.down;
@@ -2634,11 +2719,13 @@ function flag(g, side, yards, automatic) {
   g.clockRunning = false;
   if (yards < 0) {
     const loss = Math.min(-yards, Math.floor(g.yl / 2) || 0);
+    note(g, { on: side, penalty: loss });
     g.yl -= loss;
     g.togo += loss;
     return;
   }
   const gain = Math.min(yards, Math.floor((100 - g.yl) / 2) || 1);
+  note(g, { on: side, penalty: gain });
   g.yl += gain;
   g.togo -= gain;
   if (automatic || g.togo <= 0) {
@@ -2664,6 +2751,7 @@ function endOfHalfKick(g) {
 
 function kneel(g) {
   const o = g.poss;
+  note(g, { k: 'kneel', team: o, qb: who(g, o, g.sides[o].day.qb) });
   g.stats[o].kneels += 1;
   g.stats[o].plays += 1;
   stat(g, o, g.sides[o].day.qb, 'rushAtt', 1);
@@ -2696,6 +2784,7 @@ function advance(g, yards, scorer) {
   g.down += 1;
   g.togo -= yards;
   if (g.down > 4) {
+    note(g, { downs: true });
     g.clockRunning = false;
     turnover(g, 100 - g.yl);
   }
@@ -2747,6 +2836,7 @@ function airYards(kind, rng, room) {
 
 function tackler(g, d, list) {
   const p = g.rng.pick(list, (x) => x[1])[0];
+  note(g, { tk: who(g, d, p) });
   stat(g, d, p, 'tackles', 1);
   hurt(g, d, p, 0.0012);
   return p;
@@ -2782,6 +2872,7 @@ function pass(g, mode) {
     kind = x < sh ? 'short' : x < sh + mi ? 'mid' : 'deep';
   }
   const pa = kind !== 'screen' && !hurry && rng() < off.playAction * (g.down === 1 ? 1.3 : g.down === 2 ? 1.1 : 0.35);
+  note(g, { k: 'pass', team: o, qb: who(g, o, O.qb), kind, pa: pa || undefined });
 
   /* The defense's call. */
   const man = rng() < def.man;
@@ -2826,10 +2917,12 @@ function pass(g, mode) {
     st.dropbacks -= 1;
     stat(g, o, qb, 'passAtt', -1);
     afterPlay(g, 6, true);
+    note(g, { flag: holding < 0.022 ? 'Holding' : 'Defensive holding' });
     if (holding < 0.022) { flag(g, o, -10, false); } else { flag(g, d, 5, true); }
     return;
   }
   if (pressured && rng() < 0.12) {
+    note(g, { away: true });
     afterPlay(g, 5, true);
     advance(g, 0);
     return;
@@ -2838,6 +2931,7 @@ function pass(g, mode) {
   const t = pickTarget(O, kind, rng, room <= 12 ? (p) => capped(g, p) : null);
   const target = t.p;
   const { defender, cov } = coverage(D, t, kind, man, twoHigh, blitz);
+  note(g, { to: who(g, o, target) });
   stat(g, o, target, 'targets', 1);
   hurt(g, o, target, 0.0035);
 
@@ -2868,6 +2962,7 @@ function pass(g, mode) {
     let gain = Math.min(room, air + yac);
     if (gain < -5) { gain = -5; }
     if (gain >= room && capped(g, target)) { gain = room - 1; }
+    note(g, { res: 'c', yds: gain });
     const after = clamp(gain - Math.max(0, air), 0, Math.max(0, gain));
     st.completions += 1;
     if (kind === 'deep') { st.deepCompletions += 1; }
@@ -2897,6 +2992,7 @@ function pass(g, mode) {
     }
     if (rng() < 0.008) {
       /* Fumble after the catch, recovered by the defense. */
+      note(g, { fum: who(g, o, target) });
       stat(g, o, target, 'fumLost', 1);
       st.fumblesLost += 1;
       g.yl += gain;
@@ -2916,8 +3012,10 @@ function pass(g, mode) {
     const picker = rng.pick([[defender, 2.2], [D.s[0], 1], [D.s[1], 1], [D.cb[0], 0.5], [D.cb[1], 0.5], [D.lb[0], 0.25]], (x) => x[1])[0];
     stat(g, d, picker, 'ints', 1);
     const spot = g.yl + Math.max(1, air);
+    note(g, { res: 'i', by: who(g, d, picker) });
     afterPlay(g, 7, true);
     if (rng() < 0.075) {
+      note(g, { yds: Math.min(100, spot) });
       possessionOver(g, false);
       if (g.over) { return; }
       g.poss = d;
@@ -2927,6 +3025,7 @@ function pass(g, mode) {
     }
     let newYl = spot >= 100 ? 20 : 100 - spot + Math.round(rng.exp(9));
     if (spot >= 100 && rng() < 0.3) { newYl = Math.round(5 + rng.exp(15)); }
+    if (spot >= 100 && newYl === 20) { note(g, { tb: true }); } else { note(g, { yds: Math.max(0, clamp(newYl, 1, 99) - Math.max(0, 100 - spot)) }); }
     turnover(g, clamp(newYl, 1, 99));
     return;
   }
@@ -2934,6 +3033,7 @@ function pass(g, mode) {
   /* Incomplete. Deep and intermediate throws draw interference flags. */
   if (kind !== 'screen' && kind !== 'short' && rng() < 0.055) {
     const spotGain = Math.max(1, Math.min(air, room - 1));
+    note(g, { res: 'x', flag: 'Pass interference', on: d, penalty: spotGain });
     afterPlay(g, 5, true);
     g.stats[d].penalties += 1;
     g.stats[d].penaltyYards += spotGain;
@@ -2944,7 +3044,9 @@ function pass(g, mode) {
     g.converted = true;
     return;
   }
-  if (defender && rng() < 0.4) { stat(g, d, defender, 'passDef', 1); }
+  const broken = defender && rng() < 0.4;
+  note(g, { res: 'x', pd: broken ? who(g, d, defender) : undefined });
+  if (broken) { stat(g, d, defender, 'passDef', 1); }
   afterPlay(g, 5, true);
   advance(g, 0);
 }
@@ -2968,10 +3070,12 @@ function sack(g, blitz) {
   rushers.push([depth.EDGE[2] || D.edge[1], 0.5], [depth.DI[2] || D.di[1], 0.3], [D.lb[0], blitz ? 0.6 : 0.3],
                [D.lb[1], blitz ? 0.3 : 0.1], [D.s[0], blitz ? 0.2 : 0.05], [D.cb[2], 0.04]);
   const sacker = rng.pick(rushers, (x) => x[1])[0];
+  note(g, { sack: who(g, d, sacker), yds: -loss });
   stat(g, d, sacker, 'sacks', 1);
   hurt(g, o, O.qb, 0.012);
   afterPlay(g, 6, false);
   if (rng() < 0.06) {
+    note(g, { fum: who(g, o, O.qb), ff: who(g, d, sacker) });
     stat(g, o, O.qb, 'fumLost', 1);
     stat(g, d, sacker, 'ff', 1);
     st.fumblesLost += 1;
@@ -2994,6 +3098,7 @@ function scramble(g, mode) {
   let gain = Math.round(1 + rng.exp(Math.max(2, 4.6 + 0.1 * (mob - MID))));
   if (gain > 25 && rng() < 0.6) { gain = 25; }
   gain = Math.min(gain, 100 - g.yl);
+  note(g, { scramble: true, yds: gain });
   st.scrambles += 1;
   st.carries += 1;
   if (gain >= 10) { st.explosiveRun += 1; }
@@ -3039,6 +3144,7 @@ function run(g, mode) {
   if (g.down >= 3 && g.togo <= 1 && room > 1 && rng() < (g.down === 4 ? 0.5 : 0.3)) {
     const push = O.runBlockInside - D.runDefInside;
     const gain = rng() < clamp(0.82 + 0.006 * push, 0.6, 0.95) ? (rng() < 0.75 ? 1 : 2) : 0;
+    note(g, { k: 'run', team: o, ball: who(g, o, qb), yds: gain, sneak: true });
     st.carries += 1;
     st.plays += 1;
     st.rushYards += gain;
@@ -3101,6 +3207,7 @@ function run(g, mode) {
   if (room <= 2 && gain < room && rng() < clamp(0.12 + 0.004 * adv + (qbRun ? 0.05 : 0), 0.02, 0.3)) { gain = room; }
   gain = Math.min(gain, room);
   if (gain >= room && !qbRun && capped(g, carrier)) { gain = room - 1; }
+  note(g, { k: 'run', team: o, ball: who(g, o, carrier), yds: gain });
   if (gain >= 10) { st.explosive += 1; st.explosiveRun += 1; }
   st.rushYards += gain;
   st.yards += gain;
@@ -3119,6 +3226,7 @@ function run(g, mode) {
     stat(g, o, carrier, 'rushAtt', -1);
     stat(g, o, carrier, 'rushYds', -gain);
     afterPlay(g, 5, true);
+    note(g, { flag: 'Holding' });
     flag(g, o, -10, false);
     return;
   }
@@ -3138,6 +3246,7 @@ function run(g, mode) {
     tackler(g, d, list);
   }
   if (rng() < 0.0068) {
+    note(g, { fum: who(g, o, carrier) });
     stat(g, o, carrier, 'fumLost', 1);
     st.fumblesLost += 1;
     g.yl = clamp(g.yl + gain, 1, 99);
@@ -3185,9 +3294,15 @@ function endQuarter(g) {
 /* Plays one game. `home` and `away` are { team, roster }; `opts` takes
    `playoff` (overtime until somebody wins), `neutral` (no home edge),
    `noInjuries`, `egeRisk` and `spareEge` (how likely the six are to get
-   hurt, see hurt()) and `links` (connections, by player id). Returns the
-   score, team stats, every player's box score, the scoring plays and who
-   got hurt. */
+   hurt, see hurt()), `links` (connections, by player id) and `log` (keep
+   every play). Returns the score, team stats, every player's box score,
+   the scoring plays and who got hurt, and with `log` the plays and the
+   people they name ({ id: { name, pos, side } }). A play is
+   { pre, post, k, team, d, sums, ... }: where the ball was before it and
+   after (situation()), what kind of play (kick, free, run, pass, punt,
+   fg, kneel, flag), the side with the ball (the kicking side for a
+   kick), what it added to each line by player id and to each side's
+   numbers, and the fields its kind notes. */
 function playGame(home, away, rng, opts) {
   opts = opts || {};
   const g = {
@@ -3210,14 +3325,30 @@ function playGame(home, away, rng, opts) {
     kicks: [],
     over: false,
     ot: null,
-    firstReceiver: rng() < 0.5 ? 0 : 1
+    firstReceiver: rng() < 0.5 ? 0 : 1,
+    plays: opts.log ? [] : null,
+    people: opts.log ? {} : null,
+    cur: null
   };
+  g.teamWas = [Object.assign({}, g.stats[0]), Object.assign({}, g.stats[1])];
   kickoff(g, 1 - g.firstReceiver);
+  end(g);
   let guard = 0;
   while (!g.over && guard < 400) {
     guard += 1;
-    if (g.clock <= 0) { endQuarter(g); continue; }
+    if (g.clock <= 0) { endQuarter(g); end(g); continue; }
     snap(g);
+    end(g);
+  }
+  /* The last runoff of the game came after its last play. */
+  const last = g.plays && g.plays[g.plays.length - 1];
+  if (last) {
+    [0, 1].forEach((side) => {
+      Object.keys(g.stats[side]).forEach((k) => {
+        const more = g.stats[side][k] - g.teamWas[side][k];
+        if (more) { last.sums[side][k] = (last.sums[side][k] || 0) + more; }
+      });
+    });
   }
   wearAndTear(g);
   const keys = [g.sides[0].team.key, g.sides[1].team.key];
@@ -3233,7 +3364,9 @@ function playGame(home, away, rng, opts) {
     scoring: g.scoring,
     tds: g.tds,
     kicks: g.kicks,
-    injuries: g.injuries
+    injuries: g.injuries,
+    plays: g.plays || undefined,
+    people: g.people || undefined
   };
 }
 
@@ -3648,6 +3781,448 @@ function gameDay(team, roster) {
 }
 
 module.exports = { depthChart, gameDay, skill, healthy, standIn };
+
+  };
+
+  sources["live"] = function (module, exports, require, __dirname) {
+/* ==========================================================================
+   EGE Football NFL sim — Live Mode's feed
+   A game the sim has played, snap by snap, the way the live page and the
+   Discord bot tell it (Sam, 2026-11-03). Out of the plays a game keeps
+   (lib/game.js with `log`, kept a week at a time by lib/season.js):
+
+   - the feed: one entry a snap, in order, each { call, text, more, pre,
+     post, tag, d, t, p }. `call` is what shows first ("Jaykeb Stewart
+     pass") and `text` what it came to ("Jaykeb Stewart 22-yd pass to Nico
+     Collins"), with `more` under it (the extra point, who got hurt).
+     `pre` and `post` are where the ball was before and after: the team
+     with it, the yard line from its own goal, down, distance, score
+     [home, away], quarter and clock. `d` is what the snap added to each
+     player's line, by the player's number in this game, and `t` to each
+     team's numbers [home, away]; `p` introduces the players it names for
+     the first time ({ n: name, pos, t: team, e: ESPN id, g: which of the
+     six, c: a college headshot }). Never the sim's own ids, so nobody can
+     read anything private off it, and a player shows up only on the snap
+     he first does something, so the feed does not give away who comes in
+     later. Halftime and the final whistle are entries of their own.
+   - the posts: what the Discord bot says, and when, as plain words and
+     numbers for EGE.discordPost.buildLivePosts to dress: the opening
+     kickoff, every touchdown, field goal, punt, interception, fumble,
+     turnover on downs and safety, any run or catch of 60 yards or more,
+     halftime and the final. Each is { at (the entry), kind, team (whose
+     post it is), title, lines, face (a player's number), score, when }.
+   ========================================================================== */
+
+'use strict';
+
+const { TEAMS } = require('./teams');
+
+/* A run or a catch this long is a post of its own. */
+const BIG_PLAY = 60;
+
+/* What a snap's player lines keep: everything the live box score and the
+   posts show. */
+const LINE_KEYS = ['passCmp', 'passAtt', 'passYds', 'passTd', 'passInt', 'sacked', 'rushAtt', 'rushYds', 'rushTd', 'rushLong',
+                   'targets', 'rec', 'recYds', 'recTd', 'recLong', 'fumLost', 'tackles', 'sacks', 'ints', 'passDef', 'ff',
+                   'defTd', 'fgm', 'fga', 'fgLong', 'xpm', 'xpa', 'punts', 'puntYards', 'retTd'];
+
+/* And a team's, for the box score's numbers. */
+const TEAM_KEYS = ['plays', 'dropbacks', 'carries', 'yards', 'firstDowns', 'third', 'thirdMade', 'sacks', 'ints',
+                   'fumblesLost', 'top', 'penalties', 'penaltyYards'];
+
+const DOWNS = ['', '1st', '2nd', '3rd', '4th'];
+
+function nick(key) { return TEAMS[key] ? TEAMS[key].name.split(' ').slice(-1)[0] : key; }
+
+function clockText(seconds) {
+  const t = Math.max(0, Math.round(seconds));
+  return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+}
+
+function quarterText(q) { return q > 4 ? (q === 5 ? 'OT' : 'OT' + (q - 4)) : 'Q' + q; }
+
+/* "Q4 9:55, 3rd & GOAL", the way a post's footer has it. */
+function whenText(at, kick) {
+  const head = quarterText(at.q) + ' ' + clockText(at.c);
+  if (kick || !at.dn) { return head; }
+  return head + ', ' + DOWNS[at.dn] + ' & ' + (at.yl + at.tg >= 100 ? 'GOAL' : at.tg);
+}
+
+function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 'S'); }
+
+/* --------------------------------------------------------------- lines -- */
+
+/* "Jaykeb Stewart (18/26, 254 YDS, 1 TD, 1 INT)" */
+function passLine(name, l) {
+  return name + ' (' + (l.passCmp || 0) + '/' + (l.passAtt || 0) + ', ' + (l.passYds || 0) + ' YDS' +
+    (l.passTd ? ', ' + plural(l.passTd, 'TD') : '') + (l.passInt ? ', ' + plural(l.passInt, 'INT') : '') + ')';
+}
+
+/* "Javonte Williams (19 CAR, 154 YDS, 2 TDS)" */
+function rushLine(name, l) {
+  return name + ' (' + (l.rushAtt || 0) + ' CAR, ' + (l.rushYds || 0) + ' YDS' + (l.rushTd ? ', ' + plural(l.rushTd, 'TD') : '') + ')';
+}
+
+/* "Jalen Royals (4 REC, 45 YDS, 1 TD)" */
+function recLine(name, l) {
+  return name + ' (' + (l.rec || 0) + ' REC, ' + (l.recYds || 0) + ' YDS' + (l.recTd ? ', ' + plural(l.recTd, 'TD') : '') + ')';
+}
+
+/* "Justin Tucker (2/2 FG)" */
+function kickLine(name, l) { return name + ' (' + (l.fgm || 0) + '/' + (l.fga || 0) + ' FG)'; }
+
+/* Fantasy points, for who a half's top performers are. */
+function points(l) {
+  return (l.passYds || 0) / 25 + (l.passTd || 0) * 4 - (l.passInt || 0) * 2 + (l.rushYds || 0) / 10 + (l.rushTd || 0) * 6 +
+    (l.recYds || 0) / 10 + (l.recTd || 0) * 6 + (l.rec || 0) * 0.5 + (l.fgm || 0) * 3 + (l.xpm || 0) + (l.ints || 0) * 3 +
+    (l.sacks || 0) * 2 + (l.defTd || 0) * 6;
+}
+
+/* A player's line as one post line, by what he did most. */
+function bestLine(name, l) {
+  if (l.passAtt) { return passLine(name, l); }
+  if (l.fga && !l.rushAtt && !l.rec) { return kickLine(name, l); }
+  if ((l.rec || 0) && (l.recYds || 0) >= (l.rushYds || 0)) { return recLine(name, l); }
+  if (l.rushAtt) { return rushLine(name, l); }
+  if (l.ints || l.sacks) {
+    return name + ' (' + [l.tackles ? l.tackles + ' TKL' : '', l.sacks ? l.sacks + ' SCK' : '', l.ints ? plural(l.ints, 'INT') : '']
+      .filter(Boolean).join(', ') + ')';
+  }
+  return name;
+}
+
+/* A team's top performers so far: its passer, then up to two more by
+   fantasy points who did enough to mention. */
+function topOf(lines, info, team) {
+  const mine = Object.keys(lines).filter((i) => info[i].t === team).map((i) => ({ i, l: lines[i], pts: points(lines[i]) }));
+  const qb = mine.filter((x) => x.l.passAtt).sort((a, b) => b.l.passAtt - a.l.passAtt)[0];
+  const rest = mine.filter((x) => x !== qb && x.pts >= 5).sort((a, b) => b.pts - a.pts).slice(0, qb ? 2 : 3);
+  return (qb ? [qb] : []).concat(rest).map((x) => bestLine(info[x.i].n, x.l));
+}
+
+/* ---------------------------------------------------------------- feed -- */
+
+/* The feed and the posts for one game: `game` is { home, away } by key,
+   `kept` the game's plays as its plays file has them, and `league` the
+   world, for each player's ESPN id and which of the six he is. */
+function build(league, game, kept) {
+  const keys = [game.home, game.away];
+  const people = kept.people || {};
+  const number = {};
+  const info = [];
+  const lines = {};
+  const entries = [];
+  const posts = [];
+  let fresh = null;
+
+  /* A player's number in this game, introduced the first time. */
+  function num(id) {
+    if (id === undefined || id === null || !people[id]) { return undefined; }
+    if (number[id] === undefined) {
+      const p = people[id];
+      const sim = league && league.byId ? league.byId.get(id) : null;
+      const row = { n: name(id), pos: p.pos, t: keys[p.side] };
+      if (sim && sim.espn) { row.e = String(sim.espn); }
+      if (sim && sim.ege) { row.g = sim.ege; }
+      if (sim && sim.collegePhoto) { row.c = true; }
+      number[id] = info.length;
+      info.push(row);
+      fresh[number[id]] = row;
+    }
+    return number[id];
+  }
+  /* A stand-in the sim plays where a depth chart has nobody left
+     (lib/lineup.js) is the team's backup. */
+  function name(id) {
+    const p = people[id];
+    if (!p) { return 'Someone'; }
+    return /^standin:/.test(id) ? nick(keys[p.side]) + ' backup ' + p.pos : p.name;
+  }
+  function line(id) { return lines[number[id]] || {}; }
+
+  function state(at, side) {
+    return { o: keys[side === undefined ? at.o : side], yl: Math.max(0, Math.min(100, at.yl)), dn: at.dn, tg: at.tg,
+             s: at.s.slice(), q: at.q, c: at.c };
+  }
+
+  kept.plays.forEach((e, n) => {
+    fresh = {};
+    const off = e.team === undefined ? e.pre.o : e.team;
+    const def = 1 - off;
+    const O = nick(keys[off]);
+    const D = nick(keys[def]);
+    const kick = e.k === 'kick' || e.k === 'free';
+    const scored = e.tdBy !== undefined;
+
+    /* Every line the snap added to, first: the post lines below read the
+       totals with this snap in them. */
+    const d = {};
+    Object.keys(e.d).forEach((id) => {
+      const i = num(id);
+      if (i === undefined) { return; }
+      const add = {};
+      Object.keys(e.d[id]).forEach((k) => { if (LINE_KEYS.indexOf(k) !== -1 && e.d[id][k]) { add[k] = e.d[id][k]; } });
+      if (!Object.keys(add).length) { return; }
+      d[i] = add;
+      const l = lines[i] || (lines[i] = {});
+      Object.keys(add).forEach((k) => { l[k] = /Long$/.test(k) ? Math.max(l[k] || 0, add[k]) : (l[k] || 0) + add[k]; });
+    });
+    const t = [0, 1].map((side) => {
+      const out = {};
+      TEAM_KEYS.forEach((k) => {
+        const v = (e.sums || [])[side] && e.sums[side][k];
+        if (v) { out[k] = k === 'top' ? Math.round(v * 10) / 10 : v; }
+      });
+      return out;
+    });
+
+    let call;
+    let text;
+    const more = [];
+    let tag = null;
+    let post = null;
+    const yds = e.yds || 0;
+    const pre = kick ? { o: keys[off], yl: e.k === 'free' ? 20 : 35, dn: 0, tg: 0, s: e.pre.s.slice(), q: e.pre.q, c: e.pre.c }
+      : state(e.pre);
+
+    if (e.k === 'kick' || e.k === 'free') {
+      const K = name(e.kicker);
+      const R = name(e.ret);
+      num(e.kicker);
+      num(e.ret);
+      call = K + (e.onside ? ' onside kick' : e.k === 'free' ? ' free kick' : ' kickoff');
+      if (e.onside) {
+        text = K + ' onside kick, recovered by the ' + (e.kept ? O : D);
+      } else if (e.tb) {
+        text = K + ' kickoff, touchback';
+      } else if (scored) {
+        text = R + ' ' + yds + '-yd kickoff return touchdown';
+      } else {
+        text = call + ', ' + R + ' ' + yds + '-yd return';
+      }
+      tag = scored ? 'td' : 'kick';
+      if (scored) {
+        post = { kind: 'td', team: keys[def], title: text, lines: [R + ' ' + yds + '-yd return'], face: num(e.ret) };
+      } else if (e.k === 'kick') {
+        post = { kind: 'kick', team: keys[off], title: e.tb ? K + ' kickoff, touchback' : K + ' kickoff, ' + yds + '-yd return',
+                 lines: [K + ' Kickoff', e.tb ? 'Touchback' : R + ' ' + yds + '-yd return'], face: num(e.kicker) };
+      }
+    } else if (e.k === 'punt') {
+      const P = name(e.kicker);
+      const R = name(e.ret);
+      num(e.kicker);
+      call = P + ' punt';
+      if (e.blocked) {
+        text = P + ' punt BLOCKED, ' + D + ' ball';
+        post = { kind: 'punt', team: keys[def], title: P + ' punt blocked', lines: [P + ' punt blocked'], face: num(e.kicker) };
+      } else {
+        let after;
+        if (e.tb) {
+          after = 'touchback';
+        } else if (scored) {
+          after = null;
+        } else if (e.yds === undefined) {
+          after = e.fair ? 'fair catch by ' + R : 'downed at the ' + D + ' ' + Math.max(1, 100 - e.pre.yl - e.gross);
+        } else {
+          after = R + ' ' + yds + '-yd return';
+        }
+        if (after && /fair catch|return/.test(after)) { num(e.ret); }
+        text = scored ? R + ' ' + yds + '-yd punt return touchdown' : P + ' ' + e.gross + '-yd punt, ' + after;
+        if (scored) {
+          num(e.ret);
+          post = { kind: 'td', team: keys[def], title: text, lines: [P + ' ' + e.gross + '-yd punt', R + ' ' + yds + '-yd return'],
+                   face: num(e.ret) };
+        } else {
+          const said = after.charAt(0).toUpperCase() + after.slice(1);
+          post = { kind: 'punt', team: keys[off], title: P + ' ' + e.gross + '-yd punt' + (e.yds !== undefined ? ', ' + yds + '-yd return' : ''),
+                   lines: [P + ' ' + e.gross + '-yd punt', said], face: num(e.kicker) };
+        }
+      }
+      tag = scored ? 'td' : 'punt';
+    } else if (e.k === 'fg') {
+      const K = name(e.kicker);
+      num(e.kicker);
+      call = K + ' ' + e.dist + '-yd field goal attempt';
+      text = K + ' ' + e.dist + '-yd field goal is ' + (e.made ? 'GOOD' : 'NO GOOD');
+      tag = 'fg';
+      post = { kind: 'fg', team: keys[off], title: K + ' ' + e.dist + '-yd field goal' + (e.made ? '' : ' missed'),
+               lines: [kickLine(K, line(e.kicker))], face: num(e.kicker) };
+    } else if (e.k === 'kneel') {
+      call = name(e.qb) + ' kneel';
+      text = name(e.qb) + ' kneels';
+    } else if (e.k === 'flag') {
+      call = 'Flag on the play';
+      text = e.flag + ' on the ' + nick(keys[e.on]) + ', ' + e.penalty + ' yds';
+    } else if (e.k === 'run') {
+      const B = name(e.ball);
+      call = B + ' rush';
+      if (e.flag) {
+        text = B + ' ' + yds + '-yd rush, called back for holding on the ' + O + ', ' + e.penalty + ' yds';
+      } else if (scored) {
+        text = B + ' ' + yds + '-yd rushing touchdown';
+      } else if (e.safety !== undefined) {
+        text = B + ' tackled in the end zone, SAFETY';
+      } else {
+        text = yds > 0 ? B + ' ' + yds + '-yd rush' : yds === 0 ? B + ' rush for no gain' : B + ' rush for a ' + -yds + '-yd loss';
+      }
+      if (!e.flag) {
+        if (scored) {
+          tag = 'td';
+          post = { kind: 'td', team: keys[off], title: text, lines: [rushLine(B, line(e.ball))], face: num(e.ball) };
+        } else if (yds >= BIG_PLAY && !e.fum) {
+          tag = 'big';
+          post = { kind: 'big', team: keys[off], title: B + ' ' + yds + '-yd rush', lines: [rushLine(B, line(e.ball))], face: num(e.ball) };
+        }
+      }
+    } else if (e.k === 'pass') {
+      const Q = name(e.qb);
+      const R = name(e.to);
+      call = Q + ' pass';
+      if (e.sack !== undefined) {
+        const S = name(e.sack);
+        text = e.safety !== undefined ? Q + ' sacked in the end zone by ' + S + ', SAFETY'
+          : Q + ' sacked by ' + S + ' for a ' + -yds + '-yd loss';
+      } else if (e.scramble) {
+        text = scored ? Q + ' ' + yds + '-yd rushing touchdown'
+          : yds > 0 ? Q + ' ' + yds + '-yd scramble' : Q + ' scrambles for no gain';
+        if (scored) {
+          tag = 'td';
+          post = { kind: 'td', team: keys[off], title: text, lines: [rushLine(Q, line(e.qb))], face: num(e.qb) };
+        } else if (yds >= BIG_PLAY) {
+          tag = 'big';
+          post = { kind: 'big', team: keys[off], title: Q + ' ' + yds + '-yd scramble', lines: [rushLine(Q, line(e.qb))], face: num(e.qb) };
+        }
+      } else if (e.flag === 'Holding') {
+        text = 'Holding on the ' + O + ', ' + e.penalty + ' yds, no play';
+      } else if (e.flag === 'Defensive holding') {
+        text = 'Defensive holding on the ' + D + ', ' + e.penalty + ' yds, automatic first down';
+      } else if (e.away) {
+        text = Q + ' throws it away';
+      } else if (e.res === 'c') {
+        text = scored ? Q + ' ' + yds + '-yd touchdown pass to ' + R
+          : yds > 0 ? Q + ' ' + yds + '-yd pass to ' + R
+          : Q + ' pass to ' + R + (yds === 0 ? ' for no gain' : ' for a ' + -yds + '-yd loss');
+        if (scored) {
+          tag = 'td';
+          post = { kind: 'td', team: keys[off], title: R + ' ' + yds + '-yd touchdown catch',
+                   lines: [recLine(R, line(e.to)), passLine(Q, line(e.qb))], face: num(e.to) };
+        } else if (yds >= BIG_PLAY && !e.fum) {
+          tag = 'big';
+          post = { kind: 'big', team: keys[off], title: R + ' ' + yds + '-yd catch',
+                   lines: [recLine(R, line(e.to)), passLine(Q, line(e.qb))], face: num(e.to) };
+        }
+      } else if (e.res === 'i') {
+        const X = name(e.by);
+        text = Q + ' pass INTERCEPTED by ' + X +
+          (scored ? ', ' + yds + '-yd return for a touchdown' : e.tb ? ', touchback' : ', ' + yds + '-yd return');
+        tag = scored ? 'td' : 'int';
+        /* The passer's line, unless he is a stand-in with none. */
+        const thrower = line(e.qb).passAtt ? [passLine(Q, line(e.qb))] : [];
+        post = scored
+          ? { kind: 'td', team: keys[def], title: X + ' ' + yds + '-yd pick-six',
+              lines: [X + ' (' + plural(line(e.by).ints || 1, 'INT') + ', 1 TD)'].concat(thrower), face: num(e.by) }
+          : { kind: 'int', team: keys[def], title: Q + ' Interception, ' + (e.tb ? 'touchback' : yds + '-yd return'),
+              lines: [X + ' (' + plural(line(e.by).ints || 1, 'INT') + ')'].concat(thrower), face: num(e.by) };
+      } else if (e.flag === 'Pass interference') {
+        text = Q + ' pass incomplete to ' + R + ', pass interference on the ' + D + ', ' + e.penalty + ' yds';
+      } else {
+        text = Q + ' pass incomplete' + (e.to !== undefined ? ' to ' + R : '') + (e.pd !== undefined ? ', broken up by ' + name(e.pd) : '');
+      }
+    }
+
+    /* What a turnover adds to the play. */
+    if (e.fum !== undefined) {
+      text += ', FUMBLE' + (e.ff !== undefined ? ' forced by ' + name(e.ff) : '') + ', recovered by the ' + D;
+      tag = 'fum';
+      const B = name(e.fum);
+      const l = line(e.fum);
+      post = { kind: 'fum', team: keys[def], title: B + ' fumble, recovered by the ' + D,
+               lines: [l.passAtt ? passLine(B, l) : l.rec ? recLine(B, l) : rushLine(B, l)]
+                 .concat(e.ff !== undefined ? [name(e.ff) + ' forced fumble'] : []),
+               face: num(e.ff !== undefined ? e.ff : e.fum) };
+    }
+    if (e.downs) {
+      text += ', turnover on downs';
+      tag = 'downs';
+      const B = e.ball !== undefined ? e.ball : e.to !== undefined && e.res === 'c' ? e.to : e.qb;
+      const stop = e.sack !== undefined ? e.sack : e.tk !== undefined ? e.tk : e.pd;
+      const l = line(B);
+      const what = e.sack !== undefined ? name(B) + ' sacked' : e.res === 'x' || e.away ? name(B) + ' incomplete' : name(B) + ' stopped';
+      post = { kind: 'downs', team: keys[def], title: what + ' on 4th & ' + (e.pre.yl + e.pre.tg >= 100 ? 'goal' : e.pre.tg),
+               lines: ['Turnover on downs', B === e.qb ? passLine(name(B), l) : e.to === B ? recLine(name(B), l) : rushLine(name(B), l)],
+               face: num(stop !== undefined ? stop : B) };
+    }
+    if (e.safety !== undefined && tag !== 'td') {
+      tag = 'safety';
+      const by = e.sack !== undefined ? e.sack : e.tk;
+      post = { kind: 'safety', team: keys[e.safety], title: by !== undefined ? name(by) + ' safety' : nick(keys[e.safety]) + ' safety',
+               lines: [text], face: by !== undefined ? num(by) : undefined };
+    }
+
+    /* The try, and anybody hurt. */
+    if (e.try) {
+      const said = e.try.two ? '2-pt conversion ' + (e.try.good ? 'good' : 'failed') : name(e.try.k) + ' XP ' + (e.try.good ? 'good' : 'missed');
+      more.push(said);
+      if (post && post.kind === 'td') {
+        post.lines.push(e.try.two ? said : name(e.try.k) + ' XP' + (e.try.good ? '' : ' Missed'));
+      }
+      if (e.try.k !== undefined) { num(e.try.k); }
+    }
+    (e.hurt || []).forEach((id) => { num(id); more.push(name(id) + ' hurt on the play'); });
+
+    /* Where the snap left the ball. A score is in the end zone, and the
+       kick after it is its own snap. */
+    let post2 = state(e.post);
+    if (scored) { post2 = { o: keys[e.tdBy], yl: 100, dn: 0, tg: 0, s: e.post.s.slice(), q: e.post.q, c: e.post.c }; }
+    if (e.safety !== undefined) { post2 = { o: keys[off], yl: 0, dn: 0, tg: 0, s: e.post.s.slice(), q: e.post.q, c: e.post.c }; }
+    if (e.k === 'fg' && e.made) { post2.dn = 0; }
+
+    const entry = { call, text, pre, post: post2 };
+    if (more.length) { entry.more = more; }
+    if (tag) { entry.tag = tag; }
+    if (Object.keys(d).length) { entry.d = d; }
+    if (Object.keys(t[0]).length || Object.keys(t[1]).length) { entry.t = t; }
+    if (Object.keys(fresh).length) { entry.p = fresh; }
+    entries.push(entry);
+
+    if (post) {
+      post.at = entries.length - 1;
+      post.score = e.post.s.slice();
+      post.when = whenText(e.pre, kick);
+      if (post.face === undefined) { delete post.face; }
+      posts.push(post);
+    }
+
+    /* Halftime, once the second half's kickoff is next. */
+    const next = kept.plays[n + 1];
+    if (next && e.pre.q <= 2 && next.pre.q >= 3) {
+      const s = e.post.s.slice();
+      entries.push({ text: 'Halftime', tag: 'half', pre: { o: null, s, q: 2, c: 0 }, post: { o: null, s, q: 2, c: 0 } });
+      posts.push({ at: entries.length - 1, kind: 'half', score: s, top: [topOf(lines, info, keys[0]), topOf(lines, info, keys[1])] });
+    }
+  });
+
+  /* The final whistle. */
+  const last = kept.plays[kept.plays.length - 1];
+  const final = last ? last.post.s.slice() : [0, 0];
+  const ot = Boolean(last && last.post.q > 4);
+  entries.push({ text: ot ? 'Final/OT' : 'Final', tag: 'end', pre: { o: null, s: final, q: last ? last.post.q : 4, c: 0 },
+                 post: { o: null, s: final, q: last ? last.post.q : 4, c: 0 } });
+  posts.push({ at: entries.length - 1, kind: 'end', score: final, ot, top: [topOf(lines, info, keys[0]), topOf(lines, info, keys[1])] });
+
+  /* The opening kickoff is the only kickoff the bot posts. */
+  let opened = false;
+  const kept2 = posts.filter((p) => {
+    if (p.kind !== 'kick') { return true; }
+    if (opened) { return false; }
+    opened = true;
+    return true;
+  });
+
+  return { entries, posts: kept2, score: final, ot, players: info, lines };
+}
+
+module.exports = { build, whenText, passLine, rushLine, recLine, kickLine, BIG_PLAY };
 
   };
 
@@ -4184,14 +4759,19 @@ module.exports = { THROUGH, AHEAD, nextDraft, lastDraft, fillPicks };
    Weeks taken in from the site have no save point. A week that is out on
    the website cannot be undone, and nor can one before it: the site has
    shown it and paid for it. Save points last until the offseason, which
-   clears them.
+   clears them, and so do the weeks' plays (pbp-{season}-{week}.json, Live
+   Mode's): a week undone loses its plays with it.
+
+   Playing one game of a week again (lib/run.js resimGame) goes back to the
+   week's save point without a new take, `sameDice`, so the rest of the
+   week comes out the same.
    ========================================================================== */
 
 'use strict';
 
 const io = require('./io');
 const { saved, ready } = require('./league');
-const { readWorld, writeWorld, lastWeek, ROUNDS } = require('./season');
+const { readWorld, writeWorld, lastWeek, playsFile, ROUNDS } = require('./season');
 
 function fileFor(season, week) { return 'rewind-' + season + '-' + week + '.json'; }
 
@@ -4242,8 +4822,8 @@ function points(league) {
 }
 
 /* Puts the league back to where it was before `week`. Returns what went:
-   { week, label, later, changes }. */
-function undo(league, week) {
+   { week, label, later, changes }. `opts.sameDice` keeps the take. */
+function undo(league, week, opts) {
   const point = points(league).filter((p) => p.week === Number(week))[0];
   if (!point) {
     const known = (league.rewinds || []).some((r) => r.season === league.season && r.week === Number(week));
@@ -4253,11 +4833,13 @@ function undo(league, week) {
   const name = fileFor(league.season, point.week);
   if (!io.has(league.world, name)) { throw new Error('The save point for ' + point.label + ' is missing.'); }
   const back = io.read(league.world, name);
-  const take = (league.take || 0) + 1;
+  const take = (league.take || 0) + (opts && opts.sameDice ? 0 : 1);
   const world = league.world;
+  const last = lastWeek(league) + ROUNDS.length;
   Object.keys(league).forEach((k) => { delete league[k]; });
   Object.assign(league, back.league, { world, take });
   ready(league);
+  for (let w = point.week; w <= last; w += 1) { io.remove(world, playsFile(league.season, w)); }
   const log = 'games-' + league.season + '.json';
   writeWorld(league, log, readWorld(league, log, []).filter((g) => g.season !== league.season || g.week < point.week));
   writeWorld(league, 'trades.json', back.trades || []);
@@ -4267,7 +4849,10 @@ function undo(league, week) {
 /* The season is over: its save points go. */
 function clear(league) {
   const last = lastWeek(league) + ROUNDS.length;
-  for (let week = 1; week <= last; week += 1) { io.remove(league.world, fileFor(league.season, week)); }
+  for (let week = 1; week <= last; week += 1) {
+    io.remove(league.world, fileFor(league.season, week));
+    io.remove(league.world, playsFile(league.season, week));
+  }
   league.rewinds = [];
 }
 
@@ -4934,6 +5519,32 @@ function resim(league, week) {
   return { undone, played: playNext(league) };
 }
 
+/* Plays one game of the last week played again, on dice of its own, and
+   every other game of the week as it was (Live Mode: Sam, 2026-11-03, a
+   game he does not like the look of before he puts it on live). `home`
+   and `away` are the game's keys. Anything changed since the week was
+   played is undone, as with resim. Returns { undone, played, game }, the
+   game as it came out this time. */
+function resimGame(league, week, home, away) {
+  const last = rewind.points(league)[0];
+  if (!last || last.week !== Number(week)) {
+    throw new Error('Only a game of the last week played can be played again on its own.');
+  }
+  const game = { week: Number(week), home, away };
+  const rolls = {};
+  Object.keys(league.rerolls || {}).forEach((k) => {
+    if (k.indexOf(league.season + ':') === 0) { rolls[k] = league.rerolls[k]; }
+  });
+  const key = season.rollKey(league, game);
+  rolls[key] = (rolls[key] || 0) + 1;
+  const undone = rewind.undo(league, week, { sameDice: true });
+  league.rerolls = rolls;
+  const played = playNext(league);
+  const again = (played.games || []).filter((g) => g.home === home && g.away === away)[0];
+  if (!again) { throw new Error('That game is not in ' + undone.label + '.'); }
+  return { undone, played, game: again };
+}
+
 function offseason(league) {
   if (league.phase !== 'offseason') { throw new Error('The offseason starts after the Super Bowl (phase: ' + league.phase + ').'); }
   rewind.clear(league);
@@ -4978,7 +5589,7 @@ function sixLine(s) {
 
 module.exports = {
   rngFor, hooks, open, save, nextStep, playNext, playOn, playPlayoffs, offseason, draft, importSite, queue, sixNow, sixLine,
-  undo, resim, savePoints: rewind.points,
+  undo, resim, resimGame, savePoints: rewind.points,
   approve: trades.approve, reject: trades.reject, proposeOwn: trades.proposeOwn,
   offers: sixOffers.waiting, acceptOffer: sixOffers.accept
 };
@@ -5442,6 +6053,13 @@ module.exports = { OFFENSE, DEFENSE, fitOf, offenseOf, defenseOf, schemeFor, cen
 
    Weeks the website has already played can be taken as they happened
    (importWeeks) instead of simulated, and the season goes on from there.
+
+   With keepPlays(true) (the admin page) every game a week plays keeps
+   its plays, one file a week in the world (pbp-{season}-{week}.json), for
+   Live Mode (lib/live.js). They last as long as the week's save point.
+   One game of the last week played can be played again on dice of its
+   own (lib/run.js resimGame): league.rerolls counts how many times, and
+   the week's other games come out as they did.
    ========================================================================== */
 
 'use strict';
@@ -5478,6 +6096,16 @@ function egeRisk(league) {
   const steps = league.season >= EGE_RISK_FROM ? EGE_RISK : EGE_RISK_BEFORE;
   return n < steps.length ? steps[n] : 0;
 }
+
+/* Whether the games keep their plays (the admin page turns it on). */
+let keeping = false;
+function keepPlays(on) { keeping = Boolean(on); }
+
+function playsFile(season, week) { return 'pbp-' + season + '-' + week + '.json'; }
+
+/* A game's key in a plays file and in league.rerolls. */
+function gameKey(game) { return game.away + '@' + game.home; }
+function rollKey(league, game) { return league.season + ':' + game.week + ':' + gameKey(game); }
 
 /* --------------------------------------------------------------- files -- */
 
@@ -5680,19 +6308,35 @@ function startedShare(league) {
 }
 
 /* One game. A booster on it has the game played again on dice of its own,
-   so the other games of the week are played the same either way. */
+   so the other games of the week are played the same either way. So does
+   a game played again on its own (league.rerolls): the week's dice are
+   rolled for it just as before, and the result thrown away. */
 function play(league, game, rng, opts, extras) {
   const home = side(league, game.home);
   const away = side(league, game.away);
-  const o = Object.assign({ egeRisk: egeRisk(league), links: extras ? extras.links : null }, opts);
-  const first = playGame(home, away, rng, o);
+  const o = Object.assign({ egeRisk: egeRisk(league), links: extras ? extras.links : null, log: keeping }, opts);
+  let first = playGame(home, away, rng, o);
+  const roll = (league.rerolls || {})[rollKey(league, game)] || 0;
+  if (roll) {
+    first = playGame(home, away, seeded([league.seed || 'ege-nfl', league.take || 0, rollKey(league, game), 'roll', roll].join(':')), o);
+  }
   const boosted = extras ? boosts.onGame(extras, game, [home.roster, away.roster]) : [];
   if (!boosted.length) { return first; }
-  const dice = seeded([league.seed || 'ege-nfl', league.take || 0, league.season, game.week, game.home, game.away, 'boost'].join(':'));
+  const dice = seeded([league.seed || 'ege-nfl', league.take || 0, league.season, game.week, game.home, game.away, 'boost']
+    .concat(roll ? ['roll', roll] : []).join(':'));
   const kept = boosts.choose(first, () => playGame(home, away, dice, o), boosted, dice);
   kept.boosted = boosted.map((b) => ({ id: b.id, name: b.name, multiplier: b.multiplier,
                                        points: Math.round(boosts.fantasyPoints(kept.box[b.id]) * 10) / 10 }));
   return kept;
+}
+
+/* The week's plays, game by game, into its plays file. */
+function keptPlays(plays, game, r) {
+  if (plays && r.plays) { plays[gameKey(game)] = { plays: r.plays, people: r.people }; }
+}
+
+function writePlays(league, week, plays) {
+  if (plays) { writeWorld(league, playsFile(league.season, week), { season: league.season, week, games: plays }); }
 }
 
 /* Plays the current week. Returns what happened, for the report. */
@@ -5707,9 +6351,11 @@ function playWeek(league, rng, hooks) {
   const log = readWorld(league, 'games-' + league.season + '.json', []);
   const extras = boosts.read(league);
   const out = { week, games: [], injuries: [], boosted: [] };
+  const plays = keeping ? {} : null;
   games.forEach((g) => {
     countStarts(league, g);
     const r = play(league, g, rng, { neutral: !!g.neutral }, extras);
+    keptPlays(plays, g, r);
     g.score = r.score;
     if (r.ot) { g.ot = true; }
     hurt(league, r.injuries);
@@ -5720,6 +6366,7 @@ function playWeek(league, rng, hooks) {
   });
   heal(league);
   writeWorld(league, 'games-' + league.season + '.json', log);
+  writePlays(league, week, plays);
   league.week += 1;
   if (week === DEADLINE_WEEK && hooks && hooks.deadline) {
     const proposals = hooks.deadline(league);
@@ -5831,11 +6478,14 @@ function playRound(league, rng) {
   const log = readWorld(league, 'games-' + league.season + '.json', []);
   const extras = boosts.read(league);
   const out = { round: name, games: [], injuries: [], boosted: [] };
+  const plays = keeping ? {} : null;
+  const week = lastWeek(league) + po.rounds.length + 1;
   games.forEach((g) => {
     g.playoff = true;
     g.round = name;
-    g.week = lastWeek(league) + po.rounds.length + 1;
+    g.week = week;
     const r = play(league, g, rng, { neutral: !!g.neutral, playoff: true }, extras);
+    keptPlays(plays, g, r);
     g.score = r.score;
     if (r.ot) { g.ot = true; }
     g.winner = r.winner;
@@ -5847,6 +6497,7 @@ function playRound(league, rng) {
   });
   heal(league);
   writeWorld(league, 'games-' + league.season + '.json', log);
+  writePlays(league, week, plays);
   po.rounds.push({ name, games });
   if (name === 'Super Bowl') {
     po.champion = games[0].winner;
@@ -5880,7 +6531,7 @@ function draftOrder(league) {
 }
 
 module.exports = { startSeason, playWeek, playRound, importWeeks, startPlayoffs, nextRound, draftOrder, readWorld, writeWorld, lastWeek,
-                   lastPlaces, startedShare, egeRisk, DEADLINE_WEEK, ROUNDS, EGE_RISK };
+                   lastPlaces, startedShare, egeRisk, keepPlays, playsFile, gameKey, rollKey, DEADLINE_WEEK, ROUNDS, EGE_RISK };
 
   };
 
@@ -9072,6 +9723,7 @@ module.exports = { played, week, lineText };
     tendencies: load('tendencies'),
     weeks: load('weeks'),
     sixTrades: load('six-trades'),
-    sixOffers: load('six-offers')
+    sixOffers: load('six-offers'),
+    liveGame: load('live')
   };
 })();

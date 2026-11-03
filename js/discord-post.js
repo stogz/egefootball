@@ -31,7 +31,8 @@
    headed by that league's own week -- the NFL's Playoffs Week One is not
    the colleges'.
 
-   A third bot posts nothing but trades: buildTradePost, at the bottom.
+   A third bot posts nothing but trades: buildTradePost, at the bottom; a
+   fourth a game played live, play by play: buildLivePosts, under it.
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -664,11 +665,178 @@ EGE.discordPost = (function () {
     return { content: '## Trade', embeds: embeds, allowed_mentions: { parse: [] } };
   }
 
+  /* --- a live game -----------------------------------------------------------
+
+     Live Mode's bot (Sam, 2026-11-03): a game the NFL sim has played, put
+     out snap by snap on the site (js/live.js), and the plays worth a post
+     sent as they happen there. Out of the sim's plan for the game
+     (nfl-sim/lib/live.js), each post ready to send and when, in
+     milliseconds from kickoff:
+
+       Super Bowl LXII                                   [Texans]
+       San Francisco 49ers v. Houston Texans  -- the live page
+       HOU SPREAD @ +7.5
+
+     first, at once; then the opening kickoff under "# Kickoff", every
+     touchdown, field goal, punt, interception, fumble, turnover on downs,
+     safety and run or catch of 60 yards or more, each in the colour of
+     the team it is for, with its mark, the face of whoever made it, the
+     lines it touched, the score and when in the game it was:
+
+       [Texans] Houston Texans                           [face]
+       Javonte Williams 22-yd rushing touchdown
+       • Javonte Williams (6 CAR, 63 YDS, 1 TD)
+       • Ka'imi Fairbairn XP
+       `7` Texans    `0` 49ers
+       Q1 5:36, 4th & 9
+
+     halftime with the line as it stands and each side's top performers;
+     and at the final whistle the week's own post for the six in the game
+     (buildEmbed), or a final like the halftime one when none of them is.
+     The side with one of the six in it comes first and has the spread;
+     with none, the home side. */
+  function hex(color) { return color ? parseInt(String(color).replace('#', ''), 16) : COLOR_UPCOMING; }
+
+  function nflTeam(key) { return (EGE.nfl && EGE.nfl.teams[key]) || { name: key }; }
+
+  /* "HOU SPREAD @ +7.5": a side's line from its projected margin. */
+  function spreadText(key, margin, longest) {
+    var spread = Math.min(longest || Infinity, Math.floor(Math.abs(margin)) + 0.5);
+    return key + ' SPREAD @ ' + (margin > 0 ? '-' : '+') + spread;
+  }
+
+  function buildLivePosts(plan, options) {
+    var o = options || {};
+    var siteUrl = o.siteUrl || SITE;
+    var link = siteUrl.replace(/\/+$/, '') + '/#live/' + o.id;
+    var keys = [o.home, o.away];
+    var players = plan.players || [];
+    var six = players.filter(function (p) { return p.g; })[0];
+    var first = six ? six.t : o.home;
+    var other = first === o.home ? o.away : o.home;
+    var sign = first === o.home ? 1 : -1;
+    var slot = o.slot || 20000;
+    var reveal = o.reveal === undefined ? 4000 : o.reveal;
+    var start = o.start || Date.now();
+    var heading = o.title || ('Week ' + weekWord(o.week));
+
+    function face(n) {
+      var p = players[n];
+      if (!p) { return null; }
+      var mine = p.g && EGE.playerBySlug ? EGE.playerBySlug(p.g) : null;
+      if (mine && mine.headshot) { return headshotUrl(siteUrl, mine); }
+      return p.e && EGE.espnHeadshot ? EGE.espnHeadshot(p.e, p.c, 350, 254) : null;
+    }
+    function logo(key) {
+      var file = EGE.nfl && EGE.nfl.logo(key);
+      return file ? asset(siteUrl, file) : null;
+    }
+    function scoreFields(score) {
+      return [first, other].map(function (key) {
+        return { name: code(score[keys.indexOf(key)]), value: nickname(key), inline: true };
+      });
+    }
+    function finish(embed, footer, at) {
+      embed.image = { url: asset(siteUrl, 'icon/spacer.png') };
+      embed.footer = { text: footer };
+      embed.timestamp = new Date(start + at).toISOString();
+      return embed;
+    }
+    function whenOf(at) {
+      var entry = plan.entries[at];
+      return at * slot + (entry && entry.call ? reveal : 0);
+    }
+    function performers(top) {
+      return [first, other].map(function (key) {
+        var lines = top[keys.indexOf(key)] || [];
+        return lines.length ? '### ' + nflTeam(key).name + ' Top Performers\n' + lines.map(escaped).join('\n') : '';
+      }).filter(Boolean).join('\n\n');
+    }
+    function summary(title, line, top, score, at) {
+      var embed = {
+        color: hex(nflTeam(first).color),
+        author: { name: heading },
+        title: title,
+        url: link,
+        description: [line, performers(top)].filter(Boolean).join('\n'),
+        fields: scoreFields(score)
+      };
+      var mark = logo(first);
+      if (mark) { embed.thumbnail = { url: mark }; }
+      return finish(embed, 'EGE Football', at);
+    }
+
+    var posts = [];
+
+    /* The announcement, as soon as the game is put on. */
+    var opening = {
+      color: hex(nflTeam(first).color),
+      author: { name: heading },
+      title: nflTeam(other).name + ' v. ' + nflTeam(first).name,
+      url: link,
+      description: typeof o.margin === 'number' ? spreadText(first, o.margin * sign, 24.5) : ''
+    };
+    if (!opening.description) { delete opening.description; }
+    var mark = logo(first);
+    if (mark) { opening.thumbnail = { url: mark }; }
+    posts.push({ at: -((o.delay || 0) * 1000) - 1000, payload: {
+      embeds: [finish(opening, 'EGE Football', -((o.delay || 0) * 1000))], allowed_mentions: { parse: [] } } });
+
+    plan.posts.forEach(function (post) {
+      var at = whenOf(post.at);
+      var payload;
+      if (post.kind === 'half') {
+        var lead = (post.score[0] - post.score[1]) * sign;
+        var title = lead ? 'Halftime, ' + nickname(lead > 0 ? first : other) + ' lead by ' + Math.abs(lead) : 'Halftime, tied ' + post.score[0] + '-' + post.score[1];
+        /* Half the pregame margin still to play, on top of the score. */
+        var said = typeof o.margin === 'number' ? spreadText(first, o.margin * sign / 2 + lead) : '';
+        payload = { embeds: [summary(title, said, post.top, post.score, at)] };
+      } else if (post.kind === 'end') {
+        var weekly = (o.six || []).map(function (entry) {
+          return buildEmbed(entry.player, entry.game, { season: o.season, siteUrl: siteUrl, played: true });
+        });
+        if (weekly.length) {
+          payload = { content: '## ' + weekTitle(o.week, o.season, 'nfl'), embeds: weekly };
+        } else {
+          var margin = (post.score[0] - post.score[1]) * sign;
+          var won = margin > 0 ? first : other;
+          var high = Math.max(post.score[0], post.score[1]);
+          var low = Math.min(post.score[0], post.score[1]);
+          var end = margin ? 'Final' + (post.ot ? '/OT' : '') + ', ' + nickname(won) + ' win ' + high + '-' + low
+            : 'Final' + (post.ot ? '/OT' : '') + ', tied ' + high + '-' + low;
+          payload = { embeds: [summary(end, '', post.top, post.score, at)] };
+        }
+      } else {
+        var team = nflTeam(post.team);
+        var embed = {
+          color: hex(team.color),
+          author: { name: team.name },
+          title: escaped(post.title),
+          url: link,
+          description: post.lines.map(function (text) { return '- ' + escaped(text); }).join('\n'),
+          fields: scoreFields(post.score)
+        };
+        var icon = logo(post.team);
+        if (icon) { embed.author.icon_url = icon; }
+        var shot = post.face !== undefined ? face(post.face) : null;
+        if (shot) { embed.thumbnail = { url: shot }; }
+        payload = { embeds: [finish(embed, post.when, at)] };
+        if (post.kind === 'kick') { payload.content = '# Kickoff'; }
+      }
+      payload.allowed_mentions = { parse: [] };
+      posts.push({ at: at, payload: payload });
+    });
+    return posts;
+  }
+
   return {
     SITE: SITE,
     buildWeekPost: buildWeekPost,
     buildWeekPosts: buildWeekPosts,
     buildEmbed: buildEmbed,
-    buildTradePost: buildTradePost
+    buildTradePost: buildTradePost,
+    buildLivePosts: buildLivePosts,
+    spreadText: spreadText,
+    weekWord: weekWord
   };
 })();

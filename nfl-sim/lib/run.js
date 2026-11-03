@@ -109,6 +109,32 @@ function resim(league, week) {
   return { undone, played: playNext(league) };
 }
 
+/* Plays one game of the last week played again, on dice of its own, and
+   every other game of the week as it was (Live Mode: Sam, 2026-11-03, a
+   game he does not like the look of before he puts it on live). `home`
+   and `away` are the game's keys. Anything changed since the week was
+   played is undone, as with resim. Returns { undone, played, game }, the
+   game as it came out this time. */
+function resimGame(league, week, home, away) {
+  const last = rewind.points(league)[0];
+  if (!last || last.week !== Number(week)) {
+    throw new Error('Only a game of the last week played can be played again on its own.');
+  }
+  const game = { week: Number(week), home, away };
+  const rolls = {};
+  Object.keys(league.rerolls || {}).forEach((k) => {
+    if (k.indexOf(league.season + ':') === 0) { rolls[k] = league.rerolls[k]; }
+  });
+  const key = season.rollKey(league, game);
+  rolls[key] = (rolls[key] || 0) + 1;
+  const undone = rewind.undo(league, week, { sameDice: true });
+  league.rerolls = rolls;
+  const played = playNext(league);
+  const again = (played.games || []).filter((g) => g.home === home && g.away === away)[0];
+  if (!again) { throw new Error('That game is not in ' + undone.label + '.'); }
+  return { undone, played, game: again };
+}
+
 function offseason(league) {
   if (league.phase !== 'offseason') { throw new Error('The offseason starts after the Super Bowl (phase: ' + league.phase + ').'); }
   rewind.clear(league);
@@ -153,7 +179,7 @@ function sixLine(s) {
 
 module.exports = {
   rngFor, hooks, open, save, nextStep, playNext, playOn, playPlayoffs, offseason, draft, importSite, queue, sixNow, sixLine,
-  undo, resim, savePoints: rewind.points,
+  undo, resim, resimGame, savePoints: rewind.points,
   approve: trades.approve, reject: trades.reject, proposeOwn: trades.proposeOwn,
   offers: sixOffers.waiting, acceptOffer: sixOffers.accept
 };

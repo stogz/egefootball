@@ -299,35 +299,57 @@
     if (!player || !game || game.bye || !game.opponent) { return null; }
     var team = EGE.teamFor(player, game.season, game.week);
     if (!team) { return null; }
-    var league = EGE.leagueOf(player, game.season);
-    var rules = leagueRules(league);
-    var rated = ratings(game.season, league, game.week);
-    var us = rated.team(team.school);
-    var them = rated.team(game.opponent);
     var edge = game.neutral ? 0 : game.home ? 1 : -1;
-
-    var ours = us.off + them.def - rated.points + edge * rules.home / 2 -
-      hurt(game.season, game.week, team.school);
-    var theirs = them.off + us.def - rated.points - edge * rules.home / 2 -
-      hurt(game.season, game.week, game.opponent);
-    ours = Math.max(3, ours);
-    theirs = Math.max(3, theirs);
-
-    var margin = ours - theirs;
-    var favorite = margin > 0 || (margin === 0 && edge >= 0) ? 'for' : 'against';
-    var spread = Math.min(rules.longest, Math.floor(Math.abs(margin)) + 0.5);
+    var line = project(game.season, EGE.leagueOf(player, game.season), game.week,
+      team.school, game.opponent, edge);
+    var favorite = line.margin > 0 || (line.margin === 0 && edge >= 0) ? 'for' : 'against';
+    var spread = line.spread;
 
     /* The projected score, kept on the right side of the line. */
-    var projected = { for: Math.round(ours), against: Math.round(theirs) };
+    var projected = { for: line.ours, against: line.theirs };
     var under = favorite === 'for' ? 'against' : 'for';
     if (projected[favorite] <= projected[under]) { projected[favorite] = projected[under] + 1; }
 
     return {
       favorite: favorite,
       spread: spread,
+      margin: line.margin,
       for: favorite === 'for' ? -spread : spread,
       against: favorite === 'against' ? -spread : spread,
       projected: projected
+    };
+  };
+
+  /* One side's projected margin over the other in a week of the league's
+     season, `edge` 1 at home, -1 away, 0 at a neutral site:
+     { margin, spread, ours, theirs }. */
+  function project(season, league, week, school, opponent, edge) {
+    var rules = leagueRules(league);
+    var rated = ratings(season, league, week);
+    var us = rated.team(school);
+    var them = rated.team(opponent);
+    var ours = us.off + them.def - rated.points + edge * rules.home / 2 - hurt(season, week, school);
+    var theirs = them.off + us.def - rated.points - edge * rules.home / 2 - hurt(season, week, opponent);
+    ours = Math.max(3, ours);
+    theirs = Math.max(3, theirs);
+    var margin = ours - theirs;
+    return {
+      margin: margin,
+      spread: Math.min(rules.longest, Math.floor(Math.abs(margin)) + 0.5),
+      ours: Math.round(ours),
+      theirs: Math.round(theirs)
+    };
+  }
+
+  /* The line on any NFL game, by the teams' names, for Live Mode:
+     { favorite: 'home' | 'away', spread: 3.5, margin } with `margin` the
+     home side's projected margin, before it is rounded to a line. */
+  EGE.matchLine = function (season, week, home, away, neutral) {
+    var line = project(season, 'nfl', week, home, away, neutral ? 0 : 1);
+    return {
+      favorite: line.margin >= 0 ? 'home' : 'away',
+      spread: line.spread,
+      margin: line.margin
     };
   };
 

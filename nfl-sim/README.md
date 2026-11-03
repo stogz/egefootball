@@ -391,6 +391,21 @@ A whole season and its playoffs take about half a second.
   new take, so nothing after it comes out the same way. A week out on the
   website can't be undone, nor one before it, and weeks taken in from the
   site have no save point. The offseason clears the season's save points.
+- **Playing one game again** (`run.resimGame`, the NFL Sim tab's Live
+  part). Only a game of the last week played: the week goes back to its
+  save point on the same dice and is played again with that one game on
+  dice of its own (`league.rerolls`), so every other game comes out as it
+  did. As often as wanted.
+- **Live Mode** (`lib/live.js`, Sam 2026-11-03). With `season.keepPlays(true)`
+  (the admin page) every game keeps its snaps as it is played
+  (`opts.log` in `lib/game.js`, which never rolls a die, so a game comes
+  out the same with it on or off), a week of them in
+  `pbp-{season}-{week}.json` beside its save point and going with it.
+  `live.build` turns one game's snaps into the live page's feed (what is
+  called, then what came of it, where the ball is, what each snap added
+  to every line, with no sim ids) and the Discord bot's posts. The site
+  side is `js/live.js`, `EGE.discordPost.buildLivePosts` and `live_*` in
+  `supabase/schema.sql`.
 
 The world plays its own 2023 season from the kickoff league. The site's 2023
 results are not read in: the sim is its own world from Week 1 of 2023 on, and
@@ -960,6 +975,7 @@ nfl-sim/
     edits.js             ratings, archetypes, contracts and signings set by hand
     boosts.js            the six's boosters and connections from the site
     rewind.js            save points, to undo or resim a week
+    live.js              Live Mode: a game's snaps as the live feed and the bot's posts
     history.js           every team's roster, season by season
     offseason.js         the offseason, in order
     rng.js               the seeded dice
