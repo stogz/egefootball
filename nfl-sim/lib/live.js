@@ -5,7 +5,7 @@
    (lib/game.js with `log`, kept a week at a time by lib/season.js):
 
    - the feed: one entry a snap, in order, each { call, text, more, pre,
-     post, tag, d, t, p, w, hl, ht, ms }. `call` is what shows first ("Jaykeb Stewart
+     post, tag, d, t, p, w, r, hl, ht, ms }. `call` is what shows first ("Jaykeb Stewart
      pass") and `text` what it came to ("Jaykeb Stewart 22-yd pass to Nico
      Collins"), with `more` under it (the extra point, who got hurt).
      `pre` and `post` are where the ball was before and after: the team
@@ -17,7 +17,9 @@
      six, c: a college headshot }). Never the sim's own ids, so nobody can
      read anything private off it, and a player shows up only on the snap
      he first does something, so the feed does not give away who comes in
-     later. `w` is the number of whoever the call names, for his face;
+     later. `w` is the number of whoever the call names, for his face,
+     and `r` whose face the result shows instead (the receiver, or the
+     defender on a sack, an interception or a fumble);
      `hl` a scoring play's words past the player's name, to show in the
      colour of `ht`, the side that scored; and `ms` when the entry comes
      up, in milliseconds from kickoff (TIMING).
@@ -107,7 +109,7 @@ const RED_ZONE = 20;
 
 /* How long, in milliseconds: each snap, the break before a new drive's
    first snap, and the wait before the first snap in the red zone. */
-const TIMING = { slot: 20000, drive: 50000, red: 15000, reveal: 4000 };
+const TIMING = { slot: 20000, drive: 30000, red: 15000, reveal: 4000 };
 
 /* Fantasy points, for who a half's top performers are. */
 function points(l) {
@@ -232,6 +234,10 @@ function build(league, game, kept) {
     let call;
     let text;
     let w;
+    /* Whose face the result shows, once it is out, where not the caller's:
+       the receiver a pass went to, or the defender who sacked, picked it
+       off or forced the fumble (Sam, 2026-11-03). */
+    let r;
     /* A scoring play's words past the player who made it ("27-yd rushing
        touchdown"), which the feed shows in the scoring side's colour. */
     let hl = null;
@@ -344,6 +350,13 @@ function build(league, game, kept) {
       w = num(e.qb);
       call = Q + ' pass';
       if (e.sack !== undefined) {
+        r = num(e.sack);
+      } else if (e.res === 'i') {
+        r = num(e.by);
+      } else if (e.to !== undefined && !e.scramble && !e.away) {
+        r = num(e.to);
+      }
+      if (e.sack !== undefined) {
         const S = name(e.sack);
         if (e.safety !== undefined) { hl = 'in the end zone, SAFETY'; }
         text = e.safety !== undefined ? Q + ' sacked by ' + S + ' ' + hl
@@ -409,6 +422,7 @@ function build(league, game, kept) {
       const B = name(e.fum);
       /* Whoever forced it, or else made the tackle. */
       const by = e.ff !== undefined ? e.ff : e.tk;
+      if (by !== undefined) { r = num(by); }
       post = { kind: 'fum', team: keys[def], title: B + ' fumble, recovered by the ' + D,
                lines: (by !== undefined ? [defLine(name(by), line(by))] : []).concat(ballLine(e.fum)),
                face: by !== undefined ? num(by) : undefined };
@@ -454,6 +468,7 @@ function build(league, game, kept) {
 
     const entry = { call, text, pre, post: post2 };
     if (w !== undefined) { entry.w = w; }
+    if (r !== undefined && r !== w) { entry.r = r; }
     if (hl && text.indexOf(hl) !== -1) {
       entry.hl = hl;
       entry.ht = keys[scored ? e.tdBy : e.safety !== undefined ? e.safety : off];
@@ -503,7 +518,7 @@ function build(league, game, kept) {
                  post: { o: null, s: final, q: last ? last.post.q : 4, c: 0 } });
   posts.push({ at: entries.length - 1, kind: 'end', score: final, ot, top: [topOf(lines, info, keys[0]), topOf(lines, info, keys[1])] });
 
-  /* When each entry comes up, from kickoff: every 20 seconds, with 50 more
+  /* When each entry comes up, from kickoff: every 20 seconds, with 30 more
      before a new drive's first snap and 15 more before its first snap in
      the red zone (Sam, 2026-11-03). */
   let ms = 0;

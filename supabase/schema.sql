@@ -3764,7 +3764,7 @@ notify pgrst, 'reload schema';
 --
 -- A game the NFL sim has played, put on live a snap at a time (Sam,
 -- 2026-11-03): PLAY LIVE on the NFL Sim tab, and from `starts_at` every
--- snap comes up at its own `ms` (20 seconds a snap, 50 more before a new
+-- snap comes up at its own `ms` (20 seconds a snap, 30 more before a new
 -- drive and 15 more before its first snap in the red zone; nfl-sim/lib/
 -- live.js). It shows the call first ("Jaykeb Stewart pass"), and what came
 -- of it `reveal_ms` (4 seconds) later. Everything runs off this database's

@@ -406,7 +406,7 @@ A whole season and its playoffs take about half a second.
   to every line, with no sim ids) and the Discord bot's posts: big plays,
   kicks, turnovers and scores, each trip into the red zone (once a drive),
   halftime and the final. A play the defense made shows the defender.
-  Each entry says when it comes up (`ms`): 20 seconds a snap, 50 more
+  Each entry says when it comes up (`ms`): 20 seconds a snap, 30 more
   before a new drive and 15 more before its first snap in the red zone
   (`live.TIMING`). An incompletion nobody broke up is told as dropped, out
   of bounds or incomplete from where the throw's own draw fell, so no die

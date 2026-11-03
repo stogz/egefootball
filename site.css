@@ -10351,7 +10351,8 @@ html.ege-noscroll body { overflow: hidden; }
 #view-live { position: relative; }
 .ege-cast__back { position: absolute; top: 35px; left: 0; z-index: 2; }
 @media (max-width: 620px) { .ege-cast__back { top: 12px; } }
-.ege-cast { display: grid; gap: 22px; padding-top: 32px; }
+/* Everything on the page as wide as the box score (Sam, 2026-11-03). */
+.ege-cast { --ege-cast-w: min(100%, 1100px); display: grid; gap: 22px; padding-top: 32px; }
 .ege-cast__note { margin: 40px auto; text-align: center; }
 .ege-cast__head { display: grid; justify-items: center; gap: 14px; }
 .ege-cast__kicker { display: inline-flex; align-items: center; gap: 8px; margin: 0; }
@@ -10361,7 +10362,7 @@ html.ege-noscroll body { overflow: hidden; }
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: stretch;
-  width: min(100%, 860px);
+  width: var(--ege-cast-w);
   border: var(--fb-border) solid var(--fb-ink);
   background: var(--fb-cream);
   box-shadow: var(--fb-shadow) var(--fb-shadow) 0 rgba(0, 0, 0, .35);
@@ -10414,7 +10415,7 @@ html.ege-noscroll body { overflow: hidden; }
 /* The field: 120 yards, the end zones a twelfth of it each. */
 .ege-cast__field {
   position: relative;
-  width: min(100%, 860px);
+  width: var(--ege-cast-w);
   justify-self: center;
   aspect-ratio: 12 / 5.33;
   overflow: hidden;
@@ -10482,8 +10483,33 @@ html.ege-noscroll body { overflow: hidden; }
   transition: left .9s ease;
 }
 .ege-cast__ball .ege-cast__logo { width: 72%; height: 72%; }
+/* What the snap just did: an arrow under the ball, from where it started
+   to where it ended. */
+.ege-cast__arrow {
+  position: absolute;
+  top: calc(50% + clamp(26px, 5vw, 44px));
+  height: 6px;
+  margin-top: -3px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .45);
+  transform-origin: left center;
+  animation: ege-cast-arrow .6s ease-out;
+}
+.ege-cast__arrow::after {
+  content: "";
+  position: absolute;
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-left: 14px solid #fff;
+  border-top: 9px solid transparent;
+  border-bottom: 9px solid transparent;
+}
+.ege-cast__arrow.is-back { transform-origin: right center; }
+.ege-cast__arrow.is-back::after { right: auto; left: -12px; border-left: 0; border-right: 14px solid #fff; }
+@keyframes ege-cast-arrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
-.ege-cast__cols { display: grid; gap: 22px; width: min(100%, 860px); justify-self: center; }
+.ege-cast__cols { display: grid; gap: 22px; width: var(--ege-cast-w); justify-self: center; }
 .ege-cast__side { display: grid; gap: 22px; min-width: 0; }
 .ege-cast__play { position: relative; display: grid; gap: 6px; padding: 18px 20px 22px; overflow: hidden; }
 .ege-cast__play.is-td, .ege-cast__play.is-safety { background: var(--fb-tint-sage); }
@@ -10548,7 +10574,7 @@ html.ege-noscroll body { overflow: hidden; }
 
 /* An admin's hand on the game: pause, restart, end, cancel; a test
    game's speed. */
-.ege-cast__controls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; width: min(100%, 860px); justify-self: center; }
+.ege-cast__controls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; width: var(--ege-cast-w); justify-self: center; }
 .ege-cast__controls .ege-note { flex-basis: 100%; margin: 0; text-align: center; }
 .ege-cast__score { margin: 0; font-size: .8125rem; font-weight: 800; }
 .ege-cast__break {
@@ -10561,7 +10587,7 @@ html.ege-noscroll body { overflow: hidden; }
   text-transform: uppercase;
 }
 .ege-cast__empty { padding: 14px 16px; color: var(--fb-muted); }
-.ege-cast__box { width: min(100%, 1100px); justify-self: center; }
+.ege-cast__box { width: var(--ege-cast-w); justify-self: center; }
 
 @media (max-width: 620px) {
   .ege-cast { padding-top: 64px; gap: 16px; }

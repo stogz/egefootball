@@ -5,7 +5,7 @@
    the League page. A snap every 20 seconds: first what is called
    ("Jaykeb Stewart pass"), then four seconds later what came of it
    ("Jaykeb Stewart 22-yd pass to Nico Collins"), and sixteen seconds
-   after that the next; 50 seconds more before a new drive, and 15 more
+   after that the next; 30 seconds more before a new drive, and 15 more
    before its first snap in the red zone. An admin can pause, end,
    restart or cancel it from here too, and #live/test plays a game on
    this device alone before it goes live.
@@ -388,10 +388,12 @@ EGE.liveView = (function () {
   /* The field, the away side's end zone on the left and the home side's on
      the right: the ball where the snap is, in a circle with the mark of
      the team that has it, and the first-down line in orange. */
-  function fieldX(at, yl) {
+  function fieldPct(at, yl) {
     var x = at.o === game.row.home ? 100 - yl : yl;
-    return 'calc(' + (8.333 + x * 0.83333) + '%)';
+    return 8.333 + x * 0.83333;
   }
+
+  function fieldX(at, yl) { return 'calc(' + fieldPct(at, yl) + '%)'; }
 
   function drawField(at) {
     var row = game.row;
@@ -421,7 +423,25 @@ EGE.liveView = (function () {
     mid.appendChild(logo(row.home, 64, false));
     field.appendChild(mid);
 
+    /* Once a snap's result is out, the lines and the ball stay where it
+       started, with an arrow to where it ended, until the next snap moves
+       them (Sam, 2026-11-03). */
+    var cur = game.entries[game.at];
+    var played = cur && !cur.hidden && cur.call && cur.pre && cur.pre.o && cur.post && cur.post.o &&
+      phaseNow() === 'live' ? cur : null;
+    if (played) { at = played.pre; }
     if (at && at.o && phaseNow() !== 'final') {
+      if (played) {
+        var from = fieldPct(played.pre, played.pre.yl);
+        var to = fieldPct(played.post, played.post.yl);
+        if (Math.abs(to - from) >= 0.4) {
+          var arrow = el('span', 'ege-cast__arrow' + (to < from ? ' is-back' : ''));
+          /* Its head (12px past the bar) ends right on the spot. */
+          arrow.style.left = to < from ? 'calc(' + to + '% + 12px)' : from + '%';
+          arrow.style.width = 'max(0px, calc(' + Math.abs(to - from) + '% - 12px))';
+          field.appendChild(arrow);
+        }
+      }
       var label = nick(at.o) + ' ball' + (at.dn ? ', ' + downText(at) : '');
       field.setAttribute('aria-label', label);
       if (at.dn && at.yl + at.tg < 100) {
@@ -471,7 +491,7 @@ EGE.liveView = (function () {
     }
     var who = el('div', 'ege-cast__who');
     var words = el('div', 'ege-cast__words');
-    if (e.call) { who.appendChild(face(e.w, e.pre && e.pre.o, people())); }
+    if (e.call) { who.appendChild(face(e.hidden || e.r === undefined ? e.w : e.r, e.pre && e.pre.o, people())); }
     if (e.hidden) {
       var call = el('p', 'ege-cast__call');
       call.appendChild(document.createTextNode(e.call));
@@ -535,7 +555,7 @@ EGE.liveView = (function () {
       if (lastQ !== null && q !== lastQ) { started(); }
       lastQ = q;
       var item = el('li', 'ege-cast__item' + (e.tag && TAGS[e.tag] ? ' is-' + e.tag : ''));
-      item.appendChild(face(e.w, e.pre.o, info));
+      item.appendChild(face(e.r !== undefined ? e.r : e.w, e.pre.o, info));
       var body = el('div', 'ege-cast__body');
       var meta = el('div', 'ege-cast__meta');
       meta.appendChild(logo(e.pre.o, 18));
