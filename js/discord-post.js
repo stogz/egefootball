@@ -690,6 +690,13 @@ EGE.discordPost = (function () {
        `7` Texans    `0` 49ers
        Q1 5:36, 4th & 9
 
+     (a play the defense made has the defender's face, and his line on
+     top); each trip into the red zone, always in red:
+
+       Super Bowl LXII                                   [Texans]
+       Texans are in the *REDZONE*
+       Q2 11:33, 1st & 10
+
      halftime with the line as it stands and each side's top performers;
      and at the final whistle the week's own post for the six in the game
      (buildEmbed), or a final like the halftime one when none of them is.
@@ -806,6 +813,17 @@ EGE.discordPost = (function () {
             : 'Final' + (post.ot ? '/OT' : '') + ', tied ' + high + '-' + low;
           payload = { embeds: [summary(end, '', post.top, post.score, at)] };
         }
+      } else if (post.kind === 'redzone') {
+        /* Always red, whoever it is (Sam, 2026-11-03). */
+        var zone = {
+          color: 0xFF0000,
+          author: { name: heading },
+          title: escaped(nickname(post.team)) + ' are in the *REDZONE*',
+          url: link
+        };
+        var their = logo(post.team);
+        if (their) { zone.thumbnail = { url: their }; }
+        payload = { embeds: [finish(zone, post.when, at)] };
       } else {
         var team = nflTeam(post.team);
         var embed = {
@@ -818,7 +836,8 @@ EGE.discordPost = (function () {
         };
         var icon = logo(post.team);
         if (icon) { embed.author.icon_url = icon; }
-        var shot = post.face !== undefined ? face(post.face) : null;
+        /* Whoever made the play; the team's mark where nobody did. */
+        var shot = (post.face !== undefined ? face(post.face) : null) || icon;
         if (shot) { embed.thumbnail = { url: shot }; }
         payload = { embeds: [finish(embed, post.when, at)] };
         if (post.kind === 'kick') { payload.content = '# Kickoff'; }

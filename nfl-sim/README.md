@@ -403,7 +403,9 @@ A whole season and its playoffs take about half a second.
   `pbp-{season}-{week}.json` beside its save point and going with it.
   `live.build` turns one game's snaps into the live page's feed (what is
   called, then what came of it, where the ball is, what each snap added
-  to every line, with no sim ids) and the Discord bot's posts. The site
+  to every line, with no sim ids) and the Discord bot's posts: big plays,
+  kicks, turnovers and scores, each trip into the red zone (once a drive),
+  halftime and the final. A play the defense made shows the defender. The site
   side is `js/live.js`, `EGE.discordPost.buildLivePosts` and `live_*` in
   `supabase/schema.sql`.
 

@@ -3861,7 +3861,8 @@ grant select on public.live_games to anon, authenticated;
 grant select, insert, update, delete on public.live_games, public.live_feeds, public.live_posts to authenticated;
 
 -- What a viewer may see of a game, as of now: the snaps from `p_from` up to
--- the one being played, that one only as its call until it is revealed.
+-- the one being played, that one only as its call (and the face of whoever
+-- it names) until it is revealed.
 -- `now` is this database's clock in milliseconds, so the page can set its
 -- own by it; `at` is the snap being played (-1 before kickoff); `state` is
 -- where the ball is as far as anybody may know. Null for no such game.
@@ -3898,7 +3899,9 @@ begin
      where e.n - 1 >= greatest(p_from, 0) and e.n - 1 < v_at;
     if greatest(p_from, 0) <= v_at then
       v_list := v_list || jsonb_build_array(case when v_shown then v_cur
-        else jsonb_build_object('call', v_cur -> 'call', 'pre', v_cur -> 'pre', 'hidden', true) end);
+        else jsonb_strip_nulls(jsonb_build_object('call', v_cur -> 'call', 'pre', v_cur -> 'pre', 'hidden', true,
+               'w', v_cur -> 'w', 'p', case when v_cur ? 'w' and v_cur -> 'p' ? (v_cur ->> 'w')
+                 then jsonb_build_object(v_cur ->> 'w', v_cur -> 'p' -> (v_cur ->> 'w')) end)) end);
     end if;
   end if;
   return jsonb_build_object(

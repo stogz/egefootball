@@ -17,7 +17,8 @@
    On the page: the score and the clock, the field with the team that
    has the ball as its mark in a circle at the line of scrimmage and the
    first-down line in orange, the snap being played, every snap so far
-   (newest first) and the box score as it stands (js/app.js draws it,
+   (newest first, each with the face of whoever it names) and the box
+   score as it stands (js/app.js draws it,
    EGE.leagueBoxScore). The NFL Sim tab puts a game on
    (js/nfl-sim-admin.js); the Discord bot's posts go from Supabase.
    ========================================================================== */
@@ -218,6 +219,43 @@ EGE.liveView = (function () {
     return { box: box, teams: teams, scoring: scoring };
   }
 
+  /* Everybody the snaps so far have named, by number; of the snap being
+     called, only whoever the call names. */
+  function people() {
+    var info = {};
+    game.entries.forEach(function (e) {
+      Object.keys(e.p || {}).forEach(function (i) { info[i] = e.p[i]; });
+    });
+    return info;
+  }
+
+  /* A player's face cut to a circle on his team's colour (Sam,
+     2026-11-03), or the team's mark where there is no picture of him. */
+  function face(n, side, info) {
+    var p = n === undefined || n === null ? null : info[n];
+    var key = p ? p.t : side;
+    var box = el('span', 'ege-cast__face');
+    box.style.setProperty('--team', team(key).color);
+    var mine = p && p.g && EGE.playerBySlug ? EGE.playerBySlug(p.g) : null;
+    var src = mine && mine.headshot ? mine.headshot
+      : p && p.e && EGE.espnHeadshot ? EGE.espnHeadshot(p.e, p.c, 96, 70) : null;
+    function mark() {
+      box.classList.add('is-mark');
+      if (key) { box.appendChild(logo(key, 28)); }
+    }
+    if (src) {
+      var img = el('img', 'ege-cast__headshot');
+      img.src = src;
+      img.alt = '';
+      img.loading = 'lazy';
+      img.addEventListener('error', function () { img.remove(); mark(); });
+      box.appendChild(img);
+    } else {
+      mark();
+    }
+    return box;
+  }
+
   /* Where the ball is as far as anybody may know. */
   function where() {
     var current = game.entries[game.at];
@@ -369,16 +407,21 @@ EGE.liveView = (function () {
       card.classList.add('is-' + e.tag);
       card.appendChild(el('span', 'ege-cast__tag', TAGS[e.tag]));
     }
+    var who = el('div', 'ege-cast__who');
+    var words = el('div', 'ege-cast__words');
+    if (e.call) { who.appendChild(face(e.w, e.pre && e.pre.o, people())); }
     if (e.hidden) {
       var call = el('p', 'ege-cast__call');
       call.appendChild(document.createTextNode(e.call));
       call.appendChild(el('span', 'ege-cast__dots', '…'));
-      card.appendChild(call);
+      words.appendChild(call);
     } else {
-      if (e.call) { card.appendChild(el('p', 'ege-cast__called', e.call)); }
-      card.appendChild(el('p', 'ege-cast__text', e.text));
-      (e.more || []).forEach(function (m) { card.appendChild(el('p', 'ege-cast__more', m)); });
+      if (e.call) { words.appendChild(el('p', 'ege-cast__called', e.call)); }
+      words.appendChild(el('p', 'ege-cast__text', e.text));
+      (e.more || []).forEach(function (m) { words.appendChild(el('p', 'ege-cast__more', m)); });
     }
+    who.appendChild(words);
+    card.appendChild(who);
     if (state === 'live') {
       var bar = el('span', 'ege-cast__bar');
       var fill = el('span', 'ege-cast__fill');
@@ -405,6 +448,7 @@ EGE.liveView = (function () {
     box.appendChild(head);
     var list = el('ol', 'ege-cast__list');
     var shown = game.entries.filter(function (e, i) { return !e.hidden && i < game.at; });
+    var info = people();
     var lastQ = null;
     /* Where a quarter starts: under its first snap, the list being newest
        first. */
@@ -423,15 +467,18 @@ EGE.liveView = (function () {
       if (lastQ !== null && q !== lastQ) { started(); }
       lastQ = q;
       var item = el('li', 'ege-cast__item' + (e.tag && TAGS[e.tag] ? ' is-' + e.tag : ''));
+      item.appendChild(face(e.w, e.pre.o, info));
+      var body = el('div', 'ege-cast__body');
       var meta = el('div', 'ege-cast__meta');
       meta.appendChild(logo(e.pre.o, 18));
       meta.appendChild(el('span', null, quarterText(e.pre.q) + ' ' + clockText(e.pre.c) + (e.pre.dn ? ' · ' + downText(e.pre) : '')));
-      item.appendChild(meta);
-      item.appendChild(el('p', 'ege-cast__line', e.text));
-      (e.more || []).forEach(function (m) { item.appendChild(el('p', 'ege-cast__more', m)); });
+      body.appendChild(meta);
+      body.appendChild(el('p', 'ege-cast__line', e.text));
+      (e.more || []).forEach(function (m) { body.appendChild(el('p', 'ege-cast__more', m)); });
       if (e.tag === 'td' || e.tag === 'fg' || e.tag === 'safety') {
-        item.appendChild(el('p', 'ege-cast__score', nick(game.row.away) + ' ' + e.post.s[1] + ', ' + nick(game.row.home) + ' ' + e.post.s[0]));
+        body.appendChild(el('p', 'ege-cast__score', nick(game.row.away) + ' ' + e.post.s[1] + ', ' + nick(game.row.home) + ' ' + e.post.s[0]));
       }
+      item.appendChild(body);
       list.appendChild(item);
     }
     started();

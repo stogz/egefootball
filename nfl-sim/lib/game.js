@@ -993,7 +993,7 @@ function pass(g, mode) {
     }
     if (!oob) {
       const tk = defender && rng() < 0.5 ? defender : null;
-      if (tk) { stat(g, d, tk, 'tackles', 1); } else { tackler(g, d, [[D.lb[0], 1], [D.lb[1], 1], [D.s[0], 1], [D.s[1], 1], [D.cb[0], 0.6], [D.cb[1], 0.6]]); }
+      if (tk) { note(g, { tk: who(g, d, tk) }); stat(g, d, tk, 'tackles', 1); } else { tackler(g, d, [[D.lb[0], 1], [D.lb[1], 1], [D.s[0], 1], [D.s[1], 1], [D.cb[0], 0.6], [D.cb[1], 0.6]]); }
     }
     if (rng() < 0.008) {
       /* Fumble after the catch, recovered by the defense. */
