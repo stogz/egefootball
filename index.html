@@ -432,6 +432,12 @@
     </section>
 
     <!-- ===== shop ===================================================== -->
+    <!-- #live/{id}: a game played snap by snap (js/live.js). -->
+    <section id="view-live" hidden>
+      <a class="fb-btn fb-btn--inverse ege-back ege-back--round ege-cast__back" href="#league">League</a>
+      <div class="ege-cast" id="liveBody"></div>
+    </section>
+
     <section id="view-shop" hidden>
 
       <!-- Centred, and with nothing under it: what the shop is for is the
@@ -889,6 +895,12 @@
                      spellcheck="false">
             </label>
             <button class="fb-btn fb-btn--sm" id="hookTradesSave" type="button">Save</button>
+            <label class="ege-field">
+              <span class="fb-eyebrow">Live bot webhook</span>
+              <input class="fb-input" id="hookLive" type="password" autocomplete="off"
+                     spellcheck="false">
+            </label>
+            <button class="fb-btn fb-btn--sm" id="hookLiveSave" type="button">Save</button>
           </div>
           </details>
         </div>
@@ -1575,6 +1587,7 @@
 <script src="js/nfl-rosters.js"></script>
 <script src="js/box-scores.js"></script>
 <script src="js/lines.js"></script>
+<script src="js/live.js"></script>
 <script src="js/nfl-sim-admin.js"></script>
 <script src="js/app.js"></script>
 </body>

@@ -10342,3 +10342,297 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-gradechip--c { background: #c9971c; }
 .ege-gradechip--d { background: #d0642a; }
 .ege-gradechip--f { background: #b3261e; }
+
+/* Live Mode (Sam, 2026-11-03): a game played snap by snap, #live/{id}
+   (js/live.js). The score and the clock across the top, the field under
+   it with the ball as the mark of the team that has it in a circle and
+   the first-down line in orange, then the snap being played, every snap
+   so far and the box score as it stands. */
+#view-live { position: relative; }
+.ege-cast__back { position: absolute; top: 35px; left: 0; z-index: 2; }
+@media (max-width: 620px) { .ege-cast__back { top: 12px; } }
+/* Everything on the page as wide as the box score (Sam, 2026-11-03). */
+.ege-cast { --ege-cast-w: min(100%, 1100px); display: grid; gap: 22px; padding-top: 32px; }
+.ege-cast__note { margin: 40px auto; text-align: center; }
+.ege-cast__head { display: grid; justify-items: center; gap: 14px; }
+.ege-cast__kicker { display: inline-flex; align-items: center; gap: 8px; margin: 0; }
+.ege-cast__dot { width: 8px; height: 8px; border-radius: 50% !important; background: #ff4d3d; animation: ege-cast-pulse 1.4s ease-in-out infinite; }
+@keyframes ege-cast-pulse { 50% { opacity: .35; } }
+.ege-cast__board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  width: var(--ege-cast-w);
+  border: var(--fb-border) solid var(--fb-ink);
+  background: var(--fb-cream);
+  box-shadow: var(--fb-shadow) var(--fb-shadow) 0 rgba(0, 0, 0, .35);
+}
+.ege-cast__team {
+  position: relative;
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-top: 6px solid var(--team);
+}
+.ege-cast__team--home { grid-template-columns: auto minmax(0, 1fr) 54px; }
+.ege-cast__team--home .ege-cast__logo { order: 3; }
+.ege-cast__team--home .ege-cast__teamname { order: 2; text-align: right; }
+.ege-cast__team--home .ege-cast__pts { order: 1; }
+.ege-cast__logo { display: block; width: 54px; height: 54px; object-fit: contain; }
+.ege-cast__teamname { display: grid; min-width: 0; line-height: 1.1; }
+.ege-cast__city { font-size: .75rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--fb-muted); }
+.ege-cast__nick { font-family: var(--fb-font-display); font-size: 1.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ege-cast__pts { font-family: var(--fb-font-display); font-size: 2.75rem; line-height: 1; font-variant-numeric: tabular-nums; }
+/* Who has the ball: a small football by the score. */
+.ege-cast__team.has-ball .ege-cast__pts::after {
+  content: "";
+  display: inline-block;
+  width: 12px;
+  height: 8px;
+  margin: 0 0 6px 8px;
+  border-radius: 50% !important;
+  background: #8a4b1f;
+  vertical-align: middle;
+}
+.ege-cast__team--home.has-ball .ege-cast__pts::after { margin: 0 8px 6px 0; float: left; margin-top: 18px; }
+.ege-cast__clock {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 4px;
+  min-width: 150px;
+  padding: 10px 16px;
+  background: var(--fb-ink);
+  color: var(--fb-cream);
+  text-align: center;
+}
+.ege-cast__time { font-family: var(--fb-font-display); font-size: 1.5rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.ege-cast__down { font-size: .8125rem; font-weight: 700; color: var(--fb-gold); }
+.ege-cast__down:empty { display: none; }
+
+/* The field: 120 yards, the end zones a twelfth of it each. */
+.ege-cast__field {
+  position: relative;
+  width: var(--ege-cast-w);
+  justify-self: center;
+  aspect-ratio: 12 / 5.33;
+  overflow: hidden;
+  border: var(--fb-border) solid var(--fb-ink);
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, .035) 0 4.1667%, transparent 4.1667% 8.3333%),
+    #3f7a37;
+  box-shadow: var(--fb-shadow) var(--fb-shadow) 0 rgba(0, 0, 0, .35);
+}
+.ege-cast__zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8.333%;
+  display: grid;
+  place-items: center;
+}
+.ege-cast__zone--left { left: 0; }
+.ege-cast__zone--right { right: 0; }
+.ege-cast__zonename {
+  font-family: var(--fb-font-display);
+  font-size: clamp(11px, 2.4vw, 22px);
+  color: #fff;
+  letter-spacing: .06em;
+  writing-mode: vertical-rl;
+  white-space: nowrap;
+}
+.ege-cast__zone--left .ege-cast__zonename { transform: rotate(180deg); }
+.ege-cast__yard { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: rgba(255, 255, 255, .55); }
+.ege-cast__yard.is-five { background: rgba(255, 255, 255, .28); }
+.ege-cast__num {
+  position: absolute;
+  transform: translateX(-50%);
+  font-family: var(--fb-font-display);
+  font-size: clamp(10px, 2.2vw, 20px);
+  color: rgba(255, 255, 255, .7);
+  line-height: 1;
+}
+.ege-cast__num--top { top: 9%; }
+.ege-cast__num--bottom { bottom: 9%; }
+.ege-cast__mid { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); opacity: .3; }
+.ege-cast__mid .ege-cast__logo { width: clamp(36px, 9vw, 84px); height: clamp(36px, 9vw, 84px); }
+.ege-cast__los, .ege-cast__first {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  margin-left: -2px;
+  transition: left .9s ease;
+}
+.ege-cast__los { background: rgba(80, 160, 255, .85); }
+.ege-cast__first { background: #ff8a00; box-shadow: 0 0 6px rgba(255, 138, 0, .7); }
+.ege-cast__ball {
+  position: absolute;
+  top: 50%;
+  width: clamp(34px, 7vw, 58px);
+  height: clamp(34px, 7vw, 58px);
+  display: grid;
+  place-items: center;
+  transform: translate(-50%, -50%);
+  border: 3px solid #fff;
+  border-radius: 50% !important;
+  background: var(--team);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .45);
+  transition: left .9s ease;
+}
+.ege-cast__ball .ege-cast__logo { width: 72%; height: 72%; }
+/* What the snap just did: an arrow under the ball, from where it started
+   to where it ended. */
+.ege-cast__arrow {
+  position: absolute;
+  top: calc(50% + clamp(26px, 5vw, 44px));
+  height: 6px;
+  margin-top: -3px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .45);
+  transform-origin: left center;
+  animation: ege-cast-arrow .6s ease-out;
+}
+.ege-cast__arrow::after {
+  content: "";
+  position: absolute;
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-left: 14px solid #fff;
+  border-top: 9px solid transparent;
+  border-bottom: 9px solid transparent;
+}
+.ege-cast__arrow.is-back { transform-origin: right center; }
+.ege-cast__arrow.is-back::after { right: auto; left: -12px; border-left: 0; border-right: 14px solid #fff; }
+@keyframes ege-cast-arrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+.ege-cast__cols { display: grid; gap: 22px; width: var(--ege-cast-w); justify-self: center; }
+.ege-cast__side { display: grid; gap: 22px; min-width: 0; }
+.ege-cast__play { position: relative; display: grid; gap: 6px; padding: 18px 20px 22px; overflow: hidden; }
+.ege-cast__play.is-td, .ege-cast__play.is-safety { background: var(--fb-tint-sage); }
+.ege-cast__play.is-int, .ege-cast__play.is-fum, .ege-cast__play.is-downs { background: var(--fb-tint-clay); }
+.ege-cast__tag {
+  justify-self: start;
+  padding: 4px 9px;
+  background: var(--fb-ink);
+  color: var(--fb-cream);
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.ege-cast__play.is-td .ege-cast__tag { background: var(--fb-grass); }
+.ege-cast__play.is-int .ege-cast__tag, .ege-cast__play.is-fum .ege-cast__tag { background: var(--fb-accent-deep); }
+.ege-cast__call, .ege-cast__text { margin: 0; font-family: var(--fb-font-display); font-size: clamp(1.25rem, 3.2vw, 1.75rem); line-height: 1.2; }
+.ege-cast__called { margin: 0; font-size: .8125rem; font-weight: 700; color: var(--fb-muted); }
+.ege-cast__dots { display: inline-block; margin-left: 4px; animation: ege-cast-pulse 1s ease-in-out infinite; }
+.ege-cast__more { margin: 0; font-size: .875rem; font-weight: 600; color: var(--fb-muted); }
+.ege-cast__when { margin: 0; }
+.ege-cast__bar { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: rgba(0, 0, 0, .08); }
+.ege-cast__fill { display: block; height: 100%; width: 0; background: var(--fb-accent); }
+
+.ege-cast__feed .fb-panel__head { padding: 12px 16px; }
+.ege-cast__feed .fb-panel__head h3 { margin: 0; font-size: 1.125rem; }
+.ege-cast__list { max-height: 460px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.ege-cast__item { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 12px; align-items: start; padding: 11px 16px; border-bottom: 1px solid var(--fb-sand); }
+.ege-cast__body { display: grid; gap: 3px; min-width: 0; }
+
+/* A player's face, cut to a circle on his team's colour at 60% (Sam,
+   2026-11-03); the team's mark where there is no picture of him. */
+.ege-cast__face {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 50% !important;   /* the kit squares every corner */
+}
+.ege-cast__face::before { content: ""; position: absolute; inset: 0; background: var(--team); opacity: .6; }
+/* Head and a little of the shoulders (Sam, 2026-11-03). */
+.ege-cast__headshot {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 100%;
+}
+.ege-cast__face .ege-cast__logo { position: relative; width: 62%; height: 62%; object-fit: contain; }
+.ege-cast__who { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: center; }
+.ege-cast__words { display: grid; gap: 6px; min-width: 0; }
+.ege-cast__who .ege-cast__face { width: 56px; height: 56px; }
+.ege-cast__item.is-td, .ege-cast__item.is-safety { background: var(--fb-tint-sage); }
+.ege-cast__item.is-int, .ege-cast__item.is-fum, .ege-cast__item.is-downs { background: var(--fb-tint-clay); }
+.ege-cast__item.is-fg, .ege-cast__item.is-big { background: var(--fb-tint-wash); }
+.ege-cast__meta { display: flex; align-items: center; gap: 7px; font-size: .75rem; font-weight: 700; color: var(--fb-muted); }
+.ege-cast__meta .ege-cast__logo { width: 18px; height: 18px; }
+.ege-cast__line { margin: 0; font-weight: 600; }
+.ege-cast__hl { font-weight: 800; }
+
+/* An admin's hand on the game: pause, restart, end, cancel; a test
+   game's speed. */
+.ege-cast__controls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; width: var(--ege-cast-w); justify-self: center; }
+.ege-cast__controls .ege-note { flex-basis: 100%; margin: 0; text-align: center; }
+.ege-cast__score { margin: 0; font-size: .8125rem; font-weight: 800; }
+.ege-cast__break {
+  padding: 7px 16px;
+  background: var(--fb-ink);
+  color: var(--fb-cream);
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.ege-cast__empty { padding: 14px 16px; color: var(--fb-muted); }
+.ege-cast__box { width: var(--ege-cast-w); justify-self: center; }
+
+@media (max-width: 620px) {
+  .ege-cast { padding-top: 64px; gap: 16px; }
+  .ege-cast__team { grid-template-columns: 34px minmax(0, 1fr); gap: 4px 8px; padding: 10px; }
+  .ege-cast__team--home { grid-template-columns: minmax(0, 1fr) 34px; }
+  .ege-cast__logo { width: 34px; height: 34px; }
+  .ege-cast__team .ege-cast__pts { grid-column: 1 / -1; justify-self: center; font-size: 2.25rem; }
+  .ege-cast__team--home .ege-cast__pts { order: 3; }
+  .ege-cast__team--home .ege-cast__logo { order: 2; }
+  .ege-cast__team--home .ege-cast__teamname { order: 1; }
+  .ege-cast__nick { font-size: 1.0625rem; }
+  .ege-cast__city { font-size: .625rem; }
+  .ege-cast__clock { min-width: 0; padding: 8px; }
+  .ege-cast__time { font-size: 1.125rem; }
+  .ege-cast__down { font-size: .6875rem; }
+  .ege-cast__team--home.has-ball .ege-cast__pts::after { float: none; margin: 0 0 6px 8px; }
+  .ege-cast__list { max-height: 380px; }
+}
+
+/* A game on the League page being played live: a badge, and it opens. */
+.ege-game.is-live { position: relative; cursor: pointer; }
+@media (hover: hover) { .ege-game.is-live:hover { background: var(--fb-tint-wash); } }
+.ege-game__live {
+  position: absolute;
+  top: -11px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 2px solid var(--fb-ink);
+  background: var(--fb-cream);
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.ege-game__live.is-live { background: #d7261b; color: #fff; }
+.ege-game__live.is-live::before { content: ""; width: 7px; height: 7px; border-radius: 50% !important; background: #fff; animation: ege-cast-pulse 1.4s ease-in-out infinite; }
+
+/* The NFL Sim tab's Live part. */
+.ege-live-admin { display: grid; }
+.ege-live-admin__game { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; padding: 9px 0; border-bottom: 1px solid var(--fb-sand); }
+.ege-live-admin__info { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; min-width: 0; }
+.ege-live-admin__score { font-weight: 800; }
+.ege-live-admin__acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.ege-live-admin__ask { align-items: flex-end; gap: 10px; padding: 8px 0 12px; }
+.ege-live-admin__more > summary { padding: 10px 0 4px; cursor: pointer; }

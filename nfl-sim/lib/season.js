@@ -22,6 +22,13 @@
 
    Weeks the website has already played can be taken as they happened
    (importWeeks) instead of simulated, and the season goes on from there.
+
+   With keepPlays(true) (the admin page) every game a week plays keeps
+   its plays, one file a week in the world (pbp-{season}-{week}.json), for
+   Live Mode (lib/live.js). They last as long as the week's save point.
+   One game of the last week played can be played again on dice of its
+   own (lib/run.js resimGame): league.rerolls counts how many times, and
+   the week's other games come out as they did.
    ========================================================================== */
 
 'use strict';
@@ -58,6 +65,16 @@ function egeRisk(league) {
   const steps = league.season >= EGE_RISK_FROM ? EGE_RISK : EGE_RISK_BEFORE;
   return n < steps.length ? steps[n] : 0;
 }
+
+/* Whether the games keep their plays (the admin page turns it on). */
+let keeping = false;
+function keepPlays(on) { keeping = Boolean(on); }
+
+function playsFile(season, week) { return 'pbp-' + season + '-' + week + '.json'; }
+
+/* A game's key in a plays file and in league.rerolls. */
+function gameKey(game) { return game.away + '@' + game.home; }
+function rollKey(league, game) { return league.season + ':' + game.week + ':' + gameKey(game); }
 
 /* --------------------------------------------------------------- files -- */
 
@@ -260,19 +277,35 @@ function startedShare(league) {
 }
 
 /* One game. A booster on it has the game played again on dice of its own,
-   so the other games of the week are played the same either way. */
+   so the other games of the week are played the same either way. So does
+   a game played again on its own (league.rerolls): the week's dice are
+   rolled for it just as before, and the result thrown away. */
 function play(league, game, rng, opts, extras) {
   const home = side(league, game.home);
   const away = side(league, game.away);
-  const o = Object.assign({ egeRisk: egeRisk(league), links: extras ? extras.links : null }, opts);
-  const first = playGame(home, away, rng, o);
+  const o = Object.assign({ egeRisk: egeRisk(league), links: extras ? extras.links : null, log: keeping }, opts);
+  let first = playGame(home, away, rng, o);
+  const roll = (league.rerolls || {})[rollKey(league, game)] || 0;
+  if (roll) {
+    first = playGame(home, away, seeded([league.seed || 'ege-nfl', league.take || 0, rollKey(league, game), 'roll', roll].join(':')), o);
+  }
   const boosted = extras ? boosts.onGame(extras, game, [home.roster, away.roster]) : [];
   if (!boosted.length) { return first; }
-  const dice = seeded([league.seed || 'ege-nfl', league.take || 0, league.season, game.week, game.home, game.away, 'boost'].join(':'));
+  const dice = seeded([league.seed || 'ege-nfl', league.take || 0, league.season, game.week, game.home, game.away, 'boost']
+    .concat(roll ? ['roll', roll] : []).join(':'));
   const kept = boosts.choose(first, () => playGame(home, away, dice, o), boosted, dice);
   kept.boosted = boosted.map((b) => ({ id: b.id, name: b.name, multiplier: b.multiplier,
                                        points: Math.round(boosts.fantasyPoints(kept.box[b.id]) * 10) / 10 }));
   return kept;
+}
+
+/* The week's plays, game by game, into its plays file. */
+function keptPlays(plays, game, r) {
+  if (plays && r.plays) { plays[gameKey(game)] = { plays: r.plays, people: r.people }; }
+}
+
+function writePlays(league, week, plays) {
+  if (plays) { writeWorld(league, playsFile(league.season, week), { season: league.season, week, games: plays }); }
 }
 
 /* Plays the current week. Returns what happened, for the report. */
@@ -287,9 +320,11 @@ function playWeek(league, rng, hooks) {
   const log = readWorld(league, 'games-' + league.season + '.json', []);
   const extras = boosts.read(league);
   const out = { week, games: [], injuries: [], boosted: [] };
+  const plays = keeping ? {} : null;
   games.forEach((g) => {
     countStarts(league, g);
     const r = play(league, g, rng, { neutral: !!g.neutral }, extras);
+    keptPlays(plays, g, r);
     g.score = r.score;
     if (r.ot) { g.ot = true; }
     hurt(league, r.injuries);
@@ -300,6 +335,7 @@ function playWeek(league, rng, hooks) {
   });
   heal(league);
   writeWorld(league, 'games-' + league.season + '.json', log);
+  writePlays(league, week, plays);
   league.week += 1;
   if (week === DEADLINE_WEEK && hooks && hooks.deadline) {
     const proposals = hooks.deadline(league);
@@ -411,11 +447,14 @@ function playRound(league, rng) {
   const log = readWorld(league, 'games-' + league.season + '.json', []);
   const extras = boosts.read(league);
   const out = { round: name, games: [], injuries: [], boosted: [] };
+  const plays = keeping ? {} : null;
+  const week = lastWeek(league) + po.rounds.length + 1;
   games.forEach((g) => {
     g.playoff = true;
     g.round = name;
-    g.week = lastWeek(league) + po.rounds.length + 1;
+    g.week = week;
     const r = play(league, g, rng, { neutral: !!g.neutral, playoff: true }, extras);
+    keptPlays(plays, g, r);
     g.score = r.score;
     if (r.ot) { g.ot = true; }
     g.winner = r.winner;
@@ -427,6 +466,7 @@ function playRound(league, rng) {
   });
   heal(league);
   writeWorld(league, 'games-' + league.season + '.json', log);
+  writePlays(league, week, plays);
   po.rounds.push({ name, games });
   if (name === 'Super Bowl') {
     po.champion = games[0].winner;
@@ -460,4 +500,4 @@ function draftOrder(league) {
 }
 
 module.exports = { startSeason, playWeek, playRound, importWeeks, startPlayoffs, nextRound, draftOrder, readWorld, writeWorld, lastWeek,
-                   lastPlaces, startedShare, egeRisk, DEADLINE_WEEK, ROUNDS, EGE_RISK };
+                   lastPlaces, startedShare, egeRisk, keepPlays, playsFile, gameKey, rollKey, DEADLINE_WEEK, ROUNDS, EGE_RISK };

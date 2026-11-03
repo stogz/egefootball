@@ -15,14 +15,19 @@
    Weeks taken in from the site have no save point. A week that is out on
    the website cannot be undone, and nor can one before it: the site has
    shown it and paid for it. Save points last until the offseason, which
-   clears them.
+   clears them, and so do the weeks' plays (pbp-{season}-{week}.json, Live
+   Mode's): a week undone loses its plays with it.
+
+   Playing one game of a week again (lib/run.js resimGame) goes back to the
+   week's save point without a new take, `sameDice`, so the rest of the
+   week comes out the same.
    ========================================================================== */
 
 'use strict';
 
 const io = require('./io');
 const { saved, ready } = require('./league');
-const { readWorld, writeWorld, lastWeek, ROUNDS } = require('./season');
+const { readWorld, writeWorld, lastWeek, playsFile, ROUNDS } = require('./season');
 
 function fileFor(season, week) { return 'rewind-' + season + '-' + week + '.json'; }
 
@@ -73,8 +78,8 @@ function points(league) {
 }
 
 /* Puts the league back to where it was before `week`. Returns what went:
-   { week, label, later, changes }. */
-function undo(league, week) {
+   { week, label, later, changes }. `opts.sameDice` keeps the take. */
+function undo(league, week, opts) {
   const point = points(league).filter((p) => p.week === Number(week))[0];
   if (!point) {
     const known = (league.rewinds || []).some((r) => r.season === league.season && r.week === Number(week));
@@ -84,11 +89,13 @@ function undo(league, week) {
   const name = fileFor(league.season, point.week);
   if (!io.has(league.world, name)) { throw new Error('The save point for ' + point.label + ' is missing.'); }
   const back = io.read(league.world, name);
-  const take = (league.take || 0) + 1;
+  const take = (league.take || 0) + (opts && opts.sameDice ? 0 : 1);
   const world = league.world;
+  const last = lastWeek(league) + ROUNDS.length;
   Object.keys(league).forEach((k) => { delete league[k]; });
   Object.assign(league, back.league, { world, take });
   ready(league);
+  for (let w = point.week; w <= last; w += 1) { io.remove(world, playsFile(league.season, w)); }
   const log = 'games-' + league.season + '.json';
   writeWorld(league, log, readWorld(league, log, []).filter((g) => g.season !== league.season || g.week < point.week));
   writeWorld(league, 'trades.json', back.trades || []);
@@ -98,7 +105,10 @@ function undo(league, week) {
 /* The season is over: its save points go. */
 function clear(league) {
   const last = lastWeek(league) + ROUNDS.length;
-  for (let week = 1; week <= last; week += 1) { io.remove(league.world, fileFor(league.season, week)); }
+  for (let week = 1; week <= last; week += 1) {
+    io.remove(league.world, fileFor(league.season, week));
+    io.remove(league.world, playsFile(league.season, week));
+  }
   league.rewinds = [];
 }
 

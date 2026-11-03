@@ -97,7 +97,8 @@ parts.push(`
     tendencies: load('tendencies'),
     weeks: load('weeks'),
     sixTrades: load('six-trades'),
-    sixOffers: load('six-offers')
+    sixOffers: load('six-offers'),
+    liveGame: load('live')
   };
 })();
 `);

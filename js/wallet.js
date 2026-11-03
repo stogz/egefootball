@@ -882,7 +882,8 @@ EGE.wallet = (function () {
 
      One bot per league: the colleges' channel and the NFL's. And a third,
      the trades bot, in a channel of its own: every trade an admin puts
-     through in the NFL sim (Sam, 2026-10-22). Their webhook URLs are pasted
+     through in the NFL sim (Sam, 2026-10-22). And a fourth for Live Mode
+     (js/live.js), under 'live'. Their webhook URLs are pasted
      into the admin page once and kept in Supabase's discord_webhooks table
      (the trades bot's under 'trades'), which only an admin can read or
      write -- never in this repository, which is public, so anyone could
@@ -890,6 +891,7 @@ EGE.wallet = (function () {
   var WEBHOOKS = 'discord_webhooks';
   var WEBHOOK_PATTERN = /^https:\/\/(?:(?:canary|ptb)\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/;
   var TRADES = 'trades';
+  var LIVE = 'live';
 
   /* { college: url, nfl: url, trades: url }, with whichever have been
      saved. An empty object for anybody who is not an admin, or before the
@@ -910,7 +912,7 @@ EGE.wallet = (function () {
   function saveWebhook(league, url) {
     var c = client();
     if (!c) { return fail(offline()); }
-    if (EGE.LEAGUES.indexOf(league) === -1 && league !== TRADES) { return fail('No such league: ' + league + '.'); }
+    if (EGE.LEAGUES.indexOf(league) === -1 && league !== TRADES && league !== LIVE) { return fail('No such league: ' + league + '.'); }
     var clean = String(url || '').trim();
     if (!WEBHOOK_PATTERN.test(clean)) {
       return fail('That is not a Discord webhook URL. Copy it from the channel\u2019s ' +
@@ -955,6 +957,17 @@ EGE.wallet = (function () {
     return loadWebhooks().then(function (hooks) {
       if (!hooks[TRADES]) { return { ok: true, skipped: true }; }
       return postToWebhook(hooks[TRADES], payload);
+    });
+  }
+
+  /* Sends one of a live game's posts (js/live.js) from the admin's browser,
+     when Supabase has no clock to send them itself: to the live bot's
+     channel, or the NFL's when there is no live bot. */
+  function postLiveToDiscord(payload) {
+    return loadWebhooks().then(function (hooks) {
+      var url = hooks[LIVE] || hooks.nfl;
+      if (!url) { return { ok: true, skipped: true }; }
+      return postToWebhook(url, payload);
     });
   }
 
@@ -1542,6 +1555,7 @@ EGE.wallet = (function () {
     saveWebhook: saveWebhook,
     postWeekToDiscord: postWeekToDiscord,
     postTradeToDiscord: postTradeToDiscord,
+    postLiveToDiscord: postLiveToDiscord,
     clearPublishedBoosters: clearPublishedBoosters
   };
 })();

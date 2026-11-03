@@ -20,6 +20,7 @@
   var viewTeam   = document.getElementById('view-team');
   var viewDiamonds = document.getElementById('view-diamonds');
   var viewLeague = document.getElementById('view-league');
+  var viewLive = document.getElementById('view-live');
   var loginBtn   = document.getElementById('loginBtn');
   var loginModal = document.getElementById('loginModal');
 
@@ -5950,6 +5951,8 @@
   var leagueAt = null;
   var leagueOpen = null;
   var leagueIndex;
+  /* Games put on live (js/live.js), null until they are in. */
+  var leagueLive = null;
 
   var ROUND_NAMES = { 19: 'Wild Card', 20: 'Divisional', 21: 'Conference Championships', 22: 'Super Bowl' };
 
@@ -6081,6 +6084,9 @@
       var before = list.filter(function (week) { return week <= leagueAt.week; });
       return { season: leagueAt.season, week: before.length ? before[before.length - 1] : list[0] };
     }
+    /* A game being played live, or about to be, opens its week. */
+    var on = (leagueLive || []).filter(function (r) { return EGE.liveView.phase(r) !== 'final'; })[0];
+    if (on && weeks[on.season] && weeks[on.season].indexOf(on.week) !== -1) { return { season: on.season, week: on.week }; }
     var out = stops.filter(function (at) { return EGE.isPublished(at.season, at.week); });
     return out.length ? out[out.length - 1] : stops[0];
   }
@@ -6382,8 +6388,9 @@
 
   /* A game to come: both teams with their records where the score goes,
      and any of the six in it with his position. It does not open. */
-  function upcomingCard(game, records) {
-    var card = el('article', 'ege-game is-upcoming' + (game.six.length ? ' is-six' : ''));
+  function upcomingCard(game, records, season, week) {
+    var live = EGE.liveView.gameFor(leagueLive, season, week, game.home, game.away);
+    var card = el('article', 'ege-game is-upcoming' + (game.six.length ? ' is-six' : '') + (live ? ' is-live' : ''));
     var score = el('div', 'ege-game__score');
     [game.away, game.home].forEach(function (key) {
       var row = el('div', 'ege-game__side');
@@ -6407,6 +6414,17 @@
         leaders.appendChild(row);
       });
       card.appendChild(leaders);
+    }
+    /* Being played live (js/live.js), or about to be: it opens the game. */
+    if (live) {
+      var phase = EGE.liveView.phase(live);
+      var badge = el('span', 'ege-game__live is-' + phase);
+      badge.textContent = phase === 'live' ? 'Live' : phase === 'soon'
+        ? new Date(live.starts_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'Replay';
+      card.insertBefore(badge, card.firstChild);
+      EGE.cardsView.pressable(card, EGE.nfl.city(game.away) + ' at ' + EGE.nfl.city(game.home) + ', live', function () {
+        window.location.hash = '#live/' + live.id;
+      });
     }
     return card;
   }
@@ -6603,6 +6621,9 @@
 
   var boxSide = {};
 
+  /* A box score drawn for a game as it is being played (js/live.js). */
+  EGE.leagueBoxScore = function (game, season, week) { return boxScore(game, season, week); };
+
   function boxScore(game, season, week) {
     var id = gameId(game, season, week);
     var box = el('section', 'fb-panel ege-boxscore');
@@ -6683,7 +6704,7 @@
     var opened = null;
     var records = games.some(function (game) { return game.upcoming; }) ? nflRecords(season) : null;
     games.forEach(function (game) {
-      var card = game.upcoming ? upcomingCard(game, records) : gameCard(game, season, week);
+      var card = game.upcoming ? upcomingCard(game, records, season, week) : gameCard(game, season, week);
       grid.appendChild(card);
       if (leagueOpen === gameId(game, season, week)) {
         opened = card;
@@ -6705,6 +6726,12 @@
   var leagueAsked = null;
 
   function renderLeague() {
+    var asked = EGE.liveView.games();
+    asked.then(function (rows) {
+      if (rows === leagueLive) { return; }
+      leagueLive = rows;
+      if (onLeague()) { renderLeague(); }
+    });
     var ask = EGE.boxScores.weeks();
     if (ask !== leagueAsked) {
       leagueAsked = ask;
@@ -10182,7 +10209,7 @@
      the repository is public, and anybody with a webhook URL can post to
      its channel. A saved one is never put back into the box -- it says it
      is saved, with the last few characters to tell which it is. */
-  var HOOK_FIELDS = { college: 'hookCollege', nfl: 'hookNfl', trades: 'hookTrades' };
+  var HOOK_FIELDS = { college: 'hookCollege', nfl: 'hookNfl', trades: 'hookTrades', live: 'hookLive' };
   var hooksWired = false;
 
   function renderWebhooks() {
@@ -10341,6 +10368,7 @@
     viewTeam.hidden   = view !== viewTeam;
     viewDiamonds.hidden = view !== viewDiamonds;
     viewLeague.hidden = view !== viewLeague;
+    viewLive.hidden = view !== viewLive;
   }
 
   /* The page route() last drew, so it can tell going somewhere from being
@@ -10356,6 +10384,8 @@
     /* Going anywhere else shuts the sticker drawer (Sam, 2026-10-20): it
        belongs to a game on the page being left. */
     if (moved) { closeDrawer(); }
+    /* A live game stops asking for its snaps once it is left. */
+    if (hash.indexOf('live/') !== 0) { EGE.liveView.stop(); }
 
     if (hash === 'teams') {
       renderTeams();
@@ -10391,6 +10421,10 @@
       show(viewLeague);
       setNav('league');
       openLeague(hash.slice(7));
+    } else if (hash.indexOf('live/') === 0) {
+      show(viewLive);
+      setNav('league');
+      EGE.liveView.render(hash.slice(5));
     } else if (hash === 'admin' || hash.indexOf('admin/') === 0) {
       renderAdminView();
       show(viewAdmin);
