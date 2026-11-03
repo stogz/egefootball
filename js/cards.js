@@ -48,6 +48,33 @@ EGE.cardStore = (function () {
     return String((error && error.message) || 'Something went wrong.').replace(/\s*CONTEXT:.*$/, '');
   }
 
+  /* Supabase hands back at most 1000 rows a request (the API's max rows)
+     and leaves the rest out without saying so. A big collection is more
+     than a thousand different cards, and in card id order the last of them
+     are the newest season's performances (p:2027:...) and the reward cards
+     (r:...): the cards that went missing from the Library. A read that can
+     run that long goes through here: `query()` makes the read afresh,
+     `order` is the columns that keep its rows in one fixed order, and pages
+     are read until every row the count says there is has come back. The
+     result is { data, error }, like one read. */
+  var PAGE = 1000;
+
+  function allRows(query, order) {
+    var rows = [];
+    function page() {
+      var q = query();
+      order.forEach(function (col) { q = q.order(col, { ascending: true }); });
+      return q.range(rows.length, rows.length + PAGE - 1).then(function (res) {
+        if (res.error) { return { data: null, error: res.error }; }
+        var got = res.data || [];
+        rows = rows.concat(got);
+        var more = typeof res.count === 'number' ? rows.length < res.count : got.length === PAGE;
+        return got.length && more ? page() : { data: rows, error: null };
+      });
+    }
+    return page();
+  }
+
   /* Everything this player owns, as { card_id: quantity }, plus when each
      was first pulled. Null when it could not be read, so a page never
      mistakes "unreachable" for "owns nothing". */
@@ -55,7 +82,9 @@ EGE.cardStore = (function () {
     var c = client();
     if (!c || !email) { return Promise.resolve(null); }
 
-    return c.from(CARDS).select('card_id, quantity, first_pulled_at').eq('email', email)
+    return allRows(function () {
+      return c.from(CARDS).select('card_id, quantity, first_pulled_at', { count: 'exact' }).eq('email', email);
+    }, ['card_id'])
       .then(function (res) {
         if (res.error) { return null; }
         var owned = {};
@@ -559,7 +588,9 @@ EGE.cardStore = (function () {
   function pulledFrom(email, packKey) {
     var c = client();
     if (!c || !email || !packKey) { return Promise.resolve({}); }
-    return c.from(PACKS).select('cards').eq('email', email).eq('pack_key', packKey)
+    return allRows(function () {
+      return c.from(PACKS).select('cards', { count: 'exact' }).eq('email', email).eq('pack_key', packKey);
+    }, ['opened_at', 'id'])
       .then(function (res) {
         var out = {};
         if (res.error) { return out; }
@@ -634,9 +665,12 @@ EGE.cardStore = (function () {
     var c = client();
     if (!c) { return Promise.resolve(null); }
     return Promise.all([
-      c.from(CARDS).select('email, card_id, quantity'),
-      c.from(CLAIMS).select('email, set_key'),
-      c.from(TRADES).select('from_email, to_email, status'),
+      allRows(function () { return c.from(CARDS).select('email, card_id, quantity', { count: 'exact' }); },
+        ['email', 'card_id']),
+      allRows(function () { return c.from(CLAIMS).select('email, set_key', { count: 'exact' }); },
+        ['email', 'set_key']),
+      allRows(function () { return c.from(TRADES).select('from_email, to_email, status', { count: 'exact' }); },
+        ['created_at', 'id']),
       c.from(SHOWCASES).select('email, cards'),
       c.from('card_photos').select('email, slug')
     ]).then(function (all) {
