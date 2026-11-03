@@ -2544,6 +2544,15 @@ happens, a card is never sold twice and a reward is never paid twice. The small 
 browser's roles, since they do no checking of their own. **Re-run `supabase/schema.sql` after pulling this change**,
 or the tab says it cannot load the cards.
 
+Supabase's API hands back at most 1000 rows a request and quietly leaves
+the rest out, and a big collection is more than a thousand different cards.
+So a collection (and the admin's read of every collection, claim and trade,
+and a player's Halloween packs) is read in pages of 1000 in card id order
+until the row count is reached (`allRows` in js/cards.js). Before that, the
+Library, the Player Cards' points, the trade builder and the sets all lost
+whatever came after the thousandth id: the newest season's performances and
+the event reward cards (`r:...`) first.
+
 ---
 
 ### The five pages
