@@ -5,7 +5,10 @@
    the League page. A snap every 20 seconds: first what is called
    ("Jaykeb Stewart pass"), then four seconds later what came of it
    ("Jaykeb Stewart 22-yd pass to Nico Collins"), and sixteen seconds
-   after that the next.
+   after that the next; 50 seconds more before a new drive, and 15 more
+   before its first snap in the red zone. An admin can pause, end,
+   restart or cancel it from here too, and #live/test plays a game on
+   this device alone before it goes live.
 
    Supabase keeps the time (live_feed in supabase/schema.sql): every
    answer carries its clock, and the page sets its own by it, so a
@@ -33,8 +36,13 @@ EGE.liveView = (function () {
   var TAGS = { td: 'Touchdown', fg: 'Field goal', int: 'Interception', fum: 'Fumble', downs: 'Turnover on downs',
                safety: 'Safety', big: 'Big play', punt: 'Punt' };
 
+  var COLUMNS = 'id, season, week, home, away, title, starts_at, slot_ms, reveal_ms, plays, length_ms, paused_at';
+  var TEST_KEY = 'ege.liveTest';
+  var SPEEDS = [1, 2, 5, 10];
+
   var view = null;
-  var game = null;          /* { id, row, entries, offset, at, shown, ... } */
+  var game = null;          /* { id, row, entries, clockAt, paused, at, shown, next, test, ... } */
+  var confirming = '';      /* the admin button waiting on a second click */
   var timer = null;
   var ticker = null;
   var games = null;         /* every live game, for the League page */
@@ -74,18 +82,22 @@ EGE.liveView = (function () {
     var c = client();
     gamesAt = Date.now();
     games = !c ? Promise.resolve([]) : c.from('live_games')
-      .select('id, season, week, home, away, title, starts_at, slot_ms, reveal_ms, plays')
+      .select(COLUMNS)
       .order('starts_at', { ascending: false }).limit(60)
       .then(function (res) { return res.error ? [] : (res.data || []); }, function () { return []; });
     return games;
   }
 
-  function ends(row) { return Date.parse(row.starts_at) + row.plays * row.slot_ms; }
+  function length(row) { return row.length_ms || row.plays * row.slot_ms; }
+
+  /* When it ends; a paused game has not. */
+  function ends(row) { return row.paused_at ? Infinity : Date.parse(row.starts_at) + length(row); }
 
   /* 'soon', 'live' or 'final', by this device's clock (near enough for a
      badge; the page itself goes by Supabase's). */
   function phase(row) {
     var now = Date.now();
+    if (row.paused_at) { return Date.parse(row.paused_at) < Date.parse(row.starts_at) ? 'soon' : 'live'; }
     if (now < Date.parse(row.starts_at)) { return 'soon'; }
     return now < ends(row) ? 'live' : 'final';
   }
@@ -100,7 +112,21 @@ EGE.liveView = (function () {
 
   /* --- the clock ------------------------------------------------------------ */
 
-  function now() { return Date.now() + (game ? game.offset : 0); }
+  /* The game's clock: milliseconds from kickoff (less than nothing before
+     it), as the last answer had it and run on by this device's since,
+     unless the game is paused. A test game runs on this device alone, at
+     the speed picked for it. */
+  function clock() {
+    if (!game || !game.clockAt) { return -Infinity; }
+    if (game.paused) { return game.clockAt.ms; }
+    return game.clockAt.ms + (Date.now() - game.clockAt.real) * (game.speed || 1);
+  }
+
+  /* When an entry comes up, from kickoff. */
+  function entryMs(i) {
+    var e = game.entries[i];
+    return e && typeof e.ms === 'number' ? e.ms : i * game.slot;
+  }
 
   function clockText(seconds) {
     var t = Math.max(0, Math.round(seconds || 0));
@@ -125,6 +151,7 @@ EGE.liveView = (function () {
   /* --- asking Supabase ------------------------------------------------------- */
 
   function fetchFeed() {
+    if (game && game.test) { return Promise.resolve(take(testFeed(game.done), 0, 0)); }
     var c = client();
     if (!c || !game) { return Promise.reject(new Error('Not connected.')); }
     var id = game.id;
@@ -134,30 +161,45 @@ EGE.liveView = (function () {
       if (!game || game.id !== id) { return null; }
       if (res.error) { throw new Error(res.error.message); }
       if (!res.data) { game.missing = true; return null; }
-      var got = res.data;
-      var back = Date.now();
-      game.offset = got.now - Math.round((sent + back) / 2);
-      game.starts = got.starts;
-      game.slot = got.slot;
-      game.reveal = got.reveal;
-      game.plays = got.plays;
-      game.at = got.at;
-      game.shown = got.shown;
-      game.entries = game.entries.slice(0, got.from).concat(got.entries || []);
-      var last = game.entries[game.entries.length - 1];
-      game.done = game.entries.length - (last && last.hidden ? 1 : 0);
-      return got;
+      return take(res.data, sent, Date.now());
     });
   }
 
-  /* When the next thing is due: kickoff, the snap's reveal, or the next
-     snap. Null once the game is over. */
+  /* An answer, kept: the game's clock as it was halfway between asking
+     and hearing back, and the snaps it brought. */
+  function take(got, sent, back) {
+    if (!game.test) {
+      game.clockAt = { ms: got.clock, real: Math.round((sent + back) / 2) };
+      game.paused = Boolean(got.paused);
+    }
+    game.slot = got.slot;
+    game.reveal = got.reveal;
+    game.plays = got.plays;
+    game.at = got.at;
+    game.shown = got.shown;
+    game.next = typeof got.next === 'number' ? got.next : null;
+    /* Started again from the kickoff (or earlier than what is here): ask
+       for everything over. */
+    if (got.from > Math.max(got.at, 0) + 1 || (got.at < 0 && game.done > 0)) {
+      game.entries = [];
+      game.done = 0;
+      game.again = true;
+      return got;
+    }
+    game.entries = game.entries.slice(0, got.from).concat(got.entries || []);
+    var last = game.entries[game.entries.length - 1];
+    game.done = game.entries.length - (last && last.hidden ? 1 : 0);
+    return got;
+  }
+
+  /* When the next thing is due, by the game's clock: kickoff, the snap's
+     reveal, or the next snap. Null once the game is over. */
   function nextDue() {
-    if (game.at < 0) { return game.starts; }
+    if (game.at < 0) { return 0; }
     var current = game.entries[game.at];
-    if (current && current.hidden) { return game.starts + game.at * game.slot + game.reveal; }
+    if (current && current.hidden) { return entryMs(game.at) + game.reveal; }
     if (game.at >= game.plays - 1) { return null; }
-    return game.starts + (game.at + 1) * game.slot;
+    return game.next !== null ? game.next : (game.at + 1) * game.slot;
   }
 
   function schedule(wait) {
@@ -168,17 +210,22 @@ EGE.liveView = (function () {
   function tick() {
     if (!game) { return; }
     var had = game.at + ':' + game.done;
+    var mine = game;
     fetchFeed().then(function () {
-      if (!game) { return; }
+      if (game !== mine) { return; }
       if (game.missing) { drawMissing(); return; }
+      if (game.again) { game.again = false; tick(); return; }
       draw();
+      /* Paused: ask now and then whether it has started again. */
+      if (game.paused) { if (!game.test) { schedule(4000); } return; }
       var due = nextDue();
       if (due === null) { return; }
+      var wait = (due - clock()) / (game.speed || 1);
       /* The answer came back before the clock turned over: a moment more. */
       var stuck = had === game.at + ':' + game.done;
-      schedule(stuck ? Math.max(800, due - now() + 150) : due - now() + 150);
+      schedule(stuck ? Math.max(800, wait + 150) : wait + 150);
     }).catch(function () {
-      schedule(3000);
+      if (game === mine) { schedule(3000); }
     });
   }
 
@@ -256,6 +303,20 @@ EGE.liveView = (function () {
     return box;
   }
 
+  /* A snap's words, a scoring play's past the player's name in the colour
+     of the side that scored (Sam, 2026-11-03). */
+  function said(e, className) {
+    var line = el('p', className);
+    var i = e.hl ? e.text.indexOf(e.hl) : -1;
+    if (i < 0) { line.textContent = e.text; return line; }
+    line.appendChild(document.createTextNode(e.text.slice(0, i)));
+    var hl = el('span', 'ege-cast__hl', e.hl);
+    hl.style.color = team(e.ht).color;
+    line.appendChild(hl);
+    line.appendChild(document.createTextNode(e.text.slice(i + e.hl.length)));
+    return line;
+  }
+
   /* Where the ball is as far as anybody may know. */
   function where() {
     var current = game.entries[game.at];
@@ -279,8 +340,9 @@ EGE.liveView = (function () {
     var head = el('header', 'ege-cast__head');
     var state = phaseNow();
     var kicker = el('p', 'fb-kicker ege-cast__kicker');
-    if (state === 'live') { kicker.appendChild(el('span', 'ege-cast__dot')); }
-    kicker.appendChild(document.createTextNode(state === 'live' ? 'Live' : state === 'final' ? 'Final' : 'Kickoff soon'));
+    if (state === 'live' && !game.paused) { kicker.appendChild(el('span', 'ege-cast__dot')); }
+    kicker.appendChild(document.createTextNode((game.test ? 'Test · ' : '') +
+      (game.paused && state !== 'final' ? 'Paused' : state === 'live' ? 'Live' : state === 'final' ? 'Final' : 'Kickoff soon')));
     head.appendChild(kicker);
 
     var board = el('div', 'ege-cast__board');
@@ -300,7 +362,7 @@ EGE.liveView = (function () {
       if (!i) {
         var mid = el('div', 'ege-cast__clock');
         if (state === 'soon') {
-          mid.appendChild(el('span', 'ege-cast__time', clockText((game.starts - now()) / 1000)));
+          mid.appendChild(el('span', 'ege-cast__time', clockText(-clock() / 1000 / (game.speed || 1))));
           mid.appendChild(el('span', 'ege-cast__down', 'to kickoff'));
         } else if (state === 'final') {
           var last = game.entries[game.entries.length - 1];
@@ -388,8 +450,8 @@ EGE.liveView = (function () {
     var state = phaseNow();
     if (state === 'soon') {
       card.appendChild(el('p', 'ege-cast__call', nick(game.row.away) + (game.row.title.indexOf(' vs. ') !== -1 ? ' vs. ' : ' at ') + nick(game.row.home)));
-      card.appendChild(el('p', 'fb-meta ege-cast__when', 'Kicks off at ' +
-        new Date(game.starts - game.offset).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })));
+      card.appendChild(el('p', 'fb-meta ege-cast__when', game.paused ? 'Paused' : 'Kicks off at ' +
+        new Date(Date.now() - clock() / (game.speed || 1)).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })));
       return card;
     }
     var e = game.entries[game.at];
@@ -417,25 +479,31 @@ EGE.liveView = (function () {
       words.appendChild(call);
     } else {
       if (e.call) { words.appendChild(el('p', 'ege-cast__called', e.call)); }
-      words.appendChild(el('p', 'ege-cast__text', e.text));
+      words.appendChild(said(e, 'ege-cast__text'));
       (e.more || []).forEach(function (m) { words.appendChild(el('p', 'ege-cast__more', m)); });
     }
     who.appendChild(words);
     card.appendChild(who);
     if (state === 'live') {
+      /* The time to the next snap: a snap's 20 seconds until its result is
+         out, then however long the wait really is (longer before a new
+         drive or the red zone). */
       var bar = el('span', 'ege-cast__bar');
       var fill = el('span', 'ege-cast__fill');
-      var start = game.starts + game.at * game.slot;
-      var gone = Math.min(1, Math.max(0, (now() - start) / game.slot));
+      var start = entryMs(game.at);
+      var end = !e.hidden && game.next !== null ? game.next : start + game.slot;
+      var gone = Math.min(1, Math.max(0, (clock() - start) / (end - start)));
       fill.style.width = (gone * 100) + '%';
       bar.appendChild(fill);
       card.appendChild(bar);
-      window.requestAnimationFrame(function () {
+      if (!game.paused) {
         window.requestAnimationFrame(function () {
-          fill.style.transition = 'width ' + Math.max(0, start + game.slot - now()) + 'ms linear';
-          fill.style.width = '100%';
+          window.requestAnimationFrame(function () {
+            fill.style.transition = 'width ' + Math.max(0, (end - clock()) / (game.speed || 1)) + 'ms linear';
+            fill.style.width = '100%';
+          });
         });
-      });
+      }
     }
     return card;
   }
@@ -473,7 +541,7 @@ EGE.liveView = (function () {
       meta.appendChild(logo(e.pre.o, 18));
       meta.appendChild(el('span', null, quarterText(e.pre.q) + ' ' + clockText(e.pre.c) + (e.pre.dn ? ' · ' + downText(e.pre) : '')));
       body.appendChild(meta);
-      body.appendChild(el('p', 'ege-cast__line', e.text));
+      body.appendChild(said(e, 'ege-cast__line'));
       (e.more || []).forEach(function (m) { body.appendChild(el('p', 'ege-cast__more', m)); });
       if (e.tag === 'td' || e.tag === 'fg' || e.tag === 'safety') {
         body.appendChild(el('p', 'ege-cast__score', nick(game.row.away) + ' ' + e.post.s[1] + ', ' + nick(game.row.home) + ' ' + e.post.s[0]));
@@ -507,6 +575,8 @@ EGE.liveView = (function () {
     var at = where();
     view.innerHTML = '';
     view.appendChild(drawHead(at));
+    var controls = drawControls();
+    if (controls) { view.appendChild(controls); }
     view.appendChild(drawField(at));
     var cols = el('div', 'ege-cast__cols');
     var side = el('div', 'ege-cast__side');
@@ -524,6 +594,152 @@ EGE.liveView = (function () {
     document.title = nick(game.row.away) + ' ' + scoreNow()[1] + ', ' + nick(game.row.home) + ' ' + scoreNow()[0];
   }
 
+  /* --- an admin's hand on it -------------------------------------------------
+
+     Pause, end, restart or cancel a live game in case something goes
+     wrong (Sam, 2026-11-03): live_control, for everybody at once. A test
+     game has the same, on this device alone, and a speed. */
+
+  function control(id, action) {
+    var c = client();
+    if (!c) { return Promise.reject(new Error('Not connected to Supabase.')); }
+    return c.rpc('live_control', { p_id: id, p_action: action, p_delay: 0 }).then(function (res) {
+      if (res.error) {
+        throw new Error(res.error.message + (/live_control/.test(res.error.message) ? ' Run supabase/schema.sql again first.' : ''));
+      }
+      return res.data;
+    });
+  }
+
+  function act(action) {
+    game.error = null;
+    if (game.test) { testAct(action); return; }
+    var mine = game;
+    control(game.id, action).then(function () {
+      if (game === mine) { tick(); }
+    }, function (err) {
+      if (game !== mine) { return; }
+      game.error = err.message;
+      draw();
+    });
+  }
+
+  function drawControls() {
+    var admin = EGE.wallet && EGE.wallet.admin && EGE.wallet.admin();
+    if (!game.test && !admin) { return null; }
+    var bar = el('div', 'ege-cast__controls');
+    var state = phaseNow();
+    /* `sure`: what the button says on the second click it waits for. */
+    function btn(label, action, sure) {
+      var b = el('button', 'fb-btn fb-btn--sm' + (confirming === action ? ' fb-btn--primary' : ''),
+        confirming === action ? sure : label);
+      b.type = 'button';
+      b.addEventListener('click', function () {
+        if (sure && confirming !== action) { confirming = action; draw(); return; }
+        confirming = '';
+        act(action);
+      });
+      bar.appendChild(b);
+    }
+    if (state !== 'final') { btn(game.paused ? 'Resume' : 'Pause', game.paused ? 'resume' : 'pause'); }
+    btn('Restart', 'restart', game.test ? null : 'Restart from kickoff');
+    if (state !== 'final') { btn('End', 'end', game.test ? null : 'End it now'); }
+    if (!game.test) { btn('Cancel', 'cancel', 'Cancel for good'); }
+    if (game.test) {
+      SPEEDS.forEach(function (n) {
+        var b = el('button', 'fb-btn fb-btn--sm' + (game.speed === n ? ' fb-btn--primary' : ''), n + '\u00d7');
+        b.type = 'button';
+        b.addEventListener('click', function () { testAct('speed', n); });
+        bar.appendChild(b);
+      });
+    }
+    if (game.error) { bar.appendChild(el('p', 'ege-note ege-note--error', game.error)); }
+    return bar;
+  }
+
+  /* --- a test game -------------------------------------------------------------
+
+     An admin's private run of a game before it goes live (Sam,
+     2026-11-03): the sim's snaps played on this device alone, the same
+     way a live game plays, with nothing written to Supabase, nothing for
+     anybody else to see and nothing posted to Discord. Kept for the tab in
+     sessionStorage, so a reload carries on where it was. */
+
+  var test = null;          /* { row, entries, at: { ms, real }, speed, paused } */
+
+  function saveTest() {
+    try { window.sessionStorage.setItem(TEST_KEY, JSON.stringify(test)); } catch (err) { /* kept in memory only */ }
+  }
+
+  function loadTest() {
+    if (test) { return test; }
+    try { test = JSON.parse(window.sessionStorage.getItem(TEST_KEY) || 'null'); } catch (err) { test = null; }
+    return test;
+  }
+
+  /* A test game of `row` ({ season, week, home, away, title }), from the
+     plan's entries; kicks off five seconds after it is opened. */
+  function startTest(row, entries, total, slot, reveal) {
+    test = {
+      row: Object.assign({}, row, { id: 'test', slot_ms: slot || 20000, reveal_ms: reveal || 4000,
+                                    plays: entries.length, length_ms: total }),
+      entries: entries, at: { ms: -5000, real: Date.now() }, speed: 1, paused: false
+    };
+    saveTest();
+    if (game && game.test) { stop(); }
+  }
+
+  function syncTest() {
+    game.clockAt = test.at;
+    game.speed = test.speed;
+    game.paused = test.paused;
+  }
+
+  /* What live_feed would say of the test game now. */
+  function testFeed(from) {
+    var all = test.entries;
+    var row = test.row;
+    var ms = clock();
+    var at = -1;
+    var shown = false;
+    var next = null;
+    var list = [];
+    function when(i) { return typeof all[i].ms === 'number' ? all[i].ms : i * row.slot_ms; }
+    from = Math.max(from || 0, 0);
+    if (ms >= 0) {
+      at = 0;
+      for (var i = 1; i < all.length && when(i) <= ms; i += 1) { at = i; }
+      var cur = all[at];
+      shown = !cur.call || ms - when(at) >= row.reveal_ms || ms >= length(row);
+      if (shown && at < all.length - 1) { next = when(at + 1); }
+      for (var j = from; j < at; j += 1) { list.push(all[j]); }
+      if (from <= at) {
+        var hidden = { call: cur.call, pre: cur.pre, hidden: true, ms: when(at) };
+        if (cur.w !== undefined) {
+          hidden.w = cur.w;
+          if (cur.p && cur.p[cur.w]) { hidden.p = {}; hidden.p[cur.w] = cur.p[cur.w]; }
+        }
+        list.push(shown ? cur : hidden);
+      }
+    }
+    return { clock: ms, paused: test.paused, slot: row.slot_ms, reveal: row.reveal_ms, plays: all.length,
+             at: at, from: from, shown: shown, next: next, entries: list };
+  }
+
+  function testAct(action, speed) {
+    var now = Date.now();
+    var ms = clock();
+    if (action === 'pause') { test.at = { ms: ms, real: now }; test.paused = true; }
+    if (action === 'resume') { test.at = { ms: test.at.ms, real: now }; test.paused = false; }
+    if (action === 'restart') { test.at = { ms: -5000, real: now }; test.paused = false; }
+    if (action === 'end') { test.at = { ms: length(test.row), real: now }; test.paused = false; }
+    if (action === 'speed') { test.at = { ms: ms, real: now }; test.speed = speed; }
+    saveTest();
+    syncTest();
+    window.clearTimeout(timer);
+    tick();
+  }
+
   /* --- the page --------------------------------------------------------------- */
 
   function stop() {
@@ -539,14 +755,25 @@ EGE.liveView = (function () {
     if (!view) { return; }
     if (game && game.id === id) { draw(); return; }
     stop();
+    confirming = '';
     document.title = 'Live';
     view.innerHTML = '';
+    if (id === 'test') {
+      if (!loadTest()) { view.appendChild(el('p', 'ege-note ege-cast__note', 'No test game. Start one from the NFL Sim tab.')); return; }
+      game = { id: 'test', test: true, row: test.row, entries: [], done: 0, at: -1, shown: false, next: null };
+      syncTest();
+      ticker = window.setInterval(function () {
+        if (game && game.row && phaseNow() === 'soon') { draw(); }
+      }, 1000);
+      tick();
+      return;
+    }
     view.appendChild(el('p', 'ege-note ege-cast__note', 'Getting the game…'));
     var c = client();
     if (!c) { view.innerHTML = ''; view.appendChild(el('p', 'ege-note ege-cast__note', 'Live games need the connection to Supabase.')); return; }
-    game = { id: id, row: null, entries: [], done: 0, offset: 0, at: -1, shown: false };
+    game = { id: id, row: null, entries: [], done: 0, at: -1, shown: false, next: null };
     var mine = game;
-    c.from('live_games').select('id, season, week, home, away, title, starts_at, slot_ms, reveal_ms, plays').eq('id', id)
+    c.from('live_games').select(COLUMNS).eq('id', id)
       .maybeSingle().then(function (res) {
         if (game !== mine) { return; }
         if (res.error || !res.data) { drawMissing(); game = null; return; }
@@ -564,8 +791,9 @@ EGE.liveView = (function () {
   }
 
   document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible' && game && game.row && nextDue() !== null) { tick(); }
+    if (document.visibilityState === 'visible' && game && game.row && (game.paused || nextDue() !== null)) { tick(); }
   });
 
-  return { render: render, stop: stop, games: loadGames, gameFor: gameFor, phase: phase, ends: ends };
+  return { render: render, stop: stop, games: loadGames, gameFor: gameFor, phase: phase, ends: ends,
+           control: control, startTest: startTest, columns: COLUMNS };
 })();

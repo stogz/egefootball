@@ -66,7 +66,7 @@ EGE.nflSimAdmin = (function () {
     week: '',             /* "season:week" picked in the week stats; the last one played when blank */
     liveGames: [],        /* live_games rows, newest first (js/live.js) */
     liveAsk: '',          /* the game whose PLAY LIVE is waiting on a kickoff time */
-    liveStop: ''          /* the live game whose Stop is waiting to be clicked again */
+    liveSure: ''          /* 'id:action': the live game control waiting to be clicked again */
   };
 
   function emptyDeal() { return [{ key: '', players: [], picks: [] }, { key: '', players: [], picks: [] }]; }
@@ -944,7 +944,10 @@ EGE.nflSimAdmin = (function () {
      game's snaps (pbp-{season}-{week}.json, lib/live.js) and hands them to
      live_start, which kicks off when asked; Supabase's own clock sends the
      posts, or this page does while it is open when there is none
-     (live_claim). Publishing the week waits until the game is over. */
+     (live_claim). Publishing the week waits until the game is over. A
+     game on can be paused, ended, restarted or cancelled (live_control,
+     also on the live page itself), and Test plays one on this device
+     alone first, posting nothing (js/live.js). */
 
   var LIVE_SLOT = 20000;
   var LIVE_REVEAL = 4000;
@@ -957,7 +960,7 @@ EGE.nflSimAdmin = (function () {
 
   function liveId(season, week, g) { return [season, week, g.away, g.home].join('-').toLowerCase(); }
 
-  function liveEnds(row) { return Date.parse(row.starts_at) + row.plays * row.slot_ms; }
+  function liveEnds(row) { return EGE.liveView.ends(row); }
 
   function liveRow(id) { return state.liveGames.filter(function (r) { return r.id === id; })[0] || null; }
 
@@ -970,7 +973,7 @@ EGE.nflSimAdmin = (function () {
   function loadLiveGames() {
     var c = client();
     if (!c) { return Promise.resolve(); }
-    return c.from('live_games').select('id, season, week, home, away, title, starts_at, slot_ms, reveal_ms, plays')
+    return c.from('live_games').select(EGE.liveView.columns)
       .order('starts_at', { ascending: false }).limit(40).then(function (res) {
         state.liveGames = res.error ? [] : (res.data || []);
         if (state.liveGames.some(function (r) { return liveEnds(r) + 60000 > Date.now(); })) { keepPosting(); }
@@ -1038,6 +1041,36 @@ EGE.nflSimAdmin = (function () {
     }).then(function (text) { return JSON.parse(text); });
   }
 
+  /* The game's feed and posts plan, from its kept snaps. */
+  function livePlan(season, week, g) {
+    return fetchPlays(season, week).then(function (file) {
+      var kept = file.games[sim().season.gameKey(g)];
+      if (!kept) { throw new Error('That game has no snaps kept. Resim it first.'); }
+      return sim().liveGame.build(openLeague(), { home: g.home, away: g.away }, kept);
+    });
+  }
+
+  function liveTitle(g) { return nick(g.away) + (g.neutral ? ' vs. ' : ' at ') + nick(g.home); }
+
+  /* Test: the game played on this device alone, nobody else seeing it and
+     nothing posted (Sam, 2026-11-03). */
+  function testLive(season, week, g) {
+    if (state.busy) { return; }
+    state.busy = true;
+    state.error = null;
+    draw();
+    livePlan(season, week, g).then(function (plan) {
+      EGE.liveView.startTest({ season: season, week: week, home: g.home, away: g.away, title: liveTitle(g) },
+        plan.entries, plan.length, LIVE_SLOT, LIVE_REVEAL);
+      state.busy = false;
+      window.location.hash = '#live/test';
+    }).catch(function (err) {
+      state.error = err && err.message ? err.message : String(err);
+      state.busy = false;
+      draw();
+    });
+  }
+
   function playLive(at, g, delay) {
     if (state.busy) { return; }
     var c = client();
@@ -1050,27 +1083,24 @@ EGE.nflSimAdmin = (function () {
     var week = at.week;
     var id = liveId(season, week, g);
     var plan;
-    Promise.all([fetchPlays(season, week), liveMargin(season, week, g)]).then(function (got) {
-      var kept = got[0].games[sim().season.gameKey(g)];
-      if (!kept) { throw new Error('That game has no snaps kept. Resim it first.'); }
-      plan = sim().liveGame.build(openLeague(), { home: g.home, away: g.away }, kept);
+    Promise.all([livePlan(season, week, g), liveMargin(season, week, g)]).then(function (got) {
+      plan = got[0];
       var posts = EGE.discordPost.buildLivePosts(plan, {
         id: id, season: season, week: week, home: g.home, away: g.away, title: at.heading,
         margin: got[1], start: Date.now() + delay * 1000, delay: delay, slot: LIVE_SLOT, reveal: LIVE_REVEAL,
         six: sixIn(season, week, g)
       });
       return c.rpc('live_start', {
-        p_game: { id: id, season: season, week: week, home: g.home, away: g.away,
-                  title: nick(g.away) + (g.neutral ? ' vs. ' : ' at ') + nick(g.home),
-                  slot_ms: LIVE_SLOT, reveal_ms: LIVE_REVEAL },
+        p_game: { id: id, season: season, week: week, home: g.home, away: g.away, title: liveTitle(g),
+                  slot_ms: LIVE_SLOT, reveal_ms: LIVE_REVEAL, length_ms: plan.length },
         p_entries: plan.entries,
         p_posts: posts,
         p_delay: delay
       });
     }).then(function (res) {
       if (res.error) { throw new Error(liveHint(res.error.message)); }
-      var mins = Math.round(plan.entries.length * LIVE_SLOT / 60000);
-      state.last = { title: nick(g.away) + (g.neutral ? ' vs. ' : ' at ') + nick(g.home) + ' is live',
+      var mins = Math.round(plan.length / 60000);
+      state.last = { title: liveTitle(g) + ' is live',
                      lines: [plan.entries.length + ' snaps, about ' + mins + ' minutes.'].concat(
                        res.data && res.data.cron ? [] : ['Keep this page open while it plays: it sends the Discord posts.']) };
       return loadLiveGames();
@@ -1082,14 +1112,14 @@ EGE.nflSimAdmin = (function () {
     });
   }
 
-  function stopLive(id) {
-    var c = client();
-    if (!c || state.busy) { return; }
-    state.liveStop = '';
-    c.rpc('live_stop', { p_id: id }).then(function (res) {
-      if (res.error) { state.error = liveHint(res.error.message); }
-      return loadLiveGames();
-    }).then(draw);
+  /* Pause, resume, end, restart or cancel a game on (live_control). */
+  function controlLive(id, action) {
+    if (state.busy) { return; }
+    state.liveSure = '';
+    state.error = null;
+    EGE.liveView.control(id, action).catch(function (err) {
+      state.error = err && err.message ? err.message : String(err);
+    }).then(function () { return loadLiveGames(); }).then(draw);
   }
 
   /* The posts that are due, when Supabase has no clock to send them: one
@@ -1113,14 +1143,11 @@ EGE.nflSimAdmin = (function () {
   }
 
   function liveStatus(row) {
-    var now = Date.now();
+    function time(ms) { return new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
+    if (row.paused_at) { return 'Paused'; }
     var start = Date.parse(row.starts_at);
-    if (now < start) {
-      return 'Kicks off ' + new Date(start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    }
-    if (now < liveEnds(row)) {
-      return 'Live · snap ' + Math.min(row.plays, Math.floor((now - start) / row.slot_ms) + 1) + ' of ' + row.plays;
-    }
+    if (Date.now() < start) { return 'Kicks off ' + time(start); }
+    if (Date.now() < liveEnds(row)) { return 'Live · ends about ' + time(liveEnds(row)); }
     return 'Final';
   }
 
@@ -1152,12 +1179,21 @@ EGE.nflSimAdmin = (function () {
       var open = el('a', 'fb-btn fb-btn--sm', 'Open');
       open.href = '#live/' + r.id;
       l.acts.appendChild(open);
-      if (liveEnds(r) > Date.now()) {
-        var asking = state.liveStop === r.id;
-        l.acts.appendChild(button(asking ? 'Stop for good' : 'Stop', false, function () {
-          if (asking) { stopLive(r.id); } else { state.liveStop = r.id; draw(); }
+      var on = liveEnds(r) > Date.now();
+      /* `sure`: what it says on the second click it waits for. */
+      function act(label, action, sure) {
+        var key = r.id + ':' + action;
+        var asking = state.liveSure === key;
+        l.acts.appendChild(button(asking ? sure : label, asking, function () {
+          if (sure && !asking) { state.liveSure = key; draw(); } else { controlLive(r.id, action); }
         }));
       }
+      if (on) { act(r.paused_at ? 'Resume' : 'Pause', r.paused_at ? 'resume' : 'pause'); }
+      if (on) {
+        act('Restart', 'restart', 'Restart from kickoff');
+        act('End', 'end', 'End it now');
+      }
+      act('Cancel', 'cancel', 'Cancel for good');
     }
 
     function gameRows(g, w, names, into) {
@@ -1174,6 +1210,7 @@ EGE.nflSimAdmin = (function () {
             return r ? dropLive(league.season, at.week, id) : null;
           });
         }));
+        l.acts.appendChild(button('Test', false, function () { testLive(league.season, at.week, g); }));
         l.acts.appendChild(button('PLAY LIVE', true, function () {
           state.liveAsk = state.liveAsk === id ? '' : id;
           draw();

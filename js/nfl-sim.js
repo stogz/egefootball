@@ -3045,7 +3045,12 @@ function pass(g, mode) {
     return;
   }
   const broken = defender && rng() < 0.4;
-  note(g, { res: 'x', pd: broken ? who(g, d, defender) : undefined });
+  /* How the play log tells an incompletion nobody broke up, from where the
+     throw's own draw fell, so no new die is rolled: dropped, out of
+     bounds (more often on a long throw) or just incomplete. */
+  const miss = (x - pComp - pInt) / Math.max(1e-9, 1 - pComp - pInt);
+  note(g, { res: 'x', pd: broken ? who(g, d, defender) : undefined,
+            miss: broken ? undefined : miss < 0.16 ? 'drop' : miss < (kind === 'deep' || kind === 'mid' ? 0.42 : 0.28) ? 'oob' : undefined });
   if (broken) { stat(g, d, defender, 'passDef', 1); }
   afterPlay(g, 5, true);
   advance(g, 0);
@@ -3792,7 +3797,7 @@ module.exports = { depthChart, gameDay, skill, healthy, standIn };
    (lib/game.js with `log`, kept a week at a time by lib/season.js):
 
    - the feed: one entry a snap, in order, each { call, text, more, pre,
-     post, tag, d, t, p, w }. `call` is what shows first ("Jaykeb Stewart
+     post, tag, d, t, p, w, hl, ht, ms }. `call` is what shows first ("Jaykeb Stewart
      pass") and `text` what it came to ("Jaykeb Stewart 22-yd pass to Nico
      Collins"), with `more` under it (the extra point, who got hurt).
      `pre` and `post` are where the ball was before and after: the team
@@ -3804,7 +3809,10 @@ module.exports = { depthChart, gameDay, skill, healthy, standIn };
      six, c: a college headshot }). Never the sim's own ids, so nobody can
      read anything private off it, and a player shows up only on the snap
      he first does something, so the feed does not give away who comes in
-     later. `w` is the number of whoever the call names, for his face.
+     later. `w` is the number of whoever the call names, for his face;
+     `hl` a scoring play's words past the player's name, to show in the
+     colour of `ht`, the side that scored; and `ms` when the entry comes
+     up, in milliseconds from kickoff (TIMING).
      Halftime and the final whistle are entries of their own.
    - the posts: what the Discord bot says, and when, as plain words and
      numbers for EGE.discordPost.buildLivePosts to dress: the opening
@@ -3889,6 +3897,10 @@ function defLine(name, l) {
 /* The red zone: this close to the goal line. */
 const RED_ZONE = 20;
 
+/* How long, in milliseconds: each snap, the break before a new drive's
+   first snap, and the wait before the first snap in the red zone. */
+const TIMING = { slot: 20000, drive: 50000, red: 15000, reveal: 4000 };
+
 /* Fantasy points, for who a half's top performers are. */
 function points(l) {
   return (l.passYds || 0) / 25 + (l.passTd || 0) * 4 - (l.passInt || 0) * 2 + (l.rushYds || 0) / 10 + (l.rushTd || 0) * 6 +
@@ -3969,6 +3981,9 @@ function build(league, game, kept) {
   /* Whose trip into the red zone has been posted, until the ball changes
      hands or the drive ends in a kick or a score. */
   let red = null;
+  /* The entries that are kicks, and the first snaps in the red zone. */
+  const kicks = new Set();
+  const reds = new Set();
 
   function state(at, side) {
     return { o: keys[side === undefined ? at.o : side], yl: Math.max(0, Math.min(100, at.yl)), dn: at.dn, tg: at.tg,
@@ -4009,6 +4024,9 @@ function build(league, game, kept) {
     let call;
     let text;
     let w;
+    /* A scoring play's words past the player who made it ("27-yd rushing
+       touchdown"), which the feed shows in the scoring side's colour. */
+    let hl = null;
     const more = [];
     let tag = null;
     let post = null;
@@ -4027,7 +4045,8 @@ function build(league, game, kept) {
       } else if (e.tb) {
         text = K + ' kickoff, touchback';
       } else if (scored) {
-        text = R + ' ' + yds + '-yd kickoff return touchdown';
+        hl = yds + '-yd kickoff return touchdown';
+        text = R + ' ' + hl;
       } else {
         text = call + ', ' + R + ' ' + yds + '-yd return';
       }
@@ -4058,7 +4077,8 @@ function build(league, game, kept) {
           after = R + ' ' + yds + '-yd return';
         }
         if (after && /fair catch|return/.test(after)) { num(e.ret); }
-        text = scored ? R + ' ' + yds + '-yd punt return touchdown' : P + ' ' + e.gross + '-yd punt, ' + after;
+        if (scored) { hl = yds + '-yd punt return touchdown'; }
+        text = scored ? R + ' ' + hl : P + ' ' + e.gross + '-yd punt, ' + after;
         if (scored) {
           num(e.ret);
           post = { kind: 'td', team: keys[def], title: text, lines: [P + ' ' + e.gross + '-yd punt', R + ' ' + yds + '-yd return'],
@@ -4075,6 +4095,7 @@ function build(league, game, kept) {
       w = num(e.kicker);
       call = K + ' ' + e.dist + '-yd field goal attempt';
       text = K + ' ' + e.dist + '-yd field goal is ' + (e.made ? 'GOOD' : 'NO GOOD');
+      if (e.made) { hl = e.dist + '-yd field goal is GOOD'; }
       tag = 'fg';
       post = { kind: 'fg', team: keys[off], title: K + ' ' + e.dist + '-yd field goal' + (e.made ? '' : ' missed'),
                lines: [kickLine(K, line(e.kicker))], face: num(e.kicker) };
@@ -4092,9 +4113,11 @@ function build(league, game, kept) {
       if (e.flag) {
         text = B + ' ' + yds + '-yd rush, called back for holding on the ' + O + ', ' + e.penalty + ' yds';
       } else if (scored) {
-        text = B + ' ' + yds + '-yd rushing touchdown';
+        hl = yds + '-yd rushing touchdown';
+        text = B + ' ' + hl;
       } else if (e.safety !== undefined) {
-        text = B + ' tackled in the end zone, SAFETY';
+        hl = 'tackled in the end zone, SAFETY';
+        text = B + ' ' + hl;
       } else {
         text = yds > 0 ? B + ' ' + yds + '-yd rush' : yds === 0 ? B + ' rush for no gain' : B + ' rush for a ' + -yds + '-yd loss';
       }
@@ -4114,10 +4137,12 @@ function build(league, game, kept) {
       call = Q + ' pass';
       if (e.sack !== undefined) {
         const S = name(e.sack);
-        text = e.safety !== undefined ? Q + ' sacked in the end zone by ' + S + ', SAFETY'
+        if (e.safety !== undefined) { hl = 'in the end zone, SAFETY'; }
+        text = e.safety !== undefined ? Q + ' sacked by ' + S + ' ' + hl
           : Q + ' sacked by ' + S + ' for a ' + -yds + '-yd loss';
       } else if (e.scramble) {
-        text = scored ? Q + ' ' + yds + '-yd rushing touchdown'
+        if (scored) { hl = yds + '-yd rushing touchdown'; }
+        text = scored ? Q + ' ' + hl
           : yds > 0 ? Q + ' ' + yds + '-yd scramble' : Q + ' scrambles for no gain';
         if (scored) {
           tag = 'td';
@@ -4131,9 +4156,10 @@ function build(league, game, kept) {
       } else if (e.flag === 'Defensive holding') {
         text = 'Defensive holding on the ' + D + ', ' + e.penalty + ' yds, automatic first down';
       } else if (e.away) {
-        text = Q + ' throws it away';
+        text = Q + ' throws it out-of-bounds';
       } else if (e.res === 'c') {
-        text = scored ? Q + ' ' + yds + '-yd touchdown pass to ' + R
+        if (scored) { hl = yds + '-yd touchdown pass'; }
+        text = scored ? Q + ' ' + hl + ' to ' + R
           : yds > 0 ? Q + ' ' + yds + '-yd pass to ' + R
           : Q + ' pass to ' + R + (yds === 0 ? ' for no gain' : ' for a ' + -yds + '-yd loss');
         if (scored) {
@@ -4147,8 +4173,8 @@ function build(league, game, kept) {
         }
       } else if (e.res === 'i') {
         const X = name(e.by);
-        text = Q + ' pass INTERCEPTED by ' + X +
-          (scored ? ', ' + yds + '-yd return for a touchdown' : e.tb ? ', touchback' : ', ' + yds + '-yd return');
+        if (scored) { hl = yds + '-yd return for a touchdown'; }
+        text = Q + ' pass INTERCEPTED by ' + X + (scored ? ', ' + hl : e.tb ? ', touchback' : ', ' + yds + '-yd return');
         tag = scored ? 'td' : 'int';
         /* The passer's line, unless he is a stand-in with none. */
         const thrower = ballLine(e.qb, 'pass');
@@ -4159,6 +4185,10 @@ function build(league, game, kept) {
               lines: [X + ' (' + plural(line(e.by).ints || 1, 'INT') + ')'].concat(thrower), face: num(e.by) };
       } else if (e.flag === 'Pass interference') {
         text = Q + ' pass incomplete to ' + R + ', pass interference on the ' + D + ', ' + e.penalty + ' yds';
+      } else if (e.miss === 'drop') {
+        text = Q + ' pass to ' + R + ', dropped pass';
+      } else if (e.miss === 'oob') {
+        text = Q + ' pass to ' + R + ', out-of-bounds';
       } else {
         text = Q + ' pass incomplete' + (e.to !== undefined ? ' to ' + R : '') + (e.pd !== undefined ? ', broken up by ' + name(e.pd) : '');
       }
@@ -4216,6 +4246,11 @@ function build(league, game, kept) {
 
     const entry = { call, text, pre, post: post2 };
     if (w !== undefined) { entry.w = w; }
+    if (hl && text.indexOf(hl) !== -1) {
+      entry.hl = hl;
+      entry.ht = keys[scored ? e.tdBy : e.safety !== undefined ? e.safety : off];
+    }
+    if (kick) { kicks.add(entries.length); }
     if (more.length) { entry.more = more; }
     if (tag) { entry.tag = tag; }
     if (Object.keys(d).length) { entry.d = d; }
@@ -4239,6 +4274,7 @@ function build(league, game, kept) {
     if (!post2.dn || post2.o !== red) { red = null; }
     if (post2.dn && post2.yl >= 100 - RED_ZONE && red === null && goes) {
       red = post2.o;
+      reds.add(entries.length);
       posts.push({ at: entries.length - 1, kind: 'redzone', team: post2.o, title: nick(post2.o) + ' are in the REDZONE',
                    lines: [], score: e.post.s.slice(), when: whenText(next.pre) });
     }
@@ -4259,6 +4295,22 @@ function build(league, game, kept) {
                  post: { o: null, s: final, q: last ? last.post.q : 4, c: 0 } });
   posts.push({ at: entries.length - 1, kind: 'end', score: final, ot, top: [topOf(lines, info, keys[0]), topOf(lines, info, keys[1])] });
 
+  /* When each entry comes up, from kickoff: every 20 seconds, with 50 more
+     before a new drive's first snap and 15 more before its first snap in
+     the red zone (Sam, 2026-11-03). */
+  let ms = 0;
+  let had = null;
+  entries.forEach((entry, i) => {
+    if (i) {
+      ms += TIMING.slot;
+      const o = entry.pre && entry.pre.o;
+      if (o && had && o !== had && !kicks.has(i)) { ms += TIMING.drive; }
+      if (reds.has(i)) { ms += TIMING.red; }
+    }
+    entry.ms = ms;
+    if (entry.pre && entry.pre.o) { had = entry.pre.o; }
+  });
+
   /* The opening kickoff is the only kickoff the bot posts. */
   let opened = false;
   const kept2 = posts.filter((p) => {
@@ -4268,10 +4320,10 @@ function build(league, game, kept) {
     return true;
   });
 
-  return { entries, posts: kept2, score: final, ot, players: info, lines };
+  return { entries, posts: kept2, score: final, ot, players: info, lines, length: ms + TIMING.slot };
 }
 
-module.exports = { build, whenText, passLine, rushLine, recLine, kickLine, BIG_PLAY, RED_ZONE };
+module.exports = { build, whenText, passLine, rushLine, recLine, kickLine, BIG_PLAY, RED_ZONE, TIMING };
 
   };
 

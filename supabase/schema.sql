@@ -3764,13 +3764,17 @@ notify pgrst, 'reload schema';
 --
 -- A game the NFL sim has played, put on live a snap at a time (Sam,
 -- 2026-11-03): PLAY LIVE on the NFL Sim tab, and from `starts_at` every
--- snap has `slot_ms` (20 seconds) to itself. It shows the call first ("Jaykeb
--- Stewart pass"), and what came of it `reveal_ms` (4 seconds) later.
--- Everything runs off this database's clock, so every viewer is on the
--- same snap whenever they look and however often they reload.
+-- snap comes up at its own `ms` (20 seconds a snap, 50 more before a new
+-- drive and 15 more before its first snap in the red zone; nfl-sim/lib/
+-- live.js). It shows the call first ("Jaykeb Stewart pass"), and what came
+-- of it `reveal_ms` (4 seconds) later. Everything runs off this database's
+-- clock, so every viewer is on the same snap whenever they look and however
+-- often they reload. An admin can pause it, end it at once, restart it from
+-- the kickoff or cancel it (live_control).
 --
---   live_games  who plays, when it starts, how many snaps. Anybody reads
---               it; there is nothing in it that gives the game away.
+--   live_games  who plays, when it starts, how many snaps and how long it
+--               runs, and whether it is paused. Anybody reads it; there is
+--               nothing in it that gives the game away.
 --   live_feeds  every snap, written when the game goes live (nfl-sim/lib/
 --               live.js). Nobody reads it directly: live_feed() hands out
 --               the snaps whose time has come, and the one being played
@@ -3810,8 +3814,13 @@ create table if not exists public.live_games (
   slot_ms    integer     not null default 20000 check (slot_ms between 2000 and 120000),
   reveal_ms  integer     not null default 4000 check (reveal_ms between 0 and 60000),
   plays      integer     not null check (plays between 1 and 2000),
+  length_ms  bigint,
+  paused_at  timestamptz,
   created_at timestamptz not null default now()
 );
+
+alter table public.live_games add column if not exists length_ms bigint;
+alter table public.live_games add column if not exists paused_at timestamptz;
 
 create table if not exists public.live_feeds (
   game_id text  primary key references public.live_games (id) on delete cascade,
@@ -3863,8 +3872,10 @@ grant select, insert, update, delete on public.live_games, public.live_feeds, pu
 -- What a viewer may see of a game, as of now: the snaps from `p_from` up to
 -- the one being played, that one only as its call (and the face of whoever
 -- it names) until it is revealed.
--- `now` is this database's clock in milliseconds, so the page can set its
--- own by it; `at` is the snap being played (-1 before kickoff); `state` is
+-- `now` is this database's clock in milliseconds, and `clock` the game's
+-- (milliseconds from kickoff, standing still while it is paused), so the
+-- page can set its own by them; `next` is when the next snap comes up, once
+-- this one is out; `at` is the snap being played (-1 before kickoff); `state` is
 -- where the ball is as far as anybody may know. Null for no such game.
 create or replace function public.live_feed(p_id text, p_from integer default 0)
 returns jsonb
@@ -3877,8 +3888,11 @@ declare
   g        public.live_games%rowtype;
   v_all    jsonb;
   v_ms     bigint;
+  v_len    bigint;
   v_at     integer := -1;
   v_cur    jsonb;
+  v_cur_ms bigint;
+  v_next   bigint;
   v_shown  boolean := false;
   v_state  jsonb;
   v_list   jsonb := '[]'::jsonb;
@@ -3886,13 +3900,23 @@ begin
   select * into g from public.live_games where id = p_id;
   if not found then return null; end if;
   select entries into v_all from public.live_feeds where game_id = p_id;
-  v_ms := floor(extract(epoch from (now() - g.starts_at)) * 1000)::bigint;
+  /* Paused, the game's clock stands where it stopped. */
+  v_ms := floor(extract(epoch from (coalesce(g.paused_at, now()) - g.starts_at)) * 1000)::bigint;
+  v_len := coalesce(g.length_ms, g.plays::bigint * g.slot_ms);
   if v_ms >= 0 and v_all is not null then
-    v_at := least(v_ms / g.slot_ms, g.plays - 1)::integer;
+    select coalesce(max(e.n) - 1, 0)::integer into v_at
+      from jsonb_array_elements(v_all) with ordinality as e (value, n)
+     where coalesce((e.value ->> 'ms')::bigint, (e.n - 1) * g.slot_ms) <= v_ms;
     v_cur := v_all -> v_at;
+    v_cur_ms := coalesce((v_cur ->> 'ms')::bigint, v_at::bigint * g.slot_ms);
     v_shown := not (v_cur ? 'call')
-               or v_ms - v_at::bigint * g.slot_ms >= g.reveal_ms
-               or v_ms >= g.plays::bigint * g.slot_ms;
+               or v_ms - v_cur_ms >= g.reveal_ms
+               or v_ms >= v_len;
+    /* When the next snap comes up, once this one is out (and so whether
+       the ball changed hands is no secret). */
+    if v_shown and v_at < g.plays - 1 then
+      v_next := coalesce((v_all -> (v_at + 1) ->> 'ms')::bigint, (v_at + 1)::bigint * g.slot_ms);
+    end if;
     v_state := case when v_shown then v_cur -> 'post' else v_cur -> 'pre' end;
     select coalesce(jsonb_agg(e.value order by e.n), '[]'::jsonb) into v_list
       from jsonb_array_elements(v_all) with ordinality as e (value, n)
@@ -3900,15 +3924,16 @@ begin
     if greatest(p_from, 0) <= v_at then
       v_list := v_list || jsonb_build_array(case when v_shown then v_cur
         else jsonb_strip_nulls(jsonb_build_object('call', v_cur -> 'call', 'pre', v_cur -> 'pre', 'hidden', true,
-               'w', v_cur -> 'w', 'p', case when v_cur ? 'w' and v_cur -> 'p' ? (v_cur ->> 'w')
+               'ms', v_cur_ms, 'w', v_cur -> 'w', 'p', case when v_cur ? 'w' and v_cur -> 'p' ? (v_cur ->> 'w')
                  then jsonb_build_object(v_cur ->> 'w', v_cur -> 'p' -> (v_cur ->> 'w')) end)) end);
     end if;
   end if;
   return jsonb_build_object(
     'now', floor(extract(epoch from now()) * 1000)::bigint,
     'starts', floor(extract(epoch from g.starts_at) * 1000)::bigint,
+    'clock', v_ms, 'paused', g.paused_at is not null,
     'slot', g.slot_ms, 'reveal', g.reveal_ms, 'plays', g.plays,
-    'at', v_at, 'from', greatest(p_from, 0), 'shown', v_shown,
+    'at', v_at, 'from', greatest(p_from, 0), 'shown', v_shown, 'next', v_next,
     'state', v_state, 'entries', v_list);
 end;
 $$;
@@ -3935,6 +3960,8 @@ begin
     update public.live_posts p set sent_at = now()
      where p.id in (select q.id from public.live_posts q
                      where q.sent_at is null and q.due_at <= now()
+                       and not exists (select 1 from public.live_games g
+                                        where g.id = q.game_id and g.paused_at is not null)
                      order by q.due_at, q.seq
                      limit 1
                      for update skip locked)
@@ -3979,10 +4006,11 @@ begin
     raise exception 'A live game needs its snaps.';
   end if;
   delete from public.live_games where id = v_id;
-  insert into public.live_games (id, season, week, home, away, title, starts_at, slot_ms, reveal_ms, plays)
+  insert into public.live_games (id, season, week, home, away, title, starts_at, slot_ms, reveal_ms, plays, length_ms)
   values (v_id, (p_game ->> 'season')::integer, (p_game ->> 'week')::integer, p_game ->> 'home', p_game ->> 'away',
           coalesce(p_game ->> 'title', ''), v_start, coalesce((p_game ->> 'slot_ms')::integer, 20000),
-          coalesce((p_game ->> 'reveal_ms')::integer, 4000), jsonb_array_length(p_entries));
+          coalesce((p_game ->> 'reveal_ms')::integer, 4000), jsonb_array_length(p_entries),
+          (p_game ->> 'length_ms')::bigint);
   insert into public.live_feeds (game_id, entries) values (v_id, p_entries);
   insert into public.live_posts (game_id, seq, due_at, payload)
   select v_id, (x.n - 1)::integer,
@@ -4025,6 +4053,8 @@ begin
    where p.id = (select q.id from public.live_posts q
                   where q.sent_at is null
                     and q.due_at <= now() - case when v_cron then interval '30 seconds' else interval '0 seconds' end
+                    and not exists (select 1 from public.live_games g
+                                     where g.id = q.game_id and g.paused_at is not null)
                   order by q.due_at, q.seq
                   limit 1
                   for update skip locked)
@@ -4051,5 +4081,78 @@ $$;
 
 revoke all on function public.live_stop(text) from public, anon;
 grant execute on function public.live_stop(text) to authenticated;
+
+-- An admin's hand on a live game, in case something goes wrong (Sam,
+-- 2026-11-03):
+--   pause    the clock stops for everybody, and so do the posts;
+--   resume   it goes on from where it stopped, the posts with it;
+--   end      straight to the final whistle: the final post goes now and
+--            nothing else still waiting does;
+--   restart  back to the kickoff, `p_delay` seconds from now, and every
+--            post goes again in its turn;
+--   cancel   taken off altogether (live_stop), to be put on again later.
+-- Returns the game's row, or null once it is cancelled.
+create or replace function public.live_control(p_id text, p_action text, p_delay integer default 0)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  g      public.live_games%rowtype;
+  v_now  timestamptz := now();
+  v_len  bigint;
+  v_ms   bigint;
+  v_new  timestamptz;
+  v_last integer;
+begin
+  if not public.is_admin() then raise exception 'Only an admin can run a live game.'; end if;
+  select * into g from public.live_games where id = p_id for update;
+  if not found then raise exception 'That game is not live.'; end if;
+  v_len := coalesce(g.length_ms, g.plays::bigint * g.slot_ms);
+  v_ms := floor(extract(epoch from (coalesce(g.paused_at, v_now) - g.starts_at)) * 1000)::bigint;
+  if p_action = 'pause' then
+    if g.paused_at is null and v_ms < v_len then
+      update public.live_games set paused_at = v_now where id = p_id;
+    end if;
+  elsif p_action = 'resume' then
+    if g.paused_at is not null then
+      update public.live_games set starts_at = starts_at + (v_now - g.paused_at), paused_at = null where id = p_id;
+      update public.live_posts set due_at = due_at + (v_now - g.paused_at) where game_id = p_id;
+    end if;
+  elsif p_action = 'end' then
+    /* The posts move with the kickoff, so each stays where it falls in the
+       game (for a restart); all but the final are let go. */
+    v_new := v_now - make_interval(secs => v_len / 1000.0);
+    select max(seq) into v_last from public.live_posts where game_id = p_id;
+    update public.live_posts set due_at = due_at + (v_new - g.starts_at) where game_id = p_id;
+    update public.live_posts set sent_at = v_now where game_id = p_id and sent_at is null and seq <> v_last;
+    update public.live_posts set due_at = least(due_at, v_now) where game_id = p_id and sent_at is null;
+    update public.live_games set starts_at = v_new, paused_at = null where id = p_id;
+  elsif p_action = 'restart' then
+    v_new := v_now + make_interval(secs => greatest(0, least(coalesce(p_delay, 0), 86400)));
+    update public.live_posts set due_at = greatest(v_now, due_at + (v_new - g.starts_at)), sent_at = null
+     where game_id = p_id;
+    update public.live_games set starts_at = v_new, paused_at = null where id = p_id;
+  elsif p_action = 'cancel' then
+    delete from public.live_games where id = p_id;
+    return null;
+  else
+    raise exception 'Not a live game action: %', p_action;
+  end if;
+  /* The clock that sends the posts, again, if any are waiting. */
+  if exists (select 1 from public.live_posts where game_id = p_id and sent_at is null) then
+    begin
+      execute 'select cron.schedule($1, $2, $3)' using 'ege-live-posts', '5 seconds', 'select public.live_deliver()';
+    exception when others then null;
+    end;
+  end if;
+  select * into g from public.live_games where id = p_id;
+  return to_jsonb(g);
+end;
+$$;
+
+revoke all on function public.live_control(text, text, integer) from public, anon;
+grant execute on function public.live_control(text, text, integer) to authenticated;
 
 notify pgrst, 'reload schema';

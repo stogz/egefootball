@@ -10526,14 +10526,13 @@ html.ege-noscroll body { overflow: hidden; }
   border-radius: 50% !important;   /* the kit squares every corner */
 }
 .ege-cast__face::before { content: ""; position: absolute; inset: 0; background: var(--team); opacity: .6; }
+/* Head and a little of the shoulders (Sam, 2026-11-03). */
 .ege-cast__headshot {
   position: relative;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: 50% 0;
-  transform: scale(1.3);
-  transform-origin: 50% 12%;
+  object-position: 50% 100%;
 }
 .ege-cast__face .ege-cast__logo { position: relative; width: 62%; height: 62%; object-fit: contain; }
 .ege-cast__who { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: center; }
@@ -10545,6 +10544,12 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-cast__meta { display: flex; align-items: center; gap: 7px; font-size: .75rem; font-weight: 700; color: var(--fb-muted); }
 .ege-cast__meta .ege-cast__logo { width: 18px; height: 18px; }
 .ege-cast__line { margin: 0; font-weight: 600; }
+.ege-cast__hl { font-weight: 800; }
+
+/* An admin's hand on the game: pause, restart, end, cancel; a test
+   game's speed. */
+.ege-cast__controls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; width: min(100%, 860px); justify-self: center; }
+.ege-cast__controls .ege-note { flex-basis: 100%; margin: 0; text-align: center; }
 .ege-cast__score { margin: 0; font-size: .8125rem; font-weight: 800; }
 .ege-cast__break {
   padding: 7px 16px;

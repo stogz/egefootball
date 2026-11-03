@@ -749,9 +749,13 @@ EGE.discordPost = (function () {
       embed.timestamp = new Date(start + at).toISOString();
       return embed;
     }
+    /* When an entry's result is out: each entry says when it comes up
+       (nfl-sim/lib/live.js, which gives a new drive and the red zone a
+       longer wait). */
     function whenOf(at) {
       var entry = plan.entries[at];
-      return at * slot + (entry && entry.call ? reveal : 0);
+      var start = entry && typeof entry.ms === 'number' ? entry.ms : at * slot;
+      return start + (entry && entry.call ? reveal : 0);
     }
     function performers(top) {
       return [first, other].map(function (key) {

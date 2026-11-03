@@ -1050,7 +1050,12 @@ function pass(g, mode) {
     return;
   }
   const broken = defender && rng() < 0.4;
-  note(g, { res: 'x', pd: broken ? who(g, d, defender) : undefined });
+  /* How the play log tells an incompletion nobody broke up, from where the
+     throw's own draw fell, so no new die is rolled: dropped, out of
+     bounds (more often on a long throw) or just incomplete. */
+  const miss = (x - pComp - pInt) / Math.max(1e-9, 1 - pComp - pInt);
+  note(g, { res: 'x', pd: broken ? who(g, d, defender) : undefined,
+            miss: broken ? undefined : miss < 0.16 ? 'drop' : miss < (kind === 'deep' || kind === 'mid' ? 0.42 : 0.28) ? 'oob' : undefined });
   if (broken) { stat(g, d, defender, 'passDef', 1); }
   afterPlay(g, 5, true);
   advance(g, 0);
