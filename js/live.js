@@ -739,11 +739,15 @@ EGE.liveView = (function () {
     return c;
   }
 
-  /* A player's picture in the bets (Sam, 2026-11-04): no circle round
-     it, his team's mark at its bottom right. The mark alone where there
-     is no picture of him. */
+  /* A player's picture in the bets (Sam, 2026-11-04): cut to a circle on
+     his team's colour at 60%, no outline, his team's mark at its bottom
+     right. The mark in the circle alone where there is no picture of
+     him. */
   function mug(p) {
     var box = el('span', 'ege-cast__mug');
+    box.style.setProperty('--team', team(p.t).color);
+    var round = el('span', 'ege-cast__mugface');
+    box.appendChild(round);
     var mine = p.g && EGE.playerBySlug ? EGE.playerBySlug(p.g) : null;
     var src = mine && mine.headshot ? mine.headshot
       : p.e && EGE.espnHeadshot ? EGE.espnHeadshot(p.e, p.c, 192, 140) : null;
@@ -752,7 +756,7 @@ EGE.liveView = (function () {
     function bare() {
       box.classList.add('is-mark');
       badge.remove();
-      box.appendChild(logo(p.t, 48));
+      round.appendChild(logo(p.t, 48));
     }
     if (src) {
       var img = el('img', 'ege-cast__mugimg');
@@ -760,7 +764,7 @@ EGE.liveView = (function () {
       img.alt = '';
       img.loading = 'lazy';
       img.addEventListener('error', function () { img.remove(); bare(); });
-      box.appendChild(img);
+      round.appendChild(img);
       box.appendChild(badge);
     } else {
       bare();

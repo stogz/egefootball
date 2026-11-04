@@ -10611,7 +10611,8 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-cast__block { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 16px; border-bottom: 1px solid var(--fb-sand); }
 .ege-cast__block:last-child { border-bottom: 0; }
 .ege-cast__q { display: flex; align-items: flex-end; gap: 10px; min-width: 0; }
-.ege-cast__q .ege-cast__mug { width: 48px; height: 36px; }
+.ege-cast__q { align-items: center; }
+.ege-cast__q .ege-cast__mug { width: 40px; height: 40px; }
 .ege-cast__q .ege-cast__mugteam { width: 18px; height: 18px; }
 .ege-cast__qwords { display: grid; gap: 4px; min-width: 0; }
 .ege-cast__qtext { margin: 0; font-size: 1.0625rem; font-weight: 800; line-height: 1.2; }
@@ -10629,20 +10630,23 @@ html.ege-noscroll body { overflow: hidden; }
 }
 .ege-cast__coin .ege-cast__logo { width: 72%; height: 72%; }
 
-/* A player's picture: no circle, his team's mark at its bottom right. */
-.ege-cast__mug { position: relative; display: block; flex: none; width: 64px; height: 48px; }
-.ege-cast__mugimg { display: block; width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; }
-.ege-cast__mugteam {
+/* A player's picture (Sam, 2026-11-04): cut to a circle on his team's
+   colour at 60%, no outline, his team's mark at its bottom right with no
+   shadow. */
+.ege-cast__mug { position: relative; display: block; flex: none; width: 48px; height: 48px; }
+.ege-cast__mugface {
   position: absolute;
-  right: -4px;
-  bottom: -2px;
-  width: 24px;
-  height: 24px;
-  filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff) drop-shadow(0 1px 2px rgba(0, 0, 0, .35));
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50% !important;   /* the kit squares every corner */
 }
+.ege-cast__mugface::before { content: ""; position: absolute; inset: 0; background: var(--team); opacity: .6; }
+.ege-cast__mugimg { position: relative; display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 100%; }
+.ege-cast__mugteam { position: absolute; right: -5px; bottom: -3px; width: 22px; height: 22px; }
 .ege-cast__mugteam .ege-cast__logo { width: 100%; height: 100%; }
-.ege-cast__mug.is-mark { display: grid; place-items: center; }
-.ege-cast__mug.is-mark .ege-cast__logo { width: 40px; height: 40px; }
+.ege-cast__mug.is-mark .ege-cast__logo { position: relative; width: 62%; height: 62%; }
 
 /* One box split in two. Each half's name in its team's colour; the half
    bet on filled with it, what went in at its end. */
@@ -10725,9 +10729,9 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-cast__picker.is-open .ege-cast__pickbtn::after { margin-bottom: -4px; transform: rotate(-135deg); }
 .ege-cast__pickhint { min-width: 0; }
 .ege-cast__halfname > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.ege-cast__chosen { display: flex; align-items: center; gap: 12px; min-width: 0; min-height: 56px; padding: 4px 16px 0 10px; border: 2px solid var(--fb-ink); }
-.ege-cast__chosen .ege-cast__mug { align-self: end; }
-.ege-cast__chosen .ege-cast__tail { padding-bottom: 4px; }
+.ege-cast__chosen { display: flex; align-items: center; gap: 12px; min-width: 0; min-height: 56px; padding: 6px 16px 6px 10px; border: 2px solid var(--fb-ink); }
+.ege-cast__chosen .ege-cast__mug { width: 42px; height: 42px; }
+.ege-cast__chosen .ege-cast__mugteam { width: 20px; height: 20px; }
 .ege-cast__chosenpos { font-family: var(--fb-font-body); font-size: .75rem; font-weight: 700; opacity: .85; }
 .ege-cast__picklist {
   position: absolute;
@@ -10760,11 +10764,11 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-cast__pickteam .ege-cast__coin { width: 24px; height: 24px; }
 .ege-cast__pickrow {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) auto;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   width: 100%;
-  padding: 6px 14px 4px 12px;
+  padding: 8px 14px 8px 12px;
   border: 0;
   border-bottom: 1px solid var(--fb-sand);
   background: transparent;
@@ -10798,18 +10802,18 @@ html.ege-cast-sheet-open { overflow: hidden; }
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px 0 12px;
+  padding: 12px 14px 12px 12px;
   background: var(--team);
   color: #fff;
 }
-.ege-cast__sheethead .ege-cast__mug { align-self: end; width: 84px; height: 63px; }
-.ege-cast__sheethead .ege-cast__mugteam { width: 28px; height: 28px; }
-.ege-cast__sheethead .ege-cast__coin { width: 48px; height: 48px; margin-bottom: 12px; }
-.ege-cast__sheetwords { display: grid; gap: 2px; min-width: 0; padding-bottom: 12px; line-height: 1.15; }
+.ege-cast__sheethead .ege-cast__mug { width: 60px; height: 60px; }
+.ege-cast__sheethead .ege-cast__mugteam { width: 26px; height: 26px; }
+.ege-cast__sheethead .ege-cast__coin { width: 48px; height: 48px; }
+.ege-cast__sheetwords { display: grid; gap: 2px; min-width: 0; line-height: 1.15; }
 .ege-cast__sheetkind { font-size: .6875rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
 .ege-cast__sheetpick { font-family: var(--fb-font-display); font-size: 1.375rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ege-cast__sheetsub { font-size: .8125rem; font-weight: 700; opacity: .9; }
-.ege-cast__sheethead > .ege-cast__x { align-self: center; margin: 0 0 12px auto; background: #fff; color: var(--team); font-size: .9375rem; }
+.ege-cast__sheethead > .ege-cast__x { align-self: center; margin: 0 0 0 auto; background: #fff; color: var(--team); font-size: .9375rem; }
 .ege-cast__sheetclose { flex: none; align-self: start; margin-left: 4px; border-color: #fff; color: #fff; }
 .ege-cast__sheetbody { gap: 12px; }
 .ege-cast__amount { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 1.75rem; }
@@ -10873,7 +10877,7 @@ html.ege-cast-sheet-open { overflow: hidden; }
   .ege-cast__split.has-bet .ege-cast__half:not(.is-bet) .ege-cast__coin { display: none; }
   .ege-cast__half.is-bet { flex-wrap: wrap; row-gap: 4px; }
   .ege-cast__half.is-bet .ege-cast__tail { flex-basis: 100%; justify-items: start; margin-left: 0; }
-  .ege-cast__chosen .ege-cast__mug { width: 52px; height: 39px; }
+  .ege-cast__chosen .ege-cast__mug { width: 38px; height: 38px; }
   .ege-cast__sheetback { align-items: end; padding: 0; }
   .ege-cast__sheet { width: 100%; border-width: 4px 0 0; box-shadow: none; }
   .ege-cast__sheetpick { font-size: 1.1875rem; }
