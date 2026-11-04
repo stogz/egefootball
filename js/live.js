@@ -5,10 +5,20 @@
    the League page. A snap every 20 seconds: first what is called
    ("Jaykeb Stewart pass"), then four seconds later what came of it
    ("Jaykeb Stewart 22-yd pass to Nico Collins"), and sixteen seconds
-   after that the next; 30 seconds more before a new drive, and 15 more
-   before its first snap in the red zone. An admin can pause, end,
-   restart or cancel it from here too, and #live/test plays a game on
-   this device alone before it goes live.
+   after that the next; 30 seconds more before a new drive, 15 more
+   before its first snap in the red zone, and two minutes more at
+   halftime. PLAY LIVE on the NFL Sim tab puts it up here waiting, and an
+   admin kicks it off from this page (Sam, 2026-11-04). An admin can
+   pause, end, restart or cancel it from here too, and #live/test plays a
+   game on this device alone before it goes live.
+
+   Bets (Sam, 2026-11-04), diamonds only, at least 10 a bet: the money
+   line, a touchdown scorer and three players' over/unders until the
+   kickoff, and at halftime a scorer for the rest of the game and the
+   money line again. The menus and prices are the NFL Sim tab's
+   (nfl-sim/lib/live-bets.js); Supabase takes the bets and pays them at
+   the final whistle (live_bet_place, live_settle). A test game takes
+   them too, on this device alone, without a diamond moving.
 
    Supabase keeps the time (live_feed in supabase/schema.sql): every
    answer carries its clock, and the page sets its own by it, so a
@@ -83,20 +93,22 @@ EGE.liveView = (function () {
     gamesAt = Date.now();
     games = !c ? Promise.resolve([]) : c.from('live_games')
       .select(COLUMNS)
-      .order('starts_at', { ascending: false }).limit(60)
+      .order('created_at', { ascending: false }).limit(60)
       .then(function (res) { return res.error ? [] : (res.data || []); }, function () { return []; });
     return games;
   }
 
   function length(row) { return row.length_ms || row.plays * row.slot_ms; }
 
-  /* When it ends; a paused game has not. */
-  function ends(row) { return row.paused_at ? Infinity : Date.parse(row.starts_at) + length(row); }
+  /* When it ends; a paused game has not, nor one still waiting for its
+     kickoff. */
+  function ends(row) { return row.paused_at || !row.starts_at ? Infinity : Date.parse(row.starts_at) + length(row); }
 
   /* 'soon', 'live' or 'final', by this device's clock (near enough for a
      badge; the page itself goes by Supabase's). */
   function phase(row) {
     var now = Date.now();
+    if (!row.starts_at) { return 'soon'; }
     if (row.paused_at) { return Date.parse(row.paused_at) < Date.parse(row.starts_at) ? 'soon' : 'live'; }
     if (now < Date.parse(row.starts_at)) { return 'soon'; }
     return now < ends(row) ? 'live' : 'final';
@@ -168,8 +180,10 @@ EGE.liveView = (function () {
   /* An answer, kept: the game's clock as it was halfway between asking
      and hearing back, and the snaps it brought. */
   function take(got, sent, back) {
+    game.waiting = Boolean(got.waiting);
+    game.half = got.half || null;
     if (!game.test) {
-      game.clockAt = { ms: got.clock, real: Math.round((sent + back) / 2) };
+      game.clockAt = got.waiting ? null : { ms: got.clock, real: Math.round((sent + back) / 2) };
       game.paused = Boolean(got.paused);
     }
     game.slot = got.slot;
@@ -195,6 +209,7 @@ EGE.liveView = (function () {
   /* When the next thing is due, by the game's clock: kickoff, the snap's
      reveal, or the next snap. Null once the game is over. */
   function nextDue() {
+    if (game.waiting) { return null; }
     if (game.at < 0) { return 0; }
     var current = game.entries[game.at];
     if (current && current.hidden) { return entryMs(game.at) + game.reveal; }
@@ -210,12 +225,19 @@ EGE.liveView = (function () {
   function tick() {
     if (!game) { return; }
     var had = game.at + ':' + game.done;
+    var was = game.drawn;
     var mine = game;
     fetchFeed().then(function () {
       if (game !== mine) { return; }
       if (game.missing) { drawMissing(); return; }
       if (game.again) { game.again = false; tick(); return; }
-      draw();
+      /* Waiting for the kickoff: ask now and then whether it has come,
+         and leave the page (and a bet being typed) alone until it has. */
+      var now = (game.waiting ? 'w' : '') + (game.paused ? 'p' : '') + game.at + ':' + game.done;
+      if (!(game.waiting && was === now)) { draw(); }
+      game.drawn = now;
+      if (game.waiting) { if (!game.test) { schedule(4000); } return; }
+      settleIfOver();
       /* Paused: ask now and then whether it has started again. */
       if (game.paused) { if (!game.test) { schedule(4000); } return; }
       var due = nextDue();
@@ -342,7 +364,8 @@ EGE.liveView = (function () {
     var kicker = el('p', 'fb-kicker ege-cast__kicker');
     if (state === 'live' && !game.paused) { kicker.appendChild(el('span', 'ege-cast__dot')); }
     kicker.appendChild(document.createTextNode((game.test ? 'Test · ' : '') +
-      (game.paused && state !== 'final' ? 'Paused' : state === 'live' ? 'Live' : state === 'final' ? 'Final' : 'Kickoff soon')));
+      (game.waiting ? 'Pregame' : game.paused && state !== 'final' ? 'Paused' : state === 'live' ? 'Live'
+        : state === 'final' ? 'Final' : 'Kickoff soon')));
     head.appendChild(kicker);
 
     var board = el('div', 'ege-cast__board');
@@ -361,7 +384,9 @@ EGE.liveView = (function () {
       board.appendChild(box);
       if (!i) {
         var mid = el('div', 'ege-cast__clock');
-        if (state === 'soon') {
+        if (state === 'soon' && game.waiting) {
+          mid.appendChild(el('span', 'ege-cast__time', 'Q1 15:00'));
+        } else if (state === 'soon') {
           mid.appendChild(el('span', 'ege-cast__time', clockText(-clock() / 1000 / (game.speed || 1))));
           mid.appendChild(el('span', 'ege-cast__down', 'to kickoff'));
         } else if (state === 'final') {
@@ -380,7 +405,7 @@ EGE.liveView = (function () {
   }
 
   function phaseNow() {
-    if (game.at < 0) { return 'soon'; }
+    if (game.waiting || game.at < 0) { return 'soon'; }
     var last = game.entries[game.at];
     return game.at >= game.plays - 1 && last && !last.hidden ? 'final' : 'live';
   }
@@ -470,8 +495,8 @@ EGE.liveView = (function () {
     var state = phaseNow();
     if (state === 'soon') {
       card.appendChild(el('p', 'ege-cast__call', nick(game.row.away) + (game.row.title.indexOf(' vs. ') !== -1 ? ' vs. ' : ' at ') + nick(game.row.home)));
-      card.appendChild(el('p', 'fb-meta ege-cast__when', game.paused ? 'Paused' : 'Kicks off at ' +
-        new Date(Date.now() - clock() / (game.speed || 1)).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })));
+      card.appendChild(el('p', 'fb-meta ege-cast__when', game.waiting ? 'Waiting for kickoff' : game.paused ? 'Paused'
+        : 'Kicks off at ' + new Date(Date.now() - clock() / (game.speed || 1)).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })));
       return card;
     }
     var e = game.entries[game.at];
@@ -592,18 +617,26 @@ EGE.liveView = (function () {
     if (!view || !game || !game.row) { return; }
     var keepFeed = view.querySelector('.ege-cast__list');
     var feedScroll = keepFeed ? keepFeed.scrollTop : 0;
+    var typing = document.activeElement && document.activeElement.classList &&
+      document.activeElement.classList.contains('ege-cast__stake');
     var at = where();
     view.innerHTML = '';
     view.appendChild(drawHead(at));
     var controls = drawControls();
     if (controls) { view.appendChild(controls); }
-    view.appendChild(drawField(at));
+    /* Before the kickoff the field has nothing on it yet: the bets come
+       first. */
+    var field = drawField(at);
+    if (!game.waiting) { view.appendChild(field); }
     var cols = el('div', 'ege-cast__cols');
     var side = el('div', 'ege-cast__side');
     side.appendChild(drawPlay());
+    var bets = drawBets();
+    if (bets) { side.appendChild(bets); }
     if (phaseNow() !== 'soon') { side.appendChild(drawFeed()); }
     cols.appendChild(side);
     view.appendChild(cols);
+    if (game.waiting) { view.appendChild(field); }
     var box = drawBox();
     if (box) {
       box.classList.add('ege-cast__box');
@@ -611,7 +644,338 @@ EGE.liveView = (function () {
     }
     var list = view.querySelector('.ege-cast__list');
     if (list && feedScroll) { list.scrollTop = feedScroll; }
+    var stake = typing ? view.querySelector('.ege-cast__stake') : null;
+    if (stake) { stake.focus(); }
     document.title = nick(game.row.away) + ' ' + scoreNow()[1] + ', ' + nick(game.row.home) + ' ' + scoreNow()[0];
+  }
+
+  /* --- bets -------------------------------------------------------------------
+
+     Diamonds on the game (Sam, 2026-11-04): whatever is open now -- the
+     menu before kickoff, the halftime one until the second half kicks off
+     -- and every bet this player has on it, paid once the final whistle
+     has gone. A bet is final once it is in. */
+
+  var slip = null;          /* the pick a bet is being made on: { market, pick, stake, error, busy } */
+  var wallet = { email: null, diamonds: null, heard: false };
+  var settling = false;
+
+  function gems(n) {
+    var wrap = el('span', 'ege-price', String(n));
+    var gem = el('span', 'ege-gem');
+    gem.setAttribute('role', 'img');
+    gem.setAttribute('aria-label', 'diamonds');
+    wrap.appendChild(gem);
+    return wrap;
+  }
+
+  function times(x) { return (x % 1 ? String(Math.round(x * 100) / 100) : Number(x).toFixed(1)) + '×'; }
+
+  function pays(stake, x) { return Math.round(stake * x); }
+
+  /* The bets on offer, each with whether it is open now. */
+  function menus() {
+    var out = [];
+    var pre = game.row && game.row.bets;
+    (pre && pre.markets || []).forEach(function (m) { out.push({ m: m, open: Boolean(game.waiting) }); });
+    (game.half && game.half.markets || []).forEach(function (m) { out.push({ m: m, open: Boolean(game.half.open) }); });
+    return out;
+  }
+
+  function minStake() { return (game.row && game.row.bets && game.row.bets.min) || 10; }
+
+  function marketOf(id) {
+    return menus().map(function (x) { return x.m; }).filter(function (m) { return m.id === id; })[0] || null;
+  }
+
+  function myBet(id) { return (game.mine || []).filter(function (b) { return b.market === id; })[0] || null; }
+
+  /* What this player has to bet with: a test game's bets come out of it
+     only on this page. */
+  function balance() {
+    if (typeof wallet.diamonds !== 'number') { return null; }
+    if (!game.test) { return wallet.diamonds; }
+    return (game.mine || []).reduce(function (n, b) { return n - b.stake + (b.settled_at ? b.payout : 0); }, wallet.diamonds);
+  }
+
+  function marketTitle(m) {
+    if (m.kind === 'ml') { return m.half ? 'Halftime money line' : 'Money line'; }
+    if (m.kind === 'td') { return m.half ? 'Touchdown, rest of the game' : 'Touchdown scorer'; }
+    return 'Over/under';
+  }
+
+  function pickText(m, pick) {
+    if (m.kind === 'ml') { return nick(pick.t); }
+    if (m.kind === 'td') { return pick.n; }
+    return m.who.n + ' ' + pick.id + ' ' + m.line + ' ' + m.label.toLowerCase();
+  }
+
+  function loadWallet() {
+    if (!wallet.heard && EGE.auth && EGE.auth.onChange) {
+      wallet.heard = true;
+      EGE.auth.onChange(function () { if (game && game.row) { loadWallet(); } });
+      return;
+    }
+    var me = EGE.auth && EGE.auth.currentPlayer ? EGE.auth.currentPlayer() : null;
+    wallet.email = me ? me.email : null;
+    wallet.diamonds = null;
+    var mine = game;
+    var c = client();
+    if (!wallet.email || !c) { redrawBets(); return; }
+    Promise.all([
+      EGE.wallet.diamondsFor(wallet.email),
+      game.test ? null : c.from('live_bets').select('market, pick, stake, x, payout, settled_at').eq('game_id', game.id)
+    ]).then(function (got) {
+      if (game !== mine) { return; }
+      wallet.diamonds = got[0];
+      if (got[1] && !got[1].error) { game.mine = got[1].data || []; }
+      redrawBets();
+      settleIfOver();
+    });
+  }
+
+  function walletMoved() {
+    if (game.test || typeof wallet.diamonds !== 'number') { return; }
+    document.dispatchEvent(new window.CustomEvent('ege:wallet', { detail: { diamonds: wallet.diamonds } }));
+  }
+
+  function closeSlip() { slip = null; }
+
+  function placeBet(m, pick) {
+    var stake = Math.floor(Number(slip.stake));
+    var min = minStake();
+    var have = balance();
+    slip.error = null;
+    if (!(stake >= min)) { slip.error = 'Bet at least ' + min + ' diamonds.'; redrawBets(); return; }
+    if (typeof have === 'number' && stake > have) { slip.error = 'Not enough diamonds.'; redrawBets(); return; }
+    if (game.test) {
+      test.mine = (test.mine || []).concat([{ market: m.id, pick: pick.id, stake: stake, x: pick.x, payout: null, settled_at: null }]);
+      game.mine = test.mine;
+      saveTest();
+      slip = null;
+      redrawBets();
+      return;
+    }
+    var c = client();
+    if (!c) { slip.error = 'Not connected.'; redrawBets(); return; }
+    slip.busy = true;
+    redrawBets();
+    var mine = game;
+    c.rpc('live_bet_place', { p_game: game.id, p_market: m.id, p_pick: pick.id, p_stake: stake }).then(function (res) {
+      if (game !== mine || !slip) { return; }
+      if (res.error) {
+        slip.busy = false;
+        slip.error = String(res.error.message || 'That bet did not go in.').replace(/\s*CONTEXT:.*$/, '');
+        redrawBets();
+        return;
+      }
+      wallet.diamonds = Number(res.data.diamonds);
+      game.mine = (game.mine || []).concat([res.data.bet]);
+      slip = null;
+      walletMoved();
+      redrawBets();
+    }, function () {
+      if (game !== mine || !slip) { return; }
+      slip.busy = false;
+      slip.error = 'That bet did not go in.';
+      redrawBets();
+    });
+  }
+
+  /* The final whistle has gone: the bets paid (Supabase pays them; asking
+     is enough), and what they came to brought back. A test game's are
+     worked out here, from its results. */
+  function settleIfOver(tries) {
+    if (!game || phaseNow() !== 'final' || settling) { return; }
+    var open = (game.mine || []).filter(function (b) { return !b.settled_at; });
+    if (!open.length) { return; }
+    if (game.test) {
+      var res = (test.bets && test.bets.results) || {};
+      open.forEach(function (b) {
+        b.payout = (res.push || []).indexOf(b.market) !== -1 ? b.stake
+          : (res[b.market] || []).indexOf(b.pick) !== -1 ? pays(b.stake, b.x) : 0;
+        b.settled_at = new Date().toISOString();
+      });
+      saveTest();
+      redrawBets();
+      return;
+    }
+    var c = client();
+    if (!c) { return; }
+    settling = true;
+    var mine = game;
+    c.rpc('live_settle', { p_id: game.id }).then(function () {
+      return c.from('live_bets').select('market, pick, stake, x, payout, settled_at').eq('game_id', mine.id);
+    }).then(function (res) {
+      settling = false;
+      if (game !== mine || res.error) { return; }
+      game.mine = res.data || [];
+      var left = game.mine.some(function (b) { return !b.settled_at; });
+      /* This page's clock ran a moment ahead of Supabase's: again shortly. */
+      if (left && (tries || 0) < 6) { window.setTimeout(function () { if (game === mine) { settleIfOver((tries || 0) + 1); } }, 5000); }
+      return EGE.wallet.diamondsFor(wallet.email).then(function (n) {
+        if (game !== mine) { return; }
+        wallet.diamonds = n;
+        walletMoved();
+        redrawBets();
+      });
+    }, function () { settling = false; });
+  }
+
+  function drawPick(m, pick, can) {
+    var picked = slip && slip.market === m.id && slip.pick === pick.id;
+    var b = el('button', 'ege-cast__pick ege-cast__pick--' + m.kind + (picked ? ' is-picked' : ''));
+    b.type = 'button';
+    b.disabled = !can;
+    if (m.kind === 'ml') {
+      b.style.setProperty('--team', team(pick.t).color);
+      b.appendChild(logo(pick.t, 24));
+      b.appendChild(el('span', 'ege-cast__pickname', nick(pick.t)));
+    } else if (m.kind === 'td') {
+      b.appendChild(face(0, pick.t, { 0: pick }));
+      var name = el('span', 'ege-cast__pickname');
+      name.appendChild(el('span', null, pick.n));
+      name.appendChild(el('span', 'ege-cast__pickpos', pick.pos + ' · ' + pick.t));
+      b.appendChild(name);
+    } else {
+      b.appendChild(el('span', 'ege-cast__pickname', (pick.id === 'over' ? 'Over ' : 'Under ') + m.line));
+    }
+    b.appendChild(el('span', 'ege-cast__x', times(pick.x)));
+    b.addEventListener('click', function () {
+      slip = picked ? null : { market: m.id, pick: pick.id, stake: slip ? slip.stake : minStake() };
+      redrawBets();
+    });
+    return b;
+  }
+
+  function drawSlip(m) {
+    var pick = m.picks.filter(function (p) { return p.id === slip.pick; })[0];
+    var row = el('div', 'ege-cast__slip');
+    row.appendChild(el('span', 'ege-cast__sliptext', pickText(m, pick) + ' · ' + times(pick.x)));
+    var input = el('input', 'fb-input ege-cast__stake');
+    input.type = 'number';
+    input.min = String(minStake());
+    input.step = '1';
+    input.inputMode = 'numeric';
+    input.value = String(slip.stake);
+    input.setAttribute('aria-label', 'Diamonds to bet');
+    var win = el('span', 'fb-meta ege-cast__win');
+    function payText() {
+      win.innerHTML = '';
+      var n = Math.floor(Number(input.value));
+      if (n >= minStake()) { win.appendChild(document.createTextNode('Pays ')); win.appendChild(gems(pays(n, pick.x))); }
+    }
+    input.addEventListener('input', function () { slip.stake = input.value; payText(); });
+    input.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { placeBet(m, pick); } });
+    payText();
+    var go = el('button', 'fb-btn fb-btn--sm fb-btn--primary', slip.busy ? 'Betting…' : 'Bet');
+    go.type = 'button';
+    go.disabled = Boolean(slip.busy);
+    go.addEventListener('click', function () { placeBet(m, pick); });
+    var wrap = el('div', 'ege-cast__stakebox');
+    wrap.appendChild(input);
+    var gem = el('span', 'ege-gem');
+    gem.setAttribute('aria-hidden', 'true');
+    wrap.appendChild(gem);
+    row.appendChild(wrap);
+    row.appendChild(go);
+    row.appendChild(win);
+    if (slip.error) { row.appendChild(el('p', 'ege-note ege-note--error ege-cast__sliperror', slip.error)); }
+    return row;
+  }
+
+  function drawMine(list) {
+    var box = el('div', 'ege-cast__mine');
+    box.appendChild(el('p', 'ege-cast__mkt', 'Your bets'));
+    var ul = el('ul', 'ege-cast__minelist');
+    list.forEach(function (b) {
+      var m = marketOf(b.market);
+      var pick = m ? m.picks.filter(function (p) { return p.id === b.pick; })[0] : null;
+      var li = el('li', 'ege-cast__minebet' + (b.settled_at ? (b.payout > b.stake ? ' is-won' : b.payout === b.stake ? ' is-push' : ' is-lost') : ''));
+      var what = el('div', 'ege-cast__minewhat');
+      what.appendChild(el('span', 'ege-cast__minepick', m && pick ? pickText(m, pick) : b.pick));
+      what.appendChild(el('span', 'fb-meta', (m ? marketTitle(m) : 'Bet') + ' · ' + times(Number(b.x))));
+      li.appendChild(what);
+      var stake = el('span', 'ege-cast__minestake');
+      stake.appendChild(gems(b.stake));
+      li.appendChild(stake);
+      var how = el('span', 'ege-cast__mineres');
+      if (!b.settled_at) {
+        how.appendChild(document.createTextNode('Pays '));
+        how.appendChild(gems(pays(b.stake, Number(b.x))));
+      } else if (b.payout > b.stake) {
+        how.appendChild(document.createTextNode('Won '));
+        how.appendChild(gems(b.payout));
+      } else {
+        how.textContent = b.payout === b.stake ? 'Push' : 'Lost';
+      }
+      li.appendChild(how);
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+    return box;
+  }
+
+  /* The bets box: what is open now, then this player's bets. None at all
+     once betting has closed on somebody who never bet. */
+  function drawBets() {
+    if (!game || !game.row) { return null; }
+    var open = menus().filter(function (x) { return x.open && !myBet(x.m.id); });
+    var mine = game.mine || [];
+    if (!open.length && !mine.length) { return null; }
+    if (slip && !open.some(function (x) { return x.m.id === slip.market; })) { slip = null; }
+    var box = el('section', 'fb-panel ege-cast__bets');
+    var head = el('div', 'fb-panel__head');
+    head.appendChild(el('h3', null, 'Bets'));
+    var have = balance();
+    if (typeof have === 'number') {
+      var bal = gems(have);
+      bal.classList.add('ege-cast__balance');
+      head.appendChild(bal);
+    }
+    box.appendChild(head);
+    var can = Boolean(wallet.email);
+    if (open.length && !can) { box.appendChild(el('p', 'fb-meta ege-cast__betnote', 'Log in to bet.')); }
+    var last = null;
+    open.forEach(function (x) {
+      var m = x.m;
+      var block = el('div', 'ege-cast__market ege-cast__market--' + m.kind);
+      if (!(m.kind === 'prop' && last === 'prop')) { block.appendChild(el('p', 'ege-cast__mkt', marketTitle(m))); }
+      last = m.kind;
+      var picks = el('div', 'ege-cast__picks');
+      if (m.kind === 'prop') {
+        var who = el('div', 'ege-cast__prop');
+        who.appendChild(face(0, m.who.t, { 0: m.who }));
+        var words = el('div', 'ege-cast__propwords');
+        words.appendChild(el('span', 'ege-cast__pickname', m.who.n));
+        words.appendChild(el('span', 'ege-cast__pickpos', m.label));
+        who.appendChild(words);
+        picks.appendChild(who);
+      }
+      m.picks.forEach(function (pick) { picks.appendChild(drawPick(m, pick, can)); });
+      block.appendChild(picks);
+      if (slip && slip.market === m.id) { block.appendChild(drawSlip(m)); }
+      box.appendChild(block);
+    });
+    if (mine.length) { box.appendChild(drawMine(mine)); }
+    return box;
+  }
+
+  /* Only the bets box, drawn again in its place. */
+  function redrawBets() {
+    if (!view || !game || !game.row || !view.querySelector('.ege-cast__play')) { return; }
+    var old = view.querySelector('.ege-cast__bets');
+    var fresh = drawBets();
+    if (old && fresh) {
+      old.parentNode.replaceChild(fresh, old);
+    } else if (old) {
+      old.remove();
+    } else if (fresh) {
+      var play = view.querySelector('.ege-cast__play');
+      play.parentNode.insertBefore(fresh, play.nextSibling);
+    }
+    var stake = slip && !slip.busy ? view.querySelector('.ege-cast__stake') : null;
+    if (stake && document.activeElement !== stake) { stake.focus(); }
   }
 
   /* --- an admin's hand on it -------------------------------------------------
@@ -623,6 +987,7 @@ EGE.liveView = (function () {
   function control(id, action) {
     var c = client();
     if (!c) { return Promise.reject(new Error('Not connected to Supabase.')); }
+    if (action === 'kickoff') { closeSlip(); }
     return c.rpc('live_control', { p_id: id, p_action: action, p_delay: 0 }).then(function (res) {
       if (res.error) {
         throw new Error(res.error.message + (/live_control/.test(res.error.message) ? ' Run supabase/schema.sql again first.' : ''));
@@ -661,10 +1026,17 @@ EGE.liveView = (function () {
       });
       bar.appendChild(b);
     }
-    if (state !== 'final') { btn(game.paused ? 'Resume' : 'Pause', game.paused ? 'resume' : 'pause'); }
-    btn('Restart', 'restart', game.test ? null : 'Restart from kickoff');
-    if (state !== 'final') { btn('End', 'end', game.test ? null : 'End it now'); }
-    if (!game.test) { btn('Cancel', 'cancel', 'Cancel for good'); }
+    /* Waiting: only an admin's kickoff starts it (Sam, 2026-11-04). */
+    if (game.waiting) {
+      btn('Kick off', 'kickoff', game.test ? null : 'Kick off now');
+      bar.firstChild.classList.add('fb-btn--primary');
+      if (!game.test) { btn('Cancel', 'cancel', 'Cancel for good'); }
+    } else {
+      if (state !== 'final') { btn(game.paused ? 'Resume' : 'Pause', game.paused ? 'resume' : 'pause'); }
+      btn('Restart', 'restart', game.test ? null : 'Restart from kickoff');
+      if (state !== 'final') { btn('End', 'end', game.test ? null : 'End it now'); }
+      if (!game.test) { btn('Cancel', 'cancel', 'Cancel for good'); }
+    }
     if (game.test) {
       SPEEDS.forEach(function (n) {
         var b = el('button', 'fb-btn fb-btn--sm' + (game.speed === n ? ' fb-btn--primary' : ''), n + '\u00d7');
@@ -685,7 +1057,7 @@ EGE.liveView = (function () {
      anybody else to see and nothing posted to Discord. Kept for the tab in
      sessionStorage, so a reload carries on where it was. */
 
-  var test = null;          /* { row, entries, at: { ms, real }, speed, paused } */
+  var test = null;          /* { row, entries, at: { ms, real }, speed, paused, waiting, bets, mine } */
 
   function saveTest() {
     try { window.sessionStorage.setItem(TEST_KEY, JSON.stringify(test)); } catch (err) { /* kept in memory only */ }
@@ -698,21 +1070,24 @@ EGE.liveView = (function () {
   }
 
   /* A test game of `row` ({ season, week, home, away, title }), from the
-     plan's entries; kicks off five seconds after it is opened. */
-  function startTest(row, entries, total, slot, reveal) {
+     plan's entries, with its bets ({ bets, half, results }); it waits for
+     its kickoff like a real one. */
+  function startTest(row, entries, total, slot, reveal, bets) {
     test = {
       row: Object.assign({}, row, { id: 'test', slot_ms: slot || 20000, reveal_ms: reveal || 4000,
-                                    plays: entries.length, length_ms: total }),
-      entries: entries, at: { ms: -5000, real: Date.now() }, speed: 1, paused: false
+                                    plays: entries.length, length_ms: total, bets: bets ? bets.bets : null }),
+      entries: entries, at: { ms: 0, real: Date.now() }, speed: 1, paused: false, waiting: true,
+      bets: bets || null, mine: []
     };
     saveTest();
     if (game && game.test) { stop(); }
   }
 
   function syncTest() {
-    game.clockAt = test.at;
+    game.clockAt = test.waiting ? null : test.at;
     game.speed = test.speed;
     game.paused = test.paused;
+    game.waiting = Boolean(test.waiting);
   }
 
   /* What live_feed would say of the test game now. */
@@ -726,6 +1101,11 @@ EGE.liveView = (function () {
     var list = [];
     function when(i) { return typeof all[i].ms === 'number' ? all[i].ms : i * row.slot_ms; }
     from = Math.max(from || 0, 0);
+    if (test.waiting) {
+      return { clock: null, waiting: true, paused: false, slot: row.slot_ms, reveal: row.reveal_ms, plays: all.length,
+               at: -1, from: from, shown: false, next: null, entries: [] };
+    }
+    var half = test.bets && test.bets.half;
     if (ms >= 0) {
       at = 0;
       for (var i = 1; i < all.length && when(i) <= ms; i += 1) { at = i; }
@@ -743,16 +1123,24 @@ EGE.liveView = (function () {
       }
     }
     return { clock: ms, paused: test.paused, slot: row.slot_ms, reveal: row.reveal_ms, plays: all.length,
-             at: at, from: from, shown: shown, next: next, entries: list };
+             at: at, from: from, shown: shown, next: next, entries: list,
+             half: half && ms >= half.opens ? { markets: half.markets, closes: half.closes, open: ms < half.closes && !test.seen } : null };
   }
 
   function testAct(action, speed) {
     var now = Date.now();
     var ms = clock();
+    if (action === 'kickoff') { test.at = { ms: 0, real: now }; test.waiting = false; test.paused = false; closeSlip(); }
     if (action === 'pause') { test.at = { ms: ms, real: now }; test.paused = true; }
     if (action === 'resume') { test.at = { ms: test.at.ms, real: now }; test.paused = false; }
-    if (action === 'restart') { test.at = { ms: -5000, real: now }; test.paused = false; }
-    if (action === 'end') { test.at = { ms: length(test.row), real: now }; test.paused = false; }
+    /* As live_control has it: a second half once seen takes no more
+       halftime bets. */
+    if (action === 'restart' || action === 'end') {
+      var half = test.bets && test.bets.half;
+      if (half && (action === 'end' || ms >= half.closes)) { test.seen = true; }
+    }
+    if (action === 'restart') { test.at = { ms: -5000, real: now }; test.paused = false; test.waiting = false; }
+    if (action === 'end') { test.at = { ms: length(test.row), real: now }; test.paused = false; test.waiting = false; }
     if (action === 'speed') { test.at = { ms: ms, real: now }; test.speed = speed; }
     saveTest();
     syncTest();
@@ -776,35 +1164,39 @@ EGE.liveView = (function () {
     if (game && game.id === id) { draw(); return; }
     stop();
     confirming = '';
+    slip = null;
     document.title = 'Live';
     view.innerHTML = '';
     if (id === 'test') {
       if (!loadTest()) { view.appendChild(el('p', 'ege-note ege-cast__note', 'No test game. Start one from the NFL Sim tab.')); return; }
-      game = { id: 'test', test: true, row: test.row, entries: [], done: 0, at: -1, shown: false, next: null };
+      game = { id: 'test', test: true, row: test.row, entries: [], done: 0, at: -1, shown: false, next: null,
+               mine: test.mine || [] };
       syncTest();
       ticker = window.setInterval(function () {
-        if (game && game.row && phaseNow() === 'soon') { draw(); }
+        if (game && game.row && phaseNow() === 'soon' && !game.waiting) { draw(); }
       }, 1000);
+      loadWallet();
       tick();
       return;
     }
     view.appendChild(el('p', 'ege-note ege-cast__note', 'Getting the game…'));
     var c = client();
     if (!c) { view.innerHTML = ''; view.appendChild(el('p', 'ege-note ege-cast__note', 'Live games need the connection to Supabase.')); return; }
-    game = { id: id, row: null, entries: [], done: 0, at: -1, shown: false, next: null };
+    game = { id: id, row: null, entries: [], done: 0, at: -1, shown: false, next: null, mine: [] };
     var mine = game;
-    c.from('live_games').select(COLUMNS).eq('id', id)
+    c.from('live_games').select(COLUMNS + ', bets').eq('id', id)
       .maybeSingle().then(function (res) {
         if (game !== mine) { return; }
         if (res.error || !res.data) { drawMissing(); game = null; return; }
         game.row = res.data;
+        loadWallet();
         /* An admin watching keeps the Discord posts going, where Supabase
            has no clock to send them. */
         if (EGE.wallet && EGE.wallet.admin() && EGE.nflSimAdmin && EGE.nflSimAdmin.watchLive) {
           EGE.nflSimAdmin.watchLive();
         }
         ticker = window.setInterval(function () {
-          if (game && game.row && phaseNow() === 'soon') { draw(); }
+          if (game && game.row && phaseNow() === 'soon' && !game.waiting) { draw(); }
         }, 1000);
         tick();
       });

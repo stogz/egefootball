@@ -98,7 +98,8 @@ parts.push(`
     weeks: load('weeks'),
     sixTrades: load('six-trades'),
     sixOffers: load('six-offers'),
-    liveGame: load('live')
+    liveGame: load('live'),
+    liveBets: load('live-bets')
   };
 })();
 `);

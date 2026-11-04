@@ -108,8 +108,9 @@ function defLine(name, l) {
 const RED_ZONE = 20;
 
 /* How long, in milliseconds: each snap, the break before a new drive's
-   first snap, and the wait before the first snap in the red zone. */
-const TIMING = { slot: 20000, drive: 30000, red: 15000, reveal: 4000 };
+   first snap, the wait before the first snap in the red zone, and
+   halftime, long enough to get a halftime bet in (lib/live-bets.js). */
+const TIMING = { slot: 20000, drive: 30000, red: 15000, half: 120000, reveal: 4000 };
 
 /* Fantasy points, for who a half's top performers are. */
 function points(l) {
@@ -520,7 +521,8 @@ function build(league, game, kept) {
 
   /* When each entry comes up, from kickoff: every 20 seconds, with 30 more
      before a new drive's first snap and 15 more before its first snap in
-     the red zone (Sam, 2026-11-03). */
+     the red zone (Sam, 2026-11-03), and two minutes more of halftime for
+     its bets (Sam, 2026-11-04). */
   let ms = 0;
   let had = null;
   entries.forEach((entry, i) => {
@@ -529,6 +531,7 @@ function build(league, game, kept) {
       const o = entry.pre && entry.pre.o;
       if (o && had && o !== had && !kicks.has(i)) { ms += TIMING.drive; }
       if (reds.has(i)) { ms += TIMING.red; }
+      if (entries[i - 1].tag === 'half') { ms += TIMING.half; }
     }
     entry.ms = ms;
     if (entry.pre && entry.pre.o) { had = entry.pre.o; }

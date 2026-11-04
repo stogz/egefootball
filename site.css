@@ -10589,6 +10589,92 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-cast__empty { padding: 14px 16px; color: var(--fb-muted); }
 .ege-cast__box { width: var(--ege-cast-w); justify-self: center; }
 
+/* Bets (Sam, 2026-11-04): what is open now, each pick a button with its
+   price, the pick being bet on opening its stake under it; then the bets
+   already in. */
+.ege-cast__bets .fb-panel__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; }
+.ege-cast__bets .fb-panel__head h3 { margin: 0; font-size: 1.125rem; }
+.ege-cast__balance { font-weight: 800; }
+.ege-cast__betnote { margin: 0; padding: 12px 16px 0; }
+.ege-cast__market { display: grid; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--fb-sand); }
+.ege-cast__market--prop + .ege-cast__market--prop { padding-top: 0; }
+.ege-cast__market--prop:has(+ .ege-cast__market--prop) { border-bottom: 0; }
+.ege-cast__mkt { margin: 0; font-size: var(--fb-label); font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--fb-muted); }
+.ege-cast__picks { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ege-cast__market--td .ege-cast__picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+.ege-cast__pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 2px solid var(--fb-sand);
+  background: var(--fb-cream);
+  color: var(--fb-ink);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.ege-cast__pick:hover:not(:disabled) { border-color: var(--fb-ink); }
+.ege-cast__pick:disabled { cursor: default; opacity: .7; }
+.ege-cast__pick.is-picked { border-color: var(--fb-accent); background: #fff; box-shadow: 0 0 0 1px var(--fb-accent); }
+.ege-cast__pick--ml { flex: 1 1 160px; border-left: 6px solid var(--team); }
+.ege-cast__pick--ml .ege-cast__logo { width: 24px; height: 24px; }
+.ege-cast__pick .ege-cast__face { width: 32px; height: 32px; flex: none; }
+.ege-cast__pickname { display: grid; min-width: 0; line-height: 1.15; }
+.ege-cast__pickpos { font-size: .75rem; font-weight: 700; color: var(--fb-muted); }
+.ege-cast__x {
+  margin-left: auto;
+  padding: 2px 7px;
+  background: var(--fb-ink);
+  color: var(--fb-cream);
+  font-size: .8125rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ege-cast__pick.is-picked .ege-cast__x { background: var(--fb-accent); }
+.ege-cast__prop { display: flex; align-items: center; gap: 10px; flex: 1 1 200px; min-width: 0; }
+.ege-cast__prop .ege-cast__face { width: 40px; height: 40px; flex: none; }
+.ege-cast__propwords { display: grid; min-width: 0; line-height: 1.15; font-weight: 700; }
+.ege-cast__market--prop .ege-cast__pick { flex: 0 0 150px; white-space: nowrap; }
+.ege-cast__slip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  padding: 10px 12px;
+  background: var(--fb-surface);
+}
+.ege-cast__sliptext { flex-basis: 100%; font-weight: 800; }
+.ege-cast__stakebox { display: inline-flex; align-items: center; gap: 6px; }
+.ege-cast__stake { width: 6.5rem; }
+.ege-cast__sliperror { flex-basis: 100%; margin: 0; }
+.ege-cast__mine { display: grid; gap: 6px; padding: 12px 16px 14px; }
+.ege-cast__minelist { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.ege-cast__minebet {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 4px 14px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--fb-sand);
+}
+.ege-cast__minewhat { display: grid; min-width: 0; line-height: 1.2; }
+.ege-cast__minepick { font-weight: 800; }
+.ege-cast__minestake, .ege-cast__mineres { font-weight: 700; white-space: nowrap; }
+.ege-cast__mineres { min-width: 5.5em; text-align: right; color: var(--fb-muted); }
+.ege-cast__minebet.is-won .ege-cast__mineres { color: var(--fb-grass); font-weight: 800; }
+.ege-cast__minebet.is-lost .ege-cast__mineres { color: var(--fb-accent-deep); }
+@media (max-width: 620px) {
+  .ege-cast__market--td .ege-cast__picks { grid-template-columns: 1fr 1fr; }
+  .ege-cast__pick--td .ege-cast__face { display: none; }
+  .ege-cast__market--prop .ege-cast__pick { flex: 1 1 120px; }
+  .ege-cast__minebet { grid-template-columns: minmax(0, 1fr) auto; }
+  .ege-cast__minestake { display: none; }
+}
+
 @media (max-width: 620px) {
   .ege-cast { padding-top: 64px; gap: 16px; }
   .ege-cast__team { grid-template-columns: 34px minmax(0, 1fr); gap: 4px 8px; padding: 10px; }
