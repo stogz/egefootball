@@ -3793,16 +3793,17 @@ notify pgrst, 'reload schema';
 --               'live' webhook (or the NFL one). Without pg_cron or pg_net
 --               here the NFL Sim tab sends them while it is open
 --               (live_claim).
---   live_bets   diamonds on the game (Sam, 2026-11-04): the money line, a
+--   live_bets   diamonds on the game (Sam, 2026-11-04): the spread, a
 --               touchdown scorer and three players' over/unders before
---               kickoff; a scorer for the rest of the game and the money
---               line again at halftime. At least 10 diamonds a bet, one
---               bet a market, each paying its price times the stake back
---               once the final whistle has gone (live_settle). Placed only
+--               kickoff; a scorer for the rest of the game and the spread
+--               again at halftime. At least 10 diamonds a bet, one bet a
+--               market, each paying its price times the stake back once
+--               the final whistle has gone (live_settle). Placed only
 --               through live_bet_place, which takes the diamonds and the
---               price from the menu, never from the page. A tie gives
---               the money line's stake back, and so does taking the game
---               off before it is over, by any road (live_refund).
+--               price from the menu, never from the page. A market the
+--               menu marks a push gives the stake back, and so does
+--               taking the game off before it is over, by any road
+--               (live_refund).
 -- ---------------------------------------------------------------------------
 
 do $$

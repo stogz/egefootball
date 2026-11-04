@@ -3795,21 +3795,28 @@ module.exports = { depthChart, gameDay, skill, healthy, standIn };
    What anybody watching a live game can put diamonds on (Sam, 2026-11-04),
    and what each bet comes to, worked out when the game goes live:
 
-   - before kickoff: the money line (1.75 times the stake back on either
-     side), a touchdown scorer (1.25 times back for somebody who scores
-     nearly every week, up to 3 for somebody nobody expects to) and three
-     players' over/unders (2 times back), each on the stat he piles up
-     most: his season's average a game, or before he has three games
-     behind him, the middle of what the sim expects of him.
+   - before kickoff: the spread the bot's first post gives (Sam,
+     2026-11-04: the site's own line, the favourite giving the half point
+     past it), a touchdown scorer and three players' over/unders, each on
+     the stat he piles up most, the line halfway between his season's
+     average and what the sim expects of him in this game (all the sim's
+     before he has three games behind him).
    - at halftime: a touchdown scorer for the rest of the game, and the
-     money line again, now priced on the score at the half.
+     spread again as the bot's halftime post has it: the score at the half
+     and half the pregame line still to play.
+
+   What each pays, the stake included (Sam left the numbers to us,
+   2026-11-04): either side of a spread or an over/under 1.9 times, the
+   way a book pays a coin flip, so nobody gains on it in the long run; a
+   scorer what his chance of scoring is worth less 15%, from 1.25 for
+   somebody who scores nearly every week to 5 for an outside chance.
 
    The prices come only from what anybody could know before the game: the
    league as it stood before the week was played (the week's save point,
    lib/rewind.js), the matchup played RUNS times on dice of its own, each
-   player's games so far this season, and the site's own pregame line. Nothing of the game itself goes
-   into them, but the halftime line's score and who has been hurt by then,
-   which the page has already shown. What each bet comes to is read off the
+   player's games so far this season, and the site's own pregame line.
+   Nothing of the game itself goes into them, but the halftime line's
+   score and who has been hurt by then, which the page has already shown. What each bet comes to is read off the
    game's own plays, and kept where only the database sees it
    (supabase/schema.sql live_feeds), until the final whistle settles it.
 
@@ -3826,17 +3833,17 @@ const boosts = require('./boosts');
 const { seeded } = require('./rng');
 
 const MIN = 10;
-const ML = 1.75;
-const PROP = 2;
+const SPREAD = 1.9;
+const PROP = 1.9;
 const RUNS = 200;
 
-/* A touchdown scorer's price: from TD_X[1] for one as good as certain
-   (TD_P[1] or more) to TD_X[0] for an outside chance (TD_P[0] or less).
-   The halftime one's chances are smaller, the rest of a game being half
-   of one, so its scale is too. */
-const TD_X = [3, 1.25];
-const TD_P = [0.12, 0.55];
-const TD2_P = [0.06, 0.35];
+/* A touchdown scorer's price: what his chance of scoring is worth, less
+   the house's share, between TD_X[0] and TD_X[1]. */
+const TD_EDGE = 0.85;
+const TD_X = [1.25, 5];
+
+/* The longest spread the bot gives (EGE.discordPost.spreadText). */
+const LONGEST = 24.5;
 
 /* How many players a side can be picked to score, at most. */
 const PER_TEAM = 6;
@@ -3852,23 +3859,20 @@ function round05(x) { return Math.round(x * 20) / 20; }
 
 function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
 
-/* The price for a chance `p` of scoring, on the scale `scale`. */
-function tdPrice(p, scale) {
-  const t = clamp((p - scale[0]) / (scale[1] - scale[0]), 0, 1);
-  return round05(TD_X[0] + (TD_X[1] - TD_X[0]) * t);
-}
+/* The price for a chance `p` of scoring. */
+function tdPrice(p) { return round05(clamp(TD_EDGE / Math.max(p, 0.01), TD_X[0], TD_X[1])); }
 
-/* The standard normal's distribution function. */
-function phi(z) {
-  const t = 1 / (1 + 0.2316419 * Math.abs(z));
-  const d = 0.3989423 * Math.exp(-z * z / 2);
-  const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
-  return z > 0 ? 1 - p : p;
+/* The points the home side is given (less than nothing when it gives
+   them), as the bot's spread has it (EGE.discordPost.spreadText): the
+   side `first` names (the one with the six) gets the half point past its
+   margin, `longest` at most, giving it when favoured and getting it when
+   not. Never a whole number, so never a push. */
+function homePoints(margin, firstIsHome, longest) {
+  const theirs = firstIsHome ? margin : -margin;
+  const spread = Math.min(longest || Infinity, Math.floor(Math.abs(theirs)) + 0.5);
+  const first = theirs > 0 ? -spread : spread;
+  return firstIsHome ? first : -first;
 }
-
-/* A side's price for a chance `p` of winning: what 1.75 is to an even
-   game, never less than 1.05 back nor more than 6. */
-function mlPrice(p) { return round05(clamp(ML / 2 / Math.max(p, 0.01), 1.05, 6)); }
 
 function scored(line) { return TD_KEYS.reduce((n, k) => n + ((line && line[k]) || 0), 0); }
 
@@ -3883,7 +3887,7 @@ function median(list) {
 
 /* The game played RUNS times from the league as it stood before the week:
    each player's chance of scoring, of scoring after the half, and what he
-   piles up; the home side's margin at the half and after it. */
+   piles up; the home side's margin. */
 function project(pre, game) {
   index(pre);
   const home = side(pre, game.home);
@@ -3892,14 +3896,10 @@ function project(pre, game) {
   try { links = boosts.read(pre).links; } catch (err) { links = null; }
   const rng = seeded(['live-bets', pre.seed || 'ege-nfl', game.season, game.week, game.away, game.home].join(':'));
   const per = {};
-  const second = [];
   let margin = 0;
   for (let i = 0; i < RUNS; i += 1) {
     const r = playGame(home, away, rng, { neutral: !!game.neutral, playoff: !!game.playoff, noInjuries: true, links });
     margin += r.score[0] - r.score[1];
-    let half = [0, 0];
-    r.scoring.forEach((s) => { if (s.qtr <= 2) { half = s.score; } });
-    second.push((r.score[0] - half[0]) - (r.score[1] - half[1]));
     const late = {};
     r.tds.forEach((t) => { if (t.qtr >= 3 && t.id) { late[t.id] = true; } });
     Object.keys(r.box).forEach((id) => {
@@ -3919,9 +3919,7 @@ function project(pre, game) {
     e.td2 /= RUNS;
     e.touches /= RUNS;
   });
-  const mean2 = second.reduce((a, b) => a + b, 0) / RUNS;
-  const sd2 = Math.sqrt(second.reduce((a, b) => a + (b - mean2) * (b - mean2), 0) / RUNS) || 9.5;
-  return { per, margin: margin / RUNS, second: mean2, sd2 };
+  return { per, margin: margin / RUNS };
 }
 
 /* Each player's games this season before this week, by id, newest first:
@@ -3959,7 +3957,16 @@ function build(pre, game, kept, plan, games) {
   const plays = kept.plays || [];
   const last = plays[plays.length - 1];
   const final = last ? last.post.s : [0, 0];
-  const winner = final[0] > final[1] ? 'home' : final[1] > final[0] ? 'away' : null;
+  /* The side the bot's posts put first: the one with one of the six. */
+  const mark = (plan.players || []).filter((p) => p.g)[0];
+  const firstIsHome = !mark || mark.t === game.home;
+  function spreadMarket(id, points, half) {
+    const m = { id, kind: 'spread',
+                picks: [{ id: 'away', t: game.away, line: -points, x: SPREAD }, { id: 'home', t: game.home, line: points, x: SPREAD }] };
+    if (half) { m.half = true; }
+    return m;
+  }
+  function covers(points) { return final[0] + points > final[1] ? 'home' : 'away'; }
 
   /* What each player did in the game, from its plays: touchdowns, those
      after the half, and his yards. */
@@ -3976,9 +3983,8 @@ function build(pre, game, kept, plan, games) {
     if (e.pre && e.pre.q <= 2) { (e.hurt || []).forEach((id) => { hurtEarly[id] = true; }); }
   });
 
-  const markets = [{ id: 'ml', kind: 'ml',
-                     picks: [{ id: 'away', t: game.away, x: ML }, { id: 'home', t: game.home, x: ML }] }];
-  const results = { ml: winner ? [winner] : [], push: winner ? [] : ['ml'] };
+  const markets = [];
+  const results = { push: [] };
   let half = null;
 
   /* Where the halftime bets open and close: from the halftime entry until
@@ -3988,11 +3994,17 @@ function build(pre, game, kept, plan, games) {
   const closes = at >= 0 && plan.entries[at + 1] ? plan.entries[at + 1].ms : null;
   const halfScore = at >= 0 ? plan.entries[at].post.s : null;
 
+  const proj = pre ? project(pre, game) : null;
+  /* The site's line, or the matchup's where the site has none. */
+  const margin = typeof game.margin === 'number' ? game.margin : proj ? proj.margin : 0;
+  const points = homePoints(margin, firstIsHome, LONGEST);
+  markets.push(spreadMarket('sp', points));
+  results.sp = [covers(points)];
+
   if (!pre) {
     return { bets: { min: MIN, markets }, half: null, results };
   }
 
-  const proj = project(pre, game);
   const seen = form(games, game);
   const rng = seeded(['live-props', game.season, game.week, game.away, game.home].join(':'));
 
@@ -4024,7 +4036,7 @@ function build(pre, game, kept, plan, games) {
   });
   const pickId = {};
   picked.forEach((id, i) => { pickId[id] = 'p' + i; });
-  markets.push({ id: 'td', kind: 'td', picks: picked.map((id) => Object.assign({ id: pickId[id], x: tdPrice(chance[id].p, TD_P) },
+  markets.push({ id: 'td', kind: 'td', picks: picked.map((id) => Object.assign({ id: pickId[id], x: tdPrice(chance[id].p) },
                                                                               who(chance[id].player))) });
   results.td = picked.filter((id) => did[id] && did[id].td > 0).map((id) => pickId[id]);
 
@@ -4066,7 +4078,8 @@ function build(pre, game, kept, plan, games) {
     const p = pre.byId.get(id);
     const stat = statOf(id);
     const lines = seen[id] || [];
-    const mid = lines.length >= 3 ? lines.reduce((a, l) => a + (l[stat] || 0), 0) / lines.length : median(proj.per[id][stat]);
+    const sim = median(proj.per[id][stat]);
+    const mid = lines.length >= 3 ? (lines.reduce((a, l) => a + (l[stat] || 0), 0) / lines.length + sim) / 2 : sim;
     const line = Math.floor(mid) + 0.5;
     const mkt = 'o' + (i + 1);
     markets.push({ id: mkt, kind: 'prop', who: who(p), stat, label: STATS[stat], line,
@@ -4074,32 +4087,29 @@ function build(pre, game, kept, plan, games) {
     results[mkt] = [((did[id] && did[id][stat]) || 0) > line ? 'over' : 'under'];
   });
 
-  /* Halftime: the money line on the score at the half and half the
-     pregame line still to play (the site's, as the bot's halftime post
-     has it, or else the matchup's), and who scores in the rest of it. */
+  /* Halftime: the spread as the bot's halftime post has it, the score at
+     the half and half the pregame line still to play, and who scores in
+     the rest of the game. */
   if (opens !== null && closes !== null) {
     const lead = halfScore[0] - halfScore[1];
-    const still = typeof game.margin === 'number' ? game.margin / 2 : proj.second;
-    const pHome = clamp(phi((lead + still) / proj.sd2), 0.01, 0.99);
+    const points2 = homePoints(margin / 2 + lead, firstIsHome);
     const later = picked.filter((id) => !hurtEarly[id]);
     half = {
       opens, closes,
       markets: [
-        { id: 'ml2', kind: 'ml', half: true,
-          picks: [{ id: 'away', t: game.away, x: mlPrice(1 - pHome) }, { id: 'home', t: game.home, x: mlPrice(pHome) }] },
+        spreadMarket('sp2', points2, true),
         { id: 'td2', kind: 'td', half: true,
-          picks: later.map((id) => Object.assign({ id: pickId[id], x: tdPrice(chance[id].p2, TD2_P) }, who(chance[id].player))) }
+          picks: later.map((id) => Object.assign({ id: pickId[id], x: tdPrice(chance[id].p2) }, who(chance[id].player))) }
       ]
     };
-    results.ml2 = results.ml.slice();
-    if (!winner) { results.push.push('ml2'); }
+    results.sp2 = [covers(points2)];
     results.td2 = later.filter((id) => did[id] && did[id].td2 > 0).map((id) => pickId[id]);
   }
 
   return { bets: { min: MIN, markets }, half, results };
 }
 
-module.exports = { build, tdPrice, mlPrice, MIN, ML, PROP, TD_P, TD2_P };
+module.exports = { build, tdPrice, homePoints, MIN, SPREAD, PROP };
 
   };
 

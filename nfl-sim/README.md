@@ -415,20 +415,23 @@ A whole season and its playoffs take about half a second.
   from the game's page (Sam, 2026-11-04). The site side is `js/live.js`,
   `EGE.discordPost.buildLivePosts` and `live_*` in `supabase/schema.sql`.
 - **Live bets** (`lib/live-bets.js`, Sam 2026-11-04): diamonds on a live
-  game, at least 10 a bet, one a market. Before kickoff the money line
-  (1.75x back either side), a touchdown scorer (1.25x for somebody who
-  scores nearly every week up to 3x for an outside chance) and three
-  over/unders at 2x (the six who play first, then a seeded draw; the line
-  is the player's season average once he has three games, else the
-  middle of what the sim expects); at halftime a scorer for the rest of
-  the game and the money line priced on the score at the half and half
-  the site's pregame line still to play. Prices come from the week's save
-  point (the league before the week), the matchup played 200 times on
-  dice of its own (`RUNS`, never the league's dice) and the season's box
-  scores before the week; nothing of the game itself but the halftime
-  score and who was hurt in the first half, which the page has shown.
-  What each bet comes to is read off the game's plays and kept where only
-  the database sees it until the final whistle (`live_settle`).
+  game, at least 10 a bet, one a market. Before kickoff the spread the
+  bot's first post gives (the site's line, the favourite giving the half
+  point past it; 1.9x either side), a touchdown scorer (a dropdown on the
+  page; fair odds less 15%, from 1.25x for somebody who scores nearly
+  every week up to 5x for an outside chance) and three over/unders at
+  1.9x (the six who play first, then a seeded draw; the line is halfway
+  between the player's season average and what the sim expects of him,
+  all the sim's before he has three games); at halftime a scorer for the
+  rest of the game and the spread as the bot's halftime post has it (the
+  score at the half and half the pregame line still to play). Prices come
+  from the week's save point (the league before the week), the matchup
+  played 200 times on dice of its own (`RUNS`, never the league's dice)
+  and the season's box scores before the week; nothing of the game itself
+  but the halftime score and who was hurt in the first half, which the
+  page has shown. What each bet comes to is read off the game's plays and
+  kept where only the database sees it until the final whistle
+  (`live_settle`).
 
 The world plays its own 2023 season from the kickoff league. The site's 2023
 results are not read in: the sim is its own world from Week 1 of 2023 on, and

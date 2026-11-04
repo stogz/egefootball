@@ -12,10 +12,12 @@
    pause, end, restart or cancel it from here too, and #live/test plays a
    game on this device alone before it goes live.
 
-   Bets (Sam, 2026-11-04), diamonds only, at least 10 a bet: the money
-   line, a touchdown scorer and three players' over/unders until the
-   kickoff, and at halftime a scorer for the rest of the game and the
-   money line again. The menus and prices are the NFL Sim tab's
+   Bets (Sam, 2026-11-04), diamonds only, at least 10 a bet: the spread
+   of the bot's first post, a touchdown scorer and three players'
+   over/unders until the kickoff, and at halftime a scorer for the rest
+   of the game and the spread of the halftime post. They sit under the
+   play by play and over the box score, in the teams' colours. The menus
+   and prices are the NFL Sim tab's
    (nfl-sim/lib/live-bets.js); Supabase takes the bets and pays them at
    the final whistle (live_bet_place, live_settle). A test game takes
    them too, on this device alone, without a diamond moving.
@@ -619,24 +621,23 @@ EGE.liveView = (function () {
     var feedScroll = keepFeed ? keepFeed.scrollTop : 0;
     var typing = document.activeElement && document.activeElement.classList &&
       document.activeElement.classList.contains('ege-cast__stake');
+    /* A bet being made (the scorer list open, a stake being typed) is
+       left where it is, and the rest drawn around it. */
+    var keep = view.querySelector('.ege-cast__bets');
+    if (!(keep && keep.contains(document.activeElement) && keep.getAttribute('data-open') === betsKey())) { keep = null; }
     var at = where();
-    view.innerHTML = '';
-    view.appendChild(drawHead(at));
-    var controls = drawControls();
-    if (controls) { view.appendChild(controls); }
-    /* Before the kickoff the field has nothing on it yet: the bets come
-       first. */
-    var field = drawField(at);
-    if (!game.waiting) { view.appendChild(field); }
+    Array.prototype.slice.call(view.childNodes).forEach(function (n) { if (n !== keep) { view.removeChild(n); } });
+    function put(node) { if (node) { view.insertBefore(node, keep); } }
+    put(drawHead(at));
+    put(drawControls());
+    put(drawField(at));
     var cols = el('div', 'ege-cast__cols');
     var side = el('div', 'ege-cast__side');
     side.appendChild(drawPlay());
-    var bets = drawBets();
-    if (bets) { side.appendChild(bets); }
     if (phaseNow() !== 'soon') { side.appendChild(drawFeed()); }
     cols.appendChild(side);
-    view.appendChild(cols);
-    if (game.waiting) { view.appendChild(field); }
+    put(cols);
+    if (!keep) { put(drawBets()); }
     var box = drawBox();
     if (box) {
       box.classList.add('ege-cast__box');
@@ -699,15 +700,40 @@ EGE.liveView = (function () {
   }
 
   function marketTitle(m) {
-    if (m.kind === 'ml') { return m.half ? 'Halftime money line' : 'Money line'; }
+    if (m.kind === 'spread') { return m.half ? 'Halftime spread' : 'Spread'; }
     if (m.kind === 'td') { return m.half ? 'Touchdown, rest of the game' : 'Touchdown scorer'; }
     return 'Over/under';
   }
 
+  function lineText(n) { return (n > 0 ? '+' : '') + n; }
+
+  /* "Cooper Clark O/U 73.5 rushing yards" (Sam, 2026-11-04). */
+  function propText(m) { return m.who.n + ' O/U ' + m.line + ' ' + m.label.toLowerCase(); }
+
   function pickText(m, pick) {
-    if (m.kind === 'ml') { return nick(pick.t); }
+    if (m.kind === 'spread') { return nick(pick.t) + ' ' + lineText(pick.line); }
     if (m.kind === 'td') { return pick.n; }
     return m.who.n + ' ' + pick.id + ' ' + m.line + ' ' + m.label.toLowerCase();
+  }
+
+  /* Whose colours a pick is in. */
+  function pickTeam(m, pick) { return m.kind === 'prop' ? m.who.t : pick && pick.t; }
+
+  /* A box in a team's colours (Sam, 2026-11-04): the colour itself, and
+     a wash of it for what sits on the page. */
+  function paint(node, key) {
+    var hex = /^#([0-9a-f]{6})$/i.exec(team(key).color || '');
+    var n = hex ? parseInt(hex[1], 16) : 0x1d2416;
+    node.style.setProperty('--team', team(key).color);
+    node.style.setProperty('--team-wash', 'rgba(' + (n >> 16) + ', ' + ((n >> 8) & 255) + ', ' + (n & 255) + ', .13)');
+    return node;
+  }
+
+  /* A team's mark on a white coin, so it reads on its own colour. */
+  function coin(key, size) {
+    var c = el('span', 'ege-cast__coin');
+    c.appendChild(logo(key, size));
+    return c;
   }
 
   function loadWallet() {
@@ -822,23 +848,20 @@ EGE.liveView = (function () {
     }, function () { settling = false; });
   }
 
+  /* A pick's button: a side of the spread in its team's colours, or the
+     over or the under of a player's line. */
   function drawPick(m, pick, can) {
     var picked = slip && slip.market === m.id && slip.pick === pick.id;
     var b = el('button', 'ege-cast__pick ege-cast__pick--' + m.kind + (picked ? ' is-picked' : ''));
     b.type = 'button';
     b.disabled = !can;
-    if (m.kind === 'ml') {
-      b.style.setProperty('--team', team(pick.t).color);
-      b.appendChild(logo(pick.t, 24));
-      b.appendChild(el('span', 'ege-cast__pickname', nick(pick.t)));
-    } else if (m.kind === 'td') {
-      b.appendChild(face(0, pick.t, { 0: pick }));
-      var name = el('span', 'ege-cast__pickname');
-      name.appendChild(el('span', null, pick.n));
-      name.appendChild(el('span', 'ege-cast__pickpos', pick.pos + ' · ' + pick.t));
-      b.appendChild(name);
+    b.setAttribute('aria-pressed', picked ? 'true' : 'false');
+    if (m.kind === 'spread') {
+      paint(b, pick.t);
+      b.appendChild(coin(pick.t, 26));
+      b.appendChild(el('span', 'ege-cast__pickname', pickText(m, pick)));
     } else {
-      b.appendChild(el('span', 'ege-cast__pickname', (pick.id === 'over' ? 'Over ' : 'Under ') + m.line));
+      b.appendChild(el('span', 'ege-cast__pickname', pick.id === 'over' ? 'Over' : 'Under'));
     }
     b.appendChild(el('span', 'ege-cast__x', times(pick.x)));
     b.addEventListener('click', function () {
@@ -848,10 +871,68 @@ EGE.liveView = (function () {
     return b;
   }
 
+  /* The touchdown scorer: one player, out of a list (Sam, 2026-11-04). */
+  function drawScorer(m, can) {
+    var sel = el('select', 'fb-select ege-cast__scorer');
+    sel.disabled = !can;
+    sel.setAttribute('aria-label', marketTitle(m));
+    var none = el('option', null, 'Pick a player');
+    none.value = '';
+    sel.appendChild(none);
+    [game.row.away, game.row.home].forEach(function (key) {
+      var group = el('optgroup');
+      group.label = team(key).name;
+      m.picks.filter(function (p) { return p.t === key; }).forEach(function (p) {
+        var o = el('option', null, p.n + ' · ' + p.pos + ' · ' + times(p.x));
+        o.value = p.id;
+        group.appendChild(o);
+      });
+      if (group.firstChild) { sel.appendChild(group); }
+    });
+    sel.value = slip && slip.market === m.id ? slip.pick : '';
+    sel.addEventListener('change', function () {
+      if (sel.value) {
+        slip = { market: m.id, pick: sel.value, stake: slip ? slip.stake : minStake() };
+      } else if (slip && slip.market === m.id) {
+        slip = null;
+      }
+      redrawBets();
+    });
+    return sel;
+  }
+
+  /* A player's line on his team's colours, the over and the under at
+     the end of it. */
+  function drawProp(m, can) {
+    var wrap = el('div', 'ege-cast__propwrap');
+    var row = paint(el('div', 'ege-cast__prop' + (slip && slip.market === m.id ? ' has-pick' : '')), m.who.t);
+    row.appendChild(face(0, m.who.t, { 0: m.who }));
+    row.appendChild(el('p', 'ege-cast__propline', propText(m)));
+    var ou = el('div', 'ege-cast__ou');
+    m.picks.forEach(function (pick) { ou.appendChild(drawPick(m, pick, can)); });
+    row.appendChild(ou);
+    wrap.appendChild(row);
+    if (slip && slip.market === m.id) { wrap.appendChild(drawSlip(m)); }
+    return wrap;
+  }
+
+  /* The pick being bet on, in its team's colours: how much, and what it
+     pays. */
   function drawSlip(m) {
     var pick = m.picks.filter(function (p) { return p.id === slip.pick; })[0];
-    var row = el('div', 'ege-cast__slip');
-    row.appendChild(el('span', 'ege-cast__sliptext', pickText(m, pick) + ' · ' + times(pick.x)));
+    var row = paint(el('div', 'ege-cast__slip'), pickTeam(m, pick));
+    var what = el('div', 'ege-cast__slipwhat');
+    if (m.kind === 'td') {
+      what.appendChild(face(0, pick.t, { 0: pick }));
+      var name = el('span', 'ege-cast__slipname');
+      name.appendChild(el('span', 'ege-cast__sliptext', pick.n));
+      name.appendChild(el('span', 'ege-cast__pickpos', pick.pos + ' · ' + nick(pick.t)));
+      what.appendChild(name);
+    } else {
+      what.appendChild(el('span', 'ege-cast__sliptext', pickText(m, pick)));
+    }
+    what.appendChild(el('span', 'ege-cast__x', times(pick.x)));
+    row.appendChild(what);
     var input = el('input', 'fb-input ege-cast__stake');
     input.type = 'number';
     input.min = String(minStake());
@@ -868,7 +949,7 @@ EGE.liveView = (function () {
     input.addEventListener('input', function () { slip.stake = input.value; payText(); });
     input.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { placeBet(m, pick); } });
     payText();
-    var go = el('button', 'fb-btn fb-btn--sm fb-btn--primary', slip.busy ? 'Betting…' : 'Bet');
+    var go = el('button', 'fb-btn fb-btn--sm fb-btn--primary ege-cast__go', slip.busy ? 'Betting…' : 'Bet');
     go.type = 'button';
     go.disabled = Boolean(slip.busy);
     go.addEventListener('click', function () { placeBet(m, pick); });
@@ -891,7 +972,9 @@ EGE.liveView = (function () {
     list.forEach(function (b) {
       var m = marketOf(b.market);
       var pick = m ? m.picks.filter(function (p) { return p.id === b.pick; })[0] : null;
+      var key = m ? pickTeam(m, pick) : null;
       var li = el('li', 'ege-cast__minebet' + (b.settled_at ? (b.payout > b.stake ? ' is-won' : b.payout === b.stake ? ' is-push' : ' is-lost') : ''));
+      if (key) { paint(li, key); li.appendChild(coin(key, 22)); } else { li.appendChild(el('span')); }
       var what = el('div', 'ege-cast__minewhat');
       what.appendChild(el('span', 'ege-cast__minepick', m && pick ? pickText(m, pick) : b.pick));
       what.appendChild(el('span', 'fb-meta', (m ? marketTitle(m) : 'Bet') + ' · ' + times(Number(b.x))));
@@ -916,15 +999,27 @@ EGE.liveView = (function () {
     return box;
   }
 
-  /* The bets box: what is open now, then this player's bets. None at all
+  function openBets() { return menus().filter(function (x) { return x.open && !myBet(x.m.id); }); }
+
+  /* What the bets box shows, as a word: drawn again only once it changes,
+     so a bet being made is left alone. */
+  function betsKey() {
+    return openBets().map(function (x) { return x.m.id; }).join(',') + '|' + (game.mine || []).length;
+  }
+
+  /* The bets box, under the play by play and over the box score (Sam,
+     2026-11-04): what is open now, then this player's bets. None at all
      once betting has closed on somebody who never bet. */
   function drawBets() {
     if (!game || !game.row) { return null; }
-    var open = menus().filter(function (x) { return x.open && !myBet(x.m.id); });
+    var open = openBets();
     var mine = game.mine || [];
     if (!open.length && !mine.length) { return null; }
     if (slip && !open.some(function (x) { return x.m.id === slip.market; })) { slip = null; }
     var box = el('section', 'fb-panel ege-cast__bets');
+    box.setAttribute('data-open', betsKey());
+    paint(box, game.row.away);
+    box.style.setProperty('--home', team(game.row.home).color);
     var head = el('div', 'fb-panel__head');
     head.appendChild(el('h3', null, 'Bets'));
     var have = balance();
@@ -936,34 +1031,41 @@ EGE.liveView = (function () {
     box.appendChild(head);
     var can = Boolean(wallet.email);
     if (open.length && !can) { box.appendChild(el('p', 'fb-meta ege-cast__betnote', 'Log in to bet.')); }
-    var last = null;
-    open.forEach(function (x) {
-      var m = x.m;
-      var block = el('div', 'ege-cast__market ege-cast__market--' + m.kind);
-      if (!(m.kind === 'prop' && last === 'prop')) { block.appendChild(el('p', 'ege-cast__mkt', marketTitle(m))); }
-      last = m.kind;
-      var picks = el('div', 'ege-cast__picks');
-      if (m.kind === 'prop') {
-        var who = el('div', 'ege-cast__prop');
-        who.appendChild(face(0, m.who.t, { 0: m.who }));
-        var words = el('div', 'ege-cast__propwords');
-        words.appendChild(el('span', 'ege-cast__pickname', m.who.n));
-        words.appendChild(el('span', 'ege-cast__pickpos', m.label));
-        who.appendChild(words);
-        picks.appendChild(who);
-      }
-      m.picks.forEach(function (pick) { picks.appendChild(drawPick(m, pick, can)); });
-      block.appendChild(picks);
-      if (slip && slip.market === m.id) { block.appendChild(drawSlip(m)); }
-      box.appendChild(block);
-    });
+    if (open.length) {
+      var grid = el('div', 'ege-cast__markets');
+      var props = null;
+      open.forEach(function (x) {
+        var m = x.m;
+        if (m.kind === 'prop') {
+          if (!props) {
+            props = el('div', 'ege-cast__market ege-cast__market--prop');
+            props.appendChild(el('p', 'ege-cast__mkt', marketTitle(m)));
+            grid.appendChild(props);
+          }
+          props.appendChild(drawProp(m, can));
+          return;
+        }
+        var block = el('div', 'ege-cast__market ege-cast__market--' + m.kind);
+        block.appendChild(el('p', 'ege-cast__mkt', marketTitle(m)));
+        if (m.kind === 'td') {
+          block.appendChild(drawScorer(m, can));
+        } else {
+          var picks = el('div', 'ege-cast__picks' + (slip && slip.market === m.id ? ' has-pick' : ''));
+          m.picks.forEach(function (pick) { picks.appendChild(drawPick(m, pick, can)); });
+          block.appendChild(picks);
+        }
+        if (slip && slip.market === m.id) { block.appendChild(drawSlip(m)); }
+        grid.appendChild(block);
+      });
+      box.appendChild(grid);
+    }
     if (mine.length) { box.appendChild(drawMine(mine)); }
     return box;
   }
 
   /* Only the bets box, drawn again in its place. */
   function redrawBets() {
-    if (!view || !game || !game.row || !view.querySelector('.ege-cast__play')) { return; }
+    if (!view || !game || !game.row || !view.querySelector('.ege-cast__cols')) { return; }
     var old = view.querySelector('.ege-cast__bets');
     var fresh = drawBets();
     if (old && fresh) {
@@ -971,8 +1073,7 @@ EGE.liveView = (function () {
     } else if (old) {
       old.remove();
     } else if (fresh) {
-      var play = view.querySelector('.ege-cast__play');
-      play.parentNode.insertBefore(fresh, play.nextSibling);
+      view.insertBefore(fresh, view.querySelector(':scope > .ege-cast__box'));
     }
     var stake = slip && !slip.busy ? view.querySelector('.ege-cast__stake') : null;
     if (stake && document.activeElement !== stake) { stake.focus(); }

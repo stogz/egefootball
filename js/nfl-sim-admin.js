@@ -1043,7 +1043,8 @@ EGE.nflSimAdmin = (function () {
 
   /* The game's feed and posts plan, from its kept snaps, and its bets:
      { plan, bets: { bets, half, results } }. `margin` is the site's line
-     for it, which prices the halftime money line. */
+     for it, which the spreads are made from, as the bot's posts make
+     theirs. */
   function livePlan(season, week, g, playoff, margin) {
     return fetchPlays(season, week).then(function (file) {
       var kept = file.games[sim().season.gameKey(g)];
