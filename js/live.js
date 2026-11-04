@@ -16,8 +16,9 @@
    of the bot's first post, a touchdown scorer and three players'
    over/unders until the kickoff, and at halftime a scorer for the rest
    of the game and the spread of the halftime post. They sit under the
-   play by play and over the box score, in the teams' colours. The menus
-   and prices are the NFL Sim tab's
+   play by play and over the box score, a row a bet, in the teams'
+   colours; a pick opens a pop-up for how many diamonds. The menus and
+   prices are the NFL Sim tab's
    (nfl-sim/lib/live-bets.js); Supabase takes the bets and pays them at
    the final whistle (live_bet_place, live_settle). A test game takes
    them too, on this device alone, without a diamond moving.
@@ -619,12 +620,10 @@ EGE.liveView = (function () {
     if (!view || !game || !game.row) { return; }
     var keepFeed = view.querySelector('.ege-cast__list');
     var feedScroll = keepFeed ? keepFeed.scrollTop : 0;
-    var typing = document.activeElement && document.activeElement.classList &&
-      document.activeElement.classList.contains('ege-cast__stake');
-    /* A bet being made (the scorer list open, a stake being typed) is
-       left where it is, and the rest drawn around it. */
+    /* The player list open, or a pick being made: the bets box is left
+       where it is, and the rest drawn around it. */
     var keep = view.querySelector('.ege-cast__bets');
-    if (!(keep && keep.contains(document.activeElement) && keep.getAttribute('data-open') === betsKey())) { keep = null; }
+    if (!(keep && (picker || keep.contains(document.activeElement)) && keep.getAttribute('data-open') === betsKey())) { keep = null; }
     var at = where();
     Array.prototype.slice.call(view.childNodes).forEach(function (n) { if (n !== keep) { view.removeChild(n); } });
     function put(node) { if (node) { view.insertBefore(node, keep); } }
@@ -645,8 +644,6 @@ EGE.liveView = (function () {
     }
     var list = view.querySelector('.ege-cast__list');
     if (list && feedScroll) { list.scrollTop = feedScroll; }
-    var stake = typing ? view.querySelector('.ege-cast__stake') : null;
-    if (stake) { stake.focus(); }
     document.title = nick(game.row.away) + ' ' + scoreNow()[1] + ', ' + nick(game.row.home) + ' ' + scoreNow()[0];
   }
 
@@ -658,6 +655,9 @@ EGE.liveView = (function () {
      has gone. A bet is final once it is in. */
 
   var slip = null;          /* the pick a bet is being made on: { market, pick, stake, error, busy } */
+  var sheet = null;         /* its pop-up, while it is open */
+  var picker = null;        /* the market whose player list is open */
+  var lastStake = null;     /* what this player bet last, where the next pop-up starts */
   var wallet = { email: null, diamonds: null, heard: false };
   var settling = false;
 
@@ -701,7 +701,7 @@ EGE.liveView = (function () {
 
   function marketTitle(m) {
     if (m.kind === 'spread') { return m.half ? 'Halftime spread' : 'Spread'; }
-    if (m.kind === 'td') { return m.half ? 'Touchdown, rest of the game' : 'Touchdown scorer'; }
+    if (m.kind === 'td') { return m.half ? '2nd half touchdown' : 'Anytime touchdown'; }
     return 'Over/under';
   }
 
@@ -715,6 +715,9 @@ EGE.liveView = (function () {
     if (m.kind === 'td') { return pick.n; }
     return m.who.n + ' ' + pick.id + ' ' + m.line + ' ' + m.label.toLowerCase();
   }
+
+  /* Who a pick is on: a player, or null for a side of the spread. */
+  function pickWho(m, pick) { return m.kind === 'prop' ? m.who : m.kind === 'td' ? pick : null; }
 
   /* Whose colours a pick is in. */
   function pickTeam(m, pick) { return m.kind === 'prop' ? m.who.t : pick && pick.t; }
@@ -734,6 +737,35 @@ EGE.liveView = (function () {
     var c = el('span', 'ege-cast__coin');
     c.appendChild(logo(key, size));
     return c;
+  }
+
+  /* A player's picture in the bets (Sam, 2026-11-04): no circle round
+     it, his team's mark at its bottom right. The mark alone where there
+     is no picture of him. */
+  function mug(p) {
+    var box = el('span', 'ege-cast__mug');
+    var mine = p.g && EGE.playerBySlug ? EGE.playerBySlug(p.g) : null;
+    var src = mine && mine.headshot ? mine.headshot
+      : p.e && EGE.espnHeadshot ? EGE.espnHeadshot(p.e, p.c, 192, 140) : null;
+    var badge = el('span', 'ege-cast__mugteam');
+    badge.appendChild(logo(p.t, 24));
+    function bare() {
+      box.classList.add('is-mark');
+      badge.remove();
+      box.appendChild(logo(p.t, 48));
+    }
+    if (src) {
+      var img = el('img', 'ege-cast__mugimg');
+      img.src = src;
+      img.alt = '';
+      img.loading = 'lazy';
+      img.addEventListener('error', function () { img.remove(); bare(); });
+      box.appendChild(img);
+      box.appendChild(badge);
+    } else {
+      bare();
+    }
+    return box;
   }
 
   function loadWallet() {
@@ -765,46 +797,52 @@ EGE.liveView = (function () {
     document.dispatchEvent(new window.CustomEvent('ege:wallet', { detail: { diamonds: wallet.diamonds } }));
   }
 
-  function closeSlip() { slip = null; }
+  /* The most a bet can be: every diamond this player has. */
+  function maxStake() {
+    var have = balance();
+    return typeof have === 'number' ? Math.max(0, Math.floor(have)) : null;
+  }
 
   function placeBet(m, pick) {
     var stake = Math.floor(Number(slip.stake));
     var min = minStake();
     var have = balance();
     slip.error = null;
-    if (!(stake >= min)) { slip.error = 'Bet at least ' + min + ' diamonds.'; redrawBets(); return; }
-    if (typeof have === 'number' && stake > have) { slip.error = 'Not enough diamonds.'; redrawBets(); return; }
+    if (!(stake >= min)) { slip.error = 'Bet at least ' + min + ' diamonds.'; drawSheet(); return; }
+    if (typeof have === 'number' && stake > have) { slip.error = 'Not enough diamonds.'; drawSheet(); return; }
+    lastStake = stake;
     if (game.test) {
       test.mine = (test.mine || []).concat([{ market: m.id, pick: pick.id, stake: stake, x: pick.x, payout: null, settled_at: null }]);
       game.mine = test.mine;
       saveTest();
-      slip = null;
+      closeSlip();
       redrawBets();
       return;
     }
     var c = client();
-    if (!c) { slip.error = 'Not connected.'; redrawBets(); return; }
+    if (!c) { slip.error = 'Not connected.'; drawSheet(); return; }
     slip.busy = true;
-    redrawBets();
+    drawSheet();
     var mine = game;
+    var was = slip;
     c.rpc('live_bet_place', { p_game: game.id, p_market: m.id, p_pick: pick.id, p_stake: stake }).then(function (res) {
-      if (game !== mine || !slip) { return; }
+      if (game !== mine || slip !== was) { return; }
       if (res.error) {
         slip.busy = false;
         slip.error = String(res.error.message || 'That bet did not go in.').replace(/\s*CONTEXT:.*$/, '');
-        redrawBets();
+        drawSheet();
         return;
       }
       wallet.diamonds = Number(res.data.diamonds);
       game.mine = (game.mine || []).concat([res.data.bet]);
-      slip = null;
+      closeSlip();
       walletMoved();
       redrawBets();
     }, function () {
-      if (game !== mine || !slip) { return; }
+      if (game !== mine || slip !== was) { return; }
       slip.busy = false;
       slip.error = 'That bet did not go in.';
-      redrawBets();
+      drawSheet();
     });
   }
 
@@ -848,120 +886,238 @@ EGE.liveView = (function () {
     }, function () { settling = false; });
   }
 
-  /* A pick's button: a side of the spread in its team's colours, or the
-     over or the under of a player's line. */
-  function drawPick(m, pick, can) {
-    var picked = slip && slip.market === m.id && slip.pick === pick.id;
-    var b = el('button', 'ege-cast__pick ege-cast__pick--' + m.kind + (picked ? ' is-picked' : ''));
-    b.type = 'button';
-    b.disabled = !can;
-    b.setAttribute('aria-pressed', picked ? 'true' : 'false');
-    if (m.kind === 'spread') {
-      paint(b, pick.t);
-      b.appendChild(coin(pick.t, 26));
-      b.appendChild(el('span', 'ege-cast__pickname', pickText(m, pick)));
-    } else {
-      b.appendChild(el('span', 'ege-cast__pickname', pick.id === 'over' ? 'Over' : 'Under'));
-    }
-    b.appendChild(el('span', 'ege-cast__x', times(pick.x)));
-    b.addEventListener('click', function () {
-      slip = picked ? null : { market: m.id, pick: pick.id, stake: slip ? slip.stake : minStake() };
-      redrawBets();
-    });
-    return b;
+  /* --- the bet pop-up: how many diamonds, typed or slid from the least a
+     bet can be to every diamond this player has (Sam, 2026-11-04). */
+
+  function openSlip(m, pick) {
+    picker = null;
+    var max = maxStake();
+    var start = lastStake || minStake();
+    if (typeof max === 'number' && max >= minStake()) { start = Math.min(start, max); }
+    slip = { market: m.id, pick: pick.id, stake: start, error: null, busy: false };
+    drawSheet();
+    redrawBets();
   }
 
-  /* The touchdown scorer: one player, out of a list (Sam, 2026-11-04). */
-  function drawScorer(m, can) {
-    var sel = el('select', 'fb-select ege-cast__scorer');
-    sel.disabled = !can;
-    sel.setAttribute('aria-label', marketTitle(m));
-    var none = el('option', null, 'Pick a player');
-    none.value = '';
-    sel.appendChild(none);
-    [game.row.away, game.row.home].forEach(function (key) {
-      var group = el('optgroup');
-      group.label = team(key).name;
-      m.picks.filter(function (p) { return p.t === key; }).forEach(function (p) {
-        var o = el('option', null, p.n + ' · ' + p.pos + ' · ' + times(p.x));
-        o.value = p.id;
-        group.appendChild(o);
+  function closeSlip() {
+    slip = null;
+    if (sheet) {
+      sheet.remove();
+      sheet = null;
+      document.removeEventListener('keydown', sheetKey);
+      document.documentElement.classList.remove('ege-cast-sheet-open');
+    }
+  }
+
+  function sheetKey(ev) {
+    if (ev.key === 'Escape' && slip && !slip.busy) { closeSlip(); redrawBets(); }
+  }
+
+  function drawSheet() {
+    if (!slip || !game) { return; }
+    var m = marketOf(slip.market);
+    var pick = m ? m.picks.filter(function (p) { return p.id === slip.pick; })[0] : null;
+    if (!m || !pick) { closeSlip(); return; }
+    var fresh = !sheet;
+    if (fresh) {
+      sheet = el('div', 'fb-backdrop ege-cast__sheetback');
+      sheet.addEventListener('click', function (ev) {
+        if (ev.target === sheet && slip && !slip.busy) { closeSlip(); redrawBets(); }
       });
-      if (group.firstChild) { sel.appendChild(group); }
-    });
-    sel.value = slip && slip.market === m.id ? slip.pick : '';
-    sel.addEventListener('change', function () {
-      if (sel.value) {
-        slip = { market: m.id, pick: sel.value, stake: slip ? slip.stake : minStake() };
-      } else if (slip && slip.market === m.id) {
-        slip = null;
-      }
-      redrawBets();
-    });
-    return sel;
-  }
-
-  /* A player's line on his team's colours, the over and the under at
-     the end of it. */
-  function drawProp(m, can) {
-    var wrap = el('div', 'ege-cast__propwrap');
-    var row = paint(el('div', 'ege-cast__prop' + (slip && slip.market === m.id ? ' has-pick' : '')), m.who.t);
-    row.appendChild(face(0, m.who.t, { 0: m.who }));
-    row.appendChild(el('p', 'ege-cast__propline', propText(m)));
-    var ou = el('div', 'ege-cast__ou');
-    m.picks.forEach(function (pick) { ou.appendChild(drawPick(m, pick, can)); });
-    row.appendChild(ou);
-    wrap.appendChild(row);
-    if (slip && slip.market === m.id) { wrap.appendChild(drawSlip(m)); }
-    return wrap;
-  }
-
-  /* The pick being bet on, in its team's colours: how much, and what it
-     pays. */
-  function drawSlip(m) {
-    var pick = m.picks.filter(function (p) { return p.id === slip.pick; })[0];
-    var row = paint(el('div', 'ege-cast__slip'), pickTeam(m, pick));
-    var what = el('div', 'ege-cast__slipwhat');
-    if (m.kind === 'td') {
-      what.appendChild(face(0, pick.t, { 0: pick }));
-      var name = el('span', 'ege-cast__slipname');
-      name.appendChild(el('span', 'ege-cast__sliptext', pick.n));
-      name.appendChild(el('span', 'ege-cast__pickpos', pick.pos + ' · ' + nick(pick.t)));
-      what.appendChild(name);
-    } else {
-      what.appendChild(el('span', 'ege-cast__sliptext', pickText(m, pick)));
+      document.addEventListener('keydown', sheetKey);
+      document.documentElement.classList.add('ege-cast-sheet-open');
+      document.body.appendChild(sheet);
     }
-    what.appendChild(el('span', 'ege-cast__x', times(pick.x)));
-    row.appendChild(what);
+    sheet.innerHTML = '';
+    var min = minStake();
+    var max = maxStake();
+    var short = typeof max === 'number' && max < min;
+    var top = typeof max === 'number' ? Math.max(max, min) : Math.max(min, Number(slip.stake) || min);
+
+    var box = paint(el('div', 'fb-modal ege-cast__sheet'), pickTeam(m, pick));
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-modal', 'true');
+    box.setAttribute('aria-label', marketTitle(m) + ': ' + pickText(m, pick));
+    var head = el('div', 'ege-cast__sheethead');
+    var who = pickWho(m, pick);
+    head.appendChild(who ? mug(who) : coin(pick.t, 40));
+    var words = el('div', 'ege-cast__sheetwords');
+    words.appendChild(el('span', 'ege-cast__sheetkind', marketTitle(m)));
+    words.appendChild(el('span', 'ege-cast__sheetpick', m.kind === 'prop' ? m.who.n : pickText(m, pick)));
+    words.appendChild(el('span', 'ege-cast__sheetsub', m.kind === 'prop'
+      ? (pick.id === 'over' ? 'Over ' : 'Under ') + m.line + ' ' + m.label.toLowerCase()
+      : m.kind === 'td' ? pick.pos + ' · ' + team(pick.t).name : team(pick.t).name));
+    head.appendChild(words);
+    head.appendChild(el('span', 'ege-cast__x', times(pick.x)));
+    var shut = el('button', 'fb-modal__close ege-cast__sheetclose', '×');
+    shut.type = 'button';
+    shut.setAttribute('aria-label', 'Close');
+    shut.addEventListener('click', function () { if (!slip.busy) { closeSlip(); redrawBets(); } });
+    head.appendChild(shut);
+    box.appendChild(head);
+
+    var body = el('div', 'fb-modal__body ege-cast__sheetbody');
+    var amount = el('label', 'ege-cast__amount');
     var input = el('input', 'fb-input ege-cast__stake');
     input.type = 'number';
-    input.min = String(minStake());
+    input.min = String(min);
+    input.max = String(top);
     input.step = '1';
     input.inputMode = 'numeric';
     input.value = String(slip.stake);
+    input.disabled = short || slip.busy;
     input.setAttribute('aria-label', 'Diamonds to bet');
-    var win = el('span', 'fb-meta ege-cast__win');
-    function payText() {
-      win.innerHTML = '';
-      var n = Math.floor(Number(input.value));
-      if (n >= minStake()) { win.appendChild(document.createTextNode('Pays ')); win.appendChild(gems(pays(n, pick.x))); }
-    }
-    input.addEventListener('input', function () { slip.stake = input.value; payText(); });
-    input.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { placeBet(m, pick); } });
-    payText();
-    var go = el('button', 'fb-btn fb-btn--sm fb-btn--primary ege-cast__go', slip.busy ? 'Betting…' : 'Bet');
-    go.type = 'button';
-    go.disabled = Boolean(slip.busy);
-    go.addEventListener('click', function () { placeBet(m, pick); });
-    var wrap = el('div', 'ege-cast__stakebox');
-    wrap.appendChild(input);
+    amount.appendChild(input);
     var gem = el('span', 'ege-gem');
     gem.setAttribute('aria-hidden', 'true');
-    wrap.appendChild(gem);
-    row.appendChild(wrap);
-    row.appendChild(go);
-    row.appendChild(win);
-    if (slip.error) { row.appendChild(el('p', 'ege-note ege-note--error ege-cast__sliperror', slip.error)); }
+    amount.appendChild(gem);
+    body.appendChild(amount);
+
+    var slide = el('input', 'ege-cast__slider');
+    slide.type = 'range';
+    slide.min = String(min);
+    slide.max = String(top);
+    slide.step = '1';
+    slide.disabled = short || slip.busy || top <= min;
+    slide.setAttribute('aria-label', 'Diamonds to bet');
+    body.appendChild(slide);
+    var ends = el('div', 'ege-cast__sliderends');
+    ends.appendChild(gems(min));
+    ends.appendChild(gems(top));
+    body.appendChild(ends);
+
+    var win = el('p', 'ege-cast__sheetpays');
+    body.appendChild(win);
+    if (short) { body.appendChild(el('p', 'ege-note ege-note--error ege-cast__sliperror', 'You need at least ' + min + ' diamonds to bet.')); }
+    if (slip.error) { body.appendChild(el('p', 'ege-note ege-note--error ege-cast__sliperror', slip.error)); }
+
+    var actions = el('div', 'ege-cast__sheetactions');
+    var cancel = el('button', 'fb-btn', 'Cancel');
+    cancel.type = 'button';
+    cancel.disabled = slip.busy;
+    cancel.addEventListener('click', function () { closeSlip(); redrawBets(); });
+    var go = el('button', 'fb-btn fb-btn--primary ege-cast__go');
+    go.type = 'button';
+    go.disabled = short || slip.busy;
+    go.addEventListener('click', function () { placeBet(m, pick); });
+    actions.appendChild(cancel);
+    actions.appendChild(go);
+    body.appendChild(actions);
+    box.appendChild(body);
+    sheet.appendChild(box);
+
+    /* The number and the slider move together; what it pays and the
+       button follow. */
+    function show(from) {
+      var n = Math.floor(Number(slip.stake));
+      var ok = n >= min && (typeof max !== 'number' || n <= max);
+      if (from !== input) { input.value = String(slip.stake); }
+      if (from !== slide) { slide.value = String(Math.min(top, Math.max(min, n || min))); }
+      slide.style.setProperty('--fill', (top > min ? (Number(slide.value) - min) / (top - min) * 100 : 100) + '%');
+      win.innerHTML = '';
+      if (ok) { win.appendChild(document.createTextNode('Pays ')); win.appendChild(gems(pays(n, pick.x))); }
+      go.innerHTML = '';
+      if (slip.busy) { go.textContent = 'Betting…'; } else if (ok) { go.appendChild(document.createTextNode('Bet ')); go.appendChild(gems(n)); } else { go.textContent = 'Bet'; }
+      if (!short && !slip.busy) { go.disabled = !ok; }
+    }
+    input.addEventListener('input', function () { slip.stake = input.value; show(input); });
+    input.addEventListener('change', function () {
+      var n = Math.floor(Number(input.value));
+      slip.stake = String(Math.min(top, Math.max(min, isFinite(n) ? n : min)));
+      show();
+    });
+    input.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { placeBet(m, pick); } });
+    slide.addEventListener('input', function () { slip.stake = slide.value; show(slide); });
+    show();
+    if (fresh || slip.error) {
+      (window.matchMedia && window.matchMedia('(pointer: fine)').matches && !input.disabled ? input : box).focus();
+      if (document.activeElement === input) { input.select(); }
+    }
+    if (!box.hasAttribute('tabindex')) { box.setAttribute('tabindex', '-1'); }
+  }
+
+  /* --- the bets box ----------------------------------------------------------- */
+
+  /* A side of the spread, in its team's colours. */
+  function drawSide(m, pick, can) {
+    var picked = slip && slip.market === m.id && slip.pick === pick.id;
+    var b = paint(el('button', 'ege-cast__pick ege-cast__pick--spread' + (picked ? ' is-picked' : '')), pick.t);
+    b.type = 'button';
+    b.disabled = !can;
+    b.appendChild(coin(pick.t, 26));
+    b.appendChild(el('span', 'ege-cast__pickname', pickText(m, pick)));
+    b.appendChild(el('span', 'ege-cast__x', times(pick.x)));
+    b.addEventListener('click', function () { openSlip(m, pick); });
+    return b;
+  }
+
+  /* The anytime touchdown: one player, out of a list that shows each
+     one's picture and team (Sam, 2026-11-04). */
+  function drawScorer(m, can) {
+    var wrap = el('div', 'ege-cast__picker' + (picker === m.id ? ' is-open' : ''));
+    var btn = el('button', 'ege-cast__pickbtn');
+    btn.type = 'button';
+    btn.disabled = !can;
+    btn.setAttribute('aria-haspopup', 'listbox');
+    btn.setAttribute('aria-expanded', picker === m.id ? 'true' : 'false');
+    var faces = el('span', 'ege-cast__pickfaces');
+    m.picks.slice().sort(function (a, b) { return a.x - b.x; }).slice(0, 3).forEach(function (p) { faces.appendChild(mug(p)); });
+    btn.appendChild(faces);
+    btn.appendChild(el('span', 'ege-cast__pickhint', 'Pick a player'));
+    btn.addEventListener('click', function () {
+      picker = picker === m.id ? null : m.id;
+      redrawBets();
+      var first = picker && view.querySelector('.ege-cast__pickrow');
+      if (first) { first.focus({ preventScroll: true }); }
+    });
+    wrap.appendChild(btn);
+    if (picker !== m.id) { return wrap; }
+    var list = el('div', 'ege-cast__picklist');
+    list.setAttribute('role', 'listbox');
+    list.setAttribute('aria-label', marketTitle(m));
+    [game.row.away, game.row.home].forEach(function (key) {
+      var mine = m.picks.filter(function (p) { return p.t === key; });
+      if (!mine.length) { return; }
+      var group = paint(el('div', 'ege-cast__pickteam'), key);
+      group.appendChild(coin(key, 18));
+      group.appendChild(el('span', null, team(key).name));
+      list.appendChild(group);
+      mine.forEach(function (p) {
+        var row = paint(el('button', 'ege-cast__pickrow'), key);
+        row.type = 'button';
+        row.setAttribute('role', 'option');
+        row.appendChild(mug(p));
+        var name = el('span', 'ege-cast__pickname');
+        name.appendChild(el('span', 'ege-cast__pickwho', p.n));
+        name.appendChild(el('span', 'ege-cast__pickpos', p.pos + ' · ' + nick(key)));
+        row.appendChild(name);
+        row.appendChild(el('span', 'ege-cast__x', times(p.x)));
+        row.addEventListener('click', function () { openSlip(m, p); });
+        list.appendChild(row);
+      });
+    });
+    wrap.appendChild(list);
+    return wrap;
+  }
+
+  /* An over/under: the player's line on his team's colour, the over and
+     the under at the end of it. */
+  function drawProp(m, can) {
+    var row = paint(el('div', 'ege-cast__prop'), m.who.t);
+    row.appendChild(mug(m.who));
+    row.appendChild(el('p', 'ege-cast__propline', propText(m)));
+    var ou = el('div', 'ege-cast__ou');
+    m.picks.forEach(function (pick) {
+      var picked = slip && slip.market === m.id && slip.pick === pick.id;
+      var b = el('button', 'ege-cast__pick ege-cast__pick--prop' + (picked ? ' is-picked' : ''));
+      b.type = 'button';
+      b.disabled = !can;
+      b.appendChild(el('span', 'ege-cast__pickname', pick.id === 'over' ? 'Over' : 'Under'));
+      b.appendChild(el('span', 'ege-cast__x', times(pick.x)));
+      b.addEventListener('click', function () { openSlip(m, pick); });
+      ou.appendChild(b);
+    });
+    row.appendChild(ou);
     return row;
   }
 
@@ -973,8 +1129,9 @@ EGE.liveView = (function () {
       var m = marketOf(b.market);
       var pick = m ? m.picks.filter(function (p) { return p.id === b.pick; })[0] : null;
       var key = m ? pickTeam(m, pick) : null;
+      var who = m ? pickWho(m, pick) : null;
       var li = el('li', 'ege-cast__minebet' + (b.settled_at ? (b.payout > b.stake ? ' is-won' : b.payout === b.stake ? ' is-push' : ' is-lost') : ''));
-      if (key) { paint(li, key); li.appendChild(coin(key, 22)); } else { li.appendChild(el('span')); }
+      if (key) { paint(li, key); li.appendChild(who ? mug(who) : coin(key, 22)); } else { li.appendChild(el('span')); }
       var what = el('div', 'ege-cast__minewhat');
       what.appendChild(el('span', 'ege-cast__minepick', m && pick ? pickText(m, pick) : b.pick));
       what.appendChild(el('span', 'fb-meta', (m ? marketTitle(m) : 'Bet') + ' · ' + times(Number(b.x))));
@@ -1002,20 +1159,24 @@ EGE.liveView = (function () {
   function openBets() { return menus().filter(function (x) { return x.open && !myBet(x.m.id); }); }
 
   /* What the bets box shows, as a word: drawn again only once it changes,
-     so a bet being made is left alone. */
+     so the player list is left alone while it is open. */
   function betsKey() {
-    return openBets().map(function (x) { return x.m.id; }).join(',') + '|' + (game.mine || []).length;
+    return openBets().map(function (x) { return x.m.id; }).join(',') + '|' + (game.mine || []).length + '|' + (picker || '');
   }
 
+  var ORDER = { spread: 0, td: 1, prop: 2 };
+
   /* The bets box, under the play by play and over the box score (Sam,
-     2026-11-04): what is open now, then this player's bets. None at all
-     once betting has closed on somebody who never bet. */
+     2026-11-04): each bet open now on its own row -- the spread, the
+     anytime touchdown, the over/unders -- then this player's bets. None
+     at all once betting has closed on somebody who never bet. */
   function drawBets() {
     if (!game || !game.row) { return null; }
     var open = openBets();
     var mine = game.mine || [];
+    if (slip && !open.some(function (x) { return x.m.id === slip.market; })) { closeSlip(); }
+    if (picker && !open.some(function (x) { return x.m.id === picker; })) { picker = null; }
     if (!open.length && !mine.length) { return null; }
-    if (slip && !open.some(function (x) { return x.m.id === slip.market; })) { slip = null; }
     var box = el('section', 'fb-panel ege-cast__bets');
     box.setAttribute('data-open', betsKey());
     paint(box, game.row.away);
@@ -1031,34 +1192,28 @@ EGE.liveView = (function () {
     box.appendChild(head);
     var can = Boolean(wallet.email);
     if (open.length && !can) { box.appendChild(el('p', 'fb-meta ege-cast__betnote', 'Log in to bet.')); }
-    if (open.length) {
-      var grid = el('div', 'ege-cast__markets');
-      var props = null;
-      open.forEach(function (x) {
-        var m = x.m;
-        if (m.kind === 'prop') {
-          if (!props) {
-            props = el('div', 'ege-cast__market ege-cast__market--prop');
-            props.appendChild(el('p', 'ege-cast__mkt', marketTitle(m)));
-            grid.appendChild(props);
-          }
-          props.appendChild(drawProp(m, can));
-          return;
-        }
-        var block = el('div', 'ege-cast__market ege-cast__market--' + m.kind);
-        block.appendChild(el('p', 'ege-cast__mkt', marketTitle(m)));
-        if (m.kind === 'td') {
-          block.appendChild(drawScorer(m, can));
-        } else {
-          var picks = el('div', 'ege-cast__picks' + (slip && slip.market === m.id ? ' has-pick' : ''));
-          m.picks.forEach(function (pick) { picks.appendChild(drawPick(m, pick, can)); });
-          block.appendChild(picks);
-        }
-        if (slip && slip.market === m.id) { block.appendChild(drawSlip(m)); }
-        grid.appendChild(block);
-      });
-      box.appendChild(grid);
-    }
+    var rows = {};
+    open.slice().sort(function (a, b) { return (ORDER[a.m.kind] || 0) - (ORDER[b.m.kind] || 0); }).forEach(function (x) {
+      var m = x.m;
+      var row = rows[m.kind];
+      if (!row) {
+        row = el('div', 'ege-cast__market ege-cast__market--' + m.kind);
+        row.appendChild(el('p', 'ege-cast__mkt', marketTitle(m)));
+        row.appendChild(el('div', 'ege-cast__marketbody'));
+        rows[m.kind] = row;
+        box.appendChild(row);
+      }
+      var body = row.lastChild;
+      if (m.kind === 'spread') {
+        var sides = el('div', 'ege-cast__picks');
+        m.picks.forEach(function (pick) { sides.appendChild(drawSide(m, pick, can)); });
+        body.appendChild(sides);
+      } else if (m.kind === 'td') {
+        body.appendChild(drawScorer(m, can));
+      } else {
+        body.appendChild(drawProp(m, can));
+      }
+    });
     if (mine.length) { box.appendChild(drawMine(mine)); }
     return box;
   }
@@ -1075,9 +1230,23 @@ EGE.liveView = (function () {
     } else if (fresh) {
       view.insertBefore(fresh, view.querySelector(':scope > .ege-cast__box'));
     }
-    var stake = slip && !slip.busy ? view.querySelector('.ege-cast__stake') : null;
-    if (stake && document.activeElement !== stake) { stake.focus(); }
   }
+
+  /* The player list shuts on a click anywhere else, or Escape. */
+  document.addEventListener('click', function (ev) {
+    if (!picker || !view) { return; }
+    var t = ev.target;
+    if (t && t.closest && t.closest('.ege-cast__picker')) { return; }
+    picker = null;
+    redrawBets();
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Escape' || !picker || slip) { return; }
+    picker = null;
+    redrawBets();
+    var btn = view && view.querySelector('.ege-cast__pickbtn');
+    if (btn) { btn.focus(); }
+  });
 
   /* --- an admin's hand on it -------------------------------------------------
 
@@ -1256,6 +1425,8 @@ EGE.liveView = (function () {
     window.clearInterval(ticker);
     timer = null;
     ticker = null;
+    closeSlip();
+    picker = null;
     game = null;
   }
 
@@ -1265,7 +1436,6 @@ EGE.liveView = (function () {
     if (game && game.id === id) { draw(); return; }
     stop();
     confirming = '';
-    slip = null;
     document.title = 'Live';
     view.innerHTML = '';
     if (id === 'test') {
