@@ -786,7 +786,7 @@ EGE.liveView = (function () {
     if (!wallet.email || !c) { redrawBets(); return; }
     Promise.all([
       EGE.wallet.diamondsFor(wallet.email),
-      game.test ? null : c.from('live_bets').select('market, pick, stake, x, payout, settled_at').eq('game_id', game.id)
+      game.test ? null : c.from('live_bets').select('market, pick, stake, x, payout, settled_at').eq('game_id', game.id).eq('email', wallet.email)
     ]).then(function (got) {
       if (game !== mine) { return; }
       wallet.diamonds = got[0];
@@ -873,7 +873,7 @@ EGE.liveView = (function () {
     settling = true;
     var mine = game;
     c.rpc('live_settle', { p_id: game.id }).then(function () {
-      return c.from('live_bets').select('market, pick, stake, x, payout, settled_at').eq('game_id', mine.id);
+      return c.from('live_bets').select('market, pick, stake, x, payout, settled_at').eq('game_id', mine.id).eq('email', wallet.email);
     }).then(function (res) {
       settling = false;
       if (game !== mine || res.error) { return; }
