@@ -5,7 +5,8 @@
 
    - before kickoff: the spread the bot's first post gives (Sam,
      2026-11-04: the site's own line, the favourite giving the half point
-     past it), a touchdown scorer and three players' over/unders, each on
+     past it), an anytime touchdown on any running back, receiver or
+     tight end (no quarterbacks), and three players' over/unders, each on
      the stat he piles up most, the line halfway between his season's
      average and what the sim expects of him in this game (all the sim's
      before he has three games behind him).
@@ -35,7 +36,7 @@
 
 'use strict';
 
-const { index, side } = require('./league');
+const { index, side, rosterOf } = require('./league');
 const { playGame } = require('./game');
 const boosts = require('./boosts');
 const { seeded } = require('./rng');
@@ -53,11 +54,12 @@ const TD_X = [1.25, 5];
 /* The longest spread the bot gives (EGE.discordPost.spreadText). */
 const LONGEST = 24.5;
 
-/* How many players a side can be picked to score, at most. */
-const PER_TEAM = 6;
-
 const TD_KEYS = ['rushTd', 'recTd', 'retTd', 'defTd'];
 const CARRIERS = { QB: true, RB: true, FB: true, WR: true, TE: true };
+
+/* Who an anytime touchdown can be on (Sam, 2026-11-04): every running
+   back, receiver and tight end on either side, but no quarterback. */
+const SCORERS = { RB: true, FB: true, WR: true, TE: true };
 
 const STATS = { passYds: 'Passing yards', rushYds: 'Rushing yards', recYds: 'Receiving yards' };
 
@@ -216,31 +218,28 @@ function build(pre, game, kept, plan, games) {
   const seen = form(games, game);
   const rng = seeded(['live-props', game.season, game.week, game.away, game.home].join(':'));
 
-  /* The chance each one scores: mostly the matchup's, the rest how often
-     he has this season and in his last five games. */
+  /* Who can be picked: every running back, receiver and tight end fit
+     to play on either side, numbered by side, likeliest first. The chance
+     each one scores is mostly the matchup's, the rest how often he has
+     this season and in his last five games. */
   const chance = {};
-  Object.keys(proj.per).forEach((id) => {
-    const p = pre.byId.get(id);
-    if (!p || !CARRIERS[p.pos]) { return; }
-    const lines = seen[id] || [];
-    const recent = lines.slice(0, 5);
-    const rate = (list) => (list.length ? list.filter((l) => scored(l) > 0).length / list.length : 0);
-    const wSeason = 0.3 * Math.min(lines.length, 8) / 8;
-    const wRecent = 0.2 * Math.min(recent.length, 5) / 5;
-    const sim = proj.per[id].td;
-    const p0 = (1 - wSeason - wRecent) * sim + wSeason * rate(lines) + wRecent * rate(recent);
-    chance[id] = { p: p0, p2: proj.per[id].td2 * clamp(sim ? p0 / sim : 1, 0.5, 1.5), sim, player: p };
-  });
-
-  /* Who can be picked: each side's likeliest, and any of the six who
-     plays. Numbered by side, likeliest first. */
   const picked = [];
   [game.away, game.home].forEach((key) => {
-    const mine = Object.keys(chance).filter((id) => chance[id].player.team === key && proj.per[id].team === key)
-      .sort((a, b) => chance[b].p - chance[a].p);
-    const top = mine.filter((id) => chance[id].sim >= 0.06).slice(0, PER_TEAM);
-    mine.forEach((id) => { if (chance[id].player.ege && top.indexOf(id) === -1 && proj.per[id].touches >= 1) { top.push(id); } });
-    top.forEach((id) => picked.push(id));
+    const mine = rosterOf(pre, key).filter((p) => SCORERS[p.pos] && !(p.injury && p.injury.games > 0));
+    mine.forEach((p) => {
+      const lines = seen[p.id] || [];
+      const recent = lines.slice(0, 5);
+      const rate = (list) => (list.length ? list.filter((l) => scored(l) > 0).length / list.length : 0);
+      const wSeason = 0.3 * Math.min(lines.length, 8) / 8;
+      const wRecent = 0.2 * Math.min(recent.length, 5) / 5;
+      const e = proj.per[p.id];
+      const sim = e && e.team === key ? e.td : 0;
+      const p0 = (1 - wSeason - wRecent) * sim + wSeason * rate(lines) + wRecent * rate(recent);
+      const late = e && e.team === key ? e.td2 : 0;
+      chance[p.id] = { p: p0, p2: sim ? late * clamp(p0 / sim, 0.5, 1.5) : p0 / 2, sim, player: p };
+    });
+    mine.map((p) => p.id).sort((a, b) => chance[b].p - chance[a].p || chance[b].player.ovr - chance[a].player.ovr)
+      .forEach((id) => picked.push(id));
   });
   const pickId = {};
   picked.forEach((id, i) => { pickId[id] = 'p' + i; });

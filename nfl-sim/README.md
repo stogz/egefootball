@@ -417,7 +417,8 @@ A whole season and its playoffs take about half a second.
 - **Live bets** (`lib/live-bets.js`, Sam 2026-11-04): diamonds on a live
   game, at least 10 a bet, one a market. Before kickoff the spread the
   bot's first post gives (the site's line, the favourite giving the half
-  point past it; 1.9x either side), an anytime touchdown (fair odds less
+  point past it; 1.9x either side), an anytime touchdown on any running
+  back, receiver or tight end fit to play, no quarterbacks (fair odds less
   15%, from 1.25x for somebody who scores nearly every week up to 5x for
   an outside chance) and three over/unders at
   1.9x (the six who play first, then a seeded draw; the line is halfway

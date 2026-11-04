@@ -1036,34 +1036,103 @@ EGE.liveView = (function () {
     if (!box.hasAttribute('tabindex')) { box.setAttribute('tabindex', '-1'); }
   }
 
-  /* --- the bets box ----------------------------------------------------------- */
+  /* --- the bets box -----------------------------------------------------------
 
-  /* A side of the spread, in its team's colours. */
-  function drawSide(m, pick, can) {
-    var picked = slip && slip.market === m.id && slip.pick === pick.id;
-    var b = paint(el('button', 'ege-cast__pick ege-cast__pick--spread' + (picked ? ' is-picked' : '')), pick.t);
-    b.type = 'button';
-    b.disabled = !can;
-    b.appendChild(coin(pick.t, 26));
-    b.appendChild(el('span', 'ege-cast__pickname', pickText(m, pick)));
-    b.appendChild(el('span', 'ege-cast__x', times(pick.x)));
-    b.addEventListener('click', function () { openSlip(m, pick); });
-    return b;
+     After Sam's template (2026-11-04): each bet a block of its own, its
+     question over its buttons. A spread or an over/under is one box split
+     in two; the anytime touchdown a button that opens the list of
+     players. A pick opens the pop-up; once the bet is in, the pick stays
+     filled in its team's colour with what went in, and what it came to
+     once the game is over. */
+
+  function settledClass(b) {
+    return !b.settled_at ? '' : b.payout > b.stake ? ' is-won' : b.payout === b.stake ? ' is-push' : ' is-lost';
   }
 
-  /* The anytime touchdown: one player, out of a list that shows each
-     one's picture and team (Sam, 2026-11-04). */
-  function drawScorer(m, can) {
+  /* The end of a pick that has a bet on it: what went in and what it
+     pays, or what it came to. */
+  function betTail(b) {
+    var tail = el('span', 'ege-cast__tail');
+    var big = el('span', 'ege-cast__tailbig');
+    var small = el('span', 'ege-cast__tailsmall');
+    if (!b.settled_at) {
+      big.appendChild(gems(b.stake));
+      small.appendChild(document.createTextNode('Pays '));
+      small.appendChild(gems(pays(b.stake, Number(b.x))));
+    } else if (b.payout > b.stake) {
+      big.appendChild(document.createTextNode('Won '));
+      big.appendChild(gems(b.payout));
+      small.appendChild(document.createTextNode('Bet '));
+      small.appendChild(gems(b.stake));
+    } else {
+      big.textContent = b.payout === b.stake ? 'Push' : 'Lost';
+      small.appendChild(document.createTextNode('Bet '));
+      small.appendChild(gems(b.stake));
+    }
+    tail.appendChild(big);
+    tail.appendChild(small);
+    return tail;
+  }
+
+  function check() {
+    var c = el('span', 'ege-cast__check');
+    c.setAttribute('aria-hidden', 'true');
+    return c;
+  }
+
+  /* Two picks in one box, side by side: a spread's teams, or the over and
+     the under. */
+  function drawSplit(m, can, open) {
+    var mine = myBet(m.id);
+    var box = el('div', 'ege-cast__split' + (mine ? ' has-bet' : ''));
+    m.picks.forEach(function (pick) {
+      var bet = mine && mine.pick === pick.id ? mine : null;
+      var picked = slip && slip.market === m.id && slip.pick === pick.id;
+      var b = paint(el('button', 'ege-cast__half' + (bet ? ' is-bet' + settledClass(bet) : '') + (picked ? ' is-picked' : '')),
+        pickTeam(m, pick));
+      b.type = 'button';
+      b.disabled = !can || !open || Boolean(mine);
+      if (m.kind === 'spread') {
+        b.appendChild(coin(pick.t, 26));
+        b.appendChild(el('span', 'ege-cast__halfname', nick(pick.t)));
+      } else {
+        b.appendChild(el('span', 'ege-cast__halfname', pick.id === 'over' ? 'Over' : 'Under'));
+      }
+      if (bet) {
+        b.appendChild(betTail(bet));
+      } else if (!mine) {
+        b.appendChild(el('span', 'ege-cast__odds', times(pick.x)));
+      }
+      b.addEventListener('click', function () { openSlip(m, pick); });
+      box.appendChild(b);
+    });
+    return box;
+  }
+
+  /* The anytime touchdown: a button that opens the list of players, each
+     with his picture and team (Sam, 2026-11-04); the player bet on, once
+     the bet is in. */
+  function drawScorer(m, can, open) {
+    var mine = myBet(m.id);
+    var chosen = mine ? m.picks.filter(function (p) { return p.id === mine.pick; })[0] : null;
+    if (chosen) {
+      var done = paint(el('div', 'ege-cast__chosen' + settledClass(mine)), chosen.t);
+      done.appendChild(mug(chosen));
+      var who = el('span', 'ege-cast__halfname');
+      who.appendChild(el('span', null, chosen.n));
+      who.appendChild(el('span', 'ege-cast__chosenpos', chosen.pos + ' · ' + nick(chosen.t) + ' · ' + times(Number(mine.x))));
+      done.appendChild(who);
+      done.appendChild(betTail(mine));
+      done.appendChild(check());
+      return done;
+    }
     var wrap = el('div', 'ege-cast__picker' + (picker === m.id ? ' is-open' : ''));
     var btn = el('button', 'ege-cast__pickbtn');
     btn.type = 'button';
-    btn.disabled = !can;
+    btn.disabled = !can || !open;
     btn.setAttribute('aria-haspopup', 'listbox');
     btn.setAttribute('aria-expanded', picker === m.id ? 'true' : 'false');
-    var faces = el('span', 'ege-cast__pickfaces');
-    m.picks.slice().sort(function (a, b) { return a.x - b.x; }).slice(0, 3).forEach(function (p) { faces.appendChild(mug(p)); });
-    btn.appendChild(faces);
-    btn.appendChild(el('span', 'ege-cast__pickhint', 'Pick a player'));
+    btn.appendChild(el('span', 'ege-cast__pickhint', 'Select a player…'));
     btn.addEventListener('click', function () {
       picker = picker === m.id ? null : m.id;
       redrawBets();
@@ -1076,13 +1145,13 @@ EGE.liveView = (function () {
     list.setAttribute('role', 'listbox');
     list.setAttribute('aria-label', marketTitle(m));
     [game.row.away, game.row.home].forEach(function (key) {
-      var mine = m.picks.filter(function (p) { return p.t === key; });
-      if (!mine.length) { return; }
+      var theirs = m.picks.filter(function (p) { return p.t === key; });
+      if (!theirs.length) { return; }
       var group = paint(el('div', 'ege-cast__pickteam'), key);
       group.appendChild(coin(key, 18));
       group.appendChild(el('span', null, team(key).name));
       list.appendChild(group);
-      mine.forEach(function (p) {
+      theirs.forEach(function (p) {
         var row = paint(el('button', 'ege-cast__pickrow'), key);
         row.type = 'button';
         row.setAttribute('role', 'option');
@@ -1100,83 +1169,77 @@ EGE.liveView = (function () {
     return wrap;
   }
 
-  /* An over/under: the player's line on his team's colour, the over and
-     the under at the end of it. */
-  function drawProp(m, can) {
-    var row = paint(el('div', 'ege-cast__prop'), m.who.t);
-    row.appendChild(mug(m.who));
-    row.appendChild(el('p', 'ege-cast__propline', propText(m)));
-    var ou = el('div', 'ege-cast__ou');
-    m.picks.forEach(function (pick) {
-      var picked = slip && slip.market === m.id && slip.pick === pick.id;
-      var b = el('button', 'ege-cast__pick ege-cast__pick--prop' + (picked ? ' is-picked' : ''));
-      b.type = 'button';
-      b.disabled = !can;
-      b.appendChild(el('span', 'ege-cast__pickname', pick.id === 'over' ? 'Over' : 'Under'));
-      b.appendChild(el('span', 'ege-cast__x', times(pick.x)));
-      b.addEventListener('click', function () { openSlip(m, pick); });
-      ou.appendChild(b);
-    });
-    row.appendChild(ou);
-    return row;
+  /* A bet's question, as the template asks it, and the line under it. */
+  function question(m) {
+    if (m.kind === 'spread') { return m.half ? 'Pick the team to cover the halftime spread' : 'Pick the team to cover the spread'; }
+    if (m.kind === 'td') { return m.half ? 'Player to score a touchdown in the 2nd half' : 'Player to score a touchdown'; }
+    return propText(m);
   }
 
-  function drawMine(list) {
-    var box = el('div', 'ege-cast__mine');
-    box.appendChild(el('p', 'ege-cast__mkt', 'Your bets'));
-    var ul = el('ul', 'ege-cast__minelist');
-    list.forEach(function (b) {
-      var m = marketOf(b.market);
-      var pick = m ? m.picks.filter(function (p) { return p.id === b.pick; })[0] : null;
-      var key = m ? pickTeam(m, pick) : null;
-      var who = m ? pickWho(m, pick) : null;
-      var li = el('li', 'ege-cast__minebet' + (b.settled_at ? (b.payout > b.stake ? ' is-won' : b.payout === b.stake ? ' is-push' : ' is-lost') : ''));
-      if (key) { paint(li, key); li.appendChild(who ? mug(who) : coin(key, 22)); } else { li.appendChild(el('span')); }
-      var what = el('div', 'ege-cast__minewhat');
-      what.appendChild(el('span', 'ege-cast__minepick', m && pick ? pickText(m, pick) : b.pick));
-      what.appendChild(el('span', 'fb-meta', (m ? marketTitle(m) : 'Bet') + ' · ' + times(Number(b.x))));
-      li.appendChild(what);
-      var stake = el('span', 'ege-cast__minestake');
-      stake.appendChild(gems(b.stake));
-      li.appendChild(stake);
-      var how = el('span', 'ege-cast__mineres');
-      if (!b.settled_at) {
-        how.appendChild(document.createTextNode('Pays '));
-        how.appendChild(gems(pays(b.stake, Number(b.x))));
-      } else if (b.payout > b.stake) {
-        how.appendChild(document.createTextNode('Won '));
-        how.appendChild(gems(b.payout));
-      } else {
-        how.textContent = b.payout === b.stake ? 'Push' : 'Lost';
-      }
-      li.appendChild(how);
-      ul.appendChild(li);
-    });
-    box.appendChild(ul);
-    return box;
+  function underQuestion(m) {
+    if (m.kind !== 'spread') { return null; }
+    var fav = m.picks.filter(function (p) { return p.line < 0; })[0];
+    return fav ? nick(fav.t) + ' by ' + (-fav.line) : null;
+  }
+
+  function drawBlock(x, can) {
+    var m = x.m;
+    var block = el('div', 'ege-cast__block ege-cast__block--' + m.kind);
+    var head = el('div', 'ege-cast__q');
+    if (m.kind === 'prop') { head.appendChild(mug(m.who)); }
+    var words = el('div', 'ege-cast__qwords');
+    words.appendChild(el('p', 'ege-cast__qtext', question(m)));
+    var sub = underQuestion(m);
+    if (sub) { words.appendChild(el('p', 'ege-cast__qsub', sub)); }
+    head.appendChild(words);
+    block.appendChild(head);
+    block.appendChild(m.kind === 'td' ? drawScorer(m, can, x.open) : drawSplit(m, can, x.open));
+    return block;
+  }
+
+  /* A bet whose market is not to be found any more: what it was on, and
+     what it came to. */
+  function drawStray(b) {
+    var block = el('div', 'ege-cast__block');
+    var row = el('div', 'ege-cast__chosen' + settledClass(b));
+    paint(row, game.row.away);
+    row.appendChild(el('span', 'ege-cast__halfname', 'Bet'));
+    row.appendChild(betTail(b));
+    block.appendChild(row);
+    return block;
   }
 
   function openBets() { return menus().filter(function (x) { return x.open && !myBet(x.m.id); }); }
 
+  var ORDER = { spread: 0, td: 1, prop: 2 };
+
+  /* What the box shows: every bet open now and every one this player has
+     a bet on, the halftime ones first, each kind in the template's order. */
+  function shownBets() {
+    return menus().filter(function (x) { return x.open || myBet(x.m.id); }).sort(function (a, b) {
+      return (a.m.half ? 0 : 1) - (b.m.half ? 0 : 1) || (ORDER[a.m.kind] || 0) - (ORDER[b.m.kind] || 0);
+    });
+  }
+
   /* What the bets box shows, as a word: drawn again only once it changes,
      so the player list is left alone while it is open. */
   function betsKey() {
-    return openBets().map(function (x) { return x.m.id; }).join(',') + '|' + (game.mine || []).length + '|' + (picker || '');
+    return shownBets().map(function (x) { return x.m.id + (x.open ? '+' : ''); }).join(',') + '|' +
+      (game.mine || []).map(function (b) { return b.market + (b.settled_at ? '$' : ''); }).join(',') + '|' + (picker || '');
   }
 
-  var ORDER = { spread: 0, td: 1, prop: 2 };
-
   /* The bets box, under the play by play and over the box score (Sam,
-     2026-11-04): each bet open now on its own row -- the spread, the
-     anytime touchdown, the over/unders -- then this player's bets. None
-     at all once betting has closed on somebody who never bet. */
+     2026-11-04). None at all once betting has closed on somebody who never
+     bet. */
   function drawBets() {
     if (!game || !game.row) { return null; }
     var open = openBets();
+    var shown = shownBets();
     var mine = game.mine || [];
     if (slip && !open.some(function (x) { return x.m.id === slip.market; })) { closeSlip(); }
     if (picker && !open.some(function (x) { return x.m.id === picker; })) { picker = null; }
-    if (!open.length && !mine.length) { return null; }
+    var strays = mine.filter(function (b) { return !marketOf(b.market); });
+    if (!shown.length && !strays.length) { return null; }
     var box = el('section', 'fb-panel ege-cast__bets');
     box.setAttribute('data-open', betsKey());
     paint(box, game.row.away);
@@ -1192,29 +1255,8 @@ EGE.liveView = (function () {
     box.appendChild(head);
     var can = Boolean(wallet.email);
     if (open.length && !can) { box.appendChild(el('p', 'fb-meta ege-cast__betnote', 'Log in to bet.')); }
-    var rows = {};
-    open.slice().sort(function (a, b) { return (ORDER[a.m.kind] || 0) - (ORDER[b.m.kind] || 0); }).forEach(function (x) {
-      var m = x.m;
-      var row = rows[m.kind];
-      if (!row) {
-        row = el('div', 'ege-cast__market ege-cast__market--' + m.kind);
-        row.appendChild(el('p', 'ege-cast__mkt', marketTitle(m)));
-        row.appendChild(el('div', 'ege-cast__marketbody'));
-        rows[m.kind] = row;
-        box.appendChild(row);
-      }
-      var body = row.lastChild;
-      if (m.kind === 'spread') {
-        var sides = el('div', 'ege-cast__picks');
-        m.picks.forEach(function (pick) { sides.appendChild(drawSide(m, pick, can)); });
-        body.appendChild(sides);
-      } else if (m.kind === 'td') {
-        body.appendChild(drawScorer(m, can));
-      } else {
-        body.appendChild(drawProp(m, can));
-      }
-    });
-    if (mine.length) { box.appendChild(drawMine(mine)); }
+    shown.forEach(function (x) { box.appendChild(drawBlock(x, can)); });
+    strays.forEach(function (b) { box.appendChild(drawStray(b)); });
     return box;
   }
 

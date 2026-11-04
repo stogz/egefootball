@@ -10590,9 +10590,10 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-cast__box { width: var(--ege-cast-w); justify-self: center; }
 
 /* Bets (Sam, 2026-11-04): under the play by play and over the box score,
-   as wide as both, in the two teams' colours. Each bet open now on a row
-   of its own -- the spread, the anytime touchdown, the over/unders --
-   then the bets already in. A pick opens a pop-up for how much. */
+   as wide as both, after Sam's template -- each bet a block of its own,
+   its question over its buttons, a spread or an over/under one box split
+   in two, the pick bet on filled in its team's colour. A pick opens a
+   pop-up for how much. */
 .ege-cast__bets { position: relative; width: var(--ege-cast-w); justify-self: center; padding-top: 6px; }
 .ege-cast__bets::before {
   content: "";
@@ -10607,22 +10608,16 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-cast__bets .fb-panel__head h3 { margin: 0; font-size: 1.125rem; }
 .ege-cast__balance { font-weight: 800; }
 .ege-cast__betnote { margin: 0; padding: 12px 16px 0; }
-.ege-cast__market {
-  display: grid;
-  grid-template-columns: 190px minmax(0, 1fr);
-  align-items: center;
-  gap: 10px 20px;
-  padding: 16px;
-  border-bottom: 1px solid var(--fb-sand);
-}
-.ege-cast__market--prop { align-items: start; }
-.ege-cast__market--prop > .ege-cast__mkt { padding-top: 24px; }
-.ege-cast__marketbody { display: grid; gap: 8px; min-width: 0; }
-.ege-cast__mkt { margin: 0; font-size: .75rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--fb-ink); }
-.ege-cast__mine .ege-cast__mkt { color: var(--fb-muted); }
-.ege-cast__picks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.ege-cast__block { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 16px; border-bottom: 1px solid var(--fb-sand); }
+.ege-cast__block:last-child { border-bottom: 0; }
+.ege-cast__q { display: flex; align-items: flex-end; gap: 10px; min-width: 0; }
+.ege-cast__q .ege-cast__mug { width: 48px; height: 36px; }
+.ege-cast__q .ege-cast__mugteam { width: 18px; height: 18px; }
+.ege-cast__qwords { display: grid; gap: 4px; min-width: 0; }
+.ege-cast__qtext { margin: 0; font-size: 1.0625rem; font-weight: 800; line-height: 1.2; }
+.ege-cast__qsub { margin: 0; font-size: .9375rem; font-weight: 800; color: var(--fb-muted); }
 
-/* A team's mark on a white coin, so it reads on its own colour. */
+/* A team's mark on a coin, white once its pick is filled in. */
 .ege-cast__coin {
   display: grid;
   place-items: center;
@@ -10649,53 +10644,55 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-cast__mug.is-mark { display: grid; place-items: center; }
 .ege-cast__mug.is-mark .ege-cast__logo { width: 40px; height: 40px; }
 
-.ege-cast__pick {
-  display: inline-flex;
+/* One box split in two. Each half's name in its team's colour; the half
+   bet on filled with it, what went in at its end. */
+.ege-cast__split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 2px solid var(--fb-ink); background: #fff; }
+.ege-cast__half {
+  display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
-  min-height: 44px;
-  padding: 6px 10px;
-  border: 2px solid var(--fb-ink);
-  background: var(--fb-cream);
-  color: var(--fb-ink);
+  min-height: 56px;
+  padding: 8px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--team);
   font: inherit;
-  font-weight: 800;
   text-align: left;
   cursor: pointer;
 }
-.ege-cast__pick:disabled { cursor: default; opacity: .7; }
-.ege-cast__pickname { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.15; }
-.ege-cast__pickpos { font-size: .75rem; font-weight: 700; color: var(--fb-muted); }
-.ege-cast__x {
+.ege-cast__half + .ege-cast__half { border-left: 2px solid var(--fb-ink); }
+.ege-cast__half:hover:not(:disabled) { background: var(--team-wash); }
+.ege-cast__half:disabled { cursor: default; }
+.ege-cast__split:not(.has-bet) .ege-cast__half:disabled { opacity: .7; }
+.ege-cast__split.has-bet .ege-cast__half:not(.is-bet) { opacity: .45; }
+.ege-cast__half .ege-cast__coin { width: 30px; height: 30px; background: transparent; }
+.ege-cast__half .ege-cast__coin .ege-cast__logo { width: 100%; height: 100%; }
+.ege-cast__halfname { display: grid; min-width: 0; font-family: var(--fb-font-display); font-size: 1.25rem; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ege-cast__odds { margin-left: auto; font-size: .875rem; font-weight: 800; color: var(--fb-muted); font-variant-numeric: tabular-nums; }
+.ege-cast__half.is-picked { background: var(--team-wash); box-shadow: inset 0 0 0 3px var(--team); }
+.ege-cast__half.is-bet, .ege-cast__chosen { background: var(--team); color: #fff; }
+.ege-cast__half.is-bet .ege-cast__coin { background: #fff; }
+.ege-cast__half.is-bet .ege-cast__coin .ege-cast__logo { width: 72%; height: 72%; }
+.ege-cast__half.is-lost, .ege-cast__chosen.is-lost { filter: grayscale(.85); }
+
+/* What went in, and what it pays or came to. */
+.ege-cast__tail { display: grid; justify-items: end; gap: 1px; margin-left: auto; white-space: nowrap; line-height: 1.15; }
+.ege-cast__tailbig { font-size: 1.0625rem; font-weight: 800; }
+.ege-cast__tailsmall { font-size: .75rem; font-weight: 700; opacity: .85; }
+.ege-cast__check {
   flex: none;
-  margin-left: auto;
-  padding: 2px 7px;
-  background: var(--fb-ink);
-  color: var(--fb-cream);
-  font-size: .8125rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  width: 10px;
+  height: 18px;
+  margin: 0 6px 4px 2px;
+  border-right: 3px solid currentColor;
+  border-bottom: 3px solid currentColor;
+  transform: rotate(45deg);
 }
+.ege-cast__chosen.is-lost .ege-cast__check { display: none; }
 
-/* A side of the spread: its team's colour, white on it. */
-.ege-cast__pick--spread {
-  min-height: 56px;
-  padding: 8px 12px;
-  border-color: var(--team);
-  background: var(--team);
-  color: #fff;
-  font-family: var(--fb-font-display);
-  font-weight: 400;
-  font-size: 1.125rem;
-}
-.ege-cast__pick--spread .ege-cast__x { background: rgba(0, 0, 0, .35); color: #fff; font-family: var(--fb-font-body); }
-.ege-cast__pick--spread:hover:not(:disabled) { filter: brightness(1.12); }
-.ege-cast__pick--spread.is-picked { border-color: var(--fb-ink); box-shadow: inset 0 0 0 2px #fff, 4px 4px 0 var(--fb-ink); }
-
-/* The anytime touchdown: a button that opens the list of players, each
-   with his picture and team. */
+/* The anytime touchdown: "Select a player…", opening the list of players
+   with their pictures and teams; the player bet on, filled. */
 .ege-cast__picker { position: relative; }
 .ege-cast__pickbtn {
   display: flex;
@@ -10703,17 +10700,18 @@ html.ege-noscroll body { overflow: hidden; }
   gap: 12px;
   width: 100%;
   min-height: 56px;
-  padding: 4px 14px 4px 10px;
+  padding: 8px 16px;
   border: 2px solid var(--fb-ink);
-  background: var(--fb-surface);
-  color: var(--fb-ink);
+  background: #fff;
+  color: var(--fb-accent-deep);
   font: inherit;
+  font-size: 1.0625rem;
   font-weight: 800;
   text-align: left;
   cursor: pointer;
 }
 .ege-cast__pickbtn:disabled { cursor: default; opacity: .7; }
-.ege-cast__pickbtn:hover:not(:disabled) { background: #fff; }
+.ege-cast__pickbtn:hover:not(:disabled) { background: var(--fb-surface); }
 .ege-cast__pickbtn::after {
   content: "";
   flex: none;
@@ -10725,11 +10723,12 @@ html.ege-noscroll body { overflow: hidden; }
   transform: rotate(45deg);
 }
 .ege-cast__picker.is-open .ege-cast__pickbtn::after { margin-bottom: -4px; transform: rotate(-135deg); }
-.ege-cast__pickfaces { display: flex; flex: none; }
-.ege-cast__pickfaces .ege-cast__mug { width: 48px; height: 36px; }
-.ege-cast__pickfaces .ege-cast__mug + .ege-cast__mug { margin-left: -10px; }
-.ege-cast__pickfaces .ege-cast__mugteam { width: 18px; height: 18px; }
 .ege-cast__pickhint { min-width: 0; }
+.ege-cast__halfname > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ege-cast__chosen { display: flex; align-items: center; gap: 12px; min-width: 0; min-height: 56px; padding: 4px 16px 0 10px; border: 2px solid var(--fb-ink); }
+.ege-cast__chosen .ege-cast__mug { align-self: end; }
+.ege-cast__chosen .ege-cast__tail { padding-bottom: 4px; }
+.ege-cast__chosenpos { font-family: var(--fb-font-body); font-size: .75rem; font-weight: 700; opacity: .85; }
 .ege-cast__picklist {
   position: absolute;
   top: calc(100% + 4px);
@@ -10775,27 +10774,20 @@ html.ege-noscroll body { overflow: hidden; }
   cursor: pointer;
 }
 .ege-cast__pickrow:hover, .ege-cast__pickrow:focus-visible { background: var(--team-wash); outline: 0; box-shadow: inset 4px 0 0 var(--team); }
-.ege-cast__pickrow .ege-cast__pickname { display: grid; }
-.ege-cast__pickwho { font-weight: 800; overflow: hidden; text-overflow: ellipsis; }
-.ege-cast__pickrow .ege-cast__x { background: var(--team); color: #fff; }
-
-/* An over/under: the player's line on his team's colour, the over and the
-   under at its end. */
-.ege-cast__prop {
-  display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  padding: 6px 10px 0;
-  background: var(--team);
-  color: #fff;
+.ege-cast__pickname { display: grid; min-width: 0; line-height: 1.15; }
+.ege-cast__pickwho { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ege-cast__pickpos { font-size: .75rem; font-weight: 700; color: var(--fb-muted); }
+.ege-cast__x {
+  flex: none;
+  padding: 2px 7px;
+  background: var(--fb-ink);
+  color: var(--fb-cream);
+  font-size: .8125rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
-.ege-cast__prop .ege-cast__mug { align-self: end; }
-.ege-cast__propline { margin: 0; padding-bottom: 6px; min-width: 0; font-weight: 800; line-height: 1.2; }
-.ege-cast__ou { display: flex; gap: 6px; padding-bottom: 6px; }
-.ege-cast__pick--prop { flex: none; min-width: 112px; border-color: #fff; background: #fff; }
-.ege-cast__pick--prop:hover:not(:disabled) { background: var(--fb-cream); }
-.ege-cast__pick--prop.is-picked { box-shadow: inset 0 0 0 2px var(--fb-ink), 3px 3px 0 rgba(0, 0, 0, .45); }
+.ege-cast__pickrow .ege-cast__x { background: var(--team); color: #fff; }
 
 /* The pop-up: the pick on its team's colour, then how many diamonds, typed
    or slid from the least a bet can be to all of them. */
@@ -10817,7 +10809,7 @@ html.ege-cast-sheet-open { overflow: hidden; }
 .ege-cast__sheetkind { font-size: .6875rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
 .ege-cast__sheetpick { font-family: var(--fb-font-display); font-size: 1.375rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ege-cast__sheetsub { font-size: .8125rem; font-weight: 700; opacity: .9; }
-.ege-cast__sheethead > .ege-cast__x { align-self: center; margin-bottom: 12px; background: #fff; color: var(--team); font-size: .9375rem; }
+.ege-cast__sheethead > .ege-cast__x { align-self: center; margin: 0 0 12px auto; background: #fff; color: var(--team); font-size: .9375rem; }
 .ege-cast__sheetclose { flex: none; align-self: start; margin-left: 4px; border-color: #fff; color: #fff; }
 .ege-cast__sheetbody { gap: 12px; }
 .ege-cast__amount { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 1.75rem; }
@@ -10872,40 +10864,16 @@ html.ege-cast-sheet-open { overflow: hidden; }
 .ege-cast__sheetactions { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; }
 .ege-cast__sheetactions .ege-cast__go { justify-content: center; }
 
-/* The bets already in, each washed in its team's colour. */
-.ege-cast__mine { display: grid; gap: 8px; padding: 14px 16px 16px; }
-.ege-cast__minelist { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.ege-cast__minebet {
-  display: grid;
-  grid-template-columns: 52px minmax(0, 1fr) auto auto;
-  gap: 4px 14px;
-  align-items: center;
-  min-height: 48px;
-  padding: 4px 12px 0 10px;
-  border-left: 6px solid var(--team, var(--fb-sand));
-  background: var(--team-wash, var(--fb-surface));
-}
-.ege-cast__minebet > .ege-cast__coin { width: 30px; height: 30px; margin: 0 auto 4px; box-shadow: 0 0 0 2px var(--team); }
-.ege-cast__minebet > .ege-cast__mug { align-self: end; width: 52px; height: 39px; }
-.ege-cast__minebet .ege-cast__mugteam { width: 18px; height: 18px; }
-.ege-cast__minewhat { display: grid; min-width: 0; padding-bottom: 4px; line-height: 1.2; }
-.ege-cast__minepick { font-weight: 800; }
-.ege-cast__minestake, .ege-cast__mineres { padding-bottom: 4px; font-weight: 700; white-space: nowrap; }
-.ege-cast__mineres { min-width: 5.5em; text-align: right; color: var(--fb-muted); }
-.ege-cast__minebet.is-won .ege-cast__mineres { color: var(--fb-grass); font-weight: 800; }
-.ege-cast__minebet.is-lost .ege-cast__mineres { color: var(--fb-accent-deep); }
-@media (max-width: 760px) {
-  .ege-cast__market { grid-template-columns: minmax(0, 1fr); }
-  .ege-cast__market--prop > .ege-cast__mkt { padding-top: 0; }
-}
+
 @media (max-width: 620px) {
-  .ege-cast__picks { grid-template-columns: minmax(0, 1fr); }
-  .ege-cast__prop { grid-template-columns: 56px minmax(0, 1fr); padding-top: 4px; }
-  .ege-cast__prop .ege-cast__mug { width: 56px; height: 42px; }
-  .ege-cast__ou { grid-column: 1 / -1; padding: 0 0 8px; }
-  .ege-cast__pick--prop { flex: 1 1 0; min-width: 0; }
-  .ege-cast__minebet { grid-template-columns: 52px minmax(0, 1fr) auto; }
-  .ege-cast__minestake { display: none; }
+  .ege-cast__block { padding: 14px 12px; }
+  .ege-cast__half { gap: 8px; padding: 8px 10px; }
+  .ege-cast__halfname { font-size: 1.0625rem; }
+  .ege-cast__half.is-bet .ege-cast__coin, .ege-cast__half .ege-cast__coin { width: 26px; height: 26px; }
+  .ege-cast__split.has-bet .ege-cast__half:not(.is-bet) .ege-cast__coin { display: none; }
+  .ege-cast__half.is-bet { flex-wrap: wrap; row-gap: 4px; }
+  .ege-cast__half.is-bet .ege-cast__tail { flex-basis: 100%; justify-items: start; margin-left: 0; }
+  .ege-cast__chosen .ege-cast__mug { width: 52px; height: 39px; }
   .ege-cast__sheetback { align-items: end; padding: 0; }
   .ege-cast__sheet { width: 100%; border-width: 4px 0 0; box-shadow: none; }
   .ege-cast__sheetpick { font-size: 1.1875rem; }
