@@ -175,15 +175,28 @@ holds:
   the shop's boosts to land before they show. The college offers are no
   longer drawn on the header; who offered whom is still recorded in
   `data/offers.js`.
-- **Injury report** — a red band across the foot of the header panel, only
-  while the week being played (the first week of the live season not yet
-  published) is one the season file marks him `injured: true` for: OUT, what
-  with (`injury`), how healthy he is as a bar (`health`, 0–100 — green from
-  75, gold from 40, red under that) and the next week he is not marked, as
-  *Expected back week 8*. Before that week nobody knows, and once it is
-  published the band goes with it unless the next week is marked too. It is
-  `EGE.injuryFor` in `data/games.js`, and the season editor has the three
-  fields on every game.
+- **Injury report** — a red band across the foot of the header panel: OUT,
+  what with, how healthy he is as a bar (0–100 — green from 75, gold from
+  40, red under that) and the week of his first game back, as *Expected
+  back week 8*, or *No return date* when that is past his last game. It is
+  `EGE.injuryFor` in `data/games.js`, and it comes up two ways:
+  - **Hurt in a game the NFL sim played** (`hurt: { injury, weeks }`): from
+    the day the week he went down in is published, for every one of the
+    `weeks` weeks after it, whether the sim has played them yet or not (Sam,
+    2026-11-04: a torn ACL shows as out for the season at once, not a week
+    at a time as the weeks are played). The sim heals everybody a week at a
+    time, byes included, so a 4-week injury in Week 6 misses Weeks 7–10.
+    Health is the sim's scale, 80 less 13 for every game still to miss
+    after this one, never under 20.
+  - **Marked `injured: true` in the season file** (the hand-written
+    seasons): only while the week being played (the first week of the live
+    season not yet published) is one he is marked for, with `injury` and
+    `health` from that game and the next week he is not marked as his
+    return; once it is published the band goes with it unless the next week
+    is marked too. The season editor has the three fields on every game.
+
+  Before the week he got hurt in is published nobody knows, an admin
+  included.
 - **Season strip** — the ten numbers the season is remembered by, across the
   foot of the header panel: ten across on a wide screen, five and five on
   anything narrower.
@@ -555,7 +568,8 @@ Under the bar:
   before the regular season ends (the Super Bowl, in the playoffs); the
   pop-up's Injury line says what it is and for how long. The six's come
   from the site's own injury report (`EGE.injuryFor`, so the week's
-  publishing decides); everybody else's from the sim (`out` in the rosters:
+  publishing decides, and the whole injury shows once the week he went
+  down in is out); everybody else's from the sim (`out` in the rosters:
   what, games left and the week he went down; a playoff injury carries
   its round's week, 19-22), held back from everybody, an admin too, until
   that week is published (Sam, 2026-10-27, `EGE.nflRosters.isOut`): the
@@ -1612,8 +1626,9 @@ booster on a game he is going to miss comes off it and goes back in his
 drawer, and those games take no new booster — the drawer says he is out
 injured and offers only the wager (Sam, 2026-10-20). Which games he is going
 to miss is what the injury report says, from the week he went out to the
-week before he is back (`EGE.outInjured` in `data/games.js`), so an injury
-further down the file is not given away early. The handing back is
+week before he is back (`EGE.outInjured` in `data/games.js`), the sim's
+unplayed weeks included, so an injury further down the file is not given
+away early. The handing back is
 `EGE.wallet.returnInjuredBoosters`, run by the player's own page whenever it
 pays what he is owed and by the admin's publishing a week; a booster only
 goes back to the drawer from whichever of them actually deleted its row, so
