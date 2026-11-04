@@ -5,10 +5,23 @@
    the League page. A snap every 20 seconds: first what is called
    ("Jaykeb Stewart pass"), then four seconds later what came of it
    ("Jaykeb Stewart 22-yd pass to Nico Collins"), and sixteen seconds
-   after that the next; 30 seconds more before a new drive, and 15 more
-   before its first snap in the red zone. An admin can pause, end,
-   restart or cancel it from here too, and #live/test plays a game on
-   this device alone before it goes live.
+   after that the next; 30 seconds more before a new drive, 15 more
+   before its first snap in the red zone, and two minutes more at
+   halftime. PLAY LIVE on the NFL Sim tab puts it up here waiting, and an
+   admin kicks it off from this page (Sam, 2026-11-04). An admin can
+   pause, end, restart or cancel it from here too, and #live/test plays a
+   game on this device alone before it goes live.
+
+   Bets (Sam, 2026-11-04), diamonds only, at least 10 a bet: the spread
+   of the bot's first post, a touchdown scorer and three players'
+   over/unders until the kickoff, and at halftime a scorer for the rest
+   of the game and the spread of the halftime post. They sit under the
+   play by play and over the box score, a row a bet, in the teams'
+   colours; a pick opens a pop-up for how many diamonds. The menus and
+   prices are the NFL Sim tab's
+   (nfl-sim/lib/live-bets.js); Supabase takes the bets and pays them at
+   the final whistle (live_bet_place, live_settle). A test game takes
+   them too, on this device alone, without a diamond moving.
 
    Supabase keeps the time (live_feed in supabase/schema.sql): every
    answer carries its clock, and the page sets its own by it, so a
@@ -83,20 +96,22 @@ EGE.liveView = (function () {
     gamesAt = Date.now();
     games = !c ? Promise.resolve([]) : c.from('live_games')
       .select(COLUMNS)
-      .order('starts_at', { ascending: false }).limit(60)
+      .order('created_at', { ascending: false }).limit(60)
       .then(function (res) { return res.error ? [] : (res.data || []); }, function () { return []; });
     return games;
   }
 
   function length(row) { return row.length_ms || row.plays * row.slot_ms; }
 
-  /* When it ends; a paused game has not. */
-  function ends(row) { return row.paused_at ? Infinity : Date.parse(row.starts_at) + length(row); }
+  /* When it ends; a paused game has not, nor one still waiting for its
+     kickoff. */
+  function ends(row) { return row.paused_at || !row.starts_at ? Infinity : Date.parse(row.starts_at) + length(row); }
 
   /* 'soon', 'live' or 'final', by this device's clock (near enough for a
      badge; the page itself goes by Supabase's). */
   function phase(row) {
     var now = Date.now();
+    if (!row.starts_at) { return 'soon'; }
     if (row.paused_at) { return Date.parse(row.paused_at) < Date.parse(row.starts_at) ? 'soon' : 'live'; }
     if (now < Date.parse(row.starts_at)) { return 'soon'; }
     return now < ends(row) ? 'live' : 'final';
@@ -168,8 +183,10 @@ EGE.liveView = (function () {
   /* An answer, kept: the game's clock as it was halfway between asking
      and hearing back, and the snaps it brought. */
   function take(got, sent, back) {
+    game.waiting = Boolean(got.waiting);
+    game.half = got.half || null;
     if (!game.test) {
-      game.clockAt = { ms: got.clock, real: Math.round((sent + back) / 2) };
+      game.clockAt = got.waiting ? null : { ms: got.clock, real: Math.round((sent + back) / 2) };
       game.paused = Boolean(got.paused);
     }
     game.slot = got.slot;
@@ -195,6 +212,7 @@ EGE.liveView = (function () {
   /* When the next thing is due, by the game's clock: kickoff, the snap's
      reveal, or the next snap. Null once the game is over. */
   function nextDue() {
+    if (game.waiting) { return null; }
     if (game.at < 0) { return 0; }
     var current = game.entries[game.at];
     if (current && current.hidden) { return entryMs(game.at) + game.reveal; }
@@ -210,12 +228,19 @@ EGE.liveView = (function () {
   function tick() {
     if (!game) { return; }
     var had = game.at + ':' + game.done;
+    var was = game.drawn;
     var mine = game;
     fetchFeed().then(function () {
       if (game !== mine) { return; }
       if (game.missing) { drawMissing(); return; }
       if (game.again) { game.again = false; tick(); return; }
-      draw();
+      /* Waiting for the kickoff: ask now and then whether it has come,
+         and leave the page (and a bet being typed) alone until it has. */
+      var now = (game.waiting ? 'w' : '') + (game.paused ? 'p' : '') + game.at + ':' + game.done;
+      if (!(game.waiting && was === now)) { draw(); }
+      game.drawn = now;
+      if (game.waiting) { if (!game.test) { schedule(4000); } return; }
+      settleIfOver();
       /* Paused: ask now and then whether it has started again. */
       if (game.paused) { if (!game.test) { schedule(4000); } return; }
       var due = nextDue();
@@ -342,7 +367,8 @@ EGE.liveView = (function () {
     var kicker = el('p', 'fb-kicker ege-cast__kicker');
     if (state === 'live' && !game.paused) { kicker.appendChild(el('span', 'ege-cast__dot')); }
     kicker.appendChild(document.createTextNode((game.test ? 'Test · ' : '') +
-      (game.paused && state !== 'final' ? 'Paused' : state === 'live' ? 'Live' : state === 'final' ? 'Final' : 'Kickoff soon')));
+      (game.waiting ? 'Pregame' : game.paused && state !== 'final' ? 'Paused' : state === 'live' ? 'Live'
+        : state === 'final' ? 'Final' : 'Kickoff soon')));
     head.appendChild(kicker);
 
     var board = el('div', 'ege-cast__board');
@@ -361,7 +387,9 @@ EGE.liveView = (function () {
       board.appendChild(box);
       if (!i) {
         var mid = el('div', 'ege-cast__clock');
-        if (state === 'soon') {
+        if (state === 'soon' && game.waiting) {
+          mid.appendChild(el('span', 'ege-cast__time', 'Q1 15:00'));
+        } else if (state === 'soon') {
           mid.appendChild(el('span', 'ege-cast__time', clockText(-clock() / 1000 / (game.speed || 1))));
           mid.appendChild(el('span', 'ege-cast__down', 'to kickoff'));
         } else if (state === 'final') {
@@ -380,7 +408,7 @@ EGE.liveView = (function () {
   }
 
   function phaseNow() {
-    if (game.at < 0) { return 'soon'; }
+    if (game.waiting || game.at < 0) { return 'soon'; }
     var last = game.entries[game.at];
     return game.at >= game.plays - 1 && last && !last.hidden ? 'final' : 'live';
   }
@@ -470,8 +498,8 @@ EGE.liveView = (function () {
     var state = phaseNow();
     if (state === 'soon') {
       card.appendChild(el('p', 'ege-cast__call', nick(game.row.away) + (game.row.title.indexOf(' vs. ') !== -1 ? ' vs. ' : ' at ') + nick(game.row.home)));
-      card.appendChild(el('p', 'fb-meta ege-cast__when', game.paused ? 'Paused' : 'Kicks off at ' +
-        new Date(Date.now() - clock() / (game.speed || 1)).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })));
+      card.appendChild(el('p', 'fb-meta ege-cast__when', game.waiting ? 'Waiting for kickoff' : game.paused ? 'Paused'
+        : 'Kicks off at ' + new Date(Date.now() - clock() / (game.speed || 1)).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })));
       return card;
     }
     var e = game.entries[game.at];
@@ -592,18 +620,23 @@ EGE.liveView = (function () {
     if (!view || !game || !game.row) { return; }
     var keepFeed = view.querySelector('.ege-cast__list');
     var feedScroll = keepFeed ? keepFeed.scrollTop : 0;
+    /* The player list open, or a pick being made: the bets box is left
+       where it is, and the rest drawn around it. */
+    var keep = view.querySelector('.ege-cast__bets');
+    if (!(keep && (picker || keep.contains(document.activeElement)) && keep.getAttribute('data-open') === betsKey())) { keep = null; }
     var at = where();
-    view.innerHTML = '';
-    view.appendChild(drawHead(at));
-    var controls = drawControls();
-    if (controls) { view.appendChild(controls); }
-    view.appendChild(drawField(at));
+    Array.prototype.slice.call(view.childNodes).forEach(function (n) { if (n !== keep) { view.removeChild(n); } });
+    function put(node) { if (node) { view.insertBefore(node, keep); } }
+    put(drawHead(at));
+    put(drawControls());
+    put(drawField(at));
     var cols = el('div', 'ege-cast__cols');
     var side = el('div', 'ege-cast__side');
     side.appendChild(drawPlay());
     if (phaseNow() !== 'soon') { side.appendChild(drawFeed()); }
     cols.appendChild(side);
-    view.appendChild(cols);
+    put(cols);
+    if (!keep) { put(drawBets()); }
     var box = drawBox();
     if (box) {
       box.classList.add('ege-cast__box');
@@ -614,6 +647,653 @@ EGE.liveView = (function () {
     document.title = nick(game.row.away) + ' ' + scoreNow()[1] + ', ' + nick(game.row.home) + ' ' + scoreNow()[0];
   }
 
+  /* --- bets -------------------------------------------------------------------
+
+     Diamonds on the game (Sam, 2026-11-04): whatever is open now -- the
+     menu before kickoff, the halftime one until the second half kicks off
+     -- and every bet this player has on it, paid once the final whistle
+     has gone. A bet is final once it is in. */
+
+  var slip = null;          /* the pick a bet is being made on: { market, pick, stake, error, busy } */
+  var sheet = null;         /* its pop-up, while it is open */
+  var picker = null;        /* the market whose player list is open */
+  var lastStake = null;     /* what this player bet last, where the next pop-up starts */
+  var wallet = { email: null, diamonds: null, heard: false };
+  var settling = false;
+
+  function gems(n) {
+    var wrap = el('span', 'ege-price', String(n));
+    var gem = el('span', 'ege-gem');
+    gem.setAttribute('role', 'img');
+    gem.setAttribute('aria-label', 'diamonds');
+    wrap.appendChild(gem);
+    return wrap;
+  }
+
+  function times(x) { return (x % 1 ? String(Math.round(x * 100) / 100) : Number(x).toFixed(1)) + '×'; }
+
+  function pays(stake, x) { return Math.round(stake * x); }
+
+  /* The bets on offer, each with whether it is open now. */
+  function menus() {
+    var out = [];
+    var pre = game.row && game.row.bets;
+    (pre && pre.markets || []).forEach(function (m) { out.push({ m: m, open: Boolean(game.waiting) }); });
+    (game.half && game.half.markets || []).forEach(function (m) { out.push({ m: m, open: Boolean(game.half.open) }); });
+    return out;
+  }
+
+  function minStake() { return (game.row && game.row.bets && game.row.bets.min) || 10; }
+
+  function marketOf(id) {
+    return menus().map(function (x) { return x.m; }).filter(function (m) { return m.id === id; })[0] || null;
+  }
+
+  function myBet(id) { return (game.mine || []).filter(function (b) { return b.market === id; })[0] || null; }
+
+  /* What this player has to bet with: a test game's bets come out of it
+     only on this page. */
+  function balance() {
+    if (typeof wallet.diamonds !== 'number') { return null; }
+    if (!game.test) { return wallet.diamonds; }
+    return (game.mine || []).reduce(function (n, b) { return n - b.stake + (b.settled_at ? b.payout : 0); }, wallet.diamonds);
+  }
+
+  function marketTitle(m) {
+    if (m.kind === 'spread') { return m.half ? 'Halftime spread' : 'Spread'; }
+    if (m.kind === 'td') { return m.half ? '2nd half touchdown' : 'Anytime touchdown'; }
+    return 'Over/under';
+  }
+
+  function lineText(n) { return (n > 0 ? '+' : '') + n; }
+
+  /* "Cooper Clark O/U 73.5 rushing yards" (Sam, 2026-11-04). */
+  function propText(m) { return m.who.n + ' O/U ' + m.line + ' ' + m.label.toLowerCase(); }
+
+  function pickText(m, pick) {
+    if (m.kind === 'spread') { return nick(pick.t) + ' ' + lineText(pick.line); }
+    if (m.kind === 'td') { return pick.n; }
+    return m.who.n + ' ' + pick.id + ' ' + m.line + ' ' + m.label.toLowerCase();
+  }
+
+  /* Who a pick is on: a player, or null for a side of the spread. */
+  function pickWho(m, pick) { return m.kind === 'prop' ? m.who : m.kind === 'td' ? pick : null; }
+
+  /* Whose colours a pick is in. */
+  function pickTeam(m, pick) { return m.kind === 'prop' ? m.who.t : pick && pick.t; }
+
+  /* A box in a team's colours (Sam, 2026-11-04): the colour itself, and
+     a wash of it for what sits on the page. */
+  function paint(node, key) {
+    var hex = /^#([0-9a-f]{6})$/i.exec(team(key).color || '');
+    var n = hex ? parseInt(hex[1], 16) : 0x1d2416;
+    node.style.setProperty('--team', team(key).color);
+    node.style.setProperty('--team-wash', 'rgba(' + (n >> 16) + ', ' + ((n >> 8) & 255) + ', ' + (n & 255) + ', .13)');
+    return node;
+  }
+
+  /* A team's mark on a white coin, so it reads on its own colour. */
+  function coin(key, size) {
+    var c = el('span', 'ege-cast__coin');
+    c.appendChild(logo(key, size));
+    return c;
+  }
+
+  /* A player's picture in the bets (Sam, 2026-11-04): cut to a circle on
+     his team's colour at 60%, no outline, his team's mark at its bottom
+     right. The mark in the circle alone where there is no picture of
+     him. */
+  function mug(p) {
+    var box = el('span', 'ege-cast__mug');
+    box.style.setProperty('--team', team(p.t).color);
+    var round = el('span', 'ege-cast__mugface');
+    box.appendChild(round);
+    var mine = p.g && EGE.playerBySlug ? EGE.playerBySlug(p.g) : null;
+    var src = mine && mine.headshot ? mine.headshot
+      : p.e && EGE.espnHeadshot ? EGE.espnHeadshot(p.e, p.c, 192, 140) : null;
+    var badge = el('span', 'ege-cast__mugteam');
+    badge.appendChild(logo(p.t, 24));
+    function bare() {
+      box.classList.add('is-mark');
+      badge.remove();
+      round.appendChild(logo(p.t, 48));
+    }
+    if (src) {
+      var img = el('img', 'ege-cast__mugimg');
+      img.src = src;
+      img.alt = '';
+      img.loading = 'lazy';
+      img.addEventListener('error', function () { img.remove(); bare(); });
+      round.appendChild(img);
+      box.appendChild(badge);
+    } else {
+      bare();
+    }
+    return box;
+  }
+
+  function loadWallet() {
+    if (!wallet.heard && EGE.auth && EGE.auth.onChange) {
+      wallet.heard = true;
+      EGE.auth.onChange(function () { if (game && game.row) { loadWallet(); } });
+      return;
+    }
+    var me = EGE.auth && EGE.auth.currentPlayer ? EGE.auth.currentPlayer() : null;
+    wallet.email = me ? me.email : null;
+    wallet.diamonds = null;
+    var mine = game;
+    var c = client();
+    if (!wallet.email || !c) { redrawBets(); return; }
+    Promise.all([
+      EGE.wallet.diamondsFor(wallet.email),
+      game.test ? null : c.from('live_bets').select('market, pick, stake, x, payout, settled_at').eq('game_id', game.id)
+    ]).then(function (got) {
+      if (game !== mine) { return; }
+      wallet.diamonds = got[0];
+      if (got[1] && !got[1].error) { game.mine = got[1].data || []; }
+      redrawBets();
+      settleIfOver();
+    });
+  }
+
+  function walletMoved() {
+    if (game.test || typeof wallet.diamonds !== 'number') { return; }
+    document.dispatchEvent(new window.CustomEvent('ege:wallet', { detail: { diamonds: wallet.diamonds } }));
+  }
+
+  /* The most a bet can be: every diamond this player has. */
+  function maxStake() {
+    var have = balance();
+    return typeof have === 'number' ? Math.max(0, Math.floor(have)) : null;
+  }
+
+  function placeBet(m, pick) {
+    var stake = Math.floor(Number(slip.stake));
+    var min = minStake();
+    var have = balance();
+    slip.error = null;
+    if (!(stake >= min)) { slip.error = 'Bet at least ' + min + ' diamonds.'; drawSheet(); return; }
+    if (typeof have === 'number' && stake > have) { slip.error = 'Not enough diamonds.'; drawSheet(); return; }
+    lastStake = stake;
+    if (game.test) {
+      test.mine = (test.mine || []).concat([{ market: m.id, pick: pick.id, stake: stake, x: pick.x, payout: null, settled_at: null }]);
+      game.mine = test.mine;
+      saveTest();
+      closeSlip();
+      redrawBets();
+      return;
+    }
+    var c = client();
+    if (!c) { slip.error = 'Not connected.'; drawSheet(); return; }
+    slip.busy = true;
+    drawSheet();
+    var mine = game;
+    var was = slip;
+    c.rpc('live_bet_place', { p_game: game.id, p_market: m.id, p_pick: pick.id, p_stake: stake }).then(function (res) {
+      if (game !== mine || slip !== was) { return; }
+      if (res.error) {
+        slip.busy = false;
+        slip.error = String(res.error.message || 'That bet did not go in.').replace(/\s*CONTEXT:.*$/, '');
+        drawSheet();
+        return;
+      }
+      wallet.diamonds = Number(res.data.diamonds);
+      game.mine = (game.mine || []).concat([res.data.bet]);
+      closeSlip();
+      walletMoved();
+      redrawBets();
+    }, function () {
+      if (game !== mine || slip !== was) { return; }
+      slip.busy = false;
+      slip.error = 'That bet did not go in.';
+      drawSheet();
+    });
+  }
+
+  /* The final whistle has gone: the bets paid (Supabase pays them; asking
+     is enough), and what they came to brought back. A test game's are
+     worked out here, from its results. */
+  function settleIfOver(tries) {
+    if (!game || phaseNow() !== 'final' || settling) { return; }
+    var open = (game.mine || []).filter(function (b) { return !b.settled_at; });
+    if (!open.length) { return; }
+    if (game.test) {
+      var res = (test.bets && test.bets.results) || {};
+      open.forEach(function (b) {
+        b.payout = (res.push || []).indexOf(b.market) !== -1 ? b.stake
+          : (res[b.market] || []).indexOf(b.pick) !== -1 ? pays(b.stake, b.x) : 0;
+        b.settled_at = new Date().toISOString();
+      });
+      saveTest();
+      redrawBets();
+      return;
+    }
+    var c = client();
+    if (!c) { return; }
+    settling = true;
+    var mine = game;
+    c.rpc('live_settle', { p_id: game.id }).then(function () {
+      return c.from('live_bets').select('market, pick, stake, x, payout, settled_at').eq('game_id', mine.id);
+    }).then(function (res) {
+      settling = false;
+      if (game !== mine || res.error) { return; }
+      game.mine = res.data || [];
+      var left = game.mine.some(function (b) { return !b.settled_at; });
+      /* This page's clock ran a moment ahead of Supabase's: again shortly. */
+      if (left && (tries || 0) < 6) { window.setTimeout(function () { if (game === mine) { settleIfOver((tries || 0) + 1); } }, 5000); }
+      return EGE.wallet.diamondsFor(wallet.email).then(function (n) {
+        if (game !== mine) { return; }
+        wallet.diamonds = n;
+        walletMoved();
+        redrawBets();
+      });
+    }, function () { settling = false; });
+  }
+
+  /* --- the bet pop-up: how many diamonds, typed or slid from the least a
+     bet can be to every diamond this player has (Sam, 2026-11-04). */
+
+  function openSlip(m, pick) {
+    picker = null;
+    var max = maxStake();
+    var start = lastStake || minStake();
+    if (typeof max === 'number' && max >= minStake()) { start = Math.min(start, max); }
+    slip = { market: m.id, pick: pick.id, stake: start, error: null, busy: false };
+    drawSheet();
+    redrawBets();
+  }
+
+  function closeSlip() {
+    slip = null;
+    if (sheet) {
+      sheet.remove();
+      sheet = null;
+      document.removeEventListener('keydown', sheetKey);
+      document.documentElement.classList.remove('ege-cast-sheet-open');
+    }
+  }
+
+  function sheetKey(ev) {
+    if (ev.key === 'Escape' && slip && !slip.busy) { closeSlip(); redrawBets(); }
+  }
+
+  function drawSheet() {
+    if (!slip || !game) { return; }
+    var m = marketOf(slip.market);
+    var pick = m ? m.picks.filter(function (p) { return p.id === slip.pick; })[0] : null;
+    if (!m || !pick) { closeSlip(); return; }
+    var fresh = !sheet;
+    if (fresh) {
+      sheet = el('div', 'fb-backdrop ege-cast__sheetback');
+      sheet.addEventListener('click', function (ev) {
+        if (ev.target === sheet && slip && !slip.busy) { closeSlip(); redrawBets(); }
+      });
+      document.addEventListener('keydown', sheetKey);
+      document.documentElement.classList.add('ege-cast-sheet-open');
+      document.body.appendChild(sheet);
+    }
+    sheet.innerHTML = '';
+    var min = minStake();
+    var max = maxStake();
+    var short = typeof max === 'number' && max < min;
+    var top = typeof max === 'number' ? Math.max(max, min) : Math.max(min, Number(slip.stake) || min);
+
+    var box = paint(el('div', 'fb-modal ege-cast__sheet'), pickTeam(m, pick));
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-modal', 'true');
+    box.setAttribute('aria-label', marketTitle(m) + ': ' + pickText(m, pick));
+    var head = el('div', 'ege-cast__sheethead');
+    var who = pickWho(m, pick);
+    head.appendChild(who ? mug(who) : coin(pick.t, 40));
+    var words = el('div', 'ege-cast__sheetwords');
+    words.appendChild(el('span', 'ege-cast__sheetkind', marketTitle(m)));
+    words.appendChild(el('span', 'ege-cast__sheetpick', m.kind === 'prop' ? m.who.n : pickText(m, pick)));
+    words.appendChild(el('span', 'ege-cast__sheetsub', m.kind === 'prop'
+      ? (pick.id === 'over' ? 'Over ' : 'Under ') + m.line + ' ' + m.label.toLowerCase()
+      : m.kind === 'td' ? pick.pos + ' · ' + team(pick.t).name : team(pick.t).name));
+    head.appendChild(words);
+    head.appendChild(el('span', 'ege-cast__x', times(pick.x)));
+    var shut = el('button', 'fb-modal__close ege-cast__sheetclose', '×');
+    shut.type = 'button';
+    shut.setAttribute('aria-label', 'Close');
+    shut.addEventListener('click', function () { if (!slip.busy) { closeSlip(); redrawBets(); } });
+    head.appendChild(shut);
+    box.appendChild(head);
+
+    var body = el('div', 'fb-modal__body ege-cast__sheetbody');
+    var amount = el('label', 'ege-cast__amount');
+    var input = el('input', 'fb-input ege-cast__stake');
+    input.type = 'number';
+    input.min = String(min);
+    input.max = String(top);
+    input.step = '1';
+    input.inputMode = 'numeric';
+    input.value = String(slip.stake);
+    input.disabled = short || slip.busy;
+    input.setAttribute('aria-label', 'Diamonds to bet');
+    amount.appendChild(input);
+    var gem = el('span', 'ege-gem');
+    gem.setAttribute('aria-hidden', 'true');
+    amount.appendChild(gem);
+    body.appendChild(amount);
+
+    var slide = el('input', 'ege-cast__slider');
+    slide.type = 'range';
+    slide.min = String(min);
+    slide.max = String(top);
+    slide.step = '1';
+    slide.disabled = short || slip.busy || top <= min;
+    slide.setAttribute('aria-label', 'Diamonds to bet');
+    body.appendChild(slide);
+    var ends = el('div', 'ege-cast__sliderends');
+    ends.appendChild(gems(min));
+    ends.appendChild(gems(top));
+    body.appendChild(ends);
+
+    var win = el('p', 'ege-cast__sheetpays');
+    body.appendChild(win);
+    if (short) { body.appendChild(el('p', 'ege-note ege-note--error ege-cast__sliperror', 'You need at least ' + min + ' diamonds to bet.')); }
+    if (slip.error) { body.appendChild(el('p', 'ege-note ege-note--error ege-cast__sliperror', slip.error)); }
+
+    var actions = el('div', 'ege-cast__sheetactions');
+    var cancel = el('button', 'fb-btn', 'Cancel');
+    cancel.type = 'button';
+    cancel.disabled = slip.busy;
+    cancel.addEventListener('click', function () { closeSlip(); redrawBets(); });
+    var go = el('button', 'fb-btn fb-btn--primary ege-cast__go');
+    go.type = 'button';
+    go.disabled = short || slip.busy;
+    go.addEventListener('click', function () { placeBet(m, pick); });
+    actions.appendChild(cancel);
+    actions.appendChild(go);
+    body.appendChild(actions);
+    box.appendChild(body);
+    sheet.appendChild(box);
+
+    /* The number and the slider move together; what it pays and the
+       button follow. */
+    function show(from) {
+      var n = Math.floor(Number(slip.stake));
+      var ok = n >= min && (typeof max !== 'number' || n <= max);
+      if (from !== input) { input.value = String(slip.stake); }
+      if (from !== slide) { slide.value = String(Math.min(top, Math.max(min, n || min))); }
+      slide.style.setProperty('--fill', (top > min ? (Number(slide.value) - min) / (top - min) * 100 : 100) + '%');
+      win.innerHTML = '';
+      if (ok) { win.appendChild(document.createTextNode('Pays ')); win.appendChild(gems(pays(n, pick.x))); }
+      go.innerHTML = '';
+      if (slip.busy) { go.textContent = 'Betting…'; } else if (ok) { go.appendChild(document.createTextNode('Bet ')); go.appendChild(gems(n)); } else { go.textContent = 'Bet'; }
+      if (!short && !slip.busy) { go.disabled = !ok; }
+    }
+    input.addEventListener('input', function () { slip.stake = input.value; show(input); });
+    input.addEventListener('change', function () {
+      var n = Math.floor(Number(input.value));
+      slip.stake = String(Math.min(top, Math.max(min, isFinite(n) ? n : min)));
+      show();
+    });
+    input.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { placeBet(m, pick); } });
+    slide.addEventListener('input', function () { slip.stake = slide.value; show(slide); });
+    show();
+    if (fresh || slip.error) {
+      (window.matchMedia && window.matchMedia('(pointer: fine)').matches && !input.disabled ? input : box).focus();
+      if (document.activeElement === input) { input.select(); }
+    }
+    if (!box.hasAttribute('tabindex')) { box.setAttribute('tabindex', '-1'); }
+  }
+
+  /* --- the bets box -----------------------------------------------------------
+
+     After Sam's template (2026-11-04): each bet a block of its own, its
+     question over its buttons. A spread or an over/under is one box split
+     in two; the anytime touchdown a button that opens the list of
+     players. A pick opens the pop-up; once the bet is in, the pick stays
+     filled in its team's colour with what went in, and what it came to
+     once the game is over. */
+
+  function settledClass(b) {
+    return !b.settled_at ? '' : b.payout > b.stake ? ' is-won' : b.payout === b.stake ? ' is-push' : ' is-lost';
+  }
+
+  /* The end of a pick that has a bet on it: what went in and what it
+     pays, or what it came to. */
+  function betTail(b) {
+    var tail = el('span', 'ege-cast__tail');
+    var big = el('span', 'ege-cast__tailbig');
+    var small = el('span', 'ege-cast__tailsmall');
+    if (!b.settled_at) {
+      big.appendChild(gems(b.stake));
+      small.appendChild(document.createTextNode('Pays '));
+      small.appendChild(gems(pays(b.stake, Number(b.x))));
+    } else if (b.payout > b.stake) {
+      big.appendChild(document.createTextNode('Won '));
+      big.appendChild(gems(b.payout));
+      small.appendChild(document.createTextNode('Bet '));
+      small.appendChild(gems(b.stake));
+    } else {
+      big.textContent = b.payout === b.stake ? 'Push' : 'Lost';
+      small.appendChild(document.createTextNode('Bet '));
+      small.appendChild(gems(b.stake));
+    }
+    tail.appendChild(big);
+    tail.appendChild(small);
+    return tail;
+  }
+
+  function check() {
+    var c = el('span', 'ege-cast__check');
+    c.setAttribute('aria-hidden', 'true');
+    return c;
+  }
+
+  /* Two picks in one box, side by side: a spread's teams, or the over and
+     the under. */
+  function drawSplit(m, can, open) {
+    var mine = myBet(m.id);
+    var box = el('div', 'ege-cast__split' + (mine ? ' has-bet' : ''));
+    m.picks.forEach(function (pick) {
+      var bet = mine && mine.pick === pick.id ? mine : null;
+      var picked = slip && slip.market === m.id && slip.pick === pick.id;
+      var b = paint(el('button', 'ege-cast__half' + (bet ? ' is-bet' + settledClass(bet) : '') + (picked ? ' is-picked' : '')),
+        pickTeam(m, pick));
+      b.type = 'button';
+      b.disabled = !can || !open || Boolean(mine);
+      if (m.kind === 'spread') {
+        b.appendChild(coin(pick.t, 26));
+        b.appendChild(el('span', 'ege-cast__halfname', nick(pick.t)));
+      } else {
+        b.appendChild(el('span', 'ege-cast__halfname', pick.id === 'over' ? 'Over' : 'Under'));
+      }
+      if (bet) {
+        b.appendChild(betTail(bet));
+      } else if (!mine) {
+        b.appendChild(el('span', 'ege-cast__odds', times(pick.x)));
+      }
+      b.addEventListener('click', function () { openSlip(m, pick); });
+      box.appendChild(b);
+    });
+    return box;
+  }
+
+  /* The anytime touchdown: a button that opens the list of players, each
+     with his picture and team (Sam, 2026-11-04); the player bet on, once
+     the bet is in. */
+  function drawScorer(m, can, open) {
+    var mine = myBet(m.id);
+    var chosen = mine ? m.picks.filter(function (p) { return p.id === mine.pick; })[0] : null;
+    if (chosen) {
+      var done = paint(el('div', 'ege-cast__chosen' + settledClass(mine)), chosen.t);
+      done.appendChild(mug(chosen));
+      var who = el('span', 'ege-cast__halfname');
+      who.appendChild(el('span', null, chosen.n));
+      who.appendChild(el('span', 'ege-cast__chosenpos', chosen.pos + ' · ' + nick(chosen.t) + ' · ' + times(Number(mine.x))));
+      done.appendChild(who);
+      done.appendChild(betTail(mine));
+      done.appendChild(check());
+      return done;
+    }
+    var wrap = el('div', 'ege-cast__picker' + (picker === m.id ? ' is-open' : ''));
+    var btn = el('button', 'ege-cast__pickbtn');
+    btn.type = 'button';
+    btn.disabled = !can || !open;
+    btn.setAttribute('aria-haspopup', 'listbox');
+    btn.setAttribute('aria-expanded', picker === m.id ? 'true' : 'false');
+    btn.appendChild(el('span', 'ege-cast__pickhint', 'Select a player…'));
+    btn.addEventListener('click', function () {
+      picker = picker === m.id ? null : m.id;
+      redrawBets();
+      var first = picker && view.querySelector('.ege-cast__pickrow');
+      if (first) { first.focus({ preventScroll: true }); }
+    });
+    wrap.appendChild(btn);
+    if (picker !== m.id) { return wrap; }
+    var list = el('div', 'ege-cast__picklist');
+    list.setAttribute('role', 'listbox');
+    list.setAttribute('aria-label', marketTitle(m));
+    [game.row.away, game.row.home].forEach(function (key) {
+      var theirs = m.picks.filter(function (p) { return p.t === key; });
+      if (!theirs.length) { return; }
+      var group = paint(el('div', 'ege-cast__pickteam'), key);
+      group.appendChild(coin(key, 18));
+      group.appendChild(el('span', null, team(key).name));
+      list.appendChild(group);
+      theirs.forEach(function (p) {
+        var row = paint(el('button', 'ege-cast__pickrow'), key);
+        row.type = 'button';
+        row.setAttribute('role', 'option');
+        row.appendChild(mug(p));
+        var name = el('span', 'ege-cast__pickname');
+        name.appendChild(el('span', 'ege-cast__pickwho', p.n));
+        name.appendChild(el('span', 'ege-cast__pickpos', p.pos + ' · ' + nick(key)));
+        row.appendChild(name);
+        row.appendChild(el('span', 'ege-cast__x', times(p.x)));
+        row.addEventListener('click', function () { openSlip(m, p); });
+        list.appendChild(row);
+      });
+    });
+    wrap.appendChild(list);
+    return wrap;
+  }
+
+  /* A bet's question, as the template asks it, and the line under it. */
+  function question(m) {
+    if (m.kind === 'spread') { return m.half ? 'Pick the team to cover the halftime spread' : 'Pick the team to cover the spread'; }
+    if (m.kind === 'td') { return m.half ? 'Player to score a touchdown in the 2nd half' : 'Player to score a touchdown'; }
+    return propText(m);
+  }
+
+  function underQuestion(m) {
+    if (m.kind !== 'spread') { return null; }
+    var fav = m.picks.filter(function (p) { return p.line < 0; })[0];
+    return fav ? nick(fav.t) + ' by ' + (-fav.line) : null;
+  }
+
+  function drawBlock(x, can) {
+    var m = x.m;
+    var block = el('div', 'ege-cast__block ege-cast__block--' + m.kind);
+    var head = el('div', 'ege-cast__q');
+    if (m.kind === 'prop') { head.appendChild(mug(m.who)); }
+    var words = el('div', 'ege-cast__qwords');
+    words.appendChild(el('p', 'ege-cast__qtext', question(m)));
+    var sub = underQuestion(m);
+    if (sub) { words.appendChild(el('p', 'ege-cast__qsub', sub)); }
+    head.appendChild(words);
+    block.appendChild(head);
+    block.appendChild(m.kind === 'td' ? drawScorer(m, can, x.open) : drawSplit(m, can, x.open));
+    return block;
+  }
+
+  /* A bet whose market is not to be found any more: what it was on, and
+     what it came to. */
+  function drawStray(b) {
+    var block = el('div', 'ege-cast__block');
+    var row = el('div', 'ege-cast__chosen' + settledClass(b));
+    paint(row, game.row.away);
+    row.appendChild(el('span', 'ege-cast__halfname', 'Bet'));
+    row.appendChild(betTail(b));
+    block.appendChild(row);
+    return block;
+  }
+
+  function openBets() { return menus().filter(function (x) { return x.open && !myBet(x.m.id); }); }
+
+  var ORDER = { spread: 0, td: 1, prop: 2 };
+
+  /* What the box shows: every bet open now and every one this player has
+     a bet on, the halftime ones first, each kind in the template's order. */
+  function shownBets() {
+    return menus().filter(function (x) { return x.open || myBet(x.m.id); }).sort(function (a, b) {
+      return (a.m.half ? 0 : 1) - (b.m.half ? 0 : 1) || (ORDER[a.m.kind] || 0) - (ORDER[b.m.kind] || 0);
+    });
+  }
+
+  /* What the bets box shows, as a word: drawn again only once it changes,
+     so the player list is left alone while it is open. */
+  function betsKey() {
+    return shownBets().map(function (x) { return x.m.id + (x.open ? '+' : ''); }).join(',') + '|' +
+      (game.mine || []).map(function (b) { return b.market + (b.settled_at ? '$' : ''); }).join(',') + '|' + (picker || '');
+  }
+
+  /* The bets box, under the play by play and over the box score (Sam,
+     2026-11-04). None at all once betting has closed on somebody who never
+     bet. */
+  function drawBets() {
+    if (!game || !game.row) { return null; }
+    var open = openBets();
+    var shown = shownBets();
+    var mine = game.mine || [];
+    if (slip && !open.some(function (x) { return x.m.id === slip.market; })) { closeSlip(); }
+    if (picker && !open.some(function (x) { return x.m.id === picker; })) { picker = null; }
+    var strays = mine.filter(function (b) { return !marketOf(b.market); });
+    if (!shown.length && !strays.length) { return null; }
+    var box = el('section', 'fb-panel ege-cast__bets');
+    box.setAttribute('data-open', betsKey());
+    paint(box, game.row.away);
+    box.style.setProperty('--home', team(game.row.home).color);
+    var head = el('div', 'fb-panel__head');
+    head.appendChild(el('h3', null, 'Bets'));
+    var have = balance();
+    if (typeof have === 'number') {
+      var bal = gems(have);
+      bal.classList.add('ege-cast__balance');
+      head.appendChild(bal);
+    }
+    box.appendChild(head);
+    var can = Boolean(wallet.email);
+    if (open.length && !can) { box.appendChild(el('p', 'fb-meta ege-cast__betnote', 'Log in to bet.')); }
+    shown.forEach(function (x) { box.appendChild(drawBlock(x, can)); });
+    strays.forEach(function (b) { box.appendChild(drawStray(b)); });
+    return box;
+  }
+
+  /* Only the bets box, drawn again in its place. */
+  function redrawBets() {
+    if (!view || !game || !game.row || !view.querySelector('.ege-cast__cols')) { return; }
+    var old = view.querySelector('.ege-cast__bets');
+    var fresh = drawBets();
+    if (old && fresh) {
+      old.parentNode.replaceChild(fresh, old);
+    } else if (old) {
+      old.remove();
+    } else if (fresh) {
+      view.insertBefore(fresh, view.querySelector(':scope > .ege-cast__box'));
+    }
+  }
+
+  /* The player list shuts on a click anywhere else, or Escape. */
+  document.addEventListener('click', function (ev) {
+    if (!picker || !view) { return; }
+    var t = ev.target;
+    if (t && t.closest && t.closest('.ege-cast__picker')) { return; }
+    picker = null;
+    redrawBets();
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Escape' || !picker || slip) { return; }
+    picker = null;
+    redrawBets();
+    var btn = view && view.querySelector('.ege-cast__pickbtn');
+    if (btn) { btn.focus(); }
+  });
+
   /* --- an admin's hand on it -------------------------------------------------
 
      Pause, end, restart or cancel a live game in case something goes
@@ -623,6 +1303,7 @@ EGE.liveView = (function () {
   function control(id, action) {
     var c = client();
     if (!c) { return Promise.reject(new Error('Not connected to Supabase.')); }
+    if (action === 'kickoff') { closeSlip(); }
     return c.rpc('live_control', { p_id: id, p_action: action, p_delay: 0 }).then(function (res) {
       if (res.error) {
         throw new Error(res.error.message + (/live_control/.test(res.error.message) ? ' Run supabase/schema.sql again first.' : ''));
@@ -661,10 +1342,17 @@ EGE.liveView = (function () {
       });
       bar.appendChild(b);
     }
-    if (state !== 'final') { btn(game.paused ? 'Resume' : 'Pause', game.paused ? 'resume' : 'pause'); }
-    btn('Restart', 'restart', game.test ? null : 'Restart from kickoff');
-    if (state !== 'final') { btn('End', 'end', game.test ? null : 'End it now'); }
-    if (!game.test) { btn('Cancel', 'cancel', 'Cancel for good'); }
+    /* Waiting: only an admin's kickoff starts it (Sam, 2026-11-04). */
+    if (game.waiting) {
+      btn('Kick off', 'kickoff', game.test ? null : 'Kick off now');
+      bar.firstChild.classList.add('fb-btn--primary');
+      if (!game.test) { btn('Cancel', 'cancel', 'Cancel for good'); }
+    } else {
+      if (state !== 'final') { btn(game.paused ? 'Resume' : 'Pause', game.paused ? 'resume' : 'pause'); }
+      btn('Restart', 'restart', game.test ? null : 'Restart from kickoff');
+      if (state !== 'final') { btn('End', 'end', game.test ? null : 'End it now'); }
+      if (!game.test) { btn('Cancel', 'cancel', 'Cancel for good'); }
+    }
     if (game.test) {
       SPEEDS.forEach(function (n) {
         var b = el('button', 'fb-btn fb-btn--sm' + (game.speed === n ? ' fb-btn--primary' : ''), n + '\u00d7');
@@ -685,7 +1373,7 @@ EGE.liveView = (function () {
      anybody else to see and nothing posted to Discord. Kept for the tab in
      sessionStorage, so a reload carries on where it was. */
 
-  var test = null;          /* { row, entries, at: { ms, real }, speed, paused } */
+  var test = null;          /* { row, entries, at: { ms, real }, speed, paused, waiting, bets, mine } */
 
   function saveTest() {
     try { window.sessionStorage.setItem(TEST_KEY, JSON.stringify(test)); } catch (err) { /* kept in memory only */ }
@@ -698,21 +1386,24 @@ EGE.liveView = (function () {
   }
 
   /* A test game of `row` ({ season, week, home, away, title }), from the
-     plan's entries; kicks off five seconds after it is opened. */
-  function startTest(row, entries, total, slot, reveal) {
+     plan's entries, with its bets ({ bets, half, results }); it waits for
+     its kickoff like a real one. */
+  function startTest(row, entries, total, slot, reveal, bets) {
     test = {
       row: Object.assign({}, row, { id: 'test', slot_ms: slot || 20000, reveal_ms: reveal || 4000,
-                                    plays: entries.length, length_ms: total }),
-      entries: entries, at: { ms: -5000, real: Date.now() }, speed: 1, paused: false
+                                    plays: entries.length, length_ms: total, bets: bets ? bets.bets : null }),
+      entries: entries, at: { ms: 0, real: Date.now() }, speed: 1, paused: false, waiting: true,
+      bets: bets || null, mine: []
     };
     saveTest();
     if (game && game.test) { stop(); }
   }
 
   function syncTest() {
-    game.clockAt = test.at;
+    game.clockAt = test.waiting ? null : test.at;
     game.speed = test.speed;
     game.paused = test.paused;
+    game.waiting = Boolean(test.waiting);
   }
 
   /* What live_feed would say of the test game now. */
@@ -726,6 +1417,11 @@ EGE.liveView = (function () {
     var list = [];
     function when(i) { return typeof all[i].ms === 'number' ? all[i].ms : i * row.slot_ms; }
     from = Math.max(from || 0, 0);
+    if (test.waiting) {
+      return { clock: null, waiting: true, paused: false, slot: row.slot_ms, reveal: row.reveal_ms, plays: all.length,
+               at: -1, from: from, shown: false, next: null, entries: [] };
+    }
+    var half = test.bets && test.bets.half;
     if (ms >= 0) {
       at = 0;
       for (var i = 1; i < all.length && when(i) <= ms; i += 1) { at = i; }
@@ -743,16 +1439,24 @@ EGE.liveView = (function () {
       }
     }
     return { clock: ms, paused: test.paused, slot: row.slot_ms, reveal: row.reveal_ms, plays: all.length,
-             at: at, from: from, shown: shown, next: next, entries: list };
+             at: at, from: from, shown: shown, next: next, entries: list,
+             half: half && ms >= half.opens ? { markets: half.markets, closes: half.closes, open: ms < half.closes && !test.seen } : null };
   }
 
   function testAct(action, speed) {
     var now = Date.now();
     var ms = clock();
+    if (action === 'kickoff') { test.at = { ms: 0, real: now }; test.waiting = false; test.paused = false; closeSlip(); }
     if (action === 'pause') { test.at = { ms: ms, real: now }; test.paused = true; }
     if (action === 'resume') { test.at = { ms: test.at.ms, real: now }; test.paused = false; }
-    if (action === 'restart') { test.at = { ms: -5000, real: now }; test.paused = false; }
-    if (action === 'end') { test.at = { ms: length(test.row), real: now }; test.paused = false; }
+    /* As live_control has it: a second half once seen takes no more
+       halftime bets. */
+    if (action === 'restart' || action === 'end') {
+      var half = test.bets && test.bets.half;
+      if (half && (action === 'end' || ms >= half.closes)) { test.seen = true; }
+    }
+    if (action === 'restart') { test.at = { ms: -5000, real: now }; test.paused = false; test.waiting = false; }
+    if (action === 'end') { test.at = { ms: length(test.row), real: now }; test.paused = false; test.waiting = false; }
     if (action === 'speed') { test.at = { ms: ms, real: now }; test.speed = speed; }
     saveTest();
     syncTest();
@@ -767,6 +1471,8 @@ EGE.liveView = (function () {
     window.clearInterval(ticker);
     timer = null;
     ticker = null;
+    closeSlip();
+    picker = null;
     game = null;
   }
 
@@ -780,31 +1486,34 @@ EGE.liveView = (function () {
     view.innerHTML = '';
     if (id === 'test') {
       if (!loadTest()) { view.appendChild(el('p', 'ege-note ege-cast__note', 'No test game. Start one from the NFL Sim tab.')); return; }
-      game = { id: 'test', test: true, row: test.row, entries: [], done: 0, at: -1, shown: false, next: null };
+      game = { id: 'test', test: true, row: test.row, entries: [], done: 0, at: -1, shown: false, next: null,
+               mine: test.mine || [] };
       syncTest();
       ticker = window.setInterval(function () {
-        if (game && game.row && phaseNow() === 'soon') { draw(); }
+        if (game && game.row && phaseNow() === 'soon' && !game.waiting) { draw(); }
       }, 1000);
+      loadWallet();
       tick();
       return;
     }
     view.appendChild(el('p', 'ege-note ege-cast__note', 'Getting the game…'));
     var c = client();
     if (!c) { view.innerHTML = ''; view.appendChild(el('p', 'ege-note ege-cast__note', 'Live games need the connection to Supabase.')); return; }
-    game = { id: id, row: null, entries: [], done: 0, at: -1, shown: false, next: null };
+    game = { id: id, row: null, entries: [], done: 0, at: -1, shown: false, next: null, mine: [] };
     var mine = game;
-    c.from('live_games').select(COLUMNS).eq('id', id)
+    c.from('live_games').select(COLUMNS + ', bets').eq('id', id)
       .maybeSingle().then(function (res) {
         if (game !== mine) { return; }
         if (res.error || !res.data) { drawMissing(); game = null; return; }
         game.row = res.data;
+        loadWallet();
         /* An admin watching keeps the Discord posts going, where Supabase
            has no clock to send them. */
         if (EGE.wallet && EGE.wallet.admin() && EGE.nflSimAdmin && EGE.nflSimAdmin.watchLive) {
           EGE.nflSimAdmin.watchLive();
         }
         ticker = window.setInterval(function () {
-          if (game && game.row && phaseNow() === 'soon') { draw(); }
+          if (game && game.row && phaseNow() === 'soon' && !game.waiting) { draw(); }
         }, 1000);
         tick();
       });

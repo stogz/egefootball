@@ -10589,6 +10589,300 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-cast__empty { padding: 14px 16px; color: var(--fb-muted); }
 .ege-cast__box { width: var(--ege-cast-w); justify-self: center; }
 
+/* Bets (Sam, 2026-11-04): under the play by play and over the box score,
+   as wide as both, after Sam's template -- each bet a block of its own,
+   its question over its buttons, a spread or an over/under one box split
+   in two, the pick bet on filled in its team's colour. A pick opens a
+   pop-up for how much. */
+.ege-cast__bets { position: relative; width: var(--ege-cast-w); justify-self: center; padding-top: 6px; }
+.ege-cast__bets::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, var(--team) 50%, var(--home) 50%);
+}
+.ege-cast__bets .fb-panel__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; }
+.ege-cast__bets .fb-panel__head h3 { margin: 0; font-size: 1.125rem; }
+.ege-cast__balance { font-weight: 800; }
+.ege-cast__betnote { margin: 0; padding: 12px 16px 0; }
+.ege-cast__block { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 16px; border-bottom: 1px solid var(--fb-sand); }
+.ege-cast__block:last-child { border-bottom: 0; }
+.ege-cast__q { display: flex; align-items: flex-end; gap: 10px; min-width: 0; }
+.ege-cast__q { align-items: center; }
+.ege-cast__q .ege-cast__mug { width: 40px; height: 40px; }
+.ege-cast__q .ege-cast__mugteam { width: 18px; height: 18px; }
+.ege-cast__qwords { display: grid; gap: 4px; min-width: 0; }
+.ege-cast__qtext { margin: 0; font-size: 1.0625rem; font-weight: 800; line-height: 1.2; }
+.ege-cast__qsub { margin: 0; font-size: .9375rem; font-weight: 800; color: var(--fb-muted); }
+
+/* A team's mark on a coin, white once its pick is filled in. */
+.ege-cast__coin {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50% !important;
+  background: #fff;
+}
+.ege-cast__coin .ege-cast__logo { width: 72%; height: 72%; }
+
+/* A player's picture (Sam, 2026-11-04): cut to a circle on his team's
+   colour at 60%, no outline, his team's mark at its bottom right with no
+   shadow. */
+.ege-cast__mug { position: relative; display: block; flex: none; width: 48px; height: 48px; }
+.ege-cast__mugface {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50% !important;   /* the kit squares every corner */
+}
+.ege-cast__mugface::before { content: ""; position: absolute; inset: 0; background: var(--team); opacity: .6; }
+.ege-cast__mugimg { position: relative; display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 100%; }
+.ege-cast__mugteam { position: absolute; right: -5px; bottom: -3px; width: 22px; height: 22px; }
+.ege-cast__mugteam .ege-cast__logo { width: 100%; height: 100%; }
+.ege-cast__mug.is-mark .ege-cast__logo { position: relative; width: 62%; height: 62%; }
+
+/* One box split in two. Each half's name in its team's colour; the half
+   bet on filled with it, what went in at its end. */
+.ege-cast__split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 2px solid var(--fb-ink); background: #fff; }
+.ege-cast__half {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 56px;
+  padding: 8px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--team);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ege-cast__half + .ege-cast__half { border-left: 2px solid var(--fb-ink); }
+.ege-cast__half:hover:not(:disabled) { background: var(--team-wash); }
+.ege-cast__half:disabled { cursor: default; }
+.ege-cast__split:not(.has-bet) .ege-cast__half:disabled { opacity: .7; }
+.ege-cast__split.has-bet .ege-cast__half:not(.is-bet) { opacity: .45; }
+.ege-cast__half .ege-cast__coin { width: 30px; height: 30px; background: transparent; }
+.ege-cast__half .ege-cast__coin .ege-cast__logo { width: 100%; height: 100%; }
+.ege-cast__halfname { display: grid; min-width: 0; font-family: var(--fb-font-display); font-size: 1.25rem; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ege-cast__odds { margin-left: auto; font-size: .875rem; font-weight: 800; color: var(--fb-muted); font-variant-numeric: tabular-nums; }
+.ege-cast__half.is-picked { background: var(--team-wash); box-shadow: inset 0 0 0 3px var(--team); }
+.ege-cast__half.is-bet, .ege-cast__chosen { background: var(--team); color: #fff; }
+.ege-cast__half.is-bet .ege-cast__coin { background: #fff; }
+.ege-cast__half.is-bet .ege-cast__coin .ege-cast__logo { width: 72%; height: 72%; }
+.ege-cast__half.is-lost, .ege-cast__chosen.is-lost { filter: grayscale(.85); }
+
+/* What went in, and what it pays or came to. */
+.ege-cast__tail { display: grid; justify-items: end; gap: 1px; margin-left: auto; white-space: nowrap; line-height: 1.15; }
+.ege-cast__tailbig { font-size: 1.0625rem; font-weight: 800; }
+.ege-cast__tailsmall { font-size: .75rem; font-weight: 700; opacity: .85; }
+.ege-cast__check {
+  flex: none;
+  width: 10px;
+  height: 18px;
+  margin: 0 6px 4px 2px;
+  border-right: 3px solid currentColor;
+  border-bottom: 3px solid currentColor;
+  transform: rotate(45deg);
+}
+.ege-cast__chosen.is-lost .ege-cast__check { display: none; }
+
+/* The anytime touchdown: "Select a player…", opening the list of players
+   with their pictures and teams; the player bet on, filled. */
+.ege-cast__picker { position: relative; }
+.ege-cast__pickbtn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 16px;
+  border: 2px solid var(--fb-ink);
+  background: #fff;
+  color: var(--fb-accent-deep);
+  font: inherit;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+.ege-cast__pickbtn:disabled { cursor: default; opacity: .7; }
+.ege-cast__pickbtn:hover:not(:disabled) { background: var(--fb-surface); }
+.ege-cast__pickbtn::after {
+  content: "";
+  flex: none;
+  width: 9px;
+  height: 9px;
+  margin: 0 2px 4px auto;
+  border-right: 3px solid currentColor;
+  border-bottom: 3px solid currentColor;
+  transform: rotate(45deg);
+}
+.ege-cast__picker.is-open .ege-cast__pickbtn::after { margin-bottom: -4px; transform: rotate(-135deg); }
+.ege-cast__pickhint { min-width: 0; }
+.ege-cast__halfname > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ege-cast__chosen { display: flex; align-items: center; gap: 12px; min-width: 0; min-height: 56px; padding: 6px 16px 6px 10px; border: 2px solid var(--fb-ink); }
+.ege-cast__chosen .ege-cast__mug { width: 42px; height: 42px; }
+.ege-cast__chosen .ege-cast__mugteam { width: 20px; height: 20px; }
+.ege-cast__chosenpos { font-family: var(--fb-font-body); font-size: .75rem; font-weight: 700; opacity: .85; }
+.ege-cast__picklist {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  max-height: min(440px, 62vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 2px solid var(--fb-ink);
+  background: var(--fb-cream);
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, .35);
+}
+.ege-cast__pickteam {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--team);
+  color: #fff;
+  font-size: .75rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.ege-cast__pickteam .ege-cast__coin { width: 24px; height: 24px; }
+.ege-cast__pickrow {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 8px 14px 8px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--fb-sand);
+  background: transparent;
+  color: var(--fb-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ege-cast__pickrow:hover, .ege-cast__pickrow:focus-visible { background: var(--team-wash); outline: 0; box-shadow: inset 4px 0 0 var(--team); }
+.ege-cast__pickname { display: grid; min-width: 0; line-height: 1.15; }
+.ege-cast__pickwho { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ege-cast__pickpos { font-size: .75rem; font-weight: 700; color: var(--fb-muted); }
+.ege-cast__x {
+  flex: none;
+  padding: 2px 7px;
+  background: var(--fb-ink);
+  color: var(--fb-cream);
+  font-size: .8125rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ege-cast__pickrow .ege-cast__x { background: var(--team); color: #fff; }
+
+/* The pop-up: the pick on its team's colour, then how many diamonds, typed
+   or slid from the least a bet can be to all of them. */
+html.ege-cast-sheet-open { overflow: hidden; }
+.ege-cast__sheetback { z-index: 80; }
+.ege-cast__sheet { width: min(460px, 100%); outline: 0; }
+.ege-cast__sheethead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px 12px 12px;
+  background: var(--team);
+  color: #fff;
+}
+.ege-cast__sheethead .ege-cast__mug { width: 60px; height: 60px; }
+.ege-cast__sheethead .ege-cast__mugteam { width: 26px; height: 26px; }
+.ege-cast__sheethead .ege-cast__coin { width: 48px; height: 48px; }
+.ege-cast__sheetwords { display: grid; gap: 2px; min-width: 0; line-height: 1.15; }
+.ege-cast__sheetkind { font-size: .6875rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
+.ege-cast__sheetpick { font-family: var(--fb-font-display); font-size: 1.375rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ege-cast__sheetsub { font-size: .8125rem; font-weight: 700; opacity: .9; }
+.ege-cast__sheethead > .ege-cast__x { align-self: center; margin: 0 0 0 auto; background: #fff; color: var(--team); font-size: .9375rem; }
+.ege-cast__sheetclose { flex: none; align-self: start; margin-left: 4px; border-color: #fff; color: #fff; }
+.ege-cast__sheetbody { gap: 12px; }
+.ege-cast__amount { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 1.75rem; }
+.ege-cast__amount .ege-cast__stake {
+  width: 9rem;
+  padding: 8px 10px;
+  border-width: 3px;
+  background: #fff;
+  font-family: var(--fb-font-display);
+  font-size: 1.75rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.ege-cast__amount .ege-cast__stake::-webkit-inner-spin-button,
+.ege-cast__amount .ege-cast__stake::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
+.ege-cast__amount .ege-cast__stake[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.ege-cast__amount .ege-gem { --coin-height: .8em; }
+.ege-cast__slider {
+  --fill: 0%;
+  width: 100%;
+  height: 28px;
+  margin: 4px 0 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.ege-cast__slider:disabled { cursor: default; opacity: .5; }
+.ege-cast__slider::-webkit-slider-runnable-track {
+  height: 10px;
+  border: 2px solid var(--fb-ink);
+  background: linear-gradient(90deg, var(--team) var(--fill), #fff var(--fill));
+}
+.ege-cast__slider::-moz-range-track { height: 6px; border: 2px solid var(--fb-ink); background: #fff; }
+.ege-cast__slider::-moz-range-progress { height: 6px; background: var(--team); }
+.ege-cast__slider::-webkit-slider-thumb {
+  width: 24px;
+  height: 24px;
+  margin-top: -9px;
+  border: 3px solid var(--fb-ink);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 2px 2px 0 var(--fb-ink);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.ege-cast__slider::-moz-range-thumb { width: 18px; height: 18px; border: 3px solid var(--fb-ink); border-radius: 50%; background: #fff; }
+.ege-cast__slider:focus-visible { outline: 2px solid var(--fb-accent); outline-offset: 4px; }
+.ege-cast__sliderends { display: flex; justify-content: space-between; margin-top: -6px; font-size: .8125rem; font-weight: 700; color: var(--fb-muted); }
+.ege-cast__sheetpays { min-height: 1.4em; margin: 0; text-align: center; font-size: 1.0625rem; font-weight: 800; }
+.ege-cast__sliperror { margin: 0; }
+.ege-cast__sheetactions { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; }
+.ege-cast__sheetactions .ege-cast__go { justify-content: center; }
+
+
+@media (max-width: 620px) {
+  .ege-cast__block { padding: 14px 12px; }
+  .ege-cast__half { gap: 8px; padding: 8px 10px; }
+  .ege-cast__halfname { font-size: 1.0625rem; }
+  .ege-cast__half.is-bet .ege-cast__coin, .ege-cast__half .ege-cast__coin { width: 26px; height: 26px; }
+  .ege-cast__split.has-bet .ege-cast__half:not(.is-bet) .ege-cast__coin { display: none; }
+  .ege-cast__half.is-bet { flex-wrap: wrap; row-gap: 4px; }
+  .ege-cast__half.is-bet .ege-cast__tail { flex-basis: 100%; justify-items: start; margin-left: 0; }
+  .ege-cast__chosen .ege-cast__mug { width: 38px; height: 38px; }
+  .ege-cast__sheetback { align-items: end; padding: 0; }
+  .ege-cast__sheet { width: 100%; border-width: 4px 0 0; box-shadow: none; }
+  .ege-cast__sheetpick { font-size: 1.1875rem; }
+}
+
 @media (max-width: 620px) {
   .ege-cast { padding-top: 64px; gap: 16px; }
   .ege-cast__team { grid-template-columns: 34px minmax(0, 1fr); gap: 4px 8px; padding: 10px; }

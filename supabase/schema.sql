@@ -3763,30 +3763,47 @@ notify pgrst, 'reload schema';
 -- Live Mode
 --
 -- A game the NFL sim has played, put on live a snap at a time (Sam,
--- 2026-11-03): PLAY LIVE on the NFL Sim tab, and from `starts_at` every
--- snap comes up at its own `ms` (20 seconds a snap, 30 more before a new
--- drive and 15 more before its first snap in the red zone; nfl-sim/lib/
--- live.js). It shows the call first ("Jaykeb Stewart pass"), and what came
--- of it `reveal_ms` (4 seconds) later. Everything runs off this database's
--- clock, so every viewer is on the same snap whenever they look and however
--- often they reload. An admin can pause it, end it at once, restart it from
--- the kickoff or cancel it (live_control).
+-- 2026-11-03): PLAY LIVE on the NFL Sim tab puts it up waiting for its
+-- kickoff, and the bot says so at once; an admin kicks it off from the
+-- game's own page (Sam, 2026-11-04). From `starts_at` every snap comes up
+-- at its own `ms` (20 seconds a snap, 30 more before a new drive, 15 more
+-- before its first snap in the red zone and two minutes more of halftime;
+-- nfl-sim/lib/live.js). It shows the call first ("Jaykeb Stewart pass"),
+-- and what came of it `reveal_ms` (4 seconds) later. Everything runs off
+-- this database's clock, so every viewer is on the same snap whenever they
+-- look and however often they reload. An admin can pause it, end it at
+-- once, restart it from the kickoff or cancel it (live_control).
 --
---   live_games  who plays, when it starts, how many snaps and how long it
---               runs, and whether it is paused. Anybody reads it; there is
---               nothing in it that gives the game away.
+--   live_games  who plays, when it starts (null until it kicks off), how
+--               many snaps and how long it runs, whether it is paused, and
+--               the bets on offer before kickoff. Anybody reads it; there
+--               is nothing in it that gives the game away.
 --   live_feeds  every snap, written when the game goes live (nfl-sim/lib/
---               live.js). Nobody reads it directly: live_feed() hands out
---               the snaps whose time has come, and the one being played
---               only as its call until it is revealed, so the end of the
---               game is never in a browser before it happens.
---   live_posts  what the Discord bot says and when: the kickoff and the
---               link, every score, punt and turnover, halftime and the
---               final. live_deliver() sends each when it is due, on a
---               pg_cron clock that runs only while there is something to
---               send, through pg_net to the 'live' webhook (or the NFL
---               one). Without pg_cron or pg_net here the NFL Sim tab sends
---               them while it is open (live_claim).
+--               live.js), with the halftime bets and what every bet comes
+--               to (nfl-sim/lib/live-bets.js). Nobody reads it directly:
+--               live_feed() hands out the snaps whose time has come, and
+--               the one being played only as its call until it is
+--               revealed, and the halftime bets once it is halftime, so the
+--               end of the game is never in a browser before it happens.
+--   live_posts  what the Discord bot says and when: the game and the link,
+--               the kickoff, every score, punt and turnover, halftime and
+--               the final, each `at_ms` from kickoff. live_deliver() sends
+--               each when it is due, on a pg_cron clock that runs only
+--               while there is something to send, through pg_net to the
+--               'live' webhook (or the NFL one). Without pg_cron or pg_net
+--               here the NFL Sim tab sends them while it is open
+--               (live_claim).
+--   live_bets   diamonds on the game (Sam, 2026-11-04): the spread, a
+--               touchdown scorer and three players' over/unders before
+--               kickoff; a scorer for the rest of the game and the spread
+--               again at halftime. At least 10 diamonds a bet, one bet a
+--               market, each paying its price times the stake back once
+--               the final whistle has gone (live_settle). Placed only
+--               through live_bet_place, which takes the diamonds and the
+--               price from the menu, never from the page. A market the
+--               menu marks a push gives the stake back, and so does
+--               taking the game off before it is over, by any road
+--               (live_refund).
 -- ---------------------------------------------------------------------------
 
 do $$
@@ -3810,38 +3827,75 @@ create table if not exists public.live_games (
   home       text        not null,
   away       text        not null,
   title      text        not null default '',
-  starts_at  timestamptz not null,
+  starts_at  timestamptz,
   slot_ms    integer     not null default 20000 check (slot_ms between 2000 and 120000),
   reveal_ms  integer     not null default 4000 check (reveal_ms between 0 and 60000),
   plays      integer     not null check (plays between 1 and 2000),
   length_ms  bigint,
   paused_at  timestamptz,
+  bets       jsonb,
+  reached_ms bigint,
   created_at timestamptz not null default now()
 );
 
 alter table public.live_games add column if not exists length_ms bigint;
 alter table public.live_games add column if not exists paused_at timestamptz;
+-- Null until an admin kicks it off (2026-11-04).
+alter table public.live_games alter column starts_at drop not null;
+-- The bets on offer before kickoff, and how far into the game it has ever
+-- been before a restart: a halftime bet is not taken on a second half
+-- anybody has seen.
+alter table public.live_games add column if not exists bets jsonb;
+alter table public.live_games add column if not exists reached_ms bigint;
 
 create table if not exists public.live_feeds (
-  game_id text  primary key references public.live_games (id) on delete cascade,
-  entries jsonb not null check (jsonb_typeof(entries) = 'array')
+  game_id   text  primary key references public.live_games (id) on delete cascade,
+  entries   jsonb not null check (jsonb_typeof(entries) = 'array'),
+  half_bets jsonb,
+  results   jsonb
 );
+
+alter table public.live_feeds add column if not exists half_bets jsonb;
+alter table public.live_feeds add column if not exists results jsonb;
 
 create table if not exists public.live_posts (
   id      bigint      generated always as identity primary key,
   game_id text        not null references public.live_games (id) on delete cascade,
   seq     integer     not null,
-  due_at  timestamptz not null,
+  due_at  timestamptz,
+  at_ms   bigint,
   payload jsonb       not null,
   sent_at timestamptz,
   unique (game_id, seq)
 );
 
+-- A post waits for the kickoff with no time of its own; `at_ms` is when it
+-- goes, from kickoff (less than nothing for the game's announcement).
+alter table public.live_posts alter column due_at drop not null;
+alter table public.live_posts add column if not exists at_ms bigint;
+
 create index if not exists live_posts_waiting on public.live_posts (due_at) where sent_at is null;
+
+create table if not exists public.live_bets (
+  id         bigint      generated always as identity primary key,
+  game_id    text        not null references public.live_games (id) on delete cascade,
+  email      text        not null,
+  market     text        not null check (market ~ '^[a-z0-9]{1,12}$'),
+  pick       text        not null check (pick ~ '^[a-z0-9]{1,12}$'),
+  stake      integer     not null check (stake between 10 and 1000000),
+  x          numeric(5,2) not null check (x >= 1 and x <= 20),
+  placed_at  timestamptz not null default now(),
+  settled_at timestamptz,
+  payout     integer,
+  unique (game_id, email, market)
+);
+
+create index if not exists live_bets_open on public.live_bets (game_id) where settled_at is null;
 
 alter table public.live_games enable row level security;
 alter table public.live_feeds enable row level security;
 alter table public.live_posts enable row level security;
+alter table public.live_bets enable row level security;
 
 drop policy if exists "live games read by everybody" on public.live_games;
 create policy "live games read by everybody"
@@ -3863,20 +3917,32 @@ create policy "live posts kept by an admin"
   on public.live_posts for all to authenticated
   using (public.is_admin()) with check (public.is_admin());
 
+-- Each player sees their own bets, an admin everybody's. Nobody writes one
+-- straight: live_bet_place takes them, live_settle pays them.
+drop policy if exists "live bets read by their owner or an admin" on public.live_bets;
+create policy "live bets read by their owner or an admin"
+  on public.live_bets for select to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin());
+
 revoke all on public.live_feeds from anon;
 revoke all on public.live_posts from anon;
+revoke all on public.live_bets from anon;
 revoke insert, update, delete on public.live_games from anon;
+revoke insert, update, delete on public.live_bets from authenticated;
 grant select on public.live_games to anon, authenticated;
 grant select, insert, update, delete on public.live_games, public.live_feeds, public.live_posts to authenticated;
+grant select on public.live_bets to authenticated;
 
 -- What a viewer may see of a game, as of now: the snaps from `p_from` up to
 -- the one being played, that one only as its call (and the face of whoever
 -- it names) until it is revealed.
 -- `now` is this database's clock in milliseconds, and `clock` the game's
--- (milliseconds from kickoff, standing still while it is paused), so the
--- page can set its own by them; `next` is when the next snap comes up, once
--- this one is out; `at` is the snap being played (-1 before kickoff); `state` is
--- where the ball is as far as anybody may know. Null for no such game.
+-- (milliseconds from kickoff, standing still while it is paused; null while
+-- it `waiting`s for an admin to kick it off), so the page can set its own by
+-- them; `next` is when the next snap comes up, once this one is out; `at` is
+-- the snap being played (-1 before kickoff); `state` is where the ball is as
+-- far as anybody may know; `half` the halftime bets, from halftime on, with
+-- when they close and whether they are open. Null for no such game.
 create or replace function public.live_feed(p_id text, p_from integer default 0)
 returns jsonb
 language plpgsql
@@ -3896,10 +3962,12 @@ declare
   v_shown  boolean := false;
   v_state  jsonb;
   v_list   jsonb := '[]'::jsonb;
+  v_hb     jsonb;
+  v_half   jsonb;
 begin
   select * into g from public.live_games where id = p_id;
   if not found then return null; end if;
-  select entries into v_all from public.live_feeds where game_id = p_id;
+  select entries, half_bets into v_all, v_hb from public.live_feeds where game_id = p_id;
   /* Paused, the game's clock stands where it stopped. */
   v_ms := floor(extract(epoch from (coalesce(g.paused_at, now()) - g.starts_at)) * 1000)::bigint;
   v_len := coalesce(g.length_ms, g.plays::bigint * g.slot_ms);
@@ -3927,22 +3995,198 @@ begin
                'ms', v_cur_ms, 'w', v_cur -> 'w', 'p', case when v_cur ? 'w' and v_cur -> 'p' ? (v_cur ->> 'w')
                  then jsonb_build_object(v_cur ->> 'w', v_cur -> 'p' -> (v_cur ->> 'w')) end)) end);
     end if;
+    if v_hb is not null and v_ms >= (v_hb ->> 'opens')::bigint then
+      v_half := jsonb_build_object('markets', v_hb -> 'markets', 'closes', (v_hb ->> 'closes')::bigint,
+        'open', v_ms < (v_hb ->> 'closes')::bigint and coalesce(g.reached_ms, 0) < (v_hb ->> 'closes')::bigint);
+    end if;
   end if;
   return jsonb_build_object(
     'now', floor(extract(epoch from now()) * 1000)::bigint,
     'starts', floor(extract(epoch from g.starts_at) * 1000)::bigint,
-    'clock', v_ms, 'paused', g.paused_at is not null,
+    'clock', v_ms, 'paused', g.paused_at is not null, 'waiting', g.starts_at is null,
     'slot', g.slot_ms, 'reveal', g.reveal_ms, 'plays', g.plays,
     'at', v_at, 'from', greatest(p_from, 0), 'shown', v_shown, 'next', v_next,
-    'state', v_state, 'entries', v_list);
+    'state', v_state, 'entries', v_list, 'half', v_half);
 end;
 $$;
 
 revoke all on function public.live_feed(text, integer) from public;
 grant execute on function public.live_feed(text, integer) to anon, authenticated;
 
--- Sends the next live post that is due, one a run, so they land in order;
--- and stops its own clock once nothing is left to send. Run by pg_cron.
+-- A post's embeds stamped with the time it really goes, which nobody knows
+-- until the game kicks off.
+create or replace function public.live_stamp(p_payload jsonb)
+returns jsonb
+language sql
+stable
+set search_path = public
+as $$
+  select case when jsonb_typeof(p_payload -> 'embeds') = 'array' then
+    jsonb_set(p_payload, '{embeds}', (
+      select coalesce(jsonb_agg(case when x.e ? 'timestamp'
+               then jsonb_set(x.e, '{timestamp}', to_jsonb(to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')))
+               else x.e end order by x.n), '[]'::jsonb)
+        from jsonb_array_elements(p_payload -> 'embeds') with ordinality as x (e, n)))
+  else p_payload end
+$$;
+
+-- Pays every bet on a game once its final whistle has gone: the price
+-- times the stake for a winner, the stake back for a push, nothing
+-- otherwise. Once each, however many viewers ask; anybody may, since it
+-- pays only what the game already says. Returns how many it settled.
+create or replace function public.live_settle(p_id text)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  g     public.live_games%rowtype;
+  v_all jsonb;
+  v_res jsonb;
+  v_ms  bigint;
+  v_end bigint;
+  b     record;
+  v_pay integer;
+  v_n   integer := 0;
+begin
+  select * into g from public.live_games where id = p_id;
+  if not found or g.starts_at is null or g.paused_at is not null then return 0; end if;
+  select entries, results into v_all, v_res from public.live_feeds where game_id = p_id;
+  if v_res is null then return 0; end if;
+  v_ms := floor(extract(epoch from (now() - g.starts_at)) * 1000)::bigint;
+  v_end := coalesce((v_all -> -1 ->> 'ms')::bigint, (g.plays - 1)::bigint * g.slot_ms);
+  if v_ms < v_end then return 0; end if;
+  for b in
+    select * from public.live_bets where game_id = p_id and settled_at is null for update skip locked
+  loop
+    v_pay := case
+      when coalesce(v_res -> 'push', '[]'::jsonb) ? b.market then b.stake
+      when coalesce(v_res -> b.market, '[]'::jsonb) ? b.pick then round(b.stake * b.x)::integer
+      else 0 end;
+    update public.live_bets set settled_at = now(), payout = v_pay where id = b.id;
+    if v_pay > 0 then
+      insert into public.player_diamonds as pd (email, diamonds, updated_at)
+      values (b.email, v_pay, now())
+      on conflict (email) do update set diamonds = pd.diamonds + v_pay, updated_at = now();
+    end if;
+    v_n := v_n + 1;
+  end loop;
+  return v_n;
+end;
+$$;
+
+revoke all on function public.live_settle(text) from public;
+grant execute on function public.live_settle(text) to anon, authenticated;
+
+-- Every game whose final whistle has gone with bets still on it, settled.
+create or replace function public.live_settle_due()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  r   record;
+  v_n integer := 0;
+begin
+  for r in select distinct b.game_id from public.live_bets b where b.settled_at is null loop
+    v_n := v_n + public.live_settle(r.game_id);
+  end loop;
+  return v_n;
+end;
+$$;
+
+revoke all on function public.live_settle_due() from public, anon, authenticated;
+
+-- A bet: `p_stake` diamonds on `p_pick` in `p_market`, at the price the
+-- game's menu has for it. Before kickoff only the menu in live_games.bets
+-- is open; at halftime only the halftime one, until the second half kicks
+-- off. Returns { diamonds: what is left, bet }.
+create or replace function public.live_bet_place(p_game text, p_market text, p_pick text, p_stake integer)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email  text := auth.jwt() ->> 'email';
+  g        public.live_games%rowtype;
+  v_hb     jsonb;
+  v_ms     bigint;
+  v_market jsonb;
+  v_x      numeric;
+  v_min    integer;
+  v_left   integer;
+  v_bet    public.live_bets%rowtype;
+begin
+  if v_email is null then raise exception 'Sign in first.'; end if;
+  select * into g from public.live_games where id = p_game for share;
+  if not found then raise exception 'That game is not on.'; end if;
+  v_min := coalesce((g.bets ->> 'min')::integer, 10);
+  if p_stake is null or p_stake < v_min then raise exception 'Bet at least % diamonds.', v_min; end if;
+  if p_stake > 1000000 then raise exception 'That is too many diamonds for one bet.'; end if;
+  if g.starts_at is null then
+    select m into v_market from jsonb_array_elements(coalesce(g.bets -> 'markets', '[]'::jsonb)) as m
+     where m ->> 'id' = p_market;
+  else
+    select half_bets into v_hb from public.live_feeds where game_id = p_game;
+    v_ms := floor(extract(epoch from (coalesce(g.paused_at, now()) - g.starts_at)) * 1000)::bigint;
+    if v_hb is not null and v_ms >= (v_hb ->> 'opens')::bigint and v_ms < (v_hb ->> 'closes')::bigint
+       and coalesce(g.reached_ms, 0) < (v_hb ->> 'closes')::bigint then
+      select m into v_market from jsonb_array_elements(coalesce(v_hb -> 'markets', '[]'::jsonb)) as m
+       where m ->> 'id' = p_market;
+    end if;
+  end if;
+  if v_market is null then raise exception 'Betting on that is closed.'; end if;
+  select (p ->> 'x')::numeric into v_x from jsonb_array_elements(coalesce(v_market -> 'picks', '[]'::jsonb)) as p
+   where p ->> 'id' = p_pick;
+  if v_x is null then raise exception 'That is not one of the picks.'; end if;
+  if exists (select 1 from public.live_bets where game_id = p_game and email = v_email and market = p_market) then
+    raise exception 'You already have a bet on that.';
+  end if;
+  update public.player_diamonds set diamonds = diamonds - p_stake, updated_at = now()
+   where email = v_email and diamonds >= p_stake
+  returning diamonds into v_left;
+  if v_left is null then raise exception 'Not enough diamonds.'; end if;
+  insert into public.live_bets (game_id, email, market, pick, stake, x)
+  values (p_game, v_email, p_market, p_pick, p_stake, v_x)
+  returning * into v_bet;
+  return jsonb_build_object('diamonds', v_left, 'bet', to_jsonb(v_bet));
+end;
+$$;
+
+revoke all on function public.live_bet_place(text, text, text, integer) from public, anon;
+grant execute on function public.live_bet_place(text, text, text, integer) to authenticated;
+
+-- A game taken off before its bets are settled, by whatever road (Cancel,
+-- PLAY LIVE again, the week played again or undone), gives every stake
+-- still on it back.
+create or replace function public.live_refund()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.player_diamonds as pd (email, diamonds, updated_at)
+  select b.email, sum(b.stake)::integer, now()
+    from public.live_bets b
+   where b.game_id = old.id and b.settled_at is null
+   group by b.email
+  on conflict (email) do update set diamonds = pd.diamonds + excluded.diamonds, updated_at = now();
+  return old;
+end;
+$$;
+
+drop trigger if exists live_games_refund on public.live_games;
+create trigger live_games_refund
+  before delete on public.live_games
+  for each row execute function public.live_refund();
+
+-- Sends the next live post that is due, one a run, so they land in order,
+-- settles the bets on any game that is over, and stops its own clock once
+-- nothing is left to send. Run by pg_cron.
 create or replace function public.live_deliver()
 returns integer
 language plpgsql
@@ -3969,11 +4213,14 @@ begin
   loop
     if v_url is not null then
       execute 'select net.http_post(url := $1, body := $2, headers := $3)'
-        using v_url, r.payload, '{"Content-Type": "application/json"}'::jsonb;
+        using v_url, public.live_stamp(r.payload), '{"Content-Type": "application/json"}'::jsonb;
     end if;
     v_sent := v_sent + 1;
   end loop;
-  if not exists (select 1 from public.live_posts where sent_at is null) then
+  perform public.live_settle_due();
+  /* A game waiting for its kickoff has nothing to send yet: the kickoff
+     starts the clock again. */
+  if not exists (select 1 from public.live_posts where sent_at is null and due_at is not null) then
     begin
       execute 'select cron.unschedule($1)' using 'ege-live-posts';
     exception when others then null;
@@ -3985,36 +4232,40 @@ $$;
 
 revoke all on function public.live_deliver() from public, anon, authenticated;
 
--- PLAY LIVE: the game, its snaps and its posts, all at once, replacing any
--- earlier go at the same game. `p_delay` seconds to kickoff; each post's
--- `at` is milliseconds from kickoff (the announcement's is before it, so it
--- goes at once). Starts the clock that sends the posts, where there is one.
--- Returns { starts_at, cron }: whether that clock is running.
-create or replace function public.live_start(p_game jsonb, p_entries jsonb, p_posts jsonb, p_delay integer default 0)
+-- PLAY LIVE: the game, its snaps, its posts and its bets, all at once,
+-- replacing any earlier go at the same game. It waits for an admin to kick
+-- it off (live_control 'kickoff'), all but the game's announcement with it:
+-- each post's `at` is milliseconds from kickoff, and the announcement's is
+-- before it, so it goes at once. `p_bets` is { bets, half, results }
+-- (nfl-sim/lib/live-bets.js). Starts the clock that sends the posts, where
+-- there is one. Returns { cron }: whether that clock is running.
+drop function if exists public.live_start(jsonb, jsonb, jsonb, integer);
+
+create or replace function public.live_start(p_game jsonb, p_entries jsonb, p_posts jsonb, p_bets jsonb default null)
 returns jsonb
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
-  v_id    text := p_game ->> 'id';
-  v_start timestamptz := now() + make_interval(secs => greatest(0, least(coalesce(p_delay, 0), 86400)));
-  v_cron  boolean := false;
+  v_id   text := p_game ->> 'id';
+  v_cron boolean := false;
 begin
   if not public.is_admin() then raise exception 'Only an admin can put a game on live.'; end if;
   if jsonb_typeof(p_entries) <> 'array' or jsonb_array_length(p_entries) = 0 then
     raise exception 'A live game needs its snaps.';
   end if;
   delete from public.live_games where id = v_id;
-  insert into public.live_games (id, season, week, home, away, title, starts_at, slot_ms, reveal_ms, plays, length_ms)
+  insert into public.live_games (id, season, week, home, away, title, starts_at, slot_ms, reveal_ms, plays, length_ms, bets)
   values (v_id, (p_game ->> 'season')::integer, (p_game ->> 'week')::integer, p_game ->> 'home', p_game ->> 'away',
-          coalesce(p_game ->> 'title', ''), v_start, coalesce((p_game ->> 'slot_ms')::integer, 20000),
+          coalesce(p_game ->> 'title', ''), null, coalesce((p_game ->> 'slot_ms')::integer, 20000),
           coalesce((p_game ->> 'reveal_ms')::integer, 4000), jsonb_array_length(p_entries),
-          (p_game ->> 'length_ms')::bigint);
-  insert into public.live_feeds (game_id, entries) values (v_id, p_entries);
-  insert into public.live_posts (game_id, seq, due_at, payload)
-  select v_id, (x.n - 1)::integer,
-         greatest(now(), v_start + make_interval(secs => coalesce((x.post ->> 'at')::numeric, 0) / 1000)),
+          (p_game ->> 'length_ms')::bigint, p_bets -> 'bets');
+  insert into public.live_feeds (game_id, entries, half_bets, results)
+  values (v_id, p_entries, p_bets -> 'half', p_bets -> 'results');
+  insert into public.live_posts (game_id, seq, at_ms, due_at, payload)
+  select v_id, (x.n - 1)::integer, round(coalesce((x.post ->> 'at')::numeric, 0))::bigint,
+         case when coalesce((x.post ->> 'at')::numeric, 0) < 0 then now() end,
          x.post -> 'payload'
     from jsonb_array_elements(coalesce(p_posts, '[]'::jsonb)) with ordinality as x (post, n);
   begin
@@ -4023,12 +4274,12 @@ begin
   exception when others then
     v_cron := false;
   end;
-  return jsonb_build_object('starts_at', v_start, 'cron', v_cron);
+  return jsonb_build_object('cron', v_cron);
 end;
 $$;
 
-revoke all on function public.live_start(jsonb, jsonb, jsonb, integer) from public, anon;
-grant execute on function public.live_start(jsonb, jsonb, jsonb, integer) to authenticated;
+revoke all on function public.live_start(jsonb, jsonb, jsonb, jsonb) from public, anon;
+grant execute on function public.live_start(jsonb, jsonb, jsonb, jsonb) to authenticated;
 
 -- The NFL Sim tab's way of sending the posts when there is no pg_cron (or
 -- its clock has fallen 30 seconds behind): the next one that is due,
@@ -4059,7 +4310,8 @@ begin
                   limit 1
                   for update skip locked)
   returning p.payload into v_payload;
-  return v_payload;
+  perform public.live_settle_due();
+  return case when v_payload is null then null else public.live_stamp(v_payload) end;
 end;
 $$;
 
@@ -4084,13 +4336,17 @@ grant execute on function public.live_stop(text) to authenticated;
 
 -- An admin's hand on a live game, in case something goes wrong (Sam,
 -- 2026-11-03):
+--   kickoff  a game put on is waiting for this (Sam, 2026-11-04): it kicks
+--            off `p_delay` seconds from now, its bets close, and its posts
+--            go each in its turn;
 --   pause    the clock stops for everybody, and so do the posts;
 --   resume   it goes on from where it stopped, the posts with it;
 --   end      straight to the final whistle: the final post goes now and
---            nothing else still waiting does;
+--            nothing else still waiting does, and the bets are settled;
 --   restart  back to the kickoff, `p_delay` seconds from now, and every
 --            post goes again in its turn;
---   cancel   taken off altogether (live_stop), to be put on again later.
+--   cancel   taken off altogether (live_stop), to be put on again later,
+--            every bet still on it given back.
 -- Returns the game's row, or null once it is cancelled.
 create or replace function public.live_control(p_id text, p_action text, p_delay integer default 0)
 returns jsonb
@@ -4111,7 +4367,15 @@ begin
   if not found then raise exception 'That game is not live.'; end if;
   v_len := coalesce(g.length_ms, g.plays::bigint * g.slot_ms);
   v_ms := floor(extract(epoch from (coalesce(g.paused_at, v_now) - g.starts_at)) * 1000)::bigint;
-  if p_action = 'pause' then
+  if p_action = 'kickoff' or (p_action = 'restart' and g.starts_at is null) then
+    if g.starts_at is null then
+      v_new := v_now + make_interval(secs => greatest(0, least(coalesce(p_delay, 0), 86400)));
+      update public.live_posts
+         set due_at = greatest(v_now, v_new + make_interval(secs => coalesce(at_ms, 0) / 1000.0))
+       where game_id = p_id and sent_at is null;
+      update public.live_games set starts_at = v_new, paused_at = null where id = p_id;
+    end if;
+  elsif p_action = 'pause' then
     if g.paused_at is null and v_ms < v_len then
       update public.live_games set paused_at = v_now where id = p_id;
     end if;
@@ -4125,15 +4389,23 @@ begin
        game (for a restart); all but the final are let go. */
     v_new := v_now - make_interval(secs => v_len / 1000.0);
     select max(seq) into v_last from public.live_posts where game_id = p_id;
-    update public.live_posts set due_at = due_at + (v_new - g.starts_at) where game_id = p_id;
+    update public.live_posts
+       set due_at = case when at_ms is not null then v_new + make_interval(secs => at_ms / 1000.0)
+                         else due_at + (v_new - g.starts_at) end
+     where game_id = p_id;
     update public.live_posts set sent_at = v_now where game_id = p_id and sent_at is null and seq <> v_last;
     update public.live_posts set due_at = least(due_at, v_now) where game_id = p_id and sent_at is null;
-    update public.live_games set starts_at = v_new, paused_at = null where id = p_id;
+    update public.live_games set starts_at = v_new, paused_at = null, reached_ms = v_len where id = p_id;
+    perform public.live_settle(p_id);
   elsif p_action = 'restart' then
     v_new := v_now + make_interval(secs => greatest(0, least(coalesce(p_delay, 0), 86400)));
-    update public.live_posts set due_at = greatest(v_now, due_at + (v_new - g.starts_at)), sent_at = null
+    update public.live_posts
+       set due_at = case when at_ms is not null then greatest(v_now, v_new + make_interval(secs => at_ms / 1000.0))
+                         else greatest(v_now, due_at + (v_new - g.starts_at)) end,
+           sent_at = null
      where game_id = p_id;
-    update public.live_games set starts_at = v_new, paused_at = null where id = p_id;
+    update public.live_games set starts_at = v_new, paused_at = null,
+           reached_ms = greatest(coalesce(reached_ms, 0), coalesce(v_ms, 0)) where id = p_id;
   elsif p_action = 'cancel' then
     delete from public.live_games where id = p_id;
     return null;
@@ -4141,14 +4413,14 @@ begin
     raise exception 'Not a live game action: %', p_action;
   end if;
   /* The clock that sends the posts, again, if any are waiting. */
-  if exists (select 1 from public.live_posts where game_id = p_id and sent_at is null) then
+  if exists (select 1 from public.live_posts where game_id = p_id and sent_at is null and due_at is not null) then
     begin
       execute 'select cron.schedule($1, $2, $3)' using 'ege-live-posts', '5 seconds', 'select public.live_deliver()';
     exception when others then null;
     end;
   end if;
   select * into g from public.live_games where id = p_id;
-  return to_jsonb(g);
+  return to_jsonb(g) - 'bets';
 end;
 $$;
 

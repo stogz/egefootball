@@ -407,12 +407,32 @@ A whole season and its playoffs take about half a second.
   kicks, turnovers and scores, each trip into the red zone (once a drive),
   halftime and the final. A play the defense made shows the defender.
   Each entry says when it comes up (`ms`): 20 seconds a snap, 30 more
-  before a new drive and 15 more before its first snap in the red zone
-  (`live.TIMING`). An incompletion nobody broke up is told as dropped, out
-  of bounds or incomplete from where the throw's own draw fell, so no die
-  is added. The site
-  side is `js/live.js`, `EGE.discordPost.buildLivePosts` and `live_*` in
-  `supabase/schema.sql`.
+  before a new drive, 15 more before its first snap in the red zone and
+  two minutes more at halftime (`live.TIMING`). An incompletion nobody
+  broke up is told as dropped, out of bounds or incomplete from where the
+  throw's own draw fell, so no die is added. PLAY LIVE puts the game up
+  waiting, the bot's first post goes at once, and an admin kicks it off
+  from the game's page (Sam, 2026-11-04). The site side is `js/live.js`,
+  `EGE.discordPost.buildLivePosts` and `live_*` in `supabase/schema.sql`.
+- **Live bets** (`lib/live-bets.js`, Sam 2026-11-04): diamonds on a live
+  game, at least 10 a bet, one a market. Before kickoff the spread the
+  bot's first post gives (the site's line, the favourite giving the half
+  point past it; 1.9x either side), an anytime touchdown on any running
+  back, receiver or tight end fit to play, no quarterbacks (fair odds less
+  15%, from 1.25x for somebody who scores nearly every week up to 5x for
+  an outside chance) and three over/unders at
+  1.9x (the six who play first, then a seeded draw; the line is halfway
+  between the player's season average and what the sim expects of him,
+  all the sim's before he has three games); at halftime a touchdown for
+  the rest of the game and the spread as the bot's halftime post has it (the
+  score at the half and half the pregame line still to play). Prices come
+  from the week's save point (the league before the week), the matchup
+  played 200 times on dice of its own (`RUNS`, never the league's dice)
+  and the season's box scores before the week; nothing of the game itself
+  but the halftime score and who was hurt in the first half, which the
+  page has shown. What each bet comes to is read off the game's plays and
+  kept where only the database sees it until the final whistle
+  (`live_settle`).
 
 The world plays its own 2023 season from the kickoff league. The site's 2023
 results are not read in: the sim is its own world from Week 1 of 2023 on, and
@@ -983,6 +1003,7 @@ nfl-sim/
     boosts.js            the six's boosters and connections from the site
     rewind.js            save points, to undo or resim a week
     live.js              Live Mode: a game's snaps as the live feed and the bot's posts
+    live-bets.js         Live Mode's bets: the menus, their prices and what each bet comes to
     history.js           every team's roster, season by season
     offseason.js         the offseason, in order
     rng.js               the seeded dice
