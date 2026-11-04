@@ -790,13 +790,13 @@ EGE.wageredCredits = function (credits, wager) {
 
 /* Whether a game is one the player is known to be missing hurt: the
    injury report is up (EGE.injuryFor), and the game is in the run of it,
-   from the week he went out to the week before he is back. Only what the
-   page already says, so a game further down the file marked injured is
-   not given away before the week he gets hurt is out. No booster goes on
-   one of these (a wager still can), and one already there goes back in
-   the drawer (EGE.wallet.returnInjuredBoosters). */
+   from the week he went out to the week before he is back, played by the
+   sim yet or not. Only what the page already says, so a game further down
+   the file marked injured is not given away before the week he gets hurt
+   is out. No booster goes on one of these (a wager still can), and one
+   already there goes back in the drawer (EGE.wallet.returnInjuredBoosters). */
 EGE.outInjured = function (player, game) {
-  if (!game || !game.injured || game.season !== EGE.currentSeason) { return false; }
+  if (!game || game.bye || game.season !== EGE.currentSeason) { return false; }
   if (EGE.isPublished(game.season, game.week)) { return false; }
   var injury = EGE.injuryFor(player, game.season);
   if (!injury) { return false; }
@@ -1254,13 +1254,24 @@ EGE.conferenceTables = function (school, season) {
 
 /* --- injuries ------------------------------------------------------------
 
-   A game marked `injured: true` in the season file is one the player sits
-   out hurt, with what in `injury` and, optionally, how healthy he is that
-   week as a percentage in `health`. The player page shows it as an injury
-   report -- only while that week is the one being played, which is the
-   first week of the live season not yet published. Before it nobody knows,
-   and once the week is out the report goes with it unless the next week is
-   marked too. */
+   Two things put one of the six on the injury report, the player page's
+   band, his OUT box and the League page's Injury Report:
+
+   - A game he got hurt in, `hurt: { injury, weeks }` from the NFL sim, once
+     that week is published. He misses the `weeks` weeks after it (the sim
+     heals everybody a week at a time, byes included), and all of them show
+     from the day the week he went down in is out, whether the sim has
+     played them yet or not (Sam, 2026-11-04: a torn ACL is 20 weeks out
+     straight away, not one week at a time as they are played).
+   - A game marked `injured: true` in the season file, one he sits out hurt,
+     with what in `injury` and, optionally, how healthy he is that week as a
+     percentage in `health`: the hand-written seasons' way. It shows only
+     while that week is the one being played, the first week of the live
+     season not yet published, and once the week is out the report goes
+     with it unless the next week is marked too.
+
+   An injury in a week not yet published shows nowhere, as with everybody
+   else's (EGE.nflRosters.isOut). */
 
 /* The week the live season is on: the first one not yet published, or null
    once every week is out. */
@@ -1272,17 +1283,56 @@ EGE.currentWeek = function (season) {
   return ahead.length ? ahead[0] : null;
 };
 
+/* How healthy he is in a week he misses, on the NFL sim's scale
+   (nfl-sim/lib/site.js sixEdits): worse the more games he still has to
+   miss after it, and nearly himself the week before he is back. */
+function healthWith(left) {
+  return Math.max(20, 80 - 13 * left);
+}
+
+/* The report from the last published game he got hurt in, or null when
+   there is none or he is over it by `week`. */
+function hurtReport(player, year, week) {
+  var games = EGE.gamesFor(player, year);
+  var hurt = games.filter(function (game) {
+    return game.hurt && game.week < week && EGE.isPublished(year, game.week);
+  }).sort(function (a, b) { return b.week - a.week; })[0];
+  if (!hurt) { return null; }
+  var through = hurt.week + Math.max(1, Math.round(Number(hurt.hurt.weeks) || 1));
+  if (week > through) { return null; }
+
+  var left = games.filter(function (game) {
+    return game.week > week && game.week <= through && !game.bye;
+  }).length;
+  var back = games.filter(function (game) {
+    return game.week > through && !game.bye;
+  }).sort(function (a, b) { return a.week - b.week; })[0];
+
+  return {
+    week: week,
+    injury: hurt.hurt.injury || null,
+    health: healthWith(left),
+    status: 'Out',
+    back: back ? back.week : null
+  };
+}
+
 /* What the injury report says, or null when there is nothing to report:
      { week, injury: 'Hamstring', health: 60, status: 'Out',
-       back: 8 (the next week he is not marked, or null) } */
+       back: 8 (the week of his first game back, or null) } */
 EGE.injuryFor = function (player, season) {
   var year = season || EGE.currentSeason;
   if (year !== EGE.currentSeason) { return null; }
   var week = EGE.currentWeek(year);
   if (week === null) { return null; }
 
+  /* No game or bye this week: his season is over (out of the playoffs). */
   var game = EGE.gameInWeek(player, week, year);
-  if (!game || !game.injured) { return null; }
+  if (!game) { return null; }
+
+  var fromHurt = hurtReport(player, year, week);
+  if (fromHurt) { return fromHurt; }
+  if (!game.injured) { return null; }
 
   var health = typeof game.health === 'number'
     ? Math.max(0, Math.min(100, Math.round(game.health))) : null;
