@@ -1289,9 +1289,9 @@
         var gems = EGE.diamondsFromGame(schedulePlayer, game);
         if (gems) {
           var gemTag = el('span', 'ege-schedule__paid ege-schedule__paid--gem', '+' + gems);
-          var mark = el('span', 'ege-gem');
-          mark.setAttribute('aria-hidden', 'true');
-          gemTag.appendChild(mark);
+          var gem = el('span', 'ege-gem');
+          gem.setAttribute('aria-hidden', 'true');
+          gemTag.appendChild(gem);
           gemTag.title = gems + ' diamonds for this game';
           credits.appendChild(gemTag);
         }
@@ -4342,7 +4342,7 @@
     var found = Boolean(entry || (page && page.nfl && page.season));
     document.getElementById('teamMissing').hidden = found;
     document.getElementById('teamContent').hidden = !found;
-    if (!found) { return; }
+    if (!found) { document.title = 'Teams'; return; }
 
     fillTeamsBar(TEAM_BAR, page.years, page.season);
     if (!entry) {
@@ -10019,6 +10019,24 @@
     var clear = document.getElementById('clearRows');
     var confirm = document.getElementById('clearConfirm');
     var roll = document.getElementById('rollSeason');
+    var all = document.getElementById('downloadAll');
+
+    /* Steps 1 and 2 with the season files from the NFL Sim tab, in one zip
+       laid out the way the repository is (EGE.nflSimAdmin.downloadAll). */
+    all.addEventListener('click', function () {
+      all.disabled = true;
+      EGE.nflSimAdmin.downloadAll().then(function (files) {
+        adminState.ratingsDownloaded = files.some(function (f) { return f.path === 'data/ratings.js'; });
+        if (adminState.ratingsDownloaded) {
+          step('stepLock', true);
+          step('stepLog', true);
+          clear.disabled = confirm.value.trim().toUpperCase() !== 'CLEAR';
+        }
+        sayAdmin('', false);
+      }).catch(function (error) {
+        sayAdmin(error.message || String(error), true);
+      }).then(function () { all.disabled = false; });
+    });
 
     /* As many times as it is wanted. A season that is already locked is not
        folded in a second time: EGE.valuesFor counts its purchases from where
@@ -10085,8 +10103,8 @@
     roll.addEventListener('click', function () {
       var next = EGE.nextSeason(EGE.currentSeason);
       if (!next) {
-        sayAdmin('There is no season after ' + EGE.currentSeason +
-                 ' on the ladder — it ends at the draft.', true);
+        sayAdmin('Put stats/' + (EGE.currentSeason + 1) + '.js on the site first (Download all ' +
+                 'the files above, or the NFL Sim tab).', true);
         return;
       }
 

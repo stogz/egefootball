@@ -794,11 +794,21 @@ EGE.wallet = (function () {
   function loadStoredWeeks() {
     var c = client();
     if (!c || !EGE.storedWeeks) { return Promise.resolve(false); }
+    /* First which rows there are and when each was saved, a few bytes a
+       row: every page asks again every minute, and the whole rows (every
+       stored week of every season, games and scores) come down only when
+       something has been stored, undone or published since. */
     return Promise.all([
-      c.from(STORED).select('season, week, part, games, scores, saved_at'),
-      c.from(SIM_TRADES).select('season, slug, week, from_team, to_team, games, saved_at')
+      c.from(STORED).select('season, week, part, saved_at'),
+      c.from(SIM_TRADES).select('season, slug, week, saved_at')
     ]).then(function (res) {
-      if (res[0].error) { return false; }
+      if (!res[0].error && !res[1].error && EGE.storedWeeks.unchanged(res[0].data || [], res[1].data || [])) { return null; }
+      return Promise.all([
+        c.from(STORED).select('season, week, part, games, scores, saved_at'),
+        c.from(SIM_TRADES).select('season, slug, week, from_team, to_team, games, saved_at')
+      ]);
+    }).then(function (res) {
+      if (!res || res[0].error) { return false; }
       return EGE.storedWeeks.apply(res[0].data || [], res[1].error ? undefined : res[1].data || []);
     }).catch(function () { return false; });
   }

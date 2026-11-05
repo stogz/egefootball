@@ -3411,7 +3411,6 @@ EGE.cardsView = (function () {
      it: its cards can be traded on afterwards. */
   var setsReady = { library: 0, event: 0 };
   var EVENT_AFTER = 24 * 3600 * 1000;
-  var HALLOWEEN = EGE.cards.HALLOWEEN;
 
   /* What the banner says while each event is on. */
   var EVENT_TEXT = {

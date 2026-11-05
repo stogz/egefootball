@@ -2195,7 +2195,135 @@ EGE.nflSimAdmin = (function () {
       if (playedSeasons().indexOf(year) === -1) { return { stats: stats, results: null }; }
       var results = (EGE.nflSimResults || {})[year] || null;
       return { stats: stats, results: sim().site.resultsFileText(year, results) };
+    }).then(function (files) {
+      /* The stickers read for another season go back to the live one's,
+         which the schedules draw. */
+      if (year === EGE.currentSeason) { return files; }
+      return EGE.wallet.loadGameBoosters(EGE.currentSeason).then(function () { return files; });
     });
+  }
+
+  /* --- the offseason, start to finish -----------------------------------
+
+     From the Super Bowl until the site rolls over, a list at the top of the
+     tab of what is left to do and what is done (Sam, 2026-11-05: "make the
+     offseason a little easier for me to run"), and one download with
+     every file the season's end puts in the repository. */
+
+  /* The seasons whose files had the six's games in them when the page
+     loaded: what is on the site, as opposed to a season this page has
+     filled in memory to write its file (fillSeason). */
+  var ON_SITE = {};
+  Object.keys(EGE.stats || {}).forEach(function (year) {
+    var games = EGE.stats[year].games || {};
+    if (Object.keys(games).some(function (slug) { return games[slug].length; })) { ON_SITE[year] = true; }
+  });
+
+  /* The season the sim has finished and the site has not rolled past, or
+     null outside an offseason. */
+  function endingSeason(league) {
+    if (league.phase === 'offseason') { return league.season; }
+    var year = league.season - 1;
+    if (league.phase === 'draft') { return year; }
+    return EGE.currentSeason <= year ? year : null;
+  }
+
+  /* Every attribute bought and not cleared yet: what End of Season's
+     Clear the shop rows takes off. */
+  function shopRowsLeft() {
+    var boosts = EGE.appliedBoosts || {};
+    return Object.keys(boosts).some(function (slug) {
+      return Object.keys(boosts[slug]).some(function (key) { return boosts[slug][key]; });
+    });
+  }
+
+  /* The files the end of `year` puts in the repository, as they stand:
+     its season file and the NFL scores, the next season's file once the
+     draft is done, and while the site is still on `year`, the locked
+     ratings and the season's log. [{ path, text }] */
+  function offseasonFiles(year) {
+    var league = openLeague();
+    var next = league.season > year && league.phase !== 'draft' ? league.season : null;
+    var out = [];
+    var results = null;
+    return seasonFiles(year).then(function (files) {
+      out.push({ path: 'stats/' + year + '.js', text: files.stats });
+      results = files.results;
+      return next ? seasonFiles(next) : null;
+    }).then(function (files) {
+      if (files) {
+        out.push({ path: 'stats/' + next + '.js', text: files.stats });
+        results = files.results || results;
+      }
+      if (results) { out.push({ path: 'data/nfl-results.js', text: results }); }
+      if (EGE.currentSeason !== year) { return null; }
+      return Promise.all([EGE.exports.ratingsFile(year), EGE.exports.seasonLogFile(year)]);
+    }).then(function (more) {
+      if (more) {
+        out.push({ path: 'data/ratings.js', text: more[0] });
+        out.push({ path: 'data/logs/season-' + year + '.js', text: more[1] });
+      }
+      return out;
+    });
+  }
+
+  function downloadOffseason(year) {
+    if (state.busy) { return Promise.resolve(); }
+    state.busy = true;
+    state.error = null;
+    draw();
+    return offseasonFiles(year).then(function (files) {
+      EGE.exports.download('ege-' + year + '-offseason.zip', EGE.exports.zip(files));
+      state.last = { title: 'Downloaded ege-' + year + '-offseason.zip',
+                     lines: files.map(function (f) { return f.path; }).concat(['Unzip it and drag its folders onto GitHub’s upload page.']) };
+    }).catch(function (err) {
+      state.error = err.message || String(err);
+    }).then(function () {
+      state.busy = false;
+      draw();
+    });
+  }
+
+  function drawOffseason(body, league) {
+    var year = endingSeason(league);
+    if (!year) { return; }
+    var next = year + 1;
+    var moved = league.season > year;
+    var drafted = moved && league.phase !== 'draft';
+    var unsigned = moved ? sim().run.offers(league).map(function (w) { return w.name; }) : [];
+    var unpublished = waiting().filter(function (w) { return w.season === year; });
+    var rolled = EGE.currentSeason > year;
+    var missing = [];
+    if (EGE.storedWeeks && EGE.storedWeeks.overFile(year).length) { missing.push('stats/' + year + '.js'); }
+    if (!ON_SITE[next]) { missing.push('stats/' + next + '.js'); }
+    if (!rolled && !EGE.seasonLocked(year)) { missing.push('data/ratings.js'); }
+
+    var part = section('The ' + next + ' offseason');
+    var list = el('ol', 'ege-sim__todo');
+    function item(done, text, extra) {
+      var li = el('li', done ? 'is-done' : null);
+      li.appendChild(el('span', 'ege-sim__todotext', text));
+      if (extra) { li.appendChild(extra); }
+      list.appendChild(li);
+    }
+    function link(text, hash) {
+      var a = el('a', 'ege-sim__todolink', text);
+      a.href = '#' + hash;
+      return a;
+    }
+
+    item(!unpublished.length, unpublished.length ? 'Publish ' + weekLabel(league, unpublished[0]) : 'Every ' + year + ' week out');
+    item(moved, 'Run the ' + next + ' offseason');
+    item(moved && !unsigned.length, unsigned.length ? 'Sign ' + unsigned.join(' and ') : 'Free agents signed');
+    item(drafted, 'Run the ' + next + ' draft');
+    var files = el('span', 'ege-sim__todoact');
+    files.appendChild(button('Download all', false, function () { downloadOffseason(year); }));
+    if (missing.length && !rolled) { files.appendChild(el('span', 'fb-meta', 'Not on the site yet: ' + missing.join(', '))); }
+    item(!missing.length, 'Put the files on GitHub', rolled ? null : files);
+    item(rolled || (EGE.seasonLocked(year) && !shopRowsLeft()), 'Clear the shop rows', rolled ? null : link('End of Season', 'admin/season'));
+    item(rolled, 'Roll over to ' + next, rolled ? null : link('End of Season', 'admin/season'));
+    part.appendChild(list);
+    body.appendChild(part);
   }
 
   /* "Weeks 4–7" */
@@ -2432,6 +2560,7 @@ EGE.nflSimAdmin = (function () {
       return;
     }
     drawStatus(body, league);
+    drawOffseason(body, league);
     drawLast(body);
     drawPlay(body, league);
     drawLive(body, league);
@@ -2570,6 +2699,20 @@ EGE.nflSimAdmin = (function () {
   /* For the live page: an admin watching keeps the posts going too. */
   function watchLive() { return loadLiveGames(); }
 
+  /* For End of Season: everything the season's end puts in the repository,
+     as one download. */
+  function downloadAll() {
+    return ready().then(function () {
+      if (!hasWorld()) { throw new Error('The NFL sim has not been started.'); }
+      if (state.busy) { throw new Error('The NFL sim is busy. Try again in a moment.'); }
+      var year = endingSeason(openLeague()) || EGE.currentSeason;
+      return offseasonFiles(year).then(function (files) {
+        EGE.exports.download('ege-' + year + '-offseason.zip', EGE.exports.zip(files));
+        return files;
+      });
+    });
+  }
+
   return { render: render, ready: ready, loaded: loaded, peek: peek, change: change, useDeal: useDeal, republish: republish,
-           watchLive: watchLive };
+           watchLive: watchLive, downloadAll: downloadAll };
 })();

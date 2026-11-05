@@ -37,9 +37,14 @@
    to be there already. Keeping the contract synchronous is what makes both
    halves of a half-applied deploy work.
 
-   The cost is that these are re-downloaded rather than revalidated: about
-   45KB a load today. That is the price of the season being current, and it is
-   worth it.
+   The cost was that these were re-downloaded rather than revalidated, and
+   by 2026-11 that was every season file and the NFL scores, about 800KB a
+   load. So once sw.js is looking after the page the query is left off: the
+   worker asks the server about every file of the site's own before using a
+   copy (`no-cache`), so an unchanged file comes back as a 304 and costs a
+   round trip, and a changed one comes back new, the first time. The query
+   is only for a visit sw.js is not on yet (the first one, or a browser
+   without service workers), where nothing else gets past the cache.
 
    Adding a season: put its stats/{year}.js in. Every season from 2018 to
    the one after EGE.currentSeason is loaded, so the next season's file
@@ -63,8 +68,10 @@
   /* A query string is a different URL, which is a different cache entry, which
      is a fetch. Opened from a file:// path there is no cache to get past and
      no server to ask, and a query on a file URL is a path that does not
-     exist — so there it is left off. */
-  var bust = window.location.protocol === 'file:' ? '' : '?t=' + Date.now();
+     exist — so there it is left off. So it is under sw.js, which makes the
+     browser ask the server before it uses its copy of any of them (above). */
+  var worker = window.navigator.serviceWorker;
+  var bust = window.location.protocol === 'file:' || (worker && worker.controller) ? '' : '?t=' + Date.now();
 
   function write(url) {
     document.write('<script src="' + url + bust + '"><\/script>');

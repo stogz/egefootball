@@ -2288,6 +2288,32 @@ body::before {
    Where the league is, what the last step did, then a part for each thing
    to do, divided the way the Cards tab's demo and event are. */
 .ege-sim__status { display: grid; gap: 4px; }
+
+/* The offseason's list: a box for each thing to do, ticked once done. */
+.ege-sim__todo { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ege-sim__todo > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+.ege-sim__todo > li::before {
+  content: '';
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-paper);
+  display: grid;
+  place-items: center;
+  font-size: 0.875rem;
+  line-height: 1;
+}
+.ege-sim__todo > li.is-done::before { content: '\2713'; background: var(--fb-tint-sage); }
+.ege-sim__todo > li.is-done .ege-sim__todotext { color: var(--fb-muted); }
+.ege-sim__todotext { font-weight: 700; }
+.ege-sim__todoact { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.ege-sim__todolink { font-weight: 700; font-size: var(--fb-small); color: var(--fb-accent-deep); text-decoration: underline; text-underline-offset: 3px; }
 .ege-sim__status p { margin: 0; }
 .ege-sim__where { font-family: var(--fb-font-display); font-size: 1.375rem; }
 .ege-sim__last {

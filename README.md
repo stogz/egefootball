@@ -3160,8 +3160,12 @@ data/ratings.js     the ratings a locked season baked in
 stats/{year}.js     the season itself
 ```
 
-It writes them out as `<script>` tags with a cache-busting query, which is a
-different URL every load and therefore always a fetch.
+It writes them out as `<script>` tags. On a visit `sw.js` is not looking
+after yet (the first one, or a browser without service workers) each gets a
+cache-busting query, a different URL every load and therefore always a
+fetch; under `sw.js` they go without one, and the worker has the browser
+check each with the server like everything else (below), so an unchanged
+season costs a 304 rather than a download.
 
 Everything else — `index.html`, `js/app.js`, the stylesheets, `data/offers.js`
 and the rest — is kept current by `sw.js`, a small service worker. It makes the
@@ -3186,7 +3190,10 @@ nobody has to reload after a publish. The redraw waits while somebody is in
 the middle of something: the portal or a card open, a sticker picked up or its
 drawer out, a box being typed in, or a tap a moment ago. Nothing is asked while
 the page is put away. All told an open page asks Supabase for about five small
-things a minute, ten on a Cards page and under twenty on the Shop page.
+things a minute, ten on a Cards page and under twenty on the Shop page. The
+NFL sim's stored weeks among them are asked for as a list first (which weeks,
+and when each was saved), and the weeks themselves come down only when that
+list has changed (`js/wallet.js loadStoredWeeks`).
 
 **Why `document.write`, of all things.** Because these have to be in place
 *before* `js/app.js` runs, exactly as they always were. `document.write` from
@@ -3203,10 +3210,12 @@ season to already be there. Keeping the contract synchronous is what makes
 both halves of a half-applied deploy work — which is worth more than the
 304s the fetch would have won.
 
-The cost is that those three are re-downloaded rather than revalidated: about
-45KB a load today. Opened from a `file://` path the query is left off, because
-there is no cache to get past and a query on a file URL is a path that does
-not exist.
+The query used to go on every load, so those files were re-downloaded rather
+than revalidated: by 2026-11 every season and the NFL scores, about 800KB a
+load (twice over under `sw.js`, which fetched each written tag again).
+Since 2026-11-05 it is only for a visit `sw.js` is not on yet. Opened from a
+`file://` path the query is left off too, because there is no cache to get
+past and a query on a file URL is a path that does not exist.
 
 Everything else — the code, the kit, the players, the shop — is still tagged
 in `index.html` the ordinary way. Those only change when a deploy does.
@@ -3458,7 +3467,22 @@ arrived and who left since the season before. **Put it on the
 site** downloads `stats/{year}.js` and `data/nfl-results.js` with the
 stored weeks written in (and the stickers on weeks that are out), to commit
 whenever it suits -- the end of the season, or any time -- and says which
-stored weeks the committed files do not have yet. Each file keeps `stored`,
+stored weeks the committed files do not have yet.
+
+From the Super Bowl until the site rolls over, the top of the tab lists
+**the offseason** (Sam, 2026-11-05): every week of the season out, the
+offseason run, the six's free agents signed, the draft, the files on
+GitHub, the shop rows cleared and the season rolled over, each ticked once
+it is done. **Download all** there gives one zip with every file the
+season's end puts in the repository, each in its folder: `stats/{year}.js`
+and `data/nfl-results.js` with every stored week written in, the next
+season's `stats/{year}.js` once the draft is done, and while the site is
+still on that season, the locked `data/ratings.js` and
+`data/logs/season-{year}.js`. Unzipped, its `data` and `stats` folders
+dragged onto GitHub's upload page put every file where it goes in one
+commit. The line beside it names the files the site does not have yet.
+`season.js` is not in it: the shop rows are cleared between the two, as
+*End of Season* says. Each file keeps `stored`,
 when each week written in was saved: a week stored after that (played again,
 or undone) is laid over the file's copy, and a correction made in the file
 afterwards stands. After each step the rosters go to `nfl_sim_rosters` for the Teams
@@ -3491,7 +3515,9 @@ allowance, and the diamonds the games paid. Awards handed out by hand are not
 counted.
 
 **End of Season** — four steps, in this order, because the order is the only
-thing keeping anybody's season safe:
+thing keeping anybody's season safe. **Download all the files** above them
+is steps 1 and 2 and the NFL Sim tab's season files in one zip (see *NFL
+Sim*), then the clear, then the roll-over on its own:
 
 1. **Lock the ratings.** Downloads a `data/ratings.js` with every rating point
    and every offseason workout bought that season folded into the base
