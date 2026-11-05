@@ -739,10 +739,95 @@ EGE.exports = (function () {
     });
   }
 
+  /* --- several files at once, in their folders --------------------------
+
+     One .zip with each file at its place in the repository (stats/2029.js,
+     data/ratings.js, data/logs/season-2028.js...), so the end of a season
+     is one upload rather than one a file: unzipped, its folders dragged
+     onto GitHub's upload page land every file where it goes (Sam,
+     2026-11-05). Stored, not compressed -- a few hundred KB of text, and
+     nothing to load. `files` is [{ path, text }]. */
+
+  var CRC_TABLE = null;
+
+  function crc32(bytes) {
+    if (!CRC_TABLE) {
+      CRC_TABLE = [];
+      for (var n = 0; n < 256; n += 1) {
+        var c = n;
+        for (var k = 0; k < 8; k += 1) { c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; }
+        CRC_TABLE[n] = c >>> 0;
+      }
+    }
+    var crc = 0xFFFFFFFF;
+    for (var i = 0; i < bytes.length; i += 1) { crc = CRC_TABLE[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8); }
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  function zip(files) {
+    var encoder = new TextEncoder();
+    var now = new Date();
+    var time = (now.getHours() << 11) | (now.getMinutes() << 5) | Math.floor(now.getSeconds() / 2);
+    var date = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+    var parts = [];
+    var central = [];
+    var offset = 0;
+
+    files.forEach(function (file) {
+      var name = encoder.encode(file.path);
+      var data = encoder.encode(file.text);
+      var crc = crc32(data);
+
+      var local = new DataView(new ArrayBuffer(30));
+      local.setUint32(0, 0x04034B50, true);
+      local.setUint16(4, 20, true);              /* version needed */
+      local.setUint16(6, 0x0800, true);          /* names in UTF-8 */
+      local.setUint16(8, 0, true);               /* stored */
+      local.setUint16(10, time, true);
+      local.setUint16(12, date, true);
+      local.setUint32(14, crc, true);
+      local.setUint32(18, data.length, true);
+      local.setUint32(22, data.length, true);
+      local.setUint16(26, name.length, true);
+      local.setUint16(28, 0, true);
+      parts.push(local.buffer, name, data);
+
+      var entry = new DataView(new ArrayBuffer(46));
+      entry.setUint32(0, 0x02014B50, true);
+      entry.setUint16(4, 20, true);
+      entry.setUint16(6, 20, true);
+      entry.setUint16(8, 0x0800, true);
+      entry.setUint16(10, 0, true);
+      entry.setUint16(12, time, true);
+      entry.setUint16(14, date, true);
+      entry.setUint32(16, crc, true);
+      entry.setUint32(20, data.length, true);
+      entry.setUint32(24, data.length, true);
+      entry.setUint16(28, name.length, true);
+      entry.setUint32(42, offset, true);
+      central.push(entry.buffer, name);
+
+      offset += 30 + name.length + data.length;
+    });
+
+    var size = central.reduce(function (sum, part) { return sum + part.byteLength; }, 0);
+    var end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054B50, true);
+    end.setUint16(8, files.length, true);
+    end.setUint16(10, files.length, true);
+    end.setUint32(12, size, true);
+    end.setUint32(16, offset, true);
+
+    return new Blob(parts.concat(central, [end.buffer]), { type: 'application/zip' });
+  }
+
   /* --- handing the file over ---------------------------------------------- */
 
   function download(name, text) {
-    var blob = new Blob([text], { type: 'text/javascript' });
+    saveBlob(name, text instanceof Blob ? text : new Blob([text], { type: 'text/javascript' }));
+  }
+
+  function saveBlob(name, blob) {
     var url = URL.createObjectURL(blob);
     var link = document.createElement('a');
     link.href = url;
@@ -765,6 +850,7 @@ EGE.exports = (function () {
     seasonLogSource: seasonLogSource,
     seasonFileSource: seasonFileSource,
     baseOverall: baseOverall,
+    zip: zip,
     download: download
   };
 })();

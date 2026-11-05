@@ -262,14 +262,29 @@ EGE.storedWeeks = (function () {
   /* The rows from Supabase, every one this visitor can read, and the
      trades (sim_trades; left out, the ones already laid stay). Whether
      anything moved, so the page knows to draw again. */
+  /* Which rows there are and when each was saved, in an order of its
+     own: two answers with the same signature hold the same rows, as a
+     row is only ever written with a new saved_at. */
+  function signature(rows, tradeRows) {
+    var weeks = (rows || []).map(function (row) { return [row.season, row.week, row.part, row.saved_at].join('|'); });
+    var moves = (tradeRows || []).map(function (row) { return [row.season, row.slug, row.week, row.saved_at].join('|'); });
+    return JSON.stringify([weeks.sort(), moves.sort()]);
+  }
+
+  /* Whether rows read with only those columns are the ones laid over
+     already: the minute's check reads them first, and the whole rows only
+     when they are not (js/wallet.js loadStoredWeeks). */
+  function unchanged(rows, tradeRows) {
+    return Boolean(seen) && signature(rows, tradeRows) === seen;
+  }
+
   function apply(rows, tradeRows) {
     var list = (rows || []).slice().sort(function (a, b) {
       return a.season - b.season || a.week - b.week || String(a.part).localeCompare(String(b.part));
     });
     if (tradeRows !== undefined) { layTrades(tradeRows); }
     lay(list);
-    var now = JSON.stringify(list.map(function (row) { return [row.season, row.week, row.part, row.saved_at]; })
-      .concat(trades.map(function (row) { return [row.season, row.slug, row.week, row.saved_at]; })));
+    var now = signature(list, trades);
     if (now === seen) { return false; }
     seen = now;
     version += 1;
@@ -348,6 +363,7 @@ EGE.storedWeeks = (function () {
 
   return {
     apply: apply,
+    unchanged: unchanged,
     pristine: pristine,
     rows: rowsOf,
     trades: tradeRows,

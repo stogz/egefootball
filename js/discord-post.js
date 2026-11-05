@@ -46,10 +46,6 @@ EGE.discordPost = (function () {
   var COLOR_LOSS     = 0xa64412;   /* the site's deep accent */
   var COLOR_UPCOMING = 0xf0b82a;   /* the site's gold, for a game not yet played */
 
-  var WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
   /* --- when the game kicked off -------------------------------------------- */
 
   var WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
