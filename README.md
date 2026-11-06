@@ -2488,9 +2488,8 @@ alone (median / nine in ten):
 | Card Art | both card arts (traded ones count) | 312 / 751 | Mystic+ · 50 diamonds · 2.5x Booster |
 | Air Raid | all twelve sets (about 340 / 770 packs) | | the Iconic AIR RAID card · 150 diamonds · three 2.5x Boosters |
 
-Every reward card is an Air Raid card, never card art. Until Sam's art for
-the AIR RAID card is in (`AIR_RAID.rewardImage`), the page draws a stand-in:
-the logo over the clouds on the Iconic frame.
+Every reward card is an Air Raid card, never card art. The AIR RAID card is
+Sam's art (`AIR_RAID.rewardImage`): a 2027 season Iconic of Paxon and Andrew.
 
 ### Trades
 

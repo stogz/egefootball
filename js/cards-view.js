@@ -294,8 +294,8 @@ EGE.cardsView = (function () {
       (card.gold ? ' ege-tcard--gold' : '') + (card.costume ? ' ege-tcard--costume' : '');
   }
 
-  /* A card printed from Sam's own art (the GOLD RUSH card): the picture is
-     the whole card. */
+  /* A card printed from Sam's own art (the GOLD RUSH, HALLOWEEN and AIR
+     RAID cards): the picture is the whole card, border and all. */
   function printedCard(card, opts) {
     var node = el('div', 'ege-tcard ege-tcard--' + card.rarity + ' ege-tcard--print' +
       eventClass(card) + (card.reward ? ' ege-tcard--reward' : ''));
@@ -313,7 +313,7 @@ EGE.cardsView = (function () {
   }
 
   /* An event's Iconic card while Sam's art for it is still being drawn
-     (the HALLOWEEN card, 2026-10-26; the AIR RAID card, 2026-11-06): its
+     (the HALLOWEEN and AIR RAID cards had it for a while): its
      name and the event's mark on the Iconic frame. Naming the art in the
      event's `rewardImage` puts his picture here instead. */
   function standCard(card, opts) {

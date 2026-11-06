@@ -465,14 +465,14 @@ EGE.cards = (function () {
 
      The pack can also hold Sam's two card-art cards (CARD_ART): Paxon's 88
      yard touchdown in 2025 week 16 and Andrew's 73 yard touchdown in 2027
-     week 17. Both are Mystics. The art comes up at the base rate (Sam, 2026-11-06): a
-     Mystic out of the pack is any of its Mystics alike, the art no likelier
-     than the rest, unlike Halloween's `artShare`.
+     week 17. Both are Mystics. The art comes up at the base rate (Sam,
+     2026-11-06): a Mystic out of the pack is any of its Mystics alike, the
+     art no likelier than the rest, unlike Halloween's `artShare`.
 
      The sets are meant to be very hard (Sam asked for ten or more "really
      really hard" ones), and the AIR RAID card needs every one of them
-     (`needs`). It is Iconic and no pack holds it; until Sam's art for it is
-     in, the page draws a stand-in with the logo on it (`mark`).
+     (`needs`). It is Iconic and no pack holds it. It is Sam's art, a 2027
+     season card of the two of them (`rewardImage`), border and all.
 
      Air Raid cards trade on the other events' terms: a copy that changes
      hands waits 48 hours before it can go again. */
@@ -485,8 +485,8 @@ EGE.cards = (function () {
     tag: ':ar',
     reward: 'r:air-raid:ar',
     rewardName: 'AIR RAID card',
-    rewardImage: null,
-    rewardSeason: 2025,
+    rewardImage: 'icon/cards/air-raid-iconic.webp',
+    rewardSeason: 2027,
     mark: 'icon/cards/air-raid-logo.webp',
     markIsName: true,
     bonus: { diamonds: 150, booster: 'boost-2-5', boosters: 3 },
