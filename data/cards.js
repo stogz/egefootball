@@ -200,6 +200,21 @@ EGE.cards = (function () {
     blurb: 'Four Halloween cards, the last one Rare or better.'
   });
 
+  /* The Air Raid Pack, sold only while the Air Raid is on (see the Air
+     Raid, further down): four cards for 18 diamonds on the other event
+     packs' odds. Andrew and Paxon only, and none of them is Iconic, so an
+     Iconic roll comes down to a Mystic. */
+  PACKS.push({
+    key: 'air-raid',
+    name: 'Air Raid Pack',
+    diamonds: 18,
+    size: 4,
+    floor: 'rare',
+    event: 'air-raid',
+    odds: { common: 41.4, uncommon: 26, rare: 15, epic: 9, legendary: 7, mystic: 1.5, iconic: 0.1 },
+    blurb: 'Four Air Raid cards of Andrew and Paxon, the last one Rare or better.'
+  });
+
   function pack(key) {
     return PACKS.filter(function (p) { return p.key === key; })[0] || null;
   }
@@ -232,10 +247,13 @@ EGE.cards = (function () {
 
   /* The Gold Rush Pack's cover: gold foil and its name, nobody on it
      (Sam, 2026-10-16). The Halloween Pack's: purple foil with Sam's pumpkin
-     big behind its name. */
+     big behind its name. The Air Raid Pack's (Sam, 2026-11-06): clouds,
+     nobody on it, and Sam's AIR RAID logo (`wordmark`) in the middle in
+     place of the pack's name. */
   var EVENT_COVERS = {
     'gold-rush': { theme: 'goldrush' },
-    'halloween': { theme: 'halloween', logo: 'icon/cards/halloween-pumpkin.webp' }
+    'halloween': { theme: 'halloween', logo: 'icon/cards/halloween-pumpkin.webp' },
+    'air-raid':  { theme: 'airraid', wordmark: 'icon/cards/air-raid-logo.webp' }
   };
 
   /* The cover for a pack, or null. */
@@ -428,16 +446,61 @@ EGE.cards = (function () {
     /* The sets the HALLOWEEN card needs: all eight (Sam, 2026-10-26). */
     needs: ['graveyard', 'card-art', 'trick-or-treat', 'ufo', 'holoween', 'october',
             'witching-hour', 'monster-mash'],
-    holds: inHalloween
+    holds: inHalloween,
+    /* The mark on its stand-in card, if its art is ever missing. */
+    mark: 'icon/cards/halloween-pumpkin.webp'
   };
 
-  var EVENTS = [GOLD_RUSH, HALLOWEEN];
+  /* --- the Air Raid ------------------------------------------------------------
+
+     The third limited-time event (Sam, 2026-11-06), run like the other two:
+     an admin starts it for seven days, and the shop sells an Air Raid Pack
+     while it is on (four cards, 18 diamonds). Andrew and Paxon are its two
+     faces, and the pack holds their cards only: every performance of
+     theirs and every receiving touchdown play (`holds`). Each comes out as
+     an Air Raid card -- the card again with the AIR RAID sticker on it,
+     ':ar' on the end of its id -- that never stacks with any other copy.
+     Only Air Raid cards fill the Air Raid's sets; in the Library they count
+     as the card they are.
+
+     The pack can also hold Sam's two card-art cards (CARD_ART): Paxon's 88
+     yard touchdown in 2025 week 16 and Andrew's 73 yard touchdown in 2027
+     week 17. Both are Mystics. The art comes up at the base rate (Sam, 2026-11-06): a
+     Mystic out of the pack is any of its Mystics alike, the art no likelier
+     than the rest, unlike Halloween's `artShare`.
+
+     The sets are meant to be very hard (Sam asked for ten or more "really
+     really hard" ones), and the AIR RAID card needs every one of them
+     (`needs`). It is Iconic and no pack holds it; until Sam's art for it is
+     in, the page draws a stand-in with the logo on it (`mark`).
+
+     Air Raid cards trade on the other events' terms: a copy that changes
+     hands waits 48 hours before it can go again. */
+  var AIR_RAID = {
+    key: 'air-raid',
+    name: 'Air Raid',
+    days: 7,
+    lockHours: 48,
+    pack: 'air-raid',
+    tag: ':ar',
+    reward: 'r:air-raid:ar',
+    rewardName: 'AIR RAID card',
+    rewardImage: null,
+    rewardSeason: 2025,
+    mark: 'icon/cards/air-raid-logo.webp',
+    markIsName: true,
+    bonus: { diamonds: 150, booster: 'boost-2-5', boosters: 3 },
+    holds: inAirRaid
+  };
+
+  var EVENTS = [GOLD_RUSH, HALLOWEEN, AIR_RAID];
 
   function eventOf(key) {
     return EVENTS.filter(function (e) { return e.key === key; })[0] || null;
   }
 
-  /* The event a tag on the end of an id belongs to: ':gr', ':hw' or ':hc'. */
+  /* The event a tag on the end of an id belongs to: ':gr', ':hw', ':hc' or
+     ':ar'. */
   function eventOfTag(tag) {
     return EVENTS.filter(function (e) { return e.tag === tag || e.costumeTag === tag; })[0] || null;
   }
@@ -457,11 +520,16 @@ EGE.cards = (function () {
     { id: 'a:2025:paxon-hatch:16:hw', of: 'p:2025:paxon-hatch:16', rarity: 'mystic', event: 'halloween',
       photo: 'icon/cards/paxon-hatch-2025-wk16-cut.webp', rise: 11.79 },
     { id: 'a:2022:isaac-vitel:12:0:hw', of: 'h:2022:isaac-vitel:12:0', rarity: 'mystic', event: 'halloween',
-      photo: 'icon/cards/isaac-vitel-2022-wk12-cut.webp', rise: 9.81 }
+      photo: 'icon/cards/isaac-vitel-2022-wk12-cut.webp', rise: 9.81 },
+    { id: 'a:2025:paxon-hatch:16:0:ar', of: 'h:2025:paxon-hatch:16:0', rarity: 'mystic', event: 'air-raid',
+      photo: 'icon/cards/paxon-hatch-2025-wk16-0-cut.webp', rise: 10.10 },
+    { id: 'a:2027:andrew-parr:17:0:ar', of: 'h:2027:andrew-parr:17:0', rarity: 'mystic', event: 'air-raid',
+      photo: 'icon/cards/andrew-parr-2027-wk17-0-cut.webp', rise: 7.83 }
   ];
 
-  /* An event's card, holo or not: Gold Rush, Halloween or a costume. */
-  var EVENT_ID = /:(gr|hw|hc)(:holo2?)?$/;
+  /* An event's card, holo or not: Gold Rush, Halloween, a costume or Air
+     Raid. */
+  var EVENT_ID = /:(gr|hw|hc|ar)(:holo2?)?$/;
   function isEventId(id) { return EVENT_ID.test(String(id || '')); }
   function eventIdOf(id, key) { return baseIdOf(id) + (eventOf(key) || GOLD_RUSH).tag; }
 
@@ -514,6 +582,16 @@ EGE.cards = (function () {
 
   function inHalloween(card) {
     return octoberGame(card) || GRAVEYARD.concat(UFO).some(function (s) { return s.test(card); });
+  }
+
+  /* What the Air Raid Pack holds: Andrew's and Paxon's performances and
+     their receiving touchdown plays. */
+  var AIR_RAIDERS = ['andrew-parr', 'paxon-hatch'];
+  function isRecTd(card) {
+    return card.kind === 'play' && card.play && card.play.kind === 'catch' && card.play.touchdown;
+  }
+  function inAirRaid(card) {
+    return AIR_RAIDERS.indexOf(card.slug) !== -1 && (card.kind === 'performance' || isRecTd(card));
   }
 
   /* Whether the event is on, from its card_events row ({ starts_at,
@@ -764,7 +842,7 @@ EGE.cards = (function () {
     if (made[id] !== undefined) { return made[id]; }
     var card = null;
     var reward = EVENTS.filter(function (e) { return e.reward === id; })[0];
-    var tag = (String(id).match(/:(gr|hw|hc)$/) || [''])[0];
+    var tag = (String(id).match(/:(gr|hw|hc|ar)$/) || [''])[0];
     if (isHoloId(id)) {
       var one = byId(baseIdOf(id));
       var twice = holoLevelOf(id) === 2;
@@ -1266,12 +1344,120 @@ EGE.cards = (function () {
     ].map(function (set) { set.event = HALLOWEEN.key; return set; });
   }
 
+  /* The Air Raid's twelve sets (Sam asked for ten or more, all of them very
+     hard, 2026-11-06), every one of them Andrew and Paxon catching the
+     ball. The AIR RAID card needs all twelve. Card Art takes the two
+     card-art cards however they were come by -- a pulled-only pair at the
+     base rate would be out of anybody's reach -- so trading is the way to
+     it.
+
+     The rewards follow the other events': the more packs a set takes, the
+     better the card and the bigger the booster, and the AIR RAID card pays
+     the most of anything, 150 diamonds and three 2.5x. Held in
+     card_events.rewards in supabase/schema.sql too; change the two
+     together. Simulated at four cards a pack, one player alone, every week
+     out, as packs to finish it (median, then nine players in ten), easiest
+     first: Paxon Hatch 35/60, Stratosphere 48/87, Bombs Away 52/86, Cloud
+     Nine 57/82, Air Strike 63/117, Andrew Parr 63/122, Final Approach
+     80/144, Jet Stream 81/166, Silver Lining 93/133, Altitude 102/249,
+     Contrails 129/280 and Card Art 312/751, which is the two card arts at
+     the base rate. All twelve: about 340 packs, 770 for nine in ten. Like
+     Halloween's Trick or Treat, the whole of it is a trading job. */
+  AIR_RAID.rewards = {
+    'paxon-hatch':    { floor: 'epic', diamonds: 15, booster: 'boost-1-5',
+                        from: ofPlayer('paxon-hatch'), fromText: 'Paxon' },
+    'stratosphere':   { floor: 'legendary', diamonds: 20, booster: 'boost-1-5' },
+    'bombs-away':     { floor: 'legendary', diamonds: 20, booster: 'boost-1-5' },
+    'cloud-nine':     { floor: 'legendary', diamonds: 20, booster: 'boost-1-5' },
+    'air-strike':     { floor: 'legendary', diamonds: 25, booster: 'boost-2-0' },
+    'andrew-parr':    { floor: 'legendary', diamonds: 25, booster: 'boost-2-0',
+                        from: ofPlayer('andrew-parr'), fromText: 'Andrew' },
+    'jet-stream':     { floor: 'legendary', diamonds: 30, booster: 'boost-2-0' },
+    'silver-lining':  { floor: 'legendary', diamonds: 30, booster: 'boost-2-0' },
+    'final-approach': { floor: 'legendary', diamonds: 35, booster: 'boost-2-0' },
+    'altitude':       { floor: 'mystic', diamonds: 35, booster: 'boost-2-0' },
+    'contrails':      { floor: 'mystic', diamonds: 40, booster: 'boost-2-5' },
+    'card-art':       { floor: 'mystic', diamonds: 50, booster: 'boost-2-5' }
+  };
+
+  function airRaidSets() {
+    var legendary = rankOf('legendary');
+    function first(slug) { return playerOf(slug).first; }
+    function st(c, key) { return isGame(c) ? stat(c, key) : 0; }
+    function perf(c) { return c.kind === 'performance'; }
+    /* The seasons `slug` has a card in the pack that passes `test`. */
+    function seasonsOf(slug, test) {
+      var seen = {};
+      all().forEach(function (c) { if (c.slug === slug && inAirRaid(c) && test(c)) { seen[c.season] = true; } });
+      return Object.keys(seen).map(Number).sort(function (a, b) { return a - b; });
+    }
+    /* A performance and a receiving touchdown from every season of his
+       career that has one. */
+    function career(slug) {
+      var slots = [];
+      seasonsOf(slug, function () { return true; }).forEach(function (season) {
+        [['performance', perf], ['receiving TD', isRecTd]].forEach(function (kind) {
+          if (seasonsOf(slug, kind[1]).indexOf(season) === -1) { return; }
+          slots.push(slot(season + ' ' + kind[0], function (c) {
+            return c.slug === slug && c.season === season && kind[1](c);
+          }));
+        });
+      });
+      return slots;
+    }
+    /* A touchdown of his in every ten yards, under 10 to 60-69. */
+    function bands(slug) {
+      return [0, 10, 20, 30, 40, 50, 60].map(function (from) {
+        return slot(first(slug) + ', ' + (from ? from + '\u2013' + (from + 9) + ' yd TD' : 'under 10 yd TD'), function (c) {
+          return c.slug === slug && isRecTd(c) && c.play.yards >= from && c.play.yards < from + 10;
+        });
+      });
+    }
+    /* A playoff touchdown from every postseason either of them scored in. */
+    function postseasons() {
+      var seen = {};
+      all().forEach(function (c) { if (inAirRaid(c) && isRecTd(c) && c.playoff) { seen[c.season] = true; } });
+      return Object.keys(seen).map(Number).sort(function (a, b) { return a - b; }).map(function (season) {
+        return slot(season + ' playoff TD', function (c) { return isRecTd(c) && c.playoff && c.season === season; });
+      });
+    }
+    function clutch(c) { return isRecTd(c) && Boolean(c.play.clutch); }
+    return [
+      { key: 'card-art', name: 'Card Art',
+        slots: AIR_RAIDERS.map(function (slug) {
+          return slot(first(slug) + '\u2019s card art', function (c) { return Boolean(c.art) && c.slug === slug; });
+        }) },
+      { key: 'paxon-hatch', name: 'Paxon Hatch', slots: career('paxon-hatch') },
+      { key: 'andrew-parr', name: 'Andrew Parr', slots: career('andrew-parr') },
+      { key: 'bombs-away', name: 'Bombs Away',
+        slots: times(5, '50+ yd receiving TD', function (c) { return isRecTd(c) && c.play.yards >= 50; }) },
+      { key: 'stratosphere', name: 'Stratosphere',
+        slots: times(4, 'Mystic', function (c) { return c.rarity === 'mystic'; }) },
+      { key: 'cloud-nine', name: 'Cloud Nine',
+        slots: times(9, 'Legendary+ receiving TD', function (c) { return isRecTd(c) && rankOf(c.rarity) >= legendary; }) },
+      { key: 'silver-lining', name: 'Silver Lining',
+        slots: AIR_RAIDERS.map(function (slug) {
+          return slot(first(slug) + ' Legendary+ holo', function (c) {
+            return c.holo && c.slug === slug && rankOf(c.rarity) >= legendary;
+          });
+        }) },
+      { key: 'jet-stream', name: 'Jet Stream',
+        slots: times(3, '200+ receiving yard game', function (c) { return st(c, 'receivingYards') >= 200; }) },
+      { key: 'air-strike', name: 'Air Strike',
+        slots: times(4, '3+ receiving TD game', function (c) { return st(c, 'receivingTd') >= 3; }) },
+      { key: 'final-approach', name: 'Final Approach',
+        slots: times(5, 'Game-winning or game-icing TD', clutch) },
+      { key: 'altitude', name: 'Altitude', slots: bands('paxon-hatch').concat(bands('andrew-parr')) },
+      { key: 'contrails', name: 'Contrails', slots: postseasons() }
+    ].map(function (set) { set.event = AIR_RAID.key; return set; });
+  }
+
   /* An event's sets, each with its reward. */
   function eventSets(key) {
     var ev = eventOf(key || GOLD_RUSH.key);
     if (!ev) { return []; }
     if (eventSetsCache[ev.key]) { return eventSetsCache[ev.key]; }
-    var out = ev === GOLD_RUSH ? goldRushSets() : halloweenSets();
+    var out = ev === GOLD_RUSH ? goldRushSets() : ev === HALLOWEEN ? halloweenSets() : airRaidSets();
     out.forEach(function (set) { set.reward = ev.rewards[set.key]; });
     eventSetsCache[ev.key] = out;
     return out;
@@ -1319,11 +1505,11 @@ EGE.cards = (function () {
   /* The card a set pays out with. From every published card, or the set's
      own pool when it names one, at or above its floor. An event's set pays
      a card of that event's, from what its pack holds, never in costume and
-     never Halloween card art, which only a pack gives. */
+     never Halloween or Air Raid card art, which only a pack gives. */
   function rollReward(set, rng) {
     var ev = set.event ? eventOf(set.event) : null;
     var pool = ev ? pullable(ev.pack) : pullable(null);
-    if (ev === HALLOWEEN) { pool = pool.filter(function (c) { return !c.art; }); }
+    if (ev && ev !== GOLD_RUSH) { pool = pool.filter(function (c) { return !c.art; }); }
     if (set.reward.from) {
       var narrowed = pool.filter(set.reward.from);
       if (narrowed.length) { pool = narrowed; }
@@ -1689,6 +1875,7 @@ EGE.cards = (function () {
     packOdds: packOdds,
     GOLD_RUSH: GOLD_RUSH,
     HALLOWEEN: HALLOWEEN,
+    AIR_RAID: AIR_RAID,
     EVENTS: EVENTS,
     eventOf: eventOf,
     CARD_ART: CARD_ART,
@@ -1698,6 +1885,7 @@ EGE.cards = (function () {
     isRushTd: isRushTd,
     inGoldRush: inGoldRush,
     inHalloween: inHalloween,
+    inAirRaid: inAirRaid,
     eventLive: eventLive,
     eventSets: eventSets,
     finalSets: finalSets,
