@@ -247,15 +247,13 @@ EGE.cards = (function () {
 
   /* The Gold Rush Pack's cover: gold foil and its name, nobody on it
      (Sam, 2026-10-16). The Halloween Pack's: purple foil with Sam's pumpkin
-     big behind its name. The Air Raid Pack's (Sam, 2026-11-06): Andrew and
-     Paxon, the two faces of it, cut out of Sam's card art and stood in the
-     clouds, with Sam's AIR RAID logo (`wordmark`) in place of the pack's
-     name. */
+     big behind its name. The Air Raid Pack's (Sam, 2026-11-06): clouds,
+     nobody on it, and Sam's AIR RAID logo (`wordmark`) in the middle in
+     place of the pack's name. */
   var EVENT_COVERS = {
     'gold-rush': { theme: 'goldrush' },
     'halloween': { theme: 'halloween', logo: 'icon/cards/halloween-pumpkin.webp' },
-    'air-raid':  { theme: 'airraid', image: 'icon/packs/air-raid-duo.webp',
-                   wordmark: 'icon/cards/air-raid-logo.webp' }
+    'air-raid':  { theme: 'airraid', wordmark: 'icon/cards/air-raid-logo.webp' }
   };
 
   /* The cover for a pack, or null. */
@@ -466,12 +464,10 @@ EGE.cards = (function () {
      as the card they are.
 
      The pack can also hold Sam's two card-art cards (CARD_ART): Paxon's 88
-     yard touchdown in 2025 week 16 and Andrew's 54 yard touchdown in 2025
-     week 18. Andrew's play is a Legendary, but his art is a Mystic (Sam:
-     the card art only; his plain card stays Legendary). The art comes up
-     at the base rate (Sam, 2026-11-06): a Mystic out of the pack is any of
-     its Mystics alike, the art no likelier than the rest, unlike
-     Halloween's `artShare`.
+     yard touchdown in 2025 week 16 and Andrew's 73 yard touchdown in 2027
+     week 17. Both are Mystics. The art comes up at the base rate (Sam, 2026-11-06): a
+     Mystic out of the pack is any of its Mystics alike, the art no likelier
+     than the rest, unlike Halloween's `artShare`.
 
      The sets are meant to be very hard (Sam asked for ten or more "really
      really hard" ones), and the AIR RAID card needs every one of them
@@ -527,8 +523,8 @@ EGE.cards = (function () {
       photo: 'icon/cards/isaac-vitel-2022-wk12-cut.webp', rise: 9.81 },
     { id: 'a:2025:paxon-hatch:16:0:ar', of: 'h:2025:paxon-hatch:16:0', rarity: 'mystic', event: 'air-raid',
       photo: 'icon/cards/paxon-hatch-2025-wk16-0-cut.webp', rise: 10.10 },
-    { id: 'a:2025:andrew-parr:18:0:ar', of: 'h:2025:andrew-parr:18:0', rarity: 'mystic', event: 'air-raid',
-      photo: 'icon/cards/andrew-parr-2025-wk18-0-cut.webp', rise: 7.83 }
+    { id: 'a:2027:andrew-parr:17:0:ar', of: 'h:2027:andrew-parr:17:0', rarity: 'mystic', event: 'air-raid',
+      photo: 'icon/cards/andrew-parr-2027-wk17-0-cut.webp', rise: 7.83 }
   ];
 
   /* An event's card, holo or not: Gold Rush, Halloween, a costume or Air

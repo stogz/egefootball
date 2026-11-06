@@ -2458,15 +2458,13 @@ The third limited-time event (Sam, 2026-11-06), started and run like the
 other two. Andrew and Paxon are its two faces: the **Air Raid Pack** (4 cards
 for 18 diamonds, the last one Rare or better, on the other event packs' odds)
 holds only their performances and their receiving touchdown plays, and its
-cover is the two of them cut out of Sam's card art, standing in his clouds
-under his AIR RAID logo. An Air Raid card (`:ar`) wears the AIR RAID logo
+cover is Sam's clouds with his AIR RAID logo in the middle. An Air Raid card (`:ar`) wears the AIR RAID logo
 across a sky-blue and silver sunburst, and its back is clouds on a blue sky in
 a silver frame with the logo under the ball.
 
 Two **card-art cards** come out of the pack: Paxon's 88-yard touchdown (2025
-week 16) and Andrew's 54-yard touchdown (2025 week 18). Andrew's play is a
-Legendary, but his art is a Mystic (the art only; Sam). The art comes up at
-the **base rate**: a Mystic out of the pack is any of its 20 Mystics alike,
+week 16) and Andrew's 73-yard touchdown (2027 week 17), both Mystics. The
+art comes up at the **base rate**: a Mystic out of the pack is any of its 20 Mystics alike,
 with no `artShare` like Halloween's, so each art is about one pack in 265.
 The art wears no sticker.
 

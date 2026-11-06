@@ -7679,10 +7679,8 @@ html.ege-noscroll body { overflow: hidden; }
 }
 
 /* The Air Raid Pack (Sam, 2026-11-06): sky blue and silver foil, Sam's
-   clouds printed under the prizm, Andrew and Paxon cut out of his card art
-   over them (one picture the size of the pack's body, icon/packs/air-raid-
-   duo.webp), his AIR RAID logo low across them in place of the name, a
-   silver line along the bars and a sky-blue glow. */
+   clouds printed under the prizm, his AIR RAID logo across the middle in
+   place of the name, a silver line along the bars and a sky-blue glow. */
 .ege-pack.ege-pack--airraid {
   --foil: linear-gradient(135deg, #0b2a5c 0%, #2f6fd0 18%, #cfe6ff 34%, #4d8fe0 50%,
                           #f4f8fc 66%, #2f6fd0 82%, #0b2a5c 100%);
@@ -7706,21 +7704,14 @@ html.ege-noscroll body { overflow: hidden; }
   opacity: .92;
 }
 .ege-pack--airraid .ege-pack__prizm { opacity: .7; }
-.ege-pack--airraid .ege-pack__player {
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  transform: none;
-}
 .ege-pack__wordmark {
   position: absolute;
   z-index: 4;
   left: 50%;
-  bottom: 12%;
+  top: 50%;
   width: 94cqw;
   height: auto;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   filter: drop-shadow(1cqw 1.4cqw 1cqw rgba(6, 26, 64, .45));
   pointer-events: none;
   user-select: none;
