@@ -415,7 +415,7 @@ EGE.cardStore = (function () {
 
      The six's NFL teammates' cards (data/nfl-cards.js) are made from the NFL
      sim's box scores, a week at a time: nfl_card_lines hands back, for each
-     published week from 2025 on, the games of the teams the six were on that
+     published week from 2024 on, the games of the teams the six were on that
      week with those teams' lines and the scoring plays. What comes back is
      kept in this browser with each week's digest from sim_box_scores and
      the teams it was asked for, so a week is read once, and again only
@@ -441,7 +441,7 @@ EGE.cardStore = (function () {
   /* Reads what is not kept yet and hands every week to EGE.nflCards.
      Resolves to whether there is anything to make the cards from. Asked
      twice for the same weeks, it is the one read. */
-  /* A teammate only ever with the six in 2025 has no ESPN id on his box
+  /* A teammate only ever with the six before 2026 has no ESPN id on his box
      score lines, so his photo is in the sim's rosters: read once someone
      needs it (EGE.nflCards.faceless), the season now's, or the one before
      when it has none yet. */

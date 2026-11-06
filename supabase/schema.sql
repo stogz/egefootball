@@ -4514,7 +4514,7 @@ notify pgrst, 'reload schema';
 -- NFL cards
 --
 -- The six's NFL teammates in the card game (Sam, 2026-11-06): their games
--- and their touchdowns from 2025 on, out of the NFL Pack (open_card_pack,
+-- and their touchdowns from 2024 on, out of the NFL Pack (open_card_pack,
 -- above) and the NFL sets (claim_card_set takes them like any set). What a
 -- card is comes from the NFL sim's box scores, which sim_box_scores keeps
 -- a row a week; the page builds the cards from them (data/nfl-cards.js).
@@ -4524,10 +4524,10 @@ notify pgrst, 'reload schema';
 -- with one of the named teams in them -- the teams the six were on that
 -- week, which the page knows and Postgres does not -- each with its score,
 -- its scoring plays and those teams' lines, the six's own left out. Weeks
--- from 2025 on and published only, whoever asks, admins too. A week of a
+-- from 2024 on and published only, whoever asks, admins too. A week of a
 -- whole league's box scores is about 65KB; this is about a tenth of it.
 --
--- p_weeks: [{ "s": 2025, "w": 1, "t": ["CHI", "NYG"] }, ...]
+-- p_weeks: [{ "s": 2024, "w": 3, "t": ["CHI", "NYG"] }, ...]
 create or replace function public.nfl_card_lines(p_weeks jsonb)
 returns table (season integer, week integer, games jsonb)
 language sql
@@ -4554,7 +4554,7 @@ as $$
     from jsonb_array_elements(case when jsonb_typeof(p_weeks) = 'array' then p_weeks else '[]'::jsonb end) as w(e)
     join public.sim_box_scores b
       on b.season = (w.e ->> 's')::integer and b.week = (w.e ->> 'w')::integer
-   where b.season >= 2025
+   where b.season >= 2024
      and jsonb_typeof(w.e -> 't') = 'array'
      and exists (select 1 from public.published_weeks p where p.season = b.season and p.week = b.week);
 $$;

@@ -1,7 +1,7 @@
 /* ==========================================================================
    EGE Football — NFL cards
    The six's NFL teammates in the card game (Sam, 2026-11-06): their
-   touchdowns and their games, from 2025 on, pulled out of the NFL Pack.
+   touchdowns and their games, from 2024 on, pulled out of the NFL Pack.
 
    Where they come from
    -------------------
@@ -37,7 +37,8 @@
    (yards / 10, +6, +0.5 for a catch), +3 for a game-winning one. A defender
    is scored IDP style (DEFENSE below) and graded on his own share. A
    kickoff, punt or interception return for a touchdown has no yardage in
-   the box score, so it is graded Epic.
+   the box score, so it is graded Epic. Iconic is the biggest game of
+   each finished season (crown, below), nothing else.
 
    Nothing here touches the six's cards, packs or sets: an NFL card is only
    in the NFL Pack and the NFL sets, and the Library's other sets never take
@@ -49,8 +50,11 @@ window.EGE = window.EGE || {};
 EGE.nflCards = (function () {
   'use strict';
 
-  /* The first season with every NFL player's box score kept. */
-  var FROM = 2025;
+  /* The first season of the six's teammates' cards: the first all six
+     played in the NFL, with every player's box score kept (Sam asked for
+     2024, 2026-11-06; its first two weeks were played before the sim
+     kept box scores, so they have none). */
+  var FROM = 2024;
 
   /* A defender's fantasy points, IDP style. */
   var DEFENSE = { tackles: 1, sacks: 4, defInts: 5, passDef: 1.5, ff: 3, defTd: 6 };
@@ -162,8 +166,9 @@ EGE.nflCards = (function () {
     return espn && EGE.espnHeadshot ? EGE.espnHeadshot(espn, college, 350, 254) : STANDIN;
   }
 
-  /* A box score from before the sim kept ids (2025's) has only a name and
-     a position on a line. MANY is a name more than one player has. */
+  /* A box score from before the sim kept ids (2024's and 2025's) has
+     only a name and a position on a line. MANY is a name more than one
+     player has. */
   var MANY = { many: true };
 
   function remember(map, key, who) {
@@ -177,7 +182,7 @@ EGE.nflCards = (function () {
   }
 
   /* Every ESPN id on a line read, by name and position, and by name alone
-     for a touchdown whose scorer has no line, so a 2025 game of a player
+     for a touchdown whose scorer has no line, so a 2024 or 2025 game of a player
      whose later games have his id is the same player's. */
   function idIndex() {
     var map = {};
@@ -195,7 +200,7 @@ EGE.nflCards = (function () {
   }
 
   /* The sim's rosters for a player with no id on any line read (one who
-     was only ever a teammate in 2025): on a team, a free agent or retired,
+     was only ever a teammate before 2026): on a team, a free agent or retired,
      by his name and position, or his name alone, where nobody else has
      them, as the League page finds a box score's players. js/cards.js
      reads the rosters when a player needs them (faceless) and says so
@@ -335,6 +340,33 @@ EGE.nflCards = (function () {
     return found.key;
   }
 
+  /* --- Iconic ------------------------------------------------------------
+
+     A short list (Sam, 2026-11-06: three to five of them): the biggest
+     game of each NFL season of the six's, the teammate's performance with
+     the most fantasy points, once that season's Super Bowl week is out.
+     Four for 2024 to 2027, and one more a season. A pack pulls one at
+     Iconic's odds, as rare as the six's (0.1% a card). An NFL card's id
+     in EGE.cards.ICONIC is Iconic too, as one of the six's is. */
+  var SUPER_BOWL_WEEK = 22;
+
+  function bigger(a, b) {
+    return a.points - b.points || a.grade - b.grade || (a.id < b.id ? 1 : -1);
+  }
+
+  function crown(b) {
+    var best = {};
+    b.list.forEach(function (card) {
+      if (card.kind !== 'performance' || !EGE.isPublished(card.season, SUPER_BOWL_WEEK)) { return; }
+      var was = best[card.season];
+      if (!was || bigger(card, was) > 0) { best[card.season] = card; }
+    });
+    b.iconic = Object.keys(best).map(Number).sort(function (x, y) { return x - y; }).map(function (season) {
+      best[season].rarity = 'iconic';
+      return best[season].id;
+    });
+  }
+
   /* --- the scoring plays -------------------------------------------------- */
 
   /* 'Q4 10:20 TEN Nick Westbrook-Ikhine 3 pass from Will Levis (10-20)':
@@ -382,7 +414,7 @@ EGE.nflCards = (function () {
   }
 
   function build() {
-    var b = { list: [], byId: {}, who: {}, players: {}, bySlug: {}, ids: idIndex() };
+    var b = { list: [], byId: {}, who: {}, players: {}, bySlug: {}, ids: idIndex(), iconic: [] };
     var six = sixByName();
 
     weeks.forEach(function (row) {
@@ -510,6 +542,7 @@ EGE.nflCards = (function () {
       });
     });
 
+    crown(b);
     Object.keys(b.players).forEach(function (slug) {
       if (!b.players[slug].espn) { faceFrom(b.players[slug]); }
     });
@@ -740,6 +773,16 @@ EGE.nflCards = (function () {
 
   /* Slots that want different teammates, not just different cards: no
      player fills two of them (fill, below). */
+  /* The NFL Teammates sets' teams, as Sam listed them (2026-11-06). */
+  var TEAM_ORDER = ['DET', 'CAR', 'HOU', 'TB', 'SEA', 'PIT', 'NYG', 'CHI', 'JAX'];
+
+  /* A team the six were with for less time has fewer cards and takes more
+     packs, so its set pays more: under 8% of the NFL cards, Epic+, 15 and
+     a 1.5x Booster; under 12%, Epic+ and 12; otherwise Epic+ and 10. */
+  function teamReward(share) {
+    return share < 0.08 ? REWARD.epic(15, EGE.cards.BOOSTER) : share < 0.12 ? REWARD.epic(12) : REWARD.epic(10);
+  }
+
   function differentPlayers(count, label, test) {
     return times(count, label, test).map(function (s) { s.player = true; return s; });
   }
@@ -766,14 +809,28 @@ EGE.nflCards = (function () {
       reward: REWARD.rare(8)
     });
 
-    six.forEach(function (p) {
-      out.push({
-        key: 'nfl-mates-' + p.slug, name: p.first + '’s Locker Room', group: 'NFL Teammates',
-        blurb: 'Six of ' + p.first + '’s teammates, each a different player.',
-        slots: differentPlayers(6, p.first + '’s teammate', withSix(p.slug)),
-        reward: Object.assign(REWARD.epic(10), { from: withSix(p.slug), fromText: p.first + '’s teammates' })
+    /* One set a team the six have played for (Sam, 2026-11-06), in his
+       order, then any team one of them joins after: six different players
+       of that team's, each from a week one of the six was there. A team
+       one of them is on this season has its set before its first game is
+       out (Cooper's Jaguars, 2028). */
+    var teams = {};
+    list().forEach(function (c) { teams[c.simTeam] = (teams[c.simTeam] || 0) + 1; });
+    Object.keys(sixTeams(EGE.currentSeason, 1)).forEach(function (key) { teams[key] = teams[key] || 0; });
+    var total = list().length || 1;
+    TEAM_ORDER.filter(function (key) { return key in teams; })
+      .concat(Object.keys(teams).filter(function (key) { return TEAM_ORDER.indexOf(key) === -1; }).sort())
+      .forEach(function (key) {
+        var name = EGE.nfl && EGE.nfl.teams[key] ? EGE.nfl.teams[key].name : key;
+        var short = name.split(' ').pop();
+        function ofTeam(c) { return c.simTeam === key; }
+        out.push({
+          key: 'nfl-team-' + key.toLowerCase(), name: name, group: 'NFL Teammates',
+          blurb: 'Six different ' + short + '.',
+          slots: differentPlayers(6, short + ' player', ofTeam),
+          reward: Object.assign(teamReward(teams[key] / total), { from: ofTeam, fromText: short })
+        });
       });
-    });
 
     Object.keys(seasons).map(Number).sort(function (a, b) { return a - b; }).forEach(function (season) {
       out.push({
@@ -1012,6 +1069,7 @@ EGE.nflCards = (function () {
     fill: fill,
     rollReward: rollReward,
     faceless: faceless,
+    iconic: function () { ensure(); return built.iconic.slice(); },
     faces: faces,
     forget: function () { withCache = {}; built = null; setsCache = null; }
   };
