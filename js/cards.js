@@ -310,19 +310,21 @@ EGE.cardStore = (function () {
   }
 
   /* The Player Cards a player has put in their showcase ('pc:{slug}'
-     slots), and the cards of those players their rank is worked out from.
-     Public, like the showcase: { players: [slug], cards: { id: quantity },
-     earned: { slug: diamonds }, photos: { slug: data url } }. */
+     slots, and 'npc:{slug}' for an NFL teammate's), and the cards of those
+     players their rank is worked out from. Public, like the showcase:
+     { players: [slug], nfl: [slug], cards: { id: quantity },
+       earned: { slug: diamonds }, photos: { slug or 'n:'slug: data url } }. */
   function showcasePlayersFor(email) {
+    var none = { players: [], nfl: [], cards: {}, earned: null, photos: {} };
     var c = client();
-    if (!c || !email) { return Promise.resolve({ players: [], cards: {}, earned: null, photos: {} }); }
+    if (!c || !email) { return Promise.resolve(none); }
     return c.rpc('showcased_player_cards', { p_email: email })
       .then(function (res) {
         var d = res.error ? null : res.data;
-        return { players: (d && d.players) || [], cards: (d && d.cards) || {},
+        return { players: (d && d.players) || [], nfl: (d && d.nfl) || [], cards: (d && d.cards) || {},
                  earned: (d && d.earned) || null, photos: (d && d.photos) || {} };
       })
-      .catch(function () { return { players: [], cards: {}, earned: null, photos: {} }; });
+      .catch(function () { return none; });
   }
 
   /* --- photos on Player Cards ---------------------------------------------- */
@@ -354,8 +356,9 @@ EGE.cardStore = (function () {
   }
 
   /* Puts a photo, already cropped and shrunk to a data URL, on this
-     player's Player Card of `slug`; set_card_photo checks they hold a card
-     of his and that it is small enough. */
+     player's Player Card of `slug` ('n:{slug}' for an NFL teammate's);
+     set_card_photo checks they hold a card of his, that it is small
+     enough and, for an NFL one, that no more than six are up. */
   function setCardPhoto(slug, photo) {
     return call('set_card_photo', { p_slug: slug, p_photo: photo }, function () { return { ok: true }; });
   }

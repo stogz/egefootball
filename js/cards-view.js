@@ -4039,7 +4039,7 @@ EGE.cardsView = (function () {
     var player = pc.player;
     var rank = pc.rank;
     var earned = !pc.nfl && whose.earned ? (whose.earned[player.slug] || 0) : null;
-    var photo = !pc.nfl && whose.photos ? whose.photos[player.slug] || null : null;
+    var photo = whose.photos ? whose.photos[photoKey(pc)] || null : null;
     var node = el('article', 'ege-pcard');
     /* The card itself opens up close, the way it does off a showcase. */
     var face = playerCardFace(pc, earned, photo);
@@ -4109,13 +4109,15 @@ EGE.cardsView = (function () {
     });
     row.appendChild(see);
 
-    /* Your own: a photo of yours on it, in place of his headshot. Not on
-       an NFL teammate's. */
-    if (whose.mine && !pc.nfl) {
+    /* Your own: a photo of yours on it, in place of his headshot. An NFL
+       teammate's too, six of those at most (set_card_photo). */
+    if (whose.mine) {
       var pick = iconButton('ege-pcard__photo', 'player', photo ? 'Change photo' : 'Add photo');
-      pick.disabled = !pc.copies || state.photos === null;
+      var full = pc.nfl && !photo && nflPhotosUp() >= NFL_PHOTOS;
+      pick.disabled = !pc.copies || state.photos === null || full;
       if (state.photos === null) { pick.title = 'Photos could not be loaded. Run supabase/schema.sql.'; }
       else if (!pc.copies) { pick.title = 'Collect a ' + player.first + ' card first.'; }
+      else if (full) { pick.title = 'Six NFL photos are up. Take one down first.'; }
       pick.addEventListener('click', function () { choosePhoto(pc); });
       row.appendChild(pick);
       if (photo) {
@@ -4123,7 +4125,7 @@ EGE.cardsView = (function () {
         drop.type = 'button';
         drop.title = 'Remove your photo';
         drop.setAttribute('aria-label', 'Remove your photo from ' + player.first + '’s Player Card');
-        drop.addEventListener('click', function () { removePhoto(player, drop); });
+        drop.addEventListener('click', function () { removePhoto(pc, drop); });
         row.appendChild(drop);
       }
     }
@@ -4170,11 +4172,31 @@ EGE.cardsView = (function () {
      photo goes up as about 20-50 KB, and redrawing it leaves its location
      and the rest of what the camera wrote behind. set_card_photo refuses
      anything over about 100 KB; PHOTO_MAX keeps under it. One per Player
-     Card per account, 36 at most across the site. */
+     Card per account, 36 at most across the site.
+
+     An NFL Player Card's photo is kept under about 60 KB (NFL_PHOTO_MAX;
+     set_card_photo refuses 80 KB), and an account has six of those up at
+     most, since there are hundreds of teammates (Sam, 2026-11-06). Its
+     key is 'n:{slug}' (photoKey). */
   var PHOTO_W = 480;
   var PHOTO_H = 310;          /* the card's photo is about 0.65 as tall as wide */
   var PHOTO_MAX = 130000;
+  var NFL_PHOTO_MAX = 75000;
   var ZOOM_MAX = 4;
+
+  var NFL_PHOTOS = 6;
+
+  function photoKey(pc) { return (pc.nfl ? 'n:' : '') + pc.player.slug; }
+
+  /* Your NFL Player Card photos up, counting only teammates you still
+     hold a card of, as set_card_photo counts them. */
+  function nflPhotosUp() {
+    if (!state.photos || !EGE.nflCards) { return 0; }
+    var held = EGE.nflCards.holdings(state.owned);
+    return Object.keys(state.photos).filter(function (key) {
+      return key.indexOf('n:') === 0 && held[key.slice(2)];
+    }).length;
+  }
 
   function loadPhoto(file) {
     return new Promise(function (resolve, reject) {
@@ -4190,20 +4212,20 @@ EGE.cardsView = (function () {
     });
   }
 
-  /* The frame's part of the picture as a data URL, or null if too big. */
-  function cropToDataUrl(img, view) {
+  /* The frame's part of the picture as a data URL, or null if over `max`. */
+  function cropToDataUrl(img, view, max) {
     var canvas = document.createElement('canvas');
     canvas.width = PHOTO_W;
     canvas.height = PHOTO_H;
     canvas.getContext('2d').drawImage(img, view.sx, view.sy, view.sw, view.sh, 0, 0, PHOTO_W, PHOTO_H);
     var out = '';
-    [0.82, 0.7, 0.55, 0.4].some(function (quality) {
+    [0.82, 0.7, 0.55, 0.4, 0.3].some(function (quality) {
       out = canvas.toDataURL('image/webp', quality);
       /* A browser that cannot write WebP hands back a PNG. */
       if (out.indexOf('data:image/webp') !== 0) { out = canvas.toDataURL('image/jpeg', quality); }
-      return out.length <= PHOTO_MAX;
+      return out.length <= max;
     });
-    return out.length <= PHOTO_MAX ? out : null;
+    return out.length <= max ? out : null;
   }
 
   function choosePhoto(pc) {
@@ -4324,7 +4346,7 @@ EGE.cardsView = (function () {
     var next = el('button', 'fb-btn fb-btn--primary', 'Crop');
     next.type = 'button';
     next.addEventListener('click', function () {
-      var photo = cropToDataUrl(img, rect());
+      var photo = cropToDataUrl(img, rect(), pc.nfl ? NFL_PHOTO_MAX : PHOTO_MAX);
       if (!photo) { say('That picture is too big. Try a smaller one.', true); return; }
       loaded.keep = true;
       closeRip();
@@ -4346,7 +4368,7 @@ EGE.cardsView = (function () {
     var stage = openOverlay(player.first + '’s card photo', 'ege-rip__stage--zoom');
     rip.onClose = function () { if (!loaded.keep) { URL.revokeObjectURL(loaded.url); } };
     var holder = el('div', 'ege-photoprev');
-    holder.appendChild(playerCardFace(pc, earnedFrom(player.slug), photo));
+    holder.appendChild(playerCardFace(pc, pc.nfl ? null : earnedFrom(player.slug), photo));
     stage.appendChild(holder);
 
     var status = el('p', 'ege-rip__hint', 'Only your ' + player.first + ' card shows it, here and on your page.');
@@ -4368,7 +4390,7 @@ EGE.cardsView = (function () {
       keep.disabled = true;
       again.disabled = true;
       status.textContent = 'Saving…';
-      EGE.cardStore.setCardPhoto(player.slug, photo).then(function (res) {
+      EGE.cardStore.setCardPhoto(photoKey(pc), photo).then(function (res) {
         if (!res.ok) {
           status.textContent = res.message;
           keep.disabled = false;
@@ -4376,7 +4398,7 @@ EGE.cardsView = (function () {
           return;
         }
         state.photos = state.photos || {};
-        state.photos[player.slug] = photo;
+        state.photos[photoKey(pc)] = photo;
         if (EGE.showcase) { EGE.showcase.forget(); }
         closeRip();
         say('', false);
@@ -4389,11 +4411,11 @@ EGE.cardsView = (function () {
     keep.focus({ preventScroll: true });
   }
 
-  function removePhoto(player, button) {
+  function removePhoto(pc, button) {
     button.disabled = true;
-    EGE.cardStore.clearCardPhoto(player.slug).then(function (res) {
+    EGE.cardStore.clearCardPhoto(photoKey(pc)).then(function (res) {
       if (!res.ok) { say(res.message, true); button.disabled = false; return; }
-      if (state.photos) { delete state.photos[player.slug]; }
+      if (state.photos) { delete state.photos[photoKey(pc)]; }
       if (EGE.showcase) { EGE.showcase.forget(); }
       say('', false);
       renderPlayerCards();
