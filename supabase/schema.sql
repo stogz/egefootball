@@ -1526,7 +1526,8 @@ create policy "card showcases are public"
 
 -- A card that has left a collection leaves its owner's showcase too, and a
 -- Player Card ('pc:{slug}', which shares the six slots) once no card of
--- that player is left.
+-- that player is left, an NFL Player Card ('npc:{slug}') once no NFL card
+-- of that teammate is.
 create or replace function public.prune_showcase(p_email text)
 returns void
 language sql
@@ -1539,7 +1540,9 @@ as $$
             where exists (select 1 from public.player_cards pc
                            where pc.email = s.email and pc.quantity > 0
                              and (pc.card_id = t.c
-                                  or (t.c like 'pc:%' and split_part(pc.card_id, ':', 3) = substr(t.c, 4))))
+                                  or (t.c like 'pc:%' and split_part(pc.card_id, ':', 3) = substr(t.c, 4))
+                                  or (t.c like 'npc:%' and public.is_nfl_card_id(regexp_replace(pc.card_id, ':holo2?$', ''))
+                                      and split_part(pc.card_id, ':', 3) = substr(t.c, 5))))
             order by t.n), '{}'),
          updated_at = now()
    where s.email = p_email;
@@ -1702,10 +1705,29 @@ $$;
 -- like the page: anybody can see them, signed in or not. Only cards the
 -- player owns can go up, and a card traded away comes down on its own.
 -- A slot can hold a Player Card instead, as 'pc:{slug}', for any player
--- they hold a card of.
+-- they hold a card of, or an NFL Player Card, as 'npc:{slug}', for any NFL
+-- teammate they hold an NFL card of (Sam, 2026-11-06).
 -- ---------------------------------------------------------------------------
 
 -- The table itself is created with the trades, which prune it.
+
+-- Whether an account holds an NFL card (or a holo of one) of the NFL
+-- teammate named `p_slug`: what an NFL Player Card in a showcase or a
+-- photo on one needs.
+create or replace function public.holds_nfl_player(p_email text, p_slug text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.player_cards
+                  where email = p_email and quantity > 0
+                    and public.is_nfl_card_id(regexp_replace(card_id, ':holo2?$', ''))
+                    and split_part(card_id, ':', 3) = p_slug);
+$$;
+
+revoke all on function public.holds_nfl_player(text, text) from public, anon, authenticated;
 
 create or replace function public.set_card_showcase(p_cards text[])
 returns void
@@ -1731,6 +1753,10 @@ begin
                         and split_part(card_id, ':', 3) = substr(v_card, 4)) then
         raise exception 'You need a card of that player to show his Player Card.';
       end if;
+    elsif v_card ~ '^npc:[a-z0-9]+(-[a-z0-9]+)*$' then
+      if not public.holds_nfl_player(v_email, substr(v_card, 5)) then
+        raise exception 'You need an NFL card of that player to show his NFL Player Card.';
+      end if;
     elsif not public.is_any_card_id(v_card) then
       raise exception 'Not a card: %', v_card;
     end if;
@@ -1738,7 +1764,8 @@ begin
   if (select count(distinct c) from unnest(v_cards) c) <> coalesce(array_length(v_cards, 1), 0) then
     raise exception 'Each card goes up once.';
   end if;
-  if not public.owns_cards(v_email, array(select c from unnest(v_cards) c where c not like 'pc:%')) then
+  if not public.owns_cards(v_email, array(select c from unnest(v_cards) c
+                                           where c not like 'pc:%' and c not like 'npc:%')) then
     raise exception 'You can only show cards you have.';
   end if;
 
@@ -2490,6 +2517,11 @@ drop function if exists public.set_player_card_showcase(text[]);
 -- needs no storage bucket. Anybody can see them, signed out too, like the
 -- cards on a player's page; they are only written through set_card_photo
 -- and clear_card_photo.
+--
+-- An NFL Player Card can take one too (Sam, 2026-11-06), slug 'n:{slug}'.
+-- There are hundreds of NFL teammates, so to keep the table small an
+-- account has at most six of those up, each under about 60 KB: a dozen
+-- accounts at their most is a few megabytes more.
 -- ===========================================================================
 
 create table if not exists public.card_photos (
@@ -2515,22 +2547,34 @@ set search_path = public
 as $$
 declare
   v_email text := auth.jwt() ->> 'email';
+  v_nfl   boolean := p_slug ~ '^n:[a-z0-9]+(-[a-z0-9]+)*$';
 begin
   if v_email is null then
     raise exception 'sign in first';
   end if;
-  if p_slug is null or p_slug !~ '^[a-z]+(-[a-z]+)*$' then
+  if p_slug is null or (p_slug !~ '^[a-z]+(-[a-z]+)*$' and not v_nfl) then
     raise exception 'Not a player: %', p_slug;
   end if;
-  if not exists (select 1 from public.player_cards
-                  where email = v_email and quantity > 0 and split_part(card_id, ':', 3) = p_slug) then
+  if v_nfl then
+    if not public.holds_nfl_player(v_email, substr(p_slug, 3)) then
+      raise exception 'You need an NFL card of that player to put a photo on his NFL Player Card.';
+    end if;
+    -- Six up, counting only teammates still held, whose cards show them.
+    if (select count(*) from public.card_photos
+         where email = v_email and slug like 'n:%' and slug <> p_slug
+           and public.holds_nfl_player(v_email, substr(slug, 3))) >= 6 then
+      raise exception 'You can have six NFL Player Card photos up. Take one down first.';
+    end if;
+  elsif not exists (select 1 from public.player_cards
+                     where email = v_email and quantity > 0 and split_part(card_id, ':', 3) = p_slug) then
     raise exception 'You need a card of that player to put a photo on his Player Card.';
   end if;
   if p_photo is null or p_photo !~ '^data:image/(webp|jpeg|png);base64,[A-Za-z0-9+/]+={0,2}$' then
     raise exception 'That is not a picture the page can show.';
   end if;
-  -- About 100 KB of picture; the page sends a third of that.
-  if length(p_photo) > 140000 then
+  -- About 100 KB of picture; the page sends a third of that. An NFL
+  -- Player Card's about 60 KB.
+  if length(p_photo) > (case when v_nfl then 80000 else 140000 end) then
     raise exception 'That picture is too big. Try a smaller one.';
   end if;
 
@@ -2576,12 +2620,14 @@ revoke all on function public.clear_card_photo(text, text) from public, anon;
 grant execute on function public.set_card_photo(text, text) to authenticated;
 grant execute on function public.clear_card_photo(text, text) to authenticated;
 
--- { "players": [slug, ...], "cards": { card_id: quantity },
+-- { "players": [slug, ...], "nfl": [slug, ...], "cards": { card_id: quantity },
 --   "earned": { slug: diamonds }, "photos": { slug: data url } } for the
 -- players this account has put up, and nothing else of its collection or
--- its awards. "earned" is what each of those Player Cards has paid it,
--- every season, which the card prints; "photos" the custom pictures on
--- them (card_photos, further down).
+-- its awards. "nfl" are the NFL Player Cards up ('npc:{slug}'), whose
+-- NFL cards are among "cards" and whose photos are under 'n:{slug}'.
+-- "earned" is what each of the six's Player Cards has paid it, every
+-- season, which the card prints; "photos" the custom pictures on them
+-- (card_photos, further down).
 create or replace function public.showcased_player_cards(p_email text)
 returns jsonb
 language sql
@@ -2591,11 +2637,14 @@ set search_path = public
 as $$
   select jsonb_build_object(
     'players', to_jsonb(s.player_cards),
+    'nfl', to_jsonb(s.nfl_cards),
     'cards', coalesce((
       select jsonb_object_agg(pc.card_id, pc.quantity)
         from public.player_cards pc
        where pc.email = s.email and pc.quantity > 0
-         and split_part(pc.card_id, ':', 3) = any(s.player_cards)), '{}'::jsonb),
+         and (split_part(pc.card_id, ':', 3) = any(s.player_cards)
+              or (split_part(pc.card_id, ':', 3) = any(s.nfl_cards)
+                  and public.is_nfl_card_id(regexp_replace(pc.card_id, ':holo2?$', ''))))), '{}'::jsonb),
     'earned', coalesce((
       select jsonb_object_agg(e.slug, e.total)
         from (select regexp_replace(da.award_key, '^pc-(.+)-w[0-9]+$', '\1') as slug,
@@ -2607,11 +2656,16 @@ as $$
     'photos', coalesce((
       select jsonb_object_agg(ph.slug, ph.photo)
         from public.card_photos ph
-       where ph.email = s.email and ph.slug = any(s.player_cards)), '{}'::jsonb))
+       where ph.email = s.email
+         and (ph.slug = any(s.player_cards) or ph.slug = any(array(select 'n:' || x from unnest(s.nfl_cards) x)))),
+      '{}'::jsonb))
     from (select p_email as email,
                  coalesce((select array(select substr(c, 4) from unnest(cs.cards) with ordinality as t(c, n)
                                          where c like 'pc:%' order by n)
-                             from public.card_showcases cs where cs.email = p_email), '{}') as player_cards) s;
+                             from public.card_showcases cs where cs.email = p_email), '{}') as player_cards,
+                 coalesce((select array(select substr(c, 5) from unnest(cs.cards) with ordinality as t(c, n)
+                                         where c like 'npc:%' order by n)
+                             from public.card_showcases cs where cs.email = p_email), '{}') as nfl_cards) s;
 $$;
 
 grant execute on function public.showcased_player_cards(text) to anon, authenticated;

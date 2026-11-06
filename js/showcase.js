@@ -2,7 +2,8 @@
    EGE Football — the showcase on a player page
    Up to six cards a player picks out of their collection to show off on
    their own page; any of the six can be one of their Player Cards instead
-   ('pc:{slug}' among the ids). Anybody can see it, signed in or not; only the player can
+   ('pc:{slug}' among the ids), or one of their NFL Player Cards
+   ('npc:{slug}', Sam 2026-11-06). Anybody can see it, signed in or not; only the player can
    change it, and only with cards they own. A card traded away comes down on
    its own (supabase/schema.sql prunes it when the trade goes through).
 
@@ -26,6 +27,7 @@ EGE.showcase = (function () {
   var ownPhotos = null;             /* and their Player Card photos */
   var ownEarned = null;             /* and what their Player Cards have earned */
   var PC = 'pc:';                   /* a slot holding a Player Card: 'pc:{slug}' */
+  var NPC = 'npc:';                 /* or an NFL teammate's: 'npc:{slug}' */
   var message = '';
 
   function el(tag, className, text) {
@@ -42,7 +44,9 @@ EGE.showcase = (function () {
     return Boolean(me && player && me.slug === player.slug);
   }
 
-  function isNfl(id) { return Boolean(EGE.nflCards && EGE.nflCards.isNflId(id)); }
+  function isNfl(id) {
+    return id.indexOf(NPC) === 0 || Boolean(EGE.nflCards && EGE.nflCards.isNflId(id));
+  }
 
   function savedIds(player) {
     var hit = cache[player.email];
@@ -52,24 +56,36 @@ EGE.showcase = (function () {
   /* A slot's Player Card: 'pc:{slug}' worked out from the cards of that
      player the owner holds (the editor's own collection once read, else
      what showcased_player_cards handed over), with what it has earned and
-     its photo. Null for a card id, or a player with no cards behind it. */
+     its photo. Null for a card id, or a player with no cards behind it.
+     An NFL teammate's ('npc:{slug}') once the NFL cards are read; what it
+     has earned is not kept apart, and its photo is under 'n:{slug}'. */
   function slotPlayerCard(id) {
+    var saved = (cache[shown.email] || {}).players || {};
+    var photos = editing && ownPhotos ? ownPhotos : saved.photos || {};
+    if (id.indexOf(NPC) === 0) {
+      var slug = id.slice(NPC.length);
+      if (!EGE.nflCards || !EGE.nflCards.loaded() || !EGE.nflCards.playerOf(slug)) { return null; }
+      var npc = EGE.nflCards.playerCard(slug, (editing && ownCards) || saved.cards || {});
+      if (!npc.copies) { return null; }
+      npc.earned = null;
+      npc.photo = photos['n:' + slug] || null;
+      return npc;
+    }
     if (id.indexOf(PC) !== 0) { return null; }
     var p = EGE.playerBySlug(id.slice(PC.length));
     if (!p) { return null; }
-    var saved = (cache[shown.email] || {}).players || {};
     var pc = EGE.cards.playerCard(p, (editing && ownCards) || saved.cards || {});
     if (!pc.copies) { return null; }
     var earned = (editing && ownEarned) || saved.earned;
     pc.earned = earned ? (earned[p.slug] || 0) : null;
-    pc.photo = (editing && ownPhotos ? ownPhotos : saved.photos || {})[p.slug] || null;
+    pc.photo = photos[p.slug] || null;
     return pc;
   }
 
   function playerCardNode(pc) {
     var face = EGE.cardsView.playerCardFace(pc, pc.earned, pc.photo);
     face.setAttribute('role', 'img');
-    face.setAttribute('aria-label', pc.player.name + ' Player Card, ' +
+    face.setAttribute('aria-label', pc.player.name + (pc.nfl ? ' NFL' : '') + ' Player Card, ' +
       (pc.rank ? pc.rank.name : 'unranked') + ', ' + Math.round(pc.points) + ' fantasy points collected');
     return face;
   }
@@ -139,7 +155,7 @@ EGE.showcase = (function () {
       if (item.pc) {
         var pc = item.pc;
         var face = EGE.cardsView.playerCardFace(pc, pc.earned, pc.photo);
-        EGE.cardsView.pressable(face, pc.player.name + ' Player Card, ' +
+        EGE.cardsView.pressable(face, pc.player.name + (pc.nfl ? ' NFL' : '') + ' Player Card, ' +
           (pc.rank ? pc.rank.name : 'unranked') + ', ' + Math.round(pc.points) + ' fantasy points collected',
           function () { EGE.cardsView.zoomPlayer(pc, { whose: mine ? null : player.first }); });
         grid.appendChild(face);
@@ -259,22 +275,27 @@ EGE.showcase = (function () {
         draw();
       }
 
-      /* Your Player Cards first, then your cards: either goes in the slot. */
+      /* Your Player Cards first, then your NFL Player Cards, then your
+         cards: any of them goes in the slot. */
       var pcs = EGE.players.map(function (p) { return EGE.cards.playerCard(p, owned); })
         .filter(function (pc) { return pc.copies > 0 && editing.indexOf(PC + pc.player.slug) === -1; });
-      if (pcs.length) {
-        body.appendChild(el('h4', 'ege-showcase__pickhead', 'Player Cards'));
+      var npcs = EGE.nflCards && EGE.nflCards.loaded() ? EGE.nflCards.playerCards(owned).filter(function (pc) {
+        return editing.indexOf(NPC + pc.player.slug) === -1;
+      }) : [];
+      [[pcs, 'Player Cards', PC, ''], [npcs, 'NFL Player Cards', NPC, 'n:']].forEach(function (kind) {
+        if (!kind[0].length) { return; }
+        body.appendChild(el('h4', 'ege-showcase__pickhead', kind[1]));
         var pgrid = el('div', 'ege-tradegrid ege-tradegrid--tall');
-        pcs.forEach(function (pc) {
-          var face = EGE.cardsView.playerCardFace(pc, null, photos[pc.player.slug] || null);
-          EGE.cardsView.pressable(face, 'Put up ' + pc.player.name + '\u2019s Player Card', function () {
-            put(PC + pc.player.slug);
+        kind[0].forEach(function (pc) {
+          var face = EGE.cardsView.playerCardFace(pc, null, photos[kind[3] + pc.player.slug] || null);
+          EGE.cardsView.pressable(face, 'Put up ' + pc.player.name + '\u2019s ' + kind[1].replace(/s$/, ''), function () {
+            put(kind[2] + pc.player.slug);
           });
           pgrid.appendChild(face);
         });
         body.appendChild(pgrid);
-        body.appendChild(el('h4', 'ege-showcase__pickhead', 'Cards'));
-      }
+      });
+      if (pcs.length || npcs.length) { body.appendChild(el('h4', 'ege-showcase__pickhead', 'Cards')); }
 
       if (!cards.length) {
         body.appendChild(el('p', 'fb-meta', got

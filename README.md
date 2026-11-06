@@ -2545,10 +2545,14 @@ up. Only cards you own can go up, and a card traded away comes down on its
 own. A player with nothing up has no Showcase panel for anybody else.
 
 Any of the six slots can hold one of your Player Cards instead: the picker
-lists your Player Cards first, then your cards, and either goes in the slot
-the same way, with the same Replace and Remove. A Player Card is kept as
-`pc:{slug}` among the showcase's ids, can go up once you hold a card of that
-player, and comes down on its own once you hold none.
+lists your Player Cards first, then your NFL Player Cards, then your cards,
+and any of them goes in the slot the same way, with the same Replace and
+Remove. A Player Card is kept as `pc:{slug}` among the showcase's ids, can
+go up once you hold a card of that player, and comes down on its own once
+you hold none. An NFL Player Card is `npc:{slug}` (Sam, 2026-11-06), goes
+up once it is made (30 FPTS) and comes down once you hold no NFL card of
+him; `showcased_player_cards()` hands its cards and photo over with the
+rest.
 
 **Anything on a showcase opens up close.** A card opens the way it does in
 the collection, with who else has it. A Player Card opens as big as a card up
@@ -2750,6 +2754,13 @@ without a card of that player. Anybody can see them, signed out too, the
 same as a player's page. On the admin page the card table counts each
 account's photos with a **Remove** that takes them all down, and Clear
 library takes them down too.
+
+An NFL Player Card takes a photo the same way (Sam, 2026-11-06), kept under
+the key `n:{slug}`. There are hundreds of NFL teammates, so to keep the
+table small an account has at most **six** NFL photos up (counting only
+teammates it still holds a card of), each shrunk to under about 60 KB
+(`set_card_photo()` refuses 80 KB). With six up, the other NFL Player
+Cards' photo buttons are greyed out until one comes down.
 
 **Player Cards can go in the showcase** on the player's own page, in the
 same six slots as cards (see The showcase). Anybody can see them, signed
