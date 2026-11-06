@@ -4717,3 +4717,123 @@ revoke all on function public.pay_nfl_card_bonuses(integer, jsonb) from public, 
 grant execute on function public.pay_nfl_card_bonuses(integer, jsonb) to authenticated;
 
 notify pgrst, 'reload schema';
+
+-- ===========================================================================
+-- The Want List
+--
+-- What each player is looking for in trades (Sam, 2026-11-06): teams,
+-- players and single cards, on the Trades page (data/card-wants.js). The
+-- page shows who has a card on your list and which of your cards are on
+-- theirs. One row an account, readable by every signed-in player, and set
+-- only through set_card_wants.
+--
+-- A want is one of
+--   team:{key}       every card of a team, by its key in EGE.teams
+--                    ('detroit', 'ohioState')
+--   player:{slug}    every card of one of the six or an NFL teammate
+--   card:{id}        one card, exactly that one
+-- and a team or a player can carry a rarity floor ('player:dj-moore@epic').
+-- ===========================================================================
+
+create table if not exists public.card_wants (
+  email      text primary key,
+  wants      text[]      not null default '{}',
+  updated_at timestamptz not null default now()
+);
+
+alter table public.card_wants enable row level security;
+
+drop policy if exists "card wants readable by players" on public.card_wants;
+create policy "card wants readable by players"
+  on public.card_wants for select to authenticated
+  using (true);
+
+create or replace function public.is_card_want(p_want text)
+returns boolean
+language sql
+immutable
+as $$
+  select coalesce(
+    p_want ~ '^(team:[A-Za-z]+|player:[a-z0-9]+(-[a-z0-9]+)*)(@(uncommon|rare|epic|legendary|mystic|iconic))?$'
+    or (p_want like 'card:%' and public.is_any_card_id(substr(p_want, 6))), false);
+$$;
+
+-- The whole list at once, in the order the page keeps it: thirty at most,
+-- each one once.
+create or replace function public.set_card_wants(p_wants text[])
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  v_wants text[] := coalesce(p_wants, '{}');
+  v_want  text;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  if coalesce(array_length(v_wants, 1), 0) > 30 then
+    raise exception 'A Want List holds thirty.';
+  end if;
+  foreach v_want in array v_wants loop
+    if not public.is_card_want(v_want) then
+      raise exception 'Not something to want: %', v_want;
+    end if;
+  end loop;
+  if (select count(distinct w) from unnest(v_wants) w) <> coalesce(array_length(v_wants, 1), 0) then
+    raise exception 'Each one goes on the list once.';
+  end if;
+
+  insert into public.card_wants (email, wants, updated_at)
+  values (v_email, v_wants, now())
+  on conflict (email) do update set wants = excluded.wants, updated_at = now();
+end;
+$$;
+
+-- Who else has what a list could be after, as one answer however many
+-- cards it is ({ email: { card id: copies } }), so Supabase's 1000-row cap
+-- never cuts it short. The page sends the season and player of every card
+-- a team or a player on the list could be ('2025:dj-moore', which every
+-- card id carries second and third) and the single cards it names; Postgres
+-- cannot tell a card's team or rarity from its id, so this hands back a
+-- little more than matches and the page keeps only what does. Everybody's
+-- collection is readable by every signed-in player already.
+create or replace function public.card_want_holders(p_keys text[], p_cards text[])
+returns jsonb
+language plpgsql
+stable
+set search_path = public
+as $$
+declare
+  v_email text := lower(auth.jwt() ->> 'email');
+  v_out   jsonb;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  if coalesce(array_length(p_keys, 1), 0) > 5000 or coalesce(array_length(p_cards, 1), 0) > 100 then
+    raise exception 'That is more than a Want List can ask for.';
+  end if;
+
+  select coalesce(jsonb_object_agg(s.email, s.cards), '{}'::jsonb)
+    into v_out
+    from (select lower(pc.email) as email, jsonb_object_agg(pc.card_id, pc.quantity) as cards
+            from public.player_cards pc
+           where pc.quantity > 0
+             and lower(pc.email) <> v_email
+             and (pc.card_id = any(coalesce(p_cards, '{}'))
+                  or split_part(pc.card_id, ':', 2) || ':' || split_part(pc.card_id, ':', 3)
+                     = any(coalesce(p_keys, '{}')))
+           group by lower(pc.email)) s;
+  return v_out;
+end;
+$$;
+
+revoke all on function public.set_card_wants(text[]) from public, anon;
+revoke all on function public.card_want_holders(text[], text[]) from public, anon;
+grant execute on function public.set_card_wants(text[]) to authenticated;
+grant execute on function public.card_want_holders(text[], text[]) to authenticated;
+
+notify pgrst, 'reload schema';

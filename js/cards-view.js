@@ -56,6 +56,9 @@ EGE.cardsView = (function () {
     pulled: {},         /* by event: every card this player has pulled from its packs, { id: true } */
     locks: {},          /* card id -> when each traded event copy can go again */
     opened: {},         /* by pack held to perDay: when each of the last 24 hours' was opened (ms) */
+    wants: null,        /* every account's Want List, { email: [want] }; null until read */
+    wantsFailed: false, /* the lists could not be read */
+    wantHas: null,      /* who else has what yours is after, { email: { card id: copies } } */
     filter: { league: 'ege', rarity: 'all', kind: 'all', player: 'all', sort: 'rarity', merge: false }
   };
 
@@ -1386,12 +1389,37 @@ EGE.cardsView = (function () {
       trade.addEventListener('click', function () { tradeFor(opts.tradeWith, card); });
       actions.appendChild(trade);
     }
+    /* Any card not out of your own binder can go on your Want List. */
+    if (viewer && !opts.sell && !card.reward && state.player === viewer && state.wants) {
+      actions.appendChild(wantButton(card, status));
+    }
     var done = el('button', 'fb-btn fb-btn--primary', 'Done');
     done.type = 'button';
     done.addEventListener('click', closeRip);
     actions.appendChild(done);
     stage.appendChild(actions);
     done.focus({ preventScroll: true });
+  }
+
+  /* Want it / Wanted, up close: puts the card on your Want List or takes it
+     off. */
+  function wantButton(card, status) {
+    var key = 'card:' + card.id;
+    var b = el('button', 'fb-btn ege-zoom__want');
+    b.type = 'button';
+    function mark() {
+      var on = Boolean(wantOn(key));
+      b.textContent = on ? 'Wanted' : 'Want it';
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      b.title = on ? 'Take it off your Want List' : 'Put it on your Want List';
+    }
+    b.addEventListener('click', function () {
+      if (toggleWant(key) === null) { status.textContent = 'Your Want List is full. Take something off first.'; }
+      mark();
+    });
+    mark();
+    return b;
   }
 
   /* Who else has a card and how many, into `dd` once it is read: each
@@ -2114,9 +2142,10 @@ EGE.cardsView = (function () {
   var LEAGUES = [['ege', 'EGE'], ['nfl', 'NFL']];
   var KINDS = [['all', 'All cards'], ['performance', 'Performances'], ['play', 'Plays']];
 
-  /* The six's cards, events' and rewards' included, or the NFL teammates'. */
+  /* The six's cards, events' and rewards' included, or the NFL teammates'
+     ('all', both, only for a Want List's cards in the trade builder). */
   function leagueFits(card, league) {
-    return league === 'nfl' ? Boolean(card.nfl) : !card.nfl;
+    return league === 'all' || (league === 'nfl' ? Boolean(card.nfl) : !card.nfl);
   }
 
   /* 'all', one of the six or one NFL teammate by slug, or 'team:DET' for
@@ -2945,9 +2974,13 @@ EGE.cardsView = (function () {
      menu itself is never redrawn, so the search box keeps its place while
      it is typed in. `holo`, given, adds { label } to the orders: just the
      cards one more copy of would make a holo for whoever holds { counts() },
-     rarest first. Hands back { node, sort(cards, first) }. */
-  function finder(onChange, holo) {
+     rarest first. `want`, given, adds { label } the same way: just the cards
+     a Want List is after ({ fits(card) }), rarest first; `start` 'want'
+     opens on it, with the EGE and NFL cards both (neither button on) until
+     one is picked. Hands back { node, sort(cards, first) }. */
+  function finder(onChange, holo, want, start) {
     var f = Object.assign({}, FIND_DEFAULT);
+    if (want && start === 'want') { f.sort = 'want'; f.league = 'all'; }
     var wrap = el('div', 'ege-finder');
     var toggle = el('button', 'fb-btn ege-filtertoggle ege-finder__toggle');
     toggle.type = 'button';
@@ -3040,7 +3073,7 @@ EGE.cardsView = (function () {
       })).concat([['holo', 'Holo'], ['holo2', 'Holo II']]).concat(eventOptions())),
       sort: select('sort', 'Order', [['rarity', 'Rarest first'], ['points', 'Highest score'],
         ['newest', 'Newest pulls'], ['year', 'By year'], ['game', 'By game']]
-        .concat(holo ? [['holo', holo.label]] : []))
+        .concat(holo ? [['holo', holo.label]] : []).concat(want ? [['want', want.label]] : []))
     };
 
     var foot = el('div', 'ege-finder__foot');
@@ -3071,13 +3104,17 @@ EGE.cardsView = (function () {
          when each was first pulled, for Newest pulls. */
       sort: function (cards, first) {
         var only = f.sort === 'holo' && holo ? holo.counts() || {} : null;
-        return cards.filter(function (card) { return finds(card, f) && (!only || oneAway(card, only)); })
-          .sort(sorter(f.sort, first || {}));
+        var wanted = f.sort === 'want' && want ? want.fits : null;
+        return cards.filter(function (card) {
+          return finds(card, f) && (!only || oneAway(card, only)) && (!wanted || wanted(card));
+        }).sort(sorter(f.sort, first || {}));
       },
       changed: function () { return changes() > 0; },
       /* Showing the cards that would make a holo, and whether the copies
          that decides it are still being read. */
       holo: function () { return f.sort === 'holo'; },
+      /* Showing the cards a Want List is after. */
+      want: function () { return f.sort === 'want'; },
       waiting: function () { return f.sort === 'holo' && Boolean(holo) && holo.counts() === null; }
     };
   }
@@ -3086,9 +3123,11 @@ EGE.cardsView = (function () {
 
   /* `preset` starts it already filled in: { to: email, take: [card id] },
      from a card of somebody else's (tradeFor). What you give is still
-     yours to pick, and nothing goes until Send. */
+     yours to pick, and nothing goes until Send. `wants`, from the Want
+     List, opens both sides on the cards the two lists are after. */
   function openTradeBuilder(preset) {
     var ask = preset && preset.to ? preset : null;
+    var startOn = ask && ask.wants ? 'want' : null;
     var build = { to: null, give: [], take: [], theirs: null, theirsFirst: {}, theirsLocks: {}, missing: null };
     var stage = openOverlay('Propose a trade', 'ege-rip__stage--trade');
     var panel = el('div', 'fb-panel ege-tradebuilder');
@@ -3131,7 +3170,7 @@ EGE.cardsView = (function () {
       top.appendChild(title);
       top.appendChild(tag);
       holder.appendChild(top);
-      var find = finder(function () { fill(); }, side.holo);
+      var find = finder(function () { fill(); }, side.holo, side.want, startOn);
       holder.appendChild(find.node);
       var grid = el('div', 'ege-tradegrid');
       holder.appendChild(grid);
@@ -3227,7 +3266,7 @@ EGE.cardsView = (function () {
         return node;
       }
 
-      return { fill: fill, grid: grid, holo: find.holo };
+      return { fill: fill, grid: grid, holo: find.holo, want: find.want };
     }
 
     /* Each side's Sort menu can also show just the cards one more copy of
@@ -3241,7 +3280,8 @@ EGE.cardsView = (function () {
       locks: function () { return state.locks; },
       picked: function () { return build.give; },
       none: function () { return 'No cards of yours to offer here.'; },
-      holo: { label: 'Cards they can holo', counts: function () { return build.theirs; } }
+      holo: { label: 'Cards they can holo', counts: function () { return build.theirs; } },
+      want: { label: 'Cards they want', fits: function (card) { return Wants.fitsAny(theirWants(build.to), card); } }
     });
     var theirsSide = column({
       title: function () { return 'You get from ' + firstName(build.to); },
@@ -3250,7 +3290,8 @@ EGE.cardsView = (function () {
       locks: function () { return build.theirsLocks; },
       picked: function () { return build.take; },
       none: function () { return firstName(build.to) + ' has no cards here.'; },
-      holo: { label: 'Cards you can holo', counts: function () { return state.owned; } }
+      holo: { label: 'Cards you can holo', counts: function () { return state.owned; } },
+      want: { label: 'Cards you want', fits: function (card) { return Wants.fitsAny(myWants(), card); } }
     });
 
     function summarize() {
@@ -3268,10 +3309,11 @@ EGE.cardsView = (function () {
     }
 
     /* Their side, and yours too while it is showing the cards that would
-       finish one of their holos, since that is about whoever it is with. */
+       finish one of their holos or are on their Want List, since that is
+       about whoever it is with. */
     function drawTheirs() {
       theirsSide.fill();
-      if (mineSide.holo()) { mineSide.fill(); }
+      if (mineSide.holo() || mineSide.want()) { mineSide.fill(); }
       summarize();
     }
 
@@ -3329,6 +3371,469 @@ EGE.cardsView = (function () {
     choose(pick.value, ask && pick.value === ask.to ? ask.take : null);
     /* Focus goes on the builder, not the drop-down: a phone opens a
        focused drop-down's picker straight away. */
+    panel.tabIndex = -1;
+    panel.focus({ preventScroll: true });
+  }
+
+  /* --- the Want List -------------------------------------------------------
+
+     Teams, players and single cards each player is looking for (Sam,
+     2026-11-06; data/card-wants.js), under the trades. Your list first, then
+     everybody with a card on it or a list with a card of yours on it, read
+     the way a trade is: what they have that you want, and what you have
+     that they want, with Trade to open the builder on just those. */
+
+  var Wants = EGE.cardWants;
+  var WANT_STRIP = 5;      /* one row a side: five cards, or four and a "+N" */
+  var WANT_SAVE_MS = 700;  /* a run of taps in the picker is one save */
+
+  /* `timer` is a save waiting to go, `sending` how many are on their way:
+     while either is, your own list as read is older than the page's. */
+  var wantSave = { timer: null, sending: 0 };
+  var wantAsked = 0;
+  var wantAskSig = '';     /* what was last asked of card_want_holders */
+
+  function myWants() { return (state.wants && state.wants[me()]) || []; }
+
+  function theirWants(email) { return (state.wants && state.wants[String(email || '').toLowerCase()]) || []; }
+
+  /* The want on your list for what `key` is for (any floor), or null. */
+  function wantOn(key) {
+    var t = Wants.target(key);
+    return myWants().filter(function (k) { return Wants.target(k) === t; })[0] || null;
+  }
+
+  /* Puts the list straight on the page, and saves it a moment later. */
+  function putWants(next) {
+    if (!state.wants) { state.wants = {}; }
+    state.wants[me()] = next;
+    renderWants();
+    window.clearTimeout(wantSave.timer);
+    var player = state.player;
+    wantSave.timer = window.setTimeout(function () {
+      wantSave.timer = null;
+      wantSave.sending += 1;
+      EGE.cardStore.setWants(next).then(function (res) {
+        wantSave.sending -= 1;
+        if (state.player !== player) { return; }
+        if (!res.ok) { say(res.message, true); return; }
+        loadWantHolders(false);
+      });
+    }, WANT_SAVE_MS);
+  }
+
+  /* Everybody's lists as read. Your own stays as the page has it while a
+     change to it is still on its way; null (not read) keeps what there
+     was. */
+  function takeWantLists(lists) {
+    if (!lists) {
+      if (!state.wants) { state.wantsFailed = true; }
+      return;
+    }
+    if ((wantSave.timer || wantSave.sending) && state.wants) { lists[me()] = myWants(); }
+    state.wants = lists;
+    state.wantsFailed = false;
+  }
+
+  /* Puts what `key` is for on your list, or takes it off if it is on
+     already. Hands back whether it is on now, or null when the list is
+     full. */
+  function toggleWant(key) {
+    var on = wantOn(key);
+    var list = myWants().slice();
+    if (on) {
+      list.splice(list.indexOf(on), 1);
+      putWants(list);
+      return false;
+    }
+    if (list.length >= Wants.MAX) { return null; }
+    list.push(key);
+    putWants(list);
+    return true;
+  }
+
+  /* Who has what is on your list, one row an account, as a string to see
+     whether a fresh read changed anything. */
+  function holderSig(got) {
+    return Object.keys(got || {}).sort().map(function (email) {
+      var cards = got[email] || {};
+      return email + '=' + Object.keys(cards).sort().map(function (id) { return id + 'x' + cards[id]; }).join(',');
+    }).join(';');
+  }
+
+  /* Reads who has what your list is after (card_want_holders) and redraws
+     the matches if it moved. `quiet` is the background check, which leaves
+     everything as it is while the page is busy and tries again next time;
+     `onlyIfNew` skips it when the question is the one already answered
+     (the NFL cards landing again with photos, say). */
+  function loadWantHolders(quiet, onlyIfNew) {
+    var player = state.player;
+    if (!player || !state.wants) { return Promise.resolve(); }
+    var ask = Wants.ask(myWants());
+    var sig = JSON.stringify(ask);
+    if (onlyIfNew && sig === wantAskSig && state.wantHas) { return Promise.resolve(); }
+    wantAskSig = sig;
+    var asked = wantAsked += 1;
+    return EGE.cardStore.wantHolders(ask).then(function (got) {
+      if (state.player !== player || asked !== wantAsked || got === null) { return; }
+      if (quiet && busy()) { return; }
+      var moved = state.wantHas === null || holderSig(got) !== holderSig(state.wantHas);
+      state.wantHas = got;
+      if (moved) { renderWantMatches(); }
+    });
+  }
+
+  /* Everybody's lists in one string, for the same. */
+  function listsSig(lists) {
+    return Object.keys(lists || {}).sort().map(function (email) {
+      return email + '=' + (lists[email] || []).join(',');
+    }).join(';');
+  }
+
+  /* A picture on a want or a pick: a logo, or a headshot in a circle (an
+     NFL teammate's falls back to the stand-in). */
+  function wantImage(info, className) {
+    var img = el('img', className + (info.round ? ' ' + className + '--round' : ''));
+    img.src = info.image;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    if (info.nfl || (info.card && info.card.nfl)) { standIn(img, info.slug || (info.card && info.card.slug)); }
+    else { img.addEventListener('error', function () { img.remove(); }); }
+    if (!info.ground) { return img; }
+    /* A team's mark on its own colour, white where it would vanish into
+       it (`whiteMark`, Alabama's). */
+    var box = el('span', className + ' ' + className + '--ground');
+    box.style.setProperty('--ground', info.ground);
+    img.className = 'ege-wantmark' + (info.white ? ' ege-wantmark--white' : '');
+    box.appendChild(img);
+    return box;
+  }
+
+  /* One want on your list: its picture, its name, its floor or which card,
+     and an x to take it off. A single card's name opens it up close. */
+  function wantChip(key) {
+    var w = Wants.parse(key);
+    var info = w ? Wants.label(key) : null;
+    if (!info) { return null; }
+    var chipNode = el('span', 'ege-want ege-want--' + w.kind);
+    if (info.card) { chipNode.style.setProperty('--rarity', EGE.cards.rarity(info.card.rarity).color); }
+    if (info.image) { chipNode.appendChild(wantImage(info, 'ege-want__img')); }
+    var name;
+    if (info.card) {
+      name = el('button', 'ege-want__name ege-linkbtn', info.name);
+      name.type = 'button';
+      name.addEventListener('click', function () { zoom(info.card, { owned: state.owned[info.card.id] || 0 }); });
+    } else {
+      name = el('span', 'ege-want__name', info.name);
+    }
+    chipNode.appendChild(name);
+    if (info.sub) {
+      var sub = el('span', 'ege-want__sub', info.sub);
+      if (w.floor) { sub.style.color = EGE.cards.rarity(w.floor).color; }
+      chipNode.appendChild(sub);
+    }
+    var x = el('button', 'ege-want__x', '×');
+    x.type = 'button';
+    x.setAttribute('aria-label', 'Take ' + info.name + ' off your Want List');
+    x.addEventListener('click', function () { toggleWant(key); });
+    chipNode.appendChild(x);
+    return chipNode;
+  }
+
+  function renderWants() {
+    var list = byId('wantsList');
+    if (!list) { return; }
+    list.innerHTML = '';
+    var mine = myWants();
+    byId('wantsCount').textContent = mine.length ? mine.length + ' / ' + Wants.MAX : '';
+    byId('wantsAdd').disabled = !state.loaded || !state.wants;
+    if (!state.wants) {
+      list.appendChild(el('p', 'fb-meta', state.wantsFailed ? 'The Want List could not be loaded.' : 'Loading…'));
+    } else if (!mine.length) {
+      list.appendChild(el('p', 'fb-meta', 'Add the teams, players or cards you are looking for.'));
+    } else {
+      mine.forEach(function (key) {
+        var chipNode = wantChip(key);
+        if (chipNode) { list.appendChild(chipNode); }
+      });
+    }
+    renderWantMatches();
+  }
+
+  /* Everybody else with a card on your list, or a list with a card of
+     yours on it: the most you want first. */
+  function renderWantMatches() {
+    var holder = byId('wantMatches');
+    if (!holder) { return; }
+    holder.innerHTML = '';
+    if (!state.loaded || !state.wants) { return; }
+    var mine = myWants();
+    var rows = partners().map(function (p) {
+      var email = p.email.toLowerCase();
+      return {
+        player: p,
+        has: mine.length && state.wantHas ? Wants.matching(mine, state.wantHas[email]) : [],
+        wants: Wants.matching(theirWants(email), state.owned)
+      };
+    }).filter(function (r) { return r.has.length || r.wants.length; })
+      .sort(function (a, b) { return b.has.length - a.has.length || b.wants.length - a.wants.length; });
+
+    if (!rows.length) {
+      if (mine.length) {
+        holder.appendChild(el('p', 'fb-meta', state.wantHas ? 'Nobody has a card on your list yet.' : 'Loading…'));
+      }
+      return;
+    }
+    rows.forEach(function (r) { holder.appendChild(wantRow(r)); });
+  }
+
+  function wantRow(r) {
+    var row = el('article', 'ege-trade ege-wantmatch');
+    var head = el('div', 'ege-trade__head');
+    var who = el('div', 'ege-trade__who');
+    var face = el('img', 'ege-avatar ege-avatar--sm');
+    face.src = r.player.headshot;
+    face.alt = '';
+    who.appendChild(face);
+    who.appendChild(el('strong', null, r.player.name));
+    head.appendChild(who);
+    function trade() { openTradeBuilder({ to: r.player.email, take: [], wants: true }); }
+    var go = actionButton('Trade', 'fb-btn--primary', trade);
+    go.title = 'Open a trade with ' + r.player.first + ', showing just these cards';
+    head.appendChild(go);
+    row.appendChild(head);
+
+    var sides = el('div', 'ege-trade__sides');
+    sides.appendChild(wantSide(r.has.length ? 'Has ' + r.has.length + ' you want' : 'Has none you want', r.has,
+      function (card) { zoom(card, { tradeWith: r.player.email }); }, trade));
+    sides.appendChild(el('span', 'ege-trade__swap', '⇄'));
+    sides.appendChild(wantSide(r.wants.length ? 'Wants ' + r.wants.length + ' of yours' : 'Wants none of yours', r.wants,
+      function (card) { zoom(card, { owned: state.owned[card.id] || 0 }); }, trade));
+    row.appendChild(sides);
+    return row;
+  }
+
+  /* One side of a match: the rarest few in one row, each up close on a
+     tap, and a "+N" for the rest that opens the trade. */
+  function wantSide(label, cards, open, trade) {
+    var side = el('div', 'ege-trade__side');
+    side.appendChild(el('span', 'ege-trade__label', label));
+    var strip = el('div', 'ege-trade__cards' + (cards.length ? ' ege-wantmatch__cards' : ''));
+    if (!cards.length) { strip.appendChild(el('span', 'ege-trade__nothing', 'Nothing')); }
+    var shown = cards.length > WANT_STRIP ? WANT_STRIP - 1 : cards.length;
+    cards.slice(0, shown).forEach(function (card) {
+      var node = cardEl(card, {});
+      pressable(node, describe(card), function () { open(card); });
+      strip.appendChild(node);
+    });
+    if (cards.length > shown) {
+      var more = el('button', 'ege-wantmatch__more', '+' + (cards.length - shown));
+      more.type = 'button';
+      more.setAttribute('aria-label', (cards.length - shown) + ' more, in the trade builder');
+      more.addEventListener('click', trade);
+      strip.appendChild(more);
+    }
+    side.appendChild(strip);
+    return side;
+  }
+
+  /* --- picking what to want ------------------------------------------------
+
+     Teams, Players or Cards along the top. Teams and Players are a search
+     and a list to tap in and out, with a rarity floor for whatever is
+     tapped in next; Cards is every card out, with the trade builder's Sort
+     menu, a few rows at a time. Nothing waits on Done: each tap is on the
+     list straight away. */
+  var WANT_KINDS = [['team', 'Teams'], ['player', 'Players'], ['card', 'Cards']];
+
+  function openWantPicker() {
+    if (!state.loaded || !state.wants) { return; }
+    var kind = 'team';
+    var stage = openOverlay('Want List', 'ege-rip__stage--trade');
+    var panel = el('div', 'fb-panel ege-tradebuilder ege-wantpicker');
+    stage.appendChild(panel);
+
+    var head = el('div', 'fb-panel__head');
+    var kinds = el('div', 'ege-finder__kinds ege-wantpicker__kinds');
+    var kindChips = WANT_KINDS.map(function (k) {
+      var b = chip(k[1], kind === k[0], function () {
+        if (kind === k[0]) { return; }
+        kind = k[0];
+        search.value = '';
+        draw();
+      });
+      b.classList.add('ege-filterchip');
+      b.dataset.kind = k[0];
+      kinds.appendChild(b);
+      return b;
+    });
+    head.appendChild(kinds);
+    panel.appendChild(head);
+
+    var body = el('div', 'fb-panel__body fb-stack');
+    var bar = el('div', 'ege-wantpicker__bar');
+    var search = el('input', 'fb-input ege-wantpicker__search');
+    search.type = 'search';
+    search.autocomplete = 'off';
+    search.addEventListener('input', function () { drawList(); });
+    var floor = el('select', 'fb-select ege-filterselect ege-wantpicker__floor');
+    floor.setAttribute('aria-label', 'Rarity');
+    floor.appendChild(new Option('Any rarity', ''));
+    Wants.floors().forEach(function (key) { floor.appendChild(new Option(EGE.cards.rarity(key).name + ' or better', key)); });
+    bar.appendChild(search);
+    bar.appendChild(floor);
+    body.appendChild(bar);
+    var list = el('div', 'ege-wantopts');
+    body.appendChild(list);
+
+    /* The Cards side: the builder's Sort menu over every card out. */
+    var cardsBox = el('div', 'fb-stack');
+    var find = finder(function () { fillCards(); });
+    var grid = el('div', 'ege-tradegrid ege-wantpicker__grid');
+    cardsBox.appendChild(find.node);
+    cardsBox.appendChild(grid);
+    body.appendChild(cardsBox);
+    panel.appendChild(body);
+
+    var foot = el('div', 'fb-panel__foot');
+    var note = el('span', 'fb-meta');
+    var done = el('button', 'fb-btn fb-btn--primary', 'Done');
+    done.type = 'button';
+    done.addEventListener('click', closeRip);
+    foot.appendChild(note);
+    foot.appendChild(done);
+    panel.appendChild(foot);
+
+    function counted(full) {
+      note.textContent = full ? 'Your Want List is full. Take something off first.'
+        : myWants().length + ' / ' + Wants.MAX + ' on your list';
+    }
+
+    /* Taps one in or out; the floor picked goes with a team or a player
+       tapped in. Hands back whether it is on now. */
+    function tap(key) {
+      var on = toggleWant(key);
+      counted(on === null);
+      return on === true;
+    }
+
+    function option(w, info) {
+      var b = el('button', 'ege-wantopt');
+      b.type = 'button';
+      if (info.image) { b.appendChild(wantImage(info, 'ege-wantopt__img')); }
+      var words = el('span', 'ege-wantopt__words');
+      words.appendChild(el('span', 'ege-wantopt__name', info.name));
+      var sub = el('span', 'ege-wantopt__sub');
+      words.appendChild(sub);
+      b.appendChild(words);
+      function mark() {
+        var on = wantOn(Wants.make(w.kind, w.value));
+        var at = on ? Wants.parse(on) : null;
+        b.classList.toggle('is-on', Boolean(on));
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        sub.textContent = at && at.floor ? EGE.cards.rarity(at.floor).name + '+' : info.sub || '';
+      }
+      b.addEventListener('click', function () {
+        tap(Wants.make(w.kind, w.value, floor.value));
+        mark();
+      });
+      mark();
+      return b;
+    }
+
+    function drawList() {
+      list.innerHTML = '';
+      var words = search.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+      var options = [];
+      if (kind === 'team') {
+        options = Wants.teams().filter(function (t) {
+          var low = (t.name + ' ' + t.short).toLowerCase();
+          return words.every(function (word) { return low.indexOf(word) !== -1; });
+        }).map(function (t) {
+          return [{ kind: 'team', value: t.key }, { name: t.name, sub: '', image: t.logo, ground: t.ground, white: t.white, round: false }];
+        });
+      } else {
+        options = Wants.players(search.value, 40).map(function (p) {
+          return [{ kind: 'player', value: p.slug }, { name: p.name, sub: p.sub, image: p.headshot, round: true, nfl: p.nfl, slug: p.slug }];
+        });
+      }
+      if (!options.length) {
+        list.appendChild(el('p', 'fb-meta', 'Nothing matches that.'));
+        return;
+      }
+      options.forEach(function (o) { list.appendChild(option(o[0], o[1])); });
+    }
+
+    /* Every card out, the six's and their NFL teammates', a few rows at a
+       time like the builder's sides. */
+    var cardList = [];
+    var drawn = 0;
+    var marker = el('div', 'ege-binder__more');
+    marker.setAttribute('aria-hidden', 'true');
+    var watch = window.IntersectionObserver ? new window.IntersectionObserver(function (entries) {
+      if (entries.some(function (e) { return e.isIntersecting; }) && marker.isConnected) { more(perRow(grid) * 4); }
+    }, { root: grid, rootMargin: '0px 0px 360px 0px' }) : null;
+
+    function cardNode(card) {
+      var node = cardEl(card, {});
+      function mark() {
+        var on = Boolean(wantOn('card:' + card.id));
+        node.classList.toggle('is-picked', on);
+        node.setAttribute('aria-pressed', on ? 'true' : 'false');
+        node.setAttribute('aria-label', describe(card) + (on ? ', on your Want List' : ''));
+      }
+      pressable(node, null, function () { tap('card:' + card.id); mark(); });
+      mark();
+      return node;
+    }
+
+    function more(n) {
+      var upto = Math.min(cardList.length, drawn + n);
+      var batch = document.createDocumentFragment();
+      for (var i = drawn; i < upto; i += 1) { batch.appendChild(cardNode(cardList[i])); }
+      drawn = upto;
+      marker.remove();
+      grid.appendChild(batch);
+      if (drawn >= cardList.length) { return; }
+      if (!watch) { more(cardList.length); return; }
+      grid.appendChild(marker);
+      watch.unobserve(marker);
+      watch.observe(marker);
+    }
+
+    function fillCards() {
+      if (watch) { watch.unobserve(marker); }
+      marker.remove();
+      grid.innerHTML = '';
+      grid.scrollTop = 0;
+      drawn = 0;
+      var all = EGE.cards.pullable(null).concat(EGE.nflCards && EGE.nflCards.loaded() ? EGE.nflCards.pullable() : []);
+      cardList = find.sort(all, {});
+      if (!cardList.length) {
+        grid.appendChild(el('p', 'fb-meta', 'Nothing here matches that. Try another search.'));
+        return;
+      }
+      more(perRow(grid) * 6);
+    }
+
+    function draw() {
+      kindChips.forEach(function (b) {
+        var on = b.dataset.kind === kind;
+        b.classList.toggle('is-active', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      var cards = kind === 'card';
+      bar.hidden = cards;
+      list.hidden = cards;
+      cardsBox.hidden = !cards;
+      search.placeholder = kind === 'team' ? 'Search a team' : 'Search a player';
+      search.setAttribute('aria-label', search.placeholder);
+      if (cards) { fillCards(); } else { drawList(); }
+    }
+
+    counted(false);
+    draw();
     panel.tabIndex = -1;
     panel.focus({ preventScroll: true });
   }
@@ -5112,6 +5617,7 @@ EGE.cardsView = (function () {
     renderDaily();
     renderMarket();
     renderTrades();
+    renderWants();
     renderLibrary();
     renderEvent();
   }
@@ -5129,6 +5635,9 @@ EGE.cardsView = (function () {
     renderRecent();
     renderPlayerCards();
     renderLibrary();
+    /* A teammate or a team on a Want List can be looked for now. */
+    renderWants();
+    loadWantHolders(false, true);
   }
 
   function build() {
@@ -5146,6 +5655,7 @@ EGE.cardsView = (function () {
       if (event.key === 'Escape' && state.filtersOpen) { openFilters(false); }
     });
     byId('tradeNew').addEventListener('click', function () { openTradeBuilder(null); });
+    byId('wantsAdd').addEventListener('click', openWantPicker);
     byId('marketSell').addEventListener('click', openSellPicker);
     byId('spinGo').addEventListener('click', doSpin);
     /* The countdown to the next spin, and the wheel coming free again at
@@ -5195,7 +5705,8 @@ EGE.cardsView = (function () {
       EGE.cardStore.pulledFrom(player.email, EGE.cards.HALLOWEEN.pack),
       Promise.all(EGE.cards.PACKS.filter(function (p) { return p.perDay; }).map(function (p) {
         return EGE.cardStore.openedToday(player.email, p.key).then(function (times) { return [p.key, times]; });
-      }))
+      })),
+      EGE.cardStore.wantLists()
     ]).then(function (all) {
       if (state.player !== player) { return; }
       if (all[0] === null) {
@@ -5221,12 +5732,14 @@ EGE.cardsView = (function () {
       state.pulled[EGE.cards.HALLOWEEN.key] = all[16] || {};
       state.opened = {};
       (all[17] || []).forEach(function (one) { if (one[1]) { state.opened[one[0]] = one[1]; } });
+      takeWantLists(all[18]);
       eventWasOn = eventsOn();
       state.loaded = all[0] !== null;
       if (all[4] === null && all[0] !== null) {
         say('Your diamonds could not be loaded. Run supabase/schema.sql to set up the diamond tables, then reload.', true);
       }
       renderAll();
+      loadWantHolders(false);
       /* A Trade for it from off the Cards tab, now there is a collection
          to give from. */
       if (pendingAsk && state.loaded && !state.hold && !rip && /^#cards(\/|$)/.test(window.location.hash)) {
@@ -5304,6 +5817,9 @@ EGE.cardsView = (function () {
        and every other check: they are what changes least often. */
     pollCount += 1;
     var shop = state.tab === 'shop' && pollCount % 2 === 0;
+    /* The Want Lists, and who has what yours is after, every third check
+       on the Trades page: a card somebody just pulled turns up there. */
+    var wants = state.tab === 'trades' && pollCount % 3 === 0;
     polling = true;
     return Promise.all([
       EGE.cardStore.tradeStates(player.email),
@@ -5312,7 +5828,8 @@ EGE.cardsView = (function () {
       shop ? EGE.cardStore.market(player.email) : null,
       shop ? EGE.cardStore.recentOpens(RECENT_MAX) : null,
       /* Whether an admin has started or ended an event, every other check. */
-      pollCount % 2 === 0 ? EGE.cardStore.events() : null
+      pollCount % 2 === 0 ? EGE.cardStore.events() : null,
+      wants ? EGE.cardStore.wantLists() : null
     ]).then(function (got) {
       polling = false;
       if (state.player !== player || busy()) { return; }
@@ -5359,6 +5876,12 @@ EGE.cardsView = (function () {
         eventWasOn = eventsOn();
         renderPacks();
         renderEvent();
+      }
+      if (got[6]) {
+        var lists = listsSig(state.wants);
+        takeWantLists(got[6]);
+        if (listsSig(state.wants) !== lists) { renderWants(); }
+        loadWantHolders(true);
       }
     }, function () { polling = false; });
   }
@@ -5413,6 +5936,12 @@ EGE.cardsView = (function () {
     state.eventClaims = {};
     state.pulled = {};
     state.locks = {};
+    state.wants = null;
+    state.wantsFailed = false;
+    state.wantHas = null;
+    wantAskSig = '';
+    window.clearTimeout(wantSave.timer);
+    wantSave.timer = null;
     eventWasOn = null;
     setsReady.library = 0;
     setsReady.event = 0;

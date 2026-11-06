@@ -2548,6 +2548,45 @@ player finish a set.
 there, that only the player an offer is to can answer it, and that nobody
 has more than ten offers out at once.
 
+### Want List
+
+Under the trades (Sam, 2026-11-06): the teams, players and single cards
+you are looking for, and who has them. **Add** opens a picker with
+**Teams** (the six's NFL teams and their teammates', then the six's
+schools), **Players** (the six, then the NFL teammates with the most cards,
+or any by name) and **Cards** (every card out, with the trade builder's
+Sort menu). A tap puts one on or takes it off; a team or a player takes the
+rarity picked beside the search as a floor (**Epic or better** keeps it to
+Epic, Legendary, Mystic and Iconic cards). A card's close-up has **Want
+it** too, anywhere but your own binder. Thirty at most; each one is a chip
+with an x.
+
+A team is every card of it: the six's own games while they played there,
+and their NFL teammates' (`team:detroit`, by its key in `EGE.teams`). A
+player is every card of him, one of the six or a teammate
+(`player:dj-moore`). A card is that card exactly, so its holo is a card of
+its own (`card:p:2021:sam-stogsdill:5`). An event's reward card never
+trades, so it never matches.
+
+Under your list is everybody with a card on it or a card of yours on
+theirs, laid out like a trade: **Has N you want** and **Wants N of yours**,
+one row of five each (four and a **+N** when there are more). A card opens up close (theirs with
+Trade for it). **Trade** opens the builder with both sides already sorted
+to those cards: the order on each side has **Cards you want** and **Cards
+they want**, beside the holo ones, and from the Want List it shows EGE and
+NFL cards together until one is picked. A card somebody pulls turns up
+there within a minute while the page is open (every third check on the
+Trades page).
+
+`card_wants` holds one row an account (readable by every signed-in
+player, set only through `set_card_wants()`). `card_want_holders()` finds
+who else has what your list could be after in one answer, so Supabase's
+1000-row cap never cuts it: the page sends the season and player of every
+card a team or a player on the list could be (`2025:dj-moore`, which every
+card id carries) and the cards it names, and checks what comes back against
+the list itself, since Postgres cannot tell a card's team or rarity from
+its id (`data/card-wants.js`).
+
 ### The showcase
 
 Up to twelve cards a player picks to show off, in two rows of six, on their own player
@@ -2605,8 +2644,9 @@ their owner and an admin), `player_cards` (who owns which ids and how many,
 readable by any signed-in player), `card_packs` (every pack opened and what
 was in it), `card_sales` (every quick sale, readable by the seller and an
 admin),
-`card_set_claims`, `card_trades` (readable by the two players in it) and
-`card_showcases` (public). None has an insert, update or delete policy:
+`card_set_claims`, `card_trades` (readable by the two players in it),
+`card_wants` (readable by every signed-in player) and `card_showcases`
+(public). None has an insert, update or delete policy:
 cards only move through `open_card_pack()`, `claim_card_set()`,
 `quick_sell_card()`, the trade functions and the admin's two resets, each one
 transaction, so a pack is never paid for without arriving, a trade never half
@@ -2655,8 +2695,9 @@ of a tap (`poll()` and `busy()` in `js/cards-view.js`).
 - **Shop** — the Daily Spin (gone once it is spun, until the next one),
   packs and Buy Diamonds, Today's Cards, the Market and Recent Pulls. The
   odds are not shown on the page.
-- **Trades** — offers to you, your offers, recent ones. The page button
-  counts the new offers to you, in red, until the page has been opened.
+- **Trades** — offers to you, your offers, recent ones, then the Want
+  List. The page button counts the new offers to you, in red, until the
+  page has been opened.
 - **Achievements** — the library of sets. The page button counts sets ready
   to claim.
 

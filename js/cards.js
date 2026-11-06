@@ -297,6 +297,49 @@ EGE.cardStore = (function () {
       function () { return { ok: true, status: 'cancelled' }; });
   }
 
+  /* --- the Want List -------------------------------------------------------
+
+     What each player is looking for (data/card-wants.js). Kept one row an
+     account in card_wants, so reading everybody's is a handful of rows. */
+
+  /* Every account's list, { email in lower case: [want] }. Null when it
+     could not be read (before the schema has the table, say). */
+  function wantLists() {
+    var c = client();
+    if (!c) { return Promise.resolve(null); }
+    return c.from('card_wants').select('email, wants')
+      .then(function (res) {
+        if (res.error) { return null; }
+        var out = {};
+        (res.data || []).forEach(function (row) { out[String(row.email).toLowerCase()] = row.wants || []; });
+        return out;
+      })
+      .catch(function () { return null; });
+  }
+
+  /* The signed-in player's whole list, in its order. */
+  function setWants(wants) {
+    return call('set_card_wants', { p_wants: wants || [] }, function () { return { ok: true }; });
+  }
+
+  /* Who else has what a list could be after, { email in lower case: { card
+     id: copies } }: `ask` is EGE.cardWants.ask(list). One answer from
+     card_want_holders however many cards that is, so the 1000-row cap
+     never cuts it. Null when it could not be read. */
+  function wantHolders(ask) {
+    var c = client();
+    if (!c) { return Promise.resolve(null); }
+    if (!ask || (!ask.keys.length && !ask.cards.length)) { return Promise.resolve({}); }
+    return c.rpc('card_want_holders', { p_keys: ask.keys, p_cards: ask.cards })
+      .then(function (res) {
+        if (res.error) { return null; }
+        var out = {};
+        Object.keys(res.data || {}).forEach(function (email) { out[email.toLowerCase()] = res.data[email] || {}; });
+        return out;
+      })
+      .catch(function () { return null; });
+  }
+
   /* --- showcases ----------------------------------------------------------- */
 
   /* The cards a player has up on their page. Public, so this works signed
@@ -857,6 +900,9 @@ EGE.cardStore = (function () {
     respondTrade: respondTrade,
     cancelTrade: cancelTrade,
     markTradesSeen: markTradesSeen,
+    wantLists: wantLists,
+    setWants: setWants,
+    wantHolders: wantHolders,
     showcaseFor: showcaseFor,
     setShowcase: setShowcase,
     showcasePlayersFor: showcasePlayersFor,

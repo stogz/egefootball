@@ -9019,6 +9019,128 @@ html.ege-noscroll body { overflow: hidden; }
   color: var(--fb-ink);
 }
 
+/* --- the Want List (Sam, 2026-11-06) ---------------------------------------
+   Under the trades: your list as chips, then everybody with a card on it or
+   a card of yours on theirs, laid out like a trade. The picker is the trade
+   builder's overlay: Teams, Players or Cards, tapped in and out. */
+.ege-wants { display: flex; flex-wrap: wrap; gap: 8px; }
+.ege-wants > .fb-meta { margin: 0; }
+.ege-want {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  min-height: 36px;
+  padding: 3px 2px 3px 4px;
+  background: #fff;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  font-size: .875rem;
+  font-weight: 700;
+}
+.ege-want--card { border-left: 6px solid var(--rarity, var(--fb-ink)); }
+.ege-want__img {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+.ege-want__img--round,
+.ege-wantopt__img--round {
+  object-fit: cover;
+  border: 1px solid var(--fb-ink);
+  border-radius: 999px !important;
+  background: var(--fb-sand);
+}
+.ege-want__img--ground,
+.ege-wantopt__img--ground { display: grid; place-items: center; padding: 3px; background: var(--ground); }
+.ege-wantmark { width: 100%; height: 100%; object-fit: contain; }
+/* Alabama's crimson A on its crimson ground, drawn white (`whiteMark`). */
+.ege-wantmark--white { filter: brightness(0) invert(1); }
+.ege-want__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ege-want__name.ege-linkbtn { font-weight: 700; }
+.ege-want__sub {
+  font-size: .6875rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--fb-muted);
+  white-space: nowrap;
+}
+.ege-want__x {
+  flex: none;
+  padding: 2px 8px;
+  border: 0;
+  background: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--fb-ink);
+  cursor: pointer;
+}
+.ege-want__x:hover,
+.ege-want__x:focus-visible { color: var(--fb-accent-deep); }
+
+/* A side of a match is one row of five, the last a "+N" tile as tall as
+   the cards when there are more. */
+.ege-wantmatch__cards {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  max-width: 500px;
+}
+.ege-trade__cards.ege-wantmatch__cards > .ege-tcard { width: auto; }
+.ege-wantmatch__more {
+  min-height: 60px;
+  border: var(--fb-border-thin) dashed var(--fb-ink);
+  background: none;
+  font: inherit;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--fb-accent-deep);
+  cursor: pointer;
+}
+.ege-wantmatch__more:hover,
+.ege-wantmatch__more:focus-visible { background: var(--fb-tint-wash); }
+
+.ege-zoom__want.is-on { background: var(--fb-accent); }
+
+.ege-wantpicker [hidden] { display: none !important; }
+.ege-wantpicker > .fb-panel__head { justify-content: center; }
+.ege-wantpicker__kinds { flex: 1 1 auto; max-width: 520px; }
+.ege-wantpicker__bar { display: flex; flex-wrap: wrap; gap: 8px; }
+.ege-wantpicker__search { flex: 1 1 240px; min-width: 0; }
+.ege-wantpicker__floor { flex: 0 1 230px; }
+.ege-wantopts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 8px;
+  max-height: 440px;
+  overflow-y: auto;
+  padding: 2px 6px 6px 2px;
+}
+.ege-wantopts > .fb-meta { margin: 0; }
+.ege-wantopt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 10px;
+  background: #fff;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  font: inherit;
+  color: var(--fb-ink);
+  text-align: left;
+  cursor: pointer;
+}
+.ege-wantopt:hover { background: var(--fb-tint-wash); }
+.ege-wantopt:focus-visible { outline: 3px solid var(--fb-accent); outline-offset: 2px; }
+.ege-wantopt.is-on { background: var(--fb-accent); box-shadow: 3px 3px 0 var(--fb-ink); }
+.ege-wantopt.is-on::after { content: '\2713'; margin-left: auto; font-weight: 800; }
+.ege-wantopt__img { flex: none; width: 36px; height: 36px; object-fit: contain; }
+.ege-wantopt__words { display: flex; flex-direction: column; min-width: 0; }
+.ege-wantopt__name { overflow-wrap: anywhere; font-weight: 800; line-height: 1.2; }
+.ege-wantopt__sub { font-size: .75rem; color: var(--fb-muted); }
+.ege-wantopt.is-on .ege-wantopt__sub { color: var(--fb-ink); font-weight: 700; }
+
 /* --- the showcase on a player page ------------------------------------------ */
 
 .ege-showcase__grid {
@@ -10209,6 +10331,9 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-trade__sides { grid-template-columns: minmax(0, 1fr); }
   .ege-trade__swap { transform: rotate(90deg); justify-self: center; }
   .ege-trade__cards > .ege-tcard { width: 84px; }
+  .ege-wantmatch__cards { gap: 6px; }
+  .ege-wantpicker__floor { flex: 1 1 100%; }
+  .ege-wantopts { grid-template-columns: minmax(0, 1fr); max-height: 360px; }
 
   .ege-pull { padding: 10px 12px; }
   .ege-pull__cards { gap: 8px; }
