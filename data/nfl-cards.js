@@ -784,6 +784,20 @@ EGE.nflCards = (function () {
     return share < 0.08 ? REWARD.epic(15, EGE.cards.BOOSTER) : share < 0.12 ? REWARD.epic(12) : REWARD.epic(10);
   }
 
+  /* The teams the six have played for, in that order, then any one of
+     them joins after, a team one of them is on this season included
+     before it has a card: [{ key: 'DET', name: 'Detroit Lions', cards }]. */
+  function teams() {
+    var count = {};
+    list().forEach(function (c) { count[c.simTeam] = (count[c.simTeam] || 0) + 1; });
+    Object.keys(sixTeams(EGE.currentSeason, 1)).forEach(function (key) { count[key] = count[key] || 0; });
+    return TEAM_ORDER.filter(function (key) { return key in count; })
+      .concat(Object.keys(count).filter(function (key) { return TEAM_ORDER.indexOf(key) === -1; }).sort())
+      .map(function (key) {
+        return { key: key, name: EGE.nfl && EGE.nfl.teams[key] ? EGE.nfl.teams[key].name : key, cards: count[key] };
+      });
+  }
+
   function differentPlayers(count, label, test) {
     return times(count, label, test).map(function (s) { s.player = true; return s; });
   }
@@ -815,23 +829,18 @@ EGE.nflCards = (function () {
        of that team's, each from a week one of the six was there. A team
        one of them is on this season has its set before its first game is
        out (Cooper's Jaguars, 2028). */
-    var teams = {};
-    list().forEach(function (c) { teams[c.simTeam] = (teams[c.simTeam] || 0) + 1; });
-    Object.keys(sixTeams(EGE.currentSeason, 1)).forEach(function (key) { teams[key] = teams[key] || 0; });
     var total = list().length || 1;
-    TEAM_ORDER.filter(function (key) { return key in teams; })
-      .concat(Object.keys(teams).filter(function (key) { return TEAM_ORDER.indexOf(key) === -1; }).sort())
-      .forEach(function (key) {
-        var name = EGE.nfl && EGE.nfl.teams[key] ? EGE.nfl.teams[key].name : key;
-        var short = name.split(' ').pop();
-        function ofTeam(c) { return c.simTeam === key; }
-        out.push({
-          key: 'nfl-team-' + key.toLowerCase(), name: name, group: 'NFL Teammates',
-          blurb: 'Six different ' + short + '.',
-          slots: differentPlayers(6, short + ' player', ofTeam),
-          reward: Object.assign(teamReward(teams[key] / total), { from: ofTeam, fromText: short })
-        });
+    teams().forEach(function (t) {
+      var key = t.key;
+      var short = t.name.split(' ').pop();
+      function ofTeam(c) { return c.simTeam === key; }
+      out.push({
+        key: 'nfl-team-' + key.toLowerCase(), name: t.name, group: 'NFL Teammates',
+        blurb: 'Six different ' + short + '.',
+        slots: differentPlayers(6, short + ' player', ofTeam),
+        reward: Object.assign(teamReward(t.cards / total), { from: ofTeam, fromText: short })
       });
+    });
 
     Object.keys(seasons).map(Number).sort(function (a, b) { return a - b; }).forEach(function (season) {
       out.push({
@@ -1067,6 +1076,7 @@ EGE.nflCards = (function () {
     typicalBonus: typicalBonus,
     bonusesEarned: bonusesEarned,
     sets: sets,
+    teams: teams,
     fill: fill,
     rollReward: rollReward,
     faceless: faceless,

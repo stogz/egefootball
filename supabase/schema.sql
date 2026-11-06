@@ -1509,7 +1509,7 @@ create policy "card trades readable by either side or admin"
          or lower(to_email) = lower(auth.jwt() ->> 'email')
          or public.is_admin());
 
--- Showcases: up to six cards a player puts on their own player page. Set
+-- Showcases: up to twelve cards a player puts on their own player page. Set
 -- below, pruned here.
 create table if not exists public.card_showcases (
   email      text primary key,
@@ -1701,8 +1701,9 @@ $$;
 -- ---------------------------------------------------------------------------
 -- Showcases
 --
--- Up to six cards a player picks to show on their own player page. Public,
--- like the page: anybody can see them, signed in or not. Only cards the
+-- Up to twelve cards, two rows of six (Sam, 2026-11-06), a player picks to
+-- show on their own player page. Public, like the page: anybody can see
+-- them, signed in or not. Only cards the
 -- player owns can go up, and a card traded away comes down on its own.
 -- A slot can hold a Player Card instead, as 'pc:{slug}', for any player
 -- they hold a card of, or an NFL Player Card, as 'npc:{slug}', for any NFL
@@ -1743,8 +1744,8 @@ begin
   if v_email is null then
     raise exception 'sign in first';
   end if;
-  if coalesce(array_length(v_cards, 1), 0) > 6 then
-    raise exception 'A showcase holds six cards.';
+  if coalesce(array_length(v_cards, 1), 0) > 12 then
+    raise exception 'A showcase holds twelve cards.';
   end if;
   foreach v_card in array v_cards loop
     if v_card ~ '^pc:[a-z]+(-[a-z]+)*$' then

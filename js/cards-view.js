@@ -56,11 +56,12 @@ EGE.cardsView = (function () {
     pulled: {},         /* by event: every card this player has pulled from its packs, { id: true } */
     locks: {},          /* card id -> when each traded event copy can go again */
     opened: {},         /* by pack held to perDay: when each of the last 24 hours' was opened (ms) */
-    filter: { rarity: 'all', kind: 'all', player: 'all', sort: 'rarity', merge: false }
+    filter: { league: 'ege', rarity: 'all', kind: 'all', player: 'all', sort: 'rarity', merge: false }
   };
 
-  /* `merge` shows only the cards that can be merged into a holo now. */
-  var DEFAULT_FILTER = { rarity: 'all', kind: 'all', player: 'all', sort: 'rarity', merge: false };
+  /* `league` is the six's cards ('ege') or their NFL teammates' ('nfl').
+     `merge` shows only the cards that can be merged into a holo now. */
+  var DEFAULT_FILTER = { league: 'ege', rarity: 'all', kind: 'all', player: 'all', sort: 'rarity', merge: false };
 
   var built = false;
 
@@ -1755,6 +1756,8 @@ EGE.cardsView = (function () {
 
   function pick(key, value) {
     state.filter[key] = value;
+    /* The players and teams are the league's own. */
+    if (key === 'league') { state.filter.player = 'all'; }
     renderFilters();
     renderCollection();
   }
@@ -1797,14 +1800,22 @@ EGE.cardsView = (function () {
     bar.innerHTML = '';
     var f = state.filter;
 
-    /* One line: the kinds as buttons the height of the drop-downs beside
-       them, then whose, who, the order, and the rarity (holos last in it). */
+    /* One line: EGE and NFL as buttons the height of the drop-downs beside
+       them, then the kind, whose, who, the order, and the rarity (holos last
+       in it). */
     var rest = el('div', 'ege-filterrow');
-    [['all', 'All'], ['performance', 'Performances'], ['play', 'Plays']].forEach(function (k) {
-      var b = chip(k[1], f.kind === k[0], function () { pick('kind', k[0]); });
+    LEAGUES.forEach(function (k) {
+      var b = chip(k[1], f.league === k[0], function () { pick('league', k[0]); });
       b.classList.add('ege-filterchip');
       rest.appendChild(b);
     });
+
+    var kind = el('select', 'fb-select ege-filterselect');
+    kind.setAttribute('aria-label', 'Kind');
+    KINDS.forEach(function (k) { kind.appendChild(new Option(k[1], k[0])); });
+    kind.value = f.kind;
+    kind.addEventListener('change', function () { pick('kind', kind.value); });
+    rest.appendChild(kind);
 
     var whose = el('select', 'fb-select ege-filterselect');
     whose.setAttribute('aria-label', 'Whose collection');
@@ -1815,13 +1826,8 @@ EGE.cardsView = (function () {
     rest.appendChild(whose);
 
     var who = el('select', 'fb-select ege-filterselect');
-    who.setAttribute('aria-label', 'Player');
-    who.appendChild(new Option('Every player', 'all'));
-    EGE.players.forEach(function (p) { who.appendChild(new Option(p.name, p.slug)); });
-    who.appendChild(new Option('NFL teammates', 'nfl'));
-    /* One teammate, from his NFL Player Card's See his cards. */
-    var mate = EGE.nflCards ? EGE.nflCards.playerOf(f.player) : null;
-    if (mate) { who.appendChild(new Option(mate.name, mate.slug)); }
+    who.setAttribute('aria-label', f.league === 'nfl' ? 'Team' : 'Player');
+    whoOptions(f.league, f.player).forEach(function (o) { who.appendChild(new Option(o[1], o[0])); });
     who.value = f.player;
     who.addEventListener('change', function () { pick('player', who.value); });
     rest.appendChild(who);
@@ -2104,15 +2110,41 @@ EGE.cardsView = (function () {
     if (toggle) { toggle.setAttribute('aria-expanded', open ? 'true' : 'false'); }
   }
 
+  /* The EGE and NFL buttons, and the kinds in the drop-down beside them. */
+  var LEAGUES = [['ege', 'EGE'], ['nfl', 'NFL']];
+  var KINDS = [['all', 'All cards'], ['performance', 'Performances'], ['play', 'Plays']];
+
+  /* The six's cards, events' and rewards' included, or the NFL teammates'. */
+  function leagueFits(card, league) {
+    return league === 'nfl' ? Boolean(card.nfl) : !card.nfl;
+  }
+
+  /* 'all', one of the six or one NFL teammate by slug, or 'team:DET' for
+     every card of a team's NFL teammates. */
+  function playerFits(card, player) {
+    return player === 'all' ||
+      (player.indexOf('team:') === 0 ? Boolean(card.nfl) && card.simTeam === player.slice(5) : card.slug === player);
+  }
+
+  /* The player drop-down's entries, as [value, name]: the six, or under NFL
+     the teams the six have played for, then the one teammate a See his
+     cards picked. */
+  function whoOptions(league, player) {
+    if (league !== 'nfl') {
+      return [['all', 'Every player']].concat(EGE.players.map(function (p) { return [p.slug, p.name]; }));
+    }
+    /* Lions, Panthers and so on, so it is no wider than the six's names. */
+    var out = [['all', 'Every team']].concat(EGE.nflCards ? EGE.nflCards.teams().map(function (t) {
+      return ['team:' + t.key, t.name.split(' ').pop()];
+    }) : []);
+    var mate = EGE.nflCards && player ? EGE.nflCards.playerOf(player) : null;
+    if (mate) { out.push([mate.slug, mate.name]); }
+    return out;
+  }
+
   /* The rarity drop-downs: a rarity, every holo (Holo IIs too), every
      Holo II, every card of an event ('ev:halloween'), or every costume
      card. */
-  /* 'all', one of the six or one NFL teammate by slug, or 'nfl' for every
-     NFL teammate's card. */
-  function playerFits(card, player) {
-    return player === 'all' || (player === 'nfl' ? Boolean(card.nfl) : card.slug === player);
-  }
-
   function rarityFits(card, rarity) {
     return rarity === 'all' || (rarity === 'holo' ? Boolean(card.holo)
       : rarity === 'holo2' ? Boolean(card.holo2)
@@ -2167,7 +2199,8 @@ EGE.cardsView = (function () {
 
     var mine = Object.keys(v.owned).map(EGE.cards.byId).filter(Boolean);
     var shown = mine.filter(function (card) {
-      return rarityFits(card, f.rarity) &&
+      /* The merge button counts both leagues' cards, so it shows both. */
+      return rarityFits(card, f.rarity) && (f.merge || leagueFits(card, f.league)) &&
         (f.kind === 'all' || card.kind === f.kind) &&
         playerFits(card, f.player) &&
         (!f.merge || (mergeable(card) && v.owned[card.id] >= EGE.cards.HOLO_OF));
@@ -2243,7 +2276,7 @@ EGE.cardsView = (function () {
 
   function fillBinder(grid, cards, v) {
     var f = state.filter;
-    var key = [state.view || '', f.kind, f.player, f.sort, f.rarity, f.merge ? 'merge' : ''].join('|');
+    var key = [state.view || '', f.league, f.kind, f.player, f.sort, f.rarity, f.merge ? 'merge' : ''].join('|');
     /* The binder as it stands, card for card. Coming back to the page, or a
        refresh that changed nothing, used to throw every card away and draw
        it again -- the lag going back to Cards, worse the further it had
@@ -2869,10 +2902,10 @@ EGE.cardsView = (function () {
      Each side of the trade builder has a Sort button over its cards, like
      the collection's on a phone, and everything for finding a card is in
      the menu under it: a search box (a player, a school, an opponent, a
-     play, a season), then the kinds, the player, the season, the rarity
-     and the order. The button counts what is changed from the defaults,
-     and the bin puts them all back. */
-  var FIND_DEFAULT = { q: '', kind: 'all', player: 'all', season: 'all', rarity: 'all', sort: 'rarity' };
+     play, a season), then EGE or NFL, the kind, the player, the season,
+     the rarity and the order. The button counts what is changed from the
+     defaults, and the bin puts them all back. */
+  var FIND_DEFAULT = { q: '', league: 'ege', kind: 'all', player: 'all', season: 'all', rarity: 'all', sort: 'rarity' };
 
   /* Everything a search can find a card by, in lower case. */
   var findText = {};
@@ -2890,6 +2923,7 @@ EGE.cardsView = (function () {
   }
 
   function finds(card, f) {
+    if (!leagueFits(card, f.league)) { return false; }
     if (f.kind !== 'all' && card.kind !== f.kind) { return false; }
     if (!playerFits(card, f.player)) { return false; }
     if (f.season !== 'all' && String(card.season) !== f.season) { return false; }
@@ -2959,19 +2993,29 @@ EGE.cardsView = (function () {
     });
     menu.appendChild(search);
 
+    /* EGE or NFL; the player drop-down is the league's own. */
     var kinds = el('div', 'ege-finder__kinds');
-    var kindChips = [['all', 'All'], ['performance', 'Performances'], ['play', 'Plays']].map(function (k) {
-      var b = chip(k[1], f.kind === k[0], function () {
-        f.kind = k[0];
-        kindChips.forEach(function (c) {
-          var on = c.dataset.kind === f.kind;
-          c.classList.toggle('is-active', on);
-          c.setAttribute('aria-pressed', on ? 'true' : 'false');
-        });
+    function markLeague() {
+      leagueChips.forEach(function (c) {
+        var on = c.dataset.league === f.league;
+        c.classList.toggle('is-active', on);
+        c.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      var who = selects.player;
+      who.innerHTML = '';
+      who.setAttribute('aria-label', f.league === 'nfl' ? 'Team' : 'Player');
+      whoOptions(f.league).forEach(function (o) { who.appendChild(new Option(o[1], o[0])); });
+      who.value = f.player;
+    }
+    var leagueChips = LEAGUES.map(function (k) {
+      var b = chip(k[1], f.league === k[0], function () {
+        f.league = k[0];
+        f.player = 'all';
+        markLeague();
         changed();
       });
       b.classList.add('ege-filterchip');
-      b.dataset.kind = k[0];
+      b.dataset.league = k[0];
       kinds.appendChild(b);
       return b;
     });
@@ -2987,9 +3031,8 @@ EGE.cardsView = (function () {
       return s;
     }
     var selects = {
-      player: select('player', 'Player', [['all', 'Every player']].concat(EGE.players.map(function (p) {
-        return [p.slug, p.name];
-      })).concat([['nfl', 'NFL teammates']])),
+      kind: select('kind', 'Kind', KINDS),
+      player: select('player', 'Player', whoOptions(f.league)),
       season: select('season', 'Season', [['all', 'Every season']].concat(EGE.seasonsPlayed().slice().reverse()
         .map(function (y) { return [String(y), String(y)]; }))),
       rarity: select('rarity', 'Rarity', [['all', 'All rarities']].concat(EGE.cards.RARITIES.map(function (r) {
@@ -3011,10 +3054,7 @@ EGE.cardsView = (function () {
       f = Object.assign({}, FIND_DEFAULT);
       search.value = '';
       Object.keys(selects).forEach(function (k) { selects[k].value = f[k]; });
-      kindChips.forEach(function (c) {
-        c.classList.toggle('is-active', c.dataset.kind === 'all');
-        c.setAttribute('aria-pressed', c.dataset.kind === 'all' ? 'true' : 'false');
-      });
+      markLeague();
       changed();
     });
     var done = el('button', 'fb-btn fb-btn--primary ege-finder__done', 'Done');
@@ -3423,8 +3463,8 @@ EGE.cardsView = (function () {
     return list;
   }
 
-  function setTile(set) {
-    var filled = EGE.cards.fill(set, ownedIds());
+  function setTile(set, filled) {
+    filled = filled || EGE.cards.fill(set, ownedIds());
     var claim = state.claims[set.key];
     var tile = el('article', 'ege-set' + (claim ? ' is-claimed' : filled.complete ? ' is-complete' : ''));
 
@@ -3483,32 +3523,55 @@ EGE.cardsView = (function () {
     });
   }
 
+  /* Where a set goes (Sam, 2026-11-06): 0 ready to claim, at the top; 1
+     on the way, the nearest done first; 2 claimed, at the bottom. */
+  function setTier(done, complete) { return done ? 2 : complete ? 0 : 1; }
+
+  /* `items` ({ tier, have, need, at }) in that order: by tier, then the
+     nearest done, then as they were. */
+  function byTier(a, b) {
+    return a.tier - b.tier ||
+      (a.tier === 1 ? (b.need ? b.have / b.need : 0) - (a.need ? a.have / a.need : 0) : 0) ||
+      a.at - b.at;
+  }
+
   function renderLibrary() {
     var holder = byId('librarySets');
     holder.innerHTML = '';
     var sets = EGE.cards.sets();
+    var owned = ownedIds();
+    var items = sets.map(function (set, at) {
+      var filled = EGE.cards.fill(set, owned);
+      return { set: set, filled: filled, at: at, have: filled.have, need: filled.need,
+               tier: setTier(Boolean(state.claims[set.key]), filled.complete) };
+    }).sort(byTier);
 
+    /* Ready to claim on top, then each group's sets on the way, then
+       everything claimed. */
+    function section(title, list) {
+      if (!list.length) { return; }
+      var node = el('section', 'ege-library__group');
+      node.appendChild(el('h4', 'ege-library__title', title));
+      var grid = el('div', 'ege-library__grid');
+      list.forEach(function (item) { grid.appendChild(setTile(item.set, item.filled)); });
+      node.appendChild(grid);
+      holder.appendChild(node);
+    }
+    function tier(n) { return items.filter(function (item) { return item.tier === n; }); }
+
+    section('Ready to claim', tier(0));
     var groups = [];
     sets.forEach(function (set) {
       var name = set.group || 'Collections';
-      var group = groups.filter(function (g) { return g.name === name; })[0];
-      if (!group) { group = { name: name, sets: [] }; groups.push(group); }
-      group.sets.push(set);
+      if (groups.indexOf(name) === -1) { groups.push(name); }
     });
-
-    groups.forEach(function (group) {
-      var section = el('section', 'ege-library__group');
-      section.appendChild(el('h4', 'ege-library__title', group.name));
-      var grid = el('div', 'ege-library__grid');
-      group.sets.forEach(function (set) { grid.appendChild(setTile(set)); });
-      section.appendChild(grid);
-      holder.appendChild(section);
+    groups.forEach(function (name) {
+      section(name, tier(1).filter(function (item) { return (item.set.group || 'Collections') === name; }));
     });
+    section('Completed', tier(2));
 
-    var claimed = sets.filter(function (set) { return state.claims[set.key]; }).length;
-    var ready = sets.filter(function (set) {
-      return !state.claims[set.key] && EGE.cards.fill(set, ownedIds()).complete;
-    }).length;
+    var claimed = tier(2).length;
+    var ready = tier(0).length;
     byId('libraryCount').textContent = claimed + ' of ' + sets.length + ' claimed' +
       (ready ? ' \u00b7 ' + ready + ' ready to claim' : '');
     setsReady.library = ready;
@@ -3756,9 +3819,22 @@ EGE.cardsView = (function () {
           ' Your ' + ev.name + ' cards stay in your collection.'));
       block.appendChild(banner);
 
+      /* Ready to lock in first, then the nearest done, then what is locked
+         in, the event's own card among them by the same rule. */
       var grid = el('div', 'ege-library__grid');
-      sets.forEach(function (set) { grid.appendChild(eventSetTile(ev, set, on)); });
-      grid.appendChild(finalTile(ev, on));
+      var finals = EGE.cards.finalSets(ev.key);
+      var tiles = sets.map(function (set, at) {
+        var claim = claims[set.key];
+        var filled = claim ? null : eventFill(set);
+        return { at: at, have: filled ? filled.have : 1, need: filled ? filled.need : 1,
+                 tier: setTier(Boolean(claim), Boolean(filled && filled.complete && on)),
+                 tile: function () { return eventSetTile(ev, set, on); } };
+      });
+      var lockedIn = finals.filter(function (set) { return claims[set.key]; }).length;
+      tiles.push({ at: sets.length, have: lockedIn, need: finals.length,
+                   tier: setTier(Boolean(claims[ev.key]), lockedIn === finals.length && on),
+                   tile: function () { return finalTile(ev, on); } });
+      tiles.sort(byTier).forEach(function (item) { grid.appendChild(item.tile()); });
       block.appendChild(grid);
       holder.appendChild(block);
     });
@@ -4098,6 +4174,7 @@ EGE.cardsView = (function () {
     var see = iconButton('ege-pcard__see', 'cards', 'See ' + player.first + '\u2019s cards');
     see.disabled = !pc.copies;
     see.addEventListener('click', function () {
+      state.filter.league = pc.nfl ? 'nfl' : 'ege';
       state.filter.player = player.slug;
       setTab('cards');
       if ((state.view || null) !== (whose.mine ? null : whose.email)) {
