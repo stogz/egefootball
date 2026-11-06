@@ -9617,6 +9617,22 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-plcard__rank::before { content: '\25C6\00a0'; }
 .ege-plcard--unranked { filter: grayscale(1); }
 .ege-plcard--unranked .ege-plcard__photo img { opacity: .55; }
+/* A Team Card (data/team-cards.js): the team's mark, big, on its own
+   colour running into its second one, where a Player Card has its photo. */
+.ege-plcard__photo--team {
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(90% 75% at 50% 42%, rgba(255, 255, 255, .16), transparent 70%),
+    linear-gradient(150deg, var(--ground) 50%, var(--team-accent, var(--ground)) 135%);
+}
+.ege-plcard__photo--team > img.ege-plcard__mark {
+  width: 66%;
+  height: 80%;
+  object-fit: contain;
+  object-position: center;
+  filter: drop-shadow(0 1cqw 1.4cqw rgba(0, 0, 0, .4));
+}
 /* An Iconic's holo runs faintly over the picture too, as on a binder card
    (only up close, like the binder card's). */
 :is(.ege-rip__stage--pack, .ege-rip__stage--zoom) .ege-plcard.ege-tcard--iconic .ege-plcard__photo::after {

@@ -454,7 +454,8 @@ EGE.cardStore = (function () {
      its collection decides the rank on each of the six, data/cards.js what
      each game pays at it, and pay_player_card_bonuses what is new. Safe to
      call on every load, like the other awards. Its NFL Player Cards are
-     paid the same way, after (payNflCards). */
+     paid the same way, after (payNflCards), and then its Team Cards
+     (payTeamCards). */
   function syncPlayerCards(player, season) {
     var c = client();
     if (!c || !player || !player.email) { return Promise.resolve({ paid: 0 }); }
@@ -472,6 +473,9 @@ EGE.cardStore = (function () {
         var six = res.error ? { paid: 0, message: res.error.message } : { paid: Number(res.data) || 0 };
         return payNflCards(got.owned, year).then(function (nfl) {
           six.paid += nfl;
+          return payTeamCards(got.owned, year);
+        }).then(function (teams) {
+          six.paid += teams;
           return six;
         });
       });
@@ -610,6 +614,38 @@ EGE.cardStore = (function () {
       return c.rpc('pay_nfl_card_bonuses', { p_season: season, p_awards: awards })
         .then(function (res) { return res.error ? 0 : Number(res.data) || 0; });
     }).catch(function () { return 0; });
+  }
+
+  /* Pays this account's Team Cards for the season's wins
+     (pay_team_card_wins): the page says what rank each is, from the NFL
+     cards held, and Postgres finds the wins in the sim's box scores and
+     prices them. Not before the NFL cards are read: a collection whose
+     NFL cards are not made yet would put every win in at nothing. Resolves
+     to what it paid; nothing before the schema has it. */
+  function payTeamCards(owned, season) {
+    var c = client();
+    var nfl = EGE.nflCards;
+    if (!c || !nfl || !EGE.teamCards || season < nfl.FROM) { return Promise.resolve(0); }
+    return loadNflCards().then(function () {
+      if (!nfl.loaded()) { return 0; }
+      var teams = EGE.teamCards.claims(owned);
+      if (!teams.length) { return 0; }
+      return c.rpc('pay_team_card_wins', { p_season: season, p_teams: teams })
+        .then(function (res) { return res.error ? 0 : Number(res.data) || 0; });
+    }).catch(function () { return 0; });
+  }
+
+  /* What this account's Team Cards have paid, every season, as
+     diamond_awards rows (tc-{team}-w{week}). */
+  function teamCardAwards(email) {
+    var c = client();
+    if (!c || !email) { return Promise.resolve(null); }
+    return allRows(function () {
+      return c.from('diamond_awards').select('season, award_key, diamonds', { count: 'exact' })
+        .eq('email', email).like('award_key', 'tc-%');
+    }, ['season', 'award_key'])
+      .then(function (res) { return res.error ? null : (res.data || []); })
+      .catch(function () { return null; });
   }
 
   /* --- the shop's daily cards ------------------------------------------------ */
@@ -942,6 +978,7 @@ EGE.cardStore = (function () {
     showcasePlayersFor: showcasePlayersFor,
     syncPlayerCards: syncPlayerCards,
     playerCardAwards: playerCardAwards,
+    teamCardAwards: teamCardAwards,
     loadNflCards: loadNflCards,
     shopToday: shopToday,
     buyShopCard: buyShopCard,

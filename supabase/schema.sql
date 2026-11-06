@@ -2673,8 +2673,9 @@ grant execute on function public.showcased_player_cards(text) to anon, authentic
 
 -- What each of an account's Player Cards has paid it, every season:
 -- { slug: diamonds }, for the Players page when it shows somebody else's
--- Player Cards. diamond_awards itself stays readable by its owner alone;
--- this hands over the Player Card totals and nothing else.
+-- Player Cards, and each Team Card's as 'tc:PIT' (data/team-cards.js).
+-- diamond_awards itself stays readable by its owner alone; this hands over
+-- the Player Card and Team Card totals and nothing else.
 create or replace function public.player_card_earnings(p_email text)
 returns jsonb
 language sql
@@ -2683,10 +2684,13 @@ security definer
 set search_path = public
 as $$
   select coalesce(jsonb_object_agg(e.slug, e.total), '{}'::jsonb)
-    from (select regexp_replace(da.award_key, '^pc-(.+)-w[0-9]+$', '\1') as slug,
+    from (select case when da.award_key ~ '^tc-'
+                      then 'tc:' || upper(regexp_replace(da.award_key, '^tc-([a-z]+)-w[0-9]+$', '\1'))
+                      else regexp_replace(da.award_key, '^pc-(.+)-w[0-9]+$', '\1') end as slug,
                  sum(da.diamonds) as total
             from public.diamond_awards da
-           where da.email = p_email and da.award_key ~ '^pc-.+-w[0-9]+$'
+           where da.email = p_email
+             and (da.award_key ~ '^pc-.+-w[0-9]+$' or da.award_key ~ '^tc-[a-z]{2,3}-w[0-9]{1,2}$')
            group by 1) e;
 $$;
 
@@ -4987,5 +4991,141 @@ revoke all on function public.set_card_wants(text[]) from public, anon;
 revoke all on function public.card_want_holders(text[]) from public, anon;
 grant execute on function public.set_card_wants(text[]) to authenticated;
 grant execute on function public.card_want_holders(text[]) to authenticated;
+
+notify pgrst, 'reload schema';
+
+-- ---------------------------------------------------------------------------
+-- Team Cards
+--
+-- Every NFL card an account holds of one team, together (Sam, 2026-11-06;
+-- data/team-cards.js). Once a Team Card is Uncommon it pays diamonds for
+-- each of the team's wins, more the bigger the win. The page says what rank
+-- each of the account's Team Cards is; the wins are read here, out of the
+-- sim's box scores of the season's published weeks, so only a game the
+-- team won is ever paid, and what it pays is worked out here too:
+--
+--   per win x (least(margin, 25) + 5) / 15, rounded, never under 1
+--
+-- -- the rank's per-win diamonds on a 10-point win, twice them on a win by
+-- 25 or more -- and twice that again in the playoffs (week 19 on), like
+-- every playoff game's diamonds. Per win: Uncommon 2, Rare 5, Epic 10,
+-- Legendary 15, Mystic 20, Iconic 30, GOAT 40 (RANKS and winPay in
+-- data/team-cards.js; change both together).
+--
+-- One award a win, tc-{team}-w{week} (tc-pit-w5), paid once, at the rank
+-- held when it is first paid: a win while the card pays nothing goes in at
+-- nothing, and the first time an account is paid at all every win already
+-- out goes in at nothing (a tc-start row), so climbing later never
+-- back-pays a win.
+--
+-- p_teams: [{ "team": "PIT", "rank": "epic" }, { "team": "SEA", "rank": null }]
+-- Returns what it actually paid.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.pay_team_card_wins(p_season integer, p_teams jsonb)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  v_first boolean;
+  v_paid  integer := 0;
+  v_pay   integer;
+  r       record;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  if p_teams is null or jsonb_typeof(p_teams) <> 'array' then
+    return 0;
+  end if;
+  if jsonb_array_length(p_teams) > 32 then
+    return 0;
+  end if;
+
+  insert into public.player_diamonds (email, diamonds, updated_at)
+  values (v_email, 0, now())
+  on conflict (email) do nothing;
+  perform 1 from public.player_diamonds where email = v_email for update;
+
+  v_first := not exists (
+    select 1 from public.diamond_awards where email = v_email and award_key = 'tc-start');
+  if v_first then
+    insert into public.diamond_awards (email, season, award_key, diamonds, note)
+    values (v_email, p_season, 'tc-start', 0, 'Team Cards start paying from here')
+    on conflict (email, season, award_key) do nothing;
+  end if;
+
+  for r in
+    with claims as (
+      select distinct on (upper(c ->> 'team'))
+             upper(c ->> 'team') as team,
+             case c ->> 'rank'
+               when 'uncommon' then 2 when 'rare' then 5 when 'epic' then 10
+               when 'legendary' then 15 when 'mystic' then 20 when 'iconic' then 30
+               when 'goat' then 40 else 0 end as per_win,
+             case c ->> 'rank'
+               when 'uncommon' then 'Uncommon' when 'rare' then 'Rare' when 'epic' then 'Epic'
+               when 'legendary' then 'Legendary' when 'mystic' then 'Mystic' when 'iconic' then 'Iconic'
+               when 'goat' then 'GOAT' else 'Unranked' end as rank_name
+        from jsonb_array_elements(p_teams) as c
+       where jsonb_typeof(c) = 'object'
+         and upper(c ->> 'team') ~ '^[A-Z]{2,3}$'
+    ),
+    games as (
+      select b.week, g ->> 'home' as home, g ->> 'away' as away,
+             (g -> 'score' ->> 0)::integer as home_score, (g -> 'score' ->> 1)::integer as away_score
+        from public.sim_box_scores b
+        cross join lateral jsonb_array_elements(b.games) as g
+       where b.season = p_season
+         and jsonb_typeof(b.games) = 'array'
+         and exists (select 1 from public.published_weeks p where p.season = b.season and p.week = b.week)
+         and jsonb_typeof(g -> 'score') = 'array'
+    ),
+    sides as (
+      select c.team, c.per_win, c.rank_name, x.week,
+             case when x.home = c.team then x.home_score else x.away_score end as us,
+             case when x.home = c.team then x.away_score else x.home_score end as them,
+             case when x.home = c.team then x.away else x.home end as opp
+        from claims c
+        join games x on x.home = c.team or x.away = c.team
+    )
+    select s.*, s.us - s.them as margin, 'tc-' || lower(s.team) || '-w' || s.week as award_key
+      from sides s
+     where s.us > s.them
+     order by s.week, s.team
+  loop
+    v_pay := case
+      when v_first or r.per_win = 0 then 0
+      else greatest(1, round(r.per_win * (least(r.margin, 25) + 5)
+                             * (case when r.week >= 19 then 2 else 1 end) / 15.0)::integer)
+    end;
+
+    insert into public.diamond_awards (email, season, award_key, diamonds, note)
+    values (v_email, p_season, r.award_key, v_pay,
+            case when v_first then 'Out before your Team Cards: ' else '' end ||
+            r.rank_name || ' ' || r.team || ' Team Card, week ' || r.week || ': won ' ||
+            r.us || '-' || r.them || ' v ' || r.opp ||
+            case when r.week >= 19 then ' at the playoff 2x' else '' end)
+    on conflict (email, season, award_key) do nothing;
+    if found then
+      v_paid := v_paid + v_pay;
+    end if;
+  end loop;
+
+  if v_paid > 0 then
+    update public.player_diamonds
+       set diamonds = diamonds + v_paid, updated_at = now()
+     where email = v_email;
+  end if;
+
+  return v_paid;
+end;
+$$;
+
+revoke all on function public.pay_team_card_wins(integer, jsonb) from public, anon;
+grant execute on function public.pay_team_card_wins(integer, jsonb) to authenticated;
 
 notify pgrst, 'reload schema';

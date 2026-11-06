@@ -628,7 +628,7 @@ EGE.nflCards = (function () {
 
   var PAY = 0.2;
   var PAY_SHARE = { QB: 0.55, RB: 0.5, FB: 0.5, WR: 0.75, TE: 0.75, DEF: 0.6 };
-  var BONUS_MAX = 60;
+  var BONUS_MAX = 30;
 
   function payShare(pos) {
     var s = PAY_SHARE[pos];

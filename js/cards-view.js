@@ -42,12 +42,13 @@ EGE.cardsView = (function () {
     tab: 'cards',       /* which of the five pages is showing */
     seasonPack: null,   /* which year the Season Pack tile is turned to */
     pcAwards: null,     /* what the Player Cards have paid, diamond_awards rows */
+    tcAwards: null,     /* what the Team Cards have paid, diamond_awards rows */
     shop: null,         /* today's shelf from card_shop_today; null until read */
     market: null,       /* { open, mine } listings; null until read */
     photos: null,       /* this account's Player Card photos, { slug: data url } */
     pcView: null,       /* whose Player Cards the Players page shows; null is yours */
     pcOther: null,      /* theirs once read: { owned, photos, earned, failed } */
-    pcKind: 'ege',      /* the six's Player Cards, or 'nfl' for the NFL teammates' */
+    pcKind: 'ege',      /* the six's Player Cards, 'nfl' for the NFL teammates' or 'team' for Team Cards */
     spin: null,         /* today's spin from card_spin_today; null until read */
     spinning: false,    /* the wheel is turning: nothing redraws under it */
     sell: null,         /* picking cards to quick sell together: { picked: { id: n }, ... } */
@@ -4763,6 +4764,237 @@ EGE.cardsView = (function () {
     return node;
   }
 
+  /* --- Team Cards ---------------------------------------------------------
+
+     Every NFL card held of one team, together (Sam, 2026-11-06;
+     data/team-cards.js). The face is a Player Card's: TEAM and the cards
+     held across the top, the team's mark on its own colours where the
+     photo would be, its name with its division and record, what it has
+     earned and pays a win, a bar to the next rank, and the rank along the
+     foot. */
+
+  /* What a Team Card has paid, every season: yours out of the awards read,
+     somebody else's out of player_card_earnings ('tc:PIT'). Null when it
+     is not known. */
+  function teamEarned(whose, key) {
+    if (whose.mine) {
+      return state.tcAwards ? EGE.teamCards.earnedFrom(state.tcAwards)[key] || 0 : null;
+    }
+    return whose.earned && typeof whose.earned === 'object' ? whose.earned['tc:' + key] || 0 : null;
+  }
+
+  function cardsWord(n) { return whole(n) + (n === 1 ? ' card' : ' cards'); }
+
+  function teamCardFace(tc, earned) {
+    var team = tc.team;
+    var rank = tc.rank;
+    var key = rank ? rank.key : 'unranked';
+
+    var outer = el('div', 'ege-tcard ege-tcard--' + key + ' ege-plcard ege-plcard--' + key + ' ege-plcard--team');
+    outer.style.setProperty('--rarity', rank ? rank.color : '#8b9097');
+    outer.style.setProperty('--ground', team.color);
+    outer.style.setProperty('--team-accent', team.accent);
+    var node = el('div', 'ege-tcard__face ege-plcard__face');
+    outer.appendChild(node);
+
+    var top = el('div', 'ege-plcard__top');
+    top.appendChild(el('span', 'ege-plcard__kind', 'Team'));
+    var count = el('span', 'ege-plcard__fpts');
+    count.appendChild(el('b', null, whole(tc.cards)));
+    count.appendChild(document.createTextNode(tc.cards === 1 ? ' CARD' : ' CARDS'));
+    top.appendChild(count);
+    node.appendChild(top);
+
+    /* The team's mark on its colour, fading into its second one. */
+    var frame = el('div', 'ege-plcard__photo ege-plcard__photo--team');
+    if (team.logo) {
+      var mark = el('img', 'ege-plcard__mark');
+      mark.src = team.logo;
+      mark.alt = '';
+      mark.loading = 'lazy';
+      mark.decoding = 'async';
+      mark.addEventListener('error', function () { mark.remove(); });
+      frame.appendChild(mark);
+    }
+    node.appendChild(frame);
+
+    /* The nickname: "Tampa Bay Buccaneers" would take two lines. */
+    var plate = el('div', 'ege-plcard__plate');
+    plate.appendChild(el('div', 'ege-plcard__name', team.short));
+    var record = EGE.teamCards.record(tc.key);
+    var where = el('div', 'ege-plcard__team');
+    where.appendChild(el('span', null, [team.league, record.games.length ? EGE.teamCards.recordText(record) : null]
+      .filter(Boolean).join(' · ')));
+    plate.appendChild(where);
+
+    var earn = el('div', 'ege-plcard__earn');
+    earn.appendChild(document.createTextNode('Earned '));
+    if (earned !== null && earned !== undefined) {
+      earn.appendChild(el('b', null, whole(earned)));
+      earn.appendChild(gem());
+    } else {
+      earn.appendChild(el('b', null, '—'));
+    }
+    earn.appendChild(document.createTextNode(' · '));
+    earn.appendChild(el('b', 'ege-plcard__pct', String(rank ? rank.perWin : 0)));
+    earn.appendChild(gem());
+    earn.appendChild(document.createTextNode(' a win'));
+    earn.title = rank && rank.perWin
+      ? rank.perWin + ' diamonds on a 10-point win, ' + rank.perWin * 2 + ' on a win by 25 or more'
+      : 'Pays for wins from Uncommon';
+    plate.appendChild(earn);
+
+    /* To the next rank; before any card, to the first one that pays. */
+    var next = rank ? tc.next : tc.ladder[1];
+    var from = rank ? rank.cards : 0;
+    var bar = el('div', 'ege-plcard__bar');
+    var fill = el('span', 'ege-plcard__fill');
+    fill.style.width = (next
+      ? Math.max(0, Math.min(100, (tc.cards - from) / Math.max(1, next.cards - from) * 100))
+      : 100) + '%';
+    bar.appendChild(fill);
+    plate.appendChild(bar);
+    plate.appendChild(el('div', 'ege-plcard__togo', next
+      ? whole(Math.max(0, next.cards - tc.cards)) + ' to ' + next.name
+      : 'As high as it goes'));
+    node.appendChild(plate);
+
+    var foot = el('div', 'ege-plcard__foot');
+    foot.appendChild(el('span', 'ege-plcard__rank', rank ? rank.name : 'Unranked'));
+    foot.appendChild(el('span', null, 'Team'));
+    node.appendChild(foot);
+
+    if (key === 'goat') {
+      for (var i = 1; i <= 4; i += 1) {
+        outer.appendChild(el('span', 'ege-plcard__spark ege-plcard__spark--' + i));
+      }
+    }
+    return outer;
+  }
+
+  /* What a win pays at a rank, in a few words. */
+  function perWinText(rank) {
+    return rank.perWin + ' a 10-point win, up to ' + rank.perWin * 2;
+  }
+
+  /* A Team Card and, beside it, what it means, as a Player Card has. */
+  function teamCardEl(tc, whose) {
+    var team = tc.team;
+    var rank = tc.rank;
+    var earned = teamEarned(whose, tc.key);
+    var node = el('article', 'ege-pcard ege-pcard--team');
+    var face = teamCardFace(tc, earned);
+    pressable(face, team.name + ' Team Card, ' + (rank ? rank.name : 'unranked') + ', up close', function () {
+      zoomTeam(tc, earned, whose.mine ? null : whose.first);
+    });
+    node.appendChild(face);
+
+    var body = el('div', 'ege-pcard__body');
+    body.appendChild(el('h4', 'ege-item__name', team.name));
+    var record = EGE.teamCards.record(tc.key);
+    body.appendChild(el('span', 'fb-meta', tc.cards
+      ? [cardsWord(tc.cards), tc.players + (tc.players === 1 ? ' player' : ' players'),
+         record.games.length ? EGE.teamCards.recordText(record) + ' this season' : null].filter(Boolean).join(' · ')
+      : (whose.mine ? 'No ' + team.short + ' cards yet.' : whose.first + ' has no ' + team.short + ' cards yet.')));
+
+    var next = rank ? tc.next : tc.ladder[1];
+    var from = rank ? rank.cards : 0;
+    var meter = el('div', 'fb-meter ege-pcard__meter');
+    var fill = el('div', 'fb-meter__fill');
+    fill.style.width = (next ? Math.max(0, Math.min(100, (tc.cards - from) / Math.max(1, next.cards - from) * 100)) : 100) + '%';
+    fill.style.background = rank ? rank.color : '#8b9097';
+    meter.appendChild(fill);
+    body.appendChild(meter);
+    body.appendChild(el('p', 'ege-pcard__next', next
+      ? whole(Math.max(0, next.cards - tc.cards)) + ' more ' + (next.cards - tc.cards === 1 ? 'card' : 'cards') +
+        ' to ' + next.name + ' (' + whole(next.cards) + ').'
+      : rank.name + '. As high as it goes.'));
+
+    var pays = el('p', 'ege-pcard__bonus');
+    var paying = Boolean(rank && rank.perWin);
+    if (earned !== null && (earned > 0 || paying)) {
+      pays.appendChild(document.createTextNode('Earned '));
+      var amount = el('strong', 'ege-pcard__amount', whole(earned));
+      amount.appendChild(gem());
+      pays.appendChild(amount);
+      pays.appendChild(document.createTextNode(' so far. '));
+    }
+    if (paying) {
+      var rate = el('span', 'ege-pcard__rate', String(rank.perWin));
+      rate.appendChild(gem());
+      pays.appendChild(rate);
+      pays.appendChild(document.createTextNode(' a 10-point win, up to ' + rank.perWin * 2 + '.'));
+    } else {
+      pays.appendChild(document.createTextNode('Pays for wins from Uncommon.'));
+    }
+    body.appendChild(pays);
+
+    var row = el('div', 'ege-pcard__actions');
+    var see = iconButton('ege-pcard__see', 'cards', 'See the ' + team.short + ' cards');
+    see.disabled = !tc.cards;
+    see.addEventListener('click', function () {
+      state.filter.league = 'nfl';
+      state.filter.player = 'team:' + tc.key;
+      setTab('cards');
+      if ((state.view || null) !== (whose.mine ? null : whose.email)) {
+        pickView(whose.mine ? null : whose.email);
+      } else {
+        renderFilters();
+        renderCollection();
+      }
+    });
+    row.appendChild(see);
+    body.appendChild(row);
+
+    node.appendChild(body);
+    return node;
+  }
+
+  /* A Team Card up close, with what it means beside it. */
+  function zoomTeam(tc, earned, whoseFirst) {
+    var team = tc.team;
+    var rank = tc.rank;
+    var stage = openOverlay(team.name, 'ege-rip__stage--zoom');
+
+    var row = el('div', 'ege-rip__cards ege-rip__cards--1');
+    var holder = el('div', 'ege-zoom__card');
+    holder.appendChild(teamCardFace(tc, earned));
+    row.appendChild(holder);
+    stage.appendChild(row);
+    tiltCard(holder);
+
+    var facts = el('dl', 'ege-zoom__facts');
+    function fact(label, value) {
+      facts.appendChild(el('dt', null, label));
+      return facts.appendChild(el('dd', null, value));
+    }
+    fact('Whose', (whoseFirst ? whoseFirst + '’s ' : 'Your ') + 'Team Card');
+    fact('Rank', rank
+      ? rank.name + (rank.perWin ? ' · ' + perWinText(rank) : ' · no pay until Uncommon')
+      : 'Unranked');
+    fact('Cards', cardsWord(tc.cards) + ' · ' + tc.players + (tc.players === 1 ? ' player' : ' players'));
+    var next = rank ? tc.next : tc.ladder[1];
+    fact('Next rank', next
+      ? whole(Math.max(0, next.cards - tc.cards)) + ' more to ' + next.name + ' (' + whole(next.cards) + ')'
+      : rank.name + '. As high as it goes.');
+    if (earned !== null && earned !== undefined) {
+      var paid = fact('Earned', whole(earned));
+      paid.appendChild(gem());
+      paid.appendChild(document.createTextNode(' from ' + team.short + ' wins, every season'));
+    }
+    var record = EGE.teamCards.record(tc.key);
+    if (record.games.length) { fact('This season', EGE.teamCards.recordText(record)); }
+    stage.appendChild(facts);
+
+    var actions = el('div', 'ege-rip__actions');
+    var done = el('button', 'fb-btn fb-btn--primary', 'Done');
+    done.type = 'button';
+    done.addEventListener('click', closeRip);
+    actions.appendChild(done);
+    stage.appendChild(actions);
+    done.focus({ preventScroll: true });
+  }
+
   /* --- somebody else's Player Cards ----------------------------------------
 
      Picked above the Player Cards. Their cards are readable by anybody
@@ -5078,6 +5310,17 @@ EGE.cardsView = (function () {
       return;
     }
     var owned = state.pcView ? state.pcOther.owned : state.owned;
+    if (state.pcKind === 'team') {
+      /* A Team Card for every team the six have played for, best first. */
+      var teams = EGE.teamCards && EGE.nflCards && EGE.nflCards.loaded() ? EGE.teamCards.teamCards(owned) : null;
+      if (!teams) {
+        holder.appendChild(el('p', 'fb-meta', 'Loading\u2026'));
+      } else if (!teams.length) {
+        holder.appendChild(el('p', 'fb-meta', 'No Team Cards yet.'));
+      }
+      (teams || []).forEach(function (tc) { holder.appendChild(teamCardEl(tc, whose)); });
+      return;
+    }
     if (state.pcKind === 'nfl') {
       /* The NFL teammates with a Player Card, best first. */
       var mates = EGE.nflCards && EGE.nflCards.loaded() ? EGE.nflCards.playerCards(owned) : null;
@@ -5095,12 +5338,13 @@ EGE.cardsView = (function () {
     });
   }
 
-  /* The six's Player Cards or the NFL teammates', over the cards. */
+  /* The six's Player Cards, the NFL teammates' or the Team Cards, over the
+     cards. */
   function renderPcKinds() {
     var holder = byId('playerCardsKind');
     if (!holder) { return; }
     holder.innerHTML = '';
-    [['ege', 'EGE'], ['nfl', 'NFL']].forEach(function (k) {
+    [['ege', 'EGE'], ['nfl', 'NFL'], ['team', 'TEAM']].forEach(function (k) {
       var b = chip(k[1], state.pcKind === k[0], function () {
         if (state.pcKind === k[0]) { return; }
         state.pcKind = k[0];
@@ -5757,7 +6001,8 @@ EGE.cardsView = (function () {
         return EGE.cardStore.openedToday(player.email, p.key).then(function (times) { return [p.key, times]; });
       })),
       EGE.cardStore.gamePacks(player.email),
-      EGE.cardStore.wantLists()
+      EGE.cardStore.wantLists(),
+      EGE.cardStore.teamCardAwards(player.email)
     ]).then(function (all) {
       if (state.player !== player) { return; }
       if (all[0] === null) {
@@ -5772,6 +6017,7 @@ EGE.cardsView = (function () {
       state.diamonds = all[4];
       state.recent = all[5];
       state.pcAwards = all[7];
+      state.tcAwards = all[20];
       state.shop = all[8];
       state.market = all[9];
       state.photos = all[10];
@@ -5983,6 +6229,7 @@ EGE.cardsView = (function () {
     state.recent = null;
     state.recentShown = RECENT_STEP;
     state.pcAwards = null;
+    state.tcAwards = null;
     state.shop = null;
     state.market = null;
     state.photos = null;
