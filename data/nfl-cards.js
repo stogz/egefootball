@@ -613,16 +613,17 @@ EGE.nflCards = (function () {
      fantasy points times his position's share (PAY_SHARE), times the
      rank's bonus, and the week's NFL Player Cards are paid together, the
      total rounded, as one award a week (npc-w{week}; pay_nfl_card_bonuses
-     in supabase/schema.sql holds it to 60). A teammate starter's 15-point
-     game at Mystic is worth about 3 diamonds; at Uncommon, a fifth of one. */
+     in supabase/schema.sql holds it to 30). A teammate starter's 15-point
+     game at Mystic is worth about 1.5 diamonds (every bonus was halved,
+     Sam, 2026-11-06); at Uncommon, a tenth of one. */
   var NFL_RANKS = [
-    { key: 'uncommon',  points: 30,   bonus: 0.10 },
-    { key: 'rare',      points: 80,   bonus: 0.25 },
-    { key: 'epic',      points: 160,  bonus: 0.50 },
-    { key: 'legendary', points: 280,  bonus: 0.80 },
-    { key: 'mystic',    points: 450,  bonus: 1.25 },
-    { key: 'iconic',    points: 1400, bonus: 3.00 },
-    { key: 'goat',      points: 5600, bonus: 5.00 }
+    { key: 'uncommon',  points: 30,   bonus: 0.05 },
+    { key: 'rare',      points: 80,   bonus: 0.125 },
+    { key: 'epic',      points: 160,  bonus: 0.25 },
+    { key: 'legendary', points: 280,  bonus: 0.40 },
+    { key: 'mystic',    points: 450,  bonus: 0.625 },
+    { key: 'iconic',    points: 1400, bonus: 1.50 },
+    { key: 'goat',      points: 5600, bonus: 2.50 }
   ];
 
   var PAY = 0.2;

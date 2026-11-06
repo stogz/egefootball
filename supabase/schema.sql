@@ -1344,6 +1344,16 @@ begin
     raise exception 'Not enough diamonds: that pack costs %, you have %.', v_price, coalesce(v_have, 0);
   end if;
 
+  -- 20 Air Raid Packs in any 24 hours (Sam, 2026-11-06; perDay on the
+  -- pack in data/cards.js, change both). Counted under the balance's lock,
+  -- so two tabs cannot both open the 20th.
+  if p_pack = 'air-raid' and (
+    select count(*) from public.card_packs
+     where email = v_email and pack_key = 'air-raid'
+       and opened_at > now() - interval '24 hours') >= 20 then
+    raise exception 'That is 20 Air Raid Packs in 24 hours. The next one opens when the oldest is a day old.';
+  end if;
+
   update public.player_diamonds
      set diamonds = diamonds - v_price, updated_at = now()
    where email = v_email;
@@ -1978,8 +1988,9 @@ notify pgrst, 'reload schema';
 --
 -- The same trust as a game's own diamonds: the page works out what is owed
 -- from the season files and the collection, and this holds a key to the
--- shape the page issues and a game's bonus to 400 -- the 120 a game's
--- credits are held to, at the Iconic 3x, and a little over.
+-- shape the page issues and a game's bonus to 200 -- the 120 a game's
+-- credits are held to, at the Iconic 1.5x, and a little over. Every rank's
+-- bonus was halved on 2026-11-06 (Sam), and these holds with it.
 --
 -- Returns what it actually paid.
 -- ===========================================================================
@@ -2028,7 +2039,7 @@ begin
   loop
     continue when r.award_key is null
       or r.award_key !~ '^pc-[a-z]+(-[a-z]+)*-w[0-9]{1,2}$'
-      or r.diamonds < 0 or r.diamonds > 400;
+      or r.diamonds < 0 or r.diamonds > 200;
 
     v_pay := case when v_first then 0 else r.diamonds end;
 
@@ -4112,7 +4123,7 @@ as $$
 $$;
 
 -- Pays every bet on a game once its final whistle has gone: the price
--- times the stake for a winner, the stake back for a push, nothing
+-- times the stake for a winner, less 10% of the winnings, the stake back for a push, nothing
 -- otherwise. Once each, however many viewers ask; anybody may, since it
 -- pays only what the game already says. Returns how many it settled.
 create or replace function public.live_settle(p_id text)
@@ -4141,9 +4152,12 @@ begin
   for b in
     select * from public.live_bets where game_id = p_id and settled_at is null for update skip locked
   loop
+    -- A winner keeps 90% of what it won over the stake (Sam's 10% tax,
+    -- 2026-11-06; pays() in js/live.js does the same sum).
     v_pay := case
       when coalesce(v_res -> 'push', '[]'::jsonb) ? b.market then b.stake
-      when coalesce(v_res -> b.market, '[]'::jsonb) ? b.pick then round(b.stake * b.x)::integer
+      when coalesce(v_res -> b.market, '[]'::jsonb) ? b.pick
+        then b.stake + round((round(b.stake * b.x) - b.stake) * 0.9)::integer
       else 0 end;
     update public.live_bets set settled_at = now(), payout = v_pay where id = b.id;
     if v_pay > 0 then
@@ -4569,7 +4583,8 @@ grant execute on function public.nfl_card_lines(jsonb) to anon, authenticated;
 -- in data/nfl-cards.js), and it pays much less than one of the six's (Sam,
 -- 2026-11-06): a fifth of his game's fantasy points times his position's
 -- share, times the rank's bonus. Every NFL Player Card's games in a week are
--- paid together, as one award, npc-w{week}, held here to 60. The same rules
+-- paid together, as one award, npc-w{week}, held here to 30 (halved with
+-- every bonus, Sam, 2026-11-06). The same rules
 -- as pay_player_card_bonuses otherwise: each week is paid once, at the ranks
 -- held when it is first paid, a week of nothing goes in at nothing, and the
 -- first time an account is paid at all every week already out goes in at
@@ -4620,7 +4635,7 @@ begin
   loop
     continue when r.award_key is null
       or r.award_key !~ '^npc-w[0-9]{1,2}$'
-      or r.diamonds < 0 or r.diamonds > 60;
+      or r.diamonds < 0 or r.diamonds > 30;
 
     v_pay := case when v_first then 0 else r.diamonds end;
 

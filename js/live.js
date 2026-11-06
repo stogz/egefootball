@@ -672,7 +672,9 @@ EGE.liveView = (function () {
 
   function times(x) { return (x % 1 ? String(Math.round(x * 100) / 100) : Number(x).toFixed(1)) + '×'; }
 
-  function pays(stake, x) { return Math.round(stake * x); }
+  /* What a winner pays: the stake back and 90% of the rest (Sam's 10%
+     tax, 2026-11-06). live_settle does the same sum. */
+  function pays(stake, x) { return stake + Math.round((Math.round(stake * x) - stake) * 0.9); }
 
   /* The bets on offer, each with whether it is open now. */
   function menus() {

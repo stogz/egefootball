@@ -218,7 +218,7 @@ EGE.diamondsView = (function () {
         why.appendChild(pip);
       }
       why.appendChild(document.createTextNode((rank ? rank.name + ' ' : '') + 'Player Card' +
-        (rank && rank.bonus ? ' \u00b7 +' + Math.round(rank.bonus * 100) + '%' : '')));
+        (rank && rank.bonus ? ' \u00b7 +' + Math.round(rank.bonus * 1000) / 10 + '%' : '')));
       if (both) { why.appendChild(document.createTextNode(' \u00b7 ')); why.appendChild(gems(row.card, true)); }
       text.appendChild(why);
     }
