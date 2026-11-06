@@ -661,7 +661,21 @@
 
       <!-- ===== Trades ===== -->
       <div class="ege-cardpage" id="cardPageTrades" data-page="trades" hidden>
-        <div class="fb-panel" id="tradesPanel">
+        <!-- what each player is looking for, and who has it: first, under
+             the page title (Sam, 2026-11-06) -->
+        <div class="fb-panel" id="wantsPanel">
+          <div class="fb-panel__head">
+            <h3>Want List</h3>
+            <span class="fb-meta" id="wantsCount"></span>
+            <button class="fb-btn fb-btn--sm fb-btn--primary" id="wantsAdd" type="button">Add</button>
+          </div>
+          <div class="fb-panel__body fb-stack fb-stack--lg">
+            <div class="ege-wants" id="wantsList"></div>
+            <div class="ege-trades" id="wantMatches"></div>
+          </div>
+        </div>
+
+        <div class="fb-panel ege-section-gap" id="tradesPanel">
           <div class="fb-panel__head">
             <h3>Trades</h3>
             <span class="fb-meta" id="tradesCount"></span>
@@ -1586,6 +1600,8 @@
 <script src="data/cards.js"></script>
 <script src="data/nfl-cards.js"></script>
 <script src="data/team-cards.js"></script>
+<script src="data/game-packs.js"></script>
+<script src="data/card-wants.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/wallet.js"></script>
 <script src="js/cards.js"></script>

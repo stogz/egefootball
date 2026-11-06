@@ -153,6 +153,37 @@ EGE.cardStore = (function () {
     });
   }
 
+  /* The Game Packs this player has won and not opened yet (data/game-packs.js),
+     newest first. Null when they could not be read (or the schema has not
+     been run again yet), so a check that failed never takes one away. */
+  function gamePacks(email) {
+    var c = client();
+    if (!c || !email) { return Promise.resolve([]); }
+    return c.from('game_packs').select('id, game_id, season, week, home, away, six, wins, earned_at')
+      .eq('email', email).is('opened_at', null).order('earned_at', { ascending: false })
+      .then(function (res) { return res.error ? null : (res.data || []); })
+      .catch(function () { return null; });
+  }
+
+  /* Opens one, with the cards the page rolled for it (EGE.gamePacks.roll):
+     open_game_pack checks they are from its game and hands them over. */
+  function openGamePack(row, cards) {
+    var c = client();
+    if (!c) { return fail(offline()); }
+    if (!cards || cards.length !== EGE.gamePacks.SIZE) {
+      return fail('That game’s cards are not out yet.');
+    }
+    return c.rpc('open_game_pack', {
+      p_pack: row.id,
+      p_cards: cards.map(function (card) { return card.id; })
+    }).then(function (res) {
+      if (res.error) { return { ok: false, message: said(res.error) }; }
+      return { ok: true, cards: cards, left: Number(res.data) || 0 };
+    }).catch(function (error) {
+      return { ok: false, message: said(error) };
+    });
+  }
+
   /* Claims a completed set: the reward card is rolled here, and the database
      checks that every card the set was made with is really in the
      collection before it pays anything. */
@@ -295,6 +326,50 @@ EGE.cardStore = (function () {
   function cancelTrade(id) {
     return call('cancel_card_trade', { p_trade: id },
       function () { return { ok: true, status: 'cancelled' }; });
+  }
+
+  /* --- the Want List -------------------------------------------------------
+
+     What each player is looking for (data/card-wants.js). Kept one row an
+     account in card_wants, so reading everybody's is a handful of rows. */
+
+  /* Every account's list, { email in lower case: [want] }. Null when it
+     could not be read (before the schema has the table, say). */
+  function wantLists() {
+    var c = client();
+    if (!c) { return Promise.resolve(null); }
+    return c.from('card_wants').select('email, wants')
+      .then(function (res) {
+        if (res.error) { return null; }
+        var out = {};
+        (res.data || []).forEach(function (row) { out[String(row.email).toLowerCase()] = row.wants || []; });
+        return out;
+      })
+      .catch(function () { return null; });
+  }
+
+  /* The signed-in player's whole list, in its order. */
+  function setWants(wants) {
+    return call('set_card_wants', { p_wants: wants || [] }, function () { return { ok: true }; });
+  }
+
+  /* Who else has what a list could be after, { email in lower case: { card
+     id: copies } }: `keys` is EGE.cardWants.ask(list), the season and
+     player of every card it could be after. One answer from
+     card_want_holders however many cards that is, so the 1000-row cap
+     never cuts it. Null when it could not be read. */
+  function wantHolders(keys) {
+    var c = client();
+    if (!c) { return Promise.resolve(null); }
+    if (!keys || !keys.length) { return Promise.resolve({}); }
+    return c.rpc('card_want_holders', { p_keys: keys })
+      .then(function (res) {
+        if (res.error) { return null; }
+        var out = {};
+        Object.keys(res.data || {}).forEach(function (email) { out[email.toLowerCase()] = res.data[email] || {}; });
+        return out;
+      })
+      .catch(function () { return null; });
   }
 
   /* --- showcases ----------------------------------------------------------- */
@@ -879,6 +954,8 @@ EGE.cardStore = (function () {
     ownersOf: ownersOf,
     claimsFor: claimsFor,
     openPack: openPack,
+    gamePacks: gamePacks,
+    openGamePack: openGamePack,
     claimSet: claimSet,
     recentPacks: recentPacks,
     quickSell: quickSell,
@@ -893,6 +970,9 @@ EGE.cardStore = (function () {
     respondTrade: respondTrade,
     cancelTrade: cancelTrade,
     markTradesSeen: markTradesSeen,
+    wantLists: wantLists,
+    setWants: setWants,
+    wantHolders: wantHolders,
     showcaseFor: showcaseFor,
     setShowcase: setShowcase,
     showcasePlayersFor: showcasePlayersFor,

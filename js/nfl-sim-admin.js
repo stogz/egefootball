@@ -1019,6 +1019,17 @@ EGE.nflSimAdmin = (function () {
     });
   }
 
+  /* The six on either team that week, by slug, for the game's Game Packs
+     (live_games.six): a game with none of them in it pays none. */
+  function sixSlugs(season, week, g) {
+    return (EGE.players || []).filter(function (p) {
+      var site = EGE.teamKeyFor ? EGE.teamKeyFor(p, season, week) : null;
+      var team = site && EGE.teams ? EGE.teams[site] : null;
+      var key = team && team.tier === 'nfl' ? EGE.nfl.keyForSite(site) : null;
+      return key === g.home || key === g.away;
+    }).map(function (p) { return p.slug; });
+  }
+
   /* The home side's projected margin, as the site's lines have it. */
   function liveMargin(season, week, g) {
     var ready = EGE.nflRosters ? EGE.nflRosters.load(season).catch(function () { return null; }) : Promise.resolve();
@@ -1125,7 +1136,8 @@ EGE.nflSimAdmin = (function () {
       });
       return c.rpc('live_start', {
         p_game: { id: id, season: season, week: week, home: g.home, away: g.away, title: liveTitle(g),
-                  slot_ms: LIVE_SLOT, reveal_ms: LIVE_REVEAL, length_ms: plan.length },
+                  slot_ms: LIVE_SLOT, reveal_ms: LIVE_REVEAL, length_ms: plan.length,
+                  six: sixSlugs(season, week, g) },
         p_entries: plan.entries,
         p_posts: posts,
         p_bets: got[0].bets

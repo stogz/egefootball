@@ -2548,6 +2548,47 @@ player finish a set.
 there, that only the player an offer is to can answer it, and that nobody
 has more than ten offers out at once.
 
+### Want List
+
+First on the Trades page, above the trades (Sam, 2026-11-06): the NFL
+teams and players you are looking for, and who has them. **Add** opens a
+picker with **Teams** (the NFL teams there are teammate cards of) and
+**Players** (the six, then the NFL teammates with the most cards, or any
+by name). A player's picture is the
+live game's: a circle on his team's colour at 60% with its mark at the
+bottom right; a team is its mark in that circle. Every box is the same
+size, a long name cut short with an ellipsis. A tap puts one on or takes
+it off, with the rarity picked beside the search as a floor (**Epic or
+better** keeps it to Epic, Legendary, Mystic and Iconic cards). Thirty at
+most; each one is a chip with an x.
+
+A team is every NFL teammate card of it (`team:detroit`, by its key in
+`EGE.teams`), not the six's own cards there; a player want is how to ask
+for those. A player is every card of him, one of the six or a teammate
+(`player:dj-moore`), holos included. An event's reward card never trades,
+so it never matches.
+
+Under your list is everybody with a card on it or a card of yours on
+theirs, laid out like a trade: **Has N you want** and **Wants N of yours**,
+one row of five each (four and a **+N** when there are more). A card opens up close (theirs with
+Trade for it). **Trade** opens the builder with both sides already sorted
+to those cards: the order on each side has **Cards you want** and **Cards
+they want**, beside the holo ones, and from the Want List it shows EGE and
+NFL cards together until one is picked. A card somebody pulls turns up
+there within a minute while the page is open (every third check on the
+Trades page), whatever it came out of: a pack, a Game Pack, the Daily
+Spin, the shop, the market or a trade. A Game Pack's cards are the game's
+own cards, so they match a team or a player like any other.
+
+`card_wants` holds one row an account (readable by every signed-in
+player, set only through `set_card_wants()`). `card_want_holders()` finds
+who else has what your list could be after in one answer, so Supabase's
+1000-row cap never cuts it: the page sends the season and player of every
+card a team or a player on the list could be (`2025:dj-moore`, which every
+card id carries), and checks what comes back against the list itself,
+since Postgres cannot tell a card's team or rarity from its id
+(`data/card-wants.js`).
+
 ### The showcase
 
 Up to twelve cards a player picks to show off, in two rows of six, on their own player
@@ -2605,8 +2646,9 @@ their owner and an admin), `player_cards` (who owns which ids and how many,
 readable by any signed-in player), `card_packs` (every pack opened and what
 was in it), `card_sales` (every quick sale, readable by the seller and an
 admin),
-`card_set_claims`, `card_trades` (readable by the two players in it) and
-`card_showcases` (public). None has an insert, update or delete policy:
+`card_set_claims`, `card_trades` (readable by the two players in it),
+`card_wants` (readable by every signed-in player) and `card_showcases`
+(public). None has an insert, update or delete policy:
 cards only move through `open_card_pack()`, `claim_card_set()`,
 `quick_sell_card()`, the trade functions and the admin's two resets, each one
 transaction, so a pack is never paid for without arriving, a trade never half
@@ -2655,8 +2697,9 @@ of a tap (`poll()` and `busy()` in `js/cards-view.js`).
 - **Shop** — the Daily Spin (gone once it is spun, until the next one),
   packs and Buy Diamonds, Today's Cards, the Market and Recent Pulls. The
   odds are not shown on the page.
-- **Trades** — offers to you, your offers, recent ones. The page button
-  counts the new offers to you, in red, until the page has been opened.
+- **Trades** — offers to you, your offers, recent ones, then the Want
+  List. The page button counts the new offers to you, in red, until the
+  page has been opened.
 - **Achievements** — the library of sets. The page button counts sets ready
   to claim.
 
@@ -2958,6 +3001,47 @@ A team set pays more the fewer of the NFL cards are that team's
 (`teamReward`): under 12%, Epic+ and 12; under 8%, Epic+, 15 and a 1.5x
 Booster. An NFL set takes NFL cards only and pays an NFL card; the six's
 sets never take one.
+
+### Game Packs
+
+Whoever wins the most bets on a live game gets a **Game Pack** of it (Sam,
+2026-11-06; `data/game-packs.js`). `live_settle()` hands them out as it pays
+the bets: the account with the most winning bets on the game gets one, and
+every account tied for the most does too. A push is not a win, and a game
+nobody won a bet on pays none. A game with none of the six in it pays none
+either, having no cards to fill one: PLAY LIVE tells Supabase which of the
+six are in the game (`live_games.six`).
+
+It waits in the Shop, in front of the packs for sale, one tile a pack, and
+opens once the game's week is published, since that is when its cards
+exist. It is free: **Claim & Rip** brings up the sealed pack, and tearing it
+open is what claims it (`open_game_pack()`). Five cards, all from that game:
+the six's cards from it and their NFL teammates' on either side.
+
+- the game's **best performance** card and its **best play** card (best by
+  rarity, then points, as everywhere else);
+- **three more** at the standard odds, a card not already in the pack where
+  the game has one;
+- **at least two of the five are the six's**, the best two counting towards
+  it (Sam picked this, 2026-11-06). A game with only one card of the six's
+  has it twice. A game with no touchdown in it gets a fourth random card for
+  its play.
+
+The cover is the two teams' marks (`EGE.nfl.logo`) overlapping in the middle,
+the visitors' a touch high on the left and the home side's over it a touch
+low on the right, on foil that runs from the visitors' colour into the home
+side's, with GAME in chrome under them. The tile names the game ("Texans at
+Bears") on a band of the two colours. The Shop button's count includes every
+Game Pack that can be opened, and the live page's Bets box links a winner to
+the Shop once the game is over. Recent Pulls lists one as **Game Pack ·
+Texans at Bears** (`card_packs.pack_key` `game:{live game id}`).
+
+The page rolls the cards, as for every pack; `open_game_pack()` checks there
+are five, every one of the game's season and week, the six's only of the six
+in the game, and the pack is the player's and not open yet. `game_packs` keeps
+each one (who, which game, how many bets they won, when it was opened and what
+was in it). A game put on again with PLAY LIVE is a new go, with its own
+winners; a game restarted after its bets were paid pays no packs again.
 
 ## Seasons, and putting a week out
 
