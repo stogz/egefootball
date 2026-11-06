@@ -2877,11 +2877,48 @@ Rare 80, Epic 160, Legendary 280, Mystic 450, Iconic 1,400, GOAT 5,600, at
 six's: a fifth of his game's fantasy points times his position's share
 (`PAY_SHARE`) times the rank's bonus, doubled in the playoffs. All of a
 week's NFL Player Cards are paid together as one award, `npc-w{week}`, at
-most 60 (`pay_nfl_card_bonuses()`), on the Diamonds page as one **NFL
+most 30 (`pay_nfl_card_bonuses()`), on the Diamonds page as one **NFL
 Player Cards** row a week. In a simulated league, an account that had opened
 60 NFL Packs held about 25 NFL Player Cards earning 2–4 diamonds a week
 between them. Weeks out before an account's first payment are settled at
 nothing, like the six's Player Cards.
+
+**Team Cards** (Sam, 2026-11-06; `data/team-cards.js`): the Player Cards
+page's third switch, **TEAM**. Every NFL card you hold of one team counts
+toward its Team Card: the team the teammate played that game for, so a
+Steelers game stays a Steelers card after he moves on. Each copy counts one,
+a holo three and a Holo II nine, and a Common counts as much as a Mystic, so
+a card you would have quick sold still moves it. The first card makes it,
+at Common; every team the six have played for shows, grey until you have
+one of its cards. Once it is Uncommon it pays for every win the team has,
+regular season and playoffs, more the bigger the win:
+
+    per win × (margin up to 25, + 5) / 15, rounded, never under 1
+
+so the rank's number on a 10-point win, less on a close one, twice it on a
+win by 25 or more, and twice that again in the playoffs.
+
+| Rank | Cards | A 10-point win | A field goal | 25+ |
+| --- | --- | --- | --- | --- |
+| Common | 1 | 0 | 0 | 0 |
+| Uncommon | 10 | 2 | 1 | 4 |
+| Rare | 25 | 5 | 3 | 10 |
+| Epic | 50 | 10 | 5 | 20 |
+| Legendary | 90 | 15 | 8 | 30 |
+| Mystic | 150 | 20 | 11 | 40 |
+| Iconic | 450 | 30 | 16 | 60 |
+| GOAT | 1,800 | 40 | 21 | 80 |
+
+`pay_team_card_wins()` pays them: the page sends the rank of each Team Card
+and Postgres finds the wins itself in `sim_box_scores` (published weeks
+only) and prices each one, so only a game the team won is ever paid. One
+award a win, `tc-{team}-w{week}`, paid once at the rank held when it is
+first paid; a win while the card is below Uncommon goes in at nothing, and
+the wins out before an account's first payment are settled at nothing (a
+`tc-start` row). The Diamonds page shows each win as its own row with the
+team's mark, the score and the rank it paid at. Somebody else's Team Cards
+show what they have earned through `player_card_earnings()` (`tc:PIT`).
+`RANKS` and `winPay` are written out in the SQL too; change both together.
 
 **NFL sets** (Library: NFL, NFL Teammates, NFL Seasons). None names a
 teammate, since who the six play with changes, so the same sets work for
