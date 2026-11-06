@@ -136,7 +136,7 @@ EGE.cardsView = (function () {
 
   /* --- the limited-time events --------------------------------------------
 
-     The Gold Rush and Halloween (EGE.cards.EVENTS): each one's pack in the
+     The Gold Rush, Halloween and the Air Raid (EGE.cards.EVENTS): each one's pack in the
      shop, its box over the Library, and the 48 hours one of its cards waits
      after it is traded before it can go again. */
   var EVENTS = EGE.cards.EVENTS;
@@ -221,8 +221,23 @@ EGE.cardsView = (function () {
      a gold booster sticker (the sunburst js/app.js cuts them from) with the
      event's name on it; Halloween's is the same sunburst in shiny purple
      with no dark edge round it, and Sam's pumpkin over the top (Sam,
-     2026-10-26). */
+     2026-10-26). The Air Raid's is the same sunburst in sky blue and
+     silver with Sam's AIR RAID logo across it (2026-11-06). */
   function stickerEl(card) {
+    if (card && card.eventKey === EGE.cards.AIR_RAID.key) {
+      var badge = el('span', 'ege-tcard__sticker ege-tcard__sticker--airraid');
+      badge.setAttribute('aria-hidden', 'true');
+      var sky = el('span', 'ege-sticker ege-sticker--sky');
+      sky.appendChild(el('span', 'ege-sticker__face'));
+      badge.appendChild(sky);
+      var mark = el('img', 'ege-tcard__airraid');
+      mark.src = EGE.cards.AIR_RAID.mark;
+      mark.alt = '';
+      mark.decoding = 'async';
+      mark.draggable = false;
+      badge.appendChild(mark);
+      return badge;
+    }
     if (card && card.eventKey === EGE.cards.HALLOWEEN.key) {
       var wrap = el('span', 'ege-tcard__sticker ege-tcard__sticker--pumpkin');
       wrap.setAttribute('aria-hidden', 'true');
@@ -262,11 +277,11 @@ EGE.cardsView = (function () {
   }
 
   /* Whether a card wears its event's sticker: every event card but the
-     reward, and Halloween's card art, whose art Sam wants clear of it
-     (2026-10-26). */
+     reward, and the card art of every event since the Gold Rush, whose art
+     Sam wants clear of it (2026-10-26). */
   function stickered(card) {
     return Boolean(card.eventKey) && !card.reward &&
-      !(card.art && card.eventKey === EGE.cards.HALLOWEEN.key);
+      !(card.art && card.eventKey !== EGE.cards.GOLD_RUSH.key);
   }
 
   /* The classes an event's card wears: ege-tcard--event, and its own,
@@ -297,24 +312,26 @@ EGE.cardsView = (function () {
   }
 
   /* An event's Iconic card while Sam's art for it is still being drawn
-     (the HALLOWEEN card, 2026-10-26): its name and the event's mark on the
-     Iconic frame. Naming the art in the event's `rewardImage` puts his
-     picture here instead. */
+     (the HALLOWEEN card, 2026-10-26; the AIR RAID card, 2026-11-06): its
+     name and the event's mark on the Iconic frame. Naming the art in the
+     event's `rewardImage` puts his picture here instead. */
   function standCard(card, opts) {
     var node = el('div', 'ege-tcard ege-tcard--' + card.rarity + ' ege-tcard--stand' +
       eventClass(card) + ' ege-tcard--reward');
     node.style.setProperty('--rarity', EGE.cards.rarity(card.rarity).color);
     var face = el('div', 'ege-tcard__face');
     var art = el('div', 'ege-tcard__standart');
-    if (card.eventKey === EGE.cards.HALLOWEEN.key) {
+    var ev = eventOfCard(card);
+    if (ev && ev.mark) {
       var mark = el('img', 'ege-tcard__standmark');
-      mark.src = 'icon/cards/halloween-pumpkin.webp';
+      mark.src = ev.mark;
       mark.alt = '';
       mark.decoding = 'async';
       mark.draggable = false;
       art.appendChild(mark);
     }
-    art.appendChild(el('span', 'ege-tcard__standname', card.event));
+    /* The Air Raid's logo says its name already. */
+    if (!(ev && ev.markIsName)) { art.appendChild(el('span', 'ege-tcard__standname', card.event)); }
     face.appendChild(art);
     var foot = el('div', 'ege-tcard__foot');
     foot.appendChild(el('span', 'ege-tcard__rarity', EGE.cards.rarity(card.rarity).name));
@@ -480,14 +497,27 @@ EGE.cardsView = (function () {
   }
 
   /* The back every card shares, for the moment before it is turned over;
-     a Gold Rush card's is gold (Sam, 2026-10-16), and a Halloween card's
-     is purple and orange and says Trick or Treat (Sam, 2026-10-26). */
+     a Gold Rush card's is gold (Sam, 2026-10-16), a Halloween card's is
+     purple and orange and says Trick or Treat (Sam, 2026-10-26), and an Air
+     Raid card's is clouds on a blue sky in a silver frame, with Sam's AIR
+     RAID logo under the ball (Sam, 2026-11-06). */
   function backEl(card) {
     var spooky = Boolean(card && card.eventKey === EGE.cards.HALLOWEEN.key);
+    var air = Boolean(card && card.eventKey === EGE.cards.AIR_RAID.key);
     var node = el('div', 'ege-tcard ege-tcard--back' + (card && card.gold ? ' ege-tcard--backgold' : '') +
-      (spooky ? ' ege-tcard--backhalloween' : ''));
+      (spooky ? ' ege-tcard--backhalloween' : '') + (air ? ' ege-tcard--backairraid' : ''));
     var face = el('div', 'ege-tcard__face');
     face.appendChild(el('span', 'ege-tcard__backmark'));
+    if (air) {
+      var logo = el('img', 'ege-tcard__backlogo');
+      logo.src = EGE.cards.AIR_RAID.mark;
+      logo.alt = '';
+      logo.decoding = 'async';
+      logo.draggable = false;
+      face.appendChild(logo);
+      node.appendChild(face);
+      return node;
+    }
     var word = el('span', 'ege-tcard__backword');
     word.appendChild(document.createTextNode(spooky ? 'Trick or ' : 'EGE '));
     word.appendChild(el('em', null, spooky ? 'Treat' : 'Football'));
@@ -549,8 +579,19 @@ EGE.cardsView = (function () {
     brand.appendChild(document.createTextNode(' Football'));
     body.appendChild(brand);
 
-    body.appendChild(el('span', 'ege-pack__name',
-      pack.season ? 'Season' : pack.name.replace(/ Pack$/, '')));
+    /* An event's own logo in place of the name in chrome, where it has
+       one (the Air Raid's). */
+    if (cover && cover.wordmark) {
+      var word = el('img', 'ege-pack__wordmark');
+      word.src = cover.wordmark;
+      word.alt = pack.name;
+      word.decoding = 'async';
+      word.draggable = false;
+      body.appendChild(word);
+    } else {
+      body.appendChild(el('span', 'ege-pack__name',
+        pack.season ? 'Season' : pack.name.replace(/ Pack$/, '')));
+    }
 
     var foot = el('span', 'ege-pack__foot');
     foot.appendChild(el('span', 'ege-pack__count', pack.size + ' cards'));
@@ -3270,7 +3311,8 @@ EGE.cardsView = (function () {
      2.5x Boosters". */
   function boostersText(rw) {
     var name = boosterName(rw.booster);
-    return rw.boosters > 1 ? (rw.boosters === 2 ? 'two ' : rw.boosters + ' ') + name + 's' : name;
+    var words = { 2: 'two ', 3: 'three ' };
+    return rw.boosters > 1 ? (words[rw.boosters] || rw.boosters + ' ') + name + 's' : name;
   }
 
   /* Slots that want the same thing are one line with a pip each, so "ten
@@ -3403,7 +3445,8 @@ EGE.cardsView = (function () {
   /* --- the Limited Time Event ---------------------------------------------
 
      The box over the Library while an event is on: the Gold Rush (Sam,
-     2026-10-16), Halloween (Sam, 2026-10-26). For each one, how long it has
+     2026-10-16), Halloween (Sam, 2026-10-26), the Air Raid (Sam,
+     2026-11-06). For each one, how long it has
      left, its sets, each locked in once it is put together out of the
      event's cards, and the last one, every set it needs locked in, which
      pays the event's Iconic card. Hidden before an admin starts it, and a
@@ -3419,6 +3462,8 @@ EGE.cardsView = (function () {
       'in, and all six before it ends earn the Iconic GOLD RUSH card. A traded Gold Rush card can\u2019t be ' +
       'traded again for ' + LOCK_HOURS + ' hours.',
     'halloween': 'Only Halloween cards fill these sets. A traded one can\u2019t be traded again for ' +
+      LOCK_HOURS + ' hours.',
+    'air-raid': 'Only Air Raid cards fill these sets. A traded one can\u2019t be traded again for ' +
       LOCK_HOURS + ' hours.'
   };
 
@@ -3617,7 +3662,16 @@ EGE.cardsView = (function () {
 
       var banner = el('div', 'ege-event ege-event--' + ev.key);
       var title = el('div', 'ege-event__title');
-      title.appendChild(el('span', 'ege-event__name', ev.name));
+      /* The Air Raid's logo says its name. */
+      if (ev.markIsName) {
+        var logo = el('img', 'ege-event__logo');
+        logo.src = ev.mark;
+        logo.alt = ev.name;
+        logo.decoding = 'async';
+        title.appendChild(logo);
+      } else {
+        title.appendChild(el('span', 'ege-event__name', ev.name));
+      }
       var when = el('span', 'ege-event__when', on ? leftText(row.ends_at, ev.days) : 'Over');
       if (on) { when.dataset.ends = row.ends_at; when.dataset.days = ev.days; }
       title.appendChild(when);

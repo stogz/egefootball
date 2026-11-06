@@ -7141,6 +7141,58 @@ html.ege-noscroll body { overflow: hidden; }
   transform: rotate(-9deg);
 }
 
+/* The Air Raid's sticker (Sam, 2026-11-06): the same sunburst with its
+   dark die-cut edge, in sky blue running into silver with the silver
+   sticker's shine, and Sam's AIR RAID logo across it, wider than the burst
+   and level, so the burst shows above and below it. Set in from the
+   corner so the logo stays on the card. */
+.ege-sticker--sky .ege-sticker__face {
+  background: linear-gradient(135deg, #eaf4ff 0%, #8fc2f4 34%, #2f74d0 62%, #c8d2de 100%);
+}
+.ege-sticker--sky .ege-sticker__face::before {
+  background:
+    radial-gradient(circle at 26% 22%, rgba(255, 255, 255, .95) 0%, rgba(255, 255, 255, 0) 46%),
+    radial-gradient(circle at 74% 74%, rgba(11, 42, 92, .45) 0%, rgba(11, 42, 92, 0) 52%),
+    linear-gradient(120deg, #1d5fb8 0%, #74b0ee 16%, #eef5fc 30%, #5f9de6 44%,
+                    #d8e0e9 58%, #ffffff 70%, #7fb3ec 84%, #1d5fb8 100%);
+  background-size: 150% 150%, 150% 150%, 220% 220%;
+}
+.ege-sticker--sky .ege-sticker__face::after {
+  background: linear-gradient(115deg,
+    rgba(255, 255, 255, .06) 10%, rgba(255, 255, 255, .4) 32%, rgba(220, 235, 250, .1) 46%,
+    rgba(255, 255, 255, .26) 66%, rgba(255, 255, 255, .05) 85%);
+  background-size: 200% 200%;
+}
+.ege-tcard__sticker--airraid {
+  --sticker-size: 21cqw;
+  position: absolute;
+  top: 2cqw;
+  right: 6.4cqw;
+  z-index: 4;
+  width: var(--sticker-size);
+  height: var(--sticker-size);
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(.6cqw .8cqw .6cqw rgba(0, 0, 0, .45));
+  pointer-events: none;
+}
+.ege-tcard__sticker--airraid .ege-sticker {
+  --sticker-size: 100%;
+  position: absolute;
+  inset: 0;
+  filter: none;
+  transform: rotate(9deg);
+}
+.ege-tcard__airraid {
+  position: relative;
+  z-index: 1;
+  width: 150%;
+  max-width: none;
+  height: auto;
+  transform: rotate(-4deg);
+}
+.ege-tcard--ev-air-raid .ege-tcard__holo { top: 25cqw; }
+
 /* An event's Iconic card before Sam's art for it is in (no `rewardImage`;
    the HALLOWEEN card had it until 2026-10-26): the pumpkin and the event's
    name on the night, in the Iconic frame. */
@@ -7171,6 +7223,18 @@ html.ege-noscroll body { overflow: hidden; }
   text-transform: uppercase;
   color: #ff8a1f;
   text-shadow: .8cqw .8cqw 0 #12061f;
+}
+/* The AIR RAID card's stand-in: Sam's logo over the clouds on a blue sky,
+   the way its packs and backs look. */
+.ege-tcard--ev-air-raid .ege-tcard__standart {
+  background:
+    radial-gradient(circle at 50% 46%, rgba(255, 255, 255, .5), rgba(255, 255, 255, 0) 50%),
+    url('icon/cards/air-raid-clouds.webp') center bottom / cover no-repeat,
+    linear-gradient(180deg, #0b3b8f 0%, #2f74d0 100%);
+}
+.ege-tcard--ev-air-raid .ege-tcard__standmark {
+  width: 84cqw;
+  filter: drop-shadow(0 0 3cqw rgba(170, 215, 255, .9));
 }
 
 /* The GOLD RUSH card, printed from Sam's art, is the picture and nothing
@@ -7313,6 +7377,34 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-tcard--backhalloween .ege-tcard__backword { color: #f1e2ff; }
 .ege-tcard--backhalloween .ege-tcard__backword em { color: #ff8a1f; text-shadow: .4cqw .4cqw 0 #12061f; }
 
+/* An Air Raid card's back (Sam, 2026-11-06): clouds, blue, silver and
+   white. A silver frame, Sam's clouds rising up a blue sky with a bright
+   patch of sun behind the ball, the ball in navy edged in white, and his
+   AIR RAID logo in place of the name. */
+.ege-tcard--back.ege-tcard--backairraid {
+  background: linear-gradient(120deg, #7d8a99 0%, #dfe6ee 24%, #ffffff 42%, #a9b5c3 60%,
+                              #eef3f8 78%, #8592a1 100%);
+}
+.ege-tcard--backairraid .ege-tcard__face {
+  gap: 7cqw;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(255, 255, 255, .5), rgba(255, 255, 255, 0) 40%),
+    linear-gradient(180deg, rgba(6, 34, 92, .55) 0%, rgba(6, 34, 92, 0) 45%),
+    url('icon/cards/air-raid-clouds.webp') center bottom / cover no-repeat,
+    #1f63c4;
+}
+.ege-tcard--backairraid .ege-tcard__backmark {
+  background: linear-gradient(160deg, #ffffff 0%, #d6dee8 40%, #9eabba 62%, #eef3f8 100%);
+  border-color: #0b2a5c;
+  box-shadow: 0 0 0 1cqw #fff;
+}
+.ege-tcard--backairraid .ege-tcard__backmark::after { background: #0b2a5c; }
+.ege-tcard__backlogo {
+  width: 84cqw;
+  height: auto;
+  filter: drop-shadow(0 .8cqw 1.2cqw rgba(6, 26, 64, .55));
+}
+
 /* --- packs --------------------------------------------------------------- */
 
 /* Every pack on one row on a computer, the Gold Rush Pack too (Sam,
@@ -7371,6 +7463,11 @@ html.ege-noscroll body { overflow: hidden; }
   box-shadow: inset 0 6px 0 #ff8a1f;
 }
 .ege-packtile--halloween .ege-packtile__ends { background: #ff8a1f; }
+.ege-packtile--air-raid {
+  background: linear-gradient(180deg, #e2efff, #fff 46%);
+  box-shadow: inset 0 6px 0 #3d8be0;
+}
+.ege-packtile--air-raid .ege-packtile__ends { background: #8fc6f7; }
 .ege-packtile__ends {
   margin: 0;
   padding: 2px 10px;
@@ -7578,6 +7675,68 @@ html.ege-noscroll body { overflow: hidden; }
   background:
     radial-gradient(ellipse 42% 36% at 50% 58%, #ff8a1f 0 92%, transparent 100%) 0 0 / 5cqw 5cqw,
     #12061f;
+  border-top: .5cqw solid var(--pack-hi);
+}
+
+/* The Air Raid Pack (Sam, 2026-11-06): sky blue and silver foil, Sam's
+   clouds printed under the prizm, Andrew and Paxon cut out of his card art
+   over them (one picture the size of the pack's body, icon/packs/air-raid-
+   duo.webp), his AIR RAID logo low across them in place of the name, a
+   silver line along the bars and a sky-blue glow. */
+.ege-pack.ege-pack--airraid {
+  --foil: linear-gradient(135deg, #0b2a5c 0%, #2f6fd0 18%, #cfe6ff 34%, #4d8fe0 50%,
+                          #f4f8fc 66%, #2f6fd0 82%, #0b2a5c 100%);
+  --pack-deep: #0b2350;
+  --pack-hi: #d3dce6;
+  filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 10px rgba(110, 180, 255, .75));
+  animation: ege-sky-glow 3.2s ease-in-out var(--glow-phase, 0s) infinite;
+}
+@keyframes ege-sky-glow {
+  0%, 100% { filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 8px rgba(110, 180, 255, .6)); }
+  50%      { filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 18px rgba(170, 215, 255, .95)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ege-pack.ege-pack--airraid { animation: none; }
+}
+.ege-pack--airraid .ege-pack__body::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('icon/cards/air-raid-clouds.webp') center bottom / cover no-repeat;
+  opacity: .92;
+}
+.ege-pack--airraid .ege-pack__prizm { opacity: .7; }
+.ege-pack--airraid .ege-pack__player {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: none;
+}
+.ege-pack__wordmark {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: 12%;
+  width: 94cqw;
+  height: auto;
+  transform: translateX(-50%);
+  filter: drop-shadow(1cqw 1.4cqw 1cqw rgba(6, 26, 64, .45));
+  pointer-events: none;
+  user-select: none;
+}
+/* A row of little white clouds on the sky above the foot band. */
+.ege-pack--airraid .ege-pack__foot::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + .9cqw);
+  height: 5cqw;
+  background:
+    radial-gradient(circle at 30% 70%, #fff 0 28%, transparent 30%) 0 0 / 6cqw 5cqw,
+    radial-gradient(circle at 62% 56%, #fff 0 34%, transparent 36%) 0 0 / 6cqw 5cqw,
+    #2f6fd0;
   border-top: .5cqw solid var(--pack-hi);
 }
 
@@ -8687,6 +8846,25 @@ html.ege-noscroll body { overflow: hidden; }
 }
 .ege-set__pip--event.is-filled { background: var(--fb-gold); }
 .ege-set--ev-halloween .ege-set__pip--event.is-filled { background: #ff8a1f; }
+
+/* The Air Raid's banner: Sam's clouds on a blue sky, its logo for the
+   name, and silver; its sets are edged in sky blue and glow blue. */
+.ege-event--air-raid {
+  background:
+    linear-gradient(90deg, rgba(8, 34, 84, .92) 0%, rgba(8, 34, 84, .72) 55%, rgba(8, 34, 84, .3) 100%),
+    url('icon/cards/air-raid-clouds.webp') center 70% / cover no-repeat,
+    #1f63c4;
+  box-shadow: 4px 4px 0 #8fc6f7;
+}
+.ege-event__logo { display: block; height: clamp(40px, 9vw, 58px); width: auto; }
+.ege-event--air-raid .ege-event__when { border-color: #d3dce6; color: #eef3f8; }
+.ege-set--ev-air-raid { box-shadow: inset 0 4px 0 #3d8be0; }
+.ege-set--ev-air-raid.is-complete {
+  border-color: #1f63c4;
+  background: #eaf3ff;
+  box-shadow: inset 0 4px 0 #3d8be0, 4px 4px 0 #8fc6f7;
+}
+.ege-set--ev-air-raid .ege-set__pip--event.is-filled { background: #3d8be0; }
 
 /* The last set shows the card it pays beside the six it needs. */
 .ege-set__final {

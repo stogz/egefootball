@@ -2373,7 +2373,7 @@ and never fill two slots, the two card-art cards count as the games they are
 art of (at their own Mystic), and the GOLD RUSH card counts as an Iconic. The
 Gold Rush's own sets still take Gold Rush cards and nothing else. Halloween
 cards count the same way: a Halloween card, its costume card and the plain
-card are one card here.
+card are one card here. So do Air Raid cards and their card art.
 
 | Set | Needs | Reward |
 | --- | --- | --- |
@@ -2451,6 +2451,48 @@ Every reward card is a Halloween card. The HALLOWEEN card is Sam's art of
 Paxon and Cooper in the 2023 Holiday Bowl (`icon/cards/halloween-iconic.webp`,
 week 19, 2023), with no sticker. Its two boosters are `"boosters": 2` in
 `card_events.rewards`, which `claim_event_reward()` gives one at a time.
+
+### Air Raid
+
+The third limited-time event (Sam, 2026-11-06), started and run like the
+other two. Andrew and Paxon are its two faces: the **Air Raid Pack** (4 cards
+for 18 diamonds, the last one Rare or better, on the other event packs' odds)
+holds only their performances and their receiving touchdown plays, and its
+cover is the two of them cut out of Sam's card art, standing in his clouds
+under his AIR RAID logo. An Air Raid card (`:ar`) wears the AIR RAID logo
+across a sky-blue and silver sunburst, and its back is clouds on a blue sky in
+a silver frame with the logo under the ball.
+
+Two **card-art cards** come out of the pack: Paxon's 88-yard touchdown (2025
+week 16) and Andrew's 54-yard touchdown (2025 week 18). Andrew's play is a
+Legendary, but his art is a Mystic (the art only; Sam). The art comes up at
+the **base rate**: a Mystic out of the pack is any of its 20 Mystics alike,
+with no `artShare` like Halloween's, so each art is about one pack in 265.
+The art wears no sticker.
+
+Only Air Raid cards fill its twelve sets, and a traded copy waits 48 hours.
+Sam asked for ten or more very hard sets. Packs to finish each, one player
+alone (median / nine in ten):
+
+| Set | Needs | Packs | Reward |
+| --- | --- | --- | --- |
+| Paxon Hatch | a performance and a receiving TD from every season of his | 36 / 54 | Epic+ Paxon · 15 diamonds · 1.5x Booster |
+| Stratosphere | 4 different Mystics | 48 / 81 | Legendary+ · 20 diamonds · 1.5x Booster |
+| Bombs Away | 5 different 50+ yd receiving TDs | 54 / 86 | Legendary+ · 20 diamonds · 1.5x Booster |
+| Cloud Nine | 9 different Legendary-or-better receiving TDs | 56 / 89 | Legendary+ · 20 diamonds · 1.5x Booster |
+| Air Strike | 4 different 3+ receiving TD games | 58 / 101 | Legendary+ · 25 diamonds · 2.0x Booster |
+| Andrew Parr | a performance and a receiving TD from every season of his | 60 / 115 | Legendary+ Andrew · 25 diamonds · 2.0x Booster |
+| Jet Stream | 3 different 200+ receiving yard games | 78 / 135 | Legendary+ · 30 diamonds · 2.0x Booster |
+| Silver Lining | a Legendary-or-better holo of Andrew and one of Paxon | 89 / 131 | Legendary+ · 30 diamonds · 2.0x Booster |
+| Final Approach | 5 different game-winning or game-icing receiving TDs | 92 / 155 | Legendary+ · 35 diamonds · 2.0x Booster |
+| Altitude | a receiving TD of each in every ten yards, under 10 to 60–69 | 97 / 228 | Mystic+ · 35 diamonds · 2.0x Booster |
+| Contrails | a playoff receiving TD from every postseason, 2019–2027 | 131 / 263 | Mystic+ · 40 diamonds · 2.5x Booster |
+| Card Art | both card arts (traded ones count) | 280 / 740 | Mystic+ · 50 diamonds · 2.5x Booster |
+| Air Raid | all twelve sets (about 300 / 740 packs) | | the Iconic AIR RAID card · 150 diamonds · three 2.5x Boosters |
+
+Every reward card is an Air Raid card, never card art. Until Sam's art for
+the AIR RAID card is in (`AIR_RAID.rewardImage`), the page draws a stand-in:
+the logo over the clouds on the Iconic frame.
 
 ### Trades
 
