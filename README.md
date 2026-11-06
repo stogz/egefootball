@@ -2550,10 +2550,11 @@ has more than ten offers out at once.
 
 ### Want List
 
-Under the trades (Sam, 2026-11-06): the NFL teams and players you are
-looking for, and who has them. **Add** opens a picker with **Teams** (the
-NFL teams there are teammate cards of) and **Players** (the six, then the NFL
-teammates with the most cards, or any by name). A player's picture is the
+First on the Trades page, above the trades (Sam, 2026-11-06): the NFL
+teams and players you are looking for, and who has them. **Add** opens a
+picker with **Teams** (the NFL teams there are teammate cards of) and
+**Players** (the six, then the NFL teammates with the most cards, or any
+by name). A player's picture is the
 live game's: a circle on his team's colour at 60% with its mark at the
 bottom right; a team is its mark in that circle. Every box is the same
 size, a long name cut short with an ellipsis. A tap puts one on or takes

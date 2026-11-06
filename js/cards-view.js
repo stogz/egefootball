@@ -3482,10 +3482,11 @@ EGE.cardsView = (function () {
   /* --- the Want List -------------------------------------------------------
 
      The NFL teams and players each player is looking for (Sam, 2026-11-06;
-     data/card-wants.js), under the trades. Your list first, then
-     everybody with a card on it or a list with a card of yours on it, read
-     the way a trade is: what they have that you want, and what you have
-     that they want, with Trade to open the builder on just those. */
+     data/card-wants.js), first on the Trades page, above the trades. Your
+     list first, then everybody with a card on it or a list with a card of
+     yours on it, read the way a trade is: what they have that you want, and
+     what you have that they want, with Trade to open the builder on just
+     those. */
 
   var Wants = EGE.cardWants;
   var WANT_STRIP = 5;      /* one row a side: five cards, or four and a "+N" */

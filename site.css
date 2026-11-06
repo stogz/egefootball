@@ -9020,11 +9020,12 @@ html.ege-noscroll body { overflow: hidden; }
 }
 
 /* --- the Want List (Sam, 2026-11-06) ---------------------------------------
-   Under the trades: your list as chips, then everybody with a card on it or
-   a card of yours on theirs, laid out like a trade. The picker is the trade
-   builder's overlay: Teams or Players, tapped in and out. A want's picture
-   is the live game's player picture (.ege-cast__mug). Chips and the
-   picker's boxes are all one size, a long name cut short. */
+   First on the Trades page, above the trades: your list as chips, then
+   everybody with a card on it or a card of yours on theirs, laid out like
+   a trade. The picker is the trade builder's overlay: Teams or Players,
+   tapped in and out. A want's picture is the live game's player picture
+   (.ege-cast__mug). Chips and the picker's boxes are all one size, a long
+   name cut short. */
 .ege-wants {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
