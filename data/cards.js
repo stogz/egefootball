@@ -211,6 +211,9 @@ EGE.cards = (function () {
     size: 4,
     floor: 'rare',
     event: 'air-raid',
+    /* At most 20 opened in any 24 hours (Sam, 2026-11-06); open_card_pack
+       holds it too. */
+    perDay: 20,
     odds: { common: 41.4, uncommon: 26, rare: 15, epic: 9, legendary: 7, mystic: 1.5, iconic: 0.1 },
     blurb: 'Four Air Raid cards of Andrew and Paxon, the last one Rare or better.'
   });
@@ -1554,7 +1557,7 @@ EGE.cards = (function () {
      once, at the rank held when it is first paid, and the games already
      out when an account first has Player Cards are skipped, so ranking up
      later never back-pays a season. pay_player_card_bonuses in
-     supabase/schema.sql pays it and holds a game's bonus to 400.
+     supabase/schema.sql pays it and holds a game's bonus to 200.
 
      How hard and how much, for a receiver (the PR that added this has the
      working):
@@ -1574,18 +1577,20 @@ EGE.cards = (function () {
      spent.
 
      Iconic was 3500 until Sam made it twice as hard (2026-10-20) and put
-     GOAT above it, four times as hard again as Iconic. GOAT is a Player Card's alone: no play or performance
+     GOAT above it, four times as hard again as Iconic. Every rung's bonus
+     was cut in half (Sam, 2026-11-06); the table above is from before, so
+     each figure in it is now about half. GOAT is a Player Card's alone: no play or performance
      card is ever GOAT, so it is not one of the RARITIES and its rung
      carries its own name and colour. */
   var PLAYER_RANKS = [
     { key: 'common',    points: 0,    bonus: 0 },
-    { key: 'uncommon',  points: 150,  bonus: 0.10 },
-    { key: 'rare',      points: 400,  bonus: 0.25 },
-    { key: 'epic',      points: 800,  bonus: 0.50 },
-    { key: 'legendary', points: 1400, bonus: 0.80 },
-    { key: 'mystic',    points: 2200, bonus: 1.25 },
-    { key: 'iconic',    points: 7000, bonus: 3.00 },
-    { key: 'goat',      points: 28000, bonus: 5.00, name: 'GOAT', color: '#9aa9ba' }
+    { key: 'uncommon',  points: 150,  bonus: 0.05 },
+    { key: 'rare',      points: 400,  bonus: 0.125 },
+    { key: 'epic',      points: 800,  bonus: 0.25 },
+    { key: 'legendary', points: 1400, bonus: 0.40 },
+    { key: 'mystic',    points: 2200, bonus: 0.625 },
+    { key: 'iconic',    points: 7000, bonus: 1.50 },
+    { key: 'goat',      points: 28000, bonus: 2.50, name: 'GOAT', color: '#9aa9ba' }
   ];
 
   /* A rung's name and colour: its card rarity's, or its own for GOAT. */

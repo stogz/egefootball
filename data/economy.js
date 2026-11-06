@@ -325,7 +325,9 @@ EGE.economy = (function () {
         what = tds + (tds === 1 ? ' touchdown' : ' touchdowns');
       }
       if (playoffBoosted(year, game.playoff)) { what += ' at the playoff ' + PLAYOFF_CREDITS + 'x'; }
-      if (wager && wager.outcome === 'won') { what += ', doubled by a winning wager'; }
+      if (wager && wager.outcome === 'won') {
+        what += EGE.wagerWinTimes(year) === 2 ? ', doubled by a winning wager' : ', 1.9x by a winning wager';
+      }
       out.push({
         key: 'td-w' + game.week,
         credits: credits,

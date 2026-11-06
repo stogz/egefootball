@@ -730,6 +730,21 @@ EGE.cardStore = (function () {
       .catch(function () { return {}; });
   }
 
+  /* When this player opened each of one kind of pack in the last 24
+     hours, oldest first, as times in ms: what a pack held to so many a day
+     (perDay) counts. Null when it could not be read. */
+  function openedToday(email, packKey) {
+    var c = client();
+    if (!c || !email || !packKey) { return Promise.resolve(null); }
+    var since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    return c.from(PACKS).select('opened_at').eq('email', email).eq('pack_key', packKey)
+      .gt('opened_at', since).order('opened_at', { ascending: true }).limit(100)
+      .then(function (res) {
+        return res.error ? null : (res.data || []).map(function (row) { return new Date(row.opened_at).getTime(); });
+      })
+      .catch(function () { return null; });
+  }
+
   /* Locks in one of an event's sets with the cards it was made with;
      claim_event_set checks they are all that event's cards in the
      collection (and, for a set that says so, pulled from its packs by this
@@ -859,6 +874,7 @@ EGE.cardStore = (function () {
     events: events,
     eventClaims: eventClaims,
     pulledFrom: pulledFrom,
+    openedToday: openedToday,
     claimEventSet: claimEventSet,
     claimEventReward: claimEventReward,
     tradeLocks: tradeLocks,

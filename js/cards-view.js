@@ -55,6 +55,7 @@ EGE.cardsView = (function () {
     eventClaims: {},    /* by event: its sets this player has locked in, and its own key once the reward is in */
     pulled: {},         /* by event: every card this player has pulled from its packs, { id: true } */
     locks: {},          /* card id -> when each traded event copy can go again */
+    opened: {},         /* by pack held to perDay: when each of the last 24 hours' was opened (ms) */
     filter: { rarity: 'all', kind: 'all', player: 'all', sort: 'rarity', merge: false }
   };
 
@@ -661,6 +662,22 @@ EGE.cardsView = (function () {
     return b;
   }
 
+  /* For a pack held to so many a day (perDay): null while there are
+     more to open, else when the next one can be (ms), as the oldest of the
+     last 24 hours' turns a day old. */
+  function packWait(pack) {
+    if (!pack.perDay) { return null; }
+    var day = 24 * 3600 * 1000;
+    var now = Date.now();
+    var times = (state.opened[pack.key] || []).filter(function (t) { return t > now - day; });
+    state.opened[pack.key] = times;
+    return times.length < pack.perDay ? null : times[times.length - pack.perDay] + day;
+  }
+
+  function clockText(ms) {
+    return new Date(ms).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  }
+
   /* Each pack top to bottom, centred: the pack, its name, what is in it,
      and the Buy button, with the Season Pack's year arrows either side. */
   function packTile(pack) {
@@ -699,6 +716,8 @@ EGE.cardsView = (function () {
       why = pack.seasonOnly
         ? 'Opens once the first week of ' + EGE.currentSeason + ' is out.'
         : 'Opens once there are games out to put in it.';
+    } else if (packWait(pack)) {
+      why = pack.perDay + ' opened in 24 hours. Next one at ' + clockText(packWait(pack)) + '.';
     } else if (state.diamonds !== null && state.diamonds < pack.diamonds) {
       why = 'Not enough diamonds yet.';
     }
@@ -782,6 +801,10 @@ EGE.cardsView = (function () {
       renderPacks();
       return;
     }
+    if (packWait(pack)) {
+      say(pack.perDay + ' ' + pack.name + 's opened in 24 hours. Next one at ' + clockText(packWait(pack)) + '.', true);
+      return;
+    }
     if (state.diamonds !== null && state.diamonds < pack.diamonds) {
       say('Not enough diamonds for a ' + pack.name + '.', true);
       return;
@@ -813,6 +836,7 @@ EGE.cardsView = (function () {
              is turned over. */
           paid = true;
           state.hold = true;
+          if (pack.perDay) { (state.opened[pack.key] = state.opened[pack.key] || []).push(Date.now()); }
           walletChanged(null, res.diamonds);
           renderPacks();
           return res;
@@ -3845,7 +3869,7 @@ EGE.cardsView = (function () {
 
   /* --- player cards ------------------------------------------------------ */
 
-  function pctText(bonus) { return Math.round(bonus * 100) + '%'; }
+  function pctText(bonus) { return Math.round(bonus * 1000) / 10 + '%'; }
 
   /* About what one of his games pays at a rank: his games this season so
      far, or last season's before any are out. */
@@ -5069,7 +5093,10 @@ EGE.cardsView = (function () {
       EGE.cardStore.events(),
       EGE.cardStore.eventClaims(player.email),
       EGE.cardStore.tradeLocks(player.email),
-      EGE.cardStore.pulledFrom(player.email, EGE.cards.HALLOWEEN.pack)
+      EGE.cardStore.pulledFrom(player.email, EGE.cards.HALLOWEEN.pack),
+      Promise.all(EGE.cards.PACKS.filter(function (p) { return p.perDay; }).map(function (p) {
+        return EGE.cardStore.openedToday(player.email, p.key).then(function (times) { return [p.key, times]; });
+      }))
     ]).then(function (all) {
       if (state.player !== player) { return; }
       if (all[0] === null) {
@@ -5093,6 +5120,8 @@ EGE.cardsView = (function () {
       state.locks = all[15] || {};
       state.pulled = {};
       state.pulled[EGE.cards.HALLOWEEN.key] = all[16] || {};
+      state.opened = {};
+      (all[17] || []).forEach(function (one) { if (one[1]) { state.opened[one[0]] = one[1]; } });
       eventWasOn = eventsOn();
       state.loaded = all[0] !== null;
       if (all[4] === null && all[0] !== null) {

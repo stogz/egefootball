@@ -719,7 +719,8 @@ EGE.boosterOn = function (player, game) {
    player takes one side, his own team or the one across the way, at the
    point spread js/lines.js works out for it -- Seattle -3.5, which needs
    Seattle to win by 4, or Pittsburgh +3.5, which needs Pittsburgh to lose
-   by 3 or fewer or win. Beaten, the game pays him twice its credits;
+   by 3 or fewer or win. Beaten, the game pays him twice its credits (1.9x
+   from 2028, EGE.wagerWinTimes);
    missed, none. Two a season (`wagerSeasonLimit` in data/shop.js), the
    playoffs included, and free: it is a pick, not something bought. It sits
    in the game's sticker slot under one of these keys, with the line it was
@@ -776,14 +777,31 @@ EGE.wagerOn = function (player, game) {
     name: EGE.wagerName(team, line),
     id: stuck.id,
     hardcoded: stuck.hardcoded,
-    outcome: outcome
+    outcome: outcome,
+    season: game.season
   };
+};
+
+/* A won wager pays the game's credits plus 90% of them again from 2028 on
+   (Sam's 10% tax on the winnings, 2026-11-06), so 1.9x; before that it
+   paid double, and those seasons keep it. */
+EGE.WAGER_TAX_FROM = 2028;
+
+EGE.wagerWinTimes = function (season) {
+  return season >= EGE.WAGER_TAX_FROM ? 1.9 : 2;
+};
+
+/* "double" or "1.9x", for the words around a won wager. */
+EGE.wagerWinWord = function (season) {
+  return EGE.wagerWinTimes(season) === 2 ? 'double' : EGE.wagerWinTimes(season) + 'x';
 };
 
 /* What a game's credits come to with the wager on it settled. */
 EGE.wageredCredits = function (credits, wager) {
   if (!wager || !credits) { return credits; }
-  if (wager.outcome === 'won') { return credits * 2; }
+  if (wager.outcome === 'won') {
+    return EGE.wagerWinTimes(wager.season) === 2 ? credits * 2 : credits + Math.round(credits * 0.9);
+  }
   if (wager.outcome === 'lost') { return 0; }
   return credits;
 };
