@@ -1515,37 +1515,12 @@ EGE.cardsView = (function () {
       trade.addEventListener('click', function () { tradeFor(opts.tradeWith, card); });
       actions.appendChild(trade);
     }
-    /* Any card not out of your own binder can go on your Want List. */
-    if (viewer && !opts.sell && !card.reward && state.player === viewer && state.wants) {
-      actions.appendChild(wantButton(card, status));
-    }
     var done = el('button', 'fb-btn fb-btn--primary', 'Done');
     done.type = 'button';
     done.addEventListener('click', closeRip);
     actions.appendChild(done);
     stage.appendChild(actions);
     done.focus({ preventScroll: true });
-  }
-
-  /* Want it / Wanted, up close: puts the card on your Want List or takes it
-     off. */
-  function wantButton(card, status) {
-    var key = 'card:' + card.id;
-    var b = el('button', 'fb-btn ege-zoom__want');
-    b.type = 'button';
-    function mark() {
-      var on = Boolean(wantOn(key));
-      b.textContent = on ? 'Wanted' : 'Want it';
-      b.classList.toggle('is-on', on);
-      b.setAttribute('aria-pressed', on ? 'true' : 'false');
-      b.title = on ? 'Take it off your Want List' : 'Put it on your Want List';
-    }
-    b.addEventListener('click', function () {
-      if (toggleWant(key) === null) { status.textContent = 'Your Want List is full. Take something off first.'; }
-      mark();
-    });
-    mark();
-    return b;
   }
 
   /* Who else has a card and how many, into `dd` once it is read: each
@@ -3506,8 +3481,8 @@ EGE.cardsView = (function () {
 
   /* --- the Want List -------------------------------------------------------
 
-     Teams, players and single cards each player is looking for (Sam,
-     2026-11-06; data/card-wants.js), under the trades. Your list first, then
+     The NFL teams and players each player is looking for (Sam, 2026-11-06;
+     data/card-wants.js), under the trades. Your list first, then
      everybody with a card on it or a list with a card of yours on it, read
      the way a trade is: what they have that you want, and what you have
      that they want, with Trade to open the builder on just those. */
@@ -3619,49 +3594,61 @@ EGE.cardsView = (function () {
     }).join(';');
   }
 
-  /* A picture on a want or a pick: a logo, or a headshot in a circle (an
-     NFL teammate's falls back to the stand-in). */
-  function wantImage(info, className) {
-    var img = el('img', className + (info.round ? ' ' + className + '--round' : ''));
-    img.src = info.image;
+  /* A want's picture the way the live game's bets draw a player (Sam,
+     2026-11-06; js/live.js mug): cut to a circle on his team's colour at
+     60%, his team's mark at its bottom right. A team, or a player there is
+     no picture of, is the mark in the circle alone. `team` is
+     EGE.cardWants' { color, logo }. */
+  function wantMug(team, photo) {
+    var box = el('span', 'ege-cast__mug ege-wantmug');
+    box.style.setProperty('--team', (team && team.color) || '#1d2416');
+    var round = el('span', 'ege-cast__mugface');
+    box.appendChild(round);
+    function mark() {
+      if (!team || !team.logo) { return el('span', 'ege-cast__logo'); }
+      var img = el('img', 'ege-cast__logo');
+      img.src = team.logo;
+      img.alt = '';
+      img.decoding = 'async';
+      img.addEventListener('error', function () { img.remove(); });
+      return img;
+    }
+    var badge = el('span', 'ege-cast__mugteam');
+    function bare() {
+      box.classList.add('is-mark');
+      badge.remove();
+      round.appendChild(mark());
+    }
+    if (!photo) { bare(); return box; }
+    var img = el('img', 'ege-cast__mugimg');
+    img.src = photo;
     img.alt = '';
     img.loading = 'lazy';
     img.decoding = 'async';
-    if (info.nfl || (info.card && info.card.nfl)) { standIn(img, info.slug || (info.card && info.card.slug)); }
-    else { img.addEventListener('error', function () { img.remove(); }); }
-    if (!info.ground) { return img; }
-    /* A team's mark on its own colour, white where it would vanish into
-       it (`whiteMark`, Alabama's). */
-    var box = el('span', className + ' ' + className + '--ground');
-    box.style.setProperty('--ground', info.ground);
-    img.className = 'ege-wantmark' + (info.white ? ' ege-wantmark--white' : '');
-    box.appendChild(img);
+    img.addEventListener('error', function () { img.remove(); bare(); });
+    round.appendChild(img);
+    badge.appendChild(mark());
+    box.appendChild(badge);
     return box;
   }
 
-  /* One want on your list: its picture, its name, its floor or which card,
-     and an x to take it off. A single card's name opens it up close. */
+  /* One want on your list: its picture, its name, its floor, and an x to
+     take it off. */
   function wantChip(key) {
     var w = Wants.parse(key);
     var info = w ? Wants.label(key) : null;
     if (!info) { return null; }
     var chipNode = el('span', 'ege-want ege-want--' + w.kind);
-    if (info.card) { chipNode.style.setProperty('--rarity', EGE.cards.rarity(info.card.rarity).color); }
-    if (info.image) { chipNode.appendChild(wantImage(info, 'ege-want__img')); }
-    var name;
-    if (info.card) {
-      name = el('button', 'ege-want__name ege-linkbtn', info.name);
-      name.type = 'button';
-      name.addEventListener('click', function () { zoom(info.card, { owned: state.owned[info.card.id] || 0 }); });
-    } else {
-      name = el('span', 'ege-want__name', info.name);
+    chipNode.appendChild(wantMug(info.team, info.photo));
+    var words = el('span', 'ege-want__words');
+    words.appendChild(el('span', 'ege-want__name', info.name));
+    if (info.floor) {
+      var sub = el('span', 'ege-want__sub', info.floor);
+      sub.style.color = EGE.cards.rarity(w.floor).color;
+      words.appendChild(sub);
     }
-    chipNode.appendChild(name);
-    if (info.sub) {
-      var sub = el('span', 'ege-want__sub', info.sub);
-      if (w.floor) { sub.style.color = EGE.cards.rarity(w.floor).color; }
-      chipNode.appendChild(sub);
-    }
+    chipNode.appendChild(words);
+    chipNode.title = info.name + (info.floor ? ', ' + info.floor : '');
     var x = el('button', 'ege-want__x', '×');
     x.type = 'button';
     x.setAttribute('aria-label', 'Take ' + info.name + ' off your Want List');
@@ -3680,7 +3667,7 @@ EGE.cardsView = (function () {
     if (!state.wants) {
       list.appendChild(el('p', 'fb-meta', state.wantsFailed ? 'The Want List could not be loaded.' : 'Loading…'));
     } else if (!mine.length) {
-      list.appendChild(el('p', 'fb-meta', 'Add the teams, players or cards you are looking for.'));
+      list.appendChild(el('p', 'fb-meta', 'Add the teams or players you are looking for.'));
     } else {
       mine.forEach(function (key) {
         var chipNode = wantChip(key);
@@ -3769,12 +3756,11 @@ EGE.cardsView = (function () {
 
   /* --- picking what to want ------------------------------------------------
 
-     Teams, Players or Cards along the top. Teams and Players are a search
-     and a list to tap in and out, with a rarity floor for whatever is
-     tapped in next; Cards is every card out, with the trade builder's Sort
-     menu, a few rows at a time. Nothing waits on Done: each tap is on the
-     list straight away. */
-  var WANT_KINDS = [['team', 'Teams'], ['player', 'Players'], ['card', 'Cards']];
+     Teams or Players along the top, then a search and a list to tap in and
+     out, with a rarity floor for whatever is tapped in next. Every box is
+     the same size, a long name cut short. Nothing waits on Done: each tap
+     is on the list straight away. */
+  var WANT_KINDS = [['team', 'Teams'], ['player', 'Players']];
 
   function openWantPicker() {
     if (!state.loaded || !state.wants) { return; }
@@ -3815,14 +3801,6 @@ EGE.cardsView = (function () {
     body.appendChild(bar);
     var list = el('div', 'ege-wantopts');
     body.appendChild(list);
-
-    /* The Cards side: the builder's Sort menu over every card out. */
-    var cardsBox = el('div', 'fb-stack');
-    var find = finder(function () { fillCards(); });
-    var grid = el('div', 'ege-tradegrid ege-wantpicker__grid');
-    cardsBox.appendChild(find.node);
-    cardsBox.appendChild(grid);
-    body.appendChild(cardsBox);
     panel.appendChild(body);
 
     var foot = el('div', 'fb-panel__foot');
@@ -3839,32 +3817,28 @@ EGE.cardsView = (function () {
         : myWants().length + ' / ' + Wants.MAX + ' on your list';
     }
 
-    /* Taps one in or out; the floor picked goes with a team or a player
-       tapped in. Hands back whether it is on now. */
-    function tap(key) {
-      var on = toggleWant(key);
-      counted(on === null);
-      return on === true;
-    }
-
-    function option(w, info) {
+    /* One team or player to tap in or out; the floor picked goes with it
+       when it goes in. */
+    function option(kindOf, value, name, sub, team, photo) {
       var b = el('button', 'ege-wantopt');
       b.type = 'button';
-      if (info.image) { b.appendChild(wantImage(info, 'ege-wantopt__img')); }
+      b.title = name;
+      b.appendChild(wantMug(team, photo));
       var words = el('span', 'ege-wantopt__words');
-      words.appendChild(el('span', 'ege-wantopt__name', info.name));
-      var sub = el('span', 'ege-wantopt__sub');
-      words.appendChild(sub);
+      words.appendChild(el('span', 'ege-wantopt__name', name));
+      var line = el('span', 'ege-wantopt__sub');
+      words.appendChild(line);
       b.appendChild(words);
       function mark() {
-        var on = wantOn(Wants.make(w.kind, w.value));
+        var on = wantOn(Wants.make(kindOf, value));
         var at = on ? Wants.parse(on) : null;
         b.classList.toggle('is-on', Boolean(on));
         b.setAttribute('aria-pressed', on ? 'true' : 'false');
-        sub.textContent = at && at.floor ? EGE.cards.rarity(at.floor).name + '+' : info.sub || '';
+        line.textContent = at && at.floor ? EGE.cards.rarity(at.floor).name + '+' : sub || '';
       }
       b.addEventListener('click', function () {
-        tap(Wants.make(w.kind, w.value, floor.value));
+        var on = toggleWant(Wants.make(kindOf, value, floor.value));
+        counted(on === null);
         mark();
       });
       mark();
@@ -3874,76 +3848,22 @@ EGE.cardsView = (function () {
     function drawList() {
       list.innerHTML = '';
       var words = search.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
-      var options = [];
+      var options;
       if (kind === 'team') {
         options = Wants.teams().filter(function (t) {
-          var low = (t.name + ' ' + t.short).toLowerCase();
+          var low = t.name.toLowerCase();
           return words.every(function (word) { return low.indexOf(word) !== -1; });
-        }).map(function (t) {
-          return [{ kind: 'team', value: t.key }, { name: t.name, sub: '', image: t.logo, ground: t.ground, white: t.white, round: false }];
-        });
+        }).map(function (t) { return option('team', t.key, t.name, '', t, null); });
       } else {
         options = Wants.players(search.value, 40).map(function (p) {
-          return [{ kind: 'player', value: p.slug }, { name: p.name, sub: p.sub, image: p.headshot, round: true, nfl: p.nfl, slug: p.slug }];
+          return option('player', p.slug, p.name, p.sub, p.team, p.photo);
         });
       }
       if (!options.length) {
         list.appendChild(el('p', 'fb-meta', 'Nothing matches that.'));
         return;
       }
-      options.forEach(function (o) { list.appendChild(option(o[0], o[1])); });
-    }
-
-    /* Every card out, the six's and their NFL teammates', a few rows at a
-       time like the builder's sides. */
-    var cardList = [];
-    var drawn = 0;
-    var marker = el('div', 'ege-binder__more');
-    marker.setAttribute('aria-hidden', 'true');
-    var watch = window.IntersectionObserver ? new window.IntersectionObserver(function (entries) {
-      if (entries.some(function (e) { return e.isIntersecting; }) && marker.isConnected) { more(perRow(grid) * 4); }
-    }, { root: grid, rootMargin: '0px 0px 360px 0px' }) : null;
-
-    function cardNode(card) {
-      var node = cardEl(card, {});
-      function mark() {
-        var on = Boolean(wantOn('card:' + card.id));
-        node.classList.toggle('is-picked', on);
-        node.setAttribute('aria-pressed', on ? 'true' : 'false');
-        node.setAttribute('aria-label', describe(card) + (on ? ', on your Want List' : ''));
-      }
-      pressable(node, null, function () { tap('card:' + card.id); mark(); });
-      mark();
-      return node;
-    }
-
-    function more(n) {
-      var upto = Math.min(cardList.length, drawn + n);
-      var batch = document.createDocumentFragment();
-      for (var i = drawn; i < upto; i += 1) { batch.appendChild(cardNode(cardList[i])); }
-      drawn = upto;
-      marker.remove();
-      grid.appendChild(batch);
-      if (drawn >= cardList.length) { return; }
-      if (!watch) { more(cardList.length); return; }
-      grid.appendChild(marker);
-      watch.unobserve(marker);
-      watch.observe(marker);
-    }
-
-    function fillCards() {
-      if (watch) { watch.unobserve(marker); }
-      marker.remove();
-      grid.innerHTML = '';
-      grid.scrollTop = 0;
-      drawn = 0;
-      var all = EGE.cards.pullable(null).concat(EGE.nflCards && EGE.nflCards.loaded() ? EGE.nflCards.pullable() : []);
-      cardList = find.sort(all, {});
-      if (!cardList.length) {
-        grid.appendChild(el('p', 'fb-meta', 'Nothing here matches that. Try another search.'));
-        return;
-      }
-      more(perRow(grid) * 6);
+      options.forEach(function (node) { list.appendChild(node); });
     }
 
     function draw() {
@@ -3952,13 +3872,9 @@ EGE.cardsView = (function () {
         b.classList.toggle('is-active', on);
         b.setAttribute('aria-pressed', on ? 'true' : 'false');
       });
-      var cards = kind === 'card';
-      bar.hidden = cards;
-      list.hidden = cards;
-      cardsBox.hidden = !cards;
       search.placeholder = kind === 'team' ? 'Search a team' : 'Search a player';
       search.setAttribute('aria-label', search.placeholder);
-      if (cards) { fillCards(); } else { drawList(); }
+      drawList();
     }
 
     counted(false);

@@ -2550,23 +2550,22 @@ has more than ten offers out at once.
 
 ### Want List
 
-Under the trades (Sam, 2026-11-06): the teams, players and single cards
-you are looking for, and who has them. **Add** opens a picker with
-**Teams** (the six's NFL teams and their teammates', then the six's
-schools), **Players** (the six, then the NFL teammates with the most cards,
-or any by name) and **Cards** (every card out, with the trade builder's
-Sort menu). A tap puts one on or takes it off; a team or a player takes the
-rarity picked beside the search as a floor (**Epic or better** keeps it to
-Epic, Legendary, Mystic and Iconic cards). A card's close-up has **Want
-it** too, anywhere but your own binder. Thirty at most; each one is a chip
-with an x.
+Under the trades (Sam, 2026-11-06): the NFL teams and players you are
+looking for, and who has them. **Add** opens a picker with **Teams** (the
+NFL teams there are cards of) and **Players** (the six, then the NFL
+teammates with the most cards, or any by name). A player's picture is the
+live game's: a circle on his team's colour at 60% with its mark at the
+bottom right; a team is its mark in that circle. Every box is the same
+size, a long name cut short with an ellipsis. A tap puts one on or takes
+it off, with the rarity picked beside the search as a floor (**Epic or
+better** keeps it to Epic, Legendary, Mystic and Iconic cards). Thirty at
+most; each one is a chip with an x.
 
 A team is every card of it: the six's own games while they played there,
 and their NFL teammates' (`team:detroit`, by its key in `EGE.teams`). A
 player is every card of him, one of the six or a teammate
-(`player:dj-moore`). A card is that card exactly, so its holo is a card of
-its own (`card:p:2021:sam-stogsdill:5`). An event's reward card never
-trades, so it never matches.
+(`player:dj-moore`), holos included. An event's reward card never trades,
+so it never matches.
 
 Under your list is everybody with a card on it or a card of yours on
 theirs, laid out like a trade: **Has N you want** and **Wants N of yours**,
@@ -2578,16 +2577,16 @@ NFL cards together until one is picked. A card somebody pulls turns up
 there within a minute while the page is open (every third check on the
 Trades page), whatever it came out of: a pack, a Game Pack, the Daily
 Spin, the shop, the market or a trade. A Game Pack's cards are the game's
-own cards, so they match a team, a player or a card like any other.
+own cards, so they match a team or a player like any other.
 
 `card_wants` holds one row an account (readable by every signed-in
 player, set only through `set_card_wants()`). `card_want_holders()` finds
 who else has what your list could be after in one answer, so Supabase's
 1000-row cap never cuts it: the page sends the season and player of every
 card a team or a player on the list could be (`2025:dj-moore`, which every
-card id carries) and the cards it names, and checks what comes back against
-the list itself, since Postgres cannot tell a card's team or rarity from
-its id (`data/card-wants.js`).
+card id carries), and checks what comes back against the list itself,
+since Postgres cannot tell a card's team or rarity from its id
+(`data/card-wants.js`).
 
 ### The showcase
 

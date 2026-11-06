@@ -354,14 +354,15 @@ EGE.cardStore = (function () {
   }
 
   /* Who else has what a list could be after, { email in lower case: { card
-     id: copies } }: `ask` is EGE.cardWants.ask(list). One answer from
+     id: copies } }: `keys` is EGE.cardWants.ask(list), the season and
+     player of every card it could be after. One answer from
      card_want_holders however many cards that is, so the 1000-row cap
      never cuts it. Null when it could not be read. */
-  function wantHolders(ask) {
+  function wantHolders(keys) {
     var c = client();
     if (!c) { return Promise.resolve(null); }
-    if (!ask || (!ask.keys.length && !ask.cards.length)) { return Promise.resolve({}); }
-    return c.rpc('card_want_holders', { p_keys: ask.keys, p_cards: ask.cards })
+    if (!keys || !keys.length) { return Promise.resolve({}); }
+    return c.rpc('card_want_holders', { p_keys: keys })
       .then(function (res) {
         if (res.error) { return null; }
         var out = {};

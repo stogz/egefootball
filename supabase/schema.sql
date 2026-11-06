@@ -4874,18 +4874,17 @@ notify pgrst, 'reload schema';
 -- ===========================================================================
 -- The Want List
 --
--- What each player is looking for in trades (Sam, 2026-11-06): teams,
--- players and single cards, on the Trades page (data/card-wants.js). The
+-- What each player is looking for in trades (Sam, 2026-11-06): NFL teams
+-- and players, on the Trades page (data/card-wants.js). The
 -- page shows who has a card on your list and which of your cards are on
 -- theirs. One row an account, readable by every signed-in player, and set
 -- only through set_card_wants.
 --
 -- A want is one of
---   team:{key}       every card of a team, by its key in EGE.teams
---                    ('detroit', 'ohioState')
+--   team:{key}       every card of an NFL team, by its key in EGE.teams
+--                    ('detroit', 'newYorkJets')
 --   player:{slug}    every card of one of the six or an NFL teammate
---   card:{id}        one card, exactly that one
--- and a team or a player can carry a rarity floor ('player:dj-moore@epic').
+-- and either can carry a rarity floor ('player:dj-moore@epic').
 -- ===========================================================================
 
 create table if not exists public.card_wants (
@@ -4907,8 +4906,8 @@ language sql
 immutable
 as $$
   select coalesce(
-    p_want ~ '^(team:[A-Za-z]+|player:[a-z0-9]+(-[a-z0-9]+)*)(@(uncommon|rare|epic|legendary|mystic|iconic))?$'
-    or (p_want like 'card:%' and public.is_any_card_id(substr(p_want, 6))), false);
+    p_want ~ '^(team:[A-Za-z]+|player:[a-z0-9]+(-[a-z0-9]+)*)(@(uncommon|rare|epic|legendary|mystic|iconic))?$',
+    false);
 $$;
 
 -- The whole list at once, in the order the page keeps it: thirty at most,
@@ -4949,11 +4948,12 @@ $$;
 -- cards it is ({ email: { card id: copies } }), so Supabase's 1000-row cap
 -- never cuts it short. The page sends the season and player of every card
 -- a team or a player on the list could be ('2025:dj-moore', which every
--- card id carries second and third) and the single cards it names; Postgres
--- cannot tell a card's team or rarity from its id, so this hands back a
+-- card id carries second and third); Postgres cannot tell a card's team or rarity from its id, so this hands back a
 -- little more than matches and the page keeps only what does. Everybody's
 -- collection is readable by every signed-in player already.
-create or replace function public.card_want_holders(p_keys text[], p_cards text[])
+drop function if exists public.card_want_holders(text[], text[]);
+
+create or replace function public.card_want_holders(p_keys text[])
 returns jsonb
 language plpgsql
 stable
@@ -4966,7 +4966,7 @@ begin
   if v_email is null then
     raise exception 'sign in first';
   end if;
-  if coalesce(array_length(p_keys, 1), 0) > 5000 or coalesce(array_length(p_cards, 1), 0) > 100 then
+  if coalesce(array_length(p_keys, 1), 0) > 5000 then
     raise exception 'That is more than a Want List can ask for.';
   end if;
 
@@ -4976,17 +4976,16 @@ begin
             from public.player_cards pc
            where pc.quantity > 0
              and lower(pc.email) <> v_email
-             and (pc.card_id = any(coalesce(p_cards, '{}'))
-                  or split_part(pc.card_id, ':', 2) || ':' || split_part(pc.card_id, ':', 3)
-                     = any(coalesce(p_keys, '{}')))
+             and split_part(pc.card_id, ':', 2) || ':' || split_part(pc.card_id, ':', 3)
+                 = any(coalesce(p_keys, '{}'))
            group by lower(pc.email)) s;
   return v_out;
 end;
 $$;
 
 revoke all on function public.set_card_wants(text[]) from public, anon;
-revoke all on function public.card_want_holders(text[], text[]) from public, anon;
+revoke all on function public.card_want_holders(text[]) from public, anon;
 grant execute on function public.set_card_wants(text[]) to authenticated;
-grant execute on function public.card_want_holders(text[], text[]) to authenticated;
+grant execute on function public.card_want_holders(text[]) to authenticated;
 
 notify pgrst, 'reload schema';
