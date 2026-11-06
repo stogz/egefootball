@@ -2552,7 +2552,7 @@ has more than ten offers out at once.
 
 Under the trades (Sam, 2026-11-06): the NFL teams and players you are
 looking for, and who has them. **Add** opens a picker with **Teams** (the
-NFL teams there are cards of) and **Players** (the six, then the NFL
+NFL teams there are teammate cards of) and **Players** (the six, then the NFL
 teammates with the most cards, or any by name). A player's picture is the
 live game's: a circle on his team's colour at 60% with its mark at the
 bottom right; a team is its mark in that circle. Every box is the same
@@ -2561,9 +2561,9 @@ it off, with the rarity picked beside the search as a floor (**Epic or
 better** keeps it to Epic, Legendary, Mystic and Iconic cards). Thirty at
 most; each one is a chip with an x.
 
-A team is every card of it: the six's own games while they played there,
-and their NFL teammates' (`team:detroit`, by its key in `EGE.teams`). A
-player is every card of him, one of the six or a teammate
+A team is every NFL teammate card of it (`team:detroit`, by its key in
+`EGE.teams`), not the six's own cards there; a player want is how to ask
+for those. A player is every card of him, one of the six or a teammate
 (`player:dj-moore`), holos included. An event's reward card never trades,
 so it never matches.
 

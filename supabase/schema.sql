@@ -4881,8 +4881,8 @@ notify pgrst, 'reload schema';
 -- only through set_card_wants.
 --
 -- A want is one of
---   team:{key}       every card of an NFL team, by its key in EGE.teams
---                    ('detroit', 'newYorkJets')
+--   team:{key}       every NFL teammate card of a team, by its key in
+--                    EGE.teams ('detroit', 'newYorkJets'); not the six's own
 --   player:{slug}    every card of one of the six or an NFL teammate
 -- and either can carry a rarity floor ('player:dj-moore@epic').
 -- ===========================================================================

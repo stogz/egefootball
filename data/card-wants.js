@@ -7,9 +7,9 @@
 
    A want is a short string, the way it is stored:
 
-     team:detroit       every card of an NFL team: the six's own while they
-                        played for it and their NFL teammates' there (by
-                        its key in EGE.teams)
+     team:detroit       every NFL teammate card of a team, by its key in
+                        EGE.teams; the six's own cards are not in it (Sam,
+                        2026-11-06), a player want is how to ask for those
      player:dj-moore    every card of one player, one of the six or an NFL
                         teammate
 
@@ -70,11 +70,17 @@ EGE.cardWants = (function () {
     return w ? w.kind + ':' + w.value : String(key);
   }
 
+  /* Whether a want is for `card`, rarity aside: a team takes only its NFL
+     teammates' cards. */
+  function covers(want, card) {
+    return want.kind === 'player' ? card.slug === want.value : Boolean(card.nfl) && card.teamKey === want.value;
+  }
+
   /* Whether `card` is one `want` (parsed) is after. */
   function fits(want, card) {
     if (!want || !card || card.reward) { return false; }
     if (want.floor && EGE.cards.rankOf(card.rarity) < EGE.cards.rankOf(want.floor)) { return false; }
-    return want.kind === 'player' ? card.slug === want.value : card.teamKey === want.value;
+    return covers(want, card);
   }
 
   /* `keys` are a list's stored wants. */
@@ -98,8 +104,8 @@ EGE.cardWants = (function () {
 
   /* --- what to ask the database for ------------------------------------------ */
 
-  /* Every card a team or a player could be on: the six's, and their NFL
-     teammates' once those are read. */
+  /* Every card a want could be after: the six's, and their NFL teammates'
+     once those are read. */
   function catalogue() {
     var nfl = EGE.nflCards && EGE.nflCards.loaded() ? EGE.nflCards.list() : [];
     return EGE.cards.all().concat(nfl);
@@ -115,9 +121,7 @@ EGE.cardWants = (function () {
     catalogue().forEach(function (card) {
       var key = card.season + ':' + card.slug;
       if (seen[key]) { return; }
-      var hit = wants.some(function (w) {
-        return w.kind === 'player' ? card.slug === w.value : card.teamKey === w.value;
-      });
+      var hit = wants.some(function (w) { return covers(w, card); });
       if (hit) { seen[key] = true; out.push(key); }
     });
     return out;
@@ -139,8 +143,8 @@ EGE.cardWants = (function () {
     return EGE.nfl && EGE.nfl.keyForSite ? nflTeam(EGE.nfl.keyForSite(key)) : null;
   }
 
-  /* The NFL teams there are cards of: the six's and their teammates', in
-     the NFL cards' order. */
+  /* The NFL teams there are teammate cards of, in the NFL cards' order;
+     until those are read, the six's NFL teams. */
   function teams() {
     var out = [];
     var seen = {};
@@ -151,6 +155,7 @@ EGE.cardWants = (function () {
     }
     if (EGE.nflCards && EGE.nflCards.loaded()) {
       EGE.nflCards.teams().forEach(function (t) { add(nflTeam(t.key)); });
+      return out;
     }
     EGE.cards.all().forEach(function (card) {
       var t = EGE.teams[card.teamKey];
