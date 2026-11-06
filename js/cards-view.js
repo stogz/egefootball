@@ -47,6 +47,7 @@ EGE.cardsView = (function () {
     photos: null,       /* this account's Player Card photos, { slug: data url } */
     pcView: null,       /* whose Player Cards the Players page shows; null is yours */
     pcOther: null,      /* theirs once read: { owned, photos, earned, failed } */
+    pcKind: 'ege',      /* the six's Player Cards, or 'nfl' for the NFL teammates' */
     spin: null,         /* today's spin from card_spin_today; null until read */
     spinning: false,    /* the wheel is turning: nothing redraws under it */
     sell: null,         /* picking cards to quick sell together: { picked: { id: n }, ... } */
@@ -348,7 +349,7 @@ EGE.cardsView = (function () {
      leaves the name alone. */
   function versusEl(className, card) {
     var node = el('div', className, card.versus);
-    var tier = card.opponent ? EGE.tierFor(card.season, card.player) : 'highSchool';
+    var tier = card.nfl ? 'nfl' : card.opponent ? EGE.tierFor(card.season, card.player) : 'highSchool';
     var src = tier !== 'highSchool' && EGE.logoFor ? EGE.logoFor(card.opponent, 64) : null;
     if (src) {
       var logo = el('img', 'ege-tcard__opplogo' + (tier === 'nfl' ? ' ege-tcard__opplogo--nfl' : ''));
@@ -364,6 +365,27 @@ EGE.cardsView = (function () {
     return node;
   }
 
+  /* An NFL teammate ESPN has no headshot of gets the grey stand-in. */
+  var NFL_STANDIN = 'icon/cards/nfl-standin.png';
+  function standIn(photo, slug) {
+    if (slug) { photo.dataset.nflFace = slug; }
+    photo.addEventListener('error', function () {
+      if (photo.src.indexOf(NFL_STANDIN) === -1) { photo.src = NFL_STANDIN; }
+    });
+  }
+
+  /* A 2025 teammate's photo comes after his card is drawn, once the sim's
+     rosters are read (EGE.nflCards.faces): every stand-in on the page that
+     has one now gets it in place, whatever else is going on. */
+  function nflFacesIn() {
+    if (!EGE.nflCards) { return; }
+    Array.prototype.forEach.call(document.querySelectorAll('img[data-nfl-face]'), function (photo) {
+      var p = EGE.nflCards.playerOf(photo.dataset.nflFace);
+      if (p && p.espn && photo.src.indexOf(NFL_STANDIN) !== -1) { photo.src = p.headshot; }
+    });
+  }
+  if (EGE.nflCards) { EGE.nflCards.onChange(nflFacesIn); }
+
   /* A card's face. Sized by whatever holds it: every measurement inside is
      in container units, so the same card is a thumbnail in the binder and a
      hand-sized thing in a pack. */
@@ -376,7 +398,7 @@ EGE.cardsView = (function () {
 
     var node = el('div', 'ege-tcard ege-tcard--' + card.rarity + ' ege-tcard--' + card.kind +
       (card.holo ? ' ege-tcard--holo' : '') + (card.holo2 ? ' ege-tcard--holo2' : '') + eventClass(card) +
-      (card.art ? ' ege-tcard--cut' : ''));
+      (card.art ? ' ege-tcard--cut' : '') + (card.nfl ? ' ege-tcard--nfl' : ''));
     node.style.setProperty('--rarity', r.color);
     node.style.setProperty('--ground', team.ground || '#2f4a2b');
 
@@ -397,6 +419,7 @@ EGE.cardsView = (function () {
     photo.alt = '';
     photo.loading = 'lazy';
     photo.decoding = 'async';
+    if (card.nfl) { standIn(photo, card.slug); }
     if (card.art) {
       /* A card-art card: Sam's photo of the game, its helmet standing up
          out of the picture over the strip and the score, and no logo, as
@@ -439,6 +462,10 @@ EGE.cardsView = (function () {
       var big = el('div', 'ege-tcard__yards');
       if (card.play.kind === 'interception') {
         big.appendChild(el('b', null, 'INT'));
+      } else if (card.play.big) {
+        /* An NFL teammate's kick or punt return: KR TD, PR TD. */
+        big.appendChild(el('b', null, card.play.big.text));
+        big.appendChild(el('small', null, card.play.big.unit));
       } else {
         big.appendChild(el('b', null, String(card.play.yards)));
         var unit = el('small', null, 'YD' + (card.play.touchdown ? ' TD' : ''));
@@ -460,10 +487,10 @@ EGE.cardsView = (function () {
          prints its yardage. */
       var stats = el('div', 'ege-tcard__yards ege-tcard__yards--game');
       stats.appendChild(el('b', null, String(card.big.yards)));
-      stats.appendChild(el('small', null, 'YDS'));
+      stats.appendChild(el('small', null, card.big.unit || 'YDS'));
       if (card.big.td) {
         stats.appendChild(el('b', null, String(card.big.td)));
-        stats.appendChild(el('small', null, 'TD'));
+        stats.appendChild(el('small', null, card.big.tdUnit || 'TD'));
       }
       art.appendChild(stats);
     }
@@ -1253,6 +1280,8 @@ EGE.cardsView = (function () {
        player's page is the way to its team: the player's page, on this
        card's season, at this game in the log. */
     function lineFact(label, value) {
+      /* An NFL teammate has no game log on the site. */
+      if (card.nfl) { fact(label, value); return; }
       facts.appendChild(el('dt', null, label));
       var dd = el('dd');
       var link = el('a', 'ege-zoom__line');
@@ -1277,10 +1306,16 @@ EGE.cardsView = (function () {
         (card.game.result ? ' \u00b7 ' + card.game.result.teamScore + '\u2013' + card.game.result.opponentScore : ''));
       if (card.kind === 'play') {
         fact('The play', card.text);
-        lineFact('That game', EGE.cards.statSummary(card.player.position, card.game.stats));
+        lineFact('That game', card.nfl ? card.game.line : EGE.cards.statSummary(card.player.position, card.game.stats));
       } else {
         lineFact('Line', card.line);
       }
+    }
+    if (card.nfl && card.with && card.with.length) {
+      fact('Teammate of', card.with.map(function (slug) {
+        var p = EGE.playerBySlug(slug);
+        return p ? p.first : slug;
+      }).join(', '));
     }
     /* Your own copies still cooling down after a trade. */
     var cooling = typeof opts.owned === 'number' && opts.owned > 0 ? lockedOf(state.locks, card.id) : [];
@@ -1425,9 +1460,11 @@ EGE.cardsView = (function () {
       facts.appendChild(el('dt', null, label));
       return facts.appendChild(el('dd', null, value));
     }
-    fact('Whose', opts.whose ? opts.whose + '’s Player Card' : 'Your Player Card');
+    fact('Whose', (opts.whose ? opts.whose + '’s ' : 'Your ') + (pc.nfl ? 'NFL Player Card' : 'Player Card'));
+    if (pc.nfl && EGE.teams[player.site]) { fact('Team', EGE.teams[player.site].school); }
     fact('Rank', rank
-      ? rank.name + (rank.bonus ? ' · +' + pctText(rank.bonus) + ' of his game diamonds' : ' · no bonus until Uncommon')
+      ? rank.name + (rank.bonus ? ' · +' + pctText(rank.bonus) + (pc.nfl ? '' : ' of his game diamonds')
+        : ' · no bonus until Uncommon')
       : 'Unranked');
     fact('Points', whole(pc.points) + ' FPTS from ' + pc.copies + (pc.copies === 1 ? ' card' : ' cards') +
       ' · ' + pc.distinct + ' different');
@@ -1757,6 +1794,10 @@ EGE.cardsView = (function () {
     who.setAttribute('aria-label', 'Player');
     who.appendChild(new Option('Every player', 'all'));
     EGE.players.forEach(function (p) { who.appendChild(new Option(p.name, p.slug)); });
+    who.appendChild(new Option('NFL teammates', 'nfl'));
+    /* One teammate, from his NFL Player Card's See his cards. */
+    var mate = EGE.nflCards ? EGE.nflCards.playerOf(f.player) : null;
+    if (mate) { who.appendChild(new Option(mate.name, mate.slug)); }
     who.value = f.player;
     who.addEventListener('change', function () { pick('player', who.value); });
     rest.appendChild(who);
@@ -2042,6 +2083,12 @@ EGE.cardsView = (function () {
   /* The rarity drop-downs: a rarity, every holo (Holo IIs too), every
      Holo II, every card of an event ('ev:halloween'), or every costume
      card. */
+  /* 'all', one of the six or one NFL teammate by slug, or 'nfl' for every
+     NFL teammate's card. */
+  function playerFits(card, player) {
+    return player === 'all' || (player === 'nfl' ? Boolean(card.nfl) : card.slug === player);
+  }
+
   function rarityFits(card, rarity) {
     return rarity === 'all' || (rarity === 'holo' ? Boolean(card.holo)
       : rarity === 'holo2' ? Boolean(card.holo2)
@@ -2098,7 +2145,7 @@ EGE.cardsView = (function () {
     var shown = mine.filter(function (card) {
       return rarityFits(card, f.rarity) &&
         (f.kind === 'all' || card.kind === f.kind) &&
-        (f.player === 'all' || card.slug === f.player) &&
+        playerFits(card, f.player) &&
         (!f.merge || (mergeable(card) && v.owned[card.id] >= EGE.cards.HOLO_OF));
     }).sort(sorter(f.sort, v.first));
 
@@ -2116,15 +2163,17 @@ EGE.cardsView = (function () {
     var holos = 0;
     var holo2s = 0;
     var events = {};
+    var nfl = 0;
     mine.forEach(function (card) {
       if (card.eventKey) { events[card.eventKey] = (events[card.eventKey] || 0) + v.owned[card.id]; }
+      else if (card.nfl) { nfl += v.owned[card.id]; }
       else { different[card.baseId || card.id] = true; }
       if (card.holo) { holos += v.owned[card.id]; }
       if (card.holo2) { holo2s += v.owned[card.id]; }
     });
     byId('collectionCount').textContent = v.loaded && !v.failed
       ? copies + (copies === 1 ? ' card' : ' cards') + ' · ' + Object.keys(different).length + ' of ' + out +
-        ' different' + (holos ? ' · ' + holos + ' holo' : '') +
+        ' different' + (holos ? ' · ' + holos + ' holo' : '') + (nfl ? ' · ' + nfl + ' NFL' : '') +
         EVENTS.map(function (ev) { return events[ev.key] ? ' · ' + events[ev.key] + ' ' + ev.name : ''; }).join('')
       : v.failed ? '' : 'Loading…';
 
@@ -2818,7 +2867,7 @@ EGE.cardsView = (function () {
 
   function finds(card, f) {
     if (f.kind !== 'all' && card.kind !== f.kind) { return false; }
-    if (f.player !== 'all' && card.slug !== f.player) { return false; }
+    if (!playerFits(card, f.player)) { return false; }
     if (f.season !== 'all' && String(card.season) !== f.season) { return false; }
     if (!rarityFits(card, f.rarity)) { return false; }
     var words = f.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -2916,7 +2965,7 @@ EGE.cardsView = (function () {
     var selects = {
       player: select('player', 'Player', [['all', 'Every player']].concat(EGE.players.map(function (p) {
         return [p.slug, p.name];
-      }))),
+      })).concat([['nfl', 'NFL teammates']])),
       season: select('season', 'Season', [['all', 'Every season']].concat(EGE.seasonsPlayed().slice().reverse()
         .map(function (y) { return [String(y), String(y)]; }))),
       rarity: select('rarity', 'Rarity', [['all', 'All rarities']].concat(EGE.cards.RARITIES.map(function (r) {
@@ -3271,7 +3320,7 @@ EGE.cardsView = (function () {
     var floor = EGE.cards.rarity(rw.floor).name;
     var ev = set.event ? EGE.cards.eventOf(set.event) : null;
     var parts = [(/^[AEIOU]/.test(floor) ? 'An ' : 'A ') + floor + '-or-better ' +
-      (ev ? ev.name + ' card' : 'card') + (rw.fromText ? ' (' + rw.fromText + ')' : '')];
+      (ev ? ev.name + ' card' : set.nfl ? 'NFL card' : 'card') + (rw.fromText ? ' (' + rw.fromText + ')' : '')];
     if (rw.diamonds) { parts.push(rw.diamonds + ' diamonds'); }
     if (rw.booster) { parts.push(boosterName(rw.booster)); }
     return parts.join(' \u00b7 ');
@@ -3801,6 +3850,8 @@ EGE.cardsView = (function () {
   /* About what one of his games pays at a rank: his games this season so
      far, or last season's before any are out. */
   function typicalBonus(player, rankKey) {
+    /* An NFL teammate's, in diamonds and tenths of one. */
+    if (player.nfl) { return EGE.nflCards ? EGE.nflCards.typicalBonus(player.slug, rankKey) : null; }
     var games = [];
     [EGE.currentSeason, EGE.currentSeason - 1].some(function (year) {
       games = EGE.gamesPlayed(player, year).filter(function (g) { return g.stats && !g.injured; })
@@ -3826,11 +3877,13 @@ EGE.cardsView = (function () {
     var player = pc.player;
     var rank = pc.rank;
     var key = rank ? rank.key : 'unranked';
-    var team = EGE.teamFor(player, EGE.currentSeason) || {};
+    /* An NFL Player Card (pc.nfl) is a teammate's, on the team he is on now. */
+    var team = (pc.nfl ? EGE.teams[player.site] : EGE.teamFor(player, EGE.currentSeason)) || {};
 
     /* A binder card underneath (.ege-tcard): the same size as a play or
        performance card, and the same foil, sheen and glow for its rank. */
-    var outer = el('div', 'ege-tcard ege-tcard--' + key + ' ege-plcard ege-plcard--' + key);
+    var outer = el('div', 'ege-tcard ege-tcard--' + key + ' ege-plcard ege-plcard--' + key +
+      (pc.nfl ? ' ege-plcard--nfl' : ''));
     outer.style.setProperty('--rarity', rank ? rank.color : '#8b9097');
     outer.style.setProperty('--ground', team.ground || '#2f4a2b');
     var node = el('div', 'ege-tcard__face ege-plcard__face');
@@ -3850,6 +3903,7 @@ EGE.cardsView = (function () {
     photo.alt = '';
     photo.loading = 'lazy';
     photo.decoding = 'async';
+    if (pc.nfl) { standIn(photo, custom ? null : player.slug); }
     frame.appendChild(photo);
     node.appendChild(frame);
 
@@ -3865,20 +3919,32 @@ EGE.cardsView = (function () {
       where.appendChild(logo);
     }
     where.appendChild(el('span', null,
-      [team.school, EGE.positionFor ? EGE.positionFor(player) : player.position].filter(Boolean).join(' \u00b7 ')));
+      [team.school, !pc.nfl && EGE.positionFor ? EGE.positionFor(player) : player.position]
+        .filter(Boolean).join(' \u00b7 ')));
     plate.appendChild(where);
 
     var earn = el('div', 'ege-plcard__earn');
-    earn.appendChild(document.createTextNode('Earned '));
-    if (earned !== null && earned !== undefined) {
-      earn.appendChild(el('b', null, whole(earned)));
-      earn.appendChild(gem());
-    } else {
-      earn.appendChild(el('b', null, '\u2014'));
-    }
-    earn.appendChild(document.createTextNode(' · '));
-    earn.appendChild(el('b', 'ege-plcard__pct', (rank && rank.bonus ? '+' : '') + pctText(rank ? rank.bonus : 0)));
     var about = rank && rank.bonus ? typicalBonus(player, rank.key) : null;
+    if (pc.nfl) {
+      /* What it pays a game, since what each teammate's has paid is not
+         kept apart: the week's NFL Player Cards are paid together. */
+      earn.appendChild(el('b', 'ege-plcard__pct', '+' + pctText(rank ? rank.bonus : 0)));
+      if (about !== null) {
+        earn.appendChild(document.createTextNode(' · ' + about));
+        earn.appendChild(gem());
+        earn.appendChild(document.createTextNode(' a game'));
+      }
+    } else {
+      earn.appendChild(document.createTextNode('Earned '));
+      if (earned !== null && earned !== undefined) {
+        earn.appendChild(el('b', null, whole(earned)));
+        earn.appendChild(gem());
+      } else {
+        earn.appendChild(el('b', null, '\u2014'));
+      }
+      earn.appendChild(document.createTextNode(' · '));
+      earn.appendChild(el('b', 'ege-plcard__pct', (rank && rank.bonus ? '+' : '') + pctText(rank ? rank.bonus : 0)));
+    }
     if (about !== null) { earn.title = 'About ' + about + ' diamonds on each of his games'; }
     plate.appendChild(earn);
 
@@ -3899,7 +3965,7 @@ EGE.cardsView = (function () {
 
     var foot = el('div', 'ege-plcard__foot');
     foot.appendChild(el('span', 'ege-plcard__rank', rank ? rank.name : 'Unranked'));
-    foot.appendChild(el('span', null, 'Career'));
+    foot.appendChild(el('span', null, pc.nfl ? 'NFL' : 'Career'));
     node.appendChild(foot);
 
     /* GOAT, the rung no binder card reaches, gets four sparkles on its
@@ -3948,8 +4014,8 @@ EGE.cardsView = (function () {
   function playerCardEl(pc, whose) {
     var player = pc.player;
     var rank = pc.rank;
-    var earned = whose.earned ? (whose.earned[player.slug] || 0) : null;
-    var photo = whose.photos ? whose.photos[player.slug] || null : null;
+    var earned = !pc.nfl && whose.earned ? (whose.earned[player.slug] || 0) : null;
+    var photo = !pc.nfl && whose.photos ? whose.photos[player.slug] || null : null;
     var node = el('article', 'ege-pcard');
     /* The card itself opens up close, the way it does off a showcase. */
     var face = playerCardFace(pc, earned, photo);
@@ -3994,8 +4060,9 @@ EGE.cardsView = (function () {
       var rate = el('span', 'ege-pcard__rate', '+' + pctText(rank.bonus));
       rate.appendChild(gem());
       pays.appendChild(rate);
-      pays.appendChild(document.createTextNode(' of his game diamonds' +
-        (about !== null ? ', about ' + about + ' a game.' : '.')));
+      pays.appendChild(document.createTextNode(pc.nfl
+        ? (about !== null ? ' · about ' + about + ' a game.' : '.')
+        : ' of his game diamonds' + (about !== null ? ', about ' + about + ' a game.' : '.')));
     } else {
       pays.appendChild(document.createTextNode('No bonus until Uncommon.'));
     }
@@ -4018,8 +4085,9 @@ EGE.cardsView = (function () {
     });
     row.appendChild(see);
 
-    /* Your own: a photo of yours on it, in place of his headshot. */
-    if (whose.mine) {
+    /* Your own: a photo of yours on it, in place of his headshot. Not on
+       an NFL teammate's. */
+    if (whose.mine && !pc.nfl) {
       var pick = iconButton('ege-pcard__photo', 'player', photo ? 'Change photo' : 'Add photo');
       pick.disabled = !pc.copies || state.photos === null;
       if (state.photos === null) { pick.title = 'Photos could not be loaded. Run supabase/schema.sql.'; }
@@ -4320,6 +4388,7 @@ EGE.cardsView = (function () {
     var other = state.pcView ? playerByEmail(state.pcView) : null;
     showWhoFace(other);
 
+    renderPcKinds();
     var holder = byId('playerCards');
     holder.innerHTML = '';
     var whose = state.pcView
@@ -4335,8 +4404,36 @@ EGE.cardsView = (function () {
       return;
     }
     var owned = state.pcView ? state.pcOther.owned : state.owned;
+    if (state.pcKind === 'nfl') {
+      /* The NFL teammates with a Player Card, best first. */
+      var mates = EGE.nflCards && EGE.nflCards.loaded() ? EGE.nflCards.playerCards(owned) : null;
+      if (!mates) {
+        holder.appendChild(el('p', 'fb-meta', 'Loading\u2026'));
+      } else if (!mates.length) {
+        holder.appendChild(el('p', 'fb-meta', 'No NFL Player Cards yet. ' +
+          whole(EGE.nflCards.NFL_RANKS[0].points) + ' FPTS of one teammate makes one.'));
+      }
+      (mates || []).forEach(function (pc) { holder.appendChild(playerCardEl(pc, whose)); });
+      return;
+    }
     EGE.players.forEach(function (player) {
       holder.appendChild(playerCardEl(EGE.cards.playerCard(player, owned), whose));
+    });
+  }
+
+  /* The six's Player Cards or the NFL teammates', over the cards. */
+  function renderPcKinds() {
+    var holder = byId('playerCardsKind');
+    if (!holder) { return; }
+    holder.innerHTML = '';
+    [['ege', 'EGE'], ['nfl', 'NFL']].forEach(function (k) {
+      var b = chip(k[1], state.pcKind === k[0], function () {
+        if (state.pcKind === k[0]) { return; }
+        state.pcKind = k[0];
+        renderPlayerCards();
+      });
+      b.classList.add('ege-filterchip');
+      holder.appendChild(b);
     });
   }
 
@@ -4896,9 +4993,25 @@ EGE.cardsView = (function () {
     renderEvent();
   }
 
+  /* The NFL teammates' cards are in (or changed): the NFL Pack can open,
+     and the binder, the Player Cards and the Library take them. Held over
+     to the next check while something is going on. */
+  function nflLanded() {
+    if (!state.player || !state.loaded) { return; }
+    if (refreshing || polling) { window.setTimeout(nflLanded, 400); return; }
+    if (busy()) { owedFull = true; return; }
+    renderPacks();
+    renderFilters();
+    if (state.tab === 'cards') { renderCollection(); }
+    renderRecent();
+    renderPlayerCards();
+    renderLibrary();
+  }
+
   function build() {
     if (built) { return; }
     built = true;
+    if (EGE.nflCards) { EGE.nflCards.onChange(nflLanded); }
     renderFilters();
     /* A tap outside the phone's Sort menu closes it. A pick inside it redraws
        the menu, so a tap on something no longer in the page was inside. */
@@ -4932,6 +5045,11 @@ EGE.cardsView = (function () {
   function refresh() {
     var player = state.player;
     if (!player) { return Promise.resolve(); }
+
+    /* The NFL teammates' cards come on their own time, mostly out of this
+       browser's own store, and redraw what they are in when they land
+       (nflLanded). */
+    EGE.cardStore.loadNflCards();
 
     refreshing += 1;
     return Promise.all([

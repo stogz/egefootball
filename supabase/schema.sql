@@ -1058,13 +1058,27 @@ create policy "card set claims readable by owner or admin"
   on public.card_set_claims for select to authenticated
   using (email = auth.jwt() ->> 'email' or public.is_admin());
 
--- What a card id looks like. Anything else is refused at the door.
+-- An NFL teammate's card (Sam, 2026-11-06; data/nfl-cards.js): a game,
+-- 'n:2025:dj-moore:5', or a touchdown in it, 'nt:2025:dj-moore:5:0'. Only
+-- the NFL Pack and the NFL sets give these out.
+create or replace function public.is_nfl_card_id(p_id text)
+returns boolean
+language sql
+immutable
+as $$
+  select coalesce(p_id ~ '^n:20[0-9]{2}:[a-z0-9]+(-[a-z0-9]+)*:[0-9]{1,2}$'
+                  or p_id ~ '^nt:20[0-9]{2}:[a-z0-9]+(-[a-z0-9]+)*:[0-9]{1,2}:[0-9]{1,2}$', false);
+$$;
+
+-- What a card id looks like: one of the six's, or an NFL teammate's.
+-- Anything else is refused at the door.
 create or replace function public.is_card_id(p_id text)
 returns boolean
 language sql
 immutable
 as $$
-  select p_id ~ '^(p:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}|h:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}:[0-9]{1,2})$';
+  select p_id ~ '^(p:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}|h:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}:[0-9]{1,2})$'
+         or public.is_nfl_card_id(p_id);
 $$;
 
 -- A limited-time event's card (the events, at the end of this file): a
@@ -1235,6 +1249,20 @@ begin
 
   v_price := case p_pack when 'base' then 10 when 'season' then 12 when 'pro' then 20 end;
   v_size  := case p_pack when 'base' then 3 when 'season' then 3 when 'pro' then 5 end;
+
+  -- The NFL Pack (Sam, 2026-11-06): 22 diamonds, four cards of the six's
+  -- NFL teammates and nothing else. No other pack holds one.
+  if p_pack = 'nfl' then
+    v_price := 22;
+    v_size := 4;
+    foreach v_card in array coalesce(p_cards, '{}') loop
+      if not public.is_nfl_card_id(v_card) then
+        raise exception 'Not an NFL card: %', v_card;
+      end if;
+    end loop;
+  elsif exists (select 1 from unnest(coalesce(p_cards, '{}')) as c where public.is_nfl_card_id(c)) then
+    raise exception 'NFL cards only come in the NFL Pack.';
+  end if;
 
   -- The Gold Rush Pack: 15 diamonds, four Gold Rush cards, and only while
   -- the Gold Rush is on. Never the GOLD RUSH card, which only finishing the
@@ -4479,5 +4507,143 @@ $$;
 
 revoke all on function public.live_control(text, text, integer) from public, anon;
 grant execute on function public.live_control(text, text, integer) to authenticated;
+
+notify pgrst, 'reload schema';
+
+-- ===========================================================================
+-- NFL cards
+--
+-- The six's NFL teammates in the card game (Sam, 2026-11-06): their games
+-- and their touchdowns from 2024 on, out of the NFL Pack (open_card_pack,
+-- above) and the NFL sets (claim_card_set takes them like any set). What a
+-- card is comes from the NFL sim's box scores, which sim_box_scores keeps
+-- a row a week; the page builds the cards from them (data/nfl-cards.js).
+-- ===========================================================================
+
+-- The box scores the cards are made from: for each week asked, its games
+-- with one of the named teams in them -- the teams the six were on that
+-- week, which the page knows and Postgres does not -- each with its score,
+-- its scoring plays and those teams' lines, the six's own left out. Weeks
+-- from 2024 on and published only, whoever asks, admins too. A week of a
+-- whole league's box scores is about 65KB; this is about a tenth of it.
+--
+-- p_weeks: [{ "s": 2024, "w": 3, "t": ["CHI", "NYG"] }, ...]
+create or replace function public.nfl_card_lines(p_weeks jsonb)
+returns table (season integer, week integer, games jsonb)
+language sql
+stable
+set search_path = public
+as $$
+  select b.season, b.week,
+         coalesce((
+           select jsonb_agg(
+                    jsonb_strip_nulls(jsonb_build_object(
+                      'home', x.g -> 'home', 'away', x.g -> 'away', 'score', x.g -> 'score',
+                      'round', x.g -> 'round', 'ot', x.g -> 'ot', 'neutral', x.g -> 'neutral'))
+                    || jsonb_build_object(
+                         'scoring', coalesce(x.g -> 'scoring', '[]'::jsonb),
+                         'box', coalesce((
+                           select jsonb_agg(l.v - array['fgm', 'fga', 'xpm', 'xpa', 'punts', 'puntYards'])
+                             from jsonb_array_elements(coalesce(x.g -> 'box', '[]'::jsonb)) as l(v)
+                            where not (l.v ? 'ege')
+                              and (w.e -> 't') ? (l.v ->> 'team')), '[]'::jsonb))
+                    order by x.n)
+             from jsonb_array_elements(b.games) with ordinality as x(g, n)
+            where (w.e -> 't') ? (x.g ->> 'home') or (w.e -> 't') ? (x.g ->> 'away')
+         ), '[]'::jsonb)
+    from jsonb_array_elements(case when jsonb_typeof(p_weeks) = 'array' then p_weeks else '[]'::jsonb end) as w(e)
+    join public.sim_box_scores b
+      on b.season = (w.e ->> 's')::integer and b.week = (w.e ->> 'w')::integer
+   where b.season >= 2024
+     and jsonb_typeof(w.e -> 't') = 'array'
+     and exists (select 1 from public.published_weeks p where p.season = b.season and p.week = b.week);
+$$;
+
+revoke all on function public.nfl_card_lines(jsonb) from public;
+grant execute on function public.nfl_card_lines(jsonb) to anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- NFL Player Cards
+--
+-- A teammate an account has collected enough of has a Player Card (NFL_RANKS
+-- in data/nfl-cards.js), and it pays much less than one of the six's (Sam,
+-- 2026-11-06): a fifth of his game's fantasy points times his position's
+-- share, times the rank's bonus. Every NFL Player Card's games in a week are
+-- paid together, as one award, npc-w{week}, held here to 60. The same rules
+-- as pay_player_card_bonuses otherwise: each week is paid once, at the ranks
+-- held when it is first paid, a week of nothing goes in at nothing, and the
+-- first time an account is paid at all every week already out goes in at
+-- nothing (an npc-start row marks it), so they pay from the next week on.
+--
+-- Returns what it actually paid.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.pay_nfl_card_bonuses(p_season integer, p_awards jsonb)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  v_first boolean;
+  v_paid  integer := 0;
+  v_pay   integer;
+  r       record;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  if p_awards is null or jsonb_typeof(p_awards) <> 'array' then
+    return 0;
+  end if;
+
+  insert into public.player_diamonds (email, diamonds, updated_at)
+  values (v_email, 0, now())
+  on conflict (email) do nothing;
+  perform 1 from public.player_diamonds where email = v_email for update;
+
+  v_first := not exists (
+    select 1 from public.diamond_awards where email = v_email and award_key = 'npc-start');
+  if v_first then
+    insert into public.diamond_awards (email, season, award_key, diamonds, note)
+    values (v_email, p_season, 'npc-start', 0, 'NFL Player Cards start paying from here')
+    on conflict (email, season, award_key) do nothing;
+  end if;
+
+  for r in
+    select
+      a ->> 'key'                              as award_key,
+      coalesce((a ->> 'diamonds')::integer, 0) as diamonds,
+      a ->> 'note'                             as note
+    from jsonb_array_elements(p_awards) as a
+  loop
+    continue when r.award_key is null
+      or r.award_key !~ '^npc-w[0-9]{1,2}$'
+      or r.diamonds < 0 or r.diamonds > 60;
+
+    v_pay := case when v_first then 0 else r.diamonds end;
+
+    insert into public.diamond_awards (email, season, award_key, diamonds, note)
+    values (v_email, p_season, r.award_key, v_pay,
+            case when v_first then 'Out before your NFL Player Cards: ' || coalesce(r.note, '') else r.note end)
+    on conflict (email, season, award_key) do nothing;
+    if found then
+      v_paid := v_paid + v_pay;
+    end if;
+  end loop;
+
+  if v_paid > 0 then
+    update public.player_diamonds
+       set diamonds = diamonds + v_paid, updated_at = now()
+     where email = v_email;
+  end if;
+
+  return v_paid;
+end;
+$$;
+
+revoke all on function public.pay_nfl_card_bonuses(integer, jsonb) from public, anon;
+grant execute on function public.pay_nfl_card_bonuses(integer, jsonb) to authenticated;
 
 notify pgrst, 'reload schema';

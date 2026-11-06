@@ -6,7 +6,9 @@
    Recent Games is a box a week, newest first, holding every game that week
    that paid them anything: their own game (game-w{week} in diamond_awards)
    and each game one of their Player Cards paid a bonus on (pc-{slug}-w{week}),
-   with the week's total. A row opens that game in the player's game log.
+   with the week's total. Their NFL Player Cards are paid a week at a time
+   (npc-w{week}, data/nfl-cards.js), so they are one row in the week's box.
+   A row opens that game in the player's game log.
    Other Earnings, under it, is everything else that paid them, newest first
    (Sam, 2026-10-20): the holos they have made since merging one started
    paying (card_merges.diamonds), the Library and event sets they have
@@ -80,25 +82,32 @@ EGE.diamondsView = (function () {
      what it paid through their Player Card on that player (at `rank`), so
      their own game with their own Player Card on it is one row with both.
      Their own game first in each box, then the biggest. */
+  /* The row a week's NFL Player Cards are paid on. */
+  var NFL_CARDS = { slug: 'nfl', name: 'NFL Player Cards', first: 'NFL', nfl: true,
+                    headshot: 'icon/packs/nfl-shield.webp' };
+
   function weeksFrom(awards, me) {
     var byWeek = {};
     awards.forEach(function (a) {
       var own = /^game-w(\d+)$/.exec(a.award_key);
       var pc = /^pc-([a-z]+(?:-[a-z]+)*)-w(\d+)$/.exec(a.award_key);
-      var player = own ? me : pc ? EGE.playerBySlug(pc[1]) : null;
+      var npc = /^npc-w(\d+)$/.exec(a.award_key);
+      var player = own ? me : pc ? EGE.playerBySlug(pc[1]) : npc ? NFL_CARDS : null;
       if (!player || !(a.diamonds > 0)) { return; }
-      var week = Number(own ? own[1] : pc[2]);
+      var week = Number(own ? own[1] : pc ? pc[2] : npc[1]);
       var season = Number(a.season);
       var key = season + ':' + week;
       var box = byWeek[key] || (byWeek[key] = { season: season, week: week, total: 0, rows: [], bySlug: {} });
       var row = box.bySlug[player.slug];
       if (!row) {
         row = box.bySlug[player.slug] = {
-          player: player, game: EGE.gameInWeek(player, week, season), own: 0, card: 0, rank: null
+          player: player, game: npc ? null : EGE.gameInWeek(player, week, season), own: 0, card: 0, rank: null
         };
         box.rows.push(row);
       }
-      if (own) { row.own += a.diamonds; } else { row.card += a.diamonds; row.rank = rankIn(a.note); }
+      if (own) { row.own += a.diamonds; }
+      else if (npc) { row.card += a.diamonds; row.note = a.note; }
+      else { row.card += a.diamonds; row.rank = rankIn(a.note); }
       box.total += a.diamonds;
     });
     var out = Object.keys(byWeek).map(function (k) { return byWeek[k]; });
@@ -117,7 +126,7 @@ EGE.diamondsView = (function () {
     awards.forEach(function (a) {
       if (Number(a.season) !== EGE.currentSeason || !(a.diamonds > 0)) { return; }
       if (/^game-w\d+$/.test(a.award_key)) { games += a.diamonds; }
-      else if (/^pc-.+-w\d+$/.test(a.award_key)) { cards += a.diamonds; }
+      else if (/^pc-.+-w\d+$|^npc-w\d+$/.test(a.award_key)) { cards += a.diamonds; }
     });
     return { games: games, cards: cards };
   }
@@ -135,8 +144,33 @@ EGE.diamondsView = (function () {
     return (game.home || game.neutral ? 'vs ' : 'at ') + game.opponent;
   }
 
+  /* A week's NFL Player Cards: how many teammates paid (out of the
+     award's note, "NFL Player Cards, week 4: 3 teammates"), and what. */
+  function nflRow(row) {
+    var link = el('a', 'ege-dgame ege-dgame--nfl');
+    link.href = '#cards/players';
+    link.title = 'Open your Player Cards';
+    var face = el('img', 'ege-dgame__face');
+    face.src = row.player.headshot;
+    face.alt = '';
+    face.loading = 'lazy';
+    link.appendChild(face);
+    var text = el('span', 'ege-dgame__text');
+    var top = el('span', 'ege-dgame__top');
+    top.appendChild(el('span', 'ege-dgame__name', row.player.name));
+    text.appendChild(top);
+    var said = /: (.+)$/.exec(String(row.note || ''));
+    if (said) { text.appendChild(el('span', 'ege-dgame__why', said[1])); }
+    link.appendChild(text);
+    var paid = el('span', 'ege-dgame__paid');
+    paid.appendChild(gems(row.card, true));
+    link.appendChild(paid);
+    return link;
+  }
+
   /* One game: who, the score, why it paid, and what. */
   function gameRow(row, season) {
+    if (row.player.nfl) { return nflRow(row); }
     var game = row.game;
     var link = el('a', 'ege-dgame');
     link.href = '#' + row.player.slug;

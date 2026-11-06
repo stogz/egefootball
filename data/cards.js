@@ -800,6 +800,13 @@ EGE.cards = (function () {
         });
       });
     });
+
+    /* The six's NFL teammates' cards (data/nfl-cards.js) are found by id
+       too, but are never in all(): only the NFL Pack and the NFL sets take
+       them. */
+    if (EGE.nflCards) {
+      EGE.nflCards.list().forEach(function (card) { catalogue[card.id] = card; });
+    }
   }
 
   /* A stat line of nothing but zeros is a game he was on the roster for and
@@ -878,6 +885,8 @@ EGE.cards = (function () {
      its week is out. */
   function pullable(packKey) {
     var p = pack(packKey);
+    /* A pack with a pool of its own: the NFL Pack's (data/nfl-cards.js). */
+    if (p && p.pool) { return p.pool(); }
     var ev = p && p.event ? eventOf(p.event) : null;
     var cards = all().filter(function (card) {
       if (!EGE.isPublished(card.season, card.week)) { return false; }
@@ -1840,6 +1849,7 @@ EGE.cards = (function () {
     pullable: pullable,
     compare: compare,
     rollRarity: rollRarity,
+    drawFrom: drawOne,
     oddsWith: oddsWith,
     rollPack: rollPack,
     sets: sets,

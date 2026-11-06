@@ -11125,3 +11125,60 @@ html.ege-cast-sheet-open { overflow: hidden; }
 .ege-live-admin__acts { display: flex; flex-wrap: wrap; gap: 8px; }
 .ege-live-admin__ask { align-items: flex-end; gap: 10px; padding: 8px 0 12px; }
 .ege-live-admin__more > summary { padding: 10px 0 4px; cursor: pointer; }
+
+/* --- NFL cards ----------------------------------------------------------------
+
+   The six's NFL teammates in the card game (Sam, 2026-11-06; data/nfl-cards.js). */
+
+/* The NFL Pack: navy foil with silver light through it, Sam's NFL shield big
+   in the middle under the prizm (it says the name, so the chrome name is left
+   off), a red maker's bar, a row of white stars on the navy above the foot
+   band, and a red and blue glow. */
+.ege-pack.ege-pack--nfl {
+  --foil: linear-gradient(135deg, #00143a 0%, #013369 20%, #7a96c8 36%, #0b3f86 52%,
+                          #e3eaf4 66%, #013369 82%, #00143a 100%);
+  --pack-deep: #013369;
+  --pack-hi: #ffffff;
+  filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 10px rgba(213, 10, 10, .6));
+  animation: ege-nfl-glow 3.2s ease-in-out var(--glow-phase, 0s) infinite;
+}
+@keyframes ege-nfl-glow {
+  0%, 100% { filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 8px rgba(213, 10, 10, .55)); }
+  50%      { filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 16px rgba(120, 160, 235, .9)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ege-pack.ege-pack--nfl { animation: none; }
+}
+.ege-pack--nfl .ege-pack__brand { background: #d50a0a; }
+.ege-pack--nfl .ege-pack__brand b { color: #d50a0a; }
+.ege-pack--nfl .ege-pack__logo {
+  top: 18%;
+  max-width: 74cqw;
+  max-height: 58%;
+  filter: drop-shadow(0 0 1cqw rgba(255, 255, 255, .85)) drop-shadow(1.4cqw 1.8cqw 1.4cqw rgba(0, 0, 0, .45));
+}
+.ege-pack--nfl .ege-pack__name { display: none; }
+.ege-pack--nfl .ege-pack__foot::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + .9cqw);
+  height: 5cqw;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath fill='%23fff' d='M5 .6l1.3 2.9 3.1.3-2.4 2.1.7 3.1L5 7.4 2.3 9l.7-3.1L.6 3.8l3.1-.3z'/%3E%3C/svg%3E") 50% 50% / 5cqw 3.4cqw repeat-x,
+    #013369;
+  border-top: .5cqw solid #d50a0a;
+}
+
+/* The six's Player Cards or the NFL teammates', centred under whose. */
+.ege-pcards__kinds { display: flex; justify-content: center; gap: 8px; }
+.ege-pcards__kinds .ege-filterchip { min-width: 84px; }
+
+/* A week's NFL Player Cards on the diamonds page, the shield for a face. */
+.ege-dgame--nfl .ege-dgame__face {
+  object-fit: contain;
+  object-position: center;
+  padding: 4px;
+  background: #013369;
+}
