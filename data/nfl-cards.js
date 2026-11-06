@@ -162,11 +162,86 @@ EGE.nflCards = (function () {
     return espn && EGE.espnHeadshot ? EGE.espnHeadshot(espn, college, 350, 254) : STANDIN;
   }
 
-  /* One player across every week read: who he is (his ESPN id, or his name
-     where there is none), named once and for good the first time he turns
-     up, oldest week first. */
+  /* A box score from before the sim kept ids (2025's) has only a name and
+     a position on a line. MANY is a name more than one player has. */
+  var MANY = { many: true };
+
+  function remember(map, key, who) {
+    var had = map[key];
+    map[key] = !had ? who : had === MANY || had.espn !== who.espn ? MANY : had;
+  }
+
+  function found(map, line) {
+    var hit = line.pos ? map[line.name + '|' + line.pos] : map['name:' + line.name];
+    return hit && hit !== MANY ? hit : null;
+  }
+
+  /* Every ESPN id on a line read, by name and position, and by name alone
+     for a touchdown whose scorer has no line, so a 2025 game of a player
+     whose later games have his id is the same player's. */
+  function idIndex() {
+    var map = {};
+    weeks.forEach(function (row) {
+      (row.games || []).forEach(function (g) {
+        (g.box || []).forEach(function (l) {
+          if (!l.espn || !l.name) { return; }
+          var who = { espn: String(l.espn), collegePhoto: Boolean(l.collegePhoto) };
+          remember(map, l.name + '|' + l.pos, who);
+          remember(map, 'name:' + l.name, who);
+        });
+      });
+    });
+    return map;
+  }
+
+  /* The sim's rosters for a player with no id on any line read (one who
+     was only ever a teammate in 2025): on a team, a free agent or retired,
+     by his name and position, or his name alone, where nobody else has
+     them, as the League page finds a box score's players. js/cards.js
+     reads the rosters when a player needs them (faceless) and says so
+     (faces). */
+  var rosterFaces = { from: null, map: null };
+
+  function rosterIndex() {
+    var R = EGE.nflRosters;
+    var all = null;
+    [EGE.currentSeason, EGE.currentSeason - 1].some(function (season) {
+      var got = R && R.get ? R.get(season) : null;
+      if (got && got.teams) { all = got; }
+      return Boolean(all);
+    });
+    if (!all) { return null; }
+    if (rosterFaces.from !== all) {
+      var map = {};
+      var everybody = [];
+      Object.keys(all.teams).forEach(function (key) { everybody = everybody.concat(all.teams[key] || []); });
+      everybody.concat(all.freeAgents || [], all.retired || []).forEach(function (sim) {
+        if (!sim || !sim.name) { return; }
+        var who = { espn: sim.espn ? String(sim.espn) : '', collegePhoto: Boolean(sim.collegePhoto) };
+        remember(map, sim.name + '|' + sim.pos, who);
+        remember(map, 'name:' + sim.name, who);
+      });
+      rosterFaces = { from: all, map: map };
+    }
+    return rosterFaces.map;
+  }
+
+  function faceFrom(p) {
+    var map = rosterIndex();
+    var hit = map ? found(map, { name: p.name, pos: p.position }) : null;
+    if (!hit || !hit.espn) { return false; }
+    p.espn = hit.espn;
+    p.collegePhoto = hit.collegePhoto;
+    p.headshot = headshotOf(hit.espn, hit.collegePhoto);
+    return true;
+  }
+
+  /* One player across every week read: who he is (his ESPN id, from his
+     line or another of his, or his name where there is none), named once
+     and for good the first time he turns up, oldest week first. */
   function playerFor(b, line) {
-    var who = line.espn ? 'e' + line.espn : 'n' + String(line.name).toLowerCase();
+    var id = line.espn ? { espn: String(line.espn), collegePhoto: Boolean(line.collegePhoto) } : found(b.ids, line);
+    var who = id ? 'e' + id.espn : 'n' + String(line.name).toLowerCase();
     var p = b.who[who];
     if (!p) {
       var slug = slugOf(line.name);
@@ -177,14 +252,13 @@ EGE.nflCards = (function () {
       var parts = String(line.name).split(' ');
       p = {
         slug: slug, name: line.name, first: parts[0], last: parts.slice(1).join(' ') || parts[0],
-        position: line.pos || '', espn: line.espn || null, collegePhoto: Boolean(line.collegePhoto),
-        headshot: headshotOf(line.espn, line.collegePhoto), nfl: true, teams: {}
+        position: line.pos || '', espn: id ? id.espn : null, collegePhoto: Boolean(id && id.collegePhoto),
+        headshot: headshotOf(id && id.espn, id && id.collegePhoto), nfl: true, teams: {}
       };
       b.who[who] = p;
       b.players[slug] = p;
     }
     if (line.pos) { p.position = line.pos; }
-    if (line.espn && !p.espn) { p.espn = line.espn; p.headshot = headshotOf(line.espn, line.collegePhoto); }
     return p;
   }
 
@@ -308,7 +382,7 @@ EGE.nflCards = (function () {
   }
 
   function build() {
-    var b = { list: [], byId: {}, who: {}, players: {}, bySlug: {} };
+    var b = { list: [], byId: {}, who: {}, players: {}, bySlug: {}, ids: idIndex() };
     var six = sixByName();
 
     weeks.forEach(function (row) {
@@ -436,10 +510,32 @@ EGE.nflCards = (function () {
       });
     });
 
+    Object.keys(b.players).forEach(function (slug) {
+      if (!b.players[slug].espn) { faceFrom(b.players[slug]); }
+    });
     built = b;
   }
 
   function ensure() { if (!built) { build(); } }
+
+  /* Whether a player read has no photo yet, for js/cards.js to read the
+     rosters for. */
+  function faceless() {
+    if (!loaded) { return false; }
+    ensure();
+    return Object.keys(built.players).some(function (slug) { return !built.players[slug].espn; });
+  }
+
+  /* The rosters are in: the players with no photo get theirs. */
+  function faces() {
+    if (!built) { return; }
+    var any = false;
+    Object.keys(built.players).forEach(function (slug) {
+      var p = built.players[slug];
+      if (!p.espn && faceFrom(p)) { any = true; }
+    });
+    if (any) { listeners.slice().forEach(function (fn) { try { fn(); } catch (e) { /* a page's own trouble */ } }); }
+  }
 
   function list() { ensure(); return built.list; }
   function byId(id) { ensure(); return built.byId[id] || null; }
@@ -915,6 +1011,8 @@ EGE.nflCards = (function () {
     sets: sets,
     fill: fill,
     rollReward: rollReward,
+    faceless: faceless,
+    faces: faces,
     forget: function () { withCache = {}; built = null; setsCache = null; }
   };
 })();

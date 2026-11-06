@@ -367,11 +367,24 @@ EGE.cardsView = (function () {
 
   /* An NFL teammate ESPN has no headshot of gets the grey stand-in. */
   var NFL_STANDIN = 'icon/cards/nfl-standin.png';
-  function standIn(photo) {
+  function standIn(photo, slug) {
+    if (slug) { photo.dataset.nflFace = slug; }
     photo.addEventListener('error', function () {
       if (photo.src.indexOf(NFL_STANDIN) === -1) { photo.src = NFL_STANDIN; }
     });
   }
+
+  /* A 2025 teammate's photo comes after his card is drawn, once the sim's
+     rosters are read (EGE.nflCards.faces): every stand-in on the page that
+     has one now gets it in place, whatever else is going on. */
+  function nflFacesIn() {
+    if (!EGE.nflCards) { return; }
+    Array.prototype.forEach.call(document.querySelectorAll('img[data-nfl-face]'), function (photo) {
+      var p = EGE.nflCards.playerOf(photo.dataset.nflFace);
+      if (p && p.espn && photo.src.indexOf(NFL_STANDIN) !== -1) { photo.src = p.headshot; }
+    });
+  }
+  if (EGE.nflCards) { EGE.nflCards.onChange(nflFacesIn); }
 
   /* A card's face. Sized by whatever holds it: every measurement inside is
      in container units, so the same card is a thumbnail in the binder and a
@@ -406,7 +419,7 @@ EGE.cardsView = (function () {
     photo.alt = '';
     photo.loading = 'lazy';
     photo.decoding = 'async';
-    if (card.nfl) { standIn(photo); }
+    if (card.nfl) { standIn(photo, card.slug); }
     if (card.art) {
       /* A card-art card: Sam's photo of the game, its helmet standing up
          out of the picture over the strip and the score, and no logo, as
@@ -3890,7 +3903,7 @@ EGE.cardsView = (function () {
     photo.alt = '';
     photo.loading = 'lazy';
     photo.decoding = 'async';
-    if (pc.nfl) { standIn(photo); }
+    if (pc.nfl) { standIn(photo, custom ? null : player.slug); }
     frame.appendChild(photo);
     node.appendChild(frame);
 

@@ -441,6 +441,22 @@ EGE.cardStore = (function () {
   /* Reads what is not kept yet and hands every week to EGE.nflCards.
      Resolves to whether there is anything to make the cards from. Asked
      twice for the same weeks, it is the one read. */
+  /* A teammate only ever with the six in 2025 has no ESPN id on his box
+     score lines, so his photo is in the sim's rosters: read once someone
+     needs it (EGE.nflCards.faceless), the season now's, or the one before
+     when it has none yet. */
+  var nflFacesAsked = false;
+  function nflFaces() {
+    var nfl = EGE.nflCards;
+    var R = EGE.nflRosters;
+    if (nflFacesAsked || !R || !nfl.faceless()) { return; }
+    nflFacesAsked = true;
+    var season = EGE.currentSeason;
+    R.load(season).then(function (all) {
+      return all && all.teams ? all : R.load(season - 1);
+    }).then(function () { nfl.faces(); }, function () { nflFacesAsked = false; });
+  }
+
   function loadNflCards() {
     var nfl = EGE.nflCards;
     var c = client();
@@ -491,6 +507,7 @@ EGE.cardStore = (function () {
             return { season: Number(at[0]), week: Number(at[1]), games: have[key].games };
           });
           nfl.take(rows);
+          nflFaces();
           return rows.length > 0;
         });
       })

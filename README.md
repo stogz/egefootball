@@ -2821,6 +2821,14 @@ game-winner). A kickoff, punt or interception return for a TD has no
 yardage in the box score, so it is graded Epic and prints KR TD, PR TD or
 INT. A teammate with no ESPN headshot gets `icon/cards/nfl-standin.png`.
 
+The sim's 2025 box scores have no ESPN ids, only a name and a position.
+A 2025 line takes the id from a later line with the same name and
+position, so his 2025 and later games are one player (one card id slug).
+A teammate who was only ever with the six in 2025 gets his photo from
+the sim's rosters for the season now (on a team, a free agent or retired),
+read only when somebody needs one, the way the League page finds a box
+score's players.
+
 **The NFL Pack**: 22 diamonds, 4 cards, the last one Rare or better, on the
 standard odds, in the shop after the Pro Pack. Its cover is navy foil with
 Sam's NFL shield (`icon/packs/nfl-shield.webp`). Only the NFL Pack holds NFL
