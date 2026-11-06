@@ -7224,21 +7224,8 @@ html.ege-noscroll body { overflow: hidden; }
   color: #ff8a1f;
   text-shadow: .8cqw .8cqw 0 #12061f;
 }
-/* The AIR RAID card's stand-in: Sam's logo over the clouds on a blue sky,
-   the way its packs and backs look. */
-.ege-tcard--ev-air-raid .ege-tcard__standart {
-  background:
-    radial-gradient(circle at 50% 46%, rgba(255, 255, 255, .5), rgba(255, 255, 255, 0) 50%),
-    url('icon/cards/air-raid-clouds.webp') center bottom / cover no-repeat,
-    linear-gradient(180deg, #0b3b8f 0%, #2f74d0 100%);
-}
-.ege-tcard--ev-air-raid .ege-tcard__standmark {
-  width: 84cqw;
-  filter: drop-shadow(0 0 3cqw rgba(170, 215, 255, .9));
-}
-
-/* The GOLD RUSH card, printed from Sam's art, is the picture and nothing
-   else. */
+/* An event's Iconic card printed from Sam's art (the GOLD RUSH,
+   HALLOWEEN and AIR RAID cards) is the picture and nothing else. */
 .ege-tcard--print { overflow: hidden; }
 .ege-tcard__print {
   position: absolute;
