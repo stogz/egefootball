@@ -1357,11 +1357,11 @@ EGE.cards = (function () {
      card_events.rewards in supabase/schema.sql too; change the two
      together. Simulated at four cards a pack, one player alone, every week
      out, as packs to finish it (median, then nine players in ten), easiest
-     first: Paxon Hatch 36/54, Stratosphere 48/81, Bombs Away 54/86, Cloud
-     Nine 56/89, Air Strike 58/101, Andrew Parr 60/115, Jet Stream 78/135,
-     Silver Lining 89/131, Final Approach 92/155, Altitude 97/228,
-     Contrails 131/263 and Card Art 280/740, which is the two card arts at
-     the base rate. All twelve: about 300 packs, 740 for nine in ten. Like
+     first: Paxon Hatch 35/60, Stratosphere 48/87, Bombs Away 52/86, Cloud
+     Nine 57/82, Air Strike 63/117, Andrew Parr 63/122, Final Approach
+     80/144, Jet Stream 81/166, Silver Lining 93/133, Altitude 102/249,
+     Contrails 129/280 and Card Art 312/751, which is the two card arts at
+     the base rate. All twelve: about 340 packs, 770 for nine in ten. Like
      Halloween's Trick or Treat, the whole of it is a trading job. */
   AIR_RAID.rewards = {
     'paxon-hatch':    { floor: 'epic', diamonds: 15, booster: 'boost-1-5',
