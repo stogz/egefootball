@@ -795,7 +795,24 @@ EGE.liveView = (function () {
       if (got[1] && !got[1].error) { game.mine = got[1].data || []; }
       redrawBets();
       settleIfOver();
+      loadPack();
     });
+  }
+
+  /* Won the most bets on it: its Game Pack (data/game-packs.js), handed
+     out as live_settle pays the bets, to open in the Shop. */
+  function loadPack() {
+    var c = client();
+    if (!c || !game || game.test || !wallet.email || phaseNow() !== 'final' || !(game.mine || []).length) { return; }
+    var mine = game;
+    c.from('game_packs').select('id, opened_at').eq('game_id', game.id).eq('email', wallet.email)
+      .order('earned_at', { ascending: false }).limit(1)
+      .then(function (res) {
+        if (game !== mine || res.error) { return; }
+        var row = (res.data || [])[0] || null;
+        game.pack = row && !row.opened_at ? row : null;
+        redrawBets();
+      }, function () { /* none to show */ });
   }
 
   function walletMoved() {
@@ -881,6 +898,7 @@ EGE.liveView = (function () {
       if (game !== mine || res.error) { return; }
       game.mine = res.data || [];
       var left = game.mine.some(function (b) { return !b.settled_at; });
+      if (!left) { loadPack(); }
       /* This page's clock ran a moment ahead of Supabase's: again shortly. */
       if (left && (tries || 0) < 6) { window.setTimeout(function () { if (game === mine) { settleIfOver((tries || 0) + 1); } }, 5000); }
       return EGE.wallet.diamondsFor(wallet.email).then(function (n) {
@@ -1231,7 +1249,8 @@ EGE.liveView = (function () {
      so the player list is left alone while it is open. */
   function betsKey() {
     return shownBets().map(function (x) { return x.m.id + (x.open ? '+' : ''); }).join(',') + '|' +
-      (game.mine || []).map(function (b) { return b.market + (b.settled_at ? '$' : ''); }).join(',') + '|' + (picker || '');
+      (game.mine || []).map(function (b) { return b.market + (b.settled_at ? '$' : ''); }).join(',') + '|' + (picker || '') +
+      (game.pack ? '|pack' : '');
   }
 
   /* The bets box, under the play by play and over the box score (Sam,
@@ -1261,6 +1280,14 @@ EGE.liveView = (function () {
     box.appendChild(head);
     var can = Boolean(wallet.email);
     if (open.length && !can) { box.appendChild(el('p', 'fb-meta ege-cast__betnote', 'Log in to bet.')); }
+    /* The most bets won on it: a Game Pack waiting in the Shop. */
+    if (game.pack) {
+      var claim = el('a', 'ege-cast__gamepack');
+      claim.href = '#cards/shop';
+      claim.appendChild(el('span', null, 'Game Pack won'));
+      claim.appendChild(el('span', 'ege-cast__gamepackgo', 'Open it in the Shop \u203a'));
+      box.appendChild(claim);
+    }
     shown.forEach(function (x) { box.appendChild(drawBlock(x, can)); });
     strays.forEach(function (b) { box.appendChild(drawStray(b)); });
     return box;

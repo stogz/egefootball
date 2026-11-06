@@ -3994,6 +3994,10 @@ alter table public.live_games alter column starts_at drop not null;
 -- anybody has seen.
 alter table public.live_games add column if not exists bets jsonb;
 alter table public.live_games add column if not exists reached_ms bigint;
+-- The six on either team (their slugs), for the game's Game Packs (Sam,
+-- 2026-11-06; at the end of this file): a game with none of them in it has
+-- no cards to make one of. Null for a game put on before it was kept.
+alter table public.live_games add column if not exists six text[];
 
 create table if not exists public.live_feeds (
   game_id   text  primary key references public.live_games (id) on delete cascade,
@@ -4180,7 +4184,11 @@ $$;
 -- Pays every bet on a game once its final whistle has gone: the price
 -- times the stake for a winner, less 10% of the winnings, the stake back for a push, nothing
 -- otherwise. Once each, however many viewers ask; anybody may, since it
--- pays only what the game already says. Returns how many it settled.
+-- pays only what the game already says. Whoever won the most of them gets
+-- the game's Game Pack (award_game_packs, at the end of this file). The
+-- game is held while it settles, and a second ask meanwhile leaves it to
+-- the first, so the bets are settled and the packs handed out once.
+-- Returns how many it settled.
 create or replace function public.live_settle(p_id text)
 returns integer
 language plpgsql
@@ -4197,7 +4205,7 @@ declare
   v_pay integer;
   v_n   integer := 0;
 begin
-  select * into g from public.live_games where id = p_id;
+  select * into g from public.live_games where id = p_id for update skip locked;
   if not found or g.starts_at is null or g.paused_at is not null then return 0; end if;
   select entries, results into v_all, v_res from public.live_feeds where game_id = p_id;
   if v_res is null then return 0; end if;
@@ -4222,6 +4230,9 @@ begin
     end if;
     v_n := v_n + 1;
   end loop;
+  if v_n > 0 then
+    perform public.award_game_packs(p_id);
+  end if;
   return v_n;
 end;
 $$;
@@ -4406,11 +4417,13 @@ begin
     raise exception 'A live game needs its snaps.';
   end if;
   delete from public.live_games where id = v_id;
-  insert into public.live_games (id, season, week, home, away, title, starts_at, slot_ms, reveal_ms, plays, length_ms, bets)
+  insert into public.live_games (id, season, week, home, away, title, starts_at, slot_ms, reveal_ms, plays, length_ms, bets, six)
   values (v_id, (p_game ->> 'season')::integer, (p_game ->> 'week')::integer, p_game ->> 'home', p_game ->> 'away',
           coalesce(p_game ->> 'title', ''), null, coalesce((p_game ->> 'slot_ms')::integer, 20000),
           coalesce((p_game ->> 'reveal_ms')::integer, 4000), jsonb_array_length(p_entries),
-          (p_game ->> 'length_ms')::bigint, p_bets -> 'bets');
+          (p_game ->> 'length_ms')::bigint, p_bets -> 'bets',
+          case when jsonb_typeof(p_game -> 'six') = 'array'
+               then array(select jsonb_array_elements_text(p_game -> 'six')) end);
   insert into public.live_feeds (game_id, entries, half_bets, results)
   values (v_id, p_entries, p_bets -> 'half', p_bets -> 'results');
   insert into public.live_posts (game_id, seq, at_ms, due_at, payload)
@@ -4715,6 +4728,146 @@ $$;
 
 revoke all on function public.pay_nfl_card_bonuses(integer, jsonb) from public, anon;
 grant execute on function public.pay_nfl_card_bonuses(integer, jsonb) to authenticated;
+
+notify pgrst, 'reload schema';
+
+-- ===========================================================================
+-- Game Packs
+--
+-- Whoever wins the most bets on a live game gets a Game Pack of it (Sam,
+-- 2026-11-06): five of that game's cards, claimed in the Shop once its week
+-- is published (data/game-packs.js). Every account tied for the most gets
+-- one, and a game with none of the six in it (live_games.six empty) pays
+-- none, having no cards to put in one. live_settle hands them out as it
+-- pays the bets, once a go at the game: a game put on again by PLAY LIVE is
+-- a new go (`game_at`, its live_games.created_at), and its winners get a
+-- pack of their own; a game restarted after its bets were paid pays none
+-- again.
+--
+-- The page rolls the cards, as for every pack, and open_game_pack takes
+-- them: five card ids, every one of the game's season and week, the six's
+-- only of the six in the game. Free, and once.
+-- ===========================================================================
+
+create table if not exists public.game_packs (
+  id        bigint      generated always as identity primary key,
+  email     text        not null,
+  game_id   text        not null,
+  game_at   timestamptz not null,
+  season    integer     not null,
+  week      integer     not null,
+  home      text        not null,
+  away      text        not null,
+  six       text[],
+  wins      integer     not null,
+  earned_at timestamptz not null default now(),
+  opened_at timestamptz,
+  cards     text[],
+  unique (email, game_id, game_at)
+);
+
+create index if not exists game_packs_waiting on public.game_packs (email) where opened_at is null;
+
+alter table public.game_packs enable row level security;
+
+drop policy if exists "game packs read by their owner or an admin" on public.game_packs;
+create policy "game packs read by their owner or an admin"
+  on public.game_packs for select to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin());
+
+revoke all on public.game_packs from anon;
+revoke insert, update, delete on public.game_packs from authenticated;
+grant select on public.game_packs to authenticated;
+
+-- The game's winners, each a Game Pack: whoever has the most winning bets
+-- on it (a payout over the stake), once every bet on it is settled.
+-- Returns how many packs it handed out.
+create or replace function public.award_game_packs(p_id text)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  g   public.live_games%rowtype;
+  v_n integer := 0;
+begin
+  select * into g from public.live_games where id = p_id;
+  if not found then return 0; end if;
+  if g.six is not null and coalesce(array_length(g.six, 1), 0) = 0 then return 0; end if;
+  if exists (select 1 from public.live_bets where game_id = p_id and settled_at is null) then return 0; end if;
+  with won as (
+    select b.email, count(*)::integer as n
+      from public.live_bets b
+     where b.game_id = p_id and b.payout > b.stake
+     group by b.email
+  )
+  insert into public.game_packs (email, game_id, game_at, season, week, home, away, six, wins)
+  select w.email, g.id, g.created_at, g.season, g.week, g.home, g.away, g.six, w.n
+    from won w
+   where w.n = (select max(n) from won)
+  on conflict (email, game_id, game_at) do nothing;
+  get diagnostics v_n = row_count;
+  return v_n;
+end;
+$$;
+
+revoke all on function public.award_game_packs(text) from public, anon, authenticated;
+
+-- Opening one: the five cards the page rolled into the collection, the pack
+-- marked open with them, and the opening in card_packs (pack_key
+-- 'game:{game id}', nothing paid) for the Shop's Recent Pulls. Returns how
+-- many Game Packs the account still has to open.
+create or replace function public.open_game_pack(p_pack bigint, p_cards text[])
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  gp      public.game_packs%rowtype;
+  v_card  text;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  select * into gp from public.game_packs where id = p_pack and email = v_email for update;
+  if not found then
+    raise exception 'That Game Pack is not yours.';
+  end if;
+  if gp.opened_at is not null then
+    raise exception 'That Game Pack is open already.';
+  end if;
+  if not exists (select 1 from public.published_weeks p where p.season = gp.season and p.week = gp.week) then
+    raise exception 'That Game Pack opens once week % is out.', gp.week;
+  end if;
+  -- Five cards (SIZE in data/game-packs.js; change both together).
+  if coalesce(array_length(p_cards, 1), 0) <> 5 then
+    raise exception 'A Game Pack holds 5 cards.';
+  end if;
+  foreach v_card in array p_cards loop
+    if not public.is_card_id(v_card)
+       or split_part(v_card, ':', 2) <> gp.season::text
+       or split_part(v_card, ':', 4) <> gp.week::text
+       or (v_card ~ '^[ph]:' and gp.six is not null and not (split_part(v_card, ':', 3) = any(gp.six))) then
+      raise exception 'Not a card from that game: %', v_card;
+    end if;
+  end loop;
+
+  foreach v_card in array p_cards loop
+    perform public.give_card(v_email, v_card);
+  end loop;
+  update public.game_packs set opened_at = now(), cards = p_cards where id = gp.id;
+  insert into public.card_packs (email, pack_key, credits, diamonds, cards)
+  values (v_email, 'game:' || gp.game_id, 0, 0, p_cards);
+
+  return (select count(*)::integer from public.game_packs where email = v_email and opened_at is null);
+end;
+$$;
+
+revoke all on function public.open_game_pack(bigint, text[]) from public, anon;
+grant execute on function public.open_game_pack(bigint, text[]) to authenticated;
 
 notify pgrst, 'reload schema';
 

@@ -2576,7 +2576,9 @@ to those cards: the order on each side has **Cards you want** and **Cards
 they want**, beside the holo ones, and from the Want List it shows EGE and
 NFL cards together until one is picked. A card somebody pulls turns up
 there within a minute while the page is open (every third check on the
-Trades page).
+Trades page), whatever it came out of: a pack, a Game Pack, the Daily
+Spin, the shop, the market or a trade. A Game Pack's cards are the game's
+own cards, so they match a team, a player or a card like any other.
 
 `card_wants` holds one row an account (readable by every signed-in
 player, set only through `set_card_wants()`). `card_want_holders()` finds
@@ -2962,6 +2964,47 @@ A team set pays more the fewer of the NFL cards are that team's
 (`teamReward`): under 12%, Epic+ and 12; under 8%, Epic+, 15 and a 1.5x
 Booster. An NFL set takes NFL cards only and pays an NFL card; the six's
 sets never take one.
+
+### Game Packs
+
+Whoever wins the most bets on a live game gets a **Game Pack** of it (Sam,
+2026-11-06; `data/game-packs.js`). `live_settle()` hands them out as it pays
+the bets: the account with the most winning bets on the game gets one, and
+every account tied for the most does too. A push is not a win, and a game
+nobody won a bet on pays none. A game with none of the six in it pays none
+either, having no cards to fill one: PLAY LIVE tells Supabase which of the
+six are in the game (`live_games.six`).
+
+It waits in the Shop, in front of the packs for sale, one tile a pack, and
+opens once the game's week is published, since that is when its cards
+exist. It is free: **Claim & Rip** brings up the sealed pack, and tearing it
+open is what claims it (`open_game_pack()`). Five cards, all from that game:
+the six's cards from it and their NFL teammates' on either side.
+
+- the game's **best performance** card and its **best play** card (best by
+  rarity, then points, as everywhere else);
+- **three more** at the standard odds, a card not already in the pack where
+  the game has one;
+- **at least two of the five are the six's**, the best two counting towards
+  it (Sam picked this, 2026-11-06). A game with only one card of the six's
+  has it twice. A game with no touchdown in it gets a fourth random card for
+  its play.
+
+The cover is the two teams' marks (`EGE.nfl.logo`) overlapping in the middle,
+the visitors' a touch high on the left and the home side's over it a touch
+low on the right, on foil that runs from the visitors' colour into the home
+side's, with GAME in chrome under them. The tile names the game ("Texans at
+Bears") on a band of the two colours. The Shop button's count includes every
+Game Pack that can be opened, and the live page's Bets box links a winner to
+the Shop once the game is over. Recent Pulls lists one as **Game Pack ·
+Texans at Bears** (`card_packs.pack_key` `game:{live game id}`).
+
+The page rolls the cards, as for every pack; `open_game_pack()` checks there
+are five, every one of the game's season and week, the six's only of the six
+in the game, and the pack is the player's and not open yet. `game_packs` keeps
+each one (who, which game, how many bets they won, when it was opened and what
+was in it). A game put on again with PLAY LIVE is a new go, with its own
+winners; a game restarted after its bets were paid pays no packs again.
 
 ## Seasons, and putting a week out
 

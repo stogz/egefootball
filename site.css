@@ -10915,6 +10915,26 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-cast__bets .fb-panel__head h3 { margin: 0; font-size: 1.125rem; }
 .ege-cast__balance { font-weight: 800; }
 .ege-cast__betnote { margin: 0; padding: 12px 16px 0; }
+/* The most bets won on the game: its Game Pack, a link to the Shop, in the
+   two teams' colours. */
+.ege-cast__gamepack {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin: 14px 16px 6px;
+  padding: 10px 14px;
+  border: 2px solid var(--fb-ink);
+  background: linear-gradient(90deg, var(--team), var(--home));
+  color: #fff;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 4px 4px 0 var(--fb-ink);
+}
+.ege-cast__gamepack:hover { color: #fff; }
+.ege-cast__gamepack:active { box-shadow: 1px 1px 0 var(--fb-ink); transform: translate(3px, 3px); }
+.ege-cast__gamepackgo { font-size: var(--fb-label); letter-spacing: .08em; text-transform: uppercase; }
 .ege-cast__block { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 16px; border-bottom: 1px solid var(--fb-sand); }
 .ege-cast__block:last-child { border-bottom: 0; }
 .ege-cast__q { display: flex; align-items: flex-end; gap: 10px; min-width: 0; }
@@ -11293,4 +11313,67 @@ html.ege-cast-sheet-open { overflow: hidden; }
   object-position: center;
   padding: 4px;
   background: #013369;
+}
+
+/* --- Game Packs ---------------------------------------------------------------
+
+   A pack of one game's cards for whoever won the most bets on it (Sam,
+   2026-11-06; data/game-packs.js). The page sets the two teams' colours on
+   it: --away and --home, a lighter --awayHi and --homeHi for the shine, and
+   --deep, the home side's darkened, for the bars. */
+
+/* The foil runs from the visitors' colour into the home side's, with the
+   two teams' marks overlapping in the middle and the name in chrome under
+   them. */
+.ege-pack.ege-pack--game {
+  --foil: linear-gradient(135deg, var(--away) 0%, var(--awayHi) 18%, var(--away) 36%,
+                          var(--home) 64%, var(--homeHi) 82%, var(--home) 100%);
+  --pack-deep: var(--deep);
+  --pack-hi: #ffffff;
+}
+.ege-pack--game .ege-pack__body { background-size: 160% 160%; }
+.ege-pack__teams {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  top: 20%;
+  height: 44%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  user-select: none;
+}
+.ege-pack__team {
+  flex: none;
+  width: 50cqw;
+  height: 50cqw;
+  object-fit: contain;
+  filter: drop-shadow(1.2cqw 1.6cqw 1.2cqw rgba(0, 0, 0, .5));
+}
+/* The visitors a touch high on the left, the home side over them a touch
+   low on the right. */
+.ege-pack__team--away { transform: translate(6cqw, -4cqw); }
+.ege-pack__team--home { position: relative; z-index: 1; transform: translate(-6cqw, 4cqw); }
+.ege-pack--game .ege-pack__name { top: auto; bottom: 16%; font-size: 19cqw; }
+
+/* Its tile: a stripe of the two colours along the top, and the game in
+   them. */
+.ege-packtile--game {
+  position: relative;
+  background: linear-gradient(180deg, #f3f3f1, #fff 46%);
+}
+.ege-packtile--game::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, var(--away) 0 50%, var(--home) 50% 100%);
+}
+.ege-packtile--game .ege-packtile__ends {
+  background: linear-gradient(90deg, var(--away), var(--home));
+  color: #fff;
 }
