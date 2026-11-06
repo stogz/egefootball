@@ -868,7 +868,7 @@
       applied.disabled = !peelable;
       var touch = window.matchMedia && window.matchMedia('(hover: none)').matches;
       var settled = !wager || !wager.outcome ? ' \u2014 the game has been played, it stays put'
-        : wager.outcome === 'won' ? ' \u2014 won: the game paid double credits'
+        : wager.outcome === 'won' ? ' \u2014 won: the game paid ' + EGE.wagerWinWord(game.season) + ' credits'
         : wager.outcome === 'lost' ? ' \u2014 lost: the game paid no credits'
         : ' \u2014 a tie: the game paid its credits as usual';
       applied.title = peelable
@@ -1082,7 +1082,7 @@
         EGE.sideName(names[odds.favorite]) + ' by ' + odds.spread));
       words.appendChild(el('span', 'ege-drawer__wagernote', room.ok
         ? 'Projected ' + odds.projected[odds.favorite] + '\u2013' + odds.projected[under] +
-          '. Beat the line for double credits, miss it for none.'
+          '. Beat the line for ' + EGE.wagerWinWord(game.season) + ' credits, miss it for none.'
         : room.reason));
     } else {
       words.appendChild(el('span', 'ege-drawer__wagernote', 'There is no line on this game.'));
@@ -1281,7 +1281,7 @@
         var tag = el('span', 'ege-schedule__paid' + (lost ? ' ege-schedule__paid--lost' : ''), '+' + earned);
         tag.title = lost ? 'No credits for this game: ' + wagered.name.replace(/^Wager/, 'the wager') + ' lost'
           : earned + ' credits for this game' +
-            (wagered && wagered.outcome === 'won' ? ', doubled by ' + wagered.name.replace(/^Wager/, 'the wager') : '');
+            (wagered && wagered.outcome === 'won' ? ', ' + EGE.wagerWinWord(game.season).replace(/^double$/, 'doubled') + ' by ' + wagered.name.replace(/^Wager/, 'the wager') : '');
         credits.appendChild(tag);
 
         /* And its diamonds beside them: the same number, or more when a
@@ -7715,8 +7715,8 @@
       var wager = canSeeStickers(player) ? EGE.wagerOn(player, game) : null;
       if (wager && wager.outcome) {
         var bet = el('abbr', 'ege-gamelog__boost ege-gamelog__boost--' + wager.outcome,
-          wager.outcome === 'won' ? 'Bet 2x' : wager.outcome === 'lost' ? 'Bet 0x' : 'Bet 1x');
-        bet.title = wager.name + (wager.outcome === 'won' ? ' won: double credits'
+          wager.outcome === 'won' ? 'Bet ' + EGE.wagerWinTimes(game.season) + 'x' : wager.outcome === 'lost' ? 'Bet 0x' : 'Bet 1x');
+        bet.title = wager.name + (wager.outcome === 'won' ? ' won: ' + EGE.wagerWinWord(game.season) + ' credits'
           : wager.outcome === 'lost' ? ' lost: no credits' : ' was a tie: credits as usual');
         opponent.appendChild(bet);
       }
