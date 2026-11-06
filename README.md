@@ -2260,8 +2260,15 @@ a pack opened before diamonds cost.
 ### The collection
 
 Every card owned, rarest first by default, with how many of each (`×2`).
-Filter by rarity, by kind and by player; sort by rarity, score, newest pull,
-**year** (the newest season first, each under its year) or game. Five cards
+**EGE** and **NFL** at the front of the filter row (Sam, 2026-11-06) switch
+between the six's cards (event and reward cards among them) and their NFL
+teammates', EGE first; the kind (All cards, Performances, Plays) is the
+drop-down beside them, and the player drop-down is the league's own: the
+six under EGE, the teams (Lions, Panthers and so on) under NFL. The merge
+button shows both leagues' cards that can be merged. The trade builder's
+Sort menu has the same switch. Filter by rarity, by kind and by player;
+sort by rarity, score, newest pull, **year** (the newest season first, each
+under its year) or game. Five cards
 go across (four, three and two on smaller screens), three rows show at a time
 and the rest scroll inside the panel, so the page below is never far away.
 
@@ -2366,6 +2373,12 @@ which pack, the cards and when, never the price.
 Sets to put together, each claimed once. A set is a list of slots, each
 wanting one card. No card fills two slots of the same set, but a card counts
 toward every set it fits, and claiming uses nothing up.
+
+**Ready to claim comes first** (Sam, 2026-11-06): the Achievements page puts
+every set that is ready under *Ready to claim* at the top, then each group's
+sets still on the way, the nearest done first, then everything claimed under
+*Completed* at the bottom. An event's sets are in the same order inside its
+box: ready to lock in, then the nearest done, then locked in.
 
 **Gold Rush cards count toward them too** (Sam, 2026-10-20), each as the card
 it is a Gold Rush copy of: a card and its Gold Rush copy are one card here
@@ -2537,14 +2550,14 @@ has more than ten offers out at once.
 
 ### The showcase
 
-Up to six cards a player picks to show off, in one row, on their own player page under
-the header. Anybody can see it, signed in or not. On your own page,
+Up to twelve cards a player picks to show off, in two rows of six, on their own player
+page under the header. Anybody can see it, signed in or not. On your own page,
 **Edit** turns each slot into Replace and Remove, and an empty slot into
 **+ Add a card**, which opens your collection to pick from; **Save** puts it
 up. Only cards you own can go up, and a card traded away comes down on its
 own. A player with nothing up has no Showcase panel for anybody else.
 
-Any of the six slots can hold one of your Player Cards instead: the picker
+Any of the slots can hold one of your Player Cards instead: the picker
 lists your Player Cards first, then your NFL Player Cards, then your cards,
 and any of them goes in the slot the same way, with the same Replace and
 Remove. A Player Card is kept as `pc:{slug}` among the showcase's ids, can
@@ -2853,8 +2866,8 @@ standard odds, in the shop after the Pro Pack. Its cover is navy foil with
 Sam's NFL shield (`icon/packs/nfl-shield.webp`). Only the NFL Pack holds NFL
 cards and it holds nothing else (`open_card_pack()` checks both ways). NFL
 cards trade, quick sell, go on the Market, merge into holos and go in the
-showcase like any card. The binder's player drop-down has **NFL
-teammates**, and the count says how many NFL cards you hold.
+showcase like any card. The collection's **NFL** button shows them, with
+a team drop-down, and the count says how many NFL cards you hold.
 
 **NFL Player Cards**: the Player Cards page has an EGE / NFL switch. A
 teammate gets a Player Card once your copies of his cards are worth 30 FPTS,

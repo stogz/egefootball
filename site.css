@@ -8555,8 +8555,8 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-filterrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .ege-cardfilters .ege-filterrow { align-items: stretch; }
 .ege-filterselect { width: auto; min-width: 0; }
-/* All, Performances and Plays, sized like the drop-downs beside them rather
-   than like the kit's small chips. */
+/* EGE and NFL, sized like the drop-downs beside them rather than like the
+   kit's small chips. */
 .ege-filterchip {
   padding: 11px 14px;
   font-size: .8125rem;
@@ -10140,9 +10140,9 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-packtile { padding: 18px 14px 14px; }
   .ege-packtile > .ege-pack { width: 136px; }
 
-  /* Seven controls do not fit across a phone: the three kinds share one line,
-     as tall as the drop-downs, and the drop-downs each take a line under
-     them. 47px is what a drop-down measures here at its 16px type. */
+  /* The controls do not fit across a phone: EGE and NFL share one line, as
+     tall as the drop-downs, and the drop-downs each take a line under them.
+     47px is what a drop-down measures here at its 16px type. */
   .ege-filterchip { flex: 1 1 0; min-height: 47px; padding: 8px 6px; }
   .ege-cardfilters .ege-filterselect { flex: 1 1 100%; }
 
