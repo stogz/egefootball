@@ -1083,10 +1083,10 @@ $$;
 
 -- A limited-time event's card (the events, at the end of this file): a
 -- card's id with the event's tag on the end -- ':gr' for the Gold Rush,
--- ':hw' for Halloween, ':hc' for a Halloween costume card -- one of Sam's
--- card-art cards ('a:...:gr', 'a:...:hw'; a play's has its place in the
--- game too), or an event's own Iconic card ('r:gold-rush:gr',
--- 'r:halloween:hw'). Only an event's pack and its rewards give these out;
+-- ':hw' for Halloween, ':hc' for a Halloween costume card, ':ar' for the
+-- Air Raid -- one of Sam's card-art cards ('a:...:gr', 'a:...:hw',
+-- 'a:...:ar'; a play's has its place in the game too), or an event's own
+-- Iconic card ('r:gold-rush:gr', 'r:halloween:hw', 'r:air-raid:ar'). Only an event's pack and its rewards give these out;
 -- every standard way in keeps to is_card_id.
 create or replace function public.is_event_card_id(p_id text)
 returns boolean
@@ -1094,9 +1094,9 @@ language sql
 immutable
 as $$
   select coalesce(
-    p_id ~ '^(p:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}|h:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}:[0-9]{1,2}):(gr|hw|hc)$'
-    or p_id ~ '^a:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}(:[0-9]{1,2})?:(gr|hw)$'
-    or p_id in ('r:gold-rush:gr', 'r:halloween:hw'), false);
+    p_id ~ '^(p:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}|h:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}:[0-9]{1,2}):(gr|hw|hc|ar)$'
+    or p_id ~ '^a:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}(:[0-9]{1,2})?:(gr|hw|ar)$'
+    or p_id in ('r:gold-rush:gr', 'r:halloween:hw', 'r:air-raid:ar'), false);
 $$;
 
 -- A holographic card: a card's id with ':holo' on the end. Only ever made
@@ -1286,6 +1286,17 @@ begin
     v_size := 4;
   end if;
 
+  -- The Air Raid Pack (Sam, 2026-11-06): 18 diamonds, four Air Raid cards
+  -- of Andrew and Paxon, and only while the Air Raid is on. Never the AIR
+  -- RAID card.
+  if p_pack = 'air-raid' then
+    if not public.card_event_live('air-raid') then
+      raise exception 'The Air Raid is not on, so its packs are not for sale.';
+    end if;
+    v_price := 18;
+    v_size := 4;
+  end if;
+
   -- A past season's pack, year-{season}: 14 diamonds, three cards, every
   -- one of them from that season.
   if p_pack ~ '^year-[0-9]{4}$' then
@@ -1313,6 +1324,11 @@ begin
     elsif p_pack = 'halloween' then
       if not public.is_event_card_id(v_card) or v_card like 'r:%' or v_card !~ ':(hw|hc)$' then
         raise exception 'Not a Halloween card: %', v_card;
+      end if;
+    elsif p_pack = 'air-raid' then
+      if not public.is_event_card_id(v_card) or v_card like 'r:%' or v_card !~ ':ar$'
+         or split_part(v_card, ':', 3) not in ('andrew-parr', 'paxon-hatch') then
+        raise exception 'Not an Air Raid card: %', v_card;
       end if;
     elsif not public.is_card_id(v_card) then
       raise exception 'Not a card: %', v_card;
@@ -2784,7 +2800,7 @@ begin
 
   -- Event copies still cooling down from a trade that went into it take
   -- their cooldown into the holo, so merging cannot skip one.
-  if p_card ~ ':(gr|hw|hc)(:holo)?$' then
+  if p_card ~ ':(gr|hw|hc|ar)(:holo)?$' then
     select count(*), max(locked_until) into v_locked, v_until
       from public.card_trade_locks
      where lower(email) = lower(v_email) and card_id = p_card and locked_until > now();
@@ -3103,6 +3119,12 @@ notify pgrst, 'reload schema';
 -- comes with two 2.5x Boosters ("boosters": 2 in its rewards), and
 -- its Card Art set only takes card art the player pulled from a Halloween
 -- Pack themselves (card_events.pulled, checked against card_packs).
+--
+-- The Air Raid (Sam, 2026-11-06) is the third: 18 diamonds for four Air
+-- Raid cards (':ar') of Andrew and Paxon, two card-art cards among them at
+-- the base rate, and twelve very hard sets, all of which its Iconic AIR
+-- RAID card ('r:air-raid:ar') needs, paid with 150 diamonds and three 2.5x
+-- Boosters.
 -- ===========================================================================
 
 create table if not exists public.card_events (
@@ -3176,6 +3198,36 @@ values ('halloween', 'Halloween', 7,
         array['graveyard', 'card-art', 'trick-or-treat', 'ufo', 'holoween', 'october',
               'witching-hour', 'monster-mash'],
         array['card-art'])
+on conflict (key) do update
+  set name = excluded.name, days = excluded.days, sets = excluded.sets, reward = excluded.reward,
+      rewards = excluded.rewards, tags = excluded.tags, needs = excluded.needs, pulled = excluded.pulled;
+
+-- The Air Raid: its twelve sets (eventSets in data/cards.js), every one of
+-- which the AIR RAID card needs, and what each pays (AIR_RAID.rewards and
+-- AIR_RAID.bonus there; change them together). None of its sets wants a
+-- card the player pulled themselves.
+insert into public.card_events (key, name, days, sets, reward, rewards, tags, needs, pulled)
+values ('air-raid', 'Air Raid', 7,
+        array['card-art', 'paxon-hatch', 'andrew-parr', 'bombs-away', 'stratosphere', 'cloud-nine',
+              'silver-lining', 'jet-stream', 'air-strike', 'final-approach', 'altitude', 'contrails'],
+        'r:air-raid:ar',
+        '{"paxon-hatch":    {"diamonds": 15, "booster": "boost-1-5"},
+          "stratosphere":   {"diamonds": 20, "booster": "boost-1-5"},
+          "bombs-away":     {"diamonds": 20, "booster": "boost-1-5"},
+          "cloud-nine":     {"diamonds": 20, "booster": "boost-1-5"},
+          "air-strike":     {"diamonds": 25, "booster": "boost-2-0"},
+          "andrew-parr":    {"diamonds": 25, "booster": "boost-2-0"},
+          "jet-stream":     {"diamonds": 30, "booster": "boost-2-0"},
+          "silver-lining":  {"diamonds": 30, "booster": "boost-2-0"},
+          "final-approach": {"diamonds": 35, "booster": "boost-2-0"},
+          "altitude":       {"diamonds": 35, "booster": "boost-2-0"},
+          "contrails":      {"diamonds": 40, "booster": "boost-2-5"},
+          "card-art":       {"diamonds": 50, "booster": "boost-2-5"},
+          "air-raid":       {"diamonds": 150, "booster": "boost-2-5", "boosters": 3}}'::jsonb,
+        array['ar'],
+        array['card-art', 'paxon-hatch', 'andrew-parr', 'bombs-away', 'stratosphere', 'cloud-nine',
+              'silver-lining', 'jet-stream', 'air-strike', 'final-approach', 'altitude', 'contrails'],
+        array[]::text[])
 on conflict (key) do update
   set name = excluded.name, days = excluded.days, sets = excluded.sets, reward = excluded.reward,
       rewards = excluded.rewards, tags = excluded.tags, needs = excluded.needs, pulled = excluded.pulled;
@@ -3274,7 +3326,7 @@ as $$
   delete from public.card_trade_locks where locked_until < now() - interval '1 day';
   insert into public.card_trade_locks (email, card_id, locked_until)
   select lower(p_email), p_card, now() + interval '48 hours'
-   where p_card ~ ':(gr|hw|hc)(:holo2?)?$';
+   where p_card ~ ':(gr|hw|hc|ar)(:holo2?)?$';
 $$;
 
 -- No more cooldowns on a card than copies of it left (a sale, a merge):
@@ -3500,7 +3552,8 @@ begin
   if v_booster is not null and v_booster not in ('boost-1-5', 'boost-2-0', 'boost-2-5') then
     v_booster := null;
   end if;
-  -- How many of it: "boosters" (two with the HALLOWEEN card), one if unset.
+  -- How many of it: "boosters" (two with the HALLOWEEN card, three with
+  -- the AIR RAID card), one if unset.
   v_boosters := least(greatest(coalesce((v_pay ->> 'boosters')::integer, 1), 1), 5);
 
   insert into public.card_event_claims (email, event_key, set_key, reward)
