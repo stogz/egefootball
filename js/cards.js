@@ -18,7 +18,8 @@
    an event's card that changes hands waits 48 hours before the database
    lets it go again.
 
-   Depends on: js/auth.js, data/cards.js.
+   Depends on: js/auth.js, data/cards.js (and data/nfl-cards.js for the
+   NFL cards).
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -374,7 +375,8 @@ EGE.cardStore = (function () {
   /* Pays what this account's Player Cards are owed for the season's games:
      its collection decides the rank on each of the six, data/cards.js what
      each game pays at it, and pay_player_card_bonuses what is new. Safe to
-     call on every load, like the other awards. */
+     call on every load, like the other awards. Its NFL Player Cards are
+     paid the same way, after (payNflCards). */
   function syncPlayerCards(player, season) {
     var c = client();
     if (!c || !player || !player.email) { return Promise.resolve({ paid: 0 }); }
@@ -389,8 +391,11 @@ EGE.cardStore = (function () {
         p_season: year,
         p_awards: EGE.cards.playerBonusesEarned(got.owned, year)
       }).then(function (res) {
-        if (res.error) { return { paid: 0, message: res.error.message }; }
-        return { paid: Number(res.data) || 0 };
+        var six = res.error ? { paid: 0, message: res.error.message } : { paid: Number(res.data) || 0 };
+        return payNflCards(got.owned, year).then(function (nfl) {
+          six.paid += nfl;
+          return six;
+        });
       });
     }).catch(function () { return { paid: 0 }; });
   }
@@ -404,6 +409,112 @@ EGE.cardStore = (function () {
       .order('awarded_at', { ascending: false })
       .then(function (res) { return res.error ? null : (res.data || []); })
       .catch(function () { return null; });
+  }
+
+  /* --- NFL cards ------------------------------------------------------------
+
+     The six's NFL teammates' cards (data/nfl-cards.js) are made from the NFL
+     sim's box scores, a week at a time: nfl_card_lines hands back, for each
+     published week from 2025 on, the games of the teams the six were on that
+     week with those teams' lines and the scoring plays. What comes back is
+     kept in this browser with each week's digest from sim_box_scores and
+     the teams it was asked for, so a week is read once, and again only
+     when the NFL Sim tab rewrites it or one of the six changes teams. */
+  var NFL_STORE = 'ege.nflCards.v1';
+  var NFL_CHUNK = 8;
+  var nflLoad = null;
+  var nflAsked = '';
+
+  function nflStored() {
+    try {
+      var raw = window.localStorage.getItem(NFL_STORE);
+      var got = raw ? JSON.parse(raw) : null;
+      return got && got.weeks ? got : { weeks: {} };
+    } catch (e) { return { weeks: {} }; }
+  }
+
+  function nflStore(weeks) {
+    try { window.localStorage.setItem(NFL_STORE, JSON.stringify({ weeks: weeks })); }
+    catch (e) { /* full, or not allowed: read again next time */ }
+  }
+
+  /* Reads what is not kept yet and hands every week to EGE.nflCards.
+     Resolves to whether there is anything to make the cards from. Asked
+     twice for the same weeks, it is the one read. */
+  function loadNflCards() {
+    var nfl = EGE.nflCards;
+    var c = client();
+    if (!nfl || !c) { return Promise.resolve(false); }
+    var want = nfl.wanted();
+    var asked = JSON.stringify(want);
+    if (nflLoad && asked === nflAsked) { return nflLoad; }
+    nflAsked = asked;
+    if (!want.length) {
+      nfl.take([]);
+      nflLoad = Promise.resolve(true);
+      return nflLoad;
+    }
+
+    nflLoad = c.from('sim_box_scores').select('season, week, digest').gte('season', nfl.FROM)
+      .then(function (res) {
+        if (res.error) { return false; }
+        var digest = {};
+        (res.data || []).forEach(function (row) { digest[row.season + ':' + row.week] = row.digest || ''; });
+        var kept = nflStored().weeks;
+        var have = {};
+        var missing = [];
+        want.forEach(function (w) {
+          var key = w.s + ':' + w.w;
+          if (digest[key] === undefined) { return; }
+          var sig = digest[key] + '|' + w.t.join(',');
+          if (kept[key] && kept[key].sig === sig) { have[key] = kept[key]; }
+          else { missing.push({ w: w, key: key, sig: sig }); }
+        });
+
+        var chunks = [];
+        for (var i = 0; i < missing.length; i += NFL_CHUNK) { chunks.push(missing.slice(i, i + NFL_CHUNK)); }
+        return Promise.all(chunks.map(function (part) {
+          return c.rpc('nfl_card_lines', { p_weeks: part.map(function (m) { return m.w; }) })
+            .then(function (got) {
+              if (got.error) { return; }
+              var sigs = {};
+              part.forEach(function (m) { sigs[m.key] = m.sig; });
+              (got.data || []).forEach(function (row) {
+                var key = row.season + ':' + row.week;
+                if (sigs[key]) { have[key] = { sig: sigs[key], games: row.games || [] }; }
+              });
+            }, function () { /* that part is read again next time */ });
+        })).then(function () {
+          if (missing.length) { nflStore(have); }
+          var rows = Object.keys(have).map(function (key) {
+            var at = key.split(':');
+            return { season: Number(at[0]), week: Number(at[1]), games: have[key].games };
+          });
+          nfl.take(rows);
+          return rows.length > 0;
+        });
+      })
+      .catch(function () { return false; })
+      /* Nothing came back: asked again next time rather than never. */
+      .then(function (ok) {
+        if (!ok && nflAsked === asked) { nflAsked = ''; }
+        return ok;
+      });
+    return nflLoad;
+  }
+
+  /* Pays this account's NFL Player Cards for the season's weeks
+     (pay_nfl_card_bonuses), once the box scores are in. Resolves to what it
+     paid. Nothing before the schema has it. */
+  function payNflCards(owned, season) {
+    var c = client();
+    if (!c || !EGE.nflCards || season < EGE.nflCards.FROM) { return Promise.resolve(0); }
+    return loadNflCards().then(function () {
+      var awards = EGE.nflCards.bonusesEarned(owned, season);
+      if (!awards.length) { return 0; }
+      return c.rpc('pay_nfl_card_bonuses', { p_season: season, p_awards: awards })
+        .then(function (res) { return res.error ? 0 : Number(res.data) || 0; });
+    }).catch(function () { return 0; });
   }
 
   /* --- the shop's daily cards ------------------------------------------------ */
@@ -716,6 +827,7 @@ EGE.cardStore = (function () {
     showcasePlayersFor: showcasePlayersFor,
     syncPlayerCards: syncPlayerCards,
     playerCardAwards: playerCardAwards,
+    loadNflCards: loadNflCards,
     shopToday: shopToday,
     buyShopCard: buyShopCard,
     spinToday: spinToday,

@@ -2749,6 +2749,90 @@ the collection, or **Sell** beside Quick sell on any card of yours up close
 in the Cards page, which opens a price and **Put it up**. That Sell button
 is greyed out once the day's three listings are used.
 
+### NFL cards
+
+The six's NFL teammates in the card game (Sam, 2026-11-06;
+`data/nfl-cards.js`). Every teammate's game from 2025 on is a
+**performance** card when he had a carry, a catch or a defensive stat in it
+(a tackle, a sack, an interception, a pass broken up, a forced fumble or a
+defensive touchdown), and every touchdown he scored or threw is a **play**
+card. "Teammate" is week by week: the teams the six were on that week
+(`EGE.teamKeyFor`), so a trade or a signing moves who counts from then on.
+The six's own games stay their own cards; a teammate's pass that one of the
+six caught is the quarterback's card. Ids are `n:{season}:{slug}:{week}`
+and `nt:{season}:{slug}:{week}:{n}`, the slug from his name (a second
+player with the same name gets his position on the end).
+
+They are made from the NFL sim's box scores, nothing hand-written: the page
+asks `nfl_card_lines()` for each published week from 2025 on, naming the
+teams the six were on, and gets back only those teams' lines and the
+games' scoring plays (about 5 KB a week rather than 90). What comes back is
+kept in the browser (`ege.nflCards.v1`) with each week's `digest` from
+`sim_box_scores`, so a week is read once, and again only when the NFL Sim
+tab rewrites it or one of the six changes teams. Nothing to export or run
+per week: they turn up as weeks are published.
+
+Graded like the six's: a performance on its fantasy points times its
+position's share (offense the six's shares; a defender scored IDP style,
+tackle 1, sack 4, interception 5, pass broken up 1.5, forced fumble 3, TD 6,
+with `GRADE_SHARE` set so a defender's best tenth of games grade about
+where a receiver's do), a play on its yards (+3 when it is the
+game-winner). A kickoff, punt or interception return for a TD has no
+yardage in the box score, so it is graded Epic and prints KR TD, PR TD or
+INT. A teammate with no ESPN headshot gets `icon/cards/nfl-standin.png`.
+
+**The NFL Pack**: 22 diamonds, 4 cards, the last one Rare or better, on the
+standard odds, in the shop after the Pro Pack. Its cover is navy foil with
+Sam's NFL shield (`icon/packs/nfl-shield.webp`). Only the NFL Pack holds NFL
+cards and it holds nothing else (`open_card_pack()` checks both ways). NFL
+cards trade, quick sell, go on the Market, merge into holos and go in the
+showcase like any card. The binder's player drop-down has **NFL
+teammates**, and the count says how many NFL cards you hold.
+
+**NFL Player Cards**: the Player Cards page has an EGE / NFL switch. A
+teammate gets a Player Card once your copies of his cards are worth 30 FPTS,
+and it climbs a shorter ladder than the six's (`NFL_RANKS`): Uncommon 30,
+Rare 80, Epic 160, Legendary 280, Mystic 450, Iconic 1,400, GOAT 5,600, at
++10 / 25 / 50 / 80 / 125 / 300 / 500%. It pays much less than one of the
+six's: a fifth of his game's fantasy points times his position's share
+(`PAY_SHARE`) times the rank's bonus, doubled in the playoffs. All of a
+week's NFL Player Cards are paid together as one award, `npc-w{week}`, at
+most 60 (`pay_nfl_card_bonuses()`), on the Diamonds page as one **NFL
+Player Cards** row a week. In a simulated league, an account that had opened
+60 NFL Packs held about 25 NFL Player Cards earning 2–4 diamonds a week
+between them. Weeks out before an account's first payment are settled at
+nothing, like the six's Player Cards.
+
+**NFL sets** (Library: NFL, NFL Teammates, NFL Seasons). None names a
+teammate, since who the six play with changes, so the same sets work for
+whoever is in the sim's world. Packs to finish each, one player alone on a
+simulated 2025–27 league (median / nine in ten):
+
+| Set | Needs | Packs | Reward |
+| --- | --- | --- | --- |
+| Supporting Cast | a card of a teammate of each of the six | 4 / 6 | Rare+ · 8 |
+| Skill Positions | a QB, RB, WR and TE | 5 / 12 | Rare+ · 8 |
+| Defense | an EDGE, lineman, LB, CB and S | 5 / 10 | Rare+ · 10 |
+| Ball Hawk | 3 games with an interception | 8 / 16 | Epic+ · 12 |
+| {First}'s Locker Room (×6) | 6 different teammates of his | 10–12 / 16–18 | Epic+ of his teammates · 10 |
+| {Year} Teammates (each season) | a performance by a teammate of each of the six | 12–16 / 20–26 | Epic+ of that year · 12 · 1.5x |
+| Clutch | 2 game-winning TDs | 12 / 36 | Legendary+ · 15 · 1.5x |
+| Century Club | 3 games of 100 rushing or receiving yards | 12 / 24 | Epic+ · 12 |
+| Sack Attack | 3 games of 2+ sacks | 12 / 22 | Epic+ · 12 |
+| Air Mail | 5 receiving TDs | 14 / 22 | Rare+ · 10 |
+| Tackle Machine | 2 games of 12+ tackles | 14 / 42 | Epic+ · 12 |
+| Playoff Run | 4 playoff cards | 14 / 24 | Epic+ · 15 · 1.5x |
+| Take It Back | a pick-six or a return TD | 18 / 52 | Epic+ · 12 |
+| NFL Collector | one of every rarity, Common to Mystic | 18 / 38 | Legendary+ · 20 · 1.5x |
+| Pro Bowl | 5 different Legendary+ | 18 / 30 | Mystic+ · 25 · 1.5x |
+| Ground Game | 5 rushing TDs | 36 / 54 | Epic+ · 12 |
+| Favorite Targets | 2 TD catches from Isaac and 2 from Jaykeb | 36 / 58 | Epic+ · 15 · 1.5x |
+| House Call | 3 TDs of 50+ yards | 38 / 94 | Legendary+ · 15 · 1.5x |
+| Special Delivery | 3 teammates' TD passes to one of the six | 60 / 144 | Legendary+ · 20 · 1.5x |
+
+An NFL set takes NFL cards only and pays an NFL card; the six's sets never
+take one.
+
 ## Seasons, and putting a week out
 
 ### One file per season

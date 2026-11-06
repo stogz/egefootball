@@ -42,6 +42,8 @@ EGE.showcase = (function () {
     return Boolean(me && player && me.slug === player.slug);
   }
 
+  function isNfl(id) { return Boolean(EGE.nflCards && EGE.nflCards.isNflId(id)); }
+
   function savedIds(player) {
     var hit = cache[player.email];
     return hit ? hit.ids : [];
@@ -239,7 +241,7 @@ EGE.showcase = (function () {
     stage.appendChild(panel);
 
     Promise.all([EGE.cardStore.collectionFor(player.email), EGE.cardStore.cardPhotos(player.email),
-                 EGE.cardStore.playerCardEarnings(player.email)])
+                 EGE.cardStore.playerCardEarnings(player.email), EGE.cardStore.loadNflCards()])
     .then(function (all) {
       var got = all[0];
       var photos = all[1] || {};
@@ -313,6 +315,10 @@ EGE.showcase = (function () {
     ]).then(function (both) {
       cache[player.email] = { ids: both[0], players: both[1], at: Date.now() };
       if (shown === player) { draw(); }
+      /* An NFL teammate's card up there is drawn once those are read. */
+      if ((both[0] || []).some(isNfl) && !(EGE.nflCards && EGE.nflCards.loaded())) {
+        EGE.cardStore.loadNflCards().then(function () { if (shown === player) { draw(); } });
+      }
     });
   }
 
