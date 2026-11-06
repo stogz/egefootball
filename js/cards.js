@@ -153,6 +153,37 @@ EGE.cardStore = (function () {
     });
   }
 
+  /* The Game Packs this player has won and not opened yet (data/game-packs.js),
+     newest first. Null when they could not be read (or the schema has not
+     been run again yet), so a check that failed never takes one away. */
+  function gamePacks(email) {
+    var c = client();
+    if (!c || !email) { return Promise.resolve([]); }
+    return c.from('game_packs').select('id, game_id, season, week, home, away, six, wins, earned_at')
+      .eq('email', email).is('opened_at', null).order('earned_at', { ascending: false })
+      .then(function (res) { return res.error ? null : (res.data || []); })
+      .catch(function () { return null; });
+  }
+
+  /* Opens one, with the cards the page rolled for it (EGE.gamePacks.roll):
+     open_game_pack checks they are from its game and hands them over. */
+  function openGamePack(row, cards) {
+    var c = client();
+    if (!c) { return fail(offline()); }
+    if (!cards || cards.length !== EGE.gamePacks.SIZE) {
+      return fail('That game’s cards are not out yet.');
+    }
+    return c.rpc('open_game_pack', {
+      p_pack: row.id,
+      p_cards: cards.map(function (card) { return card.id; })
+    }).then(function (res) {
+      if (res.error) { return { ok: false, message: said(res.error) }; }
+      return { ok: true, cards: cards, left: Number(res.data) || 0 };
+    }).catch(function (error) {
+      return { ok: false, message: said(error) };
+    });
+  }
+
   /* Claims a completed set: the reward card is rolled here, and the database
      checks that every card the set was made with is really in the
      collection before it pays anything. */
@@ -843,6 +874,8 @@ EGE.cardStore = (function () {
     ownersOf: ownersOf,
     claimsFor: claimsFor,
     openPack: openPack,
+    gamePacks: gamePacks,
+    openGamePack: openGamePack,
     claimSet: claimSet,
     recentPacks: recentPacks,
     quickSell: quickSell,

@@ -56,6 +56,7 @@ EGE.cardsView = (function () {
     pulled: {},         /* by event: every card this player has pulled from its packs, { id: true } */
     locks: {},          /* card id -> when each traded event copy can go again */
     opened: {},         /* by pack held to perDay: when each of the last 24 hours' was opened (ms) */
+    gamePacks: [],      /* Game Packs won and not opened yet, game_packs rows, newest first */
     filter: { league: 'ege', rarity: 'all', kind: 'all', player: 'all', sort: 'rarity', merge: false }
   };
 
@@ -563,9 +564,13 @@ EGE.cardsView = (function () {
      pack's name in chrome, and a foot band with the count and the year. */
   function packArt(pack) {
     var cover = EGE.cards.packCover(pack);
-    var year = pack.season || (pack.seasonOnly ? EGE.currentSeason : null);
+    var year = pack.season || (pack.seasonOnly ? EGE.currentSeason : null) || (pack.game ? pack.game.season : null);
     var art = el('div', 'ege-pack ege-pack--' + (pack.season ? 'year' : pack.key) +
       (cover ? ' ege-pack--' + cover.theme : '') + (cover && cover.image ? ' ege-pack--cover' : ''));
+    /* A Game Pack is printed in its two teams' colours (data/game-packs.js). */
+    if (cover && cover.colors) {
+      Object.keys(cover.colors).forEach(function (k) { art.style.setProperty('--' + k, cover.colors[k]); });
+    }
     /* Every pack's shimmer and glow keep time with the clock, so redrawing
        the packs (a new balance, the Season Pack's arrows) carries on where
        they were instead of starting them all over at once. */
@@ -587,6 +592,23 @@ EGE.cardsView = (function () {
       body.appendChild(logo);
     }
     body.appendChild(el('span', 'ege-pack__prizm'));
+    /* A Game Pack's two teams, the visitors' mark behind the home side's
+       (Sam, 2026-11-06). */
+    if (cover && cover.teams) {
+      var pair = el('span', 'ege-pack__teams');
+      cover.teams.forEach(function (key, i) {
+        var src = EGE.nfl && EGE.nfl.logo(key);
+        if (!src) { return; }
+        var mark = el('img', 'ege-pack__team ege-pack__team--' + (i ? 'home' : 'away'));
+        mark.src = src;
+        mark.alt = '';
+        mark.decoding = 'async';
+        mark.draggable = false;
+        mark.addEventListener('error', function () { mark.remove(); });
+        pair.appendChild(mark);
+      });
+      body.appendChild(pair);
+    }
     if (cover && cover.image) {
       var photo = el('img', 'ege-pack__player');
       photo.src = cover.image;
@@ -738,6 +760,10 @@ EGE.cardsView = (function () {
     var holder = byId('cardPacks');
     holder.innerHTML = '';
 
+    /* A Game Pack won first, each until it is opened. */
+    state.gamePacks.forEach(function (row) { holder.appendChild(gamePackTile(row)); });
+    shopBadge();
+
     /* An event's pack first, each only while its event is on. */
     EGE.cards.PACKS.forEach(function (pack) {
       if (pack.event && packOpen(pack)) { holder.appendChild(packTile(pack)); }
@@ -748,6 +774,106 @@ EGE.cardsView = (function () {
     });
 
     renderSwap();
+  }
+
+  /* --- Game Packs -----------------------------------------------------------
+
+     Won on a live game's bets (data/game-packs.js): free, one tile each,
+     in front of the packs for sale until it is opened. Its cards are the
+     game's, so it waits for the game's week to be out. */
+
+  /* Why a Game Pack cannot be opened yet, or null. */
+  function gamePackWait(row) {
+    if (!EGE.isPublished(row.season, row.week)) {
+      return 'Opens once ' + (row.week >= 19 ? 'its week' : 'week ' + row.week) + ' is out.';
+    }
+    return null;
+  }
+
+  function gamePackTile(row) {
+    var pack = EGE.gamePacks.pack(row);
+    var tile = el('div', 'ege-packtile ege-packtile--game');
+    tile.style.setProperty('--away', pack.cover.colors.away);
+    tile.style.setProperty('--home', pack.cover.colors.home);
+    tile.appendChild(packArt(pack));
+    tile.appendChild(el('h4', 'ege-item__name', pack.name));
+    tile.appendChild(el('p', 'ege-packtile__ends', pack.title));
+    tile.appendChild(el('p', 'ege-item__text', pack.blurb));
+
+    var open = el('button', 'fb-btn fb-btn--primary ege-packtile__buy');
+    open.type = 'button';
+    var label = el('span');
+    label.appendChild(document.createTextNode('Claim'));
+    label.appendChild(el('span', 'ege-packtile__rip', ' & Rip'));
+    open.appendChild(label);
+    var why = gamePackWait(row);
+    open.disabled = Boolean(why) || !state.loaded;
+    if (why) { tile.appendChild(el('p', 'ege-item__blocked', why)); }
+    open.addEventListener('click', function () { claimGamePack(row, open); });
+
+    var foot = el('div', 'ege-packtile__row');
+    foot.appendChild(open);
+    tile.appendChild(foot);
+    return tile;
+  }
+
+  /* How many Game Packs can be opened now. */
+  function gamePacksReady() {
+    return state.gamePacks.filter(function (row) { return !gamePackWait(row); }).length;
+  }
+
+  /* The count on the Shop button: the day's spin when it is ready, and
+     every Game Pack that can be opened. */
+  var spinReady = 0;
+  function shopBadge() {
+    tabBadge('tabShopBadge', state.loaded ? spinReady + gamePacksReady() : 0);
+  }
+
+  /* The sealed Game Pack in front of the player, its cards rolled once the
+     game's NFL cards are in (they come on their own time): torn open, it
+     is theirs (open_game_pack), and closing it sealed leaves it in the
+     Shop. */
+  function claimGamePack(row, button) {
+    say('', false);
+    var why = gamePackWait(row);
+    if (why) { say(why, true); return; }
+    if (button) { button.disabled = true; }
+    var player = state.player;
+    EGE.cardStore.loadNflCards().then(function () {
+      if (state.player !== player) { return; }
+      if (button) { button.disabled = false; }
+      /* Not on the six's cards alone because the teammates' did not come
+         through: the pack waits for them. */
+      var mates = EGE.gamePacks.cardsOf(row).some(function (c) { return c.nfl; });
+      var cards = mates ? EGE.gamePacks.roll(row) : [];
+      if (cards.length !== EGE.gamePacks.SIZE) {
+        say('That game’s cards could not be read. Try again in a moment.', true);
+        return;
+      }
+      var pack = EGE.gamePacks.pack(row);
+      var seen = Object.assign({}, state.owned);
+      var isNew = cards.map(function (card) {
+        var first = !seen[card.id];
+        seen[card.id] = (seen[card.id] || 0) + 1;
+        return first;
+      });
+      var paid = false;
+      openRip({
+        pack: pack, cards: cards, isNew: isNew, sellable: true, free: true,
+        title: pack.name + ' \u00b7 ' + pack.title,
+        pay: function () {
+          return EGE.cardStore.openGamePack(row, cards).then(function (res) {
+            if (!res.ok) { return res; }
+            paid = true;
+            state.hold = true;
+            state.gamePacks = state.gamePacks.filter(function (one) { return one.id !== row.id; });
+            renderPacks();
+            return res;
+          });
+        },
+        onClose: function () { if (paid) { reveal(cards, isNew); } }
+      });
+    });
   }
 
   /* --- swapping credits for diamonds -------------------------------------
@@ -2630,11 +2756,14 @@ EGE.cardsView = (function () {
 
   function pulls() {
     return (state.recent || []).map(function (row) {
-      /* A pack won on the daily spin is spin-{pack}. */
+      /* A pack won on the daily spin is spin-{pack}, and a Game Pack
+         game:{game}. */
       var spun = /^spin-/.test(row.pack_key || '');
+      var game = EGE.gamePacks ? EGE.gamePacks.fromKey(row.pack_key) : null;
       var pack = EGE.cards.pack(spun ? row.pack_key.slice(5) : row.pack_key);
       var cards = EGE.cards.packOrder((row.cards || []).map(EGE.cards.byId).filter(Boolean));
-      return { title: (spun ? 'Daily Spin \u00b7 ' : '') + (pack ? pack.name : 'Pack'),
+      return { title: game ? 'Game Pack \u00b7 ' + EGE.gamePacks.title(game)
+                 : (spun ? 'Daily Spin \u00b7 ' : '') + (pack ? pack.name : 'Pack'),
                email: row.email, when: row.opened_at, cards: cards };
     }).slice(0, RECENT_MAX);
   }
@@ -4715,14 +4844,16 @@ EGE.cardsView = (function () {
       go.textContent = 'Spin';
       resets.textContent = '';
       result.textContent = 'The daily spin could not be loaded. Run supabase/schema.sql to set it up, then reload.';
-      tabBadge('tabShopBadge', 0);
+      spinReady = 0;
+      shopBadge();
       return;
     }
 
     /* Spun: the wheel stays long enough to show where it stopped, then the
        panel goes until the next spin opens. */
     if (now.spin) {
-      tabBadge('tabShopBadge', 0);
+      spinReady = 0;
+      shopBadge();
       var left = wheel.keep - Date.now();
       panel.hidden = left <= 0;
       if (left > 0) { window.setTimeout(renderSpin, left + 20); }
@@ -4735,7 +4866,8 @@ EGE.cardsView = (function () {
     go.textContent = 'Spin';
     resets.textContent = enough ? 'Ready' : '';
     result.textContent = enough ? 'Your free spin is ready.' : 'The wheel opens once there are cards out.';
-    tabBadge('tabShopBadge', enough && state.loaded ? 1 : 0);
+    spinReady = enough && state.loaded ? 1 : 0;
+    shopBadge();
   }
 
   function doSpin() {
@@ -4774,7 +4906,8 @@ EGE.cardsView = (function () {
       state.spin = { next_at: res.nextAt,
                      spin: { prize: res.prize, diamonds: res.won,
                              cards: res.cards.map(function (card) { return card.id; }) } };
-      tabBadge('tabShopBadge', 0);
+      spinReady = 0;
+      shopBadge();
       turnTo(res.prize, true);
       window.setTimeout(function () { landed(res, isNew, player); }, reducedMotion() ? 0 : SPIN_MS + 300);
     });
@@ -5195,7 +5328,8 @@ EGE.cardsView = (function () {
       EGE.cardStore.pulledFrom(player.email, EGE.cards.HALLOWEEN.pack),
       Promise.all(EGE.cards.PACKS.filter(function (p) { return p.perDay; }).map(function (p) {
         return EGE.cardStore.openedToday(player.email, p.key).then(function (times) { return [p.key, times]; });
-      }))
+      })),
+      EGE.cardStore.gamePacks(player.email)
     ]).then(function (all) {
       if (state.player !== player) { return; }
       if (all[0] === null) {
@@ -5221,6 +5355,7 @@ EGE.cardsView = (function () {
       state.pulled[EGE.cards.HALLOWEEN.key] = all[16] || {};
       state.opened = {};
       (all[17] || []).forEach(function (one) { if (one[1]) { state.opened[one[0]] = one[1]; } });
+      if (all[18]) { state.gamePacks = all[18]; }
       eventWasOn = eventsOn();
       state.loaded = all[0] !== null;
       if (all[4] === null && all[0] !== null) {
@@ -5312,7 +5447,9 @@ EGE.cardsView = (function () {
       shop ? EGE.cardStore.market(player.email) : null,
       shop ? EGE.cardStore.recentOpens(RECENT_MAX) : null,
       /* Whether an admin has started or ended an event, every other check. */
-      pollCount % 2 === 0 ? EGE.cardStore.events() : null
+      pollCount % 2 === 0 ? EGE.cardStore.events() : null,
+      /* A Game Pack won on a game that just finished. */
+      pollCount % 2 === 0 ? EGE.cardStore.gamePacks(player.email) : null
     ]).then(function (got) {
       polling = false;
       if (state.player !== player || busy()) { return; }
@@ -5359,6 +5496,10 @@ EGE.cardsView = (function () {
         eventWasOn = eventsOn();
         renderPacks();
         renderEvent();
+      }
+      if (got[6] && got[6].map(function (r) { return r.id; }).join() !== state.gamePacks.map(function (r) { return r.id; }).join()) {
+        state.gamePacks = got[6];
+        renderPacks();
       }
     }, function () { polling = false; });
   }
@@ -5413,6 +5554,7 @@ EGE.cardsView = (function () {
     state.eventClaims = {};
     state.pulled = {};
     state.locks = {};
+    state.gamePacks = [];
     eventWasOn = null;
     setsReady.library = 0;
     setsReady.event = 0;
