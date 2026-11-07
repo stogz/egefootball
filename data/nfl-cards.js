@@ -1043,6 +1043,21 @@ EGE.nflCards = (function () {
 
     var sixCover = EGE.cards.packCover;
     EGE.cards.packCover = function (p) { return p && p.cover ? p.cover : sixCover(p); };
+
+    /* The Daily Spin's NFL prizes (Sam, 2026-11-07): a Rare NFL card and
+       an NFL Pack's four, proposed with the rest. No wheel without them
+       once the NFL cards are read; spin_card_wheel asks for both. */
+    var sixSpin = EGE.cards.rollSpinOffer;
+    EGE.cards.rollSpinOffer = function (rng) {
+      var offer = sixSpin(rng);
+      var random = rng || Math.random;
+      var rare = offer ? EGE.cards.drawFrom(pullable(), random, 'rare', 'rare') : null;
+      var four = rare ? EGE.cards.rollPack(PACK.key, random) : [];
+      if (!rare || four.length !== PACK.size) { return null; }
+      offer['nfl-rare'] = rare.id;
+      offer.nfl = four.map(function (c) { return c.id; });
+      return offer;
+    };
   }
 
   return {

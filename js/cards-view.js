@@ -56,7 +56,7 @@ EGE.cardsView = (function () {
     eventClaims: {},    /* by event: its sets this player has locked in, and its own key once the reward is in */
     pulled: {},         /* by event: every card this player has pulled from its packs, { id: true } */
     locks: {},          /* card id -> when each traded event copy can go again */
-    opened: {},         /* by pack held to perDay: when each of the last 24 hours' was opened (ms) */
+    opened: {},         /* by pack held to perDay: when each of today's was opened (ms) */
     gamePacks: [],      /* Game Packs won and not opened yet, game_packs rows, newest first */
     wants: null,        /* every account's Want List, { email: [want] }; null until read */
     wantsFailed: false, /* the lists could not be read */
@@ -690,15 +690,14 @@ EGE.cardsView = (function () {
   }
 
   /* For a pack held to so many a day (perDay): null while there are
-     more to open, else when the next one can be (ms), as the oldest of the
-     last 24 hours' turns a day old. */
+     more to open, else when the next one can be (ms): 7:00 AM Central,
+     when the day turns over with the Daily Spin's (EGE.cards.cardDay). */
   function packWait(pack) {
     if (!pack.perDay) { return null; }
-    var day = 24 * 3600 * 1000;
-    var now = Date.now();
-    var times = (state.opened[pack.key] || []).filter(function (t) { return t > now - day; });
+    var day = EGE.cards.cardDay();
+    var times = (state.opened[pack.key] || []).filter(function (t) { return t >= day.start; });
     state.opened[pack.key] = times;
-    return times.length < pack.perDay ? null : times[times.length - pack.perDay] + day;
+    return times.length < pack.perDay ? null : day.end;
   }
 
   function clockText(ms) {
@@ -744,7 +743,7 @@ EGE.cardsView = (function () {
         ? 'Opens once the first week of ' + EGE.currentSeason + ' is out.'
         : 'Opens once there are games out to put in it.';
     } else if (packWait(pack)) {
-      why = pack.perDay + ' opened in 24 hours. Next one at ' + clockText(packWait(pack)) + '.';
+      why = pack.perDay + ' opened today. More at ' + clockText(packWait(pack)) + '.';
     } else if (state.diamonds !== null && state.diamonds < pack.diamonds) {
       why = 'Not enough diamonds yet.';
     }
@@ -933,7 +932,7 @@ EGE.cardsView = (function () {
       return;
     }
     if (packWait(pack)) {
-      say(pack.perDay + ' ' + pack.name + 's opened in 24 hours. Next one at ' + clockText(packWait(pack)) + '.', true);
+      say(pack.perDay + ' ' + pack.name + 's opened today. More at ' + clockText(packWait(pack)) + '.', true);
       return;
     }
     if (state.diamonds !== null && state.diamonds < pack.diamonds) {
@@ -5389,25 +5388,30 @@ EGE.cardsView = (function () {
      are not shown on the page (Sam, 2026-10-16). Once today's spin is spun
      the whole panel goes until the next one opens (Sam, 2026-10-16). */
   var WHEEL = [
-    { prize: 'uncommon', deg: 60 },
-    { prize: 'diamonds', deg: 44 },
-    { prize: 'rare', deg: 35 },
+    { prize: 'uncommon', deg: 44 },
+    { prize: 'diamonds', deg: 36 },
+    { prize: 'rare', deg: 30 },
     { prize: 'legendary', deg: 15 },
-    { prize: 'uncommon', deg: 60 },
-    { prize: 'base', deg: 52 },
-    { prize: 'diamonds', deg: 44 },
-    { prize: 'rare', deg: 35 },
+    { prize: 'nfl-rare', deg: 48 },
+    { prize: 'uncommon', deg: 44 },
+    { prize: 'nfl', deg: 15 },
+    { prize: 'base', deg: 47 },
+    { prize: 'diamonds', deg: 36 },
+    { prize: 'rare', deg: 30 },
     { prize: 'pro', deg: 15 }
   ];
   /* Each prize's slice and its lettering: the rarities in their own
-     colours, diamonds in the diamond's, the Base Pack cream, and the
-     jackpots dark with gold. */
+     colours, diamonds in the diamond's, the Base Pack cream, the NFL Rare
+     card the NFL's red, and the jackpots dark, the NFL Pack in the NFL's
+     blue. */
   var WHEEL_LOOK = {
     uncommon:  { fill: '#3e9a4b', ink: '#fbf4e6' },
     diamonds:  { fill: '#7fdcf5', ink: '#1d2416' },
     rare:      { fill: '#e8812a', ink: '#1d2416' },
+    'nfl-rare': { fill: '#d50a0a', ink: '#ffffff' },
     base:      { fill: '#fbf4e6', ink: '#1d2416' },
     legendary: { fill: '#8a4fd8', ink: '#ffffff' },
+    nfl:       { fill: '#013369', ink: '#ffffff' },
     pro:       { fill: '#1d2416', ink: '#f0b82a' }
   };
   var SPIN_MS = 5200;
@@ -5952,11 +5956,18 @@ EGE.cardsView = (function () {
     byId('wantsAdd').addEventListener('click', openWantPicker);
     byId('marketSell').addEventListener('click', openSellPicker);
     byId('spinGo').addEventListener('click', doSpin);
-    /* The countdown to the next spin, and the wheel coming free again at
-       7:00 AM Central with the page left open. */
+    /* The countdown to the next spin, and the wheel and a pack held to so
+       many a day coming free again at 7:00 AM Central with the page left
+       open. */
+    var packDay = EGE.cards.cardDay().start;
     window.setInterval(function () {
       if (state.player && state.loaded && !state.spinning) { renderSpin(); }
       if (state.player && state.loaded) { tickEvent(); }
+      var today = EGE.cards.cardDay().start;
+      if (today !== packDay) {
+        packDay = today;
+        if (state.player && state.loaded) { renderPacks(); }
+      }
     }, 30000);
     Array.prototype.forEach.call(document.querySelectorAll('#cardTabs input'), function (input) {
       input.addEventListener('change', function () { if (input.checked) { setTab(input.value); } });
