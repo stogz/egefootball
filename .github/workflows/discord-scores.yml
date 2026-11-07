@@ -56,7 +56,7 @@ jobs:
           # browser.
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          SITE_URL: ${{ vars.SITE_URL || 'http://egefootball.vercel.app' }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://stogz.github.io/egefootball' }}
         run: |
           node bot/post-week.js \
             ${{ inputs.week && format('--week {0} --force', inputs.week) || '' }} \
