@@ -8,10 +8,10 @@ in the 2024 draft. The rest of the league reacts to them the way it reacts to
 anybody: defenses game-plan for them, teams trade for them, and their fit in
 their team's scheme decides how much they help it.
 
-Nothing here touches the live site. The folder is left out of the Vercel
-deploy (`.vercelignore`), and team ratings are never written to the
-repository, which is public: they are worked out when the sim runs and only
-ever shown to whoever runs it.
+Nothing here touches the live site. The folder is left out of the GitHub
+Pages deploy (`.github/workflows/static.yml`), and team ratings are never
+written to the repository, which is public: they are worked out when the sim
+runs and only ever shown to whoever runs it.
 
 **Contents**
 

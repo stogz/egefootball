@@ -33,6 +33,11 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Pages
         uses: actions/configure-pages@v5
+      # The NFL sim is run from the admin page's NFL Sim tab (js/nfl-sim.js)
+      # or with node; the site never loads anything from nfl-sim/, so it is
+      # left out of the deploy, as .vercelignore did on Vercel.
+      - name: Leave out what the site does not serve
+        run: rm -rf nfl-sim
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

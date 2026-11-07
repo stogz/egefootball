@@ -38,7 +38,7 @@
      SUPABASE_SERVICE_ROLE_KEY  required: reading and marking them needs it.
                                 A server-side key. It belongs in the repo's
                                 Actions secrets and nowhere near the browser.
-     SITE_URL                   default http://egefootball.vercel.app
+     SITE_URL                   default https://stogz.github.io/egefootball
    ========================================================================== */
 
 'use strict';
@@ -46,7 +46,7 @@
 const { loadSiteData } = require('./site-data');
 
 const POST_HOURS = [7, 12, 16, 20];          /* America/Chicago */
-const DEFAULT_SITE = 'http://egefootball.vercel.app';
+const DEFAULT_SITE = 'https://stogz.github.io/egefootball';
 
 /* --- arguments ------------------------------------------------------------ */
 

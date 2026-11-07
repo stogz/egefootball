@@ -40,7 +40,7 @@ window.EGE = window.EGE || {};
 EGE.discordPost = (function () {
   'use strict';
 
-  var SITE = 'http://egefootball.vercel.app';
+  var SITE = 'https://stogz.github.io/egefootball';
 
   var COLOR_WIN      = 0x41713c;   /* the site's grass green */
   var COLOR_LOSS     = 0xa64412;   /* the site's deep accent */

@@ -1340,8 +1340,9 @@ The two webhooks are read from Supabase (saved on the admin page, see
 *How the Discord post gets sent*), with `DISCORD_WEBHOOK_URL_COLLEGE` and
 `DISCORD_WEBHOOK_URL_NFL` as a fallback for a league with none saved there.
 A league with neither is skipped and the run exits with an error; the week
-stays owed for it. `SITE_URL` defaults to the Vercel domain and decides
-where the images and player links point.
+stays owed for it. `SITE_URL` defaults to the site's GitHub Pages address
+(`https://stogz.github.io/egefootball`) and decides where the images and
+player links point.
 
 ### The schedule it posts on
 
@@ -4071,10 +4072,14 @@ three that `js/site-data.js` writes out, which drop their cache-busting query
 when there is no cache to get past. The only external dependency is supabase-js,
 loaded from a CDN.
 
-The live site is on Vercel, which deploys `main` on every push and builds a
-preview for every pull request. If a merge does not show up on the site within
-a minute or so, Vercel did not hear about the push: redeploy the latest `main`
-from the project's Deployments page, or push to `main` again.
+The live site is on GitHub Pages at <https://stogz.github.io/egefootball/>.
+`.github/workflows/static.yml` deploys `main` on every push, leaving out
+`nfl-sim/` as the Vercel deploy did. There are no previews for pull requests.
+If a merge does not show up on the site within a few minutes, look at the
+*Deploy static content to Pages* run on the repository's Actions page, and
+run it again from there if it failed. The site lives under `/egefootball/`,
+so every path in it is relative (`icon/...`, never `/icon/...`): a path from
+the root would point at `stogz.github.io` itself.
 
 ### Connecting Supabase
 
