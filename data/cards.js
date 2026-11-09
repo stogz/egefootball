@@ -468,9 +468,12 @@ EGE.cards = (function () {
 
      The pack can also hold Sam's two card-art cards (CARD_ART): Paxon's 88
      yard touchdown in 2025 week 16 and Andrew's 73 yard touchdown in 2027
-     week 17. Both are Mystics. The art comes up at the base rate (Sam,
-     2026-11-06): a Mystic out of the pack is any of its Mystics alike, the
-     art no likelier than the rest, unlike Halloween's `artShare`.
+     week 17. Both are Mystics. A Mystic out of the pack is one of the art
+     `artShare` of the time (12.5%): Sam wanted the art ever so slightly
+     likelier, 1 pack in 100 or better, nowhere near Halloween's 55%
+     (2026-11-07). That is about 1 pack in 97 with art, each art about 1 in
+     194. At the base rate before, the art was 2 of its 20 Mystics, about 1
+     pack in 118, and slipping as more Mystics came out.
 
      The sets are meant to be very hard (Sam asked for ten or more "really
      really hard" ones), and the AIR RAID card needs every one of them
@@ -493,6 +496,7 @@ EGE.cards = (function () {
     mark: 'icon/cards/air-raid-logo.webp',
     markIsName: true,
     bonus: { diamonds: 150, booster: 'boost-2-5', boosters: 3 },
+    artShare: 0.125,
     holds: inAirRaid
   };
 
@@ -1035,9 +1039,9 @@ EGE.cards = (function () {
       var last = i === p.size - 1;
       var ceiling = legends >= cap ? 'epic' : big ? PACK_CAP : null;
       var card = drawOne(pool, random, last ? p.floor : null, ceiling, odds);
-      /* A Mystic out of a Halloween Pack is its card art `artShare` of the
-         time, and a Legendary or better that isn't art, now and then in
-         costume. */
+      /* A Mystic out of a Halloween or Air Raid Pack is its card art
+         `artShare` of the time, and out of a Halloween Pack a Legendary or
+         better that isn't art, now and then in costume. */
       if (card && ev && ev.artShare && card.rarity === 'mystic') {
         card = mysticOf(pool, random, ev.artShare) || card;
       }
@@ -1776,28 +1780,61 @@ EGE.cards = (function () {
 
      The prizes are Sam's (2026-10-15): an Uncommon card at worst, a few
      diamonds, a Rare card or a Base Pack, and two jackpots that are much
-     harder to hit, a Legendary card and a Pro Pack. `odds` are percent and
-     add up to 100.
+     harder to hit, a Legendary card and a Pro Pack. Sam added an NFL Rare
+     card with the everyday prizes and an NFL Pack with the jackpots
+     (2026-11-07); the everyday ones gave up their room for them. `odds`
+     are percent and add up to 100.
 
      Which prize comes up is rolled by spin_card_wheel in
      supabase/schema.sql, on the same odds, so nobody picks their own. The
      page proposes what every prize would be before the spin -- one card of
      each rarity, a Base Pack's three and a Pro Pack's five, rolled the way
-     packs are (rollSpinOffer) -- the same trust a pack's contents run on.
+     packs are (rollSpinOffer), and data/nfl-cards.js adds a Rare NFL card
+     and an NFL Pack's four -- the same trust a pack's contents run on.
      Odds and the diamonds are repeated there; change both together. */
   var SPIN = {
     diamonds: 5,
     resetHour: 7,
     timeZone: 'America/Chicago',
     prizes: [
-      { key: 'uncommon',  name: 'Uncommon card',  short: 'Uncommon', odds: 35 },
-      { key: 'diamonds',  name: '5 diamonds',     short: '5 Diamonds', odds: 25 },
-      { key: 'rare',      name: 'Rare card',      short: 'Rare', odds: 20 },
-      { key: 'base',      name: 'Base Pack',      short: 'Base Pack', odds: 15, pack: 'base' },
+      { key: 'uncommon',  name: 'Uncommon card',  short: 'Uncommon', odds: 28 },
+      { key: 'diamonds',  name: '5 diamonds',     short: '5 Diamonds', odds: 20 },
+      { key: 'rare',      name: 'Rare card',      short: 'Rare', odds: 17 },
+      { key: 'nfl-rare',  name: 'NFL Rare card',  short: 'NFL Rare', odds: 15, nfl: true },
+      { key: 'base',      name: 'Base Pack',      short: 'Base Pack', odds: 12, pack: 'base' },
+      { key: 'nfl',       name: 'NFL Pack',       short: 'NFL Pack', odds: 3, pack: 'nfl', jackpot: true },
       { key: 'pro',       name: 'Pro Pack',       short: 'Pro Pack', odds: 3, pack: 'pro', jackpot: true },
       { key: 'legendary', name: 'Legendary card', short: 'Legendary', odds: 2, jackpot: true }
     ]
   };
+
+  /* The card game's day, the one the wheel turns over with: from 7:00 AM
+     Central to 7:00 AM Central the next morning, daylight saving and all
+     (card_spin_day in supabase/schema.sql). { start, end } in ms, for the
+     day `at` (ms, now if left out) falls in. A pack held to so many a day
+     (perDay) counts that day's. */
+  function zoneOffset(ms, zone) {
+    var parts = {};
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: zone, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric',
+      hour: 'numeric', minute: 'numeric', second: 'numeric'
+    }).formatToParts(new Date(ms)).forEach(function (part) { parts[part.type] = Number(part.value); });
+    var wall = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour % 24, parts.minute, parts.second);
+    return wall - Math.floor(ms / 1000) * 1000;
+  }
+
+  function cardDay(at) {
+    var now = typeof at === 'number' ? at : Date.now();
+    var hour = 3600 * 1000;
+    var wall = now + zoneOffset(now, SPIN.timeZone) - SPIN.resetHour * hour;
+    var date = new Date(wall);
+    function seven(days) {
+      var local = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + days, SPIN.resetHour);
+      var guess = local - zoneOffset(local, SPIN.timeZone);
+      return local - zoneOffset(guess, SPIN.timeZone);
+    }
+    return { start: seven(0), end: seven(1) };
+  }
 
   function spinPrize(key) {
     return SPIN.prizes.filter(function (p) { return p.key === key; })[0] || null;
@@ -1874,6 +1911,7 @@ EGE.cards = (function () {
     rollShop: rollShop,
     MARKET: MARKET,
     SPIN: SPIN,
+    cardDay: cardDay,
     spinPrize: spinPrize,
     rollSpinOffer: rollSpinOffer,
     HOLO_OF: HOLO_OF,

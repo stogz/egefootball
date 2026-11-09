@@ -682,10 +682,15 @@ EGE.cardStore = (function () {
 
   /* Spins: the page proposes every prize (EGE.cards.rollSpinOffer) and
      spin_card_wheel rolls which one it is. Comes back with { prize,
-     cards: [card], won, diamonds, next_at }. */
+     cards: [card], won, diamonds, next_at }. Not before the NFL cards are
+     read, since two of the prizes are theirs. */
   function spin() {
+    return loadNflCards().then(spinWith);
+  }
+
+  function spinWith() {
     var offer = EGE.cards.rollSpinOffer();
-    if (!offer) { return fail('The wheel opens once there are cards out to put on it.'); }
+    if (!offer) { return fail('The wheel could not be filled. Reload the page and spin again.'); }
     return call('spin_card_wheel', { p_offer: offer }, function (data) {
       return {
         ok: true,
@@ -844,15 +849,15 @@ EGE.cardStore = (function () {
       .catch(function () { return {}; });
   }
 
-  /* When this player opened each of one kind of pack in the last 24
-     hours, oldest first, as times in ms: what a pack held to so many a day
-     (perDay) counts. Null when it could not be read. */
+  /* When this player opened each of one kind of pack today, since 7:00 AM
+     Central (EGE.cards.cardDay), oldest first, as times in ms: what a pack
+     held to so many a day (perDay) counts. Null when it could not be read. */
   function openedToday(email, packKey) {
     var c = client();
     if (!c || !email || !packKey) { return Promise.resolve(null); }
-    var since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    var since = new Date(EGE.cards.cardDay().start).toISOString();
     return c.from(PACKS).select('opened_at').eq('email', email).eq('pack_key', packKey)
-      .gt('opened_at', since).order('opened_at', { ascending: true }).limit(100)
+      .gte('opened_at', since).order('opened_at', { ascending: true }).limit(100)
       .then(function (res) {
         return res.error ? null : (res.data || []).map(function (row) { return new Date(row.opened_at).getTime(); });
       })

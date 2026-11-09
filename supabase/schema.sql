@@ -1344,14 +1344,15 @@ begin
     raise exception 'Not enough diamonds: that pack costs %, you have %.', v_price, coalesce(v_have, 0);
   end if;
 
-  -- 20 Air Raid Packs in any 24 hours (Sam, 2026-11-06; perDay on the
-  -- pack in data/cards.js, change both). Counted under the balance's lock,
-  -- so two tabs cannot both open the 20th.
+  -- 20 Air Raid Packs a day (Sam, 2026-11-06; perDay on the pack in
+  -- data/cards.js, change both), the day turning over at 7:00 AM Central
+  -- with the Daily Spin's (Sam, 2026-11-07; it was any 24 hours). Counted
+  -- under the balance's lock, so two tabs cannot both open the 20th.
   if p_pack = 'air-raid' and (
     select count(*) from public.card_packs
      where email = v_email and pack_key = 'air-raid'
-       and opened_at > now() - interval '24 hours') >= 20 then
-    raise exception 'That is 20 Air Raid Packs in 24 hours. The next one opens when the oldest is a day old.';
+       and opened_at >= public.card_spin_ends(public.card_spin_day() - 1)) >= 20 then
+    raise exception 'That is 20 Air Raid Packs today. More open at 7:00 AM Central.';
   end if;
 
   update public.player_diamonds
@@ -3044,8 +3045,10 @@ end;
 $$;
 
 -- Spins. p_offer is every prize the page proposes:
---   { "uncommon": id, "rare": id, "legendary": id,
---     "base": [three ids], "pro": [five ids] }
+--   { "uncommon": id, "rare": id, "legendary": id, "nfl-rare": NFL id,
+--     "base": [three ids], "pro": [five ids], "nfl": [four NFL ids] }
+-- The odds are SPIN's in data/cards.js (Sam, 2026-11-07: the NFL Rare card
+-- with the everyday prizes, the NFL Pack with the jackpots); change both.
 -- Returns { day, next_at, prize, cards, won, diamonds }: `won` the diamonds
 -- the spin paid, `diamonds` the balance after.
 create or replace function public.spin_card_wheel(p_offer jsonb)
@@ -3073,20 +3076,28 @@ begin
   if p_offer is null or jsonb_typeof(p_offer) <> 'object' then
     raise exception 'The wheel could not be filled. Reload the page and spin again.';
   end if;
-  if not coalesce(public.is_card_id(p_offer ->> 'uncommon'), false)
-     or not coalesce(public.is_card_id(p_offer ->> 'rare'), false)
-     or not coalesce(public.is_card_id(p_offer ->> 'legendary'), false) then
+  -- The six's prizes are the six's cards and the NFL ones NFL cards.
+  if not coalesce(public.is_card_id(p_offer ->> 'uncommon') and not public.is_nfl_card_id(p_offer ->> 'uncommon'), false)
+     or not coalesce(public.is_card_id(p_offer ->> 'rare') and not public.is_nfl_card_id(p_offer ->> 'rare'), false)
+     or not coalesce(public.is_card_id(p_offer ->> 'legendary') and not public.is_nfl_card_id(p_offer ->> 'legendary'), false)
+     or not coalesce(public.is_nfl_card_id(p_offer ->> 'nfl-rare'), false) then
     raise exception 'The wheel could not be filled. Reload the page and spin again.';
   end if;
   if coalesce(jsonb_typeof(p_offer -> 'base'), '') <> 'array'
-     or coalesce(jsonb_typeof(p_offer -> 'pro'), '') <> 'array' then
+     or coalesce(jsonb_typeof(p_offer -> 'pro'), '') <> 'array'
+     or coalesce(jsonb_typeof(p_offer -> 'nfl'), '') <> 'array' then
     raise exception 'The wheel could not be filled. Reload the page and spin again.';
   end if;
   if jsonb_array_length(p_offer -> 'base') <> 3 or jsonb_array_length(p_offer -> 'pro') <> 5
+     or jsonb_array_length(p_offer -> 'nfl') <> 4
      or exists (select 1 from jsonb_array_elements(p_offer -> 'base') c
-                 where jsonb_typeof(c) <> 'string' or not public.is_card_id(c #>> '{}'))
+                 where jsonb_typeof(c) <> 'string' or not public.is_card_id(c #>> '{}')
+                    or public.is_nfl_card_id(c #>> '{}'))
      or exists (select 1 from jsonb_array_elements(p_offer -> 'pro') c
-                 where jsonb_typeof(c) <> 'string' or not public.is_card_id(c #>> '{}')) then
+                 where jsonb_typeof(c) <> 'string' or not public.is_card_id(c #>> '{}')
+                    or public.is_nfl_card_id(c #>> '{}'))
+     or exists (select 1 from jsonb_array_elements(p_offer -> 'nfl') c
+                 where jsonb_typeof(c) <> 'string' or not public.is_nfl_card_id(c #>> '{}')) then
     raise exception 'The wheel could not be filled. Reload the page and spin again.';
   end if;
 
@@ -3094,19 +3105,23 @@ begin
     raise exception 'You have had today''s spin. The wheel turns over at 7:00 AM Central.';
   end if;
 
+  -- Uncommon 28, 5 diamonds 20, Rare 17, NFL Rare 15, Base Pack 12, NFL
+  -- Pack 3, Pro Pack 3, Legendary 2.
   v_roll := random() * 100;
   v_prize := case
-               when v_roll < 35 then 'uncommon'
-               when v_roll < 60 then 'diamonds'
-               when v_roll < 80 then 'rare'
-               when v_roll < 95 then 'base'
+               when v_roll < 28 then 'uncommon'
+               when v_roll < 48 then 'diamonds'
+               when v_roll < 65 then 'rare'
+               when v_roll < 80 then 'nfl-rare'
+               when v_roll < 92 then 'base'
+               when v_roll < 95 then 'nfl'
                when v_roll < 98 then 'pro'
                else 'legendary'
              end;
 
-  if v_prize in ('uncommon', 'rare', 'legendary') then
+  if v_prize in ('uncommon', 'rare', 'legendary', 'nfl-rare') then
     v_cards := array[p_offer ->> v_prize];
-  elsif v_prize in ('base', 'pro') then
+  elsif v_prize in ('base', 'pro', 'nfl') then
     v_cards := array(select c from jsonb_array_elements_text(p_offer -> v_prize) with ordinality as t(c, n)
                       order by n);
   else
@@ -3125,7 +3140,7 @@ begin
     perform public.give_card(v_email, v_card);
   end loop;
 
-  if v_prize in ('base', 'pro') then
+  if v_prize in ('base', 'pro', 'nfl') then
     insert into public.card_packs (email, pack_key, credits, diamonds, cards)
     values (v_email, 'spin-' || v_prize, 0, 0, v_cards);
   end if;

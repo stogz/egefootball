@@ -2477,10 +2477,15 @@ cover is Sam's clouds with his AIR RAID logo in the middle. An Air Raid card
 back is clouds on a blue sky in a silver frame with the logo under the ball.
 
 Two **card-art cards** come out of the pack: Paxon's 88-yard touchdown (2025
-week 16) and Andrew's 73-yard touchdown (2027 week 17), both Mystics. The
-art comes up at the **base rate**: a Mystic out of the pack is any of its 20 Mystics alike,
-with no `artShare` like Halloween's, so each art is about one pack in 265.
-The art wears no sticker.
+week 16) and Andrew's 73-yard touchdown (2027 week 17), both Mystics. A
+Mystic out of the pack is one of the art 12.5% of the time (`artShare`; Sam
+wanted the art ever so slightly likelier, 1 pack in 100 or better, nowhere
+near Halloween's, 2026-11-07): about 1 pack in 97 has art, each art about 1
+in 194. It was the base rate before, 2 of the pack's 20 Mystics, about 1 in
+118. The art wears no sticker.
+
+At most 20 Air Raid Packs a day each, the day turning over at 7:00 AM
+Central with the Daily Spin (`perDay` and `open_card_pack`).
 
 Only Air Raid cards fill its twelve sets, and a traded copy waits 48 hours.
 Sam asked for ten or more very hard sets. Packs to finish each, one player
@@ -2499,8 +2504,8 @@ alone (median / nine in ten):
 | Final Approach | 5 different game-winning or game-icing receiving TDs | 80 / 144 | Legendary+ · 35 diamonds · 2.0x Booster |
 | Altitude | a receiving TD of each in every ten yards, under 10 to 60–69 | 102 / 249 | Mystic+ · 35 diamonds · 2.0x Booster |
 | Contrails | a playoff receiving TD from every postseason, 2019–2027 | 129 / 280 | Mystic+ · 40 diamonds · 2.5x Booster |
-| Card Art | both card arts (traded ones count) | 312 / 751 | Mystic+ · 50 diamonds · 2.5x Booster |
-| Air Raid | all twelve sets (about 340 / 770 packs) | | the Iconic AIR RAID card · 150 diamonds · three 2.5x Boosters |
+| Card Art | both card arts (traded ones count) | 237 / 528 | Mystic+ · 50 diamonds · 2.5x Booster |
+| Air Raid | all twelve sets (about 290 / 560 packs) | | the Iconic AIR RAID card · 150 diamonds · three 2.5x Boosters |
 
 Every reward card is an Air Raid card, never card art. The AIR RAID card is
 Sam's art (`AIR_RAID.rewardImage`): a 2027 season Iconic of Paxon and Andrew.
