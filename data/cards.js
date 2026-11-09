@@ -87,6 +87,7 @@ EGE.cards = (function () {
     'p:2022:jaykeb-stewart:3',     /* Jaykeb Stewart 7TD Masterclass */
     'p:2023:isaac-vitel:11',       /* Isaac 600 Air */
     'h:2027:jaykeb-stewart:22:2',
+    'p:2028:sam-stogsdill:3',
   ];
 
   /* A performance is graded on its fantasy points times the position's
