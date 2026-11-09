@@ -100,17 +100,21 @@ function earlier(all) {
   return { ids, names };
 }
 
-/* Every ESPN id the site already shows a picture for: the draft classes,
-   the kickoff league, the college rosters and season files. */
-function onTheSite() {
+/* Every ESPN id the site already shows a picture for: the other draft
+   classes, the kickoff league, the college rosters and season files. (Not
+   this class as last built, so a rebuild deals the same pictures.) */
+function onTheSite(all) {
   const ids = new Set();
+  Object.keys(all.classes).filter((y) => Number(y) !== YEAR).forEach((y) => {
+    all.classes[y].forEach((pr) => { if (pr.espn) { ids.add(String(pr.espn)); } });
+  });
   const files = [];
   const add = (dir, test) => {
     const full = path.join(ROOT, dir);
     if (!fs.existsSync(full)) { return; }
     fs.readdirSync(full).filter((n) => test.test(n)).forEach((n) => files.push(path.join(full, n)));
   };
-  add('nfl-sim/data', /\.json$/);
+  add('nfl-sim/data', /^(?!prospects\.json$).*\.json$/);
   add('data', /\.(js|json)$/);
   add('stats', /\.js$/);
   files.forEach((file) => {
@@ -415,7 +419,7 @@ function main() {
   });
 
   /* The made-up prospects' pictures and names: nobody else's. */
-  const site = onTheSite();
+  const site = onTheSite(all);
   const pool = photos(new Set(Array.from(site).concat(Array.from(used))));
   const names = new Set();
   [2024, 2025, 2026].forEach((y) => read('cfb_rosters_' + y + '.csv').forEach((r) => names.add(c27.norm(r.first_name + ' ' + r.last_name))));
