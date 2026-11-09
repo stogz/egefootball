@@ -12,8 +12,10 @@
    fall 2026 mock drafts and big boards name, graded by their consensus
    (build/class-2027.js), with ESPN's college headshots; the 2028 class is
    built the same way from the first 2028 mocks and the college stats
-   (build/class-2028.js), a point and a half better at every pick. After
-   2028 the sim makes its own classes.
+   (build/class-2028.js), a point and a half better at every pick; the 2029
+   class is 2026's best freshmen and recruits and the college stats, level
+   with 2028, with 48 made-up prospects wearing small-school headshots
+   (build/class-2029.js). After 2029 the sim makes its own classes.
 
    Each team's board is the prospect's grade, his position's worth, how
    badly the team needs the position and how well he fits its schemes, with

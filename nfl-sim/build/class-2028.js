@@ -379,4 +379,4 @@ function main() {
 
 if (require.main === module) { main(); }
 
-module.exports = { mocked, listed, key };
+module.exports = { mocked, listed, key, school, seasonStats, production, rosterPos, CONFERENCE, MIX };
