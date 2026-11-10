@@ -1038,16 +1038,12 @@ The page is one tweet, drawn the way X draws one in its light theme: the
 account's picture, name, check and handle, the text, a picture if one was
 added, and the four buttons; no time or date (Sam, 2026-11-10). The text is typed straight into it,
 and the picture button under it adds a picture beneath the text. **Post**
-draws the tweet on a canvas (handles, hashtags and links in X's blue), puts
-the PNG in Supabase Storage's public `media` bucket and sends it to the
-**trades bot's** Discord channel as the picture alone, not in an embed: the
-message is just the picture's address, which Discord shows as the picture.
-Only a failure is reported; a tweet that went clears the box.
-
-Every picture posted is the same size, 1400 × 1050 (Sam, 2026-11-10, so
-each shows the same size in Discord): the tweet is scaled to fit in the
-middle on X's dim blue, a long tweet with a picture smaller, a one-liner a
-touch bigger.
+draws the tweet at twice its size on a canvas (handles, hashtags and links
+in X's blue), puts the PNG in Supabase Storage's public `media` bucket and
+sends it to the **trades bot's** Discord channel as an embed holding only
+the picture, edged in X's blue (Sam, 2026-11-10; it went out as the bare
+picture for a while). Only a failure is reported; a tweet that went clears
+the box.
 
 **Replies.** Under every post in Discord is a **Reply** button, a link to
 `#media/reply/{post}`. That page shows the tweet being answered above the

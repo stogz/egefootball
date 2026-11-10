@@ -5366,11 +5366,10 @@ end $$;
 -- folder) to the trades bot's channel, and keeps the post: the name,
 -- handle, text, the account's picture (a small data URL), the picture under
 -- the text (in the bucket too), the checks, the tweet it answers and, for
--- the league's own news, its tag. Discord gets the picture alone, not in an
--- embed (Sam, 2026-11-10): the message is nothing but the picture's
--- address, which Discord shows as the picture with the address hidden, and
--- under it a Reply button, a link to answer it on the site -- a link
--- button, which a webhook may send with ?with_components=true. Returns
+-- the league's own news, its tag. Discord gets the picture in an embed
+-- edged in X's blue (Sam, 2026-11-10), and under it a Reply button, a link
+-- to answer it on the site -- a link button, which a webhook may send with
+-- ?with_components=true. Returns
 -- { id, sent }: sent is false when it left the sending to an admin's
 -- browser.
 drop function if exists public.post_tweet(text, text, text, text);
@@ -5451,7 +5450,9 @@ begin
   execute 'select net.http_post(url := $1, body := $2, headers := $3)'
     using v_url || case when position('?' in v_url) > 0 then '&' else '?' end || 'with_components=true',
           jsonb_build_object(
-            'content', p_image,
+            'embeds', jsonb_build_array(jsonb_build_object(
+              'color', 1940464,   -- #1d9bf0
+              'image', jsonb_build_object('url', p_image))),
             'allowed_mentions', jsonb_build_object('parse', '[]'::jsonb),
             'components', jsonb_build_array(jsonb_build_object(
               'type', 1,
