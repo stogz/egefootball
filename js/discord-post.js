@@ -693,9 +693,9 @@ EGE.discordPost = (function () {
        Texans are in the *REDZONE*
        Q2 11:33, 1st & 10
 
-     halftime with the line as it stands and each side's top performers;
-     and at the final whistle the week's own post for the six in the game
-     (buildEmbed), or a final like the halftime one when none of them is.
+     and halftime with the line as it stands and each side's top
+     performers. Nothing at the final whistle (Sam, 2026-11-09): the
+     week's own post has the result once the week is out.
      The side with one of the six in it comes first and has the spread;
      with none, the home side. */
   function hex(color) { return color ? parseInt(String(color).replace('#', ''), 16) : COLOR_UPCOMING; }
@@ -746,8 +746,8 @@ EGE.discordPost = (function () {
       return embed;
     }
     /* When an entry's result is out: each entry says when it comes up
-       (nfl-sim/lib/live.js, which gives a new drive and the red zone a
-       longer wait). */
+       (nfl-sim/lib/live.js), and a snap's call shows `reveal` before
+       the play does. */
     function whenOf(at) {
       var entry = plan.entries[at];
       var start = entry && typeof entry.ms === 'number' ? entry.ms : at * slot;
@@ -790,6 +790,7 @@ EGE.discordPost = (function () {
       embeds: [finish(opening, 'EGE Football', -((o.delay || 0) * 1000))], allowed_mentions: { parse: [] } } });
 
     plan.posts.forEach(function (post) {
+      if (post.kind === 'end') { return; }
       var at = whenOf(post.at);
       var payload;
       if (post.kind === 'half') {
@@ -798,21 +799,6 @@ EGE.discordPost = (function () {
         /* Half the pregame margin still to play, on top of the score. */
         var said = typeof o.margin === 'number' ? spreadText(first, o.margin * sign / 2 + lead) : '';
         payload = { embeds: [summary(title, said, post.top, post.score, at)] };
-      } else if (post.kind === 'end') {
-        var weekly = (o.six || []).map(function (entry) {
-          return buildEmbed(entry.player, entry.game, { season: o.season, siteUrl: siteUrl, played: true });
-        });
-        if (weekly.length) {
-          payload = { content: '## ' + weekTitle(o.week, o.season, 'nfl'), embeds: weekly };
-        } else {
-          var margin = (post.score[0] - post.score[1]) * sign;
-          var won = margin > 0 ? first : other;
-          var high = Math.max(post.score[0], post.score[1]);
-          var low = Math.min(post.score[0], post.score[1]);
-          var end = margin ? 'Final' + (post.ot ? '/OT' : '') + ', ' + nickname(won) + ' win ' + high + '-' + low
-            : 'Final' + (post.ot ? '/OT' : '') + ', tied ' + high + '-' + low;
-          payload = { embeds: [summary(end, '', post.top, post.score, at)] };
-        }
       } else if (post.kind === 'redzone') {
         /* Always red, whoever it is (Sam, 2026-11-03). */
         var zone = {

@@ -10888,6 +10888,117 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-cast__line { margin: 0; font-weight: 600; }
 .ege-cast__hl { font-weight: 800; }
 
+/* A player getting hot (Sam, 2026-11-09): his plays start flaming, then
+   catch fire. Tongues of flame along the bottom of the play, flickering;
+   on fire they climb the whole card, it turns to embers and sparks rise.
+   The flames sit behind the words, the time bar over them. */
+.ege-cast__item { position: relative; overflow: hidden; }
+.ege-cast__play > *, .ege-cast__item > * { position: relative; z-index: 1; }
+.ege-cast__play > .ege-cast__bar { position: absolute; z-index: 2; }
+.ege-cast__play > .ege-cast__flames, .ege-cast__item > .ege-cast__flames {
+  --size: 46px;
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  filter: blur(.6px);
+}
+.ege-cast__item > .ege-cast__flames { --size: 24px; }
+/* Under the tongues, the glow they rise out of. */
+.ege-cast__flames::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--size) * .7);
+  background: linear-gradient(to top, rgba(255, 196, 40, .9), rgba(255, 120, 0, .45) 45%, rgba(255, 90, 0, 0));
+}
+/* A tongue: a drop with its point up, a hot yellow root and red tips,
+   stretched and flickering. */
+.ege-cast__flames i {
+  position: absolute;
+  bottom: calc(var(--size) * var(--k) * -.3);
+  left: var(--x);
+  width: calc(var(--size) * var(--k));
+  height: calc(var(--size) * var(--k));
+  margin-left: calc(var(--size) * var(--k) / -2);
+  transform-origin: 50% 100%;
+  animation: ege-flame var(--d) ease-in-out var(--delay) infinite alternate;
+}
+.ege-cast__flames i::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50% 0 50% 50% !important;
+  background: linear-gradient(to top right, #fffbe0 6%, #ffd23d 30%, #ff8a00 58%, #f0400c 82%, rgba(220, 40, 0, .6));
+  transform: rotate(-45deg);
+}
+@keyframes ege-flame {
+  0%   { transform: scale(1, 1.3) skewX(4deg); opacity: .85; }
+  50%  { transform: scale(.86, 1.75) skewX(-7deg); opacity: 1; }
+  100% { transform: scale(1.06, 1.45) skewX(6deg); opacity: .9; }
+}
+.ege-cast__play.is-flaming, .ege-cast__item.is-flaming {
+  background: linear-gradient(to top, rgba(255, 150, 30, .32), rgba(255, 150, 30, 0) 70%), var(--fb-cream);
+  box-shadow: inset 0 0 0 2px #ff8a00, 0 0 16px rgba(255, 110, 0, .45);
+}
+/* On fire: the whole card burns. */
+.ege-cast__play.is-fire, .ege-cast__item.is-fire {
+  background: linear-gradient(to top, #ff6a00 0%, #c4260c 34%, #3a1006 78%, #240904 100%);
+  color: #fff4dc;
+  box-shadow: inset 0 0 0 2px #ffb000, 0 0 26px rgba(255, 90, 0, .75);
+  animation: ege-fire-glow 1.4s ease-in-out infinite alternate;
+}
+.ege-cast__play.is-fire > .ege-cast__flames { --size: 92px; }
+.ege-cast__item.is-fire > .ege-cast__flames { --size: 40px; }
+.is-fire > .ege-cast__flames i { mix-blend-mode: screen; }
+.ege-cast__play.is-fire .ege-cast__text, .ege-cast__play.is-fire .ege-cast__call {
+  text-shadow: 0 0 10px rgba(255, 120, 0, .95), 0 1px 2px rgba(0, 0, 0, .6);
+}
+/* A score's words keep the scorer's colour, ringed in cream to read. */
+.is-fire .ege-cast__hl { text-shadow: 0 0 1px #fff4dc, 0 0 3px #fff4dc, 0 0 7px rgba(255, 244, 220, .9); }
+.ege-cast__play.is-fire .ege-cast__called, .ege-cast__play.is-fire .ege-cast__more,
+.ege-cast__item.is-fire .ege-cast__meta, .ege-cast__item.is-fire .ege-cast__more,
+.ege-cast__item.is-fire .ege-cast__score { color: #ffd9a8; }
+.ege-cast__item.is-fire .ege-cast__line { text-shadow: 0 1px 2px rgba(0, 0, 0, .55); }
+.ege-cast__play.is-fire .ege-cast__tag { background: #ffb000; color: #240904; }
+.ege-cast__play.is-fire .ege-cast__bar { background: rgba(0, 0, 0, .3); }
+.ege-cast__play.is-fire .ege-cast__fill { background: #ffd23d; }
+@keyframes ege-fire-glow {
+  from { box-shadow: inset 0 0 0 2px #ffb000, 0 0 18px rgba(255, 90, 0, .6); }
+  to   { box-shadow: inset 0 0 0 2px #ffd23d, 0 0 34px rgba(255, 120, 0, .9); }
+}
+/* His face catches too. */
+.is-flaming .ege-cast__face { box-shadow: 0 0 0 3px #ff8a00, 0 0 12px 2px rgba(255, 110, 0, .8); }
+.is-fire .ege-cast__face { box-shadow: 0 0 0 3px #ffd23d, 0 0 18px 5px rgba(255, 90, 0, .95); animation: ege-face-burn .9s ease-in-out infinite alternate; }
+@keyframes ege-face-burn {
+  from { box-shadow: 0 0 0 3px #ffb000, 0 0 12px 3px rgba(255, 90, 0, .8); }
+  to   { box-shadow: 0 0 0 3px #fff0a0, 0 0 22px 7px rgba(255, 130, 0, 1); }
+}
+/* Sparks off a play on fire. */
+.ege-cast__flames b {
+  position: absolute;
+  bottom: 20%;
+  left: var(--x);
+  width: 4px;
+  height: 4px;
+  border-radius: 50% !important;
+  background: #ffe27a;
+  box-shadow: 0 0 6px 2px rgba(255, 160, 0, .9);
+  animation: ege-spark 2.6s ease-out var(--delay) infinite;
+}
+@keyframes ege-spark {
+  0%   { transform: translate(0, 0); opacity: 0; }
+  12%  { opacity: 1; }
+  100% { transform: translate(14px, -150px); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ege-cast__flames i, .ege-cast__flames b, .ege-cast__play.is-fire, .ege-cast__item.is-fire,
+  .is-fire .ege-cast__face { animation: none; }
+  .ege-cast__flames b { display: none; }
+}
+
 /* An admin's hand on the game: pause, restart, end, cancel; a test
    game's speed. */
 .ege-cast__controls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; width: var(--ege-cast-w); justify-self: center; }

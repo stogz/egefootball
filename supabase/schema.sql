@@ -3931,11 +3931,12 @@ notify pgrst, 'reload schema';
 -- A game the NFL sim has played, put on live a snap at a time (Sam,
 -- 2026-11-03): PLAY LIVE on the NFL Sim tab puts it up waiting for its
 -- kickoff, and the bot says so at once; an admin kicks it off from the
--- game's own page (Sam, 2026-11-04). From `starts_at` every snap comes up
--- at its own `ms` (20 seconds a snap, 30 more before a new drive, 15 more
--- before its first snap in the red zone and two minutes more of halftime;
--- nfl-sim/lib/live.js). It shows the call first ("Jaykeb Stewart pass"),
--- and what came of it `reveal_ms` (4 seconds) later. Everything runs off
+-- game's own page (Sam, 2026-11-04). From `starts_at` every entry comes up
+-- at its own `ms` (Sam, 2026-11-09; nfl-sim/lib/live.js): five seconds of
+-- waiting before each snap but a punt, an entry of its own with nothing in
+-- it about the snap; then the snap, its call first ("Jaykeb Stewart pass")
+-- and what came of it `reveal_ms` (5 seconds) later, for 7 seconds (a
+-- punt's for 12); halftime for two minutes. Everything runs off
 -- this database's clock, so every viewer is on the same snap whenever they
 -- look and however often they reload. An admin can pause it, end it at
 -- once, restart it from the kickoff or cancel it (live_control).
@@ -3970,6 +3971,12 @@ notify pgrst, 'reload schema';
 --               menu marks a push gives the stake back, and so does
 --               taking the game off before it is over, by any road
 --               (live_refund).
+--
+-- A game put on locks the boosters and wagers of the six playing in it
+-- (Sam, 2026-11-09; live_games.emails): none goes on that week's game and
+-- none comes off while the game is on, or once it is over, until it is
+-- taken off -- cancelled, or the week played again or undone. An admin
+-- aside (game_boosters_live_lock).
 -- ---------------------------------------------------------------------------
 
 do $$
@@ -4017,6 +4024,9 @@ alter table public.live_games add column if not exists reached_ms bigint;
 -- 2026-11-06; at the end of this file): a game with none of them in it has
 -- no cards to make one of. Null for a game put on before it was kept.
 alter table public.live_games add column if not exists six text[];
+-- And the addresses they sign in with, lowercased, for the lock on their
+-- boosters and wagers that week (Sam, 2026-11-09; at the end of this part).
+alter table public.live_games add column if not exists emails text[];
 
 create table if not exists public.live_feeds (
   game_id   text  primary key references public.live_games (id) on delete cascade,
@@ -4436,13 +4446,15 @@ begin
     raise exception 'A live game needs its snaps.';
   end if;
   delete from public.live_games where id = v_id;
-  insert into public.live_games (id, season, week, home, away, title, starts_at, slot_ms, reveal_ms, plays, length_ms, bets, six)
+  insert into public.live_games (id, season, week, home, away, title, starts_at, slot_ms, reveal_ms, plays, length_ms, bets, six, emails)
   values (v_id, (p_game ->> 'season')::integer, (p_game ->> 'week')::integer, p_game ->> 'home', p_game ->> 'away',
           coalesce(p_game ->> 'title', ''), null, coalesce((p_game ->> 'slot_ms')::integer, 20000),
           coalesce((p_game ->> 'reveal_ms')::integer, 4000), jsonb_array_length(p_entries),
           (p_game ->> 'length_ms')::bigint, p_bets -> 'bets',
           case when jsonb_typeof(p_game -> 'six') = 'array'
-               then array(select jsonb_array_elements_text(p_game -> 'six')) end);
+               then array(select jsonb_array_elements_text(p_game -> 'six')) end,
+          case when jsonb_typeof(p_game -> 'emails') = 'array'
+               then array(select lower(x) from jsonb_array_elements_text(p_game -> 'emails') as x) end);
   insert into public.live_feeds (game_id, entries, half_bets, results)
   values (v_id, p_entries, p_bets -> 'half', p_bets -> 'results');
   insert into public.live_posts (game_id, seq, at_ms, due_at, payload)
@@ -4523,8 +4535,10 @@ grant execute on function public.live_stop(text) to authenticated;
 --            go each in its turn;
 --   pause    the clock stops for everybody, and so do the posts;
 --   resume   it goes on from where it stopped, the posts with it;
---   end      straight to the final whistle: the final post goes now and
---            nothing else still waiting does, and the bets are settled;
+--   end      straight to the final whistle: nothing still waiting is
+--            posted but a post at the final whistle (a game put on before
+--            the bot stopped sending one, 2026-11-09), and the bets are
+--            settled;
 --   restart  back to the kickoff, `p_delay` seconds from now, and every
 --            post goes again in its turn;
 --   cancel   taken off altogether (live_stop), to be put on again later,
@@ -4568,14 +4582,17 @@ begin
     end if;
   elsif p_action = 'end' then
     /* The posts move with the kickoff, so each stays where it falls in the
-       game (for a restart); all but the final are let go. */
+       game (for a restart); all but one at the final whistle are let go. */
     v_new := v_now - make_interval(secs => v_len / 1000.0);
-    select max(seq) into v_last from public.live_posts where game_id = p_id;
+    select max(p.seq) into v_last from public.live_posts p
+     where p.game_id = p_id
+       and p.at_ms >= coalesce((select (f.entries -> -1 ->> 'ms')::bigint from public.live_feeds f where f.game_id = p_id), v_len);
     update public.live_posts
        set due_at = case when at_ms is not null then v_new + make_interval(secs => at_ms / 1000.0)
                          else due_at + (v_new - g.starts_at) end
      where game_id = p_id;
-    update public.live_posts set sent_at = v_now where game_id = p_id and sent_at is null and seq <> v_last;
+    update public.live_posts set sent_at = v_now
+     where game_id = p_id and sent_at is null and seq is distinct from v_last;
     update public.live_posts set due_at = least(due_at, v_now) where game_id = p_id and sent_at is null;
     update public.live_games set starts_at = v_new, paused_at = null, reached_ms = v_len where id = p_id;
     perform public.live_settle(p_id);
@@ -4608,6 +4625,50 @@ $$;
 
 revoke all on function public.live_control(text, text, integer) from public, anon;
 grant execute on function public.live_control(text, text, integer) to authenticated;
+
+-- Whether the game `p_email`'s player has that week is on live, or has
+-- been and is not taken off yet (Sam, 2026-11-09).
+create or replace function public.live_locked(p_email text, p_season integer, p_week integer)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.live_games g
+                  where g.season = p_season and g.week = p_week and lower(p_email) = any (g.emails));
+$$;
+
+revoke all on function public.live_locked(text, integer, integer) from public, anon;
+grant execute on function public.live_locked(text, integer, integer) to authenticated;
+
+-- No booster or wager goes on such a game and none comes off it: the
+-- result is out there, or on its way. Taking the game off (Cancel, PLAY
+-- LIVE again, the week played again or undone) opens it again. An admin
+-- may still put a week right, and so may this database's own hand (the
+-- SQL editor, with nobody signed in).
+create or replace function public.game_boosters_live_lock()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+declare
+  r public.game_boosters%rowtype;
+begin
+  if tg_op = 'DELETE' then r := old; else r := new; end if;
+  if coalesce(auth.jwt() ->> 'email', '') <> '' and not public.is_admin()
+     and public.live_locked(r.email, r.season, r.week) then
+    raise exception 'That game is live.';
+  end if;
+  if tg_op = 'DELETE' then return old; end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists game_boosters_live_lock on public.game_boosters;
+create trigger game_boosters_live_lock
+  before insert or delete on public.game_boosters
+  for each row execute function public.game_boosters_live_lock();
 
 notify pgrst, 'reload schema';
 

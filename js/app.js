@@ -843,6 +843,10 @@
     var slot = el('span', 'ege-slot');
     var mine = isMe(player);
     var played = EGE.isFinal(game);
+    /* Once his game is put on live, nothing goes on it and nothing comes
+       off until it is cancelled or the week is played again or undone
+       (Sam, 2026-11-09). */
+    var live = EGE.wallet.liveLocked(player, game);
 
     /* A booster written into the season file is the record of a game already
        played. It shows, and it never comes off. Anything still in Supabase is
@@ -861,13 +865,14 @@
     } : null;
 
     if (stuck) {
-      var peelable = mine && !played && !stuck.hardcoded;
+      var peelable = mine && !played && !live && !stuck.hardcoded;
       var applied = el('button', 'ege-slot__applied ' +
         (peelable ? 'ege-slot__applied--peelable' : 'ege-slot__applied--stuck'));
       applied.type = 'button';
       applied.disabled = !peelable;
       var touch = window.matchMedia && window.matchMedia('(hover: none)').matches;
-      var settled = !wager || !wager.outcome ? ' \u2014 the game has been played, it stays put'
+      var settled = live && !played ? ' \u2014 the game is live, it stays put'
+        : !wager || !wager.outcome ? ' \u2014 the game has been played, it stays put'
         : wager.outcome === 'won' ? ' \u2014 won: the game paid ' + EGE.wagerWinWord(game.season) + ' credits'
         : wager.outcome === 'lost' ? ' \u2014 lost: the game paid no credits'
         : ' \u2014 a tie: the game paid its credits as usual';
@@ -928,7 +933,7 @@
        which a player puts a sticker on it and the admin writes it into the
        file before putting the week out. */
     /* Nor on a bye: there is no game to put it on (Sam, 2026-10-20). */
-    if (mine && !played && !game.bye && game.season === EGE.currentSeason) {
+    if (mine && !played && !live && !game.bye && game.season === EGE.currentSeason) {
       var add = el('button', 'ege-slot__add', '+');
       add.type = 'button';
       add.title = game.playoff ? 'Put a wager on this game' : 'Put a booster or a wager on this game';

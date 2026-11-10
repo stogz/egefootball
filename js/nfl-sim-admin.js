@@ -951,8 +951,10 @@ EGE.nflSimAdmin = (function () {
      cancelled (live_control, also on the live page itself), and Test plays
      one on this device alone first, posting nothing (js/live.js). */
 
-  var LIVE_SLOT = 20000;
-  var LIVE_REVEAL = 4000;
+  /* A whole snap, and how long its call shows before the play does
+     (nfl-sim/lib/live.js TIMING, Sam, 2026-11-09). */
+  var LIVE_SLOT = 17000;
+  var LIVE_REVEAL = 5000;
 
   function liveHint(message) {
     return message + (/live_/.test(message) ? ' Run supabase/schema.sql again first.' : '');
@@ -1009,25 +1011,17 @@ EGE.nflSimAdmin = (function () {
     return 'Week ' + EGE.discordPost.weekWord(week);
   }
 
-  /* The six in the game, with their games as the site has them, for the
-     post at the final whistle. */
-  function sixIn(season, week, g) {
-    return (EGE.gamesInWeek ? EGE.gamesInWeek(week, season) : []).filter(function (entry) {
-      var team = EGE.teamFor(entry.player, season, week);
-      var key = team ? EGE.nfl.keyByName(team.school) : null;
-      return !entry.game.bye && (key === g.home || key === g.away) && EGE.hasResult(entry.game);
-    });
-  }
-
-  /* The six on either team that week, by slug, for the game's Game Packs
-     (live_games.six): a game with none of them in it pays none. */
-  function sixSlugs(season, week, g) {
+  /* The six on either team that week, for the game's Game Packs
+     (live_games.six, by slug): a game with none of them in it pays none;
+     and for whose booster or wager on that week the game locks while it is
+     on (live_games.emails, Sam, 2026-11-09). */
+  function sixPlaying(season, week, g) {
     return (EGE.players || []).filter(function (p) {
       var site = EGE.teamKeyFor ? EGE.teamKeyFor(p, season, week) : null;
       var team = site && EGE.teams ? EGE.teams[site] : null;
       var key = team && team.tier === 'nfl' ? EGE.nfl.keyForSite(site) : null;
       return key === g.home || key === g.away;
-    }).map(function (p) { return p.slug; });
+    });
   }
 
   /* The home side's projected margin, as the site's lines have it. */
@@ -1131,13 +1125,14 @@ EGE.nflSimAdmin = (function () {
       plan = got[0].plan;
       var posts = EGE.discordPost.buildLivePosts(plan, {
         id: id, season: season, week: week, home: g.home, away: g.away, title: at.heading,
-        margin: got[1], start: Date.now(), delay: 0, slot: LIVE_SLOT, reveal: LIVE_REVEAL,
-        six: sixIn(season, week, g)
+        margin: got[1], start: Date.now(), delay: 0, slot: LIVE_SLOT, reveal: LIVE_REVEAL
       });
+      var six = sixPlaying(season, week, g);
       return c.rpc('live_start', {
         p_game: { id: id, season: season, week: week, home: g.home, away: g.away, title: liveTitle(g),
                   slot_ms: LIVE_SLOT, reveal_ms: LIVE_REVEAL, length_ms: plan.length,
-                  six: sixSlugs(season, week, g) },
+                  six: six.map(function (p) { return p.slug; }),
+                  emails: six.map(function (p) { return p.email ? String(p.email).toLowerCase() : null; }).filter(Boolean) },
         p_entries: plan.entries,
         p_posts: posts,
         p_bets: got[0].bets
@@ -1146,7 +1141,7 @@ EGE.nflSimAdmin = (function () {
       if (res.error) { throw new Error(liveHint(res.error.message)); }
       var mins = Math.round(plan.length / 60000);
       state.last = { title: liveTitle(g) + ' is up, waiting for its kickoff',
-                     lines: [plan.entries.length + ' snaps, about ' + mins + ' minutes.'].concat(
+                     lines: [plan.entries.filter(function (e) { return e.call; }).length + ' snaps, about ' + mins + ' minutes.'].concat(
                        res.data && res.data.cron ? [] : ['Keep this page open while it plays: it sends the Discord posts.']) };
       opened = true;
       return loadLiveGames();
