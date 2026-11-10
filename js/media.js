@@ -17,8 +17,9 @@
    with the blue check. Any other they make is unverified, unless an admin
    made it and ticked Verified. Admins also get the presets in
    data/media.js (NFL, ESPN, NBC Sports and the personalities: Stephen A
-   Smith, SleeperNFL, Skip Bayless, Ian Rapoport, Cam Newton, Pat
-   McAfee), verified and not editable. All of
+   Smith, SleeperNFL, Skip Bayless, Ian Rapoport, Cam Newton, Pat McAfee,
+   LeBron James, Shannon Sharpe, Chad Johnson, JJ Watt, Terrell Owens),
+   verified and not editable. All of
    a player's accounts are rows of media_accounts, read and written only by
    them; the own account is a row only once it has been changed.
 

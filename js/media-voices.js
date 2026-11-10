@@ -18,6 +18,17 @@
    - Cam Newton: a little goofy. Slanders whoever falls short, gives his
      props to whoever earns them.
    - Pat McAfee: mostly positive. Big finishes, ballers, and kickers.
+   - LeBron James: whoever had a big day, by name, with a pile of emojis
+     and hardly ever a number.
+   - Shannon Sharpe: loud and sure; a tight end who knows what the job
+     takes, a Broncos man, and no friend of the Cowboys.
+   - Chad Johnson: goofy, and only about receivers.
+   - JJ Watt: sincere and upbeat, the defense and the big men first, and
+     his Texans.
+   - Terrell Owens: all for the receivers, and quick to blame the
+     quarterback when one does not get the ball.
+   Skip never uses an emoji (Sam); LeBron uses a lot of them; everybody
+   else one at most.
 
    week(context) is what js/media-news.js asks after the week's news: none
    most weeks, one about half of them, two now and then, each about
@@ -37,12 +48,18 @@ EGE.mediaVoices = (function () {
   var RAP = 'preset:rapsheet';
   var CAM = 'preset:cam';
   var PAT = 'preset:mcafee';
+  var LEBRON = 'preset:lebron';
+  var SHANNON = 'preset:shannon';
+  var CHAD = 'preset:ochocinco';
+  var WATT = 'preset:jj-watt';
+  var TO = 'preset:terrell-owens';
 
   /* How often anybody speaks after a week, and a second voice after the
-     first: so a few times a season each, never a weekly column. */
-  var SPEAK = 0.4;
-  var SPEAK_PLAYOFFS = 0.55;
-  var SECOND = 0.15;
+     first: a dozen or so tweets a season among the eleven, so each is
+     heard from once or twice, never a weekly column. */
+  var SPEAK = 0.5;
+  var SPEAK_PLAYOFFS = 0.6;
+  var SECOND = 0.25;
   /* How much each is heard from, of the ones with something to say. */
   var SHARE = {};
   SHARE[STEPHEN] = 1;
@@ -51,11 +68,16 @@ EGE.mediaVoices = (function () {
   SHARE[RAP] = 0.7;
   SHARE[CAM] = 0.9;
   SHARE[PAT] = 1;
+  SHARE[LEBRON] = 1.1;
+  SHARE[SHANNON] = 0.9;
+  SHARE[CHAD] = 0.9;
+  SHARE[WATT] = 0.8;
+  SHARE[TO] = 0.8;
   /* How often Rapoport follows ESPN's tweet of a trade. */
   var RAP_TAKE = 0.35;
+  var RAP_TAKE_SIX = 0.7;
   /* How often Skip crows about a Cowboys streak or playoff win. */
   var SKIP_COWBOYS = 0.75;
-  var RAP_TAKE_SIX = 0.7;
 
   function kit() { return EGE.mediaNews.kit; }
 
@@ -73,6 +95,7 @@ EGE.mediaVoices = (function () {
     D: ['Lawrence Taylor', 'Reggie White', 'Deion Sanders', 'Ray Lewis']
   };
   var EMOJI = /\p{Extended_Pictographic}/u;
+  var DEFENSE = /^(DI|DE|DT|EDGE|LB|ILB|OLB|CB|S|FS|SS|DB|DL)$/;
   var FG = /^(.+) (\d+)-yard field goal$/;
 
   /* A number as Stephen A shouts it: THIRTY-ONE. */
@@ -155,7 +178,7 @@ EGE.mediaVoices = (function () {
       };
       games.push(game);
       (g.box || []).forEach(function (l) {
-        if (!PLURAL[l.pos] && l.pos !== 'K') { return; }
+        if (!PLURAL[l.pos] && l.pos !== 'K' && !DEFENSE.test(l.pos)) { return; }
         var row = k.rosterRow(ctx.rosters, l.team, l.name);
         var ovr = row ? row.ovr : (l.ege ? 90 : 0);
         lines.push({
@@ -210,6 +233,27 @@ EGE.mediaVoices = (function () {
   function greats(seen) {
     return byScore(seen.lines.filter(function (x) { return PLURAL[x.l.pos] && x.score >= 1.6; })).slice(0, 4);
   }
+  /* The week's best defensive games: sacks, takeaways, a score. */
+  function defenders(seen) {
+    return byScore(seen.lines.filter(function (x) {
+      return DEFENSE.test(x.l.pos) && x.score >= 1.4 && ((x.l.sacks || 0) >= 2 || x.l.ints || x.l.defTd || x.l.ff);
+    })).slice(0, 3);
+  }
+
+  function sackText(n) { return n % 1 ? n.toFixed(1) : String(n); }
+
+  /* A defender's day as a list: 3 sacks, 1 INT and a forced fumble. */
+  function defList(l) {
+    var k = kit();
+    var rows = [];
+    if (l.sacks) { rows.push(sackText(l.sacks) + (l.sacks === 1 ? ' sack' : ' sacks')); }
+    if (l.ints) { rows.push(l.ints + (l.ints === 1 ? ' INT' : ' INTs')); }
+    if (l.ff) { rows.push(l.ff + (l.ff === 1 ? ' forced fumble' : ' forced fumbles')); }
+    if (l.defTd) { rows.push(l.defTd === 1 ? 'a touchdown' : l.defTd + ' touchdowns'); }
+    if (l.tackles && rows.length < 3) { rows.push(l.tackles + ' tackles'); }
+    return k.list(rows);
+  }
+
   function duds(seen) {
     return seen.lines.map(function (x) { return { x: x, bad: dud(x) }; }).filter(function (d) { return d.bad > 0; })
       .sort(function (a, b) { return b.bad - a.bad; }).slice(0, 4);
@@ -384,32 +428,31 @@ EGE.mediaVoices = (function () {
     var w = { opp: k.nick(other), score: game.s.ws + '-' + game.s.ls, rec: r ? k.record(r) : '', n: run.n,
               N: upper(run.n), qb: qb ? qb.name : '', star: star ? star.l.name : '', stat: star ? brief(star.l) : '' };
     var out = [];
-    var STAR = ['⭐', '🤠'];
     if (won && game.round === 'Super Bowl') {
       out.push(take(write([
         'THE DALLAS COWBOYS ARE SUPER BOWL CHAMPIONS. I have waited a long, long time to type that. How ’bout them Cowboys!',
         'MY COWBOYS ARE WORLD CHAMPIONS. {score} over the {opp}. To everybody who doubted this team for years: I TOLD YOU.'
-      ], w, ['🏆', '⭐'], 0.8), 6, 'Cowboys'));
+      ], w, null, 0), 6, 'Cowboys'));
     } else if (won && game.round) {
       out.push(take(write([
         'MY COWBOYS ARE MOVING ON. {score} over the {opp}. Nobody wants any part of Dallas right now. NOBODY.',
         'How ’bout them Cowboys! {score} over the {opp}, and this team is just getting started. I can see the confetti from here.'
-      ], w, STAR, 0.6), 5, 'Cowboys'));
+      ], w, null, 0), 5, 'Cowboys'));
     } else if (won && run.n >= 3) {
       out.push(take(write([
         '{n} straight for MY Cowboys. They’re {rec} and nobody wants to see Dallas in January. I’ve been saying it since August.',
         'How ’bout them Cowboys! {n} in a row. This team is BUILT for a Super Bowl run. Mark it down.',
         '{N} STRAIGHT. My Cowboys are rolling and the rest of the league knows it. {rec}. Start planning the parade.'
-      ], w, STAR, 0.5), 3 + run.n / 4, 'Cowboys'));
+      ], w, null, 0), 3 + run.n / 4, 'Cowboys'));
     } else if (won) {
       var t = ['Cowboys win, {score} over the {opp}. I told you this team was different this year. I TOLD you.'];
       if (w.qb) { t.push('MY Cowboys just handled the {opp}, {score}. {qb} looked like Troy Aikman out there. Don’t look now, but Dallas is for real.'); }
       if (w.star) { t.push('{star} was the best player on that field today and it wasn’t close. {stat}. THAT is what a Cowboy looks like.'); }
-      out.push(take(write(t, w, STAR, 0.4), 2.2, 'Cowboys'));
+      out.push(take(write(t, w, null, 0), 2.2, 'Cowboys'));
     } else {
       var excuses = ['Tough one for my Cowboys, but I am NOT worried. Not one bit. This team is fine. Trust me.'];
       if (game.s.margin <= 7) { excuses.push('The Cowboys didn’t lose that game. The officials took it from them. I said what I said.'); }
-      out.push(take(write(excuses, w, ['🤷'], 0.3), game.round ? 2.5 : 1.2, 'Cowboys'));
+      out.push(take(write(excuses, w, null, 0), game.round ? 2.5 : 1.2, 'Cowboys'));
     }
     var big = won && (Boolean(game.round) || (run.n >= 3 && (run.n === 3 || run.n === 5 || run.n >= 7)));
     return { candidates: out.filter(Boolean), big: big };
@@ -417,7 +460,7 @@ EGE.mediaVoices = (function () {
 
   function skip(seen, ctx) {
     var out = cowboys(seen, ctx).candidates;
-    var SHRUG = ['🤷', '👀'];
+    var SHRUG = null;   /* Skip never uses an emoji (Sam, 2026-11-10) */
     greats(seen).forEach(function (x) {
       var young = (x.age && x.age <= 24) || (x.years != null && x.years <= 2);
       var old = x.age && x.age >= 31;
@@ -432,7 +475,7 @@ EGE.mediaVoices = (function () {
         'See?! {name} is {age} years old and was the best player on that field. Experience MATTERS. I’ve been saying this for YEARS.',
         'Everybody wanted to write {name} off. {age} years old: {stat}. Old school wins. Always has.'
       ];
-      out.push(take(write(t, w, SHRUG, 0.15), x.score * 0.8 + (x.ege ? 0.2 : 0), x.l.name));
+      out.push(take(write(t, w, SHRUG, 0), x.score * 0.8 + (x.ege ? 0.2 : 0), x.l.name));
     });
     duds(seen).forEach(function (d) {
       var x = d.x;
@@ -442,15 +485,15 @@ EGE.mediaVoices = (function () {
         x.l.pos === 'QB' && w.ints >= 3 ? '{name} threw {ints} picks today. I’ve been telling you all along: he’s not ready. {legend} would NEVER have looked this lost.'
           : '{name}: {stat}. I keep hearing he’s the future. The future looks a lot like the past, and not the good part of it.',
         'This is what happens when you hype a kid before he’s done anything. {name}: {stat}. {legend} had to EARN it.'
-      ], w, SHRUG, 0.15), d.bad + (x.ege ? 0.3 : 0), x.l.name));
+      ], w, SHRUG, 0), d.bad + (x.ege ? 0.3 : 0), x.l.name));
     });
     seen.games.forEach(function (game) {
       var w = Object.assign({ defLegend: kit().pick(LEGENDS.D) }, game.words);
       if (w.total >= 70) {
         out.push(take(write([
           '{total} points in {where}. That’s not football, that’s flag football. Defenses used to be allowed to hit people. The game I grew up loving is GONE.',
-          '{Winner} {ws}, {Loser} {ls}. Nobody tackles anymore. {defLegend} would have eaten both of these offenses alive.'
-        ], w, SHRUG, 0.15), 1 + (w.total - 70) / 30, w.winner));
+          '{winner} {ws}, {loser} {ls}. Nobody tackles anymore. {defLegend} would have eaten both of these offenses alive.'
+        ], w, SHRUG, 0), 1 + (w.total - 70) / 30, w.winner));
       }
     });
     return out.filter(Boolean);
@@ -595,10 +638,189 @@ EGE.mediaVoices = (function () {
     return out.filter(Boolean);
   }
 
+  /* --- LeBron James ----------------------------------------------------------------- */
+
+  /* Whoever had a big day, by name, and emojis: lots of them, and hardly
+     ever a number (Sam, 2026-11-10). */
+  var BRON_EMOJI = ['🔥🔥🔥🔥', '🤯🤯🤯', '🙌🏾🙌🏾🙌🏾', '👑👑👑', '😤😤😤', '💪🏾💪🏾💪🏾', '👀👀👀👀', '🔥🔥🤯🤯', '🐐🐐', '🚀🚀🚀'];
+
+  function lebron(seen) {
+    var k = kit();
+    var out = [];
+    greats(seen).forEach(function (x) {
+      var w = lineWords(x);
+      w.e = k.pick(BRON_EMOJI);
+      w.e2 = k.pick(BRON_EMOJI);
+      var t = [
+        '{NAME}!!!!!!! {e}',
+        '{name} is SPECIAL!!!! {e}',
+        'Man listen!!!! {name} {e}',
+        'BRO!!!!!!!! {name} {e}{e2}',
+        'Sheeeeesh!!!! {name} {e}',
+        'Y’all see what {name} just did?!?!?! {e}',
+        '{name} you’re HIM!!!! {e}',
+        'WOW!!!!! {name} {e}'
+      ];
+      if ((x.age && x.age <= 24) || (x.years != null && x.years <= 2)) { t.push('Kid is a PROBLEM!!!! {name} {e}'); }
+      if (k.chance(0.25)) { t = ['{yds} yards?!?!?! {name} {e}', '{name} with {td} touchdowns?!?! C’MON MAN!!!! {e}']; }
+      out.push(take(k.say(t, w), x.score * 0.8 + (x.ege ? 0.3 : 0), x.l.name));
+    });
+    seen.games.forEach(function (game) {
+      if (!game.late && !game.ot && game.round !== 'Super Bowl') { return; }
+      var w = Object.assign({ e: k.pick(BRON_EMOJI) }, game.words);
+      out.push(take(k.say(game.round === 'Super Bowl' ? ['CHAMPS!!!!!! Congrats {Winner}!!!! {e}'] : [
+        'THIS GAME!!!!!! {e}',
+        'Nah this {winner} {loser} game was CRAZY!!!! {e}'
+      ], w), game.round === 'Super Bowl' ? 2.5 : 1.6, w.winner));
+    });
+    return out.filter(Boolean);
+  }
+
+  /* --- Shannon Sharpe --------------------------------------------------------------- */
+
+  var BRONCOS = 'DEN';
+
+  /* Loud and sure of himself, a Hall of Fame tight end who knows what the
+     position takes; cheers his Broncos and has no sympathy for the
+     Cowboys. */
+  function shannon(seen) {
+    var out = [];
+    var LOUD = ['💯', '🔥', '😂'];
+    greats(seen).forEach(function (x) {
+      var w = lineWords(x);
+      var t = x.l.pos === 'TE' ? [
+        'As a tight end, let me tell y’all something: what {name} did today is HARD. {stat}. Give that man his respect.',
+        'Tight ends don’t get enough love. {name}: {stat}. That’s a BAD man.'
+      ] : [
+        '{name} is a BAD man. {stat}. Y’all better start respecting him.',
+        'That boy {name} can PLAY. I’m telling you. {stat}.',
+        '{name} is HIM. Not him-ish. HIM.'
+      ];
+      out.push(take(write(t, w, ['💯', '🔥'], 0.5), x.score * 0.8 + (x.l.pos === 'TE' ? 0.5 : 0) + (x.ege ? 0.2 : 0), x.l.name));
+    });
+    duds(seen).forEach(function (d) {
+      var w = lineWords(d.x);
+      out.push(take(write([
+        'I love {name}, but I can’t defend that. {stat}. Not good enough.',
+        '{name}, you gotta be better than that, young fella. {stat}. Can’t happen.'
+      ], w, ['😂', '🤦'], 0.4), d.bad * 0.8, d.x.l.name));
+    });
+    seen.games.forEach(function (game) {
+      var w = game.words;
+      if (game.s.l === 'DAL') {
+        out.push(take(write([
+          'The Cowboys lost to the {winner}, {score}. I’m not gonna say anything. I don’t have to.',
+          'America’s Team, y’all. {winner} {ws}, Cowboys {ls}. Same old Cowboys.'
+        ], w, LOUD, 0.6), 2, 'Cowboys'));
+      }
+      if (game.s.w === BRONCOS) {
+        out.push(take(write([
+          'BRONCOS WIN! {score} over the {loser}. Mile High, stand up!',
+          'That’s my Broncos! {score} over the {loser}. Let’s ride.'
+        ], w, ['🐴', '🔥'], 0.6), 1.6, 'Broncos'));
+      }
+    });
+    return out.filter(Boolean);
+  }
+
+  /* --- Chad Johnson ------------------------------------------------------------------ */
+
+  /* Goofy, and only about receivers (Sam, 2026-11-10). */
+  function chad(seen) {
+    var out = [];
+    var LAUGH = ['😂😂', '🤣🤣', '😂🤣'];
+    greats(seen).forEach(function (x) {
+      if (x.l.pos !== 'WR') { return; }
+      var w = Object.assign({ lol: kit().pick(LAUGH) }, lineWords(x));
+      out.push(take(kit().say([
+        '{name} put that DB in a blender {lol} {stat}. WR gang stand up!',
+        'Somebody tell the {opp} secondary it’s okay to cover {name} {lol} {rec} catches, {yds} yards',
+        '{name} reminds me of me {lol} Get that man double coverage before it’s too late',
+        'Watching {name} got me wanting to come out of retirement {lol} Somebody bring me a helmet',
+        '{name} is a WR1. Not a debate. Child please {lol}',
+        'The {opp} DBs gonna need a ride home after what {name} did to them {lol}'
+      ], w), x.score * 0.9 + (x.ege ? 0.3 : 0), x.l.name));
+    });
+    duds(seen).forEach(function (d) {
+      if (d.x.l.pos !== 'WR') { return; }
+      var w = Object.assign({ lol: kit().pick(LAUGH) }, lineWords(d.x));
+      out.push(take(kit().say([
+        '{name} had {yds} yards today… I had more than that in my sleep {lol}',
+        'Child please. {targets} targets and {yds} yards?? {name} better be on that JUGS machine tonight {lol}',
+        '{name} was invisible out there. I checked the milk cartons {lol}'
+      ], w), d.bad, d.x.l.name));
+    });
+    return out.filter(Boolean);
+  }
+
+  /* --- JJ Watt -------------------------------------------------------------------- */
+
+  var TEXANS = 'HOU';
+
+  /* Sincere and upbeat, and a defensive lineman at heart: the big men and
+     the defense first, and the Texans, his old team. */
+  function jjWatt(seen, ctx) {
+    var k = kit();
+    var out = [];
+    var CLAP = ['💪', '👏', '🔥', '🙌'];
+    defenders(seen).forEach(function (x) {
+      var l = x.l;
+      var w = { name: l.name, team: k.nick(x.team), opp: k.nick(x.opp), def: defList(l), sacks: sackText(l.sacks || 0) };
+      var t = [
+        'Defensive players don’t get enough love. {name} was a PROBLEM today: {def}.',
+        'That’s how you take over a football game from the defensive side of the ball. {name}: {def}. Unreal.',
+        '{name} is a football player. That’s the highest compliment I can give.'
+      ];
+      if ((l.sacks || 0) >= 2) { t.push('{name}. {sacks} sacks. Absolute game wrecker. Big men deserve love too.'); }
+      if (l.defTd) { t.push('{name} takes it to the house! There is no better feeling in football. Trust me.'); }
+      out.push(take(write(t, w, CLAP, 0.5), x.score + (x.ege ? 0.3 : 0), l.name));
+    });
+    var game = seen.games.filter(function (gm) { return gm.s.w === TEXANS; })[0];
+    if (game) {
+      var r = ctx.after[TEXANS];
+      var qb = (game.g.box || []).filter(function (l) { return l.team === TEXANS && l.pos === 'QB'; })
+        .sort(function (a, b) { return (b.passAtt || 0) - (a.passAtt || 0); })[0];
+      var w = { score: game.words.score, opp: game.words.loser, rec: r && ctx.regular ? k.record(r) : '', qb: qb ? qb.name : '' };
+      var t = ['Texans win! {score} over the {opp}. H-Town, let’s go!'];
+      if (w.rec) { t.push('Love seeing the Texans rolling. {rec} and climbing.'); }
+      if (w.qb && qb.passTd >= 2) { t.push('{qb} is the real deal. Houston is lucky to have him.'); }
+      out.push(take(write(t, w, ['🤘', '🔥', '🙌'], 0.6), 1.8, 'Texans'));
+    }
+    return out.filter(Boolean);
+  }
+
+  /* --- Terrell Owens -------------------------------------------------------------- */
+
+  /* A Hall of Fame receiver: sure of himself, all for the receivers, and
+     quick to say whose fault it is when one does not get the ball. */
+  function owens(seen) {
+    var out = [];
+    greats(seen).forEach(function (x) {
+      if (x.l.pos !== 'WR' && x.l.pos !== 'TE') { return; }
+      var w = lineWords(x);
+      out.push(take(write([
+        '{name} giving these DBs the business. {stat}. Feed your receivers and watch what happens.',
+        '{name} reminds me of a young 81. {stat}. I see you.',
+        x.l.pos === 'TE' ? 'That’s a TE1, period. {name}: {stat}.' : 'That’s a WR1, period. {name}: {stat}.',
+        'Corners can’t check {name}. Simple as that. {stat}.'
+      ], w, ['🔥', '👀', '💯', '😤'], 0.5), x.score * 0.9 + (x.ege ? 0.3 : 0), x.l.name));
+    });
+    duds(seen).forEach(function (d) {
+      if (d.x.l.pos !== 'WR' && d.x.l.pos !== 'TE') { return; }
+      var w = lineWords(d.x);
+      out.push(take(write([
+        'Somebody in {city} needs to get {name} the ball. {targets} targets, {yds} yards. That’s a QB problem, not a receiver problem.',
+        '{name} is open. He’s ALWAYS open. Get your playmakers the ball, {team}!'
+      ], w, ['👀', '🤦'], 0.4), d.bad, d.x.l.name));
+    });
+    return out.filter(Boolean);
+  }
+
   /* --- who speaks ----------------------------------------------------------------- */
 
   var WRITERS = [
-    [STEPHEN, stephenA], [SLEEPER, sleeper], [SKIP, skip], [RAP, rapoport], [CAM, cam], [PAT, mcafee]
+    [STEPHEN, stephenA], [SLEEPER, sleeper], [SKIP, skip], [RAP, rapoport], [CAM, cam], [PAT, mcafee],
+    [LEBRON, lebron], [SHANNON, shannon], [CHAD, chad], [WATT, jjWatt], [TO, owens]
   ];
 
   function oneOf(candidates) {
@@ -736,6 +958,6 @@ EGE.mediaVoices = (function () {
       WRITERS.forEach(function (w) { out[w[0]] = w[1](seen, ctx); });
       return out;
     },
-    ACCOUNTS: [STEPHEN, SLEEPER, SKIP, RAP, CAM, PAT]
+    ACCOUNTS: WRITERS.map(function (w) { return w[0]; })
   };
 })();
