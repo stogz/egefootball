@@ -418,7 +418,8 @@ A whole season and its playoffs take about half a second.
   (`live.rate`, `live.HEAT`; each entry's `h`). His second touchdown of
   the game, or his second takeaway (an interception or a forced fumble),
   sets him burning for the rest of the game too, and his third turns it
-  blue (Sam, 2026-11-10). Never a quarterback: backs, receivers, tight
+  blue (Sam, 2026-11-10); the page also counts those from each entry's
+  `d`, so games put on before then burn for them too. Never a quarterback: backs, receivers, tight
   ends, defenders and kickers. Over a season of the sim's games that is
   about one and a half players alight a game, and somebody turning blue
   in a game out of three. The fire is Sam's own gif
