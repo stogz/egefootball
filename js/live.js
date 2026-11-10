@@ -576,16 +576,20 @@ EGE.liveView = (function () {
     who.appendChild(words);
     card.appendChild(who);
     if (state === 'live') {
-      /* The time to whatever comes next: the call, the whole play, the
-         next snap (the wait before it, or a punt's call). */
+      /* One bar for the whole snap, the same from the wait through the
+         call to the end of the play (Sam, 2026-11-10): a snap's slot from
+         its wait, or from a punt's call. Halftime runs to the kickoff. */
       var bar = el('span', 'ege-cast__bar');
       var fill = el('span', 'ege-cast__fill');
       var start = entryMs(game.at);
       var end;
-      if (e.hidden) {
-        end = start + game.reveal;
+      if (e.tag === 'wait') {
+        end = start + game.slot;
+      } else if (e.call) {
+        var before = game.entries[game.at - 1];
+        if (before && before.tag === 'wait') { start = entryMs(game.at - 1); }
+        end = start + game.slot;
       } else {
-        if (e.call) { start += game.reveal; }
         end = game.next !== null ? game.next : start + game.slot;
       }
       var gone = Math.min(1, Math.max(0, (clock() - start) / (end - start)));

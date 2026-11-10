@@ -411,14 +411,19 @@ A whole season and its playoffs take about half a second.
   every snap is five seconds of nothing (a `wait` entry of its own), five
   of the call and seven of the whole play; a punt has no wait and twelve
   of the whole play; halftime is two minutes. Nothing else waits longer.
+  The page's bar runs once a snap, from its wait through the call to the
+  end of the play (Sam, 2026-11-10).
   A player whose third big play comes in a row, with nothing of his going
   nowhere in between, sets his plays burning (fire licking in from the
-  box's left border), and his fourth turns it blue, until one does (`live.rate`, `live.HEAT`; each entry's
-  `h`). Never a quarterback (Sam, 2026-11-10): backs, receivers, tight
+  box's left border), and his fourth turns it blue, until one does
+  (`live.rate`, `live.HEAT`; each entry's `h`). His second touchdown of
+  the game, or his second takeaway (an interception or a forced fumble),
+  sets him burning for the rest of the game too, and his third turns it
+  blue (Sam, 2026-11-10). Never a quarterback: backs, receivers, tight
   ends, defenders and kickers. Over a season of the sim's games that is
-  about one player alight a game, and one turning blue in a game out of
-  four. The fire is Sam's own gif (`icon/live/fire.webp`,
-  `fire-blue.webp`). An incompletion nobody
+  about one and a half players alight a game, and somebody turning blue
+  in a game out of three. The fire is Sam's own gif
+  (`icon/live/fire.webp`, `fire-blue.webp`). An incompletion nobody
   broke up is told as dropped, out of bounds or incomplete from where the
   throw's own draw fell, so no die is added. PLAY LIVE puts the game up
   waiting, the bot's first post goes at once, and an admin kicks it off

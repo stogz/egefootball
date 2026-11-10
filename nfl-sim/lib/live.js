@@ -124,14 +124,35 @@ TIMING.slot = TIMING.wait + TIMING.call + TIMING.play;
 /* A player getting hot (Sam, 2026-11-09): his third big play in a row
    sets his plays burning along their left border, his fourth turns the
    fire blue, until a play of his goes nowhere. A play that is neither
-   leaves him as he was, and so do the plays he is not in. Never a quarterback (Sam): backs,
-   receivers, tight ends, defenders and kickers. What is big and what goes
-   nowhere is rated below (rate). Over a season of the sim's games that is
-   about one player alight a game, and one turning blue in a game out of
-   four. */
-const HEAT = { flame: 3, fire: 4 };
+   leaves him as he was, and so do the plays he is not in. Never a
+   quarterback (Sam): backs, receivers, tight ends, defenders and kickers.
+   What is big and what goes nowhere is rated below (rate).
+   He also catches fire on his second touchdown of the game, or his second
+   takeaway (an interception or a forced fumble), and his third turns it
+   blue (Sam, 2026-11-10). That fire lasts the rest of the game. */
+const HEAT = { flame: 3, fire: 4, count: 2 };
 
 function heatLevel(streak) { return streak >= HEAT.fire ? 2 : streak >= HEAT.flame ? 1 : 0; }
+
+/* How hot so many touchdowns or takeaways in a game make him. */
+function countLevel(n) { return n > HEAT.count ? 2 : n >= HEAT.count ? 1 : 0; }
+
+/* Who scored a snap's touchdown, by the sim's id: the returner of a kick
+   or a punt, the man who picked it off, the receiver, the runner. */
+function scorer(e) {
+  if (e.tdBy === undefined) { return undefined; }
+  if (e.k === 'kick' || e.k === 'free' || e.k === 'punt') { return e.ret; }
+  if (e.k === 'pass') { return e.res === 'i' ? e.by : e.res === 'c' ? e.to : undefined; }
+  return e.ball;
+}
+
+/* Who took the ball away on a snap: an interception, a forced fumble. */
+function takers(e) {
+  const out = [];
+  if (e.k === 'pass' && e.res === 'i' && e.by !== undefined) { out.push(e.by); }
+  if (e.ff !== undefined) { out.push(e.ff); }
+  return out;
+}
 
 /* What a snap did for each player in it but the passer, by the sim's ids:
    'big' (a touchdown, a run of 12 yards or more, a catch of 20, a kick
@@ -250,8 +271,14 @@ function build(league, game, kept) {
   let red = null;
   /* The entries that are punts, which have no wait before them. */
   const punts = new Set();
-  /* Each player's big plays in a row, by his number in this game. */
+  /* Each player's big plays in a row, touchdowns and takeaways, by his
+     number in this game. */
   const streak = {};
+  const tds = {};
+  const takes = {};
+  function hotness(i) {
+    return Math.max(heatLevel(streak[i] || 0), countLevel(tds[i] || 0), countLevel(takes[i] || 0));
+  }
 
   function state(at, side) {
     return { o: keys[side === undefined ? at.o : side], yl: Math.max(0, Math.min(100, at.yl)), dn: at.dn, tg: at.tg,
@@ -527,17 +554,29 @@ function build(league, game, kept) {
     /* Who is hot after it: everybody in it who is, and anybody it cooled
        off. */
     const heat = {};
-    rate(e).forEach(([id, how]) => {
-      if (people[id] && people[id].pos === 'QB') { return; }
+    const was = {};
+    function count(id) {
+      if (id === undefined || id === null || (people[id] && people[id].pos === 'QB')) { return undefined; }
       const i = num(id);
-      if (i === undefined) { return; }
-      const was = heatLevel(streak[i] || 0);
-      streak[i] = how === 'big' ? (streak[i] || 0) + 1 : 0;
-      const now = heatLevel(streak[i]);
-      if (now || was) { heat[i] = now; }
+      if (i !== undefined && !(i in was)) { was[i] = hotness(i); }
+      return i;
+    }
+    rate(e).forEach(([id, how]) => {
+      const i = count(id);
+      if (i !== undefined) { streak[i] = how === 'big' ? (streak[i] || 0) + 1 : 0; }
+    });
+    const by = count(scorer(e));
+    if (by !== undefined) { tds[by] = (tds[by] || 0) + 1; }
+    takers(e).forEach((id) => {
+      const i = count(id);
+      if (i !== undefined) { takes[i] = (takes[i] || 0) + 1; }
+    });
+    Object.keys(was).forEach((i) => {
+      const now = hotness(i);
+      if (now || was[i]) { heat[i] = now; }
     });
     [w, r].forEach((i) => {
-      if (i !== undefined && heat[i] === undefined && heatLevel(streak[i] || 0)) { heat[i] = heatLevel(streak[i]); }
+      if (i !== undefined && heat[i] === undefined && hotness(i)) { heat[i] = hotness(i); }
     });
 
     const entry = { call, text, pre, post: post2 };
@@ -625,4 +664,4 @@ function build(league, game, kept) {
   return { entries: timed, posts: kept2, score: final, ot, players: info, lines, length: ms };
 }
 
-module.exports = { build, whenText, passLine, rushLine, recLine, kickLine, rate, heatLevel, BIG_PLAY, RED_ZONE, TIMING, HEAT };
+module.exports = { build, whenText, passLine, rushLine, recLine, kickLine, rate, heatLevel, countLevel, scorer, takers, BIG_PLAY, RED_ZONE, TIMING, HEAT };
