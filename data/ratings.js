@@ -171,30 +171,30 @@ EGE.overallOffset = { QB: 7.3, RB: 2.4, WR: 3.5, TE: 3.7 };
    cleared. Nothing else in this file is touched, so leave the markers alone
    and edit inside them freely. */
 /* ege:ratings:start */
-/* Locked on 2026-11-03, at the end of the 2027 season. Every rating
+/* Locked on 2026-11-10, at the end of the 2028 season. Every rating
    point and every offseason workout bought during that season is part of
    these numbers now, and the shop rows behind them have been cleared. */
 EGE.ratings = {
   'jaykeb-stewart': {
     /* General */
-    speed: 79, acceleration: 90, strength: 99, agility: 71, jumping: 79,
-    injury: 79, stamina: 72, toughness: 69,
+    speed: 84, acceleration: 95, strength: 99, agility: 75, jumping: 81,
+    injury: 86, stamina: 76, toughness: 71,
     /* Passing */
-    throwPower: 94, throwUnderPressure: 94, throwAccuracyShort: 93,
-    throwAccuracyMid: 90, throwAccuracyDeep: 92, throwOnTheRun: 94,
-    playAction: 92,
+    throwPower: 94, throwUnderPressure: 94, throwAccuracyShort: 97,
+    throwAccuracyMid: 94, throwAccuracyDeep: 96, throwOnTheRun: 94,
+    playAction: 96,
     /* Receiving */
     catching: 22, spectacularCatch: 23, catchInTraffic: 22,
     routeRunningShort: 22, routeRunningMedium: 16, routeRunningDeep: 21,
     release: 22,
     /* Ball Carrier */
-    carrying: 41, breakTackle: 36, trucking: 31, changeOfDirection: 51,
+    carrying: 41, breakTackle: 36, trucking: 31, changeOfDirection: 67,
     bcVision: 37, stiffArm: 41, spinMove: 41, jukeMove: 36, breakSack: 94,
   },
   'cooper-clark': {
     /* General */
-    speed: 91, acceleration: 91, strength: 99, agility: 82, jumping: 86,
-    injury: 92, stamina: 83, toughness: 77,
+    speed: 89, acceleration: 91, strength: 99, agility: 81, jumping: 83,
+    injury: 97, stamina: 84, toughness: 77,
     /* Passing */
     throwPower: 14, throwUnderPressure: 18, throwAccuracyShort: 12,
     throwAccuracyMid: 9, throwAccuracyDeep: 16, throwOnTheRun: 14,
@@ -204,124 +204,122 @@ EGE.ratings = {
     routeRunningShort: 68, routeRunningMedium: 42, routeRunningDeep: 39,
     release: 53,
     /* Ball Carrier */
-    carrying: 81, breakTackle: 90, trucking: 81, changeOfDirection: 86,
+    carrying: 85, breakTackle: 90, trucking: 81, changeOfDirection: 84,
     bcVision: 90, stiffArm: 71, spinMove: 72, jukeMove: 84, breakSack: 63,
   },
   'andrew-parr': {
     /* General */
-    speed: 55, acceleration: 66, strength: 99, agility: 55, jumping: 80,
-    injury: 84, stamina: 55, toughness: 80,
+    speed: 54, acceleration: 68, strength: 99, agility: 54, jumping: 82,
+    injury: 91, stamina: 55, toughness: 82,
     /* Passing */
     throwPower: 17, throwUnderPressure: 8, throwAccuracyShort: 10,
     throwAccuracyMid: 8, throwAccuracyDeep: 17, throwOnTheRun: 15,
     playAction: 7,
     /* Receiving */
-    catching: 90, spectacularCatch: 80, catchInTraffic: 90,
+    catching: 92, spectacularCatch: 84, catchInTraffic: 90,
     routeRunningShort: 90, routeRunningMedium: 84, routeRunningDeep: 80,
-    release: 80,
+    release: 81,
     /* Ball Carrier */
-    carrying: 44, breakTackle: 80, trucking: 80, changeOfDirection: 49,
-    bcVision: 51, stiffArm: 40, spinMove: 61, jukeMove: 58, breakSack: 40,
+    carrying: 54, breakTackle: 80, trucking: 80, changeOfDirection: 48,
+    bcVision: 51, stiffArm: 53, spinMove: 61, jukeMove: 58, breakSack: 40,
     /* Blocking */
-    runBlock: 81, passBlock: 81, impactBlocking: 70, runBlockPower: 64,
-    runBlockFinesse: 61, passBlockPower: 60, passBlockFinesse: 60,
+    runBlock: 90, passBlock: 81, impactBlocking: 81, runBlockPower: 80,
+    runBlockFinesse: 61, passBlockPower: 60, passBlockFinesse: 61,
     leadBlock: 60,
   },
   'sam-stogsdill': {
     /* General */
-    speed: 84, acceleration: 89, strength: 99, agility: 73, jumping: 76,
-    injury: 98, stamina: 76, toughness: 74,
+    speed: 87, acceleration: 93, strength: 99, agility: 76, jumping: 79,
+    injury: 99, stamina: 79, toughness: 76,
     /* Passing */
     throwPower: 13, throwUnderPressure: 17, throwAccuracyShort: 12,
     throwAccuracyMid: 9, throwAccuracyDeep: 15, throwOnTheRun: 13,
     playAction: 9,
     /* Receiving */
-    catching: 85, spectacularCatch: 42, catchInTraffic: 52,
-    routeRunningShort: 67, routeRunningMedium: 33, routeRunningDeep: 38,
+    catching: 89, spectacularCatch: 42, catchInTraffic: 52,
+    routeRunningShort: 73, routeRunningMedium: 33, routeRunningDeep: 38,
     release: 53,
     /* Ball Carrier */
-    carrying: 99, breakTackle: 89, trucking: 94, changeOfDirection: 84,
-    bcVision: 89, stiffArm: 70, spinMove: 68, jukeMove: 76, breakSack: 70,
+    carrying: 99, breakTackle: 89, trucking: 94, changeOfDirection: 89,
+    bcVision: 91, stiffArm: 70, spinMove: 68, jukeMove: 84, breakSack: 70,
   },
   'isaac-vitel': {
     /* General */
-    speed: 58, acceleration: 61, strength: 71, agility: 51, jumping: 57,
-    injury: 57, stamina: 52, toughness: 53,
+    speed: 60, acceleration: 64, strength: 77, agility: 53, jumping: 62,
+    injury: 61, stamina: 55, toughness: 57,
     /* Passing */
-    throwPower: 81, throwUnderPressure: 91, throwAccuracyShort: 85,
-    throwAccuracyMid: 86, throwAccuracyDeep: 93, throwOnTheRun: 86,
-    playAction: 91,
+    throwPower: 85, throwUnderPressure: 93, throwAccuracyShort: 85,
+    throwAccuracyMid: 87, throwAccuracyDeep: 95, throwOnTheRun: 86,
+    playAction: 94,
     /* Receiving */
     catching: 19, spectacularCatch: 21, catchInTraffic: 19,
     routeRunningShort: 19, routeRunningMedium: 13, routeRunningDeep: 18,
     release: 19,
     /* Ball Carrier */
-    carrying: 73, breakTackle: 41, trucking: 28, changeOfDirection: 44,
-    bcVision: 51, stiffArm: 35, spinMove: 38, jukeMove: 34, breakSack: 63,
+    carrying: 75, breakTackle: 47, trucking: 29, changeOfDirection: 47,
+    bcVision: 54, stiffArm: 35, spinMove: 39, jukeMove: 34, breakSack: 76,
   },
   'paxon-hatch': {
     /* General */
-    speed: 88, acceleration: 98, strength: 99, agility: 93, jumping: 82,
-    injury: 74, stamina: 96, toughness: 67,
+    speed: 89, acceleration: 99, strength: 99, agility: 94, jumping: 87,
+    injury: 88, stamina: 98, toughness: 71,
     /* Passing */
     throwPower: 8, throwUnderPressure: 18, throwAccuracyShort: 12,
     throwAccuracyMid: 16, throwAccuracyDeep: 12, throwOnTheRun: 14,
     playAction: 7,
     /* Receiving */
-    catching: 93, spectacularCatch: 85, catchInTraffic: 86,
-    routeRunningShort: 85, routeRunningMedium: 89, routeRunningDeep: 85,
+    catching: 95, spectacularCatch: 86, catchInTraffic: 86,
+    routeRunningShort: 85, routeRunningMedium: 90, routeRunningDeep: 85,
     release: 85,
     /* Ball Carrier */
-    carrying: 61, breakTackle: 60, trucking: 70, changeOfDirection: 75,
-    bcVision: 50, stiffArm: 60, spinMove: 50, jukeMove: 70, breakSack: 41,
+    carrying: 70, breakTackle: 60, trucking: 75, changeOfDirection: 75,
+    bcVision: 50, stiffArm: 60, spinMove: 54, jukeMove: 75, breakSack: 41,
     /* Blocking */
     runBlock: 48, passBlock: 50, impactBlocking: 53, runBlockPower: 50,
     runBlockFinesse: 50, passBlockPower: 45, passBlockFinesse: 45,
     leadBlock: 50,
   },
 };
-EGE.ratingsLockedSeason = 2027;
+EGE.ratingsLockedSeason = 2028;
 /* Where the numbers above stood when that season kicked off: only the
    attributes that moved, at their old values. It is what the ticker on a
    player's ratings measures the season's climb from. */
 EGE.ratingsSeasonStart = {
-  season: 2027,
+  season: 2028,
   changes: {
     'jaykeb-stewart': {
-      speed: 78, acceleration: 85, strength: 97, agility: 70, jumping: 74,
-      injury: 70, stamina: 71, toughness: 65, throwAccuracyDeep: 84,
-      throwOnTheRun: 86, breakSack: 86,
+      speed: 79, acceleration: 90, agility: 71, jumping: 79, injury: 79,
+      stamina: 72, toughness: 69, throwAccuracyShort: 93,
+      throwAccuracyMid: 90, throwAccuracyDeep: 92, playAction: 92,
+      changeOfDirection: 51,
     },
     'cooper-clark': {
-      speed: 88, acceleration: 88, strength: 96, agility: 79, jumping: 83,
-      injury: 80, stamina: 80, toughness: 75, routeRunningShort: 64,
-      release: 45, trucking: 69, stiffArm: 61, spinMove: 70, jukeMove: 80,
+      speed: 91, agility: 82, jumping: 86, injury: 92, stamina: 83,
+      carrying: 81, changeOfDirection: 86,
     },
     'andrew-parr': {
-      speed: 51, acceleration: 62, agility: 51, jumping: 76, injury: 75,
-      stamina: 51, toughness: 76, spectacularCatch: 66,
-      routeRunningMedium: 71, routeRunningDeep: 76, release: 66,
-      passBlock: 80, impactBlocking: 68, runBlockPower: 60,
+      speed: 55, acceleration: 66, agility: 55, jumping: 80, injury: 84,
+      toughness: 80, catching: 90, spectacularCatch: 80, release: 80,
+      carrying: 44, changeOfDirection: 49, stiffArm: 40, runBlock: 81,
+      impactBlocking: 70, runBlockPower: 64, passBlockFinesse: 60,
     },
     'sam-stogsdill': {
-      speed: 80, acceleration: 85, agility: 69, jumping: 74, injury: 91,
-      stamina: 72, toughness: 72, catching: 84, catchInTraffic: 40,
-      routeRunningShort: 45, release: 41, bcVision: 88, spinMove: 52,
-      jukeMove: 68,
+      speed: 84, acceleration: 89, agility: 73, jumping: 76, injury: 98,
+      stamina: 76, toughness: 74, catching: 85, routeRunningShort: 67,
+      changeOfDirection: 84, bcVision: 89, jukeMove: 76,
     },
     'isaac-vitel': {
-      speed: 55, acceleration: 58, strength: 66, agility: 48, jumping: 54,
-      injury: 55, stamina: 49, toughness: 51, throwUnderPressure: 90,
-      throwAccuracyShort: 83, throwAccuracyMid: 84, throwOnTheRun: 82,
-      playAction: 88, carrying: 71, breakTackle: 37, trucking: 27,
-      bcVision: 47, spinMove: 37, breakSack: 62,
+      speed: 58, acceleration: 61, strength: 71, agility: 51, jumping: 57,
+      injury: 57, stamina: 52, toughness: 53, throwPower: 81,
+      throwUnderPressure: 91, throwAccuracyMid: 86, throwAccuracyDeep: 93,
+      playAction: 91, carrying: 73, breakTackle: 41, trucking: 28,
+      changeOfDirection: 44, bcVision: 51, spinMove: 38, breakSack: 63,
     },
     'paxon-hatch': {
-      speed: 84, acceleration: 94, strength: 94, agility: 89, jumping: 74,
-      injury: 58, stamina: 92, toughness: 61, spectacularCatch: 84,
-      routeRunningMedium: 85, routeRunningDeep: 81, release: 84,
-      carrying: 53, breakTackle: 55, trucking: 65, changeOfDirection: 74,
-      stiffArm: 51, jukeMove: 65,
+      speed: 88, acceleration: 98, agility: 93, jumping: 82, injury: 74,
+      stamina: 96, toughness: 67, catching: 93, spectacularCatch: 85,
+      routeRunningMedium: 89, carrying: 61, trucking: 70, spinMove: 50,
+      jukeMove: 70,
     },
   }
 };
