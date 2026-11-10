@@ -412,17 +412,17 @@ A whole season and its playoffs take about half a second.
   own), five of the call and nine of the whole play; halftime is two
   minutes. Nothing else waits longer. The page's bar runs once a snap,
   from "Snap…" through the call to the end of the play.
-  A player whose third big play comes in a row, with nothing of his going
-  nowhere in between, sets his plays burning (fire licking in from the
-  box's left border), and his fourth turns it blue, until one does
-  (`live.rate`, `live.HEAT`; each entry's `h`). His second touchdown of
-  the game, or his second takeaway (an interception or a forced fumble),
-  sets him burning for the rest of the game too, and his third turns it
-  blue (Sam, 2026-11-10); the page also counts those from each entry's
-  `d`, so games put on before then burn for them too. Never a quarterback: backs, receivers, tight
-  ends, defenders and kickers. Over a season of the sim's games that is
-  about one and a half players alight a game, and somebody turning blue
-  in a game out of three. The fire is Sam's own gif
+  Who is on fire the page works out itself (`js/live-heat.js`, Sam
+  2026-11-09 and 2026-11-10), from what each snap added to the lines, so
+  every game ever put on follows the same rules: a player catches fire on
+  his third big play in a row, his second touchdown of the game or his
+  second takeaway (an interception or a forced fumble), and turns blue on
+  the next. He keeps burning while he keeps making catches or good yards,
+  and it goes out on two dropped passes, a fumble or a turnover on downs,
+  two plays in a row that lose yards, or 24 snaps without a good play.
+  Never a quarterback. Over a season of the sim's games that is about one
+  and a half players alight a game, for about 28 snaps each, and somebody
+  turning blue in a game out of four. The fire is Sam's own gif
   (`icon/live/fire.webp`, `fire-blue.webp`). An incompletion nobody
   broke up is told as dropped, out of bounds or incomplete from where the
   throw's own draw fell, so no die is added. PLAY LIVE puts the game up
