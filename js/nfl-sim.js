@@ -4142,8 +4142,8 @@ module.exports = { build, tdPrice, homePoints, MIN, SPREAD, PROP };
      names are after it (HEAT: 1 alight, 2 blue); and `ms` when the entry comes up, in
      milliseconds from kickoff (TIMING).
      Halftime and the final whistle are entries of their own, and so is
-     the wait before every snap but a punt (`tag` 'wait': where the ball
-     is, and nothing about the play to come).
+     the wait before every snap (`tag` 'wait': "Snap…", where the ball is,
+     and nothing about the play to come).
    - the posts: what the Discord bot says, and when, as plain words and
      numbers for EGE.discordPost.buildLivePosts to dress: the opening
      kickoff, every touchdown, field goal, punt, interception, fumble,
@@ -4228,13 +4228,13 @@ function defLine(name, l) {
 /* The red zone: this close to the goal line. */
 const RED_ZONE = 20;
 
-/* How long, in milliseconds (Sam, 2026-11-09): every snap is five seconds
-   of nothing, five of the call ("Isaac Vitel pass…") and seven of the whole
-   play; a punt has no wait and twelve seconds of the whole play; halftime
-   is two minutes, long enough to get a halftime bet in (lib/live-bets.js).
-   No longer before a new drive or the red zone. `reveal` is the call's
-   time, and `slot` a whole snap's. */
-const TIMING = { wait: 5000, call: 5000, play: 7000, punt: 12000, half: 120000 };
+/* How long, in milliseconds (Sam, 2026-11-10): every snap, punts too, is
+   two seconds of "Snap…", five of the call ("Sam Stogsdill rush…") and
+   nine of the whole play ("Sam Stogsdill 13-yd rush"); halftime is two
+   minutes, long enough to get a halftime bet in (lib/live-bets.js).
+   Nothing waits longer before a new drive or the red zone. `reveal` is
+   the call's time, and `slot` a whole snap's. */
+const TIMING = { wait: 2000, call: 5000, play: 9000, half: 120000 };
 TIMING.reveal = TIMING.call;
 TIMING.slot = TIMING.wait + TIMING.call + TIMING.play;
 
@@ -4386,8 +4386,6 @@ function build(league, game, kept) {
   /* Whose trip into the red zone has been posted, until the ball changes
      hands or the drive ends in a kick or a score. */
   let red = null;
-  /* The entries that are punts, which have no wait before them. */
-  const punts = new Set();
   /* Each player's big plays in a row, touchdowns and takeaways, by his
      number in this game. */
   const streak = {};
@@ -4704,7 +4702,6 @@ function build(league, game, kept) {
       entry.ht = keys[scored ? e.tdBy : e.safety !== undefined ? e.safety : off];
     }
     if (Object.keys(heat).length) { entry.h = heat; }
-    if (e.k === 'punt') { punts.add(entries.length); }
     if (more.length) { entry.more = more; }
     if (tag) { entry.tag = tag; }
     if (Object.keys(d).length) { entry.d = d; }
@@ -4747,16 +4744,16 @@ function build(league, game, kept) {
   entries.push({ text: ot ? 'Final/OT' : 'Final', tag: 'end', pre: { o: null, s: final, q: last ? last.post.q : 4, c: 0 },
                  post: { o: null, s: final, q: last ? last.post.q : 4, c: 0 } });
 
-  /* When each entry comes up, from kickoff (TIMING): before every snap but
-     a punt, a wait of its own showing only where the ball is; then the
-     snap, its call first and the whole play `reveal` later; halftime for
-     two minutes; the final whistle as soon as the last play has had its
-     time. The posts move with the entries they belong to. */
+  /* When each entry comes up, from kickoff (TIMING): before every snap, a
+     wait of its own showing only where the ball is; then the snap, its
+     call first and the whole play `reveal` later; halftime for two
+     minutes; the final whistle as soon as the last play has had its time.
+     The posts move with the entries they belong to. */
   const timed = [];
   const moved = [];
   let ms = 0;
   entries.forEach((entry, i) => {
-    if (entry.call && !punts.has(i)) {
+    if (entry.call) {
       const spot = Object.assign({}, entry.pre, { s: entry.pre.s.slice() });
       timed.push({ tag: 'wait', pre: spot, post: spot, ms });
       ms += TIMING.wait;
@@ -4764,7 +4761,7 @@ function build(league, game, kept) {
     entry.ms = ms;
     moved[i] = timed.length;
     timed.push(entry);
-    if (entry.call) { ms += TIMING.call + (punts.has(i) ? TIMING.punt : TIMING.play); }
+    if (entry.call) { ms += TIMING.call + TIMING.play; }
     if (entry.tag === 'half') { ms += TIMING.half; }
   });
   posts.forEach((post) => { post.at = moved[post.at]; });

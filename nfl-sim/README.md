@@ -407,12 +407,11 @@ A whole season and its playoffs take about half a second.
   kicks, turnovers and scores, each trip into the red zone (once a drive)
   and halftime; not the final, which the week's own post has once the
   week is out (Sam, 2026-11-09). A play the defense made shows the defender.
-  Each entry says when it comes up (`ms`, `live.TIMING`, Sam 2026-11-09):
-  every snap is five seconds of nothing (a `wait` entry of its own), five
-  of the call and seven of the whole play; a punt has no wait and twelve
-  of the whole play; halftime is two minutes. Nothing else waits longer.
-  The page's bar runs once a snap, from its wait through the call to the
-  end of the play (Sam, 2026-11-10).
+  Each entry says when it comes up (`ms`, `live.TIMING`, Sam 2026-11-10):
+  every snap, punts too, is two seconds of "Snap…" (a `wait` entry of its
+  own), five of the call and nine of the whole play; halftime is two
+  minutes. Nothing else waits longer. The page's bar runs once a snap,
+  from "Snap…" through the call to the end of the play.
   A player whose third big play comes in a row, with nothing of his going
   nowhere in between, sets his plays burning (fire licking in from the
   box's left border), and his fourth turns it blue, until one does

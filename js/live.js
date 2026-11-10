@@ -2,15 +2,14 @@
    EGE Football — Live Mode
    A game the NFL sim has played, put out snap by snap for everybody to
    watch at once (Sam, 2026-11-03): #live/{id}, opened from its game on
-   the League page. Every snap the same (Sam, 2026-11-09): five seconds
-   of nothing about it, five of what is called ("Jaykeb Stewart pass…"),
-   then seven of what came of it ("Jaykeb Stewart 22-yd pass to Nico
-   Collins"). A punt skips the five of nothing and has twelve of the
-   whole play; halftime is two minutes. A player on a run of big plays
-   gets hot: fire licks in from the left border of his plays, blue once
-   he is absurdly hot (nfl-sim/lib/live.js HEAT; never a quarterback). PLAY LIVE on the
-   NFL Sim tab puts it up here waiting, and an
-   admin kicks it off from this page (Sam, 2026-11-04). An admin can
+   the League page. Every snap the same, punts too (Sam, 2026-11-10): two
+   seconds of "Snap…", five of what is called ("Sam Stogsdill rush…"),
+   then nine of what came of it ("Sam Stogsdill 13-yd rush"); halftime is
+   two minutes. A player who gets hot (three big plays in a row, or a
+   second touchdown or takeaway) burns: fire licks in from the left border
+   of his plays, blue once he is absurdly hot (nfl-sim/lib/live.js HEAT;
+   never a quarterback). PLAY LIVE on the NFL Sim tab puts it up here
+   waiting, and an admin kicks it off from this page (Sam, 2026-11-04). An admin can
    pause, end, restart or cancel it from here too, and #live/test plays a
    game on this device alone before it goes live.
 
@@ -557,10 +556,11 @@ EGE.liveView = (function () {
     if (e.call) { who.appendChild(face(e.hidden || e.r === undefined ? e.w : e.r, e.pre && e.pre.o, people())); }
     burn(card, heatOf(e, game.at));
     if (e.tag === 'wait') {
-      /* Before the snap: nothing about it at all (Sam, 2026-11-09). */
+      /* Before the snap: "Snap…" and nothing about it (Sam, 2026-11-10). */
       card.classList.add('is-wait');
       who.appendChild(face(null, e.pre && e.pre.o, {}));
       var hush = el('p', 'ege-cast__call');
+      hush.appendChild(document.createTextNode('Snap'));
       hush.appendChild(el('span', 'ege-cast__dots', '…'));
       words.appendChild(hush);
     } else if (e.hidden) {
@@ -576,9 +576,9 @@ EGE.liveView = (function () {
     who.appendChild(words);
     card.appendChild(who);
     if (state === 'live') {
-      /* One bar for the whole snap, the same from the wait through the
+      /* One bar for the whole snap, the same from "Snap…" through the
          call to the end of the play (Sam, 2026-11-10): a snap's slot from
-         its wait, or from a punt's call. Halftime runs to the kickoff. */
+         its wait. Halftime runs to the kickoff. */
       var bar = el('span', 'ege-cast__bar');
       var fill = el('span', 'ege-cast__fill');
       var start = entryMs(game.at);
