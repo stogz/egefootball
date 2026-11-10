@@ -297,11 +297,17 @@ body::before {
   text-decoration: none;
   transition: transform .12s ease, box-shadow .12s ease;
 }
-.ege-card:hover,
 .ege-card:focus-visible {
   color: var(--fb-ink);
   transform: translate(-2px, -2px);
   box-shadow: calc(var(--fb-shadow) + 3px) calc(var(--fb-shadow) + 3px) 0 rgba(0, 0, 0, .4);
+}
+@media (hover: hover) {
+  .ege-card:hover {
+    color: var(--fb-ink);
+    transform: translate(-2px, -2px);
+    box-shadow: calc(var(--fb-shadow) + 3px) calc(var(--fb-shadow) + 3px) 0 rgba(0, 0, 0, .4);
+  }
 }
 .ege-card:active {
   transform: translate(2px, 2px);
@@ -365,7 +371,7 @@ body::before {
   text-transform: uppercase;
   color: var(--fb-accent-deep);
 }
-.ege-card:hover .ege-card__go { color: var(--fb-accent); }
+@media (hover: hover) { .ege-card:hover .ege-card__go { color: var(--fb-accent); } }
 
 /* Season chip — the kit has no gold tag. */
 .fb-tag--gold { background: var(--fb-gold); }
@@ -645,10 +651,12 @@ body::before {
   text-decoration: none;
 }
 .ege-school__link .ege-school__name { text-underline-offset: 4px; }
-.ege-school__link:hover .ege-school__name,
 .ege-school__link:focus-visible .ege-school__name { text-decoration: underline; }
+@media (hover: hover) {
+  .ege-school__link:hover .ege-school__name { text-decoration: underline; }
+}
 .ege-school__go { font-weight: 800; color: var(--fb-accent-deep); transition: transform .12s ease; }
-.ege-school__link:hover .ege-school__go { transform: translateX(3px); }
+@media (hover: hover) { .ege-school__link:hover .ege-school__go { transform: translateX(3px); } }
 .ege-school--lg .ege-school__name {
   font-size: var(--fb-label);
   font-weight: 800;
@@ -851,7 +859,7 @@ body::before {
   color: var(--fb-diamond);
   text-decoration: none;               /* it opens the diamonds page */
 }
-.ege-credits--diamonds:hover { background: rgba(127, 220, 245, .12); }
+@media (hover: hover) { .ege-credits--diamonds:hover { background: rgba(127, 220, 245, .12); } }
 
 /* --- signed-in avatar --------------------------------------------------- */
 
@@ -867,7 +875,7 @@ body::before {
   border-radius: 50% !important;
   overflow: hidden;
 }
-.ege-avatarbtn:hover { border-color: var(--fb-accent); }
+@media (hover: hover) { .ege-avatarbtn:hover { border-color: var(--fb-accent); } }
 .ege-avatar {
   width: 100%;
   height: 100%;
@@ -1358,10 +1366,12 @@ body::before {
   background: transparent;
   border: var(--fb-border-thin) dashed var(--fb-muted-2);
 }
-.ege-slot__add:hover {
-  color: var(--fb-accent-deep);
-  border-color: var(--fb-accent);
-  border-style: solid;
+@media (hover: hover) {
+  .ege-slot__add:hover {
+    color: var(--fb-accent-deep);
+    border-color: var(--fb-accent);
+    border-style: solid;
+  }
 }
 
 .ege-slot__applied {
@@ -1404,18 +1414,24 @@ body::before {
   opacity: 0;
   transition: opacity .28s ease;
 }
-.ege-slot__applied--peelable:hover::after,
 .ege-slot__applied--peelable:focus-visible::after { opacity: 1; }
+@media (hover: hover) {
+  .ege-slot__applied--peelable:hover::after { opacity: 1; }
+}
 
 /* Hovering one you can still move fades it back, rules it through with
    slanted lines and crosses it out — it stays exactly where it is and
    exactly the size it is. */
 .ege-sticker { transition: transform .28s cubic-bezier(.2, .8, .3, 1), opacity .16s ease; }
 
-.ege-slot__applied--peelable:hover .ege-sticker,
 .ege-slot__applied--peelable:focus-visible .ege-sticker { opacity: .62; }
-.ege-slot__applied--peelable:hover,
+@media (hover: hover) {
+  .ege-slot__applied--peelable:hover .ege-sticker { opacity: .62; }
+}
 .ege-slot__applied--peelable:focus-visible { z-index: 6; }
+@media (hover: hover) {
+  .ege-slot__applied--peelable:hover { z-index: 6; }
+}
 
 /* The slanted rules, cut to the same sunburst so they stop at the edge. */
 .ege-sticker__hatch {
@@ -1432,8 +1448,10 @@ body::before {
   transition: opacity .16s ease;
   pointer-events: none;
 }
-.ege-slot__applied--peelable:hover .ege-sticker__hatch,
 .ege-slot__applied--peelable:focus-visible .ege-sticker__hatch { opacity: .5; }
+@media (hover: hover) {
+  .ege-slot__applied--peelable:hover .ege-sticker__hatch { opacity: .5; }
+}
 
 .ege-sticker__x {
   position: absolute;
@@ -1449,8 +1467,10 @@ body::before {
   transition: opacity .16s ease;
   pointer-events: none;
 }
-.ege-slot__applied--peelable:hover .ege-sticker__x,
 .ege-slot__applied--peelable:focus-visible .ege-sticker__x { opacity: 1; }
+@media (hover: hover) {
+  .ege-slot__applied--peelable:hover .ege-sticker__x { opacity: 1; }
+}
 
 /* A finger cannot hover, so on a touch screen the same look is reached by
    tapping the sticker once: app.js puts this class on, and the tap after it
@@ -1471,6 +1491,13 @@ body::before {
   right: 0;
   bottom: 0;
   z-index: 40;
+  /* Clear of the home indicator and, turned sideways, the notch; and on a
+     short phone it scrolls inside itself rather than running off the top. */
+  padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  max-height: 88vh;
+  max-height: 88svh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--fb-ink);
   border-top: var(--fb-border) solid var(--fb-accent);
   box-shadow: 0 -10px 30px rgba(0, 0, 0, .45);
@@ -1519,8 +1546,10 @@ body::before {
   line-height: 1;
   cursor: pointer;
 }
-.ege-drawer__close:hover,
 .ege-drawer__close:focus-visible { background: var(--fb-accent); border-color: var(--fb-accent); color: var(--fb-ink); }
+@media (hover: hover) {
+  .ege-drawer__close:hover { background: var(--fb-accent); border-color: var(--fb-accent); color: var(--fb-ink); }
+}
 .ege-drawer__title small {
   display: block;
   font-family: var(--fb-font-body);
@@ -1541,10 +1570,15 @@ body::before {
   display: grid;
   place-items: center;
 }
-.ege-pick:hover .ege-sticker,
 .ege-pick:focus-visible .ege-sticker {
   transform: rotate(var(--tilt)) scale(1.14) translateY(-3px);
   filter: drop-shadow(3px 6px 7px rgba(0, 0, 0, .5));
+}
+@media (hover: hover) {
+  .ege-pick:hover .ege-sticker {
+    transform: rotate(var(--tilt)) scale(1.14) translateY(-3px);
+    filter: drop-shadow(3px 6px 7px rgba(0, 0, 0, .5));
+  }
 }
 .ege-pick__count {
   position: absolute;
@@ -1618,8 +1652,10 @@ body::before {
   text-align: left;
   cursor: pointer;
 }
-.ege-wagerpick:hover,
 .ege-wagerpick:focus-visible { background: var(--fb-accent); border-color: var(--fb-accent); }
+@media (hover: hover) {
+  .ege-wagerpick:hover { background: var(--fb-accent); border-color: var(--fb-accent); }
+}
 .ege-wagerpick:disabled { cursor: not-allowed; opacity: .45; background: var(--fb-cream); }
 .ege-wagerpick__logo { width: 26px; height: 26px; object-fit: contain; }
 .ege-wagerpick__name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1655,7 +1691,7 @@ body::before {
 
 /* The kit's table rows are built for picking one; these are just a list. */
 .ege-schedule tbody tr { cursor: default; }
-.ege-schedule tbody tr:hover { background: var(--fb-tint-wash); }
+@media (hover: hover) { .ege-schedule tbody tr:hover { background: var(--fb-tint-wash); } }
 
 /* Every score the same width, so a column of them is a column: W 38-9 and
    W 52-21 used to start at two different places down the same edge. */
@@ -1692,14 +1728,23 @@ body::before {
 /* An NFL opponent is a link to its team's page (Sam, 2026-10-20). It reads
    exactly as the plain name does; only a pointer over it, or a focus, says
    it goes somewhere: the name underlined in orange and the hand. */
-.ege-opplink,
-.ege-opplink:hover { color: inherit; text-decoration: none; }
-.ege-opplink:hover .fb-name,
+.ege-opplink { color: inherit; text-decoration: none; }
+@media (hover: hover) {
+  .ege-opplink:hover { color: inherit; text-decoration: none; }
+}
 .ege-opplink:focus-visible .fb-name {
   text-decoration: underline;
   text-decoration-color: var(--fb-accent);
   text-decoration-thickness: 2px;
   text-underline-offset: 3px;
+}
+@media (hover: hover) {
+  .ege-opplink:hover .fb-name {
+    text-decoration: underline;
+    text-decoration-color: var(--fb-accent);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+  }
 }
 .ege-schedule__side {
   display: inline-block;
@@ -2020,7 +2065,7 @@ body::before {
   /* eye, open */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231d2416' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E");
 }
-.ege-eye:hover { background-color: var(--fb-surface); }
+@media (hover: hover) { .ege-eye:hover { background-color: var(--fb-surface); } }
 .ege-eye[aria-pressed="true"] {
   /* eye, struck through */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a64412' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M3 3l18 18'/%3E%3C/svg%3E");
@@ -2182,7 +2227,7 @@ body::before {
   cursor: pointer;
 }
 .ege-gamelog th.num .ege-sort { justify-content: flex-end; }
-.ege-sort:hover { color: var(--fb-accent); }
+@media (hover: hover) { .ege-sort:hover { color: var(--fb-accent); } }
 
 .ege-sort__mark {
   font-size: .55em;
@@ -2268,7 +2313,7 @@ body::before {
   text-decoration: none;
 }
 .ege-admintabs__tab + .ege-admintabs__tab { border-left: var(--fb-border-thin) solid var(--fb-ink); }
-.ege-admintabs__tab:hover { color: var(--fb-ink); background: var(--fb-tint-wash); }
+@media (hover: hover) { .ege-admintabs__tab:hover { color: var(--fb-ink); background: var(--fb-tint-wash); } }
 .ege-admintabs__tab.is-active { background: var(--fb-ink); color: var(--fb-cream); }
 .ege-admintabs__tab:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: -4px; }
 /* Whichever panel opens a tab sits straight under the bar. */
@@ -2508,7 +2553,7 @@ body::before {
   color: var(--fb-ink);
   cursor: pointer;
 }
-.ege-collapse:hover { color: var(--fb-accent-deep); }
+@media (hover: hover) { .ege-collapse:hover { color: var(--fb-accent-deep); } }
 .ege-collapse:active { transform: translateY(1px); }
 
 .ege-collapse::before {
@@ -2574,7 +2619,7 @@ body::before {
   white-space: nowrap;
   transition: background .14s ease, color .14s ease;
 }
-.ege-switch__option:hover span { color: var(--fb-ink); }
+@media (hover: hover) { .ege-switch__option:hover span { color: var(--fb-ink); } }
 .ege-switch__option input:checked + span {
   background: var(--fb-ink);
   color: var(--fb-cream);
@@ -2636,8 +2681,10 @@ body::before {
    against him, with its NFL rank, then its three best defenders he will
    see, each a small card with his overall. The row after it is never
    shown; it is there so the games under it keep their stripe. */
-.ege-schedule tbody tr.ege-faceoff,
-.ege-schedule tbody tr.ege-faceoff:hover { background: none; }
+.ege-schedule tbody tr.ege-faceoff { background: none; }
+@media (hover: hover) {
+  .ege-schedule tbody tr.ege-faceoff:hover { background: none; }
+}
 .ege-schedule tbody tr.ege-faceoff > td { padding: 0; border-bottom: var(--fb-border) solid var(--fb-ink); }
 /* The game the report is for: the heavy rule over it closes the box the
    one under the report opens. */
@@ -2647,8 +2694,10 @@ body::before {
 /* Between a traded player's last game for one team and his first for the
    next: the new team's mark and city, on a dotted rule like the
    postseason's. */
-.ege-schedule tbody tr.ege-traded,
-.ege-schedule tbody tr.ege-traded:hover { background: none; }
+.ege-schedule tbody tr.ege-traded { background: none; }
+@media (hover: hover) {
+  .ege-schedule tbody tr.ege-traded:hover { background: none; }
+}
 .ege-schedule tbody tr.ege-traded > td {
   padding: 7px 14px;
   border-top: var(--fb-border-thin) dotted rgba(29, 36, 22, .55);
@@ -2666,12 +2715,19 @@ body::before {
   letter-spacing: .12em;
   text-transform: uppercase;
 }
-.ege-traded__link:hover .ege-traded__text,
 .ege-traded__link:focus-visible .ege-traded__text {
   text-decoration: underline;
   text-decoration-color: var(--fb-accent);
   text-decoration-thickness: 2px;
   text-underline-offset: 3px;
+}
+@media (hover: hover) {
+  .ege-traded__link:hover .ege-traded__text {
+    text-decoration: underline;
+    text-decoration-color: var(--fb-accent);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+  }
 }
 .ege-faceoff__strip { padding: 12px 14px 16px; }
 .ege-faceoff__head {
@@ -3212,10 +3268,13 @@ body {
      of it rather than halfway up.
 
      100vh on iOS is the window with the toolbars hidden, so a page that is
-     exactly full height gets a scrollbar it does not need. dvh is the real
-     visible height; vh stays for anything that has not caught up. */
+     exactly full height gets a scrollbar it does not need. svh is the height
+     with the toolbar showing: the same on a page that does not scroll, and,
+     unlike dvh, it does not change -- and re-measure the whole page -- every
+     time the toolbar slides in or out (2026-11-10). vh stays for anything
+     that has not caught up. */
   min-height: 100vh;
-  min-height: 100dvh;
+  min-height: 100svh;
 
   /* Room under the last thing on the page. Every view ended flush against the
      bottom edge, which on a phone puts the final row of a table under the
@@ -3235,6 +3294,91 @@ body {
 @supports (padding: max(0px)) {
   .fb-nav { padding-top: env(safe-area-inset-top); }
 }
+
+/* --- taps, not zooms (Sam, 2026-11-10) -------------------------------------
+
+   Two quick taps on an iPhone zoomed the page in, and Safari held every tap
+   back a moment to see whether a second was coming. `manipulation` keeps
+   scrolling and pinching and drops only the double-tap zoom, and the wait
+   with it. Set on the root it covers the whole page: an element's own rule
+   can only narrow it, so the crop frames' `none` still holds inside them.
+   The controls get it too, for the browsers that look no further than the
+   thing tapped. (js/touch.js stops the zoom into a text box.) */
+html,
+body,
+a,
+button,
+input,
+select,
+textarea,
+label,
+summary,
+[role='button'] { touch-action: manipulation; }
+
+/* The nav is pinned to the top of the screen, so anything scrolled into view
+   for you -- a found row, a box the keyboard is opening for -- stops below
+   it rather than under it. Two rows of nav on a phone. */
+html { scroll-padding-top: 88px; }
+@media (max-width: 620px) {
+  html { scroll-padding-top: calc(116px + env(safe-area-inset-top)); }
+}
+
+/* The field picture behind the page sat on a layer pinned to all four edges
+   of the screen. On an iPhone those edges move -- Safari's toolbar slides
+   away as you scroll down and back as you scroll up -- so the layer changed
+   height on every turn, and the picture, hung from its foot, jumped up and
+   down behind the page. As tall as the screen with the toolbar away (lvh),
+   it never changes size; on a desktop that is the same as before. */
+body::before {
+  bottom: auto;
+  height: 100vh;
+  height: 100lvh;
+}
+
+/* --- held down, not selected -----------------------------------------------
+
+   Holding a finger on a button a moment too long selected its words and put
+   up Safari's copy menu, or a link's preview. Buttons and the nav are for
+   pressing, so they are not selectable on a touch screen; the words on the
+   page still are. */
+@media (hover: none) {
+  button,
+  .fb-btn,
+  .fb-navlink,
+  .fb-brand,
+  [role='button'] {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+}
+
+/* The wash Safari flashes over whatever is tapped is a rectangle. Over a
+   sunburst sticker, a tilted card or a trophy it reads as a glitch, and each
+   of those answers a tap by moving or opening anyway, so they go without. */
+.ege-slot__applied,
+.ege-pick,
+.ege-tcard,
+.ege-flip,
+.ege-trophy { -webkit-tap-highlight-color: transparent; }
+
+/* --- pop-ups on a phone ----------------------------------------------------
+
+   The Player Portal: taller than a short phone once the keyboard is up, it
+   scrolls inside itself (from its top, which a centred box could not) and the
+   page behind it stays put rather than sliding about under a finger. */
+#loginModal {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  place-items: start center;
+  padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+           max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+#loginModal > .fb-modal { margin-block: auto; }
+html:has(#loginModal:not([hidden])),
+html:has(#loginModal:not([hidden])) body,
+html:has(.ege-pfpcrop),
+html:has(.ege-pfpcrop) body { overflow: hidden; }
 
 /* --- what a finger needs ---------------------------------------------------
 
@@ -3278,9 +3422,8 @@ body {
   /* The rating point buttons sat three to a row at 33 tall. */
   .ege-upgrade__buy { min-height: 44px; }
 
-  /* Rows that light up under a mouse do nothing useful under a finger, and
-     leave a row stuck highlighted after a tap. */
-  .ege-schedule tbody tr:hover { background: transparent; }
+  /* Rows that light up under a mouse, and every other hover on the site, are
+     behind `hover: hover` now, so none of them sticks after a tap. */
 }
 
 /* --- tables that run off the side ------------------------------------------
@@ -3564,7 +3707,10 @@ body {
 
    Safari zooms the whole page in when you focus a control whose text is under
    16px, and does not zoom back out afterwards. Every control on this site was
-   13 or 14. This is the one that actually makes it feel broken. */
+   13 or 14. This is the one that actually makes it feel broken. Some later,
+   more specific rules still set 15px, and a sideways phone or an iPad is
+   wider than 620, so js/touch.js now stops that zoom on iOS altogether
+   (2026-11-10); this stays for the size it gives a phone's boxes. */
 
 /* A select is as wide as its longest option unless it is told otherwise, and
    at 16px a long item name is wider than an iPhone. Left alone it
@@ -3947,10 +4093,12 @@ html.is-loading, html.is-loading body { overflow: hidden; }
   padding: 11px 36px;
   cursor: pointer;
 }
-.ege-seasonbar__pick:hover {
-  background-color: var(--fb-cream);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2320261a' stroke-width='2'/%3E%3C/svg%3E");
-  color: var(--fb-ink);
+@media (hover: hover) {
+  .ege-seasonbar__pick:hover {
+    background-color: var(--fb-cream);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2320261a' stroke-width='2'/%3E%3C/svg%3E");
+    color: var(--fb-ink);
+  }
 }
 .ege-seasonbar__pick:focus { border-color: var(--fb-cream); }
 /* The open list is the browser's own, on a light ground. */
@@ -3971,7 +4119,7 @@ html.is-loading, html.is-loading body { overflow: hidden; }
   opacity: .35;
   cursor: default;
 }
-.ege-seasonbar__step[disabled]:hover { background: transparent; color: var(--fb-cream); }
+@media (hover: hover) { .ege-seasonbar__step[disabled]:hover { background: transparent; color: var(--fb-cream); } }
 
 /* On a phone it is all one row: [ ← ] [ ‹ ] [ 2019 ] [ › ]. The way back
    becomes a round button holding just its arrow -- round so it reads as a
@@ -4263,7 +4411,7 @@ button.ege-owned__item { cursor: pointer; }
   box-shadow: 4px 4px 0 var(--fb-ink);
 }
 .ege-teamchip.is-six { background: var(--fb-tint-clay); box-shadow: 4px 4px 0 var(--fb-accent); }
-a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
+@media (hover: hover) { a.ege-teamchip:hover { background: var(--fb-tint-clay-2); } }
 .ege-teamchip__photo {
   display: grid;
   place-items: center;
@@ -4332,7 +4480,7 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
   line-height: 1;
   cursor: pointer;
 }
-.ege-room__plus:hover { background: var(--fb-tint-wash); }
+@media (hover: hover) { .ege-room__plus:hover { background: var(--fb-tint-wash); } }
 .ege-room__plus:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: 2px; }
 .ege-room__signform { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .ege-room__signform .fb-select { flex: 1 1 220px; min-width: 0; }
@@ -4375,8 +4523,8 @@ a.ege-teamchip:hover { background: var(--fb-tint-clay-2); }
    whole card opens his pop-up. A long archetype gives way before the years
    chip does. */
 .ege-teamchip--nfl { cursor: pointer; }
-.ege-teamchip--nfl:hover { background: var(--fb-tint-wash); }
-.ege-teamchip--nfl.is-six:hover { background: var(--fb-tint-clay-2); }
+@media (hover: hover) { .ege-teamchip--nfl:hover { background: var(--fb-tint-wash); } }
+@media (hover: hover) { .ege-teamchip--nfl.is-six:hover { background: var(--fb-tint-clay-2); } }
 .ege-teamchip--nfl:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: 2px; }
 .ege-teamchip--nfl .ege-teamchip__meta { min-width: 0; }
 .ege-teamchip__arch { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
@@ -5077,7 +5225,7 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
 .ege-boxscore__team { display: grid; gap: 14px; min-width: 0; }
 .ege-boxscore__teamhead { font-size: 1.3125rem; }
 .ege-boxscore__teamlink { display: inline-flex; align-items: center; gap: 10px; color: var(--fb-ink); }
-.ege-boxscore__teamlink:hover { color: var(--fb-accent-deep); }
+@media (hover: hover) { .ege-boxscore__teamlink:hover { color: var(--fb-accent-deep); } }
 .ege-boxscore__teamlink .ege-game__logo { width: 28px; height: 28px; }
 .ege-boxscore__switch { display: none; }
 .ege-boxscore__top > :only-child { grid-column: 1 / -1; }
@@ -5088,8 +5236,8 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
 .ege-boxscore__table th:first-child { color: var(--fb-accent); }
 .ege-boxscore__table td { padding: 6px 8px; white-space: nowrap; }
 .ege-boxscore__table tbody tr { cursor: default; }
-.ege-boxscore__table tbody tr:hover { background: none; }
-.ege-boxscore__table tbody tr:nth-child(even):hover { background: rgba(32, 38, 26, .045); }
+@media (hover: hover) { .ege-boxscore__table tbody tr:hover { background: none; } }
+@media (hover: hover) { .ege-boxscore__table tbody tr:nth-child(even):hover { background: rgba(32, 38, 26, .045); } }
 .ege-boxscore__table tbody tr.is-six { background: var(--fb-tint-clay); }
 /* The name takes what the numbers leave, cut short before they are. */
 .ege-boxscore__lines td:first-child { width: 100%; max-width: 0; }
@@ -5111,8 +5259,10 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
 }
 button.ege-boxscore__name,
 a.ege-boxscore__name { cursor: pointer; }
-button.ege-boxscore__name:hover,
-a.ege-boxscore__name:hover { color: var(--fb-accent-deep); text-decoration: underline; }
+@media (hover: hover) {
+  button.ege-boxscore__name:hover,
+  a.ege-boxscore__name:hover { color: var(--fb-accent-deep); text-decoration: underline; }
+}
 .ege-boxscore__pos { flex: none; font-size: var(--fb-label); font-weight: 800; letter-spacing: .06em; color: var(--fb-muted); }
 .ege-boxscore__teamcell { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; }
 .ege-boxscore__teamcell .ege-game__logo { width: 22px; height: 22px; }
@@ -5251,7 +5401,7 @@ a.ege-boxscore__name:hover { color: var(--fb-accent-deep); text-decoration: unde
   cursor: pointer;
 }
 .ege-search__clear[hidden] { display: none; }
-.ege-search__clear:hover { color: var(--fb-accent); }
+@media (hover: hover) { .ege-search__clear:hover { color: var(--fb-accent); } }
 .ege-search__clear:focus-visible { outline: 2px solid var(--fb-accent); outline-offset: -2px; }
 .ege-search__results { display: grid; gap: 22px; }
 .ege-search__list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 28px; }
@@ -5446,8 +5596,10 @@ a.ege-boxscore__name:hover { color: var(--fb-accent-deep); text-decoration: unde
 .ege-pick.is-gone { border: var(--fb-border-thin) dashed rgba(29, 36, 22, .45); background: transparent; }
 .ege-pick.is-gone .ege-pick__mark { opacity: .35; filter: grayscale(1); }
 button.ege-pick { cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; }
-button.ege-pick:hover,
 button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2px 2px 0 var(--fb-ink); }
+@media (hover: hover) {
+  button.ege-pick:hover { transform: translate(-1px, -1px); box-shadow: 2px 2px 0 var(--fb-ink); }
+}
 .ege-pick__mark { display: grid; place-items: center; width: 28px; height: 28px; font-size: 10px; font-weight: 800; }
 .ege-pick__mark img { width: 100%; height: 100%; object-fit: contain; }
 .ege-pick__n {
@@ -5563,7 +5715,7 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
 .ege-simweek__game[open] { grid-column: 1 / -1; }
 .ege-simweek__head { display: grid; gap: 8px; padding: 10px 12px; cursor: pointer; list-style: none; }
 .ege-simweek__head::-webkit-details-marker { display: none; }
-.ege-simweek__head:hover { background: var(--fb-tint-wash); }
+@media (hover: hover) { .ege-simweek__head:hover { background: var(--fb-tint-wash); } }
 .ege-simweek__score { display: grid; gap: 4px; }
 .ege-simweek__side { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .ege-simweek__side.is-won { font-weight: 800; }
@@ -5648,9 +5800,9 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
   font-weight: 700;
   text-decoration: none;
 }
-.ege-nflstand__team:hover { background: var(--fb-tint-wash); }
+@media (hover: hover) { .ege-nflstand__team:hover { background: var(--fb-tint-wash); } }
 .ege-nflstand__team.is-ours { background: var(--fb-tint-clay); box-shadow: inset 4px 0 0 var(--fb-accent); }
-.ege-nflstand__team.is-ours:hover { background: var(--fb-tint-clay-2); }
+@media (hover: hover) { .ege-nflstand__team.is-ours:hover { background: var(--fb-tint-clay-2); } }
 .ege-nflstand__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ege-nflstand__record { flex: none; margin-left: 10px; font-variant-numeric: tabular-nums; }
 /* The League's: X, Z or E in a square of its own before the record (X in
@@ -5899,8 +6051,10 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
 .ege-person__seasons th.num .ege-sort { justify-content: flex-end; }
 .ege-person__seasons tbody tr { cursor: default; }
 .ege-person__seasons tbody tr,
-.ege-person__seasons tbody tr:nth-child(even),
-.ege-person__seasons tbody tr:hover { background: none; }
+.ege-person__seasons tbody tr:nth-child(even) { background: none; }
+@media (hover: hover) {
+  .ege-person__seasons tbody tr:hover { background: none; }
+}
 .ege-person__seasons td { border-bottom: 0; font-weight: 700; }
 .ege-person__seasons td.is-sorted-cell { background: rgba(229, 110, 40, .12); }
 .ege-person__seasons .ege-person__seasonmark { width: 30px; padding-right: 0; }
@@ -5916,10 +6070,14 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
   transition: background-color .12s ease;
 }
 .ege-person__seasonteam img { transition: transform .12s ease; }
-.ege-person__seasonteam:hover,
 .ege-person__seasonteam:focus-visible { background: rgba(229, 110, 40, .22); outline: none; }
-.ege-person__seasonteam:hover img,
+@media (hover: hover) {
+  .ege-person__seasonteam:hover { background: rgba(229, 110, 40, .22); outline: none; }
+}
 .ege-person__seasonteam:focus-visible img { transform: scale(1.12); }
+@media (hover: hover) {
+  .ege-person__seasonteam:hover img { transform: scale(1.12); }
+}
 .ege-person__seasons .ege-person__seasonyear { font-weight: 800; }
 /* The Career line, with no label to it and no line over it (Sam,
    2026-10-27), in heavier figures. */
@@ -8192,7 +8350,7 @@ html.ege-noscroll body { overflow: hidden; }
   color: var(--fb-cream);
   background: transparent;
 }
-.ege-rip__actions .fb-btn:not(.fb-btn--primary):hover { background: var(--fb-cream); color: var(--fb-ink); }
+@media (hover: hover) { .ege-rip__actions .fb-btn:not(.fb-btn--primary):hover { background: var(--fb-cream); color: var(--fb-ink); } }
 
 /* A card face down, dealt in, and turned over on a tap. */
 .ege-flip {
@@ -8213,7 +8371,7 @@ html.ege-noscroll body { overflow: hidden; }
   -webkit-backface-visibility: hidden;
 }
 .ege-flip__side--front { transform: rotateY(180deg); }
-.ege-flip:not(.is-flipped):hover .ege-flip__inner { transform: translateY(-6px) rotate(-1deg); }
+@media (hover: hover) { .ege-flip:not(.is-flipped):hover .ege-flip__inner { transform: translateY(-6px) rotate(-1deg); } }
 .ege-flip.is-flipped { cursor: default; }
 .ege-flip.is-flipped .ege-flip__inner { transform: rotateY(180deg); }
 
@@ -8497,8 +8655,10 @@ html.ege-noscroll body { overflow: hidden; }
    page: underlined on hover, with an arrow that nudges along. */
 .ege-zoom__line { color: inherit; text-decoration: none; }
 .ege-zoom__linetext { text-underline-offset: 3px; }
-.ege-zoom__line:hover .ege-zoom__linetext,
 .ege-zoom__line:focus-visible .ege-zoom__linetext { text-decoration: underline; }
+@media (hover: hover) {
+  .ege-zoom__line:hover .ege-zoom__linetext { text-decoration: underline; }
+}
 .ege-zoom__go {
   display: inline-block;
   margin-left: 8px;
@@ -8506,16 +8666,22 @@ html.ege-noscroll body { overflow: hidden; }
   color: var(--fb-accent-deep);
   transition: transform .12s ease;
 }
-.ege-zoom__line:hover .ege-zoom__go { transform: translateX(3px); }
+@media (hover: hover) { .ege-zoom__line:hover .ege-zoom__go { transform: translateX(3px); } }
 
 /* Quick sell, under a card of your own up close: a first tap arms it (red),
    a second sells. */
 .ege-zoom__status:empty { display: none; }
-.ege-rip__actions .ege-zoom__sell.is-armed,
-.ege-rip__actions .ege-zoom__sell.is-armed:hover {
+.ege-rip__actions .ege-zoom__sell.is-armed {
   background: #d5392b;
   border-color: #d5392b;
   color: #fff;
+}
+@media (hover: hover) {
+  .ege-rip__actions .ege-zoom__sell.is-armed:hover {
+    background: #d5392b;
+    border-color: #d5392b;
+    color: #fff;
+  }
 }
 /* Sell on the Market: the button, then the price and Put it up in its
    place. */
@@ -8583,9 +8749,11 @@ html.ege-noscroll body { overflow: hidden; }
   cursor: pointer;
   transition: transform .16s ease, box-shadow .16s ease;
 }
-.ege-binder > .ege-tcard:hover {
-  transform: translate(-2px, -3px) rotate(-.6deg);
-  box-shadow: 7px 8px 0 rgba(0, 0, 0, .35);
+@media (hover: hover) {
+  .ege-binder > .ege-tcard:hover {
+    transform: translate(-2px, -3px) rotate(-.6deg);
+    box-shadow: 7px 8px 0 rgba(0, 0, 0, .35);
+  }
 }
 .ege-binder > .ege-tcard:focus-visible { outline: 3px solid var(--fb-accent); outline-offset: 4px; }
 .ege-binder__empty { margin: 0; }
@@ -8629,7 +8797,7 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-pull__title { font-size: .9375rem; }
 .ege-pull__cards { display: flex; flex-wrap: wrap; gap: 10px; }
 .ege-pull__cards > .ege-tcard { width: 76px; cursor: pointer; transition: transform .16s ease; }
-.ege-pull__cards > .ege-tcard:hover { transform: translateY(-3px); }
+@media (hover: hover) { .ege-pull__cards > .ege-tcard:hover { transform: translateY(-3px); } }
 .ege-pull__cards > .ege-tcard:focus-visible { outline: 3px solid var(--fb-accent); outline-offset: 3px; }
 /* Sold or traded away since. */
 .ege-pull__cards > .ege-tcard.is-gone { opacity: .45; }
@@ -9066,8 +9234,10 @@ html.ege-noscroll body { overflow: hidden; }
   color: var(--fb-ink);
   cursor: pointer;
 }
-.ege-want__x:hover,
 .ege-want__x:focus-visible { color: var(--fb-accent-deep); }
+@media (hover: hover) {
+  .ege-want__x:hover { color: var(--fb-accent-deep); }
+}
 
 /* A side of a match is one row of five, the last a "+N" tile as tall as
    the cards when there are more. */
@@ -9088,8 +9258,10 @@ html.ege-noscroll body { overflow: hidden; }
   color: var(--fb-accent-deep);
   cursor: pointer;
 }
-.ege-wantmatch__more:hover,
 .ege-wantmatch__more:focus-visible { background: var(--fb-tint-wash); }
+@media (hover: hover) {
+  .ege-wantmatch__more:hover { background: var(--fb-tint-wash); }
+}
 
 .ege-wantpicker [hidden] { display: none !important; }
 .ege-wantpicker > .fb-panel__head { justify-content: center; }
@@ -9121,7 +9293,7 @@ html.ege-noscroll body { overflow: hidden; }
   text-align: left;
   cursor: pointer;
 }
-.ege-wantopt:hover { background: var(--fb-tint-wash); }
+@media (hover: hover) { .ege-wantopt:hover { background: var(--fb-tint-wash); } }
 .ege-wantopt:focus-visible { outline: 3px solid var(--fb-accent); outline-offset: 2px; }
 .ege-wantopt.is-on { background: var(--fb-accent); box-shadow: 3px 3px 0 var(--fb-ink); }
 .ege-wantopt.is-on::after { content: '\2713'; flex: none; margin-left: auto; font-weight: 800; }
@@ -9154,7 +9326,7 @@ html.ege-noscroll body { overflow: hidden; }
   color: var(--fb-accent-deep);
   cursor: pointer;
 }
-.ege-showcase__add:hover { background-color: var(--fb-tint-wash); }
+@media (hover: hover) { .ege-showcase__add:hover { background-color: var(--fb-tint-wash); } }
 .ege-showcase__slotactions { display: flex; gap: 6px; }
 .ege-showcase__slotactions .fb-btn { flex: 1 1 0; padding-left: 4px; padding-right: 4px; }
 .ege-showcase__actions { margin-top: 18px; }
@@ -9799,7 +9971,7 @@ html.ege-noscroll body { overflow: hidden; }
   align-self: stretch;
   background: linear-gradient(125deg, #ff8fd2, #ffc874 25%, #8cffa4 50%, #7de6ff 75%, #df98ff);
 }
-.fb-btn.ege-filtermerge:hover { filter: brightness(1.06); }
+@media (hover: hover) { .fb-btn.ege-filtermerge:hover { filter: brightness(1.06); } }
 .fb-btn.ege-filtermerge.is-on { background: var(--fb-ink); border-color: var(--fb-ink); }
 .ege-filtermerge[hidden],
 .fb-btn.ege-filtermerge--phone { display: none; }
@@ -9839,7 +10011,7 @@ html.ege-noscroll body { overflow: hidden; }
    with SELL on its corner; one held more than once has − and + over its
    foot for how many of it go. An Iconic cannot be picked and greys out. */
 .ege-collection.is-selling .ege-binder > .ege-tcard.is-nosell { opacity: .38; filter: grayscale(.7); cursor: not-allowed; }
-.ege-collection.is-selling .ege-binder > .ege-tcard:hover { transform: none; }
+@media (hover: hover) { .ege-collection.is-selling .ege-binder > .ege-tcard:hover { transform: none; } }
 .ege-binder > .ege-tcard.is-picked { outline: 4px solid #d5392b; outline-offset: 3px; }
 .ege-salepick { position: absolute; inset: 0; z-index: 7; pointer-events: none; }
 .ege-salepick__tag {
@@ -9879,7 +10051,7 @@ html.ege-noscroll body { overflow: hidden; }
   line-height: 1;
   cursor: pointer;
 }
-.ege-salepick__btn:hover { background: var(--fb-accent); }
+@media (hover: hover) { .ege-salepick__btn:hover { background: var(--fb-accent); } }
 .ege-salepick__btn:disabled { opacity: .35; cursor: default; background: var(--fb-cream); }
 .ege-salepick__n {
   display: grid;
@@ -9915,25 +10087,39 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-sellbar__text { margin: 0; flex: 1 1 200px; font-size: .9375rem; font-weight: 600; }
 .ege-sellbar__text .ege-price { font-weight: 800; }
 .ege-sellbar__actions { display: flex; gap: 8px; flex: none; }
-.ege-sellbar__go.is-armed,
-.ege-sellbar__go.is-armed:hover { background: #d5392b; border-color: #d5392b; color: #fff; }
+.ege-sellbar__go.is-armed { background: #d5392b; border-color: #d5392b; color: #fff; }
+@media (hover: hover) {
+  .ege-sellbar__go.is-armed:hover { background: #d5392b; border-color: #d5392b; color: #fff; }
+}
 /* Room under the binder, so the bar never sits on its last row. */
 .ege-collection.is-selling .fb-panel__body,
 .ege-collection.is-merging .fb-panel__body { padding-bottom: 120px; }
 /* Holo all, the same bar while the merge button is on: its button holo
    like the merge button, and ink with gold once armed, like merging one. */
-.ege-sellbar .fb-btn.ege-mergebar__go,
-.ege-sellbar .fb-btn.ege-mergebar__go:hover {
+.ege-sellbar .fb-btn.ege-mergebar__go {
   color: var(--fb-ink);
   background: linear-gradient(125deg, #ff8fd2, #ffc874 25%, #8cffa4 50%, #7de6ff 75%, #df98ff);
 }
-.ege-sellbar .fb-btn.ege-mergebar__go:hover { filter: brightness(1.06); }
-.ege-sellbar .fb-btn.ege-mergebar__go.is-armed,
-.ege-sellbar .fb-btn.ege-mergebar__go.is-armed:hover {
+@media (hover: hover) {
+  .ege-sellbar .fb-btn.ege-mergebar__go:hover {
+    color: var(--fb-ink);
+    background: linear-gradient(125deg, #ff8fd2, #ffc874 25%, #8cffa4 50%, #7de6ff 75%, #df98ff);
+  }
+}
+@media (hover: hover) { .ege-sellbar .fb-btn.ege-mergebar__go:hover { filter: brightness(1.06); } }
+.ege-sellbar .fb-btn.ege-mergebar__go.is-armed {
   border-color: var(--fb-ink);
   color: var(--fb-gold);
   background: var(--fb-ink);
   filter: none;
+}
+@media (hover: hover) {
+  .ege-sellbar .fb-btn.ege-mergebar__go.is-armed:hover {
+    border-color: var(--fb-ink);
+    color: var(--fb-gold);
+    background: var(--fb-ink);
+    filter: none;
+  }
 }
 
 /* Who else has a card, up close: a face, a first name and a count each. */
@@ -10220,7 +10406,7 @@ html.ege-noscroll body { overflow: hidden; }
 }
 .ege-dgame + .ege-dgame,
 .ege-dother + .ege-dother { border-top: var(--fb-border-thin) dashed rgba(29, 36, 22, .22); }
-.ege-dgame:hover { background: var(--fb-tint-wash); }
+@media (hover: hover) { .ege-dgame:hover { background: var(--fb-tint-wash); } }
 .ege-dgame:focus-visible { outline: 3px solid var(--fb-accent); outline-offset: -3px; }
 .ege-dgame__face {
   width: 40px;
@@ -10554,6 +10740,7 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-trophyzoom .ege-trophy__art { gap: 10px; }
 .ege-trophyzoom .ege-trophy__img {
   height: min(62vh, 560px);
+  height: min(62svh, 560px);
   max-width: 88vw;
   object-fit: contain;
 }
@@ -10610,15 +10797,17 @@ html.ege-noscroll body { overflow: hidden; }
   .ege-trophy__tip {
     position: fixed;
     top: auto;
-    bottom: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
     left: 16px;
     right: 16px;
     width: auto;
     max-width: none;
     transform: translateY(4px);
   }
-  .ege-trophy:focus-visible .ege-trophy__tip,
-  .ege-trophy:hover .ege-trophy__tip { transform: none; }
+  .ege-trophy:focus-visible .ege-trophy__tip { transform: none; }
+  @media (hover: hover) {
+    .ege-trophy:hover .ege-trophy__tip { transform: none; }
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .ege-trophy__art,
@@ -10956,7 +11145,7 @@ html.ege-noscroll body { overflow: hidden; }
   text-decoration: none;
   box-shadow: 4px 4px 0 var(--fb-ink);
 }
-.ege-cast__gamepack:hover { color: #fff; }
+@media (hover: hover) { .ege-cast__gamepack:hover { color: #fff; } }
 .ege-cast__gamepack:active { box-shadow: 1px 1px 0 var(--fb-ink); transform: translate(3px, 3px); }
 .ege-cast__gamepackgo { font-size: var(--fb-label); letter-spacing: .08em; text-transform: uppercase; }
 .ege-cast__block { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 16px; border-bottom: 1px solid var(--fb-sand); }
@@ -11017,7 +11206,7 @@ html.ege-noscroll body { overflow: hidden; }
   cursor: pointer;
 }
 .ege-cast__half + .ege-cast__half { border-left: 2px solid var(--fb-ink); }
-.ege-cast__half:hover:not(:disabled) { background: var(--team-wash); }
+@media (hover: hover) { .ege-cast__half:hover:not(:disabled) { background: var(--team-wash); } }
 .ege-cast__half:disabled { cursor: default; }
 .ege-cast__split:not(.has-bet) .ege-cast__half:disabled { opacity: .7; }
 .ege-cast__split.has-bet .ege-cast__half:not(.is-bet) { opacity: .45; }
@@ -11066,7 +11255,7 @@ html.ege-noscroll body { overflow: hidden; }
   cursor: pointer;
 }
 .ege-cast__pickbtn:disabled { cursor: default; opacity: .7; }
-.ege-cast__pickbtn:hover:not(:disabled) { background: var(--fb-surface); }
+@media (hover: hover) { .ege-cast__pickbtn:hover:not(:disabled) { background: var(--fb-surface); } }
 .ege-cast__pickbtn::after {
   content: "";
   flex: none;
@@ -11091,6 +11280,7 @@ html.ege-noscroll body { overflow: hidden; }
   right: 0;
   z-index: 30;
   max-height: min(440px, 62vh);
+  max-height: min(440px, 62svh);
   overflow-y: auto;
   overscroll-behavior: contain;
   border: 2px solid var(--fb-ink);
@@ -11128,7 +11318,8 @@ html.ege-noscroll body { overflow: hidden; }
   text-align: left;
   cursor: pointer;
 }
-.ege-cast__pickrow:hover, .ege-cast__pickrow:focus-visible { background: var(--team-wash); outline: 0; box-shadow: inset 4px 0 0 var(--team); }
+.ege-cast__pickrow:focus-visible { background: var(--team-wash); outline: 0; box-shadow: inset 4px 0 0 var(--team); }
+@media (hover: hover) { .ege-cast__pickrow:hover { background: var(--team-wash); outline: 0; box-shadow: inset 4px 0 0 var(--team); } }
 .ege-cast__pickname { display: grid; min-width: 0; line-height: 1.15; }
 .ege-cast__pickwho { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ege-cast__pickpos { font-size: .75rem; font-weight: 700; color: var(--fb-muted); }
@@ -11146,7 +11337,8 @@ html.ege-noscroll body { overflow: hidden; }
 
 /* The pop-up: the pick on its team's colour, then how many diamonds, typed
    or slid from the least a bet can be to all of them. */
-html.ege-cast-sheet-open { overflow: hidden; }
+html.ege-cast-sheet-open,
+html.ege-cast-sheet-open body { overflow: hidden; }
 .ege-cast__sheetback { z-index: 80; }
 .ege-cast__sheet { width: min(460px, 100%); outline: 0; }
 .ege-cast__sheethead {
@@ -11230,7 +11422,7 @@ html.ege-cast-sheet-open { overflow: hidden; }
   .ege-cast__half.is-bet .ege-cast__tail { flex-basis: 100%; justify-items: start; margin-left: 0; }
   .ege-cast__chosen .ege-cast__mug { width: 38px; height: 38px; }
   .ege-cast__sheetback { align-items: end; padding: 0; }
-  .ege-cast__sheet { width: 100%; border-width: 4px 0 0; box-shadow: none; }
+  .ege-cast__sheet { width: 100%; border-width: 4px 0 0; box-shadow: none; padding-bottom: env(safe-area-inset-bottom); }
   .ege-cast__sheetpick { font-size: 1.1875rem; }
 }
 
@@ -11476,7 +11668,7 @@ html.ege-cast-sheet-open { overflow: hidden; }
   min-width: 0;
 }
 .ege-tweet__nametext { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ege-tweet__who:hover .ege-tweet__nametext { text-decoration: underline; }
+@media (hover: hover) { .ege-tweet__who:hover .ege-tweet__nametext { text-decoration: underline; } }
 .ege-tweet__badge,
 .ege-acct__badge { display: inline-flex; flex: none; color: var(--tw-blue, #1d9bf0); }
 .ege-tweet__badge svg { width: 19px; height: 19px; fill: currentColor; display: block; }
@@ -11533,7 +11725,7 @@ html.ege-cast-sheet-open { overflow: hidden; }
   background: rgba(15, 20, 25, .75);
   clip-path: circle(50%);
 }
-.ege-tweet__drop:hover { background: rgba(39, 44, 48, .9); }
+@media (hover: hover) { .ege-tweet__drop:hover { background: rgba(39, 44, 48, .9); } }
 
 .ege-tweet__actions {
   display: flex;
@@ -11599,19 +11791,21 @@ html.ege-cast-sheet-open { overflow: hidden; }
   color: var(--tw-grey);
   clip-path: circle(50%);
 }
-.ege-tweet__unreply:hover { color: var(--tw-ink); background: rgba(15, 20, 25, .08); }
+@media (hover: hover) { .ege-tweet__unreply:hover { color: var(--tw-ink); background: rgba(15, 20, 25, .08); } }
 .ege-tweet__replying { margin: 12px 0 0; font-size: 15px; line-height: 20px; color: var(--tw-grey); }
 .ege-tweet__replying span { color: var(--tw-blue); }
 .ege-tweet.is-reply .ege-tweet__text { margin-top: 4px; }
 
 /* The account menu: the site's, dropped over the tweet from its top. */
 .ege-tweet__menu {
+  overscroll-behavior: contain;
   position: absolute;
   z-index: 5;
   top: 72px;
   left: 10px;
   width: min(360px, calc(100% - 20px));
   max-height: min(70vh, 560px);
+  max-height: min(70svh, 560px);
   overflow-y: auto;
   background: var(--fb-cream);
   color: var(--fb-ink);
@@ -11634,7 +11828,7 @@ html.ege-cast-sheet-open { overflow: hidden; }
   cursor: pointer;
   font: inherit;
 }
-.ege-acct__pick:hover { background: var(--fb-surface); }
+@media (hover: hover) { .ege-acct__pick:hover { background: var(--fb-surface); } }
 .ege-acct__pfp {
   flex: none;
   width: 40px;
@@ -11657,7 +11851,7 @@ html.ege-cast-sheet-open { overflow: hidden; }
   cursor: pointer;
   color: var(--fb-muted);
 }
-.ege-acct__edit:hover { color: var(--fb-ink); background: var(--fb-surface); }
+@media (hover: hover) { .ege-acct__edit:hover { color: var(--fb-ink); background: var(--fb-surface); } }
 .ege-acct__rule { height: 3px; background: var(--fb-ink); }
 .ege-acct__new {
   display: flex;
@@ -11675,7 +11869,7 @@ html.ege-cast-sheet-open { overflow: hidden; }
   text-transform: uppercase;
   color: var(--fb-accent-deep);
 }
-.ege-acct__new:hover { background: var(--fb-surface); }
+@media (hover: hover) { .ege-acct__new:hover { background: var(--fb-surface); } }
 
 .ege-acctedit { display: flex; flex-direction: column; gap: 12px; padding: 14px; }
 .ege-acctedit__pfp {
@@ -11700,7 +11894,7 @@ html.ege-cast-sheet-open { overflow: hidden; }
   background: rgba(15, 20, 25, .38);
   clip-path: circle(50%);
 }
-.ege-acctedit__pfp:hover .ege-acctedit__cam { background: rgba(15, 20, 25, .55); }
+@media (hover: hover) { .ege-acctedit__pfp:hover .ege-acctedit__cam { background: rgba(15, 20, 25, .55); } }
 .ege-acctedit__fields { display: flex; flex-direction: column; gap: 8px; }
 .ege-acctedit__fields .fb-input { width: 100%; }
 .ege-acctedit__handle { position: relative; display: block; }
@@ -11728,7 +11922,9 @@ html.ege-cast-sheet-open { overflow: hidden; }
   z-index: 200;
   display: grid;
   place-items: center;
-  padding: 16px;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+           max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  overscroll-behavior: contain;
   background: rgba(15, 20, 25, .62);
 }
 .ege-pfpcrop__panel {
@@ -11800,7 +11996,7 @@ html.ege-cast-sheet-open { overflow: hidden; }
   background: var(--fb-cream);
   box-shadow: 4px 4px 0 var(--fb-ink);
 }
-.ege-media__attach:hover { background: var(--fb-surface); }
+@media (hover: hover) { .ege-media__attach:hover { background: var(--fb-surface); } }
 .ege-media__count {
   margin-left: auto;
   font-weight: 800;

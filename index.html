@@ -5,17 +5,26 @@
 <!-- viewport-fit=cover lets the page paint under the notch and the home
      indicator; site.css keeps the content itself out of them with env(). -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Double-tap and text-box zoom, the press look on a tap, and two quick taps
+     on a two-tap button (js/touch.js). First, so it is in place before any of
+     the page can be tapped. -->
+<script src="js/touch.js"></script>
+<!-- Safari on an iPhone turned long numbers -- a contract, a stat line --
+     into phone-number links. -->
+<meta name="format-detection" content="telephone=no, date=no, email=no, address=no">
 
 <!-- Tints the status bar to match the nav when it is pinned to the home screen. -->
 <meta name="theme-color" content="#1d2416">
 <meta name="apple-mobile-web-app-title" content="EGE Football">
 <meta name="mobile-web-app-capable" content="yes">
+<!-- The home-screen icon on an iPhone: the tab's football, drawn large. -->
+<link rel="apple-touch-icon" href="icon/apple-touch-icon.png">
 <title>EGE Football</title>
 <meta name="description" content="Career simulation following six players from the 2018 junior year of high school to the 2023 NFL Draft.">
 
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%231d2416'/><ellipse cx='16' cy='16' rx='11' ry='7' fill='%23e56e28'/><path d='M9 16h14' stroke='%23fbf4e6' stroke-width='2'/></svg>">
 
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:ital,wght@0,400;0,600;0,800;1,800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:ital,wght@0,400;0,600;0,700;0,800;1,800&display=swap">
 <link rel="stylesheet" href="organic-styles.css">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="site.css">
@@ -317,7 +326,7 @@
             </svg>
             <input class="fb-input ege-search__field" id="searchField" type="search"
                    placeholder="Player" aria-label="Search players"
-                   autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+                   autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
             <button type="button" class="ege-search__clear" id="searchClear" aria-label="Clear" hidden>
               <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
                 <path d="M5 5l14 14M19 5L5 19" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square"/>

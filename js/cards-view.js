@@ -124,6 +124,15 @@ EGE.cardsView = (function () {
     return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
 
+  /* A search for names: an iPhone keyboard left alone capitalises the first
+     letter and "corrects" Paxon to Paxton. Its return key says Search. */
+  function noAutocorrect(input) {
+    input.autocapitalize = 'off';
+    input.setAttribute('autocorrect', 'off');
+    input.spellcheck = false;
+    input.enterKeyHint = 'search';
+  }
+
   function points(n) {
     var shown = Math.round(n * 10) / 10;
     return (shown < 0 ? '\u2212' : '') + Math.abs(shown).toFixed(1);
@@ -3124,6 +3133,7 @@ EGE.cardsView = (function () {
     search.placeholder = 'Search a player, team or play';
     search.setAttribute('aria-label', 'Search the cards');
     search.autocomplete = 'off';
+    noAutocorrect(search);
     search.addEventListener('input', function () { f.q = search.value; changed(); });
     search.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); open(false); toggle.focus({ preventScroll: true }); }
@@ -3792,6 +3802,7 @@ EGE.cardsView = (function () {
     var search = el('input', 'fb-input ege-wantpicker__search');
     search.type = 'search';
     search.autocomplete = 'off';
+    noAutocorrect(search);
     search.addEventListener('input', function () { drawList(); });
     var floor = el('select', 'fb-select ege-filterselect ege-wantpicker__floor');
     floor.setAttribute('aria-label', 'Rarity');
