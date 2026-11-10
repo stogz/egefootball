@@ -1038,12 +1038,50 @@ The page is one tweet, drawn the way X draws one in its light theme: the
 account's picture, name, check and handle, the text, a picture if one was
 added, and the four buttons; no time or date (Sam, 2026-11-10). The text is typed straight into it,
 and the picture button under it adds a picture beneath the text. **Post**
-draws the tweet at twice its size on a canvas (handles, hashtags and links
-in X's blue), puts the PNG in Supabase Storage's public `media` bucket and
-sends it to the **trades bot's** Discord channel as the picture alone, not
-in an embed: the message is just the picture's address, which Discord shows
-as the picture. Only a failure is reported; a tweet that went clears the
-box.
+draws the tweet on a canvas (handles, hashtags and links in X's blue), puts
+the PNG in Supabase Storage's public `media` bucket and sends it to the
+**trades bot's** Discord channel as the picture alone, not in an embed: the
+message is just the picture's address, which Discord shows as the picture.
+Only a failure is reported; a tweet that went clears the box.
+
+Every picture posted is the same size, 1400 × 1050 (Sam, 2026-11-10, so
+each shows the same size in Discord): the tweet is scaled to fit in the
+middle on X's dim blue, a long tweet with a picture smaller, a one-liner a
+touch bigger.
+
+**Replies.** Under every post in Discord is a **Reply** button, a link to
+`#media/reply/{post}`. That page shows the tweet being answered above the
+box, joined to it by a line down from its picture as X draws a thread,
+with *Replying to @handle* over the text; the ✕ goes back to a plain tweet.
+The posted picture is drawn the same way: the tweet it answers on top, the
+reply under it. A Discord webhook cannot make a real Discord reply (it has
+no way to point at another message), so the picture carries the thread
+instead. Each post keeps what a reply needs in `media_posts` (the
+account's picture as a small JPEG, the text, the picture under it, also
+put in the bucket, and the checks), read through `media_post`, which never
+gives out whose it was.
+
+**The league's own accounts.** The NFL, ESPN and NBC Sports tweet on
+their own (`js/media-news.js`, drawn and posted by `EGE.mediaView.postAs`):
+
+- **When a week is published** (from the Weeks tab or the NFL Sim tab),
+  three to five tweets about it, from the sim's box scores, the standings
+  and the rosters: the game of the week (a late winner, a comeback, an
+  upset, overtime, a blowout, a shootout, a shutout; in the playoffs who
+  moves on, and the champions), a stat line or two (as a sentence or a
+  stack of numbers), a team on a streak or still unbeaten or winless, a
+  big injury, and now and then (about half the weeks up to the Week 9
+  deadline) a player who might be moved: a good, older player on a losing
+  or rebuilding team, a star who does not fit his team's scheme, or one in
+  the last year of his deal. After the deadline that turns into the best
+  of the coming free agents and what they might cost. Every kind has
+  several ways of being said, and each tweet goes to whichever account
+  fits it. The six's trade-block status is never tweeted: only Sam trades
+  them. Once a week (`media_posts.tag`, `news:{season}:{week}`), and only
+  for the season being played; anything that does not post is said in the
+  week's line on the admin page.
+- **Every trade** the NFL sim puts through, as ESPN (see *The trades
+  bot*).
 
 **Accounts.** The account at the top of the tweet opens a menu of the
 accounts this player can tweet as:
@@ -1068,11 +1106,14 @@ The last account picked is remembered on the device.
 
 **Posting.** A player cannot read the webhook, so `post_tweet` does it in
 the database: it checks the picture is one this player uploaded (their
-user id is its folder), allows one tweet every 15 seconds, logs it in
-`media_posts` (admins can read it) and sends it through pg_net. Without
+user id is its folder), allows one tweet every 15 seconds (admins are not
+held to it), keeps it in `media_posts` (admins can read it) and sends it
+through pg_net with the Reply button, a link button, which Discord takes
+from a webhook only with `?with_components=true` on its address. Without
 pg_net only an admin's browser can post, which it then does straight to
-the webhook. With no trades webhook saved nothing posts and the page says
-so.
+the webhook; the league's accounts always post from the admin's browser
+(`p_relay`), one after another, so they land in order. With no trades
+webhook saved nothing posts and the page says so.
 
 ### Position-driven stat lines
 
@@ -3650,20 +3691,17 @@ never arrived, and trying the other route would post the week twice.
 
 ### The trades bot
 
-A third bot, in a channel of its own, posts nothing but trades (Sam,
-2026-10-22): every trade that goes through in the NFL sim — approved from
-the queue, made in the builder, or made from a team page's trade finder —
-the moment it is saved. A free-agent move is a signing, not a trade, and is
-not posted. The message is headed **Trade**, with an embed per team in its
-colour and with its mark, saying what it receives: each player as position,
-name and overall (one of the six underlined and bold, as in the draft
-lists), each pick as its year and round, its number once the draft order is
-known, and whose it was when it was not the giving team's own. The footer
-says when in the sim it happened (*2024 Week 5*, *2024 trade deadline*,
-*2025 offseason*). The marks are the site's own pictures: a webhook can only
-use the server's `:CHI:` emoji by their ids. Each embed carries the week
-posts' transparent spacer, `icon/spacer.png`, so every one is the full
-width whatever is in it.
+A third bot, in a channel of its own, posts trades (Sam, 2026-10-22):
+every trade that goes through in the NFL sim — approved from the queue,
+made in the builder, or made from a team page's trade finder — the moment
+it is saved. A free-agent move is a signing, not a trade, and is not
+posted. Since 2026-11-10 each trade is a tweet from ESPN alone (Sam), in
+the Media page's format with its Reply button: who is sending whom where,
+each player as position and name, each pick as its year and round, its
+number once the draft order is known, and whose it was when it was not the
+giving team's own, *sources tell ESPN* (`js/media-news.js` trade, a stack
+of ways of saying it). It was headed **Trade** with an embed per team
+before that.
 
 Its webhook goes in the third box under the week list, *Trades bot
 webhook*, kept in `discord_webhooks` as `trades` (run `supabase/schema.sql`
@@ -3673,7 +3711,8 @@ are not posted. A post that does not land leaves the trade made and says
 so.
 
 The same channel takes the Media page's tweets (see *Media*), sent by the
-database's `post_tweet` rather than the admin's browser.
+database's `post_tweet` rather than the admin's browser, and the NFL, ESPN
+and NBC Sports on each week as it is published.
 
 ### The season editor
 
@@ -4037,7 +4076,9 @@ Built so far:
 - `js/lines.js` — the point spread on every game the six have left, for
   the wagers (see Wagers).
 - `js/media.js` and `data/media.js` — the Media page (`#media`): the tweet
-  generator, its accounts and the admins' presets.
+  generator, replies, its accounts and the admins' presets.
+- `js/media-news.js` — what the NFL, ESPN and NBC Sports tweet when a week
+  is published, and ESPN's tweet of each trade.
 - `data/nfl.js` — the 32 NFL teams: name, division, colour, page address.
 - `data/nfl-results.js` — the NFL scores the sim played, written by the NFL
   Sim tab or `node nfl-sim/sim.js site`.

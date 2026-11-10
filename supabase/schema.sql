@@ -5223,14 +5223,23 @@ notify pgrst, 'reload schema';
 --                   presets (NFL, ESPN, NBC Sports) are in data/media.js,
 --                   not here.
 --   media bucket    Storage, public: each tweet's picture, under the
---                   poster's user id. A webhook can only show a picture
---                   Discord can fetch, so it has to be somewhere public.
---   media_posts     every tweet posted, for an admin to look back on.
+--                   poster's user id, and the picture under its text. A
+--                   webhook can only show a picture Discord can fetch, so
+--                   it has to be somewhere public.
+--   media_posts     every tweet posted, for an admin to look back on and
+--                   for a reply to show (the account's picture, the text,
+--                   the picture under it, the checks). A reply points at
+--                   its tweet (`parent`); the league's own news is tagged
+--                   with its week (`tag`), so it goes out once.
 --   post_tweet()    posts one of those pictures to the trades bot's webhook
---                   through pg_net, so a player never holds the webhook.
---                   One every 15 seconds a player. Without pg_net here
---                   only an admin's browser can post (js/wallet.js
---                   postMediaToDiscord).
+--                   through pg_net, so a player never holds the webhook,
+--                   with a Reply button under it (#media/reply/{id}). One
+--                   every 15 seconds a player. Without pg_net, or when an
+--                   admin's browser asks to post a run of them itself
+--                   (`p_relay`), it keeps the post and leaves the sending
+--                   to that browser (js/wallet.js postMediaToDiscord).
+--   media_post()    one post as a reply shows it, for any signed-in player:
+--                   never whose it was.
 -- ===========================================================================
 
 create table if not exists public.media_accounts (
@@ -5308,7 +5317,15 @@ create table if not exists public.media_posts (
   posted_at timestamptz not null default now()
 );
 
+alter table public.media_posts add column if not exists face     text;
+alter table public.media_posts add column if not exists picture  text;
+alter table public.media_posts add column if not exists verified boolean not null default false;
+alter table public.media_posts add column if not exists org      boolean not null default false;
+alter table public.media_posts add column if not exists parent   bigint references public.media_posts (id) on delete set null;
+alter table public.media_posts add column if not exists tag      text;
+
 create index if not exists media_posts_email on public.media_posts (lower(email), posted_at desc);
+create index if not exists media_posts_tag on public.media_posts (tag) where tag is not null;
 
 alter table public.media_posts enable row level security;
 
@@ -5326,7 +5343,7 @@ grant select on public.media_posts to authenticated;
 do $$
 begin
   insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-  values ('media', 'media', true, 5242880, array['image/png'])
+  values ('media', 'media', true, 5242880, array['image/png', 'image/jpeg'])
   on conflict (id) do update
     set public = true,
         file_size_limit = excluded.file_size_limit,
@@ -5346,33 +5363,68 @@ exception when others then
 end $$;
 
 -- Posts a tweet's picture (already in the media bucket, in the caller's
--- folder) to the trades bot's channel. The name, handle and text are kept
--- in media_posts. Discord gets the picture alone, not in an embed (Sam,
--- 2026-11-10): the message is nothing but the picture's address, which
--- Discord shows as the picture with the address hidden.
-create or replace function public.post_tweet(p_image text, p_name text, p_handle text, p_text text default null)
-returns bigint
+-- folder) to the trades bot's channel, and keeps the post: the name,
+-- handle, text, the account's picture (a small data URL), the picture under
+-- the text (in the bucket too), the checks, the tweet it answers and, for
+-- the league's own news, its tag. Discord gets the picture alone, not in an
+-- embed (Sam, 2026-11-10): the message is nothing but the picture's
+-- address, which Discord shows as the picture with the address hidden, and
+-- under it a Reply button, a link to answer it on the site -- a link
+-- button, which a webhook may send with ?with_components=true. Returns
+-- { id, sent }: sent is false when it left the sending to an admin's
+-- browser.
+drop function if exists public.post_tweet(text, text, text, text);
+
+create or replace function public.post_tweet(
+  p_image    text,
+  p_name     text,
+  p_handle   text,
+  p_text     text    default null,
+  p_face     text    default null,
+  p_picture  text    default null,
+  p_verified boolean default false,
+  p_org      boolean default false,
+  p_parent   bigint  default null,
+  p_tag      text    default null,
+  p_relay    boolean default false
+)
+returns jsonb
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
-  v_email text := auth.jwt() ->> 'email';
-  v_uid   text := auth.uid()::text;
-  v_url   text;
-  v_id    bigint;
+  v_email  text := auth.jwt() ->> 'email';
+  v_uid    text := auth.uid()::text;
+  v_admin  boolean := public.is_admin();
+  v_folder text;
+  v_url    text;
+  v_net    boolean;
+  v_id     bigint;
 begin
   if v_email is null or v_uid is null then
     raise exception 'Sign in first.';
   end if;
-  if p_image is null
-     or p_image !~ ('^https://[a-z0-9]+\.supabase\.co/storage/v1/object/public/media/'
-                    || v_uid || '/[A-Za-z0-9_-]+\.png$') then
+  v_folder := '^https://[a-z0-9]+\.supabase\.co/storage/v1/object/public/media/' || v_uid || '/[A-Za-z0-9_-]+';
+  if p_image is null or p_image !~ (v_folder || '\.png$') then
     raise exception 'That is not a tweet this page made.';
   end if;
-  if exists (select 1 from public.media_posts
-              where lower(email) = lower(v_email)
-                and posted_at > now() - interval '15 seconds') then
+  if p_picture is not null and p_picture !~ (v_folder || '\.(png|jpg)$') then
+    p_picture := null;
+  end if;
+  if p_face is not null and (char_length(p_face) > 40000
+                             or p_face !~ '^data:image/(jpeg|png);base64,[A-Za-z0-9+/]+={0,2}$') then
+    p_face := null;
+  end if;
+  if p_parent is not null and not exists (select 1 from public.media_posts where id = p_parent) then
+    raise exception 'That tweet is gone.';
+  end if;
+  if p_relay and not v_admin then
+    raise exception 'Only an admin can post that way.';
+  end if;
+  if not v_admin and exists (select 1 from public.media_posts
+                              where lower(email) = lower(v_email)
+                                and posted_at > now() - interval '15 seconds') then
     raise exception 'Give it a few seconds before tweeting again.';
   end if;
 
@@ -5380,24 +5432,56 @@ begin
   if v_url is null then
     raise exception 'The trades bot has no webhook yet.';
   end if;
-  if not exists (select 1 from pg_extension where extname = 'pg_net') then
+  v_net := exists (select 1 from pg_extension where extname = 'pg_net');
+  if not v_net and not v_admin then
     raise exception 'pg_net is not on in this database, so only an admin can post.';
   end if;
 
-  insert into public.media_posts (email, name, handle, body, image)
+  insert into public.media_posts (email, name, handle, body, image, face, picture, verified, org, parent, tag)
   values (v_email, left(coalesce(nullif(trim(p_name), ''), '?'), 50),
-          left(coalesce(nullif(trim(p_handle), ''), '?'), 15), left(p_text, 280), p_image)
+          left(coalesce(nullif(trim(p_handle), ''), '?'), 15), left(p_text, 280), p_image,
+          p_face, p_picture, coalesce(p_verified, false), coalesce(p_org, false) and v_admin, p_parent,
+          case when v_admin then left(p_tag, 60) end)
   returning id into v_id;
 
+  if p_relay or not v_net then
+    return jsonb_build_object('id', v_id, 'sent', false);
+  end if;
+
   execute 'select net.http_post(url := $1, body := $2, headers := $3)'
-    using v_url,
-          jsonb_build_object('content', p_image),
+    using v_url || case when position('?' in v_url) > 0 then '&' else '?' end || 'with_components=true',
+          jsonb_build_object(
+            'content', p_image,
+            'allowed_mentions', jsonb_build_object('parse', '[]'::jsonb),
+            'components', jsonb_build_array(jsonb_build_object(
+              'type', 1,
+              'components', jsonb_build_array(jsonb_build_object(
+                'type', 2, 'style', 5, 'label', 'Reply',
+                'url', 'https://stogz.github.io/egefootball/#media/reply/' || v_id))))),
           '{"Content-Type": "application/json"}'::jsonb;
-  return v_id;
+  return jsonb_build_object('id', v_id, 'sent', true);
 end;
 $$;
 
-revoke all on function public.post_tweet(text, text, text, text) from public, anon;
-grant execute on function public.post_tweet(text, text, text, text) to authenticated;
+revoke all on function public.post_tweet(text, text, text, text, text, text, boolean, boolean, bigint, text, boolean) from public, anon;
+grant execute on function public.post_tweet(text, text, text, text, text, text, boolean, boolean, bigint, text, boolean) to authenticated;
+
+-- One post as a reply to it shows it: who it is from as the tweet had it,
+-- what it said and its pictures. Never the poster's email.
+create or replace function public.media_post(p_id bigint)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select jsonb_build_object('id', id, 'name', name, 'handle', handle, 'body', body, 'face', face,
+                            'picture', picture, 'verified', verified, 'org', org, 'parent', parent)
+    from public.media_posts
+   where id = p_id;
+$$;
+
+revoke all on function public.media_post(bigint) from public, anon;
+grant execute on function public.media_post(bigint) to authenticated;
 
 notify pgrst, 'reload schema';

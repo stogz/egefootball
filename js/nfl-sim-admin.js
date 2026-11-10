@@ -608,9 +608,10 @@ EGE.nflSimAdmin = (function () {
 
      Every trade a step puts through -- approved from the queue, made in the
      builder, or made from a team page's trade finder -- goes to the trades
-     bot's channel once the world is saved (EGE.discordPost.buildTradePost).
-     Found by what the step approved, so no way of making one is missed. A
-     free-agent move is a signing, not a trade, and stays out. */
+     bot's channel once the world is saved, tweeted by ESPN (Sam,
+     2026-11-10: js/media-news.js trade writes it, the Media page draws and
+     posts it). Found by what the step approved, so no way of making one is
+     missed. A free-agent move is a signing, not a trade, and stays out. */
   function approvedIds(league) {
     return sim().run.queue(league, true).filter(function (t) { return t.status === 'approved'; })
       .map(function (t) { return t.id; });
@@ -651,29 +652,30 @@ EGE.nflSimAdmin = (function () {
       });
     });
     return trades.map(function (t) {
-      return EGE.discordPost.buildTradePost({
+      return {
+        id: t.id,
         when: tradeWhen(t.approvedAt || league),
         sides: t.teams.map(function (key, i) {
           var other = t.teams[1 - i];
           return { team: key, gets: (t.gives[other] || []).map(function (give) { return tradeItem(league, give, other, numbers); }) };
         })
-      });
+      };
     });
   }
 
-  /* One after another, so they land in the order they were made. A post
-     that does not land leaves the trade made: what it says is why, or null
-     when every one went (or there is no trades webhook to send to). */
-  function postTrades(posts) {
-    return posts.reduce(function (chain, payload) {
-      return chain.then(function (problem) {
-        return EGE.wallet.postTradeToDiscord(payload).then(function (res) {
-          return problem || (res.ok ? null : res.message);
-        }, function (err) { return problem || err.message || String(err); });
-      });
-    }, Promise.resolve(null)).then(function (problem) {
-      return problem ? 'Traded, but the trades bot did not post it: ' + problem : null;
-    });
+  /* ESPN's tweets, one after another, so they land in the order the trades
+     were made. One that does not land leaves the trade made: what it says
+     is why, or null when every one went (or there is no trades webhook to
+     send to). */
+  function postTrades(trades) {
+    if (!trades.length || !EGE.mediaNews || !EGE.mediaView) { return Promise.resolve(null); }
+    var tweets = trades.map(function (t) {
+      var tweet = EGE.mediaNews.trade(t);
+      return tweet ? Object.assign(tweet, { tag: 'trade:' + t.id }) : null;
+    }).filter(Boolean);
+    return EGE.mediaView.postMany(tweets).then(function (problem) {
+      return problem ? 'Traded, but ESPN did not tweet it: ' + problem : null;
+    }, function (err) { return 'Traded, but ESPN did not tweet it: ' + (err.message || err); });
   }
 
   /* --- what a step says it did ------------------------------------------- */

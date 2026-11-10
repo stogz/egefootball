@@ -9445,8 +9445,14 @@
          hangs cannot hold up the credits. */
       return payTheWeek(season).then(function (paid) {
         return sendWeekToDiscord(season, week).then(function (posted) {
-          var line = creditLine(paid) + ' ' + posted.message;
-          var trouble = !posted.ok || Boolean(paid.missed.length);
+          return postLeagueNews(season, week).then(function (news) {
+            return { posted: posted, news: news };
+          });
+        }).then(function (sent) {
+          var posted = sent.posted;
+          var line = creditLine(paid) + ' ' + posted.message +
+                     (sent.news ? ' The league news did not all post: ' + sent.news : '');
+          var trouble = !posted.ok || Boolean(paid.missed.length) || Boolean(sent.news);
           if (!quiet || trouble) { sayAdmin('Week ' + week + ' is out. ' + line, trouble); }
           said = { ok: true, message: line };
         });
@@ -9463,6 +9469,23 @@
       }
       return said;
     });
+  }
+
+  /* The NFL, ESPN and NBC Sports on the week just out (Sam, 2026-11-10):
+     three to five tweets to the trades bot's channel -- the game of the
+     week, stat lines, streaks, injuries, now and then a trade rumour --
+     written by js/media-news.js and drawn and posted by the Media page.
+     Once a week (tagged news:{season}:{week}), and only for the season
+     being played. Resolves with what went wrong, or null. */
+  function postLeagueNews(season, week) {
+    if (season !== EGE.currentSeason || !EGE.mediaNews || !EGE.mediaView) { return Promise.resolve(null); }
+    var tag = 'news:' + season + ':' + week;
+    return EGE.mediaView.already(tag).then(function (done) {
+      if (done) { return null; }
+      return EGE.mediaNews.week(season, week).then(function (tweets) {
+        return tweets.length ? EGE.mediaView.postMany(tweets, tag) : null;
+      });
+    }).catch(function (err) { return err.message || String(err); });
   }
 
   /* The NFL Sim tab puts its stored weeks out with the same click (and
@@ -10452,7 +10475,7 @@
       show(viewLive);
       setNav('league');
       EGE.liveView.render(hash.slice(5));
-    } else if (hash === 'media') {
+    } else if (hash === 'media' || /^media\/reply\/\d+$/.test(hash)) {
       show(viewMedia);
       EGE.mediaView.render();
       setNav('media');

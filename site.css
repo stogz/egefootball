@@ -11543,6 +11543,67 @@ html.ege-cast-sheet-open { overflow: hidden; }
 }
 .ege-tweet__action { flex: 1 1 0; height: 22.5px; fill: var(--tw-grey); }
 
+/* A reply: the tweet it answers on top, joined to the reply by a line down
+   from its picture, a size down, as X draws a thread (and as the posted
+   picture has it). */
+.ege-tweet__loading { margin: 0 0 12px; font-size: 15px; line-height: 20px; color: var(--tw-grey); }
+.ege-tweet__parent { position: relative; display: flex; gap: 12px; }
+.ege-tweet__side { flex: none; width: 48px; display: flex; flex-direction: column; align-items: center; }
+.ege-tweet__thread { flex: 1 1 auto; width: 2px; min-height: 12px; margin: 4px 0; background: var(--tw-edge); }
+.ege-tweet__body { flex: 1 1 auto; min-width: 0; padding-bottom: 14px; }
+.ege-tweet__line {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding-right: 30px;
+  font-size: 15px;
+  line-height: 20px;
+}
+.ege-tweet__line .ege-tweet__nametext { font-weight: 700; }
+.ege-tweet__badge--small svg { width: 18px; height: 18px; }
+.ege-tweet__linehandle {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-left: 2px;
+  color: var(--tw-grey);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ege-tweet__said {
+  margin: 2px 0 0;
+  font-size: 15px;
+  line-height: 20px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ege-tweet__saidpic {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  object-fit: cover;
+  border: 1px solid var(--tw-edge);
+  border-radius: 16px !important;
+}
+.ege-tweet__actions--small { margin-top: 12px; padding-top: 0; border-top: 0; }
+.ege-tweet__actions--small .ege-tweet__action { height: 18.75px; }
+.ege-tweet__unreply {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  color: var(--tw-grey);
+  clip-path: circle(50%);
+}
+.ege-tweet__unreply:hover { color: var(--tw-ink); background: rgba(15, 20, 25, .08); }
+.ege-tweet__replying { margin: 12px 0 0; font-size: 15px; line-height: 20px; color: var(--tw-grey); }
+.ege-tweet__replying span { color: var(--tw-blue); }
+.ege-tweet.is-reply .ege-tweet__text { margin-top: 4px; }
+
 /* The account menu: the site's, dropped over the tweet from its top. */
 .ege-tweet__menu {
   position: absolute;

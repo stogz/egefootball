@@ -959,17 +959,6 @@ EGE.wallet = (function () {
     });
   }
 
-  /* Sends a built trade to the trades bot's channel. With no trades webhook
-     saved there is nobody to tell, and that is not a failure: { ok: true,
-     skipped: true }. No edge function either way -- the trades bot is only
-     ever the webhook saved on the admin page. */
-  function postTradeToDiscord(payload) {
-    return loadWebhooks().then(function (hooks) {
-      if (!hooks[TRADES]) { return { ok: true, skipped: true }; }
-      return postToWebhook(hooks[TRADES], payload);
-    });
-  }
-
   /* Sends one of a live game's posts (js/live.js) from the admin's browser,
      when Supabase has no clock to send them itself: to the live bot's
      channel, or the NFL's when there is no live bot. */
@@ -981,13 +970,17 @@ EGE.wallet = (function () {
     });
   }
 
-  /* A tweet from the Media page (js/media.js), from an admin's browser,
-     when the database has no pg_net to send it through post_tweet: to the
-     trades bot's channel, where tweets go (Sam, 2026-11-10). */
+  /* A tweet from the Media page (js/media.js), from an admin's browser --
+     the league's own accounts, or any tweet when the database has no
+     pg_net to send it through post_tweet -- to the trades bot's channel,
+     where tweets go (Sam, 2026-11-10). Its Reply button is a link button,
+     which Discord takes from a webhook only with ?with_components=true. */
   function postMediaToDiscord(payload) {
     return loadWebhooks().then(function (hooks) {
-      if (!hooks[TRADES]) { return { ok: true, skipped: true }; }
-      return postToWebhook(hooks[TRADES], payload);
+      var url = hooks[TRADES];
+      if (!url) { return { ok: true, skipped: true }; }
+      if (payload && payload.components) { url += (url.indexOf('?') === -1 ? '?' : '&') + 'with_components=true'; }
+      return postToWebhook(url, payload);
     });
   }
 
@@ -1609,7 +1602,6 @@ EGE.wallet = (function () {
     loadWebhooks: loadWebhooks,
     saveWebhook: saveWebhook,
     postWeekToDiscord: postWeekToDiscord,
-    postTradeToDiscord: postTradeToDiscord,
     postMediaToDiscord: postMediaToDiscord,
     postLiveToDiscord: postLiveToDiscord,
     clearPublishedBoosters: clearPublishedBoosters
