@@ -12,7 +12,11 @@
      might be moved before the Week 9 deadline, or who is headed for free
      agency after it. Each kind has a stack of ways to say it and goes to
      whichever account fits, so no two weeks read alike. Nothing on the
-     six's trade-block status: only Sam trades them.
+     six's trade-block status: only Sam trades them. About half carry an
+     emoji (dress); rumours, injuries and sober stat lines never do. Now
+     and then a personality weighs in after the news (js/media-voices.js),
+     and every regular-season week ends with NBC Sports' MVP ladder
+     (ladder), the top five worked out from the season's box scores.
    - trade(trade): an approved sim trade as ESPN reports one (Sam: trades
      are tweeted by ESPN alone), from what the NFL Sim tab knows of it,
      { sides: [{ team, gets: [player { pos, name } | pick { year, round,
@@ -63,6 +67,20 @@ EGE.mediaNews = (function () {
       if (text.length <= MAX && !/\{\w+\}/.test(text)) { return text; }
     }
     return null;
+  }
+
+  /* An emoji now and then (Sam, 2026-11-10: about one a tweet makes it a
+     little better, but not every tweet gets one). One at most, at the end
+     of the first paragraph, where X's posters put it; never after a line
+     ending in a colon, which leads into the bare numbers of a sober stat
+     line. Rumours, injuries and money talk are never dressed. */
+  function dress(text, emojis, p) {
+    if (!text || !emojis || !emojis.length || !chance(p == null ? 0.6 : p)) { return text; }
+    var cut = text.indexOf('\n');
+    var head = cut === -1 ? text : text.slice(0, cut);
+    if (/:$/.test(head)) { return text; }
+    var out = head + ' ' + pick(emojis) + (cut === -1 ? '' : text.slice(cut));
+    return out.length <= MAX ? out : text;
   }
 
   function team(key) { return (EGE.nfl && EGE.nfl.teams[key]) || { name: key }; }
@@ -205,7 +223,10 @@ EGE.mediaNews = (function () {
       if (last && last.team === s.w && (last.qtr >= 5 || (last.qtr === 4 && last.left <= 120)) &&
           prior[wi] <= prior[1 - wi]) {
         var late = lateWinner(last, words, last.qtr >= 5 || g.ot);
-        if (late) { out.push({ kind: 'headline', weight: 3.2, text: late }); }
+        if (late) {
+          out.push({ kind: 'headline', weight: 3.2,
+                     text: dress(late, /field goal$/.test(last.text) ? ['🎯', '🥶', '😱'] : ['😱', '🚨', '🔥'], 0.7) });
+        }
       }
 
       /* Back from two scores down or more. */
@@ -213,22 +234,22 @@ EGE.mediaNews = (function () {
       all.forEach(function (p) { deficit = Math.max(deficit, p.score[1 - wi] - p.score[wi]); });
       if (deficit >= 14) {
         words.deficit = deficit;
-        out.push({ kind: 'headline', weight: 2.4 + deficit / 30, text: say([
+        out.push({ kind: 'headline', weight: 2.4 + deficit / 30, text: dress(say([
           'Down {deficit}, the {team} stormed back to beat the {opp} {score}.',
           'The {team} were down {deficit} and won anyway. {Team} {ws}, {Opp} {ls}.',
           'Comeback complete in {where}. The {team} erase a {deficit}-point hole and beat the {opp} {score}.',
           'Never count out the {team}. Down {deficit}, they rally past the {opp} {score}.',
           '{final}\n\nThe {team} trailed by {deficit} at one point.'
-        ], words) });
+        ], words), ['😤', '🔥', '💪'], 0.65) });
       }
 
       if (g.ot) {
-        out.push({ kind: 'headline', weight: 2.2, text: say([
+        out.push({ kind: 'headline', weight: 2.2, text: dress(say([
           'We needed extra time in {where}. The {team} outlast the {opp} {score} in overtime.',
           '{final} (OT)\n\nWhat a game.',
           'Overtime thriller: the {team} get past the {opp}, {score}.',
           'Sixty minutes was not enough. {Team} {ws}, {Opp} {ls} in OT.'
-        ], words) });
+        ], words), ['😱', '🍿', '🤯'], 0.65) });
       }
 
       /* A team that should not have won, by the records coming in. */
@@ -239,37 +260,37 @@ EGE.mediaNews = (function () {
         words.lrec = record({ w: lr.w, l: lr.l + 1 });
         words.wwas = record(wr);
         words.lwas = record(lr);
-        out.push({ kind: 'headline', weight: 2 + (pct(lr) - pct(wr)) * 2, text: say([
+        out.push({ kind: 'headline', weight: 2 + (pct(lr) - pct(wr)) * 2, text: dress(say([
           'Upset alert: the {wwas} {team} just took down the {lwas} {opp}, {score}.',
           'Nobody saw this one coming. {Team} {ws}, {Opp} {ls}.',
           'The {team} came in at {wwas}. They leave {where} with a {score} win over the {lwas} {opp}.',
           'Any given Sunday. The {team} ({wrec}) knock off the {opp} ({lrec}), {score}.',
           'Stunner: {final}'
-        ], words) });
+        ], words), ['😳', '🤯', '👀'], 0.6) });
       }
 
       if (s.ls === 0) {
-        out.push({ kind: 'headline', weight: 1.9, text: say([
+        out.push({ kind: 'headline', weight: 1.9, text: dress(say([
           'The {team} defense pitched a shutout: {ws}-0 over the {opp}.',
           'Zero. The {opp} did not score a point against the {team}, who win {score}.',
           'Shutout in {where}. {Team} {ws}, {Opp} 0.'
-        ], words) });
+        ], words), ['🔒', '🧱', '🛑'], 0.6) });
       } else if (s.margin >= 28) {
-        out.push({ kind: 'headline', weight: 1.6 + s.margin / 60, text: say([
+        out.push({ kind: 'headline', weight: 1.6 + s.margin / 60, text: dress(say([
           'The {team} rolled the {opp} {score}. It was never close.',
           'Statement win: {Team} {ws}, {Opp} {ls}.',
           '{final}\n\nThe {team} won by {margin}.',
           'The {team} put {ws} on the {opp}. That is all.',
           'A {margin}-point beatdown in {where}. The {team} handle the {opp}, {score}.'
-        ], words) });
+        ], words), ['😤', '💪', '🔨'], 0.55) });
       }
 
       if (s.ws + s.ls >= 70) {
-        out.push({ kind: 'headline', weight: 1.5 + (s.ws + s.ls - 70) / 40, text: say([
+        out.push({ kind: 'headline', weight: 1.5 + (s.ws + s.ls - 70) / 40, text: dress(say([
           '{total} points in {where}. The {team} survive the {opp} {score}.',
           'Defense optional: {Team} {ws}, {Opp} {ls}.',
           'What a shootout. The {team} outscore the {opp}, {score}.'
-        ], words) });
+        ], words), ['🎆', '🔥', '🍿'], 0.65) });
       }
     }
   }
@@ -327,18 +348,18 @@ EGE.mediaNews = (function () {
     words.next = NEXT_ROUND[round] || 'the next round';
     words.round = round;
     if (round === 'Super Bowl') {
-      return { kind: 'headline', weight: 10, text: say([
+      return { kind: 'headline', weight: 10, text: dress(say([
         'The {Team} are Super Bowl champions!\n\n{Team} {ws}, {Opp} {ls}.',
         'Confetti is falling. The {team} beat the {opp} {score} to win the Super Bowl.',
         'CHAMPIONS. The {Team} win the Super Bowl, {score} over the {opp}.'
-      ], words) };
+      ], words), ['🏆'], 0.9) };
     }
-    return { kind: 'headline', weight: 4 + Math.random(), text: say([
+    return { kind: 'headline', weight: 4 + Math.random(), text: dress(say([
       'The {team} are moving on. They beat the {opp} {score} and head to {next}.',
       '{final}\n\nThe {team} advance to {next}.',
       'Season over for the {opp}. The {team} win {score} and are on to {next}.',
       'The {team} take care of business in the {round} round, {score} over the {opp}.'
-    ], words) };
+    ], words), ['✈️', '👀', '🔥'], 0.55) };
   }
 
   /* --- stat lines ------------------------------------------------------------- */
@@ -364,6 +385,9 @@ EGE.mediaNews = (function () {
     if (line.pos === 'K') { return (line.fgm || 0) >= 5 ? 1.4 : 0; }
     return 0;
   }
+
+  var STAT_EMOJI = { QB: ['🎯', '🔥', '👏'], RB: ['🔥', '🚂', '💨'], WR: ['🙌', '🔥', '👐'], TE: ['🙌', '💪', '🔥'],
+                    K: ['🎯'], D: ['😤', '🔒', '💥'] };
 
   /* The line as a stack, one number a row. */
   function stack(line) {
@@ -425,7 +449,7 @@ EGE.mediaNews = (function () {
                            s.margin >= 17 ? ['rolled past', 'routed', 'cruised past'] : ['beat', 'took down', 'handled'])
                     : pick(['fell to', 'lost to']),
           stack: stack(line), qb: qb && qb.name !== line.name ? qb.name : 'The QB',
-          yds: line.passYds || line.rushYds || line.recYds || 0,
+          yds: line.pos === 'QB' ? line.passYds || 0 : line.pos === 'RB' ? line.rushYds || 0 : line.recYds || line.rushYds || 0,
           cmp: line.passCmp, att: line.passAtt || line.rushAtt, td: line.passTd || line.rushTd || line.recTd || 0,
           rec: line.rec, carries: line.rushAtt,
           tdWords: tds(line.passTd || line.rushTd || line.recTd || 0),
@@ -472,7 +496,9 @@ EGE.mediaNews = (function () {
           ];
         }
         var text = say(chance(0.5) && own.length ? own : common, words) || say(common, words);
-        if (text) { out.push({ kind: 'statline', weight: score, text: text, game: g }); }
+        /* In a loss the numbers go out plain. */
+        if (won) { text = dress(text, STAT_EMOJI[line.pos] || (DEFENDERS.test(line.pos) ? STAT_EMOJI.D : null), 0.5); }
+        if (text) { out.push({ kind: 'statline', weight: score, text: text, game: g, line: line }); }
       });
     });
     return out.sort(function (a, b) { return b.weight - a.weight; });
@@ -495,7 +521,7 @@ EGE.mediaNews = (function () {
         var words = { team: nick(key), Team: full(key), city: city(key), rec: record(now), w: now.w, l: now.l,
                       n: run.n, others: unbeaten.length - 1, opp: nick(key === s.w ? s.l : s.w) };
         if (now.l === 0 && now.w >= 4) {
-          out.push({ kind: 'standings', weight: 1.2 + now.w / 10, text: say(unbeaten.length === 1 ? [
+          out.push({ kind: 'standings', weight: 1.2 + now.w / 10, text: dress(say(unbeaten.length === 1 ? [
             'The {team} are {rec}, the last unbeaten team in the league.',
             'Still perfect. The {team} move to {rec} and nobody else is unbeaten.',
             '{rec}. The {team} are the only team left without a loss.'
@@ -503,38 +529,38 @@ EGE.mediaNews = (function () {
             'The {team} are {rec}. Still perfect.',
             'Unbeaten no matter what: the {team} improve to {rec}.',
             '{rec} and rolling. The {team} keep the zero in the loss column.'
-          ], words) });
+          ], words), ['💯', '🔥', '👀'], 0.55) });
         } else if (was.l === 0 && was.w >= 3 && now.l === 1) {
           words.was = record(was);
-          out.push({ kind: 'standings', weight: 1.4, text: say([
+          out.push({ kind: 'standings', weight: 1.4, text: dress(say([
             'The {team} are unbeaten no more. The {opp} hand them their first loss.',
             'There goes the perfect season. The {team} fall to {rec}.',
             'Perfect no longer: the {team} drop to {rec} after a loss to the {opp}.'
-          ], words) });
+          ], words), ['😬', '👀'], 0.5) });
         } else if (now.w === 0 && now.l >= 5) {
-          out.push({ kind: 'standings', weight: 1 + now.l / 20, text: say([
+          out.push({ kind: 'standings', weight: 1 + now.l / 20, text: dress(say([
             'Still searching for a win: the {team} fall to {rec}.',
             '{rec}. It has been a long season in {city}.',
             'The {team} are still winless after another loss, this time to the {opp}.'
-          ], words) });
+          ], words), ['😬', '🥶'], 0.4) });
         } else if (was.w === 0 && was.l >= 3 && now.w === 1) {
           words.was = record(was);
-          out.push({ kind: 'standings', weight: 1.3, text: say([
+          out.push({ kind: 'standings', weight: 1.3, text: dress(say([
             'Finally! The {team} are in the win column after an {was} start.',
             'The {team} get their first win of the season, against the {opp}.',
             'No more zero. The {team} pick up win number one and move to {rec}.'
-          ], words) });
+          ], words), ['🙌', '🎉'], 0.6) });
         } else if (run.won && run.n >= 5) {
-          out.push({ kind: 'standings', weight: 1 + run.n / 10, text: say([
+          out.push({ kind: 'standings', weight: 1 + run.n / 10, text: dress(say([
             '{n} straight wins for the {team}, who are now {rec}.',
             'The {team} have won {n} in a row. Nobody is playing better right now.',
             'Hot streak: the {team} make it {n} straight and sit at {rec}.'
-          ], words) });
+          ], words), ['🔥', '📈'], 0.55) });
         } else if (!run.won && run.n >= 5) {
-          out.push({ kind: 'standings', weight: 0.8 + run.n / 20, text: say([
+          out.push({ kind: 'standings', weight: 0.8 + run.n / 20, text: dress(say([
             'That is {n} losses in a row for the {team}, now {rec}.',
             'The skid hits {n} in {city}. The {team} fall to {rec}.'
-          ], words) });
+          ], words), ['📉', '😬'], 0.45) });
         }
       });
     });
@@ -681,6 +707,166 @@ EGE.mediaNews = (function () {
     return out.sort(function (a, b) { return b.weight - a.weight; }).slice(0, 4);
   }
 
+  /* --- the MVP ladder ------------------------------------------------------------
+
+     NBC Sports' top five after every regular-season week (Sam, 2026-11-10:
+     "calculates based on record, performances, narrative, who is leading"),
+     worked out week by week from the season's box scores so far, so last
+     week's order is known too:
+
+     - performances: his yards and touchdowns as a fantasy line (a point a
+       25 passing yards, a 10 rushing or receiving, 4 a passing touchdown,
+       6 any other, half a catch, minus 2.5 an interception), a bye counted
+       at his average so a week off costs nothing but a missed game does.
+       Quarterbacks count in full, backs 0.92, receivers and tight ends
+       0.85, the way voters lean. Nobody else is on it.
+     - the record: his team's, 0.4 + 1.2 x its winning share, a win and a
+       loss thrown in so one game cannot swing it.
+     - the narrative: his last three games against his season (hot or
+       cold, 5% either way at most), his big games (2% each, 10% at most),
+       his team's run of wins or losses from three on (1% a game, 6% at
+       most), and an injury (a week or two out costs a little; four weeks
+       or the season and he is off it).
+     - who is leading: last week's order holds a little (the leader 5%,
+       second 3%, third 2%, fourth and fifth 1%), so the front-runner stays
+       in front until somebody takes it from him.
+
+     Every player needs half his team's games to be on it. */
+
+  var MVP_POS = { QB: 1, RB: 0.92, WR: 0.85, TE: 0.85 };
+  var HOLD = [0.05, 0.03, 0.02, 0.01, 0.01];
+  var LADDER = 5;
+  var LADDER_STATS = ['passYds', 'passTd', 'passInt', 'rushYds', 'rushTd', 'rec', 'recYds', 'recTd'];
+
+  function production(l) {
+    return (l.passYds || 0) / 25 + (l.passTd || 0) * 4 - (l.passInt || 0) * 2.5 +
+           (l.rushYds || 0) / 10 + (l.rushTd || 0) * 6 +
+           (l.recYds || 0) / 10 + (l.recTd || 0) * 6 + (l.rec || 0) * 0.5;
+  }
+
+  function personId(line) { return line.espn || line.id || line.name + '|' + line.pos; }
+
+  function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
+
+  /* `weeks` is the season's box scores so far, [{ week, games }]. The
+     ladder through `through`: { rows: the top five, each { name, pos,
+     team, rec, move, stats, ege }, everyone: every ranked player in
+     order }, or null with nothing to rank. */
+  function ladder(weeks, through) {
+    var people = {};
+    var teams = {};
+    var back = {};               /* name|team: the week he is back */
+    var last = {};               /* id: last week's place */
+    var table = null;
+
+    weeks.slice().sort(function (a, b) { return a.week - b.week; }).forEach(function (wk) {
+      if (wk.week > through || wk.week > LAST_REGULAR) { return; }
+      var played = false;
+      (wk.games || []).forEach(function (g) {
+        if (!g.score || g.round || !g.home || !g.away) { return; }
+        played = true;
+        [[g.home, 0], [g.away, 1]].forEach(function (side) {
+          var t = teams[side[0]] || (teams[side[0]] = { w: 0, l: 0, run: [], games: 0 });
+          t.games += 1;
+          if (g.score[0] === g.score[1]) { return; }
+          var won = g.score[side[1]] > g.score[1 - side[1]];
+          if (won) { t.w += 1; } else { t.l += 1; }
+          t.run.push(won);
+        });
+        (g.box || []).forEach(function (l) {
+          if (!MVP_POS[l.pos]) { return; }
+          var id = personId(l);
+          var p = people[id] || (people[id] = { id: id, games: 0, total: 0, values: [], big: 0, stats: {} });
+          p.name = l.name;
+          p.pos = l.pos;
+          p.team = l.team;
+          p.ege = Boolean(l.ege);
+          var v = production(l);
+          p.games += 1;
+          p.total += v;
+          p.values.push(v);
+          if (standout(l) >= 1.6) { p.big += 1; }
+          LADDER_STATS.forEach(function (k) { p.stats[k] = (p.stats[k] || 0) + (l[k] || 0); });
+        });
+        (g.injuries || []).forEach(function (text) {
+          var m = HURT.exec(text);
+          if (m) { back[m[1] + '|' + m[2]] = m[4] === 'season' ? Infinity : wk.week + parseInt(m[4], 10) + 1; }
+        });
+      });
+      if (!played) { return; }
+
+      var most = Math.max.apply(null, Object.keys(teams).map(function (k) { return teams[k].games; }));
+      var ranked = [];
+      Object.keys(people).forEach(function (id) {
+        var p = people[id];
+        var t = teams[p.team];
+        if (!t || p.games < Math.max(1, t.games / 2)) { return; }
+        var out = (back[p.name + '|' + p.team] || 0) - wk.week - 1;   /* weeks still to miss */
+        if (out >= 4) { return; }
+        var avg = p.total / p.games;
+        var prod = (p.total + avg * Math.max(0, most - t.games)) * MVP_POS[p.pos];
+        if (prod <= 0) { return; }
+        var record = 0.4 + 1.2 * (t.w + 1) / (t.w + t.l + 2);
+        var recent = p.values.slice(-3);
+        var hot = p.games >= 4 ? clamp((recent.reduce(function (a, b) { return a + b; }, 0) / recent.length - avg) /
+                                       Math.max(avg, 8), -1, 1) * 0.05 : 0;
+        var run = streak(t);
+        var form = run.n >= 3 ? Math.min(run.n, 6) * 0.01 * (run.won ? 1 : -1) : 0;
+        var hold = last[id] != null && last[id] < HOLD.length ? HOLD[last[id]] : 0;
+        var hurt = out > 0 ? 1 - 0.04 * out : 1;
+        p.score = prod * record * (1 + hot + Math.min(p.big, 5) * 0.02 + form + hold) * hurt;
+        p.record = t.w + '-' + t.l;
+        ranked.push(p);
+      });
+      ranked.sort(function (a, b) { return b.score - a.score; });
+      var now = {};
+      ranked.forEach(function (p, i) { now[p.id] = i; });
+      table = {
+        week: wk.week,
+        everyone: ranked,
+        rows: ranked.slice(0, LADDER).map(function (p, i) {
+          var was = last[p.id];
+          return { name: p.name, pos: p.pos, team: p.team, rec: p.record, ege: p.ege, score: p.score,
+                   stats: Object.assign({}, p.stats), move: was == null || !Object.keys(last).length ? null : was - i };
+        })
+      };
+      last = now;
+    });
+    return table && table.week === through && table.rows.length ? table : null;
+  }
+
+  function commas(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+  /* Rams are LAR on a ladder, as the networks write them. */
+  function abbr(key) { return key === 'LA' ? 'LAR' : key; }
+
+  function ladderStats(row) {
+    var s = row.stats;
+    if (row.pos === 'QB') { return commas(s.passYds) + ' yds, ' + (s.passTd + s.rushTd) + ' TD'; }
+    if (row.pos === 'RB') { return commas(s.rushYds + s.recYds) + ' yds, ' + (s.rushTd + s.recTd) + ' TD'; }
+    return s.rec + '-' + commas(s.recYds) + ', ' + s.recTd + ' TD';
+  }
+
+  /* The ladder as NBC tweets it: who, the team and its record, the
+     numbers when they fit, and how far each has climbed or slid. */
+  function ladderTweet(table, week) {
+    var head = (week >= LAST_REGULAR ? 'Final MVP Ladder' : 'MVP Ladder after Week ' + week) + ' 🏆';
+    var tries = [[true, true], [false, true], [false, false]];
+    for (var i = 0; i < tries.length; i += 1) {
+      var withStats = tries[i][0];
+      var withMove = tries[i][1];
+      var lines = table.rows.map(function (row, n) {
+        var line = (n + 1) + '. ' + row.name + ' (' + abbr(row.team) + ', ' + row.rec + ')';
+        if (withStats) { line += ': ' + ladderStats(row); }
+        if (withMove && row.move) { line += ' ' + (row.move > 0 ? '↑' : '↓') + Math.abs(row.move); }
+        return line;
+      });
+      var text = head + '\n\n' + lines.join('\n');
+      if (text.length <= MAX) { return text; }
+    }
+    return null;
+  }
+
   /* --- the week's tweets --------------------------------------------------------- */
 
   /* Who says each one: the likeliest voice that has said the least so far,
@@ -700,7 +886,11 @@ EGE.mediaNews = (function () {
     return best.length ? pick(best) : null;
   }
 
-  function plan(season, week, boxes, rosters) {
+  /* The week's tweets, in the order they go: the news, then now and then
+     a personality's take on it (js/media-voices.js), then NBC's MVP ladder.
+     `history` is the season's box scores through the week, [{ week, games
+     }], for the ladder; without it there is none. */
+  function plan(season, week, boxes, rosters, history) {
     var games = weekGames(season, week, boxes).map(function (g) { return Object.assign({ week: week }, g); });
     if (!games.length) { return []; }
     var earlier = scoresBefore(season, week);
@@ -745,15 +935,42 @@ EGE.mediaNews = (function () {
     }
     picked = picked.slice(0, 5);
 
+    var table = regular && history ? ladder(history, week) : null;
+    var takes = EGE.mediaVoices ? EGE.mediaVoices.week({
+      season: season, week: week, games: games, before: before, after: after, rosters: rosters,
+      regular: regular, deadline: DEADLINE_WEEK, ladder: table
+    }) : [];
+    /* A week with a personality in it keeps the news to four. */
+    if (takes.length) { picked = picked.slice(0, 4); }
+
     var used = {};
-    return picked.map(function (c) { return { account: voice(c.kind, used), text: c.text, kind: c.kind }; });
+    var out = picked.map(function (c) { return { account: voice(c.kind, used), text: c.text, kind: c.kind }; });
+    var board = table ? ladderTweet(table, week) : null;
+    /* A take on the ladder goes after it (and not at all without it), the
+       rest before. */
+    out = out.concat(takes.filter(function (t) { return !t.afterLadder; }));
+    if (board) { out.push({ account: NBC, text: board, kind: 'ladder' }); }
+    out = out.concat(takes.filter(function (t) { return t.afterLadder && board; }));
+    return out.map(function (t) { return { account: t.account, text: t.text, kind: t.kind }; });
   }
 
-  function week(season, n) {
-    var boxes = EGE.boxScores ? EGE.boxScores.week(season, n).catch(function () { return null; }) : Promise.resolve(null);
-    var rosters = EGE.nflRosters ? EGE.nflRosters.load(season).catch(function () { return null; }) : Promise.resolve(null);
-    return Promise.all([boxes, rosters]).then(function (got) {
-      return plan(season, n, got[0], got[1]);
+  /* The season's box scores through week `n`, for the ladder. */
+  function seasonBoxes(year, n) {
+    if (!EGE.boxScores || n > LAST_REGULAR) { return Promise.resolve(null); }
+    var asks = [];
+    for (var w = 1; w <= n; w += 1) {
+      asks.push(EGE.boxScores.week(year, w).then(function (games) { return games; }, function () { return null; }));
+    }
+    return Promise.all(asks).then(function (got) {
+      return got.map(function (games, i) { return { week: i + 1, games: games || [] }; });
+    });
+  }
+
+  function week(year, n) {
+    var boxes = EGE.boxScores ? EGE.boxScores.week(year, n).catch(function () { return null; }) : Promise.resolve(null);
+    var rosters = EGE.nflRosters ? EGE.nflRosters.load(year).catch(function () { return null; }) : Promise.resolve(null);
+    return Promise.all([boxes, rosters, seasonBoxes(year, n)]).then(function (got) {
+      return plan(year, n, got[0], got[1], got[2]);
     });
   }
 
@@ -832,7 +1049,11 @@ EGE.mediaNews = (function () {
       text = say(templates, words);
       return Boolean(text);
     });
-    if (text) { return { account: ESPN, text: cap(text), kind: 'trade' }; }
+    if (text) {
+      /* Breaking news gets the siren half the time. */
+      if (/^BREAKING: /.test(text) && text.length + 3 <= MAX && chance(0.5)) { text = '🚨 ' + text; }
+      return { account: ESPN, text: cap(text), kind: 'trade' };
+    }
     var fallback = 'Trade: ' + full(a.team) + ' and ' + full(b.team) + ' have made a deal, sources tell ESPN.';
     return { account: ESPN, text: fallback, kind: 'trade' };
   }
@@ -840,8 +1061,18 @@ EGE.mediaNews = (function () {
   return {
     week: week,
     trade: trade,
-    /* For a test: the week's tweets from box scores and rosters in hand. */
+    /* For a test: the week's tweets from box scores and rosters in hand,
+       and the ladder from a season's. */
     plan: plan,
-    ESPN: ESPN
+    ladder: ladder,
+    ladderTweet: ladderTweet,
+    ESPN: ESPN,
+    /* What js/media-voices.js writes with. */
+    kit: {
+      MAX: MAX, pick: pick, chance: chance, say: say, dress: dress, cap: cap, list: list, tds: tds,
+      nick: nick, full: full, city: city, abbr: abbr, commas: commas, sides: sides, plays: plays,
+      standout: standout, record: record, pct: pct, streak: streak, records: records,
+      rosterRow: rosterRow, ROUND_WORDS: ROUND_WORDS
+    }
   };
 })();
