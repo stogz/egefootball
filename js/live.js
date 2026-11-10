@@ -2,15 +2,14 @@
    EGE Football — Live Mode
    A game the NFL sim has played, put out snap by snap for everybody to
    watch at once (Sam, 2026-11-03): #live/{id}, opened from its game on
-   the League page. Every snap the same (Sam, 2026-11-09): five seconds
-   of nothing about it, five of what is called ("Jaykeb Stewart pass…"),
-   then seven of what came of it ("Jaykeb Stewart 22-yd pass to Nico
-   Collins"). A punt skips the five of nothing and has twelve of the
-   whole play; halftime is two minutes. A player on a run of big plays
-   gets hot: fire licks in from the left border of his plays, blue once
-   he is absurdly hot (nfl-sim/lib/live.js HEAT; never a quarterback). PLAY LIVE on the
-   NFL Sim tab puts it up here waiting, and an
-   admin kicks it off from this page (Sam, 2026-11-04). An admin can
+   the League page. Every snap the same, punts too (Sam, 2026-11-10): two
+   seconds of "Snap…", five of what is called ("Sam Stogsdill rush…"),
+   then nine of what came of it ("Sam Stogsdill 13-yd rush"); halftime is
+   two minutes. A player who gets hot (three big plays in a row, or a
+   second touchdown or takeaway) burns: fire licks in from the left border
+   of his plays, blue once he is absurdly hot (nfl-sim/lib/live.js HEAT;
+   never a quarterback). PLAY LIVE on the NFL Sim tab puts it up here
+   waiting, and an admin kicks it off from this page (Sam, 2026-11-04). An admin can
    pause, end, restart or cancel it from here too, and #live/test plays a
    game on this device alone before it goes live.
 
@@ -355,13 +354,47 @@ EGE.liveView = (function () {
     return heat;
   }
 
+  /* How hot a second touchdown or takeaway of the game has made each
+     player after each entry (a third turns it blue; never a quarterback;
+     nfl-sim/lib/live.js HEAT), from what each snap added to the lines.
+     A game put on since 2026-11-10 has it in its entries' `h` already;
+     this lights the games put on before then too (Sam, 2026-11-10). */
+  function countedHeat() {
+    var info = people();
+    var tds = {};
+    var takes = {};
+    var now = {};
+    function level(c) { return c > 2 ? 2 : c === 2 ? 1 : 0; }
+    return game.entries.map(function (e) {
+      if (!e || e.hidden) { return now; }
+      var changed = null;
+      Object.keys(e.d || {}).forEach(function (n) {
+        if (info[n] && info[n].pos === 'QB') { return; }
+        var l = e.d[n];
+        var td = (l.rushTd || 0) + (l.recTd || 0) + (l.retTd || 0) + (l.defTd || 0);
+        var take = (l.ints || 0) + (l.ff || 0);
+        if (!td && !take) { return; }
+        tds[n] = (tds[n] || 0) + td;
+        takes[n] = (takes[n] || 0) + take;
+        changed = changed || Object.assign({}, now);
+        changed[n] = Math.max(level(tds[n]), level(takes[n]));
+      });
+      if (changed) { now = changed; }
+      return now;
+    });
+  }
+
   /* How hot the player a snap shows the face of is: once it is out, as it
-     left him; while only its call is, as hot as he already was. */
-  function heatOf(e, i) {
+     left him; while only its call is, as hot as he already was. `counted`
+     is countedHeat(). */
+  function heatOf(e, i, counted) {
     if (!e || !e.call) { return 0; }
-    if (e.hidden) { return e.w === undefined ? 0 : heatBefore(i)[e.w] || 0; }
+    if (e.hidden) {
+      if (e.w === undefined) { return 0; }
+      return Math.max(heatBefore(i)[e.w] || 0, (i > 0 && counted[i - 1] || {})[e.w] || 0);
+    }
     var n = e.r !== undefined ? e.r : e.w;
-    return n === undefined ? 0 : (e.h || {})[n] || 0;
+    return n === undefined ? 0 : Math.max((e.h || {})[n] || 0, (counted[i] || {})[n] || 0);
   }
 
   /* A hot player's box burns (Sam, 2026-11-10): fire stretched down the
@@ -555,12 +588,13 @@ EGE.liveView = (function () {
     var who = el('div', 'ege-cast__who');
     var words = el('div', 'ege-cast__words');
     if (e.call) { who.appendChild(face(e.hidden || e.r === undefined ? e.w : e.r, e.pre && e.pre.o, people())); }
-    burn(card, heatOf(e, game.at));
+    burn(card, heatOf(e, game.at, countedHeat()));
     if (e.tag === 'wait') {
-      /* Before the snap: nothing about it at all (Sam, 2026-11-09). */
+      /* Before the snap: "Snap…" and nothing about it (Sam, 2026-11-10). */
       card.classList.add('is-wait');
       who.appendChild(face(null, e.pre && e.pre.o, {}));
       var hush = el('p', 'ege-cast__call');
+      hush.appendChild(document.createTextNode('Snap'));
       hush.appendChild(el('span', 'ege-cast__dots', '…'));
       words.appendChild(hush);
     } else if (e.hidden) {
@@ -576,9 +610,9 @@ EGE.liveView = (function () {
     who.appendChild(words);
     card.appendChild(who);
     if (state === 'live') {
-      /* One bar for the whole snap, the same from the wait through the
+      /* One bar for the whole snap, the same from "Snap…" through the
          call to the end of the play (Sam, 2026-11-10): a snap's slot from
-         its wait, or from a punt's call. Halftime runs to the kickoff. */
+         its wait. Halftime runs to the kickoff. */
       var bar = el('span', 'ege-cast__bar');
       var fill = el('span', 'ege-cast__fill');
       var start = entryMs(game.at);
@@ -615,8 +649,10 @@ EGE.liveView = (function () {
     head.appendChild(el('h3', null, 'Play by play'));
     box.appendChild(head);
     var list = el('ol', 'ege-cast__list');
-    var shown = game.entries.filter(function (e, i) { return !e.hidden && e.tag !== 'wait' && i < game.at; });
+    var shown = [];
+    game.entries.forEach(function (e, i) { if (!e.hidden && e.tag !== 'wait' && i < game.at) { shown.push(i); } });
     var info = people();
+    var counted = countedHeat();
     var lastQ = null;
     /* Where a quarter starts: under its first snap, the list being newest
        first. */
@@ -625,7 +661,7 @@ EGE.liveView = (function () {
       lastQ = null;
     }
     for (var i = shown.length - 1; i >= 0; i -= 1) {
-      var e = shown[i];
+      var e = game.entries[shown[i]];
       var q = e.pre && e.pre.q;
       if (e.tag === 'half' || e.tag === 'end') {
         started();
@@ -636,7 +672,7 @@ EGE.liveView = (function () {
       lastQ = q;
       var item = el('li', 'ege-cast__item' + (e.tag && TAGS[e.tag] ? ' is-' + e.tag : ''));
       item.appendChild(face(e.r !== undefined ? e.r : e.w, e.pre.o, info));
-      burn(item, heatOf(e));
+      burn(item, heatOf(e, shown[i], counted));
       var body = el('div', 'ege-cast__body');
       var meta = el('div', 'ege-cast__meta');
       meta.appendChild(logo(e.pre.o, 18));

@@ -952,8 +952,8 @@ EGE.nflSimAdmin = (function () {
      one on this device alone first, posting nothing (js/live.js). */
 
   /* A whole snap, and how long its call shows before the play does
-     (nfl-sim/lib/live.js TIMING, Sam, 2026-11-09). */
-  var LIVE_SLOT = 17000;
+     (nfl-sim/lib/live.js TIMING, Sam, 2026-11-10). */
+  var LIVE_SLOT = 16000;
   var LIVE_REVEAL = 5000;
 
   function liveHint(message) {
