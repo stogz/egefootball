@@ -342,7 +342,13 @@ holds:
   as tall. Cooper Clark has the 2019 CIF San Diego Section Open Division
   Championship trophy (Carlsbad High School), a fifth again as tall, and
   his 2024 Offensive Rookie of the Year trophy (Chicago Bears), the
-  tallest at nearly half again (Sam, 2026-10-23).
+  tallest at nearly half again (Sam, 2026-10-23). The NFL's season awards
+  use that same gold NFL-shield trophy (`EGE.nflAwardTrophy`), also nearly
+  half again as tall: Jaykeb's 2027 MVP (Houston Texans), Sam Stogsdill's
+  2028 MVP (Pittsburgh Steelers) and Paxon's 2028 Offensive Player of the
+  Year (New York Giants). Jaykeb also has the Super Bowl LXII (2027) and
+  LXIII (2028) Lombardi trophies, a third again as tall, and the Super Bowl
+  LXIII MVP football at the usual size (Sam, 2026-11-10).
   A player with no trophies has no trophy case at all: the panel
   only shows once there is at least one.
 
