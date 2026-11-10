@@ -45,7 +45,6 @@ EGE.mediaView = (function () {
   var BLUE = '#1d9bf0';
   var GOLD = '#e2b719';
   var BACKDROP = '#e1eecc';   /* behind a headshot, as in the nav */
-  var DISCORD_BLUE = 0x1d9bf0;
 
   var PATHS = {
     badge: 'M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z',
@@ -288,23 +287,216 @@ EGE.mediaView = (function () {
     return blank;
   }
 
-  /* A file picked from the device, as a square JPEG small enough to keep
-     in the account's row: 256 across is twice what the tweet draws. */
-  function squareFromFile(file) {
-    return readFile(file).then(loadPicked).then(function (img) {
-      var size = 256;
-      var canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
-      var ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, size, size);
-      var side = Math.min(img.naturalWidth, img.naturalHeight);
-      ctx.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2,
-                    side, side, 0, 0, size, size);
-      var url = canvas.toDataURL('image/jpeg', 0.86);
-      if (url.length > 78000) { url = canvas.toDataURL('image/jpeg', 0.7); }
-      return url;
+  /* --- the crop menu ------------------------------------------------------
+
+     A profile picture picked from the device opens here first (Sam,
+     2026-11-10): drag it about under the circle, zoom with the slider, a
+     pinch or the wheel, and Done keeps what is in the circle. It opens at
+     once, saying it is loading, since a phone's photo can take a moment to
+     open. Resolves with the square as a JPEG small enough to keep in the
+     account's row -- 256 across, twice what the tweet draws -- or null
+     when it is cancelled. */
+  var CROP_OUT = 256;
+  var CROP_MAX_ZOOM = 4;
+  var crop = null;
+
+  function cropOpen() { return Boolean(crop); }
+
+  function closeCrop(result) {
+    if (!crop) { return; }
+    var open = crop;
+    crop = null;
+    document.removeEventListener('keydown', open.onKey, true);
+    open.root.remove();
+    if (open.url) { URL.revokeObjectURL(open.url); }
+    if (open.back) { open.back.focus(); }
+    open.resolve(result);
+  }
+
+  function openCrop(file, back) {
+    closeCrop(null);
+    return new Promise(function (resolve) {
+      var root = el('div', 'ege-pfpcrop');
+      root.setAttribute('role', 'dialog');
+      root.setAttribute('aria-modal', 'true');
+      root.setAttribute('aria-label', 'Crop the picture');
+      var panel = el('div', 'ege-pfpcrop__panel');
+      var stage = el('div', 'ege-pfpcrop__stage');
+      var status = el('p', 'ege-pfpcrop__status', 'Loading\u2026');
+      status.setAttribute('role', 'status');
+      stage.appendChild(status);
+      var ring = el('div', 'ege-pfpcrop__ring');
+      ring.hidden = true;
+      stage.appendChild(ring);
+
+      var zoom = el('input', 'ege-pfpcrop__zoom');
+      zoom.type = 'range';
+      zoom.min = '1';
+      zoom.max = String(CROP_MAX_ZOOM);
+      zoom.step = '0.01';
+      zoom.value = '1';
+      zoom.disabled = true;
+      zoom.setAttribute('aria-label', 'Zoom');
+
+      var foot = el('div', 'ege-pfpcrop__foot');
+      var cancel = el('button', 'fb-btn', 'Cancel');
+      cancel.type = 'button';
+      var done = el('button', 'fb-btn fb-btn--primary', 'Done');
+      done.type = 'button';
+      done.disabled = true;
+      foot.appendChild(cancel);
+      foot.appendChild(done);
+
+      panel.appendChild(stage);
+      panel.appendChild(zoom);
+      panel.appendChild(foot);
+      root.appendChild(panel);
+      document.body.appendChild(root);
+
+      var state = { w: 0, h: 0, z: 1, cx: 0, cy: 0 };
+      var img = null;
+
+      crop = {
+        root: root,
+        resolve: resolve,
+        back: back || null,
+        url: null,
+        onKey: function (e) {
+          if (e.key !== 'Escape') { return; }
+          e.stopPropagation();
+          closeCrop(null);
+        }
+      };
+      var mine = crop;
+      document.addEventListener('keydown', crop.onKey, true);
+      cancel.addEventListener('click', function () { closeCrop(null); });
+      root.addEventListener('click', function (e) { if (e.target === root) { closeCrop(null); } });
+      cancel.focus();
+
+      function side() { return stage.clientWidth || 1; }
+      function scale() { return side() / Math.min(state.w, state.h) * state.z; }
+
+      /* Keeps the circle's square inside the picture. */
+      function clamp() {
+        var half = Math.min(state.w, state.h) / (2 * state.z);
+        state.cx = Math.min(state.w - half, Math.max(half, state.cx));
+        state.cy = Math.min(state.h - half, Math.max(half, state.cy));
+      }
+
+      function draw() {
+        if (!img) { return; }
+        clamp();
+        var k = scale();
+        var s = side();
+        img.style.transform = 'translate(' + (s / 2 - state.cx * k) + 'px, ' +
+                              (s / 2 - state.cy * k) + 'px) scale(' + k + ')';
+        zoom.value = String(state.z);
+      }
+
+      /* Zooms keeping the point under (px, py), in the stage, where it is. */
+      function zoomTo(z, px, py) {
+        var s = side();
+        var before = scale();
+        if (px == null) { px = s / 2; py = s / 2; }
+        var ix = state.cx + (px - s / 2) / before;
+        var iy = state.cy + (py - s / 2) / before;
+        state.z = Math.min(CROP_MAX_ZOOM, Math.max(1, z));
+        var after = scale();
+        state.cx = ix - (px - s / 2) / after;
+        state.cy = iy - (py - s / 2) / after;
+        draw();
+      }
+
+      function fail(message) {
+        status.textContent = message;
+        status.hidden = false;
+      }
+
+      var url = URL.createObjectURL(file);
+      mine.url = url;
+      var picture = new Image();
+      picture.className = 'ege-pfpcrop__img';
+      picture.alt = '';
+      picture.draggable = false;
+      picture.onerror = function () { if (crop === mine) { fail('That picture would not open.'); } };
+      picture.onload = function () {
+        if (crop !== mine) { return; }
+        img = picture;
+        state.w = img.naturalWidth;
+        state.h = img.naturalHeight;
+        state.cx = state.w / 2;
+        state.cy = state.h / 2;
+        img.style.width = state.w + 'px';
+        img.style.height = state.h + 'px';
+        stage.insertBefore(img, ring);
+        status.hidden = true;
+        ring.hidden = false;
+        zoom.disabled = false;
+        done.disabled = false;
+        draw();
+      };
+      if (!/^image\//.test(file.type || '')) { fail('Pick a picture.'); } else { picture.src = url; }
+
+      zoom.addEventListener('input', function () { zoomTo(Number(zoom.value)); });
+
+      stage.addEventListener('wheel', function (e) {
+        if (!img) { return; }
+        e.preventDefault();
+        var box = stage.getBoundingClientRect();
+        zoomTo(state.z * Math.exp(-e.deltaY * 0.0015), e.clientX - box.left, e.clientY - box.top);
+      }, { passive: false });
+
+      /* One finger or the mouse drags; two pinch. */
+      var pointers = {};
+      stage.addEventListener('pointerdown', function (e) {
+        if (!img) { return; }
+        e.preventDefault();
+        stage.setPointerCapture(e.pointerId);
+        pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+        stage.classList.add('is-dragging');
+      });
+      stage.addEventListener('pointermove', function (e) {
+        var was = pointers[e.pointerId];
+        if (!was || !img) { return; }
+        var now = { x: e.clientX, y: e.clientY };
+        var ids = Object.keys(pointers);
+        if (ids.length === 1) {
+          var k = scale();
+          state.cx -= (now.x - was.x) / k;
+          state.cy -= (now.y - was.y) / k;
+          draw();
+        } else if (ids.length === 2) {
+          var other = pointers[ids[0] === String(e.pointerId) ? ids[1] : ids[0]];
+          var apart = Math.hypot(was.x - other.x, was.y - other.y);
+          if (apart > 0) {
+            var box = stage.getBoundingClientRect();
+            zoomTo(state.z * Math.hypot(now.x - other.x, now.y - other.y) / apart,
+                   (now.x + other.x) / 2 - box.left, (now.y + other.y) / 2 - box.top);
+          }
+        }
+        pointers[e.pointerId] = now;
+      });
+      function lift(e) {
+        delete pointers[e.pointerId];
+        if (!Object.keys(pointers).length) { stage.classList.remove('is-dragging'); }
+      }
+      stage.addEventListener('pointerup', lift);
+      stage.addEventListener('pointercancel', lift);
+
+      done.addEventListener('click', function () {
+        if (!img) { return; }
+        var size = Math.min(state.w, state.h) / state.z;
+        var canvas = document.createElement('canvas');
+        canvas.width = CROP_OUT;
+        canvas.height = CROP_OUT;
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, CROP_OUT, CROP_OUT);
+        ctx.drawImage(img, state.cx - size / 2, state.cy - size / 2, size, size, 0, 0, CROP_OUT, CROP_OUT);
+        var out = canvas.toDataURL('image/jpeg', 0.86);
+        if (out.length > 78000) { out = canvas.toDataURL('image/jpeg', 0.7); }
+        closeCrop(out);
+      });
     });
   }
 
@@ -345,15 +537,6 @@ EGE.mediaView = (function () {
   /* --- the tweet, drawn ------------------------------------------------------ */
 
   function font(size, weight) { return (weight || 400) + ' ' + size + 'px ' + FONT; }
-
-  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-  function stamp(when) {
-    var h = when.getHours();
-    var m = when.getMinutes();
-    return (h % 12 || 12) + ':' + (m < 10 ? '0' : '') + m + ' ' + (h < 12 ? 'AM' : 'PM') +
-           ' · ' + MONTHS[when.getMonth()] + ' ' + when.getDate() + ', ' + when.getFullYear();
-  }
 
   /* A handle, a hashtag or a link is blue, as on X. */
   var LINKY = /^([@#][A-Za-z0-9_]+|https?:\/\/\S+)(.*)$/;
@@ -511,13 +694,9 @@ EGE.mediaView = (function () {
       y += box.h;
     }
 
+    /* No time or date under it (Sam, 2026-11-10): straight to the rule
+       over the buttons. */
     y += 16;
-    if (drawing) {
-      ctx.font = font(15);
-      ctx.fillStyle = GREY;
-      ctx.fillText(tweet.when, PAD, y + 15);
-    }
-    y += 20 + 16;
 
     if (drawing) {
       ctx.fillStyle = RULE;
@@ -568,8 +747,7 @@ EGE.mediaView = (function () {
       verified: account.verified,
       org: Boolean(account.org),
       text: nodes.text.value.slice(0, MAX_TEXT),
-      picture: state.picture,
-      when: stamp(new Date())
+      picture: state.picture
     };
   }
 
@@ -629,8 +807,10 @@ EGE.mediaView = (function () {
     });
   }
 
+  /* The picture alone, not in an embed (Sam, 2026-11-10): a message that
+     is nothing but an image's address shows as that image. */
   function payloadFor(url) {
-    return { embeds: [{ color: DISCORD_BLUE, image: { url: url } }] };
+    return { content: url };
   }
 
   function post() {
@@ -681,7 +861,6 @@ EGE.mediaView = (function () {
       pictureBox: $('tweetPicture'),
       picture: $('tweetPictureImg'),
       dropPicture: $('tweetPictureDrop'),
-      when: $('tweetWhen'),
       attach: $('tweetAttach'),
       count: $('tweetCount'),
       post: $('tweetPost')
@@ -702,6 +881,8 @@ EGE.mediaView = (function () {
       /* A click that swapped the menu's insides (New account, Edit,
          Cancel) lands here after its button has left the page. */
       if (!document.documentElement.contains(e.target)) { return; }
+      /* Nor is anything done in the crop menu, which sits over the page. */
+      if (cropOpen()) { return; }
       if (nodes.menu.contains(e.target) || nodes.who.contains(e.target)) { return; }
       closeMenu();
     });
@@ -717,11 +898,6 @@ EGE.mediaView = (function () {
     });
     nodes.dropPicture.addEventListener('click', function () { setPicture(null); });
     nodes.post.addEventListener('click', post);
-
-    /* The time on the card keeps up while it is open. */
-    window.setInterval(function () {
-      if (!$('view-media').hidden) { nodes.when.textContent = stamp(new Date()); }
-    }, 20000);
   }
 
   function setPicture(picture) {
@@ -770,7 +946,6 @@ EGE.mediaView = (function () {
     nodes.badge.hidden = !account.verified;
     nodes.badge.classList.toggle('is-org', Boolean(account.org));
     nodes.handle.textContent = '@' + account.handle;
-    nodes.when.textContent = stamp(new Date());
   }
 
   /* --- the account menu ---------------------------------------------------- */
@@ -944,12 +1119,13 @@ EGE.mediaView = (function () {
       var picked = file.files && file.files[0];
       file.value = '';
       if (!picked) { return; }
-      squareFromFile(picked).then(function (url) {
+      openCrop(picked, name).then(function (url) {
+        if (!url) { return; }
         photo = url;
         draft = Object.assign({}, draft, { id: 'draft-' + Date.now(), photo: url, headshot: false });
         showFace(pfpImg, draft);
         fail('');
-      }, function (e) { fail(e.message); });
+      });
     });
 
     form.addEventListener('submit', function (e) {

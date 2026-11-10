@@ -1036,13 +1036,14 @@ the Shop and Cards it is there only once someone is signed in.
 
 The page is one tweet, drawn the way X draws one in its light theme: the
 account's picture, name, check and handle, the text, a picture if one was
-added, the time, and the four buttons. The text is typed straight into it,
+added, and the four buttons; no time or date (Sam, 2026-11-10). The text is typed straight into it,
 and the picture button under it adds a picture beneath the text. **Post**
 draws the tweet at twice its size on a canvas (handles, hashtags and links
 in X's blue), puts the PNG in Supabase Storage's public `media` bucket and
-sends it to the **trades bot's** Discord channel as an embed holding the
-picture and nothing else. Only a failure is reported; a tweet that went
-clears the box.
+sends it to the **trades bot's** Discord channel as the picture alone, not
+in an embed: the message is just the picture's address, which Discord shows
+as the picture. Only a failure is reported; a tweet that went clears the
+box.
 
 **Accounts.** The account at the top of the tweet opens a menu of the
 accounts this player can tweet as:
@@ -1052,6 +1053,11 @@ accounts this player can tweet as:
   with the blue check.
 - **Any they make** (New account, up to twelve): a picture, a name and a
   handle, unverified. An admin's editor has a Verified box as well.
+
+A picture picked for an account opens in a crop menu first (Sam,
+2026-11-10), which says it is loading until the picture is open: drag it
+under the circle, zoom with the slider (or a pinch, or the wheel), and
+**Done** keeps the circle, 256 pixels square.
 - **An admin's presets**: NFL, ESPN and NBC Sports (`data/media.js`,
   pictures in `icon/media/`), verified, with X's gold check and square
   picture for an organisation, and not editable.

@@ -5347,7 +5347,9 @@ end $$;
 
 -- Posts a tweet's picture (already in the media bucket, in the caller's
 -- folder) to the trades bot's channel. The name, handle and text are kept
--- in media_posts; Discord gets the picture alone, in an embed in X's blue.
+-- in media_posts. Discord gets the picture alone, not in an embed (Sam,
+-- 2026-11-10): the message is nothing but the picture's address, which
+-- Discord shows as the picture with the address hidden.
 create or replace function public.post_tweet(p_image text, p_name text, p_handle text, p_text text default null)
 returns bigint
 language plpgsql
@@ -5389,9 +5391,7 @@ begin
 
   execute 'select net.http_post(url := $1, body := $2, headers := $3)'
     using v_url,
-          jsonb_build_object('embeds', jsonb_build_array(jsonb_build_object(
-            'color', 1940464,   -- #1d9bf0
-            'image', jsonb_build_object('url', p_image)))),
+          jsonb_build_object('content', p_image),
           '{"Content-Type": "application/json"}'::jsonb;
   return v_id;
 end;

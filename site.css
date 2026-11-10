@@ -11535,15 +11535,12 @@ html.ege-cast-sheet-open { overflow: hidden; }
 }
 .ege-tweet__drop:hover { background: rgba(39, 44, 48, .9); }
 
-.ege-tweet__when {
+.ege-tweet__actions {
+  display: flex;
   margin-top: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--tw-rule);
-  font-size: 15px;
-  line-height: 20px;
-  color: var(--tw-grey);
+  padding-top: 12px;
+  border-top: 1px solid var(--tw-rule);
 }
-.ege-tweet__actions { display: flex; padding-top: 12px; }
 .ege-tweet__action { flex: 1 1 0; height: 22.5px; fill: var(--tw-grey); }
 
 /* The account menu: the site's, dropped over the tweet from its top. */
@@ -11660,6 +11657,77 @@ html.ege-cast-sheet-open { overflow: hidden; }
 .ege-acctedit__check input { width: 18px; height: 18px; accent-color: var(--fb-accent); }
 .ege-acctedit__foot { display: flex; gap: 8px; justify-content: flex-end; }
 .ege-acctedit__delete { margin-right: auto; color: var(--fb-accent-deep); }
+
+/* The crop menu a profile picture opens in (Sam, 2026-11-10): the picture
+   under a circle, dragged and zoomed, over the whole page. The circle is a
+   hole in a dark veil, drawn as one gradient so nothing needs rounding. */
+.ege-pfpcrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(15, 20, 25, .62);
+}
+.ege-pfpcrop__panel {
+  width: min(360px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+  background: var(--fb-cream);
+  border: var(--fb-border) solid var(--fb-ink);
+  box-shadow: var(--fb-shadow) var(--fb-shadow) 0 rgba(0,0,0,.35);
+}
+.ege-pfpcrop__stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--fb-ink);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+.ege-pfpcrop__stage.is-dragging { cursor: grabbing; }
+.ege-pfpcrop__img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: none;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+.ege-pfpcrop__ring {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle closest-side,
+    transparent calc(100% - 2px),
+    rgba(255, 255, 255, .9) calc(100% - 2px),
+    rgba(255, 255, 255, .9) 100%,
+    rgba(15, 20, 25, .58) 100%);
+}
+.ege-pfpcrop__status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 16px;
+  text-align: center;
+  color: var(--fb-cream);
+  font-weight: 800;
+  font-size: .8125rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.ege-pfpcrop__status[hidden] { display: none; }
+.ege-pfpcrop__zoom { width: 100%; accent-color: var(--fb-accent); }
+.ege-pfpcrop__zoom:disabled { opacity: .4; }
+.ege-pfpcrop__foot { display: flex; gap: 8px; justify-content: flex-end; }
 
 /* Under the card: a picture, what is left of 280 once it is nearly gone,
    and Post. */
