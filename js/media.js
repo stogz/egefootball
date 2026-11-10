@@ -19,6 +19,16 @@
    data/media.js (NFL, ESPN, NBC Sports), verified and not editable. All of
    a player's accounts are rows of media_accounts, read and written only by
    them; the own account is a row only once it has been changed.
+
+   Every picture posted is the same size, 1400 by 1050, whatever is in it
+   (Sam, 2026-11-10: so each shows the same in Discord): the tweet is
+   scaled to fit on X's dim blue (frame). Under each one in Discord is a
+   Reply button that opens #media/reply/{post}: the tweet it answers sits
+   above the box, and the reply is drawn under it, joined by a line as X
+   draws a thread. A webhook cannot make a Discord reply, so the picture
+   carries the thread instead. The NFL, ESPN and NBC Sports accounts post
+   through here too (postAs): the league's news when a week is published,
+   and ESPN every trade (js/media-news.js).
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -46,6 +56,16 @@ EGE.mediaView = (function () {
   var GOLD = '#e2b719';
   var BACKDROP = '#e1eecc';   /* behind a headshot, as in the nav */
 
+  /* The picture every tweet is posted as: always this size, the tweet
+     scaled to fit inside the margin. */
+  var FRAME_W = 700;
+  var FRAME_H = 525;
+  var FRAME_PAD = 28;
+  var FRAME_BG = '#15202b';
+  var FACE_OUT = 128;          /* the account's picture, kept with the post */
+  var PICTURE_OUT = 1200;      /* the picture under the text, kept likewise */
+  var PARENT_ICON = 18.75;
+
   var PATHS = {
     badge: 'M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z',
     reply: 'M14.046 2.242l-4.148-.01h-.002c-4.374 0-7.8 3.427-7.8 7.802 0 4.098 3.186 7.206 7.465 7.37v3.828c0 .108.044.286.12.403.142.225.384.347.632.347.138 0 .277-.038.402-.118.264-.168 6.473-4.14 8.088-5.506 1.902-1.61 3.04-3.97 3.043-6.312v-.017c-.006-4.367-3.43-7.787-7.8-7.788zm3.787 12.972c-1.134.96-4.862 3.405-6.772 4.643V16.67c0-.414-.335-.75-.75-.75h-.396c-3.66 0-6.318-2.476-6.318-5.886 0-3.534 2.768-6.302 6.3-6.302l4.147.01h.002c3.532 0 6.3 2.766 6.302 6.296-.003 1.91-.942 3.844-2.514 5.176z',
@@ -61,7 +81,9 @@ EGE.mediaView = (function () {
     rows: [],             /* media_accounts rows */
     chosen: null,         /* the id tweeted as */
     picture: null,        /* { img, url } under the text */
-    posting: false
+    posting: false,
+    replyAsked: null,     /* the post #media/reply/{id} asks for */
+    reply: null           /* that post, once read: what the reply answers */
   };
 
   var built = false;
@@ -220,6 +242,9 @@ EGE.mediaView = (function () {
       images[src] = new Promise(function (resolve, reject) {
         var img = new Image();
         img.decoding = 'async';
+        /* A picture from Storage has to be fetched for the canvas's sake,
+           or the canvas could not be saved with it on. */
+        if (/^https?:/i.test(src) && src.indexOf(window.location.origin + '/') !== 0) { img.crossOrigin = 'anonymous'; }
         img.onload = function () { resolve(img); };
         img.onerror = function () { delete images[src]; reject(new Error('That picture would not load.')); };
         img.src = src;
@@ -610,28 +635,117 @@ EGE.mediaView = (function () {
     return { w: inner, h: Math.round(inner * Math.min(ratio, 1.25)) };
   }
 
+  /* An account's picture: round, or a rounded square for an organisation. */
+  function drawFace(ctx, face, x, y, org) {
+    ctx.save();
+    if (org) { roundRect(ctx, x, y, PFP, PFP, 6); } else {
+      ctx.beginPath();
+      ctx.arc(x + PFP / 2, y + PFP / 2, PFP / 2, 0, Math.PI * 2);
+    }
+    ctx.clip();
+    ctx.fillStyle = RULE;
+    ctx.fillRect(x, y, PFP, PFP);
+    if (face) { ctx.drawImage(face, x, y, PFP, PFP); }
+    ctx.restore();
+  }
+
+  /* A picture in its box, cropped to the middle, with X's thin edge. */
+  function drawPicture(ctx, picture, x, y, box) {
+    var img = picture.img;
+    var iw = img.naturalWidth;
+    var ih = img.naturalHeight;
+    var sh = Math.min(ih, iw * box.h / box.w);
+    ctx.save();
+    roundRect(ctx, x, y, box.w, box.h, 16);
+    ctx.clip();
+    ctx.drawImage(img, 0, (ih - sh) / 2, iw, sh, x, y, box.w, box.h);
+    ctx.restore();
+    roundRect(ctx, x + 0.5, y + 0.5, box.w - 1, box.h - 1, 16);
+    ctx.strokeStyle = EDGE;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  /* One wrapped line, its handles, tags and links in blue. */
+  function drawLine(ctx, line, x, baseline) {
+    var at = x;
+    line.forEach(function (word) {
+      pieces(word).forEach(function (part) {
+        ctx.fillStyle = part.color;
+        ctx.fillText(part.text, at, baseline);
+        at += ctx.measureText(part.text).width;
+      });
+    });
+  }
+
+  /* The tweet a reply answers, above it, as X lays out a thread: its
+     account's picture down the left with a line from it to the reply's,
+     the name and handle on one line, and the text, picture and buttons
+     beside, a size down from the reply's. Returns where the reply starts. */
+  function paintParent(ctx, parent, face, top, drawing) {
+    var x = PAD + PFP + 12;
+    var width = WIDTH - x - PAD;
+    var handle = '@' + parent.handle;
+    if (drawing) {
+      ctx.textBaseline = 'alphabetic';
+      drawFace(ctx, face, PAD, top, parent.org);
+      ctx.font = font(15);
+      var handleRoom = Math.min(ctx.measureText(handle).width, width * 0.45);
+      ctx.font = font(15, 700);
+      ctx.fillStyle = INK;
+      var name = fitText(ctx, parent.name, width - handleRoom - 6 - (parent.verified ? 21 : 0));
+      ctx.fillText(name, x, top + 17);
+      var at = x + ctx.measureText(name).width;
+      if (parent.verified) {
+        icon(ctx, 'badge', at + 2, top + 1.5, 18, parent.org ? GOLD : BLUE);
+        at += 20;
+      }
+      ctx.font = font(15);
+      ctx.fillStyle = GREY;
+      ctx.fillText(fitText(ctx, handle, x + width - at - 4), at + 4, top + 17);
+    }
+    var y = top + 24;
+    ctx.font = font(15);
+    var lines = wrap(ctx, parent.text, width);
+    lines.forEach(function (line) {
+      if (drawing) { drawLine(ctx, line, x, y + 15); }
+      y += 20;
+    });
+    if (parent.picture) {
+      y += lines.length ? 12 : 4;
+      var box = pictureBox(parent.picture, width);
+      if (drawing) { drawPicture(ctx, parent.picture, x, y, box); }
+      y += box.h;
+    }
+    y += 12;
+    if (drawing) {
+      var slot = width / ACTIONS.length;
+      ACTIONS.forEach(function (name, i) { icon(ctx, name, x + slot * i + (slot - PARENT_ICON) / 2, y, PARENT_ICON, GREY); });
+    }
+    y = Math.max(y + PARENT_ICON + 14, top + PFP + 20);
+    if (drawing) {
+      ctx.fillStyle = EDGE;
+      ctx.fillRect(PAD + PFP / 2 - 1, top + PFP + 4, 2, y - 4 - (top + PFP + 4));
+    }
+    return y;
+  }
+
   /* Lays the tweet out and, given a context to draw on, draws it. Returns
-     the height either way, so it runs once to size the canvas and again to
-     paint it. */
-  function paint(ctx, tweet, face, drawing) {
+     the height either way, so it runs once to size it and again to paint
+     it. `faces` are the canvases of the account's picture (main) and, for
+     a reply, of the account it answers (parent). */
+  function paint(ctx, tweet, faces, drawing) {
     var inner = WIDTH - PAD * 2;
     var y = PAD;
 
     if (drawing) {
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, WIDTH, ctx.canvas.height / SCALE);
+      ctx.fillRect(0, 0, WIDTH, 4000);
+    }
+    if (tweet.parent) { y = paintParent(ctx, tweet.parent, faces.parent, y, drawing); }
 
-      /* The picture: round, or a rounded square for an organisation. */
-      ctx.save();
-      if (tweet.org) { roundRect(ctx, PAD, y, PFP, PFP, 6); } else {
-        ctx.beginPath();
-        ctx.arc(PAD + PFP / 2, y + PFP / 2, PFP / 2, 0, Math.PI * 2);
-      }
-      ctx.clip();
-      ctx.fillStyle = RULE;
-      ctx.fillRect(PAD, y, PFP, PFP);
-      if (face) { ctx.drawImage(face, PAD, y, PFP, PFP); }
-      ctx.restore();
+    if (drawing) {
+      drawFace(ctx, faces.main, PAD, y, tweet.org);
 
       var x = PAD + PFP + 12;
       ctx.textBaseline = 'alphabetic';
@@ -657,40 +771,30 @@ EGE.mediaView = (function () {
     }
     y += PFP + 12;
 
+    if (tweet.parent) {
+      if (drawing) {
+        ctx.font = font(15);
+        ctx.fillStyle = GREY;
+        var lead = 'Replying to ';
+        var leadW = ctx.measureText(lead).width;
+        ctx.fillText(lead, PAD, y + 15);
+        ctx.fillStyle = BLUE;
+        ctx.fillText(fitText(ctx, '@' + tweet.parent.handle, inner - leadW), PAD + leadW, y + 15);
+      }
+      y += 24;
+    }
+
     ctx.font = font(17);
     var lines = wrap(ctx, tweet.text, inner);
     lines.forEach(function (line) {
-      if (drawing) {
-        var at = PAD;
-        line.forEach(function (word) {
-          pieces(word).forEach(function (part) {
-            ctx.fillStyle = part.color;
-            ctx.fillText(part.text, at, y + 18);
-            at += ctx.measureText(part.text).width;
-          });
-        });
-      }
+      if (drawing) { drawLine(ctx, line, PAD, y + 18); }
       y += 24;
     });
 
     if (tweet.picture) {
       y += lines.length ? 12 : 0;
       var box = pictureBox(tweet.picture, inner);
-      if (drawing) {
-        var img = tweet.picture.img;
-        var iw = img.naturalWidth;
-        var ih = img.naturalHeight;
-        var sh = Math.min(ih, iw * box.h / box.w);
-        ctx.save();
-        roundRect(ctx, PAD, y, box.w, box.h, 16);
-        ctx.clip();
-        ctx.drawImage(img, 0, (ih - sh) / 2, iw, sh, PAD, y, box.w, box.h);
-        ctx.restore();
-        roundRect(ctx, PAD + 0.5, y + 0.5, box.w - 1, box.h - 1, 16);
-        ctx.strokeStyle = EDGE;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
+      if (drawing) { drawPicture(ctx, tweet.picture, PAD, y, box); }
       y += box.h;
     }
 
@@ -722,18 +826,47 @@ EGE.mediaView = (function () {
     return cut + '…';
   }
 
-  /* The tweet as a canvas, twice the size it shows at. */
+  /* The tweet as it is posted: always FRAME_W by FRAME_H, twice over, the
+     tweet scaled to fit in the middle on the dim blue, a long one smaller
+     and a short one a touch bigger, so every post shows the same size. */
   function draw(tweet) {
-    return faceOf(tweet.account).then(function (face) {
+    return Promise.all([
+      faceOf(tweet.account),
+      tweet.parent ? faceOf({ photo: tweet.parent.face || null }) : null
+    ]).then(function (got) {
+      var faces = { main: got[0], parent: got[1] };
+      var height = paint(document.createElement('canvas').getContext('2d'), tweet, faces, false);
+      var k = Math.min(1.08, (FRAME_W - FRAME_PAD * 2) / WIDTH, (FRAME_H - FRAME_PAD * 2) / height);
+      var w = WIDTH * k;
+      var h = height * k;
+      var x = Math.round((FRAME_W - w) / 2);
+      var y = Math.round((FRAME_H - h) / 2);
+      var radius = 16 * k;
+
       var canvas = document.createElement('canvas');
+      canvas.width = FRAME_W * SCALE;
+      canvas.height = FRAME_H * SCALE;
       var ctx = canvas.getContext('2d');
       ctx.scale(SCALE, SCALE);
-      var height = paint(ctx, tweet, face, false);
-      canvas.width = WIDTH * SCALE;
-      canvas.height = height * SCALE;
-      ctx = canvas.getContext('2d');
-      ctx.scale(SCALE, SCALE);
-      paint(ctx, tweet, face, true);
+      ctx.fillStyle = FRAME_BG;
+      ctx.fillRect(0, 0, FRAME_W, FRAME_H);
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+      ctx.shadowBlur = 24;
+      ctx.shadowOffsetY = 6;
+      roundRect(ctx, x, y, w, h, radius);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      roundRect(ctx, x, y, w, h, radius);
+      ctx.clip();
+      ctx.translate(x, y);
+      ctx.scale(k, k);
+      paint(ctx, tweet, faces, true);
+      ctx.restore();
       return canvas;
     });
   }
@@ -747,7 +880,8 @@ EGE.mediaView = (function () {
       verified: account.verified,
       org: Boolean(account.org),
       text: nodes.text.value.slice(0, MAX_TEXT),
-      picture: state.picture
+      picture: state.picture,
+      parent: state.reply
     };
   }
 
@@ -769,12 +903,15 @@ EGE.mediaView = (function () {
     });
   }
 
-  function upload(blob) {
+  function stamp() { return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8); }
+
+  /* Into the media bucket, in the poster's own folder: the address. */
+  function upload(blob, name, type) {
     var c = client();
     return userId().then(function (uid) {
-      var path = uid + '/' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8) + '.png';
+      var path = uid + '/' + name;
       var bucket = c.storage.from(BUCKET);
-      return bucket.upload(path, blob, { contentType: 'image/png', cacheControl: '31536000', upsert: false })
+      return bucket.upload(path, blob, { contentType: type, cacheControl: '31536000', upsert: false })
         .then(function (res) {
           if (res.error) {
             var m = res.error.message || 'The picture did not upload.';
@@ -785,32 +922,103 @@ EGE.mediaView = (function () {
     });
   }
 
-  /* Through post_tweet, which holds the webhook. An admin's own browser
-     posts it when the database cannot (no pg_net). */
-  function send(url, tweet) {
+  /* The picture under the text, kept beside the post so a reply can show
+     it. A tweet goes without it if it will not upload. */
+  function uploadPicture(picture, id) {
+    var img = picture.img;
+    var ratio = Math.min(1, PICTURE_OUT / Math.max(img.naturalWidth, img.naturalHeight));
+    var canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * ratio));
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * ratio));
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return new Promise(function (resolve) {
+      canvas.toBlob(function (blob) { resolve(blob); }, 'image/jpeg', 0.85);
+    }).then(function (blob) {
+      return blob ? upload(blob, id + '-p.jpg', 'image/jpeg') : null;
+    }).catch(function () { return null; });
+  }
+
+  /* The account's picture as a small JPEG, kept with the post. */
+  function faceData(account) {
+    return faceOf(account).then(function (face) {
+      if (!face) { return null; }
+      var canvas = document.createElement('canvas');
+      canvas.width = FACE_OUT;
+      canvas.height = FACE_OUT;
+      var ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, FACE_OUT, FACE_OUT);
+      ctx.drawImage(face, 0, 0, FACE_OUT, FACE_OUT);
+      try { return canvas.toDataURL('image/jpeg', 0.85); } catch (e) { return null; }
+    });
+  }
+
+  function replyLink(id) {
+    var site = (EGE.discordPost && EGE.discordPost.SITE) || 'https://stogz.github.io/egefootball';
+    return site.replace(/\/+$/, '') + '/#media/reply/' + id;
+  }
+
+  /* The picture alone, not in an embed (Sam, 2026-11-10): a message that
+     is nothing but an image's address shows as that image. Under it a
+     Reply button, a link to answer it on the Media page. */
+  function payloadFor(url, id) {
+    var payload = { content: url, allowed_mentions: { parse: [] } };
+    if (id) {
+      payload.components = [{ type: 1, components: [{ type: 2, style: 5, label: 'Reply', url: replyLink(id) }] }];
+    }
+    return payload;
+  }
+
+  /* Through post_tweet, which keeps the post and sends it to the trades
+     bot's webhook, which no player can read. When it does not send it --
+     the database has no pg_net, or `relay` asked it not to, so a run of
+     posts lands in order -- the admin's own browser does. */
+  function send(url, tweet, extra) {
     return client().rpc('post_tweet', {
       p_image: url,
       p_name: tweet.name,
       p_handle: tweet.handle,
-      p_text: tweet.text || null
+      p_text: tweet.text || null,
+      p_face: extra.face || null,
+      p_picture: extra.picture || null,
+      p_verified: Boolean(tweet.verified),
+      p_org: Boolean(tweet.org),
+      p_parent: tweet.parent ? tweet.parent.id : null,
+      p_tag: extra.tag || null,
+      p_relay: Boolean(extra.relay)
     }).then(function (res) {
-      if (!res.error) { return; }
-      var m = res.error.message || 'The trades bot did not post it.';
-      if (/pg_net/.test(m) && EGE.wallet.realAdmin()) {
-        return EGE.wallet.postMediaToDiscord(payloadFor(url)).then(function (out) {
-          if (!out.ok) { throw new Error(out.message || 'The trades bot did not post it.'); }
-          if (out.skipped) { throw new Error('The trades bot has no webhook yet.'); }
-        });
+      if (res.error) {
+        var m = res.error.message || 'The trades bot did not post it.';
+        if (/post_tweet|function/.test(m)) { m = 'Run supabase/schema.sql again first.'; }
+        throw new Error(m);
       }
-      if (/post_tweet/.test(m)) { m = 'Run supabase/schema.sql again first.'; }
-      throw new Error(m);
+      var out = res.data || {};
+      if (out.sent) { return out; }
+      return EGE.wallet.postMediaToDiscord(payloadFor(url, out.id)).then(function (posted) {
+        if (!posted.ok) { throw new Error(posted.message || 'The trades bot did not post it.'); }
+        if (posted.skipped) { throw new Error('The trades bot has no webhook yet.'); }
+        return out;
+      });
     });
   }
 
-  /* The picture alone, not in an embed (Sam, 2026-11-10): a message that
-     is nothing but an image's address shows as that image. */
-  function payloadFor(url) {
-    return { content: url };
+  /* Draws the tweet, puts it up with the account's picture and its own,
+     and posts it. */
+  function publish(tweet, options) {
+    var o = options || {};
+    var id = stamp();
+    return draw(tweet).then(toBlob).then(function (blob) {
+      return Promise.all([
+        upload(blob, id + '.png', 'image/png'),
+        tweet.picture ? uploadPicture(tweet.picture, id) : null,
+        faceData(tweet.account)
+      ]);
+    }).then(function (got) {
+      return send(got[0], tweet, { picture: got[1], face: got[2], relay: o.relay, tag: o.tag });
+    });
   }
 
   function post() {
@@ -821,24 +1029,73 @@ EGE.mediaView = (function () {
     say('');
     refreshPost();
     nodes.post.textContent = 'Posting…';
-    draw(tweet)
-      .then(toBlob)
-      .then(upload)
-      .then(function (url) { return send(url, tweet); })
+    publish(tweet)
       .then(function () {
         nodes.text.value = '';
         setPicture(null);
         fitBox();
         nodes.post.textContent = 'Posted';
-        window.setTimeout(function () { if (!state.posting) { nodes.post.textContent = 'Post'; } }, 1800);
+        window.setTimeout(function () { if (!state.posting) { nodes.post.textContent = postLabel(); } }, 1800);
+        /* A reply goes back to a fresh tweet once it is out. */
+        if (tweet.parent && replyId() === tweet.parent.id) { window.location.hash = 'media'; }
       }, function (error) {
-        nodes.post.textContent = 'Post';
+        nodes.post.textContent = postLabel();
         say(error.message || 'That did not post.');
       })
       .then(function () {
         state.posting = false;
         refreshPost();
       });
+  }
+
+  /* --- the league's accounts -----------------------------------------------
+
+     The NFL, ESPN and NBC Sports posting on their own: the week's news when
+     an admin publishes a week, and ESPN each trade (js/media-news.js). From
+     the admin's browser, one after another so they land in order. */
+  function presetAccount(preset) {
+    return { id: preset.id, kind: 'preset', name: preset.name, handle: preset.handle, photo: preset.photo,
+             verified: true, org: Boolean(preset.org) };
+  }
+
+  /* One tweet from a preset, `id` as data/media.js has it: { ok, skipped }
+     (skipped: no trades webhook to post to), or { ok: false, message }. */
+  function postAs(id, text, options) {
+    var preset = (EGE.mediaPresets || []).filter(function (p) { return p.id === id; })[0];
+    if (!preset) { return Promise.resolve({ ok: false, message: 'There is no ' + id + ' account.' }); }
+    var account = presetAccount(preset);
+    var tweet = { account: account, name: account.name, handle: account.handle, verified: true,
+                  org: account.org, text: String(text || '').slice(0, MAX_TEXT), picture: null, parent: null };
+    return publish(tweet, { relay: true, tag: options && options.tag }).then(function () {
+      return { ok: true };
+    }, function (error) {
+      var m = error.message || String(error);
+      if (/no webhook/i.test(m)) { return { ok: true, skipped: true }; }
+      return { ok: false, message: m };
+    });
+  }
+
+  /* Several, [{ account, text, tag }], in order: null when every one
+     went, or what went wrong. A tweet that fails does not stop the rest. */
+  function postMany(tweets, tag) {
+    var problem = null;
+    return tweets.reduce(function (chain, t) {
+      return chain.then(function () {
+        return postAs(t.account, t.text, { tag: t.tag || tag }).then(function (res) {
+          if (!res.ok && !problem) { problem = res.message; }
+        });
+      });
+    }, Promise.resolve()).then(function () { return problem; });
+  }
+
+  /* Whether anything has been posted with `tag` (an admin's question):
+     the week's news goes out once, however often the week is published. */
+  function already(tag) {
+    var c = client();
+    if (!c) { return Promise.resolve(false); }
+    return c.from('media_posts').select('id').eq('tag', tag).limit(1).then(function (res) {
+      return Boolean(!res.error && res.data && res.data.length);
+    }, function () { return false; });
   }
 
   /* --- the page ---------------------------------------------------------- */
@@ -863,12 +1120,25 @@ EGE.mediaView = (function () {
       dropPicture: $('tweetPictureDrop'),
       attach: $('tweetAttach'),
       count: $('tweetCount'),
-      post: $('tweetPost')
+      post: $('tweetPost'),
+      parent: $('tweetParent'),
+      parentPfp: $('tweetParentPfp'),
+      parentName: $('tweetParentName'),
+      parentBadge: $('tweetParentBadge'),
+      parentHandle: $('tweetParentHandle'),
+      parentText: $('tweetParentText'),
+      parentPicture: $('tweetParentPic'),
+      parentStatus: $('tweetParentStatus'),
+      replying: $('tweetReplying'),
+      replyingTo: $('tweetReplyingTo')
     };
 
     nodes.badge.appendChild(svg('badge', null));
+    nodes.parentBadge.appendChild(svg('badge', null));
     var actions = $('tweetActions');
     ACTIONS.forEach(function (name) { actions.appendChild(svg(name, 'ege-tweet__action')); });
+    var parentActions = $('tweetParentActions');
+    ACTIONS.forEach(function (name) { parentActions.appendChild(svg(name, 'ege-tweet__action')); });
 
     nodes.text.maxLength = MAX_TEXT;
     nodes.text.addEventListener('input', function () { fitBox(); refreshPost(); });
@@ -919,7 +1189,10 @@ EGE.mediaView = (function () {
     nodes.text.style.height = nodes.text.scrollHeight + 'px';
   }
 
+  function postLabel() { return state.reply ? 'Reply' : 'Post'; }
+
   function refreshPost() {
+    if (!state.posting && /^(Post|Reply)$/.test(nodes.post.textContent)) { nodes.post.textContent = postLabel(); }
     var text = nodes.text.value;
     var left = MAX_TEXT - text.length;
     nodes.count.hidden = left > 20;
@@ -952,6 +1225,8 @@ EGE.mediaView = (function () {
 
   function openMenu() {
     renderMenu();
+    /* Under the account, which a reply's tweet pushes down the card. */
+    nodes.menu.style.top = (nodes.who.offsetTop + nodes.who.offsetHeight + 8) + 'px';
     nodes.menu.hidden = false;
     nodes.who.setAttribute('aria-expanded', 'true');
   }
@@ -1155,6 +1430,76 @@ EGE.mediaView = (function () {
     return load(p.email);
   }
 
+  /* --- a reply ------------------------------------------------------------
+
+     #media/reply/{post}, from the Reply button under a post in Discord:
+     the post is read through media_post (a player cannot read media_posts
+     itself), shown above the box, and the tweet drawn as its reply. */
+  function replyId() {
+    var hit = /^#?media\/reply\/(\d+)$/.exec(window.location.hash);
+    return hit ? Number(hit[1]) : null;
+  }
+
+  function loadReply(id) {
+    var c = client();
+    if (!c) { return; }
+    nodes.parentStatus.hidden = false;
+    c.rpc('media_post', { p_id: id }).then(function (res) {
+      if (state.replyAsked !== id) { return null; }
+      if (res.error) {
+        throw new Error(/media_post|function/.test(res.error.message || '')
+          ? 'Run supabase/schema.sql again first.' : res.error.message);
+      }
+      var row = res.data;
+      if (!row || !row.id) { throw new Error('That tweet is gone.'); }
+      var parent = {
+        id: Number(row.id), name: row.name, handle: row.handle, text: row.body || '',
+        face: row.face || null, verified: Boolean(row.verified), org: Boolean(row.org), picture: null
+      };
+      if (!row.picture) { return parent; }
+      return loadImage(row.picture).then(function (img) {
+        parent.picture = { img: img, url: row.picture };
+        return parent;
+      }, function () { return parent; });
+    }).then(function (parent) {
+      if (!parent || state.replyAsked !== id) { return; }
+      state.reply = parent;
+      renderParent();
+    }, function (error) {
+      if (state.replyAsked !== id) { return; }
+      nodes.parentStatus.hidden = true;
+      say(error.message || 'That tweet would not load.');
+    });
+  }
+
+  function renderParent() {
+    var parent = state.reply;
+    nodes.parentStatus.hidden = !(state.replyAsked && !parent);
+    nodes.parent.hidden = !parent;
+    nodes.replying.hidden = !parent;
+    nodes.card.classList.toggle('is-reply', Boolean(parent));
+    nodes.text.placeholder = parent ? 'Post your reply' : 'What\u2019s happening?';
+    nodes.text.setAttribute('aria-label', parent ? 'Reply' : 'Tweet');
+    refreshPost();
+    if (!parent) { return; }
+    showFace(nodes.parentPfp, { id: 'post-' + parent.id, photo: parent.face, org: parent.org });
+    nodes.parentName.textContent = parent.name;
+    nodes.parentBadge.hidden = !parent.verified;
+    nodes.parentBadge.classList.toggle('is-org', parent.org);
+    nodes.parentHandle.textContent = '@' + parent.handle;
+    nodes.parentText.textContent = parent.text;
+    nodes.parentText.hidden = !parent.text;
+    nodes.parentPicture.hidden = !parent.picture;
+    if (parent.picture) {
+      nodes.parentPicture.src = parent.picture.url;
+      var box = pictureBox(parent.picture, 1000);
+      nodes.parentPicture.style.aspectRatio = box.w + ' / ' + box.h;
+    } else {
+      nodes.parentPicture.removeAttribute('src');
+    }
+    nodes.replyingTo.textContent = '@' + parent.handle;
+  }
+
   /* --- drawing the page -------------------------------------------------------- */
 
   function render() {
@@ -1162,7 +1507,7 @@ EGE.mediaView = (function () {
     var p = player();
     nodes.locked.hidden = Boolean(p);
     nodes.content.hidden = !p;
-    if (!p) { closeMenu(); state.email = null; return; }
+    if (!p) { closeMenu(); state.email = null; state.replyAsked = null; state.reply = null; return; }
 
     if (state.email !== p.email) {
       state.email = p.email;
@@ -1173,7 +1518,14 @@ EGE.mediaView = (function () {
     }
     closeMenu();
     renderHead();
-    refreshPost();
+    var want = replyId();
+    if (want !== state.replyAsked) {
+      state.replyAsked = want;
+      state.reply = null;
+      say('');
+      if (want) { loadReply(want); }
+    }
+    renderParent();
     fitBox();
     var asked = p.email;
     state.loading.then(function () {
@@ -1183,6 +1535,9 @@ EGE.mediaView = (function () {
 
   return {
     render: render,
+    postAs: postAs,
+    postMany: postMany,
+    already: already,
     /* For a test, or anything else that wants the picture Post would send. */
     draw: function () { return draw(currentTweet()); }
   };

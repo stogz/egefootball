@@ -446,7 +446,8 @@
     <!-- ===== media ==================================================== -->
     <!-- #media: the tweet generator (js/media.js). The card is the tweet:
          the account at its top opens the account menu, the text is typed
-         into it, and Post draws it and sends it to the trades bot. -->
+         into it, and Post draws it and sends it to the trades bot.
+         #media/reply/{post} puts the tweet being answered above it. -->
     <section id="view-media" hidden>
       <header class="fb-hero fb-hero--centred">
         <div class="fb-hero__col">
@@ -469,6 +470,28 @@
         <p class="ege-note ege-note--error" id="mediaMessage" role="alert" hidden></p>
 
         <article class="ege-tweet" id="tweetCard">
+          <!-- A reply (#media/reply/{post}): the tweet it answers, above. -->
+          <p class="ege-tweet__loading" id="tweetParentStatus" role="status" hidden>Loading&hellip;</p>
+          <div class="ege-tweet__parent" id="tweetParent" hidden>
+            <div class="ege-tweet__side">
+              <img class="ege-tweet__pfp" id="tweetParentPfp" alt="" width="48" height="48">
+              <span class="ege-tweet__thread" aria-hidden="true"></span>
+            </div>
+            <div class="ege-tweet__body">
+              <div class="ege-tweet__line">
+                <span class="ege-tweet__nametext" id="tweetParentName"></span>
+                <span class="ege-tweet__badge ege-tweet__badge--small" id="tweetParentBadge" hidden></span>
+                <span class="ege-tweet__linehandle" id="tweetParentHandle"></span>
+              </div>
+              <p class="ege-tweet__said" id="tweetParentText"></p>
+              <img class="ege-tweet__saidpic" id="tweetParentPic" alt="" hidden>
+              <div class="ege-tweet__actions ege-tweet__actions--small" id="tweetParentActions"></div>
+            </div>
+            <a class="ege-tweet__unreply" href="#media" aria-label="Stop replying" title="Stop replying">
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.4"/></svg>
+            </a>
+          </div>
+
           <div class="ege-tweet__head">
             <button class="ege-tweet__who" id="tweetWho" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="tweetMenu" title="Switch accounts">
               <img class="ege-tweet__pfp" id="tweetPfp" alt="" width="48" height="48">
@@ -480,6 +503,8 @@
             <svg class="ege-tweet__more" viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
           </div>
           <div class="ege-tweet__menu" id="tweetMenu" role="menu" hidden></div>
+
+          <p class="ege-tweet__replying" id="tweetReplying" hidden>Replying to <span id="tweetReplyingTo"></span></p>
 
           <textarea class="ege-tweet__text" id="tweetText" rows="1" placeholder="What&rsquo;s happening?" aria-label="Tweet"></textarea>
 
@@ -1686,6 +1711,7 @@
 <script src="js/live-heat.js"></script>
 <script src="js/live.js"></script>
 <script src="js/nfl-sim-admin.js"></script>
+<script src="js/media-news.js"></script>
 <script src="js/media.js"></script>
 <script src="js/app.js"></script>
 </body>
