@@ -4108,6 +4108,21 @@ Built so far:
 - `sw.js` — a service worker that makes the browser check every one of the
   site's own files with the server on each load, so a push is on the site the
   next time it is opened rather than ten minutes later.
+- `js/touch.js` — the phone's half of the site, loaded first in the head
+  (Sam, 2026-11-10: "if you click on something twice it doesn't zoom"). On
+  iOS it adds `maximum-scale=1` to the viewport, which stops Safari zooming
+  into a text box or menu under 16px and still lets you pinch; it switches
+  on Safari's `:active` press look; and it drops a tap on an armed two-tap
+  button (Quick sell, Merge, Holo all, a booster coming off) that lands
+  within 450ms of the tap that armed it, so a quick double tap never
+  confirms. Its CSS half is under "On a phone" in `site.css`:
+  `touch-action: manipulation` on the root (no double-tap zoom, no tap
+  delay), every `:hover` rule behind `@media (hover: hover)` so nothing
+  stays lit after a tap (style.css and organic-styles.css too; a new hover
+  rule goes behind it as well), the field picture on a `100lvh` layer so it
+  no longer jumps as Safari's toolbar slides, and the portal, the crop menu,
+  the sticker drawer and the bet sheet kept clear of the notch and home
+  indicator, scrolling inside themselves with the page held still.
 - `data/games.js` — how everything else gets at those games, and the one place
   that decides what "played" means.
 - `data/offers.js` — who has offered whom, each school's sticker colour

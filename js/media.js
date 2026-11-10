@@ -1303,6 +1303,7 @@ EGE.mediaView = (function () {
     handle.placeholder = 'handle';
     handle.setAttribute('aria-label', 'Handle');
     handle.autocapitalize = 'off';
+    handle.setAttribute('autocorrect', 'off');
     handle.spellcheck = false;
     handle.value = account ? account.handle : '';
     handleWrap.appendChild(handle);
