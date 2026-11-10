@@ -1053,6 +1053,11 @@ accounts this player can tweet as:
   with the blue check.
 - **Any they make** (New account, up to twelve): a picture, a name and a
   handle, unverified. An admin's editor has a Verified box as well.
+
+A picture picked for an account opens in a crop menu first (Sam,
+2026-11-10), which says it is loading until the picture is open: drag it
+under the circle, zoom with the slider (or a pinch, or the wheel), and
+**Done** keeps the circle, 256 pixels square.
 - **An admin's presets**: NFL, ESPN and NBC Sports (`data/media.js`,
   pictures in `icon/media/`), verified, with X's gold check and square
   picture for an organisation, and not editable.
