@@ -345,15 +345,6 @@ EGE.mediaView = (function () {
 
   function font(size, weight) { return (weight || 400) + ' ' + size + 'px ' + FONT; }
 
-  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-  function stamp(when) {
-    var h = when.getHours();
-    var m = when.getMinutes();
-    return (h % 12 || 12) + ':' + (m < 10 ? '0' : '') + m + ' ' + (h < 12 ? 'AM' : 'PM') +
-           ' · ' + MONTHS[when.getMonth()] + ' ' + when.getDate() + ', ' + when.getFullYear();
-  }
-
   /* A handle, a hashtag or a link is blue, as on X. */
   var LINKY = /^([@#][A-Za-z0-9_]+|https?:\/\/\S+)(.*)$/;
 
@@ -510,13 +501,9 @@ EGE.mediaView = (function () {
       y += box.h;
     }
 
+    /* No time or date under it (Sam, 2026-11-10): straight to the rule
+       over the buttons. */
     y += 16;
-    if (drawing) {
-      ctx.font = font(15);
-      ctx.fillStyle = GREY;
-      ctx.fillText(tweet.when, PAD, y + 15);
-    }
-    y += 20 + 16;
 
     if (drawing) {
       ctx.fillStyle = RULE;
@@ -567,8 +554,7 @@ EGE.mediaView = (function () {
       verified: account.verified,
       org: Boolean(account.org),
       text: nodes.text.value.slice(0, MAX_TEXT),
-      picture: state.picture,
-      when: stamp(new Date())
+      picture: state.picture
     };
   }
 
@@ -682,7 +668,6 @@ EGE.mediaView = (function () {
       pictureBox: $('tweetPicture'),
       picture: $('tweetPictureImg'),
       dropPicture: $('tweetPictureDrop'),
-      when: $('tweetWhen'),
       attach: $('tweetAttach'),
       count: $('tweetCount'),
       post: $('tweetPost')
@@ -718,11 +703,6 @@ EGE.mediaView = (function () {
     });
     nodes.dropPicture.addEventListener('click', function () { setPicture(null); });
     nodes.post.addEventListener('click', post);
-
-    /* The time on the card keeps up while it is open. */
-    window.setInterval(function () {
-      if (!$('view-media').hidden) { nodes.when.textContent = stamp(new Date()); }
-    }, 20000);
   }
 
   function setPicture(picture) {
@@ -771,7 +751,6 @@ EGE.mediaView = (function () {
     nodes.badge.hidden = !account.verified;
     nodes.badge.classList.toggle('is-org', Boolean(account.org));
     nodes.handle.textContent = '@' + account.handle;
-    nodes.when.textContent = stamp(new Date());
   }
 
   /* --- the account menu ---------------------------------------------------- */

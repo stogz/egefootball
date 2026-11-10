@@ -1036,7 +1036,7 @@ the Shop and Cards it is there only once someone is signed in.
 
 The page is one tweet, drawn the way X draws one in its light theme: the
 account's picture, name, check and handle, the text, a picture if one was
-added, the time, and the four buttons. The text is typed straight into it,
+added, and the four buttons; no time or date (Sam, 2026-11-10). The text is typed straight into it,
 and the picture button under it adds a picture beneath the text. **Post**
 draws the tweet at twice its size on a canvas (handles, hashtags and links
 in X's blue), puts the PNG in Supabase Storage's public `media` bucket and

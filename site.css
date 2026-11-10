@@ -11535,15 +11535,12 @@ html.ege-cast-sheet-open { overflow: hidden; }
 }
 .ege-tweet__drop:hover { background: rgba(39, 44, 48, .9); }
 
-.ege-tweet__when {
+.ege-tweet__actions {
+  display: flex;
   margin-top: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--tw-rule);
-  font-size: 15px;
-  line-height: 20px;
-  color: var(--tw-grey);
+  padding-top: 12px;
+  border-top: 1px solid var(--tw-rule);
 }
-.ege-tweet__actions { display: flex; padding-top: 12px; }
 .ege-tweet__action { flex: 1 1 0; height: 22.5px; fill: var(--tw-grey); }
 
 /* The account menu: the site's, dropped over the tweet from its top. */
