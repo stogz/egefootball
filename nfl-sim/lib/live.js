@@ -22,7 +22,7 @@
      defender on a sack, an interception or a fumble);
      `hl` a scoring play's words past the player's name, to show in the
      colour of `ht`, the side that scored; `h` how hot the players it
-     names are after it (HEAT); and `ms` when the entry comes up, in
+     names are after it (HEAT: 1 alight, 2 blue); and `ms` when the entry comes up, in
      milliseconds from kickoff (TIMING).
      Halftime and the final whistle are entries of their own, and so is
      the wait before every snap but a punt (`tag` 'wait': where the ball
@@ -122,21 +122,23 @@ TIMING.reveal = TIMING.call;
 TIMING.slot = TIMING.wait + TIMING.call + TIMING.play;
 
 /* A player getting hot (Sam, 2026-11-09): his third big play in a row
-   sets his plays flaming, his fourth catches fire, and they burn until a
+   lights a little fire beside his face, his fourth turns it blue, until a
    play of his goes nowhere. A play that is neither leaves him as he was,
-   and so do the plays he is not in. What is big and what goes nowhere is
-   rated below (rate). Over a season of the sim's games that is one or two
-   players flaming a game, and somebody on fire in two games out of five. */
+   and so do the plays he is not in. Never a quarterback (Sam): backs,
+   receivers, tight ends, defenders and kickers. What is big and what goes
+   nowhere is rated below (rate). Over a season of the sim's games that is
+   about one player alight a game, and one turning blue in a game out of
+   four. */
 const HEAT = { flame: 3, fire: 4 };
 
 function heatLevel(streak) { return streak >= HEAT.fire ? 2 : streak >= HEAT.flame ? 1 : 0; }
 
-/* What a snap did for each player in it, by the sim's ids: 'big' (a
-   touchdown, a run or scramble of 12 yards or more, a catch of 20 or a
-   pass of 25, a kick returned 40 or a punt 25, a field goal from 50, a
-   sack, an interception, a forced fumble) or 'dud' (a run of 2 yards or
-   less, a dropped pass, a sack or an interception thrown, a fumble lost,
-   a missed field goal). */
+/* What a snap did for each player in it but the passer, by the sim's ids:
+   'big' (a touchdown, a run of 12 yards or more, a catch of 20, a kick
+   returned 40 or a punt 25, a field goal from 50, a sack, an
+   interception, a forced fumble) or 'dud' (a run of 2 yards or less, a
+   dropped pass, a fumble lost, a missed field goal). A quarterback's own
+   runs are rated too, and left out in build. */
 function rate(e) {
   const out = [];
   const yds = e.yds || 0;
@@ -152,15 +154,10 @@ function rate(e) {
     add(e.ball, scored || (yds >= 12 && e.fum === undefined) ? 'big' : yds <= 2 || e.fum !== undefined || e.safety !== undefined ? 'dud' : null);
   } else if (e.k === 'pass' && e.flag !== 'Holding' && e.flag !== 'Defensive holding') {
     if (e.sack !== undefined) {
-      add(e.qb, 'dud');
       add(e.sack, 'big');
-    } else if (e.scramble) {
-      add(e.qb, scored || (yds >= 12 && e.fum === undefined) ? 'big' : yds <= 2 || e.fum !== undefined ? 'dud' : null);
     } else if (e.res === 'c') {
       add(e.to, scored || (yds >= 20 && e.fum === undefined) ? 'big' : e.fum !== undefined ? 'dud' : null);
-      add(e.qb, scored || yds >= 25 ? 'big' : null);
     } else if (e.res === 'i') {
-      add(e.qb, 'dud');
       add(e.by, 'big');
     } else if (e.miss === 'drop') {
       add(e.to, 'dud');
@@ -531,6 +528,7 @@ function build(league, game, kept) {
        off. */
     const heat = {};
     rate(e).forEach(([id, how]) => {
+      if (people[id] && people[id].pos === 'QB') { return; }
       const i = num(id);
       if (i === undefined) { return; }
       const was = heatLevel(streak[i] || 0);

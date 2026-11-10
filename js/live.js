@@ -7,8 +7,9 @@
    then seven of what came of it ("Jaykeb Stewart 22-yd pass to Nico
    Collins"). A punt skips the five of nothing and has twelve of the
    whole play; halftime is two minutes. A player on a run of big plays
-   gets hot: his plays start flaming, then catch fire (nfl-sim/lib/
-   live.js HEAT). PLAY LIVE on the NFL Sim tab puts it up here waiting, and an
+   gets hot: a little fire burns beside his face, blue once he is absurdly
+   hot (nfl-sim/lib/live.js HEAT; never a quarterback). PLAY LIVE on the
+   NFL Sim tab puts it up here waiting, and an
    admin kicks it off from this page (Sam, 2026-11-04). An admin can
    pause, end, restart or cancel it from here too, and #live/test plays a
    game on this device alone before it goes live.
@@ -343,8 +344,8 @@ EGE.liveView = (function () {
     return line;
   }
 
-  /* How hot each player is (nfl-sim/lib/live.js HEAT: 1 flaming, 2 on
-     fire), by his number, as the snaps before `upto` left him. */
+  /* How hot each player is (nfl-sim/lib/live.js HEAT: 1 alight, 2 blue),
+     by his number, as the snaps before `upto` left him. */
   function heatBefore(upto) {
     var heat = {};
     game.entries.slice(0, upto).forEach(function (e) {
@@ -354,41 +355,27 @@ EGE.liveView = (function () {
     return heat;
   }
 
-  /* How hot a snap burns: the hottest player in it once it is out; while
-     only its call is, whoever the call names, as hot as he already was. */
+  /* How hot the player a snap shows the face of is: once it is out, as it
+     left him; while only its call is, as hot as he already was. */
   function heatOf(e, i) {
-    if (!e || e.tag === 'wait') { return 0; }
+    if (!e || !e.call) { return 0; }
     if (e.hidden) { return e.w === undefined ? 0 : heatBefore(i)[e.w] || 0; }
-    return Object.keys(e.h || {}).reduce(function (most, n) { return Math.max(most, e.h[n] || 0); }, 0);
+    var n = e.r !== undefined ? e.r : e.w;
+    return n === undefined ? 0 : (e.h || {})[n] || 0;
   }
 
-  /* Flames along the bottom of a play that is burning, taller once it has
-     caught fire. Each tongue keeps its place and its flicker. */
-  var TONGUES = [[2, 0.7, 0.0], [8, 0.95, 0.35], [14, 0.75, 0.15], [20, 1, 0.5], [26, 0.8, 0.05], [32, 0.9, 0.4],
-                 [38, 0.7, 0.25], [44, 1, 0.6], [50, 0.85, 0.1], [56, 0.75, 0.45], [62, 1, 0.2], [68, 0.8, 0.55],
-                 [74, 0.95, 0.3], [80, 0.7, 0.05], [86, 0.9, 0.5], [92, 0.8, 0.15], [98, 0.95, 0.4]];
-  function flames(level, into) {
-    if (!level) { return; }
-    into.classList.add(level > 1 ? 'is-fire' : 'is-flaming');
-    var box = el('span', 'ege-cast__flames');
-    box.setAttribute('aria-hidden', 'true');
-    TONGUES.forEach(function (t, k) {
-      var tongue = el('i');
-      tongue.style.setProperty('--x', t[0] + '%');
-      tongue.style.setProperty('--k', String(t[1]));
-      tongue.style.setProperty('--delay', -t[2] + 's');
-      tongue.style.setProperty('--d', (0.55 + (k % 3) * 0.12) + 's');
-      box.appendChild(tongue);
-    });
-    if (level > 1) {
-      for (var k = 0; k < 7; k += 1) {
-        var ember = el('b');
-        ember.style.setProperty('--x', (8 + k * 13) + '%');
-        ember.style.setProperty('--delay', -(k * 0.37) + 's');
-        box.appendChild(ember);
-      }
-    }
-    into.insertBefore(box, into.firstChild);
+  /* A face with a little fire burning at its left, blue when he is absurdly
+     hot (Sam, 2026-11-09). */
+  function lit(box, level) {
+    if (!level) { return box; }
+    var hot = el('span', 'ege-cast__hot');
+    var fire = el('img', 'ege-cast__fire');
+    fire.src = level > 1 ? 'icon/live/fire-blue.webp' : 'icon/live/fire.webp';
+    fire.alt = '';
+    fire.setAttribute('aria-hidden', 'true');
+    hot.appendChild(fire);
+    hot.appendChild(box);
+    return hot;
   }
 
   /* Where the ball is as far as anybody may know. */
@@ -568,7 +555,7 @@ EGE.liveView = (function () {
     }
     var who = el('div', 'ege-cast__who');
     var words = el('div', 'ege-cast__words');
-    if (e.call) { who.appendChild(face(e.hidden || e.r === undefined ? e.w : e.r, e.pre && e.pre.o, people())); }
+    if (e.call) { who.appendChild(lit(face(e.hidden || e.r === undefined ? e.w : e.r, e.pre && e.pre.o, people()), heatOf(e, game.at))); }
     if (e.tag === 'wait') {
       /* Before the snap: nothing about it at all (Sam, 2026-11-09). */
       card.classList.add('is-wait');
@@ -588,7 +575,6 @@ EGE.liveView = (function () {
     }
     who.appendChild(words);
     card.appendChild(who);
-    flames(heatOf(e, game.at), card);
     if (state === 'live') {
       /* The time to whatever comes next: the call, the whole play, the
          next snap (the wait before it, or a punt's call). */
@@ -645,14 +631,13 @@ EGE.liveView = (function () {
       if (lastQ !== null && q !== lastQ) { started(); }
       lastQ = q;
       var item = el('li', 'ege-cast__item' + (e.tag && TAGS[e.tag] ? ' is-' + e.tag : ''));
-      item.appendChild(face(e.r !== undefined ? e.r : e.w, e.pre.o, info));
+      item.appendChild(lit(face(e.r !== undefined ? e.r : e.w, e.pre.o, info), heatOf(e)));
       var body = el('div', 'ege-cast__body');
       var meta = el('div', 'ege-cast__meta');
       meta.appendChild(logo(e.pre.o, 18));
       meta.appendChild(el('span', null, quarterText(e.pre.q) + ' ' + clockText(e.pre.c) + (e.pre.dn ? ' · ' + downText(e.pre) : '')));
       body.appendChild(meta);
       body.appendChild(said(e, 'ege-cast__line'));
-      flames(heatOf(e), item);
       (e.more || []).forEach(function (m) { body.appendChild(el('p', 'ege-cast__more', m)); });
       if (e.tag === 'td' || e.tag === 'fg' || e.tag === 'safety') {
         body.appendChild(el('p', 'ege-cast__score', nick(game.row.away) + ' ' + e.post.s[1] + ', ' + nick(game.row.home) + ' ' + e.post.s[0]));
