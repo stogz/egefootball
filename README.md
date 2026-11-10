@@ -1040,9 +1040,10 @@ added, the time, and the four buttons. The text is typed straight into it,
 and the picture button under it adds a picture beneath the text. **Post**
 draws the tweet at twice its size on a canvas (handles, hashtags and links
 in X's blue), puts the PNG in Supabase Storage's public `media` bucket and
-sends it to the **trades bot's** Discord channel as an embed holding the
-picture and nothing else. Only a failure is reported; a tweet that went
-clears the box.
+sends it to the **trades bot's** Discord channel as the picture alone, not
+in an embed: the message is just the picture's address, which Discord shows
+as the picture. Only a failure is reported; a tweet that went clears the
+box.
 
 **Accounts.** The account at the top of the tweet opens a menu of the
 accounts this player can tweet as:
