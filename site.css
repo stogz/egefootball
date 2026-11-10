@@ -11401,3 +11401,288 @@ html.ege-cast-sheet-open { overflow: hidden; }
   background: linear-gradient(90deg, var(--away), var(--home));
   color: #fff;
 }
+
+/* ===== Media (#media) ======================================================
+   The tweet generator (Sam, 2026-11-10; js/media.js). The bird in the nav
+   is Sam's picture used as a mask, so it takes the nav's colours like the
+   football beside it. The card is the tweet as it will be drawn -- X's
+   light theme, its own font and sizes -- in the site's ink frame; the
+   account menu and the bar under it are the site's. */
+.ege-navmedia { display: inline-flex; align-items: center; }
+.ege-navmedia__bird {
+  display: block;
+  width: 21px;
+  height: 21px;
+  background: currentColor;
+  -webkit-mask: url('icon/media/bird.png') center / contain no-repeat;
+          mask: url('icon/media/bird.png') center / contain no-repeat;
+}
+
+.ege-media,
+.ege-media__locked {
+  max-width: 604px;
+  margin: 0 auto;
+}
+.ege-media { display: flex; flex-direction: column; gap: 16px; }
+
+.ege-tweet {
+  --tw-ink: #0f1419;
+  --tw-grey: #536471;
+  --tw-rule: #eff3f4;
+  --tw-edge: #cfd9de;
+  --tw-blue: #1d9bf0;
+  --tw-gold: #e2b719;
+  position: relative;
+  background: #fff;
+  color: var(--tw-ink);
+  border: var(--fb-border) solid var(--fb-ink);
+  box-shadow: var(--fb-shadow) var(--fb-shadow) 0 rgba(0,0,0,.35);
+  padding: 16px 16px 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.ege-tweet__head { display: flex; align-items: flex-start; gap: 12px; }
+.ege-tweet__who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.ege-tweet__pfp {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  background: var(--tw-edge);
+  clip-path: circle(50%);
+}
+.ege-tweet__pfp.is-org,
+.ege-acct__pfp.is-org { clip-path: inset(0 round 6px); }
+.ege-tweet__ids { display: flex; flex-direction: column; min-width: 0; }
+.ege-tweet__name {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+  min-width: 0;
+}
+.ege-tweet__nametext { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ege-tweet__who:hover .ege-tweet__nametext { text-decoration: underline; }
+.ege-tweet__badge,
+.ege-acct__badge { display: inline-flex; flex: none; color: var(--tw-blue, #1d9bf0); }
+.ege-tweet__badge svg { width: 19px; height: 19px; fill: currentColor; display: block; }
+.ege-tweet__badge.is-org,
+.ege-acct__badge.is-org { color: var(--tw-gold, #e2b719); }
+.ege-tweet__handle {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--tw-grey);
+}
+.ege-tweet__caret { flex: none; opacity: .8; }
+.ege-tweet__more { flex: none; margin-left: auto; fill: var(--tw-grey); }
+
+.ege-tweet__text {
+  display: block;
+  width: 100%;
+  margin: 12px 0 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  resize: none;
+  overflow: hidden;
+  background: transparent;
+  font: 400 17px/24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--tw-ink);
+  min-height: 24px;
+}
+.ege-tweet__text::placeholder { color: var(--tw-grey); opacity: 1; }
+.ege-tweet:has(.ege-tweet__text:focus) { outline: 3px solid var(--fb-accent); outline-offset: 2px; }
+
+.ege-tweet__picture { position: relative; margin-top: 12px; }
+.ege-tweet__picture img {
+  display: block;
+  width: 100%;
+  object-fit: cover;
+  border: 1px solid var(--tw-edge);
+  border-radius: 16px !important;
+}
+.ege-tweet__drop {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  color: #fff;
+  background: rgba(15, 20, 25, .75);
+  clip-path: circle(50%);
+}
+.ege-tweet__drop:hover { background: rgba(39, 44, 48, .9); }
+
+.ege-tweet__when {
+  margin-top: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--tw-rule);
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--tw-grey);
+}
+.ege-tweet__actions { display: flex; padding-top: 12px; }
+.ege-tweet__action { flex: 1 1 0; height: 22.5px; fill: var(--tw-grey); }
+
+/* The account menu: the site's, dropped over the tweet from its top. */
+.ege-tweet__menu {
+  position: absolute;
+  z-index: 5;
+  top: 72px;
+  left: 10px;
+  width: min(360px, calc(100% - 20px));
+  max-height: min(70vh, 560px);
+  overflow-y: auto;
+  background: var(--fb-cream);
+  color: var(--fb-ink);
+  border: var(--fb-border) solid var(--fb-ink);
+  box-shadow: var(--fb-shadow) var(--fb-shadow) 0 rgba(0,0,0,.35);
+  font-family: var(--fb-font-body);
+}
+.ege-acct { display: flex; align-items: stretch; border-bottom: 1px solid var(--color-divider); }
+.ege-acct.is-on { background: var(--fb-tint-sage); box-shadow: inset 4px 0 0 var(--fb-accent); }
+.ege-acct__pick {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.ege-acct__pick:hover { background: var(--fb-surface); }
+.ege-acct__pfp {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  background: var(--fb-sand);
+  clip-path: circle(50%);
+}
+.ege-acct__ids { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.ege-acct__name { display: flex; align-items: center; gap: 3px; font-weight: 800; font-size: .9375rem; min-width: 0; }
+.ege-acct__nametext { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ege-acct__badge { width: 16px; height: 16px; fill: currentColor; }
+.ege-acct__handle { font-size: .8125rem; color: var(--fb-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ege-acct__edit {
+  flex: none;
+  width: 46px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--fb-muted);
+}
+.ege-acct__edit:hover { color: var(--fb-ink); background: var(--fb-surface); }
+.ege-acct__rule { height: 3px; background: var(--fb-ink); }
+.ege-acct__new {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px 12px 22px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  font-size: .8125rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--fb-accent-deep);
+}
+.ege-acct__new:hover { background: var(--fb-surface); }
+
+.ege-acctedit { display: flex; flex-direction: column; gap: 12px; padding: 14px; }
+.ege-acctedit__pfp {
+  position: relative;
+  align-self: center;
+  width: 84px;
+  height: 84px;
+  cursor: pointer;
+}
+.ege-acctedit__img {
+  width: 100%;
+  height: 100%;
+  background: var(--fb-sand);
+  clip-path: circle(50%);
+}
+.ege-acctedit__cam {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: rgba(15, 20, 25, .38);
+  clip-path: circle(50%);
+}
+.ege-acctedit__pfp:hover .ege-acctedit__cam { background: rgba(15, 20, 25, .55); }
+.ege-acctedit__fields { display: flex; flex-direction: column; gap: 8px; }
+.ege-acctedit__fields .fb-input { width: 100%; }
+.ege-acctedit__handle { position: relative; display: block; }
+.ege-acctedit__at {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--fb-muted);
+  font-weight: 700;
+  pointer-events: none;
+}
+.ege-acctedit__handle .fb-input { padding-left: 28px; }
+.ege-acctedit__check { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: .875rem; cursor: pointer; }
+.ege-acctedit__check input { width: 18px; height: 18px; accent-color: var(--fb-accent); }
+.ege-acctedit__foot { display: flex; gap: 8px; justify-content: flex-end; }
+.ege-acctedit__delete { margin-right: auto; color: var(--fb-accent-deep); }
+
+/* Under the card: a picture, what is left of 280 once it is nearly gone,
+   and Post. */
+.ege-media__bar { display: flex; align-items: center; gap: 12px; }
+.ege-media__attach {
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  background: var(--fb-cream);
+  box-shadow: 4px 4px 0 var(--fb-ink);
+}
+.ege-media__attach:hover { background: var(--fb-surface); }
+.ege-media__count {
+  margin-left: auto;
+  font-weight: 800;
+  color: var(--fb-cream);
+  text-shadow: 0 1px 2px rgba(0,0,0,.45);
+}
+.ege-media__count.is-out { color: var(--fb-tint-clay-2); }
+.ege-media__post { margin-left: auto; min-width: 112px; height: 46px; font-size: 1rem; }
+.ege-media__count:not([hidden]) + .ege-media__post { margin-left: 0; }
+
+@media (max-width: 620px) {
+  .ege-tweet { padding: 14px 14px 10px; }
+  .ege-tweet__menu { left: 6px; width: calc(100% - 12px); }
+}

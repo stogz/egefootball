@@ -5205,3 +5205,199 @@ revoke all on function public.pay_team_card_wins(integer, jsonb) from public, an
 grant execute on function public.pay_team_card_wins(integer, jsonb) to authenticated;
 
 notify pgrst, 'reload schema';
+
+-- ===========================================================================
+-- Media: the tweet generator (Sam, 2026-11-10)
+--
+-- The Media page (#media, js/media.js) draws a tweet as a picture and posts
+-- it to the trades bot's Discord channel.
+--
+--   media_accounts  the accounts a player tweets as: a name, a handle and a
+--                   picture. Their own account is their name, a handle
+--                   made from it and their headshot until they change it,
+--                   which makes its row (`own`); it is the only one of
+--                   theirs the page gives the blue check. Any other they
+--                   make is unverified: only an admin can tick `verified`.
+--                   A player reads and changes their own rows and nobody
+--                   else's; twelve besides their own at most. The admins'
+--                   presets (NFL, ESPN, NBC Sports) are in data/media.js,
+--                   not here.
+--   media bucket    Storage, public: each tweet's picture, under the
+--                   poster's user id. A webhook can only show a picture
+--                   Discord can fetch, so it has to be somewhere public.
+--   media_posts     every tweet posted, for an admin to look back on.
+--   post_tweet()    posts one of those pictures to the trades bot's webhook
+--                   through pg_net, so a player never holds the webhook.
+--                   One every 15 seconds a player. Without pg_net here
+--                   only an admin's browser can post (js/wallet.js
+--                   postMediaToDiscord).
+-- ===========================================================================
+
+create table if not exists public.media_accounts (
+  id         uuid        primary key default gen_random_uuid(),
+  email      text        not null default (auth.jwt() ->> 'email'),
+  own        boolean     not null default false,
+  name       text        not null check (char_length(name) between 1 and 50),
+  handle     text        not null check (handle ~ '^[A-Za-z0-9_]{1,15}$'),
+  photo      text        check (photo is null or (char_length(photo) <= 80000
+                                and photo ~ '^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$')),
+  verified   boolean     not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists media_accounts_own on public.media_accounts (lower(email)) where own;
+create index if not exists media_accounts_email on public.media_accounts (lower(email));
+
+alter table public.media_accounts enable row level security;
+
+drop policy if exists "media accounts read by their owner" on public.media_accounts;
+create policy "media accounts read by their owner"
+  on public.media_accounts for select to authenticated
+  using (lower(email) = lower(auth.jwt() ->> 'email'));
+
+drop policy if exists "media accounts made by their owner" on public.media_accounts;
+create policy "media accounts made by their owner"
+  on public.media_accounts for insert to authenticated
+  with check (lower(email) = lower(auth.jwt() ->> 'email')
+              and (not verified or public.is_admin()));
+
+drop policy if exists "media accounts changed by their owner" on public.media_accounts;
+create policy "media accounts changed by their owner"
+  on public.media_accounts for update to authenticated
+  using (lower(email) = lower(auth.jwt() ->> 'email'))
+  with check (lower(email) = lower(auth.jwt() ->> 'email')
+              and (not verified or public.is_admin()));
+
+drop policy if exists "media accounts deleted by their owner" on public.media_accounts;
+create policy "media accounts deleted by their owner"
+  on public.media_accounts for delete to authenticated
+  using (lower(email) = lower(auth.jwt() ->> 'email'));
+
+revoke all on public.media_accounts from anon;
+grant select, insert, update, delete on public.media_accounts to authenticated;
+
+-- Twelve besides their own.
+create or replace function public.media_accounts_cap()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not new.own and (select count(*) from public.media_accounts
+                       where lower(email) = lower(new.email) and not own) >= 12 then
+    raise exception 'You can have 12 accounts besides your own. Delete one first.';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists media_accounts_cap on public.media_accounts;
+create trigger media_accounts_cap
+  before insert on public.media_accounts
+  for each row execute function public.media_accounts_cap();
+
+create table if not exists public.media_posts (
+  id        bigint      generated always as identity primary key,
+  email     text        not null,
+  name      text        not null,
+  handle    text        not null,
+  body      text,
+  image     text        not null,
+  posted_at timestamptz not null default now()
+);
+
+create index if not exists media_posts_email on public.media_posts (lower(email), posted_at desc);
+
+alter table public.media_posts enable row level security;
+
+drop policy if exists "media posts read by an admin" on public.media_posts;
+create policy "media posts read by an admin"
+  on public.media_posts for select to authenticated
+  using (public.is_admin());
+
+revoke all on public.media_posts from anon;
+grant select on public.media_posts to authenticated;
+
+-- The pictures. Public, so Discord can fetch them; a player can only put
+-- one in their own folder (their user id), and nobody can change or take
+-- one down from the site.
+do $$
+begin
+  insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  values ('media', 'media', true, 5242880, array['image/png'])
+  on conflict (id) do update
+    set public = true,
+        file_size_limit = excluded.file_size_limit,
+        allowed_mime_types = excluded.allowed_mime_types;
+exception when others then
+  raise notice 'Media: the media bucket could not be made here (%). Make a public bucket called media under Storage.', sqlerrm;
+end $$;
+
+do $$
+begin
+  drop policy if exists "media pictures put up by their poster" on storage.objects;
+  create policy "media pictures put up by their poster"
+    on storage.objects for insert to authenticated
+    with check (bucket_id = 'media' and (storage.foldername(name))[1] = auth.uid()::text);
+exception when others then
+  raise notice 'Media: the media bucket''s upload policy could not be made here (%).', sqlerrm;
+end $$;
+
+-- Posts a tweet's picture (already in the media bucket, in the caller's
+-- folder) to the trades bot's channel. The name, handle and text are kept
+-- in media_posts; Discord gets the picture alone, in an embed in X's blue.
+create or replace function public.post_tweet(p_image text, p_name text, p_handle text, p_text text default null)
+returns bigint
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  v_uid   text := auth.uid()::text;
+  v_url   text;
+  v_id    bigint;
+begin
+  if v_email is null or v_uid is null then
+    raise exception 'Sign in first.';
+  end if;
+  if p_image is null
+     or p_image !~ ('^https://[a-z0-9]+\.supabase\.co/storage/v1/object/public/media/'
+                    || v_uid || '/[A-Za-z0-9_-]+\.png$') then
+    raise exception 'That is not a tweet this page made.';
+  end if;
+  if exists (select 1 from public.media_posts
+              where lower(email) = lower(v_email)
+                and posted_at > now() - interval '15 seconds') then
+    raise exception 'Give it a few seconds before tweeting again.';
+  end if;
+
+  select url into v_url from public.discord_webhooks where league = 'trades';
+  if v_url is null then
+    raise exception 'The trades bot has no webhook yet.';
+  end if;
+  if not exists (select 1 from pg_extension where extname = 'pg_net') then
+    raise exception 'pg_net is not on in this database, so only an admin can post.';
+  end if;
+
+  insert into public.media_posts (email, name, handle, body, image)
+  values (v_email, left(coalesce(nullif(trim(p_name), ''), '?'), 50),
+          left(coalesce(nullif(trim(p_handle), ''), '?'), 15), left(p_text, 280), p_image)
+  returning id into v_id;
+
+  execute 'select net.http_post(url := $1, body := $2, headers := $3)'
+    using v_url,
+          jsonb_build_object('embeds', jsonb_build_array(jsonb_build_object(
+            'color', 1940464,   -- #1d9bf0
+            'image', jsonb_build_object('url', p_image)))),
+          '{"Content-Type": "application/json"}'::jsonb;
+  return v_id;
+end;
+$$;
+
+revoke all on function public.post_tweet(text, text, text, text) from public, anon;
+grant execute on function public.post_tweet(text, text, text, text) to authenticated;
+
+notify pgrst, 'reload schema';
