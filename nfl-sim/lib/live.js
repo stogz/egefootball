@@ -21,9 +21,9 @@
      and `r` whose face the result shows instead (the receiver, or the
      defender on a sack, an interception or a fumble);
      `hl` a scoring play's words past the player's name, to show in the
-     colour of `ht`, the side that scored; `h` how hot the players it
-     names are after it (HEAT: 1 alight, 2 blue); and `ms` when the entry comes up, in
-     milliseconds from kickoff (TIMING).
+     colour of `ht`, the side that scored; and `ms` when the entry comes
+     up, in milliseconds from kickoff (TIMING). Who is on fire the page
+     works out from `d` (js/live-heat.js).
      Halftime and the final whistle are entries of their own, and so is
      the wait before every snap (`tag` 'wait': "Snap…", where the ball is,
      and nothing about the play to come).
@@ -121,74 +121,6 @@ const TIMING = { wait: 2000, call: 5000, play: 9000, half: 120000 };
 TIMING.reveal = TIMING.call;
 TIMING.slot = TIMING.wait + TIMING.call + TIMING.play;
 
-/* A player getting hot (Sam, 2026-11-09): his third big play in a row
-   sets his plays burning along their left border, his fourth turns the
-   fire blue, until a play of his goes nowhere. A play that is neither
-   leaves him as he was, and so do the plays he is not in. Never a
-   quarterback (Sam): backs, receivers, tight ends, defenders and kickers.
-   What is big and what goes nowhere is rated below (rate).
-   He also catches fire on his second touchdown of the game, or his second
-   takeaway (an interception or a forced fumble), and his third turns it
-   blue (Sam, 2026-11-10). That fire lasts the rest of the game. */
-const HEAT = { flame: 3, fire: 4, count: 2 };
-
-function heatLevel(streak) { return streak >= HEAT.fire ? 2 : streak >= HEAT.flame ? 1 : 0; }
-
-/* How hot so many touchdowns or takeaways in a game make him. */
-function countLevel(n) { return n > HEAT.count ? 2 : n >= HEAT.count ? 1 : 0; }
-
-/* Who scored a snap's touchdown, by the sim's id: the returner of a kick
-   or a punt, the man who picked it off, the receiver, the runner. */
-function scorer(e) {
-  if (e.tdBy === undefined) { return undefined; }
-  if (e.k === 'kick' || e.k === 'free' || e.k === 'punt') { return e.ret; }
-  if (e.k === 'pass') { return e.res === 'i' ? e.by : e.res === 'c' ? e.to : undefined; }
-  return e.ball;
-}
-
-/* Who took the ball away on a snap: an interception, a forced fumble. */
-function takers(e) {
-  const out = [];
-  if (e.k === 'pass' && e.res === 'i' && e.by !== undefined) { out.push(e.by); }
-  if (e.ff !== undefined) { out.push(e.ff); }
-  return out;
-}
-
-/* What a snap did for each player in it but the passer, by the sim's ids:
-   'big' (a touchdown, a run of 12 yards or more, a catch of 20, a kick
-   returned 40 or a punt 25, a field goal from 50, a sack, an
-   interception, a forced fumble) or 'dud' (a run of 2 yards or less, a
-   dropped pass, a fumble lost, a missed field goal). A quarterback's own
-   runs are rated too, and left out in build. */
-function rate(e) {
-  const out = [];
-  const yds = e.yds || 0;
-  const scored = e.tdBy !== undefined;
-  function add(id, how) { if (id !== undefined && id !== null) { out.push([id, how]); } }
-  if (e.k === 'kick' || e.k === 'free') {
-    if (!e.onside && !e.tb && (scored || yds >= 40)) { add(e.ret, 'big'); }
-  } else if (e.k === 'punt') {
-    if (!e.blocked && e.yds !== undefined && (scored || yds >= 25)) { add(e.ret, 'big'); }
-  } else if (e.k === 'fg') {
-    add(e.kicker, e.made ? (e.dist >= 50 ? 'big' : null) : 'dud');
-  } else if (e.k === 'run' && !e.flag) {
-    add(e.ball, scored || (yds >= 12 && e.fum === undefined) ? 'big' : yds <= 2 || e.fum !== undefined || e.safety !== undefined ? 'dud' : null);
-  } else if (e.k === 'pass' && e.flag !== 'Holding' && e.flag !== 'Defensive holding') {
-    if (e.sack !== undefined) {
-      add(e.sack, 'big');
-    } else if (e.res === 'c') {
-      add(e.to, scored || (yds >= 20 && e.fum === undefined) ? 'big' : e.fum !== undefined ? 'dud' : null);
-    } else if (e.res === 'i') {
-      add(e.by, 'big');
-    } else if (e.miss === 'drop') {
-      add(e.to, 'dud');
-    }
-  }
-  /* Forcing a fumble, unless it is the sack he already has. */
-  if (e.ff !== undefined && e.ff !== e.sack) { add(e.ff, 'big'); }
-  return out.filter((x) => x[1]);
-}
-
 /* Fantasy points, for who a half's top performers are. */
 function points(l) {
   return (l.passYds || 0) / 25 + (l.passTd || 0) * 4 - (l.passInt || 0) * 2 + (l.rushYds || 0) / 10 + (l.rushTd || 0) * 6 +
@@ -269,15 +201,6 @@ function build(league, game, kept) {
   /* Whose trip into the red zone has been posted, until the ball changes
      hands or the drive ends in a kick or a score. */
   let red = null;
-  /* Each player's big plays in a row, touchdowns and takeaways, by his
-     number in this game. */
-  const streak = {};
-  const tds = {};
-  const takes = {};
-  function hotness(i) {
-    return Math.max(heatLevel(streak[i] || 0), countLevel(tds[i] || 0), countLevel(takes[i] || 0));
-  }
-
   function state(at, side) {
     return { o: keys[side === undefined ? at.o : side], yl: Math.max(0, Math.min(100, at.yl)), dn: at.dn, tg: at.tg,
              s: at.s.slice(), q: at.q, c: at.c };
@@ -549,34 +472,6 @@ function build(league, game, kept) {
     if (e.safety !== undefined) { post2 = { o: keys[off], yl: 0, dn: 0, tg: 0, s: e.post.s.slice(), q: e.post.q, c: e.post.c }; }
     if (e.k === 'fg' && e.made) { post2.dn = 0; }
 
-    /* Who is hot after it: everybody in it who is, and anybody it cooled
-       off. */
-    const heat = {};
-    const was = {};
-    function count(id) {
-      if (id === undefined || id === null || (people[id] && people[id].pos === 'QB')) { return undefined; }
-      const i = num(id);
-      if (i !== undefined && !(i in was)) { was[i] = hotness(i); }
-      return i;
-    }
-    rate(e).forEach(([id, how]) => {
-      const i = count(id);
-      if (i !== undefined) { streak[i] = how === 'big' ? (streak[i] || 0) + 1 : 0; }
-    });
-    const by = count(scorer(e));
-    if (by !== undefined) { tds[by] = (tds[by] || 0) + 1; }
-    takers(e).forEach((id) => {
-      const i = count(id);
-      if (i !== undefined) { takes[i] = (takes[i] || 0) + 1; }
-    });
-    Object.keys(was).forEach((i) => {
-      const now = hotness(i);
-      if (now || was[i]) { heat[i] = now; }
-    });
-    [w, r].forEach((i) => {
-      if (i !== undefined && heat[i] === undefined && hotness(i)) { heat[i] = hotness(i); }
-    });
-
     const entry = { call, text, pre, post: post2 };
     if (w !== undefined) { entry.w = w; }
     if (r !== undefined && r !== w) { entry.r = r; }
@@ -584,7 +479,6 @@ function build(league, game, kept) {
       entry.hl = hl;
       entry.ht = keys[scored ? e.tdBy : e.safety !== undefined ? e.safety : off];
     }
-    if (Object.keys(heat).length) { entry.h = heat; }
     if (more.length) { entry.more = more; }
     if (tag) { entry.tag = tag; }
     if (Object.keys(d).length) { entry.d = d; }
@@ -661,4 +555,4 @@ function build(league, game, kept) {
   return { entries: timed, posts: kept2, score: final, ot, players: info, lines, length: ms };
 }
 
-module.exports = { build, whenText, passLine, rushLine, recLine, kickLine, rate, heatLevel, countLevel, scorer, takers, BIG_PLAY, RED_ZONE, TIMING, HEAT };
+module.exports = { build, whenText, passLine, rushLine, recLine, kickLine, BIG_PLAY, RED_ZONE, TIMING };
