@@ -1028,6 +1028,46 @@ again from the world, as it does for anything else the rosters are missing.
 Players who retired before then lost their archetype and size in the world,
 so their cards show neither.
 
+### Media — `#media`
+
+The tweet generator (Sam, 2026-11-10), carried over from the one on Sam's
+old NBA site. The nav's bird, beside the League's football, opens it; like
+the Shop and Cards it is there only once someone is signed in.
+
+The page is one tweet, drawn the way X draws one in its light theme: the
+account's picture, name, check and handle, the text, a picture if one was
+added, the time, and the four buttons. The text is typed straight into it,
+and the picture button under it adds a picture beneath the text. **Post**
+draws the tweet at twice its size on a canvas (handles, hashtags and links
+in X's blue), puts the PNG in Supabase Storage's public `media` bucket and
+sends it to the **trades bot's** Discord channel as an embed holding the
+picture and nothing else. Only a failure is reported; a tweet that went
+clears the box.
+
+**Accounts.** The account at the top of the tweet opens a menu of the
+accounts this player can tweet as:
+
+- **Their own**: their name, a handle made from it and their headshot,
+  until they change any of them (the pencil). It is the only one of theirs
+  with the blue check.
+- **Any they make** (New account, up to twelve): a picture, a name and a
+  handle, unverified. An admin's editor has a Verified box as well.
+- **An admin's presets**: NFL, ESPN and NBC Sports (`data/media.js`,
+  pictures in `icon/media/`), verified, with X's gold check and square
+  picture for an organisation, and not editable.
+
+Accounts are rows of `media_accounts`, each player's readable and writable
+by them alone; the own account has a row only once it has been changed.
+The last account picked is remembered on the device.
+
+**Posting.** A player cannot read the webhook, so `post_tweet` does it in
+the database: it checks the picture is one this player uploaded (their
+user id is its folder), allows one tweet every 15 seconds, logs it in
+`media_posts` (admins can read it) and sends it through pg_net. Without
+pg_net only an admin's browser can post, which it then does straight to
+the webhook. With no trades webhook saved nothing posts and the page says
+so.
+
 ### Position-driven stat lines
 
 A player's position decides which stat columns their game log shows. Stat sets
@@ -3626,6 +3666,9 @@ function or scheduled bot behind it; with no webhook saved, trades simply
 are not posted. A post that does not land leaves the trade made and says
 so.
 
+The same channel takes the Media page's tweets (see *Media*), sent by the
+database's `post_tweet` rather than the admin's browser.
+
 ### The season editor
 
 **Season File**, under the week list, is every game in a week as the file has
@@ -3987,6 +4030,8 @@ Built so far:
   from `sim_box_scores` in Supabase, a week at a time.
 - `js/lines.js` — the point spread on every game the six have left, for
   the wagers (see Wagers).
+- `js/media.js` and `data/media.js` — the Media page (`#media`): the tweet
+  generator, its accounts and the admins' presets.
 - `data/nfl.js` — the 32 NFL teams: name, division, colour, page address.
 - `data/nfl-results.js` — the NFL scores the sim played, written by the NFL
   Sim tab or `node nfl-sim/sim.js site`.

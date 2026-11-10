@@ -981,6 +981,16 @@ EGE.wallet = (function () {
     });
   }
 
+  /* A tweet from the Media page (js/media.js), from an admin's browser,
+     when the database has no pg_net to send it through post_tweet: to the
+     trades bot's channel, where tweets go (Sam, 2026-11-10). */
+  function postMediaToDiscord(payload) {
+    return loadWebhooks().then(function (hooks) {
+      if (!hooks[TRADES]) { return { ok: true, skipped: true }; }
+      return postToWebhook(hooks[TRADES], payload);
+    });
+  }
+
   function postThroughFunction(payload, league) {
     var c = client();
     if (!c) { return fail(offline()); }
@@ -1600,6 +1610,7 @@ EGE.wallet = (function () {
     saveWebhook: saveWebhook,
     postWeekToDiscord: postWeekToDiscord,
     postTradeToDiscord: postTradeToDiscord,
+    postMediaToDiscord: postMediaToDiscord,
     postLiveToDiscord: postLiveToDiscord,
     clearPublishedBoosters: clearPublishedBoosters
   };

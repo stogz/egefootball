@@ -21,6 +21,7 @@
   var viewDiamonds = document.getElementById('view-diamonds');
   var viewLeague = document.getElementById('view-league');
   var viewLive = document.getElementById('view-live');
+  var viewMedia = document.getElementById('view-media');
   var loginBtn   = document.getElementById('loginBtn');
   var loginModal = document.getElementById('loginModal');
 
@@ -10380,6 +10381,7 @@
     document.getElementById('navAdmin').classList.toggle('is-active', active === 'admin');
     document.getElementById('navDiamonds').classList.toggle('is-active', active === 'diamonds');
     document.getElementById('navLeague').classList.toggle('is-active', active === 'league');
+    document.getElementById('navMedia').classList.toggle('is-active', active === 'media');
   }
 
   function show(view) {
@@ -10393,6 +10395,7 @@
     viewDiamonds.hidden = view !== viewDiamonds;
     viewLeague.hidden = view !== viewLeague;
     viewLive.hidden = view !== viewLive;
+    viewMedia.hidden = view !== viewMedia;
   }
 
   /* The page route() last drew, so it can tell going somewhere from being
@@ -10449,6 +10452,11 @@
       show(viewLive);
       setNav('league');
       EGE.liveView.render(hash.slice(5));
+    } else if (hash === 'media') {
+      show(viewMedia);
+      EGE.mediaView.render();
+      setNav('media');
+      document.title = 'Media';
     } else if (hash === 'admin' || hash.indexOf('admin/') === 0) {
       renderAdminView();
       show(viewAdmin);
@@ -10688,6 +10696,10 @@
     openLogin();
   });
 
+  document.getElementById('mediaLoginBtn').addEventListener('click', function () {
+    openLogin();
+  });
+
   /* The Cards tab spends diamonds, swaps credits for them, and a library
      set can pay out a booster, so the balances in the nav and the shop's
      inventory -- which the sticker drawer reads -- are brought up to date
@@ -10707,6 +10719,7 @@
     loginBtn.setAttribute('aria-label', 'Open the player portal');
     document.getElementById('navShop').hidden = true;
     document.getElementById('navCards').hidden = true;
+    document.getElementById('navMedia').hidden = true;
     document.getElementById('navAdmin').hidden = true;
     document.getElementById('viewerModeRow').hidden = true;
     document.getElementById('navCredits').hidden = true;
@@ -10725,6 +10738,7 @@
 
     document.getElementById('navShop').hidden = false;
     document.getElementById('navCards').hidden = false;
+    document.getElementById('navMedia').hidden = false;
 
     document.getElementById('navCredits').hidden = false;
     document.getElementById('navDiamonds').hidden = false;
