@@ -669,10 +669,16 @@ EGE.nflSimAdmin = (function () {
      send to). */
   function postTrades(trades) {
     if (!trades.length || !EGE.mediaNews || !EGE.mediaView) { return Promise.resolve(null); }
-    var tweets = trades.map(function (t) {
+    var tweets = [];
+    trades.forEach(function (t) {
       var tweet = EGE.mediaNews.trade(t);
-      return tweet ? Object.assign(tweet, { tag: 'trade:' + t.id }) : null;
-    }).filter(Boolean);
+      if (!tweet) { return; }
+      tweets.push(Object.assign(tweet, { tag: 'trade:' + t.id }));
+      /* Now and then Ian Rapoport says what he makes of it, right after
+         (js/media-voices.js). */
+      var take = EGE.mediaVoices ? EGE.mediaVoices.trade(t) : null;
+      if (take) { tweets.push(Object.assign(take, { tag: 'trade:' + t.id })); }
+    });
     return EGE.mediaView.postMany(tweets).then(function (problem) {
       return problem ? 'Traded, but ESPN did not tweet it: ' + problem : null;
     }, function (err) { return 'Traded, but ESPN did not tweet it: ' + (err.message || err); });

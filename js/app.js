@@ -9474,7 +9474,9 @@
   /* The NFL, ESPN and NBC Sports on the week just out (Sam, 2026-11-10):
      three to five tweets to the trades bot's channel -- the game of the
      week, stat lines, streaks, injuries, now and then a trade rumour --
-     written by js/media-news.js and drawn and posted by the Media page.
+     now and then a personality's take, and every fourth week NBC's MVP
+     ladder, written by js/media-news.js and js/media-voices.js and drawn
+     and posted by the Media page.
      Once a week (tagged news:{season}:{week}), and only for the season
      being played. Resolves with what went wrong, or null. */
   function postLeagueNews(season, week) {

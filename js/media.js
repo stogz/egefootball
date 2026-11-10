@@ -16,7 +16,10 @@
    and their headshot until they change them -- is the only one of theirs
    with the blue check. Any other they make is unverified, unless an admin
    made it and ticked Verified. Admins also get the presets in
-   data/media.js (NFL, ESPN, NBC Sports), verified and not editable. All of
+   data/media.js (NFL, ESPN, NBC Sports and the personalities: Stephen A
+   Smith, SleeperNFL, Skip Bayless, Ian Rapoport, Cam Newton, Pat McAfee,
+   LeBron James, Shannon Sharpe, Chad Johnson, JJ Watt, Terrell Owens),
+   verified and not editable. All of
    a player's accounts are rows of media_accounts, read and written only by
    them; the own account is a row only once it has been changed.
 
@@ -25,9 +28,10 @@
    it answers sits
    above the box, and the reply is drawn under it, joined by a line as X
    draws a thread. A webhook cannot make a Discord reply, so the picture
-   carries the thread instead. The NFL, ESPN and NBC Sports accounts post
-   through here too (postAs): the league's news when a week is published,
-   and ESPN every trade (js/media-news.js).
+   carries the thread instead. The presets post through here too
+   (postAs): the league's news (and every fourth week NBC's MVP ladder)
+   when a week is published, and ESPN every trade (js/media-news.js), with now and then a
+   personality's take (js/media-voices.js).
    ========================================================================== */
 
 window.EGE = window.EGE || {};
@@ -155,7 +159,7 @@ EGE.mediaView = (function () {
     if (!admin()) { return []; }
     return (EGE.mediaPresets || []).map(function (p) {
       return { id: p.id, kind: 'preset', name: p.name, handle: p.handle, photo: p.photo,
-               verified: true, org: Boolean(p.org) };
+               verified: true, org: Boolean(p.org), voice: Boolean(p.voice) };
     });
   }
 
@@ -1220,7 +1224,10 @@ EGE.mediaView = (function () {
     var menu = nodes.menu;
     menu.innerHTML = '';
     var chosen = chosenAccount();
-    var groups = [[ownAccount()].concat(altAccounts()), presetAccounts()];
+    /* Yours, then the league and the networks, then the personalities. */
+    var presets = presetAccounts();
+    var groups = [[ownAccount()].concat(altAccounts()),
+                  presets.filter(function (a) { return !a.voice; }), presets.filter(function (a) { return a.voice; })];
 
     groups.forEach(function (group, at) {
       if (!group.length) { return; }
