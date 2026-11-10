@@ -122,9 +122,9 @@ TIMING.reveal = TIMING.call;
 TIMING.slot = TIMING.wait + TIMING.call + TIMING.play;
 
 /* A player getting hot (Sam, 2026-11-09): his third big play in a row
-   lights a little fire beside his face, his fourth turns it blue, until a
-   play of his goes nowhere. A play that is neither leaves him as he was,
-   and so do the plays he is not in. Never a quarterback (Sam): backs,
+   sets his plays burning along their left border, his fourth turns the
+   fire blue, until a play of his goes nowhere. A play that is neither
+   leaves him as he was, and so do the plays he is not in. Never a quarterback (Sam): backs,
    receivers, tight ends, defenders and kickers. What is big and what goes
    nowhere is rated below (rate). Over a season of the sim's games that is
    about one player alight a game, and one turning blue in a game out of

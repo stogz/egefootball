@@ -412,8 +412,8 @@ A whole season and its playoffs take about half a second.
   of the call and seven of the whole play; a punt has no wait and twelve
   of the whole play; halftime is two minutes. Nothing else waits longer.
   A player whose third big play comes in a row, with nothing of his going
-  nowhere in between, gets a little fire beside his face, and his fourth
-  turns it blue, until one does (`live.rate`, `live.HEAT`; each entry's
+  nowhere in between, sets his plays burning (fire licking in from the
+  box's left border), and his fourth turns it blue, until one does (`live.rate`, `live.HEAT`; each entry's
   `h`). Never a quarterback (Sam, 2026-11-10): backs, receivers, tight
   ends, defenders and kickers. Over a season of the sim's games that is
   about one player alight a game, and one turning blue in a game out of

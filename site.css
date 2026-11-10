@@ -10888,21 +10888,20 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-cast__line { margin: 0; font-weight: 600; }
 .ege-cast__hl { font-weight: 800; }
 
-/* A player getting hot (Sam, 2026-11-09): a little fire burning at the
-   left of his face, behind it; blue when he is absurdly hot. */
-.ege-cast__hot { position: relative; display: grid; }
-.ege-cast__who .ege-cast__hot { margin-left: 12px; }
-.ege-cast__hot .ege-cast__face { position: relative; z-index: 1; }
+/* A player getting hot (Sam, 2026-11-10): fire stretched down the left
+   border of his box, its base out of frame and the flames reaching in,
+   behind the words; blue when he is absurdly hot. */
+.ege-cast__play.is-hot, .ege-cast__item.is-hot { position: relative; isolation: isolate; overflow: hidden; }
 .ege-cast__fire {
   position: absolute;
-  z-index: 0;
-  top: 50%;
-  right: calc(100% - 5px);
-  height: 135%;
-  width: auto;
-  transform: translateY(-50%);
+  z-index: -1;
+  top: 0;
+  left: -22px;
+  width: 64px;
+  height: 100%;
   pointer-events: none;
 }
+.ege-cast__item .ege-cast__fire { left: -14px; width: 40px; }
 
 /* An admin's hand on the game: pause, restart, end, cancel; a test
    game's speed. */
