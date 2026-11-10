@@ -20,10 +20,9 @@
    a player's accounts are rows of media_accounts, read and written only by
    them; the own account is a row only once it has been changed.
 
-   Every picture posted is the same size, 1400 by 1050, whatever is in it
-   (Sam, 2026-11-10: so each shows the same in Discord): the tweet is
-   scaled to fit on X's dim blue (frame). Under each one in Discord is a
-   Reply button that opens #media/reply/{post}: the tweet it answers sits
+   In Discord each tweet is the picture in an embed edged in X's blue,
+   and under it a Reply button that opens #media/reply/{post}: the tweet
+   it answers sits
    above the box, and the reply is drawn under it, joined by a line as X
    draws a thread. A webhook cannot make a Discord reply, so the picture
    carries the thread instead. The NFL, ESPN and NBC Sports accounts post
@@ -56,12 +55,7 @@ EGE.mediaView = (function () {
   var GOLD = '#e2b719';
   var BACKDROP = '#e1eecc';   /* behind a headshot, as in the nav */
 
-  /* The picture every tweet is posted as: always this size, the tweet
-     scaled to fit inside the margin. */
-  var FRAME_W = 700;
-  var FRAME_H = 525;
-  var FRAME_PAD = 28;
-  var FRAME_BG = '#15202b';
+  var DISCORD_BLUE = 0x1d9bf0; /* the embed's edge */
   var FACE_OUT = 128;          /* the account's picture, kept with the post */
   var PICTURE_OUT = 1200;      /* the picture under the text, kept likewise */
   var PARENT_ICON = 18.75;
@@ -826,9 +820,7 @@ EGE.mediaView = (function () {
     return cut + '…';
   }
 
-  /* The tweet as it is posted: always FRAME_W by FRAME_H, twice over, the
-     tweet scaled to fit in the middle on the dim blue, a long one smaller
-     and a short one a touch bigger, so every post shows the same size. */
+  /* The tweet as a canvas, twice the size it shows at. */
   function draw(tweet) {
     return Promise.all([
       faceOf(tweet.account),
@@ -836,37 +828,12 @@ EGE.mediaView = (function () {
     ]).then(function (got) {
       var faces = { main: got[0], parent: got[1] };
       var height = paint(document.createElement('canvas').getContext('2d'), tweet, faces, false);
-      var k = Math.min(1.08, (FRAME_W - FRAME_PAD * 2) / WIDTH, (FRAME_H - FRAME_PAD * 2) / height);
-      var w = WIDTH * k;
-      var h = height * k;
-      var x = Math.round((FRAME_W - w) / 2);
-      var y = Math.round((FRAME_H - h) / 2);
-      var radius = 16 * k;
-
       var canvas = document.createElement('canvas');
-      canvas.width = FRAME_W * SCALE;
-      canvas.height = FRAME_H * SCALE;
+      canvas.width = WIDTH * SCALE;
+      canvas.height = height * SCALE;
       var ctx = canvas.getContext('2d');
       ctx.scale(SCALE, SCALE);
-      ctx.fillStyle = FRAME_BG;
-      ctx.fillRect(0, 0, FRAME_W, FRAME_H);
-
-      ctx.save();
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-      ctx.shadowBlur = 24;
-      ctx.shadowOffsetY = 6;
-      roundRect(ctx, x, y, w, h, radius);
-      ctx.fillStyle = '#ffffff';
-      ctx.fill();
-      ctx.restore();
-
-      ctx.save();
-      roundRect(ctx, x, y, w, h, radius);
-      ctx.clip();
-      ctx.translate(x, y);
-      ctx.scale(k, k);
       paint(ctx, tweet, faces, true);
-      ctx.restore();
       return canvas;
     });
   }
@@ -961,11 +928,11 @@ EGE.mediaView = (function () {
     return site.replace(/\/+$/, '') + '/#media/reply/' + id;
   }
 
-  /* The picture alone, not in an embed (Sam, 2026-11-10): a message that
-     is nothing but an image's address shows as that image. Under it a
-     Reply button, a link to answer it on the Media page. */
+  /* The picture in an embed edged in X's blue (Sam, 2026-11-10: back to
+     the embed after a spell as the bare picture), and under it a Reply
+     button, a link to answer it on the Media page. */
   function payloadFor(url, id) {
-    var payload = { content: url, allowed_mentions: { parse: [] } };
+    var payload = { embeds: [{ color: DISCORD_BLUE, image: { url: url } }], allowed_mentions: { parse: [] } };
     if (id) {
       payload.components = [{ type: 1, components: [{ type: 2, style: 5, label: 'Reply', url: replyLink(id) }] }];
     }
