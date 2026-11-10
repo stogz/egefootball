@@ -28,8 +28,8 @@
    above the box, and the reply is drawn under it, joined by a line as X
    draws a thread. A webhook cannot make a Discord reply, so the picture
    carries the thread instead. The presets post through here too
-   (postAs): the league's news and NBC's MVP ladder when a week is
-   published, and ESPN every trade (js/media-news.js), with now and then a
+   (postAs): the league's news (and every fourth week NBC's MVP ladder)
+   when a week is published, and ESPN every trade (js/media-news.js), with now and then a
    personality's take (js/media-voices.js).
    ========================================================================== */
 

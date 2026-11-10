@@ -10,7 +10,8 @@
    - SleeperNFL: unserious. Fantasy slander and memes, lower case.
    - Skip Bayless: critical like Stephen A, but measures the young against
      the greats of his day and finds them wanting, and thinks the game was
-     better then.
+     better then. The Cowboys are the exception: he talks them up after a
+     win and always on a streak.
    - Ian Rapoport: the trade man. Before the deadline he reports who is
      being shopped, and after a trade he sometimes says what he makes of it
      (trade below), the teams as hashtags the way he writes them.
@@ -52,6 +53,8 @@ EGE.mediaVoices = (function () {
   SHARE[PAT] = 1;
   /* How often Rapoport follows ESPN's tweet of a trade. */
   var RAP_TAKE = 0.35;
+  /* How often Skip crows about a Cowboys streak or playoff win. */
+  var SKIP_COWBOYS = 0.75;
   var RAP_TAKE_SIX = 0.7;
 
   function kit() { return EGE.mediaNews.kit; }
@@ -309,17 +312,22 @@ EGE.mediaVoices = (function () {
       var w = lineWords(x);
       var t = [
         ['if you started {name} this week we’re so sorry', ['💀', '😭']],
-        ['{name} fantasy managers watching that {pts}-point performance', ['💀', '🙃', '😭']],
-        'nobody:\n\n{name}: {stat} 💀',
-        ['{name} said fantasy football? never heard of it', ['💀', '🤡']],
-        ['{pts} fantasy points from {name}. we’re not mad, just disappointed', ['🙃', '😔']],
+        ['{name} really put up {pts} fantasy points', ['💀']],
+        ['{name} managers are in shambles', ['😭', '💀']],
+        ['-1000 aura for {name} this week', ['💀']],
+        'not {name} giving his fantasy managers {pts} points 😭',
+        '{name}: {stat}\n\nthe slander will continue until performance improves 💀',
+        ['{pts} fantasy points from {name}. we’re not mad, just disappointed', ['🙃']],
         ['the {opp} had {name} in witness protection all game', ['💀', '😂']]
       ];
       if (x.l.pos === 'QB' && w.ints >= 3) {
-        t.push(['{name} threw {ints} picks today. the {opp} should send him a thank-you card', ['💀', '😂']]);
+        t.push(['{name} threw {ints} picks. the {opp} should put him on their payroll', ['💀', '😂']]);
         t.push(['{name} kept throwing it to the guys in the other jerseys. {ints} times', ['💀', '🤡']]);
       }
       if (x.l.pos === 'RB') { t.push(['{name}: {carries} carries, {yds} yards. the o-line owes your fantasy team an apology', ['😭', '💀']]); }
+      if (x.l.pos === 'WR' || x.l.pos === 'TE') {
+        t.push(['{name} was so locked up today his fantasy managers filed a missing persons report', ['💀', '😭']]);
+      }
       out.push(take(write(t, w, SLANDER, 0.8), d.bad + 0.2 + (x.ege ? 0.3 : 0), x.l.name));
     });
     greats(seen).forEach(function (x) {
@@ -328,8 +336,11 @@ EGE.mediaVoices = (function () {
         ['{name} just dropped {pts} on your fantasy league. that’s the tweet', ['🔥', '🤯']],
         ['{name} is HIM. we said what we said', ['😤', '🔥']],
         ['{name} put up {pts} points and you benched him didn’t you', ['😭', '💀']],
-        'nobody:\n\n{name}: {stat} 🔥',
-        ['{name} managers eating good tonight', ['🤑', '🍽️']]
+        ['{name} managers eating good tonight', ['🤑', '🍽️']],
+        ['we have to stop letting {name} cook', ['😭', '🔥']],
+        ['+1000 aura for {name} this week', ['😤', '🔥']],
+        ['{name} was LOCKED IN today. {stat}', ['🔒', '😤']],
+        ['this is your sign to never bench {name} again', ['🙏', '🔥']]
       ], w, ['🔥'], 0.8), x.score * 0.8 + (x.ege ? 0.2 : 0), x.l.name));
     });
     seen.games.forEach(function (game) {
@@ -337,12 +348,13 @@ EGE.mediaVoices = (function () {
       if (game.s.ls === 0) {
         out.push(take(write([
           'the {loser} scored 0 points today. not a typo',
-          '{loser} offense left the building early today'
+          'the {loser} offense left the building early today'
         ], w, ['💀', '🚪'], 0.9), 1.2, w.loser));
       } else if (game.s.margin >= 30) {
         out.push(take(write([
-          '{Winner} {ws}, {Loser} {ls}. someone check on the {loser} group chat',
-          'the {loser} were down bad today. like {margin} points bad'
+          '{winner} {ws}, {loser} {ls}. someone check on the {loser} group chat',
+          'the {loser} were down bad today. like {margin} points bad',
+          '{loser} fans it’s okay to log off for the night'
         ], w, ['💀', '😭'], 0.9), 1 + game.s.margin / 60, w.loser));
       }
     });
@@ -351,13 +363,65 @@ EGE.mediaVoices = (function () {
 
   /* --- Skip Bayless --------------------------------------------------------------- */
 
-  function skip(seen) {
+  var DALLAS = 'DAL';
+
+  /* Skip on his Cowboys (Sam, 2026-11-10: "he should glaze the cowboys"):
+     a win is proof, a streak is destiny, a loss was somebody else's
+     fault. { candidates, big } -- big when the Cowboys have just made it
+     three, five, seven or more in a row, or won in the playoffs, which
+     Skip will not keep to himself. */
+  function cowboys(seen, ctx) {
+    var k = kit();
+    var game = seen.games.filter(function (gm) { return gm.g.home === DALLAS || gm.g.away === DALLAS; })[0];
+    if (!game) { return { candidates: [], big: false }; }
+    var won = game.s.w === DALLAS;
+    var other = won ? game.s.l : game.s.w;
+    var r = ctx.after[DALLAS];
+    var run = ctx.regular && r ? k.streak(r) : { won: won, n: 0 };
+    var qb = (game.g.box || []).filter(function (l) { return l.team === DALLAS && l.pos === 'QB'; })
+      .sort(function (a, b) { return (b.passAtt || 0) - (a.passAtt || 0); })[0];
+    var star = byScore(seen.lines.filter(function (x) { return x.team === DALLAS && PLURAL[x.l.pos] && x.score >= 1.4; }))[0];
+    var w = { opp: k.nick(other), score: game.s.ws + '-' + game.s.ls, rec: r ? k.record(r) : '', n: run.n,
+              N: upper(run.n), qb: qb ? qb.name : '', star: star ? star.l.name : '', stat: star ? brief(star.l) : '' };
     var out = [];
+    var STAR = ['⭐', '🤠'];
+    if (won && game.round === 'Super Bowl') {
+      out.push(take(write([
+        'THE DALLAS COWBOYS ARE SUPER BOWL CHAMPIONS. I have waited a long, long time to type that. How ’bout them Cowboys!',
+        'MY COWBOYS ARE WORLD CHAMPIONS. {score} over the {opp}. To everybody who doubted this team for years: I TOLD YOU.'
+      ], w, ['🏆', '⭐'], 0.8), 6, 'Cowboys'));
+    } else if (won && game.round) {
+      out.push(take(write([
+        'MY COWBOYS ARE MOVING ON. {score} over the {opp}. Nobody wants any part of Dallas right now. NOBODY.',
+        'How ’bout them Cowboys! {score} over the {opp}, and this team is just getting started. I can see the confetti from here.'
+      ], w, STAR, 0.6), 5, 'Cowboys'));
+    } else if (won && run.n >= 3) {
+      out.push(take(write([
+        '{n} straight for MY Cowboys. They’re {rec} and nobody wants to see Dallas in January. I’ve been saying it since August.',
+        'How ’bout them Cowboys! {n} in a row. This team is BUILT for a Super Bowl run. Mark it down.',
+        '{N} STRAIGHT. My Cowboys are rolling and the rest of the league knows it. {rec}. Start planning the parade.'
+      ], w, STAR, 0.5), 3 + run.n / 4, 'Cowboys'));
+    } else if (won) {
+      var t = ['Cowboys win, {score} over the {opp}. I told you this team was different this year. I TOLD you.'];
+      if (w.qb) { t.push('MY Cowboys just handled the {opp}, {score}. {qb} looked like Troy Aikman out there. Don’t look now, but Dallas is for real.'); }
+      if (w.star) { t.push('{star} was the best player on that field today and it wasn’t close. {stat}. THAT is what a Cowboy looks like.'); }
+      out.push(take(write(t, w, STAR, 0.4), 2.2, 'Cowboys'));
+    } else {
+      var excuses = ['Tough one for my Cowboys, but I am NOT worried. Not one bit. This team is fine. Trust me.'];
+      if (game.s.margin <= 7) { excuses.push('The Cowboys didn’t lose that game. The officials took it from them. I said what I said.'); }
+      out.push(take(write(excuses, w, ['🤷'], 0.3), game.round ? 2.5 : 1.2, 'Cowboys'));
+    }
+    var big = won && (Boolean(game.round) || (run.n >= 3 && (run.n === 3 || run.n === 5 || run.n >= 7)));
+    return { candidates: out.filter(Boolean), big: big };
+  }
+
+  function skip(seen, ctx) {
+    var out = cowboys(seen, ctx).candidates;
     var SHRUG = ['🤷', '👀'];
     greats(seen).forEach(function (x) {
       var young = (x.age && x.age <= 24) || (x.years != null && x.years <= 2);
       var old = x.age && x.age >= 31;
-      if (!young && !old) { return; }
+      if ((!young && !old) || x.team === DALLAS) { return; }
       var w = lineWords(x);
       var t = young ? [
         'Everybody’s going crazy over {name}. Fine. Nice game. But {legend} did that EVERY week, against real defenses, when you could actually hit people. Pump the brakes.',
@@ -372,7 +436,7 @@ EGE.mediaVoices = (function () {
     });
     duds(seen).forEach(function (d) {
       var x = d.x;
-      if (!((x.age && x.age <= 25) || (x.years != null && x.years <= 3))) { return; }
+      if (!((x.age && x.age <= 25) || (x.years != null && x.years <= 3)) || x.team === DALLAS) { return; }
       var w = lineWords(x);
       out.push(take(write([
         x.l.pos === 'QB' && w.ints >= 3 ? '{name} threw {ints} picks today. I’ve been telling you all along: he’s not ready. {legend} would NEVER have looked this lost.'
@@ -434,7 +498,8 @@ EGE.mediaVoices = (function () {
       var t = [
         ['I SEE YOU {NAME}!! {stat}. That’s GROWN MAN football right there', ['👀', '💪']],
         ['Respect where it’s due: {name} was COOKING today. {stat}. Let’s GOOO', ['🔥', '💪']],
-        ['Give {name} his flowers AND a dab. {stat}', ['😂', '🔥']]
+        ['{name} got that DOG in him. {stat}. Can’t teach that', ['🐶', '💪']],
+        ['Ain’t NOBODY guarding {name} right now. {stat}. It’s levels to this', ['🔥', '😤']]
       ];
       if (x.l.pos === 'QB' && (x.l.passYds || 0) >= 200 && (x.l.rushYds || 0) >= 50) {
         t = ['Dual-threat QB props!! {name} with {passYds} through the air AND {rushYds} on the ground. THAT’S what I’m talking about. Can’t nobody stop that',
@@ -449,7 +514,8 @@ EGE.mediaVoices = (function () {
         'Somebody check on {name} 😂 {stat}?? Bruh...',
         x.l.pos === 'QB' && w.ints >= 3 ? 'Respectfully... {name} gotta be better than that. {ints} picks?? Nah. Not at this level.'
           : 'Respectfully... {name} gotta be better than that. {stat}?? Nah. Not at this level.',
-        '{name} out there playing like it’s the preseason. {stat}. Tighten up, bro'
+        '{name} out there playing like it’s the preseason. {stat}. Tighten up, bro',
+        'I’m not gonna lie to y’all… {name} was NOT that guy today. {stat}. Gotta be better'
       ], w, ['😂', '🤦', '😭'], 0.6), d.bad + (x.ege ? 0.3 : 0), x.l.name));
     });
     seen.games.forEach(function (game) {
@@ -555,14 +621,22 @@ EGE.mediaVoices = (function () {
      different. */
   function week(ctx) {
     if (!EGE.mediaNews || !EGE.mediaNews.kit) { return []; }
-    if (!kit().chance(ctx.regular ? SPEAK : SPEAK_PLAYOFFS)) { return []; }
     var seen = read(ctx);
-    var pool = WRITERS.map(function (w) {
-      return { account: w[0], candidates: w[1](seen, ctx) };
-    }).filter(function (p) { return p.candidates.length; });
     var out = [];
     var about = {};
-    var turns = kit().chance(SECOND) ? 2 : 1;
+    /* A Cowboys streak or a Cowboys playoff win: Skip says so, most
+       times, whether or not anybody else speaks. */
+    var dallas = cowboys(seen, ctx);
+    if (dallas.big && dallas.candidates.length && kit().chance(SKIP_COWBOYS)) {
+      var boast = dallas.candidates[0];
+      about[boast.about] = true;
+      out.push({ account: SKIP, text: boast.text, kind: 'voice', afterLadder: false });
+    }
+    if (!kit().chance(ctx.regular ? SPEAK : SPEAK_PLAYOFFS)) { return out; }
+    var pool = WRITERS.map(function (w) {
+      return { account: w[0], candidates: w[1](seen, ctx) };
+    }).filter(function (p) { return p.candidates.length && !(out.length && p.account === SKIP); });
+    var turns = Math.min(2, out.length + (kit().chance(SECOND) ? 2 : 1));
     while (out.length < turns && pool.length) {
       var who = weighted(pool);
       pool.splice(pool.indexOf(who), 1);

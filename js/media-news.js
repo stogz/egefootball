@@ -15,8 +15,9 @@
      six's trade-block status: only Sam trades them. About half carry an
      emoji (dress); rumours, injuries and sober stat lines never do. Now
      and then a personality weighs in after the news (js/media-voices.js),
-     and every regular-season week ends with NBC Sports' MVP ladder
-     (ladder), the top five worked out from the season's box scores.
+     and every fourth regular-season week (and the last) ends with NBC
+     Sports' MVP ladder (ladder), the top five worked out from the
+     season's box scores.
    - trade(trade): an approved sim trade as ESPN reports one (Sam: trades
      are tweeted by ESPN alone), from what the NFL Sim tab knows of it,
      { sides: [{ team, gets: [player { pos, name } | pick { year, round,
@@ -709,10 +710,12 @@ EGE.mediaNews = (function () {
 
   /* --- the MVP ladder ------------------------------------------------------------
 
-     NBC Sports' top five after every regular-season week (Sam, 2026-11-10:
-     "calculates based on record, performances, narrative, who is leading"),
-     worked out week by week from the season's box scores so far, so last
-     week's order is known too:
+     NBC Sports' top five (Sam, 2026-11-10: "calculates based on record,
+     performances, narrative, who is leading"), every four weeks -- after
+     Weeks 4, 8, 12 and 16 -- and a final one after Week 18 (Sam, the same
+     day: "every four weeks instead of every week"). It is worked out week
+     by week from the season's box scores so far, so the order at the last
+     ladder is known too, and each name shows how far he has moved since:
 
      - performances: his yards and touchdowns as a fantasy line (a point a
        25 passing yards, a 10 rushing or receiving, 4 a passing touchdown,
@@ -727,7 +730,7 @@ EGE.mediaNews = (function () {
        his team's run of wins or losses from three on (1% a game, 6% at
        most), and an injury (a week or two out costs a little; four weeks
        or the season and he is off it).
-     - who is leading: last week's order holds a little (the leader 5%,
+     - who is leading: the week before's order holds a little (the leader 5%,
        second 3%, third 2%, fourth and fifth 1%), so the front-runner stays
        in front until somebody takes it from him.
 
@@ -737,6 +740,16 @@ EGE.mediaNews = (function () {
   var HOLD = [0.05, 0.03, 0.02, 0.01, 0.01];
   var LADDER = 5;
   var LADDER_STATS = ['passYds', 'passTd', 'passInt', 'rushYds', 'rushTd', 'rec', 'recYds', 'recTd'];
+  var LADDER_EVERY = 4;
+
+  /* Whether NBC posts a ladder after `week`, and the week of the one
+     before it (0 for none). */
+  function ladderWeek(week) { return week === LAST_REGULAR || (week < LAST_REGULAR && week % LADDER_EVERY === 0); }
+  function ladderBefore(week) {
+    var w = week - 1;
+    while (w > 0 && !ladderWeek(w)) { w -= 1; }
+    return w;
+  }
 
   function production(l) {
     return (l.passYds || 0) / 25 + (l.passTd || 0) * 4 - (l.passInt || 0) * 2.5 +
@@ -751,13 +764,17 @@ EGE.mediaNews = (function () {
   /* `weeks` is the season's box scores so far, [{ week, games }]. The
      ladder through `through`: { rows: the top five, each { name, pos,
      team, rec, move, stats, ege }, everyone: every ranked player in
-     order }, or null with nothing to rank. */
-  function ladder(weeks, through) {
+     order }, or null with nothing to rank. `move` is how many places he
+     has climbed since Week `since` (by default the ladder before), and
+     `fresh` says he was not in its top five. */
+  function ladder(weeks, through, since) {
     var people = {};
     var teams = {};
     var back = {};               /* name|team: the week he is back */
     var last = {};               /* id: last week's place */
+    var then = null;             /* id: his place in Week `since` */
     var table = null;
+    if (since == null) { since = ladderBefore(through); }
 
     weeks.slice().sort(function (a, b) { return a.week - b.week; }).forEach(function (wk) {
       if (wk.week > through || wk.week > LAST_REGULAR) { return; }
@@ -825,12 +842,14 @@ EGE.mediaNews = (function () {
         week: wk.week,
         everyone: ranked,
         rows: ranked.slice(0, LADDER).map(function (p, i) {
-          var was = last[p.id];
+          var was = then ? then[p.id] : null;
           return { name: p.name, pos: p.pos, team: p.team, rec: p.record, ege: p.ege, score: p.score,
-                   stats: Object.assign({}, p.stats), move: was == null || !Object.keys(last).length ? null : was - i };
+                   stats: Object.assign({}, p.stats), move: was == null ? null : was - i,
+                   fresh: Boolean(then) && (was == null || was >= LADDER) };
         })
       };
       last = now;
+      if (wk.week === since) { then = now; }
     });
     return table && table.week === through && table.rows.length ? table : null;
   }
@@ -858,7 +877,8 @@ EGE.mediaNews = (function () {
       var lines = table.rows.map(function (row, n) {
         var line = (n + 1) + '. ' + row.name + ' (' + abbr(row.team) + ', ' + row.rec + ')';
         if (withStats) { line += ': ' + ladderStats(row); }
-        if (withMove && row.move) { line += ' ' + (row.move > 0 ? '↑' : '↓') + Math.abs(row.move); }
+        /* Up or down since the last ladder, or NEW for one who was not on it. */
+        if (withMove && row.fresh) { line += ' NEW'; } else if (withMove && row.move) { line += ' ' + (row.move > 0 ? '↑' : '↓') + Math.abs(row.move); }
         return line;
       });
       var text = head + '\n\n' + lines.join('\n');
@@ -887,7 +907,8 @@ EGE.mediaNews = (function () {
   }
 
   /* The week's tweets, in the order they go: the news, then now and then
-     a personality's take on it (js/media-voices.js), then NBC's MVP ladder.
+     a personality's take on it (js/media-voices.js), then, every fourth
+     week and after the last, NBC's MVP ladder.
      `history` is the season's box scores through the week, [{ week, games
      }], for the ladder; without it there is none. */
   function plan(season, week, boxes, rosters, history) {
@@ -935,7 +956,7 @@ EGE.mediaNews = (function () {
     }
     picked = picked.slice(0, 5);
 
-    var table = regular && history ? ladder(history, week) : null;
+    var table = regular && history && ladderWeek(week) ? ladder(history, week) : null;
     var takes = EGE.mediaVoices ? EGE.mediaVoices.week({
       season: season, week: week, games: games, before: before, after: after, rosters: rosters,
       regular: regular, deadline: DEADLINE_WEEK, ladder: table
@@ -954,9 +975,10 @@ EGE.mediaNews = (function () {
     return out.map(function (t) { return { account: t.account, text: t.text, kind: t.kind }; });
   }
 
-  /* The season's box scores through week `n`, for the ladder. */
+  /* The season's box scores through week `n`, for the ladder: only asked
+     for in a week that has one. */
   function seasonBoxes(year, n) {
-    if (!EGE.boxScores || n > LAST_REGULAR) { return Promise.resolve(null); }
+    if (!EGE.boxScores || !ladderWeek(n)) { return Promise.resolve(null); }
     var asks = [];
     for (var w = 1; w <= n; w += 1) {
       asks.push(EGE.boxScores.week(year, w).then(function (games) { return games; }, function () { return null; }));
