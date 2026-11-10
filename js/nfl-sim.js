@@ -4138,14 +4138,18 @@ module.exports = { build, tdPrice, homePoints, MIN, SPREAD, PROP };
      and `r` whose face the result shows instead (the receiver, or the
      defender on a sack, an interception or a fumble);
      `hl` a scoring play's words past the player's name, to show in the
-     colour of `ht`, the side that scored; and `ms` when the entry comes
-     up, in milliseconds from kickoff (TIMING).
-     Halftime and the final whistle are entries of their own.
+     colour of `ht`, the side that scored; `h` how hot the players it
+     names are after it (HEAT: 1 alight, 2 blue); and `ms` when the entry comes up, in
+     milliseconds from kickoff (TIMING).
+     Halftime and the final whistle are entries of their own, and so is
+     the wait before every snap but a punt (`tag` 'wait': where the ball
+     is, and nothing about the play to come).
    - the posts: what the Discord bot says, and when, as plain words and
      numbers for EGE.discordPost.buildLivePosts to dress: the opening
      kickoff, every touchdown, field goal, punt, interception, fumble,
      turnover on downs and safety, any run or catch of 60 yards or more,
-     each trip into the red zone, halftime and the final. Each is { at
+     each trip into the red zone and halftime. Not the final: the week's
+     own post has the result once the week is out (Sam, 2026-11-09). Each is { at
      (the entry), kind, team (whose post it is), title, lines, face (a
      player's number), score, when }. A play the defense made has the
      defender's face and his line first, and the title still the
@@ -4224,10 +4228,62 @@ function defLine(name, l) {
 /* The red zone: this close to the goal line. */
 const RED_ZONE = 20;
 
-/* How long, in milliseconds: each snap, the break before a new drive's
-   first snap, the wait before the first snap in the red zone, and
-   halftime, long enough to get a halftime bet in (lib/live-bets.js). */
-const TIMING = { slot: 20000, drive: 30000, red: 15000, half: 120000, reveal: 4000 };
+/* How long, in milliseconds (Sam, 2026-11-09): every snap is five seconds
+   of nothing, five of the call ("Isaac Vitel pass…") and seven of the whole
+   play; a punt has no wait and twelve seconds of the whole play; halftime
+   is two minutes, long enough to get a halftime bet in (lib/live-bets.js).
+   No longer before a new drive or the red zone. `reveal` is the call's
+   time, and `slot` a whole snap's. */
+const TIMING = { wait: 5000, call: 5000, play: 7000, punt: 12000, half: 120000 };
+TIMING.reveal = TIMING.call;
+TIMING.slot = TIMING.wait + TIMING.call + TIMING.play;
+
+/* A player getting hot (Sam, 2026-11-09): his third big play in a row
+   sets his plays burning along their left border, his fourth turns the
+   fire blue, until a play of his goes nowhere. A play that is neither
+   leaves him as he was, and so do the plays he is not in. Never a quarterback (Sam): backs,
+   receivers, tight ends, defenders and kickers. What is big and what goes
+   nowhere is rated below (rate). Over a season of the sim's games that is
+   about one player alight a game, and one turning blue in a game out of
+   four. */
+const HEAT = { flame: 3, fire: 4 };
+
+function heatLevel(streak) { return streak >= HEAT.fire ? 2 : streak >= HEAT.flame ? 1 : 0; }
+
+/* What a snap did for each player in it but the passer, by the sim's ids:
+   'big' (a touchdown, a run of 12 yards or more, a catch of 20, a kick
+   returned 40 or a punt 25, a field goal from 50, a sack, an
+   interception, a forced fumble) or 'dud' (a run of 2 yards or less, a
+   dropped pass, a fumble lost, a missed field goal). A quarterback's own
+   runs are rated too, and left out in build. */
+function rate(e) {
+  const out = [];
+  const yds = e.yds || 0;
+  const scored = e.tdBy !== undefined;
+  function add(id, how) { if (id !== undefined && id !== null) { out.push([id, how]); } }
+  if (e.k === 'kick' || e.k === 'free') {
+    if (!e.onside && !e.tb && (scored || yds >= 40)) { add(e.ret, 'big'); }
+  } else if (e.k === 'punt') {
+    if (!e.blocked && e.yds !== undefined && (scored || yds >= 25)) { add(e.ret, 'big'); }
+  } else if (e.k === 'fg') {
+    add(e.kicker, e.made ? (e.dist >= 50 ? 'big' : null) : 'dud');
+  } else if (e.k === 'run' && !e.flag) {
+    add(e.ball, scored || (yds >= 12 && e.fum === undefined) ? 'big' : yds <= 2 || e.fum !== undefined || e.safety !== undefined ? 'dud' : null);
+  } else if (e.k === 'pass' && e.flag !== 'Holding' && e.flag !== 'Defensive holding') {
+    if (e.sack !== undefined) {
+      add(e.sack, 'big');
+    } else if (e.res === 'c') {
+      add(e.to, scored || (yds >= 20 && e.fum === undefined) ? 'big' : e.fum !== undefined ? 'dud' : null);
+    } else if (e.res === 'i') {
+      add(e.by, 'big');
+    } else if (e.miss === 'drop') {
+      add(e.to, 'dud');
+    }
+  }
+  /* Forcing a fumble, unless it is the sack he already has. */
+  if (e.ff !== undefined && e.ff !== e.sack) { add(e.ff, 'big'); }
+  return out.filter((x) => x[1]);
+}
 
 /* Fantasy points, for who a half's top performers are. */
 function points(l) {
@@ -4309,9 +4365,10 @@ function build(league, game, kept) {
   /* Whose trip into the red zone has been posted, until the ball changes
      hands or the drive ends in a kick or a score. */
   let red = null;
-  /* The entries that are kicks, and the first snaps in the red zone. */
-  const kicks = new Set();
-  const reds = new Set();
+  /* The entries that are punts, which have no wait before them. */
+  const punts = new Set();
+  /* Each player's big plays in a row, by his number in this game. */
+  const streak = {};
 
   function state(at, side) {
     return { o: keys[side === undefined ? at.o : side], yl: Math.max(0, Math.min(100, at.yl)), dn: at.dn, tg: at.tg,
@@ -4584,6 +4641,22 @@ function build(league, game, kept) {
     if (e.safety !== undefined) { post2 = { o: keys[off], yl: 0, dn: 0, tg: 0, s: e.post.s.slice(), q: e.post.q, c: e.post.c }; }
     if (e.k === 'fg' && e.made) { post2.dn = 0; }
 
+    /* Who is hot after it: everybody in it who is, and anybody it cooled
+       off. */
+    const heat = {};
+    rate(e).forEach(([id, how]) => {
+      if (people[id] && people[id].pos === 'QB') { return; }
+      const i = num(id);
+      if (i === undefined) { return; }
+      const was = heatLevel(streak[i] || 0);
+      streak[i] = how === 'big' ? (streak[i] || 0) + 1 : 0;
+      const now = heatLevel(streak[i]);
+      if (now || was) { heat[i] = now; }
+    });
+    [w, r].forEach((i) => {
+      if (i !== undefined && heat[i] === undefined && heatLevel(streak[i] || 0)) { heat[i] = heatLevel(streak[i]); }
+    });
+
     const entry = { call, text, pre, post: post2 };
     if (w !== undefined) { entry.w = w; }
     if (r !== undefined && r !== w) { entry.r = r; }
@@ -4591,7 +4664,8 @@ function build(league, game, kept) {
       entry.hl = hl;
       entry.ht = keys[scored ? e.tdBy : e.safety !== undefined ? e.safety : off];
     }
-    if (kick) { kicks.add(entries.length); }
+    if (Object.keys(heat).length) { entry.h = heat; }
+    if (e.k === 'punt') { punts.add(entries.length); }
     if (more.length) { entry.more = more; }
     if (tag) { entry.tag = tag; }
     if (Object.keys(d).length) { entry.d = d; }
@@ -4615,7 +4689,6 @@ function build(league, game, kept) {
     if (!post2.dn || post2.o !== red) { red = null; }
     if (post2.dn && post2.yl >= 100 - RED_ZONE && red === null && goes) {
       red = post2.o;
-      reds.add(entries.length);
       posts.push({ at: entries.length - 1, kind: 'redzone', team: post2.o, title: nick(post2.o) + ' are in the REDZONE',
                    lines: [], score: e.post.s.slice(), when: whenText(next.pre) });
     }
@@ -4628,31 +4701,34 @@ function build(league, game, kept) {
     }
   });
 
-  /* The final whistle. */
+  /* The final whistle. Nothing is posted for it (Sam, 2026-11-09). */
   const last = kept.plays[kept.plays.length - 1];
   const final = last ? last.post.s.slice() : [0, 0];
   const ot = Boolean(last && last.post.q > 4);
   entries.push({ text: ot ? 'Final/OT' : 'Final', tag: 'end', pre: { o: null, s: final, q: last ? last.post.q : 4, c: 0 },
                  post: { o: null, s: final, q: last ? last.post.q : 4, c: 0 } });
-  posts.push({ at: entries.length - 1, kind: 'end', score: final, ot, top: [topOf(lines, info, keys[0]), topOf(lines, info, keys[1])] });
 
-  /* When each entry comes up, from kickoff: every 20 seconds, with 30 more
-     before a new drive's first snap and 15 more before its first snap in
-     the red zone (Sam, 2026-11-03), and two minutes more of halftime for
-     its bets (Sam, 2026-11-04). */
+  /* When each entry comes up, from kickoff (TIMING): before every snap but
+     a punt, a wait of its own showing only where the ball is; then the
+     snap, its call first and the whole play `reveal` later; halftime for
+     two minutes; the final whistle as soon as the last play has had its
+     time. The posts move with the entries they belong to. */
+  const timed = [];
+  const moved = [];
   let ms = 0;
-  let had = null;
   entries.forEach((entry, i) => {
-    if (i) {
-      ms += TIMING.slot;
-      const o = entry.pre && entry.pre.o;
-      if (o && had && o !== had && !kicks.has(i)) { ms += TIMING.drive; }
-      if (reds.has(i)) { ms += TIMING.red; }
-      if (entries[i - 1].tag === 'half') { ms += TIMING.half; }
+    if (entry.call && !punts.has(i)) {
+      const spot = Object.assign({}, entry.pre, { s: entry.pre.s.slice() });
+      timed.push({ tag: 'wait', pre: spot, post: spot, ms });
+      ms += TIMING.wait;
     }
     entry.ms = ms;
-    if (entry.pre && entry.pre.o) { had = entry.pre.o; }
+    moved[i] = timed.length;
+    timed.push(entry);
+    if (entry.call) { ms += TIMING.call + (punts.has(i) ? TIMING.punt : TIMING.play); }
+    if (entry.tag === 'half') { ms += TIMING.half; }
   });
+  posts.forEach((post) => { post.at = moved[post.at]; });
 
   /* The opening kickoff is the only kickoff the bot posts. */
   let opened = false;
@@ -4663,10 +4739,10 @@ function build(league, game, kept) {
     return true;
   });
 
-  return { entries, posts: kept2, score: final, ot, players: info, lines, length: ms + TIMING.slot };
+  return { entries: timed, posts: kept2, score: final, ot, players: info, lines, length: ms };
 }
 
-module.exports = { build, whenText, passLine, rushLine, recLine, kickLine, BIG_PLAY, RED_ZONE, TIMING };
+module.exports = { build, whenText, passLine, rushLine, recLine, kickLine, rate, heatLevel, BIG_PLAY, RED_ZONE, TIMING, HEAT };
 
   };
 

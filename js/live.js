@@ -2,12 +2,14 @@
    EGE Football — Live Mode
    A game the NFL sim has played, put out snap by snap for everybody to
    watch at once (Sam, 2026-11-03): #live/{id}, opened from its game on
-   the League page. A snap every 20 seconds: first what is called
-   ("Jaykeb Stewart pass"), then four seconds later what came of it
-   ("Jaykeb Stewart 22-yd pass to Nico Collins"), and sixteen seconds
-   after that the next; 30 seconds more before a new drive, 15 more
-   before its first snap in the red zone, and two minutes more at
-   halftime. PLAY LIVE on the NFL Sim tab puts it up here waiting, and an
+   the League page. Every snap the same (Sam, 2026-11-09): five seconds
+   of nothing about it, five of what is called ("Jaykeb Stewart pass…"),
+   then seven of what came of it ("Jaykeb Stewart 22-yd pass to Nico
+   Collins"). A punt skips the five of nothing and has twelve of the
+   whole play; halftime is two minutes. A player on a run of big plays
+   gets hot: fire licks in from the left border of his plays, blue once
+   he is absurdly hot (nfl-sim/lib/live.js HEAT; never a quarterback). PLAY LIVE on the
+   NFL Sim tab puts it up here waiting, and an
    admin kicks it off from this page (Sam, 2026-11-04). An admin can
    pause, end, restart or cancel it from here too, and #live/test plays a
    game on this device alone before it goes live.
@@ -342,6 +344,39 @@ EGE.liveView = (function () {
     return line;
   }
 
+  /* How hot each player is (nfl-sim/lib/live.js HEAT: 1 alight, 2 blue),
+     by his number, as the snaps before `upto` left him. */
+  function heatBefore(upto) {
+    var heat = {};
+    game.entries.slice(0, upto).forEach(function (e) {
+      if (e.hidden) { return; }
+      Object.keys(e.h || {}).forEach(function (n) { heat[n] = e.h[n]; });
+    });
+    return heat;
+  }
+
+  /* How hot the player a snap shows the face of is: once it is out, as it
+     left him; while only its call is, as hot as he already was. */
+  function heatOf(e, i) {
+    if (!e || !e.call) { return 0; }
+    if (e.hidden) { return e.w === undefined ? 0 : heatBefore(i)[e.w] || 0; }
+    var n = e.r !== undefined ? e.r : e.w;
+    return n === undefined ? 0 : (e.h || {})[n] || 0;
+  }
+
+  /* A hot player's box burns (Sam, 2026-11-10): fire stretched down the
+     left border, its base out of frame, the flames reaching in; blue when
+     he is absurdly hot. */
+  function burn(box, level) {
+    if (!level) { return; }
+    var fire = el('img', 'ege-cast__fire');
+    fire.src = level > 1 ? 'icon/live/fire-blue.webp' : 'icon/live/fire.webp';
+    fire.alt = '';
+    fire.setAttribute('aria-hidden', 'true');
+    box.classList.add('is-hot');
+    box.insertBefore(fire, box.firstChild);
+  }
+
   /* Where the ball is as far as anybody may know. */
   function where() {
     var current = game.entries[game.at];
@@ -520,7 +555,15 @@ EGE.liveView = (function () {
     var who = el('div', 'ege-cast__who');
     var words = el('div', 'ege-cast__words');
     if (e.call) { who.appendChild(face(e.hidden || e.r === undefined ? e.w : e.r, e.pre && e.pre.o, people())); }
-    if (e.hidden) {
+    burn(card, heatOf(e, game.at));
+    if (e.tag === 'wait') {
+      /* Before the snap: nothing about it at all (Sam, 2026-11-09). */
+      card.classList.add('is-wait');
+      who.appendChild(face(null, e.pre && e.pre.o, {}));
+      var hush = el('p', 'ege-cast__call');
+      hush.appendChild(el('span', 'ege-cast__dots', '…'));
+      words.appendChild(hush);
+    } else if (e.hidden) {
       var call = el('p', 'ege-cast__call');
       call.appendChild(document.createTextNode(e.call));
       call.appendChild(el('span', 'ege-cast__dots', '…'));
@@ -533,13 +576,18 @@ EGE.liveView = (function () {
     who.appendChild(words);
     card.appendChild(who);
     if (state === 'live') {
-      /* The time to the next snap: a snap's 20 seconds until its result is
-         out, then however long the wait really is (longer before a new
-         drive or the red zone). */
+      /* The time to whatever comes next: the call, the whole play, the
+         next snap (the wait before it, or a punt's call). */
       var bar = el('span', 'ege-cast__bar');
       var fill = el('span', 'ege-cast__fill');
       var start = entryMs(game.at);
-      var end = !e.hidden && game.next !== null ? game.next : start + game.slot;
+      var end;
+      if (e.hidden) {
+        end = start + game.reveal;
+      } else {
+        if (e.call) { start += game.reveal; }
+        end = game.next !== null ? game.next : start + game.slot;
+      }
       var gone = Math.min(1, Math.max(0, (clock() - start) / (end - start)));
       fill.style.width = (gone * 100) + '%';
       bar.appendChild(fill);
@@ -563,7 +611,7 @@ EGE.liveView = (function () {
     head.appendChild(el('h3', null, 'Play by play'));
     box.appendChild(head);
     var list = el('ol', 'ege-cast__list');
-    var shown = game.entries.filter(function (e, i) { return !e.hidden && i < game.at; });
+    var shown = game.entries.filter(function (e, i) { return !e.hidden && e.tag !== 'wait' && i < game.at; });
     var info = people();
     var lastQ = null;
     /* Where a quarter starts: under its first snap, the list being newest
@@ -584,6 +632,7 @@ EGE.liveView = (function () {
       lastQ = q;
       var item = el('li', 'ege-cast__item' + (e.tag && TAGS[e.tag] ? ' is-' + e.tag : ''));
       item.appendChild(face(e.r !== undefined ? e.r : e.w, e.pre.o, info));
+      burn(item, heatOf(e));
       var body = el('div', 'ege-cast__body');
       var meta = el('div', 'ege-cast__meta');
       meta.appendChild(logo(e.pre.o, 18));

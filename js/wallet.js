@@ -1098,14 +1098,46 @@ EGE.wallet = (function () {
 
   /* --- boosters stuck on games ------------------------------------------- */
 
+  /* The games put on live that season (live_games), which lock the
+     boosters and wagers of the six playing in them (Sam, 2026-11-09). */
+  var liveLocks = [];
+
+  function loadLiveLocks(season) {
+    var c = client();
+    if (!c) { liveLocks = []; return Promise.resolve(liveLocks); }
+    return c.from('live_games').select('season, week, home, away, six').eq('season', season)
+      .then(function (res) {
+        if (!res.error) { liveLocks = res.data || []; }
+        return liveLocks;
+      }, function () { return liveLocks; });
+  }
+
+  /* Whether his game that week is on live, or has been, so nothing goes on
+     it or comes off it until it is cancelled, or the week is played again
+     or undone (each takes the game off). A game put on before live_games
+     kept the six is matched by his team. */
+  function liveLocked(player, game) {
+    if (!player || !game || game.bye) { return false; }
+    return liveLocks.some(function (row) {
+      if (row.season !== game.season || row.week !== game.week) { return false; }
+      if (Array.isArray(row.six)) { return row.six.indexOf(player.slug) !== -1; }
+      var site = EGE.teamKeyFor ? EGE.teamKeyFor(player, game.season, game.week) : null;
+      var key = site && EGE.nfl && EGE.nfl.keyForSite ? EGE.nfl.keyForSite(site) : null;
+      return Boolean(key) && (key === row.home || key === row.away);
+    });
+  }
+
   /* Every sticker on every game, keyed by player slug and then by week, so a
-     schedule can draw them without asking per row. */
+     schedule can draw them without asking per row. The live games come
+     with them. */
   function loadGameBoosters(season) {
     var c = client();
     if (!c) { EGE.gameBoosters = {}; return Promise.resolve({}); }
 
-    return c.from(GAME_BOOSTERS).select('*').eq('season', season || EGE.currentSeason)
-      .then(function (res) {
+    var year = season || EGE.currentSeason;
+    return Promise.all([c.from(GAME_BOOSTERS).select('*').eq('season', year), loadLiveLocks(year)])
+      .then(function (both) {
+        var res = both[0];
         var byPlayer = {};
         if (res.error) { EGE.gameBoosters = byPlayer; return byPlayer; }
 
@@ -1154,6 +1186,7 @@ EGE.wallet = (function () {
       return owner ? EGE.boosterRoom(owner, item.key, season) : { ok: true };
     }).then(function (room) {
       if (!room.ok) { return { ok: false, message: room.reason }; }
+      if (liveLocked(owner, target)) { return { ok: false, message: 'That game is live.' }; }
       return inventoryFor(email);
     }).then(function (rows) {
       if (rows && rows.ok === false) { return rows; }
@@ -1172,7 +1205,7 @@ EGE.wallet = (function () {
             ok: false,
             message: /duplicate|unique/i.test(res.error.message || '')
               ? 'That game already has a sticker on it.'
-              : res.error.message.replace(/^.*?(Season limit)/, '$1')
+              : res.error.message.replace(/^.*?(Season limit|That game is live)/, '$1')
           };
         }
 
@@ -1212,6 +1245,7 @@ EGE.wallet = (function () {
     return Promise.all([loadGameBoosters(season), EGE.lineReady(owner, season)]).then(function () {
       var room = EGE.wagerRoom(owner, season);
       if (!room.ok) { return { ok: false, message: room.reason }; }
+      if (liveLocked(owner, target)) { return { ok: false, message: 'That game is live.' }; }
       var odds = EGE.gameLine(owner, target);
       if (!odds) { return { ok: false, message: 'There is no line on that game.' }; }
       var line = odds[EGE.WAGER_SIDES[key]];
@@ -1234,7 +1268,7 @@ EGE.wallet = (function () {
             ok: false,
             message: /duplicate|unique/i.test(res.error.message || '')
               ? 'That game already has a sticker on it.'
-              : res.error.message.replace(/^.*?(Season limit|That week|A wager)/, '$1')
+              : res.error.message.replace(/^.*?(Season limit|That week|A wager|That game is live)/, '$1')
           };
         }
         return { ok: true, message: name + ' in week ' + week + '.' };
@@ -1538,6 +1572,7 @@ EGE.wallet = (function () {
     buy: buy,
     buyUpgrade: buyUpgrade,
     loadGameBoosters: loadGameBoosters,
+    liveLocked: liveLocked,
     applyBooster: applyBooster,
     applyWager: applyWager,
     peelBooster: peelBooster,
