@@ -305,6 +305,11 @@ EGE.teams = {
    address. Change it whenever a headshot in headshot/ is replaced. */
 EGE.headshotVersion = '2026-10-20';
 
+/* The NFL's season awards -- MVP and Offensive Player of the Year -- all
+   stand in the case as the same gold NFL-shield trophy as Cooper's Offensive
+   Rookie of the Year (Sam, 2026-11-10). */
+EGE.nflAwardTrophy = 'icon/trophies/clark-2024-offensive-rookie-of-the-year.webp';
+
 EGE.players = [
   {
     slug: 'andrew-parr',
@@ -391,7 +396,10 @@ EGE.players = [
         about: '2021 FCS National Champion\nNorth Dakota State' },
       { name: 'NFL Super Bowl Championship', season: 2025, scale: 1.35,
         image: 'icon/trophies/hatch-2025-super-bowl.webp',
-        about: '2025 NFL Super Bowl Champion\nNew York Giants' }
+        about: '2025 NFL Super Bowl Champion\nNew York Giants' },
+      { name: 'Offensive Player of the Year', season: 2028, scale: 1.45,
+        image: EGE.nflAwardTrophy,
+        about: '2028 Offensive Player of the Year\nNew York Giants' }
     ]
   },
   {
@@ -430,7 +438,12 @@ EGE.players = [
     weight: 245,              // pounds
     email: 'stogzfam@gmail.com',
     credits: 0,
-    headshot: 'headshot/stogsdill.png'
+    headshot: 'headshot/stogsdill.png',
+    trophies: [
+      { name: 'Most Valuable Player', season: 2028, scale: 1.45,
+        image: EGE.nflAwardTrophy,
+        about: '2028 NFL Most Valuable Player\nPittsburgh Steelers' }
+    ]
   },
   {
     slug: 'jaykeb-stewart',
@@ -451,7 +464,19 @@ EGE.players = [
     trophies: [
       { name: 'State Championship', season: 2019, scale: 1.35,
         image: 'icon/trophies/stewart-2019-fhsaa-6a-state-championship.webp',
-        about: '2019 Florida Class 6A State Champion\nNaples High School' }
+        about: '2019 Florida Class 6A State Champion\nNaples High School' },
+      { name: 'Most Valuable Player', season: 2027, scale: 1.45,
+        image: EGE.nflAwardTrophy,
+        about: '2027 NFL Most Valuable Player\nHouston Texans' },
+      { name: 'Super Bowl LXII Championship', season: 2027, scale: 1.35,
+        image: 'icon/trophies/stewart-2027-super-bowl-lxii.webp',
+        about: '2027 Super Bowl LXII Champion\nHouston Texans' },
+      { name: 'Super Bowl LXIII Championship', season: 2028, scale: 1.35,
+        image: 'icon/trophies/stewart-2028-super-bowl-lxiii.webp',
+        about: '2028 Super Bowl LXIII Champion\nHouston Texans' },
+      { name: 'Super Bowl LXIII MVP', season: 2028,
+        image: 'icon/trophies/stewart-2028-super-bowl-lxiii-mvp.webp',
+        about: '2028 Super Bowl LXIII MVP\nHouston Texans' }
     ]
   }
 ];
