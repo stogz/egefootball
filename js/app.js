@@ -5599,11 +5599,12 @@
     statAverage('AVG', 'Punting Average', 'puntYards', 'punts', 2.25)
   ];
 
-  /* A season line on the site's fantasy scoring (the lines keep no fumbles). */
+  /* A line on the site's fantasy scoring: a season's (which keeps no
+     fumbles) or a game's from its box score (fumbles lost). */
   function lineFantasy(l) {
     return EGE.economy.fantasyPoints({
       passingYards: l.passYds, passingTd: l.passTd, interceptions: l.passInt, rushingYards: l.rushYds,
-      rushingTd: l.rushTd, receivingYards: l.recYds, receivingTd: l.recTd, receptions: l.rec
+      rushingTd: l.rushTd, receivingYards: l.recYds, receivingTd: l.recTd, receptions: l.rec, fumbles: l.fumLost
     });
   }
 
@@ -6305,9 +6306,20 @@
     }).filter(Boolean);
   }
 
+  /* A team's colour at 60% (Sam, 2026-11-10): the ground behind a
+     headshot cut to a circle, under a game and in the Top Performers. */
+  function faceGround(face, key) {
+    var team = key ? EGE.nfl.teams[key] : null;
+    var rgb = team ? rgbOf(team.color) : null;
+    if (!rgb) { return face; }
+    face.style.background = 'rgba(' + rgb.join(', ') + ', .6)';
+    face.classList.add('has-ground');
+    return face;
+  }
+
   function leaderRow(line, part, player, team) {
     var row = el('div', 'ege-game__leader' + (player ? ' is-six' : ''));
-    row.appendChild(boxFace(line, player));
+    row.appendChild(faceGround(boxFace(line, player), team));
     var text = el('span', 'ege-game__who');
     var name = el('span', 'ege-game__name', player ? player.name : line.name);
     text.appendChild(name);
@@ -6369,7 +6381,8 @@
         return;
       }
       var row = el('div', 'ege-game__leader ege-game__leader--text');
-      row.appendChild(boxFace(line, null));
+      var side = hit && (hit.key === game.home || hit.key === game.away) ? hit.key : null;
+      row.appendChild(faceGround(boxFace(line, null), side));
       var text = el('span', 'ege-game__who');
       text.appendChild(el('span', 'ege-game__name', top[1]));
       text.appendChild(el('span', 'ege-game__line', top[2] + ' ' + part[0] + ' yds'));
@@ -6411,7 +6424,7 @@
       var leaders = el('div', 'ege-game__leaders');
       game.six.forEach(function (x) {
         var row = el('div', 'ege-game__leader is-six');
-        row.appendChild(boxFace({ name: x.player.name }, x.player));
+        row.appendChild(faceGround(boxFace({ name: x.player.name }, x.player), x.team));
         var text = el('span', 'ege-game__who');
         text.appendChild(el('span', 'ege-game__name', x.player.name));
         text.appendChild(el('span', 'ege-game__line', POSITION_NAMES[x.player.position] || x.player.position));
@@ -6435,6 +6448,190 @@
     }
     return card;
   }
+
+  /* --- the week's top performers ----------------------------------------
+
+     Between the games and the standings once the week is over (Sam,
+     2026-11-10): everybody's fantasy points that week on the site's own
+     scoring (lineFantasy), the most first. Each is his headshot cut to a
+     circle on his team's colour at 60% with the team's mark at its foot,
+     "Bryce Young · 31.4 FPTS", and up to five of his numbers under it.
+     VIEW MORE opens the top 20, and SORT picks a position for both. Only
+     a week with box scores has them: one with only the season files'
+     scores has nobody's numbers but the six's. */
+
+  var leagueTop = document.getElementById('leagueTop');
+  var TOP_SHOWN = 6;
+  var TOP_MORE = 20;
+  var TOP_POSITIONS = [['', 'All'], ['QB', 'QB'], ['RB', 'RB'], ['WR', 'WR'], ['TE', 'TE']];
+  var topPos = '';
+  var topAll = [];
+  var topMoreList = null;
+
+  /* Everybody who scored that week, from the box scores, and any of the
+     six whose line is only in his season file. */
+  function weekPerformers(games, season, week) {
+    var out = [];
+    games.forEach(function (game) {
+      if (game.upcoming) { return; }
+      var lines = (game.box || []).slice();
+      game.six.forEach(function (x) {
+        if (lines.indexOf(x.line) !== -1) { return; }
+        var team = EGE.teamFor(x.player, season, week);
+        lines.push(Object.assign({}, x.line, { name: x.player.name, pos: x.player.position, ege: x.player.slug,
+          team: team ? EGE.nfl.keyByName(team.school) : null }));
+      });
+      lines.forEach(function (l) {
+        var pos = l.pos === 'FB' ? 'RB' : l.pos;
+        if (['QB', 'RB', 'WR', 'TE'].indexOf(pos) === -1) { return; }
+        var points = lineFantasy(l);
+        if (points > 0) { out.push({ line: l, pos: pos, points: points }); }
+      });
+    });
+    return out.sort(function (a, b) { return b.points - a.points || a.line.name.localeCompare(b.line.name); });
+  }
+
+  /* Up to five of his numbers (Sam, 2026-11-10), his own position's
+     first: "32/37, 339 PYDS, 3 PTD". Past his own, a touchdown before
+     yards before a count, so a quarterback's rushing score is not lost to
+     his carries; then in the order they are read. */
+  var TOP_GROUPS = { QB: ['pass', 'rush', 'rec'], RB: ['rush', 'rec', 'pass'], WR: ['rec', 'rush', 'pass'], TE: ['rec', 'rush', 'pass'] };
+
+  function topStats(l, pos) {
+    var n = function (v) { return v || 0; };
+    var parts = {
+      pass: l.passAtt ? [['count', n(l.passCmp) + '/' + l.passAtt], ['yds', n(l.passYds) + ' PYDS'],
+        l.passTd ? ['td', l.passTd + ' PTD'] : null, l.passInt ? ['int', l.passInt + ' INT'] : null] : [],
+      rush: l.rushAtt ? [['count', l.rushAtt + ' CAR'], ['yds', n(l.rushYds) + ' RUYDS'],
+        l.rushTd ? ['td', l.rushTd + ' RUTD'] : null] : [],
+      rec: l.rec ? [['count', l.rec + ' REC'], ['yds', n(l.recYds) + ' REYDS'],
+        l.recTd ? ['td', l.recTd + ' RETD'] : null] : []
+    };
+    var RANK = { td: 10, yds: 20, int: 25, count: 30 };
+    var bits = [];
+    TOP_GROUPS[pos].forEach(function (group, g) {
+      parts[group].forEach(function (bit, i) {
+        if (!bit) { return; }
+        bits.push({ text: bit[1], order: g * 10 + i, rank: g === 0 ? i : RANK[bit[0]] + g });
+      });
+    });
+    if (l.fumLost) { bits.push({ text: l.fumLost + ' FUM', order: 99, rank: 99 }); }
+    return bits.sort(function (a, b) { return a.rank - b.rank; }).slice(0, 5)
+      .sort(function (a, b) { return a.order - b.order; })
+      .map(function (bit) { return bit.text; }).join(', ');
+  }
+
+  function topPoints(points) {
+    return String(Math.round(points * 10) / 10) + ' FPTS';
+  }
+
+  function topItem(x) {
+    var l = x.line;
+    var player = l.ege ? EGE.playerBySlug(l.ege) : null;
+    var name = player ? player.name : l.name;
+    var item = el('li', 'ege-topperf__item' + (player ? ' is-six' : ''));
+    var face = el('span', 'ege-topperf__face');
+    face.appendChild(faceGround(boxFace(l, player), l.team));
+    if (l.team) {
+      var logo = leagueLogo(l.team, 26);
+      logo.classList.add('ege-topperf__logo');
+      face.appendChild(logo);
+    }
+    item.appendChild(face);
+    var text = el('span', 'ege-topperf__who');
+    var top = el('span', 'ege-topperf__top');
+    top.appendChild(el('span', 'ege-topperf__name', name));
+    top.appendChild(el('span', 'ege-topperf__pts', ' · ' + topPoints(x.points)));
+    text.appendChild(top);
+    var said = topStats(l, x.pos);
+    var words = el('span', 'ege-topperf__line', said);
+    if (said) { words.title = said; }
+    text.appendChild(words);
+    item.appendChild(text);
+    var row = boxPerson(l);
+    if (row) {
+      EGE.cardsView.pressable(item, name + ', ' + topPoints(x.points), function () { openNflPlayer(row); });
+    } else if (player) {
+      EGE.cardsView.pressable(item, name + ', ' + topPoints(x.points), function () { window.location.hash = '#' + player.slug; });
+    }
+    return item;
+  }
+
+  function topList(list, count) {
+    list.innerHTML = '';
+    var shown = topAll.filter(function (x) { return !topPos || x.pos === topPos; });
+    shown.slice(0, count).forEach(function (x) { list.appendChild(topItem(x)); });
+    if (!shown.length) { list.appendChild(el('li', 'ege-topperf__none', 'None')); }
+    return shown.length;
+  }
+
+  /* SORT: the word, with the position picker laid invisibly over it, so a
+     tap opens the phone's own list. */
+  function topSort() {
+    var wrap = el('label', 'ege-topperf__act ege-topperf__sort' + (topPos ? ' is-on' : ''));
+    wrap.appendChild(el('span', null, 'Sort'));
+    var pick = el('select');
+    pick.setAttribute('aria-label', 'Position');
+    TOP_POSITIONS.forEach(function (p) { pick.appendChild(new Option(p[1], p[0])); });
+    pick.value = topPos;
+    pick.addEventListener('change', function () {
+      topPos = pick.value;
+      drawTopPanel();
+      if (topMoreList && document.body.contains(topMoreList)) {
+        topList(topMoreList, TOP_MORE);
+        var other = topMoreList.closest('.ege-rip__stage').querySelector('.ege-topperf__sort');
+        if (other) { other.classList.toggle('is-on', Boolean(topPos)); }
+      }
+    });
+    wrap.appendChild(pick);
+    return wrap;
+  }
+
+  function drawTopPanel() {
+    leagueTop.innerHTML = '';
+    var head = el('div', 'fb-panel__head ege-topperf__head');
+    head.appendChild(el('h3', null, 'Top Performers'));
+    var acts = el('div', 'ege-topperf__acts');
+    acts.appendChild(topSort());
+    var more = el('button', 'ege-topperf__act', 'View more');
+    more.type = 'button';
+    more.addEventListener('click', openTopPerformers);
+    acts.appendChild(more);
+    head.appendChild(acts);
+    leagueTop.appendChild(head);
+    var list = el('ol', 'ege-topperf__list');
+    more.hidden = topList(list, TOP_SHOWN) <= TOP_SHOWN;
+    leagueTop.appendChild(list);
+  }
+
+  function drawTopPerformers(season, week, games) {
+    var over = EGE.isPublished(season, week) && games.some(function (game) { return game.box; });
+    topAll = over ? weekPerformers(games, season, week) : [];
+    leagueTop.hidden = !topAll.length;
+    if (topAll.length) { drawTopPanel(); } else { leagueTop.innerHTML = ''; }
+  }
+
+  /* The top 20 in the card overlay, its title and close over it, and the
+     same SORT beside the title. */
+  function openTopPerformers() {
+    var stage = EGE.cardsView.openOverlay('Top Performers', 'ege-rip__stage--top');
+    var head = stage.querySelector('.ege-rip__head');
+    var close = head.querySelector('.ege-rip__close');
+    head.insertBefore(topSort(), close);
+    var panel = el('div', 'ege-topperf__panel');
+    topMoreList = el('ol', 'ege-topperf__list ege-topperf__list--more');
+    topList(topMoreList, TOP_MORE);
+    panel.appendChild(topMoreList);
+    stage.appendChild(panel);
+    if (close) { close.focus({ preventScroll: true }); }
+  }
+
+  /* Off the list closes it, as off a player's pop-up does. */
+  document.getElementById('cardRip').addEventListener('click', function (e) {
+    if (!this.querySelector('.ege-rip__stage--top')) { return; }
+    if (e.target.closest('.ege-topperf__panel, .ege-rip__head')) { return; }
+    EGE.cardsView.closeOverlay();
+  });
 
   /* --- the box score --- */
 
@@ -6703,6 +6900,7 @@
     leagueShown = games;
     leagueGames.setAttribute('data-drawn', season + ':' + week);
     leagueGames.innerHTML = '';
+    drawTopPerformers(season, week, games);
     if (!games.length) {
       leagueGames.appendChild(el('p', 'ege-note ege-league__note', 'No games.'));
       return;
@@ -6758,6 +6956,7 @@
       leagueGames.innerHTML = '';
       leagueGames.removeAttribute('data-drawn');
       leagueStandings.hidden = true;
+      leagueTop.hidden = true;
       drawTicker(null);
       if (leagueIndex === undefined) { leagueGames.appendChild(el('p', 'ege-note ege-league__note', 'Getting the games…')); }
       return;
@@ -6772,6 +6971,7 @@
     if (leagueIndex[at.season] && leagueIndex[at.season].indexOf(at.week) !== -1) {
       if (leagueGames.getAttribute('data-drawn') !== shown) {
         leagueGames.innerHTML = '';
+        leagueTop.hidden = true;
         leagueGames.appendChild(el('p', 'ege-note ege-league__note', 'Getting the games…'));
       }
       EGE.boxScores.week(at.season, at.week).then(function (rows) {
