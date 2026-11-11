@@ -5599,11 +5599,12 @@
     statAverage('AVG', 'Punting Average', 'puntYards', 'punts', 2.25)
   ];
 
-  /* A season line on the site's fantasy scoring (the lines keep no fumbles). */
+  /* A line on the site's fantasy scoring: a season's (which keeps no
+     fumbles) or a game's from its box score (fumbles lost). */
   function lineFantasy(l) {
     return EGE.economy.fantasyPoints({
       passingYards: l.passYds, passingTd: l.passTd, interceptions: l.passInt, rushingYards: l.rushYds,
-      rushingTd: l.rushTd, receivingYards: l.recYds, receivingTd: l.recTd, receptions: l.rec
+      rushingTd: l.rushTd, receivingYards: l.recYds, receivingTd: l.recTd, receptions: l.rec, fumbles: l.fumLost
     });
   }
 
@@ -6305,9 +6306,20 @@
     }).filter(Boolean);
   }
 
+  /* A team's colour at 60% (Sam, 2026-11-10): the ground behind a
+     headshot cut to a circle, under a game and in the Top Performers. */
+  function faceGround(face, key) {
+    var team = key ? EGE.nfl.teams[key] : null;
+    var rgb = team ? rgbOf(team.color) : null;
+    if (!rgb) { return face; }
+    face.style.background = 'rgba(' + rgb.join(', ') + ', .6)';
+    face.classList.add('has-ground');
+    return face;
+  }
+
   function leaderRow(line, part, player, team) {
     var row = el('div', 'ege-game__leader' + (player ? ' is-six' : ''));
-    row.appendChild(boxFace(line, player));
+    row.appendChild(faceGround(boxFace(line, player), team));
     var text = el('span', 'ege-game__who');
     var name = el('span', 'ege-game__name', player ? player.name : line.name);
     text.appendChild(name);
@@ -6369,7 +6381,8 @@
         return;
       }
       var row = el('div', 'ege-game__leader ege-game__leader--text');
-      row.appendChild(boxFace(line, null));
+      var side = hit && (hit.key === game.home || hit.key === game.away) ? hit.key : null;
+      row.appendChild(faceGround(boxFace(line, null), side));
       var text = el('span', 'ege-game__who');
       text.appendChild(el('span', 'ege-game__name', top[1]));
       text.appendChild(el('span', 'ege-game__line', top[2] + ' ' + part[0] + ' yds'));
@@ -6411,7 +6424,7 @@
       var leaders = el('div', 'ege-game__leaders');
       game.six.forEach(function (x) {
         var row = el('div', 'ege-game__leader is-six');
-        row.appendChild(boxFace({ name: x.player.name }, x.player));
+        row.appendChild(faceGround(boxFace({ name: x.player.name }, x.player), x.team));
         var text = el('span', 'ege-game__who');
         text.appendChild(el('span', 'ege-game__name', x.player.name));
         text.appendChild(el('span', 'ege-game__line', POSITION_NAMES[x.player.position] || x.player.position));
@@ -6434,6 +6447,302 @@
       });
     }
     return card;
+  }
+
+  /* --- the week's top performers and top plays ----------------------------
+
+     Between the games and the standings once the week is over (Sam,
+     2026-11-10), two panels built the same way: the best four, four
+     across, then VIEW MORE for the top 20 in the card overlay and SORT
+     for a position, for both. Only a week with box scores has them: one
+     with only the season files' scores has nobody's numbers but the six's.
+
+     Top Performers: everybody's fantasy points that week on the site's own
+     scoring (lineFantasy), a defender's on DEF_STATS, the most first. His
+     headshot cut to a circle on his team's colour at 60% with the team's
+     mark at its foot, "Bryce Young · 31.4 FPTS", and his numbers under
+     it as the title: "339 PYDS, 3 PTDS, 0 INT" (Sam, 2026-11-10).
+
+     Top Plays: the snaps that earned a player the most fantasy points,
+     a game winner or a play that iced the game lifted up the list, which
+     the NFL Sim tab picks out of the snaps each game keeps for Live Mode
+     as it puts the box scores up (js/top-plays.js), so a week played
+     before games kept their snaps has none. A play is his who earned the
+     most on it (the catcher's, not the passer's), or under a position the
+     best of that position on it. Where he was on fire once it was over
+     (js/live-heat.js), the overlay's line burns down its left edge as in
+     a live game's feed (Sam, 2026-11-10). */
+
+  var TOP_SHOWN = 4;
+  var TOP_MORE = 20;
+  var TOP_POSITIONS = [['', 'All'], ['QB', 'QB'], ['RB', 'RB'], ['WR', 'WR'], ['TE', 'TE'], ['DEF', 'DEF']];
+  var TOP_DEFENDERS = /^(DI|DE|DT|EDGE|LB|ILB|OLB|CB|S|FS|SS|DB|DL)$/;
+
+  /* Where he counts: a fullback with the backs, every defender as DEF. */
+  function skillPos(pos) { return pos === 'FB' ? 'RB' : TOP_DEFENDERS.test(pos) ? 'DEF' : pos; }
+
+  /* The site's scoring has nothing for a defender, so his day counts on
+     the usual fantasy scoring for one: a point a tackle or a pass broken
+     up, 2 a sack, 3 a pick or a forced fumble, 6 a score. In that order a
+     tie goes the rarer way, a score before a pick before a tackle. */
+  var DEF_STATS = [['defTd', 'TD', 6], ['ints', 'INT', 3], ['ff', 'FF', 3], ['sacks', 'SACK', 2],
+                   ['passDef', 'PD', 1], ['tackles', 'TKL', 1]];
+
+  function defensePoints(l) {
+    return DEF_STATS.reduce(function (sum, s) { return sum + (l[s[0]] || 0) * s[2]; }, 0);
+  }
+
+  /* Everybody who scored that week, from the box scores, and any of the
+     six whose line is only in his season file. */
+  function weekPerformers(games, season, week) {
+    var out = [];
+    games.forEach(function (game) {
+      if (game.upcoming) { return; }
+      var lines = (game.box || []).slice();
+      game.six.forEach(function (x) {
+        if (lines.indexOf(x.line) !== -1) { return; }
+        var team = EGE.teamFor(x.player, season, week);
+        lines.push(Object.assign({}, x.line, { name: x.player.name, pos: x.player.position, ege: x.player.slug,
+          team: team ? EGE.nfl.keyByName(team.school) : null }));
+      });
+      lines.forEach(function (l) {
+        var pos = skillPos(l.pos);
+        if (['QB', 'RB', 'WR', 'TE', 'DEF'].indexOf(pos) === -1) { return; }
+        var points = pos === 'DEF' ? defensePoints(l) : lineFantasy(l);
+        if (points > 0) { out.push({ line: l, pos: pos, points: points }); }
+      });
+    });
+    return out.sort(function (a, b) { return b.points - a.points || a.line.name.localeCompare(b.line.name); });
+  }
+
+  /* His numbers, as Sam set them (2026-11-10). A quarterback's yards and
+     touchdowns through the air, then his picks or his rushing scores,
+     whichever there are more of, the scores on a tie: "339 PYDS, 3 PTDS,
+     1 RUTD", or "0 INT" with neither. A back's or a catcher's yards and
+     touchdowns all told and his catches: "142 YDS, 2 TDS, 6 REC". A
+     defender's three that earned him the most, the most first. */
+  function topStats(l, pos) {
+    var n = function (v) { return v || 0; };
+    if (pos === 'QB') {
+      var last = n(l.rushTd) && n(l.rushTd) >= n(l.passInt) ? n(l.rushTd) + ' RUTD' : n(l.passInt) + ' INT';
+      return n(l.passYds) + ' PYDS, ' + n(l.passTd) + ' PTDS, ' + last;
+    }
+    if (pos === 'DEF') {
+      return DEF_STATS.filter(function (s) { return l[s[0]]; })
+        .sort(function (a, b) { return l[b[0]] * b[2] - l[a[0]] * a[2]; })
+        .slice(0, 3).map(function (s) { return l[s[0]] + ' ' + s[1]; }).join(', ');
+    }
+    return (n(l.rushYds) + n(l.recYds)) + ' YDS, ' + (n(l.rushTd) + n(l.recTd)) + ' TDS, ' + n(l.rec) + ' REC';
+  }
+
+  function topPoints(points) {
+    return String(Math.round(points * 10) / 10) + ' FPTS';
+  }
+
+  /* "Amon-Ra St. Brown · 10.9 FPTS", the same in both panels. */
+  function topWho(name, points) {
+    var who = el('span', 'ege-topperf__sub');
+    who.appendChild(el('span', 'ege-topperf__name', name));
+    who.appendChild(document.createTextNode(' · ' + topPoints(points)));
+    return who;
+  }
+
+  /* His face in its circle on his team's colour, the team's mark at its
+     foot. */
+  function topFace(line, player) {
+    var face = el('span', 'ege-topperf__face');
+    face.appendChild(faceGround(boxFace(line, player), line.team));
+    if (line.team) {
+      var logo = leagueLogo(line.team, 26);
+      logo.classList.add('ege-topperf__logo');
+      face.appendChild(logo);
+    }
+    return face;
+  }
+
+  /* An entry: his face, a top line and a line under it; pressed, his
+     pop-up, or one of the six's page where the rosters do not know him. */
+  function topEntry(line, top, under, label) {
+    var player = line.ege ? EGE.playerBySlug(line.ege) : null;
+    var item = el('li', 'ege-topperf__item' + (player ? ' is-six' : ''));
+    item.appendChild(topFace(line, player));
+    var text = el('span', 'ege-topperf__who');
+    text.appendChild(top);
+    text.appendChild(under);
+    item.appendChild(text);
+    var row = boxPerson(line);
+    if (row) {
+      EGE.cardsView.pressable(item, label, function () { openNflPlayer(row); });
+    } else if (player) {
+      EGE.cardsView.pressable(item, label, function () { window.location.hash = '#' + player.slug; });
+    }
+    return item;
+  }
+
+  /* His name and points, then his numbers as the title (Sam, 2026-11-10). */
+  function performerItem(x) {
+    var l = x.line;
+    var player = l.ege ? EGE.playerBySlug(l.ege) : null;
+    var name = player ? player.name : l.name;
+    var said = topStats(l, x.pos);
+    return topEntry(l, topWho(name, x.points), el('span', 'ege-topperf__title', said),
+      name + ', ' + topPoints(x.points) + ', ' + said);
+  }
+
+  /* A week's plays, each as its best earner's, or its best of a position,
+     a game winner or a play that iced the game lifted up the list
+     (EGE.topPlays.rank). */
+  function playsFor(plays, pos) {
+    var out = [];
+    plays.forEach(function (x) {
+      var who = (x.play.who || []).filter(function (w) { return !pos || skillPos(w.pos) === pos; })[0];
+      if (who) { out.push({ play: x.play, game: x.game, who: who, rank: EGE.topPlays.rank(x.play, who) }); }
+    });
+    return out.sort(function (a, b) { return b.rank - a.rank || b.who.f - a.who.f || a.who.n.localeCompare(b.who.n); });
+  }
+
+  function clockText(at) {
+    var t = Math.max(0, Math.round(at.c || 0));
+    return (at.q > 4 ? (at.q === 5 ? 'OT' : 'OT' + (at.q - 4)) : 'Q' + at.q) + ' ' +
+      Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+  }
+
+  /* Over the play, the score once it was over, his side first, each with
+     its mark, and when it was snapped: "[DET] 34 - 30 [TEN] · Q4 11:34".
+     Then the play as his, "44-yd touchdown catch", and under it his name
+     and points (Sam, 2026-11-10). Hot, in the overlay, the fire down its
+     left edge as in a live game's feed. */
+  function playItem(x, inOverlay) {
+    var w = x.who;
+    var line = { name: w.n, pos: w.pos, team: w.t, espn: w.e, ege: w.g, collegePhoto: w.c };
+    var player = w.g ? EGE.playerBySlug(w.g) : null;
+    var name = player ? player.name : w.n;
+    var game = x.game;
+    var mine = w.t === game.away ? 1 : 0;
+    var other = mine ? game.home : game.away;
+    var score = x.play.s || [0, 0];
+    var top = el('span', 'ege-topplay__top');
+    var when = el('span', 'ege-topplay__when');
+    when.appendChild(leagueLogo(w.t, 16));
+    when.appendChild(el('span', 'ege-topplay__score', score[mine] + ' - ' + score[1 - mine]));
+    when.appendChild(leagueLogo(other, 16));
+    when.appendChild(el('span', null, '· ' + clockText(x.play)));
+    top.appendChild(when);
+    top.appendChild(el('span', 'ege-topperf__title', w.w));
+    var item = topEntry(line, top, topWho(name, w.f), w.w + ', ' + name + ', ' + topPoints(w.f));
+    item.classList.add('ege-topplay');
+    if (w.h && inOverlay) {
+      item.classList.add('is-hot');
+      var fire = el('img', 'ege-topplay__fire');
+      fire.src = w.h > 1 ? 'icon/live/fire-blue.webp' : 'icon/live/fire.webp';
+      fire.alt = '';
+      fire.setAttribute('aria-hidden', 'true');
+      item.insertBefore(fire, item.firstChild);
+    }
+    return item;
+  }
+
+  /* --- a panel, and its top 20 --- */
+
+  function topBoard(id, title, rank, draw) {
+    return { box: document.getElementById(id), title: title, rank: rank, draw: draw, pos: '', more: null };
+  }
+
+  function boardList(board, list, count, inOverlay) {
+    list.innerHTML = '';
+    var shown = board.rank(board.pos);
+    shown.slice(0, count).forEach(function (x) { list.appendChild(board.draw(x, inOverlay)); });
+    if (!shown.length) { list.appendChild(el('li', 'ege-topperf__none', 'None')); }
+    return shown.length;
+  }
+
+  /* SORT: the word, with the position picker laid invisibly over it, so a
+     tap opens the phone's own list. */
+  function boardSort(board) {
+    var wrap = el('label', 'ege-topperf__act ege-topperf__sort' + (board.pos ? ' is-on' : ''));
+    wrap.appendChild(el('span', null, 'Sort'));
+    var pick = el('select');
+    pick.setAttribute('aria-label', 'Position');
+    TOP_POSITIONS.forEach(function (p) { pick.appendChild(new Option(p[1], p[0])); });
+    pick.value = board.pos;
+    pick.addEventListener('change', function () {
+      board.pos = pick.value;
+      drawBoard(board);
+      if (board.more && document.body.contains(board.more)) {
+        boardList(board, board.more, TOP_MORE, true);
+        var other = board.more.closest('.ege-rip__stage').querySelector('.ege-topperf__sort');
+        if (other) { other.classList.toggle('is-on', Boolean(board.pos)); }
+      }
+    });
+    wrap.appendChild(pick);
+    return wrap;
+  }
+
+  function drawBoard(board) {
+    var box = board.box;
+    box.innerHTML = '';
+    var head = el('div', 'fb-panel__head ege-topperf__head');
+    head.appendChild(el('h3', null, board.title));
+    var acts = el('div', 'ege-topperf__acts');
+    acts.appendChild(boardSort(board));
+    var more = el('button', 'ege-topperf__act', 'View more');
+    more.type = 'button';
+    more.addEventListener('click', function () { openBoard(board); });
+    acts.appendChild(more);
+    head.appendChild(acts);
+    box.appendChild(head);
+    var list = el('ol', 'ege-topperf__list');
+    more.hidden = boardList(board, list, TOP_SHOWN, false) <= TOP_SHOWN;
+    box.appendChild(list);
+  }
+
+  /* The top 20 in the card overlay, its title and close over it, and the
+     same SORT beside the title. */
+  function openBoard(board) {
+    var stage = EGE.cardsView.openOverlay(board.title, 'ege-rip__stage--top');
+    var head = stage.querySelector('.ege-rip__head');
+    var close = head.querySelector('.ege-rip__close');
+    head.insertBefore(boardSort(board), close);
+    var panel = el('div', 'ege-topperf__panel');
+    board.more = el('ol', 'ege-topperf__list ege-topperf__list--more');
+    boardList(board, board.more, TOP_MORE, true);
+    panel.appendChild(board.more);
+    stage.appendChild(panel);
+    if (close) { close.focus({ preventScroll: true }); }
+  }
+
+  /* Off the list closes it, as off a player's pop-up does. */
+  document.getElementById('cardRip').addEventListener('click', function (e) {
+    if (!this.querySelector('.ege-rip__stage--top')) { return; }
+    if (e.target.closest('.ege-topperf__panel, .ege-rip__head')) { return; }
+    EGE.cardsView.closeOverlay();
+  });
+
+  var weekBest = [];
+  var weekSnaps = [];
+  var performersBoard = topBoard('leagueTop', 'Top Performers', function (pos) {
+    return weekBest.filter(function (x) { return !pos || x.pos === pos; });
+  }, performerItem);
+  var playsBoard = topBoard('leaguePlays', 'Top Plays', function (pos) { return playsFor(weekSnaps, pos); }, playItem);
+
+  function hideTopBoards() {
+    performersBoard.box.hidden = true;
+    playsBoard.box.hidden = true;
+  }
+
+  function drawTopBoards(season, week, games) {
+    var over = EGE.isPublished(season, week) && games.some(function (game) { return game.box; });
+    weekBest = over ? weekPerformers(games, season, week) : [];
+    weekSnaps = [];
+    if (over && EGE.topPlays) {
+      games.forEach(function (game) {
+        (game.plays || []).forEach(function (play) { weekSnaps.push({ play: play, game: game }); });
+      });
+    }
+    [[performersBoard, weekBest], [playsBoard, weekSnaps]].forEach(function (pair) {
+      pair[0].box.hidden = !pair[1].length;
+      if (pair[1].length) { drawBoard(pair[0]); } else { pair[0].box.innerHTML = ''; }
+    });
   }
 
   /* --- the box score --- */
@@ -6703,6 +7012,7 @@
     leagueShown = games;
     leagueGames.setAttribute('data-drawn', season + ':' + week);
     leagueGames.innerHTML = '';
+    drawTopBoards(season, week, games);
     if (!games.length) {
       leagueGames.appendChild(el('p', 'ege-note ege-league__note', 'No games.'));
       return;
@@ -6758,6 +7068,7 @@
       leagueGames.innerHTML = '';
       leagueGames.removeAttribute('data-drawn');
       leagueStandings.hidden = true;
+      hideTopBoards();
       drawTicker(null);
       if (leagueIndex === undefined) { leagueGames.appendChild(el('p', 'ege-note ege-league__note', 'Getting the games…')); }
       return;
@@ -6772,6 +7083,7 @@
     if (leagueIndex[at.season] && leagueIndex[at.season].indexOf(at.week) !== -1) {
       if (leagueGames.getAttribute('data-drawn') !== shown) {
         leagueGames.innerHTML = '';
+        hideTopBoards();
         leagueGames.appendChild(el('p', 'ege-note ege-league__note', 'Getting the games…'));
       }
       EGE.boxScores.week(at.season, at.week).then(function (rows) {

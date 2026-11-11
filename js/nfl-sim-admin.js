@@ -476,12 +476,23 @@ EGE.nflSimAdmin = (function () {
       return false;
     }
     var want;
+    var world;
     try {
-      want = sim().site.boxRows(league || openLeague());
+      world = league || openLeague();
+      want = sim().site.boxRows(world);
     } catch (err) {
       return Promise.resolve(fail(err));
     }
-    boxing = c.from(BOXES).select('season, week, digest').then(function (res) {
+    /* Which weeks kept their snaps, for their top plays: a week that did
+       is up to date only once its row carries them (PLAYS_MARK). */
+    var snaps = c.from(FILES).select('name').like('name', 'pbp-%').then(function (res) {
+      var out = {};
+      (res.error ? [] : res.data || []).forEach(function (row) { out[row.name] = true; });
+      return out;
+    }, function () { return {}; });
+    boxing = Promise.all([c.from(BOXES).select('season, week, digest'), snaps]).then(function (both) {
+      var res = both[0];
+      var kept = both[1];
       if (res.error) { throw new Error(boxHint(res.error.message)); }
       var have = {};
       (res.data || []).forEach(function (row) { have[row.season + ':' + row.week] = row; });
@@ -489,9 +500,10 @@ EGE.nflSimAdmin = (function () {
       var put = want.filter(function (row) {
         var had = have[row.season + ':' + row.week];
         delete have[row.season + ':' + row.week];
-        return !had || had.digest !== row.digest;
+        row.snaps = Boolean(kept[sim().season.playsFile(row.season, row.week)]);
+        return !had || had.digest !== row.digest + (row.snaps ? PLAYS_MARK : '');
       }).map(function (row) {
-        return { season: row.season, week: row.week, games: row.games, digest: row.digest, saved_at: at };
+        return { season: row.season, week: row.week, games: row.games, digest: row.digest, saved_at: at, snaps: row.snaps };
       });
       var drop = Object.keys(have).map(function (key) { return have[key]; }).filter(function (row) {
         return !EGE.isPublished(row.season, row.week);
@@ -500,7 +512,9 @@ EGE.nflSimAdmin = (function () {
       for (var i = 0; i < put.length; i += BOX_BATCH) { batches.push(put.slice(i, i + BOX_BATCH)); }
       return batches.reduce(function (chain, batch) {
         return chain.then(function () {
-          return c.from(BOXES).upsert(batch, { onConflict: 'season,week' }).then(function (res) {
+          return Promise.all(batch.map(function (row) { return withPlays(row, world); }));
+        }).then(function (rows) {
+          return c.from(BOXES).upsert(rows, { onConflict: 'season,week' }).then(function (res) {
             if (res.error) { throw new Error(boxHint(res.error.message)); }
           });
         });
@@ -522,6 +536,27 @@ EGE.nflSimAdmin = (function () {
       return done;
     }, fail);
     return boxing;
+  }
+
+  /* A week's top plays onto its games (js/top-plays.js), from the snaps
+     it kept: its row is then marked as having them. A week whose snaps
+     cannot be read goes up without, unmarked, to be tried again. */
+  var PLAYS_MARK = ':plays';
+
+  function withPlays(row, league) {
+    var snaps = row.snaps;
+    delete row.snaps;
+    if (!snaps || !EGE.topPlays || !EGE.liveHeat) { return Promise.resolve(row); }
+    return fetchPlays(row.season, row.week).then(function (file) {
+      row.games.forEach(function (g) {
+        var kept = file.games && file.games[sim().season.gameKey(g)];
+        if (!kept || !g.box) { return; }
+        var entries = sim().liveGame.build(league, { home: g.home, away: g.away }, kept).entries;
+        g.plays = EGE.topPlays.pick(entries, EGE.liveHeat.map(entries));
+      });
+      row.digest += PLAYS_MARK;
+      return row;
+    }).catch(function () { return row; });
   }
 
   /* The trades, then the weeks over them; the box scores after, behind,
