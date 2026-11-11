@@ -5290,35 +5290,17 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
 .ege-topperf__item.is-six .ege-topperf__name { color: var(--fb-accent-deep); }
 .ege-topperf__line { font-size: var(--fb-small); color: var(--fb-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ege-topperf__none { color: var(--fb-muted); font-size: var(--fb-small); }
-/* A play: its words, a score's in the scoring side's colour, over him. */
-.ege-topplay__play { font-size: .875rem; font-weight: 800; line-height: 1.3; }
-.ege-topplay__hl { font-weight: 800; }
-.ege-topplay__who .ege-topperf__name { font-weight: 800; color: var(--fb-ink); }
-.ege-topplay.is-six .ege-topplay__who .ege-topperf__name { color: var(--fb-accent-deep); }
-/* On fire once it was over (js/live-heat.js): a low line of flames rising
-   from its foot, their base out of frame, behind the words; blue when he
-   was absurdly hot. In the overlay the fire runs down its left edge
-   instead, as in a live game's feed (Sam, 2026-11-10). */
-.ege-topplay.is-hot { position: relative; isolation: isolate; overflow: hidden; padding-bottom: 40px; }
-.ege-topplay__flames {
-  position: absolute;
-  z-index: -1;
-  left: 0;
-  right: 0;
-  bottom: -16px;
-  height: 62px;
-  pointer-events: none;
-  background-image: url("icon/live/fire.webp"), url("icon/live/fire.webp"), url("icon/live/fire.webp");
-  background-repeat: repeat-x;
-  background-size: auto 62px, auto 48px, auto 55px;
-  background-position: 0 100%, 9px 100%, 17px 100%;
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
-}
-.ege-topplay__flames.is-blue {
-  background-image: url("icon/live/fire-blue.webp"), url("icon/live/fire-blue.webp"), url("icon/live/fire-blue.webp");
-}
-.ege-topperf__list--more .ege-topplay.is-hot { padding-bottom: 6px; }
+/* A play: the score once it was over and when, the play, then him. */
+.ege-topplay__top { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ege-topplay__when { display: flex; align-items: center; gap: 5px; font-size: var(--fb-label); font-weight: 700; color: var(--fb-muted); white-space: nowrap; }
+.ege-topplay__when .ege-game__logo { flex: none; width: 16px; height: 16px; }
+.ege-topplay__score { font-weight: 800; color: var(--fb-ink); font-variant-numeric: tabular-nums; }
+.ege-topplay__play { font-size: .9375rem; font-weight: 800; line-height: 1.25; }
+.ege-topplay.is-six .ege-topplay__name { color: var(--fb-accent-deep); font-weight: 700; }
+/* On fire once it was over (js/live-heat.js): in the overlay, the fire
+   down its left edge, as in a live game's feed; blue when he was
+   absurdly hot (Sam, 2026-11-10). */
+.ege-topperf__list--more .ege-topplay.is-hot { position: relative; isolation: isolate; overflow: hidden; }
 .ege-topplay__fire {
   position: absolute;
   z-index: -1;

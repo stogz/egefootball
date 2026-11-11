@@ -6463,14 +6463,14 @@
      Young · 31.4 FPTS", and up to five of his numbers under it.
 
      Top Plays: the snaps that earned a player the most fantasy points,
-     which the NFL Sim tab picks out of the snaps each game keeps for Live
-     Mode as it puts the box scores up (js/top-plays.js), so a week played
-     before games kept their snaps has none. The play in the feed's words
-     over the player and his points. A play is his who earned the most on
-     it (the catcher's, not the passer's), or under a position the best of
-     that position on it. Where he was on fire once it was over (js/live-
-     heat.js), flames rise from the foot of it, or in the overlay run down
-     its left edge as in a live game's feed (Sam, 2026-11-10). */
+     a game winner or a play that iced the game lifted up the list, which
+     the NFL Sim tab picks out of the snaps each game keeps for Live Mode
+     as it puts the box scores up (js/top-plays.js), so a week played
+     before games kept their snaps has none. A play is his who earned the
+     most on it (the catcher's, not the passer's), or under a position the
+     best of that position on it. Where he was on fire once it was over
+     (js/live-heat.js), the overlay's line burns down its left edge as in
+     a live game's feed (Sam, 2026-11-10). */
 
   var TOP_SHOWN = 3;
   var TOP_MORE = 20;
@@ -6580,53 +6580,56 @@
     return topEntry(l, top, under, name + ', ' + topPoints(x.points));
   }
 
-  /* A week's plays, each as its best earner's, or its best of a position. */
+  /* A week's plays, each as its best earner's, or its best of a position,
+     a game winner or a play that iced the game lifted up the list
+     (EGE.topPlays.rank). */
   function playsFor(plays, pos) {
     var out = [];
-    plays.forEach(function (play) {
-      var who = (play.who || []).filter(function (w) { return !pos || skillPos(w.pos) === pos; })[0];
-      if (who) { out.push({ play: play, who: who }); }
+    plays.forEach(function (x) {
+      var who = (x.play.who || []).filter(function (w) { return !pos || skillPos(w.pos) === pos; })[0];
+      if (who) { out.push({ play: x.play, game: x.game, who: who, rank: EGE.topPlays.rank(x.play, who) }); }
     });
-    return out.sort(function (a, b) { return b.who.f - a.who.f || a.who.n.localeCompare(b.who.n); });
+    return out.sort(function (a, b) { return b.rank - a.rank || b.who.f - a.who.f || a.who.n.localeCompare(b.who.n); });
   }
 
-  /* The play in the feed's words, a score's part of them in the colour of
-     the side that scored (as js/live.js does), over his name and points.
-     Hot, the fire under it; in the overlay, down its left edge. */
+  function clockText(at) {
+    var t = Math.max(0, Math.round(at.c || 0));
+    return (at.q > 4 ? (at.q === 5 ? 'OT' : 'OT' + (at.q - 4)) : 'Q' + at.q) + ' ' +
+      Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+  }
+
+  /* Over the play, the score once it was over, his side first, each with
+     its mark, and when it was snapped: "[DET] 34 - 30 [TEN] · Q4 11:34".
+     Then the play as his, "44-yd touchdown catch", and under it his name
+     and points (Sam, 2026-11-10). Hot, in the overlay, the fire down its
+     left edge as in a live game's feed. */
   function playItem(x, inOverlay) {
     var w = x.who;
     var line = { name: w.n, pos: w.pos, team: w.t, espn: w.e, ege: w.g, collegePhoto: w.c };
     var player = w.g ? EGE.playerBySlug(w.g) : null;
     var name = player ? player.name : w.n;
-    var words = x.play.x || '';
-    var top = el('span', 'ege-topplay__play');
-    var at = x.play.hl ? words.indexOf(x.play.hl) : -1;
-    var side = x.play.ht ? EGE.nfl.teams[x.play.ht] : null;
-    if (at < 0 || !side) {
-      top.textContent = words;
-    } else {
-      top.appendChild(document.createTextNode(words.slice(0, at)));
-      var hl = el('span', 'ege-topplay__hl', x.play.hl);
-      hl.style.color = side.color;
-      top.appendChild(hl);
-      top.appendChild(document.createTextNode(words.slice(at + x.play.hl.length)));
-    }
+    var game = x.game;
+    var mine = w.t === game.away ? 1 : 0;
+    var other = mine ? game.home : game.away;
+    var score = x.play.s || [0, 0];
+    var top = el('span', 'ege-topplay__top');
+    var when = el('span', 'ege-topplay__when');
+    when.appendChild(leagueLogo(w.t, 16));
+    when.appendChild(el('span', 'ege-topplay__score', score[mine] + ' - ' + score[1 - mine]));
+    when.appendChild(leagueLogo(other, 16));
+    when.appendChild(el('span', null, '· ' + clockText(x.play)));
+    top.appendChild(when);
+    top.appendChild(el('span', 'ege-topplay__play', w.w));
     var under = el('span', 'ege-topperf__line ege-topplay__who');
-    under.appendChild(el('span', 'ege-topperf__name', name));
+    under.appendChild(el('span', 'ege-topplay__name', name));
     under.appendChild(document.createTextNode(' · ' + topPoints(w.f)));
-    var item = topEntry(line, top, under, words + ', ' + name + ', ' + topPoints(w.f));
+    var item = topEntry(line, top, under, w.w + ', ' + name + ', ' + topPoints(w.f));
     item.classList.add('ege-topplay');
-    if (w.h) {
+    if (w.h && inOverlay) {
       item.classList.add('is-hot');
-      var src = w.h > 1 ? 'icon/live/fire-blue.webp' : 'icon/live/fire.webp';
-      var fire;
-      if (inOverlay) {
-        fire = el('img', 'ege-topplay__fire');
-        fire.src = src;
-        fire.alt = '';
-      } else {
-        fire = el('span', 'ege-topplay__flames' + (w.h > 1 ? ' is-blue' : ''));
-      }
+      var fire = el('img', 'ege-topplay__fire');
+      fire.src = w.h > 1 ? 'icon/live/fire-blue.webp' : 'icon/live/fire.webp';
+      fire.alt = '';
       fire.setAttribute('aria-hidden', 'true');
       item.insertBefore(fire, item.firstChild);
     }
@@ -6725,8 +6728,10 @@
     var over = EGE.isPublished(season, week) && games.some(function (game) { return game.box; });
     weekBest = over ? weekPerformers(games, season, week) : [];
     weekSnaps = [];
-    if (over) {
-      games.forEach(function (game) { (game.plays || []).forEach(function (play) { weekSnaps.push(play); }); });
+    if (over && EGE.topPlays) {
+      games.forEach(function (game) {
+        (game.plays || []).forEach(function (play) { weekSnaps.push({ play: play, game: game }); });
+      });
     }
     [[performersBoard, weekBest], [playsBoard, weekSnaps]].forEach(function (pair) {
       pair[0].box.hidden = !pair[1].length;
