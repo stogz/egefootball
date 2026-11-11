@@ -5220,10 +5220,11 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
 .ege-game__line { font-size: var(--fb-small); color: var(--fb-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ege-game.is-open .ege-game__line { color: rgba(245, 234, 216, .72); }
 
-/* The week's Top Performers, between the games and the standings (Sam,
-   2026-11-10): SORT and VIEW MORE at the head's right, then the best six
-   three across. Each face a circle on its team's colour with the team's
-   mark at its foot, the name and points, and his numbers under them. */
+/* The week's Top Performers and Top Plays, between the games and the
+   standings (Sam, 2026-11-10): SORT and VIEW MORE at the head's right,
+   then the best three, three across. Each face a circle on its team's
+   colour with the team's mark at its foot, the name and points, and his
+   numbers under them; a play's words over his name. */
 .ege-topperf { margin-bottom: 22px; }
 .ege-topperf__head { padding: 12px 18px; }
 .ege-topperf__acts { display: flex; align-items: center; gap: 20px; }
@@ -5263,6 +5264,7 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
   padding: 16px 18px 18px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
   gap: 8px 22px;
 }
 @media (max-width: 960px) { .ege-topperf__list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -5282,20 +5284,50 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
 .ege-topperf__item:focus-visible { outline: var(--fb-border-thin) solid var(--fb-accent); outline-offset: 0; }
 .ege-topperf__face { position: relative; width: 64px; height: 64px; }
 .ege-topperf__face .ege-teamchip__photo { width: 100%; height: 100%; border-radius: 50% !important; font-size: 1rem; }
-/* A soft shadow keeps a mark off a ground of its own colour. */
-.ege-topperf__logo.ege-game__logo {
-  position: absolute;
-  right: -5px;
-  bottom: -3px;
-  width: 26px;
-  height: 26px;
-  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, .4));
-}
+.ege-topperf__logo.ege-game__logo { position: absolute; right: -5px; bottom: -3px; width: 26px; height: 26px; }
 .ege-topperf__who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .ege-topperf__top { font-size: .9375rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ege-topperf__item.is-six .ege-topperf__name { color: var(--fb-accent-deep); }
 .ege-topperf__line { font-size: var(--fb-small); color: var(--fb-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ege-topperf__none { color: var(--fb-muted); font-size: var(--fb-small); }
+/* A play: its words, a score's in the scoring side's colour, over him. */
+.ege-topplay__play { font-size: .875rem; font-weight: 800; line-height: 1.3; }
+.ege-topplay__hl { font-weight: 800; }
+.ege-topplay__who .ege-topperf__name { font-weight: 800; color: var(--fb-ink); }
+.ege-topplay.is-six .ege-topplay__who .ege-topperf__name { color: var(--fb-accent-deep); }
+/* On fire once it was over (js/live-heat.js): a low line of flames rising
+   from its foot, their base out of frame, behind the words; blue when he
+   was absurdly hot. In the overlay the fire runs down its left edge
+   instead, as in a live game's feed (Sam, 2026-11-10). */
+.ege-topplay.is-hot { position: relative; isolation: isolate; overflow: hidden; padding-bottom: 40px; }
+.ege-topplay__flames {
+  position: absolute;
+  z-index: -1;
+  left: 0;
+  right: 0;
+  bottom: -16px;
+  height: 62px;
+  pointer-events: none;
+  background-image: url("icon/live/fire.webp"), url("icon/live/fire.webp"), url("icon/live/fire.webp");
+  background-repeat: repeat-x;
+  background-size: auto 62px, auto 48px, auto 55px;
+  background-position: 0 100%, 9px 100%, 17px 100%;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+}
+.ege-topplay__flames.is-blue {
+  background-image: url("icon/live/fire-blue.webp"), url("icon/live/fire-blue.webp"), url("icon/live/fire-blue.webp");
+}
+.ege-topperf__list--more .ege-topplay.is-hot { padding-bottom: 6px; }
+.ege-topplay__fire {
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  left: -14px;
+  width: 40px;
+  height: 100%;
+  pointer-events: none;
+}
 /* On a phone his five numbers run onto a second line rather than be cut. */
 @media (max-width: 640px) {
   .ege-topperf__item { grid-template-columns: 56px minmax(0, 1fr); }
@@ -5318,6 +5350,9 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
   color: var(--fb-ink);
 }
 .ege-topperf__list--more { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+/* Each row out to the panel's edges, for a fire down its left. */
+.ege-topperf__list--more .ege-topperf__item { margin: 0 -18px; padding: 6px 18px; }
+@media (max-width: 640px) { .ege-topperf__list--more .ege-topperf__item { margin: 0 -14px; padding: 6px 14px; } }
 
 /* The box score: the whole row under its game. */
 .ege-boxscore { grid-column: 1 / -1; padding: 18px; display: grid; gap: 22px; }
