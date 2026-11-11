@@ -5263,11 +5263,11 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
   margin: 0;
   padding: 16px 18px 18px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: start;
-  gap: 8px 22px;
+  gap: 8px 18px;
 }
-@media (max-width: 960px) { .ege-topperf__list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1100px) { .ege-topperf__list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .ege-topperf__list { grid-template-columns: minmax(0, 1fr); padding: 12px 14px 14px; } }
 .ege-topperf__item {
   display: grid;
@@ -5286,17 +5286,16 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
 .ege-topperf__face .ege-teamchip__photo { width: 100%; height: 100%; border-radius: 50% !important; font-size: 1rem; }
 .ege-topperf__logo.ege-game__logo { position: absolute; right: -5px; bottom: -3px; width: 26px; height: 26px; }
 .ege-topperf__who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.ege-topperf__top { font-size: .9375rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ege-topperf__item.is-six .ege-topperf__name { color: var(--fb-accent-deep); }
-.ege-topperf__line { font-size: var(--fb-small); color: var(--fb-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The title, his numbers or the play, and his name and points by it. */
+.ege-topperf__title { font-size: .9375rem; font-weight: 800; line-height: 1.25; }
+.ege-topperf__sub { font-size: var(--fb-small); color: var(--fb-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ege-topperf__item.is-six .ege-topperf__name { color: var(--fb-accent-deep); font-weight: 700; }
 .ege-topperf__none { color: var(--fb-muted); font-size: var(--fb-small); }
 /* A play: the score once it was over and when, the play, then him. */
 .ege-topplay__top { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .ege-topplay__when { display: flex; align-items: center; gap: 5px; font-size: var(--fb-label); font-weight: 700; color: var(--fb-muted); white-space: nowrap; }
 .ege-topplay__when .ege-game__logo { flex: none; width: 16px; height: 16px; }
 .ege-topplay__score { font-weight: 800; color: var(--fb-ink); font-variant-numeric: tabular-nums; }
-.ege-topplay__play { font-size: .9375rem; font-weight: 800; line-height: 1.25; }
-.ege-topplay.is-six .ege-topplay__name { color: var(--fb-accent-deep); font-weight: 700; }
 /* On fire once it was over (js/live-heat.js): in the overlay, the fire
    down its left edge, as in a live game's feed; blue when he was
    absurdly hot (Sam, 2026-11-10). */
@@ -5310,12 +5309,12 @@ body:has(#view-league:not([hidden]) .ege-newsbar:not([hidden])) { padding-bottom
   height: 100%;
   pointer-events: none;
 }
-/* On a phone his five numbers run onto a second line rather than be cut. */
+/* On a phone his name runs onto a second line rather than be cut. */
 @media (max-width: 640px) {
   .ege-topperf__item { grid-template-columns: 56px minmax(0, 1fr); }
   .ege-topperf__face { width: 56px; height: 56px; }
   .ege-topperf__logo.ege-game__logo { width: 23px; height: 23px; }
-  .ege-topperf__line { white-space: normal; }
+  .ege-topperf__sub { white-space: normal; }
 }
 /* VIEW MORE: the top 20 in the card overlay, one under another. */
 .ege-rip__stage.ege-rip__stage--top { width: min(560px, 100%); }

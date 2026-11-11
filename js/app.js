@@ -6452,15 +6452,16 @@
   /* --- the week's top performers and top plays ----------------------------
 
      Between the games and the standings once the week is over (Sam,
-     2026-11-10), two panels built the same way: the best three, three
+     2026-11-10), two panels built the same way: the best four, four
      across, then VIEW MORE for the top 20 in the card overlay and SORT
      for a position, for both. Only a week with box scores has them: one
      with only the season files' scores has nobody's numbers but the six's.
 
      Top Performers: everybody's fantasy points that week on the site's own
-     scoring (lineFantasy), the most first. His headshot cut to a circle on
-     his team's colour at 60% with the team's mark at its foot, "Bryce
-     Young · 31.4 FPTS", and up to five of his numbers under it.
+     scoring (lineFantasy), a defender's on DEF_STATS, the most first. His
+     headshot cut to a circle on his team's colour at 60% with the team's
+     mark at its foot, "Bryce Young · 31.4 FPTS", and his numbers under
+     it as the title: "339 PYDS, 3 PTDS, 0 INT" (Sam, 2026-11-10).
 
      Top Plays: the snaps that earned a player the most fantasy points,
      a game winner or a play that iced the game lifted up the list, which
@@ -6472,11 +6473,24 @@
      (js/live-heat.js), the overlay's line burns down its left edge as in
      a live game's feed (Sam, 2026-11-10). */
 
-  var TOP_SHOWN = 3;
+  var TOP_SHOWN = 4;
   var TOP_MORE = 20;
-  var TOP_POSITIONS = [['', 'All'], ['QB', 'QB'], ['RB', 'RB'], ['WR', 'WR'], ['TE', 'TE']];
+  var TOP_POSITIONS = [['', 'All'], ['QB', 'QB'], ['RB', 'RB'], ['WR', 'WR'], ['TE', 'TE'], ['DEF', 'DEF']];
+  var TOP_DEFENDERS = /^(DI|DE|DT|EDGE|LB|ILB|OLB|CB|S|FS|SS|DB|DL)$/;
 
-  function skillPos(pos) { return pos === 'FB' ? 'RB' : pos; }
+  /* Where he counts: a fullback with the backs, every defender as DEF. */
+  function skillPos(pos) { return pos === 'FB' ? 'RB' : TOP_DEFENDERS.test(pos) ? 'DEF' : pos; }
+
+  /* The site's scoring has nothing for a defender, so his day counts on
+     the usual fantasy scoring for one: a point a tackle or a pass broken
+     up, 2 a sack, 3 a pick or a forced fumble, 6 a score. In that order a
+     tie goes the rarer way, a score before a pick before a tackle. */
+  var DEF_STATS = [['defTd', 'TD', 6], ['ints', 'INT', 3], ['ff', 'FF', 3], ['sacks', 'SACK', 2],
+                   ['passDef', 'PD', 1], ['tackles', 'TKL', 1]];
+
+  function defensePoints(l) {
+    return DEF_STATS.reduce(function (sum, s) { return sum + (l[s[0]] || 0) * s[2]; }, 0);
+  }
 
   /* Everybody who scored that week, from the box scores, and any of the
      six whose line is only in his season file. */
@@ -6493,46 +6507,44 @@
       });
       lines.forEach(function (l) {
         var pos = skillPos(l.pos);
-        if (['QB', 'RB', 'WR', 'TE'].indexOf(pos) === -1) { return; }
-        var points = lineFantasy(l);
+        if (['QB', 'RB', 'WR', 'TE', 'DEF'].indexOf(pos) === -1) { return; }
+        var points = pos === 'DEF' ? defensePoints(l) : lineFantasy(l);
         if (points > 0) { out.push({ line: l, pos: pos, points: points }); }
       });
     });
     return out.sort(function (a, b) { return b.points - a.points || a.line.name.localeCompare(b.line.name); });
   }
 
-  /* Up to five of his numbers (Sam, 2026-11-10), his own position's
-     first: "32/37, 339 PYDS, 3 PTD". Past his own, a touchdown before
-     yards before a count, so a quarterback's rushing score is not lost to
-     his carries; then in the order they are read. */
-  var TOP_GROUPS = { QB: ['pass', 'rush', 'rec'], RB: ['rush', 'rec', 'pass'], WR: ['rec', 'rush', 'pass'], TE: ['rec', 'rush', 'pass'] };
-
+  /* His numbers, as Sam set them (2026-11-10). A quarterback's yards and
+     touchdowns through the air, then his picks or his rushing scores,
+     whichever there are more of, the scores on a tie: "339 PYDS, 3 PTDS,
+     1 RUTD", or "0 INT" with neither. A back's or a catcher's yards and
+     touchdowns all told and his catches: "142 YDS, 2 TDS, 6 REC". A
+     defender's three that earned him the most, the most first. */
   function topStats(l, pos) {
     var n = function (v) { return v || 0; };
-    var parts = {
-      pass: l.passAtt ? [['count', n(l.passCmp) + '/' + l.passAtt], ['yds', n(l.passYds) + ' PYDS'],
-        l.passTd ? ['td', l.passTd + ' PTD'] : null, l.passInt ? ['int', l.passInt + ' INT'] : null] : [],
-      rush: l.rushAtt ? [['count', l.rushAtt + ' CAR'], ['yds', n(l.rushYds) + ' RUYDS'],
-        l.rushTd ? ['td', l.rushTd + ' RUTD'] : null] : [],
-      rec: l.rec ? [['count', l.rec + ' REC'], ['yds', n(l.recYds) + ' REYDS'],
-        l.recTd ? ['td', l.recTd + ' RETD'] : null] : []
-    };
-    var RANK = { td: 10, yds: 20, int: 25, count: 30 };
-    var bits = [];
-    TOP_GROUPS[pos].forEach(function (group, g) {
-      parts[group].forEach(function (bit, i) {
-        if (!bit) { return; }
-        bits.push({ text: bit[1], order: g * 10 + i, rank: g === 0 ? i : RANK[bit[0]] + g });
-      });
-    });
-    if (l.fumLost) { bits.push({ text: l.fumLost + ' FUM', order: 99, rank: 99 }); }
-    return bits.sort(function (a, b) { return a.rank - b.rank; }).slice(0, 5)
-      .sort(function (a, b) { return a.order - b.order; })
-      .map(function (bit) { return bit.text; }).join(', ');
+    if (pos === 'QB') {
+      var last = n(l.rushTd) && n(l.rushTd) >= n(l.passInt) ? n(l.rushTd) + ' RUTD' : n(l.passInt) + ' INT';
+      return n(l.passYds) + ' PYDS, ' + n(l.passTd) + ' PTDS, ' + last;
+    }
+    if (pos === 'DEF') {
+      return DEF_STATS.filter(function (s) { return l[s[0]]; })
+        .sort(function (a, b) { return l[b[0]] * b[2] - l[a[0]] * a[2]; })
+        .slice(0, 3).map(function (s) { return l[s[0]] + ' ' + s[1]; }).join(', ');
+    }
+    return (n(l.rushYds) + n(l.recYds)) + ' YDS, ' + (n(l.rushTd) + n(l.recTd)) + ' TDS, ' + n(l.rec) + ' REC';
   }
 
   function topPoints(points) {
     return String(Math.round(points * 10) / 10) + ' FPTS';
+  }
+
+  /* "Amon-Ra St. Brown · 10.9 FPTS", the same in both panels. */
+  function topWho(name, points) {
+    var who = el('span', 'ege-topperf__sub');
+    who.appendChild(el('span', 'ege-topperf__name', name));
+    who.appendChild(document.createTextNode(' · ' + topPoints(points)));
+    return who;
   }
 
   /* His face in its circle on his team's colour, the team's mark at its
@@ -6567,17 +6579,14 @@
     return item;
   }
 
+  /* His name and points, then his numbers as the title (Sam, 2026-11-10). */
   function performerItem(x) {
     var l = x.line;
     var player = l.ege ? EGE.playerBySlug(l.ege) : null;
     var name = player ? player.name : l.name;
-    var top = el('span', 'ege-topperf__top');
-    top.appendChild(el('span', 'ege-topperf__name', name));
-    top.appendChild(el('span', 'ege-topperf__pts', ' · ' + topPoints(x.points)));
     var said = topStats(l, x.pos);
-    var under = el('span', 'ege-topperf__line', said);
-    if (said) { under.title = said; }
-    return topEntry(l, top, under, name + ', ' + topPoints(x.points));
+    return topEntry(l, topWho(name, x.points), el('span', 'ege-topperf__title', said),
+      name + ', ' + topPoints(x.points) + ', ' + said);
   }
 
   /* A week's plays, each as its best earner's, or its best of a position,
@@ -6619,11 +6628,8 @@
     when.appendChild(leagueLogo(other, 16));
     when.appendChild(el('span', null, '· ' + clockText(x.play)));
     top.appendChild(when);
-    top.appendChild(el('span', 'ege-topplay__play', w.w));
-    var under = el('span', 'ege-topperf__line ege-topplay__who');
-    under.appendChild(el('span', 'ege-topplay__name', name));
-    under.appendChild(document.createTextNode(' · ' + topPoints(w.f)));
-    var item = topEntry(line, top, under, w.w + ', ' + name + ', ' + topPoints(w.f));
+    top.appendChild(el('span', 'ege-topperf__title', w.w));
+    var item = topEntry(line, top, topWho(name, w.f), w.w + ', ' + name + ', ' + topPoints(w.f));
     item.classList.add('ege-topplay');
     if (w.h && inOverlay) {
       item.classList.add('is-hot');
