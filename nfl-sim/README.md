@@ -792,6 +792,21 @@ comes off; the booster goes back in his drawer. On the command line `site`
 lays the moves over the season files it writes. Signing one of the six as a
 free agent moves him the same way.
 
+**The six, waived** (`six-offers.js waive`, Sam 2026-11-12). In the regular
+season **Waive** on the NFL Sim tab (or Release in his pop-up, or `release
+"Name"`) takes one of the six off his team from the week the league plays
+next. Every other team that wants him makes an offer, the team that let him
+go never does, and the tab's Free agency part lists them as in the
+offseason. Until Sam signs one his schedule is empty: no games, so nothing
+to put a booster or wager on (any he had from that week come off), and the
+weeks keep being played without him for as long as Sam likes. The waiver
+is a move to nobody (`to` null in `egeTrades`; `sim_trades` keeps it as
+`to_team` 'FA'), and the signing a move of its own from the week he signs,
+from nobody, so his schedule shows Waived and then Signed with the team.
+Signed before he misses a game, the two are one move, still a signing.
+Between seasons a cut is the offseason's free agency as before; in the
+playoffs none of the six can be waived.
+
 **The trade finder** (`lib/trade-finder.js`, `find-trades "Name"`, or **Find
 trades** in a player's pop-up on the Teams pages) looks at every other team
 for one player and keeps those that suit him better, all told: his stars in
@@ -904,7 +919,7 @@ node nfl-sim/sim.js edit "Drake Maye" --ovr 85 [--pot 95]
                                                 set a player's overall and ceiling (a prospect too)
 node nfl-sim/sim.js contract "Drake Maye" --apy 12 --through 2027
                                                 change what a player is paid and for how long
-node nfl-sim/sim.js release "Drake Maye"        cut a player
+node nfl-sim/sim.js release "Drake Maye"        cut a player (one of the six in season: waived)
 node nfl-sim/sim.js archetype [cooper-clark "Receiving Back"]
                                                 the six's archetypes, or set one ("" clears it)
 node nfl-sim/sim.js find-trades "Khalil Herbert" [--refresh 1]

@@ -937,7 +937,8 @@ EGE.teamKeyBySlug = function (slug) {
 /* Every school one of the six is at that season, as
    { key, team, players: [...] }, in the order the players are listed. One
    traded during the season is on each team he played for, the one he
-   ended with first. */
+   ended with first. A signing comes from nobody: the team he was with the
+   week before it, if any (signed the week he was waived), is the one. */
 EGE.teamsIn = function (season) {
   var year = season || EGE.currentSeason;
   var byKey = {};
@@ -945,7 +946,7 @@ EGE.teamsIn = function (season) {
   EGE.players.forEach(function (player) {
     var keys = [EGE.teamKeyFor(player, year)];
     EGE.tradesFor(player).filter(function (trade) { return trade.season === year; }).reverse().forEach(function (trade) {
-      keys.push(trade.from);
+      keys.push(trade.from || (trade.week > 1 ? EGE.teamKeyFor(player, year, trade.week - 1) : null));
     });
     keys.forEach(function (key, i) {
       if (!key || !EGE.teams[key] || keys.indexOf(key) !== i) { return; }

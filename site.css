@@ -2442,22 +2442,25 @@ body::before {
 .ege-sim__faact { text-align: right; }
 .ege-sim__faact .fb-btn { padding-top: 6px; padding-bottom: 6px; }
 /* On a phone each offer is a card, Sign beside the team, so nothing has to
-   be scrolled sideways to take one. */
+   be scrolled sideways to take one. The six in the NFL the same, with
+   Waive where Sign is. */
 @media (max-width: 640px) {
-  .ege-sim__offers { display: block; min-width: 0; table-layout: auto; }
-  .ege-sim__offers thead { display: none; }
-  .ege-sim__offers tbody { display: block; border-top: var(--fb-border-thin) solid var(--fb-ink); }
-  .ege-sim__offers tr {
+  .ege-sim__offers, .ege-sim__six { display: block; min-width: 0; table-layout: auto; }
+  .ege-sim__offers thead, .ege-sim__six thead { display: none; }
+  .ege-sim__offers tbody, .ege-sim__six tbody { display: block; border-top: var(--fb-border-thin) solid var(--fb-ink); }
+  .ege-sim__offers tr, .ege-sim__six tr {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 3px 12px;
     padding: 10px 2px;
     border-bottom: 1px solid rgba(32, 38, 26, .14);
   }
-  .ege-sim__offers td { display: block; grid-column: 1; padding: 0; border: 0; }
-  .ege-sim__offers td:first-child { margin-bottom: 2px; font-weight: 800; }
-  .ege-sim__offers td:empty { display: none; }
-  .ege-sim__offers .ege-sim__faact { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+  .ege-sim__offers td, .ege-sim__six td { display: block; grid-column: 1; padding: 0; border: 0; }
+  .ege-sim__six td.num { text-align: left; }
+  .ege-sim__six td.num::after { content: ' OVR'; }
+  .ege-sim__offers td:first-child, .ege-sim__six td:first-child { margin-bottom: 2px; font-weight: 800; }
+  .ege-sim__offers td:empty, .ege-sim__six td:empty { display: none; }
+  .ege-sim__offers .ege-sim__faact, .ege-sim__six .ege-sim__faact { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
 }
 .ege-sim__logo { display: block; width: 20px; height: 20px; object-fit: contain; }
 /* The trade builder: a column a team, its players and picks added from
@@ -2706,6 +2709,7 @@ body::before {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-height: 20px;
   color: var(--fb-ink);
   text-decoration: none;
 }

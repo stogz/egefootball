@@ -37,7 +37,8 @@
      node nfl-sim/sim.js edit "Drake Maye" --ovr 85 [--pot 95]   set a player's overall
                                                 and ceiling (a prospect too, before his draft)
      node nfl-sim/sim.js contract "Name" [--apy 12.5] [--through 2027]   set his contract
-     node nfl-sim/sim.js release "Name"         cut him: a free agent from now on
+     node nfl-sim/sim.js release "Name"         cut him: a free agent from now on (one of the
+                                                six in season is waived: offers, and no games)
      node nfl-sim/sim.js archetype sam-stogsdill "Power Back"   one of the six's archetype
                                                 (no archetype: back to the one his skills give)
      node nfl-sim/sim.js scheme DET offense "Air Raid"   switch a team's scheme (it keeps it)
@@ -509,7 +510,7 @@ function main() {
       const p = findPlayer(league, rest.join(' '));
       if (!p) { say('No player ' + rest.join(' ') + '.'); break; }
       const r = edits.releasePlayer(league, p.id);
-      say(r.name + ' is released by the ' + TEAMS[r.from].name + '.' +
+      say(r.name + ' is ' + (r.waived ? 'waived' : 'released') + ' by the ' + TEAMS[r.from].name + '.' +
         (r.ege ? ' ' + r.offers + (r.offers === 1 ? ' team has' : ' teams have') + ' made him an offer ("offers").' : ''));
       break;
     }

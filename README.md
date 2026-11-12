@@ -3172,6 +3172,16 @@ of that season list him on both (the Teams index only the one he is on
 now), and a team he joined or left mid-season shows its own record rather
 than his.
 
+One waived in season (**Waive** under The six in the NFL on the NFL Sim
+tab, 2026-11-12) has a move to nobody, `{ week: 7, from: 'tampaBay', to:
+null }` (`to_team` 'FA' in `sim_trades`): from that week he has no games
+at all, his header reads *Free Agent*, and his schedule ends with a
+*Waived* row. Every other team that wants him makes an offer under Free
+agency on the tab, and Sign is a move of its own from nobody, `{ week: 9,
+from: null, to: 'houston' }`, with the new team's games from that week:
+*Signed with Houston* on his schedule. Any booster or wager he had from
+the waiver on comes off, the booster back in his drawer.
+
 `result` and `stats` are null until a game has been played. Nothing generates
 them — the numbers come from wherever you generate them and are typed in, by
 hand or through the season editor. `booster` is the performance booster that

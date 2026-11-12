@@ -16,11 +16,16 @@
    free agency (offseason.js), so whichever he takes, the team can still
    pay him and has a spot for him; the rest fill their rooms in the draft
    and the free agency after it.
+
+   One can be waived in season too (Sam, 2026-11-12: waive): off his team
+   from the week the league plays next, every other team that wants him
+   makes an offer, and he is on nobody's schedule until Sam picks one --
+   a week or more if Sam likes. The team that let him go makes none.
    ========================================================================== */
 
 'use strict';
 
-const { onTeam, room, byPos, needAt, starterLevels, SLOTS, PREMIUM, noteSigning } = require('./rosters');
+const { onTeam, room, byPos, needAt, starterLevels, SLOTS, PREMIUM, noteSigning, release } = require('./rosters');
 const { marketPay, capFor, POSITION } = require('./value');
 const { fitOf, schemeFor } = require('./schemes');
 const { playerFit } = require('./fit');
@@ -84,9 +89,12 @@ function makeOffers(league, p, season) {
   const from = p.lastTeam && TEAMS[p.lastTeam] ? p.lastTeam : null;
   const others = setAside(league, p.ege);
   const reserve = IN_SEASON.indexOf(league.phase) === -1 ? DRAFT_RESERVE * capFor(season) : 0;
+  /* The team that waived him this season is done with him. */
+  const waivedBy = p.waived && p.waived.season === league.season ? p.waived.team : null;
   const offers = [];
   let keenest = null;
   league.teams.forEach((t) => {
+    if (t.key === waivedBy) { return; }
     const own = t.key === from;
     const roster = onTeam(league, t.key).filter((x) => x !== p);
     const where = standing(league, p, t.key);
@@ -224,7 +232,7 @@ function waiting(league) {
     const had = (league.egeOffers || {})[p.ege] || { offers: [], from: p.lastTeam || null };
     return {
       slug: p.ege, id: p.id, name: p.name, pos: p.pos, ovr: p.ovr, age: p.age, archetype: p.archetype || null,
-      from: had.from, ask: marketPay(p, firstSeason(league)),
+      from: had.from, waived: Boolean(p.waived), ask: marketPay(p, firstSeason(league)),
       offers: had.offers.map((o) => {
         const t = league.teams.find((x) => x.key === o.team);
         const fit = playerFit(league, p, o.team);
@@ -258,6 +266,7 @@ function accept(league, slug, key) {
   p.status = 'active';
   p.contract = { through: offer.through, apy: offer.apy };
   delete p.faSince;
+  delete p.waived;
   noteSigning(league, p, key, from);
   const moved = sixTrades.record(league, p, from, key);
   drop(league, slug);
@@ -269,4 +278,28 @@ function accept(league, slug, key) {
   return { name: p.name, pos: p.pos, team: key, from, years: offer.years, contract: Object.assign({}, p.contract), moved, summary };
 }
 
-module.exports = { makeOffers, offerAll, fill, drop, holds, waiting, unsigned, accept, firstSeason, interested };
+/* One of the six waived in the regular season: a free agent from the week
+   the league plays next, with nothing on his schedule from then on (six-
+   trades.js), and every other team that wants him making an offer for Sam
+   to pick from, as in the offseason. Between seasons a cut is a cut
+   (edits.js releasePlayer). */
+function waive(league, slug) {
+  const p = league.byId.get('ege:' + slug);
+  if (!p || p.status !== 'active' || !TEAMS[p.team]) { throw new Error((p ? p.name : slug) + ' is not on a team.'); }
+  if (league.phase !== 'regular' && league.phase !== 'deadline') {
+    throw new Error(p.name + ' can only be waived in the regular season.');
+  }
+  const from = p.team;
+  release(p, league.season);
+  p.waived = { team: from, season: league.season, week: league.week };
+  const moved = sixTrades.record(league, p, from, null);
+  index(league);
+  const offers = makeOffers(league, p).offers.length;
+  const summary = p.name + ' is waived by the ' + TEAMS[from].name + '. ' + offers +
+    (offers === 1 ? ' team has' : ' teams have') + ' made him an offer.';
+  (league.transactions = league.transactions || []).push({ season: league.season, week: league.week, phase: league.phase,
+                                                           kind: 'release', id: p.id, summary });
+  return { name: p.name, pos: p.pos, slug, from, offers, moved, summary };
+}
+
+module.exports = { makeOffers, offerAll, fill, drop, holds, waiting, unsigned, accept, waive, firstSeason, interested };

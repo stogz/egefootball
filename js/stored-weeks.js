@@ -41,6 +41,11 @@
    the games as traded, and a stored week is worked out from them too:
    pristine() takes the weeks off and leaves the trades on.
 
+   A waiver (Sam, 2026-11-12) is a row to nobody: `to_team` WAIVED, no
+   games, and in `trades` a move `to` null, so from that week his schedule
+   is empty (EGE.teamKeyFor has no team for him) until a signing, a row of
+   its own from nobody, gives him the new team's games.
+
    Depends on: data/players.js, data/games.js, the season files and
    data/nfl-results.js. Read by the Discord bot too (bot/site-data.js).
    ========================================================================== */
@@ -55,6 +60,9 @@ EGE.storedWeeks = (function () {
   var EMPTY = { result: null, stats: null, bigPlays: [], overtime: false, injured: false, injury: null, health: null,
                 hurt: null };
   var FIELDS = Object.keys(EMPTY);
+
+  /* sim_trades' to_team for one of the six waived: on nobody's team. */
+  var WAIVED = 'FA';
 
   /* What a playoff fixture can change on a game the file already has: the
      round played again can send him somewhere else. */
@@ -208,16 +216,18 @@ EGE.storedWeeks = (function () {
 
   /* One trade: his games from its week on are the new team's, the ones
      before it and any playoff game the file has stay -- and so does any
-     game the file already has a score in, which he has played. */
+     game the file already has a score in, which he has played. A waiver
+     has no games to give him. */
   function layTrade(row) {
     var forSeason = EGE.stats[row.season];
     if (!forSeason || !row.slug || !row.to_team) { return; }
     var week = Number(row.week);
+    var to = row.to_team === WAIVED ? null : row.to_team;
     var filed = ((forSeason.trades || {})[row.slug] || []).filter(function (t) { return t.week === week; })[0];
-    if (filed && filed.to === row.to_team) { return; }
+    if (filed && (filed.to || null) === to) { return; }
     if (!forSeason.trades) { set(forSeason, 'trades', {}); }
     set(forSeason.trades, row.slug, (forSeason.trades[row.slug] || []).filter(function (t) { return t.week !== week; })
-      .concat([{ week: week, from: row.from_team || null, to: row.to_team }]).sort(byWeek));
+      .concat([{ week: week, from: row.from_team || null, to: to }]).sort(byWeek));
     var games = (forSeason.games[row.slug] || []).filter(function (g) {
       return g.playoff || g.week < week || EGE.hasResult(g);
     });
@@ -371,6 +381,7 @@ EGE.storedWeeks = (function () {
     stamped: stamped,
     filedWeeks: filedWeeks,
     overFile: overFile,
+    WAIVED: WAIVED,
     version: function () { return version; }
   };
 })();

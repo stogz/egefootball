@@ -1366,17 +1366,18 @@ EGE.wallet = (function () {
   /* One of the six traded on the NFL Sim tab: his games from `week` of
      `season` on are his new team's, `games`. A wager on one of those weeks
      was taken at the old game's line, so it comes off; a booster stays on
-     its week unless that week is now his bye, and then goes back in his
+     its week unless he has no game that week now -- his bye, or every week
+     once he is waived (no games at all) -- and then goes back in his
      drawer. A week already out is left alone. Run by the admin. */
   function clearTradedStickers(player, season, week, games) {
     var c = client();
     if (!c || !player || !player.email) { return Promise.resolve({ cleared: 0 }); }
-    var byes = {};
-    (games || []).forEach(function (game) { if (game.bye) { byes[game.week] = true; } });
+    var plays = {};
+    (games || []).forEach(function (game) { if (!game.bye) { plays[game.week] = true; } });
 
     return c.from(GAME_BOOSTERS).select('*').eq('email', player.email).eq('season', season).then(function (res) {
       var due = (res.error ? [] : res.data || []).filter(function (row) {
-        return row.week >= week && !EGE.isPublished(season, row.week) && (EGE.isWagerKey(row.item_key) || byes[row.week]);
+        return row.week >= week && !EGE.isPublished(season, row.week) && (EGE.isWagerKey(row.item_key) || !plays[row.week]);
       });
       return due.reduce(function (chain, row) {
         return chain.then(function (cleared) {
