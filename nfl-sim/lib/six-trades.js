@@ -13,6 +13,11 @@
    kickoff on the team's own clock, from the real schedule (data/
    schedules.json, nflverse's Eastern times); a season with no real one
    gets the Sundays and no kickoffs.
+
+   One can be waived in season too (Sam, 2026-11-12): a move to nobody
+   (`to` null), so from that week his schedule is empty, and it stays empty
+   for as long as he goes unsigned. The team that signs him is a move of
+   its own from the week it does, and comes from nobody.
    ========================================================================== */
 
 'use strict';
@@ -35,22 +40,45 @@ function startOf(league) {
   return { season: league.season + 1, week: 1 };
 }
 
-/* One of the six has gone from `from` to `to` (sim keys). Two moves before
-   he plays a game are one, and one that sends him back where he was is
-   none. */
+function byWhen(a, b) { return a.season - b.season || a.week - b.week; }
+
+/* His moves before `at` (a season and week), oldest first. */
+function movesBefore(league, slug, at) {
+  return (league.egeTrades || []).filter((t) => t.slug === slug &&
+    (t.season < at.season || (t.season === at.season && t.week < at.week))).sort(byWhen);
+}
+
+/* One of the six has gone from `from` to `to` (sim keys; `to` null for a
+   waiver). Two moves before he plays a game are one, and one that sends
+   him back where he was is none. After a waiver he comes from nobody,
+   whatever team let him go; one who signs before he has missed a game is
+   `signed`, so the site has him signing rather than traded. */
 function record(league, p, from, to) {
-  if (!p || !p.ege || from === to) { return null; }
+  if (!p || !p.ege) { return null; }
+  to = to || null;
   const at = startOf(league);
   const list = league.egeTrades = league.egeTrades || [];
+  const before = movesBefore(league, p.ege, at).pop();
+  if (before && before.to === null) { from = null; }
   const same = list.filter((t) => t.slug === p.ege && t.season === at.season && t.week === at.week)[0];
   if (same) {
+    if (same.to === null && to) { same.signed = true; }
+    if (!to) { delete same.signed; }
     same.to = to;
     if (same.from === to) { list.splice(list.indexOf(same), 1); }
     return same;
   }
+  if ((from || null) === to) { return null; }
   const move = { slug: p.ege, season: at.season, week: at.week, from: from || null, to };
   list.push(move);
   return move;
+}
+
+/* Whether the last move he made was a waiver, so he is on nobody's
+   schedule until he signs. */
+function waivedNow(league, slug) {
+  const last = (league.egeTrades || []).filter((t) => t.slug === slug).sort(byWhen).pop();
+  return Boolean(last) && last.to === null;
 }
 
 /* --------------------------------------------------- the games he plays -- */
@@ -134,13 +162,14 @@ function rowsFor(league, season, key, week) {
 
 /* Every move of the six the league has made, as the site stores it:
    { season, week, slug, from, to, games }, the teams by their keys on the
-   site and `games` the new team's rows from that week on. */
+   site and `games` the new team's rows from that week on. A waiver goes to
+   nobody with no games, and a signing comes from nobody. */
 function siteTrades(league) {
   return (league.egeTrades || []).map((t) => ({
     season: t.season, week: t.week, slug: t.slug,
-    from: t.from && TEAMS[t.from] ? TEAMS[t.from].site : null,
-    to: TEAMS[t.to].site,
-    games: rowsFor(league, t.season, t.to, t.week)
+    from: t.from && TEAMS[t.from] && !t.signed ? TEAMS[t.from].site : null,
+    to: t.to ? TEAMS[t.to].site : null,
+    games: t.to ? rowsFor(league, t.season, t.to, t.week) : []
   }));
 }
 
@@ -148,10 +177,11 @@ function siteTrades(league) {
    season the sim has moved on to before the file has their games (Sam,
    2026-10-30): each on the team he is with, and a free agent on the one he
    left until he signs, since signing anywhere else is a move from Week 1
-   like any other. */
+   like any other. One still waived has none until he signs. */
 function seasonGames(league, season) {
   const out = {};
   league.players.filter((p) => p.ege && (p.status === 'active' || p.status === 'fa')).forEach((p) => {
+    if (p.status === 'fa' && waivedNow(league, p.ege)) { return; }
     const offers = (league.egeOffers || {})[p.ege];
     const key = p.status === 'fa' ? (offers && offers.from) || p.lastTeam : p.team;
     if (key && TEAMS[key]) { out[p.ege] = rowsFor(league, season, key, 1); }
@@ -177,4 +207,4 @@ function layOver(site, league) {
   });
 }
 
-module.exports = { record, siteTrades, rowsFor, seasonGames, layOver, localKickoff, sundayOf };
+module.exports = { record, waivedNow, siteTrades, rowsFor, seasonGames, layOver, localKickoff, sundayOf };

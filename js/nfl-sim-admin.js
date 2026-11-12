@@ -393,11 +393,15 @@ EGE.nflSimAdmin = (function () {
      step, before the weeks, which are worked out over the games as traded:
      a trade undone goes. A new one takes any wager off the games it
      replaces, and a booster off a week that is now his bye
-     (EGE.wallet.clearTradedStickers). */
+     (EGE.wallet.clearTradedStickers). A waiver goes to nobody
+     (EGE.storedWeeks.WAIVED) with no games, so every sticker from its week
+     on comes off. */
 
   var TRADES = 'sim_trades';
 
   function tradeKey(t) { return t.season + '|' + t.slug + '|' + t.week; }
+
+  function toTeam(t) { return t.to || EGE.storedWeeks.WAIVED; }
 
   function tradeHint(message) {
     return message + (/sim_trades/.test(message) ? ' Run supabase/schema.sql again first.' : '');
@@ -416,9 +420,9 @@ EGE.nflSimAdmin = (function () {
       want.forEach(function (t) {
         var had = have[tradeKey(t)];
         delete have[tradeKey(t)];
-        if (had && had.to_team === t.to && had.from_team === t.from && stable(had.games) === stable(t.games)) { return; }
-        put.push({ season: t.season, slug: t.slug, week: t.week, from_team: t.from, to_team: t.to, games: t.games, saved_at: at });
-        if (!had || had.to_team !== t.to) { fresh.push(t); }
+        if (had && had.to_team === toTeam(t) && (had.from_team || null) === t.from && stable(had.games) === stable(t.games)) { return; }
+        put.push({ season: t.season, slug: t.slug, week: t.week, from_team: t.from, to_team: toTeam(t), games: t.games, saved_at: at });
+        if (!had || had.to_team !== toTeam(t)) { fresh.push(t); }
       });
       var drop = Object.keys(have).map(function (key) { return have[key]; });
       if (!put.length && !drop.length) { return false; }
@@ -1704,7 +1708,9 @@ EGE.nflSimAdmin = (function () {
      deal runs out, every team that wants him makes an offer, his own team
      too, and Sign takes one (nfl-sim/lib/six-offers.js). Each offer with
      where he would stand there, his fit in its scheme, and what kind of
-     team it is. The draft waits until all of them have signed. */
+     team it is. The draft waits until all of them have signed. One waived
+     in season (The six in the NFL, below) is here the same way, with every
+     team but the one that let him go, for as many weeks as he waits. */
 
   var MODES = { compete: 'Competing', retool: 'Retooling', rebuild: 'Rebuilding' };
 
@@ -2096,12 +2102,36 @@ EGE.nflSimAdmin = (function () {
     return box;
   }
 
+  /* Waive, then Waive {name}? to be sure (Sam, 2026-11-12): off his team
+     from the week the league plays next, with offers from every other team
+     that wants him in Free agency above, and nothing on his schedule until
+     one is signed (nfl-sim/lib/six-offers.js waive). */
+  function waiveButton(s) {
+    var armed = false;
+    var b = button('Waive', false, function () {
+      if (!armed) {
+        armed = true;
+        b.textContent = 'Waive ' + s.name + '?';
+        b.classList.add('is-armed');
+        return;
+      }
+      step(function (l) {
+        return { title: sim().run.waive(l, s.slug).summary, lines: [] };
+      });
+    });
+    return b;
+  }
+
   function drawSix(body, league) {
     var part = section('The six in the NFL');
     var wrap = el('div', 'fb-tablewrap');
-    var table = el('table', 'fb-table');
+    var table = el('table', 'fb-table ege-sim__six');
     var head = el('tr');
-    ['Player', 'Team', 'OVR', 'In the sim\u2019s games'].forEach(function (h) { head.appendChild(el('th', null, h)); });
+    /* Only in the regular season: between seasons a cut is free agency's. */
+    var waiving = league.phase === 'regular' || league.phase === 'deadline';
+    ['Player', 'Team', 'OVR', 'In the sim\u2019s games'].concat(waiving ? [''] : []).forEach(function (h) {
+      head.appendChild(el('th', null, h));
+    });
     var thead = el('thead');
     thead.appendChild(head);
     table.appendChild(thead);
@@ -2113,12 +2143,17 @@ EGE.nflSimAdmin = (function () {
       tr.appendChild(el('td', null, s.teamName));
       tr.appendChild(el('td', 'num', String(s.ovr)));
       tr.appendChild(el('td', null, sim().run.sixLine(s) || '–'));
+      if (waiving) {
+        var act = el('td', 'ege-sim__faact');
+        if (s.team !== 'FA') { act.appendChild(waiveButton(s)); }
+        tr.appendChild(act);
+      }
       tbody.appendChild(tr);
     });
     if (!six.length) {
       var none = el('tr');
       var cell = el('td', null, 'None of the six are in the league yet.');
-      cell.colSpan = 4;
+      cell.colSpan = waiving ? 5 : 4;
       none.appendChild(cell);
       tbody.appendChild(none);
     }

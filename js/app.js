@@ -87,8 +87,10 @@
     var team = EGE.teamFor(player, season);
     var line = el('div', 'ege-school' + (className ? ' ' + className : ''));
 
+    /* In the NFL with no team: waived, and not signed yet. */
     if (!team) {
-      line.appendChild(el('span', 'ege-school__name', 'School ' + TBD));
+      line.appendChild(el('span', 'ege-school__name',
+        EGE.tierFor(season, player) === 'nfl' ? 'Free Agent' : 'School ' + TBD));
       return line;
     }
 
@@ -1430,32 +1432,40 @@
     return true;
   }
 
-  /* Where a trade sent him, between his last game for one team and his
+  /* Where a move sent him, between his last game for one team and his
      first for the next: the new team's mark and its city, a way through to
-     its page. A row nobody sees after it keeps the striping, as under the
-     scouting report. */
-  function appendTraded(body, key, season) {
-    var team = EGE.teams[key];
-    if (!team) { return; }
-    var nfl = EGE.nfl.keyForSite(key);
+     its page -- Traded to, or Signed with after a waiver (Sam, 2026-11-12),
+     and a plain Waived row for the waiver itself. A row nobody sees after
+     it keeps the striping, as under the scouting report. */
+  function appendMove(body, move, season) {
+    var team = move.to ? EGE.teams[move.to] : null;
+    if (move.to && !team) { return; }
     var row = el('tr', 'ege-traded');
     var cell = el('td');
     cell.colSpan = document.querySelectorAll('#scheduleTableWrap thead th:not([hidden])').length;
-    var link = el('a', 'ege-traded__link');
-    link.href = '#teams/' + EGE.teamSlug(key);
-    link.addEventListener('click', function () { teamsPicked = season; });
-    var src = EGE.logoFor && EGE.logoFor(team.school);
-    if (src) {
-      var logo = el('img', 'ege-teamlogo');
-      logo.src = src;
-      logo.alt = '';
-      logo.width = 20;
-      logo.height = 20;
-      logo.addEventListener('error', function () { logo.remove(); });
-      link.appendChild(logo);
+    if (!team) {
+      var waived = el('span', 'ege-traded__link');
+      waived.appendChild(el('span', 'ege-traded__text', 'Waived'));
+      cell.appendChild(waived);
+    } else {
+      var nfl = EGE.nfl.keyForSite(move.to);
+      var link = el('a', 'ege-traded__link');
+      link.href = '#teams/' + EGE.teamSlug(move.to);
+      link.addEventListener('click', function () { teamsPicked = season; });
+      var src = EGE.logoFor && EGE.logoFor(team.school);
+      if (src) {
+        var logo = el('img', 'ege-teamlogo');
+        logo.src = src;
+        logo.alt = '';
+        logo.width = 20;
+        logo.height = 20;
+        logo.addEventListener('error', function () { logo.remove(); });
+        link.appendChild(logo);
+      }
+      link.appendChild(el('span', 'ege-traded__text', (move.from ? 'Traded to ' : 'Signed with ') +
+        (nfl ? EGE.nfl.city(nfl) : team.school)));
+      cell.appendChild(link);
     }
-    link.appendChild(el('span', 'ege-traded__text', 'Traded to ' + (nfl ? EGE.nfl.city(nfl) : team.school)));
-    cell.appendChild(link);
     row.appendChild(cell);
     body.appendChild(row);
     var keep = el('tr', 'ege-faceoff__keep');
@@ -1534,19 +1544,28 @@
        own, and every row after it changed colour. */
     var firstPlayoff = games.filter(function (game) { return game.playoff; })[0];
     var next = nextNflGame(player, season, games);
-    var was = null;
+    /* A move between two weeks: the games before it are the old team's, as
+       he played them, and the ones after it the new team's -- none at all
+       while he is waived, so a waiver after his last game still gets its
+       row. One before his first game is just where he starts. */
+    var moves = EGE.tradesFor(player).filter(function (move) { return move.season === season; });
+    var shown = false;
+    function movesTo(week) {
+      while (moves.length && moves[0].week <= week) {
+        var move = moves.shift();
+        if (shown) { appendMove(body, move, season); }
+      }
+    }
     games.forEach(function (game) {
-      /* A trade between two weeks: the games before it are the old team's,
-         as he played them, and the ones after it the new team's. */
-      var team = EGE.teamKeyFor(player, season, game.week);
-      if (was && team && team !== was) { appendTraded(body, team, season); }
-      was = team || was;
+      movesTo(game.week);
+      shown = true;
       var row = scheduleRow(game, game === firstPlayoff);
       body.appendChild(row);
       /* The game and its report boxed in together by a heavy rule above
          and below (Sam, 2026-10-20). */
       if (game === next && appendFaceoff(body, player, game)) { row.classList.add('ege-schedule__next'); }
     });
+    movesTo(Infinity);
 
     /* Out of the games, not the weeks: an NFL bye is a row of its own. */
     var fixtures = games.filter(function (game) { return !game.bye; });

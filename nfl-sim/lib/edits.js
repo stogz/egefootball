@@ -167,7 +167,10 @@ function signFreeAgent(league, id, key) {
   if (!TEAMS[key]) { throw new Error('No team ' + key + '.'); }
   sign(p, key, league, seeded(hash((league.seed || 'ege-nfl') + ':sign:' + league.season + ':' + id)), marketPay(p, league.season));
   sixTrades.record(league, p, p.lastTeam || null, key);
-  if (p.ege) { sixOffers.drop(league, p.ege); }
+  if (p.ege) {
+    delete p.waived;
+    sixOffers.drop(league, p.ege);
+  }
   index(league);
   log(league, 'signing', id, p.name + ' signs with ' + TEAMS[key].name);
   return { name: p.name, pos: p.pos, ovr: p.ovr, contract: Object.assign({}, p.contract) };
@@ -234,14 +237,15 @@ function setContract(league, id, want) {
 
 /* A player cut: a free agent from now on, and his pay off the payroll (the
    sim keeps no dead money). The team stays a man short until it signs
-   somebody. One of the six only between seasons, since his games on the
-   website are his team's; every team that wants him makes him an offer,
-   for Sam to pick from on the NFL Sim tab (lib/six-offers.js). */
+   somebody. Every team that wants one of the six makes him an offer, for
+   Sam to pick from on the NFL Sim tab (lib/six-offers.js); in the regular
+   season he is waived, with nothing on his schedule until he signs. */
 function releasePlayer(league, id) {
   const p = league.byId.get(id);
   if (!p || p.status !== 'active' || !TEAMS[p.team]) { throw new Error((p ? p.name : id) + ' is not on a team.'); }
   if (p.ege && IN_SEASON.indexOf(league.phase) !== -1) {
-    throw new Error(p.name + ' can only be cut between seasons.');
+    const w = sixOffers.waive(league, p.ege);
+    return { name: w.name, pos: w.pos, from: w.from, ege: p.ege, offers: w.offers, waived: true };
   }
   const from = p.team;
   release(p, league.season);

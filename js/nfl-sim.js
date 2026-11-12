@@ -1589,7 +1589,10 @@ function signFreeAgent(league, id, key) {
   if (!TEAMS[key]) { throw new Error('No team ' + key + '.'); }
   sign(p, key, league, seeded(hash((league.seed || 'ege-nfl') + ':sign:' + league.season + ':' + id)), marketPay(p, league.season));
   sixTrades.record(league, p, p.lastTeam || null, key);
-  if (p.ege) { sixOffers.drop(league, p.ege); }
+  if (p.ege) {
+    delete p.waived;
+    sixOffers.drop(league, p.ege);
+  }
   index(league);
   log(league, 'signing', id, p.name + ' signs with ' + TEAMS[key].name);
   return { name: p.name, pos: p.pos, ovr: p.ovr, contract: Object.assign({}, p.contract) };
@@ -1656,14 +1659,15 @@ function setContract(league, id, want) {
 
 /* A player cut: a free agent from now on, and his pay off the payroll (the
    sim keeps no dead money). The team stays a man short until it signs
-   somebody. One of the six only between seasons, since his games on the
-   website are his team's; every team that wants him makes him an offer,
-   for Sam to pick from on the NFL Sim tab (lib/six-offers.js). */
+   somebody. Every team that wants one of the six makes him an offer, for
+   Sam to pick from on the NFL Sim tab (lib/six-offers.js); in the regular
+   season he is waived, with nothing on his schedule until he signs. */
 function releasePlayer(league, id) {
   const p = league.byId.get(id);
   if (!p || p.status !== 'active' || !TEAMS[p.team]) { throw new Error((p ? p.name : id) + ' is not on a team.'); }
   if (p.ege && IN_SEASON.indexOf(league.phase) !== -1) {
-    throw new Error(p.name + ' can only be cut between seasons.');
+    const w = sixOffers.waive(league, p.ege);
+    return { name: w.name, pos: w.pos, from: w.from, ege: p.ege, offers: w.offers, waived: true };
   }
   const from = p.team;
   release(p, league.season);
@@ -6041,7 +6045,7 @@ module.exports = {
   rngFor, hooks, open, save, nextStep, playNext, playOn, playPlayoffs, offseason, draft, importSite, queue, sixNow, sixLine,
   undo, resim, resimGame, savePoints: rewind.points,
   approve: trades.approve, reject: trades.reject, proposeOwn: trades.proposeOwn,
-  offers: sixOffers.waiting, acceptOffer: sixOffers.accept
+  offers: sixOffers.waiting, acceptOffer: sixOffers.accept, waive: sixOffers.waive
 };
 
   };
@@ -8027,11 +8031,16 @@ module.exports = { siteResults, sixEdits, seasonFileText, simResults, playoffDra
    free agency (offseason.js), so whichever he takes, the team can still
    pay him and has a spot for him; the rest fill their rooms in the draft
    and the free agency after it.
+
+   One can be waived in season too (Sam, 2026-11-12: waive): off his team
+   from the week the league plays next, every other team that wants him
+   makes an offer, and he is on nobody's schedule until Sam picks one --
+   a week or more if Sam likes. The team that let him go makes none.
    ========================================================================== */
 
 'use strict';
 
-const { onTeam, room, byPos, needAt, starterLevels, SLOTS, PREMIUM, noteSigning } = require('./rosters');
+const { onTeam, room, byPos, needAt, starterLevels, SLOTS, PREMIUM, noteSigning, release } = require('./rosters');
 const { marketPay, capFor, POSITION } = require('./value');
 const { fitOf, schemeFor } = require('./schemes');
 const { playerFit } = require('./fit');
@@ -8095,9 +8104,12 @@ function makeOffers(league, p, season) {
   const from = p.lastTeam && TEAMS[p.lastTeam] ? p.lastTeam : null;
   const others = setAside(league, p.ege);
   const reserve = IN_SEASON.indexOf(league.phase) === -1 ? DRAFT_RESERVE * capFor(season) : 0;
+  /* The team that waived him this season is done with him. */
+  const waivedBy = p.waived && p.waived.season === league.season ? p.waived.team : null;
   const offers = [];
   let keenest = null;
   league.teams.forEach((t) => {
+    if (t.key === waivedBy) { return; }
     const own = t.key === from;
     const roster = onTeam(league, t.key).filter((x) => x !== p);
     const where = standing(league, p, t.key);
@@ -8235,7 +8247,7 @@ function waiting(league) {
     const had = (league.egeOffers || {})[p.ege] || { offers: [], from: p.lastTeam || null };
     return {
       slug: p.ege, id: p.id, name: p.name, pos: p.pos, ovr: p.ovr, age: p.age, archetype: p.archetype || null,
-      from: had.from, ask: marketPay(p, firstSeason(league)),
+      from: had.from, waived: Boolean(p.waived), ask: marketPay(p, firstSeason(league)),
       offers: had.offers.map((o) => {
         const t = league.teams.find((x) => x.key === o.team);
         const fit = playerFit(league, p, o.team);
@@ -8269,6 +8281,7 @@ function accept(league, slug, key) {
   p.status = 'active';
   p.contract = { through: offer.through, apy: offer.apy };
   delete p.faSince;
+  delete p.waived;
   noteSigning(league, p, key, from);
   const moved = sixTrades.record(league, p, from, key);
   drop(league, slug);
@@ -8280,7 +8293,31 @@ function accept(league, slug, key) {
   return { name: p.name, pos: p.pos, team: key, from, years: offer.years, contract: Object.assign({}, p.contract), moved, summary };
 }
 
-module.exports = { makeOffers, offerAll, fill, drop, holds, waiting, unsigned, accept, firstSeason, interested };
+/* One of the six waived in the regular season: a free agent from the week
+   the league plays next, with nothing on his schedule from then on (six-
+   trades.js), and every other team that wants him making an offer for Sam
+   to pick from, as in the offseason. Between seasons a cut is a cut
+   (edits.js releasePlayer). */
+function waive(league, slug) {
+  const p = league.byId.get('ege:' + slug);
+  if (!p || p.status !== 'active' || !TEAMS[p.team]) { throw new Error((p ? p.name : slug) + ' is not on a team.'); }
+  if (league.phase !== 'regular' && league.phase !== 'deadline') {
+    throw new Error(p.name + ' can only be waived in the regular season.');
+  }
+  const from = p.team;
+  release(p, league.season);
+  p.waived = { team: from, season: league.season, week: league.week };
+  const moved = sixTrades.record(league, p, from, null);
+  index(league);
+  const offers = makeOffers(league, p).offers.length;
+  const summary = p.name + ' is waived by the ' + TEAMS[from].name + '. ' + offers +
+    (offers === 1 ? ' team has' : ' teams have') + ' made him an offer.';
+  (league.transactions = league.transactions || []).push({ season: league.season, week: league.week, phase: league.phase,
+                                                           kind: 'release', id: p.id, summary });
+  return { name: p.name, pos: p.pos, slug, from, offers, moved, summary };
+}
+
+module.exports = { makeOffers, offerAll, fill, drop, holds, waiting, unsigned, accept, waive, firstSeason, interested };
 
   };
 
@@ -8300,6 +8337,11 @@ module.exports = { makeOffers, offerAll, fill, drop, holds, waiting, unsigned, a
    kickoff on the team's own clock, from the real schedule (data/
    schedules.json, nflverse's Eastern times); a season with no real one
    gets the Sundays and no kickoffs.
+
+   One can be waived in season too (Sam, 2026-11-12): a move to nobody
+   (`to` null), so from that week his schedule is empty, and it stays empty
+   for as long as he goes unsigned. The team that signs him is a move of
+   its own from the week it does, and comes from nobody.
    ========================================================================== */
 
 'use strict';
@@ -8322,22 +8364,45 @@ function startOf(league) {
   return { season: league.season + 1, week: 1 };
 }
 
-/* One of the six has gone from `from` to `to` (sim keys). Two moves before
-   he plays a game are one, and one that sends him back where he was is
-   none. */
+function byWhen(a, b) { return a.season - b.season || a.week - b.week; }
+
+/* His moves before `at` (a season and week), oldest first. */
+function movesBefore(league, slug, at) {
+  return (league.egeTrades || []).filter((t) => t.slug === slug &&
+    (t.season < at.season || (t.season === at.season && t.week < at.week))).sort(byWhen);
+}
+
+/* One of the six has gone from `from` to `to` (sim keys; `to` null for a
+   waiver). Two moves before he plays a game are one, and one that sends
+   him back where he was is none. After a waiver he comes from nobody,
+   whatever team let him go; one who signs before he has missed a game is
+   `signed`, so the site has him signing rather than traded. */
 function record(league, p, from, to) {
-  if (!p || !p.ege || from === to) { return null; }
+  if (!p || !p.ege) { return null; }
+  to = to || null;
   const at = startOf(league);
   const list = league.egeTrades = league.egeTrades || [];
+  const before = movesBefore(league, p.ege, at).pop();
+  if (before && before.to === null) { from = null; }
   const same = list.filter((t) => t.slug === p.ege && t.season === at.season && t.week === at.week)[0];
   if (same) {
+    if (same.to === null && to) { same.signed = true; }
+    if (!to) { delete same.signed; }
     same.to = to;
     if (same.from === to) { list.splice(list.indexOf(same), 1); }
     return same;
   }
+  if ((from || null) === to) { return null; }
   const move = { slug: p.ege, season: at.season, week: at.week, from: from || null, to };
   list.push(move);
   return move;
+}
+
+/* Whether the last move he made was a waiver, so he is on nobody's
+   schedule until he signs. */
+function waivedNow(league, slug) {
+  const last = (league.egeTrades || []).filter((t) => t.slug === slug).sort(byWhen).pop();
+  return Boolean(last) && last.to === null;
 }
 
 /* --------------------------------------------------- the games he plays -- */
@@ -8421,13 +8486,14 @@ function rowsFor(league, season, key, week) {
 
 /* Every move of the six the league has made, as the site stores it:
    { season, week, slug, from, to, games }, the teams by their keys on the
-   site and `games` the new team's rows from that week on. */
+   site and `games` the new team's rows from that week on. A waiver goes to
+   nobody with no games, and a signing comes from nobody. */
 function siteTrades(league) {
   return (league.egeTrades || []).map((t) => ({
     season: t.season, week: t.week, slug: t.slug,
-    from: t.from && TEAMS[t.from] ? TEAMS[t.from].site : null,
-    to: TEAMS[t.to].site,
-    games: rowsFor(league, t.season, t.to, t.week)
+    from: t.from && TEAMS[t.from] && !t.signed ? TEAMS[t.from].site : null,
+    to: t.to ? TEAMS[t.to].site : null,
+    games: t.to ? rowsFor(league, t.season, t.to, t.week) : []
   }));
 }
 
@@ -8435,10 +8501,11 @@ function siteTrades(league) {
    season the sim has moved on to before the file has their games (Sam,
    2026-10-30): each on the team he is with, and a free agent on the one he
    left until he signs, since signing anywhere else is a move from Week 1
-   like any other. */
+   like any other. One still waived has none until he signs. */
 function seasonGames(league, season) {
   const out = {};
   league.players.filter((p) => p.ege && (p.status === 'active' || p.status === 'fa')).forEach((p) => {
+    if (p.status === 'fa' && waivedNow(league, p.ege)) { return; }
     const offers = (league.egeOffers || {})[p.ege];
     const key = p.status === 'fa' ? (offers && offers.from) || p.lastTeam : p.team;
     if (key && TEAMS[key]) { out[p.ege] = rowsFor(league, season, key, 1); }
@@ -8464,7 +8531,7 @@ function layOver(site, league) {
   });
 }
 
-module.exports = { record, siteTrades, rowsFor, seasonGames, layOver, localKickoff, sundayOf };
+module.exports = { record, waivedNow, siteTrades, rowsFor, seasonGames, layOver, localKickoff, sundayOf };
 
   };
 

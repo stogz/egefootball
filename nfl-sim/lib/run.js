@@ -181,5 +181,5 @@ module.exports = {
   rngFor, hooks, open, save, nextStep, playNext, playOn, playPlayoffs, offseason, draft, importSite, queue, sixNow, sixLine,
   undo, resim, resimGame, savePoints: rewind.points,
   approve: trades.approve, reject: trades.reject, proposeOwn: trades.proposeOwn,
-  offers: sixOffers.waiting, acceptOffer: sixOffers.accept
+  offers: sixOffers.waiting, acceptOffer: sixOffers.accept, waive: sixOffers.waive
 };
