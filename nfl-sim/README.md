@@ -627,7 +627,23 @@ free agency has signed:
    of the player in it. One goes in the first 32, three in the next 32, five
    in the next, and 39 on day three. A real player ESPN shows no headshot for
    (`headshots.missing`) is left out. `lift` puts the class level with 2028.
-   After 2029 the sim makes its own classes. Every prospect's ceiling is drawn for his
+   **The 2030 class** (Sam, 2026-11-14: "the first fully fictional draft
+   class") is made up from top to bottom (`build/class-2030.js`,
+   `build/class-2030-sources.json`): 320 prospects, every one `madeUp`, with
+   a name nobody has had (no college player of 2021-2026, no NFL player
+   ever, nobody in an earlier class), a real school (the first rounds mostly
+   Ohio State, Georgia, Alabama, Notre Dame, Miami, Florida and the other top
+   programs, the late rounds more and more smaller schools, Division II
+   among them) and a position that suits the build of the player in his
+   picture. The pictures are real ESPN college headshots nowhere else on the
+   site: four Division II players at Ferris State (ESPN has pictures of few
+   Division II players) and the rest from the Kent State, UMass, Bowling
+   Green and Eastern Michigan rosters. Each prospect's skills are his own: an
+   archetype that suits his build, given as a lean on each skill (`style`,
+   which `styleOf` in lib/draft.js takes over his id's) and a forty time for
+   the skill that is speed, so the Mock Draft shows the archetype he is
+   drafted with. `lift` puts the class level with 2029.
+   After 2030 the sim makes its own classes. Every prospect's ceiling is drawn for his
    draft slot from what the players taken there in 2019–2022 became (a top-ten
    pick is an 88 on average, a seventh-rounder a 71, about 6.5 either way),
    leaning on how good he really became for the 2024 and 2025 classes. Teams
@@ -1105,6 +1121,9 @@ nfl-sim/
     class-2029.js        the 2029 class, from the freshman and recruiting lists in
                          class-2029-sources.json, the college stats, and 48 made-up
                          prospects with small-school ESPN headshots
+    class-2030.js        the 2030 class, made up from top to bottom: names, real schools,
+                         positions and skills, with the unused ESPN headshots in
+                         class-2030-sources.json
     benchmarks.js        real 2023 league averages and games
     evidence.js          each player's seasons
     ratings.js           season scores and the overall curve
@@ -1116,7 +1135,7 @@ nfl-sim/
     bundle.js            js/nfl-sim.js, the sim for the admin page
   data/                  what the sim starts from (committed)
     league-2023.json     teams and players, Week 1 of 2023
-    prospects.json       the 2024-2026 draft classes and the 2027, 2028 and 2029 classes
+    prospects.json       the 2024-2026 draft classes and the 2027-2030 classes
     draft-orders.json    draft orders set by hand (2024's, from the mock draft doc) and the
                          real pick trades made before the 2023 kickoff (2024, 2025)
     schedules.json       the real 2023-2026 regular seasons, with dates and Eastern kickoffs
