@@ -155,7 +155,8 @@ function firstModes(league) {
   const ratings = rateTeams(league, { rounds: 2, seed: 'kickoff:' + league.season });
   league.teams.forEach((t) => {
     t.rating = ratings[t.key].overall;
-    t.mode = modeFor(league, t, t.rating, 8);
+    t.modeAuto = modeFor(league, t, t.rating, 8);
+    if (!t.modeSet) { t.mode = t.modeAuto; }
   });
 }
 
@@ -169,8 +170,12 @@ function modesAndSchemes(league, rng, ratings, lastRecords) {
     const rec = lastRecords[t.key];
     const wins = rec ? Number(rec.split('-')[0]) : 8;
     const before = t.mode;
-    t.mode = modeFor(league, t, r.overall, wins);
+    /* The sim's own pick every year; a direction Sam set (edits.js
+       setMode) stands over it until he sets the team back to it. */
+    t.modeAuto = modeFor(league, t, r.overall, wins);
+    if (!t.modeSet) { t.mode = t.modeAuto; }
     if (before !== t.mode) { notes.push(nick(t.key) + ' go from ' + ING[before] + ' to ' + ING[t.mode]); }
+    if (t.modeSet && t.modeAuto !== t.mode) { notes.push(nick(t.key) + ' stay ' + ING[t.mode] + ', as you set them'); }
 
     /* Coaches: a bad year can cost a staff its job. */
     const fireChance = wins <= 4 ? 0.6 : wins <= 6 ? 0.3 : wins <= 8 ? 0.08 : wins <= 10 ? 0.02 : 0;
@@ -355,4 +360,4 @@ function finishOffseason(league, rng, place) {
   return report;
 }
 
-module.exports = { startOffseason, finishOffseason, firstModes, the99s, fits, ageOn, adopt };
+module.exports = { startOffseason, finishOffseason, firstModes, the99s, fits, ageOn, adopt, modeFor };

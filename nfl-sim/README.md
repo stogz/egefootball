@@ -568,6 +568,10 @@ In two parts, so Sam can look at the pre-draft trades between them.
    only when its roster now fits another one clearly better (its deep-ball
    quarterback retired and its best players are a scrambler and a power
    back), or now and then when it is rebuilding and wants to try something.
+   A mode Sam sets by hand (`direction CHI rebuild`, the NFL Sim tab's Team
+   directions or a team page's Status; `edits.js setMode`) stands over the
+   sim's own pick, which is still worked out each year (`modeAuto`), until
+   he sets the team back to auto.
 7. **Pre-draft trade proposals** for Sam (section 8).
 
 **`draft`**, once Sam has been through the trades and each of the six in
@@ -842,18 +846,26 @@ for the owner come first: its surplus, the buyer's, and half a point for
 each player coming in who would start for it. Each says the owner's cap
 space after.
 
-On the admin page Sam builds his own trade from dropdowns: a team on each
-side, then its players and picks added one at a time (one side can be
-empty). **Make the trade** puts it straight through; **Propose** queues it
-with what both teams think of it.
+On the admin page Sam builds his own trade (`lib/trade-builder.js`, Sam
+2026-11-14): a team on each side, on its colour under its mark, with its
+direction and record, its five biggest needs as bars, and its cap now and
+after the deal as two rings. Every player (headshot, age, contract) and
+pick is listed with what it is worth in points (`valueOf` times
+`POINTS_PER_UNIT`, the draft chart's scale: the first pick is 1,000) to the
+other team and to its own; one the other team values a tenth or more over
+his price is green. A click puts it in the deal (one side can be empty);
+under both, what each team gets and gives by its own numbers. **Make the
+trade** puts it straight through; **Propose** queues it with what both
+teams think of it, in the same points.
 
 **Sam's edits** (`lib/edits.js`). Any player's overall and ceiling can be set
-by hand — `edit "Drake Maye" --ovr 85 --pot 95`, or the admin page's player
-editor. His skills all move by the same amount, so he is the same kind of
+by hand — `edit "Drake Maye" --ovr 85 --pot 95`, or Edit in his pop-up on
+the Teams pages. His skills all move by the same amount, so he is the same kind of
 player and plays like the new number from the next game; his ceiling is
 never below his overall. From there he ages and develops like anybody else,
 toward the new ceiling. A prospect in a real class not drafted yet can be
-edited too: the numbers are kept until the draft, and a new overall moves
+edited too, with `edit` (the NFL Sim tab's own player editor is gone since
+2026-11-14): the numbers are kept until the draft, and a new overall moves
 where teams grade him. The six are rated on the website, not here.
 
 The Teams pages give an admin the rest of `lib/edits.js` on the season being
@@ -922,6 +934,7 @@ node nfl-sim/sim.js contract "Drake Maye" --apy 12 --through 2027
 node nfl-sim/sim.js release "Drake Maye"        cut a player (one of the six in season: waived)
 node nfl-sim/sim.js archetype [cooper-clark "Receiving Back"]
                                                 the six's archetypes, or set one ("" clears it)
+node nfl-sim/sim.js direction CHI rebuild      set a team competing, retooling or rebuilding (auto: the sim's pick)
 node nfl-sim/sim.js find-trades "Khalil Herbert" [--refresh 1]
                                                 teams he would suit better, and the trades
 node nfl-sim/sim.js rosters DET [2025]          a team's roster that season, who came and who went
@@ -1039,6 +1052,7 @@ nfl-sim/
     picks.js             how far out the picks go (2030, then six drafts ahead)
     trades.js            proposals, the queue (big free-agent moves too), approving
     trade-finder.js      teams a player would suit better, and the trades for him (or a pick)
+    trade-builder.js     what the admin page's trade builder shows: values, needs, cap before and after
     six-trades.js        the six, traded: when they move, and the new team's games for the site
     six-offers.js        the six in free agency: every team's offer, and the one Sam takes
     fit.js               fit as 0-5 stars, players and teams (an admin's only)

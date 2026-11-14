@@ -2256,8 +2256,9 @@
 
   /* Over the rooms, for everybody (Sam, 2026-10-21): the team's schemes,
      each with how well it is built for it in stars (nfl-sim/lib/fit.js),
-     and its status. An admin's from the world, with the schemes as
-     dropdowns; anybody else's as the rosters were published, as words. */
+     and its status. An admin's from the world, with the schemes and the
+     status as dropdowns (the status since 2026-11-14); anybody else's as
+     the rosters were published, as words. */
   function nflSystem(admin, published) {
     var info;
     var built;
@@ -2273,13 +2274,13 @@
     }
     var line = el('dl', 'ege-nflsys');
     [['Offense', info.offense, built.offense, 'offense'], ['Defense', info.defense, built.defense, 'defense'],
-      ['Status', STATUS_NAMES[info.mode] || info.mode]]
+      ['Status', STATUS_NAMES[info.mode] || info.mode, null, 'mode']]
       .forEach(function (fact) {
         var cell = el('div', 'ege-nflsys__fact');
         cell.appendChild(el('dt', null, fact[0]));
         var pick = admin && fact[3];
         var dd = el('dd', null, pick ? null : fact[1]);
-        if (pick) { dd.appendChild(schemePick(admin, fact[3], fact[1])); }
+        if (pick) { dd.appendChild(fact[3] === 'mode' ? statusPick(admin, info) : schemePick(admin, fact[3], fact[1])); }
         if (fact[2]) { dd.appendChild(starsEl(fact[2].stars, 'Built for the ' + fact[1] + ' ' + fact[0].toLowerCase())); }
         cell.appendChild(dd);
         line.appendChild(cell);
@@ -2309,6 +2310,39 @@
       }, function (err) {
         pick.disabled = false;
         pick.value = Object.keys(all).filter(function (k) { return all[k].name === now; })[0] || pick.value;
+        var line = pick.closest('.ege-nflsys');
+        var problem = el('p', 'ege-note ege-note--error', err.message || String(err));
+        if (line) { line.parentNode.insertBefore(problem, line.nextSibling); }
+      });
+    });
+    return pick;
+  }
+
+  /* The team's status as a dropdown (Sam, 2026-11-14): competing,
+     retooling or rebuilding set by hand from now on, kept every offseason
+     until set back to Auto, the sim's own pick, and orange while it is
+     (lib/edits.js setMode; the NFL Sim tab sets every team's the same). */
+  function statusPick(admin, info) {
+    var pick = el('select', 'fb-select ege-nflsys__pick' + (info.modeSet ? ' is-set' : ''));
+    pick.setAttribute('aria-label', 'Status');
+    var options = [['compete', 'Competing'], ['retool', 'Retooling'], ['rebuild', 'Rebuilding']];
+    if (info.modeSet) { options.push(['auto', 'Auto (' + STATUS_NAMES[info.auto] + ')']); }
+    options.forEach(function (o) {
+      var option = el('option', null, o[1]);
+      option.value = o[0];
+      pick.appendChild(option);
+    });
+    pick.value = info.mode;
+    if (info.modeSet) { pick.title = 'Set by you'; }
+    pick.addEventListener('change', function () {
+      pick.disabled = true;
+      EGE.nflSimAdmin.change(function (league) {
+        return admin.edits.setMode(league, admin.key, pick.value);
+      }).then(function () {
+        if (nflShown === admin.key + ':' + admin.season) { renderNflRoster(admin.key, admin.season); }
+      }, function (err) {
+        pick.disabled = false;
+        pick.value = info.mode;
         var line = pick.closest('.ege-nflsys');
         var problem = el('p', 'ege-note ege-note--error', err.message || String(err));
         if (line) { line.parentNode.insertBefore(problem, line.nextSibling); }

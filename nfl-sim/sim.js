@@ -42,6 +42,8 @@
      node nfl-sim/sim.js archetype sam-stogsdill "Power Back"   one of the six's archetype
                                                 (no archetype: back to the one his skills give)
      node nfl-sim/sim.js scheme DET offense "Air Raid"   switch a team's scheme (it keeps it)
+     node nfl-sim/sim.js direction CHI rebuild   set a team competing, retooling or rebuilding
+                                                (it keeps it; auto: back to the sim's pick)
      node nfl-sim/sim.js find-trades "Name" [--refresh 1]   teams he would suit better that
                                                 would trade for him (--refresh: another set)
      node nfl-sim/sim.js find-trades 2026-R1-DET   the same for a pick
@@ -538,6 +540,20 @@ function main() {
       say(TEAMS[key].name + ' ' + side + ': ' + r.before + ' to ' + r.after + '.');
       break;
     }
+    case 'direction': {
+      const key = (rest[0] || '').toUpperCase();
+      const want = { compete: 'compete', competing: 'compete', retool: 'retool', retooling: 'retool', rebuild: 'rebuild',
+                     rebuilding: 'rebuild', auto: 'auto' }[(rest[1] || '').toLowerCase()];
+      if (!TEAMS[key] || !want) {
+        say('Usage: direction TEAM compete|retool|rebuild|auto');
+        edits.teamDirections(league).forEach((d) => say('  ' + d.key.padEnd(4) + d.mode.padEnd(8) + (d.modeSet ? ' (yours; the sim: ' + d.auto + ')' : '') +
+          '  ' + (d.record || d.lastRecord || '-') + ', core age ' + d.age));
+        break;
+      }
+      const r = edits.setMode(league, key, want);
+      say(TEAMS[key].name + ': ' + r.before + ' to ' + r.after + (r.auto ? ' (the sim\'s pick)' : '') + '.');
+      break;
+    }
     case 'find-trades': {
       if (/^\d{4}-R\d-[A-Z]{2,3}$/i.test(rest[0] || '')) {
         const r = findPickTrades(league, rest[0].toUpperCase(), { refresh: refreshArg ? Number(refreshArg) : 0 });
@@ -589,7 +605,7 @@ function main() {
       break;
     }
     default:
-      say('Unknown command ' + command + '. Commands: status, week, season, playoffs, resim, undo, standings, rankings, team, player, matchup, tendencies, games, offseason, draft, draft-order, upload-draft, trades, approve, reject, trade, edit, contract, release, archetype, scheme, find-trades, rosters, report, reset, import-site, site, export.');
+      say('Unknown command ' + command + '. Commands: status, week, season, playoffs, resim, undo, standings, rankings, team, player, matchup, tendencies, games, offseason, draft, draft-order, upload-draft, trades, approve, reject, trade, edit, contract, release, archetype, scheme, direction, find-trades, rosters, report, reset, import-site, site, export.');
       done();
       return;
   }
