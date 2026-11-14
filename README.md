@@ -489,7 +489,9 @@ Under the bar:
   (his draft) to the live one, or his last before he retired; a season
   whose rosters have no word of him is skipped. A player with only the
   one season has no arrows, the year filling their room. The card is
-  800px wide and centred on the screen. The band is in that season's
+  960px wide and sits near the top of the screen rather than centred, so
+  the bar stays put while a step goes to a season with more or fewer
+  games (Sam, 2026-11-14). The band is in that season's
   team colour, with the team's mark behind everything in a see-through
   black (20%), on every team, cut off top and bottom (Sam, 2026-11-14;
   a pick's pop-up keeps the two tones of 2026-10-21, the band's colour
@@ -515,13 +517,14 @@ Under the bar:
   the six's pages while it was played; the six's own overall now in the
   live one), with no change from the season before (Sam took it out: too
   much for the band); the overall is the box his card on a team's page
-  has, in the same proportions a third bigger. The name has no drop
-  shadow. The band is kept short (a 100px circle). Under the band come
+  has, in the same proportions, 88px wide. The name has no drop
+  shadow. The band is kept short (a 116px circle). Under the band come
   college, draft (*2021 · R4 #112*), age that season and H/W (*6′1″ 194
   lbs*) in a thin strip on the team's second colour (the Bears' orange;
   white for a free agent), the text white or dark to suit it, with no line
   between it and the band. Then, on the cream, **that season** a part
-  each under its own heading (Sam, 2026-11-14):
+  each under its own heading (Sam, 2026-11-14), every box in the site's
+  own dress, a dark outline and square corners, on white:
   - **Season Totals**: four or five tiles, the most telling numbers at his
     position (QB YDS, TD, INT, CMP%, RTG; back RUYDS, RUTD, RUAVG, REC,
     REYDS; receiver and tight end REC, YDS, TD, AVG, TGT; defender TKL,
@@ -536,14 +539,19 @@ Under the bar:
     season's rosters, a share or an average only on the NFL's minimum
     tries a game (14 passes, 6.25 carries, 1.875 catches, 1 field goal,
     2.25 punts) times the most games anybody played that season.
-  - **Recent Performances**: his last three games that season, the latest
-    first: vs or at, the opponent's mark and city (a link to its page for
-    that season), the week or playoff round, the result (*W 26–23*) and his
-    line in a few words (*21 CAR, 142 YDS, 1 TD · 1 REC, 9 YDS*).
+  - **Recent Performances**: a chart of his last ten games that season
+    (Sam, 2026-11-14), oldest first: a bar a game in the colour of the
+    team he played it for, as tall as the game was good next to the
+    others, its score over it (fantasy points; a defender's on the League
+    page's IDP scoring, a kicker's points, a punter's yards a punt; none
+    for a lineman) and vs or @ and the opponent's mark under it, the
+    game's line in the bar's title.
   - **Game Log**: every game that season in week order (playoff rounds as
-    WC, DIV, CONF, SB), the opponent, the result and his position's
-    numbers, on the same shade with round corners; it scrolls sideways on
-    a phone.
+    WC, DIV, CONF, SB), the opponent (a link to its page for that season),
+    the result and his position's numbers, the player page's game log
+    table with a **Season** line under a hard rule (his team's record and
+    the totals, averages worked out again from them); it scrolls sideways
+    on a phone.
   - **Overall**: his archetype, fit stars and skills, best first.
   - **Contract**: that season's (*$1.1M a year through 2024*), or Status
     for a retired player.

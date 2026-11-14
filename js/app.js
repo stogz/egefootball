@@ -3452,22 +3452,60 @@
     holder.hidden = false;
   }
 
-  /* His last three games that season, the latest first. */
-  function fillRecent(holder, pos, games, season) {
-    var list = el('div', 'ege-person__recent');
-    games.slice(-3).reverse().forEach(function (entry) {
+  /* How good a game was, for the chart of his recent games: his fantasy
+     points (the League page's, defenders on its IDP scoring), a kicker's
+     points, a punter's yards a punt. Null for a lineman. */
+  function gameScore(pos, l) {
+    if (pos === 'K') { return 3 * (l.fgm || 0) + (l.xpm || 0); }
+    if (pos === 'P') { return l.punts ? (l.puntYards || 0) / l.punts : 0; }
+    if (SEASON_COLUMNS[pos] === DEFENDER_COLUMNS) { return defensePoints(l); }
+    if (!SEASON_COLUMNS[pos]) { return null; }
+    return lineFantasy(l);
+  }
+
+  /* His last ten games that season as a chart (Sam, 2026-11-14): a bar a
+     game, oldest first, as tall as the game was good next to the others,
+     in the colours of the team he played it for, its score over it and
+     vs or @ and the opponent's mark under it. The game's line is in the
+     bar's title. */
+  function fillRecent(holder, pos, games) {
+    var shown = games.slice(-10);
+    var scores = shown.map(function (entry) { return gameScore(pos, entry.line); });
+    if (scores[0] === null) { return; }
+    var most = Math.max.apply(null, scores.concat([0.0001]));
+    var chart = el('div', 'ege-person__chart');
+    chart.style.setProperty('--n', shown.length);
+    shown.forEach(function (entry, at) {
       var side = gameSide(entry);
-      var card = el('div', 'ege-person__game');
-      card.appendChild(gameOpponent(side, season));
-      var under = el('div', 'ege-person__gametop');
-      under.appendChild(el('span', 'ege-person__gameweek', weekName(entry.week)));
-      under.appendChild(gameResult(side));
-      card.appendChild(under);
+      var team = EGE.nfl.teams[entry.line.team] || {};
+      var opp = EGE.nfl.teams[side.opponent] || {};
+      var score = scores[at];
+      var column = el('div', 'ege-person__col');
       var text = gameLineText(pos, entry.line);
-      if (text) { card.appendChild(el('span', 'ege-person__gameline', text)); }
-      list.appendChild(card);
+      column.title = weekName(entry.week) + ', ' + side.at + ' ' + (opp.name || side.opponent) + ', ' +
+        gameResult(side).textContent + (text ? ': ' + text : '');
+      column.appendChild(el('span', 'ege-person__barvalue', score.toFixed(1)));
+      var bar = el('span', 'ege-person__barfill');
+      bar.style.height = (100 * Math.max(0, score) / most) + '%';
+      if (team.color) { bar.style.background = team.color; }
+      if (score <= 0) { bar.classList.add('is-empty'); }
+      var track = el('span', 'ege-person__bartrack');
+      track.appendChild(bar);
+      column.appendChild(track);
+      column.appendChild(el('span', 'ege-person__barat', side.at === 'at' ? '@' : 'vs'));
+      var src = EGE.nfl.logo(side.opponent);
+      if (src) {
+        var logo = el('img', 'ege-person__barlogo');
+        logo.src = src;
+        logo.alt = opp.name || side.opponent;
+        logo.addEventListener('error', function () { logo.replaceWith(el('span', 'ege-person__barkey', side.opponent)); });
+        column.appendChild(logo);
+      } else {
+        column.appendChild(el('span', 'ege-person__barkey', side.opponent || ''));
+      }
+      chart.appendChild(column);
     });
-    holder.appendChild(list);
+    holder.appendChild(chart);
     holder.hidden = false;
   }
 
@@ -3476,7 +3514,7 @@
      position's numbers. */
   function fillLog(holder, pos, games, season) {
     var stats = (SEASON_COLUMNS[pos] || []).filter(function (column) { return column !== GAMES_COLUMN; });
-    var table = el('table', 'fb-table ege-person__seasons ege-person__log');
+    var table = el('table', 'fb-table ege-person__log');
     var thead = el('thead');
     var head = el('tr');
     [['Wk', 'Week'], ['Opp', 'Opponent'], ['Result', null]].forEach(function (pair, at) {
@@ -3497,7 +3535,7 @@
     games.forEach(function (entry) {
       var side = gameSide(entry);
       var tr = el('tr');
-      var week = el('td', 'ege-person__seasonyear', LOG_ROUNDS[entry.week] || String(entry.week));
+      var week = el('td', 'ege-person__logweek', LOG_ROUNDS[entry.week] || String(entry.week));
       if (LOG_ROUNDS[entry.week]) { week.title = weekName(entry.week); }
       tr.appendChild(week);
       var opp = el('td', 'ege-person__logopp');
@@ -3510,7 +3548,24 @@
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
-    var wrap = el('div', 'fb-tablewrap ege-person__seasonwrap');
+    /* The season under it, every game added up, the averages worked out
+       again from the totals (Sam, 2026-11-14). */
+    var total = gamesTotal(games);
+    var tfoot = el('tfoot');
+    var sum = el('tr');
+    var label = el('td', null, 'Season');
+    label.colSpan = 2;
+    sum.appendChild(label);
+    var wins = { W: 0, L: 0, T: 0 };
+    games.forEach(function (entry) {
+      var side = gameSide(entry);
+      wins[side.us > side.them ? 'W' : side.us < side.them ? 'L' : 'T'] += 1;
+    });
+    sum.appendChild(el('td', 'num', wins.W + '\u2013' + wins.L + (wins.T ? '\u2013' + wins.T : '')));
+    stats.forEach(function (column) { sum.appendChild(el('td', 'num', statText(column, total))); });
+    tfoot.appendChild(sum);
+    table.appendChild(tfoot);
+    var wrap = el('div', 'fb-tablewrap ege-person__logwrap');
     wrap.appendChild(table);
     holder.appendChild(wrap);
     holder.hidden = false;
@@ -3994,7 +4049,7 @@
       EGE.boxScores.playerGames(year, sim).then(function (games) {
         if (!games || !games.length || !box.isConnected) { return; }
         if (totals.hidden) { fillTotals(totals, sim.pos, { season: year, line: gamesTotal(games) }); }
-        fillRecent(recent, sim.pos, games, year);
+        fillRecent(recent, sim.pos, games);
         fillLog(log, sim.pos, games, year);
       });
     }
