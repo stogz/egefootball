@@ -13,8 +13,9 @@
    as wanted until the kickoff (live_draft_set).
 
    Each pick counts his fantasy points times his boost: his own, which the
-   NFL Sim tab gives everybody expected to score less than a star does
-   (nfl-sim/lib/live-bets.js, none for Sam at 30 points a game), plus the
+   NFL Sim tab gives everybody but a quarterback expected to score less
+   than a star does (nfl-sim/lib/live-bets.js, none for Sam at 30 points a
+   game; the list shows it as "+0.7x"), plus the
    pick's place in the order's (2.0x, 1.6x, 1.4x and none, the menu's
    `order`), so a 3.0x player taken first is 5.0x; a pick with neither is
    1x. From the kickoff the faces show what each pick has come to so far,
@@ -59,11 +60,11 @@ EGE.liveDraft = (function () {
       (line.rec || 0) * 0.5 - (line.fumLost || 0) * 2);
   }
 
-  /* A pick's boost: the player's own plus his place's, 1x with neither. */
+  /* A pick's boost: the player's own plus his place's, never under 1x. */
   function boostAt(menu, pick, place) {
     var own = pick && typeof pick.x === 'number' ? pick.x : 0;
     var spot = menu && menu.order && typeof menu.order[place] === 'number' ? menu.order[place] : 0;
-    return Math.max(own + spot, 1);
+    return Math.max(Math.round((own + spot) * 10) / 10, 1);
   }
 
   /* "2x", "2.1x" (Sam's concept, 2026-11-14). */
@@ -373,7 +374,7 @@ EGE.liveDraft = (function () {
           row.appendChild(name);
           var tags = el('span', 'ege-cast__drafttags');
           if (at !== -1 && !here) { tags.appendChild(el('span', 'ege-cast__draftat', PLACES[at])); }
-          if (typeof p.x === 'number') { tags.appendChild(el('span', 'ege-cast__x', boostText(p.x))); }
+          if (typeof p.x === 'number') { tags.appendChild(el('span', 'ege-cast__x', '+' + boostText(p.x))); }
           row.appendChild(tags);
           row.addEventListener('click', function () { choose(s.slot, p.id); });
           box.appendChild(row);
