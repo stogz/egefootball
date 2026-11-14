@@ -3118,15 +3118,18 @@ kickoff. It is free, and it can be changed as
 often as wanted until the kickoff, a kickoff set ahead included
 (`live_draft_set()`, `live_pregame()`).
 
-- Each player has a **boost** of his own (`nfl-sim/lib/live-bets.js`):
-  12 over the fantasy points he is expected to score (the matchup played
-  200 times from the week's save point, halfway to his season average once
-  he has three games), to a tenth, from 1.2x to 4x, none below 1.2x. So Sam
-  at 30 points a game has none, and a fourth receiver at 5 points 2.4x.
-  Nobody expected under 1 point is in the list.
+- Each player but a quarterback has a **boost** of his own
+  (`nfl-sim/lib/live-bets.js`, the list shows it as "+0.7x"): 25 over the
+  fantasy points he is expected to score, less 1 (the matchup played 200
+  times from the week's save point, halfway to his season average once he
+  has three games), to a tenth, from 0.1x to 4x. Anybody expected to reach
+  25 has none, so Sam at 30 points a game has none, a starting receiver at
+  15 has 0.7x and a fourth receiver at 5 has 4x. Quarterbacks never have
+  one (Sam, 2026-11-14: taking both quarterbacks first and second won most
+  drafts). Nobody expected under 1 point is in the list.
 - Each **place** adds its own: 2.0x first, 1.6x second, 1.4x third, none
   fourth. The two add up, so a 3.0x player taken first is 5.0x; a pick
-  with neither is 1x.
+  never counts less than 1x.
 - A pick scores his fantasy points (as the site scores them, a defender's
   as above) times that. From the kickoff the faces show what each has come
   to so far, counting up (lit green) as each snap adds to it, the total

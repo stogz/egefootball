@@ -31,10 +31,10 @@
 
    The draft (Sam, 2026-11-14): four players from either side, in order,
    for the game's Game Pack, defenders too on the League page's scoring
-   for them. Each player carries a boost that evens out
-   what he is expected to score (DRAFT_PAR over it, none for anybody
-   expected to reach it, so Sam at 30 points a game has none and a fourth
-   receiver 2.0x and up), and each pick the boost of its place in the
+   for them. Each player but a quarterback carries a boost that evens out
+   what he is expected to score (none for anybody expected to reach
+   DRAFT_TOP, so Sam at 30 points a game has none and a fourth receiver
+   2.0x and up), and each pick the boost of its place in the
    order (DRAFT_ORDER), the two added together: a 3.0x player taken first
    is 5.0x. The best boosted total of the four gets the pack; what each
    player scored is read off the game's plays, as the bets' results are.
@@ -75,15 +75,18 @@ const STATS = { passYds: 'Passing yards', rushYds: 'Rushing yards', recYds: 'Rec
 
 /* The draft (Sam, 2026-11-14). Four picks, the first three boosted by
    their place in the order (the last not at all); a player's own boost
-   is DRAFT_PAR over the fantasy points he is expected to score, to a
-   tenth, between DRAFT_BOOST[0] and DRAFT_BOOST[1], and none below the
-   first (anybody expected to come near DRAFT_PAR). Somebody expected to
-   score less than DRAFT_FLOOR hardly plays and is not in the pool.
+   is DRAFT_TOP over the fantasy points he is expected to score, less 1,
+   to a tenth, between DRAFT_BOOST[0] and DRAFT_BOOST[1], and none for
+   anybody expected to reach DRAFT_TOP. A quarterback never has one (Sam,
+   2026-11-14: with none for the stars only, taking both quarterbacks
+   first and second won most drafts), and anybody else has at least a
+   little until he scores a lot. Somebody expected to score less than
+   DRAFT_FLOOR hardly plays and is not in the pool.
    live_draft_score in supabase/schema.sql reads the order and the boosts
    off the menu. */
 const DRAFT_ORDER = [2, 1.6, 1.4, 0];
-const DRAFT_PAR = 12;
-const DRAFT_BOOST = [1.2, 4];
+const DRAFT_TOP = 25;
+const DRAFT_BOOST = [0.1, 4];
 const DRAFT_FLOOR = 1;
 const DRAFTABLE = { QB: true, RB: true, FB: true, WR: true, TE: true, EDGE: true, DI: true, LB: true, CB: true, S: true };
 
@@ -110,10 +113,12 @@ function draftPoints(line, pos) {
 }
 
 /* A player's draft boost for the fantasy points he is expected to score,
-   or 0 for none. */
-function draftBoost(expected) {
-  const x = Math.round(DRAFT_PAR / Math.max(expected, 0.01) * 10) / 10;
-  return x < DRAFT_BOOST[0] ? 0 : Math.min(x, DRAFT_BOOST[1]);
+   or 0 for none: 25 expected or more, or a quarterback. 12.5 is 1.0x, 10
+   is 1.5x, 8 is 2.1x and 5 or less 4x. */
+function draftBoost(expected, pos) {
+  if (pos === 'QB' || !(expected < DRAFT_TOP)) { return 0; }
+  const x = Math.round((DRAFT_TOP / Math.max(expected, 0.01) - 1) * 10) / 10;
+  return clamp(x, DRAFT_BOOST[0], DRAFT_BOOST[1]);
 }
 
 function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
@@ -370,7 +375,7 @@ function build(pre, game, kept, plan, games) {
   if (draftPool.length >= DRAFT_ORDER.length) {
     bets.draft = { size: DRAFT_ORDER.length, order: DRAFT_ORDER.slice(), picks: draftPool.map((x, i) => {
       const row = Object.assign({ id: 'd' + i }, who(x.p));
-      const boost = draftBoost(x.expected);
+      const boost = draftBoost(x.expected, x.p.pos);
       if (boost) { row.x = boost; }
       return row;
     }) };
@@ -403,4 +408,4 @@ function build(pre, game, kept, plan, games) {
   return { bets, half, results };
 }
 
-module.exports = { build, tdPrice, homePoints, draftBoost, draftPoints, MIN, SPREAD, PROP, DRAFT_ORDER, DRAFT_PAR };
+module.exports = { build, tdPrice, homePoints, draftBoost, draftPoints, MIN, SPREAD, PROP, DRAFT_ORDER, DRAFT_TOP };
