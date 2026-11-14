@@ -259,12 +259,13 @@ EGE.economy = (function () {
 
   /* --- what one game pays ----------------------------------------------- */
 
-  /* From 2030 a game pays 10% fewer credits (Sam, 2026-11-14: "slightly
-     decrease the credit return for games next year"). Only the credits: a
-     game's diamonds and its Player Card bonuses are still worked out from
-     the full amount (plainCredits). A tight end's floor of 5 stays. The
-     seasons before it were paid as they went, so they keep paying in full. */
-  var CREDIT_CUT = 0.1;
+  /* From 2030 a game pays 20% fewer credits (Sam, 2026-11-14: "slightly
+     decrease the credit return for games next year", then "20% reduced").
+     Only the credits: a game's diamonds and its Player Card bonuses are
+     still worked out from the full amount (plainCredits). A tight end's
+     floor of 5 stays. The seasons before it were paid as they went, so they
+     keep paying in full. */
+  var CREDIT_CUT = 0.2;
   var CREDIT_CUT_FROM = 2030;
 
   function creditKeep(season) {
