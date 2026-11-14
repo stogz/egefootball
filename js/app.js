@@ -1814,7 +1814,9 @@
     var item = el('li', 'ege-room__player');
     var card = el('div', 'ege-teamchip ege-teamchip--nfl' + (row.player ? ' is-six' : '') +
       (row.retired ? ' is-retired' : '') + (row.sorted ? ' is-sorted' : '') + (row.interest ? ' has-interest' : ''));
-    if (row.sim) { EGE.cardsView.pressable(card, row.name, function () { openNflPlayer(row); }); }
+    if (row.sim) {
+      EGE.cardsView.pressable(card, row.name, function () { if (row.open) { row.open(); } else { openNflPlayer(row); } });
+    }
     card.appendChild(row.face || rosterFace(row));
 
     var text = el('span', 'ege-teamchip__text');
@@ -3880,6 +3882,19 @@
     }, function () { showNflPlayer(row, row); });
   }
 
+  /* His pop-up opened on an earlier season than his row's (Sam,
+     2026-11-14: a player in a trade opens on the season he was traded
+     in, at his overall then): his row in that season's rosters, or the
+     row as it is when they have no word of him. */
+  function openNflPlayerIn(row, year) {
+    var live = searchSeason();
+    if (!row.sim || !live || !year || year >= live) { openNflPlayer(row); return; }
+    EGE.nflRosters.load(year).then(function () {
+      var then = nflNow(row.sim, year);
+      openNflPlayer(then && !then.retired ? then : row);
+    }, function () { openNflPlayer(row); });
+  }
+
   /* The same player in another season's rosters, which carry no id of the
      sim's: his ESPN id, or which of the six he is, or else his name,
      college and draft. */
@@ -5938,21 +5953,31 @@
     return face;
   }
 
-  function tradeItemLine(item) {
+  /* A card in a trade or a signing shows him as he was then; pressed, his
+     pop-up opens on that season (`year`), not on this one at his overall
+     then. */
+  function movedOpen(row, who, year) {
+    if (row.sim) { row.open = function () { openNflPlayerIn(namedRow(who), year); }; }
+  }
+
+  function tradeItemLine(item, year) {
     var row;
     if (item.name) {
       row = namedRow(item);
       if (typeof item.ovr === 'number') { row.overall = item.ovr; }
       row.out = null;
       row.retired = null;
+      movedOpen(row, item, year);
       return nflLine(row);
     }
     var label = item.year + ' Round ' + item.round;
     var whose = cardMark(item.from, EGE.nfl.teams[item.from] ? EGE.nfl.city(item.from) + '’s pick' : null);
     if (item.player) {
+      /* The player a pick became, in his first season. */
       row = namedRow(item.player);
       row.note = [label, item.n ? 'No. ' + item.n : ''];
       row.out = null;
+      movedOpen(row, item.player, item.year);
     } else {
       row = { name: label, nfl: true, note: item.n ? 'No. ' + item.n : '', face: pickFace(item.round) };
     }
@@ -5975,7 +6000,7 @@
       head.appendChild(el('span', 'ege-nfltrade__get', 'Receive'));
       box.appendChild(head);
       var list = el('ol', 'ege-room__list ege-nfltrade__gets');
-      side.gets.forEach(function (item) { list.appendChild(tradeItemLine(item)); });
+      side.gets.forEach(function (item) { list.appendChild(tradeItemLine(item, move.year)); });
       box.appendChild(list);
       sides.appendChild(box);
     });
@@ -5991,6 +6016,7 @@
     row.overall = x.ovr;
     row.out = null;
     row.retired = null;
+    movedOpen(row, x, move.year);
     var how = SIGN_WORDS[x.kind] || (x.from && EGE.nfl.teams[x.from] ? 'Signed from ' + EGE.nfl.city(x.from) : 'Signed');
     var deal = '';
     if (typeof x.apy === 'number' && x.through) {

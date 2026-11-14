@@ -979,6 +979,10 @@ Trade Deadline*), the trades before the signings at the same point. A
   the team's mark by it and two lines under his name: *Signed from
   {city}* (*Signed* from nowhere), *Re-signed* or *Extended*, then the deal,
   *4 yrs · $12.1M a year*.
+- A player's card in either opens his pop-up on the season the move is
+  filed under (Sam, 2026-11-14), that season's team and overall from
+  its rosters, and a pick's player on his draft year; the live season
+  or later opens on now (`openNflPlayerIn`).
 - Both come with the rosters: `trades` (`site.js tradesOut`) and
   `signings` (`site.js signingsOut`). The sim has noted every contract
   since 2026-11-01 in `league.signings` (`rosters.js noteSigning`: free
