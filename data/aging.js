@@ -7,11 +7,13 @@
 
    Regression. Each offseason takes points off physical attributes only --
    speed, strength, jumping and the rest. What is learned never goes: pass
-   accuracy, route running, BC Vision, catching, blocking technique. It is a
-   handful of points at 26 (a -1 on two or three things) and snowballs from
-   there, so by 34 it is heavy. Not every attribute every year: a random few,
-   more of them and deeper as he ages, the athletic ones likeliest. Each
-   Hyperbaric Chamber he owns takes 7.5% off it.
+   accuracy, route running, BC Vision, catching, blocking technique. At 27
+   and 28 it is a handful of points (a -1 on a few things). From 29 (the
+   2030 offseason) it is set in overall instead: a back loses 4 at 29, a
+   receiver or tight end 3 and a quarterback 2, one more every year after,
+   off the athletic stats his overall counts, and a back, receiver or tight
+   end loses whatever he has above 99 first. Each Hyperbaric Chamber he owns
+   takes 7.5% off the age part.
 
    Injuries. An injury costs points on what was hurt -- a hand on catching
    (a quarterback's on his throwing), an ankle on speed and jumping, a torn
@@ -39,9 +41,29 @@ EGE.aging = {
   born: 2001,
 
   /* Points an offseason takes at `age`, and how much more each year after:
-     about 4 at 27, 6 at 28, 13 at 30, 28 at 32, 59 at 34. Never more than
-     `most`. */
+     about 4 at 27 and 6 at 28. Never more than `most`. Only the 2028 and
+     2029 offseasons use it now (see `overall` below). */
   curve: { age: 26, points: 3, growth: 1.45, most: 90 },
+
+  /* From the 2030 offseason, when they turn 29 (Sam, 2026-11-14: "the first
+     year we really start seeing some major drop offs ... several overalls
+     for players with no hyperbaric"), age is measured in overall rather than
+     in loose points. The curve above spread its points over stats the
+     overall barely counts, so 29 cost under one overall and even 34 only two
+     to five. Now an offseason takes `points[position]` overall at `age`,
+     `step` more each year after, off the physical stats his position's
+     overall counts: backs go first and quarterbacks last, as in the NFL
+     sim's own aging (nfl-sim/lib/aging.js). With no chambers a back loses
+     4 at 29 and 9 at 34, a quarterback 2 and 7. Whatever a back, receiver
+     or tight end has above 99 goes first (overallRegression). */
+  overall: {
+    from: 2030, age: 29, step: 1,
+    points: { RB: 4, WR: 3, TE: 3, QB: 2, DEFAULT: 3 },
+    /* Whose overall above 99 goes before the age drop. Not a quarterback's:
+       most of his is accuracy, which never ages, so taking Jaykeb's 104 to
+       a 97 would cost 15 throw power and 18 speed in one offseason. */
+    above99: ['RB', 'WR', 'TE']
+  },
 
   /* What each Hyperbaric Chamber owned takes off the regression. */
   chamberCut: 0.075,
@@ -243,6 +265,114 @@ EGE.trainingPriceFactor = function (season) {
     return order;
   }
 
+  /* What one point off each attribute costs his overall, before rounding
+     (data/ratings.js: the stretch over the weights he carries). */
+  function overallPerPoint(player) {
+    var weights = EGE.weightsFor(player.position);
+    var base = EGE.ratings[player.slug] || {};
+    var total = 0;
+    Object.keys(weights).forEach(function (key) {
+      if (typeof base[key] === 'number') { total += weights[key]; }
+    });
+    var out = {};
+    Object.keys(weights).forEach(function (key) {
+      if (total && typeof base[key] === 'number') { out[key] = EGE.overallScale.stretch * weights[key] / total; }
+    });
+    return out;
+  }
+
+  /* Where his numbers stood when `year` began: the base until that season
+     is locked, then what the lock replaced (EGE.ratingsSeasonStart), so the
+     regression comes out the same before and after the lock. */
+  function startOf(player, year) {
+    var base = EGE.ratings[player.slug];
+    var start = EGE.ratingsSeasonStart;
+    var changes = start && start.season === year && start.changes && start.changes[player.slug];
+    if (!changes) { return base; }
+    var out = {};
+    Object.keys(base).forEach(function (key) {
+      out[key] = typeof changes[key] === 'number' ? changes[key] : base[key];
+    });
+    return out;
+  }
+
+  /* His overall before it is rounded and held to 99 (data/ratings.js). */
+  function rawOverall(values, position) {
+    var weights = EGE.weightsFor(position);
+    var sum = 0;
+    var total = 0;
+    Object.keys(weights).forEach(function (key) {
+      if (typeof values[key] === 'number') { sum += values[key] * weights[key]; total += weights[key]; }
+    });
+    if (!total) { return 0; }
+    var scale = EGE.overallScale;
+    return scale.pivot + scale.stretch * (sum / total - scale.pivot) - ((EGE.overallOffset || {})[position] || 0);
+  }
+
+  /* From EGE.aging.overall.from: points off the physical stats his overall
+     counts, the athletic ones likeliest and each point on a stat making the
+     next a little less likely there, until the overall has dropped by what
+     his age takes. For a back, receiver or tight end anything above 99 goes
+     first (Sam, 2026-11-14: Sam and Paxon "need to drop out of 99
+     territory"), so the drop is from the 99 on his page, not from the 102
+     hidden under it; chambers cut only the age part. A chamber takes points
+     off the end, as before. */
+  function overallRegression(player, year, owned) {
+    var A = EGE.aging;
+    var O = A.overall;
+    var age = EGE.ageIn(year);
+    var per = overallPerPoint(player);
+    var have = shown(player);
+    var pool = Object.keys(A.physical).filter(function (key) {
+      return have[key] && per[key] > 0;
+    }).map(function (key) {
+      return { key: key, weight: A.physical[key] };
+    });
+    var base = (O.points[player.position] !== undefined ? O.points[player.position] : O.points.DEFAULT);
+    var target = Math.max(0, base + O.step * (age - O.age));
+    var keep = Math.max(0, 1 - A.chamberCut * owned);
+    var above = (O.above99 || []).indexOf(player.position) === -1 ? 0 :
+      Math.max(0, rawOverall(startOf(player, year), player.position) - 99);
+    var goal = above + target * keep;
+    target += above;
+    if (!pool.length || target <= 0) {
+      return { season: year, age: age, points: 0, saved: 0, chambers: owned, overall: 0, drops: [] };
+    }
+
+    /* Each point is taken while it brings the drop nearer the target than
+       stopping would, so the overall lost is on the mark either way. */
+    function upTo(order, goal) {
+      var cost = 0;
+      var n = 0;
+      while (n < order.length && cost + per[order[n]] / 2 < goal) { cost += per[order[n]]; n += 1; }
+      return { n: n, cost: cost };
+    }
+
+    var roll = dice(['ege-regression', player.slug, year]);
+    var values = startOf(player, year);
+    var counts = {};
+    var order = [];
+    var cost = 0;
+    while (cost < target && order.length < 500) {
+      /* Nothing goes below 1, so a stat that low has nothing left to give. */
+      var open = pool.filter(function (item) { return values[item.key] - (counts[item.key] || 0) > 1; });
+      if (!open.length) { break; }
+      var key = pick(roll, open, function (item) {
+        return item.weight * Math.pow(0.8, counts[item.key] || 0);
+      }).key;
+      counts[key] = (counts[key] || 0) + 1;
+      order.push(key);
+      cost += per[key];
+    }
+    var full = upTo(order, target);
+    var taken = upTo(order.slice(0, full.n), goal);
+
+    var tally = {};
+    order.slice(0, taken.n).forEach(function (k) { tally[k] = (tally[k] || 0) + 1; });
+    return { season: year, age: age, points: taken.n, saved: full.n - taken.n, chambers: owned,
+             overall: taken.cost, drops: listOf(tally) };
+  }
+
   /* The offseason's regression going into `season`: { season, age, points,
      saved, chambers, drops: [{ key, label, amount }] }, or null before it
      starts. `chambers` is how many he owns (EGE.chambersFor by default). */
@@ -250,6 +380,9 @@ EGE.trainingPriceFactor = function (season) {
     var A = EGE.aging;
     var year = season || EGE.currentSeason;
     if (!player || !EGE.ratings[player.slug] || year < A.from) { return null; }
+    if (A.overall && year >= A.overall.from) {
+      return overallRegression(player, year, typeof chambers === 'number' ? chambers : EGE.chambersFor(player));
+    }
 
     var age = EGE.ageIn(year);
     var expected = Math.min(A.curve.most, A.curve.points * Math.pow(A.curve.growth, age - A.curve.age));
