@@ -6509,26 +6509,111 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
   height: auto;
   transform: translate(-50%, -50%);
 }
-/* A player's band (Sam, 2026-10-26): the headshot's column is wider by
-   the part of the team's mark that shows to his right, and his overall
-   takes the mark's old place at the other end, so the name is centred
-   between the two rather than on the band's own centre line. The headshot
-   is the picture's full width, his shoulders whole (2026-10-27): ESPN's
-   are 350 by 254, the six's 4 by 3 (those lose a sliver at the bottom).
+/* A player's band (Sam, 2026-11-14): his headshot in a circle at the
+   left, his name on one line with his position in a box after it, and
+   under the name his team's mark and name in the plain type; his overall
+   at the right with how far it moved since the season before under it.
    No line under it: it runs straight into the strip of his facts (Sam,
-   2026-10-27). His name in the band's dead centre (2026-10-27): the
-   headshot, the mark and the overall smaller, out at the two ends, and
-   the overall's column as wide as the headshot's. */
+   2026-10-27). */
 .ege-person--player .ege-person__band {
-  --face-h: 140px;
-  --face-w: calc(var(--face-h) * 1.38);
-  --peek: calc(var(--face-h) * .3);
-  --side: calc(var(--face-w) + var(--peek));
-  grid-template-columns: var(--side) minmax(0, 1fr) var(--side);
-  padding: 0;
+  --ring: 100px;
+  --chip: 84px;
+  grid-template-columns: var(--ring) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 22px;
+  padding: 14px 24px;
   border-bottom: 0;
 }
-.ege-person--player .ege-person__ovr { margin-right: 18px; }
+/* A 40% black on the team's colour, or a white on one too dark for that
+   to show (js/app.js nflPersonBox). Round against the kit's square
+   corners. */
+.ege-person__ring {
+  position: relative;
+  display: block;
+  width: var(--ring);
+  height: var(--ring);
+  overflow: hidden;
+  border-radius: 50% !important;
+  background: rgba(0, 0, 0, .4);
+}
+.ege-person__ring.is-light { background: rgba(255, 255, 255, .25); }
+.ege-person__ring img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+/* The name over the team, and the position in a column after them,
+   centred on the two together, so in the band's middle (Sam,
+   2026-11-14). */
+.ege-person__who {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) max-content;
+  justify-content: start;
+  align-items: center;
+  gap: 8px 24px;
+  min-width: 0;
+}
+.ege-person__who > .ege-person__pos { grid-column: 2; grid-row: 1 / 3; justify-self: start; }
+.ege-person--player .ege-person__name {
+  grid-column: 1;
+  min-width: 0;
+  /* Room for the last letter's swash, which the clip would cut. No
+     shadow (Sam, 2026-11-14). */
+  padding-right: .08em;
+  text-shadow: none;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: left;
+  font-size: clamp(1.25rem, 5.5vw, 2.5rem);
+}
+/* His position on the circle's colour made solid, in white. */
+.ege-person__pos {
+  flex: none;
+  padding: 5px 9px 4px;
+  color: #fff;
+  font-family: var(--fb-font-body);
+  font-size: .9375rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  line-height: 1.1;
+}
+.ege-person__team {
+  grid-column: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: start;
+  max-width: 100%;
+  min-width: 0;
+  color: #fff;
+  font-family: var(--fb-font-body);
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.ege-person__team span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ege-person__team img { flex: none; width: 26px; height: 26px; object-fit: contain; }
+a.ege-person__team span { text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 3px; text-decoration-thickness: 2px; }
+@media (hover: hover) {
+  a.ege-person__team:hover span { text-decoration-color: currentColor; }
+}
+a.ege-person__team:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.ege-person--player .ege-person__band .ege-ovrbox--chip { width: var(--chip); height: var(--chip); }
+/* The mark behind it fainter than on a pick's (Sam, 2026-11-14). */
+.ege-person--player .ege-person__wash { opacity: .45; }
+
+/* The bar over the card: the Teams page's switcher, and a close of the
+   same kind at the end. */
+.ege-rip__stage.ege-rip__stage--person:has(.ege-person__bar) { gap: 12px; }
+/* Held to the top rather than centred, so the bar stays put under the
+   pointer while a step takes it to a taller or shorter season. */
+.ege-rip:has(.ege-person__bar) { align-items: start; padding-top: max(24px, 6vh, env(safe-area-inset-top)); }
+.ege-person__bar { display: flex; align-items: stretch; gap: 8px; width: 100%; }
+.ege-person__years { flex: 1 1 auto; }
+.ege-person__years.is-one .ege-seasonbar__step { visibility: hidden; }
+.ege-person__close { font-size: 1.5rem; }
 /* The headshot stands on the band's bottom edge, and the top of his head
    just clears the box: about 5% of the picture above its top border. A
    headshot's crown sits about 4.5% down its own picture (ESPN's and the
@@ -6623,7 +6708,7 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
    (Sam, 2026-10-27: the Bears' orange) in white or ink to suit it, the
    labels in the band's colour where that reads on it (js/app.js); on white
    for a free agent. */
-.ege-person--player .ege-person__facts { gap: 6px 16px; padding: 8px var(--edge) 9px; background: #fff; }
+.ege-person--player .ege-person__facts { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.3fr) minmax(0, .7fr) minmax(0, 1fr); gap: 6px 16px; padding: 8px var(--edge) 9px; background: #fff; }
 .ege-person--player .ege-person__facts dt { line-height: 1.25; }
 .ege-person--player .ege-person__facts dd { margin-top: 1px; font-size: 1rem; line-height: 1.25; }
 .ege-person__facts.is-team { color: var(--fb-ink); }
@@ -6793,8 +6878,8 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
   .ege-person__band .ege-ovrbox--chip { width: 76px; height: 76px; padding: 7px 5px 8px; }
   .ege-person__band .ege-ovrbox--chip .ege-ovrbox__label { font-size: .6875rem; letter-spacing: .18em; }
   .ege-person__band .ege-ovrbox--chip .ege-ovrbox__value { font-size: 2.375rem; }
-  .ege-person--player .ege-person__band { --face-h: 112px; }
-  .ege-person--player .ege-person__ovr { margin-right: 14px; }
+  .ege-person--player .ege-person__band { --ring: 84px; --chip: 72px; gap: 16px; padding: 12px 18px; }
+  .ege-person__pos { font-size: .8125rem; padding: 4px 7px 3px; }
   .ege-person--player { --edge: 20px; }
   .ege-person--player .ege-person__body { gap: 24px; padding-bottom: 24px; }
 }
@@ -6804,8 +6889,14 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
   .ege-person__band .ege-ovrbox--chip { width: 54px; height: 54px; gap: 2px; padding: 4px 3px 5px; }
   .ege-person__band .ege-ovrbox--chip .ege-ovrbox__label { font-size: .5625rem; letter-spacing: .12em; }
   .ege-person__band .ege-ovrbox--chip .ege-ovrbox__value { font-size: 1.625rem; }
-  .ege-person--player .ege-person__band { --face-h: 76px; --peek: calc(var(--face-h) * .22); gap: 6px; }
-  .ege-person--player .ege-person__ovr { margin-right: 10px; }
+  .ege-person--player .ege-person__band { --ring: 60px; --chip: 54px; gap: 10px; padding: 10px 12px; }
+  .ege-person__who { gap: 5px 12px; }
+  .ege-person__pos { font-size: .6875rem; padding: 3px 5px 2px; letter-spacing: .04em; }
+  .ege-person__team { gap: 5px; font-size: .8125rem; }
+  .ege-person__team img { width: 18px; height: 18px; }
+  .ege-person--player .ege-person__facts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .ege-person--player .ege-person__fact,
+  .ege-person--player .ege-person__fact:nth-child(-n+2) { grid-column: auto; }
   .ege-person__band .ege-ovrbox--chip.ege-ovrbox--tier::after { top: 2px; right: 4px; font-size: .625rem; }
   .ege-person__seasons { font-size: .8125rem; }
   .ege-person__seasons th,
