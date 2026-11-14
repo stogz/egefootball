@@ -871,6 +871,22 @@ furthest ahead. With something in, the team that comes out ahead gets up to
 three ways to make up the other's gap from what it can spare, without going
 under itself; when none clears it, the closest are shown as Closest. Use
 puts one in the builder.
+A team selling (below) is offered picks and players of 26 or younger first.
+
+**Players on the Market** (`market(league, limit)`, Sam 2026-11-14) sits
+over the builder while trades are open. A seller is a rebuilding team, or
+one at .400 or worse once it has played four games (last season's record
+before then). Its players of 80 or more who start for it and are at or past
+their position's peak (`aging.js` CURVES: a back from 26, a quarterback
+from 33) are listed, not the six, kickers, punters or anyone out four weeks,
+each with up to three teams that would want him: not sellers or rebuilding,
+he would start for them, he is worth a tenth over his price to them, and
+they have a package his team takes under the cap (`packageFor`, which stops
+at the first that works when asked whether there is one). Only players
+somebody can get are listed, the most wanted first; the page works out the
+first ten until Show all and keeps the list while the league is the same.
+A click puts his team in the builder with him in the deal; a team's mark
+puts that team on the other side and shows what it would add.
 
 **Sam's edits** (`lib/edits.js`). Any player's overall and ceiling can be set
 by hand — `edit "Drake Maye" --ovr 85 --pot 95`, or Edit in his pop-up on
@@ -1066,7 +1082,7 @@ nfl-sim/
     picks.js             how far out the picks go (2030, then six drafts ahead)
     trades.js            proposals, the queue (big free-agent moves too), approving
     trade-finder.js      teams a player would suit better, and the trades for him (or a pick)
-    trade-builder.js     what the admin page's trade builder shows: values, needs, cap before and after, suggested trades
+    trade-builder.js     what the admin page's trade builder shows: values, needs, cap before and after, suggested trades, Players on the Market
     six-trades.js        the six, traded: when they move, and the new team's games for the site
     six-offers.js        the six in free agency: every team's offer, and the one Sam takes
     fit.js               fit as 0-5 stars, players and teams (an admin's only)
