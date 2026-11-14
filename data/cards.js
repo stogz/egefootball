@@ -1665,7 +1665,7 @@ EGE.cards = (function () {
   function playerBonus(player, stats, season, rankKey, playoff) {
     var r = PLAYER_RANKS.filter(function (one) { return one.key === rankKey; })[0];
     if (!r || !r.bonus || !stats) { return 0; }
-    var base = EGE.economy.gameCredits(player, stats, season) *
+    var base = EGE.economy.plainCredits(player, stats, season) *
                EGE.economy.playoffDiamondTimes(season, playoff);
     return Math.ceil(Math.round(base * r.bonus * 100) / 100);
   }

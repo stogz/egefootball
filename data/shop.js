@@ -60,6 +60,12 @@ EGE.shop = {
      data/games.js. */
   wagerSeasonLimit: 2,
 
+  /* From 2030 every offseason workout costs 10% more (Sam, 2026-11-14:
+     "slightly increase the price on all trainings"), on top of what age
+     adds (EGE.trainingPriceFactor) and the doubling with each one bought.
+     Rating points are priced in data/economy.js and stay as they are. */
+  trainingMarkup: { from: 2030, times: 1.1 },
+
   sections: [
     {
       key: 'boosters',
@@ -88,7 +94,8 @@ EGE.shop = {
          as a panel of its own. Each workout's price doubles every time it is
          bought, and goes back to the bottom when the season is locked. From
          2028 the bottom rises every year with age (`ageing`,
-         EGE.trainingPriceFactor in data/aging.js). */
+         EGE.trainingPriceFactor in data/aging.js), and from 2030 it is 10%
+         higher again (`trainingMarkup` above). */
       panel: 'upgrades',
       items: [
         {
@@ -299,8 +306,11 @@ EGE.priceFor = function (item, owned) {
     if (times < ladder.length) { return ladder[times]; }
     return ladder[ladder.length - 1] + (item.creditsStep || 0) * (times - ladder.length + 1);
   }
-  /* A workout costs more the older he is (data/aging.js). */
+  /* A workout costs more the older he is (data/aging.js), and from 2030
+     10% more again (EGE.shop.trainingMarkup). */
   var age = item.ageing && EGE.trainingPriceFactor ? EGE.trainingPriceFactor(EGE.currentSeason) : 1;
+  var markup = EGE.shop.trainingMarkup;
+  if (item.ageing && markup && EGE.currentSeason >= markup.from) { age *= markup.times; }
   if (!item.creditsStack || times < 1) { return Math.round(item.credits * age); }
   return Math.round(item.credits * age * Math.pow(item.creditsStack, times));
 };
