@@ -502,15 +502,17 @@ Under the bar:
   2026-11-14): his headshot in a circle of 40% black, or 25% white on a
   band too dark for darker to show (the Raiders', Steelers', Bears',
   Saints', Texans', the navy ones); his name on one line, set smaller
-  rather than broken when it is long (`fitName`), with his position (QB,
+  rather than broken when it is long (`fitName`); his position (QB,
   WR, OT, IOL, EDGE, ...) in white in a box the circle's colour made
-  solid; under the name, in the plain type, the team's mark and name, a
+  solid, after them; under the name, in the plain type, the team's mark and name, a
   link to that team's page for that season (*Free Agent* or *Retired*
-  without one); and at the right his overall that season (the sim's for
-  a past season, which it took from the six's pages while it was played;
-  the six's own overall now in the live one) with the player page's
-  progression box under it, *This season* and how far it moved from the
-  season before (none for a rookie). Under the band come college, draft
+  without one), the position box in a column after the name and team,
+  centred on the band's height, 24px from them; and at the right his
+  overall that season (the sim's for a past season, which it took from
+  the six's pages while it was played; the six's own overall now in the
+  live one), with no change from the season before (Sam took it out: too
+  much for the band). The band is kept short (a 100px circle) and the
+  mark behind it is at 45%. Under the band come college, draft
   (*2021 · R4 #112*), age that season and H/W (*6′1″ / 194*) in a thin strip on the team's second colour
   (the Bears' orange; white for a free agent), the text white or dark to
   suit it, with no line between it and the band; then, on the cream, his

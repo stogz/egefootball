@@ -3632,8 +3632,7 @@
 
   /* His pop-up opens on the season he was clicked in, with a year bar over
      it to step through his others (Sam, 2026-11-14): that season's team,
-     overall and contract, and how far his overall moved from the season
-     before. His seasons' table is always the whole of it, from the live
+     overall and contract. His seasons' table is always the whole of it, from the live
      season's rosters (Sam, 2026-10-27), whatever year is showing. */
   function openNflPlayer(row) {
     var live = searchSeason();
@@ -3819,22 +3818,6 @@
         }
         got.box.focus({ preventScroll: true });
       }
-      /* How far his overall moved from the season before, once that
-         season's rosters are in. */
-      if (nflSeasons().indexOf(year - 1) === -1) { return; }
-      rowIn(year - 1).then(function (before) {
-        if (drawn !== got || !before) { return; }
-        var then = nflOverallIn(before, live);
-        var at = nflOverallIn(rows[year], live);
-        if (typeof then !== 'number' || typeof at !== 'number') { return; }
-        var change = at - then;
-        var progress = el('div', 'ege-ovrprog ege-person__prog');
-        progress.title = !change ? 'No change from ' + (year - 1) + ' (' + at + ')'
-          : (change > 0 ? 'Up ' : 'Down ') + Math.abs(change) + ' from ' + (year - 1) + ' (' + then + ' → ' + at + ')';
-        progress.appendChild(el('span', 'ege-ovrprog__label', 'This season'));
-        progress.appendChild(tickerEl(change, 'ege-ticker--lg'));
-        got.ovr.appendChild(progress);
-      });
     }
 
     if (shown) { draw(shown); } else {
@@ -3881,18 +3864,13 @@
     }
     band.appendChild(ring);
 
-    /* His name on one line with his position after it, and under it in
-       the plain type the team's mark and name, a way to that team's page
-       for the season showing. */
+    /* His name on one line, and under it in the plain type the team's
+       mark and name, a way to that team's page for the season showing.
+       His position after them, in the band's vertical centre (Sam,
+       2026-11-14). */
     var who = el('div', 'ege-person__who');
-    var title = el('div', 'ege-person__title');
     var name = el('h3', 'ege-person__name', row.name);
-    title.appendChild(name);
-    var pos = el('span', 'ege-person__pos', sim.pos);
-    pos.title = POSITION_NAMES[sim.pos] || sim.pos;
-    pos.style.background = 'rgb(' + matte.join(', ') + ')';
-    title.appendChild(pos);
-    who.appendChild(title);
+    who.appendChild(name);
     if (team.name) {
       var to = el('a', 'ege-person__team');
       toTeamSeason(to, row.team, row.season || live);
@@ -3908,14 +3886,16 @@
     } else {
       who.appendChild(el('span', 'ege-person__team', row.freeAgent ? 'Free Agent' : row.retired ? 'Retired' : ''));
     }
+    var pos = el('span', 'ege-person__pos', sim.pos);
+    pos.title = POSITION_NAMES[sim.pos] || sim.pos;
+    pos.style.background = 'rgb(' + matte.join(', ') + ')';
+    who.appendChild(pos);
     band.appendChild(who);
 
-    /* His overall that season, and under it how far it moved from the
-       season before (showNflPlayer adds it once that season is in). */
-    var ovrCol = el('div', 'ege-person__ovrcol');
+    /* His overall that season. No change from the season before: too
+       much for the band (Sam, 2026-11-14). */
     var ovr = overallBox(nflOverallIn(row, live), 'ege-ovrbox--chip ege-person__ovr');
-    if (ovr) { ovrCol.appendChild(ovr); }
-    band.appendChild(ovrCol);
+    band.appendChild(ovr || el('span'));
     box.appendChild(band);
 
     var panel = el('div', 'ege-person__body');
@@ -4017,7 +3997,7 @@
       nflTradeFinder(row, more, tools);
     }
     box.appendChild(panel);
-    return { box: box, name: name, ovr: ovrCol };
+    return { box: box, name: name };
   }
 
   /* Off the card and its bar closes it, as off a trophy does. */
