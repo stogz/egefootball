@@ -3193,13 +3193,13 @@
 
   /* The pop-up's name at the size site.css gives it, or smaller when a
      long name would otherwise run wider than its column (VanValkenburg) or
-     past two lines. A name is never broken inside a word. A player's is
-     his first name over the rest (Sam, 2026-10-27). */
-  function fitName(node) {
+     past two lines (`lines`, one for a player's, Sam 2026-11-14). A name is
+     never broken inside a word. */
+  function fitName(node, lines) {
     node.style.fontSize = '';
     var size = parseFloat(window.getComputedStyle(node).fontSize);
     while (size > 10 && (node.scrollWidth > node.clientWidth + 1 ||
-        node.offsetHeight > size * 1.1 * 2 + 2)) {
+        node.offsetHeight > size * 1.1 * (lines || 2) + 2)) {
       size -= 1;
       node.style.fontSize = size + 'px';
     }
@@ -3426,13 +3426,8 @@
           /* The mark is a link to that team's page for that season (Sam,
              2026-10-27), lit up under the pointer. */
           var go = el('a', 'ege-person__seasonteam');
-          go.href = '#teams/' + EGE.nfl.slug(entry.team);
           go.title = team.name + ', ' + entry.season;
-          go.addEventListener('click', function () {
-            EGE.cardsView.closeOverlay();
-            if (location.hash === go.getAttribute('href')) { pickTeamsSeason(entry.season); }
-            else { teamsPicked = entry.season; }
-          });
+          toTeamSeason(go, entry.team, entry.season);
           var img = el('img');
           img.src = src;
           img.alt = team.name + ', ' + entry.season;
@@ -3635,17 +3630,17 @@
     }, function () { wash.remove(); });
   }
 
-  /* Whatever season he is clicked in, his pop-up is who he is now (Sam,
-     2026-10-27): his line in the live season's rosters, on a team, a free
-     agent or retired, with his overall now and every season he has played.
-     The season clicked in stands only when those rosters have no word of
-     him. */
+  /* His pop-up opens on the season he was clicked in, with a year bar over
+     it to step through his others (Sam, 2026-11-14): that season's team,
+     overall and contract, and how far his overall moved from the season
+     before. His seasons' table is always the whole of it, from the live
+     season's rosters (Sam, 2026-10-27), whatever year is showing. */
   function openNflPlayer(row) {
     var live = searchSeason();
-    if (!row.sim || !live || row.season === live) { showNflPlayer(row); return; }
+    if (!row.sim || !live || row.season === live) { showNflPlayer(row, row); return; }
     EGE.nflRosters.load(live).then(function () {
-      showNflPlayer(nflNow(row.sim, live) || row);
-    }, function () { showNflPlayer(row); });
+      showNflPlayer(row, nflNow(row.sim, live) || row);
+    }, function () { showNflPlayer(row, row); });
   }
 
   /* The same player in another season's rosters, which carry no id of the
@@ -3658,72 +3653,271 @@
     return [sim.name, sim.college || '', d ? d.year + '-' + d.round + '-' + d.pick : ''].join('|');
   }
 
+  /* His row in a season's rosters, once they are in: on a team, a free
+     agent or retired. Null when they have no word of him. */
   function nflNow(sim, season) {
+    var all = EGE.nflRosters.get(season);
+    if (!all) { return null; }
     var id = nflIdentity(sim);
-    var hits = searchPeople(season).filter(function (hit) { return hit.sim && nflIdentity(hit.sim) === id; });
-    return hits.length ? nflHitRow(hits[0], season) : null;
+    var hit = null;
+    function look(list, key, how) {
+      (list || []).some(function (other) {
+        if (nflIdentity(other) !== id) { return false; }
+        hit = { sim: other, key: how === 'retired' ? (EGE.nfl.teams[other.team] ? other.team : null) : key, how: how };
+        return true;
+      });
+      return hit;
+    }
+    Object.keys(all.teams || {}).some(function (key) { return look(all.teams[key], key, 'team'); });
+    if (!hit) { look(all.freeAgents, null, 'fa'); }
+    if (!hit) { look(all.retired, null, 'retired'); }
+    return hit ? nflHitRow(hit, season) : null;
   }
 
-  function showNflPlayer(row) {
-    var sim = row.sim;
-    var team = EGE.nfl.teams[row.team] || {};
-    var stage = EGE.cardsView.openOverlay(POSITION_NAMES[sim.pos] || sim.pos, 'ege-rip__stage--person');
-    /* No title or close above it (Sam, 2026-10-27): a click off it or
-       Escape puts it away. */
+  /* His overall in a row's season. One of the six's row has his overall
+     now in every season (nflRow); a season gone by has the sim's, which
+     it took from his page while that season was played. */
+  function nflOverallIn(row, live) {
+    return row.player && row.season !== live && typeof row.sim.ovr === 'number' ? row.sim.ovr : row.overall;
+  }
+
+  /* The seasons his year bar can step to: from the one he came into the
+     league (his draft, or else as many seasons back as he has played) to
+     the live one, or his last before he retired, and the one he was
+     clicked in. A season whose rosters turn out to have no word of him is
+     dropped when it is stepped to. */
+  function nflYears(row, now, live) {
+    var all = nflSeasons().filter(function (year) { return year <= live; });
+    var sim = now.sim;
+    var first = sim.draft && sim.draft.year ? sim.draft.year
+      : live - Math.max(1, sim.years || 1) + 1;
+    var last = now.retired ? (typeof sim.retired === 'number' ? sim.retired - 1 : live) : live;
+    return all.filter(function (year) {
+      return (year >= first && year <= last) || year === row.season || year === now.season;
+    });
+  }
+
+  /* That team's page for that season: the hash changes, or on that page
+     already the season does. The pop-up goes away either way. */
+  function toTeamSeason(link, key, season) {
+    link.href = '#teams/' + EGE.nfl.slug(key);
+    link.addEventListener('click', function () {
+      EGE.cardsView.closeOverlay();
+      if (location.hash === link.getAttribute('href')) { pickTeamsSeason(season); }
+      else { teamsPicked = season; }
+    });
+  }
+
+  /* The bar over the card (Sam, 2026-11-14): the Teams page's season
+     switcher, a step either way and the years between, and a close at the
+     end, white outlines on the dark around it. A click off the card puts
+     it away too, which is easier on a phone. */
+  function personBar(onPick) {
+    var bar = el('div', 'ege-person__bar');
+    var seasons = el('div', 'ege-seasonbar ege-person__years');
+    function button(cls, text, label) {
+      var node = el('button', 'fb-btn fb-btn--inverse ege-seasonbar__step' + (cls ? ' ' + cls : ''), text);
+      node.type = 'button';
+      node.setAttribute('aria-label', label);
+      return node;
+    }
+    var prev = button(null, '‹', 'Previous season');
+    var pick = el('select', 'fb-select ege-seasonbar__pick');
+    pick.setAttribute('aria-label', 'Season');
+    var next = button(null, '›', 'Next season');
+    var close = button('ege-person__close', '×', 'Close');
+    seasons.appendChild(prev);
+    seasons.appendChild(pick);
+    seasons.appendChild(next);
+    bar.appendChild(seasons);
+    bar.appendChild(close);
+
+    var years = [];
+    var at = null;
+    close.addEventListener('click', function () { EGE.cardsView.closeOverlay(); });
+    pick.addEventListener('change', function () { onPick(Number(pick.value), 0); });
+    prev.addEventListener('click', function () { step(-1); });
+    next.addEventListener('click', function () { step(1); });
+    function step(way) {
+      var to = years[years.indexOf(at) + way];
+      if (to) { onPick(to, way); }
+    }
+    return {
+      node: bar,
+      years: function () { return years; },
+      set: function (list, year) {
+        years = list;
+        at = year;
+        pick.innerHTML = '';
+        list.slice().reverse().forEach(function (y) {
+          var option = el('option', null, String(y));
+          option.value = y;
+          pick.appendChild(option);
+        });
+        pick.value = String(year);
+        var i = list.indexOf(year);
+        prev.disabled = i <= 0;
+        next.disabled = i === -1 || i >= list.length - 1;
+        seasons.classList.toggle('is-one', list.length < 2);
+      }
+    };
+  }
+
+  /* `row` is who was clicked, in the season he was clicked in; `now` is
+     him in the live season's rosters, for his seasons' table. */
+  function showNflPlayer(row, now) {
+    now = now || row;
+    var live = searchSeason();
+    var stage = EGE.cardsView.openOverlay(POSITION_NAMES[row.sim.pos] || row.sim.pos, 'ege-rip__stage--person');
     var head = stage.querySelector('.ege-rip__head');
     if (head) { head.remove(); }
+
+    var rows = {};
+    if (row.season) { rows[row.season] = row; }
+    if (now.season && !rows[now.season]) { rows[now.season] = now; }
+    var shown = row.season || now.season || null;
+    var years = shown && live ? nflYears(row, now, live) : [];
+    var bar = personBar(pickYear);
+    stage.appendChild(bar.node);
+    var drawn = null;
+
+    /* His row in a season, the rosters asked for if they are not in yet:
+       null when they have no word of him or he had retired by then. */
+    function rowIn(year) {
+      if (rows[year] !== undefined) { return Promise.resolve(rows[year]); }
+      return EGE.nflRosters.load(year).then(function () {
+        var found = nflNow(now.sim, year);
+        rows[year] = found && !found.retired ? found : null;
+        return rows[year];
+      }, function () { return null; });
+    }
+
+    /* A year picked or stepped to; one he is not in is dropped, and the
+       next one the same way tried instead. */
+    function pickYear(year, way) {
+      rowIn(year).then(function (got) {
+        if (!stage.isConnected) { return; }
+        if (got) { draw(year); return; }
+        var i = years.indexOf(year);
+        years = years.filter(function (y) { return y !== year; });
+        var to = way ? years[way > 0 ? i : i - 1] : null;
+        if (to) { pickYear(to, way); } else { bar.set(years, shown); }
+      });
+    }
+
+    function draw(year) {
+      shown = year;
+      bar.set(years, year);
+      var got = nflPersonBox(rows[year], now, live);
+      if (drawn) { drawn.box.replaceWith(got.box); } else { stage.appendChild(got.box); }
+      var first = !drawn;
+      drawn = got;
+      fitName(got.name, 1);
+      if (first) {
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(function () { if (drawn) { fitName(drawn.name, 1); } });
+        }
+        got.box.focus({ preventScroll: true });
+      }
+      /* How far his overall moved from the season before, once that
+         season's rosters are in. */
+      if (nflSeasons().indexOf(year - 1) === -1) { return; }
+      rowIn(year - 1).then(function (before) {
+        if (drawn !== got || !before) { return; }
+        var then = nflOverallIn(before, live);
+        var at = nflOverallIn(rows[year], live);
+        if (typeof then !== 'number' || typeof at !== 'number') { return; }
+        var change = at - then;
+        var progress = el('div', 'ege-ovrprog ege-person__prog');
+        progress.title = !change ? 'No change from ' + (year - 1) + ' (' + at + ')'
+          : (change > 0 ? 'Up ' : 'Down ') + Math.abs(change) + ' from ' + (year - 1) + ' (' + then + ' → ' + at + ')';
+        progress.appendChild(el('span', 'ege-ovrprog__label', 'This season'));
+        progress.appendChild(tickerEl(change, 'ege-ticker--lg'));
+        got.ovr.appendChild(progress);
+      });
+    }
+
+    if (shown) { draw(shown); } else {
+      var only = nflPersonBox(row, now, live);
+      stage.appendChild(only.box);
+      fitName(only.name, 1);
+      only.box.focus({ preventScroll: true });
+    }
+  }
+
+  /* One season's card under the bar. */
+  function nflPersonBox(row, now, live) {
+    var sim = row.sim;
+    var team = EGE.nfl.teams[row.team] || {};
+    var current = !live || row.season === live;
     var box = el('div', 'ege-person ege-person--player');
     box.tabIndex = -1;
-    box.setAttribute('aria-label', row.name + ', ' + (POSITION_NAMES[sim.pos] || sim.pos));
+    box.setAttribute('aria-label', row.name + ', ' + (POSITION_NAMES[sim.pos] || sim.pos) +
+      (row.season ? ', ' + row.season : ''));
     var logoSrc = EGE.nfl.logo(row.team);
 
-    /* Line one: the band. Behind it, the team's mark in two tones, the
-       band's colour and a shade of it, so big it runs off both ends (Sam,
-       2026-10-21). */
+    /* Line one: the band, on the team's colour, its mark in two tones
+       behind everything (Sam, 2026-10-21). */
     var band = el('div', 'ege-person__band');
     band.style.background = team.color || '';
     bandWash(band, team);
-    /* His headshot with the team's mark behind him, set off to his right
-       so it shows past his shoulder; his name; his overall where the mark
-       used to be (Sam, 2026-10-26). The headshot is the whole picture, his
-       shoulders not trimmed (2026-10-27). */
-    var face = el('span', 'ege-person__face');
-    if (logoSrc) {
-      var mark = el('span', 'ege-person__behind');
-      var logo = el('img');
-      logo.src = logoSrc;
-      logo.alt = team.name || '';
-      logo.title = team.name || '';
-      logo.addEventListener('error', function () { mark.remove(); });
-      mark.appendChild(logo);
-      face.appendChild(mark);
-    }
+
+    /* His headshot in a circle a shade darker than the band (Sam,
+       2026-11-14: a 40% black), or a shade lighter on a band too dark for
+       darker to show (the Steelers', the Bears', the Patriots'). The box
+       with his position in it beside his name is the same colour, made
+       solid. */
+    var bandRgb = rgbOf(team.color) || [32, 38, 26];
+    var light = luminance(bandRgb) < 0.02;
+    var matte = bandRgb.map(function (c) { return Math.round(light ? c + (255 - c) * 0.25 : c * 0.6); });
+    var ring = el('span', 'ege-person__ring' + (light ? ' is-light' : ''));
     var src = nflPhoto(row, true);
     if (src) {
-      var img = el('img', 'ege-person__shot');
+      var img = el('img');
       img.src = src;
       img.alt = '';
       img.addEventListener('error', function () { img.remove(); });
-      face.appendChild(img);
+      ring.appendChild(img);
     }
-    band.appendChild(face);
-    var name = el('h3', 'ege-person__name');
-    var gap = row.name.indexOf(' ');
-    if (gap > 0) {
-      name.appendChild(el('span', null, row.name.slice(0, gap)));
-      name.appendChild(document.createTextNode(' '));
-      name.appendChild(el('span', null, row.name.slice(gap + 1)));
+    band.appendChild(ring);
+
+    /* His name on one line with his position after it, and under it in
+       the plain type the team's mark and name, a way to that team's page
+       for the season showing. */
+    var who = el('div', 'ege-person__who');
+    var title = el('div', 'ege-person__title');
+    var name = el('h3', 'ege-person__name', row.name);
+    title.appendChild(name);
+    var pos = el('span', 'ege-person__pos', sim.pos);
+    pos.title = POSITION_NAMES[sim.pos] || sim.pos;
+    pos.style.background = 'rgb(' + matte.join(', ') + ')';
+    title.appendChild(pos);
+    who.appendChild(title);
+    if (team.name) {
+      var to = el('a', 'ege-person__team');
+      toTeamSeason(to, row.team, row.season || live);
+      if (logoSrc) {
+        var mark = el('img');
+        mark.src = logoSrc;
+        mark.alt = '';
+        mark.addEventListener('error', function () { mark.remove(); });
+        to.appendChild(mark);
+      }
+      to.appendChild(el('span', null, team.name));
+      who.appendChild(to);
     } else {
-      name.appendChild(el('span', null, row.name));
+      who.appendChild(el('span', 'ege-person__team', row.freeAgent ? 'Free Agent' : row.retired ? 'Retired' : ''));
     }
-    band.appendChild(name);
-    var ovr = overallBox(row.overall, 'ege-ovrbox--chip ege-person__ovr');
-    if (ovr) { band.appendChild(ovr); }
+    band.appendChild(who);
+
+    /* His overall that season, and under it how far it moved from the
+       season before (showNflPlayer adds it once that season is in). */
+    var ovrCol = el('div', 'ege-person__ovrcol');
+    var ovr = overallBox(nflOverallIn(row, live), 'ege-ovrbox--chip ege-person__ovr');
+    if (ovr) { ovrCol.appendChild(ovr); }
+    band.appendChild(ovrCol);
     box.appendChild(band);
 
-    /* Under it, with no titles or rules between them (Sam, 2026-10-27):
-       where he came from on a strip of the team's colours, then on the
-       cream his seasons' table, his ratings and his contract. */
     var panel = el('div', 'ege-person__body');
     function part() {
       var section = el('section', 'ege-person__part');
@@ -3731,13 +3925,13 @@
       return section;
     }
 
-    /* Where he came from and his size. */
+    /* Where he came from, his age that season and his size. */
     var facts = el('dl', 'ege-person__facts');
-    function fact(label, value, title) {
+    function fact(label, value, tip) {
       var cell = el('div', 'ege-person__fact');
       cell.appendChild(el('dt', null, label));
       var dd = el('dd', null, value);
-      if (title) { dd.title = title; }
+      if (tip) { dd.title = tip; }
       cell.appendChild(dd);
       facts.appendChild(cell);
     }
@@ -3749,27 +3943,29 @@
     fact('Draft', d ? d.year + ' · R' + d.round + ' #' + d.pick : 'Undrafted',
       d ? 'Round ' + d.round + ', pick ' + d.pick + ' of the ' + d.year + ' draft' + (by ? ', by the ' + by : '') : null);
     fact('Age', typeof sim.age === 'number' ? String(sim.age) : '–');
-    fact('Height', EGE.heightText(row) || '–');
-    fact('Weight', EGE.weightText(row) || '–');
+    var height = EGE.heightText(row);
+    var weight = typeof row.weight === 'number' ? String(row.weight) : null;
+    fact('H/W', height || weight ? (height || '–') + ' / ' + (weight || '–') : '–',
+      height && weight ? height + ', ' + weight + ' lbs' : null);
     /* On the team's second colour (Sam, 2026-10-27: the Bears' orange), in
        white or ink, whichever reads better on it, the labels in the band's
        colour where that reads on it too, or else a little fainter. */
     var strip = rgbOf(team.accent);
     if (strip) {
       var lum = luminance(strip);
-      var bandRgb = rgbOf(team.color);
       facts.classList.add('is-team');
       facts.style.background = team.accent;
       if (contrast(lum, 1) > contrast(lum, 0)) { facts.classList.add('is-dark'); }
-      if (bandRgb && contrast(lum, luminance(bandRgb)) >= 4.5) { facts.style.setProperty('--label', team.color); }
+      if (rgbOf(team.color) && contrast(lum, luminance(bandRgb)) >= 4.5) { facts.style.setProperty('--label', team.color); }
     }
     box.appendChild(facts);
 
-    /* His seasons. */
-    var seasons = seasonLines(sim);
+    /* Every season he has played, whatever year is showing. */
+    var seasons = seasonLines(now.sim);
     if (seasons) { part().appendChild(seasons); }
 
-    /* His ratings: what kind, and the skills it comes from, best first. */
+    /* His ratings that season: what kind, and the skills it comes from,
+       best first. */
     var rating = el('div', 'ege-person__rating');
     var kind = el('div', 'ege-person__kind');
     var arch = el('span', 'ege-person__arch', sim.archetype || POSITION_NAMES[sim.pos] || sim.pos);
@@ -3787,7 +3983,8 @@
     rating.appendChild(kind);
     part().appendChild(rating);
 
-    /* His contract, and anything keeping him off the field. */
+    /* His contract that season, and anything keeping him off the field
+       now. */
     var foot = el('dl', 'ege-person__deal');
     function line(label, value, cls) {
       foot.appendChild(el('dt', cls || null, label));
@@ -3801,7 +3998,7 @@
         : row.freeAgent ? 'Free agent' : 'None');
     }
     /* In red (Sam, 2026-10-27). */
-    if (row.out) { line('Injury', injuryText(row.out), 'is-hurt'); }
+    if (row.out && current) { line('Injury', injuryText(row.out), 'is-hurt'); }
     var more = part();
     more.appendChild(foot);
 
@@ -3820,16 +4017,13 @@
       nflTradeFinder(row, more, tools);
     }
     box.appendChild(panel);
-    stage.appendChild(box);
-    fitName(name);
-    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(function () { fitName(name); }); }
-    box.focus({ preventScroll: true });
+    return { box: box, name: name, ovr: ovrCol };
   }
 
-  /* Off the box closes it, as off a trophy does. */
+  /* Off the card and its bar closes it, as off a trophy does. */
   document.getElementById('cardRip').addEventListener('click', function (e) {
     if (!this.querySelector('.ege-rip__stage--person')) { return; }
-    if (e.target.closest('.ege-person')) { return; }
+    if (e.target.closest('.ege-person, .ege-person__bar')) { return; }
     EGE.cardsView.closeOverlay();
   });
 

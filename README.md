@@ -481,12 +481,15 @@ Under the bar:
   are marked `collegePhoto` and keep their ESPN college headshot in the NFL
   too, on the team pages, the pop-up, the search and the box scores (Sam,
   2026-10-30; `EGE.espnHeadshot` in `data/games.js`). **Every box opens a pop-up**, in the overlay the cards and
-  trophies use, with no title or close button over it (Sam, 2026-10-27): a band in the team's colour with the headshot, the team's
-  mark straight on the colour behind him and set off to his right so it
-  shows past his shoulder, the name, and his overall box at the right end
-  where the mark used to be (Sam, 2026-10-26). The pop-up is 800px wide,
-  the band taller, the overall a 112px square and the name bigger than
-  they were (Sam, 2026-10-27). Behind them, the team's mark again in two
+  trophies use (Sam, 2026-11-14). Over it is a **year bar**, the Teams
+  page's season switcher in white outlines (a step either way and the
+  years between) with a close at the end; a click anywhere off the card
+  closes it too, as does Escape. It opens on the season he was clicked in
+  and steps through every season from the one he came into the league
+  (his draft) to the live one, or his last before he retired; a season
+  whose rosters have no word of him is skipped. The card is 800px wide.
+  The band is in that season's team colour, with the team's mark behind
+  everything in two
   tones, the band's colour and a fifth darker (a little lighter on a band
   too dark for darker to show), cut off top and bottom (Sam, 2026-10-21):
   each mark's own colours are split in two where they fall apart most
@@ -495,15 +498,20 @@ Under the bar:
   clear (`teamWash`, on a canvas), so the Bears' all-dark mark is a bear
   and not a few faint lines (2026-10-27). A wide mark runs off both ends
   of the band; one about as tall as it is wide is never more than two and
-  a half times the band's height, so more of it shows. The headshot stands on the band's bottom edge and is sized
-  so the top of the head just clears the top of the box, about 5% of the
-  picture; every headshot is placed the same way, and shows the picture's
-  whole width, shoulders and all (2026-10-27). The name is in the band's
-  dead centre, first name over the rest on two lines, with the headshot,
-  the mark and the overall smaller and out at the two ends to give it room
-  (Sam, 2026-10-27); a name too long for its column is set smaller rather
-  than broken inside a word (`fitName`). Under the band come college, draft
-  (*2021 · R4 #112*), age, height and weight in a thin strip on the team's second colour
+  a half times the band's height, so more of it shows. In the band (Sam,
+  2026-11-14): his headshot in a circle of 40% black, or 25% white on a
+  band too dark for darker to show (the Raiders', Steelers', Bears',
+  Saints', Texans', the navy ones); his name on one line, set smaller
+  rather than broken when it is long (`fitName`), with his position (QB,
+  WR, OT, IOL, EDGE, ...) in white in a box the circle's colour made
+  solid; under the name, in the plain type, the team's mark and name, a
+  link to that team's page for that season (*Free Agent* or *Retired*
+  without one); and at the right his overall that season (the sim's for
+  a past season, which it took from the six's pages while it was played;
+  the six's own overall now in the live one) with the player page's
+  progression box under it, *This season* and how far it moved from the
+  season before (none for a rookie). Under the band come college, draft
+  (*2021 · R4 #112*), age that season and H/W (*6′1″ / 194*) in a thin strip on the team's second colour
   (the Bears' orange; white for a free agent), the text white or dark to
   suit it, with no line between it and the band; then, on the cream, his
   seasons, his ratings and his contract, with only space between them, no
@@ -537,12 +545,13 @@ Under the bar:
   published (the NFL Sim tab's Publish, the Weeks tab's when the sim is
   loaded, or an admin's visit to a team page when `linesThrough` is behind).
   The ratings are the archetype and his skills, best first; the contract
-  is *$1.1M a year through 2024*, with any injury under it in red. One of the
-  six's has a button through to his page. A click off the box or Escape
-  closes it. Whatever season he is clicked in, a past season's roster
-  included, the pop-up is who he is now (Sam, 2026-10-27): his line in
-  the live season's rosters, found by his ESPN id, which of the six he is,
-  or his name, college and draft, with his overall now and every season.
+  is that season's (*$1.1M a year through 2024*), with any injury now under
+  it in red, in the live season only. One of the
+  six's has a button through to his page. The seasons table is always
+  every season he has played (Sam, 2026-10-27), from his line in the live
+  season's rosters, whatever year is showing. A player is matched across
+  seasons' rosters by his ESPN id, which of the six he is, or his name,
+  college and draft (`nflIdentity`).
   Nothing private is in the rosters: no team ratings, no potential, nothing
   about how long a player will last. Since 2026-10-21 they carry every
   player, the linemen, kickers and punters too (the rooms show them since
