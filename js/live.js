@@ -8,7 +8,10 @@
    two minutes. A player who gets hot burns: fire licks in from the left
    border of his plays, blue once he is absurdly hot (js/live-heat.js has
    the rules). PLAY LIVE on the NFL Sim tab puts it up here
-   waiting, and an admin kicks it off from this page (Sam, 2026-11-04). An admin can
+   waiting, and an admin kicks it off from this page (Sam, 2026-11-04),
+   now or at a time set with Schedule beside Kick off (Sam, 2026-11-14):
+   the page counts down to it, the bot posts it, and the game starts on
+   its own when it comes (live_schedule). An admin can
    pause, end, restart or cancel it from here too, and #live/test plays a
    game on this device alone before it goes live.
 
@@ -150,6 +153,30 @@ EGE.liveView = (function () {
     return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
   }
 
+  /* What is left to the kickoff: "4:05", "1:04:05", "2d 01:04:05". */
+  function countText(ms) {
+    var t = Math.max(0, Math.ceil((ms || 0) / 1000));
+    var d = Math.floor(t / 86400);
+    var h = Math.floor(t % 86400 / 3600);
+    var m = Math.floor(t % 3600 / 60);
+    var out = String(m).padStart(h || d ? 2 : 1, '0') + ':' + String(t % 60).padStart(2, '0');
+    if (h || d) { out = (d ? String(h).padStart(2, '0') : h) + ':' + out; }
+    return (d ? d + 'd ' : '') + out;
+  }
+
+  /* When a kickoff is, by this device's own clock and calendar: "7:00 PM"
+     today, "Sat 7:00 PM" this week, "Nov 21, 7:00 PM" after. */
+  function kickoffText(ms) {
+    var at = new Date(ms);
+    var time = at.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    var now = new Date();
+    var days = Math.round((new Date(at.getFullYear(), at.getMonth(), at.getDate()) -
+      new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
+    if (days === 0) { return time; }
+    if (days > 0 && days < 7) { return at.toLocaleDateString([], { weekday: 'short' }) + ' ' + time; }
+    return at.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ', ' + time;
+  }
+
   function quarterText(q) { return q > 4 ? (q === 5 ? 'OT' : 'OT' + (q - 4)) : 'Q' + q; }
 
   /* "HOU 22", "CIN 35", "50": a yard line from the side of the field it
@@ -186,6 +213,8 @@ EGE.liveView = (function () {
      and hearing back, and the snaps it brought. */
   function take(got, sent, back) {
     game.waiting = Boolean(got.waiting);
+    game.kickoff = typeof got.kickoff === 'number' ? got.kickoff : null;
+    game.starts = typeof got.starts === 'number' ? got.starts : null;
     game.half = got.half || null;
     if (!game.test) {
       game.clockAt = got.waiting ? null : { ms: got.clock, real: Math.round((sent + back) / 2) };
@@ -209,6 +238,13 @@ EGE.liveView = (function () {
     var last = game.entries[game.entries.length - 1];
     game.done = game.entries.length - (last && last.hidden ? 1 : 0);
     return got;
+  }
+
+  /* Before the kickoff: waiting for an admin to kick it off, or for the
+     time one has set (Sam, 2026-11-14). The bets before kickoff stay open
+     until then. */
+  function pregame() {
+    return Boolean(game.waiting || (typeof game.kickoff === 'number' && !game.paused && clock() < 0));
   }
 
   /* When the next thing is due, by the game's clock: kickoff, the snap's
@@ -236,12 +272,16 @@ EGE.liveView = (function () {
       if (game !== mine) { return; }
       if (game.missing) { drawMissing(); return; }
       if (game.again) { game.again = false; tick(); return; }
-      /* Waiting for the kickoff: ask now and then whether it has come,
-         and leave the page (and a bet being typed) alone until it has. */
-      var now = (game.waiting ? 'w' : '') + (game.paused ? 'p' : '') + game.at + ':' + game.done;
-      if (!(game.waiting && was === now)) { draw(); }
+      /* Waiting for the kickoff: ask now and then whether it has come, or
+         been set or moved, and leave the page (and a bet being typed)
+         alone until it has. The countdown runs on its own (countDown). */
+      var pre = pregame();
+      var now = (game.waiting ? 'w' : '') + (game.paused ? 'p' : '') + (pre ? 'k' + game.kickoff + ':' : '') +
+        game.at + ':' + game.done;
+      if (!(pre && was === now)) { draw(); }
       game.drawn = now;
       if (game.waiting) { if (!game.test) { schedule(4000); } return; }
+      if (pre) { schedule(Math.min(game.test ? Infinity : 5000, -clock() / (game.speed || 1) + 150)); return; }
       settleIfOver();
       /* Paused: ask now and then whether it has started again. */
       if (game.paused) { if (!game.test) { schedule(4000); } return; }
@@ -391,7 +431,7 @@ EGE.liveView = (function () {
     var kicker = el('p', 'fb-kicker ege-cast__kicker');
     if (state === 'live' && !game.paused) { kicker.appendChild(el('span', 'ege-cast__dot')); }
     kicker.appendChild(document.createTextNode((game.test ? 'Test · ' : '') +
-      (game.waiting ? 'Pregame' : game.paused && state !== 'final' ? 'Paused' : state === 'live' ? 'Live'
+      (pregame() ? 'Pregame' : game.paused && state !== 'final' ? 'Paused' : state === 'live' ? 'Live'
         : state === 'final' ? 'Final' : 'Kickoff soon')));
     head.appendChild(kicker);
 
@@ -414,7 +454,10 @@ EGE.liveView = (function () {
         if (state === 'soon' && game.waiting) {
           mid.appendChild(el('span', 'ege-cast__time', 'Q1 15:00'));
         } else if (state === 'soon') {
-          mid.appendChild(el('span', 'ege-cast__time', clockText(-clock() / 1000 / (game.speed || 1))));
+          /* The countdown (Sam, 2026-11-14), kept going by countDown. */
+          var count = el('span', 'ege-cast__time', countText(-clock() / (game.speed || 1)));
+          count.setAttribute('data-countdown', '');
+          mid.appendChild(count);
           mid.appendChild(el('span', 'ege-cast__down', 'to kickoff'));
         } else if (state === 'final') {
           var last = game.entries[game.entries.length - 1];
@@ -515,6 +558,25 @@ EGE.liveView = (function () {
     return field;
   }
 
+  /* "at 7:00 PM", "Sat 7:00 PM": when it kicks off, Supabase's word for
+     it where there is one (a test game's from its own clock). */
+  function kickoffWords() {
+    var ms = !game.test && typeof game.starts === 'number' ? game.starts
+      : Math.round((Date.now() - clock() / (game.speed || 1)) / 1000) * 1000;
+    var text = kickoffText(ms);
+    return /^\d/.test(text) ? 'at ' + text : text;
+  }
+
+  /* The countdown to a kickoff, a second at a time, without drawing the
+     page (or the bets) again. */
+  function countDown() {
+    if (!game || !game.row || !view || game.waiting || phaseNow() !== 'soon') { return; }
+    var text = countText(-clock() / (game.speed || 1));
+    Array.prototype.forEach.call(view.querySelectorAll('[data-countdown]'), function (node) {
+      if (node.textContent !== text) { node.textContent = text; }
+    });
+  }
+
   /* The snap being played: what was called, and once it is out, what came
      of it, with a bar for the time it has left. */
   function drawPlay() {
@@ -523,7 +585,7 @@ EGE.liveView = (function () {
     if (state === 'soon') {
       card.appendChild(el('p', 'ege-cast__call', nick(game.row.away) + (game.row.title.indexOf(' vs. ') !== -1 ? ' vs. ' : ' at ') + nick(game.row.home)));
       card.appendChild(el('p', 'fb-meta ege-cast__when', game.waiting ? 'Waiting for kickoff' : game.paused ? 'Paused'
-        : 'Kicks off at ' + new Date(Date.now() - clock() / (game.speed || 1)).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })));
+        : 'Kicks off ' + kickoffWords()));
       return card;
     }
     var e = game.entries[game.at];
@@ -726,7 +788,7 @@ EGE.liveView = (function () {
   function menus() {
     var out = [];
     var pre = game.row && game.row.bets;
-    (pre && pre.markets || []).forEach(function (m) { out.push({ m: m, open: Boolean(game.waiting) }); });
+    (pre && pre.markets || []).forEach(function (m) { out.push({ m: m, open: pregame() }); });
     (game.half && game.half.markets || []).forEach(function (m) { out.push({ m: m, open: Boolean(game.half.open) }); });
     return out;
   }
@@ -1475,6 +1537,7 @@ EGE.liveView = (function () {
 
   function act(action) {
     game.error = null;
+    game.setting = null;
     if (game.test) { testAct(action); return; }
     var mine = game;
     control(game.id, action).then(function () {
@@ -1484,6 +1547,104 @@ EGE.liveView = (function () {
       game.error = err.message;
       draw();
     });
+  }
+
+  /* A kickoff set ahead (Sam, 2026-11-14), or taken off with `at` null:
+     live_schedule, which the bot posts. */
+  function setKickoff(id, at) {
+    var c = client();
+    if (!c) { return Promise.reject(new Error('Not connected to Supabase.')); }
+    return c.rpc('live_schedule', { p_id: id, p_at: at === null ? null : new Date(at).toISOString() }).then(function (res) {
+      if (res.error) {
+        throw new Error(res.error.message + (/live_schedule/.test(res.error.message) ? ' Run supabase/schema.sql again first.' : ''));
+      }
+      return res.data;
+    });
+  }
+
+  function scheduleKickoff(at) {
+    game.error = null;
+    if (at !== null && !(at > Date.now())) { game.error = 'Pick a time later than now.'; draw(); return; }
+    if (game.test) { game.setting = null; testAct(at === null ? 'unschedule' : 'schedule', at); return; }
+    var mine = game;
+    game.setting.busy = true;
+    draw();
+    setKickoff(game.id, at).then(function () {
+      if (game !== mine) { return; }
+      game.setting = null;
+      tick();
+    }, function (err) {
+      if (game !== mine) { return; }
+      if (game.setting) { game.setting.busy = false; }
+      game.error = err.message;
+      draw();
+    });
+  }
+
+  /* "2026-11-14T19:00", the way a datetime-local box has it, from a time
+     and back, in this device's own time zone. */
+  function localValue(ms) {
+    var d = new Date(ms);
+    function two(n) { return String(n).padStart(2, '0'); }
+    return d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate()) + 'T' + two(d.getHours()) + ':' + two(d.getMinutes());
+  }
+
+  function fromLocal(value) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value || '');
+    return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]).getTime() : NaN;
+  }
+
+  /* Schedule, beside Kick off: a date and time, Set, and Clear once one
+     is set. It opens on the time set, or the next half hour. */
+  function drawSchedule(bar) {
+    var set = typeof game.kickoff === 'number';
+    if (!game.setting) {
+      var open = el('button', 'fb-btn fb-btn--sm', 'Schedule');
+      open.type = 'button';
+      open.addEventListener('click', function () {
+        confirming = '';
+        var at = set ? Math.round((Date.now() - clock() / (game.speed || 1)) / 60000) * 60000
+          : Math.ceil((Date.now() + 10 * 60000) / 1800000) * 1800000;
+        game.setting = { value: localValue(at) };
+        game.error = null;
+        draw();
+        var box = view && view.querySelector('.ege-cast__when-input');
+        if (box) { box.focus(); }
+      });
+      bar.appendChild(open);
+      return;
+    }
+    var form = el('form', 'ege-cast__schedule');
+    var input = el('input', 'fb-input ege-cast__when-input');
+    input.type = 'datetime-local';
+    input.value = game.setting.value;
+    input.min = localValue(Date.now());
+    input.setAttribute('aria-label', 'Kickoff');
+    input.addEventListener('input', function () { game.setting.value = input.value; });
+    form.appendChild(input);
+    var go = el('button', 'fb-btn fb-btn--sm fb-btn--primary', game.setting.busy ? 'Setting…' : 'Set');
+    go.type = 'submit';
+    go.disabled = Boolean(game.setting.busy);
+    form.appendChild(go);
+    if (set) {
+      var clear = el('button', 'fb-btn fb-btn--sm', 'Clear');
+      clear.type = 'button';
+      clear.disabled = Boolean(game.setting.busy);
+      clear.addEventListener('click', function () { scheduleKickoff(null); });
+      form.appendChild(clear);
+    }
+    var shut = el('button', 'fb-btn fb-btn--sm ege-cast__schedule-x', '\u00d7');
+    shut.type = 'button';
+    shut.setAttribute('aria-label', 'Close');
+    shut.addEventListener('click', function () { game.setting = null; game.error = null; draw(); });
+    form.appendChild(shut);
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      if (game.setting.busy) { return; }
+      game.setting.value = input.value;
+      scheduleKickoff(fromLocal(input.value));
+    });
+    bar.appendChild(form);
   }
 
   function drawControls() {
@@ -1503,10 +1664,12 @@ EGE.liveView = (function () {
       });
       bar.appendChild(b);
     }
-    /* Waiting: only an admin's kickoff starts it (Sam, 2026-11-04). */
-    if (game.waiting) {
+    /* Waiting: only an admin's kickoff starts it (Sam, 2026-11-04), now
+       or at the time Schedule sets (Sam, 2026-11-14). */
+    if (pregame()) {
       btn('Kick off', 'kickoff', game.test ? null : 'Kick off now');
       bar.firstChild.classList.add('fb-btn--primary');
+      drawSchedule(bar);
       if (!game.test) { btn('Cancel', 'cancel', 'Cancel for good'); }
     } else {
       if (state !== 'final') { btn(game.paused ? 'Resume' : 'Pause', game.paused ? 'resume' : 'pause'); }
@@ -1582,6 +1745,7 @@ EGE.liveView = (function () {
       return { clock: null, waiting: true, paused: false, slot: row.slot_ms, reveal: row.reveal_ms, plays: all.length,
                at: -1, from: from, shown: false, next: null, entries: [] };
     }
+    var kickoff = typeof test.kickoff === 'number' ? test.kickoff : null;
     var half = test.bets && test.bets.half;
     if (ms >= 0) {
       at = 0;
@@ -1600,14 +1764,18 @@ EGE.liveView = (function () {
       }
     }
     return { clock: ms, paused: test.paused, slot: row.slot_ms, reveal: row.reveal_ms, plays: all.length,
-             at: at, from: from, shown: shown, next: next, entries: list,
+             at: at, from: from, shown: shown, next: next, entries: list, kickoff: kickoff,
              half: half && ms >= half.opens ? { markets: half.markets, closes: half.closes, open: ms < half.closes && !test.seen } : null };
   }
 
-  function testAct(action, speed) {
+  function testAct(action, value) {
     var now = Date.now();
     var ms = clock();
     if (action === 'kickoff') { test.at = { ms: 0, real: now }; test.waiting = false; test.paused = false; closeSlip(); }
+    /* A kickoff set ahead: `value` is when, by this device's clock. */
+    if (action === 'schedule') { test.at = { ms: -(value - now) * test.speed, real: now }; test.waiting = false; test.paused = false; test.kickoff = value; }
+    if (action === 'unschedule') { test.waiting = true; test.kickoff = null; }
+    if (action !== 'schedule' && action !== 'unschedule' && action !== 'speed') { test.kickoff = null; }
     if (action === 'pause') { test.at = { ms: ms, real: now }; test.paused = true; }
     if (action === 'resume') { test.at = { ms: test.at.ms, real: now }; test.paused = false; }
     /* As live_control has it: a second half once seen takes no more
@@ -1618,7 +1786,7 @@ EGE.liveView = (function () {
     }
     if (action === 'restart') { test.at = { ms: -5000, real: now }; test.paused = false; test.waiting = false; }
     if (action === 'end') { test.at = { ms: length(test.row), real: now }; test.paused = false; test.waiting = false; }
-    if (action === 'speed') { test.at = { ms: ms, real: now }; test.speed = speed; }
+    if (action === 'speed') { test.at = { ms: ms, real: now }; test.speed = value; }
     saveTest();
     syncTest();
     window.clearTimeout(timer);
@@ -1650,9 +1818,7 @@ EGE.liveView = (function () {
       game = { id: 'test', test: true, row: test.row, entries: [], done: 0, at: -1, shown: false, next: null,
                mine: test.mine || [] };
       syncTest();
-      ticker = window.setInterval(function () {
-        if (game && game.row && phaseNow() === 'soon' && !game.waiting) { draw(); }
-      }, 1000);
+      ticker = window.setInterval(countDown, 1000);
       loadWallet();
       tick();
       return;
@@ -1673,9 +1839,7 @@ EGE.liveView = (function () {
         if (EGE.wallet && EGE.wallet.admin() && EGE.nflSimAdmin && EGE.nflSimAdmin.watchLive) {
           EGE.nflSimAdmin.watchLive();
         }
-        ticker = window.setInterval(function () {
-          if (game && game.row && phaseNow() === 'soon' && !game.waiting) { draw(); }
-        }, 1000);
+        ticker = window.setInterval(countDown, 1000);
         tick();
       });
   }
@@ -1685,5 +1849,5 @@ EGE.liveView = (function () {
   });
 
   return { render: render, stop: stop, games: loadGames, gameFor: gameFor, phase: phase, ends: ends,
-           control: control, startTest: startTest, columns: COLUMNS };
+           control: control, startTest: startTest, columns: COLUMNS, kickoffText: kickoffText };
 })();

@@ -6499,7 +6499,7 @@
       var phase = EGE.liveView.phase(live);
       var badge = el('span', 'ege-game__live is-' + phase);
       badge.textContent = phase === 'live' ? 'Live' : phase === 'soon'
-        ? (live.starts_at ? new Date(live.starts_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'Pregame')
+        ? (live.starts_at ? EGE.liveView.kickoffText(Date.parse(live.starts_at)) : 'Pregame')
         : 'Replay';
       card.insertBefore(badge, card.firstChild);
       EGE.cardsView.pressable(card, EGE.nfl.city(game.away) + ' at ' + EGE.nfl.city(game.home) + ', live', function () {
