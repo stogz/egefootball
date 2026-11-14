@@ -305,9 +305,9 @@ EGE.teams = {
    address. Change it whenever a headshot in headshot/ is replaced. */
 EGE.headshotVersion = '2026-10-20';
 
-/* The NFL's season awards -- MVP and Offensive Player of the Year -- all
-   stand in the case as the same gold NFL-shield trophy as Cooper's Offensive
-   Rookie of the Year (Sam, 2026-11-10). */
+/* The NFL's season awards -- MVP, Offensive Player of the Year and Comeback
+   Player of the Year -- all stand in the case as the same gold NFL-shield
+   trophy as Cooper's Offensive Rookie of the Year (Sam, 2026-11-10). */
 EGE.nflAwardTrophy = 'icon/trophies/clark-2024-offensive-rookie-of-the-year.webp';
 
 EGE.players = [
@@ -364,7 +364,13 @@ EGE.players = [
         about: '2019 CIF San Diego Section Open Division Champion\nCarlsbad High School' },
       { name: 'Offensive Rookie of the Year', season: 2024, scale: 1.45,
         image: 'icon/trophies/clark-2024-offensive-rookie-of-the-year.webp',
-        about: '2024 Offensive Rookie of the Year\nChicago Bears' }
+        about: '2024 Offensive Rookie of the Year\nChicago Bears' },
+      { name: 'Offensive Player of the Year', season: 2029, scale: 1.45,
+        image: EGE.nflAwardTrophy,
+        about: '2029 Offensive Player of the Year\nJacksonville Jaguars' },
+      { name: 'Comeback Player of the Year', season: 2029, scale: 1.45,
+        image: EGE.nflAwardTrophy,
+        about: '2029 Comeback Player of the Year\nJacksonville Jaguars' }
     ]
   },
   {
@@ -442,7 +448,10 @@ EGE.players = [
     trophies: [
       { name: 'Most Valuable Player', season: 2028, scale: 1.45,
         image: EGE.nflAwardTrophy,
-        about: '2028 NFL Most Valuable Player\nPittsburgh Steelers' }
+        about: '2028 NFL Most Valuable Player\nPittsburgh Steelers' },
+      { name: 'Most Valuable Player', season: 2029, scale: 1.45,
+        image: EGE.nflAwardTrophy,
+        about: '2029 NFL Most Valuable Player\nPittsburgh Steelers' }
     ]
   },
   {
