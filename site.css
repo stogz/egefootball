@@ -11699,6 +11699,18 @@ html.ege-noscroll body { overflow: hidden; }
    game's speed. */
 .ege-cast__controls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; width: var(--ege-cast-w); justify-self: center; }
 .ege-cast__controls .ege-note { flex-basis: 100%; margin: 0; text-align: center; }
+/* Schedule beside Kick off (Sam, 2026-11-14): a date and time, Set,
+   Clear and a close, in a row as tall as the buttons. */
+.ege-cast__schedule { display: flex; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: 8px; margin: 0; }
+.ege-cast__schedule .fb-input { padding: 4px 8px; font-size: .8125rem; border-width: var(--fb-border); }
+.ege-cast__schedule-x { font-size: 1rem; line-height: 1; padding-left: 10px; padding-right: 10px; }
+/* On a phone: Kick off and Cancel on a row, then the date and time
+   across, then Set, Clear and the close. */
+@media (max-width: 620px) {
+  .ege-cast__schedule { order: 1; flex-basis: 100%; }
+  .ege-cast__schedule .fb-input { flex: 1 1 100%; padding: 8px 10px; }
+  .ege-cast__controls .ege-note { order: 2; }
+}
 .ege-cast__score { margin: 0; font-size: .8125rem; font-weight: 800; }
 .ege-cast__break {
   padding: 7px 16px;

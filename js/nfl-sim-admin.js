@@ -1234,7 +1234,7 @@ EGE.nflSimAdmin = (function () {
     if (!row.starts_at) { return 'Waiting for kickoff'; }
     if (row.paused_at) { return 'Paused'; }
     var start = Date.parse(row.starts_at);
-    if (Date.now() < start) { return 'Kicks off ' + time(start); }
+    if (Date.now() < start) { return 'Kicks off ' + EGE.liveView.kickoffText(start); }
     if (Date.now() < liveEnds(row)) { return 'Live · ends about ' + time(liveEnds(row)); }
     return 'Final';
   }
@@ -1276,8 +1276,9 @@ EGE.nflSimAdmin = (function () {
           if (sure && !asking) { state.liveSure = key; draw(); } else { controlLive(r.id, action); }
         }));
       }
-      /* Waiting, it is kicked off from its own page. */
-      if (!r.starts_at) { on = false; }
+      /* Waiting, it is kicked off from its own page, now or at a time set
+         there (Sam, 2026-11-14). */
+      if (!r.starts_at || Date.parse(r.starts_at) > Date.now()) { on = false; }
       if (on) { act(r.paused_at ? 'Resume' : 'Pause', r.paused_at ? 'resume' : 'pause'); }
       if (on) {
         act('Restart', 'restart', 'Restart from kickoff');

@@ -1135,10 +1135,11 @@ EGE.wallet = (function () {
   function liveLocked(player, game) { return Boolean(liveRow(player, game)); }
 
   /* A wager changes nothing in the game, so it goes on and comes off until
-     an admin kicks the game off (Sam, 2026-11-14). */
+     an admin kicks the game off, or the time one set for it comes (Sam,
+     2026-11-14). */
   function liveKickedOff(player, game) {
     var row = liveRow(player, game);
-    return Boolean(row && row.starts_at);
+    return Boolean(row && row.starts_at && Date.parse(row.starts_at) <= Date.now());
   }
 
   /* Every sticker on every game, keyed by player slug and then by week, so a
