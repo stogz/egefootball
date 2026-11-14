@@ -26,7 +26,9 @@
    prices are the NFL Sim tab's
    (nfl-sim/lib/live-bets.js); Supabase takes the bets and pays them at
    the final whistle (live_bet_place, live_settle). A test game takes
-   them too, on this device alone, without a diamond moving.
+   them too, on this device alone, without a diamond moving. The top of
+   the box is the draft for the game's Game Pack (Sam, 2026-11-14;
+   js/live-draft.js).
 
    Supabase keeps the time (live_feed in supabase/schema.sql): every
    answer carries its clock, and the page sets its own by it, so a
@@ -730,7 +732,8 @@ EGE.liveView = (function () {
     /* The player list open, or a pick being made: the bets box is left
        where it is, and the rest drawn around it. */
     var keep = view.querySelector('.ege-cast__bets');
-    if (!(keep && (picker || keep.contains(document.activeElement)) && keep.getAttribute('data-open') === betsKey())) { keep = null; }
+    if (!(keep && (picker || (draft && draft.picking()) || keep.contains(document.activeElement)) &&
+          keep.getAttribute('data-open') === betsKey())) { keep = null; }
     var at = where();
     Array.prototype.slice.call(view.childNodes).forEach(function (n) { if (n !== keep) { view.removeChild(n); } });
     function put(node) { if (node) { view.insertBefore(node, keep); } }
@@ -768,6 +771,22 @@ EGE.liveView = (function () {
   var lastStake = null;     /* what this player bet last, where the next pop-up starts */
   var wallet = { email: null, diamonds: null, heard: false };
   var settling = false;
+
+  /* The draft for the game's Game Pack, the top block of the box (Sam,
+     2026-11-14; js/live-draft.js). */
+  var draft = EGE.liveDraft ? EGE.liveDraft.create({
+    el: el, team: team, nick: nick, paint: paint, coin: coin, mug: mug, client: client,
+    game: function () { return game; },
+    wallet: function () { return wallet; },
+    test: function () { return test; },
+    saveTest: function () { saveTest(); },
+    phase: function () { return phaseNow(); },
+    pregame: function () { return pregame(); },
+    totals: function () { return totals(); },
+    redraw: function () { redrawBets(); },
+    /* Everybody's drafts in, from the kickoff: scored if it is over. */
+    loaded: function () { settleIfOver(); loadPack(); }
+  }) : null;
 
   function gems(n) {
     var wrap = el('span', 'ege-price', String(n));
@@ -893,7 +912,11 @@ EGE.liveView = (function () {
     wallet.diamonds = null;
     var mine = game;
     var c = client();
-    if (!wallet.email || !c) { redrawBets(); return; }
+    if (!wallet.email || !c) {
+      redrawBets();
+      if (draft) { draft.load().then(function () { if (game === mine) { settleIfOver(); } }); }
+      return;
+    }
     Promise.all([
       EGE.wallet.diamondsFor(wallet.email),
       game.test ? null : c.from('live_bets').select('market, pick, stake, x, payout, settled_at').eq('game_id', game.id).eq('email', wallet.email)
@@ -902,16 +925,19 @@ EGE.liveView = (function () {
       wallet.diamonds = got[0];
       if (got[1] && !got[1].error) { game.mine = got[1].data || []; }
       redrawBets();
+      return draft ? draft.load() : null;
+    }).then(function () {
+      if (game !== mine) { return; }
       settleIfOver();
       loadPack();
     });
   }
 
-  /* Won the most bets on it: its Game Pack (data/game-packs.js), handed
-     out as live_settle pays the bets, to open in the Shop. */
+  /* The best draft on it: its Game Pack (data/game-packs.js), handed out
+     as live_settle scores the drafts, to open in the Shop. */
   function loadPack() {
     var c = client();
-    if (!c || !game || game.test || !wallet.email || phaseNow() !== 'final' || !(game.mine || []).length) { return; }
+    if (!c || !game || game.test || !wallet.email || phaseNow() !== 'final' || !(draft && draft.has())) { return; }
     var mine = game;
     c.from('game_packs').select('id, opened_at').eq('game_id', game.id).eq('email', wallet.email)
       .order('earned_at', { ascending: false }).limit(1)
@@ -1040,14 +1066,16 @@ EGE.liveView = (function () {
     });
   }
 
-  /* The final whistle has gone: the bets paid (Supabase pays them; asking
-     is enough), and what they came to brought back. A test game's are
-     worked out here, from its results. */
+  /* The final whistle has gone: the bets paid and the drafts scored
+     (Supabase does both; asking is enough), and what they came to brought
+     back. A test game's are worked out here, from its results. */
   function settleIfOver(tries) {
     if (!game || phaseNow() !== 'final' || settling) { return; }
     var open = (game.mine || []).filter(function (b) { return !b.settled_at; });
-    if (!open.length) { return; }
+    var drafts = Boolean(draft && draft.due());
+    if (!open.length && !drafts) { return; }
     if (game.test) {
+      if (drafts) { draft.settleTest(); }
       var res = (test.bets && test.bets.results) || {};
       open.forEach(function (b) {
         b.payout = (res.push || []).indexOf(b.market) !== -1 ? b.stake
@@ -1063,15 +1091,21 @@ EGE.liveView = (function () {
     settling = true;
     var mine = game;
     c.rpc('live_settle', { p_id: game.id }).then(function () {
-      return c.from('live_bets').select('market, pick, stake, x, payout, settled_at').eq('game_id', mine.id).eq('email', wallet.email);
-    }).then(function (res) {
+      return Promise.all([
+        wallet.email ? c.from('live_bets').select('market, pick, stake, x, payout, settled_at').eq('game_id', mine.id).eq('email', wallet.email)
+          : { data: [] },
+        game === mine && draft ? draft.load() : null
+      ]);
+    }).then(function (got) {
+      var res = got[0];
       settling = false;
       if (game !== mine || res.error) { return; }
       game.mine = res.data || [];
-      var left = game.mine.some(function (b) { return !b.settled_at; });
+      var left = game.mine.some(function (b) { return !b.settled_at; }) || Boolean(draft && draft.due());
       if (!left) { loadPack(); }
       /* This page's clock ran a moment ahead of Supabase's: again shortly. */
       if (left && (tries || 0) < 6) { window.setTimeout(function () { if (game === mine) { settleIfOver((tries || 0) + 1); } }, 5000); }
+      if (!wallet.email) { redrawBets(); return; }
       return EGE.wallet.diamondsFor(wallet.email).then(function (n) {
         if (game !== mine) { return; }
         wallet.diamonds = n;
@@ -1441,24 +1475,26 @@ EGE.liveView = (function () {
   function betsKey() {
     return shownBets().map(function (x) { return x.m.id + (x.open ? '+' : ''); }).join(',') + '|' +
       (game.mine || []).map(function (b) { return b.market + ':' + b.pick + ':' + b.stake + (b.settled_at ? '$' : ''); }).join(',') + '|' + (picker || '') +
-      (game.pack ? '|pack' : '');
+      (game.pack ? '|pack' : '') + (draft ? '|' + draft.key() : '');
   }
 
   /* The bets box, under the play by play and over the box score (Sam,
-     2026-11-04). None at all once betting has closed on somebody who never
-     bet. */
+     2026-11-04), the draft on top (Sam, 2026-11-14). None at all once
+     betting has closed on somebody who never bet, with no draft to show. */
   function drawBets() {
     if (!game || !game.row) { return null; }
     var open = openBets();
     var shown = shownBets();
     var mine = game.mine || [];
+    var can = Boolean(wallet.email);
+    var drafted = draft ? draft.block(can) : null;
     /* A market that has closed shuts its pop-up and its list, bet on or
        not. */
     var live = menus().filter(function (x) { return x.open; });
     if (slip && !live.some(function (x) { return x.m.id === slip.market; })) { closeSlip(); }
     if (picker && !live.some(function (x) { return x.m.id === picker; })) { picker = null; }
     var strays = mine.filter(function (b) { return !marketOf(b.market); });
-    if (!shown.length && !strays.length) { return null; }
+    if (!shown.length && !strays.length && !drafted) { return null; }
     var box = el('section', 'fb-panel ege-cast__bets');
     box.setAttribute('data-open', betsKey());
     paint(box, game.row.away);
@@ -1472,9 +1508,10 @@ EGE.liveView = (function () {
       head.appendChild(bal);
     }
     box.appendChild(head);
-    var can = Boolean(wallet.email);
-    if (open.length && !can) { box.appendChild(el('p', 'fb-meta ege-cast__betnote', 'Log in to bet.')); }
-    /* The most bets won on it: a Game Pack waiting in the Shop. */
+    if ((open.length || (drafted && pregame())) && !can) {
+      box.appendChild(el('p', 'fb-meta ege-cast__betnote', 'Log in to bet.'));
+    }
+    /* The best draft on it: a Game Pack waiting in the Shop. */
     if (game.pack) {
       var claim = el('a', 'ege-cast__gamepack');
       claim.href = '#cards/shop';
@@ -1482,6 +1519,7 @@ EGE.liveView = (function () {
       claim.appendChild(el('span', 'ege-cast__gamepackgo', 'Open it in the Shop \u203a'));
       box.appendChild(claim);
     }
+    if (drafted) { box.appendChild(drafted); }
     shown.forEach(function (x) { box.appendChild(drawBlock(x, can)); });
     strays.forEach(function (b) { box.appendChild(drawStray(b)); });
     return box;
@@ -1526,7 +1564,7 @@ EGE.liveView = (function () {
   function control(id, action) {
     var c = client();
     if (!c) { return Promise.reject(new Error('Not connected to Supabase.')); }
-    if (action === 'kickoff') { closeSlip(); }
+    if (action === 'kickoff') { closeSlip(); if (draft) { draft.close(); } }
     return c.rpc('live_control', { p_id: id, p_action: action, p_delay: 0 }).then(function (res) {
       if (res.error) {
         throw new Error(res.error.message + (/live_control/.test(res.error.message) ? ' Run supabase/schema.sql again first.' : ''));
@@ -1771,7 +1809,10 @@ EGE.liveView = (function () {
   function testAct(action, value) {
     var now = Date.now();
     var ms = clock();
-    if (action === 'kickoff') { test.at = { ms: 0, real: now }; test.waiting = false; test.paused = false; closeSlip(); }
+    if (action === 'kickoff') {
+      test.at = { ms: 0, real: now }; test.waiting = false; test.paused = false; closeSlip();
+      if (draft) { draft.close(); }
+    }
     /* A kickoff set ahead: `value` is when, by this device's clock. */
     if (action === 'schedule') { test.at = { ms: -(value - now) * test.speed, real: now }; test.waiting = false; test.paused = false; test.kickoff = value; }
     if (action === 'unschedule') { test.waiting = true; test.kickoff = null; }
@@ -1802,6 +1843,7 @@ EGE.liveView = (function () {
     ticker = null;
     closeSlip();
     picker = null;
+    if (draft) { draft.reset(); }
     game = null;
   }
 
