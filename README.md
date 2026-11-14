@@ -526,33 +526,50 @@ Under the bar:
   each under its own heading (Sam, 2026-11-14), every box in the site's
   own dress, a dark outline and square corners, on white:
   - **Season Totals**: four or five tiles, the most telling numbers at his
-    position (QB YDS, TD, INT, CMP%, RTG; back RUYDS, RUTD, RUAVG, REC,
+    position (QB YDS, PTD, INT, CMP%, RTG; back RUYDS, RUTD, RUAVG, REC,
     REYDS; receiver and tight end REC, YDS, TD, AVG, TGT; defender TKL,
     SACK, INT, PD, FF; kicker FG, FG%, XP, PTS; punter PUNTS, YDS, AVG; a
     lineman his games). They are the season's line in the live rosters
     (`seasons`, from 2025 on, nfl-sim/lib/site.js `seasonLines`, counting
     only weeks out on the site: every week not published yet is taken off
     from the game log's box scores, and the rosters go out again when a
-    week is published), or else his games added up. A number that led the
-    league that season is in italics and underlined in orange, with no
-    key (Sam, 2026-10-27): the most of it in any season's line in the live
-    season's rosters, a share or an average only on the NFL's minimum
-    tries a game (14 passes, 6.25 carries, 1.875 catches, 1 field goal,
-    2.25 punts) times the most games anybody played that season.
+    week is published), or else his games added up. Each one says where
+    it put him in the league that season (Sam, 2026-11-14): the top three
+    have the League leaders page's trophy beside the label, gold, silver or
+    bronze and standing still, and the number in italics underlined in
+    the same metal; anybody else has his place in brackets (*YDS (17th)*).
+    The places are against every season's line in the live season's
+    rosters, a tie sharing the higher place; nobody has a place for none
+    of something, and a share or an average counts only on the NFL's
+    minimum tries a game (14 passes, 6.25 carries, 1.875 catches, 1 field
+    goal, 2.25 punts) times the most games anybody played that season.
+    Interceptions thrown go fewest first, among the passers who qualify.
   - **Recent Performances**: a chart of his last ten games that season
     (Sam, 2026-11-14), oldest first: a bar a game in the colour of the
     team he played it for, as tall as the game was good next to the
     others, its score over it (fantasy points; a defender's on the League
     page's IDP scoring, a kicker's points, a punter's yards a punt; none
     for a lineman) and vs or @ and the opponent's mark under it, the
-    game's line in the bar's title.
+    game's line in the bar's title. On these white boxes the Jets' mark
+    is their green one (`EGE.logoOnLight`, data/logos.js), as on the
+    schedules and the six's cards.
   - **Game Log**: every game that season in week order (playoff rounds as
     WC, DIV, CONF, SB), the opponent (a link to its page for that season),
-    the result and his position's numbers, the player page's game log
-    table with a **Season** line under a hard rule (his team's record and
-    the totals, averages worked out again from them); it scrolls sideways
-    on a phone.
+    the result, his position's numbers and **FPTS** last (Sam,
+    2026-11-14: fantasy points, a defender's on the IDP scoring; none for
+    a kicker, a punter or a lineman), the player page's game log table
+    with a **Season** line under a hard rule (his team's record and the
+    totals, averages worked out again from them); it scrolls sideways on a
+    phone. Wk, Result and every number sort it as the six's game logs do:
+    biggest first, smallest, then back to week order, the column shaded.
   - **Overall**: his archetype, fit stars and skills, best first.
+  - **Progression**: his overall season by season as a line (Sam,
+    2026-11-14), green going up and red going down, the overall over each
+    point and the season and its change (+3, −2) under it, the season
+    showing filled in its team's colour. A point opens its season. It
+    comes once every season in his year bar has its rosters in (seasons
+    that have no word of him drop off the bar then), and not for one
+    season.
   - **Contract**: that season's (*$1.1M a year through 2024*), or Status
     for a retired player.
   - **Injury**: what keeps him off the field now, in red, in the live
