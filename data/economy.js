@@ -259,25 +259,49 @@ EGE.economy = (function () {
 
   /* --- what one game pays ----------------------------------------------- */
 
-  /* `playoff` is the game's own flag. Left out, a game is paid as a
-     regular-season one. `missed` is the game's `injured` flag: a game sat
-     out hurt does not get a tight end's floor. */
-  function gameCredits(player, stats, season, playoff, missed) {
+  /* From 2030 a game pays 20% fewer credits (Sam, 2026-11-14: "slightly
+     decrease the credit return for games next year", then "20% reduced").
+     Only the credits: a game's diamonds and its Player Card bonuses are
+     still worked out from the full amount (plainCredits). A tight end's
+     floor of 5 stays. The seasons before it were paid as they went, so they
+     keep paying in full. */
+  var CREDIT_CUT = 0.2;
+  var CREDIT_CUT_FROM = 2030;
+
+  function creditKeep(season) {
+    return (season || EGE.currentSeason) >= CREDIT_CUT_FROM ? 1 - CREDIT_CUT : 1;
+  }
+
+  function creditsFor(player, stats, season, playoff, missed, keep) {
     if (!stats) { return 0; }
     if (!paysFantasy(season)) { return touchdownCredits(player, stats); }
 
     var position = player && player.position;
     var share = fantasyShareFor(position, season);
     var times = playoffBoosted(season, playoff) ? PLAYOFF_CREDITS : 1;
-    var credits = Math.ceil(Math.round(fantasyPoints(stats) * share * times * 100) / 100);
+    var credits = Math.ceil(Math.round(fantasyPoints(stats) * share * times * keep * 100) / 100);
     return Math.max(minimumCredits(position, season, missed), credits);
+  }
+
+  /* `playoff` is the game's own flag. Left out, a game is paid as a
+     regular-season one. `missed` is the game's `injured` flag: a game sat
+     out hurt does not get a tight end's floor. */
+  function gameCredits(player, stats, season, playoff, missed) {
+    return creditsFor(player, stats, season, playoff, missed, creditKeep(season));
+  }
+
+  /* What a game would pay without the 2030 cut: what its diamonds and its
+     Player Card bonuses are worked out from. */
+  function plainCredits(player, stats, season, playoff, missed) {
+    return creditsFor(player, stats, season, playoff, missed, 1);
   }
 
   /* How a position is paid in a season, in a few words for the admin page. */
   function rateText(position, season) {
     if (!paysFantasy(season)) { return tdRateFor(position) + ' a TD'; }
     var floor = minimumCredits(position, season);
-    return fantasyShareFor(position, season) + '\u00d7 fantasy pts' +
+    var rate = Math.round(fantasyShareFor(position, season) * creditKeep(season) * 1000) / 1000;
+    return rate + '\u00d7 fantasy pts' +
            (floor > 1 ? ', ' + floor + ' min' : '');
   }
 
@@ -371,7 +395,7 @@ EGE.economy = (function () {
     if (!stats || !paysDiamonds(season)) { return 0; }
     /* The plain credits, before the playoff 1.25x: the playoff's own 2x is
        what a playoff game's diamonds are boosted by. */
-    var credits = gameCredits(player, stats, season, false, missed);
+    var credits = plainCredits(player, stats, season, false, missed);
     var times = typeof multiplier === 'number' && multiplier > 0 ? multiplier : 1;
     times *= playoffDiamondTimes(season, playoff);
     return Math.ceil(Math.round(credits * times * 100) / 100);
@@ -431,6 +455,9 @@ EGE.economy = (function () {
     minimumCredits: minimumCredits,
     paysFantasy: paysFantasy,
     gameCredits: gameCredits,
+    plainCredits: plainCredits,
+    CREDIT_CUT: CREDIT_CUT,
+    CREDIT_CUT_FROM: CREDIT_CUT_FROM,
     PLAYOFF_CREDITS: PLAYOFF_CREDITS,
     PLAYOFF_DIAMONDS: PLAYOFF_DIAMONDS,
     PLAYOFF_FROM: PLAYOFF_FROM,
