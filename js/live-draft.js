@@ -2,8 +2,10 @@
    EGE Football — the draft on a live game
    Who gets a live game's Game Pack (Sam, 2026-11-14; it used to be whoever
    won the most bets on it): the best draft. Four players from either side,
-   picked in order before the kickoff, the top block of the Bets box after
-   Sam's concept: four faces in a row, each with its boost on its corner
+   picked in order before the kickoff, defenders too (Sam, 2026-11-14: a
+   gamble that pays off on a good game, scored as the League page's Top
+   Performers score one), the top block of the Bets box after Sam's
+   concept: four faces in a row, each with its boost on its corner
    and a short name under it ("K. Walker"), and an Update button under
    them. A face opens the list of players, like the anytime touchdown's;
    a player already picked moves to the face picked from, so the order can
@@ -16,7 +18,9 @@
    pick's place in the order's (2.0x, 1.6x, 1.4x and none, the menu's
    `order`), so a 3.0x player taken first is 5.0x; a pick with neither is
    1x. From the kickoff the faces show what each pick has come to so far,
-   off the box score as it stands, and everybody's draft is out
+   off the box score as it stands, counting up as each snap adds to it
+   (nothing of the end of the game is here before it happens), and
+   everybody's draft is out
    (live_draft_board) with where it stands; once the final whistle has
    gone Supabase scores them (live_settle, live_draft_score) and the best
    gets the Game Pack. A test game keeps its draft on this device alone.
@@ -32,12 +36,24 @@ EGE.liveDraft = (function () {
 
   var PLACES = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'];
 
+  /* A defender counts as the League page's Top Performers count him
+     (DEF_STATS in js/app.js; nfl-sim/lib/live-bets.js draftPoints). */
+  var DEFENDERS = { EDGE: true, DI: true, LB: true, CB: true, S: true };
+  var DEF_POINTS = { defTd: 6, ints: 3, ff: 3, sacks: 2, passDef: 1, tackles: 1 };
+
+  /* How long a pick's points take to count up to what they have come to. */
+  var COUNT_MS = 900;
+
   function round2(x) { return Math.round(x * 100) / 100; }
 
-  /* Fantasy points off a live box score line, as the sim scores them
-     (nfl-sim/lib/boosts.js fantasyPoints, data/economy.js). */
-  function fantasyPoints(line) {
+  /* A player's points off a live box score line, as the sim scores them
+     (nfl-sim/lib/live-bets.js draftPoints): a defender's on DEF_POINTS,
+     anybody else's on the site's fantasy scoring (data/economy.js). */
+  function fantasyPoints(line, pos) {
     if (!line) { return 0; }
+    if (DEFENDERS[pos]) {
+      return Object.keys(DEF_POINTS).reduce(function (sum, k) { return sum + (line[k] || 0) * DEF_POINTS[k]; }, 0);
+    }
     return round2((line.passYds || 0) / 25 + (line.passTd || 0) * 4 - (line.passInt || 0) * 2 +
       (line.rushYds || 0) / 10 + (line.rushTd || 0) * 6 + (line.recYds || 0) / 10 + (line.recTd || 0) * 6 +
       (line.rec || 0) * 0.5 - (line.fumLost || 0) * 2);
@@ -83,7 +99,7 @@ EGE.liveDraft = (function () {
 
     function fresh() {
       return { picks: [], saved: null, row: null, slot: null, busy: false, error: null, board: null, asked: false,
-               loadedFor: null };
+               loadedFor: null, shown: {} };
     }
 
     function game() { return ctx.game(); }
@@ -218,7 +234,7 @@ EGE.liveDraft = (function () {
       var lines = {};
       ctx.totals().box.forEach(function (l) { lines[l.name + '|' + l.team] = l; });
       var out = {};
-      m.picks.forEach(function (p) { out[p.id] = fantasyPoints(lines[p.n + '|' + p.t]); });
+      m.picks.forEach(function (p) { out[p.id] = fantasyPoints(lines[p.n + '|' + p.t], p.pos); });
       return out;
     }
 
@@ -249,6 +265,31 @@ EGE.liveDraft = (function () {
 
     function chip(text, className) { return el('span', 'ege-cast__draftx' + (className ? ' ' + className : ''), text); }
 
+    /* Points that go up as the game plays out (Sam, 2026-11-14): drawn at
+       what they were last shown at and counted up (or down) to what they
+       are now, lit while they climb. `id` keeps them apart. */
+    function counted(id, value, className) {
+      var s = st();
+      var node = el('span', className, pointsText(value));
+      var from = s.shown[id];
+      s.shown[id] = value;
+      if (typeof from !== 'number' || Math.abs(from - value) < 0.05) { return node; }
+      var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (still || !window.requestAnimationFrame) { return node; }
+      node.textContent = pointsText(from);
+      if (value > from) { node.classList.add('is-up'); }
+      var start = null;
+      function step(now) {
+        if (start === null) { start = now; }
+        var t = Math.min(1, (now - start) / COUNT_MS);
+        var eased = 1 - Math.pow(1 - t, 3);
+        node.textContent = pointsText(from + (value - from) * eased);
+        if (t < 1) { window.requestAnimationFrame(step); } else { node.classList.remove('is-up'); }
+      }
+      window.requestAnimationFrame(step);
+      return node;
+    }
+
     /* One of the four: the face of whoever is picked there, his boost on
        its corner and his name under it; before the kickoff a button that
        opens the list, an empty circle until somebody is picked. */
@@ -264,11 +305,16 @@ EGE.liveDraft = (function () {
         node.setAttribute('aria-haspopup', 'listbox');
         node.setAttribute('aria-expanded', s.slot === place ? 'true' : 'false');
         node.setAttribute('aria-label', PLACES[place] + ' pick' + (p ? ': ' + p.n : ''));
+        /* Tapped again once all four are in, it swaps whoever is there for
+           somebody else (Sam, 2026-11-14), until the kickoff. */
         node.addEventListener('click', function () {
           s.slot = s.slot === place ? null : place;
           ctx.redraw();
-          var row = s.slot !== null && document.querySelector('.ege-cast__draftlist .ege-cast__pickrow.is-chosen, .ege-cast__draftlist .ege-cast__pickrow');
-          if (row) { row.focus({ preventScroll: true }); }
+          var list = s.slot !== null && document.querySelector('.ege-cast__draftlist');
+          var row = list && (list.querySelector('.ege-cast__pickrow.is-chosen') || list.querySelector('.ege-cast__pickrow'));
+          if (!row) { return; }
+          row.focus({ preventScroll: true });
+          if (row.classList.contains('is-chosen')) { list.scrollTop = Math.max(0, row.offsetTop - list.clientHeight / 3); }
         });
       }
       var ring = el('span', 'ege-cast__draftface');
@@ -283,13 +329,14 @@ EGE.liveDraft = (function () {
       node.appendChild(ring);
       node.appendChild(el('span', 'ege-cast__draftname', p ? shortName(p.n) : PLACES[place]));
       if (live && p) {
-        node.appendChild(el('span', 'ege-cast__draftpts', pointsText(round2((pts[p.id] || 0) * boost))));
+        node.appendChild(counted('p' + place + ':' + p.id, round2((pts[p.id] || 0) * boost), 'ege-cast__draftpts'));
       }
       return node;
     }
 
-    /* The players to pick from, each side's together, a player picked in
-       another place marked with it: picking him moves him here. */
+    /* The players to pick from, each side's together, its offense and then
+       its defense, a player picked in another place marked with it:
+       picking him moves him here. */
     function list() {
       var s = st();
       var m = menu();
@@ -304,7 +351,15 @@ EGE.liveDraft = (function () {
         group.appendChild(ctx.coin(key, 18));
         group.appendChild(el('span', null, ctx.team(key).name));
         box.appendChild(group);
+        var banded = false;
         theirs.forEach(function (p) {
+          if (DEFENDERS[p.pos] && !banded) {
+            banded = true;
+            var band = ctx.paint(el('div', 'ege-cast__pickteam ege-cast__pickteam--def'), key);
+            band.appendChild(ctx.coin(key, 18));
+            band.appendChild(el('span', null, ctx.nick(key) + ' defense'));
+            box.appendChild(band);
+          }
           var at = s.picks.indexOf(p.id);
           var here = at === s.slot;
           var row = ctx.paint(el('button', 'ege-cast__pickrow' + (here ? ' is-chosen' : '')), key);
@@ -375,7 +430,7 @@ EGE.liveDraft = (function () {
         }
         item.appendChild(el('span', 'ege-cast__draftwho', who ? who.first : 'Somebody'));
         if (r.pack) { item.appendChild(el('span', 'ege-cast__draftpack', 'Game Pack')); }
-        item.appendChild(el('span', 'ege-cast__draftscore', pointsText(r.score)));
+        item.appendChild(counted('board:' + r.email, r.score, 'ege-cast__draftscore'));
         box.appendChild(item);
       });
       return box;
@@ -402,7 +457,7 @@ EGE.liveDraft = (function () {
       head.appendChild(words);
       if (live && s.saved) {
         var total = s.row && s.row.settled_at && s.row.score !== null ? Number(s.row.score) : score(m, s.saved, pts).score;
-        head.appendChild(el('span', 'ege-cast__drafttotal', pointsText(total)));
+        head.appendChild(counted('total', total, 'ege-cast__drafttotal'));
       }
       node.appendChild(head);
       if (s.saved || !live) {

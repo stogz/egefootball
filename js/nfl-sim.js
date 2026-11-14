@@ -3884,7 +3884,8 @@ module.exports = { depthChart, gameDay, skill, healthy, standIn };
    (supabase/schema.sql live_feeds), until the final whistle settles it.
 
    The draft (Sam, 2026-11-14): four players from either side, in order,
-   for the game's Game Pack. Each player carries a boost that evens out
+   for the game's Game Pack, defenders too on the League page's scoring
+   for them. Each player carries a boost that evens out
    what he is expected to score (DRAFT_PAR over it, none for anybody
    expected to reach it, so Sam at 30 points a game has none and a fourth
    receiver 2.0x and up), and each pick the boost of its place in the
@@ -3938,13 +3939,29 @@ const DRAFT_ORDER = [2, 1.6, 1.4, 0];
 const DRAFT_PAR = 12;
 const DRAFT_BOOST = [1.2, 4];
 const DRAFT_FLOOR = 1;
-const DRAFTABLE = { QB: true, RB: true, FB: true, WR: true, TE: true };
+const DRAFTABLE = { QB: true, RB: true, FB: true, WR: true, TE: true, EDGE: true, DI: true, LB: true, CB: true, S: true };
+
+/* A defender can be drafted too (Sam, 2026-11-14: more of a gamble, but
+   it pays off on a good game). The site's scoring has nothing for one, so
+   he counts as the League page's Top Performers count him (DEF_STATS in
+   js/app.js): a point a tackle or a pass broken up, 2 a sack, 3 a pick or
+   a forced fumble, 6 a score. */
+const DEFENDERS = { EDGE: true, DI: true, LB: true, CB: true, S: true };
+const DEF_POINTS = { defTd: 6, ints: 3, ff: 3, sacks: 2, passDef: 1, tackles: 1 };
 
 /* --------------------------------------------------------------- odds -- */
 
 function round05(x) { return Math.round(x * 20) / 20; }
 
 function round2(x) { return Math.round(x * 100) / 100; }
+
+/* A player's points in the draft off a box score line: a defender's on
+   DEF_POINTS, anybody else's on the site's fantasy scoring. */
+function draftPoints(line, pos) {
+  if (!line) { return 0; }
+  if (!DEFENDERS[pos]) { return boosts.fantasyPoints(line); }
+  return Object.keys(DEF_POINTS).reduce((sum, k) => sum + (line[k] || 0) * DEF_POINTS[k], 0);
+}
 
 /* A player's draft boost for the fantasy points he is expected to score,
    or 0 for none. */
@@ -4002,7 +4019,7 @@ function project(pre, game) {
       const line = r.box[id];
       const e = per[id] || (per[id] = { team: line.team, td: 0, td2: 0, passYds: [], rushYds: [], recYds: [], touches: 0, fp: 0 });
       if (scored(line)) { e.td += 1; }
-      e.fp += boosts.fantasyPoints(line);
+      e.fp += draftPoints(line, line.pos);
       if (late[id]) { e.td2 += 1; }
       Object.keys(STATS).forEach((k) => e[k].push(line[k] || 0));
       e.touches += (line.rushAtt || 0) + (line.targets || 0) + (line.passAtt || 0);
@@ -4186,21 +4203,22 @@ function build(pre, game, kept, plan, games) {
     results[mkt] = [((did[id] && did[id][stat]) || 0) > line ? 'over' : 'under'];
   });
 
-  /* The draft: every quarterback, running back, receiver and tight end
-     fit to play on either side who gets the ball enough to count, the
-     visitors first, each side's likeliest scorers first. What he is
-     expected to score is the matchup's average, and halfway to his
-     season's average once he has three games behind him. */
+  /* The draft: everybody fit to play on either side who plays enough to
+     count but the kickers, the visitors first, each side's offense before
+     its defense and the likeliest scorers first. What he is expected to
+     score is the matchup's average, and halfway to his season's average
+     once he has three games behind him. */
   const draftPool = [];
   [game.away, game.home].forEach((key) => {
     rosterOf(pre, key).filter((p) => DRAFTABLE[p.pos] && !(p.injury && p.injury.games > 0)).map((p) => {
       const e = proj.per[p.id];
       const sim = e && e.team === key ? e.fp : 0;
       const lines = seen[p.id] || [];
-      const avg = lines.length ? lines.reduce((a, l) => a + boosts.fantasyPoints(l), 0) / lines.length : 0;
+      const avg = lines.length ? lines.reduce((a, l) => a + draftPoints(l, p.pos), 0) / lines.length : 0;
       return { p, expected: lines.length >= 3 ? (avg + sim) / 2 : sim };
     }).filter((x) => x.expected >= DRAFT_FLOOR)
-      .sort((a, b) => b.expected - a.expected || b.p.ovr - a.p.ovr)
+      .sort((a, b) => (DEFENDERS[a.p.pos] ? 1 : 0) - (DEFENDERS[b.p.pos] ? 1 : 0) ||
+        b.expected - a.expected || b.p.ovr - a.p.ovr)
       .forEach((x) => draftPool.push(x));
   });
   if (draftPool.length >= DRAFT_ORDER.length) {
@@ -4213,7 +4231,7 @@ function build(pre, game, kept, plan, games) {
     results.draft = {};
     draftPool.forEach((x, i) => {
       const got = did[x.p.id];
-      results.draft['d' + i] = got ? round2(boosts.fantasyPoints(got.line)) : 0;
+      results.draft['d' + i] = got ? round2(draftPoints(got.line, x.p.pos)) : 0;
     });
   }
 
@@ -4239,7 +4257,7 @@ function build(pre, game, kept, plan, games) {
   return { bets, half, results };
 }
 
-module.exports = { build, tdPrice, homePoints, draftBoost, MIN, SPREAD, PROP, DRAFT_ORDER, DRAFT_PAR };
+module.exports = { build, tdPrice, homePoints, draftBoost, draftPoints, MIN, SPREAD, PROP, DRAFT_ORDER, DRAFT_PAR };
 
   };
 

@@ -3106,10 +3106,15 @@ it; `data/game-packs.js`, `js/live-draft.js`).
 **The draft** is the top block of the live page's Bets box, after Sam's
 concept: four faces in a row, each pick's boost on its corner and a short
 name under it ("K. Walker"), an **Update** button under them. A face opens
-the list of players (like the anytime touchdown's): every quarterback,
-running back, receiver and tight end on either side who gets the ball
-enough to count. Picking somebody already in another place swaps the two,
-so the order can be changed too. It is free, and it can be changed as
+the list of players (like the anytime touchdown's): everybody on either
+side who plays enough to count but the kickers, each side's offense and
+then its defense. A defender is more of a gamble that pays off on a good
+game (Sam): he scores as the League page's Top Performers score him, a
+point a tackle or pass broken up, 2 a sack, 3 a pick or forced fumble, 6 a
+touchdown. Once all four are in, tapping a face again swaps whoever is
+there for somebody else, and picking somebody already in another place
+swaps the two, so the order can be changed too; all of it locks at the
+kickoff. It is free, and it can be changed as
 often as wanted until the kickoff, a kickoff set ahead included
 (`live_draft_set()`, `live_pregame()`).
 
@@ -3122,10 +3127,13 @@ often as wanted until the kickoff, a kickoff set ahead included
 - Each **place** adds its own: 2.0x first, 1.6x second, 1.4x third, none
   fourth. The two add up, so a 3.0x player taken first is 5.0x; a pick
   with neither is 1x.
-- A pick scores his fantasy points (as the site scores them) times that.
-  From the kickoff the faces show what each has come to so far, the total
+- A pick scores his fantasy points (as the site scores them, a defender's
+  as above) times that. From the kickoff the faces show what each has come
+  to so far, counting up (lit green) as each snap adds to it, the total
   sits by the title, and everybody's draft is listed best first
-  (`live_draft_board()`, nothing before the kickoff).
+  (`live_draft_board()`, nothing before the kickoff). Only the snaps
+  already played count: nothing of how it ends is on the page until the
+  final whistle, when Supabase scores them and the winner is marked.
 - At the final whistle `live_settle()` scores every draft
   (`live_draft_score()`, the points read off the game's own plays when it
   went live) and hands the pack to the best total over nothing. A tie goes

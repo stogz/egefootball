@@ -12132,6 +12132,9 @@ button.ege-cast__draftpick:active:not(:disabled) .ege-cast__draftface { transfor
   text-transform: uppercase;
 }
 .ege-cast__draftscore { margin-left: auto; font-weight: 800; font-variant-numeric: tabular-nums; }
+/* Points climbing as the game plays out, lit green while they count up. */
+.ege-cast__draftpts, .ege-cast__drafttotal, .ege-cast__draftscore { transition: color .4s ease; }
+.ege-cast__draftpts.is-up, .ege-cast__drafttotal.is-up, .ege-cast__draftscore.is-up { color: #2e7d32; transition: none; }
 
 
 @media (max-width: 620px) {
