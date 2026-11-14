@@ -487,11 +487,13 @@ Under the bar:
   closes it too, as does Escape. It opens on the season he was clicked in
   and steps through every season from the one he came into the league
   (his draft) to the live one, or his last before he retired; a season
-  whose rosters have no word of him is skipped. The card is 800px wide.
-  The band is in that season's team colour, with the team's mark behind
-  everything in two
-  tones, the band's colour and a fifth darker (a little lighter on a band
-  too dark for darker to show), cut off top and bottom (Sam, 2026-10-21):
+  whose rosters have no word of him is skipped. A player with only the
+  one season has no arrows, the year filling their room. The card is
+  800px wide and centred on the screen. The band is in that season's
+  team colour, with the team's mark behind everything in a see-through
+  black (20%), on every team, cut off top and bottom (Sam, 2026-11-14;
+  a pick's pop-up keeps the two tones of 2026-10-21, the band's colour
+  and a fifth darker, a little lighter on a band too dark for darker):
   each mark's own colours are split in two where they fall apart most
   (Otsu's method, a sliver such as the Bears' white rim set aside), the
   side covering more of the mark is drawn in the shade and the other left
@@ -505,14 +507,16 @@ Under the bar:
   rather than broken when it is long (`fitName`); his position (QB,
   WR, OT, IOL, EDGE, ...) in white in a box the circle's colour made
   solid; under the name, in the plain type, the team's mark and name, a
-  link to that team's page for that season (*Free Agent* or *Retired*
-  without one), the position box in a column after the name and team,
+  link to that team's page for that season that stays white under the
+  pointer, underlined with an arrow after it (*Free Agent* or *Retired*
+  without one), close under the name; the position box in a column after the name and team,
   centred on the band's height, 24px from them; and at the right his
   overall that season (the sim's for a past season, which it took from
   the six's pages while it was played; the six's own overall now in the
   live one), with no change from the season before (Sam took it out: too
-  much for the band). The name has no drop shadow. The band is kept short (a 100px circle) and the
-  mark behind it is at 45%. Under the band come college, draft
+  much for the band); the overall is the very box his card on a team's
+  page has. The name has no drop shadow. The band is kept short (a 100px
+  circle). Under the band come college, draft
   (*2021 · R4 #112*), age that season and H/W (*6′1″ 194 lbs*) in a thin strip on the team's second colour
   (the Bears' orange; white for a free agent), the text white or dark to
   suit it, with no line between it and the band; then, on the cream, his

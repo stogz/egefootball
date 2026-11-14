@@ -3839,11 +3839,11 @@
       (row.season ? ', ' + row.season : ''));
     var logoSrc = EGE.nfl.logo(row.team);
 
-    /* Line one: the band, on the team's colour, its mark in two tones
-       behind everything (Sam, 2026-10-21). */
+    /* Line one: the band, on the team's colour, its mark behind
+       everything in a see-through black (Sam, 2026-11-14). */
     var band = el('div', 'ege-person__band');
     band.style.background = team.color || '';
-    bandWash(band, team);
+    bandWash(band, team, [0, 0, 0]);
 
     /* His headshot in a circle a shade darker than the band (Sam,
        2026-11-14: a 40% black), or a shade lighter on a band too dark for
