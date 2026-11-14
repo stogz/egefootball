@@ -9,8 +9,8 @@
    speed, strength, jumping and the rest. What is learned never goes: pass
    accuracy, route running, BC Vision, catching, blocking technique. At 27
    and 28 it is a handful of points (a -1 on a few things). From 29 (the
-   2030 offseason) it is set in overall instead: a back loses 4 at 29, a
-   receiver or tight end 3 and a quarterback 2, one more every year after,
+   2030 offseason) it is set in overall instead: a back loses 5 at 29, a
+   receiver or tight end 4 and a quarterback 3, one more every year after,
    off the athletic stats his overall counts, and a back, receiver or tight
    end loses whatever he has above 99 first. Each Hyperbaric Chamber he owns
    takes 7.5% off the age part.
@@ -54,11 +54,13 @@ EGE.aging = {
      `step` more each year after, off the physical stats his position's
      overall counts: backs go first and quarterbacks last, as in the NFL
      sim's own aging (nfl-sim/lib/aging.js). With no chambers a back loses
-     4 at 29 and 9 at 34, a quarterback 2 and 7. Whatever a back, receiver
-     or tight end has above 99 goes first (overallRegression). */
+     5 at 29 and 10 at 34, a quarterback 3 and 8 (Sam made it a point worse
+     than first drafted: Sam to 94, Paxon 95, Cooper 92, Andrew 89, Isaac
+     90 in 2030). Whatever a back, receiver or tight end has above 99 goes
+     first (overallRegression). */
   overall: {
     from: 2030, age: 29, step: 1,
-    points: { RB: 4, WR: 3, TE: 3, QB: 2, DEFAULT: 3 },
+    points: { RB: 5, WR: 4, TE: 4, QB: 3, DEFAULT: 4 },
     /* Whose overall above 99 goes before the age drop. Not a quarterback's:
        most of his is accuracy, which never ages, so taking Jaykeb's 104 to
        a 97 would cost 15 throw power and 18 speed in one offseason. */
