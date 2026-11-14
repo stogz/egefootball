@@ -3967,16 +3967,21 @@ notify pgrst, 'reload schema';
 --               market, each paying its price times the stake back once
 --               the final whistle has gone (live_settle). Placed only
 --               through live_bet_place, which takes the diamonds and the
---               price from the menu, never from the page. A market the
+--               price from the menu, never from the page. A bet can be
+--               changed or taken off for as long as its market is open:
+--               until the kickoff, or a halftime bet until the second half
+--               kicks off (Sam, 2026-11-14; live_bet_change). A market the
 --               menu marks a push gives the stake back, and so does
 --               taking the game off before it is over, by any road
 --               (live_refund).
 --
--- A game put on locks the boosters and wagers of the six playing in it
--- (Sam, 2026-11-09; live_games.emails): none goes on that week's game and
--- none comes off while the game is on, or once it is over, until it is
--- taken off -- cancelled, or the week played again or undone. An admin
--- aside (game_boosters_live_lock).
+-- A game put on locks the boosters of the six playing in it (Sam,
+-- 2026-11-09; live_games.emails), since the game was played with them on:
+-- none goes on that week's game and none comes off while the game is on,
+-- or once it is over, until it is taken off -- cancelled, or the week
+-- played again or undone. A wager changes nothing in the game, so it goes
+-- on and comes off until the kickoff (Sam, 2026-11-14). An admin aside
+-- (game_boosters_live_lock).
 -- ---------------------------------------------------------------------------
 
 do $$
@@ -4289,10 +4294,43 @@ $$;
 
 revoke all on function public.live_settle_due() from public, anon, authenticated;
 
+-- The market `p_market` of game `g`, if betting on it is open right now:
+-- before kickoff only the menu in live_games.bets is open; at halftime only
+-- the halftime one, until the second half kicks off (and not on a second
+-- half anybody has seen before a restart). Null otherwise.
+create or replace function public.live_open_market(g public.live_games, p_market text)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_hb     jsonb;
+  v_ms     bigint;
+  v_market jsonb;
+begin
+  if g.starts_at is null then
+    select m into v_market from jsonb_array_elements(coalesce(g.bets -> 'markets', '[]'::jsonb)) as m
+     where m ->> 'id' = p_market;
+  else
+    select half_bets into v_hb from public.live_feeds where game_id = g.id;
+    v_ms := floor(extract(epoch from (coalesce(g.paused_at, now()) - g.starts_at)) * 1000)::bigint;
+    if v_hb is not null and v_ms >= (v_hb ->> 'opens')::bigint and v_ms < (v_hb ->> 'closes')::bigint
+       and coalesce(g.reached_ms, 0) < (v_hb ->> 'closes')::bigint then
+      select m into v_market from jsonb_array_elements(coalesce(v_hb -> 'markets', '[]'::jsonb)) as m
+       where m ->> 'id' = p_market;
+    end if;
+  end if;
+  return v_market;
+end;
+$$;
+
+revoke all on function public.live_open_market(public.live_games, text) from public, anon, authenticated;
+
 -- A bet: `p_stake` diamonds on `p_pick` in `p_market`, at the price the
--- game's menu has for it. Before kickoff only the menu in live_games.bets
--- is open; at halftime only the halftime one, until the second half kicks
--- off. Returns { diamonds: what is left, bet }.
+-- game's menu has for it, while that market is open (live_open_market).
+-- Returns { diamonds: what is left, bet }.
 create or replace function public.live_bet_place(p_game text, p_market text, p_pick text, p_stake integer)
 returns jsonb
 language plpgsql
@@ -4302,8 +4340,6 @@ as $$
 declare
   v_email  text := auth.jwt() ->> 'email';
   g        public.live_games%rowtype;
-  v_hb     jsonb;
-  v_ms     bigint;
   v_market jsonb;
   v_x      numeric;
   v_min    integer;
@@ -4316,18 +4352,7 @@ begin
   v_min := coalesce((g.bets ->> 'min')::integer, 10);
   if p_stake is null or p_stake < v_min then raise exception 'Bet at least % diamonds.', v_min; end if;
   if p_stake > 1000000 then raise exception 'That is too many diamonds for one bet.'; end if;
-  if g.starts_at is null then
-    select m into v_market from jsonb_array_elements(coalesce(g.bets -> 'markets', '[]'::jsonb)) as m
-     where m ->> 'id' = p_market;
-  else
-    select half_bets into v_hb from public.live_feeds where game_id = p_game;
-    v_ms := floor(extract(epoch from (coalesce(g.paused_at, now()) - g.starts_at)) * 1000)::bigint;
-    if v_hb is not null and v_ms >= (v_hb ->> 'opens')::bigint and v_ms < (v_hb ->> 'closes')::bigint
-       and coalesce(g.reached_ms, 0) < (v_hb ->> 'closes')::bigint then
-      select m into v_market from jsonb_array_elements(coalesce(v_hb -> 'markets', '[]'::jsonb)) as m
-       where m ->> 'id' = p_market;
-    end if;
-  end if;
+  v_market := public.live_open_market(g, p_market);
   if v_market is null then raise exception 'Betting on that is closed.'; end if;
   select (p ->> 'x')::numeric into v_x from jsonb_array_elements(coalesce(v_market -> 'picks', '[]'::jsonb)) as p
    where p ->> 'id' = p_pick;
@@ -4348,6 +4373,69 @@ $$;
 
 revoke all on function public.live_bet_place(text, text, text, integer) from public, anon;
 grant execute on function public.live_bet_place(text, text, text, integer) to authenticated;
+
+-- A bet changed while its market is still open (Sam, 2026-11-14): the old
+-- stake goes back and `p_stake` diamonds go on `p_pick` instead, at the
+-- menu's price for it; with no `p_pick`, the bet comes off and the stake
+-- goes back. Returns { diamonds: what is left, bet } (bet null once off).
+create or replace function public.live_bet_change(p_game text, p_market text, p_pick text default null, p_stake integer default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email  text := auth.jwt() ->> 'email';
+  g        public.live_games%rowtype;
+  v_old    public.live_bets%rowtype;
+  v_market jsonb;
+  v_x      numeric;
+  v_min    integer;
+  v_left   integer;
+  v_bet    public.live_bets%rowtype;
+begin
+  if v_email is null then raise exception 'Sign in first.'; end if;
+  select * into g from public.live_games where id = p_game for share;
+  if not found then raise exception 'That game is not on.'; end if;
+  select * into v_old from public.live_bets
+   where game_id = p_game and email = v_email and market = p_market and settled_at is null
+   for update;
+  if not found then raise exception 'You have no bet on that.'; end if;
+  v_market := public.live_open_market(g, p_market);
+  if v_market is null then raise exception 'Betting on that is closed.'; end if;
+
+  if p_pick is null then
+    update public.player_diamonds set diamonds = diamonds + v_old.stake, updated_at = now()
+     where email = v_email
+    returning diamonds into v_left;
+    if v_left is null then
+      insert into public.player_diamonds (email, diamonds, updated_at)
+      values (v_email, v_old.stake, now())
+      returning diamonds into v_left;
+    end if;
+    delete from public.live_bets where id = v_old.id;
+    return jsonb_build_object('diamonds', v_left, 'bet', null);
+  end if;
+
+  v_min := coalesce((g.bets ->> 'min')::integer, 10);
+  if p_stake is null or p_stake < v_min then raise exception 'Bet at least % diamonds.', v_min; end if;
+  if p_stake > 1000000 then raise exception 'That is too many diamonds for one bet.'; end if;
+  select (p ->> 'x')::numeric into v_x from jsonb_array_elements(coalesce(v_market -> 'picks', '[]'::jsonb)) as p
+   where p ->> 'id' = p_pick;
+  if v_x is null then raise exception 'That is not one of the picks.'; end if;
+  update public.player_diamonds set diamonds = diamonds + v_old.stake - p_stake, updated_at = now()
+   where email = v_email and diamonds + v_old.stake >= p_stake
+  returning diamonds into v_left;
+  if v_left is null then raise exception 'Not enough diamonds.'; end if;
+  update public.live_bets set pick = p_pick, stake = p_stake, x = v_x, placed_at = now()
+   where id = v_old.id
+  returning * into v_bet;
+  return jsonb_build_object('diamonds', v_left, 'bet', to_jsonb(v_bet));
+end;
+$$;
+
+revoke all on function public.live_bet_change(text, text, text, integer) from public, anon;
+grant execute on function public.live_bet_change(text, text, text, integer) to authenticated;
 
 -- A game taken off before its bets are settled, by whatever road (Cancel,
 -- PLAY LIVE again, the week played again or undone), gives every stake
@@ -4642,11 +4730,30 @@ $$;
 revoke all on function public.live_locked(text, integer, integer) from public, anon;
 grant execute on function public.live_locked(text, integer, integer) to authenticated;
 
--- No booster or wager goes on such a game and none comes off it: the
--- result is out there, or on its way. Taking the game off (Cancel, PLAY
--- LIVE again, the week played again or undone) opens it again. An admin
--- may still put a week right, and so may this database's own hand (the
--- SQL editor, with nobody signed in).
+-- And whether that game has kicked off (Sam, 2026-11-14): an admin has
+-- pressed Kick off, so `starts_at` is set, and stays set through a pause
+-- or a restart until the game is taken off.
+create or replace function public.live_kicked_off(p_email text, p_season integer, p_week integer)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.live_games g
+                  where g.season = p_season and g.week = p_week and lower(p_email) = any (g.emails)
+                    and g.starts_at is not null);
+$$;
+
+revoke all on function public.live_kicked_off(text, integer, integer) from public, anon;
+grant execute on function public.live_kicked_off(text, integer, integer) to authenticated;
+
+-- No booster goes on such a game and none comes off it: the game was
+-- played with them as they were. A wager changes nothing in the game, so
+-- it goes on and comes off until the kickoff (Sam, 2026-11-14). Taking the
+-- game off (Cancel, PLAY LIVE again, the week played again or undone)
+-- opens it again. An admin may still put a week right, and so may this
+-- database's own hand (the SQL editor, with nobody signed in).
 create or replace function public.game_boosters_live_lock()
 returns trigger
 language plpgsql
@@ -4656,9 +4763,14 @@ declare
   r public.game_boosters%rowtype;
 begin
   if tg_op = 'DELETE' then r := old; else r := new; end if;
-  if coalesce(auth.jwt() ->> 'email', '') <> '' and not public.is_admin()
-     and public.live_locked(r.email, r.season, r.week) then
-    raise exception 'That game is live.';
+  if coalesce(auth.jwt() ->> 'email', '') <> '' and not public.is_admin() then
+    if r.item_key in ('wager-for', 'wager-against') then
+      if public.live_kicked_off(r.email, r.season, r.week) then
+        raise exception 'That game has kicked off.';
+      end if;
+    elsif public.live_locked(r.email, r.season, r.week) then
+      raise exception 'That game is live.';
+    end if;
   end if;
   if tg_op = 'DELETE' then return old; end if;
   return new;

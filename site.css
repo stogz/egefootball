@@ -11813,6 +11813,12 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-cast__half:disabled { cursor: default; }
 .ege-cast__split:not(.has-bet) .ege-cast__half:disabled { opacity: .7; }
 .ege-cast__split.has-bet .ege-cast__half:not(.is-bet) { opacity: .45; }
+/* Still open: the bet can be changed, so the other pick stays lit. */
+.ege-cast__split.has-bet.can-change .ege-cast__half:not(.is-bet) { opacity: 1; }
+@media (hover: hover) {
+  .ege-cast__half.is-bet:hover:not(:disabled),
+  button.ege-cast__chosen:hover { background: var(--team); filter: brightness(1.12); }
+}
 .ege-cast__half .ege-cast__coin { width: 30px; height: 30px; background: transparent; }
 .ege-cast__half .ege-cast__coin .ege-cast__logo { width: 100%; height: 100%; }
 .ege-cast__halfname { display: grid; min-width: 0; font-family: var(--fb-font-display); font-size: 1.25rem; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -11876,6 +11882,8 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-cast__chosen .ege-cast__mug { width: 42px; height: 42px; }
 .ege-cast__chosen .ege-cast__mugteam { width: 20px; height: 20px; }
 .ege-cast__chosenpos { font-family: var(--fb-font-body); font-size: .75rem; font-weight: 700; opacity: .85; }
+button.ege-cast__chosen { width: 100%; font: inherit; text-align: left; cursor: pointer; }
+.ege-cast__pickrow.is-chosen { background: var(--team-wash); box-shadow: inset 4px 0 0 var(--team); }
 .ege-cast__picklist {
   position: absolute;
   top: calc(100% + 4px);
@@ -12012,6 +12020,7 @@ html.ege-cast-sheet-open body { overflow: hidden; }
 .ege-cast__sheetpays { min-height: 1.4em; margin: 0; text-align: center; font-size: 1.0625rem; font-weight: 800; }
 .ege-cast__sliperror { margin: 0; }
 .ege-cast__sheetactions { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; }
+.ege-cast__sheetactions--edit { grid-template-columns: auto auto minmax(0, 1fr); }
 .ege-cast__sheetactions .ege-cast__go { justify-content: center; }
 
 
