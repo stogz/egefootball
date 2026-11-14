@@ -504,7 +504,7 @@ Under the bar:
   Saints', Texans', the navy ones); his name on one line, set smaller
   rather than broken when it is long (`fitName`); his position (QB,
   WR, OT, IOL, EDGE, ...) in white in a box the circle's colour made
-  solid, after them; under the name, in the plain type, the team's mark and name, a
+  solid; under the name, in the plain type, the team's mark and name, a
   link to that team's page for that season (*Free Agent* or *Retired*
   without one), the position box in a column after the name and team,
   centred on the band's height, 24px from them; and at the right his
