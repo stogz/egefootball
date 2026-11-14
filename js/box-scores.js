@@ -72,11 +72,35 @@
     return games[key];
   }
 
+  /* One player's games in a season, for his pop-up (nfl_player_games):
+     [{ week, game: { home, away, score, round, ot, neutral }, line }] in
+     week order, published weeks only. `sim` is his rosters' entry. Null
+     when there is nothing to ask or the schema has no such function yet. */
+  var players = {};
+  function playerGames(season, sim) {
+    var key = [season, sim.espn || '', sim.ege || '', sim.name, sim.pos].join('|');
+    if (!players[key]) {
+      var c = client();
+      players[key] = !c ? Promise.resolve(null) : c.rpc('nfl_player_games', {
+        p_season: season, p_espn: sim.espn ? String(sim.espn) : null, p_ege: sim.ege || null,
+        p_name: sim.name, p_pos: sim.pos
+      }).then(function (res) {
+        if (res.error) { delete players[key]; return null; }
+        return res.data || [];
+      }, function () {
+        delete players[key];
+        return null;
+      });
+    }
+    return players[key];
+  }
+
   /* Everything asked for again next time: the NFL Sim tab has written. */
   function forget() {
     index = null;
     games = {};
+    players = {};
   }
 
-  EGE.boxScores = { weeks: weeks, week: week, forget: forget };
+  EGE.boxScores = { weeks: weeks, week: week, playerGames: playerGames, forget: forget };
 })();

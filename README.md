@@ -487,11 +487,13 @@ Under the bar:
   closes it too, as does Escape. It opens on the season he was clicked in
   and steps through every season from the one he came into the league
   (his draft) to the live one, or his last before he retired; a season
-  whose rosters have no word of him is skipped. The card is 800px wide.
-  The band is in that season's team colour, with the team's mark behind
-  everything in two
-  tones, the band's colour and a fifth darker (a little lighter on a band
-  too dark for darker to show), cut off top and bottom (Sam, 2026-10-21):
+  whose rosters have no word of him is skipped. A player with only the
+  one season has no arrows, the year filling their room. The card is
+  800px wide and centred on the screen. The band is in that season's
+  team colour, with the team's mark behind everything in a see-through
+  black (20%), on every team, cut off top and bottom (Sam, 2026-11-14;
+  a pick's pop-up keeps the two tones of 2026-10-21, the band's colour
+  and a fifth darker, a little lighter on a band too dark for darker):
   each mark's own colours are split in two where they fall apart most
   (Otsu's method, a sliver such as the Bears' white rim set aside), the
   side covering more of the mark is drawn in the shade and the other left
@@ -505,54 +507,56 @@ Under the bar:
   rather than broken when it is long (`fitName`); his position (QB,
   WR, OT, IOL, EDGE, ...) in white in a box the circle's colour made
   solid; under the name, in the plain type, the team's mark and name, a
-  link to that team's page for that season (*Free Agent* or *Retired*
-  without one), the position box in a column after the name and team,
+  link to that team's page for that season that stays white under the
+  pointer, underlined with an arrow after it (*Free Agent* or *Retired*
+  without one), close under the name; the position box in a column after the name and team,
   centred on the band's height, 24px from them; and at the right his
   overall that season (the sim's for a past season, which it took from
   the six's pages while it was played; the six's own overall now in the
   live one), with no change from the season before (Sam took it out: too
-  much for the band). The name has no drop shadow. The band is kept short (a 100px circle) and the
-  mark behind it is at 45%. Under the band come college, draft
-  (*2021 · R4 #112*), age that season and H/W (*6′1″ 194 lbs*) in a thin strip on the team's second colour
-  (the Bears' orange; white for a free agent), the text white or dark to
-  suit it, with no line between it and the band; then, on the cream, his
-  seasons, his ratings and his contract, with only space between them, no
-  titles or rules (Sam, 2026-10-27). His seasons are **a table like the game log**: every
-  heading a button that sorts it (biggest first, then turned round, then
-  back to the order played), the sorted column shaded from its heading down to a **Career**
-  line that adds them up (averages and the passer rating worked out again
-  from the totals), with no label or line over it. A number that led the
-  league that season is in italics and underlined in orange, as a
-  schedule's team names are under the pointer, with no key (Sam,
-  2026-10-27): the
-  most of it in any season's line in the live season's rosters, a share or
-  an average only on the NFL's minimum tries a game (14 passes, 6.25
-  carries, 1.875 catches, 1 field goal, 2.25 punts) times the most games
-  anybody played that season. The whole table,
-  headings in black too, is on one shade, the darker of the game log's two,
-  with no lines round it or between the seasons, and the ratings sit on the
-  same shade, both boxes with round corners (Sam, 2026-10-27); it scrolls
-  sideways on a phone. A season's team mark lights up under the pointer and
-  opens that team's page for that season. A line a season
-  from 2025 on (Sam, 2026-10-26: the first season the sim kept everybody's
-  numbers), oldest first: the mark of the team he finished it with, the
-  season, his age, and his position's numbers (QB G, CMP%, YDS, TD, INT,
-  RTG, RUYDS, RUTD; back G, CAR, RUYDS, RUAVG, RUTD, REC, REYDS, RETD;
-  receiver and tight end G, TGT, REC, YDS, AVG, TD; defender G, TKL, SACK,
-  INT, PD, FF, TD; kicker G, FG, FG%, XP, PTS; punter G, PUNTS, YDS, AVG;
-  a lineman only his team and age). The playoffs count in the season. The lines come with the
-  rosters (`seasons`, nfl-sim/lib/site.js `seasonLines`) and count only
-  weeks out on the site: every week not published yet is taken off from
-  the game log's box scores, and the rosters go out again when a week is
-  published (the NFL Sim tab's Publish, the Weeks tab's when the sim is
-  loaded, or an admin's visit to a team page when `linesThrough` is behind).
-  The ratings are the archetype and his skills, best first; the contract
-  is that season's (*$1.1M a year through 2024*), with any injury now under
-  it in red, in the live season only. One of the
-  six's has a button through to his page. The seasons table is always
-  every season he has played (Sam, 2026-10-27), from his line in the live
-  season's rosters, whatever year is showing. A player is matched across
-  seasons' rosters by his ESPN id, which of the six he is, or his name,
+  much for the band); the overall is the box his card on a team's page
+  has, in the same proportions a third bigger. The name has no drop
+  shadow. The band is kept short (a 100px circle). Under the band come
+  college, draft (*2021 · R4 #112*), age that season and H/W (*6′1″ 194
+  lbs*) in a thin strip on the team's second colour (the Bears' orange;
+  white for a free agent), the text white or dark to suit it, with no line
+  between it and the band. Then, on the cream, **that season** a part
+  each under its own heading (Sam, 2026-11-14):
+  - **Season Totals**: four or five tiles, the most telling numbers at his
+    position (QB YDS, TD, INT, CMP%, RTG; back RUYDS, RUTD, RUAVG, REC,
+    REYDS; receiver and tight end REC, YDS, TD, AVG, TGT; defender TKL,
+    SACK, INT, PD, FF; kicker FG, FG%, XP, PTS; punter PUNTS, YDS, AVG; a
+    lineman his games). They are the season's line in the live rosters
+    (`seasons`, from 2025 on, nfl-sim/lib/site.js `seasonLines`, counting
+    only weeks out on the site: every week not published yet is taken off
+    from the game log's box scores, and the rosters go out again when a
+    week is published), or else his games added up. A number that led the
+    league that season is in italics and underlined in orange, with no
+    key (Sam, 2026-10-27): the most of it in any season's line in the live
+    season's rosters, a share or an average only on the NFL's minimum
+    tries a game (14 passes, 6.25 carries, 1.875 catches, 1 field goal,
+    2.25 punts) times the most games anybody played that season.
+  - **Recent Performances**: his last three games that season, the latest
+    first: vs or at, the opponent's mark and city (a link to its page for
+    that season), the week or playoff round, the result (*W 26–23*) and his
+    line in a few words (*21 CAR, 142 YDS, 1 TD · 1 REC, 9 YDS*).
+  - **Game Log**: every game that season in week order (playoff rounds as
+    WC, DIV, CONF, SB), the opponent, the result and his position's
+    numbers, on the same shade with round corners; it scrolls sideways on
+    a phone.
+  - **Overall**: his archetype, fit stars and skills, best first.
+  - **Contract**: that season's (*$1.1M a year through 2024*), or Status
+    for a retired player.
+  - **Injury**: what keeps him off the field now, in red, in the live
+    season only.
+
+  The games come from `nfl_player_games` (supabase/schema.sql): one
+  player's line in every published week of a season, with the game's score,
+  found by his ESPN id, which of the six he is, or else his name and
+  position (`EGE.boxScores.playerGames`). Without it (schema not re-run)
+  the totals still show from the rosters. One of the six's has a button
+  through to his page. A player is matched across seasons' rosters by his
+  ESPN id, which of the six he is, or his name,
   college and draft (`nflIdentity`).
   Nothing private is in the rosters: no team ratings, no potential, nothing
   about how long a player will last. Since 2026-10-21 they carry every

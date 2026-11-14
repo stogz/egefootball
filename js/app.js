@@ -3205,19 +3205,13 @@
     }
   }
 
-  /* His seasons, one line each (Sam, 2026-10-26): the mark of the team he
-     finished it with, the season, his age, and the numbers that matter most
-     at his position. 2025 on, the first season the sim kept everybody's
-     numbers, and only the weeks the website has put out (`seasons` in the
-     rosters, nfl-sim/lib/site.js seasonLines). A lineman's line is his
-     team and age: the sim keeps no numbers for blocking.
-
-     A table like the game log (Sam, 2026-10-27): every heading sorts it,
-     biggest first, so the season he led in something is the top line, and
-     a Career line under it the way the game log has the season's. Each
-     column reads a number off a season's line, or null for nothing to
-     show (an average with nothing to average); `places` is how it is
-     written, and `show` writes it another way. */
+  /* The numbers a pop-up shows at each position: a season's (`seasons` in
+     the rosters, 2025 on, the first season the sim kept everybody's
+     numbers, and only the weeks the website has put out; nfl-sim/lib/site.js
+     seasonLines) and a game's (the box scores). A lineman has none: the sim
+     keeps no numbers for blocking. Each column reads a number off a line,
+     or null for nothing to show (an average with nothing to average);
+     `places` is how it is written, and `show` writes it another way. */
   function statNumber(n) { return Number(n || 0).toLocaleString('en-US'); }
 
   function statCount(label, title, key) {
@@ -3348,141 +3342,178 @@
     return value !== null && Math.abs(value - best) < 1e-9;
   }
 
-  function seasonLines(sim) {
-    var seasons = (sim.seasons || []).slice().sort(function (a, b) { return a.season - b.season; });
-    if (!seasons.length) { return null; }
-    var stats = SEASON_COLUMNS[sim.pos] || [];
-    /* What sorts: the season and his age, then his position's numbers.
-       The team's mark leads every line and sorts nothing. */
-    var columns = [
-      { key: 'season', label: 'Season', value: function (entry) { return entry.season; } },
-      { key: 'age', label: 'Age', num: true, value: function (entry) { return typeof entry.age === 'number' ? entry.age : null; } }
-    ].concat(stats.map(function (column, at) {
-      return {
-        key: 'c' + at, label: column.label, title: column.title, num: true,
-        value: function (entry) { return entry.line ? column.value(entry.line) : null; }
-      };
-    }));
-    var played = seasons.filter(function (entry) { return entry.line; });
-    var career = stats.length && played.length > 1 ? careerLine(played) : null;
-    var sort = { key: null, dir: DOWN };
+  /* A season's totals in a pop-up (Sam, 2026-11-14): four or five of the
+     season table's columns, the most telling at his position. A lineman's
+     is his games. */
+  var TOTAL_PICKS = { QB: [2, 3, 4, 1, 5], RB: [2, 4, 3, 5, 6], FB: [2, 4, 3, 5, 6], WR: [2, 3, 5, 4, 1],
+                      TE: [2, 3, 5, 4, 1], K: [1, 2, 3, 4], P: [1, 2, 3] };
 
-    var table = el('table', 'fb-table ege-person__seasons' + (stats.length ? '' : ' is-bare'));
+  function totalColumns(pos) {
+    var all = SEASON_COLUMNS[pos];
+    if (!all) { return [GAMES_COLUMN]; }
+    var picks = TOTAL_PICKS[pos] || [1, 2, 3, 4, 5];
+    return picks.map(function (at) { return all[at]; });
+  }
+
+  /* A game's line in a few words, for his recent games: 22/31, 284 YDS,
+     3 TD, 1 INT. Null for a lineman. */
+  function gameLineText(pos, l) {
+    var n = function (v) { return v || 0; };
+    if (pos === 'QB') {
+      return n(l.passCmp) + '/' + n(l.passAtt) + ', ' + statNumber(l.passYds) + ' YDS, ' +
+        n(l.passTd) + ' TD, ' + n(l.passInt) + ' INT';
+    }
+    if (pos === 'RB' || pos === 'FB') {
+      var run = n(l.rushAtt) + ' CAR, ' + statNumber(l.rushYds) + ' YDS, ' + n(l.rushTd) + ' TD';
+      return n(l.rec) ? run + ' · ' + l.rec + ' REC, ' + statNumber(l.recYds) + ' YDS' +
+        (n(l.recTd) ? ', ' + l.recTd + ' TD' : '') : run;
+    }
+    if (pos === 'WR' || pos === 'TE') {
+      return n(l.rec) + ' REC, ' + statNumber(l.recYds) + ' YDS, ' + n(l.recTd) + ' TD';
+    }
+    if (pos === 'K') { return n(l.fgm) + '/' + n(l.fga) + ' FG, ' + n(l.xpm) + '/' + n(l.xpa) + ' XP'; }
+    if (pos === 'P') {
+      return n(l.punts) + ' PUNTS, ' + (l.punts ? (n(l.puntYards) / l.punts).toFixed(1) : '0.0') + ' AVG';
+    }
+    if (SEASON_COLUMNS[pos] === DEFENDER_COLUMNS) { return topStats(l, 'DEF') || 'No stats'; }
+    return null;
+  }
+
+  /* A game from his side: who it was against, home or away, the score
+     his team's first, and the result pill (W 27–20, L 17–20/OT). */
+  var LOG_ROUNDS = { 19: 'WC', 20: 'DIV', 21: 'CONF', 22: 'SB' };
+
+  function gameSide(entry) {
+    var g = entry.game || {};
+    var team = entry.line.team;
+    var home = g.home === team;
+    var score = g.score || [0, 0];
+    var us = home ? score[0] : score[1];
+    var them = home ? score[1] : score[0];
+    return { opponent: home ? g.away : g.home, at: home || g.neutral ? 'vs' : 'at', us: us, them: them, ot: Boolean(g.ot) };
+  }
+
+  function gameResult(side) {
+    var word = side.us > side.them ? 'W' : side.us < side.them ? 'L' : 'T';
+    return el('span', 'fb-tag fb-tag--num ege-result' +
+      (word === 'W' ? ' fb-tag--sage' : word === 'L' ? ' fb-tag--clay' : ''),
+      word + ' ' + side.us + '\u2013' + side.them + (side.ot ? '/OT' : ''));
+  }
+
+  /* vs or at, the opponent's mark and city, a way to his page for that
+     season. */
+  function gameOpponent(side, season) {
+    var holder = el('span', 'ege-person__opp');
+    holder.appendChild(el('span', 'ege-schedule__side', side.at));
+    var team = EGE.nfl.teams[side.opponent];
+    if (!team) { holder.appendChild(el('span', null, side.opponent || '\u2013')); return holder; }
+    var link = el('a', 'ege-opplink');
+    link.title = team.name;
+    toTeamSeason(link, side.opponent, season);
+    var src = EGE.nfl.logo(side.opponent);
+    if (src) {
+      var logo = el('img', 'ege-teamlogo');
+      logo.src = src;
+      logo.alt = '';
+      logo.width = 20;
+      logo.height = 20;
+      logo.addEventListener('error', function () { logo.remove(); });
+      link.appendChild(logo);
+    }
+    link.appendChild(el('span', 'fb-name', EGE.nfl.city(side.opponent)));
+    holder.appendChild(link);
+    return holder;
+  }
+
+  /* Every game a line added up, as a season's line has it. */
+  function gamesTotal(games) {
+    var total = { games: games.length };
+    games.forEach(function (entry) {
+      Object.keys(entry.line || {}).forEach(function (key) {
+        if (typeof entry.line[key] === 'number') { total[key] = (total[key] || 0) + entry.line[key]; }
+      });
+    });
+    return total;
+  }
+
+  /* The season's totals, a tile a number, the league's best in italics
+     and underlined in orange (Sam, 2026-10-27). */
+  function fillTotals(holder, pos, entry) {
+    var row = el('dl', 'ege-person__totals');
+    totalColumns(pos).forEach(function (column) {
+      var tile = el('div', 'ege-person__total');
+      tile.appendChild(el('dt', null, column.label));
+      var value = el('dd', ledLeague(column, entry) ? 'is-lead' : null, statText(column, entry.line));
+      tile.title = column.title;
+      tile.appendChild(value);
+      row.appendChild(tile);
+    });
+    holder.appendChild(row);
+    holder.hidden = false;
+  }
+
+  /* His last three games that season, the latest first. */
+  function fillRecent(holder, pos, games, season) {
+    var list = el('div', 'ege-person__recent');
+    games.slice(-3).reverse().forEach(function (entry) {
+      var side = gameSide(entry);
+      var card = el('div', 'ege-person__game');
+      card.appendChild(gameOpponent(side, season));
+      var under = el('div', 'ege-person__gametop');
+      under.appendChild(el('span', 'ege-person__gameweek', weekName(entry.week)));
+      under.appendChild(gameResult(side));
+      card.appendChild(under);
+      var text = gameLineText(pos, entry.line);
+      if (text) { card.appendChild(el('span', 'ege-person__gameline', text)); }
+      list.appendChild(card);
+    });
+    holder.appendChild(list);
+    holder.hidden = false;
+  }
+
+  /* Every game that season, a line each in week order: the week (a
+     playoff round by its letters), the opponent, the result and his
+     position's numbers. */
+  function fillLog(holder, pos, games, season) {
+    var stats = (SEASON_COLUMNS[pos] || []).filter(function (column) { return column !== GAMES_COLUMN; });
+    var table = el('table', 'fb-table ege-person__seasons ege-person__log');
     var thead = el('thead');
-    var tbody = el('tbody');
-    table.appendChild(thead);
-    table.appendChild(tbody);
-    var tfoot = career ? el('tfoot') : null;
-    if (tfoot) { table.appendChild(tfoot); }
-
-    /* The headings are made once and only marked on a sort: a click on
-       one that was taken away and made again would land nowhere in the
-       pop-up, and a click off the pop-up puts it away. */
     var head = el('tr');
-    head.appendChild(el('th', 'ege-person__seasonmark'));
-    var heads = columns.map(function (column) {
-      var th = el('th', (column.num ? 'num ' : '') + 'is-sortable');
+    [['Wk', 'Week'], ['Opp', 'Opponent'], ['Result', null]].forEach(function (pair, at) {
+      var th = el('th', at === 2 ? 'num' : null, pair[0]);
       th.scope = 'col';
-      var button = el('button', 'ege-sort', column.label);
-      button.type = 'button';
-      button.dataset.sortKey = column.key;
-      if (column.title) { button.title = column.title; }
-      th.appendChild(button);
+      if (pair[1]) { th.title = pair[1]; }
       head.appendChild(th);
-      return th;
+    });
+    stats.forEach(function (column) {
+      var th = el('th', 'num', column.label);
+      th.scope = 'col';
+      th.title = column.title;
+      head.appendChild(th);
     });
     thead.appendChild(head);
-
-    function draw() {
-      var at = -1;
-      columns.forEach(function (column, i) { if (column.key === sort.key) { at = i; } });
-      heads.forEach(function (th, i) {
-        th.classList.toggle('is-sorted', i === at);
-        var mark = th.querySelector('.ege-sort__mark');
-        if (mark) { mark.remove(); }
-        if (i === at) { th.firstChild.appendChild(sortMark(sort.dir)); }
-      });
-
-      /* Two seasons alike stay in the order they were played, and a season
-         with nothing to show goes to the bottom whichever way it runs. */
-      var order = seasons.slice();
-      if (at !== -1) {
-        order.sort(function (a, b) {
-          var left = columns[at].value(a);
-          var right = columns[at].value(b);
-          if (left === right) { return a.season - b.season; }
-          if (left === null) { return 1; }
-          if (right === null) { return -1; }
-          return sort.dir === DOWN ? right - left : left - right;
-        });
-      }
-      tbody.innerHTML = '';
-      order.forEach(function (entry) {
-        var tr = el('tr');
-        var team = EGE.nfl.teams[entry.team] || {};
-        var markCell = el('td', 'ege-person__seasonmark');
-        var src = team.name && EGE.logoFor(team.name);
-        if (src) {
-          /* The mark is a link to that team's page for that season (Sam,
-             2026-10-27), lit up under the pointer. */
-          var go = el('a', 'ege-person__seasonteam');
-          go.title = team.name + ', ' + entry.season;
-          toTeamSeason(go, entry.team, entry.season);
-          var img = el('img');
-          img.src = src;
-          img.alt = team.name + ', ' + entry.season;
-          img.addEventListener('error', function () { go.remove(); });
-          go.appendChild(img);
-          markCell.appendChild(go);
-        }
-        tr.appendChild(markCell);
-        tr.appendChild(el('td', 'ege-person__seasonyear', String(entry.season)));
-        tr.appendChild(el('td', 'num', typeof entry.age === 'number' ? String(entry.age) : '–'));
-        stats.forEach(function (column) {
-          tr.appendChild(el('td', 'num' + (ledLeague(column, entry) ? ' is-lead' : ''),
-            entry.line ? statText(column, entry.line) : '–'));
-        });
-        if (at !== -1) { tr.children[at + 1].classList.add('is-sorted-cell'); }
-        tbody.appendChild(tr);
-      });
-
-      /* The Career line runs one cell across the mark, the season and the
-         age, so a number sits a cell further left in it than above. Its
-         label is for a screen reader only (Sam, 2026-10-27: not needed). */
-      if (!tfoot) { return; }
-      tfoot.innerHTML = '';
-      var total = el('tr');
-      var label = el('td');
-      label.appendChild(el('span', 'ege-visually-hidden', 'Career'));
-      label.colSpan = 3;
-      total.appendChild(label);
-      stats.forEach(function (column) {
-        total.appendChild(el('td', 'num', statText(column, career)));
-      });
-      if (at > 1) { total.children[at - 1].classList.add('is-sorted-cell'); }
-      tfoot.appendChild(total);
-    }
-
-    /* As the game log's: biggest first, then turned round, then back to
-       the order the seasons were played in. */
-    thead.addEventListener('click', function (event) {
-      var button = event.target.closest('.ege-sort');
-      if (!button) { return; }
-      var key = button.dataset.sortKey;
-      if (sort.key !== key) {
-        sort = { key: key, dir: DOWN };
-      } else if (sort.dir === DOWN) {
-        sort = { key: key, dir: UP };
-      } else {
-        sort = { key: null, dir: DOWN };
-      }
-      draw();
+    table.appendChild(thead);
+    var tbody = el('tbody');
+    games.forEach(function (entry) {
+      var side = gameSide(entry);
+      var tr = el('tr');
+      var week = el('td', 'ege-person__seasonyear', LOG_ROUNDS[entry.week] || String(entry.week));
+      if (LOG_ROUNDS[entry.week]) { week.title = weekName(entry.week); }
+      tr.appendChild(week);
+      var opp = el('td', 'ege-person__logopp');
+      opp.appendChild(gameOpponent(side, season));
+      tr.appendChild(opp);
+      var result = el('td', 'num');
+      result.appendChild(gameResult(side));
+      tr.appendChild(result);
+      stats.forEach(function (column) { tr.appendChild(el('td', 'num', statText(column, entry.line))); });
+      tbody.appendChild(tr);
     });
-    draw();
-
+    table.appendChild(tbody);
     var wrap = el('div', 'fb-tablewrap ege-person__seasonwrap');
     wrap.appendChild(table);
-    return wrap;
+    holder.appendChild(wrap);
+    holder.hidden = false;
   }
 
   /* The team's mark behind the band in two tones (Sam, 2026-10-21): the
@@ -3839,11 +3870,11 @@
       (row.season ? ', ' + row.season : ''));
     var logoSrc = EGE.nfl.logo(row.team);
 
-    /* Line one: the band, on the team's colour, its mark in two tones
-       behind everything (Sam, 2026-10-21). */
+    /* Line one: the band, on the team's colour, its mark behind
+       everything in a see-through black (Sam, 2026-11-14). */
     var band = el('div', 'ege-person__band');
     band.style.background = team.color || '';
-    bandWash(band, team);
+    bandWash(band, team, [0, 0, 0]);
 
     /* His headshot in a circle a shade darker than the band (Sam,
        2026-11-14: a 40% black), or a shade lighter on a band too dark for
@@ -3939,9 +3970,34 @@
     }
     box.appendChild(facts);
 
-    /* Every season he has played, whatever year is showing. */
-    var seasons = seasonLines(now.sim);
-    if (seasons) { part().appendChild(seasons); }
+    /* That season, a part each under its own heading (Sam, 2026-11-14):
+       its totals, his last few games, every game, his ratings, his
+       contract, and any injury now. The games come with the box scores;
+       the totals with the rosters, or else added up from the games. */
+    function section(title) {
+      var node = part();
+      node.appendChild(el('h4', 'ege-person__head', title));
+      return node;
+    }
+    var year = row.season || live;
+    var totals = section('Season Totals');
+    totals.hidden = true;
+    var recent = section('Recent Performances');
+    recent.hidden = true;
+    var log = section('Game Log');
+    log.hidden = true;
+    var seasonEntry = (now.sim.seasons || []).filter(function (entry) {
+      return entry.season === year && entry.line;
+    })[0];
+    if (seasonEntry) { fillTotals(totals, sim.pos, seasonEntry); }
+    if (year && EGE.boxScores && EGE.boxScores.playerGames) {
+      EGE.boxScores.playerGames(year, sim).then(function (games) {
+        if (!games || !games.length || !box.isConnected) { return; }
+        if (totals.hidden) { fillTotals(totals, sim.pos, { season: year, line: gamesTotal(games) }); }
+        fillRecent(recent, sim.pos, games, year);
+        fillLog(log, sim.pos, games, year);
+      });
+    }
 
     /* His ratings that season: what kind, and the skills it comes from,
        best first. */
@@ -3960,26 +4016,18 @@
       });
     kind.appendChild(skills);
     rating.appendChild(kind);
-    part().appendChild(rating);
+    section('Overall').appendChild(rating);
 
-    /* His contract that season, and anything keeping him off the field
-       now. */
-    var foot = el('dl', 'ege-person__deal');
-    function line(label, value, cls) {
-      foot.appendChild(el('dt', cls || null, label));
-      foot.appendChild(el('dd', cls || null, value));
+    /* His contract that season, or that he has retired. */
+    var deal = section(row.retired ? 'Status' : 'Contract');
+    deal.appendChild(el('p', 'ege-person__text', row.retired ? retiredText(row.retired) : sim.contract
+      ? moneyText(sim.contract.apy) + ' a year through ' + sim.contract.through
+      : row.freeAgent ? 'Free agent' : 'None'));
+    /* Anything keeping him off the field now, in red (Sam, 2026-10-27). */
+    if (row.out && current) {
+      section('Injury').appendChild(el('p', 'ege-person__text is-hurt', injuryText(row.out)));
     }
-    if (row.retired) {
-      line('Status', retiredText(row.retired));
-    } else {
-      line('Contract', sim.contract
-        ? moneyText(sim.contract.apy) + ' a year through ' + sim.contract.through
-        : row.freeAgent ? 'Free agent' : 'None');
-    }
-    /* In red (Sam, 2026-10-27). */
-    if (row.out && current) { line('Injury', injuryText(row.out), 'is-hurt'); }
     var more = part();
-    more.appendChild(foot);
 
     if (row.player) {
       var go = el('a', 'fb-btn fb-btn--primary ege-person__go', row.player.first + '’s page →');
@@ -3995,6 +4043,7 @@
       nflEditor(row, more, rating, tools);
       nflTradeFinder(row, more, tools);
     }
+    if (!more.children.length) { more.remove(); }
     box.appendChild(panel);
     return { box: box, name: name };
   }
