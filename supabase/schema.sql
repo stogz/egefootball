@@ -4977,6 +4977,38 @@ $$;
 revoke all on function public.nfl_card_lines(jsonb) from public;
 grant execute on function public.nfl_card_lines(jsonb) to anon, authenticated;
 
+-- One NFL player's games in a season, for his pop-up (Sam, 2026-11-14):
+-- every published week's game he has a line in, with its score, and his
+-- line. He is his ESPN id, or which of the six he is, or else (a line
+-- with neither) his name and position. Published weeks only, whoever
+-- asks, admins too, as the pop-up's season totals are.
+create or replace function public.nfl_player_games(p_season integer, p_espn text, p_ege text,
+                                                   p_name text, p_pos text)
+returns table (week integer, game jsonb, line jsonb)
+language sql
+stable
+set search_path = public
+as $$
+  select b.week,
+         jsonb_strip_nulls(jsonb_build_object(
+           'home', x.g -> 'home', 'away', x.g -> 'away', 'score', x.g -> 'score',
+           'round', x.g -> 'round', 'ot', x.g -> 'ot', 'neutral', x.g -> 'neutral')),
+         l.v
+    from public.sim_box_scores b
+    cross join lateral jsonb_array_elements(b.games) as x(g)
+    cross join lateral jsonb_array_elements(coalesce(x.g -> 'box', '[]'::jsonb)) as l(v)
+   where b.season = p_season
+     and exists (select 1 from public.published_weeks p where p.season = b.season and p.week = b.week)
+     and (   (coalesce(p_espn, '') <> '' and l.v ->> 'espn' = p_espn)
+          or (coalesce(p_ege, '') <> '' and l.v ->> 'ege' = p_ege)
+          or (not (l.v ? 'espn') and not (l.v ? 'ege')
+              and l.v ->> 'name' = p_name and l.v ->> 'pos' = p_pos))
+   order by b.week;
+$$;
+
+revoke all on function public.nfl_player_games(integer, text, text, text, text) from public;
+grant execute on function public.nfl_player_games(integer, text, text, text, text) to anon, authenticated;
+
 -- ---------------------------------------------------------------------------
 -- NFL Player Cards
 --

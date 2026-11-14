@@ -6606,9 +6606,94 @@ a.ege-person__team::after { content: "\2192"; flex: none; opacity: 0; transition
 a.ege-person__team:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 /* The mark behind it a see-through black on every team, never a lighter
    shade (Sam, 2026-11-14; js/app.js nflPersonBox). His overall is the
-   very box his card on a team's page has (Sam, 2026-11-14), so the
-   band's bigger one below is a pick's only. */
+   box his card on a team's page has, in the same proportions a third
+   bigger (Sam, 2026-11-14), so the band's square one below is a pick's
+   only. */
 .ege-person--player .ege-person__wash { opacity: .2; }
+.ege-person--player .ege-person__band .ege-ovrbox--chip { width: 72px; gap: 3px; padding: 7px 5px 8px; }
+.ege-person--player .ege-person__band .ege-ovrbox--chip .ege-ovrbox__label { font-size: .8125rem; }
+.ege-person--player .ege-person__band .ege-ovrbox--chip .ege-ovrbox__value { font-size: 2rem; }
+
+/* The cream panel's parts, each under its heading (Sam, 2026-11-14): the
+   season's totals, his last three games, every game, his ratings, his
+   contract and any injury. */
+.ege-person--player .ege-person__part { gap: 10px; }
+.ege-person__head {
+  margin: 0;
+  font-family: var(--fb-font-body);
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-accent-deep);
+}
+.ege-person__totals {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 10px;
+  margin: 0;
+}
+.ege-person__total {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 12px 6px 10px;
+  border-radius: 10px !important;
+  background: var(--shade);
+  text-align: center;
+}
+.ege-person__total dt {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(29, 36, 22, .68);
+}
+.ege-person__total dd {
+  margin: 0;
+  font-family: var(--fb-font-display);
+  font-size: 1.75rem;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+/* Led the league: italics, underlined in orange (Sam, 2026-10-27). */
+.ege-person__total dd.is-lead {
+  font-style: italic;
+  text-decoration: underline;
+  text-decoration-color: var(--fb-accent);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 4px;
+}
+.ege-person__recent { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.ege-person__game {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 10px !important;
+  background: var(--shade);
+}
+.ege-person__gametop { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ege-person__opp { display: inline-flex; align-items: center; gap: 6px; min-width: 0; font-weight: 700; white-space: nowrap; }
+.ege-person__opp .ege-opplink { display: inline-flex; align-items: center; gap: 6px; min-width: 0; color: inherit; }
+.ege-person__opp .fb-name { overflow: hidden; text-overflow: ellipsis; }
+.ege-person__opp .ege-teamlogo { flex: none; width: 20px; height: 20px; object-fit: contain; }
+.ege-person__gametop .ege-result { flex: none; }
+.ege-person__gameweek {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(29, 36, 22, .6);
+}
+.ege-person__gameline { font-weight: 800; font-size: .9375rem; }
+.ege-person__log .ege-person__logopp { min-width: 150px; }
+.ege-person__text { margin: 0; font-size: 1rem; font-weight: 700; }
+.ege-person__text.is-hurt { color: #9b2414; }
 
 /* The bar over the card: the Teams page's switcher, and a close of the
    same kind at the end. */
@@ -6878,6 +6963,7 @@ a.ege-person__team:focus-visible { outline: 2px solid #fff; outline-offset: 3px;
 .ege-finder__done { font-weight: 800; color: var(--fb-grass); }
 
 @media (max-width: 720px) {
+  .ege-person__recent { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .ege-person__band { --face-h: 136px; gap: 12px; padding: 0 14px; }
   .ege-person:not(.ege-person--player) .ege-person__band .ege-ovrbox--chip { width: 76px; height: 76px; padding: 7px 5px 8px; }
   .ege-person:not(.ege-person--player) .ege-person__band .ege-ovrbox--chip .ege-ovrbox__label { font-size: .6875rem; letter-spacing: .18em; }
@@ -6894,6 +6980,13 @@ a.ege-person__team:focus-visible { outline: 2px solid #fff; outline-offset: 3px;
   .ege-person:not(.ege-person--player) .ege-person__band .ege-ovrbox--chip .ege-ovrbox__label { font-size: .5625rem; letter-spacing: .12em; }
   .ege-person:not(.ege-person--player) .ege-person__band .ege-ovrbox--chip .ege-ovrbox__value { font-size: 1.625rem; }
   .ege-person--player .ege-person__band { --ring: 60px; gap: 10px; padding: 10px 12px; }
+  .ege-person--player .ege-person__band .ege-ovrbox--chip { width: 58px; gap: 2px; padding: 5px 4px 6px; }
+  .ege-person--player .ege-person__band .ege-ovrbox--chip .ege-ovrbox__label { font-size: .6875rem; }
+  .ege-person--player .ege-person__band .ege-ovrbox--chip .ege-ovrbox__value { font-size: 1.625rem; }
+  .ege-person__totals { gap: 6px; }
+  .ege-person__total { padding: 9px 3px 8px; }
+  .ege-person__total dt { font-size: .5625rem; letter-spacing: .06em; }
+  .ege-person__total dd { font-size: 1.25rem; }
   .ege-person__who { gap: 1px 12px; }
   .ege-person__pos { font-size: .6875rem; padding: 3px 5px 2px; letter-spacing: .04em; }
   .ege-person__team { gap: 5px; font-size: .8125rem; }
