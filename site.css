@@ -2869,6 +2869,95 @@ body::before {
 .ege-tb__ideaname { overflow: hidden; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
 .ege-tb__ideameta { font-size: .75rem; color: var(--fb-muted); white-space: nowrap; }
 .ege-tb__ideause { grid-column: 1 / -1; justify-self: end; padding-top: 6px; padding-bottom: 6px; }
+.ege-tb, .ege-tb__ideas { scroll-margin-top: 96px; }
+
+/* Players on the Market: a line a player, the line loading him in the
+   builder, the marks of the teams that want him each loading that team. */
+.ege-mk { --ege-tb-in-deep: #2f6b25; display: grid; gap: 8px; margin: 6px 0 18px; scroll-margin-top: 96px; }
+.ege-mk .ege-nflstand__title { margin: 0; }
+/* The heading's labels sit over the line's columns: the button's grid,
+   then the marks. */
+.ege-mk__pick { display: grid; grid-template-columns: 36px minmax(0, 1fr) 36px 118px 52px; align-items: center; gap: 10px; }
+.ege-mk__row { display: grid; grid-template-columns: minmax(0, 1fr) 168px; align-items: center; gap: 10px; }
+.ege-mk__head {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 36px 118px 52px 168px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  border-bottom: 0;
+  background: var(--fb-surface);
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.ege-mk__head > :first-child { grid-column: 1 / 3; }
+.ege-mk__head > :nth-child(2) { text-align: center; }
+.ege-mk__head > :nth-child(4) { text-align: right; }
+.ege-mk__head > :nth-child(5) { text-align: right; }
+.ege-mk__list { border: var(--fb-border-thin) solid var(--fb-ink); background: #fff; }
+.ege-mk__head + .ege-mk__list { margin-top: -8px; }
+.ege-mk__row { padding: 5px 10px; border-bottom: 1px solid rgba(32, 38, 26, .12); }
+.ege-mk__row:last-child { border-bottom: 0; }
+.ege-mk__row.is-in { background: var(--fb-tint-clay); box-shadow: inset 5px 0 0 var(--fb-accent); }
+.ege-mk__pick {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fb-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .ege-mk__row:hover { background: var(--fb-tint-wash); }
+  .ege-mk__row.is-in:hover { background: var(--fb-tint-clay-2); }
+  .ege-mk__buyer:hover { border-color: var(--fb-ink); }
+}
+.ege-mk__who { display: grid; gap: 2px; min-width: 0; }
+.ege-mk__name { overflow: hidden; font-size: .875rem; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
+.ege-mk__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 7px; font-size: .75rem; color: var(--fb-muted); }
+.ege-mk__meta b { color: var(--fb-ink); }
+.ege-mk__team { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.ege-mk__team .ege-mk__mark { width: 28px; height: 28px; }
+.ege-mk__teamtext { display: grid; min-width: 0; line-height: 1.2; }
+.ege-mk__rec { font-size: .8125rem; font-weight: 800; }
+.ege-mk__rec[title] { color: var(--fb-muted); }
+.ege-mk__mode { font-size: .625rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--fb-muted); }
+.ege-mk__ask { font-size: .875rem; font-weight: 800; text-align: right; color: var(--fb-muted); }
+.ege-mk__buyers { display: flex; justify-content: flex-end; gap: 4px; }
+.ege-mk__buyer {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  width: 52px;
+  padding: 3px 0 2px;
+  border: 1px solid rgba(32, 38, 26, .2);
+  background: none;
+  color: var(--fb-ink);
+  font: inherit;
+  cursor: pointer;
+}
+.ege-mk__buyer .ege-mk__buyermark { width: 28px; height: 28px; }
+.ege-mk__worth { font-size: .75rem; font-weight: 800; color: var(--ege-tb-in-deep); }
+.ege-mk__more { justify-self: start; }
+/* On a phone the marks go under the line, and the value with them. */
+@media (max-width: 560px) {
+  .ege-mk__head { display: none; }
+  .ege-mk__row { grid-template-columns: minmax(0, 1fr); gap: 4px; padding: 8px; }
+  .ege-mk__pick { grid-template-columns: 32px minmax(0, 1fr) 30px; gap: 6px 8px; }
+  .ege-mk__face { width: 32px; height: 32px; }
+  .ege-mk__ovr { min-width: 28px; font-size: .8125rem; }
+  .ege-mk__team { grid-column: 2; grid-row: 2; }
+  .ege-mk__ask { grid-column: 3; grid-row: 2; }
+  .ege-mk__team .ege-mk__mark { width: 24px; height: 24px; }
+  .ege-mk__buyers { justify-content: flex-start; gap: 6px; padding-left: 40px; }
+  .ege-mk__buyer { display: flex; align-items: center; gap: 5px; width: auto; padding: 2px 6px 2px 2px; }
+  .ege-mk__buyer .ege-mk__buyermark { width: 24px; height: 24px; }
+}
 
 /* Team directions: a box a division, a line a team. */
 .ege-sim__dirs { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px 24px; }

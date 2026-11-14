@@ -1817,8 +1817,136 @@ EGE.nflSimAdmin = (function () {
       part.appendChild(box);
     });
 
+    var open = true;
+    try { sim().tradeFinder.checkWindow(league); } catch (err) { open = false; }
+    if (open) { part.appendChild(marketBox(league)); }
     part.appendChild(dealBuilder(league));
     body.appendChild(part);
+  }
+
+  /* --- Players on the Market ---------------------------------------------
+
+     The good, older players a losing or rebuilding team could move for
+     younger players and picks (Sam, 2026-11-14; trade-builder.js market),
+     most wanted first, each with the teams that would want him most and
+     what he is worth to them. A click puts his team in the builder with
+     him in the deal; a team's mark puts that team on the other side and
+     shows what it would give (Suggest trades). */
+
+  var MARKET_SHOWN = 10;
+  state.marketAll = false;
+  /* The list as last worked out, kept while the league is the same: who
+     can afford whom takes a moment to find. */
+  state.market = null;
+
+  function marketOf(league) {
+    var src = state.files['league.json'];
+    var c = state.market;
+    if (c && c.src === src && (c.all || !state.marketAll)) { return c.got; }
+    var got = sim().tradeBuilder.market(league, state.marketAll ? 0 : MARKET_SHOWN);
+    state.market = { src: src, all: state.marketAll, got: got };
+    return got;
+  }
+
+  function marketBox(league) {
+    var box = el('div', 'ege-mk');
+    box.appendChild(el('h4', 'ege-nflstand__title', 'Players on the Market'));
+    var got;
+    try {
+      got = marketOf(league);
+    } catch (err) {
+      box.appendChild(el('p', 'ege-note ege-note--error', err.message || String(err)));
+      return box;
+    }
+    if (!got.players.length) {
+      box.appendChild(el('p', 'fb-meta', 'Nobody right now.'));
+      return box;
+    }
+    var inDeal = {};
+    state.deal.forEach(function (side) { side.players.forEach(function (id) { inDeal[id] = true; }); });
+    var head = el('div', 'ege-mk__head');
+    ['Player', 'OVR', 'Team', 'Value', 'Wanted by'].forEach(function (text) { head.appendChild(el('span', null, text)); });
+    box.appendChild(head);
+    var list = el('div', 'ege-mk__list');
+    var shown = state.marketAll ? got.players : got.players.slice(0, MARKET_SHOWN);
+    shown.forEach(function (p) {
+      var item = el('div', 'ege-mk__row' + (inDeal[p.id] ? ' is-in' : ''));
+      var pick = el('button', 'ege-mk__pick');
+      pick.type = 'button';
+      pick.title = 'Load ' + p.name + ' in the trade builder';
+      pick.appendChild(face(p, 'ege-mk__face'));
+      var who = el('span', 'ege-mk__who');
+      who.appendChild(el('span', 'ege-mk__name', p.name));
+      var meta = el('span', 'ege-mk__meta');
+      meta.appendChild(el('b', null, p.pos));
+      meta.appendChild(el('span', null, 'Age ' + p.age));
+      var yb = yearsBox(p.years);
+      if (yb) { meta.appendChild(yb); }
+      if (p.contract) { meta.appendChild(el('span', null, contractText(p.contract))); }
+      who.appendChild(meta);
+      pick.appendChild(who);
+      pick.appendChild(el('span', 'ege-room__ovr ege-tb__ovr ege-mk__ovr', String(p.ovr)));
+      var team = el('span', 'ege-mk__team');
+      team.appendChild(logoChip(p.team, 'ege-mk__mark'));
+      var tt = el('span', 'ege-mk__teamtext');
+      var rec = el('span', 'ege-mk__rec', p.record || p.lastRecord || '–');
+      if (!p.record && p.lastRecord) { rec.title = p.lastSeason + ' record'; }
+      tt.appendChild(rec);
+      tt.appendChild(el('span', 'ege-mk__mode', MODES[p.mode] || ''));
+      team.appendChild(tt);
+      pick.appendChild(team);
+      var ask = el('span', 'ege-mk__ask', points(p.ask));
+      ask.title = 'What ' + nick(p.team) + ' ask for him';
+      pick.appendChild(ask);
+      pick.disabled = state.busy;
+      pick.addEventListener('click', function () { loadMarket(league, p, ''); });
+      item.appendChild(pick);
+      var buyers = el('span', 'ege-mk__buyers');
+      p.buyers.forEach(function (b) {
+        var chip = el('button', 'ege-mk__buyer');
+        chip.type = 'button';
+        chip.title = teamName(b.key) + ': ' + points(b.worth);
+        chip.disabled = state.busy;
+        chip.appendChild(logoChip(b.key, 'ege-mk__buyermark'));
+        chip.appendChild(el('span', 'ege-mk__worth', points(b.worth)));
+        chip.addEventListener('click', function () { loadMarket(league, p, b.key); });
+        buyers.appendChild(chip);
+      });
+      item.appendChild(buyers);
+      list.appendChild(item);
+    });
+    box.appendChild(list);
+    if (got.more || got.players.length > MARKET_SHOWN) {
+      var more = button(state.marketAll ? 'Show fewer' : 'Show all', false, function () {
+        state.marketAll = !state.marketAll;
+        draw();
+        var again = document.querySelector('.ege-mk');
+        if (again && again.scrollIntoView) { again.scrollIntoView({ block: 'nearest' }); }
+      });
+      more.classList.add('ege-mk__more');
+      box.appendChild(more);
+    }
+    return box;
+  }
+
+  /* His team on the builder's first side with him in the deal. With a
+     buyer, that team on the other side and what it would give; without
+     one, the other side keeps the team it had, unless that was his. */
+  function loadMarket(league, p, buyer) {
+    var keep = state.deal.map(function (side) { return side.key; }).filter(function (key) { return key && key !== p.team; })[0] || '';
+    state.deal = [{ key: p.team, players: [p.id], picks: [] }, { key: buyer || keep, players: [], picks: [] }];
+    state.ideas = null;
+    if (buyer) {
+      var teams = p.team + '|' + buyer;
+      try {
+        state.ideas = Object.assign({ teams: teams }, sim().tradeBuilder.suggest(league, state.deal));
+      } catch (err) {
+        state.ideas = { teams: teams, ideas: [], error: err.message || String(err) };
+      }
+    }
+    draw();
+    var target = document.querySelector(buyer ? '.ege-tb__ideas' : '.ege-tb');
+    if (target && target.scrollIntoView) { target.scrollIntoView({ block: buyer ? 'center' : 'start' }); }
   }
 
   /* --- the trade builder --------------------------------------------------

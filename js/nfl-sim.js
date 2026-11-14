@@ -9232,6 +9232,9 @@ module.exports = { forTeam, callsOf, CALLS, ROUNDS };
    player one of them wants from the other (lib/trade-finder.js
    packageFor, the finder's rules for what a team gives); with something
    in it, what the team coming out ahead adds so the other takes it too.
+
+   Players on the Market (market): good, older players on losing and
+   rebuilding teams, and the teams that would want them most.
    ========================================================================== */
 
 'use strict';
@@ -9243,6 +9246,7 @@ const { locked } = require('./draft-plan');
 const { recordText } = require('./standings');
 const { TEAMS } = require('./teams');
 const { offersOf, packageFor, standing, checkWindow } = require('./trade-finder');
+const { CURVES } = require('./aging');
 
 const POS_ORDER = ['QB', 'RB', 'FB', 'WR', 'TE', 'OT', 'IOL', 'EDGE', 'DI', 'LB', 'CB', 'S', 'K', 'P'];
 
@@ -9345,6 +9349,7 @@ function view(league, sides) {
 /* ---------------------------------------------------------- suggested -- */
 
 const IDEAS = 4;
+const YOUNG = 26;
 
 function itemsOf(league, side) {
   return (side.players || []).map((id) => ({ kind: 'player', player: league.byId.get(id) })).filter((i) => i.player)
@@ -9454,9 +9459,18 @@ function suggest(league, sides) {
      with the adding team short instead, to see how far apart they are. */
   const room = v[adds].gets - v[adds].gives;
   const price = v[short].gives - v[short].gets;
-  let found = room > 0 ? packages(league, adds, short, has[short], price, room, offers, 3) : [];
+  /* A team selling (rebuilding, or losing: market) is offered picks and
+     players of 26 or younger first. */
+  const sells = selling(league).some((x) => x.key === short && x.sells);
+  const young = sells ? offers.filter((x) => x.a.kind === 'pick' || (x.a.player.age || 30) <= YOUNG) : [];
+  const pools = young.length ? [young, offers] : [offers];
+  let found = [];
+  pools.some((pool) => {
+    found = room > 0 ? packages(league, adds, short, has[short], price, room, pool, 3) : [];
+    return found.length;
+  });
   const close = !found.length;
-  if (close) { found = packages(league, adds, short, has[short], price, Infinity, offers, 3); }
+  if (close) { pools.some((pool) => { found = packages(league, adds, short, has[short], price, Infinity, pool, 3); return found.length; }); }
   const ideas = found.map((pack) => {
     const gives = { [short]: has[short], [adds]: has[adds].concat(pack.items) };
     const values = { [short]: { gets: v[short].gets + pack.got, gives: v[short].gives },
@@ -9466,7 +9480,105 @@ function suggest(league, sides) {
   return { kind: 'topUp', adds, close, ideas };
 }
 
-module.exports = { view, suggest, points, POS_ORDER };
+/* ------------------------------------------------- on the market -- */
+
+/* Players on the Market (Sam, 2026-11-14): the good, older players a
+   losing team could trade for younger players and picks. A seller is a
+   rebuilding team, or one losing (.400 or worse once it has played four
+   games; in the offseason, last season's record). Its players of 80 or
+   more who start for it and are at or past their position's peak
+   (aging.js CURVES: a back from 26, a quarterback from 33), not one of the
+   six, a kicker or a punter or anyone out four weeks or more. Each comes
+   with the teams that would want him most: not sellers themselves or
+   rebuilding, he would start for them, he is worth a tenth over his price
+   to them, and they have a package his team takes that keeps both under
+   the cap (trade-finder.js packageFor). Only players somebody can get are
+   listed, most wanted first; with `limit`, the first that many, and
+   `more` when there may be others. */
+const MARKET_OVR = 80;
+const BUYERS = 3;
+
+function pctOf(text) {
+  const m = /^(\d+)-(\d+)(?:-(\d+))?$/.exec(String(text || ''));
+  if (!m) { return null; }
+  const w = +m[1];
+  const l = +m[2];
+  const t = +(m[3] || 0);
+  const games = w + l + t;
+  return games ? { pct: (w + t / 2) / games, games } : null;
+}
+
+/* Every team with its record (or last season's) and whether it sells. */
+function selling(league) {
+  const last = (league.history || []).slice(-1)[0];
+  const played = league.schedule && league.schedule.some((g) => g.score);
+  return league.teams.map((t) => {
+    const rec = played ? record(league, t.key) : null;
+    const lastRecord = !rec && last && last.records ? last.records[t.key] || null : null;
+    const now = rec ? { pct: rec.pct, games: rec.w + rec.l + (rec.t || 0) } : pctOf(lastRecord);
+    const losing = Boolean(now && now.games >= 4 && now.pct <= 0.4);
+    return { t, key: t.key, mode: t.mode || 'compete', record: rec ? recordText(rec) : null, lastRecord,
+             lastSeason: lastRecord ? last.season : null, sells: t.mode === 'rebuild' || losing };
+  });
+}
+
+function market(league, limit) {
+  const levels = starterLevels(league);
+  const slotOf = slotFinder(league);
+  const teams = selling(league);
+  const buyers = teams.filter((x) => !x.sells && x.mode !== 'rebuild');
+  const rosters = new Map(league.teams.map((t) => [t.key, onTeam(league, t.key)]));
+  /* Everyone who fits, with the teams that would want him, most wanted
+     first. */
+  const fits = [];
+  teams.filter((x) => x.sells).forEach((seller) => {
+    const roster = rosters.get(seller.key);
+    roster.forEach((p) => {
+      const curve = CURVES[p.pos];
+      if (p.ege || p.pos === 'K' || p.pos === 'P' || !curve || p.ovr < MARKET_OVR || (p.age || 0) < curve.peak) { return; }
+      if (p.injury && p.injury.games >= 4) { return; }
+      if (!standing(roster, p, false).starts) { return; }
+      const item = { kind: 'player', player: p };
+      const price = valueOf(league, item, seller.key, slotOf, levels, true);
+      const wants = buyers.map((b) => {
+        if (!standing(rosters.get(b.key), p, true).starts) { return null; }
+        const worth = valueOf(league, item, b.key, slotOf, levels, false);
+        return worth >= 20 / POINTS_PER_UNIT && worth >= price * 1.1 ? { key: b.key, worth, mode: b.mode } : null;
+      }).filter(Boolean).sort((a, b) => b.worth - a.worth);
+      if (wants.length) { fits.push({ p, item, seller, price, wants }); }
+    });
+  });
+  fits.sort((a, b) => b.wants[0].worth - a.wants[0].worth || b.p.ovr - a.p.ovr);
+  /* Then, down the list until `limit` are found, only the teams that can
+     make the deal: a package his team takes, under the cap
+     (trade-finder.js packageFor, which leaves out players at his
+     position itself). */
+  const offers = new Map();
+  const players = [];
+  let looked = 0;
+  for (; looked < fits.length && !(limit && players.length >= limit); looked += 1) {
+    const { p, item, seller, price, wants } = fits[looked];
+    const can = [];
+    wants.some((b) => {
+      const key = b.key + '|' + seller.key;
+      if (!offers.has(key)) { offers.set(key, offersOf(league, b.key, seller.key, null, slotOf, levels)); }
+      if (packageFor(league, b.key, seller.key, [item], price, b.worth, offers.get(key), true)) {
+        can.push({ key: b.key, worth: points(b.worth), mode: b.mode });
+      }
+      return can.length >= BUYERS;
+    });
+    if (!can.length) { continue; }
+    players.push(Object.assign(playerRow(p), {
+      years: p.entry ? Math.max(1, league.season - p.entry + 1) : null,
+      team: seller.key, mode: seller.mode, record: seller.record, lastRecord: seller.lastRecord, lastSeason: seller.lastSeason,
+      ask: points(price), buyers: can
+    }));
+  }
+  players.sort((a, b) => b.buyers[0].worth - a.buyers[0].worth || b.ovr - a.ovr);
+  return { season: league.season, sellers: teams.filter((x) => x.sells).map((x) => x.key), players, more: looked < fits.length };
+}
+
+module.exports = { view, suggest, market, points, POS_ORDER };
 
   };
 
@@ -9572,8 +9684,9 @@ function offersOf(league, buyer, seller, pos, slotOf, levels) {
    what it sends (him, and whatever it adds): one to four of the buyer's
    `offers`, at most two of them players and none at a position coming the
    other way, with both teams under the cap afterwards (or no further over
-   it than they were). */
-function packageFor(league, buyer, seller, sending, price, worth, offers) {
+   it than they were). `any`: the first that works, not the cheapest (to
+   see whether there is one). */
+function packageFor(league, buyer, seller, sending, price, worth, offers, any) {
   const cap = capFor(league.season);
   const apy = sending.reduce((sum, a) => sum + payOf(a), 0);
   const skip = sending.filter((a) => a.kind === 'player').map((a) => a.player.pos);
@@ -9583,6 +9696,10 @@ function packageFor(league, buyer, seller, sending, price, worth, offers) {
      the dear ones for a star. */
   const all = offers.filter((x) => !x.player || skip.indexOf(x.a.player.pos) === -1);
   const assets = all.length <= 24 ? all : all.slice(0, 12).concat(all.slice(-12));
+  /* None can work: the four it values most fall short, or even its two
+     dearest players sent back leave the buyer over the cap. */
+  const top = (key, k) => assets.map((x) => x[key]).sort((a, b) => b - a).slice(0, k).reduce((sum, v) => sum + v, 0);
+  if (top('toSeller', 4) < price || buyerPay + apy - top('pay', 2) > Math.max(cap, buyerPay)) { return null; }
   let best = null;
   const consider = (combo) => {
     let got = 0;
@@ -9603,7 +9720,8 @@ function packageFor(league, buyer, seller, sending, price, worth, offers) {
       consider([assets[i], assets[j]]);
       for (let k = j + 1; k < n; k += 1) {
         consider([assets[i], assets[j], assets[k]]);
-        for (let m = k + 1; m < n; m += 1) { consider([assets[i], assets[j], assets[k], assets[m]]); }
+        for (let m = k + 1; m < n && !(any && best); m += 1) { consider([assets[i], assets[j], assets[k], assets[m]]); }
+        if (any && best) { return best; }
       }
     }
   }

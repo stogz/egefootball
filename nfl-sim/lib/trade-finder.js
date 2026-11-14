@@ -99,8 +99,9 @@ function offersOf(league, buyer, seller, pos, slotOf, levels) {
    what it sends (him, and whatever it adds): one to four of the buyer's
    `offers`, at most two of them players and none at a position coming the
    other way, with both teams under the cap afterwards (or no further over
-   it than they were). */
-function packageFor(league, buyer, seller, sending, price, worth, offers) {
+   it than they were). `any`: the first that works, not the cheapest (to
+   see whether there is one). */
+function packageFor(league, buyer, seller, sending, price, worth, offers, any) {
   const cap = capFor(league.season);
   const apy = sending.reduce((sum, a) => sum + payOf(a), 0);
   const skip = sending.filter((a) => a.kind === 'player').map((a) => a.player.pos);
@@ -110,6 +111,10 @@ function packageFor(league, buyer, seller, sending, price, worth, offers) {
      the dear ones for a star. */
   const all = offers.filter((x) => !x.player || skip.indexOf(x.a.player.pos) === -1);
   const assets = all.length <= 24 ? all : all.slice(0, 12).concat(all.slice(-12));
+  /* None can work: the four it values most fall short, or even its two
+     dearest players sent back leave the buyer over the cap. */
+  const top = (key, k) => assets.map((x) => x[key]).sort((a, b) => b - a).slice(0, k).reduce((sum, v) => sum + v, 0);
+  if (top('toSeller', 4) < price || buyerPay + apy - top('pay', 2) > Math.max(cap, buyerPay)) { return null; }
   let best = null;
   const consider = (combo) => {
     let got = 0;
@@ -130,7 +135,8 @@ function packageFor(league, buyer, seller, sending, price, worth, offers) {
       consider([assets[i], assets[j]]);
       for (let k = j + 1; k < n; k += 1) {
         consider([assets[i], assets[j], assets[k]]);
-        for (let m = k + 1; m < n; m += 1) { consider([assets[i], assets[j], assets[k], assets[m]]); }
+        for (let m = k + 1; m < n && !(any && best); m += 1) { consider([assets[i], assets[j], assets[k], assets[m]]); }
+        if (any && best) { return best; }
       }
     }
   }
