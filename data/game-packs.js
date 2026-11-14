@@ -1,11 +1,13 @@
 /* ==========================================================================
    EGE Football — Game Packs
-   A pack of one game's cards for whoever won the most bets on it (Sam,
-   2026-11-06). Live Mode's diamond bets (js/live.js) are paid at the final
-   whistle by live_settle in supabase/schema.sql, and the same call hands a
-   Game Pack to the account with the most winning bets on the game, every
-   account tied for the most included. A game with none of the six in it
-   has no cards, so it pays no pack.
+   A pack of one game's cards (Sam, 2026-11-06) for whoever made the best
+   draft on it (Sam, 2026-11-14; it used to go to the most bets won): four
+   players from either side picked in order before the kickoff, the top of
+   the live page's Bets box (js/live-draft.js). At the final whistle
+   live_settle in supabase/schema.sql scores every draft and hands the
+   Game Pack to the best one; only a draft the same as the winner's, to the
+   pick, shares it. A game with none of the six in it has no cards, so it
+   has no draft and pays no pack.
 
    The pack is claimed in the Shop once the game's week is published, the
    moment its cards exist: five cards from that game, the six's

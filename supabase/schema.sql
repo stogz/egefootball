@@ -3977,6 +3977,11 @@ notify pgrst, 'reload schema';
 --               menu marks a push gives the stake back, and so does
 --               taking the game off before it is over, by any road
 --               (live_refund).
+--   live_drafts four players picked from either side for the game's Game
+--               Pack (Sam, 2026-11-14; at the end of this file, with the
+--               Game Packs): free, changed as often as wanted until the
+--               kickoff, and the best boosted fantasy total of the four
+--               gets the pack once the final whistle has gone.
 --
 -- A game put on locks the boosters of the six playing in it (Sam,
 -- 2026-11-09; live_games.emails), since the game was played with them on:
@@ -4282,11 +4287,12 @@ $$;
 -- Pays every bet on a game once its final whistle has gone: the price
 -- times the stake for a winner, less 10% of the winnings, the stake back for a push, nothing
 -- otherwise. Once each, however many viewers ask; anybody may, since it
--- pays only what the game already says. Whoever won the most of them gets
--- the game's Game Pack (award_game_packs, at the end of this file). The
+-- pays only what the game already says. Every draft on it is scored too,
+-- and the best one gets the game's Game Pack (Sam, 2026-11-14;
+-- live_draft_score and award_game_packs, at the end of this file). The
 -- game is held while it settles, and a second ask meanwhile leaves it to
 -- the first, so the bets are settled and the packs handed out once.
--- Returns how many it settled.
+-- Returns how many bets and drafts it settled.
 create or replace function public.live_settle(p_id text)
 returns integer
 language plpgsql
@@ -4300,8 +4306,11 @@ declare
   v_ms  bigint;
   v_end bigint;
   b     record;
+  d     record;
   v_pay integer;
+  v_s   numeric[];
   v_n   integer := 0;
+  v_d   integer := 0;
 begin
   select * into g from public.live_games where id = p_id for update skip locked;
   if not found or g.starts_at is null or g.paused_at is not null then return 0; end if;
@@ -4328,17 +4337,26 @@ begin
     end if;
     v_n := v_n + 1;
   end loop;
-  if v_n > 0 then
+  -- Each draft's boosted total, and the game's Game Pack to the best.
+  for d in
+    select * from public.live_drafts where game_id = p_id and settled_at is null for update skip locked
+  loop
+    v_s := public.live_draft_score(g.bets -> 'draft', d.picks, v_res -> 'draft');
+    update public.live_drafts set score = v_s[1], raw = v_s[2], settled_at = now() where id = d.id;
+    v_d := v_d + 1;
+  end loop;
+  if v_d > 0 then
     perform public.award_game_packs(p_id);
   end if;
-  return v_n;
+  return v_n + v_d;
 end;
 $$;
 
 revoke all on function public.live_settle(text) from public;
 grant execute on function public.live_settle(text) to anon, authenticated;
 
--- Every game whose final whistle has gone with bets still on it, settled.
+-- Every game whose final whistle has gone with bets or drafts still on it,
+-- settled.
 create or replace function public.live_settle_due()
 returns integer
 language plpgsql
@@ -4349,7 +4367,11 @@ declare
   r   record;
   v_n integer := 0;
 begin
-  for r in select distinct b.game_id from public.live_bets b where b.settled_at is null loop
+  for r in
+    select b.game_id from public.live_bets b where b.settled_at is null
+    union
+    select d.game_id from public.live_drafts d where d.settled_at is null
+  loop
     v_n := v_n + public.live_settle(r.game_id);
   end loop;
   return v_n;
@@ -5045,15 +5067,22 @@ notify pgrst, 'reload schema';
 -- ===========================================================================
 -- Game Packs
 --
--- Whoever wins the most bets on a live game gets a Game Pack of it (Sam,
--- 2026-11-06): five of that game's cards, claimed in the Shop once its week
--- is published (data/game-packs.js). Every account tied for the most gets
--- one, and a game with none of the six in it (live_games.six empty) pays
--- none, having no cards to put in one. live_settle hands them out as it
--- pays the bets, once a go at the game: a game put on again by PLAY LIVE is
--- a new go (`game_at`, its live_games.created_at), and its winners get a
--- pack of their own; a game restarted after its bets were paid pays none
--- again.
+-- A Game Pack of a live game (Sam, 2026-11-06): five of that game's cards,
+-- claimed in the Shop once its week is published (data/game-packs.js). It
+-- goes to the best draft on the game (Sam, 2026-11-14; it used to go to the
+-- most bets won): four players from either side, picked in order before
+-- the kickoff, each pick's fantasy points times its boost -- the player's
+-- own (live_games.bets -> 'draft', nfl-sim/lib/live-bets.js, none for a
+-- star) plus its place in the order's (2.0, 1.6, 1.4, none), so a 3.0x
+-- player taken first is 5.0x, and a pick with no boost of either kind 1x.
+-- The best total wins; a tie goes to the more points before the boosts,
+-- and only a draft the same as the winner's to the pick shares the pack. A
+-- game with none of the six in it (live_games.six empty) pays none, having
+-- no cards to put in one, and PLAY LIVE gives it no draft. live_settle
+-- scores the drafts and hands the pack out, once a go at the game: a game
+-- put on again by PLAY LIVE is a new go (`game_at`, its
+-- live_games.created_at), and its drafts start over; a game restarted
+-- after it was settled pays none again.
 --
 -- The page rolls the cards, as for every pack, and open_game_pack takes
 -- them: five card ids, every one of the game's season and week, the six's
@@ -5079,6 +5108,11 @@ create table if not exists public.game_packs (
 
 create index if not exists game_packs_waiting on public.game_packs (email) where opened_at is null;
 
+-- What the winning draft came to (Sam, 2026-11-14); `wins`, the bets won,
+-- is from before, when the most of them got the pack.
+alter table public.game_packs add column if not exists score numeric(9,2);
+alter table public.game_packs alter column wins drop not null;
+
 alter table public.game_packs enable row level security;
 
 drop policy if exists "game packs read by their owner or an admin" on public.game_packs;
@@ -5090,8 +5124,146 @@ revoke all on public.game_packs from anon;
 revoke insert, update, delete on public.game_packs from authenticated;
 grant select on public.game_packs to authenticated;
 
--- The game's winners, each a Game Pack: whoever has the most winning bets
--- on it (a payout over the stake), once every bet on it is settled.
+-- The drafts on a live game (Sam, 2026-11-14): one an account a go at the
+-- game, four of the menu's players in order, changed as often as wanted
+-- until the kickoff (live_draft_set) and scored at the final whistle
+-- (live_settle, live_draft_score). Each player sees their own; anybody may
+-- see everybody's once the game has kicked off (live_draft_board).
+create table if not exists public.live_drafts (
+  id         bigint      generated always as identity primary key,
+  game_id    text        not null references public.live_games (id) on delete cascade,
+  email      text        not null,
+  picks      text[]      not null check (cardinality(picks) between 1 and 8),
+  placed_at  timestamptz not null default now(),
+  score      numeric(9,2),
+  raw        numeric(9,2),
+  settled_at timestamptz,
+  unique (game_id, email)
+);
+
+create index if not exists live_drafts_open on public.live_drafts (game_id) where settled_at is null;
+
+alter table public.live_drafts enable row level security;
+
+drop policy if exists "live drafts read by their owner or an admin" on public.live_drafts;
+create policy "live drafts read by their owner or an admin"
+  on public.live_drafts for select to authenticated
+  using (email = auth.jwt() ->> 'email' or public.is_admin());
+
+revoke all on public.live_drafts from anon;
+revoke insert, update, delete on public.live_drafts from authenticated;
+grant select on public.live_drafts to authenticated;
+
+-- A draft put in, or changed: `p_picks` the menu's ids in the order picked,
+-- as many as the menu's size and no player twice, before the kickoff
+-- (live_pregame: a kickoff set ahead too). Returns the draft.
+create or replace function public.live_draft_set(p_game text, p_picks text[])
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  g       public.live_games%rowtype;
+  v_menu  jsonb;
+  v_size  integer;
+  v_row   public.live_drafts%rowtype;
+begin
+  if v_email is null then raise exception 'Sign in first.'; end if;
+  select * into g from public.live_games where id = p_game for share;
+  if not found then raise exception 'That game is not on.'; end if;
+  v_menu := g.bets -> 'draft';
+  if v_menu is null then raise exception 'This game has no draft.'; end if;
+  if not public.live_pregame(g) then raise exception 'The draft closed at kickoff.'; end if;
+  v_size := coalesce((v_menu ->> 'size')::integer, 4);
+  if coalesce(array_length(p_picks, 1), 0) <> v_size
+     or (select count(distinct x) from unnest(p_picks) as x) <> v_size then
+    raise exception 'Pick % different players.', v_size;
+  end if;
+  if exists (select 1 from unnest(p_picks) as x
+              where not exists (select 1 from jsonb_array_elements(coalesce(v_menu -> 'picks', '[]'::jsonb)) as p
+                                 where p ->> 'id' = x)) then
+    raise exception 'That is not one of the players.';
+  end if;
+  insert into public.live_drafts (game_id, email, picks)
+  values (p_game, v_email, p_picks)
+  on conflict (game_id, email) do update set picks = excluded.picks, placed_at = now()
+  returning * into v_row;
+  return to_jsonb(v_row);
+end;
+$$;
+
+revoke all on function public.live_draft_set(text, text[]) from public, anon;
+grant execute on function public.live_draft_set(text, text[]) to authenticated;
+
+-- What a draft comes to: { boosted total, total before the boosts }. Each
+-- pick is its player's points (`p_points`, by menu id) times his boost plus
+-- its place's (the menu's `order`), 1x where neither has one. js/live-draft.js
+-- does the same sum.
+create or replace function public.live_draft_score(p_menu jsonb, p_picks text[], p_points jsonb)
+returns numeric[]
+language plpgsql
+immutable
+set search_path = public
+as $$
+declare
+  v_score numeric := 0;
+  v_raw   numeric := 0;
+  v_pts   numeric;
+  v_x     numeric;
+  i       integer;
+begin
+  for i in 1 .. coalesce(array_length(p_picks, 1), 0) loop
+    v_pts := coalesce((p_points ->> p_picks[i])::numeric, 0);
+    select (p ->> 'x')::numeric into v_x
+      from jsonb_array_elements(coalesce(p_menu -> 'picks', '[]'::jsonb)) as p
+     where p ->> 'id' = p_picks[i];
+    v_x := coalesce(v_x, 0) + coalesce((p_menu -> 'order' ->> (i - 1))::numeric, 0);
+    v_score := v_score + round(v_pts * greatest(v_x, 1), 2);
+    v_raw := v_raw + v_pts;
+  end loop;
+  return array[v_score, v_raw];
+end;
+$$;
+
+revoke all on function public.live_draft_score(jsonb, text[], jsonb) from public, anon, authenticated;
+
+-- Everybody's draft on a game once it has kicked off, best first once they
+-- are scored, with whether each got the Game Pack. Nothing before the
+-- kickoff, so nobody copies anybody.
+create or replace function public.live_draft_board(p_id text)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  g     public.live_games%rowtype;
+  v_out jsonb;
+begin
+  select * into g from public.live_games where id = p_id;
+  if not found or public.live_pregame(g) then return '[]'::jsonb; end if;
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'email', d.email, 'picks', to_jsonb(d.picks), 'score', d.score, 'raw', d.raw,
+           'settled', d.settled_at is not null,
+           'pack', exists (select 1 from public.game_packs gp
+                            where gp.game_id = g.id and gp.game_at = g.created_at and gp.email = d.email))
+         order by d.score desc nulls last, d.raw desc nulls last, d.placed_at), '[]'::jsonb)
+    into v_out
+    from public.live_drafts d
+   where d.game_id = p_id;
+  return v_out;
+end;
+$$;
+
+revoke all on function public.live_draft_board(text) from public;
+grant execute on function public.live_draft_board(text) to anon, authenticated;
+
+-- The game's Game Pack, once every draft on it is scored: to the best
+-- total over nothing, the more points before the boosts breaking a tie,
+-- and every draft still level after that (the same picks) one each.
 -- Returns how many packs it handed out.
 create or replace function public.award_game_packs(p_id text)
 returns integer
@@ -5106,17 +5278,17 @@ begin
   select * into g from public.live_games where id = p_id;
   if not found then return 0; end if;
   if g.six is not null and coalesce(array_length(g.six, 1), 0) = 0 then return 0; end if;
-  if exists (select 1 from public.live_bets where game_id = p_id and settled_at is null) then return 0; end if;
-  with won as (
-    select b.email, count(*)::integer as n
-      from public.live_bets b
-     where b.game_id = p_id and b.payout > b.stake
-     group by b.email
+  if exists (select 1 from public.live_drafts where game_id = p_id and settled_at is null) then return 0; end if;
+  with best as (
+    select d.email, d.score, d.raw
+      from public.live_drafts d
+     where d.game_id = p_id and d.score > 0
+       and d.score = (select max(x.score) from public.live_drafts x where x.game_id = p_id)
   )
-  insert into public.game_packs (email, game_id, game_at, season, week, home, away, six, wins)
-  select w.email, g.id, g.created_at, g.season, g.week, g.home, g.away, g.six, w.n
-    from won w
-   where w.n = (select max(n) from won)
+  insert into public.game_packs (email, game_id, game_at, season, week, home, away, six, wins, score)
+  select b.email, g.id, g.created_at, g.season, g.week, g.home, g.away, g.six, null, b.score
+    from best b
+   where b.raw = (select max(raw) from best)
   on conflict (email, game_id, game_at) do nothing;
   get diagnostics v_n = row_count;
   return v_n;

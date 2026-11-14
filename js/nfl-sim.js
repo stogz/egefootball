@@ -3883,6 +3883,16 @@ module.exports = { depthChart, gameDay, skill, healthy, standIn };
    game's own plays, and kept where only the database sees it
    (supabase/schema.sql live_feeds), until the final whistle settles it.
 
+   The draft (Sam, 2026-11-14): four players from either side, in order,
+   for the game's Game Pack, defenders too on the League page's scoring
+   for them. Each player carries a boost that evens out
+   what he is expected to score (DRAFT_PAR over it, none for anybody
+   expected to reach it, so Sam at 30 points a game has none and a fourth
+   receiver 2.0x and up), and each pick the boost of its place in the
+   order (DRAFT_ORDER), the two added together: a 3.0x player taken first
+   is 5.0x. The best boosted total of the four gets the pack; what each
+   player scored is read off the game's plays, as the bets' results are.
+
    Players are named as the feed names them ({ n, pos, t, e, g, c }), never
    by the sim's own ids. A bet's pick is a market's own id for it: 'home'
    or 'away', 'over' or 'under', or 'p3' for a player.
@@ -3917,9 +3927,48 @@ const SCORERS = { RB: true, FB: true, WR: true, TE: true };
 
 const STATS = { passYds: 'Passing yards', rushYds: 'Rushing yards', recYds: 'Receiving yards' };
 
+/* The draft (Sam, 2026-11-14). Four picks, the first three boosted by
+   their place in the order (the last not at all); a player's own boost
+   is DRAFT_PAR over the fantasy points he is expected to score, to a
+   tenth, between DRAFT_BOOST[0] and DRAFT_BOOST[1], and none below the
+   first (anybody expected to come near DRAFT_PAR). Somebody expected to
+   score less than DRAFT_FLOOR hardly plays and is not in the pool.
+   live_draft_score in supabase/schema.sql reads the order and the boosts
+   off the menu. */
+const DRAFT_ORDER = [2, 1.6, 1.4, 0];
+const DRAFT_PAR = 12;
+const DRAFT_BOOST = [1.2, 4];
+const DRAFT_FLOOR = 1;
+const DRAFTABLE = { QB: true, RB: true, FB: true, WR: true, TE: true, EDGE: true, DI: true, LB: true, CB: true, S: true };
+
+/* A defender can be drafted too (Sam, 2026-11-14: more of a gamble, but
+   it pays off on a good game). The site's scoring has nothing for one, so
+   he counts as the League page's Top Performers count him (DEF_STATS in
+   js/app.js): a point a tackle or a pass broken up, 2 a sack, 3 a pick or
+   a forced fumble, 6 a score. */
+const DEFENDERS = { EDGE: true, DI: true, LB: true, CB: true, S: true };
+const DEF_POINTS = { defTd: 6, ints: 3, ff: 3, sacks: 2, passDef: 1, tackles: 1 };
+
 /* --------------------------------------------------------------- odds -- */
 
 function round05(x) { return Math.round(x * 20) / 20; }
+
+function round2(x) { return Math.round(x * 100) / 100; }
+
+/* A player's points in the draft off a box score line: a defender's on
+   DEF_POINTS, anybody else's on the site's fantasy scoring. */
+function draftPoints(line, pos) {
+  if (!line) { return 0; }
+  if (!DEFENDERS[pos]) { return boosts.fantasyPoints(line); }
+  return Object.keys(DEF_POINTS).reduce((sum, k) => sum + (line[k] || 0) * DEF_POINTS[k], 0);
+}
+
+/* A player's draft boost for the fantasy points he is expected to score,
+   or 0 for none. */
+function draftBoost(expected) {
+  const x = Math.round(DRAFT_PAR / Math.max(expected, 0.01) * 10) / 10;
+  return x < DRAFT_BOOST[0] ? 0 : Math.min(x, DRAFT_BOOST[1]);
+}
 
 function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
 
@@ -3950,8 +3999,8 @@ function median(list) {
 /* ---------------------------------------------------------- the matchup -- */
 
 /* The game played RUNS times from the league as it stood before the week:
-   each player's chance of scoring, of scoring after the half, and what he
-   piles up; the home side's margin. */
+   each player's chance of scoring, of scoring after the half, what he
+   piles up and his fantasy points on average; the home side's margin. */
 function project(pre, game) {
   index(pre);
   const home = side(pre, game.home);
@@ -3968,8 +4017,9 @@ function project(pre, game) {
     r.tds.forEach((t) => { if (t.qtr >= 3 && t.id) { late[t.id] = true; } });
     Object.keys(r.box).forEach((id) => {
       const line = r.box[id];
-      const e = per[id] || (per[id] = { team: line.team, td: 0, td2: 0, passYds: [], rushYds: [], recYds: [], touches: 0 });
+      const e = per[id] || (per[id] = { team: line.team, td: 0, td2: 0, passYds: [], rushYds: [], recYds: [], touches: 0, fp: 0 });
       if (scored(line)) { e.td += 1; }
+      e.fp += draftPoints(line, line.pos);
       if (late[id]) { e.td2 += 1; }
       Object.keys(STATS).forEach((k) => e[k].push(line[k] || 0));
       e.touches += (line.rushAtt || 0) + (line.targets || 0) + (line.passAtt || 0);
@@ -3982,6 +4032,7 @@ function project(pre, game) {
     e.td /= RUNS;
     e.td2 /= RUNS;
     e.touches /= RUNS;
+    e.fp /= RUNS;
   });
   return { per, margin: margin / RUNS };
 }
@@ -4033,21 +4084,25 @@ function build(pre, game, kept, plan, games) {
   function covers(points) { return final[0] + points > final[1] ? 'home' : 'away'; }
 
   /* What each player did in the game, from its plays: touchdowns, those
-     after the half, and his yards. */
+     after the half, his yards, and his whole line for his fantasy points. */
   const did = {};
   const hurtEarly = {};
   plays.forEach((e) => {
     Object.keys(e.d || {}).forEach((id) => {
-      const x = did[id] || (did[id] = { td: 0, td2: 0, passYds: 0, rushYds: 0, recYds: 0 });
+      const x = did[id] || (did[id] = { td: 0, td2: 0, passYds: 0, rushYds: 0, recYds: 0, line: {} });
       const n = scored(e.d[id]);
       x.td += n;
       if (e.pre && e.pre.q >= 3) { x.td2 += n; }
       Object.keys(STATS).forEach((k) => { x[k] += e.d[id][k] || 0; });
+      Object.keys(e.d[id]).forEach((k) => {
+        if (typeof e.d[id][k] === 'number' && !/Long$/.test(k)) { x.line[k] = (x.line[k] || 0) + e.d[id][k]; }
+      });
     });
     if (e.pre && e.pre.q <= 2) { (e.hurt || []).forEach((id) => { hurtEarly[id] = true; }); }
   });
 
   const markets = [];
+  const bets = { min: MIN, markets };
   const results = { push: [] };
   let half = null;
 
@@ -4148,6 +4203,38 @@ function build(pre, game, kept, plan, games) {
     results[mkt] = [((did[id] && did[id][stat]) || 0) > line ? 'over' : 'under'];
   });
 
+  /* The draft: everybody fit to play on either side who plays enough to
+     count but the kickers, the visitors first, each side's offense before
+     its defense and the likeliest scorers first. What he is expected to
+     score is the matchup's average, and halfway to his season's average
+     once he has three games behind him. */
+  const draftPool = [];
+  [game.away, game.home].forEach((key) => {
+    rosterOf(pre, key).filter((p) => DRAFTABLE[p.pos] && !(p.injury && p.injury.games > 0)).map((p) => {
+      const e = proj.per[p.id];
+      const sim = e && e.team === key ? e.fp : 0;
+      const lines = seen[p.id] || [];
+      const avg = lines.length ? lines.reduce((a, l) => a + draftPoints(l, p.pos), 0) / lines.length : 0;
+      return { p, expected: lines.length >= 3 ? (avg + sim) / 2 : sim };
+    }).filter((x) => x.expected >= DRAFT_FLOOR)
+      .sort((a, b) => (DEFENDERS[a.p.pos] ? 1 : 0) - (DEFENDERS[b.p.pos] ? 1 : 0) ||
+        b.expected - a.expected || b.p.ovr - a.p.ovr)
+      .forEach((x) => draftPool.push(x));
+  });
+  if (draftPool.length >= DRAFT_ORDER.length) {
+    bets.draft = { size: DRAFT_ORDER.length, order: DRAFT_ORDER.slice(), picks: draftPool.map((x, i) => {
+      const row = Object.assign({ id: 'd' + i }, who(x.p));
+      const boost = draftBoost(x.expected);
+      if (boost) { row.x = boost; }
+      return row;
+    }) };
+    results.draft = {};
+    draftPool.forEach((x, i) => {
+      const got = did[x.p.id];
+      results.draft['d' + i] = got ? round2(draftPoints(got.line, x.p.pos)) : 0;
+    });
+  }
+
   /* Halftime: the spread as the bot's halftime post has it, the score at
      the half and half the pregame line still to play, and who scores in
      the rest of the game. */
@@ -4167,10 +4254,10 @@ function build(pre, game, kept, plan, games) {
     results.td2 = later.filter((id) => did[id] && did[id].td2 > 0).map((id) => pickId[id]);
   }
 
-  return { bets: { min: MIN, markets }, half, results };
+  return { bets, half, results };
 }
 
-module.exports = { build, tdPrice, homePoints, MIN, SPREAD, PROP };
+module.exports = { build, tdPrice, homePoints, draftBoost, draftPoints, MIN, SPREAD, PROP, DRAFT_ORDER, DRAFT_PAR };
 
   };
 

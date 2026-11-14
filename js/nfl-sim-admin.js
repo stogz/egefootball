@@ -1129,6 +1129,14 @@ EGE.nflSimAdmin = (function () {
 
   function liveTitle(g) { return nick(g.away) + (g.neutral ? ' vs. ' : ' at ') + nick(g.home); }
 
+  /* The draft is for the game's Game Pack (Sam, 2026-11-14), and a game
+     with none of the six in it has no cards to make one of: no draft. */
+  function noDraftWithout(bets, six) {
+    if (!bets || six.length) { return; }
+    if (bets.bets) { delete bets.bets.draft; }
+    if (bets.results) { delete bets.results.draft; }
+  }
+
   /* Test: the game played on this device alone, nobody else seeing it and
      nothing posted (Sam, 2026-11-03). */
   function testLive(season, week, g, playoff) {
@@ -1140,6 +1148,7 @@ EGE.nflSimAdmin = (function () {
       return livePlan(season, week, g, playoff, margin);
     }).then(function (got) {
       var plan = got.plan;
+      noDraftWithout(got.bets, sixPlaying(season, week, g));
       EGE.liveView.startTest({ season: season, week: week, home: g.home, away: g.away, title: liveTitle(g) },
         plan.entries, plan.length, LIVE_SLOT, LIVE_REVEAL, got.bets);
       state.busy = false;
@@ -1174,6 +1183,7 @@ EGE.nflSimAdmin = (function () {
         margin: got[1], start: Date.now(), delay: 0, slot: LIVE_SLOT, reveal: LIVE_REVEAL
       });
       var six = sixPlaying(season, week, g);
+      noDraftWithout(got[0].bets, six);
       return c.rpc('live_start', {
         p_game: { id: id, season: season, week: week, home: g.home, away: g.away, title: liveTitle(g),
                   slot_ms: LIVE_SLOT, reveal_ms: LIVE_REVEAL, length_ms: plan.length,
