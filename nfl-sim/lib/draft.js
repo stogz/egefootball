@@ -15,7 +15,9 @@
    (build/class-2028.js), a point and a half better at every pick; the 2029
    class is 2026's best freshmen and recruits and the college stats, level
    with 2028, with 48 made-up prospects wearing small-school headshots
-   (build/class-2029.js). After 2029 the sim makes its own classes.
+   (build/class-2029.js); the 2030 class is made up from top to bottom,
+   level with 2029, each prospect with his own skills (build/class-2030.js).
+   After 2030 the sim makes its own classes.
 
    Each team's board is the prospect's grade, his position's worth, how
    badly the team needs the position and how well he fits its schemes, with
@@ -109,11 +111,13 @@ const FIXED_ROOM = 3;
 
 function fixedGrade(pr) { return typeof pr.ovr === 'number' ? Math.min(pr.grade, gradeFor(pr.ovr, pr.pos)) : pr.grade; }
 
-/* How a prospect's skills lean, from his id alone. */
+/* How a prospect's skills lean: the lean he was made with (`style`, the
+   made-up 2030 class), or else from his id alone. */
 function styleOf(pr) {
   const own = seeded('style:' + pr.id);
   const z = {};
   Object.keys(SKILLS[pr.pos] || {}).forEach((k) => { z[k] = own.gauss() * 0.9; });
+  if (pr.style) { Object.keys(z).forEach((k) => { if (typeof pr.style[k] === 'number') { z[k] = pr.style[k]; } }); }
   const speedKey = SPEED_SKILL[pr.pos];
   if (speedKey && pr.forty) { z[speedKey] = clamp((FORTY[pr.pos] - pr.forty) / 0.08, -2.5, 2.5); }
   return z;
