@@ -13,7 +13,9 @@
    The Teams pages use the rest, for an admin: a player's archetype and
    skills too (editPlayer), a free agent signed onto a team (signFreeAgent),
    a team's schemes and mode (teamInfo) and a scheme picked by hand
-   (setScheme), a contract set by hand or a player cut (setContract,
+   (setScheme), its direction set by hand (setMode, also on the NFL Sim
+   tab with every team's, teamDirections), a contract set by hand or a
+   player cut (setContract,
    releasePlayer), a team's payroll (teamPay), and the six's archetypes,
    the one thing about them set here (setSixArchetype).
    ========================================================================== */
@@ -31,6 +33,7 @@ const { adopt } = require('./offseason');
 const { index } = require('./league');
 const { seeded, hash } = require('./rng');
 const { TEAMS } = require('./teams');
+const { standings, recordText } = require('./standings');
 const sixTrades = require('./six-trades');
 const sixOffers = require('./six-offers');
 
@@ -176,12 +179,64 @@ function signFreeAgent(league, id, key) {
   return { name: p.name, pos: p.pos, ovr: p.ovr, contract: Object.assign({}, p.contract) };
 }
 
-/* A team's schemes and mode, for an admin's eyes on its page. */
+/* A team's schemes and mode, for an admin's eyes on its page: whether
+   Sam set the mode (modeSet) and what the sim would have it be (auto). */
 function teamInfo(league, key) {
   const t = league.teams.find((x) => x.key === key);
   if (!t) { return null; }
   return { season: league.season, offense: OFFENSE[t.offense] ? OFFENSE[t.offense].name : t.offense,
-           defense: DEFENSE[t.defense] ? DEFENSE[t.defense].name : t.defense, mode: t.mode || 'compete' };
+           defense: DEFENSE[t.defense] ? DEFENSE[t.defense].name : t.defense, mode: t.mode || 'compete',
+           modeSet: Boolean(t.modeSet), auto: autoMode(t) };
+}
+
+/* ------------------------------------------------------------ direction -- */
+
+const MODES = { compete: 'competing', retool: 'retooling', rebuild: 'rebuilding' };
+
+/* What the sim itself has a team doing: its mode, or for one Sam set, the
+   mode the sim last worked out for it (offseason.js modesAndSchemes). */
+function autoMode(t) { return (t.modeSet ? t.modeAuto : t.mode) || t.mode || 'compete'; }
+
+/* A team's direction set by hand (Sam, 2026-11-14): an old team off to a
+   bad start set to rebuild, say. From now on it trades, values players and
+   picks, signs and cuts as one (trades.js, value.js, rosters.js), and it
+   keeps the direction through every offseason until Sam sets it back to
+   'auto', the sim's own pick. */
+function setMode(league, key, mode) {
+  const t = league.teams.find((x) => x.key === key);
+  if (!t) { throw new Error('No team ' + key + '.'); }
+  if (mode !== 'auto' && !MODES[mode]) { throw new Error(mode + ' is not competing, retooling or rebuilding.'); }
+  const before = t.mode || 'compete';
+  const wasSet = Boolean(t.modeSet);
+  if (!t.modeSet) { t.modeAuto = before; }
+  if (mode === 'auto') {
+    if (!wasSet) { return { team: key, before, after: before, same: true }; }
+    t.mode = t.modeAuto || before;
+    delete t.modeSet;
+  } else {
+    if (mode === before && wasSet) { return { team: key, before, after: before, same: true }; }
+    t.mode = mode;
+    t.modeSet = league.season;
+  }
+  log(league, 'mode', key, TEAMS[key].name + ': ' + MODES[before] + ' to ' + MODES[t.mode] + (mode === 'auto' ? ' (the sim\'s pick)' : ''));
+  return { team: key, before, after: t.mode, auto: mode === 'auto' };
+}
+
+/* Every team's direction, with what it says about the team: its record
+   this season (last season's until a game is played) and how old its
+   twelve best players are, the age offseason.js modeFor weighs. */
+function teamDirections(league) {
+  const played = league.schedule && league.schedule.some((g) => g.score);
+  const now = played ? standings(league.schedule, league.season).records : null;
+  const last = (league.history || []).slice(-1)[0];
+  return league.teams.map((t) => {
+    const core = onTeam(league, t.key).sort((a, b) => b.ovr - a.ovr).slice(0, 12);
+    const age = core.reduce((s, p) => s + (p.age || 26), 0) / Math.max(1, core.length);
+    const record = now && now[t.key] ? recordText(now[t.key]) : null;
+    const lastRecord = !record && last && last.records ? last.records[t.key] || null : null;
+    return { key: t.key, mode: t.mode || 'compete', modeSet: Boolean(t.modeSet), auto: autoMode(t),
+             record, lastRecord, lastSeason: lastRecord ? last.season : null, age: Math.round(age * 10) / 10 };
+  });
 }
 
 /* A team's offense or defense picked by hand: its tendencies move to the
@@ -306,4 +361,5 @@ function setSixArchetype(league, slug, archetype) {
 }
 
 module.exports = { draftClass, classYear, setRatings, playerOn, editPlayer, freeAgents, signFreeAgent, teamInfo, setScheme,
-                   setContract, releasePlayer, teamPay, sixArchetypes, setSixArchetype, SCHEMES: { offense: OFFENSE, defense: DEFENSE } };
+                   setMode, teamDirections, setContract, releasePlayer, teamPay, sixArchetypes, setSixArchetype,
+                   SCHEMES: { offense: OFFENSE, defense: DEFENSE } };

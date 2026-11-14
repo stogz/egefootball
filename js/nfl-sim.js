@@ -1435,7 +1435,9 @@ module.exports = { runDraft, toPlayer, preview, gradeFor, madeClass, makeName, r
    The Teams pages use the rest, for an admin: a player's archetype and
    skills too (editPlayer), a free agent signed onto a team (signFreeAgent),
    a team's schemes and mode (teamInfo) and a scheme picked by hand
-   (setScheme), a contract set by hand or a player cut (setContract,
+   (setScheme), its direction set by hand (setMode, also on the NFL Sim
+   tab with every team's, teamDirections), a contract set by hand or a
+   player cut (setContract,
    releasePlayer), a team's payroll (teamPay), and the six's archetypes,
    the one thing about them set here (setSixArchetype).
    ========================================================================== */
@@ -1453,6 +1455,7 @@ const { adopt } = require('./offseason');
 const { index } = require('./league');
 const { seeded, hash } = require('./rng');
 const { TEAMS } = require('./teams');
+const { standings, recordText } = require('./standings');
 const sixTrades = require('./six-trades');
 const sixOffers = require('./six-offers');
 
@@ -1598,12 +1601,64 @@ function signFreeAgent(league, id, key) {
   return { name: p.name, pos: p.pos, ovr: p.ovr, contract: Object.assign({}, p.contract) };
 }
 
-/* A team's schemes and mode, for an admin's eyes on its page. */
+/* A team's schemes and mode, for an admin's eyes on its page: whether
+   Sam set the mode (modeSet) and what the sim would have it be (auto). */
 function teamInfo(league, key) {
   const t = league.teams.find((x) => x.key === key);
   if (!t) { return null; }
   return { season: league.season, offense: OFFENSE[t.offense] ? OFFENSE[t.offense].name : t.offense,
-           defense: DEFENSE[t.defense] ? DEFENSE[t.defense].name : t.defense, mode: t.mode || 'compete' };
+           defense: DEFENSE[t.defense] ? DEFENSE[t.defense].name : t.defense, mode: t.mode || 'compete',
+           modeSet: Boolean(t.modeSet), auto: autoMode(t) };
+}
+
+/* ------------------------------------------------------------ direction -- */
+
+const MODES = { compete: 'competing', retool: 'retooling', rebuild: 'rebuilding' };
+
+/* What the sim itself has a team doing: its mode, or for one Sam set, the
+   mode the sim last worked out for it (offseason.js modesAndSchemes). */
+function autoMode(t) { return (t.modeSet ? t.modeAuto : t.mode) || t.mode || 'compete'; }
+
+/* A team's direction set by hand (Sam, 2026-11-14): an old team off to a
+   bad start set to rebuild, say. From now on it trades, values players and
+   picks, signs and cuts as one (trades.js, value.js, rosters.js), and it
+   keeps the direction through every offseason until Sam sets it back to
+   'auto', the sim's own pick. */
+function setMode(league, key, mode) {
+  const t = league.teams.find((x) => x.key === key);
+  if (!t) { throw new Error('No team ' + key + '.'); }
+  if (mode !== 'auto' && !MODES[mode]) { throw new Error(mode + ' is not competing, retooling or rebuilding.'); }
+  const before = t.mode || 'compete';
+  const wasSet = Boolean(t.modeSet);
+  if (!t.modeSet) { t.modeAuto = before; }
+  if (mode === 'auto') {
+    if (!wasSet) { return { team: key, before, after: before, same: true }; }
+    t.mode = t.modeAuto || before;
+    delete t.modeSet;
+  } else {
+    if (mode === before && wasSet) { return { team: key, before, after: before, same: true }; }
+    t.mode = mode;
+    t.modeSet = league.season;
+  }
+  log(league, 'mode', key, TEAMS[key].name + ': ' + MODES[before] + ' to ' + MODES[t.mode] + (mode === 'auto' ? ' (the sim\'s pick)' : ''));
+  return { team: key, before, after: t.mode, auto: mode === 'auto' };
+}
+
+/* Every team's direction, with what it says about the team: its record
+   this season (last season's until a game is played) and how old its
+   twelve best players are, the age offseason.js modeFor weighs. */
+function teamDirections(league) {
+  const played = league.schedule && league.schedule.some((g) => g.score);
+  const now = played ? standings(league.schedule, league.season).records : null;
+  const last = (league.history || []).slice(-1)[0];
+  return league.teams.map((t) => {
+    const core = onTeam(league, t.key).sort((a, b) => b.ovr - a.ovr).slice(0, 12);
+    const age = core.reduce((s, p) => s + (p.age || 26), 0) / Math.max(1, core.length);
+    const record = now && now[t.key] ? recordText(now[t.key]) : null;
+    const lastRecord = !record && last && last.records ? last.records[t.key] || null : null;
+    return { key: t.key, mode: t.mode || 'compete', modeSet: Boolean(t.modeSet), auto: autoMode(t),
+             record, lastRecord, lastSeason: lastRecord ? last.season : null, age: Math.round(age * 10) / 10 };
+  });
 }
 
 /* A team's offense or defense picked by hand: its tendencies move to the
@@ -1728,7 +1783,8 @@ function setSixArchetype(league, slug, archetype) {
 }
 
 module.exports = { draftClass, classYear, setRatings, playerOn, editPlayer, freeAgents, signFreeAgent, teamInfo, setScheme,
-                   setContract, releasePlayer, teamPay, sixArchetypes, setSixArchetype, SCHEMES: { offense: OFFENSE, defense: DEFENSE } };
+                   setMode, teamDirections, setContract, releasePlayer, teamPay, sixArchetypes, setSixArchetype,
+                   SCHEMES: { offense: OFFENSE, defense: DEFENSE } };
 
   };
 
@@ -4948,7 +5004,8 @@ function firstModes(league) {
   const ratings = rateTeams(league, { rounds: 2, seed: 'kickoff:' + league.season });
   league.teams.forEach((t) => {
     t.rating = ratings[t.key].overall;
-    t.mode = modeFor(league, t, t.rating, 8);
+    t.modeAuto = modeFor(league, t, t.rating, 8);
+    if (!t.modeSet) { t.mode = t.modeAuto; }
   });
 }
 
@@ -4962,8 +5019,12 @@ function modesAndSchemes(league, rng, ratings, lastRecords) {
     const rec = lastRecords[t.key];
     const wins = rec ? Number(rec.split('-')[0]) : 8;
     const before = t.mode;
-    t.mode = modeFor(league, t, r.overall, wins);
+    /* The sim's own pick every year; a direction Sam set (edits.js
+       setMode) stands over it until he sets the team back to it. */
+    t.modeAuto = modeFor(league, t, r.overall, wins);
+    if (!t.modeSet) { t.mode = t.modeAuto; }
     if (before !== t.mode) { notes.push(nick(t.key) + ' go from ' + ING[before] + ' to ' + ING[t.mode]); }
+    if (t.modeSet && t.modeAuto !== t.mode) { notes.push(nick(t.key) + ' stay ' + ING[t.mode] + ', as you set them'); }
 
     /* Coaches: a bad year can cost a staff its job. */
     const fireChance = wins <= 4 ? 0.6 : wins <= 6 ? 0.3 : wins <= 8 ? 0.08 : wins <= 10 ? 0.02 : 0;
@@ -5148,7 +5209,7 @@ function finishOffseason(league, rng, place) {
   return report;
 }
 
-module.exports = { startOffseason, finishOffseason, firstModes, the99s, fits, ageOn, adopt };
+module.exports = { startOffseason, finishOffseason, firstModes, the99s, fits, ageOn, adopt, modeFor };
 
   };
 
@@ -9149,6 +9210,133 @@ module.exports = { forTeam, callsOf, CALLS, ROUNDS };
 
   };
 
+  sources["trade-builder"] = function (module, exports, require, __dirname) {
+/* ==========================================================================
+   EGE Football NFL sim — what the admin page's trade builder shows
+   Two teams and the deal between them as the NFL Sim tab draws it (Sam,
+   2026-11-14): for each team its direction and record, what it needs, its
+   cap before and after the deal, and every player and pick it can trade,
+   each with what it is worth to the team that has it (what it asks) and to
+   the other team (what that team would give). Then, for each team, what it
+   gets and gives by its own numbers.
+
+   Values are lib/trades.js valueOf, the numbers every trade is weighed by,
+   in points (value.js POINTS_PER_UNIT): the draft chart's, where the first
+   pick is 1,000.
+
+   sides: [{ key, players: [id], picks: [pickId] }, { ... }]; a key may be
+   blank (no team picked yet). Nothing here changes the league.
+   ========================================================================== */
+
+'use strict';
+
+const { valueOf, slotFinder, record, pickId, pickLabel } = require('./trades');
+const { onTeam, payroll, starterLevels, needAt, SLOTS } = require('./rosters');
+const { capFor, POINTS_PER_UNIT } = require('./value');
+const { locked } = require('./draft-plan');
+const { recordText } = require('./standings');
+const { TEAMS } = require('./teams');
+
+const POS_ORDER = ['QB', 'RB', 'FB', 'WR', 'TE', 'OT', 'IOL', 'EDGE', 'DI', 'LB', 'CB', 'S', 'K', 'P'];
+
+function points(v) { return Math.round(v * POINTS_PER_UNIT); }
+function round1(v) { return Math.round(v * 10) / 10; }
+
+/* A player as the builder lists him: no potential, durability or rating
+   of any team's (the page is an admin's, but it never needs them). */
+function playerRow(p) {
+  const row = { id: p.id, name: p.name, pos: p.pos, ovr: p.ovr, age: p.age || null,
+                contract: p.contract ? { apy: p.contract.apy, through: p.contract.through } : null };
+  if (p.espn) { row.espn = String(p.espn); }
+  if (p.collegePhoto) { row.collegePhoto = true; }
+  if (p.ege) { row.ege = p.ege; }
+  if (p.injury && p.injury.games) { row.out = p.injury.games; }
+  return row;
+}
+
+/* What a team is short of, worst first: 0 (set) to 1 (a hole) at each
+   position it starts somebody (rosters.js needAt), kickers and punters
+   left out. */
+function needsOf(league, key, levels) {
+  const roster = onTeam(league, key);
+  return POS_ORDER.filter((pos) => SLOTS[pos] && pos !== 'K' && pos !== 'P')
+    .map((pos) => ({ pos, need: Math.round(needAt(league, key, pos, levels, roster) * 100) / 100 }))
+    .sort((a, b) => b.need - a.need || POS_ORDER.indexOf(a.pos) - POS_ORDER.indexOf(b.pos));
+}
+
+function view(league, sides) {
+  const levels = starterLevels(league);
+  const slotOf = slotFinder(league);
+  const cap = capFor(league.season);
+  const keys = sides.map((s) => (s && TEAMS[s.key] ? s.key : ''));
+  const both = keys[0] && keys[1] && keys[0] !== keys[1];
+  const last = (league.history || []).slice(-1)[0];
+
+  const out = keys.map((key, i) => {
+    if (!key) { return null; }
+    const side = sides[i];
+    const other = both ? keys[1 - i] : null;
+    const t = league.teams.find((x) => x.key === key) || {};
+    const chosen = new Set(side.players || []);
+    const chosenPicks = new Set(side.picks || []);
+    const players = onTeam(league, key).map((p) => {
+      const item = { kind: 'player', player: p };
+      return Object.assign(playerRow(p), {
+        ask: points(valueOf(league, item, key, slotOf, levels, true)),
+        worth: other ? points(valueOf(league, item, other, slotOf, levels, false)) : null,
+        inDeal: chosen.has(p.id)
+      });
+    }).sort((a, b) => POS_ORDER.indexOf(a.pos) - POS_ORDER.indexOf(b.pos) || b.ovr - a.ovr || a.name.localeCompare(b.name));
+    const picks = league.picks.filter((p) => p.owner === key && !locked(league, p))
+      .sort((a, b) => a.year - b.year || a.round - b.round || (a.from === key ? -1 : b.from === key ? 1 : a.from.localeCompare(b.from)))
+      .map((p) => {
+        const item = { kind: 'pick', pick: p };
+        const id = pickId(p);
+        return { id, year: p.year, round: p.round, from: p.from, label: pickLabel(p),
+                 ask: points(valueOf(league, item, key, slotOf, levels, true)),
+                 worth: other ? points(valueOf(league, item, other, slotOf, levels, false)) : null,
+                 inDeal: chosenPicks.has(id) };
+      });
+    const rec = record(league, key);
+    return {
+      key, mode: t.mode || 'compete', modeSet: Boolean(t.modeSet),
+      record: rec ? recordText(rec) : null,
+      lastRecord: !rec && last && last.records ? last.records[key] || null : null,
+      needs: needsOf(league, key, levels),
+      players, picks,
+      cap: { cap, payroll: round1(payroll(league, key)) }
+    };
+  });
+
+  /* The deal itself: each team's money in and out, and what it gets and
+     gives by its own numbers. */
+  out.forEach((s, i) => {
+    if (!s) { return; }
+    const o = out[1 - i];
+    const sent = s.players.filter((p) => p.inDeal);
+    const got = o ? o.players.filter((p) => p.inDeal) : [];
+    const pay = (list) => round1(list.reduce((sum, p) => sum + ((p.contract && p.contract.apy) || 0), 0));
+    s.cap.out = pay(sent);
+    s.cap.in = both ? pay(got) : 0;
+    s.cap.after = round1(s.cap.payroll - s.cap.out + s.cap.in);
+    s.cap.roomBefore = round1(cap - s.cap.payroll);
+    s.cap.roomAfter = round1(cap - s.cap.after);
+    s.sends = sent.concat(s.picks.filter((p) => p.inDeal));
+    if (both) {
+      const gets = o.players.filter((p) => p.inDeal).concat(o.picks.filter((p) => p.inDeal));
+      s.gets = gets.reduce((sum, x) => sum + x.worth, 0);
+      s.gives = s.sends.reduce((sum, x) => sum + x.ask, 0);
+      s.takes = s.gets >= s.gives;
+    }
+  });
+
+  return { season: league.season, cap, sides: out, ready: Boolean(both && out.some((s) => s.sends.length)) };
+}
+
+module.exports = { view, points, POS_ORDER };
+
+  };
+
   sources["trade-finder"] = function (module, exports, require, __dirname) {
 /* ==========================================================================
    EGE Football NFL sim — the trade finder
@@ -9508,7 +9696,7 @@ module.exports = { findTrades, findPickTrades };
 
 'use strict';
 
-const { playerValue, pickValue, POSITION } = require('./value');
+const { playerValue, pickValue, POSITION, POINTS_PER_UNIT } = require('./value');
 const { fitOf, schemeFor, offenseOf, defenseOf } = require('./schemes');
 const { starterLevels, needAt, onTeam, byPos, room, SLOTS, trim, addPlayers, noteSigning } = require('./rosters');
 const { makeName } = require('./draft');
@@ -9526,6 +9714,9 @@ const POS_WORD = { QB: 'quarterback', RB: 'running back', FB: 'fullback', WR: 'r
                    S: 'safety', K: 'kicker', P: 'punter' };
 
 function nick(key) { return TEAMS[key] ? TEAMS[key].name.split(' ').slice(-1)[0] : key; }
+/* A value as the admin page writes it: in points, the draft chart's (the
+   first pick 1,000), as the trade builder shows them (Sam, 2026-11-14). */
+function pts(v) { return String(Math.round(v * POINTS_PER_UNIT)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 function ordinal(n) { return n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'); }
 function pickId(p) { return p.year + '-R' + p.round + '-' + p.from; }
 function pickLabel(p) {
@@ -9708,8 +9899,8 @@ function build(league, c, window, n) {
     summary: nick(c.buyer) + ' get ' + describeItem({ kind: 'player', player: p }) + '; ' + nick(c.seller) + ' get ' +
       items.map(describeItem).join(' and ') + '.',
     reasons: [sellerWhy + ' and get ' + items.map(describeItem).join(' and ') + '.', buyerWhy + '.',
-      'By their own numbers ' + nick(c.buyer) + ' value him at ' + c.worth.toFixed(1) + ' and give ' + c.pack.cost.toFixed(1) +
-      '; ' + nick(c.seller) + ' value him at ' + c.price.toFixed(1) + ' and get ' + c.pack.got.toFixed(1) + '.'].concat(
+      'By their own numbers ' + nick(c.buyer) + ' value him at ' + pts(c.worth) + ' and give ' + pts(c.pack.cost) +
+      '; ' + nick(c.seller) + ' value him at ' + pts(c.price) + ' and get ' + pts(c.pack.got) + '.'].concat(
       ege ? ['This moves one of the six.'] : [],
       c.current && c.current.ege ? [c.current.name + ' would lose his starting spot to him.'] : [])
   };
@@ -9931,8 +10122,8 @@ function proposeOwn(league, input) {
   };
   const va = view(A.key, B.items, A.items);
   const vb = view(B.key, A.items, B.items);
-  const verdict = (key, v) => nick(key) + ' value what they get at ' + v.gets.toFixed(1) + ' and what they give at ' +
-    v.gives.toFixed(1) + (v.gets >= v.gives ? ': they would take it.' : ': they would want more.');
+  const verdict = (key, v) => nick(key) + ' value what they get at ' + pts(v.gets) + ' and what they give at ' +
+    pts(v.gives) + (v.gets >= v.gives ? ': they would take it.' : ': they would want more.');
   const queue = loadQueue(league);
   const ege = A.items.concat(B.items).some((i) => i.kind === 'player' && i.player.ege);
   const t = {
@@ -10237,6 +10428,7 @@ module.exports = { played, week, lineText };
     history: load('history'),
     fit: load('fit'),
     tradeFinder: load('trade-finder'),
+    tradeBuilder: load('trade-builder'),
     tendencies: load('tendencies'),
     weeks: load('weeks'),
     sixTrades: load('six-trades'),

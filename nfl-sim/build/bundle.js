@@ -94,6 +94,7 @@ parts.push(`
     history: load('history'),
     fit: load('fit'),
     tradeFinder: load('trade-finder'),
+    tradeBuilder: load('trade-builder'),
     tendencies: load('tendencies'),
     weeks: load('weeks'),
     sixTrades: load('six-trades'),

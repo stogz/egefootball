@@ -2463,35 +2463,370 @@ body::before {
   .ege-sim__offers .ege-sim__faact, .ege-sim__six .ege-sim__faact { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
 }
 .ege-sim__logo { display: block; width: 20px; height: 20px; object-fit: contain; }
-/* The trade builder: a column a team, its players and picks added from
-   dropdowns, each one a chip to take back out. */
-.ege-sim__builder { display: grid; gap: 12px; margin-top: 4px; }
-.ege-sim__sides { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
-.ege-sim__side {
+/* The trade builder (Sam, 2026-11-14): a card a team, on its colour under
+   its mark, with its cap before and after as two rings, what it needs as
+   bars, what it sends, and every player and pick to click into the deal,
+   each with what it is worth to the other team (green when that is his
+   price or more) and to its own. Under both, what each team gets and
+   gives. */
+.ege-tb { --ege-tb-in: #4b8b3b; --ege-tb-in-deep: #2f6b25; display: grid; gap: 16px; margin-top: 6px; }
+.ege-tb__sides { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+@media (max-width: 920px) { .ege-tb__sides { grid-template-columns: minmax(0, 1fr); } }
+.ege-tb__side {
+  --team: var(--fb-ink);
   display: grid;
   align-content: start;
-  gap: 10px;
+  gap: 14px;
   min-width: 0;
-  padding: 12px;
-  border: var(--fb-border-thin) solid var(--fb-ink);
-  background: #fff;
+  padding-bottom: 14px;
+  border: var(--fb-border) solid var(--fb-ink);
+  background: var(--fb-cream);
+  box-shadow: 4px 4px 0 var(--fb-ink);
 }
-.ege-sim__side .ege-weekbar { align-items: flex-end; flex-wrap: nowrap; }
-.ege-sim__chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.ege-sim__chip {
-  display: inline-flex;
+.ege-tb__side > :not(.ege-tb__band) { margin-left: 12px; margin-right: 12px; min-width: 0; }
+
+/* The band: the mark large on the team's colour, the team's name the
+   dropdown that picks it, its direction and record under. */
+.ege-tb__band {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 80px;
+  padding: 10px 14px;
+  overflow: hidden;
+  border-bottom: var(--fb-border) solid var(--fb-ink);
+  background: var(--team);
+  color: #fff;
+}
+.ege-tb__band.is-empty { min-height: 64px; background: var(--fb-ink); }
+.ege-tb__bandmark { flex: none; display: grid; place-items: center; width: 60px; height: 60px; }
+.ege-tb__bandmark img { width: 100%; height: 100%; object-fit: contain; }
+.ege-tb__bandwords { position: relative; display: grid; gap: 3px; flex: 1 1 auto; min-width: 0; }
+.ege-tb__teampick {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  min-width: 0;
+  padding: 2px 26px 2px 0;
+  border: 0;
+  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%23fff' stroke-width='2.5'/%3E%3C/svg%3E") no-repeat right 4px center;
+  color: #fff;
+  font-family: var(--fb-font-display);
+  font-size: 1.375rem;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.ege-tb__teampick:focus-visible { outline: var(--fb-border-thin) solid #fff; outline-offset: 2px; }
+.ege-tb__teampick option { background: #fff; color: var(--fb-ink); font-family: var(--fb-font-body); font-size: 1rem; }
+.ege-tb__bandmeta {
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .86);
+}
+.ege-tb__bandmeta.is-set::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50% !important;
+  background: var(--fb-accent-hover);
+  vertical-align: 1px;
+}
+
+/* A team's mark on its own colour, small: list headings, picks, balance. */
+.ege-tb__mark { display: inline-grid; flex: none; place-items: center; width: 22px; height: 22px; }
+.ege-tb__mark img { width: 78%; height: 78%; object-fit: contain; }
+
+/* Cap rings and needs, side by side. */
+.ege-tb__info { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px 22px; align-items: start; }
+@media (max-width: 440px) { .ege-tb__info { grid-template-columns: minmax(0, 1fr); } }
+.ege-tb__cap { display: grid; gap: 8px; justify-items: start; }
+.ege-tb__rings { display: flex; align-items: center; gap: 8px; }
+.ege-tb__capfig { display: grid; justify-items: center; gap: 4px; margin: 0; }
+.ege-tb__ring {
+  display: grid;
+  place-items: center;
+  width: 86px;
+  height: 86px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  border-radius: 50% !important;
+}
+.ege-tb__hole {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  width: 58px;
+  height: 58px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  border-radius: 50% !important;
+  background: var(--fb-cream);
+  line-height: 1;
+  text-align: center;
+}
+.ege-tb__holeval { font-size: .8125rem; font-weight: 800; }
+.ege-tb__holelabel {
+  margin-top: 3px;
+  font-size: .5625rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-muted);
+}
+.ege-tb__hole.is-over .ege-tb__holeval,
+.ege-tb__hole.is-over .ege-tb__holelabel { color: #b3261e; }
+.ege-tb__caplabel { font-size: var(--fb-label); font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--fb-muted); }
+.ege-tb__arrow { margin-bottom: 20px; font-size: 1.25rem; font-weight: 800; }
+.ege-tb__capfacts { display: grid; grid-template-columns: repeat(2, auto); gap: 3px 16px; margin: 0; font-size: var(--fb-small); }
+.ege-tb__capfact { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.ege-tb__capfact dt { font-weight: 700; color: var(--fb-muted); }
+.ege-tb__capfact dd { margin: 0; font-weight: 800; }
+.ege-tb__capfact.is-out dt::before,
+.ege-tb__capfact.is-in dt::before {
+  content: '';
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 5px;
+  border: 1px solid var(--fb-ink);
+  background: var(--fb-accent);
+}
+.ege-tb__capfact.is-in dt::before { background: var(--ege-tb-in); }
+.ege-tb__needs { display: grid; gap: 6px; align-content: start; }
+.ege-tb__needlist { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.ege-tb__need { display: grid; grid-template-columns: 38px minmax(0, 1fr); align-items: center; gap: 8px; font-size: var(--fb-small); font-weight: 800; }
+.ege-tb__needbar { height: 12px; border: var(--fb-border-thin) solid var(--fb-ink); background: #fff; }
+.ege-tb__needfill { display: block; height: 100%; background: var(--fb-muted-2); }
+.ege-tb__need.is-want .ege-tb__needfill { background: var(--fb-accent); }
+.ege-tb__need.is-hole .ege-tb__needfill { background: var(--fb-accent-deep); }
+
+/* What a team sends: a card each, a click takes one back out. */
+.ege-tb__sends { display: grid; gap: 6px; }
+.ege-tb__cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+.ege-tb__card {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 8px;
-  max-width: 100%;
-  background: var(--fb-tint-wash);
-  letter-spacing: .02em;
+  min-width: 0;
+  padding: 4px 8px 4px 4px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: #fff;
+  box-shadow: 3px 3px 0 var(--team);
+  color: var(--fb-ink);
+  font: inherit;
   text-align: left;
+  cursor: pointer;
 }
-.ege-sim__x { font-size: 14px; line-height: 1; }
-/* The player editor and rosters by season. */
+.ege-tb__card.is-six { background: var(--fb-tint-clay); }
+.ege-tb__card .ege-tb__face { width: 40px; height: 40px; }
+.ege-tb__card .ege-tb__cardmark { width: 40px; height: 40px; }
+.ege-tb__cardtext { display: grid; min-width: 0; }
+.ege-tb__cardname { overflow: hidden; font-size: var(--fb-small); font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
+.ege-tb__cardmeta { overflow: hidden; font-size: .75rem; color: var(--fb-muted); white-space: nowrap; text-overflow: ellipsis; }
+.ege-tb__cardval { font-size: var(--fb-small); font-weight: 800; color: var(--ege-tb-in-deep); }
+.ege-tb__x { font-size: 16px; line-height: 1; color: var(--fb-muted); }
+@media (hover: hover) { .ege-tb__card:hover { background: var(--fb-tint-wash); } .ege-tb__card:hover .ege-tb__x { color: var(--fb-ink); } }
+
+/* A face: a headshot, or initials on sand. */
+.ege-tb__face {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  overflow: hidden;
+  background: var(--fb-sand);
+  font-size: .6875rem;
+  font-weight: 800;
+  color: var(--fb-muted);
+}
+.ege-tb__face img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+
+/* Every player: position buttons, then a table whose headings sort it. */
+.ege-tb__filters { display: flex; flex-wrap: wrap; gap: 4px; }
+.ege-tb__filter {
+  padding: 4px 8px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: #fff;
+  color: var(--fb-ink);
+  font: inherit;
+  font-size: .6875rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  cursor: pointer;
+}
+.ege-tb__filter.is-on { background: var(--fb-ink); color: var(--fb-cream); }
+@media (hover: hover) { .ege-tb__filter:not(.is-on):hover { background: var(--fb-tint-wash); } }
+.ege-tb__table { border: var(--fb-border-thin) solid var(--fb-ink); background: #fff; }
+.ege-tb__head,
+.ege-tb__row { display: grid; grid-template-columns: 36px minmax(0, 1fr) 36px 84px 48px; align-items: center; gap: 8px; }
+.ege-tb__table.is-alone .ege-tb__head,
+.ege-tb__table.is-alone .ege-tb__row { grid-template-columns: 36px minmax(0, 1fr) 36px 48px; }
+.ege-tb__head { padding: 6px 8px; border-bottom: var(--fb-border-thin) solid var(--fb-ink); background: var(--fb-surface); }
+.ege-tb__sort {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--fb-ink);
+  font: inherit;
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.ege-tb__sort--player { grid-column: 1 / span 2; justify-content: flex-start; }
+.ege-tb__head .ege-tb__sort:last-child { justify-content: flex-end; }
+.ege-tb__sort.is-on { color: var(--fb-accent-deep); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+.ege-tb__sort .ege-tb__mark { outline: 2px solid transparent; outline-offset: 2px; }
+.ege-tb__sort.is-on .ege-tb__mark { outline-color: var(--fb-accent); }
+.ege-tb__list { max-height: 420px; overflow-y: auto; overscroll-behavior: contain; }
+.ege-tb__row {
+  width: 100%;
+  padding: 5px 8px;
+  border: 0;
+  border-bottom: 1px solid rgba(32, 38, 26, .12);
+  background: transparent;
+  color: var(--fb-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ege-tb__row:last-child { border-bottom: 0; }
+.ege-tb__row.is-want { background: var(--fb-tint-sage); }
+.ege-tb__row.is-in { background: var(--fb-tint-clay); box-shadow: inset 5px 0 0 var(--fb-accent); }
+@media (hover: hover) {
+  .ege-tb__row:hover { background: var(--fb-tint-wash); }
+  .ege-tb__row.is-want:hover { background: var(--fb-tint-sage-2); }
+  .ege-tb__row.is-in:hover { background: var(--fb-tint-clay-2); }
+}
+.ege-tb__row.is-six .ege-tb__name { color: var(--fb-accent-deep); }
+.ege-tb__text { display: grid; min-width: 0; }
+.ege-tb__name { overflow: hidden; font-size: .875rem; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
+.ege-tb__meta { display: flex; gap: 7px; overflow: hidden; font-size: .75rem; color: var(--fb-muted); white-space: nowrap; }
+.ege-tb__pos { font-weight: 800; color: var(--fb-ink); }
+.ege-tb__out { font-weight: 800; color: #b3261e; }
+.ege-tb__ovr {
+  justify-self: center;
+  min-width: 32px;
+  padding: 4px 0 3px;
+  background: var(--fb-ink);
+  color: var(--fb-cream);
+  font-family: var(--fb-font-display);
+  font-size: .9375rem;
+  line-height: 1;
+  text-align: center;
+}
+.ege-tb__worth { display: grid; justify-items: end; gap: 3px; }
+.ege-tb__worthval { font-size: .875rem; font-weight: 800; }
+.ege-tb__worthbar { width: 100%; height: 5px; background: var(--fb-sand); }
+.ege-tb__worthfill { display: block; height: 100%; background: var(--fb-muted-2); }
+.ege-tb__row.is-want .ege-tb__worthval { color: var(--ege-tb-in-deep); }
+.ege-tb__row.is-want .ege-tb__worthfill { background: var(--ege-tb-in); }
+.ege-tb__ask { font-size: .8125rem; font-weight: 700; color: var(--fb-muted); text-align: right; }
+
+/* Picks: a line a draft, a chip a pick with whose it was. */
+.ege-tb__picks { display: grid; gap: 6px; }
+.ege-tb__pickyear { display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center; gap: 8px; }
+.ege-tb__later .ege-tb__pickyear { margin-top: 6px; }
+.ege-tb__year { font-size: var(--fb-small); font-weight: 800; }
+.ege-tb__pickchips { display: flex; flex-wrap: wrap; gap: 4px; }
+.ege-tb__pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: #fff;
+  color: var(--fb-ink);
+  font: inherit;
+  font-size: .75rem;
+  cursor: pointer;
+}
+.ege-tb__pick .ege-tb__pickmark { width: 16px; height: 16px; margin-left: -3px; }
+.ege-tb__pickround { font-weight: 800; }
+.ege-tb__pickval { font-weight: 700; color: var(--fb-muted); }
+.ege-tb__pick.is-want { background: var(--fb-tint-sage); }
+.ege-tb__pick.is-in { background: var(--fb-accent); color: #fff; }
+.ege-tb__pick.is-in .ege-tb__pickval { color: #fff; }
+@media (hover: hover) { .ege-tb__pick:not(.is-in):hover { background: var(--fb-tint-wash); } }
+.ege-tb__later > summary { cursor: pointer; font-size: var(--fb-small); font-weight: 800; color: var(--fb-accent-deep); }
+
+/* What each team gets and gives by its own numbers. */
+.ege-tb__balance {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 22px;
+  padding: 12px 14px;
+  border: var(--fb-border) solid var(--fb-ink);
+  background: #fff;
+  box-shadow: 4px 4px 0 var(--fb-ink);
+}
+@media (max-width: 920px) { .ege-tb__balance { grid-template-columns: minmax(0, 1fr); } }
+.ege-tb__bal { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+.ege-tb__bal .ege-tb__balmark { width: 40px; height: 40px; }
+.ege-tb__balbars { display: grid; gap: 5px; min-width: 0; }
+.ege-tb__balrow { display: grid; grid-template-columns: 44px minmax(0, 1fr) 50px; align-items: center; gap: 8px; font-size: var(--fb-small); }
+.ege-tb__ballabel { font-size: var(--fb-label); font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--fb-muted); }
+.ege-tb__baltrack { height: 12px; border: var(--fb-border-thin) solid var(--fb-ink); background: var(--fb-sand); }
+.ege-tb__balfill { display: block; height: 100%; }
+.ege-tb__balrow.is-gets .ege-tb__balfill { background: var(--ege-tb-in); }
+.ege-tb__balrow.is-gives .ege-tb__balfill { background: var(--fb-accent); }
+.ege-tb__balval { font-weight: 800; text-align: right; }
+.ege-tb__verdict {
+  padding: 4px 8px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  font-size: .6875rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.ege-tb__bal.is-yes .ege-tb__verdict { background: var(--fb-tint-sage-2); }
+.ege-tb__bal.is-no .ege-tb__verdict { background: var(--fb-tint-clay); }
+@media (max-width: 480px) {
+  .ege-tb__bal { grid-template-columns: 32px minmax(0, 1fr); }
+  .ege-tb__bal .ege-tb__balmark { width: 32px; height: 32px; }
+  .ege-tb__verdict { grid-column: 2; justify-self: start; }
+}
+/* On a phone the list's columns close up so the name keeps its room. */
+@media (max-width: 480px) {
+  .ege-tb__side > :not(.ege-tb__band) { margin-left: 10px; margin-right: 10px; }
+  .ege-tb__head,
+  .ege-tb__row { grid-template-columns: 32px minmax(0, 1fr) 30px 58px 40px; gap: 6px; padding-left: 6px; padding-right: 6px; }
+  .ege-tb__table.is-alone .ege-tb__head,
+  .ege-tb__table.is-alone .ege-tb__row { grid-template-columns: 32px minmax(0, 1fr) 30px 40px; }
+  .ege-tb__face { width: 32px; height: 32px; }
+  .ege-tb__ovr { min-width: 28px; font-size: .8125rem; }
+  .ege-tb__ring { width: 76px; height: 76px; }
+  .ege-tb__hole { width: 50px; height: 50px; }
+  .ege-tb__teampick { font-size: 1.1875rem; }
+  .ege-tb__bandmark { width: 48px; height: 48px; }
+}
+.ege-tb__go { gap: 10px; }
+
+/* Team directions: a box a division, a line a team. */
+.ege-sim__dirs { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px 24px; }
+.ege-sim__dirlist { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.ege-sim__dir { display: grid; grid-template-columns: 26px minmax(0, 1fr) 42px 34px 124px; align-items: center; gap: 8px; font-size: var(--fb-small); }
+.ege-sim__dir .ege-sim__dirmark { width: 26px; height: 26px; }
+.ege-sim__dirname { overflow: hidden; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
+.ege-sim__dirrec { font-weight: 700; text-align: right; white-space: nowrap; }
+.ege-sim__dirrec.is-last { font-style: italic; color: var(--fb-muted); }
+.ege-sim__dirage { color: var(--fb-muted); text-align: right; }
+.ege-sim__mode { width: 100%; padding: 6px 6px; font-size: .6875rem; }
+.ege-sim__mode.is-set,
+.ege-nflsys__pick.is-set { border-color: var(--fb-accent); background: var(--fb-tint-clay); }
+/* Rosters by season. */
 .ege-sim__part .ege-weekbar .ege-field { min-width: min(240px, 100%); }
-.ege-sim__part .ege-weekbar .ege-sim__num { min-width: 0; width: 6.5rem; }
-.ege-sim__part .ege-sim__side .ege-weekbar .ege-field { flex: 1 1 auto; min-width: 0; }
 .ege-sim__moves { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px 20px; margin: 4px 0 10px; }
 .ege-sim__movetitle { margin: 0 0 4px; font-size: var(--fb-small); font-weight: 800; }
 .ege-sim__moves .ege-sim__lines { max-height: 220px; }

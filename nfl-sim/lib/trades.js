@@ -20,7 +20,7 @@
 
 'use strict';
 
-const { playerValue, pickValue, POSITION } = require('./value');
+const { playerValue, pickValue, POSITION, POINTS_PER_UNIT } = require('./value');
 const { fitOf, schemeFor, offenseOf, defenseOf } = require('./schemes');
 const { starterLevels, needAt, onTeam, byPos, room, SLOTS, trim, addPlayers, noteSigning } = require('./rosters');
 const { makeName } = require('./draft');
@@ -38,6 +38,9 @@ const POS_WORD = { QB: 'quarterback', RB: 'running back', FB: 'fullback', WR: 'r
                    S: 'safety', K: 'kicker', P: 'punter' };
 
 function nick(key) { return TEAMS[key] ? TEAMS[key].name.split(' ').slice(-1)[0] : key; }
+/* A value as the admin page writes it: in points, the draft chart's (the
+   first pick 1,000), as the trade builder shows them (Sam, 2026-11-14). */
+function pts(v) { return String(Math.round(v * POINTS_PER_UNIT)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 function ordinal(n) { return n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'); }
 function pickId(p) { return p.year + '-R' + p.round + '-' + p.from; }
 function pickLabel(p) {
@@ -220,8 +223,8 @@ function build(league, c, window, n) {
     summary: nick(c.buyer) + ' get ' + describeItem({ kind: 'player', player: p }) + '; ' + nick(c.seller) + ' get ' +
       items.map(describeItem).join(' and ') + '.',
     reasons: [sellerWhy + ' and get ' + items.map(describeItem).join(' and ') + '.', buyerWhy + '.',
-      'By their own numbers ' + nick(c.buyer) + ' value him at ' + c.worth.toFixed(1) + ' and give ' + c.pack.cost.toFixed(1) +
-      '; ' + nick(c.seller) + ' value him at ' + c.price.toFixed(1) + ' and get ' + c.pack.got.toFixed(1) + '.'].concat(
+      'By their own numbers ' + nick(c.buyer) + ' value him at ' + pts(c.worth) + ' and give ' + pts(c.pack.cost) +
+      '; ' + nick(c.seller) + ' value him at ' + pts(c.price) + ' and get ' + pts(c.pack.got) + '.'].concat(
       ege ? ['This moves one of the six.'] : [],
       c.current && c.current.ege ? [c.current.name + ' would lose his starting spot to him.'] : [])
   };
@@ -443,8 +446,8 @@ function proposeOwn(league, input) {
   };
   const va = view(A.key, B.items, A.items);
   const vb = view(B.key, A.items, B.items);
-  const verdict = (key, v) => nick(key) + ' value what they get at ' + v.gets.toFixed(1) + ' and what they give at ' +
-    v.gives.toFixed(1) + (v.gets >= v.gives ? ': they would take it.' : ': they would want more.');
+  const verdict = (key, v) => nick(key) + ' value what they get at ' + pts(v.gets) + ' and what they give at ' +
+    pts(v.gives) + (v.gets >= v.gives ? ': they would take it.' : ': they would want more.');
   const queue = loadQueue(league);
   const ege = A.items.concat(B.items).some((i) => i.kind === 'player' && i.player.ege);
   const t = {
