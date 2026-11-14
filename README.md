@@ -511,9 +511,9 @@ Under the bar:
   overall that season (the sim's for a past season, which it took from
   the six's pages while it was played; the six's own overall now in the
   live one), with no change from the season before (Sam took it out: too
-  much for the band). The band is kept short (a 100px circle) and the
+  much for the band). The name has no drop shadow. The band is kept short (a 100px circle) and the
   mark behind it is at 45%. Under the band come college, draft
-  (*2021 · R4 #112*), age that season and H/W (*6′1″ / 194*) in a thin strip on the team's second colour
+  (*2021 · R4 #112*), age that season and H/W (*6′1″ 194 lbs*) in a thin strip on the team's second colour
   (the Bears' orange; white for a free agent), the text white or dark to
   suit it, with no line between it and the band; then, on the cream, his
   seasons, his ratings and his contract, with only space between them, no

@@ -3925,8 +3925,7 @@
     fact('Age', typeof sim.age === 'number' ? String(sim.age) : '–');
     var height = EGE.heightText(row);
     var weight = typeof row.weight === 'number' ? String(row.weight) : null;
-    fact('H/W', height || weight ? (height || '–') + ' / ' + (weight || '–') : '–',
-      height && weight ? height + ', ' + weight + ' lbs' : null);
+    fact('H/W', [height, weight ? weight + '\u00a0lbs' : null].filter(Boolean).join(' ') || '–');
     /* On the team's second colour (Sam, 2026-10-27: the Bears' orange), in
        white or ink, whichever reads better on it, the labels in the band's
        colour where that reads on it too, or else a little fainter. */

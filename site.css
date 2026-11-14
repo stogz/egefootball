@@ -6559,8 +6559,10 @@ button.ege-pick:focus-visible { transform: translate(-1px, -1px); box-shadow: 2p
 .ege-person--player .ege-person__name {
   grid-column: 1;
   min-width: 0;
-  /* Room for the last letter's swash, which the clip would cut. */
+  /* Room for the last letter's swash, which the clip would cut. No
+     shadow (Sam, 2026-11-14). */
   padding-right: .08em;
+  text-shadow: none;
   overflow: hidden;
   white-space: nowrap;
   text-align: left;
