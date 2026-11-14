@@ -846,10 +846,13 @@
     var slot = el('span', 'ege-slot');
     var mine = isMe(player);
     var played = EGE.isFinal(game);
-    /* Once his game is put on live, nothing goes on it and nothing comes
+    /* Once his game is put on live, no booster goes on it and none comes
        off until it is cancelled or the week is played again or undone
-       (Sam, 2026-11-09). */
+       (Sam, 2026-11-09): it was played with them as they were. A wager
+       changes nothing in the game, so it goes on and comes off until the
+       kickoff (Sam, 2026-11-14). */
     var live = EGE.wallet.liveLocked(player, game);
+    var kicked = EGE.wallet.liveKickedOff(player, game);
 
     /* A booster written into the season file is the record of a game already
        played. It shows, and it never comes off. Anything still in Supabase is
@@ -868,13 +871,14 @@
     } : null;
 
     if (stuck) {
-      var peelable = mine && !played && !live && !stuck.hardcoded;
+      var held = wager ? kicked : live;
+      var peelable = mine && !played && !held && !stuck.hardcoded;
       var applied = el('button', 'ege-slot__applied ' +
         (peelable ? 'ege-slot__applied--peelable' : 'ege-slot__applied--stuck'));
       applied.type = 'button';
       applied.disabled = !peelable;
       var touch = window.matchMedia && window.matchMedia('(hover: none)').matches;
-      var settled = live && !played ? ' \u2014 the game is live, it stays put'
+      var settled = held && !played ? ' \u2014 the game is live, it stays put'
         : !wager || !wager.outcome ? ' \u2014 the game has been played, it stays put'
         : wager.outcome === 'won' ? ' \u2014 won: the game paid ' + EGE.wagerWinWord(game.season) + ' credits'
         : wager.outcome === 'lost' ? ' \u2014 lost: the game paid no credits'
@@ -936,10 +940,10 @@
        which a player puts a sticker on it and the admin writes it into the
        file before putting the week out. */
     /* Nor on a bye: there is no game to put it on (Sam, 2026-10-20). */
-    if (mine && !played && !live && !game.bye && game.season === EGE.currentSeason) {
+    if (mine && !played && !kicked && !game.bye && game.season === EGE.currentSeason) {
       var add = el('button', 'ege-slot__add', '+');
       add.type = 'button';
-      add.title = game.playoff ? 'Put a wager on this game' : 'Put a booster or a wager on this game';
+      add.title = game.playoff || live ? 'Put a wager on this game' : 'Put a booster or a wager on this game';
       add.setAttribute('aria-label', 'Put a booster or a wager on week ' + game.week);
       add.addEventListener('click', function () { openDrawer(player, game); });
       slot.appendChild(add);
@@ -1020,6 +1024,9 @@
     if (game.playoff) {
       inner.appendChild(el('span', 'ege-drawer__empty',
         'No boosters in the playoffs. A wager still goes on.'));
+    } else if (EGE.wallet.liveLocked(player, game)) {
+      inner.appendChild(el('span', 'ege-drawer__empty',
+        'The game is on live, so no boosters. A wager still goes on until kickoff.'));
     } else if (EGE.outInjured(player, game)) {
       inner.appendChild(el('span', 'ege-drawer__empty',
         'Out injured this week, so no boosters. A wager still goes on.'));

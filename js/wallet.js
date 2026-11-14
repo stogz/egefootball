@@ -1102,32 +1102,43 @@ EGE.wallet = (function () {
   /* --- boosters stuck on games ------------------------------------------- */
 
   /* The games put on live that season (live_games), which lock the
-     boosters and wagers of the six playing in them (Sam, 2026-11-09). */
+     boosters of the six playing in them (Sam, 2026-11-09), and their
+     wagers once they kick off (Sam, 2026-11-14). */
   var liveLocks = [];
 
   function loadLiveLocks(season) {
     var c = client();
     if (!c) { liveLocks = []; return Promise.resolve(liveLocks); }
-    return c.from('live_games').select('season, week, home, away, six').eq('season', season)
+    return c.from('live_games').select('season, week, home, away, six, starts_at').eq('season', season)
       .then(function (res) {
         if (!res.error) { liveLocks = res.data || []; }
         return liveLocks;
       }, function () { return liveLocks; });
   }
 
-  /* Whether his game that week is on live, or has been, so nothing goes on
-     it or comes off it until it is cancelled, or the week is played again
-     or undone (each takes the game off). A game put on before live_games
-     kept the six is matched by his team. */
-  function liveLocked(player, game) {
-    if (!player || !game || game.bye) { return false; }
-    return liveLocks.some(function (row) {
+  /* His game that week on live, or that has been, and is not taken off
+     yet -- cancelled, or the week played again or undone. A game put on
+     before live_games kept the six is matched by his team. */
+  function liveRow(player, game) {
+    if (!player || !game || game.bye) { return null; }
+    return liveLocks.filter(function (row) {
       if (row.season !== game.season || row.week !== game.week) { return false; }
       if (Array.isArray(row.six)) { return row.six.indexOf(player.slug) !== -1; }
       var site = EGE.teamKeyFor ? EGE.teamKeyFor(player, game.season, game.week) : null;
       var key = site && EGE.nfl && EGE.nfl.keyForSite ? EGE.nfl.keyForSite(site) : null;
       return Boolean(key) && (key === row.home || key === row.away);
-    });
+    })[0] || null;
+  }
+
+  /* No booster goes on such a game or comes off it: it was played with
+     them as they were. */
+  function liveLocked(player, game) { return Boolean(liveRow(player, game)); }
+
+  /* A wager changes nothing in the game, so it goes on and comes off until
+     an admin kicks the game off (Sam, 2026-11-14). */
+  function liveKickedOff(player, game) {
+    var row = liveRow(player, game);
+    return Boolean(row && row.starts_at);
   }
 
   /* Every sticker on every game, keyed by player slug and then by week, so a
@@ -1248,7 +1259,7 @@ EGE.wallet = (function () {
     return Promise.all([loadGameBoosters(season), EGE.lineReady(owner, season)]).then(function () {
       var room = EGE.wagerRoom(owner, season);
       if (!room.ok) { return { ok: false, message: room.reason }; }
-      if (liveLocked(owner, target)) { return { ok: false, message: 'That game is live.' }; }
+      if (liveKickedOff(owner, target)) { return { ok: false, message: 'That game has kicked off.' }; }
       var odds = EGE.gameLine(owner, target);
       if (!odds) { return { ok: false, message: 'There is no line on that game.' }; }
       var line = odds[EGE.WAGER_SIDES[key]];
@@ -1271,7 +1282,7 @@ EGE.wallet = (function () {
             ok: false,
             message: /duplicate|unique/i.test(res.error.message || '')
               ? 'That game already has a sticker on it.'
-              : res.error.message.replace(/^.*?(Season limit|That week|A wager|That game is live)/, '$1')
+              : res.error.message.replace(/^.*?(Season limit|That week|A wager|That game is live|That game has kicked off)/, '$1')
           };
         }
         return { ok: true, message: name + ' in week ' + week + '.' };
@@ -1309,7 +1320,7 @@ EGE.wallet = (function () {
 
     if (EGE.isWagerKey(sticker.item_key)) {
       return c.from(GAME_BOOSTERS).delete().eq('id', sticker.id).then(function (res) {
-        if (res.error) { return { ok: false, message: res.error.message }; }
+        if (res.error) { return { ok: false, message: res.error.message.replace(/^.*?(That game has kicked off)/, '$1') }; }
         return { ok: true, message: (sticker.item_name || 'The wager') + ' is off.' };
       });
     }
@@ -1577,6 +1588,7 @@ EGE.wallet = (function () {
     buyUpgrade: buyUpgrade,
     loadGameBoosters: loadGameBoosters,
     liveLocked: liveLocked,
+    liveKickedOff: liveKickedOff,
     applyBooster: applyBooster,
     applyWager: applyWager,
     peelBooster: peelBooster,
