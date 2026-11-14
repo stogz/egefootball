@@ -1831,8 +1831,13 @@ EGE.nflSimAdmin = (function () {
      values well over his price is picked out in green: one it would want.
      Over each list, what the team needs most and its cap now and after the
      deal; under both, what each gets and gives by its own numbers
-     (nfl-sim/lib/trade-builder.js). Make the trade puts it through at
-     once; Propose queues it above. */
+     (nfl-sim/lib/trade-builder.js). Each player has his age and his
+     season in the league in a box, as on the Teams pages, and the list
+     sorts by any heading or the Sort menu, his contract too (Sam,
+     2026-11-14). Suggest trades offers deals the two teams would make, or
+     what evens up the one in the builder (trade-builder.js suggest), each
+     a click from the builder. Make the trade puts it through at once;
+     Propose queues it above. */
 
   var POS_GROUPS = [
     { value: '', text: 'All' }, { value: 'QB', text: 'QB' }, { value: 'RB', text: 'RB', pos: ['RB', 'FB'] },
@@ -1841,9 +1846,15 @@ EGE.nflSimAdmin = (function () {
     { value: 'KP', text: 'K/P', pos: ['K', 'P'] }
   ];
 
-  /* How each side's list is filtered and sorted: 'pos', 'ovr', 'worth'
-     (to the other team) or 'ask' (to his own). */
-  state.tb = [{ group: '', sort: 'pos' }, { group: '', sort: 'pos' }];
+  /* How each side's list is filtered and sorted: 'pos', 'ovr', 'pay',
+     'age', 'years', 'worth' (to the other team) or 'ask' (to his own);
+     `up` turns it round (a heading clicked again). */
+  state.tb = [{ group: '', sort: 'pos', up: false }, { group: '', sort: 'pos', up: false }];
+  /* The last suggestions: { teams: 'DET|CHI', kind, adds, close, ideas, error }. */
+  state.ideas = null;
+
+  var SORTS = [['pos', 'Position'], ['ovr', 'Overall'], ['pay', 'Contract'], ['age', 'Age'], ['years', 'Experience'],
+    ['worth', 'Their value'], ['ask', 'Own value']];
 
   function playerText(p) { return p.pos + ' · ' + p.name + ' · ' + p.ovr; }
 
@@ -1916,6 +1927,15 @@ EGE.nflSimAdmin = (function () {
     var box = el('span', 'ege-tb__mark' + (className ? ' ' + className : ''));
     box.style.background = EGE.nfl.teams[key] ? EGE.nfl.teams[key].color : 'var(--fb-ink)';
     box.appendChild(logoImg(key));
+    return box;
+  }
+
+  /* His season in the league in a box, R for a rookie, as the Teams
+     pages draw it. */
+  function yearsBox(years) {
+    if (!years) { return null; }
+    var box = el('abbr', 'ege-room__class ege-tb__years', years === 1 ? 'R' : String(years));
+    box.title = years === 1 ? 'Rookie' : EGE.ordinal(years).toLowerCase() + ' season in the NFL';
     return box;
   }
 
@@ -1996,11 +2016,19 @@ EGE.nflSimAdmin = (function () {
     return (MODES[s.mode] || s.mode) + (record ? ' · ' + record : '');
   }
 
-  function sortPlayers(list, sort) {
+  /* Biggest first (position in the usual order), or the other way round. */
+  function sortPlayers(list, sort, up) {
     var pos = sim().tradeBuilder.POS_ORDER;
     var byPos = function (a, b) { return pos.indexOf(a.pos) - pos.indexOf(b.pos) || b.ovr - a.ovr || a.name.localeCompare(b.name); };
-    if (sort === 'pos') { return list.slice().sort(byPos); }
-    return list.slice().sort(function (a, b) { return (b[sort] || 0) - (a[sort] || 0) || byPos(a, b); });
+    var num = function (p) { return sort === 'pay' ? (p.contract ? p.contract.apy : 0) : p[sort] || 0; };
+    var turn = up ? -1 : 1;
+    if (sort === 'pos') { return list.slice().sort(function (a, b) { return turn * byPos(a, b); }); }
+    return list.slice().sort(function (a, b) { return turn * (num(b) - num(a)) || byPos(a, b); });
+  }
+
+  function sameDeal(a, b) {
+    var ids = function (side) { return side.key + ':' + side.players.slice().sort().join(',') + ':' + side.picks.slice().sort().join(','); };
+    return a.length === b.length && a.every(function (side, i) { return ids(side) === ids(b[i]); });
   }
 
   function dealBuilder(league) {
@@ -2025,7 +2053,9 @@ EGE.nflSimAdmin = (function () {
         grid.appendChild(drawSide(side, i, view.sides[i], view.sides[1 - i], top));
       });
       wrap.appendChild(grid);
-      if (view.sides[0] && view.sides[1] && view.sides[0].key !== view.sides[1].key) { wrap.appendChild(balance(view.sides)); }
+      var both = view.sides[0] && view.sides[1] && view.sides[0].key !== view.sides[1].key;
+      if (both && view.sides.some(function (s) { return s.sends.length; })) { wrap.appendChild(balance(view.sides)); }
+      if (both && state.ideas && state.ideas.teams === state.deal[0].key + '|' + state.deal[1].key) { wrap.appendChild(ideasBox(view)); }
       var go = row();
       go.classList.add('ege-tb__go');
       go.appendChild(button('Make the trade', true, function () {
@@ -2045,6 +2075,17 @@ EGE.nflSimAdmin = (function () {
           return { title: 'Proposed ' + t.id, lines: [t.summary].concat(t.reasons || []) };
         });
       }, !view.ready));
+      go.appendChild(button('Suggest trades', false, function () {
+        var teams = state.deal[0].key + '|' + state.deal[1].key;
+        try {
+          state.ideas = Object.assign({ teams: teams }, sim().tradeBuilder.suggest(league, state.deal));
+        } catch (err) {
+          state.ideas = { teams: teams, ideas: [], error: err.message || String(err) };
+        }
+        paint();
+        var box = wrap.querySelector('.ege-tb__ideas');
+        if (box && box.scrollIntoView) { box.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+      }, !both));
       if (state.deal.some(function (side) { return side.players.length || side.picks.length; })) {
         go.appendChild(button('Clear', false, function () {
           state.deal.forEach(function (side) { side.players = []; side.picks = []; });
@@ -2086,6 +2127,7 @@ EGE.nflSimAdmin = (function () {
       pick.disabled = state.busy;
       pick.addEventListener('change', function () {
         state.deal[i] = { key: pick.value, players: [], picks: [] };
+        state.ideas = null;
         paint();
       });
       words.appendChild(pick);
@@ -2124,7 +2166,12 @@ EGE.nflSimAdmin = (function () {
             card.appendChild(face(x, 'ege-tb__cardface'));
             var tx = el('span', 'ege-tb__cardtext');
             tx.appendChild(el('span', 'ege-tb__cardname', x.name));
-            tx.appendChild(el('span', 'ege-tb__cardmeta', [x.pos, x.ovr + ' OVR', contractText(x.contract)].filter(Boolean).join(' · ')));
+            var cm = el('span', 'ege-tb__cardmeta');
+            cm.appendChild(el('span', null, [x.pos, x.ovr + ' OVR', x.age ? 'Age ' + x.age : ''].filter(Boolean).join(' · ')));
+            var yb = yearsBox(x.years);
+            if (yb) { cm.appendChild(yb); }
+            if (x.contract) { cm.appendChild(el('span', null, contractText(x.contract))); }
+            tx.appendChild(cm);
             card.appendChild(tx);
           }
           if (other) { card.appendChild(el('span', 'ege-tb__cardval', points(x.worth))); }
@@ -2146,6 +2193,17 @@ EGE.nflSimAdmin = (function () {
         b.addEventListener('click', function () { tb.group = g.value; paint(); });
         filters.appendChild(b);
       });
+      var sortBox = el('label', 'ege-tb__sortpick');
+      sortBox.appendChild(el('span', null, 'Sort'));
+      var sortSel = el('select', 'fb-select');
+      SORTS.filter(function (o) { return other || o[0] !== 'worth'; }).forEach(function (o) {
+        var option = el('option', null, o[0] === 'worth' && other ? nick(other.key) + ' value' : o[0] === 'ask' ? nick(s.key) + ' value' : o[1]);
+        option.value = o[0];
+        sortSel.appendChild(option);
+      });
+      sortSel.addEventListener('change', function () { tb.sort = sortSel.value; tb.up = false; paint(); });
+      sortBox.appendChild(sortSel);
+      filters.appendChild(sortBox);
       col.appendChild(filters);
 
       var group = POS_GROUPS.filter(function (g) { return g.value === tb.group; })[0] || POS_GROUPS[0];
@@ -2153,21 +2211,27 @@ EGE.nflSimAdmin = (function () {
         return !group.value || (group.pos || [group.value]).indexOf(p.pos) !== -1;
       });
       if (!other && tb.sort === 'worth') { tb.sort = 'pos'; }
-      players = sortPlayers(players, tb.sort);
+      sortSel.value = tb.sort;
+      players = sortPlayers(players, tb.sort, tb.up);
 
       var table = el('div', 'ege-tb__table' + (other ? '' : ' is-alone'));
       var head = el('div', 'ege-tb__head');
       function heading(content, sort, title, className) {
-        var h = el('button', 'ege-tb__sort' + (className ? ' ' + className : '') + (tb.sort === sort ? ' is-on' : ''));
+        var on = tb.sort === sort;
+        var h = el('button', 'ege-tb__sort' + (className ? ' ' + className : '') + (on ? ' is-on' + (tb.up ? ' is-up' : '') : ''));
         h.type = 'button';
         h.title = title;
         h.setAttribute('aria-label', title);
         if (typeof content === 'string') { h.textContent = content; } else { h.appendChild(content); }
-        h.addEventListener('click', function () { tb.sort = sort; paint(); });
+        h.addEventListener('click', function () {
+          if (tb.sort === sort) { tb.up = !tb.up; } else { tb.sort = sort; tb.up = false; }
+          paint();
+        });
         return h;
       }
       head.appendChild(heading('Player', 'pos', 'Sort by position', 'ege-tb__sort--player'));
       head.appendChild(heading('OVR', 'ovr', 'Sort by overall', 'ege-tb__sort--num'));
+      head.appendChild(heading('Pay', 'pay', 'Sort by contract', 'ege-tb__sort--num ege-tb__sort--pay'));
       if (other) {
         head.appendChild(heading(logoChip(other.key, 'ege-tb__headmark'), 'worth', 'What the ' + nick(other.key) + ' would give', 'ege-tb__sort--num'));
       }
@@ -2187,12 +2251,25 @@ EGE.nflSimAdmin = (function () {
         text.appendChild(el('span', 'ege-tb__name', p.name));
         var meta = el('span', 'ege-tb__meta');
         meta.appendChild(el('span', 'ege-tb__pos', p.pos));
-        if (p.age) { meta.appendChild(el('span', null, String(p.age))); }
-        if (p.contract) { meta.appendChild(el('span', null, contractText(p.contract))); }
+        if (p.age) {
+          var age = el('span', 'ege-tb__age');
+          age.appendChild(el('span', 'ege-tb__agelabel', 'Age '));
+          age.appendChild(document.createTextNode(String(p.age)));
+          meta.appendChild(age);
+        }
+        var box = yearsBox(p.years);
+        if (box) { meta.appendChild(box); }
+        if (p.contract) { meta.appendChild(el('span', 'ege-tb__metapay', contractText(p.contract))); }
         if (p.out) { meta.appendChild(el('span', 'ege-tb__out', 'OUT ' + p.out)); }
         text.appendChild(meta);
         r.appendChild(text);
         r.appendChild(el('span', 'ege-tb__ovr', String(p.ovr)));
+        var pay = el('span', 'ege-tb__pay');
+        if (p.contract && typeof p.contract.apy === 'number') {
+          pay.appendChild(el('span', 'ege-tb__payval', money(p.contract.apy)));
+          pay.appendChild(el('span', 'ege-tb__paythru', '\u2019' + String(p.contract.through).slice(-2)));
+        }
+        r.appendChild(pay);
         if (other) {
           var worth = el('span', 'ege-tb__worth');
           worth.appendChild(el('span', 'ege-tb__worthval', points(p.worth)));
@@ -2248,6 +2325,72 @@ EGE.nflSimAdmin = (function () {
       });
       col.appendChild(picksBox);
       return col;
+    }
+
+    /* The suggestions: a card each, what each team gets (with how far
+       ahead or short it comes out by its own numbers), and Use, which puts
+       it in the builder. The one in the builder now is picked out. */
+    function ideasBox(view) {
+      var got = state.ideas;
+      var box = el('div', 'ege-tb__ideas');
+      box.appendChild(el('span', 'fb-eyebrow', got.kind === 'topUp' ? (got.close ? 'Closest' : nick(got.adds) + ' add') : 'Suggested'));
+      if (got.error) {
+        box.appendChild(el('p', 'ege-note ege-note--error', got.error));
+        return box;
+      }
+      if (!got.ideas.length) {
+        box.appendChild(el('p', 'fb-meta', got.kind === 'even' ? 'Both take it already.' : 'Nothing works between these two.'));
+        return box;
+      }
+      var lookup = {};
+      view.sides.forEach(function (s) {
+        s.players.forEach(function (p) { lookup[p.id] = p; });
+        s.picks.forEach(function (p) { lookup[p.id] = p; });
+      });
+      var cards = el('div', 'ege-tb__ideacards');
+      got.ideas.forEach(function (idea) {
+        var on = sameDeal(idea.sides, state.deal);
+        var card = el('div', 'ege-tb__idea' + (on ? ' is-on' : ''));
+        idea.sides.forEach(function (side, i) {
+          var from = idea.sides[1 - i];
+          var v = idea.values[i];
+          var part = el('div', 'ege-tb__ideaside');
+          var head = el('div', 'ege-tb__ideahead');
+          head.appendChild(logoChip(side.key, 'ege-tb__ideamark'));
+          head.appendChild(el('span', 'ege-tb__ideagets', nick(side.key) + ' get'));
+          var net = v.gets - v.gives;
+          var tag = el('span', 'ege-tb__ideanet' + (net >= 0 ? ' is-up' : ' is-down'), (net >= 0 ? '+' : '\u2212') + points(Math.abs(net)));
+          tag.title = 'By their own numbers: get ' + points(v.gets) + ', give ' + points(v.gives);
+          head.appendChild(tag);
+          part.appendChild(head);
+          var list = el('ul', 'ege-tb__idealist');
+          from.players.concat(from.picks).forEach(function (id) {
+            var x = lookup[id];
+            if (!x) { return; }
+            var li = el('li', 'ege-tb__ideaitem');
+            if (x.round) {
+              li.appendChild(logoChip(x.from, 'ege-tb__ideaface'));
+              li.appendChild(el('span', 'ege-tb__ideaname', x.year + ' Round ' + x.round));
+            } else {
+              li.appendChild(face(x, 'ege-tb__ideaface'));
+              li.appendChild(el('span', 'ege-tb__ideaname', x.name));
+              li.appendChild(el('span', 'ege-tb__ideameta', x.pos + ' ' + x.ovr));
+            }
+            list.appendChild(li);
+          });
+          part.appendChild(list);
+          card.appendChild(part);
+        });
+        var use = button(on ? 'In the builder' : 'Use', false, function () {
+          state.deal = idea.sides.map(function (side) { return { key: side.key, players: side.players.slice(), picks: side.picks.slice() }; });
+          paint();
+        }, on);
+        use.classList.add('ege-tb__ideause');
+        card.appendChild(use);
+        cards.appendChild(card);
+      });
+      box.appendChild(cards);
+      return box;
     }
 
     /* For each team: what it gets and what it gives, by its own numbers,
