@@ -3099,13 +3099,41 @@ sets never take one.
 
 ### Game Packs
 
-Whoever wins the most bets on a live game gets a **Game Pack** of it (Sam,
-2026-11-06; `data/game-packs.js`). `live_settle()` hands them out as it pays
-the bets: the account with the most winning bets on the game gets one, and
-every account tied for the most does too. A push is not a win, and a game
-nobody won a bet on pays none. A game with none of the six in it pays none
-either, having no cards to fill one: PLAY LIVE tells Supabase which of the
-six are in the game (`live_games.six`).
+The best **draft** on a live game gets a **Game Pack** of it (Sam,
+2026-11-06; the draft since 2026-11-14, before which the most bets won got
+it; `data/game-packs.js`, `js/live-draft.js`).
+
+**The draft** is the top block of the live page's Bets box, after Sam's
+concept: four faces in a row, each pick's boost on its corner and a short
+name under it ("K. Walker"), an **Update** button under them. A face opens
+the list of players (like the anytime touchdown's): every quarterback,
+running back, receiver and tight end on either side who gets the ball
+enough to count. Picking somebody already in another place swaps the two,
+so the order can be changed too. It is free, and it can be changed as
+often as wanted until the kickoff, a kickoff set ahead included
+(`live_draft_set()`, `live_pregame()`).
+
+- Each player has a **boost** of his own (`nfl-sim/lib/live-bets.js`):
+  12 over the fantasy points he is expected to score (the matchup played
+  200 times from the week's save point, halfway to his season average once
+  he has three games), to a tenth, from 1.2x to 4x, none below 1.2x. So Sam
+  at 30 points a game has none, and a fourth receiver at 5 points 2.4x.
+  Nobody expected under 1 point is in the list.
+- Each **place** adds its own: 2.0x first, 1.6x second, 1.4x third, none
+  fourth. The two add up, so a 3.0x player taken first is 5.0x; a pick
+  with neither is 1x.
+- A pick scores his fantasy points (as the site scores them) times that.
+  From the kickoff the faces show what each has come to so far, the total
+  sits by the title, and everybody's draft is listed best first
+  (`live_draft_board()`, nothing before the kickoff).
+- At the final whistle `live_settle()` scores every draft
+  (`live_draft_score()`, the points read off the game's own plays when it
+  went live) and hands the pack to the best total over nothing. A tie goes
+  to the more points before the boosts; only drafts still level after that
+  (the same four in the same order) each get one. A game with none of the
+  six in it has no draft (PLAY LIVE leaves it out) and pays no pack, having
+  no cards to fill one: PLAY LIVE tells Supabase which of the six are in the
+  game (`live_games.six`).
 
 It waits in the Shop, in front of the packs for sale, one tile a pack, and
 opens once the game's week is published, since that is when its cards
@@ -3127,16 +3155,17 @@ the visitors' a touch high on the left and the home side's over it a touch
 low on the right, on foil that runs from the visitors' colour into the home
 side's, with GAME in chrome under them. The tile names the game ("Texans at
 Bears") on a band of the two colours. The Shop button's count includes every
-Game Pack that can be opened, and the live page's Bets box links a winner to
-the Shop once the game is over. Recent Pulls lists one as **Game Pack ·
+Game Pack that can be opened, and the live page's Bets box links the winner
+to the Shop once the game is over. Recent Pulls lists one as **Game Pack ·
 Texans at Bears** (`card_packs.pack_key` `game:{live game id}`).
 
 The page rolls the cards, as for every pack; `open_game_pack()` checks there
 are five, every one of the game's season and week, the six's only of the six
 in the game, and the pack is the player's and not open yet. `game_packs` keeps
-each one (who, which game, how many bets they won, when it was opened and what
-was in it). A game put on again with PLAY LIVE is a new go, with its own
-winners; a game restarted after its bets were paid pays no packs again.
+each one (who, which game, the winning draft's `score`, when it was opened and
+what was in it; `wins`, the bets won, is from before the draft). A game put on
+again with PLAY LIVE is a new go, its drafts starting over; a game restarted
+after it was settled pays no packs again.
 
 ## Seasons, and putting a week out
 
