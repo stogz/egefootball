@@ -840,6 +840,17 @@ EGE.nflLogosOnLight = {
   'New York Jets': 'Jets-green'
 };
 
+/* A mark's picture for a white or cream ground: the one above where a
+   team has one, the same picture otherwise. Sam, 2026-11-14: the Jets'
+   white mark was lost on the white boxes of a player's pop-up. */
+EGE.logoOnLight = function (src) {
+  var light = src;
+  Object.keys(EGE.nflLogosOnLight).forEach(function (name) {
+    if (src === 'icon/nfl/' + EGE.nflLogos[name] + '.png') { light = 'icon/nfl/' + EGE.nflLogosOnLight[name] + '.png'; }
+  });
+  return light;
+};
+
 /* The picture for a school or an NFL team, or null for one there is none
    for. `size` is the pixels on a side to ask ESPN for, for a school; the
    schedule draws its marks at 20, so it asks for twice that for a sharp
