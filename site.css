@@ -2664,9 +2664,9 @@ body::before {
 @media (hover: hover) { .ege-tb__filter:not(.is-on):hover { background: var(--fb-tint-wash); } }
 .ege-tb__table { border: var(--fb-border-thin) solid var(--fb-ink); background: #fff; }
 .ege-tb__head,
-.ege-tb__row { display: grid; grid-template-columns: 36px minmax(0, 1fr) 36px 84px 48px; align-items: center; gap: 8px; }
+.ege-tb__row { display: grid; grid-template-columns: 36px minmax(0, 1fr) 36px 58px 80px 46px; align-items: center; gap: 8px; }
 .ege-tb__table.is-alone .ege-tb__head,
-.ege-tb__table.is-alone .ege-tb__row { grid-template-columns: 36px minmax(0, 1fr) 36px 48px; }
+.ege-tb__table.is-alone .ege-tb__row { grid-template-columns: 36px minmax(0, 1fr) 36px 58px 46px; }
 .ege-tb__head { padding: 6px 8px; border-bottom: var(--fb-border-thin) solid var(--fb-ink); background: var(--fb-surface); }
 .ege-tb__sort {
   display: flex;
@@ -2686,6 +2686,8 @@ body::before {
 .ege-tb__sort--player { grid-column: 1 / span 2; justify-content: flex-start; }
 .ege-tb__head .ege-tb__sort:last-child { justify-content: flex-end; }
 .ege-tb__sort.is-on { color: var(--fb-accent-deep); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+.ege-tb__sort.is-on::after { content: '\25BC'; margin-left: 4px; font-size: .5rem; text-decoration: none; }
+.ege-tb__sort.is-on.is-up::after { content: '\25B2'; }
 .ege-tb__sort .ege-tb__mark { outline: 2px solid transparent; outline-offset: 2px; }
 .ege-tb__sort.is-on .ege-tb__mark { outline-color: var(--fb-accent); }
 .ege-tb__list { max-height: 420px; overflow-y: auto; overscroll-behavior: contain; }
@@ -2713,6 +2715,18 @@ body::before {
 .ege-tb__name { overflow: hidden; font-size: .875rem; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
 .ege-tb__meta { display: flex; gap: 7px; overflow: hidden; font-size: .75rem; color: var(--fb-muted); white-space: nowrap; }
 .ege-tb__pos { font-weight: 800; color: var(--fb-ink); }
+.ege-tb__meta { align-items: center; }
+/* His season in the league, boxed as on the Teams pages. */
+.ege-tb__years { padding: 0 4px; line-height: 1.35; text-decoration: none; cursor: help; }
+.ege-tb__cardmeta { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; }
+.ege-tb__cardmeta > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ege-tb__metapay { display: none; }
+.ege-tb__pay { display: grid; justify-items: end; line-height: 1.15; }
+.ege-tb__payval { font-size: .8125rem; font-weight: 800; }
+.ege-tb__paythru { font-size: .6875rem; color: var(--fb-muted); }
+/* Sort, at the end of the position buttons. */
+.ege-tb__sortpick { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; font-size: var(--fb-label); font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--fb-muted); }
+.ege-tb__sortpick .fb-select { padding: 4px 6px; font-size: .6875rem; }
 .ege-tb__out { font-weight: 800; color: #b3261e; }
 .ege-tb__ovr {
   justify-self: center;
@@ -2804,6 +2818,12 @@ body::before {
   .ege-tb__row { grid-template-columns: 32px minmax(0, 1fr) 30px 58px 40px; gap: 6px; padding-left: 6px; padding-right: 6px; }
   .ege-tb__table.is-alone .ege-tb__head,
   .ege-tb__table.is-alone .ege-tb__row { grid-template-columns: 32px minmax(0, 1fr) 30px 40px; }
+  /* No room for a pay column: the contract goes back under the name. */
+  .ege-tb__pay, .ege-tb__sort--pay { display: none; }
+  .ege-tb__meta { flex-wrap: wrap; row-gap: 2px; }
+  .ege-tb__metapay { display: inline; }
+  .ege-tb__agelabel { display: none; }
+  .ege-tb__sortpick { margin-left: 0; }
   .ege-tb__face { width: 32px; height: 32px; }
   .ege-tb__ovr { min-width: 28px; font-size: .8125rem; }
   .ege-tb__ring { width: 76px; height: 76px; }
@@ -2812,6 +2832,43 @@ body::before {
   .ege-tb__bandmark { width: 48px; height: 48px; }
 }
 .ege-tb__go { gap: 10px; }
+
+/* Suggested trades: a card a deal, what each team gets and how far ahead
+   (green) or short (red) it comes out, and Use. */
+.ege-tb__ideas {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: var(--fb-border) solid var(--fb-ink);
+  background: #fff;
+  box-shadow: 4px 4px 0 var(--fb-ink);
+}
+.ege-tb__ideas .ege-note, .ege-tb__ideas .fb-meta { margin: 0; }
+.ege-tb__ideacards { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 12px; }
+@media (max-width: 480px) { .ege-tb__ideacards { grid-template-columns: minmax(0, 1fr); } }
+.ege-tb__idea {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  padding: 10px;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  background: var(--fb-cream);
+}
+.ege-tb__idea.is-on { border-color: var(--fb-accent); background: var(--fb-tint-clay); }
+@media (max-width: 480px) { .ege-tb__idea { grid-template-columns: minmax(0, 1fr); } }
+.ege-tb__ideaside { min-width: 0; }
+.ege-tb__ideahead { display: flex; align-items: center; gap: 6px; }
+.ege-tb__ideahead .ege-tb__ideamark { width: 24px; height: 24px; }
+.ege-tb__ideagets { font-size: var(--fb-label); font-weight: 800; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
+.ege-tb__ideanet { margin-left: auto; padding: 1px 5px; border: 1px solid var(--fb-ink); font-size: .6875rem; font-weight: 800; white-space: nowrap; }
+.ege-tb__ideanet.is-up { background: var(--fb-tint-sage-2); }
+.ege-tb__ideanet.is-down { background: var(--fb-tint-clay-2); }
+.ege-tb__idealist { display: grid; gap: 4px; margin: 6px 0 0; padding: 0; list-style: none; }
+.ege-tb__ideaitem { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 6px; font-size: var(--fb-small); }
+.ege-tb__ideaitem .ege-tb__ideaface { width: 28px; height: 28px; }
+.ege-tb__ideaname { overflow: hidden; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
+.ege-tb__ideameta { font-size: .75rem; color: var(--fb-muted); white-space: nowrap; }
+.ege-tb__ideause { grid-column: 1 / -1; justify-self: end; padding-top: 6px; padding-bottom: 6px; }
 
 /* Team directions: a box a division, a line a team. */
 .ege-sim__dirs { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px 24px; }

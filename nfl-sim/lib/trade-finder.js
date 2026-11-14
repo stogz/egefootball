@@ -329,4 +329,4 @@ function findPickTrades(league, id, opts) {
   };
 }
 
-module.exports = { findTrades, findPickTrades };
+module.exports = { findTrades, findPickTrades, offersOf, packageFor, standing, checkWindow };

@@ -856,7 +856,21 @@ other team and to its own; one the other team values a tenth or more over
 his price is green. A click puts it in the deal (one side can be empty);
 under both, what each team gets and gives by its own numbers. **Make the
 trade** puts it straight through; **Propose** queues it with what both
-teams think of it, in the same points.
+teams think of it, in the same points. Each player shows his years in the
+league (R for a rookie, from `entry`) next to his age, and the list sorts by
+position, overall, contract (biggest first), age, experience or either
+team's value; a second click on a header flips it.
+
+**Suggest trades** (`suggest(league, sides)`, Sam 2026-11-14) works off the
+deadline window. With nothing in the deal it pairs players each team would
+start and values a tenth over his price (no kickers, punters, the six or
+anyone out four weeks) with a package from the other team under
+`trade-finder.js` rules (one to four pieces, at most two players, no core
+starters or QB, the cap holds), and keeps the four where both teams come out
+furthest ahead. With something in, the team that comes out ahead gets up to
+three ways to make up the other's gap from what it can spare, without going
+under itself; when none clears it, the closest are shown as Closest. Use
+puts one in the builder.
 
 **Sam's edits** (`lib/edits.js`). Any player's overall and ceiling can be set
 by hand — `edit "Drake Maye" --ovr 85 --pot 95`, or Edit in his pop-up on
@@ -1052,7 +1066,7 @@ nfl-sim/
     picks.js             how far out the picks go (2030, then six drafts ahead)
     trades.js            proposals, the queue (big free-agent moves too), approving
     trade-finder.js      teams a player would suit better, and the trades for him (or a pick)
-    trade-builder.js     what the admin page's trade builder shows: values, needs, cap before and after
+    trade-builder.js     what the admin page's trade builder shows: values, needs, cap before and after, suggested trades
     six-trades.js        the six, traded: when they move, and the new team's games for the site
     six-offers.js        the six in free agency: every team's offer, and the one Sam takes
     fit.js               fit as 0-5 stars, players and teams (an admin's only)
