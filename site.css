@@ -6783,8 +6783,8 @@ a.ege-person__team:focus-visible { outline: 2px solid #fff; outline-offset: 3px;
 .ege-person__progyear.is-shown .ege-person__progseason { color: var(--fb-accent-deep); }
 .ege-person__progchange { font-size: .75rem; }
 /* His contract as a row of seasons (Sam, 2026-11-14, from a picture
-   he sent): this season's label in orange, a gold pill a season of the
-   deal, FA after it. */
+   he sent): this season's label in orange, a pill in the team's colour
+   a season of the deal (2026-11-15), FA after it. */
 .ege-person__contract {
   display: grid;
   grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr));
@@ -6806,7 +6806,7 @@ a.ege-person__team:focus-visible { outline: 2px solid #fff; outline-offset: 3px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.ege-person__contractpay { border: var(--fb-border-thin) solid var(--fb-ink); background: var(--fb-gold); color: var(--fb-ink); }
+.ege-person__contractpay { border: var(--fb-border-thin) solid var(--fb-ink); background: var(--team, var(--fb-ink)); color: var(--team-text, #fff); }
 .ege-person__contractfa { font-size: .75rem; letter-spacing: .08em; color: rgba(29, 36, 22, .4); }
 @media (max-width: 520px) {
   .ege-person__contract { gap: 5px; padding: 12px 10px 12px; }

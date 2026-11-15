@@ -574,10 +574,11 @@ Under the bar:
     that have no word of him drop off the bar then), and not for one
     season.
   - **Contract**: that season's as a row of seasons (Sam, 2026-11-14,
-    from a picture he sent): from this season on, a gold pill with the
-    pay a year in each season the deal runs, then *FA* in the season
-    after; at least five seasons across, this one's label in orange. A
-    free agent's is *Free agent*; a retired player's is Status.
+    from a picture he sent): from this season on, a pill in the team's
+    colour (2026-11-15) with the pay a year in each season the deal runs,
+    then *FA* in the season after; always five seasons across and no
+    more, this one's label in orange. A free agent's is *Free agent*; a
+    retired player's is Status.
   - **Injury**: what keeps him off the field now, in red, in the live
     season only.
 
