@@ -6782,67 +6782,35 @@ a.ege-person__team:focus-visible { outline: 2px solid #fff; outline-offset: 3px;
 .ege-person__progseason { font-size: .8125rem; font-weight: 800; color: rgba(29, 36, 22, .6); }
 .ege-person__progyear.is-shown .ege-person__progseason { color: var(--fb-accent-deep); }
 .ege-person__progchange { font-size: .75rem; }
-/* His contract as a picture (Sam, 2026-11-14): the pay, a block a
-   season of the deal under how many are left, and a ring of the cap. */
+/* His contract as a row of seasons (Sam, 2026-11-14, from a picture
+   he sent): this season's label in orange, a gold pill a season of the
+   deal, FA after it. */
 .ege-person__contract {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 24px;
-  padding: 16px 18px;
+  grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr));
+  gap: 8px;
+  padding: 14px 16px 16px;
   border: var(--fb-border-thin) solid var(--fb-ink);
   background: #fff;
 }
+.ege-person__contractyear { display: flex; flex-direction: column; align-items: stretch; gap: 8px; min-width: 0; text-align: center; }
+.ege-person__contractseason { font-size: .8125rem; font-weight: 800; color: rgba(29, 36, 22, .5); }
+.ege-person__contractyear.is-now .ege-person__contractseason { color: var(--fb-accent-deep); }
 .ege-person__contractpay,
-.ege-person__contracthead,
-.ege-person__contractcapwords { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.ege-person__contracthead { flex-direction: row; align-items: baseline; gap: 8px; margin-bottom: 8px; }
-.ege-person__contractbig { font-family: var(--fb-font-display); font-size: 1.75rem; line-height: 1; }
-.ege-person__contractlabel {
-  font-size: var(--fb-label);
-  font-weight: 800;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: rgba(29, 36, 22, .68);
-}
-.ege-person__contractsub { font-size: .8125rem; font-weight: 700; color: var(--fb-muted); }
-.ege-person__contractblocks { display: flex; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.ege-person__contractblock {
-  flex: 1 1 0;
-  min-width: 0;
-  padding: 8px 2px;
-  border: var(--fb-border-thin) solid var(--fb-ink);
-  background: #fff;
-  text-align: center;
-  font-size: .8125rem;
-  font-weight: 800;
-}
-.ege-person__contractblock.is-gone { border-color: rgba(29, 36, 22, .25); background: rgba(29, 36, 22, .08); color: rgba(29, 36, 22, .45); }
-.ege-person__contractblock.is-now { background: var(--team, var(--fb-ink)); color: #fff; }
-.ege-person__contractcap { display: flex; align-items: center; gap: 12px; }
-.ege-person__contractring {
-  position: relative;
+.ege-person__contractfa {
   display: grid;
   place-items: center;
-  flex: none;
-  width: 76px;
-  height: 76px;
-  border: var(--fb-border-thin) solid var(--fb-ink);
-  border-radius: 50% !important;
-  background: conic-gradient(var(--team, var(--fb-ink)) 0 var(--share, 0%), rgba(29, 36, 22, .1) var(--share, 0%) 100%);
+  min-height: 38px;
+  font-size: .9375rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
-.ege-person__contractring::before {
-  content: "";
-  position: absolute;
-  inset: 11px;
-  border: var(--fb-border-thin) solid var(--fb-ink);
-  border-radius: 50% !important;
-  background: #fff;
-}
-.ege-person__contractpct { position: relative; font-size: .875rem; font-weight: 800; font-variant-numeric: tabular-nums; }
-@media (max-width: 720px) {
-  .ege-person__contract { grid-template-columns: minmax(0, 1fr) auto; gap: 16px; }
-  .ege-person__contractyears { grid-column: 1 / -1; grid-row: 2; }
+.ege-person__contractpay { border: var(--fb-border-thin) solid var(--fb-ink); background: var(--fb-gold); color: var(--fb-ink); }
+.ege-person__contractfa { font-size: .75rem; letter-spacing: .08em; color: rgba(29, 36, 22, .4); }
+@media (max-width: 520px) {
+  .ege-person__contract { gap: 5px; padding: 12px 10px 12px; }
+  .ege-person__contractpay { font-size: .8125rem; }
 }
 .ege-person__opp { display: inline-flex; align-items: center; gap: 6px; min-width: 0; font-weight: 700; white-space: nowrap; }
 .ege-person__opp .ege-opplink { display: inline-flex; align-items: center; gap: 6px; min-width: 0; color: inherit; }
