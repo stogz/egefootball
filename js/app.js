@@ -3535,82 +3535,24 @@
     holder.hidden = false;
   }
 
-  /* His contract that season as a picture (Sam, 2026-11-14): what it
-     pays a year and what is left of it, a block a season of the deal
-     (those gone by faded, this one in his team's colour, those to come
-     outlined) under how many are left, and a ring of the cap it takes
-     with where it ranks at his position. The deal's first season is the
-     one it was signed for (the live rosters' signings, the last three
-     seasons'), or his draft year for a rookie deal (four seasons); else
-     the blocks start at this one. */
-  function contractStart(sim, year, live) {
-    var c = sim.contract;
-    var all = live ? EGE.nflRosters.get(live) : null;
-    var signed = ((all && all.signings) || []).filter(function (x) {
-      var same = (x.espn && sim.espn && String(x.espn) === String(sim.espn)) || (x.ege && x.ege === sim.ege) ||
-        (!x.espn && !sim.espn && x.name === sim.name && x.pos === sim.pos);
-      return same && x.through === c.through && x.season <= year;
-    }).sort(function (a, b) { return a.season - b.season; })[0];
-    if (signed) { return { from: signed.season, kind: signed.kind === 'extend' ? 'Extension' : 'Signed ' + signed.season }; }
-    var d = sim.draft;
-    if (d && d.year && c.through === d.year + 3 && d.year <= year) { return { from: d.year, kind: 'Rookie deal' }; }
-    return { from: year, kind: null };
-  }
-
-  function fillContract(holder, row, year, live) {
-    var sim = row.sim;
-    var c = sim.contract;
-    var team = EGE.nfl.teams[row.team] || {};
-    var all = EGE.nflRosters.get(year) || (live ? EGE.nflRosters.get(live) : null);
-    var left = Math.max(1, c.through - year + 1);
-    var start = contractStart(sim, year, live);
+  /* His contract that season as a row of seasons (Sam, 2026-11-14, from
+     a picture he sent): a gold pill with his pay a year in each season
+     the deal runs, from this one, then FA in the season after it; at
+     least five seasons across, any after FA left empty. */
+  function fillContract(holder, row, year) {
+    var c = row.sim.contract;
+    var last = Math.max(c.through + 1, year + 4);
     var box = el('div', 'ege-person__contract');
-    if (team.color) { box.style.setProperty('--team', team.color); }
-
-    var pay = el('div', 'ege-person__contractpay');
-    pay.appendChild(el('span', 'ege-person__contractbig', moneyText(c.apy)));
-    pay.appendChild(el('span', 'ege-person__contractlabel', 'A year'));
-    pay.appendChild(el('span', 'ege-person__contractsub', moneyText(c.apy * left) + ' left' + (start.kind ? ' · ' + start.kind : '')));
-    box.appendChild(pay);
-
-    var span = el('div', 'ege-person__contractyears');
-    var head = el('div', 'ege-person__contracthead');
-    head.appendChild(el('span', 'ege-person__contractbig', String(left)));
-    head.appendChild(el('span', 'ege-person__contractlabel', (left === 1 ? 'Year left' : 'Years left') + ', through ' + c.through));
-    span.appendChild(head);
-    var blocks = el('ol', 'ege-person__contractblocks');
-    var first = Math.max(start.from, c.through - 7);
-    for (var y = first; y <= c.through; y += 1) {
-      var block = el('li', 'ege-person__contractblock' + (y < year ? ' is-gone' : y === year ? ' is-now' : ''));
-      block.title = y + (y < year ? ', played' : y === year ? ', this season' : '');
-      block.appendChild(el('span', null, String(y)));
-      blocks.appendChild(block);
-    }
-    span.appendChild(blocks);
-    box.appendChild(span);
-
-    var cap = all && all.caps ? all.caps[year] : null;
-    if (cap) {
-      var share = Math.min(1, c.apy / cap);
-      var ring = el('div', 'ege-person__contractcap');
-      var dial = el('span', 'ege-person__contractring');
-      dial.style.setProperty('--share', (share * 100).toFixed(1) + '%');
-      dial.appendChild(el('span', 'ege-person__contractpct', (share * 100).toFixed(1) + '%'));
-      ring.appendChild(dial);
-      var words = el('span', 'ege-person__contractcapwords');
-      words.appendChild(el('span', 'ege-person__contractlabel', 'Of the cap'));
-      /* Where his pay ranks at his position that season. */
-      var paid = [];
-      Object.keys(all.teams || {}).forEach(function (key) {
-        all.teams[key].forEach(function (p) { if (p.pos === sim.pos && p.contract) { paid.push(p.contract.apy || 0); } });
-      });
-      if (paid.length) {
-        var place = paid.filter(function (apy) { return apy > c.apy + 1e-9; }).length + 1;
-        words.appendChild(el('span', 'ege-person__contractsub', EGE.ordinal(place).toLowerCase() + '-highest paid ' + sim.pos));
+    box.style.setProperty('--n', last - year + 1);
+    for (var y = year; y <= last; y += 1) {
+      var cell = el('div', 'ege-person__contractyear' + (y === year ? ' is-now' : ''));
+      cell.appendChild(el('span', 'ege-person__contractseason', String(y)));
+      if (y <= c.through) {
+        cell.appendChild(el('span', 'ege-person__contractpay', moneyText(c.apy)));
+      } else {
+        cell.appendChild(el('span', 'ege-person__contractfa', y === c.through + 1 ? 'FA' : ''));
       }
-      ring.appendChild(words);
-      ring.title = moneyText(c.apy) + ' of a ' + moneyText(cap) + ' cap';
-      box.appendChild(ring);
+      box.appendChild(cell);
     }
     holder.appendChild(box);
   }
@@ -4348,10 +4290,11 @@
       });
     }
 
-    /* His contract that season as a picture, or that he has retired. */
+    /* His contract that season as a row of seasons, or that he has
+       retired. */
     var deal = section(row.retired ? 'Status' : 'Contract');
     if (!row.retired && sim.contract && year && sim.contract.through >= year) {
-      fillContract(deal, row, year, live);
+      fillContract(deal, row, year);
     } else {
       deal.appendChild(el('p', 'ege-person__text', row.retired ? retiredText(row.retired) : sim.contract
         ? moneyText(sim.contract.apy) + ' a year through ' + sim.contract.through

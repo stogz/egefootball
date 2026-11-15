@@ -573,14 +573,10 @@ Under the bar:
     comes once every season in his year bar has its rosters in (seasons
     that have no word of him drop off the bar then), and not for one
     season.
-  - **Contract**: that season's as a picture (Sam, 2026-11-14): the pay
-    a year, what is left of it and what kind of deal (*Rookie deal*, the
-    four seasons from his draft; *Signed 2027* or *Extension* from the
-    live rosters' signings, the last three seasons'); how many seasons
-    are left and through when, over a block a season of the deal (gone
-    by faded, this one in his team's colour, to come outlined; from this
-    season when its start is not known); and a ring of the share of that
-    season's cap it takes, with where his pay ranks at his position. A
+  - **Contract**: that season's as a row of seasons (Sam, 2026-11-14,
+    from a picture he sent): from this season on, a gold pill with the
+    pay a year in each season the deal runs, then *FA* in the season
+    after; at least five seasons across, this one's label in orange. A
     free agent's is *Free agent*; a retired player's is Status.
   - **Injury**: what keeps him off the field now, in red, in the live
     season only.
