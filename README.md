@@ -544,6 +544,9 @@ Under the bar:
     minimum tries a game (14 passes, 6.25 carries, 1.875 catches, 1 field
     goal, 2.25 punts) times the most games anybody played that season.
     Interceptions thrown go fewest first, among the passers who qualify.
+    Nothing before 2025, the first season the rosters keep everybody's
+    line (Sam, 2026-11-14: with nobody to measure against, everything
+    came out first).
   - **Recent Performances**: a chart of his last ten games that season
     (Sam, 2026-11-14), oldest first: a bar a game in the colour of the
     team he played it for, as tall as the game was good next to the
@@ -570,8 +573,15 @@ Under the bar:
     comes once every season in his year bar has its rosters in (seasons
     that have no word of him drop off the bar then), and not for one
     season.
-  - **Contract**: that season's (*$1.1M a year through 2024*), or Status
-    for a retired player.
+  - **Contract**: that season's as a picture (Sam, 2026-11-14): the pay
+    a year, what is left of it and what kind of deal (*Rookie deal*, the
+    four seasons from his draft; *Signed 2027* or *Extension* from the
+    live rosters' signings, the last three seasons'); how many seasons
+    are left and through when, over a block a season of the deal (gone
+    by faded, this one in his team's colour, to come outlined; from this
+    season when its start is not known); and a ring of the share of that
+    season's cap it takes, with where his pay ranks at his position. A
+    free agent's is *Free agent*; a retired player's is Status.
   - **Injury**: what keeps him off the field now, in red, in the live
     season only.
 
