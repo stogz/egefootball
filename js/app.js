@@ -3536,14 +3536,23 @@
   }
 
   /* His contract that season as a row of seasons (Sam, 2026-11-14, from
-     a picture he sent): a gold pill with his pay a year in each season
-     the deal runs, from this one, then FA in the season after it; at
-     least five seasons across, any after FA left empty. */
+     a picture he sent): a pill in his team's colour (2026-11-15) with his
+     pay a year in each season the deal runs, from this one, then FA in
+     the season after it; always five seasons across and no more (Sam,
+     2026-11-15), any after FA left empty. The pay in white, or ink on a
+     colour too light for white. */
   function fillContract(holder, row, year) {
     var c = row.sim.contract;
-    var last = Math.max(c.through + 1, year + 4);
+    var last = year + 4;
     var box = el('div', 'ege-person__contract');
     box.style.setProperty('--n', last - year + 1);
+    var team = EGE.nfl.teams[row.team];
+    var rgb = team ? rgbOf(team.color) : null;
+    if (rgb) {
+      box.style.setProperty('--team', team.color);
+      var lum = luminance(rgb);
+      box.style.setProperty('--team-text', contrast(lum, 1) >= contrast(lum, 0) ? '#fff' : 'var(--fb-ink)');
+    }
     for (var y = year; y <= last; y += 1) {
       var cell = el('div', 'ege-person__contractyear' + (y === year ? ' is-now' : ''));
       cell.appendChild(el('span', 'ege-person__contractseason', String(y)));
