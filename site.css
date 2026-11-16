@@ -7342,6 +7342,164 @@ a.ege-person__team:focus-visible { outline: 2px solid #fff; outline-offset: 3px;
   .ege-ovrbox--galaxy { animation: none; }
 }
 
+/* --- how far through the overall (the Shop's Rating Points) ---------------
+
+   Under the points and the workouts: the overall he is on, a bar for how far
+   through it he is, and the next one, the bar filled in his tier's colour.
+   At 99 the bar is the galaxy, full for good, with no next box. */
+.ege-ovrbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: #fff;
+  border: var(--fb-border) solid var(--fb-ink);
+}
+.ege-ovrbar[hidden] { display: none; }
+.ege-ovrbar__box { width: 58px; padding: 6px 4px 7px; }
+.ege-ovrbar__box .ege-ovrbox__value { font-size: 1.625rem; }
+.ege-ovrbar__box--next { opacity: .45; }
+.ege-ovrbar__middle {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ege-ovrbar__track {
+  position: relative;
+  height: 20px;
+  background: #fff;
+  border: var(--fb-border-thin) solid var(--fb-ink);
+  overflow: hidden;
+}
+.ege-ovrbar__fill {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background: var(--fb-accent);
+  transition: width .4s ease;
+}
+/* The same band of light the tier boxes carry, sweeping along the fill. */
+.ege-ovrbar__fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -40%;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .55), transparent);
+  animation: ege-ovrbar-shine 3.4s ease-in-out infinite;
+  pointer-events: none;
+}
+.ege-ovrbar--basic .ege-ovrbar__fill::after { display: none; }
+@keyframes ege-ovrbar-shine {
+  0%, 55% { left: -40%; }
+  100%    { left: 110%; }
+}
+.ege-ovrbar__foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fb-muted);
+}
+.ege-ovrbar__pct { color: var(--fb-ink); }
+.ege-ovrbar__need { white-space: nowrap; }
+
+/* The tiers, from the boxes' own colours. */
+.ege-ovrbar--bronze .ege-ovrbar__fill {
+  background: linear-gradient(180deg, #f3c89a 0%, #c98a4f 45%, #8f5124 100%);
+}
+.ege-ovrbar--silver .ege-ovrbar__fill {
+  background: linear-gradient(180deg, #ffffff 0%, #c9cfd6 45%, #8a929b 100%);
+}
+.ege-ovrbar--gold .ege-ovrbar__fill {
+  background: linear-gradient(180deg, #fff4b8 0%, #f5cf45 45%, #c18f0b 100%);
+}
+/* The diamonds get a run of facets cut across the colour. */
+.ege-ovrbar--diamond .ege-ovrbar__fill {
+  background:
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, .3) 0 2px, transparent 2px 16px),
+    linear-gradient(180deg, #dcf3fa 0%, #5fb0d8 45%, #1f5f8a 100%);
+}
+.ege-ovrbar--pink .ege-ovrbar__fill {
+  background:
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, .3) 0 2px, transparent 2px 16px),
+    linear-gradient(180deg, #ffe0f2 0%, #f07cc0 45%, #a8286f 100%);
+}
+
+/* The galaxy: deep purple space with a touch of the box's pink and blue
+   nebulae at the ends, stars scattered all along it and a second set twinkling over them,
+   and MAXED in white in the middle. */
+.ege-ovrbar--galaxy .ege-ovrbar__track {
+  height: 26px;
+  border-color: #3b1a6e;
+  animation: ege-galaxy-glow 4s ease-in-out infinite;
+}
+.ege-ovrbar--galaxy .ege-ovrbar__fill {
+  background:
+    radial-gradient(circle at 12% 30%, #fff 0 1px, transparent 1.6px) 0 0 / 54px 100%,
+    radial-gradient(circle at 58% 72%, #fff 0 .8px, transparent 1.4px) 0 0 / 54px 100%,
+    radial-gradient(circle at 34% 18%, #ffe6ff 0 .9px, transparent 1.5px) 0 0 / 82px 100%,
+    radial-gradient(circle at 80% 58%, #d9e8ff 0 1.1px, transparent 1.7px) 0 0 / 82px 100%,
+    radial-gradient(ellipse 22% 90% at 14% 40%, rgba(255, 84, 196, .45), transparent 70%),
+    radial-gradient(ellipse 40% 110% at 50% 60%, rgba(170, 96, 255, .7), transparent 70%),
+    radial-gradient(ellipse 22% 90% at 88% 40%, rgba(96, 120, 255, .5), transparent 70%),
+    linear-gradient(100deg, #1a0838, #34107a 50%, #1c0b52);
+}
+.ege-ovrbar--galaxy .ege-ovrbar__fill::after { display: none; }
+.ege-ovrbar--galaxy .ege-ovrbar__track::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    radial-gradient(circle at 26% 64%, #fff 0 1.2px, transparent 1.9px) 0 0 / 70px 100%,
+    radial-gradient(circle at 72% 26%, #ffd6f5 0 1px, transparent 1.7px) 0 0 / 96px 100%;
+  animation: ege-ovrbar-twinkle 2.2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes ege-ovrbar-twinkle {
+  0%, 100% { opacity: .15; }
+  50%      { opacity: 1; }
+}
+.ege-ovrbar__maxed {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .75rem;
+  font-weight: 800;
+  letter-spacing: .32em;
+  text-indent: .32em;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 0 0 6px rgba(190, 140, 255, .95), 0 0 12px rgba(255, 90, 200, .8);
+}
+
+@media (max-width: 620px) {
+  .ege-ovrbar { gap: 10px; padding: 12px; }
+  .ege-ovrbar__box { width: 46px; padding: 4px 3px 5px; }
+  .ege-ovrbar__box .ege-ovrbox__value { font-size: 1.25rem; }
+  .ege-ovrbar__box .ege-ovrbox__label { font-size: .5rem; letter-spacing: .14em; }
+  .ege-ovrbar__box.ege-ovrbox--tier::after { font-size: .5rem; }
+  .ege-ovrbar__foot { letter-spacing: .06em; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ege-ovrbar__fill { transition: none; }
+  .ege-ovrbar__fill::after { animation: none; display: none; }
+  .ege-ovrbar--galaxy .ege-ovrbar__track,
+  .ege-ovrbar--galaxy .ege-ovrbar__track::before { animation: none; }
+  .ege-ovrbar--galaxy .ege-ovrbar__track::before { opacity: .8; }
+}
+
 /* ==========================================================================
    Cards
    The card game on its own tab: packs, the collection and the library. A

@@ -91,6 +91,65 @@ EGE.economy = (function () {
     });
   }
 
+  /* How far a player is through his overall, and what the next one costs.
+     The overall is the exact one rounded, so an 87 runs from 86.5 up to
+     87.5: `progress` is how far through that he is, 0 to 1.
+
+     `credits` is the cheapest way there in rating points: the best-value
+     point bought one at a time, each priced where it lands, until the
+     overall rounds up -- the top of the shop's own Best value table, bought
+     until it ticks over. Null when nothing credits can buy would get there.
+     At 99 there is nowhere further to go, so it is `maxed`. */
+  function nextOverall(player) {
+    var values = EGE.valuesFor(player);
+    var overall = EGE.overallFor(player);
+    if (!values || typeof overall !== 'number') { return null; }
+
+    if (overall >= MAX_RATING) {
+      return { overall: overall, maxed: true, progress: 1, next: null, credits: null, points: [] };
+    }
+
+    var exact = EGE.exactOverallOfValues(values, player.position);
+    var progress = Math.max(0, Math.min(1, exact - (overall - 0.5)));
+
+    var plan = upgradePlan(player).filter(function (row) { return row.gain > 0; });
+    var now = {};
+    Object.keys(values).forEach(function (key) { now[key] = values[key]; });
+
+    var credits = 0;
+    var bought = {};
+    var steps = 0;
+    while (Math.round(EGE.exactOverallOfValues(now, player.position)) <= overall) {
+      var best = null;
+      var bestCost = null;
+      plan.forEach(function (row) {
+        var cost = upgradeCost(now[row.key]);
+        if (cost === null) { return; }
+        if (!best || row.gain / cost > best.gain / bestCost) { best = row; bestCost = cost; }
+      });
+      steps += 1;
+      if (!best || steps > 500) { credits = null; break; }
+      now[best.key] += 1;
+      credits += bestCost;
+      bought[best.key] = (bought[best.key] || 0) + 1;
+    }
+
+    return {
+      overall: overall,
+      maxed: false,
+      progress: progress,
+      next: overall + 1,
+      /* how much overall is still to come before it rounds up */
+      short: Math.max(0, overall + 0.5 - exact),
+      credits: credits,
+      points: credits === null ? [] : plan.filter(function (row) {
+        return bought[row.key];
+      }).map(function (row) {
+        return { key: row.key, label: row.label, points: bought[row.key] };
+      })
+    };
+  }
+
   /* Buying several at once is every point priced where it lands, added up —
      not the first one's price times four.
 
@@ -440,6 +499,7 @@ EGE.economy = (function () {
     pointsAvailable: pointsAvailable,
     gainPerPoint: gainPerPoint,
     upgradePlan: upgradePlan,
+    nextOverall: nextOverall,
     TD_CREDITS: TD_CREDITS,
     tdRateFor: tdRateFor,
     touchdownsIn: touchdownsIn,

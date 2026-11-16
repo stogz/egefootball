@@ -9373,6 +9373,7 @@
         other.items.forEach(function (item) { extra.appendChild(buildShopItem(item)); });
         body.appendChild(extra);
       });
+      body.appendChild(buildOverallBar());
     } else {
       var grid = el('div', 'ege-items');
       section.items.forEach(function (item) { grid.appendChild(buildShopItem(item)); });
@@ -9582,6 +9583,70 @@
     return box;
   }
 
+  /* --- how far through the overall -------------------------------------- */
+
+  /* Under the points and the workouts, a bar for how far the player is
+     through his overall, filled in his tier's colour, with the overall he is
+     on at one end and the next at the other. Under it, how far along he is
+     and what the next one costs on the cheapest points
+     (EGE.economy.nextOverall). At 99 it is the galaxy, full for good. */
+  var ovrBar = null;
+
+  function buildOverallBar() {
+    ovrBar = el('div', 'ege-ovrbar');
+    drawOverallBar();
+    return ovrBar;
+  }
+
+  function drawOverallBar() {
+    if (!ovrBar || !shopState.player) { return; }
+    ovrBar.innerHTML = '';
+
+    var at = EGE.economy.nextOverall(shopState.player);
+    ovrBar.hidden = !at;
+    if (!at) { return; }
+
+    var tier = overallTier(at.overall);
+    ovrBar.className = 'ege-ovrbar ege-ovrbar--' + (tier ? tier.key : 'basic');
+
+    ovrBar.appendChild(overallBox(at.overall, 'ege-ovrbar__box'));
+
+    var middle = el('div', 'ege-ovrbar__middle');
+    var track = el('div', 'ege-ovrbar__track');
+    var fill = el('div', 'ege-ovrbar__fill');
+    var percent = at.maxed ? 100 : Math.floor(at.progress * 100);
+    fill.style.width = percent + '%';
+    track.appendChild(fill);
+    track.setAttribute('role', 'progressbar');
+    track.setAttribute('aria-valuemin', '0');
+    track.setAttribute('aria-valuemax', '100');
+    track.setAttribute('aria-valuenow', String(percent));
+    track.setAttribute('aria-label', at.maxed ? 'Overall maxed' : 'Progress to ' + at.next + ' overall');
+    if (at.maxed) { track.appendChild(el('span', 'ege-ovrbar__maxed', 'Maxed')); }
+    middle.appendChild(track);
+
+    if (!at.maxed) {
+      var foot = el('div', 'ege-ovrbar__foot');
+      foot.appendChild(el('span', 'ege-ovrbar__pct', percent + '%'));
+
+      var need = el('span', 'ege-ovrbar__need');
+      if (at.credits === null) {
+        need.appendChild(document.createTextNode(at.short.toFixed(2) + ' to ' + at.next));
+      } else {
+        need.appendChild(priceText(at.credits));
+        need.appendChild(document.createTextNode(' to ' + at.next));
+        need.title = at.points.map(function (row) {
+          return row.label + ' +' + row.points;
+        }).join(', ');
+      }
+      foot.appendChild(need);
+      middle.appendChild(foot);
+    }
+    ovrBar.appendChild(middle);
+
+    if (!at.maxed) { ovrBar.appendChild(overallBox(at.next, 'ege-ovrbar__box ege-ovrbar__box--next')); }
+  }
+
   /* How many of this item the player is holding right now. */
   function ownedNow(item) {
     return EGE.timesBought(shopState.inventory, item.key);
@@ -9619,6 +9684,7 @@
     sortedPlan(plan).forEach(function (row) {
       upgradesBody.appendChild(upgradeRow(row));
     });
+    drawOverallBar();
   }
 
   /* --- the inventory ----------------------------------------------------- */
