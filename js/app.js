@@ -1839,7 +1839,7 @@
   }
 
   /* Best overall first; one of the six ahead of anybody level with him. */
-  function byOverall(a, b) {
+  function byRowOverall(a, b) {
     return ((b.overall || 0) - (a.overall || 0)) || (b.player ? 1 : 0) - (a.player ? 1 : 0);
   }
 
@@ -2074,7 +2074,7 @@
        first, hurt or not, each with his position. */
     if (rosterSide === 'all') {
       var everyone = el('ol', 'ege-room__list ege-allroster');
-      rows.map(function (sim) { return nflRow(sim, season, key, admin); }).sort(byOverall).forEach(function (row) {
+      rows.map(function (sim) { return nflRow(sim, season, key, admin); }).sort(byRowOverall).forEach(function (row) {
         row.posTag = row.sim.pos;
         everyone.appendChild(nflLine(row));
       });
@@ -2087,7 +2087,7 @@
       rooms.forEach(function (room) {
         var inRoom = rows.filter(function (sim) { return room.pos.indexOf(sim.pos) !== -1; })
           .map(function (sim) { return nflRow(sim, season, key, admin); })
-          .sort(byOverall);
+          .sort(byRowOverall);
         col.appendChild(depthRoom(room, inRoom, admin ? signBox(admin, room) : null));
       });
       grid.appendChild(col);
