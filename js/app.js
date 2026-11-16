@@ -1753,27 +1753,27 @@
 
      Each side is a depth chart (Sam, 2026-11-16): a box for each of the
      sim's positions -- the line and the front split into tackles and
-     interior, edge rushers and defensive tackles, the kickers and punters
-     apart -- showing its starters, the sim's game-day lineup (lib/lineup.js
-     gameDay: nickel against eleven personnel), with View more for the
-     bench. A starter who is hurt goes to the bench and the next man up
-     starts. Skill positions down the left and the line and specialists
-     down the right; the front seven left and the secondary right. A
-     fullback is in with the backs, and starts only when there are not
-     enough of them, as in the sim. */
+     interior, edge rushers and defensive tackles -- showing its starters,
+     the sim's game-day lineup (lib/lineup.js gameDay: nickel against eleven
+     personnel, the two backs who share the carries), with View more for
+     the bench. A starter who is hurt goes to the bench and the next man up
+     starts. Skill positions down the left and the line and Special Teams
+     (the kicker and the punter in one box, Sam 2026-11-16) down the right;
+     the front seven left and the secondary right. A fullback is in with
+     the backs, and starts only when there are not enough of them, as in
+     the sim. */
   var NFL_ROOMS = {
     offense: [
       [
         { key: 'QB', title: 'Quarterbacks', pos: ['QB'], starts: 1 },
-        { key: 'RB', title: 'Running Backs', pos: ['RB', 'FB'], starts: 1 },
+        { key: 'RB', title: 'Running Backs', pos: ['RB', 'FB'], starts: 2 },
         { key: 'WR', title: 'Receivers', pos: ['WR'], starts: 3 },
         { key: 'TE', title: 'Tight Ends', pos: ['TE'], starts: 1 }
       ],
       [
         { key: 'OT', title: 'Offensive Tackles', pos: ['OT'], starts: 2 },
         { key: 'IOL', title: 'Interior Linemen', pos: ['IOL'], starts: 3 },
-        { key: 'K', title: 'Kickers', pos: ['K'], starts: 1 },
-        { key: 'P', title: 'Punters', pos: ['P'], starts: 1 }
+        { key: 'ST', title: 'Special Teams', pos: ['K', 'P'], each: 1 }
       ]
     ],
     defense: [
@@ -1790,10 +1790,11 @@
   };
 
   /* A position's box on the depth chart: its starters, the healthy best
-     first (a room's first position before the rest), then View more for
-     everybody else, the healthy first and the hurt after them. `rows` come
-     best overall first. `foot`, if given, goes under it all: an admin's +
-     (signBox). */
+     first (a room's first position before the rest), or with `each` that
+     many of every position in it in turn (Special Teams: a kicker, then a
+     punter); then View more for everybody else, the healthy first and the
+     hurt after them. `rows` come best overall first. `foot`, if given,
+     goes under it all: an admin's + (signBox). */
   function depthRoom(room, rows, foot) {
     var box = el('div', 'ege-room');
     box.appendChild(el('h4', 'ege-room__title', room.title));
@@ -1804,9 +1805,13 @@
     }
     var healthy = rows.filter(function (row) { return !row.out; });
     var first = room.pos[0];
-    var starters = healthy.filter(function (row) { return row.sim.pos === first; })
-      .concat(healthy.filter(function (row) { return row.sim.pos !== first; }))
-      .slice(0, room.starts);
+    var starters = room.each
+      ? [].concat.apply([], room.pos.map(function (pos) {
+        return healthy.filter(function (row) { return row.sim.pos === pos; }).slice(0, room.each);
+      }))
+      : healthy.filter(function (row) { return row.sim.pos === first; })
+        .concat(healthy.filter(function (row) { return row.sim.pos !== first; }))
+        .slice(0, room.starts);
     var bench = rows.filter(function (row) { return starters.indexOf(row) === -1; });
     bench = bench.filter(function (row) { return !row.out; }).concat(bench.filter(function (row) { return row.out; }));
 
@@ -1834,7 +1839,7 @@
   }
 
   /* Best overall first; one of the six ahead of anybody level with him. */
-  function byOverall(a, b) {
+  function byRowOverall(a, b) {
     return ((b.overall || 0) - (a.overall || 0)) || (b.player ? 1 : 0) - (a.player ? 1 : 0);
   }
 
@@ -2069,7 +2074,7 @@
        first, hurt or not, each with his position. */
     if (rosterSide === 'all') {
       var everyone = el('ol', 'ege-room__list ege-allroster');
-      rows.map(function (sim) { return nflRow(sim, season, key, admin); }).sort(byOverall).forEach(function (row) {
+      rows.map(function (sim) { return nflRow(sim, season, key, admin); }).sort(byRowOverall).forEach(function (row) {
         row.posTag = row.sim.pos;
         everyone.appendChild(nflLine(row));
       });
@@ -2082,7 +2087,7 @@
       rooms.forEach(function (room) {
         var inRoom = rows.filter(function (sim) { return room.pos.indexOf(sim.pos) !== -1; })
           .map(function (sim) { return nflRow(sim, season, key, admin); })
-          .sort(byOverall);
+          .sort(byRowOverall);
         col.appendChild(depthRoom(room, inRoom, admin ? signBox(admin, room) : null));
       });
       grid.appendChild(col);
