@@ -459,13 +459,25 @@ Under the bar:
   2026-10-19): `data/nfl-rosters.json`, which `node nfl-sim/sim.js export`
   writes, or whatever the admin page's NFL Sim tab last published to
   `nfl_sim_rosters` in Supabase — whichever was saved later for the season
-  (`js/nfl-rosters.js`). An **Offense / Defense / Picks** switch at the top
-  right of the panel, the same as the schedule's Games / Tournament, picks
-  the side: quarterbacks, backs (a fullback with them), receivers, tight
-  ends, the offensive line (tackles, guards and centers, its five starters
-  showing) and the kickers (punters with them), two rooms a line (Sam,
-  2026-10-22); or the defensive line (edge rushers and tackles),
-  linebackers, cornerbacks and safeties; or the team's draft picks (below). **An admin also sees the team's offense and defense as two
+  (`js/nfl-rosters.js`). An **Offense / Defense / All / Picks** switch at
+  the top right of the panel, the same as the schedule's Games /
+  Tournament, picks what shows. **Offense and Defense are depth charts**
+  (Sam, 2026-11-16): a box for each of the sim's positions showing only its
+  **starters**, the sim's game-day lineup — QB 1, RB 1 (a fullback is with
+  the backs and starts only when there are not enough of them), WR 3, TE 1,
+  offensive tackles 2, interior linemen 3, kicker 1, punter 1; edge rushers
+  2, defensive tackles 2, linebackers 2, cornerbacks 3, safeties 2 — the
+  healthiest best overalls, with **View more** (View less once open) for
+  the bench. A starter who is **hurt goes to the bench** (the healthy bench
+  first, the hurt after) and the next man up starts; an injury counts only
+  once its week is published, as everywhere. Skill positions run down the
+  left and the line and specialists down the right; the front seven down
+  the left and the secondary down the right (one column on a phone). The
+  sim knows tackles from interior linemen but not left from right or
+  guards from centers, so the line splits no further. **All** is the whole
+  team in one list, best overall first, hurt or not, each card with a
+  position tag before the archetype. **Picks** is the team's draft picks
+  (below). **An admin also sees the team's offense and defense as two
   overalls**, *OFF* and *DEF* boxes in their tier's colours left of the
   switch (Sam, 2026-10-20): each the starters' overalls weighted by how
   much the spot matters (the quarterback a third of the offense; the
