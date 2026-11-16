@@ -310,6 +310,10 @@ EGE.headshotVersion = '2026-10-20';
    trophy as Cooper's Offensive Rookie of the Year (Sam, 2026-11-10). */
 EGE.nflAwardTrophy = 'icon/trophies/clark-2024-offensive-rookie-of-the-year.webp';
 
+/* The Super Bowl MVP football -- the art has no numeral on it, so every
+   Super Bowl MVP stands in the case as the same one (Sam, 2026-11-16). */
+EGE.superBowlMvpTrophy = 'icon/trophies/stewart-2028-super-bowl-lxiii-mvp.webp';
+
 EGE.players = [
   {
     slug: 'andrew-parr',
@@ -405,7 +409,13 @@ EGE.players = [
         about: '2025 NFL Super Bowl Champion\nNew York Giants' },
       { name: 'Offensive Player of the Year', season: 2028, scale: 1.45,
         image: EGE.nflAwardTrophy,
-        about: '2028 Offensive Player of the Year\nNew York Giants' }
+        about: '2028 Offensive Player of the Year\nNew York Giants' },
+      { name: 'Super Bowl LXIV Championship', season: 2029, scale: 1.35,
+        image: 'icon/trophies/hatch-2029-super-bowl-lxiv.webp',
+        about: '2029 Super Bowl LXIV Champion\nNew York Giants' },
+      { name: 'Super Bowl LXIV MVP', season: 2029,
+        image: EGE.superBowlMvpTrophy,
+        about: '2029 Super Bowl LXIV MVP\nNew York Giants' }
     ]
   },
   {
@@ -484,7 +494,7 @@ EGE.players = [
         image: 'icon/trophies/stewart-2028-super-bowl-lxiii.webp',
         about: '2028 Super Bowl LXIII Champion\nHouston Texans' },
       { name: 'Super Bowl LXIII MVP', season: 2028,
-        image: 'icon/trophies/stewart-2028-super-bowl-lxiii-mvp.webp',
+        image: EGE.superBowlMvpTrophy,
         about: '2028 Super Bowl LXIII MVP\nHouston Texans' }
     ]
   }
