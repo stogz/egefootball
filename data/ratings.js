@@ -506,14 +506,21 @@ function egeKeyAverage(values, weights) {
   return totalWeight ? { average: weighted / totalWeight, totalWeight: totalWeight } : null;
 }
 
-/* The overall: the position's key attributes, weighted and stretched. */
-function egeOverallOf(values, position) {
+/* The overall before it is rounded and held to 1-99: the position's key
+   attributes, weighted and stretched. */
+function egeExactOverallOf(values, position) {
   if (!values) { return null; }
   var key = egeKeyAverage(values, EGE.weightsFor(position));
   if (!key) { return null; }
 
   var scale = EGE.overallScale;
-  var overall = scale.pivot + scale.stretch * (key.average - scale.pivot) - ((EGE.overallOffset || {})[position] || 0);
+  return scale.pivot + scale.stretch * (key.average - scale.pivot) - ((EGE.overallOffset || {})[position] || 0);
+}
+
+/* The overall: the exact one, rounded and held to 1-99. */
+function egeOverallOf(values, position) {
+  var overall = egeExactOverallOf(values, position);
+  if (overall === null) { return null; }
   return Math.max(1, Math.min(99, Math.round(overall)));
 }
 
@@ -525,6 +532,11 @@ EGE.overallFor = function (player, opts) {
 /* The overall a set of attribute values comes to at a position. */
 EGE.overallOfValues = function (values, position) {
   return egeOverallOf(values, position);
+};
+
+/* The same, before rounding: how far into his overall a player is. */
+EGE.exactOverallOfValues = function (values, position) {
+  return egeExactOverallOf(values, position);
 };
 
 /* The overall the live season started on. */
