@@ -311,8 +311,10 @@ EGE.headshotVersion = '2026-10-20';
 EGE.nflAwardTrophy = 'icon/trophies/clark-2024-offensive-rookie-of-the-year.webp';
 
 /* The Super Bowl MVP football -- the art has no numeral on it, so every
-   Super Bowl MVP stands in the case as the same one (Sam, 2026-11-16). */
-EGE.superBowlMvpTrophy = 'icon/trophies/stewart-2028-super-bowl-lxiii-mvp.webp';
+   Super Bowl MVP stands in the case as the same one (Sam, 2026-11-16).
+   A Super Bowl goes by the year it is played, in the February after its
+   season: Super Bowl LXIV, which ends the 2029 season, is 2030. */
+EGE.superBowlMvpTrophy = 'icon/trophies/super-bowl-mvp.webp';
 
 EGE.players = [
   {
@@ -410,12 +412,12 @@ EGE.players = [
       { name: 'Offensive Player of the Year', season: 2028, scale: 1.45,
         image: EGE.nflAwardTrophy,
         about: '2028 Offensive Player of the Year\nNew York Giants' },
-      { name: 'Super Bowl LXIV Championship', season: 2029, scale: 1.35,
-        image: 'icon/trophies/hatch-2029-super-bowl-lxiv.webp',
-        about: '2029 Super Bowl LXIV Champion\nNew York Giants' },
-      { name: 'Super Bowl LXIV MVP', season: 2029,
+      { name: 'Super Bowl LXIV Championship', season: 2030, scale: 1.35,
+        image: 'icon/trophies/hatch-2030-super-bowl-lxiv.webp',
+        about: '2030 Super Bowl LXIV Champion\nNew York Giants' },
+      { name: 'Super Bowl LXIV MVP', season: 2030,
         image: EGE.superBowlMvpTrophy,
-        about: '2029 Super Bowl LXIV MVP\nNew York Giants' }
+        about: '2030 Super Bowl LXIV MVP\nNew York Giants' }
     ]
   },
   {
@@ -487,15 +489,15 @@ EGE.players = [
       { name: 'Most Valuable Player', season: 2027, scale: 1.45,
         image: EGE.nflAwardTrophy,
         about: '2027 NFL Most Valuable Player\nHouston Texans' },
-      { name: 'Super Bowl LXII Championship', season: 2027, scale: 1.35,
-        image: 'icon/trophies/stewart-2027-super-bowl-lxii.webp',
-        about: '2027 Super Bowl LXII Champion\nHouston Texans' },
-      { name: 'Super Bowl LXIII Championship', season: 2028, scale: 1.35,
-        image: 'icon/trophies/stewart-2028-super-bowl-lxiii.webp',
-        about: '2028 Super Bowl LXIII Champion\nHouston Texans' },
-      { name: 'Super Bowl LXIII MVP', season: 2028,
+      { name: 'Super Bowl LXII Championship', season: 2028, scale: 1.35,
+        image: 'icon/trophies/stewart-2028-super-bowl-lxii.webp',
+        about: '2028 Super Bowl LXII Champion\nHouston Texans' },
+      { name: 'Super Bowl LXIII Championship', season: 2029, scale: 1.35,
+        image: 'icon/trophies/stewart-2029-super-bowl-lxiii.webp',
+        about: '2029 Super Bowl LXIII Champion\nHouston Texans' },
+      { name: 'Super Bowl LXIII MVP', season: 2029,
         image: EGE.superBowlMvpTrophy,
-        about: '2028 Super Bowl LXIII MVP\nHouston Texans' }
+        about: '2029 Super Bowl LXIII MVP\nHouston Texans' }
     ]
   }
 ];
