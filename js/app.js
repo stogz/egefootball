@@ -1709,8 +1709,8 @@
     return item;
   }
 
-  /* `foot`, if given, goes under the room's last player: an admin's + on
-     an NFL room (signBox). */
+  /* A college team's room (an NFL team's is depthRoom). `foot`, if given,
+     goes under the room's last player. */
   function roomEl(room, rows, foot) {
     var box = el('div', 'ege-room');
     box.appendChild(el('h4', 'ege-room__title', room.title));
@@ -1748,26 +1748,96 @@
      An NFL team's page is the NFL sim's roster (js/nfl-rosters.js), not
      data/rosters.js: every player on the team with his overall, his years
      in the league, his size and his archetype, on two sides of the ball
-     picked with the switch in the panel's head, or its draft picks. A
-     fullback is in with the backs, and the edge rushers and the tackles are
-     one line. The offense ends with the line, its five starters showing,
-     and the kickers and punters beside it (Sam, 2026-10-22). */
+     picked with the switch in the panel's head, everybody at once, or its
+     draft picks.
+
+     Each side is a depth chart (Sam, 2026-11-16): a box for each of the
+     sim's positions -- the line and the front split into tackles and
+     interior, edge rushers and defensive tackles, the kickers and punters
+     apart -- showing its starters, the sim's game-day lineup (lib/lineup.js
+     gameDay: nickel against eleven personnel), with View more for the
+     bench. A starter who is hurt goes to the bench and the next man up
+     starts. Skill positions down the left and the line and specialists
+     down the right; the front seven left and the secondary right. A
+     fullback is in with the backs, and starts only when there are not
+     enough of them, as in the sim. */
   var NFL_ROOMS = {
     offense: [
-      { key: 'QB', title: 'Quarterbacks', pos: ['QB'] },
-      { key: 'RB', title: 'Running Backs', pos: ['RB', 'FB'] },
-      { key: 'WR', title: 'Receivers', pos: ['WR'] },
-      { key: 'TE', title: 'Tight Ends', pos: ['TE'] },
-      { key: 'OL', title: 'Offensive Line', pos: ['OT', 'IOL'], shown: 5 },
-      { key: 'K', title: 'Kickers', pos: ['K', 'P'] }
+      [
+        { key: 'QB', title: 'Quarterbacks', pos: ['QB'], starts: 1 },
+        { key: 'RB', title: 'Running Backs', pos: ['RB', 'FB'], starts: 1 },
+        { key: 'WR', title: 'Receivers', pos: ['WR'], starts: 3 },
+        { key: 'TE', title: 'Tight Ends', pos: ['TE'], starts: 1 }
+      ],
+      [
+        { key: 'OT', title: 'Offensive Tackles', pos: ['OT'], starts: 2 },
+        { key: 'IOL', title: 'Interior Linemen', pos: ['IOL'], starts: 3 },
+        { key: 'K', title: 'Kickers', pos: ['K'], starts: 1 },
+        { key: 'P', title: 'Punters', pos: ['P'], starts: 1 }
+      ]
     ],
     defense: [
-      { key: 'DL', title: 'Defensive Line', pos: ['EDGE', 'DI'] },
-      { key: 'LB', title: 'Linebackers', pos: ['LB'] },
-      { key: 'CB', title: 'Cornerbacks', pos: ['CB'] },
-      { key: 'S', title: 'Safeties', pos: ['S'] }
+      [
+        { key: 'EDGE', title: 'Edge Rushers', pos: ['EDGE'], starts: 2 },
+        { key: 'DI', title: 'Defensive Tackles', pos: ['DI'], starts: 2 },
+        { key: 'LB', title: 'Linebackers', pos: ['LB'], starts: 2 }
+      ],
+      [
+        { key: 'CB', title: 'Cornerbacks', pos: ['CB'], starts: 3 },
+        { key: 'S', title: 'Safeties', pos: ['S'], starts: 2 }
+      ]
     ]
   };
+
+  /* A position's box on the depth chart: its starters, the healthy best
+     first (a room's first position before the rest), then View more for
+     everybody else, the healthy first and the hurt after them. `rows` come
+     best overall first. `foot`, if given, goes under it all: an admin's +
+     (signBox). */
+  function depthRoom(room, rows, foot) {
+    var box = el('div', 'ege-room');
+    box.appendChild(el('h4', 'ege-room__title', room.title));
+    if (!rows.length) {
+      box.appendChild(el('p', 'ege-room__empty', 'Nobody listed.'));
+      if (foot) { box.appendChild(foot); }
+      return box;
+    }
+    var healthy = rows.filter(function (row) { return !row.out; });
+    var first = room.pos[0];
+    var starters = healthy.filter(function (row) { return row.sim.pos === first; })
+      .concat(healthy.filter(function (row) { return row.sim.pos !== first; }))
+      .slice(0, room.starts);
+    var bench = rows.filter(function (row) { return starters.indexOf(row) === -1; });
+    bench = bench.filter(function (row) { return !row.out; }).concat(bench.filter(function (row) { return row.out; }));
+
+    if (starters.length) {
+      var list = el('ol', 'ege-room__list');
+      starters.forEach(function (row) { list.appendChild(nflLine(row)); });
+      box.appendChild(list);
+    } else {
+      box.appendChild(el('p', 'ege-room__empty', 'Nobody healthy.'));
+    }
+    if (bench.length) {
+      var more = el('details', 'ege-room__more');
+      var summary = el('summary');
+      summary.appendChild(el('span', 'ege-room__moreshut', 'View more'));
+      summary.appendChild(el('span', 'ege-room__moreopen', 'View less'));
+      more.appendChild(summary);
+      var rest = el('ol', 'ege-room__list');
+      rest.start = starters.length + 1;
+      bench.forEach(function (row) { rest.appendChild(nflLine(row)); });
+      more.appendChild(rest);
+      box.appendChild(more);
+    }
+    if (foot) { box.appendChild(foot); }
+    return box;
+  }
+
+  /* Best overall first; one of the six ahead of anybody level with him. */
+  function byOverall(a, b) {
+    return ((b.overall || 0) - (a.overall || 0)) || (b.player ? 1 : 0) - (a.player ? 1 : 0);
+  }
+
   var rosterSide = 'offense';
 
   /* Which roster is on screen, so one that arrives late lands only if
@@ -1828,6 +1898,12 @@
     if (notes) {
       meta.appendChild(el('span', 'ege-teamchip__arch', notes[0]));
     } else {
+      /* His position, where a list mixes them (the roster's All). */
+      if (row.posTag) {
+        var tag = el('abbr', 'ege-room__pos', row.posTag);
+        tag.title = POSITION_NAMES[row.posTag] || row.posTag;
+        meta.appendChild(tag);
+      }
       if (row.archetype) { meta.appendChild(el('span', 'ege-teamchip__arch', row.archetype)); }
       var klass = nflClass(row.year);
       if (klass) {
@@ -1989,14 +2065,27 @@
       body.appendChild(nflPicks(key, season, all, admin));
       return;
     }
+    /* All (Sam, 2026-11-16): the whole team in one list, best overall
+       first, hurt or not, each with his position. */
+    if (rosterSide === 'all') {
+      var everyone = el('ol', 'ege-room__list ege-allroster');
+      rows.map(function (sim) { return nflRow(sim, season, key, admin); }).sort(byOverall).forEach(function (row) {
+        row.posTag = row.sim.pos;
+        everyone.appendChild(nflLine(row));
+      });
+      body.appendChild(everyone);
+      return;
+    }
     var grid = el('div', 'ege-rooms');
-    NFL_ROOMS[rosterSide].forEach(function (room) {
-      var inRoom = rows.filter(function (sim) { return room.pos.indexOf(sim.pos) !== -1; })
-        .map(function (sim) { return nflRow(sim, season, key, admin); })
-        .sort(function (a, b) {
-          return ((b.overall || 0) - (a.overall || 0)) || (b.player ? 1 : 0) - (a.player ? 1 : 0);
-        });
-      grid.appendChild(roomEl(room, inRoom, admin ? signBox(admin, room) : null));
+    NFL_ROOMS[rosterSide].forEach(function (rooms) {
+      var col = el('div', 'ege-rooms__col');
+      rooms.forEach(function (room) {
+        var inRoom = rows.filter(function (sim) { return room.pos.indexOf(sim.pos) !== -1; })
+          .map(function (sim) { return nflRow(sim, season, key, admin); })
+          .sort(byOverall);
+        col.appendChild(depthRoom(room, inRoom, admin ? signBox(admin, room) : null));
+      });
+      grid.appendChild(col);
     });
     body.appendChild(grid);
     var rings = EGE.nflRosters.ratings(season, key, rosterSide);

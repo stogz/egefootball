@@ -4923,6 +4923,17 @@ button.ege-owned__item { cursor: pointer; }
   gap: 22px 28px;
 }
 @media (max-width: 760px) { .ege-rooms { grid-template-columns: minmax(0, 1fr); } }
+/* An NFL team's depth chart: two columns of position boxes, each running
+   down on its own so a box's bench opens without pushing the other
+   column about. */
+.ege-rooms__col { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+/* View more, then View less once the bench is open. */
+.ege-room__moreopen,
+.ege-room__more[open] .ege-room__moreshut { display: none; }
+.ege-room__more[open] .ege-room__moreopen { display: inline; }
+/* The whole team in one list, two across like the rooms. */
+.ege-allroster { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 28px; }
+@media (max-width: 760px) { .ege-allroster { grid-template-columns: minmax(0, 1fr); } }
 .ege-room__title {
   margin: 0 0 6px;
   padding-bottom: 4px;
@@ -4940,6 +4951,18 @@ button.ege-owned__item { cursor: pointer; }
   text-decoration: none;
 }
 .ege-room__player { min-width: 0; }
+/* His position, in the list that mixes them: the class chip in reverse. */
+.ege-room__pos {
+  flex: none;
+  padding: 0 4px;
+  border: 1px solid var(--fb-ink);
+  background: var(--fb-ink);
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .06em;
+  color: var(--fb-cream);
+  text-decoration: none;
+}
 .ege-room__more { margin-top: 6px; }
 .ege-room__more summary {
   cursor: pointer;
