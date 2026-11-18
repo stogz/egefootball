@@ -679,8 +679,9 @@ EGE.nflCards = (function () {
     };
   }
 
-  /* Season Cards (Sam, 2026-11-18): one player's finished season, bought
-     in the Shop: an NFL player's, or one of the six's. Each week of every
+  /* Season Cards (Sam, 2026-11-18): one player's season, bought in the
+     Shop: an NFL player's, or one of the six's; a finished one, or the one
+     being played, priced on his pace (liveBasis). Each week of every
      season after, it pays what his game in that week of its season was
      worth: ceil(FPTS / 10) diamonds, twice that in the playoffs, nothing
      under 1 FPTS. An NFL player's costs twice what it pays a year, never
@@ -748,9 +749,29 @@ EGE.nflCards = (function () {
     };
   }
 
-  /* One of the six's finished seasons as a Season Card would be bought:
+  /* How many of a season's regular weeks (1-18) are out. */
+  function regularWeeksOut(season) {
+    var n = 0;
+    for (var w = 1; w <= 18; w += 1) { if (EGE.isPublished && EGE.isPublished(season, w)) { n += 1; } }
+    return n;
+  }
+
+  /* What a Season Card of the season being played is priced on (Sam,
+     2026-11-18, "priced on his pace"): what his games so far pay carried
+     over 18 weeks, or what last season paid, whichever is more.
+     nfl_live_basis in supabase/schema.sql does the same for an NFL
+     player's. */
+  function liveBasis(paysSoFar, season, lastPays) {
+    var weeks = Math.min(18, Math.max(1, regularWeeksOut(season)));
+    return Math.max(Math.ceil(paysSoFar * 18 / weeks), lastPays || 0);
+  }
+
+  /* One of the six's seasons as a Season Card would be bought:
      { season, team, games, points, pays, price, weeks: [[week, FPTS,
-     diamonds]], ege: true }, or null for a season with nothing to pay on. */
+     diamonds]], ege: true }, or null for a season with nothing to pay on.
+     The season being played (EGE.currentSeason, once a week of it is out)
+     is `live`, priced on liveBasis; its `pays` is that basis and `soFar`
+     what its games so far pay. */
   function egeSeasonQuote(player, season) {
     if (!player || !EGE.gamesPlayed) { return null; }
     var byWeek = {};
@@ -767,20 +788,29 @@ EGE.nflCards = (function () {
     var weeks = Object.keys(byWeek).map(Number).sort(function (a, b) { return a - b; })
       .map(function (week) { return [week, byWeek[week].points, byWeek[week].pay]; });
     var pays = weeks.reduce(function (sum, w) { return sum + w[2]; }, 0);
+    var live = season === EGE.currentSeason;
+    var soFar = pays;
+    if (live) {
+      if (!regularWeeksOut(season)) { return null; }
+      var last = season > 2018 ? egeSeasonQuote(player, season - 1) : null;
+      pays = liveBasis(soFar, season, last ? last.pays : 0);
+    }
     if (!pays) { return null; }
     var points = weeks.reduce(function (sum, w) { return sum + w[1]; }, 0);
     var team = Object.keys(teams).sort(function (a, b) { return teams[b] - teams[a]; })[0] || null;
+    if (!team && EGE.teamKeyFor) { team = EGE.teamKeyFor(player, season, 1) || null; }
     return {
       season: season, team: team, games: weeks.length, points: Math.round(points * 10) / 10,
       pays: pays, price: Math.max(SEASON_CARD.egeMinPrice, pays * SEASON_CARD.egePriceTimes),
-      weeks: weeks, ege: true
+      weeks: weeks, ege: true, live: live, soFar: soFar
     };
   }
 
-  /* Every finished season of one of the six, newest first. */
+  /* Every season of one of the six there is a Season Card of: the one
+     being played, then the finished ones, newest first. */
   function egeSeasonQuotes(player) {
     var seasons = EGE.seasonsPlayed ? EGE.seasonsPlayed() : [];
-    return seasons.filter(function (year) { return year < EGE.currentSeason; }).reverse()
+    return seasons.filter(function (year) { return year <= EGE.currentSeason; }).reverse()
       .map(function (year) { return egeSeasonQuote(player, year); }).filter(Boolean);
   }
 

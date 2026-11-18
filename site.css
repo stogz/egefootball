@@ -13377,3 +13377,40 @@ img.ege-avatarface { object-fit: cover; object-position: center; }
 .ege-seasontile__line { font-size: .8125rem; font-weight: 700; color: var(--fb-muted); }
 .ege-seasontile__pays { display: inline-flex; align-items: center; gap: 4px; font-weight: 800; color: var(--fb-diamond-deep); }
 .ege-seasontile__buy { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; }
+
+/* Player Cards, round two (Sam, 2026-11-18): CAREER / SEASON / TEAM beside
+   the whose-cards picker, the picker's face inside it. */
+.ege-pcards__whobar { flex-wrap: wrap; align-items: center; gap: 12px; }
+.ege-pcards__whopick { width: 320px; gap: 8px; }
+.ege-pcards__whoface { position: static; }
+.ege-pcards__whobar .ege-pcards__kinds { flex-wrap: wrap; }
+.ege-pcards__kinds .ege-filterchip { min-width: 96px; }
+@media (max-width: 620px) {
+  .ege-pcards__whopick { width: 100%; }
+  .ege-pcards__whobar .ege-pcards__kinds { width: 100%; }
+  .ege-pcards__kinds .ege-filterchip { flex: 1 1 0; min-width: 0; padding-left: 4px; padding-right: 4px; }
+}
+
+/* Download and Copy, under a card. */
+.ege-cardshare { display: inline-flex; flex-wrap: wrap; gap: 8px; }
+.ege-rip__stage > .ege-cardshare { justify-content: center; align-self: center; }
+.ege-rip__stage--zoom .ege-cardshare__btn { background: var(--fb-cream); color: var(--fb-ink); }
+/* The card drawn again for its picture, out of sight. */
+.ege-cardshot {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  pointer-events: none;
+}
+
+/* A Season Card of the season being played, in the Shop. */
+.ege-seasontile__now {
+  font-size: .6875rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--fb-muted);
+}
+/* What it will look like, before buying. */
+.ege-seasonprev { display: flex; justify-content: center; }
+.ege-seasonprev .ege-tcard { width: min(300px, 70vw); }

@@ -2996,31 +2996,48 @@ banners, which carry the next step to take.
 
 ### The Players page, the card editor and Season Cards (Sam, 2026-11-18)
 
-**Carousel.** The Players page shows its cards (EGE, NFL or TEAM) in a row,
-left to right: one in the middle, its neighbours smaller and turned away on
-either side. Swipe or drag across, or use the arrows (desktop), the dots or
-the keyboard arrows, and they slide and turn into place. What the middle
-card means (progress, earnings, See his cards, Edit) sits under the row.
-Tapping the middle card opens it: yours in the editor, somebody else's up
-close. Tapping a side card brings it to the middle (`renderCarousel` in
-js/cards-view.js).
+**Carousel.** The Players page shows its cards in a row, left to right: one
+in the middle, its neighbours smaller and turned away on either side.
+Swipe or drag across, or use the arrows (desktop), the dots or the keyboard
+arrows, and they slide and turn into place. What the middle card means
+(progress, earnings, See his cards, Edit, Download, Copy) sits under the
+row. Tapping the middle card opens it: yours in the editor, somebody
+else's up close. Tapping a side card brings it to the middle
+(`renderCarousel` in js/cards-view.js).
 
-**Card editor.** Tapping one of your own Player Cards (the six's, an NFL
-Player Card or a Season Card) or its Edit button opens the editor. It
-changes two things only (Sam trimmed it on 2026-11-18):
+**Tabs.** CAREER, SEASON and TEAM sit beside the whose-cards picker (Sam,
+2026-11-18). CAREER is the six's Player Cards, highest overall first;
+SEASON every Season Card (the six's and NFL players'), highest rank first;
+TEAM the Team Cards. NFL players have no career Player Card any more: they
+were taken out on 2026-11-18 (Sam), so an NFL player's card is a Season
+Card, and `pay_nfl_card_bonuses` is no longer called.
+
+**Card pictures.** Download and Copy, under any card on the Players page
+and up close (collection cards too), make a PNG of the card: it is drawn
+again off screen and turned into a picture by html-to-image, read from
+jsDelivr the first time (`cardShot` in js/cards-view.js).
+
+**Card editor.** Tapping one of your own Player Cards or Season Cards, or
+its Edit button, opens the editor. It changes two things only (Sam trimmed
+it on 2026-11-18):
 
 - Nickname, up to 24 characters, on the card for everybody who sees it.
 - Photo: Upload crops the card photo, then a circle out of the same picture
   (the avatar, 192px, transparent outside the circle), then shows both
   before Use this photo saves them. Tapping the circle moves it on the
-  photo already up. Remove takes the photo and the circle down.
+  photo already up. Remove takes the photo and the circle down. A PNG
+  with see-through parts keeps them, so the team colour shows behind it
+  as behind a headshot (a browser that cannot write WebP, like Safari,
+  writes a PNG for it rather than a JPEG).
 
 The nickname and avatar live in `card_styles` (`set_card_style`), keyed
-like `card_photos`: the six's slug, or `n:{slug}` for an NFL player, whose
-NFL Player Card and Season Cards share one. Twelve NFL players per account.
+like `card_photos`: the six's slug for a career card, `s:{season}:{slug}`
+for a Season Card, which has its own photo, nickname and avatar. Twelve
+Season Card photos and 24 Season Card styles per account. (`n:{slug}` rows
+are left from the NFL career cards and unused.)
 
-**Nicknames across the site.** On the owner's own browser the nickname
-replaces the player's real name everywhere it is printed, his own page
+**Nicknames across the site.** On the owner's own browser a career card's
+nickname replaces the player's real name everywhere it is printed, his own page
 included (Sam, 2026-11-18), except trades (card trades, the trade builder,
 NFL trade cards), account names (the sign-in box, the Media page's
 accounts), the admin page and other people's cards and collections.
@@ -3029,14 +3046,23 @@ text), so a nickname never reaches Discord, a tweet or anything saved. A
 place that must keep real names gets `data-realname` or a selector in
 `KEEP`.
 
-**Avatars.** On the owner's own browser the circle takes the place of the
-player's face in the League page's pictures (the six by headshot, NFL
-players by ESPN id), and nowhere else.
+**Avatars.** On the owner's own browser a career card's circle takes the
+place of the player's face in the League page's pictures (the six by
+headshot), and nowhere else; the six's Season Cards never do (Sam).
+
+**NFL Season Cards on the League page.** On the owner's own browser an NFL
+player's Season Card's nickname and circle stand in for his name and face
+on the League page while it shows that card's season: the season being
+played, or Leaders of that year (`leagueYear` in js/card-looks.js). A 2030
+Lamar Jackson card named King Lamar shows him as King Lamar there all of
+2030.
 
 **Season Cards.** The Shop's Season Cards panel finds one of the six or
-any NFL player in the sim's rosters and lists his finished seasons (Super
-Bowl week out; for the six, any season before the current one): team,
-games, FPTS, what it pays a season and its price. A Season Card replays its
+any NFL player in the sim's rosters and lists his seasons: the finished
+ones, and the one being played (Sam, 2026-11-18). Each shows team, games,
+FPTS, what it pays a season and its price; Buy shows the card it will make
+(at the rank your cards of him from that season give it) with Buy under
+it. A Season Card replays its
 season: every week published after it is bought, in every later season,
 pays what his game in that week of the card's season was worth. A Kenneth
 Walker 2027 card pays his 2027 week 2 game in 2030 week 2, and again in
@@ -3046,7 +3072,11 @@ Walker 2027 card pays his 2027 week 2 game in 2030 week 2, and again in
   under 1 FPTS. FPTS are the site's, defenders IDP style.
 - Price: an NFL player's is twice what the season pays a year, never under
   10; one of the six's three times, never under 15 (Sam: "a little bit more
-  pricy").
+  pricy"). The season being played is priced on his pace: what his games so
+  far pay carried over 18 weeks, or last season's pay, whichever is more
+  (`nfl_live_basis`, `liveBasis` in data/nfl-cards.js). It pays from the
+  next season on, and its games, FPTS and pay are counted again as weeks
+  come out (`weeks_seen`, in `pay_nfl_season_cards`).
 - Rank: it ranks up like a Player Card, on the same ladder (the six's or
   the NFL one), but only from the cards held of him from that same season,
   so a 2028 card does nothing for his 2027 Season Card. The rank adds to
@@ -3066,8 +3096,7 @@ Walker 2027 card pays his 2027 week 2 game in 2030 week 2, and again in
   six's).
 - Awards are `nsc-{card season}-{slug}-w{week}` in the live season, one row
   a week on the Diamonds page ("Season Cards").
-- On the Players page an NFL player's Season Cards sit after the NFL Player
-  Cards, the six's after the six's Player Cards.
+- On the Players page they are the SEASON tab.
 
 ### Today's Cards and the Market
 

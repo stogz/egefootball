@@ -654,15 +654,15 @@
           <div class="fb-panel__body fb-stack fb-stack--lg">
             <!-- Whose Player Cards, centred, with that player's picture popping
                  in beside it while somebody else's are showing. -->
+            <!-- Beside it, CAREER (the six's), SEASON or TEAM cards, in a row
+                 to swipe through (renderCarousel). -->
             <div class="ege-pcards__whobar">
               <span class="ege-pcards__whopick">
                 <select class="fb-select ege-filterselect ege-pcards__who" id="playerCardsWho" aria-label="Whose Player Cards"></select>
                 <img class="ege-avatar ege-pcards__whoface" id="playerCardsWhoFace" src="" alt="" hidden>
               </span>
+              <div class="ege-pcards__kinds" id="playerCardsKind"></div>
             </div>
-            <!-- The six's Player Cards, the NFL ones or the Team Cards, in a
-                 row to swipe through (renderCarousel). -->
-            <div class="ege-pcards__kinds" id="playerCardsKind"></div>
             <div class="ege-pcards" id="playerCards"></div>
           </div>
         </div>
