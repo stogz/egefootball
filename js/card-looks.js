@@ -1,6 +1,5 @@
 /* ==========================================================================
-   EGE Football — card looks: nicknames, avatars and the editor's options
-   (Sam, 2026-11-18)
+   EGE Football — card looks: nicknames and avatars (Sam, 2026-11-18)
 
    What the Player Card editor (js/cards-view.js, openCardEditor) saves for
    a card, card_styles in supabase/schema.sql, keyed like the card photos:
@@ -16,8 +15,6 @@
      avatar    the card photo cut to a circle: on the owner's own browser it
                takes the place of the player's face in the League page's
                circles, and nowhere else.
-     look      { plate, ground, pattern, font }: the card's colour, the
-               colour behind the photo, a pattern on it and the name's type.
 
    Where the name stays real: anything inside [data-realname] or the
    selectors in KEEP below.
@@ -28,78 +25,11 @@ window.EGE = window.EGE || {};
 EGE.cardLooks = (function () {
   'use strict';
 
-  /* --- the editor's options ------------------------------------------------ */
-
-  /* The card's own colour, behind the words. `ink` is the writing on it. */
-  var PLATES = [
-    { key: 'cream', name: 'Cream', bg: null },
-    { key: 'white', name: 'White', bg: '#ffffff', ink: '#1d2416', muted: '#5d6455' },
-    { key: 'night', name: 'Night', bg: '#1d2416', ink: '#fbf4e6', muted: '#b9c0ad' },
-    { key: 'sky', name: 'Sky', bg: '#d7ecf7', ink: '#14303f', muted: '#4b6878' },
-    { key: 'blush', name: 'Blush', bg: '#f6dcdc', ink: '#3b1a1a', muted: '#7a5252' },
-    { key: 'sage', name: 'Sage', bg: '#dfe8cf', ink: '#1d2a14', muted: '#56624a' },
-    { key: 'gold', name: 'Gold', bg: '#f1d98a', ink: '#2f2408', muted: '#6b5a26' },
-    { key: 'royal', name: 'Royal', bg: '#24306b', ink: '#f4f1ff', muted: '#b8bde3' }
-  ];
-
-  /* Behind the photo: the team's colour, or one of these. */
-  var GROUNDS = [null, '#1d2416', '#b3261e', '#e8722c', '#f2c230', '#2f7d3b', '#1f6fb2', '#5b3fa6', '#d6458f',
-                 '#7a8088', '#f4f1e8'];
-
-  var PATTERNS = [
-    { key: 'none', name: 'None' },
-    { key: 'stripes', name: 'Stripes' },
-    { key: 'dots', name: 'Dots' },
-    { key: 'grid', name: 'Grid' },
-    { key: 'rays', name: 'Rays' },
-    { key: 'waves', name: 'Waves' }
-  ];
-
-  var FONTS = [
-    { key: 'display', name: 'Classic' },
-    { key: 'block', name: 'Block' },
-    { key: 'serif', name: 'Serif' },
-    { key: 'script', name: 'Script' },
-    { key: 'mono', name: 'Mono' }
-  ];
-
   var NICKNAME_MAX = 24;
-
-  /* The name types beyond the site's own come from Google Fonts, read only
-     once a card on the page (or the editor) needs one. */
-  var FONT_SHEET = 'https://fonts.googleapis.com/css2?family=Anton&family=Pacifico' +
-    '&family=Playfair+Display:ital,wght@1,800&family=Space+Mono:wght@700&display=swap';
-  var fontsIn = false;
-  function needFonts() {
-    if (fontsIn || !document.head) { return; }
-    fontsIn = true;
-    var link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = FONT_SHEET;
-    document.head.appendChild(link);
-  }
-
-  function plateOf(key) { return PLATES.filter(function (p) { return p.key === key; })[0] || PLATES[0]; }
-
-  /* Puts a look on a card face (.ege-tcard): CSS in site.css does the rest. */
-  function dress(outer, look) {
-    var l = look || {};
-    var plate = plateOf(l.plate);
-    if (plate.bg) {
-      outer.style.setProperty('--plate', plate.bg);
-      outer.style.setProperty('--plate-ink', plate.ink);
-      outer.style.setProperty('--plate-muted', plate.muted);
-      outer.classList.add('has-plate');
-    }
-    if (l.ground && /^#[0-9a-f]{6}$/i.test(l.ground)) { outer.style.setProperty('--ground', l.ground); }
-    if (l.pattern && l.pattern !== 'none') { outer.setAttribute('data-pattern', l.pattern); }
-    if (l.font && l.font !== 'display') { outer.setAttribute('data-font', l.font); needFonts(); }
-    return outer;
-  }
 
   /* --- whose: the signed-in account's styles -------------------------------- */
 
-  var mine = {};            /* { key: { nickname, look, avatar, name, espn } } */
+  var mine = {};            /* { key: { nickname, avatar, name, espn } } */
   var loadedFor = null;
 
   function load(email) {
@@ -325,13 +255,7 @@ EGE.cardLooks = (function () {
   }
 
   return {
-    PLATES: PLATES,
-    GROUNDS: GROUNDS,
-    PATTERNS: PATTERNS,
-    FONTS: FONTS,
     NICKNAME_MAX: NICKNAME_MAX,
-    needFonts: needFonts,
-    dress: dress,
     load: load,
     set: set,
     update: update,

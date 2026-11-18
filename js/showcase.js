@@ -63,7 +63,7 @@ EGE.showcase = (function () {
   function slotPlayerCard(id) {
     var saved = (cache[shown.email] || {}).players || {};
     var photos = editing && ownPhotos ? ownPhotos : saved.photos || {};
-    /* Its nickname and look from the card editor (js/card-looks.js). */
+    /* Its nickname from the card editor (js/card-looks.js). */
     var styles = editing && EGE.cardLooks ? EGE.cardLooks.all() : saved.styles || {};
     if (id.indexOf(NPC) === 0) {
       var slug = id.slice(NPC.length);

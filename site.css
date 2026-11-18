@@ -13165,54 +13165,6 @@ button.ege-cast__draftpick:active:not(:disabled) .ege-cast__draftface { transfor
   .ege-tweet__menu { left: 6px; width: calc(100% - 12px); }
 }
 
-/* --- the card editor's looks (js/card-looks.js, Sam 2026-11-18) ---------------
-
-   The card's colour behind the words (--plate, with --plate-ink to write on
-   it), a pattern over the colour behind the photo, and the name's type. */
-.ege-plcard.has-plate .ege-plcard__face { background: var(--plate); color: var(--plate-ink); }
-.ege-plcard.has-plate .ege-plcard__team,
-.ege-plcard.has-plate .ege-plcard__togo { color: var(--plate-muted); }
-.ege-plcard.has-plate .ege-plcard__bar { background: rgba(127, 127, 127, .2); }
-.ege-plcard[data-pattern] .ege-plcard__photo { background-color: var(--ground); }
-.ege-plcard[data-pattern="stripes"] .ege-plcard__photo {
-  background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, .16) 0 3.4cqw, transparent 3.4cqw 6.8cqw);
-}
-.ege-plcard[data-pattern="dots"] .ege-plcard__photo {
-  background-image: radial-gradient(rgba(255, 255, 255, .26) 1.1cqw, transparent 1.3cqw);
-  background-size: 6cqw 6cqw;
-}
-.ege-plcard[data-pattern="grid"] .ege-plcard__photo {
-  background-image: linear-gradient(rgba(255, 255, 255, .16) .5cqw, transparent .5cqw),
-    linear-gradient(90deg, rgba(255, 255, 255, .16) .5cqw, transparent .5cqw);
-  background-size: 8cqw 8cqw;
-}
-.ege-plcard[data-pattern="rays"] .ege-plcard__photo {
-  background-image: repeating-conic-gradient(from 0deg at 50% 115%, rgba(255, 255, 255, .18) 0 6deg, transparent 6deg 12deg);
-}
-.ege-plcard[data-pattern="waves"] .ege-plcard__photo {
-  background-image: repeating-radial-gradient(circle at 50% 120%, rgba(255, 255, 255, .16) 0 2.2cqw, transparent 2.2cqw 5cqw);
-}
-.ege-plcard__name.is-long { font-size: 8cqw; }
-.ege-plcard[data-font="block"] .ege-plcard__name,
-.ege-editor__chip[data-font="block"] {
-  font-family: Anton, Impact, "Arial Narrow", sans-serif;
-  font-weight: 400;
-  text-transform: uppercase;
-  letter-spacing: .02em;
-}
-.ege-plcard[data-font="serif"] .ege-plcard__name,
-.ege-editor__chip[data-font="serif"] { font-family: "Playfair Display", Georgia, serif; font-style: italic; font-weight: 800; }
-.ege-plcard[data-font="script"] .ege-plcard__name,
-.ege-editor__chip[data-font="script"] { font-family: Pacifico, "Snell Roundhand", "Segoe Script", cursive; font-weight: 400; }
-.ege-plcard[data-font="script"] .ege-plcard__name { font-size: 8.6cqw; line-height: 1.25; }
-.ege-plcard[data-font="script"] .ege-plcard__name.is-long { font-size: 6.8cqw; }
-.ege-plcard[data-font="mono"] .ege-plcard__name,
-.ege-editor__chip[data-font="mono"] { font-family: "Space Mono", ui-monospace, Menlo, monospace; font-weight: 700; }
-.ege-plcard[data-font="mono"] .ege-plcard__name { font-size: 8.4cqw; letter-spacing: -.03em; }
-.ege-plcard[data-font="mono"] .ege-plcard__name.is-long { font-size: 6.4cqw; }
-.ege-editor__chip[data-font] { text-transform: none; letter-spacing: 0; }
-.ege-editor__chip[data-font="block"] { text-transform: uppercase; }
-
 /* A Season Card: the year where PLAYER would be. */
 .ege-plcard--season .ege-plcard__kind { font-family: var(--fb-font-display); font-weight: 400; font-size: 6.4cqw; letter-spacing: .02em; }
 
@@ -13351,33 +13303,8 @@ img.ege-avatarface { object-fit: cover; object-position: center; }
 .ege-editor__avatar:disabled { cursor: default; }
 .ege-editor__avatar img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center top; }
 .ege-editor__avatar.is-empty img { opacity: .55; }
-.ege-swatches { display: flex; flex-wrap: wrap; gap: 9px; }
-.ege-swatch {
-  position: relative;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: 2px solid var(--fb-cream);
-  border-radius: 50% !important;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-.ege-swatch.is-on { outline: 3px solid var(--fb-accent); outline-offset: 2px; }
-.ege-swatch--team::after {
-  content: 'T';
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 900;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, .6);
-}
-.ege-editor__chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.ege-editor__chip { flex: 0 1 auto; min-height: 38px; padding: 6px 12px; }
-.ege-editor__controls .fb-btn:not(.fb-btn--primary),
-.ege-editor__chip:not(.is-active) { background: var(--fb-cream); color: var(--fb-ink); border-color: var(--fb-cream); }
+.ege-editor__controls .fb-btn:not(.fb-btn--primary) { background: var(--fb-cream); color: var(--fb-ink); border-color: var(--fb-cream); }
+.ege-plcard__name.is-long { font-size: 8cqw; }
 .ege-editor__status { color: var(--fb-cream); }
 .ege-photoprev { display: flex; align-items: center; justify-content: center; gap: 18px; width: auto; }
 .ege-photoprev > .ege-tcard { width: min(240px, 58vw); }
