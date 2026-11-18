@@ -1453,6 +1453,62 @@ EGE.cardsView = (function () {
   /* Safari only paints the pictures inside the card from its second go. */
   var SAFARI = /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent || '');
 
+  /* The card's own type (Caprasimo and Figtree, from Google Fonts) written
+     into the picture as data, so it is drawn in those and not a stand-in:
+     html-to-image cannot read another site's stylesheet by itself. Read
+     once a visit; a picture still comes out if the fonts cannot be had. */
+  var FONT_URL = /url\((['"]?)([^'")]+)\1\)/g;
+  var cardFonts = null;
+
+  function asDataUrl(blob) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () { resolve(reader.result); };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  function cardFontCSS() {
+    if (cardFonts) { return cardFonts; }
+    var link = document.querySelector('link[href*="fonts.googleapis.com/css"]');
+    if (!link || !window.fetch) { return Promise.resolve(''); }
+    cardFonts = fetch(link.href).then(function (res) {
+      if (!res.ok) { throw new Error('fonts'); }
+      return res.text();
+    }).then(function (css) {
+      /* Only the Latin sets: everything a name or a number on a card uses. */
+      var faces = [];
+      var face = /(?:\/\*\s*([\w-]+)\s*\*\/\s*)?(@font-face\s*\{[^}]*\})/g;
+      for (var m = face.exec(css); m; m = face.exec(css)) {
+        if (!m[1] || m[1] === 'latin' || m[1] === 'latin-ext') { faces.push(m[2]); }
+      }
+      var files = {};
+      faces.forEach(function (text) {
+        text.replace(FONT_URL, function (all, q, url) { files[url] = null; return all; });
+      });
+      return Promise.all(Object.keys(files).map(function (url) {
+        return fetch(url).then(function (res) {
+          if (!res.ok) { throw new Error('font'); }
+          return res.blob();
+        }).then(asDataUrl).then(function (data) { files[url] = data; }, function () {});
+      })).then(function () {
+        return faces.map(function (text) {
+          var whole = true;
+          var out = text.replace(FONT_URL, function (all, q, url) {
+            if (!files[url]) { whole = false; return all; }
+            return 'url(' + files[url] + ')';
+          });
+          return whole ? out : '';
+        }).join('\n');
+      });
+    }).catch(function () {
+      cardFonts = null;
+      return '';
+    });
+    return cardFonts;
+  }
+
   /* A PNG of the card `build` draws, as a Promise of a Blob. */
   function cardShot(build) {
     return loadShotLib().then(function (lib) {
@@ -1464,10 +1520,15 @@ EGE.cardsView = (function () {
       document.body.appendChild(stage);
       var imgs = Array.prototype.slice.call(node.querySelectorAll('img'));
       imgs.forEach(function (img) { img.loading = 'eager'; });
+      var fonts = cardFontCSS();
       return Promise.all(imgs.map(function (img) {
         return img.decode ? img.decode().catch(function () {}) : null;
-      })).then(function () {
-        var opts = { pixelRatio: 3, imagePlaceholder: BLANK_GIF, skipAutoScale: true };
+      }).concat([fonts, document.fonts ? document.fonts.ready : null])).then(function () {
+        return fonts;
+      }).then(function (fontCSS) {
+        /* Never left out: html-to-image would go after the page's own
+           stylesheets instead, which it cannot read. */
+        var opts = { pixelRatio: 3, imagePlaceholder: BLANK_GIF, skipAutoScale: true, fontEmbedCSS: fontCSS || '' };
         var first = lib.toBlob(node, opts);
         return SAFARI ? first.then(function () { return lib.toBlob(node, opts); }) : first;
       }).then(function (blob) {
@@ -4939,13 +5000,15 @@ EGE.cardsView = (function () {
 
   function draftFrom(pc) {
     var s = savedStyle(pc) || {};
-    return { nickname: s.nickname || '', avatar: s.avatar || null };
+    return { nickname: s.nickname || '', avatar: s.avatar || null,
+             show_name: s.show_name !== false, show_face: s.show_face !== false };
   }
 
   /* What a draft saves as, with the NFL player's real name and id so this
      browser can find him on a page before it has read any NFL cards. */
   function styleOf(pc, d) {
-    var style = { nickname: String(d.nickname || '').replace(/\s+/g, ' ').trim(), avatar: d.avatar || null };
+    var style = { nickname: String(d.nickname || '').replace(/\s+/g, ' ').trim(), avatar: d.avatar || null,
+                  show_name: d.show_name !== false, show_face: d.show_face !== false };
     if (style.nickname === pc.player.name) { style.nickname = ''; }
     if (pc.nfl) {
       style.name = pc.player.name;
@@ -5048,6 +5111,19 @@ EGE.cardsView = (function () {
     }
     picBox.appendChild(pics);
 
+    /* Whether the nickname and the avatar go past the card (Sam,
+       2026-11-18): the nickname across the site (an NFL player's Season
+       Card's on the League page that season), the avatar in the League
+       page's faces. One of the six's Season Cards keeps both on the card
+       anyway, so it has no switches. */
+    if (!(pc.seasonCard && pc.seasonCard.ege)) {
+      var showBox = section('Elsewhere on the site');
+      showBox.appendChild(editorSwitch('Nickname', pc.seasonCard
+        ? 'On the League page while it shows ' + pc.seasonCard.season
+        : 'In place of his name across the site', d, 'show_name'));
+      showBox.appendChild(editorSwitch('Avatar', 'In his circles on the League page', d, 'show_face'));
+    }
+
     var status = el('p', 'ege-rip__hint ege-editor__status');
     status.setAttribute('role', 'status');
     side.appendChild(status);
@@ -5056,7 +5132,7 @@ EGE.cardsView = (function () {
     var reset = el('button', 'fb-btn', 'Reset');
     reset.type = 'button';
     reset.addEventListener('click', function () {
-      openCardEditor(pc, { nickname: '', avatar: null });
+      openCardEditor(pc, { nickname: '', avatar: null, show_name: true, show_face: true });
     });
     var save = el('button', 'fb-btn fb-btn--primary', 'Save');
     save.type = 'button';
@@ -5081,6 +5157,27 @@ EGE.cardsView = (function () {
     stage.appendChild(actions);
 
     paint();
+  }
+
+  /* One of the editor's switches: `d[key]` on or off. */
+  function editorSwitch(label, title, d, key) {
+    var row = el('div', 'ege-editor__switch');
+    row.title = title;
+    var name = el('span', 'ege-editor__switchname', label);
+    row.appendChild(name);
+    var b = el('button', 'fb-switch' + (d[key] !== false ? ' is-on' : ''));
+    b.type = 'button';
+    b.setAttribute('role', 'switch');
+    b.setAttribute('aria-checked', d[key] !== false ? 'true' : 'false');
+    b.setAttribute('aria-label', label + ' elsewhere on the site');
+    b.appendChild(el('span', 'fb-switch__knob'));
+    b.addEventListener('click', function () {
+      d[key] = d[key] === false;
+      b.classList.toggle('is-on', d[key]);
+      b.setAttribute('aria-checked', d[key] ? 'true' : 'false');
+    });
+    row.appendChild(b);
+    return row;
   }
 
   function saveStyle(pc, style) {
@@ -5209,9 +5306,9 @@ EGE.cardsView = (function () {
     var style = whose.styles ? whose.styles[photoKey(pc)] || null : null;
     var node = el('article', 'ege-pcard ege-pcard--season');
     var face = playerCardFace(pc, pc.earned, photo, style);
-    pressable(face, player.name + ' ' + sc.season + ' Season Card' + (whose.mine ? ', edit' : ', up close'), function () {
-      if (whose.mine) { openCardEditor(pc); return; }
-      zoomSeason(pc, photo, style, whose.first);
+    /* Yours or not, it opens up close on what it pays week by week. */
+    pressable(face, player.name + ' ' + sc.season + ' Season Card, week by week', function () {
+      openSeasonCard(pc, { photo: photo, style: style, mine: whose.mine, whoseFirst: whose.mine ? null : whose.first });
     });
     node.appendChild(face);
 
@@ -5235,7 +5332,7 @@ EGE.cardsView = (function () {
     var rate = el('span', 'ege-pcard__rate', whole(sc.pays));
     rate.appendChild(gem());
     pays.appendChild(rate);
-    var plus = pc.rank && pc.rank.bonus ? ', +' + pctText(pc.rank.bonus) : '';
+    var plus = pc.rank && pc.rank.bonus ? ', plus ' + pctText(pc.rank.bonus) + ' at ' + pc.rank.name : '';
     pays.appendChild(document.createTextNode(sc.live
       ? ' so far. It pays from ' + (sc.season + 1) + ', week by week' + plus + '.'
       : ' a season, week by week' + plus + '.'));
@@ -5249,42 +5346,237 @@ EGE.cardsView = (function () {
     return node;
   }
 
-  function zoomSeason(pc, photo, style, whoseFirst) {
+  /* --- a Season Card up close (Sam, 2026-11-18) ---------------------------
+
+     Every week of its season: who he played, his FPTS and the diamonds the
+     week pays every season after at the card's rank, with the season's
+     total under them. The rank chips over the weeks show what it would pay
+     at any other rank and how many more FPTS of his cards from that season
+     it takes to get there, the card drawn at that rank. From the Shop
+     (`opts.buy`) it is the card it would be, at the rank the cards you
+     hold give it, with Buy. */
+  var SEASON_ROUNDS = { 19: 'WC', 20: 'DIV', 21: 'CONF', 22: 'SB' };
+
+  /* A Season Card's weeks, [[week, FPTS, diamonds, opponent, at home]], as
+     a Promise: a quote's own, one of the six's from the season files, an
+     NFL player's from the box scores (kept for the visit, but for the
+     season being played). */
+  function seasonWeeks(pc) {
     var sc = pc.seasonCard;
-    var stage = openOverlay(pc.player.name, 'ege-rip__stage--zoom');
-    var row = el('div', 'ege-rip__cards ege-rip__cards--1');
-    var holder = el('div', 'ege-zoom__card');
-    holder.appendChild(playerCardFace(pc, pc.earned, photo, style));
-    row.appendChild(holder);
-    stage.appendChild(row);
+    if (sc.weeks) { return Promise.resolve(sc.weeks); }
+    if (sc.ege) {
+      var q = EGE.nflCards.egeSeasonQuote(pc.player, sc.season);
+      return Promise.resolve(q ? q.weeks : []);
+    }
+    var key = sc.season + ':' + pc.player.slug;
+    state.seasonWeeks = state.seasonWeeks || {};
+    if (!sc.live && state.seasonWeeks[key]) { return state.seasonWeeks[key]; }
+    var got = EGE.cardStore.seasonCardWeeks({
+      season: sc.season, espn: pc.player.espn, name: pc.player.name, pos: pc.player.position
+    }).then(function (res) {
+      if (!res.ok) { delete state.seasonWeeks[key]; throw new Error(res.message); }
+      return res.weeks;
+    });
+    state.seasonWeeks[key] = got;
+    return got;
+  }
+
+  /* Who he played: '@' on the road, the mark and the city (an NFL team)
+     or the school. `simKey` says the opponent is the sim's team key. */
+  function seasonOpp(opp, home, simKey) {
+    var td = el('td');
+    if (!opp) { td.textContent = '—'; return td; }
+    var cell = td.appendChild(el('span', 'ege-seasonweeks__opp'));
+    var key = simKey ? (EGE.nfl.teams[opp] ? opp : null) : EGE.nfl.keyByName(opp);
+    var full = key ? EGE.nfl.teams[key].name : opp;
+    if (home === false) { cell.appendChild(el('span', 'ege-seasonweeks__at', '@')); }
+    var src = EGE.logoFor ? EGE.logoFor(full, 40) : null;
+    if (src) {
+      var logo = el('img', 'ege-seasonweeks__logo');
+      logo.src = src;
+      logo.alt = '';
+      logo.loading = 'lazy';
+      logo.addEventListener('error', function () { logo.remove(); });
+      cell.appendChild(logo);
+    }
+    cell.appendChild(el('span', null, key ? EGE.nfl.city(key) : opp));
+    return td;
+  }
+
+  function openSeasonCard(pc, opts) {
+    var o = opts || {};
+    var sc = pc.seasonCard;
+    var player = pc.player;
+    var buy = o.buy || null;
+    var stage = openOverlay(player.name + ' · ' + sc.season, 'ege-rip__stage--zoom ege-rip__stage--season');
+    var wrap = el('div', 'ege-seasonview');
+    var holder = el('div', 'ege-zoom__card ege-seasonview__card');
+    var side = el('div', 'ege-seasonview__side');
+    wrap.appendChild(holder);
+    wrap.appendChild(side);
+    stage.appendChild(wrap);
     tiltCard(holder);
-    var facts = el('dl', 'ege-zoom__facts');
-    function fact(label, value) { facts.appendChild(el('dt', null, label)); return facts.appendChild(el('dd', null, value)); }
-    fact('Whose', (whoseFirst ? whoseFirst + '’s ' : 'Your ') + sc.season + ' Season Card');
-    if (sc.where) { fact('Team', sc.where); }
-    fact(sc.live ? 'So far' : 'Season', sc.games + (sc.games === 1 ? ' game' : ' games') + ' · ' +
-      (Math.round(sc.fpts * 10) / 10) + ' FPTS');
-    var a = fact(sc.live ? 'Paid so far' : 'A season', whole(sc.pays));
-    a.appendChild(gem());
-    if (sc.live) { a.appendChild(document.createTextNode(' · pays from ' + (sc.season + 1))); }
-    fact('Rank', pc.rank ? pc.rank.name + (pc.rank.bonus ? ' · +' + pctText(pc.rank.bonus) : '') : 'Unranked');
-    stage.appendChild(facts);
-    stage.appendChild(shareButtons(function () { return playerCardFace(pc, pc.earned, photo, style); },
-      pc.player.name + ' ' + sc.season + ' season card'));
+
+    side.appendChild(el('p', 'ege-seasonview__line', (o.whoseFirst ? o.whoseFirst + '’s · ' : '') + seasonLine(pc)));
+
+    var ladder = pc.ladder;
+    var at = Math.max(0, ladder.map(function (r) { return r.key; }).indexOf(pc.rank ? pc.rank.key : 'common'));
+    var shown = at;
+    var weeks = null;
+    var failed = null;
+
+    var ranks = el('div', 'ege-seasonview__ranks');
+    ranks.setAttribute('role', 'group');
+    ranks.setAttribute('aria-label', 'See what it pays at a rank');
+    side.appendChild(ranks);
+    var need = el('p', 'ege-seasonview__need');
+    side.appendChild(need);
+    var box = el('div', 'ege-seasonweeks__wrap');
+    side.appendChild(box);
+
+    /* At a rank above its own, the card as it would be there. */
+    function look() {
+      if (shown === at) { return pc; }
+      var rung = ladder[shown];
+      return Object.assign({}, pc, { rank: rung, next: ladder[shown + 1] || null,
+                                     points: Math.max(pc.points, rung.points) });
+    }
+
+    function base(w) {
+      var b = Number(w[2]) || 0;
+      return sc.ege ? Math.max(0, Math.min(30, b)) : b;
+    }
+
+    function paint() {
+      holder.innerHTML = '';
+      holder.appendChild(playerCardFace(look(), buy ? null : pc.earned, o.photo, o.style));
+
+      ranks.innerHTML = '';
+      ladder.forEach(function (rung, i) {
+        var b = el('button', 'ege-seasonview__rank' + (i === shown ? ' is-shown' : '') + (i === at ? ' is-held' : ''));
+        b.type = 'button';
+        b.style.setProperty('--rarity', rung.color);
+        b.setAttribute('aria-pressed', i === shown ? 'true' : 'false');
+        b.appendChild(el('span', 'ege-seasonview__rankname', rung.name));
+        b.appendChild(el('span', 'ege-seasonview__rankpct', rung.bonus ? '+' + pctText(rung.bonus) : '+0%'));
+        b.addEventListener('click', function () { shown = i; paint(); });
+        ranks.appendChild(b);
+      });
+
+      var rung = ladder[shown];
+      /* How far it is: more of his cards from that season to a rank above,
+         what has it where it is. */
+      need.textContent = shown > at
+        ? whole(Math.ceil(rung.points - pc.points)) + ' more FPTS of his ' + sc.season + ' cards'
+        : shown < at ? ''
+        : pc.points > 0 ? 'From ' + whole(pc.points) + ' FPTS of his ' + sc.season + ' cards'
+        : 'No ' + sc.season + ' cards of him yet';
+
+      box.innerHTML = '';
+      if (failed) { box.appendChild(el('p', 'fb-meta', failed)); return; }
+      if (!weeks) { box.appendChild(el('p', 'fb-meta', 'Loading…')); return; }
+      if (!weeks.length) { box.appendChild(el('p', 'fb-meta', 'No games yet.')); return; }
+      var table = el('table', 'ege-seasonweeks');
+      var head = el('thead');
+      var hr = el('tr');
+      ['Week', 'Opponent', 'FPTS'].forEach(function (t) { hr.appendChild(el('th', null, t)); });
+      var gemHead = el('th', 'ege-seasonweeks__pay');
+      gemHead.appendChild(gem());
+      gemHead.title = 'Diamonds a season';
+      hr.appendChild(gemHead);
+      head.appendChild(hr);
+      table.appendChild(head);
+      var body = el('tbody');
+      var nfl = !sc.ege || (EGE.tierFor && EGE.tierFor(sc.season, player) === 'nfl');
+      var fpts = 0;
+      var total = 0;
+      var now = 0;
+      weeks.forEach(function (w) {
+        var tr = el('tr');
+        tr.appendChild(el('td', 'ege-seasonweeks__week', nfl && SEASON_ROUNDS[w[0]] ? SEASON_ROUNDS[w[0]] : String(w[0])));
+        tr.appendChild(seasonOpp(w[3], w[4] === null || w[4] === undefined ? null : Boolean(w[4]), !sc.ege));
+        tr.appendChild(el('td', null, String(Math.round((Number(w[1]) || 0) * 10) / 10)));
+        var pay = EGE.nflCards.seasonWeekPay(base(w), rung.bonus);
+        var cell = el('td', 'ege-seasonweeks__pay', whole(pay));
+        cell.appendChild(gem());
+        tr.appendChild(cell);
+        body.appendChild(tr);
+        fpts += Number(w[1]) || 0;
+        total += pay;
+        now += EGE.nflCards.seasonWeekPay(base(w), ladder[at].bonus);
+      });
+      table.appendChild(body);
+      var foot = el('tfoot');
+      var fr = el('tr');
+      fr.appendChild(el('th', null, sc.live ? 'So far' : 'Season'));
+      fr.appendChild(el('th', 'ege-seasonweeks__games', weeks.length + (weeks.length === 1 ? ' game' : ' games')));
+      fr.appendChild(el('th', null, String(Math.round(fpts * 10) / 10)));
+      var all = el('th', 'ege-seasonweeks__pay', whole(total));
+      all.appendChild(gem());
+      if (total !== now) { all.appendChild(el('span', 'ege-seasonweeks__more', (total > now ? '+' : '') + whole(total - now))); }
+      fr.appendChild(all);
+      foot.appendChild(fr);
+      table.appendChild(foot);
+      box.appendChild(table);
+      if (sc.live) { box.appendChild(el('p', 'ege-seasonview__note', 'Pays from ' + (sc.season + 1) + '.')); }
+    }
+
+    var status = el('p', 'ege-rip__hint');
+    status.setAttribute('role', 'status');
+    stage.appendChild(status);
+
     var actions = el('div', 'ege-rip__actions');
-    var done = el('button', 'fb-btn fb-btn--primary', 'Done');
-    done.type = 'button';
-    done.addEventListener('click', closeRip);
-    actions.appendChild(done);
+    if (buy) {
+      var cancel = el('button', 'fb-btn', 'Cancel');
+      cancel.type = 'button';
+      cancel.addEventListener('click', closeRip);
+      var pay = el('button', 'fb-btn fb-btn--primary ege-seasontile__buy', 'Buy ' + whole(buy.q.price));
+      pay.type = 'button';
+      pay.appendChild(gem());
+      pay.disabled = seasonShop.busy || (typeof state.diamonds === 'number' && state.diamonds < buy.q.price);
+      pay.addEventListener('click', function () {
+        pay.disabled = true;
+        cancel.disabled = true;
+        buySeason(buy.who, buy.q).then(function (res) {
+          if (res.ok) { closeRip(); return; }
+          status.textContent = res.message;
+          cancel.disabled = false;
+        });
+      });
+      actions.appendChild(cancel);
+      actions.appendChild(pay);
+    } else {
+      if (o.mine) {
+        var edit = el('button', 'fb-btn', 'Edit');
+        edit.type = 'button';
+        edit.addEventListener('click', function () { openCardEditor(pc); });
+        actions.appendChild(edit);
+      }
+      actions.appendChild(shareButtons(function () { return playerCardFace(look(), pc.earned, o.photo, o.style); },
+        player.name + ' ' + sc.season + ' season card'));
+      var done = el('button', 'fb-btn fb-btn--primary', 'Done');
+      done.type = 'button';
+      done.addEventListener('click', closeRip);
+      actions.appendChild(done);
+    }
     stage.appendChild(actions);
-    done.focus({ preventScroll: true });
+
+    paint();
+    seasonWeeks(pc).then(function (got) {
+      weeks = got || [];
+      if (stage.isConnected) { paint(); }
+    }, function (error) {
+      failed = (error && error.message) || 'The weeks could not be read.';
+      if (stage.isConnected) { paint(); }
+    });
   }
 
   /* The Shop's Season Cards: find a player, see each of his seasons (the
-     one being played too, priced on his pace) with what it pays a year
-     and costs, and buy one after seeing the card it makes. One of the six
-     (dearer: data/nfl-cards.js SEASON_CARD) or anybody in the NFL sim's
-     rosters, on a team, a free agent or retired. */
+     one being played too) with what it pays a year and costs, and buy one
+     after seeing the card it makes and what it pays week by week. One of
+     the six (dearer: data/nfl-cards.js SEASON_CARD) or one of their NFL
+     teammates (Sam, 2026-11-18), on a team now, a free agent or retired;
+     of a season he was their teammate (nfl_season_card_quotes). */
   var seasonShop = { query: '', pick: null, quotes: null, busy: false, pool: null };
 
   function sixPool() {
@@ -5302,12 +5594,17 @@ EGE.cardsView = (function () {
       if (got && got.teams) { all = got; }
       return Boolean(all);
     });
-    if (!all) { return null; }
+    /* The teammates are the NFL cards' players. */
+    if (!all || !EGE.nflCards || !EGE.nflCards.loaded()) { return null; }
     if (seasonShop.pool && seasonShop.pool.from === all) { return seasonShop.pool.people; }
-    /* The six first, then everybody in the sim. */
+    /* The six first, then their teammates. */
     var people = sixPool();
+    var seen = {};
     function add(sim, key) {
       if (!sim || !sim.name || sim.ege) { return; }
+      var slug = EGE.nflCards.slugOf(sim.name);
+      if (seen[slug] || !EGE.nflCards.playerOf(slug)) { return; }
+      seen[slug] = true;
       people.push({ sim: sim, key: key, text: sim.name.toLowerCase() });
     }
     Object.keys(all.teams).forEach(function (key) { (all.teams[key] || []).forEach(function (sim) { add(sim, key); }); });
@@ -5475,54 +5772,17 @@ EGE.cardsView = (function () {
   }
 
   /* What the card will look like (Sam, 2026-11-18), at the rank the cards
-     you hold of him from that season give it, with Buy under it. */
+     you hold of him from that season give it, and what it pays week by
+     week, with Buy under it. An NFL player's waits for the NFL cards, or
+     his rank would be counted without them. */
   function previewSeason(who, q) {
-    var pc = seasonPc(seasonRowOf(who, q), { mine: true, seasonEarned: null }, state.owned);
-    if (!pc) { return; }
-    var sc = pc.seasonCard;
-    var stage = openOverlay(who.name + ' ' + q.season, 'ege-rip__stage--zoom');
-    var row = el('div', 'ege-rip__cards ege-rip__cards--1');
-    var holder = el('div', 'ege-zoom__card');
-    holder.appendChild(playerCardFace(pc, null, null, null));
-    row.appendChild(holder);
-    stage.appendChild(row);
-    tiltCard(holder);
-
-    var facts = el('dl', 'ege-zoom__facts');
-    function fact(label, value) { facts.appendChild(el('dt', null, label)); return facts.appendChild(el('dd', null, value)); }
-    fact(sc.live ? 'So far' : 'Season', seasonLine(pc));
-    var a = fact('A season', (q.live ? '\u2248 ' : '') + whole(q.pays));
-    a.appendChild(gem());
-    a.appendChild(document.createTextNode(q.live ? ' at his pace, paid from ' + (q.season + 1) : ', paid again every season'));
-    fact('Rank', pc.rank ? pc.rank.name + (pc.rank.bonus ? ' · +' + pctText(pc.rank.bonus) : '')
-      : 'Unranked · his ' + q.season + ' cards rank it up');
-    stage.appendChild(facts);
-
-    var status = el('p', 'ege-rip__hint');
-    status.setAttribute('role', 'status');
-    stage.appendChild(status);
-
-    var actions = el('div', 'ege-rip__actions');
-    var cancel = el('button', 'fb-btn', 'Cancel');
-    cancel.type = 'button';
-    cancel.addEventListener('click', closeRip);
-    var buy = el('button', 'fb-btn fb-btn--primary ege-seasontile__buy', 'Buy ' + whole(q.price));
-    buy.type = 'button';
-    buy.appendChild(gem());
-    buy.disabled = seasonShop.busy || (typeof state.diamonds === 'number' && state.diamonds < q.price);
-    buy.addEventListener('click', function () {
-      buy.disabled = true;
-      cancel.disabled = true;
-      buySeason(who, q).then(function (res) {
-        if (res.ok) { closeRip(); return; }
-        status.textContent = res.message;
-        cancel.disabled = false;
-      });
+    var ready = who.ege || EGE.nflCards.loaded() ? Promise.resolve() : EGE.cardStore.loadNflCards();
+    ready.then(function () {
+      var pc = seasonPc(seasonRowOf(who, q), { mine: true, seasonEarned: null }, state.owned);
+      if (!pc) { return; }
+      pc.seasonCard.weeks = q.weeks || [];
+      openSeasonCard(pc, { buy: { who: who, q: q } });
     });
-    actions.appendChild(cancel);
-    actions.appendChild(buy);
-    stage.appendChild(actions);
-    buy.focus({ preventScroll: true });
   }
 
   function buySeason(who, q) {
@@ -6317,7 +6577,8 @@ EGE.cardsView = (function () {
            saved; the rest of the editor's changes wait for its Save. */
         draft.avatar = more.avatar;
         var saved = savedStyle(pc);
-        var base = { nickname: saved ? saved.nickname || '' : '', avatar: more.avatar };
+        var base = { nickname: saved ? saved.nickname || '' : '', avatar: more.avatar,
+                     show_name: !saved || saved.show_name !== false, show_face: !saved || saved.show_face !== false };
         return saveStyle(pc, styleOf(pc, base));
       }).then(function (res) {
         if (!res.ok) {
@@ -6397,17 +6658,16 @@ EGE.cardsView = (function () {
       renderCarousel(holder, seasons.map(function (pc) { return playerCardEl(pc, whose); }), spot);
       return;
     }
-    /* The six's career Player Cards, highest overall first (Sam). */
+    /* The six's career Player Cards, most FPTS first (Sam, 2026-11-18). */
     renderCarousel(holder, EGE.players.map(function (player) {
       return EGE.cards.playerCard(player, owned);
     }).sort(function (a, b) {
-      return (EGE.overallFor(b.player) || 0) - (EGE.overallFor(a.player) || 0) ||
-        (a.player.name < b.player.name ? -1 : 1);
+      return b.points - a.points || (a.player.name < b.player.name ? -1 : 1);
     }).map(function (pc) { return playerCardEl(pc, whose); }), spot);
   }
 
-  /* The account's Season Cards, highest rank first, then the bigger
-     season. */
+  /* The account's Season Cards, most FPTS first (the cards of him from
+     that season), then the bigger season. */
   function seasonPcs(whose, owned) {
     return (whose.seasonCards || []).map(function (row) { return seasonPc(row, whose, owned); }).filter(Boolean)
       .sort(function (a, b) {
@@ -7012,6 +7272,8 @@ EGE.cardsView = (function () {
     renderRecent();
     renderPlayerCards();
     renderLibrary();
+    /* The Shop's Season Cards know the teammates now. */
+    if (!seasonShop.pick) { renderSeasonShop(); }
     /* A teammate or a team on a Want List can be looked for now. */
     renderWants();
     loadWantHolders(false, true);
