@@ -88,6 +88,10 @@ EGE.diamondsView = (function () {
   var NFL_CARDS = { slug: 'nfl', name: 'NFL Player Cards', first: 'NFL', nfl: true,
                     headshot: 'icon/packs/nfl-shield.webp' };
 
+  /* The row a week's Season Cards are paid on, together (nsc-{season}-{slug}-w{week}). */
+  var SEASON_CARDS = { slug: 'nsc', name: 'Season Cards', first: 'Season', nfl: true,
+                       headshot: 'icon/packs/nfl-shield.webp' };
+
   /* The row a Team Card's win is paid on: the team's mark for a face. */
   function teamRow(key) {
     var team = EGE.teamCards.teamOf(key);
@@ -101,21 +105,29 @@ EGE.diamondsView = (function () {
       var own = /^game-w(\d+)$/.exec(a.award_key);
       var pc = /^pc-([a-z]+(?:-[a-z]+)*)-w(\d+)$/.exec(a.award_key);
       var npc = /^npc-w(\d+)$/.exec(a.award_key);
+      var nsc = /^nsc-\d{4}-.+-w(\d+)$/.exec(a.award_key);
       var tc = EGE.teamCards ? EGE.teamCards.awardOf(a.award_key) : null;
-      var player = own ? me : pc ? EGE.playerBySlug(pc[1]) : npc ? NFL_CARDS : tc ? teamRow(tc.team) : null;
+      var player = own ? me : pc ? EGE.playerBySlug(pc[1]) : npc ? NFL_CARDS : nsc ? SEASON_CARDS
+        : tc ? teamRow(tc.team) : null;
       if (!player || !(a.diamonds > 0)) { return; }
-      var week = Number(own ? own[1] : pc ? pc[2] : npc ? npc[1] : tc.week);
+      var week = Number(own ? own[1] : pc ? pc[2] : npc ? npc[1] : nsc ? nsc[1] : tc.week);
       var season = Number(a.season);
       var key = season + ':' + week;
       var box = byWeek[key] || (byWeek[key] = { season: season, week: week, total: 0, rows: [], bySlug: {} });
       var row = box.bySlug[player.slug];
       if (!row) {
         row = box.bySlug[player.slug] = {
-          player: player, game: npc ? null : EGE.gameInWeek(player, week, season), own: 0, card: 0, rank: null
+          player: player, game: npc || nsc ? null : EGE.gameInWeek(player, week, season), own: 0, card: 0, rank: null,
+          count: 0
         };
         box.rows.push(row);
       }
       if (own) { row.own += a.diamonds; }
+      else if (nsc) {
+        row.card += a.diamonds;
+        row.count += 1;
+        row.note = 'Season Cards: ' + row.count + (row.count === 1 ? ' card paid' : ' cards paid');
+      }
       else if (npc || tc) { row.card += a.diamonds; row.note = a.note; }
       else { row.card += a.diamonds; row.rank = rankIn(a.note); }
       box.total += a.diamonds;
@@ -136,7 +148,7 @@ EGE.diamondsView = (function () {
     awards.forEach(function (a) {
       if (Number(a.season) !== EGE.currentSeason || !(a.diamonds > 0)) { return; }
       if (/^game-w\d+$/.test(a.award_key)) { games += a.diamonds; }
-      else if (/^pc-.+-w\d+$|^npc-w\d+$|^tc-[a-z]+-w\d+$/.test(a.award_key)) { cards += a.diamonds; }
+      else if (/^pc-.+-w\d+$|^npc-w\d+$|^nsc-\d{4}-.+-w\d+$|^tc-[a-z]+-w\d+$/.test(a.award_key)) { cards += a.diamonds; }
     });
     return { games: games, cards: cards };
   }

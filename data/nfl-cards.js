@@ -679,6 +679,27 @@ EGE.nflCards = (function () {
     };
   }
 
+  /* Season Cards (Sam, 2026-11-18): one NFL player's finished season,
+     bought in the Shop. Each week of every season after, it pays what his
+     game in that week of its season was worth: ceil(FPTS / 10) diamonds,
+     twice that in the playoffs (week 19 on), nothing under 1 FPTS. It
+     costs twice what it pays a year, never under 10. Postgres works all of
+     it out (nfl_season_card_quotes, buy_nfl_season_card and
+     pay_nfl_season_cards in supabase/schema.sql); change both together. */
+  var SEASON_CARD = { per: 10, playoffFrom: 19, playoffTimes: 2, priceTimes: 2, minPrice: 10 };
+
+  function seasonGamePay(points, week) {
+    if (!(points >= 1)) { return 0; }
+    return Math.ceil(points / SEASON_CARD.per) * (week >= SEASON_CARD.playoffFrom ? SEASON_CARD.playoffTimes : 1);
+  }
+
+  /* A Season Card's colour, from the season's fantasy points. */
+  function seasonRarity(points) {
+    var key = points >= 300 ? 'legendary' : points >= 220 ? 'epic' : points >= 150 ? 'rare'
+      : points >= 80 ? 'uncommon' : 'common';
+    return EGE.cards.rarity(key);
+  }
+
   /* Every NFL Player Card the account has made, best first. */
   function playerCards(owned) {
     var held = holdings(owned);
@@ -1085,6 +1106,9 @@ EGE.nflCards = (function () {
     holdings: holdings,
     playerCard: playerCard,
     playerCards: playerCards,
+    SEASON_CARD: SEASON_CARD,
+    seasonGamePay: seasonGamePay,
+    seasonRarity: seasonRarity,
     onTheWay: onTheWay,
     ladderFor: ladderFor,
     gameBonus: gameBonus,

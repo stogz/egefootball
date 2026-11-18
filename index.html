@@ -660,7 +660,8 @@
                 <img class="ege-avatar ege-pcards__whoface" id="playerCardsWhoFace" src="" alt="" hidden>
               </span>
             </div>
-            <!-- The six's Player Cards, or the NFL teammates'. -->
+            <!-- The six's Player Cards, the NFL ones or the Team Cards, in a
+                 row to swipe through (renderCarousel). -->
             <div class="ege-pcards__kinds" id="playerCardsKind"></div>
             <div class="ege-pcards" id="playerCards"></div>
           </div>
@@ -730,6 +731,19 @@
           </div>
           <div class="fb-panel__body fb-stack">
             <div class="ege-daily" id="dailyCards"></div>
+          </div>
+        </div>
+
+        <!-- one NFL player's finished season, paying it again every season
+             after, week by week (Sam, 2026-11-18) -->
+        <div class="fb-panel ege-section-gap" id="seasonPanel">
+          <div class="fb-panel__head">
+            <h3>Season Cards</h3>
+          </div>
+          <div class="fb-panel__body fb-stack">
+            <input class="fb-input ege-seasonshop__search" id="seasonSearch" type="search"
+                   placeholder="Find an NFL player" aria-label="Find an NFL player" autocomplete="off">
+            <div class="ege-seasonshop" id="seasonShop"></div>
           </div>
         </div>
 
@@ -1713,6 +1727,7 @@
 <script src="js/auth.js"></script>
 <script src="js/wallet.js"></script>
 <script src="js/cards.js"></script>
+<script src="js/card-looks.js"></script>
 <script src="js/sounds.js"></script>
 <script src="js/cards-view.js"></script>
 <script src="js/glass.js"></script>

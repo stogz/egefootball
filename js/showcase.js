@@ -63,6 +63,8 @@ EGE.showcase = (function () {
   function slotPlayerCard(id) {
     var saved = (cache[shown.email] || {}).players || {};
     var photos = editing && ownPhotos ? ownPhotos : saved.photos || {};
+    /* Its nickname and look from the card editor (js/card-looks.js). */
+    var styles = editing && EGE.cardLooks ? EGE.cardLooks.all() : saved.styles || {};
     if (id.indexOf(NPC) === 0) {
       var slug = id.slice(NPC.length);
       if (!EGE.nflCards || !EGE.nflCards.loaded() || !EGE.nflCards.playerOf(slug)) { return null; }
@@ -70,6 +72,7 @@ EGE.showcase = (function () {
       if (!npc.copies) { return null; }
       npc.earned = null;
       npc.photo = photos['n:' + slug] || null;
+      npc.style = styles['n:' + slug] || null;
       return npc;
     }
     if (id.indexOf(PC) !== 0) { return null; }
@@ -80,11 +83,12 @@ EGE.showcase = (function () {
     var earned = (editing && ownEarned) || saved.earned;
     pc.earned = earned ? (earned[p.slug] || 0) : null;
     pc.photo = photos[p.slug] || null;
+    pc.style = styles[p.slug] || null;
     return pc;
   }
 
   function playerCardNode(pc) {
-    var face = EGE.cardsView.playerCardFace(pc, pc.earned, pc.photo);
+    var face = EGE.cardsView.playerCardFace(pc, pc.earned, pc.photo, pc.style);
     face.setAttribute('role', 'img');
     face.setAttribute('aria-label', pc.player.name + (pc.nfl ? ' NFL' : '') + ' Player Card, ' +
       (pc.rank ? pc.rank.name : 'unranked') + ', ' + Math.round(pc.points) + ' fantasy points collected');
@@ -125,6 +129,8 @@ EGE.showcase = (function () {
     var holder = byId('showcaseCards');
     holder.innerHTML = '';
     var grid = el('div', 'ege-showcase__grid');
+    /* Somebody else's cards keep the real names (js/card-looks.js). */
+    if (!mine) { grid.setAttribute('data-realname', ''); }
 
     if (editing) {
       for (var i = 0; i < SIZE; i += 1) { grid.appendChild(editSlot(i)); }
@@ -155,7 +161,7 @@ EGE.showcase = (function () {
     items.forEach(function (item) {
       if (item.pc) {
         var pc = item.pc;
-        var face = EGE.cardsView.playerCardFace(pc, pc.earned, pc.photo);
+        var face = EGE.cardsView.playerCardFace(pc, pc.earned, pc.photo, pc.style);
         EGE.cardsView.pressable(face, pc.player.name + (pc.nfl ? ' NFL' : '') + ' Player Card, ' +
           (pc.rank ? pc.rank.name : 'unranked') + ', ' + Math.round(pc.points) + ' fantasy points collected',
           function () { EGE.cardsView.zoomPlayer(pc, { whose: mine ? null : player.first }); });
@@ -288,7 +294,8 @@ EGE.showcase = (function () {
         body.appendChild(el('h4', 'ege-showcase__pickhead', kind[1]));
         var pgrid = el('div', 'ege-tradegrid ege-tradegrid--tall');
         kind[0].forEach(function (pc) {
-          var face = EGE.cardsView.playerCardFace(pc, null, photos[kind[3] + pc.player.slug] || null);
+          var face = EGE.cardsView.playerCardFace(pc, null, photos[kind[3] + pc.player.slug] || null,
+            EGE.cardLooks ? EGE.cardLooks.styleFor(kind[3] + pc.player.slug) : null);
           EGE.cardsView.pressable(face, 'Put up ' + pc.player.name + '\u2019s ' + kind[1].replace(/s$/, ''), function () {
             put(kind[2] + pc.player.slug);
           });

@@ -390,14 +390,14 @@ EGE.cardStore = (function () {
      { players: [slug], nfl: [slug], cards: { id: quantity },
        earned: { slug: diamonds }, photos: { slug or 'n:'slug: data url } }. */
   function showcasePlayersFor(email) {
-    var none = { players: [], nfl: [], cards: {}, earned: null, photos: {} };
+    var none = { players: [], nfl: [], cards: {}, earned: null, photos: {}, styles: {} };
     var c = client();
     if (!c || !email) { return Promise.resolve(none); }
     return c.rpc('showcased_player_cards', { p_email: email })
       .then(function (res) {
         var d = res.error ? null : res.data;
         return { players: (d && d.players) || [], nfl: (d && d.nfl) || [], cards: (d && d.cards) || {},
-                 earned: (d && d.earned) || null, photos: (d && d.photos) || {} };
+                 earned: (d && d.earned) || null, photos: (d && d.photos) || {}, styles: (d && d.styles) || {} };
       })
       .catch(function () { return none; });
   }
@@ -444,6 +444,96 @@ EGE.cardStore = (function () {
       function (n) { return { ok: true, count: Number(n) || 0 }; });
   }
 
+  /* --- the Player Card editor's styles ------------------------------------ */
+
+  /* An account's card styles (card_styles): { slug or 'n:'slug: { nickname,
+     look, avatar, name, espn } }. Null when they could not be read (before
+     the schema has card_styles). */
+  function cardStyles(email) {
+    var c = client();
+    if (!c || !email) { return Promise.resolve(null); }
+    return c.from('card_styles').select('slug, name, espn, nickname, look, avatar').eq('email', email)
+      .then(function (res) {
+        if (res.error) { return null; }
+        var map = {};
+        (res.data || []).forEach(function (row) {
+          map[row.slug] = { nickname: row.nickname || '', look: row.look || {}, avatar: row.avatar || null,
+                            name: row.name || null, espn: row.espn || null };
+        });
+        return map;
+      })
+      .catch(function () { return null; });
+  }
+
+  /* Saves one card's style; everything empty takes its row away. */
+  function setCardStyle(slug, style) {
+    var s = style || {};
+    return call('set_card_style', {
+      p_slug: slug, p_name: s.name || null, p_espn: s.espn || null,
+      p_nickname: s.nickname || null, p_look: s.look || {}, p_avatar: s.avatar || null
+    }, function () { return { ok: true }; });
+  }
+
+  /* --- Season Cards ------------------------------------------------------------ */
+
+  /* An account's Season Cards, newest season first. Null before the schema
+     has them. */
+  function seasonCards(email) {
+    var c = client();
+    if (!c || !email) { return Promise.resolve(null); }
+    return c.from('nfl_season_cards').select('season, slug, espn, name, pos, team, games, points, pays, price, bought_at')
+      .eq('email', email).order('season', { ascending: false }).order('slug')
+      .then(function (res) { return res.error ? null : (res.data || []); })
+      .catch(function () { return null; });
+  }
+
+  /* The seasons of one player a Season Card can be bought of. */
+  function seasonQuotes(who) {
+    return call('nfl_season_card_quotes', { p_espn: who.espn || null, p_name: who.name, p_pos: who.pos || '' },
+      function (rows) { return { ok: true, seasons: rows || [] }; });
+  }
+
+  function buySeasonCard(who, season, price) {
+    return call('buy_nfl_season_card', {
+      p_season: season, p_slug: who.slug, p_espn: who.espn || null, p_name: who.name,
+      p_pos: who.pos || '', p_price: price
+    }, function (left) { return { ok: true, diamonds: Number(left) || 0 }; });
+  }
+
+  /* Pays the live season's weeks to this account's Season Cards. Resolves
+     to what it paid; nothing before the schema has them. */
+  function paySeasonCards(season) {
+    var c = client();
+    if (!c) { return Promise.resolve(0); }
+    return c.rpc('pay_nfl_season_cards', { p_season: season })
+      .then(function (res) { return res.error ? 0 : Number(res.data) || 0; })
+      .catch(function () { return 0; });
+  }
+
+  /* What each Season Card has paid this account: { all: { 'season:slug':
+     diamonds }, now: { ... this season's } }, or null. */
+  function seasonCardEarnings(email) {
+    var c = client();
+    if (!c || !email) { return Promise.resolve(null); }
+    return allRows(function () {
+      return c.from('diamond_awards').select('season, award_key, diamonds', { count: 'exact' })
+        .eq('email', email).like('award_key', 'nsc-%');
+    }, ['season', 'award_key'])
+      .then(function (res) {
+        if (res.error) { return null; }
+        var out = { all: {}, now: {} };
+        (res.data || []).forEach(function (row) {
+          var m = /^nsc-(\d{4})-(.+)-w\d+$/.exec(row.award_key);
+          if (!m) { return; }
+          var key = m[1] + ':' + m[2];
+          out.all[key] = (out.all[key] || 0) + (row.diamonds || 0);
+          if (Number(row.season) === EGE.currentSeason) { out.now[key] = (out.now[key] || 0) + (row.diamonds || 0); }
+        });
+        return out;
+      })
+      .catch(function () { return null; });
+  }
+
   function setShowcase(ids) {
     return call('set_card_showcase', { p_cards: ids }, function () { return { ok: true }; });
   }
@@ -476,6 +566,9 @@ EGE.cardStore = (function () {
           return payTeamCards(got.owned, year);
         }).then(function (teams) {
           six.paid += teams;
+          return paySeasonCards(year);
+        }).then(function (seasons) {
+          six.paid += seasons;
           return six;
         });
       });
@@ -969,6 +1062,13 @@ EGE.cardStore = (function () {
     playerCardEarnings: playerCardEarnings,
     setCardPhoto: setCardPhoto,
     clearCardPhoto: clearCardPhoto,
+    cardStyles: cardStyles,
+    setCardStyle: setCardStyle,
+    seasonCards: seasonCards,
+    seasonQuotes: seasonQuotes,
+    buySeasonCard: buySeasonCard,
+    paySeasonCards: paySeasonCards,
+    seasonCardEarnings: seasonCardEarnings,
     tradesFor: tradesFor,
     tradeStates: tradeStates,
     proposeTrade: proposeTrade,

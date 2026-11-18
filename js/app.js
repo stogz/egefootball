@@ -11888,6 +11888,8 @@
   window.setTimeout(settle, 4000);
 
   EGE.auth.onChange(function (player) {
+    /* Your nicknames and avatars, on your own browser only (js/card-looks.js). */
+    EGE.cardLooks.load(player ? player.email : null);
     if (player) {
       /* The wallet loads on sign-in, not on reaching the shop: a player page
          needs the inventory too, to know whether to show the scouts. */
