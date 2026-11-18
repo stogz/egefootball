@@ -2645,6 +2645,10 @@ revoke all on function public.holds_six_face(text, text) from public, anon, auth
 -- An account holds a card of one of the six, or owns the Season Card, to
 -- style it; 24 Season Cards styled at most. ('n:{slug}' rows are from the
 -- NFL career Player Cards that were taken out, and are left alone.)
+--
+-- show_name and show_face (Sam, 2026-11-18) are the editor's two switches:
+-- off, the nickname stays on the card only, and the avatar is not used on
+-- the League page.
 -- ---------------------------------------------------------------------------
 
 create table if not exists public.card_styles (
@@ -2658,6 +2662,9 @@ create table if not exists public.card_styles (
   primary key (email, slug)
 );
 
+alter table public.card_styles add column if not exists show_name boolean not null default true;
+alter table public.card_styles add column if not exists show_face boolean not null default true;
+
 alter table public.card_styles enable row level security;
 
 drop policy if exists "card styles readable by anybody" on public.card_styles;
@@ -2665,8 +2672,12 @@ create policy "card styles readable by anybody"
   on public.card_styles for select to anon, authenticated
   using (true);
 
+drop function if exists public.set_card_style(text, text, text, text, text);
+
 create or replace function public.set_card_style(p_slug text, p_name text, p_espn text,
-                                                 p_nickname text, p_avatar text)
+                                                 p_nickname text, p_avatar text,
+                                                 p_show_name boolean default true,
+                                                 p_show_face boolean default true)
 returns void
 language plpgsql
 security definer
@@ -2718,16 +2729,18 @@ begin
     raise exception 'You can change 24 Season Cards. Reset one first.';
   end if;
 
-  insert into public.card_styles (email, slug, name, espn, nickname, avatar, updated_at)
-  values (v_email, p_slug, v_name, v_espn, v_nickname, p_avatar, now())
+  insert into public.card_styles (email, slug, name, espn, nickname, avatar, show_name, show_face, updated_at)
+  values (v_email, p_slug, v_name, v_espn, v_nickname, p_avatar, coalesce(p_show_name, true),
+          coalesce(p_show_face, true), now())
   on conflict (email, slug) do update
      set name = excluded.name, espn = excluded.espn, nickname = excluded.nickname,
-         avatar = excluded.avatar, updated_at = now();
+         avatar = excluded.avatar, show_name = excluded.show_name, show_face = excluded.show_face,
+         updated_at = now();
 end;
 $$;
 
-revoke all on function public.set_card_style(text, text, text, text, text) from public, anon;
-grant execute on function public.set_card_style(text, text, text, text, text) to authenticated;
+revoke all on function public.set_card_style(text, text, text, text, text, boolean, boolean) from public, anon;
+grant execute on function public.set_card_style(text, text, text, text, text, boolean, boolean) to authenticated;
 
 create or replace function public.set_card_photo(p_slug text, p_photo text)
 returns void
@@ -6123,18 +6136,20 @@ notify pgrst, 'reload schema';
 --
 -- Each of his games in it is worth ceil(FPTS / 10) diamonds, twice that in
 -- the playoffs (week 19 on), and nothing under 1 FPTS. FPTS are the site's,
--- with a defender's IDP style (DEFENSE in data/nfl-cards.js). An NFL
--- player's price is twice what the season pays in a year, never under 10.
--- One of the six's (ege) is three times it, never under 15 (Sam: "a little
--- bit more pricy"); his games are in the season files, not here, so the
--- page works his season out as it does his games' own diamonds and this
--- holds it to the shape (SEASON_CARD in data/nfl-cards.js; change both
--- together).
+-- with a defender's IDP style (DEFENSE in data/nfl-cards.js). Every NFL
+-- player's costs 40 and every one of the six's 60, whatever the season
+-- (Sam, 2026-11-18, "one flat price"); his games are in the season files,
+-- not here, so the page works his season out as it does his games' own
+-- diamonds and this holds it to the shape (SEASON_CARD in
+-- data/nfl-cards.js; change both together). An NFL player's is only of a
+-- season he played on the same team as one of the six (a week with one of
+-- the six's lines on his side of the game), as the NFL cards are.
 --
--- It ranks up like a Player Card on the cards held of him from its own
--- season only, and the page says which rank (as for Team Cards). The rank
--- adds to every week it pays: Uncommon +10%, Rare +25%, Epic +50%,
--- Legendary +80%, Mystic +125%, Iconic +300%, GOAT +500%.
+-- It starts at Common and ranks up like a Player Card on the cards held of
+-- him from its own season only, and the page says which rank (as for Team
+-- Cards). The rank adds to every week it pays: Common nothing, Uncommon
+-- +10%, Rare +25%, Epic +50%, Legendary +80%, Mystic +125%, Iconic +300%,
+-- GOAT +500%.
 --
 -- Every week published in a season after the card's own, once it is
 -- bought, pays what his game in that week of the card's season was worth,
@@ -6212,6 +6227,60 @@ as $$
   select count(*)::integer from public.published_weeks where season = p_season;
 $$;
 
+-- One player's lines in a season's published weeks, one a week: by his
+-- ESPN id, or (a line without one, before the sim kept ids) his name and
+-- position. Never one of the six's lines. `opp` is the other team in the
+-- game, `home` whether it was at his place, and `mate` whether one of the
+-- six played on his side of it.
+drop function if exists public.nfl_season_lines(integer, text, text, text, integer);
+
+create or replace function public.nfl_season_lines(p_season integer, p_espn text, p_name text, p_pos text,
+                                                   p_week integer default null)
+returns table (week integer, team text, opp text, home boolean, points numeric, mate boolean)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select distinct on (b.week) b.week, l.v ->> 'team',
+         case when x.g ->> 'home' = l.v ->> 'team' then x.g ->> 'away' else x.g ->> 'home' end,
+         x.g ->> 'home' = l.v ->> 'team',
+         public.nfl_line_points(l.v),
+         exists (select 1 from jsonb_array_elements(x.g -> 'box') as m(v)
+                  where m.v ? 'ege' and m.v ->> 'team' = l.v ->> 'team')
+    from public.sim_box_scores b
+    cross join lateral jsonb_array_elements(case when jsonb_typeof(b.games) = 'array' then b.games else '[]'::jsonb end) as x(g)
+    cross join lateral jsonb_array_elements(coalesce(x.g -> 'box', '[]'::jsonb)) as l(v)
+   where b.season = p_season
+     and (p_week is null or b.week = p_week)
+     and exists (select 1 from public.published_weeks p where p.season = b.season and p.week = b.week)
+     and not (l.v ? 'ege')
+     and (   (coalesce(p_espn, '') <> '' and l.v ->> 'espn' = p_espn)
+          or ((coalesce(p_espn, '') = '' or not (l.v ? 'espn'))
+              and l.v ->> 'name' = p_name and l.v ->> 'pos' = coalesce(p_pos, '')))
+   order by b.week, public.nfl_line_points(l.v) desc;
+$$;
+
+revoke all on function public.nfl_season_lines(integer, text, text, text, integer) from public, anon, authenticated;
+
+-- One NFL player's season week by week, for his Season Card up close (Sam,
+-- 2026-11-18): [[week, FPTS, diamonds, opponent, at home], ...], published
+-- weeks only, as anybody can see them in the box scores.
+create or replace function public.nfl_season_card_weeks(p_season integer, p_espn text, p_name text, p_pos text)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(jsonb_agg(jsonb_build_array(l.week, l.points, public.nfl_season_game_pay(l.points, l.week),
+                                              l.opp, l.home) order by l.week), '[]'::jsonb)
+    from public.nfl_season_lines(p_season, p_espn, p_name, p_pos) l;
+$$;
+
+revoke all on function public.nfl_season_card_weeks(integer, text, text, text) from public;
+grant execute on function public.nfl_season_card_weeks(integer, text, text, text) to anon, authenticated;
+
 -- What a Season Card of the season being played is priced on (Sam,
 -- 2026-11-18, "priced on his pace"): what his games so far pay, carried
 -- over 18 weeks, or what last season paid, whichever is more.
@@ -6237,37 +6306,11 @@ as $$
   select greatest(ceil(now.pays * 18 / reg.weeks), last.pays)::integer from now, reg, last;
 $$;
 
--- One player's lines in a season's published weeks, one a week: by his
--- ESPN id, or (a line without one, before the sim kept ids) his name and
--- position. Never one of the six's lines.
-create or replace function public.nfl_season_lines(p_season integer, p_espn text, p_name text, p_pos text,
-                                                   p_week integer default null)
-returns table (week integer, team text, points numeric)
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select distinct on (b.week) b.week, l.v ->> 'team', public.nfl_line_points(l.v)
-    from public.sim_box_scores b
-    cross join lateral jsonb_array_elements(case when jsonb_typeof(b.games) = 'array' then b.games else '[]'::jsonb end) as x(g)
-    cross join lateral jsonb_array_elements(coalesce(x.g -> 'box', '[]'::jsonb)) as l(v)
-   where b.season = p_season
-     and (p_week is null or b.week = p_week)
-     and exists (select 1 from public.published_weeks p where p.season = b.season and p.week = b.week)
-     and not (l.v ? 'ege')
-     and (   (coalesce(p_espn, '') <> '' and l.v ->> 'espn' = p_espn)
-          or ((coalesce(p_espn, '') = '' or not (l.v ? 'espn'))
-              and l.v ->> 'name' = p_name and l.v ->> 'pos' = coalesce(p_pos, '')))
-   order by b.week, public.nfl_line_points(l.v) desc;
-$$;
-
-revoke all on function public.nfl_season_lines(integer, text, text, text, integer) from public, anon, authenticated;
-
 -- Every finished season of one player a Season Card can be bought of, and
--- the season being played (live, priced on nfl_live_basis, its `pays`
--- that basis and its games, points and weeks so far):
--- [{ season, team, games, points, pays, price, weeks: [[week, points, diamonds]], live }],
+-- the season being played (live, its `pays` what nfl_live_basis makes of
+-- his pace and its games, points and weeks so far); only seasons he was
+-- one of the six's teammates:
+-- [{ season, team, games, points, pays, price, weeks: [[week, points, diamonds, opponent, at home]], live }],
 -- newest first.
 create or replace function public.nfl_season_card_quotes(p_espn text, p_name text, p_pos text)
 returns jsonb
@@ -6281,7 +6324,7 @@ as $$
      where public.nfl_season_over(b.season)
   ),
   lines as (
-    select s.season, l.week, l.team, l.points, public.nfl_season_game_pay(l.points, l.week) as pay
+    select s.season, l.week, l.team, l.opp, l.home, l.points, l.mate, public.nfl_season_game_pay(l.points, l.week) as pay
       from seasons s
       cross join lateral public.nfl_season_lines(s.season, p_espn, p_name, p_pos) l
   ),
@@ -6291,8 +6334,9 @@ as $$
            count(*) as games,
            round(sum(points), 1) as points,
            sum(pay) as pays,
-           jsonb_agg(jsonb_build_array(week, points, pay) order by week) as weeks
+           jsonb_agg(jsonb_build_array(week, points, pay, opp, home) order by week) as weeks
       from lines group by season
+    having bool_or(mate)
   ),
   live as (
     select l.season, public.nfl_live_basis(l.season, p_espn, p_name, p_pos) as basis
@@ -6300,11 +6344,11 @@ as $$
      where l.season is not null
   ),
   live_lines as (
-    select x.week, x.team, x.points, public.nfl_season_game_pay(x.points, x.week) as pay
+    select x.week, x.team, x.opp, x.home, x.points, x.mate, public.nfl_season_game_pay(x.points, x.week) as pay
       from live cross join lateral public.nfl_season_lines(live.season, p_espn, p_name, p_pos) x
   ),
   quotes as (
-    select season, team, games, points, pays, greatest(10, pays * 2) as price, weeks, false as is_live
+    select season, team, games, points, pays, 40 as price, weeks, false as is_live
       from totals
      where pays > 0
     union all
@@ -6312,11 +6356,12 @@ as $$
            (select mode() within group (order by team) from live_lines),
            (select count(*) from live_lines),
            (select coalesce(round(sum(points), 1), 0) from live_lines),
-           live.basis, greatest(10, live.basis * 2),
-           (select coalesce(jsonb_agg(jsonb_build_array(week, points, pay) order by week), '[]'::jsonb) from live_lines),
+           live.basis, 40,
+           (select coalesce(jsonb_agg(jsonb_build_array(week, points, pay, opp, home) order by week), '[]'::jsonb)
+              from live_lines),
            true
       from live
-     where live.basis > 0 or exists (select 1 from live_lines)
+     where exists (select 1 from live_lines where mate)
   )
   select coalesce(jsonb_agg(jsonb_build_object(
            'season', season, 'team', team, 'games', games, 'points', points, 'pays', pays,
@@ -6327,8 +6372,9 @@ $$;
 revoke all on function public.nfl_season_card_quotes(text, text, text) from public, anon;
 grant execute on function public.nfl_season_card_quotes(text, text, text) to authenticated;
 
--- Buys one. p_price is the price the page showed; a different one now is
--- refused rather than charged. Returns the diamonds left.
+-- Buys one: a season he was one of the six's teammates. p_price is the
+-- price the page showed; a different one now is refused rather than
+-- charged. Returns the diamonds left.
 create or replace function public.buy_nfl_season_card(p_season integer, p_slug text, p_espn text,
                                                       p_name text, p_pos text, p_price integer)
 returns integer
@@ -6345,7 +6391,7 @@ declare
   v_price  integer;
   v_left   integer;
   v_live   boolean;
-  v_basis  integer;
+  v_mate   boolean;
 begin
   if v_email is null then
     raise exception 'sign in first';
@@ -6363,22 +6409,16 @@ begin
   end if;
 
   select count(*), coalesce(sum(points), 0), coalesce(sum(public.nfl_season_game_pay(points, week)), 0),
-         mode() within group (order by team)
-    into v_games, v_points, v_pays, v_team
+         mode() within group (order by team), coalesce(bool_or(mate), false)
+    into v_games, v_points, v_pays, v_team, v_mate
     from public.nfl_season_lines(p_season, p_espn, p_name, p_pos);
-  if v_live then
-    -- The season being played: priced on his pace or last season.
-    v_basis := public.nfl_live_basis(p_season, p_espn, p_name, p_pos);
-    if v_basis <= 0 and v_games = 0 then
-      raise exception 'He has no games to price it on yet.';
-    end if;
-  else
-    v_basis := v_pays;
-    if v_pays <= 0 then
-      raise exception 'He has no games that season to pay on.';
-    end if;
+  if not v_mate then
+    raise exception 'Season Cards are only of the six''s teammates.';
   end if;
-  v_price := greatest(10, v_basis * 2);
+  if not v_live and v_pays <= 0 then
+    raise exception 'He has no games that season to pay on.';
+  end if;
+  v_price := 40;
   if p_price is distinct from v_price then
     raise exception 'The price has changed to %. Look again.', v_price;
   end if;
@@ -6409,7 +6449,7 @@ grant execute on function public.buy_nfl_season_card(integer, text, text, text, 
 
 -- Buys one of the six's seasons. The page says what it is (his games, FPTS
 -- and what they pay, from the season files); this holds it to a season's
--- shape and charges the price that comes to. Returns the diamonds left.
+-- shape and charges 60. Returns the diamonds left.
 create or replace function public.buy_ege_season_card(p_season integer, p_slug text, p_name text, p_pos text,
                                                       p_team text, p_games integer, p_points numeric,
                                                       p_pays integer, p_price integer)
@@ -6443,7 +6483,7 @@ begin
               where email = v_email and season = p_season and slug = p_slug) then
     raise exception 'You have that Season Card already.';
   end if;
-  v_price := greatest(15, p_pays * 3);
+  v_price := 60;
   if p_price is distinct from v_price then
     raise exception 'The price has changed to %. Look again.', v_price;
   end if;

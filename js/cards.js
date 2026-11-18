@@ -446,19 +446,20 @@ EGE.cardStore = (function () {
 
   /* --- the Player Card editor's styles ------------------------------------ */
 
-  /* An account's card styles (card_styles): { slug or 'n:'slug: { nickname,
-     avatar, name, espn } }. Null when they could not be read (before
-     the schema has card_styles). */
+  /* An account's card styles (card_styles): { slug or 's:'season':'slug:
+     { nickname, avatar, name, espn, show_name, show_face } }. Null when
+     they could not be read (before the schema has card_styles). */
   function cardStyles(email) {
     var c = client();
     if (!c || !email) { return Promise.resolve(null); }
-    return c.from('card_styles').select('slug, name, espn, nickname, avatar').eq('email', email)
+    return c.from('card_styles').select('slug, name, espn, nickname, avatar, show_name, show_face').eq('email', email)
       .then(function (res) {
         if (res.error) { return null; }
         var map = {};
         (res.data || []).forEach(function (row) {
           map[row.slug] = { nickname: row.nickname || '', avatar: row.avatar || null,
-                            name: row.name || null, espn: row.espn || null };
+                            name: row.name || null, espn: row.espn || null,
+                            show_name: row.show_name !== false, show_face: row.show_face !== false };
         });
         return map;
       })
@@ -470,7 +471,8 @@ EGE.cardStore = (function () {
     var s = style || {};
     return call('set_card_style', {
       p_slug: slug, p_name: s.name || null, p_espn: s.espn || null,
-      p_nickname: s.nickname || null, p_avatar: s.avatar || null
+      p_nickname: s.nickname || null, p_avatar: s.avatar || null,
+      p_show_name: s.show_name !== false, p_show_face: s.show_face !== false
     }, function () { return { ok: true }; });
   }
 
@@ -491,6 +493,14 @@ EGE.cardStore = (function () {
   function seasonQuotes(who) {
     return call('nfl_season_card_quotes', { p_espn: who.espn || null, p_name: who.name, p_pos: who.pos || '' },
       function (rows) { return { ok: true, seasons: rows || [] }; });
+  }
+
+  /* One NFL player's season week by week for his Season Card:
+     [[week, FPTS, diamonds, opponent, at home]]. */
+  function seasonCardWeeks(row) {
+    return call('nfl_season_card_weeks', {
+      p_season: Number(row.season), p_espn: row.espn || null, p_name: row.name, p_pos: row.pos || ''
+    }, function (weeks) { return { ok: true, weeks: weeks || [] }; });
   }
 
   function buySeasonCard(who, season, price) {
@@ -1083,6 +1093,7 @@ EGE.cardStore = (function () {
     setCardStyle: setCardStyle,
     seasonCards: seasonCards,
     seasonQuotes: seasonQuotes,
+    seasonCardWeeks: seasonCardWeeks,
     buySeasonCard: buySeasonCard,
     buyEgeSeasonCard: buyEgeSeasonCard,
     paySeasonCards: paySeasonCards,

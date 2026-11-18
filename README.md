@@ -3001,13 +3001,15 @@ in the middle, its neighbours smaller and turned away on either side.
 Swipe or drag across, or use the arrows (desktop), the dots or the keyboard
 arrows, and they slide and turn into place. What the middle card means
 (progress, earnings, See his cards, Edit, Download, Copy) sits under the
-row. Tapping the middle card opens it: yours in the editor, somebody
-else's up close. Tapping a side card brings it to the middle
+row. Tapping the middle card opens it: a career card of yours in the
+editor, somebody else's up close, and any Season Card week by week (below).
+Tapping a side card brings it to the middle
 (`renderCarousel` in js/cards-view.js).
 
 **Tabs.** CAREER, SEASON and TEAM sit beside the whose-cards picker (Sam,
-2026-11-18). CAREER is the six's Player Cards, highest overall first;
-SEASON every Season Card (the six's and NFL players'), highest rank first;
+2026-11-18). CAREER is the six's Player Cards, most FPTS first (Sam,
+2026-11-18); SEASON every Season Card (the six's and NFL players'), most
+FPTS (from the cards of him from that season) first;
 TEAM the Team Cards. NFL players have no career Player Card any more: they
 were taken out on 2026-11-18 (Sam), so an NFL player's card is a Season
 Card, and `pay_nfl_card_bonuses` is no longer called.
@@ -3015,11 +3017,15 @@ Card, and `pay_nfl_card_bonuses` is no longer called.
 **Card pictures.** Download and Copy, under any card on the Players page
 and up close (collection cards too), make a PNG of the card: it is drawn
 again off screen and turned into a picture by html-to-image, read from
-jsDelivr the first time (`cardShot` in js/cards-view.js).
+jsDelivr the first time (`cardShot` in js/cards-view.js). The card's own
+fonts (Caprasimo and Figtree) go into the picture as data: html-to-image
+cannot read the Google Fonts stylesheet by itself (it is on another site),
+so `cardFontCSS` fetches it and its Latin font files once a visit and
+hands them over as `fontEmbedCSS`.
 
-**Card editor.** Tapping one of your own Player Cards or Season Cards, or
-its Edit button, opens the editor. It changes two things only (Sam trimmed
-it on 2026-11-18):
+**Card editor.** Tapping one of your own Player Cards, or the Edit button
+of any of your cards, opens the editor. It changes two things (Sam trimmed
+it on 2026-11-18), with two switches for where they show:
 
 - Nickname, up to 24 characters, on the card for everybody who sees it.
 - Photo: Upload crops the card photo, then a circle out of the same picture
@@ -3029,6 +3035,11 @@ it on 2026-11-18):
   with see-through parts keeps them, so the team colour shows behind it
   as behind a headshot (a browser that cannot write WebP, like Safari,
   writes a PNG for it rather than a JPEG).
+- Elsewhere on the site: a Nickname switch and an Avatar switch (Sam,
+  2026-11-18), both on to start. Off, the nickname stays on the card alone
+  and the avatar is not used on the League page (`show_name`,
+  `show_face` in `card_styles`). The six's Season Cards have none, since
+  theirs never leave the card.
 
 The nickname and avatar live in `card_styles` (`set_card_style`), keyed
 like `card_photos`: the six's slug for a career card, `s:{season}:{slug}`
@@ -3058,11 +3069,14 @@ Lamar Jackson card named King Lamar shows him as King Lamar there all of
 2030.
 
 **Season Cards.** The Shop's Season Cards panel finds one of the six or
-any NFL player in the sim's rosters and lists his seasons: the finished
-ones, and the one being played (Sam, 2026-11-18). Each shows team, games,
-FPTS, what it pays a season and its price; Buy shows the card it will make
-(at the rank your cards of him from that season give it) with Buy under
-it. A Season Card replays its
+one of their NFL teammates (the NFL cards' players; Sam, 2026-11-18: no
+Season Card of anybody else) and lists his seasons: the finished ones, and
+the one being played, an NFL player's only those he played on one of the
+six's teams (a week with one of the six's lines on his side,
+`nfl_season_lines.mate`). Each shows team, games, FPTS, what it pays a
+season and its price; Buy opens the card week by week (below), at the rank
+your cards of him from that season give it, with Buy under it. A Season
+Card replays its
 season: every week published after it is bought, in every later season,
 pays what his game in that week of the card's season was worth. A Kenneth
 Walker 2027 card pays his 2027 week 2 game in 2030 week 2, and again in
@@ -3070,25 +3084,34 @@ Walker 2027 card pays his 2027 week 2 game in 2030 week 2, and again in
 
 - A game pays ceil(FPTS / 10) diamonds, twice in the playoffs, nothing
   under 1 FPTS. FPTS are the site's, defenders IDP style.
-- Price: an NFL player's is twice what the season pays a year, never under
-  10; one of the six's three times, never under 15 (Sam: "a little bit more
-  pricy"). The season being played is priced on his pace: what his games so
-  far pay carried over 18 weeks, or last season's pay, whichever is more
-  (`nfl_live_basis`, `liveBasis` in data/nfl-cards.js). It pays from the
-  next season on, and its games, FPTS and pay are counted again as weeks
-  come out (`weeks_seen`, in `pay_nfl_season_cards`).
-- Rank: it ranks up like a Player Card, on the same ladder (the six's or
-  the NFL one), but only from the cards held of him from that same season,
-  so a 2028 card does nothing for his 2027 Season Card. The rank adds to
-  every week it pays: Uncommon +10%, Rare +25%, Epic +50%, Legendary +80%,
-  Mystic +125%, Iconic +300%, GOAT +500% (Sam picked this on 2026-11-18).
-  A week is paid at the rank held when it is paid.
+- Price: one flat price (Sam, 2026-11-18): 40 diamonds for an NFL
+  player's, 60 for one of the six's, any season. The season being played
+  shows what it would pay at his pace (what his games so far pay carried
+  over 18 weeks, or last season's pay, whichever is more: `nfl_live_basis`,
+  `liveBasis` in data/nfl-cards.js). It pays from the next season on, and
+  its games, FPTS and pay are counted again as weeks come out
+  (`weeks_seen`, in `pay_nfl_season_cards`).
+- Rank: every Season Card starts at Common (Sam, 2026-11-18) and ranks up
+  like a Player Card, on the same ladder (the six's or the NFL one, with a
+  Common rung at 0), but only from the cards held of him from that same
+  season, so a 2028 card does nothing for his 2027 Season Card. The rank
+  adds to every week it pays: Common nothing, Uncommon +10%, Rare +25%,
+  Epic +50%, Legendary +80%, Mystic +125%, Iconic +300%, GOAT +500% (Sam
+  picked this on 2026-11-18). A week is paid at the rank held when it is
+  paid: round(the week's diamonds × (1 + bonus)).
+- Week by week: tapping a Season Card (yours or anybody's, and Buy in the
+  Shop) opens every week of its season with who he played, his FPTS and
+  what the week pays at its rank, and the season's total under them. The
+  rank chips over the weeks show the same at any other rank, the card drawn
+  at that rank, how many more FPTS of his cards from that season it takes,
+  and the total's gain (`openSeasonCard` in js/cards-view.js). An NFL
+  player's weeks come from `nfl_season_card_weeks`.
 - One of each player's season per account; no selling back.
 - An NFL player's: Postgres reads the box scores and prices and pays it
   (`nfl_season_card_quotes`, `buy_nfl_season_card`). One of the six's:
   his games are in the season files, so the page works the season out
   (`EGE.nflCards.egeSeasonQuote`) and `buy_ege_season_card` holds it to a
-  season's shape and charges three times it. `pay_nfl_season_cards` takes
+  season's shape and charges 60. `pay_nfl_season_cards` takes
   each card's rank from the page (as for Team Cards) and, for one of the
   six's, what each week pays (held to 30 a week); a card the page says
   nothing of waits. `SEASON_CARD` in data/nfl-cards.js mirrors the

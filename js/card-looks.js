@@ -21,6 +21,10 @@
                circles, from the same cards as the nickname (the six's
                career cards, never their Season Cards), and nowhere else.
 
+   The editor's two switches (Sam, 2026-11-18) turn either one off past the
+   card: show_name false keeps the nickname on the card alone, show_face
+   false keeps the League page's real face.
+
    Where the name stays real: anything inside [data-realname] or the
    selectors in KEEP below.
    ========================================================================== */
@@ -34,7 +38,7 @@ EGE.cardLooks = (function () {
 
   /* --- whose: the signed-in account's styles -------------------------------- */
 
-  var mine = {};            /* { key: { nickname, avatar, name, espn } } */
+  var mine = {};            /* { key: { nickname, avatar, name, espn, show_name, show_face } } */
   var loadedFor = null;
 
   function load(email) {
@@ -117,7 +121,7 @@ EGE.cardLooks = (function () {
     Object.keys(mine).forEach(function (key) {
       var style = mine[key];
       var kind = kindOf(key, style);
-      if (!kind || !style || !style.nickname || style.nickname === kind.name) { return; }
+      if (!kind || !style || !style.nickname || style.nickname === kind.name || style.show_name === false) { return; }
       if (kind.career) { everywhere[kind.name.toLowerCase()] = style.nickname; }
       if (kind.nfl && kind.season === year) { league[kind.name.toLowerCase()] = style.nickname; }
     });
@@ -246,7 +250,7 @@ EGE.cardLooks = (function () {
     Object.keys(mine).forEach(function (key) {
       var style = mine[key];
       var kind = kindOf(key, style);
-      if (!kind || !style.avatar) { return; }
+      if (!kind || !style.avatar || style.show_face === false) { return; }
       if (kind.nfl) {
         if (kind.season === year && style.espn) { byEspn[style.espn] = style.avatar; }
         return;
