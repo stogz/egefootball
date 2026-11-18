@@ -679,6 +679,128 @@ EGE.nflCards = (function () {
     };
   }
 
+  /* Season Cards (Sam, 2026-11-18): one player's finished season, bought
+     in the Shop: an NFL player's, or one of the six's. Each week of every
+     season after, it pays what his game in that week of its season was
+     worth: ceil(FPTS / 10) diamonds, twice that in the playoffs, nothing
+     under 1 FPTS. An NFL player's costs twice what it pays a year, never
+     under 10; one of the six's three times, never under 15 (Sam: "a little
+     bit more pricy").
+
+     It ranks up like a Player Card, on the same ladder, but only on the
+     cards held of him from that same season: a 2027 card of him does
+     nothing for his 2026 Season Card. The rank adds `bonus` to every week
+     it pays (twice a Player Card's).
+
+     Postgres prices and pays an NFL player's from the sim's box scores
+     (nfl_season_card_quotes, buy_nfl_season_card, pay_nfl_season_cards in
+     supabase/schema.sql); one of the six's is priced and paid from the
+     season files here, as his games' own diamonds are, and held to the
+     same numbers there (buy_ege_season_card). Change both together. */
+  var SEASON_CARD = {
+    per: 10, playoffFrom: 19, playoffTimes: 2,
+    priceTimes: 2, minPrice: 10,
+    egePriceTimes: 3, egeMinPrice: 15,
+    bonus: { uncommon: 0.10, rare: 0.25, epic: 0.5, legendary: 0.8, mystic: 1.25, iconic: 3, goat: 5 }
+  };
+
+  function seasonGamePay(points, week, playoff) {
+    if (!(points >= 1)) { return 0; }
+    var times = playoff === undefined ? week >= SEASON_CARD.playoffFrom : playoff;
+    return Math.ceil(points / SEASON_CARD.per) * (times ? SEASON_CARD.playoffTimes : 1);
+  }
+
+  /* A Season Card's colour, from the season's fantasy points. */
+  function seasonRarity(points) {
+    var key = points >= 300 ? 'legendary' : points >= 220 ? 'epic' : points >= 150 ? 'rare'
+      : points >= 80 ? 'uncommon' : 'common';
+    return EGE.cards.rarity(key);
+  }
+
+  /* Where the cards in `owned` of him from the card's own season put a
+     Season Card (an nfl_season_cards row): shaped as a Player Card is
+     ({ points, copies, ladder, rank, next }), each rung's bonus the Season
+     Card's. Rank null with no card of that season. */
+  function seasonRank(row, owned) {
+    var ege = Boolean(row.ege);
+    var season = Number(row.season);
+    var only = {};
+    Object.keys(owned || {}).forEach(function (id) {
+      if (!(owned[id] > 0) || ege === isNflId(id)) { return; }
+      var card = EGE.cards.byId(id);
+      if (card && card.slug === row.slug && Number(card.season) === season && Boolean(card.nfl) !== ege) {
+        only[id] = owned[id];
+      }
+    });
+    var player = ege && EGE.playerBySlug ? EGE.playerBySlug(row.slug) : null;
+    var base = ege ? (player ? EGE.cards.playerCard(player, only) : null) : playerCard(row.slug, only);
+    var ladder = (base ? base.ladder : ladderFor()).map(function (r) {
+      return Object.assign({}, r, { bonus: SEASON_CARD.bonus[r.key] || 0 });
+    });
+    var points = base ? base.points : 0;
+    var copies = base ? base.copies : 0;
+    var at = -1;
+    if (copies > 0) { ladder.forEach(function (r, i) { if (points >= r.points) { at = i; } }); }
+    return {
+      points: points, copies: copies, ladder: ladder,
+      rank: at === -1 ? null : ladder[at],
+      next: at + 1 < ladder.length ? ladder[at + 1] : null
+    };
+  }
+
+  /* One of the six's finished seasons as a Season Card would be bought:
+     { season, team, games, points, pays, price, weeks: [[week, FPTS,
+     diamonds]], ege: true }, or null for a season with nothing to pay on. */
+  function egeSeasonQuote(player, season) {
+    if (!player || !EGE.gamesPlayed) { return null; }
+    var byWeek = {};
+    var teams = {};
+    EGE.gamesPlayed(player, season).forEach(function (game) {
+      if (!game.stats || game.injured || game.bye) { return; }
+      var pts = EGE.economy.fantasyPoints(game.stats);
+      var w = byWeek[game.week] || (byWeek[game.week] = { points: 0, pay: 0 });
+      w.points = Math.round((w.points + pts) * 100) / 100;
+      w.pay += seasonGamePay(pts, game.week, Boolean(game.playoff));
+      var team = EGE.teamKeyFor ? EGE.teamKeyFor(player, season, game.week) : null;
+      if (team) { teams[team] = (teams[team] || 0) + 1; }
+    });
+    var weeks = Object.keys(byWeek).map(Number).sort(function (a, b) { return a - b; })
+      .map(function (week) { return [week, byWeek[week].points, byWeek[week].pay]; });
+    var pays = weeks.reduce(function (sum, w) { return sum + w[2]; }, 0);
+    if (!pays) { return null; }
+    var points = weeks.reduce(function (sum, w) { return sum + w[1]; }, 0);
+    var team = Object.keys(teams).sort(function (a, b) { return teams[b] - teams[a]; })[0] || null;
+    return {
+      season: season, team: team, games: weeks.length, points: Math.round(points * 10) / 10,
+      pays: pays, price: Math.max(SEASON_CARD.egeMinPrice, pays * SEASON_CARD.egePriceTimes),
+      weeks: weeks, ege: true
+    };
+  }
+
+  /* Every finished season of one of the six, newest first. */
+  function egeSeasonQuotes(player) {
+    var seasons = EGE.seasonsPlayed ? EGE.seasonsPlayed() : [];
+    return seasons.filter(function (year) { return year < EGE.currentSeason; }).reverse()
+      .map(function (year) { return egeSeasonQuote(player, year); }).filter(Boolean);
+  }
+
+  /* What the page tells pay_nfl_season_cards about the account's Season
+     Cards: each one's rank, and for one of the six's, what each week of
+     his season pays ({ week: diamonds }). An NFL player's is left out
+     while the NFL cards are not made yet, rather than paid at no rank. */
+  function seasonClaims(rows, owned) {
+    return (rows || []).filter(function (row) { return row.ege || loaded; }).map(function (row) {
+      var r = seasonRank(row, owned);
+      var claim = { season: Number(row.season), slug: row.slug, ege: Boolean(row.ege), rank: r.rank ? r.rank.key : null };
+      if (row.ege) {
+        var q = egeSeasonQuote(EGE.playerBySlug(row.slug), Number(row.season));
+        claim.weeks = {};
+        (q ? q.weeks : []).forEach(function (w) { claim.weeks[w[0]] = w[2]; });
+      }
+      return claim;
+    });
+  }
+
   /* Every NFL Player Card the account has made, best first. */
   function playerCards(owned) {
     var held = holdings(owned);
@@ -1085,6 +1207,13 @@ EGE.nflCards = (function () {
     holdings: holdings,
     playerCard: playerCard,
     playerCards: playerCards,
+    SEASON_CARD: SEASON_CARD,
+    seasonGamePay: seasonGamePay,
+    seasonRarity: seasonRarity,
+    seasonRank: seasonRank,
+    egeSeasonQuote: egeSeasonQuote,
+    egeSeasonQuotes: egeSeasonQuotes,
+    seasonClaims: seasonClaims,
     onTheWay: onTheWay,
     ladderFor: ladderFor,
     gameBonus: gameBonus,

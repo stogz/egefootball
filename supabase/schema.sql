@@ -2541,6 +2541,176 @@ create policy "card photos readable by anybody"
   on public.card_photos for select to anon, authenticated
   using (true);
 
+-- ---------------------------------------------------------------------------
+-- Season Cards (Sam, 2026-11-18)
+--
+-- A player's whole season, bought in the Shop for diamonds: an NFL
+-- player's (the card of, say, his 2026) or one of the six's (ege). Every
+-- week of every season after, it pays what his game in that week of its
+-- own season was worth: his 2026 week 2 game pays again in 2030 week 2,
+-- and in 2031 week 2, whoever he plays for now or if he has retired. Its
+-- table is here, ahead of the card styles that read it; buying and paying
+-- are at the end of the file (nfl_season_card_quotes, buy_nfl_season_card,
+-- buy_ege_season_card, pay_nfl_season_cards). One of each player's season
+-- an account; readable by anybody signed in, so somebody else's Player
+-- Cards page shows theirs.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.nfl_season_cards (
+  email     text        not null,
+  season    integer     not null,
+  slug      text        not null,
+  espn      text,
+  name      text        not null,
+  pos       text        not null default '',
+  team      text,
+  games     integer     not null default 0,
+  points    numeric     not null default 0,
+  pays      integer     not null default 0,
+  price     integer     not null default 0,
+  bought_at timestamptz not null default now(),
+  primary key (email, season, slug)
+);
+
+alter table public.nfl_season_cards add column if not exists ege boolean not null default false;
+
+alter table public.nfl_season_cards enable row level security;
+
+drop policy if exists "season cards readable when signed in" on public.nfl_season_cards;
+create policy "season cards readable when signed in"
+  on public.nfl_season_cards for select to authenticated
+  using (true);
+
+-- An NFL player whose card face an account may dress up: one it holds an
+-- NFL card of (his NFL Player Card) or one of whose seasons it owns.
+create or replace function public.holds_nfl_face(p_email text, p_slug text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select public.holds_nfl_player(p_email, p_slug)
+      or exists (select 1 from public.nfl_season_cards
+                  where lower(email) = lower(p_email) and slug = p_slug and not ege);
+$$;
+
+revoke all on function public.holds_nfl_face(text, text) from public, anon, authenticated;
+
+-- One of the six whose card face an account may dress up: one it holds a
+-- card of, or one of whose seasons it owns.
+create or replace function public.holds_six_face(p_email text, p_slug text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.player_cards
+                  where email = p_email and quantity > 0 and split_part(card_id, ':', 3) = p_slug)
+      or exists (select 1 from public.nfl_season_cards
+                  where lower(email) = lower(p_email) and slug = p_slug and ege);
+$$;
+
+revoke all on function public.holds_six_face(text, text) from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Card styles: the Player Card editor (Sam, 2026-11-18)
+--
+-- What an account has done to one of its Player Cards beyond the photo
+-- (card_photos above): a nickname and an avatar, the photo cut to a circle
+-- (a small WebP or PNG data URL). The
+-- slug is one of the six's ('andrew-parr') or 'n:{slug}' for an NFL
+-- player's (his NFL Player Card and his Season Cards share it).
+--
+-- The nickname is on the card for anybody who sees it. On the
+-- owner's own browser the nickname also stands in for the player's name
+-- across the site, and the avatar for his face in the League page's circles
+-- (js/card-looks.js); nobody else's browser does either. `name` and `espn`
+-- are the NFL player's real name and ESPN id, so the owner's browser can
+-- find him on a page before it has read any NFL cards.
+--
+-- An account has a card of the player (or, for an NFL one, holds_nfl_face)
+-- to style it, and twelve NFL players styled at most.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.card_styles (
+  email      text        not null,
+  slug       text        not null,
+  name       text,
+  espn       text,
+  nickname   text,
+  avatar     text,
+  updated_at timestamptz not null default now(),
+  primary key (email, slug)
+);
+
+alter table public.card_styles enable row level security;
+
+drop policy if exists "card styles readable by anybody" on public.card_styles;
+create policy "card styles readable by anybody"
+  on public.card_styles for select to anon, authenticated
+  using (true);
+
+create or replace function public.set_card_style(p_slug text, p_name text, p_espn text,
+                                                 p_nickname text, p_avatar text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email    text := auth.jwt() ->> 'email';
+  v_nfl      boolean := p_slug ~ '^n:[a-z0-9]+(-[a-z0-9]+)*$';
+  v_nickname text := nullif(btrim(regexp_replace(coalesce(p_nickname, ''), '\s+', ' ', 'g')), '');
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  if p_slug is null or (p_slug !~ '^[a-z]+(-[a-z]+)*$' and not v_nfl) then
+    raise exception 'Not a player: %', p_slug;
+  end if;
+  if v_nfl then
+    if not public.holds_nfl_face(v_email, substr(p_slug, 3)) then
+      raise exception 'You need a card of that player to change his card.';
+    end if;
+  elsif not public.holds_six_face(v_email, p_slug) then
+    raise exception 'You need a card of that player to change his card.';
+  end if;
+
+  if v_nickname is not null and (char_length(v_nickname) > 24 or v_nickname ~ '[<>\x00-\x1f]') then
+    raise exception 'A nickname is up to 24 letters.';
+  end if;
+  if p_avatar is not null
+     and (p_avatar !~ '^data:image/(webp|png);base64,[A-Za-z0-9+/]+={0,2}$' or length(p_avatar) > 60000) then
+    raise exception 'That avatar is too big. Try again.';
+  end if;
+
+  -- Nothing left on it: no row.
+  if v_nickname is null and p_avatar is null then
+    delete from public.card_styles where email = v_email and slug = p_slug;
+    return;
+  end if;
+
+  if v_nfl and not exists (select 1 from public.card_styles where email = v_email and slug = p_slug)
+     and (select count(*) from public.card_styles where email = v_email and slug like 'n:%') >= 12 then
+    raise exception 'You can dress up twelve NFL cards. Reset one first.';
+  end if;
+
+  insert into public.card_styles (email, slug, name, espn, nickname, avatar, updated_at)
+  values (v_email, p_slug,
+          case when v_nfl then left(nullif(btrim(p_name), ''), 60) end,
+          case when v_nfl and p_espn ~ '^[0-9]{1,12}$' then p_espn end,
+          v_nickname, p_avatar, now())
+  on conflict (email, slug) do update
+     set name = excluded.name, espn = excluded.espn, nickname = excluded.nickname,
+         avatar = excluded.avatar, updated_at = now();
+end;
+$$;
+
+revoke all on function public.set_card_style(text, text, text, text, text) from public, anon;
+grant execute on function public.set_card_style(text, text, text, text, text) to authenticated;
+
 create or replace function public.set_card_photo(p_slug text, p_photo text)
 returns void
 language plpgsql
@@ -2558,17 +2728,16 @@ begin
     raise exception 'Not a player: %', p_slug;
   end if;
   if v_nfl then
-    if not public.holds_nfl_player(v_email, substr(p_slug, 3)) then
+    if not public.holds_nfl_face(v_email, substr(p_slug, 3)) then
       raise exception 'You need an NFL card of that player to put a photo on his NFL Player Card.';
     end if;
     -- Six up, counting only teammates still held, whose cards show them.
     if (select count(*) from public.card_photos
          where email = v_email and slug like 'n:%' and slug <> p_slug
-           and public.holds_nfl_player(v_email, substr(slug, 3))) >= 6 then
+           and public.holds_nfl_face(v_email, substr(slug, 3))) >= 6 then
       raise exception 'You can have six NFL Player Card photos up. Take one down first.';
     end if;
-  elsif not exists (select 1 from public.player_cards
-                     where email = v_email and quantity > 0 and split_part(card_id, ':', 3) = p_slug) then
+  elsif not public.holds_six_face(v_email, p_slug) then
     raise exception 'You need a card of that player to put a photo on his Player Card.';
   end if;
   if p_photo is null or p_photo !~ '^data:image/(webp|jpeg|png);base64,[A-Za-z0-9+/]+={0,2}$' then
@@ -2660,6 +2829,12 @@ as $$
         from public.card_photos ph
        where ph.email = s.email
          and (ph.slug = any(s.player_cards) or ph.slug = any(array(select 'n:' || x from unnest(s.nfl_cards) x)))),
+      '{}'::jsonb),
+    'styles', coalesce((
+      select jsonb_object_agg(st.slug, jsonb_strip_nulls(jsonb_build_object('nickname', st.nickname)))
+        from public.card_styles st
+       where st.email = s.email
+         and (st.slug = any(s.player_cards) or st.slug = any(array(select 'n:' || x from unnest(s.nfl_cards) x)))),
       '{}'::jsonb))
     from (select p_email as email,
                  coalesce((select array(select substr(c, 4) from unnest(cs.cards) with ordinality as t(c, n)
@@ -5919,5 +6094,386 @@ $$;
 
 revoke all on function public.media_post(bigint) from public, anon;
 grant execute on function public.media_post(bigint) to authenticated;
+
+notify pgrst, 'reload schema';
+
+-- ===========================================================================
+-- Season Cards: buying and paying (Sam, 2026-11-18)
+--
+-- The table is up with the card photos (nfl_season_cards). A Season Card is
+-- one player's finished season: one whose Super Bowl week (22) is out, or
+-- any season before the latest one with a published week.
+--
+-- Each of his games in it is worth ceil(FPTS / 10) diamonds, twice that in
+-- the playoffs (week 19 on), and nothing under 1 FPTS. FPTS are the site's,
+-- with a defender's IDP style (DEFENSE in data/nfl-cards.js). An NFL
+-- player's price is twice what the season pays in a year, never under 10.
+-- One of the six's (ege) is three times it, never under 15 (Sam: "a little
+-- bit more pricy"); his games are in the season files, not here, so the
+-- page works his season out as it does his games' own diamonds and this
+-- holds it to the shape (SEASON_CARD in data/nfl-cards.js; change both
+-- together).
+--
+-- It ranks up like a Player Card on the cards held of him from its own
+-- season only, and the page says which rank (as for Team Cards). The rank
+-- adds to every week it pays: Uncommon +10%, Rare +25%, Epic +50%,
+-- Legendary +80%, Mystic +125%, Iconic +300%, GOAT +500%.
+--
+-- Every week published in a season after the card's own, once it is
+-- bought, pays what his game in that week of the card's season was worth,
+-- as one award nsc-{card season}-{slug}-w{week}, paid once, at the rank
+-- it has then. A week he did not play goes in at nothing. A week published
+-- before the card was bought never pays it.
+-- ===========================================================================
+
+create or replace function public.nfl_num(l jsonb, k text)
+returns numeric
+language sql
+immutable
+as $$
+  select case when jsonb_typeof(l -> k) = 'number' then (l ->> k)::numeric else 0 end;
+$$;
+
+-- A box score line's fantasy points.
+create or replace function public.nfl_line_points(l jsonb)
+returns numeric
+language sql
+immutable
+as $$
+  select round(
+      public.nfl_num(l, 'passYds') / 25 + public.nfl_num(l, 'passTd') * 4 - public.nfl_num(l, 'passInt') * 2
+    + public.nfl_num(l, 'rushYds') / 10 + public.nfl_num(l, 'rushTd') * 6
+    + public.nfl_num(l, 'recYds') / 10 + public.nfl_num(l, 'recTd') * 6 + public.nfl_num(l, 'rec') * 0.5
+    - public.nfl_num(l, 'fumLost') * 2
+    + public.nfl_num(l, 'tackles') + public.nfl_num(l, 'sacks') * 4 + public.nfl_num(l, 'ints') * 5
+    + public.nfl_num(l, 'passDef') * 1.5 + public.nfl_num(l, 'ff') * 3 + public.nfl_num(l, 'defTd') * 6, 2);
+$$;
+
+-- What one game of a Season Card pays.
+create or replace function public.nfl_season_game_pay(p_points numeric, p_week integer)
+returns integer
+language sql
+immutable
+as $$
+  select case when coalesce(p_points, 0) < 1 then 0
+              else ceil(p_points / 10)::integer * (case when p_week >= 19 then 2 else 1 end) end;
+$$;
+
+-- Whether a season is over, for buying one of its Season Cards.
+create or replace function public.nfl_season_over(p_season integer)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.published_weeks p
+                  where p.season > p_season or (p.season = p_season and p.week >= 22));
+$$;
+
+-- One player's lines in a season's published weeks, one a week: by his
+-- ESPN id, or (a line without one, before the sim kept ids) his name and
+-- position. Never one of the six's lines.
+create or replace function public.nfl_season_lines(p_season integer, p_espn text, p_name text, p_pos text,
+                                                   p_week integer default null)
+returns table (week integer, team text, points numeric)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select distinct on (b.week) b.week, l.v ->> 'team', public.nfl_line_points(l.v)
+    from public.sim_box_scores b
+    cross join lateral jsonb_array_elements(case when jsonb_typeof(b.games) = 'array' then b.games else '[]'::jsonb end) as x(g)
+    cross join lateral jsonb_array_elements(coalesce(x.g -> 'box', '[]'::jsonb)) as l(v)
+   where b.season = p_season
+     and (p_week is null or b.week = p_week)
+     and exists (select 1 from public.published_weeks p where p.season = b.season and p.week = b.week)
+     and not (l.v ? 'ege')
+     and (   (coalesce(p_espn, '') <> '' and l.v ->> 'espn' = p_espn)
+          or ((coalesce(p_espn, '') = '' or not (l.v ? 'espn'))
+              and l.v ->> 'name' = p_name and l.v ->> 'pos' = coalesce(p_pos, '')))
+   order by b.week, public.nfl_line_points(l.v) desc;
+$$;
+
+revoke all on function public.nfl_season_lines(integer, text, text, text, integer) from public, anon, authenticated;
+
+-- Every finished season of one player a Season Card can be bought of:
+-- [{ season, team, games, points, pays, price, weeks: [[week, points, diamonds]] }],
+-- newest first.
+create or replace function public.nfl_season_card_quotes(p_espn text, p_name text, p_pos text)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with seasons as (
+    select distinct b.season from public.sim_box_scores b
+     where public.nfl_season_over(b.season)
+  ),
+  lines as (
+    select s.season, l.week, l.team, l.points, public.nfl_season_game_pay(l.points, l.week) as pay
+      from seasons s
+      cross join lateral public.nfl_season_lines(s.season, p_espn, p_name, p_pos) l
+  ),
+  totals as (
+    select season,
+           mode() within group (order by team) as team,
+           count(*) as games,
+           round(sum(points), 1) as points,
+           sum(pay) as pays,
+           jsonb_agg(jsonb_build_array(week, points, pay) order by week) as weeks
+      from lines group by season
+  )
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'season', season, 'team', team, 'games', games, 'points', points, 'pays', pays,
+           'price', greatest(10, pays * 2), 'weeks', weeks) order by season desc), '[]'::jsonb)
+    from totals
+   where pays > 0;
+$$;
+
+revoke all on function public.nfl_season_card_quotes(text, text, text) from public, anon;
+grant execute on function public.nfl_season_card_quotes(text, text, text) to authenticated;
+
+-- Buys one. p_price is the price the page showed; a different one now is
+-- refused rather than charged. Returns the diamonds left.
+create or replace function public.buy_nfl_season_card(p_season integer, p_slug text, p_espn text,
+                                                      p_name text, p_pos text, p_price integer)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email  text := auth.jwt() ->> 'email';
+  v_games  integer;
+  v_points numeric;
+  v_pays   integer;
+  v_team   text;
+  v_price  integer;
+  v_left   integer;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  if p_slug is null or p_slug !~ '^[a-z0-9]+(-[a-z0-9]+)*$' or coalesce(btrim(p_name), '') = '' then
+    raise exception 'Not a player.';
+  end if;
+  if not public.nfl_season_over(p_season) then
+    raise exception 'That season is not over yet.';
+  end if;
+  if exists (select 1 from public.nfl_season_cards
+              where email = v_email and season = p_season and slug = p_slug) then
+    raise exception 'You have that Season Card already.';
+  end if;
+
+  select count(*), coalesce(sum(points), 0), coalesce(sum(public.nfl_season_game_pay(points, week)), 0),
+         mode() within group (order by team)
+    into v_games, v_points, v_pays, v_team
+    from public.nfl_season_lines(p_season, p_espn, p_name, p_pos);
+  if v_pays <= 0 then
+    raise exception 'He has no games that season to pay on.';
+  end if;
+  v_price := greatest(10, v_pays * 2);
+  if p_price is distinct from v_price then
+    raise exception 'The price has changed to %. Look again.', v_price;
+  end if;
+
+  insert into public.player_diamonds (email, diamonds, updated_at)
+  values (v_email, 0, now())
+  on conflict (email) do nothing;
+  select diamonds into v_left from public.player_diamonds where email = v_email for update;
+  if v_left < v_price then
+    raise exception 'Not enough diamonds.';
+  end if;
+
+  update public.player_diamonds
+     set diamonds = diamonds - v_price, updated_at = now()
+   where email = v_email
+  returning diamonds into v_left;
+
+  insert into public.nfl_season_cards (email, season, slug, espn, name, pos, team, games, points, pays, price)
+  values (v_email, p_season, p_slug, nullif(p_espn, ''), left(btrim(p_name), 60), coalesce(p_pos, ''),
+          v_team, v_games, round(v_points, 1), v_pays, v_price);
+  return v_left;
+end;
+$$;
+
+revoke all on function public.buy_nfl_season_card(integer, text, text, text, text, integer) from public, anon;
+grant execute on function public.buy_nfl_season_card(integer, text, text, text, text, integer) to authenticated;
+
+-- Buys one of the six's seasons. The page says what it is (his games, FPTS
+-- and what they pay, from the season files); this holds it to a season's
+-- shape and charges the price that comes to. Returns the diamonds left.
+create or replace function public.buy_ege_season_card(p_season integer, p_slug text, p_name text, p_pos text,
+                                                      p_team text, p_games integer, p_points numeric,
+                                                      p_pays integer, p_price integer)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  v_price integer;
+  v_left  integer;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  if p_slug is null or p_slug <> all (array['sam-stogsdill', 'cooper-clark', 'paxon-hatch', 'andrew-parr',
+                                             'isaac-vitel', 'jaykeb-stewart']) then
+    raise exception 'Not one of the six.';
+  end if;
+  if p_season is null or p_season < 2018
+     or p_season >= (select coalesce(max(season), 0) from public.published_weeks) then
+    raise exception 'That season is not over yet.';
+  end if;
+  if coalesce(p_games, 0) < 1 or p_games > 25 or coalesce(p_pays, 0) < 1 or p_pays > 300
+     or coalesce(p_points, 0) < 0 or p_points > 2000 then
+    raise exception 'That is not a season.';
+  end if;
+  if exists (select 1 from public.nfl_season_cards
+              where email = v_email and season = p_season and slug = p_slug) then
+    raise exception 'You have that Season Card already.';
+  end if;
+  v_price := greatest(15, p_pays * 3);
+  if p_price is distinct from v_price then
+    raise exception 'The price has changed to %. Look again.', v_price;
+  end if;
+
+  insert into public.player_diamonds (email, diamonds, updated_at)
+  values (v_email, 0, now())
+  on conflict (email) do nothing;
+  select diamonds into v_left from public.player_diamonds where email = v_email for update;
+  if v_left < v_price then
+    raise exception 'Not enough diamonds.';
+  end if;
+
+  update public.player_diamonds
+     set diamonds = diamonds - v_price, updated_at = now()
+   where email = v_email
+  returning diamonds into v_left;
+
+  insert into public.nfl_season_cards (email, season, slug, espn, name, pos, team, games, points, pays, price, ege)
+  values (v_email, p_season, p_slug, null, left(btrim(coalesce(p_name, p_slug)), 60), left(coalesce(p_pos, ''), 4),
+          left(nullif(p_team, ''), 40), p_games, round(p_points, 1), p_pays, v_price, true);
+  return v_left;
+end;
+$$;
+
+revoke all on function public.buy_ege_season_card(integer, text, text, text, text, integer, numeric, integer, integer)
+  from public, anon;
+grant execute on function public.buy_ege_season_card(integer, text, text, text, text, integer, numeric, integer, integer)
+  to authenticated;
+
+-- Pays this account's Season Cards for p_season's published weeks (the live
+-- season, from the page): only weeks not paid yet are looked up, so it is
+-- cheap to call on every load. p_cards is what the page says of each:
+--   [{ "season": 2026, "slug": "kenneth-walker-iii", "rank": "rare" },
+--    { "season": 2022, "slug": "andrew-parr", "ege": true, "rank": null,
+--      "weeks": { "1": 3, "2": 2 } }]
+-- its rank, and for one of the six's what each week of his season pays
+-- (held to 30 a week). A card the page says nothing of waits for a page
+-- that does. Returns what it paid.
+drop function if exists public.pay_nfl_season_cards(integer);
+
+create or replace function public.pay_nfl_season_cards(p_season integer, p_cards jsonb)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  v_paid  integer := 0;
+  v_base  integer;
+  v_pay   integer;
+  v_pts   numeric;
+  r       record;
+begin
+  if v_email is null then
+    raise exception 'sign in first';
+  end if;
+  if p_cards is null or jsonb_typeof(p_cards) <> 'array' or jsonb_array_length(p_cards) > 500 then
+    return 0;
+  end if;
+
+  insert into public.player_diamonds (email, diamonds, updated_at)
+  values (v_email, 0, now())
+  on conflict (email) do nothing;
+  perform 1 from public.player_diamonds where email = v_email for update;
+
+  for r in
+    with claims as (
+      select distinct on ((x ->> 'season'), (x ->> 'slug'))
+             (x ->> 'season')::integer as season, x ->> 'slug' as slug,
+             case x ->> 'rank'
+               when 'uncommon' then 0.10 when 'rare' then 0.25 when 'epic' then 0.5
+               when 'legendary' then 0.8 when 'mystic' then 1.25 when 'iconic' then 3
+               when 'goat' then 5 else 0 end as bonus,
+             case x ->> 'rank'
+               when 'uncommon' then 'Uncommon ' when 'rare' then 'Rare ' when 'epic' then 'Epic '
+               when 'legendary' then 'Legendary ' when 'mystic' then 'Mystic ' when 'iconic' then 'Iconic '
+               when 'goat' then 'GOAT ' else '' end as rank_name,
+             case when jsonb_typeof(x -> 'weeks') = 'object' then x -> 'weeks' else '{}'::jsonb end as weeks
+        from jsonb_array_elements(p_cards) as x
+       where jsonb_typeof(x) = 'object'
+         and (x ->> 'season') ~ '^[0-9]{4}$'
+         and x ->> 'slug' is not null
+    )
+    select c.season as card_season, c.slug, c.espn, c.name, c.pos, c.ege, w.week,
+           k.bonus, k.rank_name, k.weeks,
+           'nsc-' || c.season || '-' || c.slug || '-w' || w.week as award_key
+      from public.nfl_season_cards c
+      join claims k on k.season = c.season and k.slug = c.slug
+      join public.published_weeks w
+        on w.season = p_season and w.published_at > c.bought_at
+     where c.email = v_email
+       and c.season < p_season
+       and not exists (select 1 from public.diamond_awards da
+                        where da.email = v_email and da.season = p_season
+                          and da.award_key = 'nsc-' || c.season || '-' || c.slug || '-w' || w.week)
+     order by w.week, c.season, c.slug
+  loop
+    if r.ege then
+      v_pts := null;
+      v_base := case when jsonb_typeof(r.weeks -> r.week::text) = 'number'
+                     then least(30, greatest(0, floor((r.weeks ->> r.week::text)::numeric)))::integer
+                     else 0 end;
+    else
+      select l.points into v_pts
+        from public.nfl_season_lines(r.card_season, r.espn, r.name, r.pos, r.week) l;
+      v_base := public.nfl_season_game_pay(v_pts, r.week);
+    end if;
+    v_pay := round(v_base * (1 + r.bonus))::integer;
+
+    insert into public.diamond_awards (email, season, award_key, diamonds, note)
+    values (v_email, p_season, r.award_key, v_pay,
+            r.rank_name || r.name || ' ' || r.card_season || ' Season Card, week ' || r.week || ': ' ||
+            case when r.ege then case when v_base > 0 then v_base || ' a game' else 'no game' end
+                 when v_pts is null then 'no game'
+                 else round(v_pts, 1) || ' FPTS' ||
+                      case when r.week >= 19 and v_base > 0 then ' at the playoff 2x' else '' end end ||
+            case when r.bonus > 0 and v_base > 0 then ', +' || round(r.bonus * 100) || '%' else '' end)
+    on conflict (email, season, award_key) do nothing;
+    if found then
+      v_paid := v_paid + v_pay;
+    end if;
+  end loop;
+
+  if v_paid > 0 then
+    update public.player_diamonds
+       set diamonds = diamonds + v_paid, updated_at = now()
+     where email = v_email;
+  end if;
+
+  return v_paid;
+end;
+$$;
+
+revoke all on function public.pay_nfl_season_cards(integer, jsonb) from public, anon;
+grant execute on function public.pay_nfl_season_cards(integer, jsonb) to authenticated;
 
 notify pgrst, 'reload schema';

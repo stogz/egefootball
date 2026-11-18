@@ -46,6 +46,10 @@ EGE.cardsView = (function () {
     shop: null,         /* today's shelf from card_shop_today; null until read */
     market: null,       /* { open, mine } listings; null until read */
     photos: null,       /* this account's Player Card photos, { slug: data url } */
+    styles: {},         /* and the editor's styles, { slug: { nickname, avatar } } (js/card-looks.js) */
+    seasonCards: [],    /* its Season Cards, nfl_season_cards rows */
+    seasonEarned: null, /* what they have paid: { all: { 'season:slug': n }, now: { ... } } */
+    pcIndex: {},        /* which card each carousel is on, by kind and whose */
     pcView: null,       /* whose Player Cards the Players page shows; null is yours */
     pcOther: null,      /* theirs once read: { owned, photos, earned, failed } */
     pcKind: 'ege',      /* the six's Player Cards, 'nfl' for the NFL teammates' or 'team' for Team Cards */
@@ -1613,7 +1617,7 @@ EGE.cardsView = (function () {
 
     var row = el('div', 'ege-rip__cards ege-rip__cards--1');
     var holder = el('div', 'ege-zoom__card');
-    holder.appendChild(playerCardFace(pc, pc.earned, pc.photo || null));
+    holder.appendChild(playerCardFace(pc, pc.earned, pc.photo || null, pc.style || null));
     row.appendChild(holder);
     stage.appendChild(row);
     tiltCard(holder);
@@ -2328,6 +2332,8 @@ EGE.cardsView = (function () {
     var grid = byId('collectionGrid');
     var f = state.filter;
     var v = viewed();
+    /* Somebody else's collection keeps the real names (js/card-looks.js). */
+    grid.toggleAttribute('data-realname', Boolean(state.view));
 
     /* The last of them merged: the merge button goes, and the binder shows
        everything again rather than nothing. */
@@ -4535,12 +4541,14 @@ EGE.cardsView = (function () {
      photo its owner put on it, in place of the headshot. Drawn here for
      the Players page and by js/showcase.js for a player's own page. Not
      ranked yet, it is a grey card. */
-  function playerCardFace(pc, earned, custom) {
+  function playerCardFace(pc, earned, custom, style) {
     var player = pc.player;
+    var sc = pc.seasonCard || null;
     var rank = pc.rank;
     var key = rank ? rank.key : 'unranked';
     /* An NFL Player Card (pc.nfl) is a teammate's, on the team he is on now. */
-    var team = (pc.nfl ? EGE.teams[player.site] : EGE.teamFor(player, EGE.currentSeason)) || {};
+    var team = (pc.nfl ? EGE.teams[player.site]
+      : EGE.teamFor(player, sc ? sc.season : EGE.currentSeason)) || {};
 
     /* A binder card underneath (.ege-tcard): the same size as a play or
        performance card, and the same foil, sheen and glow for its rank. */
@@ -4548,11 +4556,15 @@ EGE.cardsView = (function () {
       (pc.nfl ? ' ege-plcard--nfl' : ''));
     outer.style.setProperty('--rarity', rank ? rank.color : '#8b9097');
     outer.style.setProperty('--ground', team.ground || '#2f4a2b');
+    /* The name it carries is its owner's (the card editor's nickname), so
+       the page's own nicknames (js/card-looks.js) leave it alone. */
+    outer.setAttribute('data-realname', '');
+    if (sc) { outer.classList.add('ege-plcard--season'); }
     var node = el('div', 'ege-tcard__face ege-plcard__face');
     outer.appendChild(node);
 
     var top = el('div', 'ege-plcard__top');
-    top.appendChild(el('span', 'ege-plcard__kind', 'Player'));
+    top.appendChild(el('span', 'ege-plcard__kind', sc ? String(sc.season) : 'Player'));
     var fpts = el('span', 'ege-plcard__fpts');
     fpts.appendChild(el('b', null, whole(pc.points)));
     fpts.appendChild(document.createTextNode(' FPTS'));
@@ -4570,7 +4582,10 @@ EGE.cardsView = (function () {
     node.appendChild(frame);
 
     var plate = el('div', 'ege-plcard__plate');
-    plate.appendChild(el('div', 'ege-plcard__name', player.name));
+    var shownName = style && style.nickname ? style.nickname : player.name;
+    var nameNode = el('div', 'ege-plcard__name', shownName);
+    if (shownName.length > 14) { nameNode.classList.add('is-long'); }
+    plate.appendChild(nameNode);
     var where = el('div', 'ege-plcard__team');
     if (team.logo) {
       var logo = el('img', 'ege-plcard__logo');
@@ -4586,8 +4601,8 @@ EGE.cardsView = (function () {
     plate.appendChild(where);
 
     var earn = el('div', 'ege-plcard__earn');
-    var about = rank && rank.bonus ? typicalBonus(player, rank.key) : null;
-    if (pc.nfl) {
+    var about = rank && rank.bonus && !sc ? typicalBonus(player, rank.key) : null;
+    if (pc.nfl && !sc) {
       /* What it pays a game, since what each teammate's has paid is not
          kept apart: the week's NFL Player Cards are paid together. */
       earn.appendChild(el('b', 'ege-plcard__pct', '+' + pctText(rank ? rank.bonus : 0)));
@@ -4610,11 +4625,12 @@ EGE.cardsView = (function () {
     if (about !== null) { earn.title = 'About ' + about + ' diamonds on each of his games'; }
     plate.appendChild(earn);
 
-    /* To the next rank; before any card, to the first one that pays. */
-    var next = rank ? pc.next : pc.ladder[1];
-    var from = rank ? rank.points : 0;
     var bar = el('div', 'ege-plcard__bar');
     var fill = el('span', 'ege-plcard__fill');
+    /* To the next rank; before any card, to the first one that pays. A
+       Season Card's on the cards of him from its season only. */
+    var next = rank ? pc.next : pc.ladder[0].bonus ? pc.ladder[0] : pc.ladder[1];
+    var from = rank ? rank.points : 0;
     fill.style.width = (next
       ? Math.max(0, Math.min(100, (pc.points - from) / Math.max(1, next.points - from) * 100))
       : 100) + '%';
@@ -4627,7 +4643,7 @@ EGE.cardsView = (function () {
 
     var foot = el('div', 'ege-plcard__foot');
     foot.appendChild(el('span', 'ege-plcard__rank', rank ? rank.name : 'Unranked'));
-    foot.appendChild(el('span', null, pc.nfl ? 'NFL' : 'Career'));
+    foot.appendChild(el('span', null, sc ? 'Season' : pc.nfl ? 'NFL' : 'Career'));
     node.appendChild(foot);
 
     /* GOAT, the rung no binder card reaches, gets four sparkles on its
@@ -4674,15 +4690,22 @@ EGE.cardsView = (function () {
      to see his cards and (on your own) put a photo on it. `whose` is the
      account the cards belong to: { mine, first, email, earned, photos }. */
   function playerCardEl(pc, whose) {
+    if (pc.seasonCard) { return seasonCardEl(pc, whose); }
     var player = pc.player;
     var rank = pc.rank;
     var earned = !pc.nfl && whose.earned ? (whose.earned[player.slug] || 0) : null;
     var photo = whose.photos ? whose.photos[photoKey(pc)] || null : null;
+    var style = whose.styles ? whose.styles[photoKey(pc)] || null : null;
     var node = el('article', 'ege-pcard');
-    /* The card itself opens up close, the way it does off a showcase. */
-    var face = playerCardFace(pc, earned, photo);
-    pressable(face, player.name + ' Player Card, ' + (rank ? rank.name : 'unranked') + ', up close', function () {
-      zoomPlayer(Object.assign({}, pc, { earned: earned, photo: photo }), { whose: whose.mine ? null : whose.first });
+    /* Your own opens the card editor; somebody else's opens up close, the
+       way it does off a showcase. */
+    var face = playerCardFace(pc, earned, photo, style);
+    var editable = whose.mine && pc.copies > 0;
+    pressable(face, player.name + ' Player Card, ' + (rank ? rank.name : 'unranked') +
+      (editable ? ', edit' : ', up close'), function () {
+      if (editable) { openCardEditor(pc); return; }
+      zoomPlayer(Object.assign({}, pc, { earned: earned, photo: photo, style: style }),
+        { whose: whose.mine ? null : whose.first });
     });
     node.appendChild(face);
 
@@ -4748,30 +4771,741 @@ EGE.cardsView = (function () {
     });
     row.appendChild(see);
 
-    /* Your own: a photo of yours on it, in place of his headshot. An NFL
-       teammate's too, six of those at most (set_card_photo). */
-    if (whose.mine) {
-      var pick = iconButton('ege-pcard__photo', 'player', photo ? 'Change photo' : 'Add photo');
-      var full = pc.nfl && !photo && nflPhotosUp() >= NFL_PHOTOS;
-      pick.disabled = !pc.copies || state.photos === null || full;
-      if (state.photos === null) { pick.title = 'Photos could not be loaded. Run supabase/schema.sql.'; }
-      else if (!pc.copies) { pick.title = 'Collect a ' + player.first + ' card first.'; }
-      else if (full) { pick.title = 'Six NFL photos are up. Take one down first.'; }
-      pick.addEventListener('click', function () { choosePhoto(pc); });
-      row.appendChild(pick);
-      if (photo) {
-        var drop = el('button', 'fb-btn fb-btn--sm ege-pcard__unphoto', '×');
-        drop.type = 'button';
-        drop.title = 'Remove your photo';
-        drop.setAttribute('aria-label', 'Remove your photo from ' + player.first + '’s Player Card');
-        drop.addEventListener('click', function () { removePhoto(pc, drop); });
-        row.appendChild(drop);
-      }
-    }
+    /* Your own: the card editor (photo, avatar and nickname). */
+    if (whose.mine) { row.appendChild(editButton(pc)); }
     body.appendChild(row);
 
     node.appendChild(body);
     return node;
+  }
+
+  /* --- the card editor (Sam, 2026-11-18) -----------------------------------
+
+     Tapping one of your own Player Cards (or its Edit button) opens it in
+     the editor: its photo, the avatar cut out of it and a nickname (Sam
+     cut the colours, patterns and fonts, 2026-11-18). The same for an NFL Player Card and a Season Card, which share
+     one style per player ('n:{slug}'). The photo saves the way it always
+     has (set_card_photo); the rest is card_styles (js/card-looks.js), kept
+     on Save. */
+
+  function editButton(pc) {
+    var b = el('button', 'fb-btn fb-btn--sm ege-pcard__edit', 'Edit');
+    b.type = 'button';
+    b.disabled = !pc.copies;
+    if (!pc.copies) { b.title = 'Collect a ' + pc.player.first + ' card first.'; }
+    b.addEventListener('click', function () { openCardEditor(pc); });
+    return b;
+  }
+
+  function savedStyle(pc) { return (state.styles && state.styles[photoKey(pc)]) || null; }
+
+  function draftFrom(pc) {
+    var s = savedStyle(pc) || {};
+    return { nickname: s.nickname || '', avatar: s.avatar || null };
+  }
+
+  /* What a draft saves as, with the NFL player's real name and id so this
+     browser can find him on a page before it has read any NFL cards. */
+  function styleOf(pc, d) {
+    var style = { nickname: String(d.nickname || '').replace(/\s+/g, ' ').trim(), avatar: d.avatar || null };
+    if (style.nickname === pc.player.name) { style.nickname = ''; }
+    if (pc.nfl) {
+      style.name = pc.player.name;
+      style.espn = pc.player.espn ? String(pc.player.espn) : null;
+    }
+    return style;
+  }
+
+  function isBlank(style) {
+    return !style.nickname && !style.avatar;
+  }
+
+  function earnedFor(pc) {
+    if (pc.seasonCard) { return seasonEarned(pc.seasonCard.season, pc.player.slug); }
+    return pc.nfl ? null : earnedFrom(pc.player.slug);
+  }
+
+  function openCardEditor(pc, draft) {
+    var player = pc.player;
+    var d = draft || draftFrom(pc);
+    var stage = openOverlay('Edit card', 'ege-rip__stage--zoom ege-rip__stage--editor');
+    var wrap = el('div', 'ege-editor');
+    var preview = el('div', 'ege-editor__card');
+    var side = el('div', 'ege-editor__controls');
+    wrap.appendChild(preview);
+    wrap.appendChild(side);
+    stage.appendChild(wrap);
+
+    var photo = state.photos ? state.photos[photoKey(pc)] || null : null;
+    var team = (pc.nfl ? EGE.teams[player.site] : EGE.teamFor(player, EGE.currentSeason)) || {};
+
+    function paint() {
+      preview.innerHTML = '';
+      preview.appendChild(playerCardFace(pc, earnedFor(pc), photo, { nickname: d.nickname.trim() }));
+    }
+
+    function section(label) {
+      var box = el('div', 'ege-editor__row');
+      box.appendChild(el('span', 'fb-eyebrow ege-editor__label', label));
+      side.appendChild(box);
+      return box;
+    }
+
+    /* The nickname. */
+    var nickBox = section('Nickname');
+    var input = el('input', 'fb-input ege-editor__nick');
+    input.type = 'text';
+    input.maxLength = EGE.cardLooks.NICKNAME_MAX;
+    input.value = d.nickname;
+    input.placeholder = player.name;
+    input.autocomplete = 'off';
+    input.setAttribute('aria-label', 'Nickname');
+    noAutocorrect(input);
+    input.addEventListener('input', function () { d.nickname = input.value; paint(); });
+    nickBox.appendChild(input);
+
+    /* The photo, and the circle cut from it for the League page. */
+    var picBox = section('Photo');
+    var pics = el('div', 'ege-editor__pics');
+    var circle = el('button', 'ege-editor__avatar' + (d.avatar ? '' : ' is-empty'));
+    circle.type = 'button';
+    circle.title = d.avatar ? 'Move the circle' : 'Cut a circle out of the photo';
+    circle.setAttribute('aria-label', circle.title);
+    circle.style.setProperty('--ground', team.ground || '#2f4a2b');
+    var face = el('img');
+    face.src = d.avatar || photo || player.headshot;
+    face.alt = '';
+    circle.appendChild(face);
+    circle.disabled = !photo && !d.avatar;
+    circle.addEventListener('click', function () {
+      if (!photo) { return; }
+      var img = new Image();
+      img.onload = function () {
+        cropPhoto(pc, { img: img, url: photo, keep: true, data: true }, null, { circle: true, draft: d, only: true });
+      };
+      img.src = photo;
+    });
+    pics.appendChild(circle);
+    var up = el('button', 'fb-btn fb-btn--sm', photo ? 'Change' : 'Upload');
+    up.type = 'button';
+    var full = pc.nfl && !photo && nflPhotosUp() >= NFL_PHOTOS;
+    up.disabled = state.photos === null || full;
+    if (full) { up.title = 'Six NFL photos are up. Take one down first.'; }
+    up.addEventListener('click', function () { choosePhoto(pc, d); });
+    pics.appendChild(up);
+    if (photo) {
+      var drop = el('button', 'fb-btn fb-btn--sm', 'Remove');
+      drop.type = 'button';
+      drop.addEventListener('click', function () {
+        drop.disabled = true;
+        EGE.cardStore.clearCardPhoto(photoKey(pc)).then(function (res) {
+          if (!res.ok) { say(res.message, true); drop.disabled = false; return; }
+          if (state.photos) { delete state.photos[photoKey(pc)]; }
+          if (EGE.showcase) { EGE.showcase.forget(); }
+          d.avatar = null;
+          openCardEditor(pc, d);
+        });
+      });
+      pics.appendChild(drop);
+    }
+    picBox.appendChild(pics);
+
+    var status = el('p', 'ege-rip__hint ege-editor__status');
+    status.setAttribute('role', 'status');
+    side.appendChild(status);
+
+    var actions = el('div', 'ege-rip__actions');
+    var reset = el('button', 'fb-btn', 'Reset');
+    reset.type = 'button';
+    reset.addEventListener('click', function () {
+      openCardEditor(pc, { nickname: '', avatar: null });
+    });
+    var save = el('button', 'fb-btn fb-btn--primary', 'Save');
+    save.type = 'button';
+    save.addEventListener('click', function () {
+      var style = styleOf(pc, d);
+      save.disabled = true;
+      reset.disabled = true;
+      status.textContent = 'Saving…';
+      saveStyle(pc, style).then(function (res) {
+        if (!res.ok) {
+          status.textContent = res.message;
+          save.disabled = false;
+          reset.disabled = false;
+          return;
+        }
+        closeRip();
+        renderPlayerCards();
+      });
+    });
+    actions.appendChild(reset);
+    actions.appendChild(save);
+    stage.appendChild(actions);
+
+    paint();
+  }
+
+  function saveStyle(pc, style) {
+    var key = photoKey(pc);
+    return EGE.cardStore.setCardStyle(key, style).then(function (res) {
+      if (!res.ok) { return res; }
+      state.styles = state.styles || {};
+      if (isBlank(style)) { delete state.styles[key]; } else { state.styles[key] = style; }
+      EGE.cardLooks.update(key, isBlank(style) ? null : style);
+      if (EGE.showcase) { EGE.showcase.forget(); }
+      return res;
+    });
+  }
+
+  /* An avatar: the frame's circle of the picture, AVATAR px across, with
+     nothing outside the circle. Null if it will not come small enough. */
+  var AVATAR = 192;
+  function circleToDataUrl(img, view) {
+    var canvas = document.createElement('canvas');
+    canvas.width = AVATAR;
+    canvas.height = AVATAR;
+    var ctx = canvas.getContext('2d');
+    ctx.beginPath();
+    ctx.arc(AVATAR / 2, AVATAR / 2, AVATAR / 2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(img, view.sx, view.sy, view.sw, view.sh, 0, 0, AVATAR, AVATAR);
+    var out = '';
+    [0.85, 0.7, 0.55].some(function (quality) {
+      out = canvas.toDataURL('image/webp', quality);
+      if (out.indexOf('data:image/webp') !== 0) { out = canvas.toDataURL('image/png'); }
+      return out.length <= 45000;
+    });
+    return out.length <= 45000 ? out : null;
+  }
+
+  /* --- Season Cards (Sam, 2026-11-18) ---------------------------------------
+
+     One player's finished season, an NFL player's or one of the six's,
+     bought in the Shop (Season Cards, renderSeasonShop). Each week of every
+     season after, it pays what his game in that week of its own season was
+     worth, more at a higher rank, which only the cards of him from that
+     season climb (data/nfl-cards.js SEASON_CARD; Postgres does the paying).
+     On the Players page an NFL player's come after the NFL Player Cards and
+     one of the six's after the six's. */
+
+  /* What a Season Card has paid this account, all told. */
+  function seasonEarned(season, slug) {
+    var e = state.seasonEarned;
+    return e ? e.all[season + ':' + slug] || 0 : null;
+  }
+
+  /* Where a Season Card's season was played: the NFL team's city, or one
+     of the six's team that year. */
+  function seasonTeamName(team, ege) {
+    if (!team) { return null; }
+    if (ege) { return EGE.teams[team] ? EGE.teams[team].school : null; }
+    return EGE.nfl.teams[team] ? EGE.nfl.city(team) : null;
+  }
+
+  function seasonPc(row, whose, owned) {
+    var ege = Boolean(row.ege);
+    var player;
+    if (ege) {
+      player = EGE.playerBySlug(row.slug);
+      if (!player) { return null; }
+    } else {
+      var sim = row.team && EGE.nfl.teams[row.team] ? row.team : null;
+      var parts = String(row.name).split(' ');
+      var known = EGE.nflCards && EGE.nflCards.loaded() ? EGE.nflCards.playerOf(row.slug) : null;
+      player = {
+        slug: row.slug, name: row.name, first: parts[0], last: parts.slice(1).join(' ') || parts[0],
+        position: row.pos, espn: row.espn || null, site: sim ? EGE.nfl.teams[sim].site : null, nfl: true,
+        headshot: known && known.headshot && (!row.espn || String(known.espn) === String(row.espn)) ? known.headshot
+          : row.espn ? EGE.espnHeadshot(row.espn, false, 350, 254) : NFL_STANDIN
+      };
+    }
+    var ranked = EGE.nflCards.seasonRank(row, owned);
+    var key = row.season + ':' + row.slug;
+    var earned = whose.seasonEarned ? whose.seasonEarned.all[key] || 0 : null;
+    var thisYear = whose.seasonEarned ? whose.seasonEarned.now[key] || 0 : 0;
+    return {
+      player: player, nfl: !ege, points: ranked.points, copies: 1, held: ranked.copies, distinct: 1,
+      ladder: ranked.ladder, rank: ranked.rank, next: ranked.next, earned: earned,
+      seasonCard: { season: Number(row.season), ege: ege, pays: row.pays || 0, thisYear: thisYear,
+                    team: row.team || null, where: seasonTeamName(row.team, ege), games: row.games,
+                    fpts: Number(row.points) || 0, price: row.price }
+    };
+  }
+
+  /* A Season Card's own line: its season, team, position, games, FPTS. */
+  function seasonLine(pc) {
+    var sc = pc.seasonCard;
+    return [sc.season + ' Season', sc.where,
+      pc.nfl ? pc.player.position : (EGE.positionFor ? EGE.positionFor(pc.player) : pc.player.position),
+      sc.games + (sc.games === 1 ? ' game' : ' games'), (Math.round(sc.fpts * 10) / 10) + ' FPTS']
+      .filter(Boolean).join(' · ');
+  }
+
+  function seasonCardEl(pc, whose) {
+    var player = pc.player;
+    var sc = pc.seasonCard;
+    var photo = whose.photos ? whose.photos[photoKey(pc)] || null : null;
+    var style = whose.styles ? whose.styles[photoKey(pc)] || null : null;
+    var node = el('article', 'ege-pcard ege-pcard--season');
+    var face = playerCardFace(pc, pc.earned, photo, style);
+    pressable(face, player.name + ' ' + sc.season + ' Season Card' + (whose.mine ? ', edit' : ', up close'), function () {
+      if (whose.mine) { openCardEditor(pc); return; }
+      zoomSeason(pc, photo, style, whose.first);
+    });
+    node.appendChild(face);
+
+    var body = el('div', 'ege-pcard__body');
+    body.appendChild(el('h4', 'ege-item__name', player.name));
+    body.appendChild(el('span', 'fb-meta', seasonLine(pc)));
+    var meter = el('div', 'fb-meter ege-pcard__meter');
+    var fill = el('div', 'fb-meter__fill');
+    fill.style.width = Math.min(100, sc.thisYear / Math.max(1, sc.pays) * 100) + '%';
+    fill.style.background = pc.rank ? pc.rank.color : '#8b9097';
+    meter.appendChild(fill);
+    body.appendChild(meter);
+    var pays = el('p', 'ege-pcard__bonus');
+    if (pc.earned !== null && pc.earned !== undefined) {
+      pays.appendChild(document.createTextNode('Earned '));
+      var amount = el('strong', 'ege-pcard__amount', whole(pc.earned));
+      amount.appendChild(gem());
+      pays.appendChild(amount);
+      pays.appendChild(document.createTextNode('. '));
+    }
+    var rate = el('span', 'ege-pcard__rate', whole(sc.pays));
+    rate.appendChild(gem());
+    pays.appendChild(rate);
+    pays.appendChild(document.createTextNode(' a season, week by week' +
+      (pc.rank && pc.rank.bonus ? ', +' + pctText(pc.rank.bonus) + '.' : '.')));
+    body.appendChild(pays);
+    var row = el('div', 'ege-pcard__actions');
+    if (whose.mine) { row.appendChild(editButton(pc)); }
+    body.appendChild(row);
+    node.appendChild(body);
+    return node;
+  }
+
+  function zoomSeason(pc, photo, style, whoseFirst) {
+    var sc = pc.seasonCard;
+    var stage = openOverlay(pc.player.name, 'ege-rip__stage--zoom');
+    var row = el('div', 'ege-rip__cards ege-rip__cards--1');
+    var holder = el('div', 'ege-zoom__card');
+    holder.appendChild(playerCardFace(pc, pc.earned, photo, style));
+    row.appendChild(holder);
+    stage.appendChild(row);
+    tiltCard(holder);
+    var facts = el('dl', 'ege-zoom__facts');
+    function fact(label, value) { facts.appendChild(el('dt', null, label)); return facts.appendChild(el('dd', null, value)); }
+    fact('Whose', (whoseFirst ? whoseFirst + '’s ' : 'Your ') + sc.season + ' Season Card');
+    if (sc.where) { fact('Team', sc.where); }
+    fact('Season', sc.games + (sc.games === 1 ? ' game' : ' games') + ' · ' + (Math.round(sc.fpts * 10) / 10) + ' FPTS');
+    var a = fact('A season', whole(sc.pays));
+    a.appendChild(gem());
+    fact('Rank', pc.rank ? pc.rank.name + (pc.rank.bonus ? ' · +' + pctText(pc.rank.bonus) : '') : 'Unranked');
+    stage.appendChild(facts);
+    var actions = el('div', 'ege-rip__actions');
+    var done = el('button', 'fb-btn fb-btn--primary', 'Done');
+    done.type = 'button';
+    done.addEventListener('click', closeRip);
+    actions.appendChild(done);
+    stage.appendChild(actions);
+    done.focus({ preventScroll: true });
+  }
+
+  /* The Shop's Season Cards: find a player, see each of his finished
+     seasons with what it pays a year and costs, and buy one. One of the six
+     (dearer: data/nfl-cards.js SEASON_CARD) or anybody in the NFL sim's
+     rosters, on a team, a free agent or retired. */
+  var seasonShop = { query: '', pick: null, quotes: null, busy: false, pool: null };
+
+  function sixPool() {
+    return EGE.players.map(function (player) {
+      return { six: player, key: null, text: player.name.toLowerCase(), sim: { ovr: 1000 } };
+    });
+  }
+
+  function seasonPool() {
+    var R = EGE.nflRosters;
+    if (!R) { return null; }
+    var all = null;
+    [EGE.currentSeason, EGE.currentSeason - 1].some(function (year) {
+      var got = R.get ? R.get(year) : null;
+      if (got && got.teams) { all = got; }
+      return Boolean(all);
+    });
+    if (!all) { return null; }
+    if (seasonShop.pool && seasonShop.pool.from === all) { return seasonShop.pool.people; }
+    /* The six first, then everybody in the sim. */
+    var people = sixPool();
+    function add(sim, key) {
+      if (!sim || !sim.name || sim.ege) { return; }
+      people.push({ sim: sim, key: key, text: sim.name.toLowerCase() });
+    }
+    Object.keys(all.teams).forEach(function (key) { (all.teams[key] || []).forEach(function (sim) { add(sim, key); }); });
+    (all.freeAgents || []).forEach(function (sim) { add(sim, null); });
+    (all.retired || []).forEach(function (sim) { add(sim, null); });
+    seasonShop.pool = { from: all, people: people };
+    return people;
+  }
+
+  function seasonWho(hit) {
+    if (hit.six) {
+      var p = hit.six;
+      var now = EGE.teamFor(p, EGE.currentSeason);
+      return { slug: p.slug, name: p.name, pos: EGE.positionFor ? EGE.positionFor(p) : p.position,
+               ege: true, player: p, where: now ? now.school : null };
+    }
+    var sim = hit.sim;
+    var slug = EGE.nflCards ? EGE.nflCards.slugOf(sim.name) : sim.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    return { slug: slug, name: sim.name, pos: sim.pos || '', espn: sim.espn ? String(sim.espn) : null,
+             collegePhoto: Boolean(sim.collegePhoto), key: hit.key,
+             where: hit.key ? EGE.nfl.city(hit.key) : (sim.retired ? 'Retired' : 'Free agent') };
+  }
+
+  function seasonFace(who) {
+    var img = el('img', 'ege-seasonshop__face');
+    img.src = who.player ? who.player.headshot
+      : who.espn ? EGE.espnHeadshot(who.espn, who.collegePhoto, 96, 70) : NFL_STANDIN;
+    img.alt = '';
+    img.loading = 'lazy';
+    if (!who.player) { standIn(img, null); }
+    return img;
+  }
+
+  function renderSeasonShop() {
+    var holder = byId('seasonShop');
+    if (!holder) { return; }
+    var field = byId('seasonSearch');
+    if (!field.dataset.wired) {
+      field.dataset.wired = '1';
+      noAutocorrect(field);
+      field.addEventListener('input', function () {
+        seasonShop.query = field.value;
+        seasonShop.pick = null;
+        seasonShop.quotes = null;
+        renderSeasonShop();
+      });
+      if (EGE.nflRosters && EGE.nflRosters.load) {
+        EGE.nflRosters.load(EGE.currentSeason).then(function (got) {
+          return got ? got : EGE.nflRosters.load(EGE.currentSeason - 1);
+        }).then(function () { renderSeasonShop(); }, function () {});
+      }
+    }
+    holder.innerHTML = '';
+
+    if (seasonShop.pick) {
+      holder.appendChild(seasonQuotesEl(seasonShop.pick));
+      return;
+    }
+    var q = seasonShop.query.trim().toLowerCase();
+    if (q.length < 2) { return; }
+    var pool = seasonPool();
+    var hits = (pool || sixPool()).filter(function (h) { return h.text.indexOf(q) !== -1; })
+      .sort(function (a, b) {
+        return (a.text.indexOf(q) === 0 ? 0 : 1) - (b.text.indexOf(q) === 0 ? 0 : 1) ||
+          (b.sim.ovr || 0) - (a.sim.ovr || 0);
+      }).slice(0, 8);
+    if (!hits.length) { holder.appendChild(el('p', 'fb-meta', pool ? 'Nobody by that name.' : 'Loading…')); return; }
+    var list = el('div', 'ege-seasonshop__hits');
+    hits.forEach(function (hit) {
+      var who = seasonWho(hit);
+      var b = el('button', 'ege-seasonshop__hit');
+      b.type = 'button';
+      b.appendChild(seasonFace(who));
+      var words = el('span', 'ege-seasonshop__who');
+      words.appendChild(el('b', null, who.name));
+      words.appendChild(el('span', null, [who.pos, who.where].filter(Boolean).join(' · ')));
+      b.appendChild(words);
+      b.addEventListener('click', function () { pickSeasonPlayer(who); });
+      list.appendChild(b);
+    });
+    holder.appendChild(list);
+  }
+
+  function pickSeasonPlayer(who) {
+    seasonShop.pick = who;
+    seasonShop.quotes = null;
+    if (who.ege) {
+      /* One of the six's seasons is in the season files. */
+      seasonShop.quotes = EGE.nflCards.egeSeasonQuotes(who.player);
+      renderSeasonShop();
+      return;
+    }
+    renderSeasonShop();
+    EGE.cardStore.seasonQuotes(who).then(function (res) {
+      if (seasonShop.pick !== who) { return; }
+      seasonShop.quotes = res.ok ? res.seasons : [];
+      if (!res.ok) { say(res.message, true); }
+      renderSeasonShop();
+    });
+  }
+
+  function ownsSeason(season, slug) {
+    return (state.seasonCards || []).some(function (row) { return row.season === season && row.slug === slug; });
+  }
+
+  function seasonQuotesEl(who) {
+    var box = el('div', 'ege-seasonshop__pick');
+    var head = el('div', 'ege-seasonshop__head');
+    var back = el('button', 'fb-btn fb-btn--sm ege-seasonshop__back', '\u2039 Back');
+    back.type = 'button';
+    back.setAttribute('aria-label', 'Back to the search');
+    back.addEventListener('click', function () {
+      seasonShop.pick = null;
+      seasonShop.quotes = null;
+      renderSeasonShop();
+    });
+    head.appendChild(back);
+    head.appendChild(seasonFace(who));
+    var words = el('span', 'ege-seasonshop__who');
+    words.appendChild(el('b', null, who.name));
+    words.appendChild(el('span', null, [who.pos, who.where].filter(Boolean).join(' · ')));
+    head.appendChild(words);
+    box.appendChild(head);
+
+    if (!seasonShop.quotes) { box.appendChild(el('p', 'fb-meta', 'Loading…')); return box; }
+    if (!seasonShop.quotes.length) { box.appendChild(el('p', 'fb-meta', 'No finished seasons to buy.')); return box; }
+    var grid = el('div', 'ege-seasonshop__seasons');
+    seasonShop.quotes.forEach(function (q) {
+      var r = EGE.nflCards.seasonRarity(Number(q.points) || 0);
+      var tile = el('div', 'ege-seasontile');
+      tile.style.setProperty('--rarity', r.color);
+      tile.appendChild(el('span', 'ege-seasontile__year', String(q.season)));
+      tile.appendChild(el('span', 'ege-seasontile__line', [seasonTeamName(q.team, who.ege),
+        q.games + (q.games === 1 ? ' G' : ' G'), q.points + ' FPTS'].filter(Boolean).join(' · ')));
+      var pays = el('span', 'ege-seasontile__pays', whole(q.pays));
+      pays.appendChild(gem());
+      pays.appendChild(document.createTextNode(' a season'));
+      tile.appendChild(pays);
+      var owned = ownsSeason(q.season, who.slug);
+      var buy = el('button', 'fb-btn fb-btn--sm fb-btn--primary ege-seasontile__buy', owned ? 'Owned' : '');
+      buy.type = 'button';
+      if (!owned) {
+        buy.appendChild(document.createTextNode('Buy ' + whole(q.price)));
+        buy.appendChild(gem());
+      }
+      buy.disabled = owned || seasonShop.busy || (typeof state.diamonds === 'number' && state.diamonds < q.price);
+      buy.addEventListener('click', function () { buySeason(who, q, buy); });
+      tile.appendChild(buy);
+      grid.appendChild(tile);
+    });
+    box.appendChild(grid);
+    return box;
+  }
+
+  function buySeason(who, q, button) {
+    if (seasonShop.busy) { return; }
+    seasonShop.busy = true;
+    button.disabled = true;
+    (who.ege ? EGE.cardStore.buyEgeSeasonCard(who.player, q)
+      : EGE.cardStore.buySeasonCard(who, q.season, q.price)).then(function (res) {
+      seasonShop.busy = false;
+      if (!res.ok) { say(res.message, true); renderSeasonShop(); return; }
+      say('', false);
+      state.seasonCards = (state.seasonCards || []).concat([{
+        season: q.season, slug: who.slug, espn: who.espn || null, name: who.name, pos: who.pos, team: q.team,
+        games: q.games, points: q.points, pays: q.pays, price: q.price, bought_at: new Date().toISOString(),
+        ege: Boolean(who.ege)
+      }]).sort(function (a, b) { return b.season - a.season || (a.slug < b.slug ? -1 : 1); });
+      walletChanged(null, res.diamonds);
+      renderSeasonShop();
+      renderPlayerCards();
+    });
+  }
+
+  /* --- the Players page carousel (Sam, 2026-11-18) ---------------------------
+
+     The cards in a row, left to right, one in the middle and its neighbours
+     going back and turned away on either side. Swipe or drag them across,
+     or use the arrows, the dots or the keyboard's arrows; they slide and
+     turn into place. What the middle card means sits under the row. Tap
+     the middle card to open it (yours in the editor); tap one at the side
+     to bring it to the middle. `nodes` are Player Card articles
+     (playerCardEl: the face, then what it means). */
+  function renderCarousel(holder, nodes, key) {
+    holder.innerHTML = '';
+    if (!nodes.length) { return; }
+    var count = nodes.length;
+    var at = Math.max(0, Math.min(count - 1, state.pcIndex[key] || 0));
+    var pos = at;
+
+    var box = el('div', 'ege-pcarousel');
+    var stage = el('div', 'ege-pcarousel__stage');
+    stage.tabIndex = 0;
+    stage.setAttribute('role', 'region');
+    stage.setAttribute('aria-roledescription', 'carousel');
+    stage.setAttribute('aria-label', 'Player Cards');
+    var track = el('div', 'ege-pcarousel__track');
+    stage.appendChild(track);
+    box.appendChild(stage);
+
+    var prev = el('button', 'ege-pcarousel__arrow ege-pcarousel__arrow--prev', '‹');
+    prev.type = 'button';
+    prev.setAttribute('aria-label', 'Previous card');
+    var next = el('button', 'ege-pcarousel__arrow ege-pcarousel__arrow--next', '›');
+    next.type = 'button';
+    next.setAttribute('aria-label', 'Next card');
+    box.appendChild(prev);
+    box.appendChild(next);
+
+    var dots = el('div', 'ege-pcarousel__dots');
+    var dotEls = [];
+    var counter = null;
+    if (count > 1 && count <= 14) {
+      for (var i = 0; i < count; i += 1) {
+        (function (n) {
+          var dot = el('button', 'ege-pcarousel__dot');
+          dot.type = 'button';
+          dot.setAttribute('aria-label', 'Card ' + (n + 1));
+          dot.addEventListener('click', function () { go(n); });
+          dots.appendChild(dot);
+          dotEls.push(dot);
+        })(i);
+      }
+    } else if (count > 14) {
+      counter = el('span', 'ege-pcarousel__count');
+      dots.appendChild(counter);
+    }
+
+    var detail = el('div', 'ege-pcarousel__detail');
+    var dragged = false;
+    var slides = nodes.map(function (node, n) {
+      var slide = el('div', 'ege-pcarousel__slide');
+      var face = node.firstElementChild;
+      slide.appendChild(face);
+      /* A tap on a card at the side brings it to the middle, and the tap
+         that ends a drag does nothing. */
+      slide.addEventListener('click', function (e) {
+        if (dragged || n !== at) {
+          e.stopPropagation();
+          e.preventDefault();
+          if (!dragged) { go(n); }
+        }
+      }, true);
+      track.appendChild(slide);
+      return { slide: slide, face: face, body: node.lastElementChild };
+    });
+
+    function layout(moving) {
+      track.classList.toggle('is-moving', Boolean(moving));
+      slides.forEach(function (s, n) {
+        var d = n - pos;
+        var a = Math.abs(d);
+        if (a > 3.6) {
+          s.slide.style.visibility = 'hidden';
+          s.slide.style.transform = 'translateX(' + (d < 0 ? -160 : 160) + '%) scale(.5)';
+          return;
+        }
+        var reach = a <= 1 ? a * 64 : 64 + (a - 1) * 34;
+        var x = (d < 0 ? -1 : 1) * reach;
+        var scale = 1 - Math.min(a, 3) * 0.14;
+        var turn = Math.max(-38, Math.min(38, -d * 26));
+        s.slide.style.visibility = '';
+        s.slide.style.transform = 'translateX(' + x + '%) scale(' + scale + ') rotateY(' + turn + 'deg)';
+        s.slide.style.zIndex = String(100 - Math.round(a * 10));
+        s.slide.style.opacity = String(Math.max(0, 1 - Math.max(0, a - 0.6) * 0.32));
+        s.slide.style.setProperty('--shade', String(Math.min(0.5, a * 0.22)));
+        s.face.tabIndex = n === at ? 0 : -1;
+        s.slide.classList.toggle('is-current', n === at);
+        s.slide.setAttribute('aria-hidden', n === at ? 'false' : 'true');
+      });
+      prev.disabled = at <= 0;
+      next.disabled = at >= count - 1;
+      dotEls.forEach(function (dot, n) { dot.classList.toggle('is-on', n === at); });
+      if (counter) { counter.textContent = (at + 1) + ' / ' + count; }
+    }
+
+    function showDetail() {
+      detail.innerHTML = '';
+      var body = slides[at].body;
+      body.classList.remove('is-in');
+      detail.appendChild(body);
+      void body.offsetWidth;
+      body.classList.add('is-in');
+    }
+
+    function go(n) {
+      var target = Math.max(0, Math.min(count - 1, n));
+      var changed = target !== at;
+      at = target;
+      pos = target;
+      state.pcIndex[key] = target;
+      layout(false);
+      if (changed) { showDetail(); }
+    }
+
+    prev.addEventListener('click', function () { go(at - 1); });
+    next.addEventListener('click', function () { go(at + 1); });
+    stage.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowLeft') { e.preventDefault(); go(at - 1); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); go(at + 1); }
+    });
+
+    /* Dragging: the row follows the finger, a card a step, and lets go to
+       the nearest card, or the next one over on a flick. */
+    var drag = null;
+    function step() {
+      var first = slides[0].slide.getBoundingClientRect().width || 200;
+      return first / Math.max(0.3, 1 - Math.min(Math.abs(0 - pos), 3) * 0.14) * 0.64;
+    }
+    stage.addEventListener('pointerdown', function (e) {
+      if (e.button !== undefined && e.button !== 0) { return; }
+      drag = { id: e.pointerId, x: e.clientX, y: e.clientY, from: pos, t: Date.now(), last: e.clientX, lastT: Date.now(),
+               on: false, size: step() };
+      dragged = false;
+    });
+    stage.addEventListener('pointermove', function (e) {
+      if (!drag || e.pointerId !== drag.id) { return; }
+      var dx = e.clientX - drag.x;
+      if (!drag.on) {
+        if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(e.clientY - drag.y)) {
+          if (Math.abs(e.clientY - drag.y) > 10) { drag = null; }
+          return;
+        }
+        drag.on = true;
+        dragged = true;
+        try { stage.setPointerCapture(e.pointerId); } catch (err) { /* already gone */ }
+      }
+      var p = drag.from - dx / drag.size;
+      /* Past either end it gives a little and pulls back. */
+      if (p < 0) { p = p / 3; }
+      if (p > count - 1) { p = count - 1 + (p - count + 1) / 3; }
+      pos = p;
+      drag.v = (e.clientX - drag.last) / Math.max(1, Date.now() - drag.lastT);
+      drag.last = e.clientX;
+      drag.lastT = Date.now();
+      layout(true);
+    });
+    function release(e) {
+      if (!drag || (e && e.pointerId !== drag.id)) { return; }
+      var was = drag;
+      drag = null;
+      if (!was.on) { return; }
+      var flick = was.v ? -was.v * 2.2 : 0;
+      var target = Math.round(pos + Math.max(-1, Math.min(1, flick)));
+      go(target);
+      /* The click the release makes is not a tap. */
+      window.setTimeout(function () { dragged = false; }, 0);
+    }
+    stage.addEventListener('pointerup', release);
+    stage.addEventListener('pointercancel', release);
+    stage.addEventListener('lostpointercapture', release);
+
+    /* A trackpad's sideways swipe moves one card at a time. */
+    var wheelAt = 0;
+    stage.addEventListener('wheel', function (e) {
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY) || Math.abs(e.deltaX) < 12) { return; }
+      e.preventDefault();
+      if (Date.now() - wheelAt < 380) { return; }
+      wheelAt = Date.now();
+      go(at + (e.deltaX > 0 ? 1 : -1));
+    }, { passive: false });
+
+    box.appendChild(dots);
+    holder.appendChild(box);
+    holder.appendChild(detail);
+    layout(false);
+    showDetail();
   }
 
   /* --- Team Cards ---------------------------------------------------------
@@ -5024,11 +5758,13 @@ EGE.cardsView = (function () {
     return Promise.all([
       EGE.cardStore.collectionFor(email),
       EGE.cardStore.cardPhotos(email),
-      EGE.cardStore.playerCardEarnings(email)
+      EGE.cardStore.playerCardEarnings(email),
+      EGE.cardStore.cardStyles(email),
+      EGE.cardStore.seasonCards(email)
     ]).then(function (all) {
       if (state.pcView !== email) { return; }
       state.pcOther = { owned: all[0] ? all[0].owned : {}, failed: !all[0], photos: all[1] || {},
-                        earned: all[2] };
+                        earned: all[2], styles: all[3] || {}, seasonCards: all[4] || [] };
       if (!state.hold) { renderPlayerCards(); }
     });
   }
@@ -5098,30 +5834,37 @@ EGE.cardsView = (function () {
     return out.length <= max ? out : null;
   }
 
-  function choosePhoto(pc) {
+  /* `draft` is the card editor's, to go back to with the new photo and the
+     circle cut from it. */
+  function choosePhoto(pc, draft) {
     var input = el('input');
     input.type = 'file';
     input.accept = 'image/*';
     input.addEventListener('change', function () {
       var file = input.files && input.files[0];
       if (!file) { return; }
-      loadPhoto(file).then(function (loaded) { cropPhoto(pc, loaded, null); },
+      loadPhoto(file).then(function (loaded) { cropPhoto(pc, loaded, null, { draft: draft || draftFrom(pc) }); },
         function (error) { say(error.message, true); });
     });
     input.click();
   }
 
   /* The crop: the picture in a frame the card photo's shape. `start` is
-     where it was left, coming back from the preview. */
-  function cropPhoto(pc, loaded, start) {
+     where it was left, coming back from the preview. Then, with
+     `opts.circle`, the same picture again in a round frame, for the avatar
+     the League page shows (Sam, 2026-11-18); `opts.only` is that circle
+     alone, moved on a photo already up, straight back to the editor. */
+  function cropPhoto(pc, loaded, start, options) {
+    var opts = options || {};
+    var round = Boolean(opts.circle);
     var img = loaded.img;
     var iw = img.naturalWidth;
     var ih = img.naturalHeight;
-    var stage = openOverlay('Crop your photo', 'ege-rip__stage--zoom');
-    rip.onClose = function () { if (!loaded.keep) { URL.revokeObjectURL(loaded.url); } };
+    var stage = openOverlay(round ? 'Cut out the circle' : 'Crop your photo', 'ege-rip__stage--zoom');
+    rip.onClose = function () { if (!loaded.keep && !loaded.data) { URL.revokeObjectURL(loaded.url); } };
 
-    var frame = el('div', 'ege-crop');
-    frame.style.aspectRatio = PHOTO_W + ' / ' + PHOTO_H;
+    var frame = el('div', 'ege-crop' + (round ? ' ege-crop--circle' : ''));
+    frame.style.aspectRatio = round ? '1 / 1' : PHOTO_W + ' / ' + PHOTO_H;
     var pic = el('img', 'ege-crop__img');
     pic.src = loaded.url;
     pic.alt = '';
@@ -5138,11 +5881,12 @@ EGE.cardsView = (function () {
     slider.step = '0.01';
     zoomRow.appendChild(slider);
     stage.appendChild(zoomRow);
-    stage.appendChild(el('p', 'ege-rip__hint', 'Drag the picture to move it. Pinch, scroll or slide to zoom.'));
+    stage.appendChild(el('p', 'ege-rip__hint', round ? 'This circle is his face on the League page.'
+      : 'Drag the picture to move it. Pinch, scroll or slide to zoom.'));
 
     /* The view in the picture's own pixels: the centre and the zoom, where
        zoom 1 is the whole frame filled with as much picture as fits. */
-    var aspect = PHOTO_W / PHOTO_H;
+    var aspect = round ? 1 : PHOTO_W / PHOTO_H;
     var fitW = Math.min(iw, ih * aspect);         /* the frame's width at zoom 1 */
     var view = start ? { cx: start.cx, cy: start.cy, z: start.z }
       : { cx: iw / 2, cy: Math.min(ih - fitW / aspect / 2, Math.max(fitW / aspect / 2, ih * 0.38)), z: 1 };
@@ -5210,18 +5954,38 @@ EGE.cardsView = (function () {
     frame.addEventListener('pointercancel', lift);
 
     var actions = el('div', 'ege-rip__actions');
-    var again = el('button', 'fb-btn', 'Pick another');
+    var again = el('button', 'fb-btn', opts.only ? 'Cancel' : 'Pick another');
     again.type = 'button';
-    again.addEventListener('click', function () { closeRip(); choosePhoto(pc); });
+    again.addEventListener('click', function () {
+      closeRip();
+      if (opts.only) { openCardEditor(pc, opts.draft); } else { choosePhoto(pc, opts.draft); }
+    });
     var next = el('button', 'fb-btn fb-btn--primary', 'Crop');
     next.type = 'button';
     next.addEventListener('click', function () {
+      var here = { cx: view.cx, cy: view.cy, z: view.z };
+      if (round) {
+        var avatar = circleToDataUrl(img, rect());
+        if (!avatar) { say('That picture is too big. Try a smaller one.', true); return; }
+        loaded.keep = true;
+        closeRip();
+        loaded.keep = false;
+        if (opts.only) {
+          opts.draft.avatar = avatar;
+          openCardEditor(pc, opts.draft);
+          return;
+        }
+        previewPhoto(pc, opts.photo, loaded, opts.rectView, { draft: opts.draft, avatar: avatar, circleView: here });
+        return;
+      }
       var photo = cropToDataUrl(img, rect(), pc.nfl ? NFL_PHOTO_MAX : PHOTO_MAX);
       if (!photo) { say('That picture is too big. Try a smaller one.', true); return; }
       loaded.keep = true;
       closeRip();
       loaded.keep = false;
-      previewPhoto(pc, photo, loaded, { cx: view.cx, cy: view.cy, z: view.z });
+      /* Then the circle, out of the same picture. */
+      cropPhoto(pc, loaded, opts.circleView || null,
+        { circle: true, draft: opts.draft || draftFrom(pc), photo: photo, rectView: here });
     });
     actions.appendChild(again);
     actions.appendChild(next);
@@ -5232,16 +5996,29 @@ EGE.cardsView = (function () {
     next.focus({ preventScroll: true });
   }
 
-  /* The card with the new photo on it, before it is kept. */
-  function previewPhoto(pc, photo, loaded, view) {
+  /* The card with the new photo on it, and the circle beside it, before
+     they are kept. */
+  function previewPhoto(pc, photo, loaded, view, extra) {
+    var more = extra || {};
+    var draft = more.draft || draftFrom(pc);
     var player = pc.player;
     var stage = openOverlay(player.first + '’s card photo', 'ege-rip__stage--zoom');
     rip.onClose = function () { if (!loaded.keep) { URL.revokeObjectURL(loaded.url); } };
     var holder = el('div', 'ege-photoprev');
-    holder.appendChild(playerCardFace(pc, pc.nfl ? null : earnedFrom(player.slug), photo));
+    holder.appendChild(playerCardFace(pc, earnedFor(pc), photo, { nickname: draft.nickname }));
+    if (more.avatar) {
+      var ring = el('span', 'ege-editor__avatar ege-photoprev__avatar');
+      var team = (pc.nfl ? EGE.teams[player.site] : EGE.teamFor(player, EGE.currentSeason)) || {};
+      ring.style.setProperty('--ground', team.ground || '#2f4a2b');
+      var face = el('img');
+      face.src = more.avatar;
+      face.alt = '';
+      ring.appendChild(face);
+      holder.appendChild(ring);
+    }
     stage.appendChild(holder);
 
-    var status = el('p', 'ege-rip__hint', 'Only your ' + player.first + ' card shows it, here and on your page.');
+    var status = el('p', 'ege-rip__hint', '');
     status.setAttribute('role', 'status');
     stage.appendChild(status);
 
@@ -5252,7 +6029,7 @@ EGE.cardsView = (function () {
       loaded.keep = true;
       closeRip();
       loaded.keep = false;
-      cropPhoto(pc, loaded, view);
+      cropPhoto(pc, loaded, view, { draft: draft, circleView: more.circleView });
     });
     var keep = el('button', 'fb-btn fb-btn--primary', 'Use this photo');
     keep.type = 'button';
@@ -5261,35 +6038,35 @@ EGE.cardsView = (function () {
       again.disabled = true;
       status.textContent = 'Saving…';
       EGE.cardStore.setCardPhoto(photoKey(pc), photo).then(function (res) {
+        if (!res.ok) { return res; }
+        state.photos = state.photos || {};
+        state.photos[photoKey(pc)] = photo;
+        if (EGE.showcase) { EGE.showcase.forget(); }
+        if (!more.avatar) { return res; }
+        /* The circle goes up with the photo, on the card's style as it is
+           saved; the rest of the editor's changes wait for its Save. */
+        draft.avatar = more.avatar;
+        var saved = savedStyle(pc);
+        var base = { nickname: saved ? saved.nickname || '' : '', avatar: more.avatar };
+        return saveStyle(pc, styleOf(pc, base));
+      }).then(function (res) {
         if (!res.ok) {
           status.textContent = res.message;
           keep.disabled = false;
           again.disabled = false;
           return;
         }
-        state.photos = state.photos || {};
-        state.photos[photoKey(pc)] = photo;
-        if (EGE.showcase) { EGE.showcase.forget(); }
+        loaded.keep = false;
         closeRip();
         say('', false);
         renderPlayerCards();
+        openCardEditor(pc, draft);
       });
     });
     actions.appendChild(again);
     actions.appendChild(keep);
     stage.appendChild(actions);
     keep.focus({ preventScroll: true });
-  }
-
-  function removePhoto(pc, button) {
-    button.disabled = true;
-    EGE.cardStore.clearCardPhoto(photoKey(pc)).then(function (res) {
-      if (!res.ok) { say(res.message, true); button.disabled = false; return; }
-      if (state.photos) { delete state.photos[photoKey(pc)]; }
-      if (EGE.showcase) { EGE.showcase.forget(); }
-      say('', false);
-      renderPlayerCards();
-    });
   }
 
   function renderPlayerCards() {
@@ -5307,10 +6084,16 @@ EGE.cardsView = (function () {
     renderPcKinds();
     var holder = byId('playerCards');
     holder.innerHTML = '';
+    /* Somebody else's cards keep the real names (js/card-looks.js). */
+    holder.toggleAttribute('data-realname', Boolean(state.pcView));
     var whose = state.pcView
       ? { mine: false, email: state.pcView, first: other ? other.first : state.pcView,
-          earned: state.pcOther && state.pcOther.earned, photos: state.pcOther && state.pcOther.photos }
-      : { mine: true, earned: earnedTotals(), photos: state.photos };
+          earned: state.pcOther && state.pcOther.earned, photos: state.pcOther && state.pcOther.photos,
+          styles: state.pcOther && state.pcOther.styles, seasonCards: state.pcOther && state.pcOther.seasonCards,
+          seasonEarned: null }
+      : { mine: true, earned: earnedTotals(), photos: state.photos, styles: state.styles,
+          seasonCards: state.seasonCards, seasonEarned: state.seasonEarned };
+    var spot = state.pcKind + ':' + (state.pcView || '');
     if (state.pcView && !state.pcOther) {
       holder.appendChild(el('p', 'fb-meta', 'Loading ' + whose.first + '\u2019s Player Cards\u2026'));
       return;
@@ -5328,24 +6111,38 @@ EGE.cardsView = (function () {
       } else if (!teams.length) {
         holder.appendChild(el('p', 'fb-meta', 'No Team Cards yet.'));
       }
-      (teams || []).forEach(function (tc) { holder.appendChild(teamCardEl(tc, whose)); });
+      if (teams && teams.length) {
+        renderCarousel(holder, teams.map(function (tc) { return teamCardEl(tc, whose); }), spot);
+      }
       return;
     }
     if (state.pcKind === 'nfl') {
       /* The NFL teammates with a Player Card, best first. */
+      /* Then the Season Cards bought in the Shop, newest season first. */
       var mates = EGE.nflCards && EGE.nflCards.loaded() ? EGE.nflCards.playerCards(owned) : null;
-      if (!mates) {
+      var seasons = seasonPcs(whose, owned, false);
+      if (!mates && !seasons.length) {
         holder.appendChild(el('p', 'fb-meta', 'Loading\u2026'));
-      } else if (!mates.length) {
+        return;
+      }
+      if (mates && !mates.length && !seasons.length) {
         holder.appendChild(el('p', 'fb-meta', 'No NFL Player Cards yet. ' +
           whole(EGE.nflCards.NFL_RANKS[0].points) + ' FPTS of one teammate makes one.'));
+        return;
       }
-      (mates || []).forEach(function (pc) { holder.appendChild(playerCardEl(pc, whose)); });
+      renderCarousel(holder, (mates || []).concat(seasons).map(function (pc) { return playerCardEl(pc, whose); }), spot);
       return;
     }
-    EGE.players.forEach(function (player) {
-      holder.appendChild(playerCardEl(EGE.cards.playerCard(player, owned), whose));
-    });
+    /* The six's Player Cards, then their Season Cards. */
+    renderCarousel(holder, EGE.players.map(function (player) {
+      return EGE.cards.playerCard(player, owned);
+    }).concat(seasonPcs(whose, owned, true)).map(function (pc) { return playerCardEl(pc, whose); }), spot);
+  }
+
+  /* The account's Season Cards of the six (ege) or of NFL players. */
+  function seasonPcs(whose, owned, ege) {
+    return (whose.seasonCards || []).filter(function (row) { return Boolean(row.ege) === ege; })
+      .map(function (row) { return seasonPc(row, whose, owned); }).filter(Boolean);
   }
 
   /* The six's Player Cards, the NFL teammates' or the Team Cards, over the
@@ -5924,6 +6721,7 @@ EGE.cardsView = (function () {
     if (state.tab === 'cards') { renderCollection(); }
     renderPlayerCards();
     renderDaily();
+    renderSeasonShop();
     renderMarket();
     renderTrades();
     renderWants();
@@ -6024,7 +6822,10 @@ EGE.cardsView = (function () {
       })),
       EGE.cardStore.gamePacks(player.email),
       EGE.cardStore.wantLists(),
-      EGE.cardStore.teamCardAwards(player.email)
+      EGE.cardStore.teamCardAwards(player.email),
+      EGE.cardStore.cardStyles(player.email),
+      EGE.cardStore.seasonCards(player.email),
+      EGE.cardStore.seasonCardEarnings(player.email)
     ]).then(function (all) {
       if (state.player !== player) { return; }
       if (all[0] === null) {
@@ -6043,6 +6844,9 @@ EGE.cardsView = (function () {
       state.shop = all[8];
       state.market = all[9];
       state.photos = all[10];
+      state.styles = all[21] || {};
+      state.seasonCards = all[22] || [];
+      state.seasonEarned = all[23];
       state.spin = all[12];
       state.events = all[13] || {};
       state.eventClaims = all[14] || {};
@@ -6255,6 +7059,10 @@ EGE.cardsView = (function () {
     state.shop = null;
     state.market = null;
     state.photos = null;
+    state.styles = {};
+    state.seasonCards = [];
+    state.seasonEarned = null;
+    state.pcIndex = {};
     state.pcView = null;
     state.pcOther = null;
     state.spin = null;
