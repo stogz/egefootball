@@ -13391,10 +13391,39 @@ img.ege-avatarface { object-fit: cover; object-position: center; }
   .ege-pcards__kinds .ege-filterchip { flex: 1 1 0; min-width: 0; padding-left: 4px; padding-right: 4px; }
 }
 
-/* Download and Copy, under a card. */
-.ege-cardshare { display: inline-flex; flex-wrap: wrap; gap: 8px; }
-.ege-rip__stage > .ege-cardshare { justify-content: center; align-self: center; }
-.ege-rip__stage--zoom .ege-cardshare__btn { background: var(--fb-cream); color: var(--fb-ink); }
+/* The share button under a card (Sam's icon), and the calendar. */
+.ege-iconbtn__icon--share    { --icon: url("icon/cardtabs/share.png"); }
+.ege-iconbtn__icon--calendar { --icon: url("icon/cardtabs/calendar.png"); }
+.ege-cardshare { display: inline-flex; align-items: center; justify-content: center; }
+.ege-rip__stage > .ege-cardshare { align-self: center; border-color: var(--fb-cream); color: var(--fb-cream); background: transparent; }
+@media (hover: hover) { .ege-rip__stage > .ege-cardshare:hover { background: var(--fb-cream); color: var(--fb-ink); } }
+.ege-rip__actions .ege-iconbtn .ege-iconbtn__icon { width: 20px; height: 20px; }
+/* Copy or Download, over everything, from the share button. */
+.ege-sharepop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, .55);
+}
+.ege-sharepop__box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+  border: var(--fb-border) solid var(--fb-ink);
+  background: var(--fb-cream);
+  color: var(--fb-ink);
+  box-shadow: 6px 6px 0 var(--fb-ink);
+}
+.ege-sharepop__actions { display: flex; gap: 10px; }
+.ege-sharepop__actions .fb-btn { min-width: 120px; }
+.ege-sharepop__status { margin: 0; max-width: 260px; text-align: center; font-size: .875rem; font-weight: 700; }
+.ege-sharepop__status:empty { display: none; }
 /* The card drawn again for its picture, out of sight. */
 .ege-cardshot {
   position: fixed;
@@ -13417,41 +13446,51 @@ img.ege-avatarface { object-fit: cover; object-position: center; }
 
 /* --- a Season Card up close, week by week (Sam, 2026-11-18) ------------------ */
 
-.ege-rip__stage--season { width: min(900px, 100%); }
-.ege-seasonview {
+.ege-rip__stage--season { width: min(460px, 100%); }
+.ege-rip__stage--season.is-open { width: min(900px, 100%); }
+/* Just the card until the calendar opens its weeks beside it. */
+.ege-seasonview { display: flex; justify-content: center; width: 100%; }
+.ege-seasonview__card { width: min(300px, 72vw); }
+.ege-seasonview__side[hidden] { display: none; }
+.ege-seasonview.is-open {
   display: grid;
   grid-template-columns: minmax(200px, 290px) minmax(0, 1fr);
   gap: 28px;
   align-items: start;
-  width: 100%;
 }
-.ege-seasonview__card { position: sticky; top: 8px; width: 100%; }
+.ege-seasonview.is-open .ege-seasonview__card { position: sticky; top: 8px; width: 100%; }
 .ege-seasonview__side { display: flex; flex-direction: column; gap: 10px; min-width: 0; color: var(--fb-cream); }
 .ege-seasonview__line { margin: 0; font-weight: 700; color: var(--fb-cream); }
-.ege-seasonview__ranks { display: flex; flex-wrap: wrap; gap: 6px; }
+/* A button for each rank, in its colour and nothing else. */
+.ege-seasonview__ranks { display: flex; flex-wrap: wrap; gap: 8px; }
 .ege-seasonview__rank {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-  min-width: 78px;
-  padding: 5px 9px 6px;
-  border: var(--fb-border-thin) solid var(--fb-cream);
-  border-left: 6px solid var(--rarity);
-  background: transparent;
-  color: var(--fb-cream);
-  font: inherit;
-  text-align: left;
+  position: relative;
+  width: 40px;
+  height: 30px;
+  padding: 0;
+  border: var(--fb-border-thin) solid rgba(245, 234, 216, .35);
+  background: var(--rarity);
   cursor: pointer;
 }
-.ege-seasonview__rankname { font-size: .8125rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
-.ege-seasonview__rankpct { font-size: .75rem; font-weight: 700; opacity: .8; }
-.ege-seasonview__rank.is-held .ege-seasonview__rankname::after { content: ' \2022'; color: var(--rarity); }
-.ege-seasonview__rank.is-shown { background: var(--fb-cream); color: var(--fb-ink); }
-@media (hover: hover) {
-  .ege-seasonview__rank:not(.is-shown):hover { background: rgba(245, 234, 216, .14); }
+.ege-seasonview__rank.is-shown { border-color: var(--fb-cream); box-shadow: 0 0 0 2px var(--fb-ink), 0 0 0 4px var(--fb-cream); }
+/* Its own rank: a dot under it. */
+.ege-seasonview__rank.is-held::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 50% !important;
+  background: var(--fb-cream);
 }
-.ege-seasonview__need { margin: 0; min-height: 1.3em; font-size: .875rem; font-weight: 700; color: var(--fb-cream); opacity: .9; }
+@media (hover: hover) {
+  .ege-seasonview__rank:not(.is-shown):hover { border-color: var(--fb-cream); }
+}
+.ege-seasonview__need { margin: 4px 0 0; min-height: 1.3em; font-size: .875rem; font-weight: 700; color: var(--fb-cream); }
+.ege-seasonview__rankname { color: var(--rarity); text-transform: uppercase; letter-spacing: .04em; font-weight: 800; }
+.ege-seasonview__cal.is-active { background: var(--fb-cream) !important; color: var(--fb-ink) !important; }
 .ege-seasonview__note { margin: 0; padding: 8px 10px; font-size: .8125rem; font-weight: 700; color: var(--fb-muted); }
 .ege-seasonweeks__wrap {
   max-height: min(56vh, 520px);
@@ -13494,10 +13533,9 @@ img.ege-avatarface { object-fit: cover; object-position: center; }
 .ege-seasonweeks__games { font-weight: 700; color: var(--fb-muted); }
 .ege-seasonweeks__more { margin-left: 6px; font-size: .75rem; color: #2f7a3a; }
 @media (max-width: 700px) {
-  .ege-seasonview { grid-template-columns: minmax(0, 1fr); gap: 16px; }
-  .ege-seasonview__card { position: static; width: min(230px, 62vw); margin: 0 auto; }
-  .ege-seasonview__rank { min-width: 0; flex: 1 1 auto; padding: 4px 8px 5px; }
-  .ege-seasonview__rankname { font-size: .75rem; letter-spacing: .02em; }
+  .ege-seasonview.is-open { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .ege-seasonview.is-open .ege-seasonview__card { position: static; width: min(230px, 62vw); margin: 0 auto; }
+  .ege-seasonview__rank { flex: 1 1 0; width: auto; min-width: 0; }
   .ege-seasonweeks__wrap { max-height: none; }
   .ege-seasonweeks th,
   .ege-seasonweeks td { padding: 6px 7px; }

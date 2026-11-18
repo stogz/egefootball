@@ -3000,7 +3000,7 @@ banners, which carry the next step to take.
 in the middle, its neighbours smaller and turned away on either side.
 Swipe or drag across, or use the arrows (desktop), the dots or the keyboard
 arrows, and they slide and turn into place. What the middle card means
-(progress, earnings, See his cards, Edit, Download, Copy) sits under the
+(progress, earnings, See his cards, Edit, Share) sits under the
 row. Tapping the middle card opens it: a career card of yours in the
 editor, somebody else's up close, and any Season Card week by week (below).
 Tapping a side card brings it to the middle
@@ -3014,8 +3014,11 @@ TEAM the Team Cards. NFL players have no career Player Card any more: they
 were taken out on 2026-11-18 (Sam), so an NFL player's card is a Season
 Card, and `pay_nfl_card_bonuses` is no longer called.
 
-**Card pictures.** Download and Copy, under any card on the Players page
-and up close (collection cards too), make a PNG of the card: it is drawn
+**Card pictures.** The share button (Sam's icon, 2026-11-18), under any
+card on the Players page and up close (collection cards too), opens a
+pop-up with COPY and DOWNLOAD (`openSharePop`); either makes a PNG of the
+card, then the pop-up closes (Escape or a tap outside closes it alone). The
+card is drawn
 again off screen and turned into a picture by html-to-image, read from
 jsDelivr the first time (`cardShot` in js/cards-view.js). The card's own
 fonts (Caprasimo and Figtree) go into the picture as data: html-to-image
@@ -3074,16 +3077,18 @@ Season Card of anybody else) and lists his seasons: the finished ones, and
 the one being played, an NFL player's only those he played on one of the
 six's teams (a week with one of the six's lines on his side,
 `nfl_season_lines.mate`). Each shows team, games, FPTS, what it pays a
-season and its price; Buy opens the card week by week (below), at the rank
-your cards of him from that season give it, with Buy under it. A Season
-Card replays its
-season: every week published after it is bought, in every later season,
-pays what his game in that week of the card's season was worth. A Kenneth
+season and its price, under a bar in the colour of the rank the card would
+have if bought now (the rank your cards of him from that season give it;
+Sam, 2026-11-18); Buy opens the card (below), at that rank, with Buy
+under it. A Season Card replays its season: every week published after it
+is bought, in every later season, pays 60% of what his game in that week
+of the card's season was worth (Sam, 2026-11-18). A Kenneth
 Walker 2027 card pays his 2027 week 2 game in 2030 week 2, and again in
 2031, wherever he plays now or if he has retired.
 
-- A game pays ceil(FPTS / 10) diamonds, twice in the playoffs, nothing
-  under 1 FPTS. FPTS are the site's, defenders IDP style.
+- A game was worth ceil(FPTS / 10) diamonds, twice in the playoffs,
+  nothing under 1 FPTS; the card pays 60% of it (`share` in `SEASON_CARD`).
+  FPTS are the site's, defenders IDP style.
 - Price: one flat price (Sam, 2026-11-18): 40 diamonds for an NFL
   player's, 60 for one of the six's, any season. The season being played
   shows what it would pay at his pace (what his games so far pay carried
@@ -3092,20 +3097,26 @@ Walker 2027 card pays his 2027 week 2 game in 2030 week 2, and again in
   its games, FPTS and pay are counted again as weeks come out
   (`weeks_seen`, in `pay_nfl_season_cards`).
 - Rank: every Season Card starts at Common (Sam, 2026-11-18) and ranks up
-  like a Player Card, on the same ladder (the six's or the NFL one, with a
-  Common rung at 0), but only from the cards held of him from that same
-  season, so a 2028 card does nothing for his 2027 Season Card. The rank
+  like a Player Card, at half its FPTS (Sam, 2026-11-18: Iconic at 3,500
+  for one of the six's backs or receivers, 700 for an NFL player; the
+  six's ladder or the NFL one, halved,
+  with a Common rung at 0; `rankScale`), but only from the cards held of
+  him from that same season, so a 2028 card does nothing for his 2027
+  Season Card. The rank
   adds to every week it pays: Common nothing, Uncommon +10%, Rare +25%,
   Epic +50%, Legendary +80%, Mystic +125%, Iconic +300%, GOAT +500% (Sam
   picked this on 2026-11-18). A week is paid at the rank held when it is
-  paid: round(the week's diamonds × (1 + bonus)).
+  paid: round(the week's diamonds × 0.6 × (1 + bonus)).
 - Week by week: tapping a Season Card (yours or anybody's, and Buy in the
-  Shop) opens every week of its season with who he played, his FPTS and
-  what the week pays at its rank, and the season's total under them. The
-  rank chips over the weeks show the same at any other rank, the card drawn
-  at that rank, how many more FPTS of his cards from that season it takes,
-  and the total's gain (`openSeasonCard` in js/cards-view.js). An NFL
-  player's weeks come from `nfl_season_card_weeks`.
+  Shop) opens the card alone; Sam's calendar button (under it, and beside
+  the card on the Players page) opens every week of its season beside it
+  with who he played, his FPTS and what the week pays at its rank, and the
+  season's total under them (Sam, 2026-11-18: hidden until asked). Over the
+  weeks is a row of plain buttons in the ranks' colours (a dot under the
+  rank held); one shows the same at that rank, the card drawn at it, its
+  name, how many more FPTS of his cards from that season it takes, and the
+  total's gain (`openSeasonCard` in js/cards-view.js). An NFL player's
+  weeks come from `nfl_season_card_weeks`.
 - One of each player's season per account; no selling back.
 - An NFL player's: Postgres reads the box scores and prices and pays it
   (`nfl_season_card_quotes`, `buy_nfl_season_card`). One of the six's:
@@ -3113,7 +3124,7 @@ Walker 2027 card pays his 2027 week 2 game in 2030 week 2, and again in
   (`EGE.nflCards.egeSeasonQuote`) and `buy_ege_season_card` holds it to a
   season's shape and charges 60. `pay_nfl_season_cards` takes
   each card's rank from the page (as for Team Cards) and, for one of the
-  six's, what each week pays (held to 30 a week); a card the page says
+  six's, what each week was worth (held to 30 a week, then 60%); a card the page says
   nothing of waits. `SEASON_CARD` in data/nfl-cards.js mirrors the
   numbers; change both together. Table `nfl_season_cards` (`ege` marks the
   six's).
