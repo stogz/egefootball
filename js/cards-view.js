@@ -998,6 +998,7 @@ EGE.cardsView = (function () {
     /* Not while a pack is being paid for: the answer decides whether it
        was bought at all. */
     if (rip.node.querySelector('.ege-rip__pack.is-paying')) { return; }
+    closeSharePop();
     rip.node.hidden = true;
     rip.node.innerHTML = '';
     delete rip.node.dataset.fx;
@@ -1546,41 +1547,56 @@ EGE.cardsView = (function () {
     return String(text || 'card').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'card';
   }
 
-  /* Two small buttons: Download saves the card as `name`.png, Copy puts
-     it on the clipboard. `build` draws a fresh copy of the card. */
+  /* The share button under a card (Sam's icon, 2026-11-18): a tap opens a
+     small pop-up with Copy and Download. Copy puts a picture of the card on
+     the clipboard; Download saves it as `name`.png. `build` draws a fresh
+     copy of the card. */
   function shareButtons(build, name) {
-    var box = el('span', 'ege-cardshare');
-    var down = el('button', 'fb-btn fb-btn--sm ege-cardshare__btn', 'Download');
-    down.type = 'button';
-    down.title = 'Save a picture of this card';
-    down.addEventListener('click', function () {
-      down.disabled = true;
-      cardShot(build).then(function (blob) {
-        var url = URL.createObjectURL(blob);
-        var a = el('a');
-        a.href = url;
-        a.download = fileSafe(name) + '.png';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
-        down.disabled = false;
-      }, function (error) {
-        down.disabled = false;
-        say(error.message, true);
-      });
-    });
-    box.appendChild(down);
+    var b = iconButton('ege-cardshare', 'share', 'Share this card');
+    b.addEventListener('click', function () { openSharePop(build, name); });
+    return b;
+  }
 
-    var copy = el('button', 'fb-btn fb-btn--sm ege-cardshare__btn', 'Copy');
+  var sharePop = null;
+
+  function closeSharePop() {
+    if (!sharePop) { return; }
+    var pop = sharePop;
+    sharePop = null;
+    document.removeEventListener('keydown', pop.onKey, true);
+    pop.node.remove();
+    if (pop.returnTo && pop.returnTo.isConnected) { pop.returnTo.focus({ preventScroll: true }); }
+  }
+
+  function openSharePop(build, name) {
+    closeSharePop();
+    var back = el('div', 'ege-sharepop');
+    var box = el('div', 'ege-sharepop__box');
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-modal', 'true');
+    box.setAttribute('aria-label', 'Share this card');
+    back.appendChild(box);
+    var status = el('p', 'ege-sharepop__status');
+    status.setAttribute('role', 'status');
+    var row = el('div', 'ege-sharepop__actions');
+    var copy = el('button', 'fb-btn fb-btn--primary', 'Copy');
     copy.type = 'button';
-    copy.title = 'Copy a picture of this card';
+    var down = el('button', 'fb-btn fb-btn--primary', 'Download');
+    down.type = 'button';
+    row.appendChild(copy);
+    row.appendChild(down);
+    box.appendChild(row);
+    box.appendChild(status);
+
+    function busy(on) { copy.disabled = on; down.disabled = on; }
+
     copy.addEventListener('click', function () {
       if (!navigator.clipboard || !navigator.clipboard.write || !window.ClipboardItem) {
-        say('This browser cannot copy pictures. Use Download.', true);
+        status.textContent = 'This browser cannot copy pictures. Use Download.';
         return;
       }
-      copy.disabled = true;
+      busy(true);
+      status.textContent = '';
       /* Handed to the clipboard while the tap is still fresh, as Safari
          wants, with the picture to follow. */
       var blob = cardShot(build);
@@ -1594,15 +1610,42 @@ EGE.cardsView = (function () {
       }
       wrote.then(function () {
         copy.textContent = 'Copied';
-        setTimeout(function () { copy.textContent = 'Copy'; copy.disabled = false; }, 1500);
+        setTimeout(closeSharePop, 900);
       }, function (error) {
-        copy.disabled = false;
-        say(error && /picture|connection/.test(error.message || '') ? error.message
-          : 'The picture could not be copied. Use Download.', true);
+        busy(false);
+        status.textContent = error && /picture|connection/.test(error.message || '') ? error.message
+          : 'The picture could not be copied. Use Download.';
       });
     });
-    box.appendChild(copy);
-    return box;
+
+    down.addEventListener('click', function () {
+      busy(true);
+      status.textContent = '';
+      cardShot(build).then(function (blob) {
+        var url = URL.createObjectURL(blob);
+        var a = el('a');
+        a.href = url;
+        a.download = fileSafe(name) + '.png';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+        closeSharePop();
+      }, function (error) {
+        busy(false);
+        status.textContent = error.message;
+      });
+    });
+
+    /* A tap outside it, or Escape, closes it, and only it. */
+    back.addEventListener('click', function (e) { if (e.target === back) { closeSharePop(); } });
+    var onKey = function (e) {
+      if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); closeSharePop(); }
+    };
+    document.addEventListener('keydown', onKey, true);
+    sharePop = { node: back, onKey: onKey, returnTo: document.activeElement };
+    document.body.appendChild(back);
+    copy.focus({ preventScroll: true });
   }
 
   /* --- a card up close -------------------------------------------------- */
@@ -5281,12 +5324,13 @@ EGE.cardsView = (function () {
       pays = q.live ? q.soFar : q.pays;
       team = q.team || team;
     }
+    var weeks = q ? q.weeks : null;
     return {
       player: player, nfl: !ege, points: ranked.points, copies: 1, held: ranked.copies, distinct: 1,
       ladder: ranked.ladder, rank: ranked.rank, next: ranked.next, earned: earned,
       seasonCard: { season: season, ege: ege, pays: pays, thisYear: thisYear, live: season === EGE.currentSeason,
                     team: team, where: seasonTeamName(team, ege), games: games,
-                    fpts: fpts, price: row.price }
+                    fpts: fpts, price: row.price, weeks: weeks }
     };
   }
 
@@ -5306,18 +5350,24 @@ EGE.cardsView = (function () {
     var style = whose.styles ? whose.styles[photoKey(pc)] || null : null;
     var node = el('article', 'ege-pcard ege-pcard--season');
     var face = playerCardFace(pc, pc.earned, photo, style);
-    /* Yours or not, it opens up close on what it pays week by week. */
-    pressable(face, player.name + ' ' + sc.season + ' Season Card, week by week', function () {
-      openSeasonCard(pc, { photo: photo, style: style, mine: whose.mine, whoseFirst: whose.mine ? null : whose.first });
-    });
+    function upClose(weeks) {
+      openSeasonCard(pc, { photo: photo, style: style, mine: whose.mine, whoseFirst: whose.mine ? null : whose.first,
+                           weeks: weeks });
+    }
+    /* Yours or not, it opens up close; the calendar has its weeks. */
+    pressable(face, player.name + ' ' + sc.season + ' Season Card, up close', function () { upClose(false); });
     node.appendChild(face);
+    /* What it pays a season at its rank: to the diamond from its weeks
+       where they are to hand (one of the six's), about otherwise. */
+    var bonus = pc.rank ? pc.rank.bonus : 0;
+    var year = sc.weeks ? EGE.nflCards.seasonYearPay(sc.weeks, bonus, sc.ege) : EGE.nflCards.seasonAbout(sc.pays, bonus);
 
     var body = el('div', 'ege-pcard__body');
     body.appendChild(el('h4', 'ege-item__name', player.name));
     body.appendChild(el('span', 'fb-meta', seasonLine(pc)));
     var meter = el('div', 'fb-meter ege-pcard__meter');
     var fill = el('div', 'fb-meter__fill');
-    fill.style.width = Math.min(100, sc.thisYear / Math.max(1, sc.pays) * 100) + '%';
+    fill.style.width = Math.min(100, sc.thisYear / Math.max(1, year) * 100) + '%';
     fill.style.background = pc.rank ? pc.rank.color : '#8b9097';
     meter.appendChild(fill);
     body.appendChild(meter);
@@ -5329,15 +5379,17 @@ EGE.cardsView = (function () {
       pays.appendChild(amount);
       pays.appendChild(document.createTextNode('. '));
     }
-    var rate = el('span', 'ege-pcard__rate', whole(sc.pays));
+    var rate = el('span', 'ege-pcard__rate', (sc.weeks ? '' : '\u2248 ') + whole(year));
     rate.appendChild(gem());
     pays.appendChild(rate);
-    var plus = pc.rank && pc.rank.bonus ? ', plus ' + pctText(pc.rank.bonus) + ' at ' + pc.rank.name : '';
     pays.appendChild(document.createTextNode(sc.live
-      ? ' so far. It pays from ' + (sc.season + 1) + ', week by week' + plus + '.'
-      : ' a season, week by week' + plus + '.'));
+      ? ' so far at ' + pc.rank.name + ', paid from ' + (sc.season + 1) + '.'
+      : ' a season at ' + pc.rank.name + '.'));
     body.appendChild(pays);
     var row = el('div', 'ege-pcard__actions');
+    var cal = iconButton('ege-pcard__cal', 'calendar', 'Week by week');
+    cal.addEventListener('click', function () { upClose(true); });
+    row.appendChild(cal);
     if (whose.mine) { row.appendChild(editButton(pc)); }
     row.appendChild(shareButtons(function () { return playerCardFace(pc, pc.earned, photo, style); },
       player.name + ' ' + sc.season + ' season card'));
@@ -5348,13 +5400,16 @@ EGE.cardsView = (function () {
 
   /* --- a Season Card up close (Sam, 2026-11-18) ---------------------------
 
-     Every week of its season: who he played, his FPTS and the diamonds the
-     week pays every season after at the card's rank, with the season's
-     total under them. The rank chips over the weeks show what it would pay
-     at any other rank and how many more FPTS of his cards from that season
-     it takes to get there, the card drawn at that rank. From the Shop
-     (`opts.buy`) it is the card it would be, at the rank the cards you
-     hold give it, with Buy. */
+     The card, with its buttons: the calendar, share, and Edit and Done (or
+     Cancel and Buy, from the Shop: `opts.buy`, the card it would be at the
+     rank the cards you hold give it). The calendar (Sam: the week-by-week
+     only for whoever asks for it) opens every week of its season beside
+     the card: who he played, his FPTS and the diamonds the week pays every
+     season after at the card's rank, and the season's total under them.
+     Over the weeks, a button in each rank's colour shows what it would pay
+     at that rank and how many more FPTS of his cards from that season it
+     takes, the card drawn at that rank. `opts.weeks` opens it with the
+     weeks out. */
   var SEASON_ROUNDS = { 19: 'WC', 20: 'DIV', 21: 'CONF', 22: 'SB' };
 
   /* A Season Card's weeks, [[week, FPTS, diamonds, opponent, at home]], as
@@ -5417,24 +5472,25 @@ EGE.cardsView = (function () {
     stage.appendChild(wrap);
     tiltCard(holder);
 
-    side.appendChild(el('p', 'ege-seasonview__line', (o.whoseFirst ? o.whoseFirst + '’s · ' : '') + seasonLine(pc)));
-
     var ladder = pc.ladder;
     var at = Math.max(0, ladder.map(function (r) { return r.key; }).indexOf(pc.rank ? pc.rank.key : 'common'));
     var shown = at;
+    var open = false;
     var weeks = null;
     var failed = null;
+    var asked = false;
 
+    side.appendChild(el('p', 'ege-seasonview__line', (o.whoseFirst ? o.whoseFirst + '’s · ' : '') + seasonLine(pc)));
     var ranks = el('div', 'ege-seasonview__ranks');
     ranks.setAttribute('role', 'group');
-    ranks.setAttribute('aria-label', 'See what it pays at a rank');
+    ranks.setAttribute('aria-label', 'What it pays at each rank');
     side.appendChild(ranks);
     var need = el('p', 'ege-seasonview__need');
     side.appendChild(need);
     var box = el('div', 'ege-seasonweeks__wrap');
     side.appendChild(box);
 
-    /* At a rank above its own, the card as it would be there. */
+    /* At a rank other than its own, the card as it would be there. */
     function look() {
       if (shown === at) { return pc; }
       var rung = ladder[shown];
@@ -5444,33 +5500,39 @@ EGE.cardsView = (function () {
 
     function base(w) {
       var b = Number(w[2]) || 0;
-      return sc.ege ? Math.max(0, Math.min(30, b)) : b;
+      return sc.ege ? Math.max(0, Math.min(EGE.nflCards.SEASON_CARD.egeWeekMax, b)) : b;
     }
 
-    function paint() {
+    function paintCard() {
       holder.innerHTML = '';
       holder.appendChild(playerCardFace(look(), buy ? null : pc.earned, o.photo, o.style));
+    }
 
+    function paintWeeks() {
       ranks.innerHTML = '';
       ladder.forEach(function (rung, i) {
         var b = el('button', 'ege-seasonview__rank' + (i === shown ? ' is-shown' : '') + (i === at ? ' is-held' : ''));
         b.type = 'button';
         b.style.setProperty('--rarity', rung.color);
+        b.title = rung.name + (rung.bonus ? ' · +' + pctText(rung.bonus) : '');
+        b.setAttribute('aria-label', rung.name);
         b.setAttribute('aria-pressed', i === shown ? 'true' : 'false');
-        b.appendChild(el('span', 'ege-seasonview__rankname', rung.name));
-        b.appendChild(el('span', 'ege-seasonview__rankpct', rung.bonus ? '+' + pctText(rung.bonus) : '+0%'));
-        b.addEventListener('click', function () { shown = i; paint(); });
+        b.addEventListener('click', function () { shown = i; paintCard(); paintWeeks(); });
         ranks.appendChild(b);
       });
 
+      /* The rank shown, its bonus, and how far it is: more of his cards
+         from that season to a rank above, what has it where it is. */
       var rung = ladder[shown];
-      /* How far it is: more of his cards from that season to a rank above,
-         what has it where it is. */
-      need.textContent = shown > at
-        ? whole(Math.ceil(rung.points - pc.points)) + ' more FPTS of his ' + sc.season + ' cards'
+      need.innerHTML = '';
+      var name = el('b', 'ege-seasonview__rankname', rung.name);
+      name.style.setProperty('--rarity', rung.color);
+      need.appendChild(name);
+      need.appendChild(document.createTextNode(' +' + pctText(rung.bonus || 0) + (
+        shown > at ? ' · ' + whole(Math.ceil(rung.points - pc.points)) + ' more FPTS of his ' + sc.season + ' cards'
         : shown < at ? ''
-        : pc.points > 0 ? 'From ' + whole(pc.points) + ' FPTS of his ' + sc.season + ' cards'
-        : 'No ' + sc.season + ' cards of him yet';
+        : pc.points > 0 ? ' · from ' + whole(pc.points) + ' FPTS of his ' + sc.season + ' cards'
+        : ' · no ' + sc.season + ' cards of him yet')));
 
       box.innerHTML = '';
       if (failed) { box.appendChild(el('p', 'fb-meta', failed)); return; }
@@ -5521,11 +5583,39 @@ EGE.cardsView = (function () {
       if (sc.live) { box.appendChild(el('p', 'ege-seasonview__note', 'Pays from ' + (sc.season + 1) + '.')); }
     }
 
+    /* The calendar: the weeks out beside the card, or put away again
+       (back to its own rank). */
+    var cal = iconButton('ege-seasonview__cal', 'calendar', 'Week by week');
+    cal.setAttribute('aria-expanded', 'false');
+    function setOpen(on) {
+      open = on;
+      if (!on) { shown = at; paintCard(); }
+      wrap.classList.toggle('is-open', on);
+      stage.classList.toggle('is-open', on);
+      cal.classList.toggle('is-active', on);
+      cal.setAttribute('aria-expanded', on ? 'true' : 'false');
+      side.hidden = !on;
+      if (!on) { return; }
+      paintWeeks();
+      if (asked) { return; }
+      asked = true;
+      seasonWeeks(pc).then(function (got) {
+        weeks = got || [];
+        if (stage.isConnected && open) { paintWeeks(); }
+      }, function (error) {
+        failed = (error && error.message) || 'The weeks could not be read.';
+        if (stage.isConnected && open) { paintWeeks(); }
+      });
+    }
+    cal.addEventListener('click', function () { setOpen(!open); });
+
     var status = el('p', 'ege-rip__hint');
     status.setAttribute('role', 'status');
     stage.appendChild(status);
 
     var actions = el('div', 'ege-rip__actions');
+    actions.appendChild(cal);
+    var first = null;
     if (buy) {
       var cancel = el('button', 'fb-btn', 'Cancel');
       cancel.type = 'button';
@@ -5545,30 +5635,27 @@ EGE.cardsView = (function () {
       });
       actions.appendChild(cancel);
       actions.appendChild(pay);
+      first = pay;
     } else {
+      actions.appendChild(shareButtons(function () { return playerCardFace(look(), pc.earned, o.photo, o.style); },
+        player.name + ' ' + sc.season + ' season card'));
       if (o.mine) {
         var edit = el('button', 'fb-btn', 'Edit');
         edit.type = 'button';
         edit.addEventListener('click', function () { openCardEditor(pc); });
         actions.appendChild(edit);
       }
-      actions.appendChild(shareButtons(function () { return playerCardFace(look(), pc.earned, o.photo, o.style); },
-        player.name + ' ' + sc.season + ' season card'));
       var done = el('button', 'fb-btn fb-btn--primary', 'Done');
       done.type = 'button';
       done.addEventListener('click', closeRip);
       actions.appendChild(done);
+      first = done;
     }
     stage.appendChild(actions);
 
-    paint();
-    seasonWeeks(pc).then(function (got) {
-      weeks = got || [];
-      if (stage.isConnected) { paint(); }
-    }, function (error) {
-      failed = (error && error.message) || 'The weeks could not be read.';
-      if (stage.isConnected) { paint(); }
-    });
+    paintCard();
+    setOpen(Boolean(o.weeks));
+    if (first && !first.disabled) { first.focus({ preventScroll: true }); }
   }
 
   /* The Shop's Season Cards: find a player, see each of his seasons (the
@@ -5733,15 +5820,23 @@ EGE.cardsView = (function () {
     if (!seasonShop.quotes.length) { box.appendChild(el('p', 'fb-meta', 'No seasons to buy.')); return box; }
     var grid = el('div', 'ege-seasonshop__seasons');
     seasonShop.quotes.forEach(function (q) {
-      var r = EGE.nflCards.seasonRarity(Number(q.points) || 0);
+      /* Its colour is the rank the card would have, bought now, from the
+         cards you hold of him from that season (Sam, 2026-11-18), and what
+         it pays a season is at that rank. */
+      var pc = seasonPc(seasonRowOf(who, q), { mine: true, seasonEarned: null }, state.owned);
+      var rank = pc ? pc.rank : null;
+      var bonus = rank ? rank.bonus : 0;
       var tile = el('div', 'ege-seasontile');
-      tile.style.setProperty('--rarity', r.color);
+      tile.style.setProperty('--rarity', rank ? rank.color : '#8b9097');
+      if (rank) { tile.title = rank.name + (bonus ? ' \u00b7 +' + pctText(bonus) : '') + ' if you buy it now'; }
       tile.appendChild(el('span', 'ege-seasontile__year', String(q.season)));
       /* The season being played: its games so far, priced on his pace. */
       if (q.live) { tile.appendChild(el('span', 'ege-seasontile__now', 'So far')); }
       tile.appendChild(el('span', 'ege-seasontile__line', [seasonTeamName(q.team, who.ege),
         q.games + ' G', q.points + ' FPTS'].filter(Boolean).join(' · ')));
-      var pays = el('span', 'ege-seasontile__pays', (q.live ? '\u2248 ' : '') + whole(q.pays));
+      var pays = el('span', 'ege-seasontile__pays', q.live
+        ? '\u2248 ' + whole(EGE.nflCards.seasonAbout(q.pays, bonus))
+        : whole(EGE.nflCards.seasonYearPay(q.weeks, bonus, Boolean(who.ege))));
       pays.appendChild(gem());
       pays.appendChild(document.createTextNode(' a season'));
       tile.appendChild(pays);
@@ -7272,8 +7367,8 @@ EGE.cardsView = (function () {
     renderRecent();
     renderPlayerCards();
     renderLibrary();
-    /* The Shop's Season Cards know the teammates now. */
-    if (!seasonShop.pick) { renderSeasonShop(); }
+    /* The Shop's Season Cards know the teammates, and their ranks, now. */
+    renderSeasonShop();
     /* A teammate or a team on a Want List can be looked for now. */
     renderWants();
     loadWantHolders(false, true);

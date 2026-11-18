@@ -682,15 +682,18 @@ EGE.nflCards = (function () {
   /* Season Cards (Sam, 2026-11-18): one player's season, bought in the
      Shop: one of the six's, or an NFL player's of a season he was one of
      their teammates; a finished one, or the one being played. Each week of
-     every season after, it pays what his game in that week of its season
-     was worth: ceil(FPTS / 10) diamonds, twice that in the playoffs,
-     nothing under 1 FPTS. One flat price (Sam): 40 for an NFL player's, 60
-     for one of the six's.
+     every season after, it pays 60% of what his game in that week of its
+     season was worth (Sam, 2026-11-18: not the season's whole diamonds
+     again): a game is worth ceil(FPTS / 10) diamonds, twice that in the
+     playoffs, nothing under 1 FPTS. One flat price (Sam): 40 for an NFL
+     player's, 60 for one of the six's.
 
      It starts at Common and ranks up like a Player Card, on the same
-     ladder, but only on the cards held of him from that same season: a
-     2027 card of him does nothing for his 2026 Season Card. The rank adds
-     `bonus` to every week it pays (twice a Player Card's).
+     ladder at half the FPTS (Sam: an Iconic one at 3,500, where a receiver's
+     Player Card is Iconic at 7,000), but only on the cards held of him from
+     that same season: a 2027 card of him does nothing for his 2026 Season
+     Card. The rank adds `bonus` to every week it pays (twice a Player
+     Card's): a week pays round(its diamonds x 60% x (1 + bonus)).
 
      Postgres prices and pays an NFL player's from the sim's box scores
      (nfl_season_card_quotes, buy_nfl_season_card, pay_nfl_season_cards in
@@ -700,13 +703,34 @@ EGE.nflCards = (function () {
   var SEASON_CARD = {
     per: 10, playoffFrom: 19, playoffTimes: 2,
     price: 40, egePrice: 60,
+    share: 0.6, rankScale: 0.5, egeWeekMax: 30,
     bonus: { common: 0, uncommon: 0.10, rare: 0.25, epic: 0.5, legendary: 0.8, mystic: 1.25, iconic: 3, goat: 5 }
   };
 
   /* What one week of a Season Card pays at a rung: `base` the week's
-     diamonds before any rank (pay_nfl_season_cards does the same). */
+     diamonds (seasonGamePay), 60% of them, plus the rung's bonus. Worked in
+     whole numbers so it rounds as pay_nfl_season_cards does. */
   function seasonWeekPay(base, bonus) {
-    return Math.round((base || 0) * (1 + (bonus || 0)));
+    var pct = Math.round((bonus || 0) * 100);
+    var tenths = Math.round(SEASON_CARD.share * 10);
+    return Math.round((base || 0) * tenths * (100 + pct) / 1000);
+  }
+
+  /* What a season of weeks ([[week, FPTS, diamonds], ...]) pays a year at
+     a rung; one of the six's weeks held to 30 each. */
+  function seasonYearPay(weeks, bonus, ege) {
+    return (weeks || []).reduce(function (sum, w) {
+      var base = Number(w[2]) || 0;
+      if (ege) { base = Math.max(0, Math.min(SEASON_CARD.egeWeekMax, base)); }
+      return sum + seasonWeekPay(base, bonus);
+    }, 0);
+  }
+
+  /* About what a season paying `pays` before the 60% comes to a year at a
+     rung: for a card whose weeks are not to hand, or the season being
+     played (`pays` its pace). */
+  function seasonAbout(pays, bonus) {
+    return Math.round((pays || 0) * SEASON_CARD.share * (1 + (bonus || 0)));
   }
 
   function seasonGamePay(points, week, playoff) {
@@ -745,8 +769,10 @@ EGE.nflCards = (function () {
       var common = EGE.cards.playerRank('common');
       ladder.unshift({ key: 'common', name: common.name, color: common.color, points: 0, bonus: 0 });
     }
+    /* Half the FPTS a Player Card's rung takes (Sam, 2026-11-18). */
     ladder = ladder.map(function (r) {
-      return Object.assign({}, r, { bonus: SEASON_CARD.bonus[r.key] || 0 });
+      return Object.assign({}, r, { points: Math.round(r.points * SEASON_CARD.rankScale),
+                                    bonus: SEASON_CARD.bonus[r.key] || 0 });
     });
     var points = base ? base.points : 0;
     var copies = base ? base.copies : 0;
@@ -1253,6 +1279,8 @@ EGE.nflCards = (function () {
     playerCards: playerCards,
     SEASON_CARD: SEASON_CARD,
     seasonWeekPay: seasonWeekPay,
+    seasonYearPay: seasonYearPay,
+    seasonAbout: seasonAbout,
     seasonGamePay: seasonGamePay,
     seasonRarity: seasonRarity,
     seasonRank: seasonRank,

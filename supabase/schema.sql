@@ -6146,16 +6146,17 @@ notify pgrst, 'reload schema';
 -- the six's lines on his side of the game), as the NFL cards are.
 --
 -- It starts at Common and ranks up like a Player Card on the cards held of
--- him from its own season only, and the page says which rank (as for Team
--- Cards). The rank adds to every week it pays: Common nothing, Uncommon
--- +10%, Rare +25%, Epic +50%, Legendary +80%, Mystic +125%, Iconic +300%,
--- GOAT +500%.
+-- him from its own season only (at half a Player Card's FPTS), and the page
+-- says which rank (as for Team Cards). The rank adds to every week it pays:
+-- Common nothing, Uncommon +10%, Rare +25%, Epic +50%, Legendary +80%,
+-- Mystic +125%, Iconic +300%, GOAT +500%.
 --
 -- Every week published in a season after the card's own, once it is
--- bought, pays what his game in that week of the card's season was worth,
--- as one award nsc-{card season}-{slug}-w{week}, paid once, at the rank
--- it has then. A week he did not play goes in at nothing. A week published
--- before the card was bought never pays it.
+-- bought, pays 60% of what his game in that week of the card's season was
+-- worth (Sam, 2026-11-18), plus the rank's bonus, rounded, as one award
+-- nsc-{card season}-{slug}-w{week}, paid once, at the rank it has then. A
+-- week he did not play goes in at nothing. A week published before the
+-- card was bought never pays it.
 -- ===========================================================================
 
 create or replace function public.nfl_num(l jsonb, k text)
@@ -6609,7 +6610,9 @@ begin
         from public.nfl_season_lines(r.card_season, r.espn, r.name, r.pos, r.week) l;
       v_base := public.nfl_season_game_pay(v_pts, r.week);
     end if;
-    v_pay := round(v_base * (1 + r.bonus))::integer;
+    -- 60% of the week's diamonds, plus the rank's bonus (seasonWeekPay in
+    -- data/nfl-cards.js rounds the same way).
+    v_pay := round(v_base * 0.6 * (1 + r.bonus))::integer;
 
     insert into public.diamond_awards (email, season, award_key, diamonds, note)
     values (v_email, p_season, r.award_key, v_pay,
@@ -6618,7 +6621,8 @@ begin
                  when v_pts is null then 'no game'
                  else round(v_pts, 1) || ' FPTS' ||
                       case when r.week >= 19 and v_base > 0 then ' at the playoff 2x' else '' end end ||
-            case when r.bonus > 0 and v_base > 0 then ', +' || round(r.bonus * 100) || '%' else '' end)
+            case when v_base > 0 then ', 60%' else '' end ||
+            case when r.bonus > 0 and v_base > 0 then ' +' || round(r.bonus * 100) || '%' else '' end)
     on conflict (email, season, award_key) do nothing;
     if found then
       v_paid := v_paid + v_pay;
