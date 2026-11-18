@@ -562,9 +562,10 @@ EGE.cardStore = (function () {
   /* Pays what this account's Player Cards are owed for the season's games:
      its collection decides the rank on each of the six, data/cards.js what
      each game pays at it, and pay_player_card_bonuses what is new. Safe to
-     call on every load, like the other awards. Its NFL Player Cards are
-     paid the same way, after (payNflCards), and then its Team Cards
-     (payTeamCards). */
+     call on every load, like the other awards. Then its Team Cards
+     (payTeamCards) and its Season Cards (paySeasonCards). NFL players'
+     career Player Cards were taken out on 2026-11-18 (Sam): an NFL player
+     has Season Cards only, so payNflCards is not called any more. */
   function syncPlayerCards(player, season) {
     var c = client();
     if (!c || !player || !player.email) { return Promise.resolve({ paid: 0 }); }
@@ -580,10 +581,7 @@ EGE.cardStore = (function () {
         p_awards: EGE.cards.playerBonusesEarned(got.owned, year)
       }).then(function (res) {
         var six = res.error ? { paid: 0, message: res.error.message } : { paid: Number(res.data) || 0 };
-        return payNflCards(got.owned, year).then(function (nfl) {
-          six.paid += nfl;
-          return payTeamCards(got.owned, year);
-        }).then(function (teams) {
+        return payTeamCards(got.owned, year).then(function (teams) {
           six.paid += teams;
           return paySeasonCards(got.owned, year, player.email);
         }).then(function (seasons) {

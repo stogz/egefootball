@@ -52,7 +52,7 @@ EGE.cardsView = (function () {
     pcIndex: {},        /* which card each carousel is on, by kind and whose */
     pcView: null,       /* whose Player Cards the Players page shows; null is yours */
     pcOther: null,      /* theirs once read: { owned, photos, earned, failed } */
-    pcKind: 'ege',      /* the six's Player Cards, 'nfl' for the NFL teammates' or 'team' for Team Cards */
+    pcKind: 'career',   /* the six's career Player Cards, 'season' for Season Cards or 'team' for Team Cards */
     spin: null,         /* today's spin from card_spin_today; null until read */
     spinning: false,    /* the wheel is turning: nothing redraws under it */
     sell: null,         /* picking cards to quick sell together: { picked: { id: n }, ... } */
@@ -1419,6 +1419,131 @@ EGE.cardsView = (function () {
     return stage;
   }
 
+  /* --- a card as a picture (Sam, 2026-11-18) ------------------------------
+
+     Download and Copy under any card, up close and on the Players page:
+     the card is drawn again off screen at CARD_SHOT_W and turned into a PNG
+     by html-to-image, read from jsDelivr the first time it is wanted. A
+     picture that cannot be read across sites (an ESPN headshot that will
+     not lend itself) comes out blank rather than spoiling the rest. */
+  var CARD_SHOT_W = 320;
+  var SHOT_LIB = 'https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js';
+  var BLANK_GIF = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+  var shotLib = null;
+
+  function loadShotLib() {
+    if (window.htmlToImage) { return Promise.resolve(window.htmlToImage); }
+    if (shotLib) { return shotLib; }
+    shotLib = new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src = SHOT_LIB;
+      script.async = true;
+      script.onload = function () {
+        if (window.htmlToImage) { resolve(window.htmlToImage); } else { reject(new Error('The card picture could not be made.')); }
+      };
+      script.onerror = function () {
+        shotLib = null;
+        reject(new Error('The card picture could not be made. Check the connection and try again.'));
+      };
+      document.head.appendChild(script);
+    });
+    return shotLib;
+  }
+
+  /* Safari only paints the pictures inside the card from its second go. */
+  var SAFARI = /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent || '');
+
+  /* A PNG of the card `build` draws, as a Promise of a Blob. */
+  function cardShot(build) {
+    return loadShotLib().then(function (lib) {
+      var stage = el('div', 'ege-cardshot');
+      stage.style.width = CARD_SHOT_W + 'px';
+      stage.setAttribute('aria-hidden', 'true');
+      var node = build();
+      stage.appendChild(node);
+      document.body.appendChild(stage);
+      var imgs = Array.prototype.slice.call(node.querySelectorAll('img'));
+      imgs.forEach(function (img) { img.loading = 'eager'; });
+      return Promise.all(imgs.map(function (img) {
+        return img.decode ? img.decode().catch(function () {}) : null;
+      })).then(function () {
+        var opts = { pixelRatio: 3, imagePlaceholder: BLANK_GIF, skipAutoScale: true };
+        var first = lib.toBlob(node, opts);
+        return SAFARI ? first.then(function () { return lib.toBlob(node, opts); }) : first;
+      }).then(function (blob) {
+        stage.remove();
+        if (!blob) { throw new Error('The card picture could not be made.'); }
+        return blob;
+      }, function (error) {
+        stage.remove();
+        throw error;
+      });
+    });
+  }
+
+  function fileSafe(text) {
+    return String(text || 'card').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'card';
+  }
+
+  /* Two small buttons: Download saves the card as `name`.png, Copy puts
+     it on the clipboard. `build` draws a fresh copy of the card. */
+  function shareButtons(build, name) {
+    var box = el('span', 'ege-cardshare');
+    var down = el('button', 'fb-btn fb-btn--sm ege-cardshare__btn', 'Download');
+    down.type = 'button';
+    down.title = 'Save a picture of this card';
+    down.addEventListener('click', function () {
+      down.disabled = true;
+      cardShot(build).then(function (blob) {
+        var url = URL.createObjectURL(blob);
+        var a = el('a');
+        a.href = url;
+        a.download = fileSafe(name) + '.png';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+        down.disabled = false;
+      }, function (error) {
+        down.disabled = false;
+        say(error.message, true);
+      });
+    });
+    box.appendChild(down);
+
+    var copy = el('button', 'fb-btn fb-btn--sm ege-cardshare__btn', 'Copy');
+    copy.type = 'button';
+    copy.title = 'Copy a picture of this card';
+    copy.addEventListener('click', function () {
+      if (!navigator.clipboard || !navigator.clipboard.write || !window.ClipboardItem) {
+        say('This browser cannot copy pictures. Use Download.', true);
+        return;
+      }
+      copy.disabled = true;
+      /* Handed to the clipboard while the tap is still fresh, as Safari
+         wants, with the picture to follow. */
+      var blob = cardShot(build);
+      var wrote;
+      try {
+        wrote = navigator.clipboard.write([new window.ClipboardItem({ 'image/png': blob })]);
+      } catch (e) {
+        wrote = blob.then(function (b) {
+          return navigator.clipboard.write([new window.ClipboardItem({ 'image/png': b })]);
+        });
+      }
+      wrote.then(function () {
+        copy.textContent = 'Copied';
+        setTimeout(function () { copy.textContent = 'Copy'; copy.disabled = false; }, 1500);
+      }, function (error) {
+        copy.disabled = false;
+        say(error && /picture|connection/.test(error.message || '') ? error.message
+          : 'The picture could not be copied. Use Download.', true);
+      });
+    });
+    box.appendChild(copy);
+    return box;
+  }
+
   /* --- a card up close -------------------------------------------------- */
 
   /* `owned`, when given, is how many the viewer has -- left off for somebody
@@ -1500,6 +1625,8 @@ EGE.cardsView = (function () {
         opts.sell ? [viewer.email.toLowerCase()] : [], viewer.email.toLowerCase());
     }
     stage.appendChild(facts);
+    stage.appendChild(shareButtons(function () { return cardEl(card, {}); },
+      [card.player.name, card.season, card.week ? 'week ' + card.week : null, card.kind].filter(Boolean).join(' ')));
 
     var status = el('p', 'ege-rip__hint ege-zoom__status');
     status.setAttribute('role', 'status');
@@ -1627,8 +1754,7 @@ EGE.cardsView = (function () {
       facts.appendChild(el('dt', null, label));
       return facts.appendChild(el('dd', null, value));
     }
-    fact('Whose', (opts.whose ? opts.whose + '’s ' : 'Your ') + (pc.nfl ? 'NFL Player Card' : 'Player Card'));
-    if (pc.nfl && EGE.teams[player.site]) { fact('Team', EGE.teams[player.site].school); }
+    fact('Whose', (opts.whose ? opts.whose + '’s ' : 'Your ') + 'Player Card');
     fact('Rank', rank
       ? rank.name + (rank.bonus ? ' · +' + pctText(rank.bonus) + (pc.nfl ? '' : ' of his game diamonds')
         : ' · no bonus until Uncommon')
@@ -1648,6 +1774,9 @@ EGE.cardsView = (function () {
     var about = rank && rank.bonus ? typicalBonus(player, rank.key) : null;
     if (about !== null) { fact('A game', 'About ' + about + ' diamonds on each of his games'); }
     stage.appendChild(facts);
+    stage.appendChild(shareButtons(function () {
+      return playerCardFace(pc, pc.earned, pc.photo || null, pc.style || null);
+    }, player.name + ' player card'));
 
     var actions = el('div', 'ege-rip__actions');
     var done = el('button', 'fb-btn fb-btn--primary', 'Done');
@@ -4541,14 +4670,19 @@ EGE.cardsView = (function () {
      photo its owner put on it, in place of the headshot. Drawn here for
      the Players page and by js/showcase.js for a player's own page. Not
      ranked yet, it is a grey card. */
+  /* The team on a Player Card: an NFL player's Season Card's team that
+     season, one of the six's that season, or his team now. */
+  function cardTeam(pc) {
+    var sc = pc.seasonCard || null;
+    return (pc.nfl ? EGE.teams[pc.player.site] : EGE.teamFor(pc.player, sc ? sc.season : EGE.currentSeason)) || {};
+  }
+
   function playerCardFace(pc, earned, custom, style) {
     var player = pc.player;
     var sc = pc.seasonCard || null;
     var rank = pc.rank;
     var key = rank ? rank.key : 'unranked';
-    /* An NFL Player Card (pc.nfl) is a teammate's, on the team he is on now. */
-    var team = (pc.nfl ? EGE.teams[player.site]
-      : EGE.teamFor(player, sc ? sc.season : EGE.currentSeason)) || {};
+    var team = cardTeam(pc);
 
     /* A binder card underneath (.ege-tcard): the same size as a play or
        performance card, and the same foil, sheen and glow for its rank. */
@@ -4589,7 +4723,8 @@ EGE.cardsView = (function () {
     var where = el('div', 'ege-plcard__team');
     if (team.logo) {
       var logo = el('img', 'ege-plcard__logo');
-      logo.src = team.logo;
+      /* On the light plate: the Jets' green mark rather than the white one. */
+      logo.src = EGE.logoOnLight ? EGE.logoOnLight(team.logo) : team.logo;
       logo.alt = '';
       logo.loading = 'lazy';
       logo.addEventListener('error', function () { logo.remove(); });
@@ -4773,6 +4908,8 @@ EGE.cardsView = (function () {
 
     /* Your own: the card editor (photo, avatar and nickname). */
     if (whose.mine) { row.appendChild(editButton(pc)); }
+    row.appendChild(shareButtons(function () { return playerCardFace(pc, earned, photo, style); },
+      player.name + ' player card'));
     body.appendChild(row);
 
     node.appendChild(body);
@@ -4783,8 +4920,9 @@ EGE.cardsView = (function () {
 
      Tapping one of your own Player Cards (or its Edit button) opens it in
      the editor: its photo, the avatar cut out of it and a nickname (Sam
-     cut the colours, patterns and fonts, 2026-11-18). The same for an NFL Player Card and a Season Card, which share
-     one style per player ('n:{slug}'). The photo saves the way it always
+     cut the colours, patterns and fonts, 2026-11-18). The same for a
+     Season Card, which has its own ('s:{season}:{slug}', photoKey) rather
+     than his career card's. The photo saves the way it always
      has (set_card_photo); the rest is card_styles (js/card-looks.js), kept
      on Save. */
 
@@ -4837,7 +4975,7 @@ EGE.cardsView = (function () {
     stage.appendChild(wrap);
 
     var photo = state.photos ? state.photos[photoKey(pc)] || null : null;
-    var team = (pc.nfl ? EGE.teams[player.site] : EGE.teamFor(player, EGE.currentSeason)) || {};
+    var team = cardTeam(pc);
 
     function paint() {
       preview.innerHTML = '';
@@ -4888,9 +5026,9 @@ EGE.cardsView = (function () {
     pics.appendChild(circle);
     var up = el('button', 'fb-btn fb-btn--sm', photo ? 'Change' : 'Upload');
     up.type = 'button';
-    var full = pc.nfl && !photo && nflPhotosUp() >= NFL_PHOTOS;
+    var full = pc.seasonCard && !photo && seasonPhotosUp() >= SEASON_PHOTOS;
     up.disabled = state.photos === null || full;
-    if (full) { up.title = 'Six NFL photos are up. Take one down first.'; }
+    if (full) { up.title = 'Twelve Season Card photos are up. Take one down first.'; }
     up.addEventListener('click', function () { choosePhoto(pc, d); });
     pics.appendChild(up);
     if (photo) {
@@ -4960,21 +5098,31 @@ EGE.cardsView = (function () {
   /* An avatar: the frame's circle of the picture, AVATAR px across, with
      nothing outside the circle. Null if it will not come small enough. */
   var AVATAR = 192;
-  function circleToDataUrl(img, view) {
+  function circleCanvas(img, view, size) {
     var canvas = document.createElement('canvas');
-    canvas.width = AVATAR;
-    canvas.height = AVATAR;
+    canvas.width = size;
+    canvas.height = size;
     var ctx = canvas.getContext('2d');
     ctx.beginPath();
-    ctx.arc(AVATAR / 2, AVATAR / 2, AVATAR / 2, 0, Math.PI * 2);
+    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
     ctx.closePath();
     ctx.clip();
-    ctx.drawImage(img, view.sx, view.sy, view.sw, view.sh, 0, 0, AVATAR, AVATAR);
+    ctx.drawImage(img, view.sx, view.sy, view.sw, view.sh, 0, 0, size, size);
+    return canvas;
+  }
+
+  /* See-through outside the circle and wherever the picture is (a PNG
+     cut-out), so the team colour shows behind it on the League page. A
+     browser that cannot write WebP writes a PNG, smaller until it fits. */
+  function circleToDataUrl(img, view) {
     var out = '';
-    [0.85, 0.7, 0.55].some(function (quality) {
-      out = canvas.toDataURL('image/webp', quality);
-      if (out.indexOf('data:image/webp') !== 0) { out = canvas.toDataURL('image/png'); }
-      return out.length <= 45000;
+    [1, 0.8, 0.66].some(function (k) {
+      var canvas = circleCanvas(img, view, Math.round(AVATAR * k));
+      return [0.85, 0.7, 0.55].some(function (quality) {
+        out = canvas.toDataURL('image/webp', quality);
+        if (out.indexOf('data:image/webp') !== 0) { out = canvas.toDataURL('image/png'); }
+        return out.length <= 45000;
+      });
     });
     return out.length <= 45000 ? out : null;
   }
@@ -4986,8 +5134,7 @@ EGE.cardsView = (function () {
      season after, it pays what his game in that week of its own season was
      worth, more at a higher rank, which only the cards of him from that
      season climb (data/nfl-cards.js SEASON_CARD; Postgres does the paying).
-     On the Players page an NFL player's come after the NFL Player Cards and
-     one of the six's after the six's. */
+     On the Players page they are the SEASON tab, best first. */
 
   /* What a Season Card has paid this account, all told. */
   function seasonEarned(season, slug) {
@@ -5020,23 +5167,36 @@ EGE.cardsView = (function () {
           : row.espn ? EGE.espnHeadshot(row.espn, false, 350, 254) : NFL_STANDIN
       };
     }
-    var ranked = EGE.nflCards.seasonRank(row, owned);
+    var ranked = EGE.nflCards.seasonRank(row, owned || {});
     var key = row.season + ':' + row.slug;
     var earned = whose.seasonEarned ? whose.seasonEarned.all[key] || 0 : null;
     var thisYear = whose.seasonEarned ? whose.seasonEarned.now[key] || 0 : 0;
+    var season = Number(row.season);
+    var games = row.games;
+    var fpts = Number(row.points) || 0;
+    var pays = row.pays || 0;
+    var team = row.team || null;
+    /* One of the six's: his season as the season files have it now. */
+    var q = ege ? EGE.nflCards.egeSeasonQuote(player, season) : null;
+    if (q) {
+      games = q.games;
+      fpts = q.points;
+      pays = q.live ? q.soFar : q.pays;
+      team = q.team || team;
+    }
     return {
       player: player, nfl: !ege, points: ranked.points, copies: 1, held: ranked.copies, distinct: 1,
       ladder: ranked.ladder, rank: ranked.rank, next: ranked.next, earned: earned,
-      seasonCard: { season: Number(row.season), ege: ege, pays: row.pays || 0, thisYear: thisYear,
-                    team: row.team || null, where: seasonTeamName(row.team, ege), games: row.games,
-                    fpts: Number(row.points) || 0, price: row.price }
+      seasonCard: { season: season, ege: ege, pays: pays, thisYear: thisYear, live: season === EGE.currentSeason,
+                    team: team, where: seasonTeamName(team, ege), games: games,
+                    fpts: fpts, price: row.price }
     };
   }
 
   /* A Season Card's own line: its season, team, position, games, FPTS. */
   function seasonLine(pc) {
     var sc = pc.seasonCard;
-    return [sc.season + ' Season', sc.where,
+    return [sc.season + (sc.live ? ' so far' : ' Season'), sc.where,
       pc.nfl ? pc.player.position : (EGE.positionFor ? EGE.positionFor(pc.player) : pc.player.position),
       sc.games + (sc.games === 1 ? ' game' : ' games'), (Math.round(sc.fpts * 10) / 10) + ' FPTS']
       .filter(Boolean).join(' · ');
@@ -5075,11 +5235,15 @@ EGE.cardsView = (function () {
     var rate = el('span', 'ege-pcard__rate', whole(sc.pays));
     rate.appendChild(gem());
     pays.appendChild(rate);
-    pays.appendChild(document.createTextNode(' a season, week by week' +
-      (pc.rank && pc.rank.bonus ? ', +' + pctText(pc.rank.bonus) + '.' : '.')));
+    var plus = pc.rank && pc.rank.bonus ? ', +' + pctText(pc.rank.bonus) : '';
+    pays.appendChild(document.createTextNode(sc.live
+      ? ' so far. It pays from ' + (sc.season + 1) + ', week by week' + plus + '.'
+      : ' a season, week by week' + plus + '.'));
     body.appendChild(pays);
     var row = el('div', 'ege-pcard__actions');
     if (whose.mine) { row.appendChild(editButton(pc)); }
+    row.appendChild(shareButtons(function () { return playerCardFace(pc, pc.earned, photo, style); },
+      player.name + ' ' + sc.season + ' season card'));
     body.appendChild(row);
     node.appendChild(body);
     return node;
@@ -5098,11 +5262,15 @@ EGE.cardsView = (function () {
     function fact(label, value) { facts.appendChild(el('dt', null, label)); return facts.appendChild(el('dd', null, value)); }
     fact('Whose', (whoseFirst ? whoseFirst + '’s ' : 'Your ') + sc.season + ' Season Card');
     if (sc.where) { fact('Team', sc.where); }
-    fact('Season', sc.games + (sc.games === 1 ? ' game' : ' games') + ' · ' + (Math.round(sc.fpts * 10) / 10) + ' FPTS');
-    var a = fact('A season', whole(sc.pays));
+    fact(sc.live ? 'So far' : 'Season', sc.games + (sc.games === 1 ? ' game' : ' games') + ' · ' +
+      (Math.round(sc.fpts * 10) / 10) + ' FPTS');
+    var a = fact(sc.live ? 'Paid so far' : 'A season', whole(sc.pays));
     a.appendChild(gem());
+    if (sc.live) { a.appendChild(document.createTextNode(' · pays from ' + (sc.season + 1))); }
     fact('Rank', pc.rank ? pc.rank.name + (pc.rank.bonus ? ' · +' + pctText(pc.rank.bonus) : '') : 'Unranked');
     stage.appendChild(facts);
+    stage.appendChild(shareButtons(function () { return playerCardFace(pc, pc.earned, photo, style); },
+      pc.player.name + ' ' + sc.season + ' season card'));
     var actions = el('div', 'ege-rip__actions');
     var done = el('button', 'fb-btn fb-btn--primary', 'Done');
     done.type = 'button';
@@ -5112,8 +5280,9 @@ EGE.cardsView = (function () {
     done.focus({ preventScroll: true });
   }
 
-  /* The Shop's Season Cards: find a player, see each of his finished
-     seasons with what it pays a year and costs, and buy one. One of the six
+  /* The Shop's Season Cards: find a player, see each of his seasons (the
+     one being played too, priced on his pace) with what it pays a year
+     and costs, and buy one after seeing the card it makes. One of the six
      (dearer: data/nfl-cards.js SEASON_CARD) or anybody in the NFL sim's
      rosters, on a team, a free agent or retired. */
   var seasonShop = { query: '', pick: null, quotes: null, busy: false, pool: null };
@@ -5264,16 +5433,18 @@ EGE.cardsView = (function () {
     box.appendChild(head);
 
     if (!seasonShop.quotes) { box.appendChild(el('p', 'fb-meta', 'Loading…')); return box; }
-    if (!seasonShop.quotes.length) { box.appendChild(el('p', 'fb-meta', 'No finished seasons to buy.')); return box; }
+    if (!seasonShop.quotes.length) { box.appendChild(el('p', 'fb-meta', 'No seasons to buy.')); return box; }
     var grid = el('div', 'ege-seasonshop__seasons');
     seasonShop.quotes.forEach(function (q) {
       var r = EGE.nflCards.seasonRarity(Number(q.points) || 0);
       var tile = el('div', 'ege-seasontile');
       tile.style.setProperty('--rarity', r.color);
       tile.appendChild(el('span', 'ege-seasontile__year', String(q.season)));
+      /* The season being played: its games so far, priced on his pace. */
+      if (q.live) { tile.appendChild(el('span', 'ege-seasontile__now', 'So far')); }
       tile.appendChild(el('span', 'ege-seasontile__line', [seasonTeamName(q.team, who.ege),
-        q.games + (q.games === 1 ? ' G' : ' G'), q.points + ' FPTS'].filter(Boolean).join(' · ')));
-      var pays = el('span', 'ege-seasontile__pays', whole(q.pays));
+        q.games + ' G', q.points + ' FPTS'].filter(Boolean).join(' · ')));
+      var pays = el('span', 'ege-seasontile__pays', (q.live ? '\u2248 ' : '') + whole(q.pays));
       pays.appendChild(gem());
       pays.appendChild(document.createTextNode(' a season'));
       tile.appendChild(pays);
@@ -5285,7 +5456,7 @@ EGE.cardsView = (function () {
         buy.appendChild(gem());
       }
       buy.disabled = owned || seasonShop.busy || (typeof state.diamonds === 'number' && state.diamonds < q.price);
-      buy.addEventListener('click', function () { buySeason(who, q, buy); });
+      buy.addEventListener('click', function () { previewSeason(who, q); });
       tile.appendChild(buy);
       grid.appendChild(tile);
     });
@@ -5293,23 +5464,81 @@ EGE.cardsView = (function () {
     return box;
   }
 
-  function buySeason(who, q, button) {
-    if (seasonShop.busy) { return; }
+  /* A quote as the nfl_season_cards row buying it would make. */
+  function seasonRowOf(who, q) {
+    var soFar = (q.weeks || []).reduce(function (sum, w) { return sum + (Number(w[2]) || 0); }, 0);
+    return {
+      season: q.season, slug: who.slug, espn: who.espn || null, name: who.name, pos: who.pos, team: q.team,
+      games: q.games, points: q.points, pays: q.live ? soFar : q.pays, price: q.price,
+      bought_at: new Date().toISOString(), ege: Boolean(who.ege)
+    };
+  }
+
+  /* What the card will look like (Sam, 2026-11-18), at the rank the cards
+     you hold of him from that season give it, with Buy under it. */
+  function previewSeason(who, q) {
+    var pc = seasonPc(seasonRowOf(who, q), { mine: true, seasonEarned: null }, state.owned);
+    if (!pc) { return; }
+    var sc = pc.seasonCard;
+    var stage = openOverlay(who.name + ' ' + q.season, 'ege-rip__stage--zoom');
+    var row = el('div', 'ege-rip__cards ege-rip__cards--1');
+    var holder = el('div', 'ege-zoom__card');
+    holder.appendChild(playerCardFace(pc, null, null, null));
+    row.appendChild(holder);
+    stage.appendChild(row);
+    tiltCard(holder);
+
+    var facts = el('dl', 'ege-zoom__facts');
+    function fact(label, value) { facts.appendChild(el('dt', null, label)); return facts.appendChild(el('dd', null, value)); }
+    fact(sc.live ? 'So far' : 'Season', seasonLine(pc));
+    var a = fact('A season', (q.live ? '\u2248 ' : '') + whole(q.pays));
+    a.appendChild(gem());
+    a.appendChild(document.createTextNode(q.live ? ' at his pace, paid from ' + (q.season + 1) : ', paid again every season'));
+    fact('Rank', pc.rank ? pc.rank.name + (pc.rank.bonus ? ' · +' + pctText(pc.rank.bonus) : '')
+      : 'Unranked · his ' + q.season + ' cards rank it up');
+    stage.appendChild(facts);
+
+    var status = el('p', 'ege-rip__hint');
+    status.setAttribute('role', 'status');
+    stage.appendChild(status);
+
+    var actions = el('div', 'ege-rip__actions');
+    var cancel = el('button', 'fb-btn', 'Cancel');
+    cancel.type = 'button';
+    cancel.addEventListener('click', closeRip);
+    var buy = el('button', 'fb-btn fb-btn--primary ege-seasontile__buy', 'Buy ' + whole(q.price));
+    buy.type = 'button';
+    buy.appendChild(gem());
+    buy.disabled = seasonShop.busy || (typeof state.diamonds === 'number' && state.diamonds < q.price);
+    buy.addEventListener('click', function () {
+      buy.disabled = true;
+      cancel.disabled = true;
+      buySeason(who, q).then(function (res) {
+        if (res.ok) { closeRip(); return; }
+        status.textContent = res.message;
+        cancel.disabled = false;
+      });
+    });
+    actions.appendChild(cancel);
+    actions.appendChild(buy);
+    stage.appendChild(actions);
+    buy.focus({ preventScroll: true });
+  }
+
+  function buySeason(who, q) {
+    if (seasonShop.busy) { return Promise.resolve({ ok: false, message: 'One at a time.' }); }
     seasonShop.busy = true;
-    button.disabled = true;
-    (who.ege ? EGE.cardStore.buyEgeSeasonCard(who.player, q)
+    return (who.ege ? EGE.cardStore.buyEgeSeasonCard(who.player, q)
       : EGE.cardStore.buySeasonCard(who, q.season, q.price)).then(function (res) {
       seasonShop.busy = false;
-      if (!res.ok) { say(res.message, true); renderSeasonShop(); return; }
+      if (!res.ok) { renderSeasonShop(); return res; }
       say('', false);
-      state.seasonCards = (state.seasonCards || []).concat([{
-        season: q.season, slug: who.slug, espn: who.espn || null, name: who.name, pos: who.pos, team: q.team,
-        games: q.games, points: q.points, pays: q.pays, price: q.price, bought_at: new Date().toISOString(),
-        ege: Boolean(who.ege)
-      }]).sort(function (a, b) { return b.season - a.season || (a.slug < b.slug ? -1 : 1); });
+      state.seasonCards = (state.seasonCards || []).concat([seasonRowOf(who, q)])
+        .sort(function (a, b) { return b.season - a.season || (a.slug < b.slug ? -1 : 1); });
       walletChanged(null, res.diamonds);
       renderSeasonShop();
       renderPlayerCards();
+      return res;
     });
   }
 
@@ -5688,6 +5917,7 @@ EGE.cardsView = (function () {
       }
     });
     row.appendChild(see);
+    row.appendChild(shareButtons(function () { return teamCardFace(tc, earned); }, team.short + ' team card'));
     body.appendChild(row);
 
     node.appendChild(body);
@@ -5729,6 +5959,7 @@ EGE.cardsView = (function () {
     var record = EGE.teamCards.record(tc.key);
     if (record.games.length) { fact('This season', EGE.teamCards.recordText(record)); }
     stage.appendChild(facts);
+    stage.appendChild(shareButtons(function () { return teamCardFace(tc, earned); }, team.short + ' team card'));
 
     var actions = el('div', 'ege-rip__actions');
     var done = el('button', 'fb-btn fb-btn--primary', 'Done');
@@ -5780,28 +6011,29 @@ EGE.cardsView = (function () {
      anything over about 100 KB; PHOTO_MAX keeps under it. One per Player
      Card per account, 36 at most across the site.
 
-     An NFL Player Card's photo is kept under about 60 KB (NFL_PHOTO_MAX;
-     set_card_photo refuses 80 KB), and an account has six of those up at
-     most, since there are hundreds of teammates (Sam, 2026-11-06). Its
-     key is 'n:{slug}' (photoKey). */
+     A Season Card has its own photo (Sam, 2026-11-18), kept under about
+     60 KB (SEASON_PHOTO_MAX; set_card_photo refuses 80 KB), twelve up at
+     most; its key is 's:{season}:{slug}' (photoKey). NFL players' career
+     Player Cards ('n:{slug}') were taken out the same day.
+
+     A picture with see-through parts (a PNG cut-out) keeps them, so the
+     team colour shows behind it as it does behind a headshot. */
   var PHOTO_W = 480;
   var PHOTO_H = 310;          /* the card's photo is about 0.65 as tall as wide */
   var PHOTO_MAX = 130000;
-  var NFL_PHOTO_MAX = 75000;
+  var SEASON_PHOTO_MAX = 75000;
   var ZOOM_MAX = 4;
 
-  var NFL_PHOTOS = 6;
+  var SEASON_PHOTOS = 12;
 
-  function photoKey(pc) { return (pc.nfl ? 'n:' : '') + pc.player.slug; }
+  function photoKey(pc) {
+    return pc.seasonCard ? 's:' + pc.seasonCard.season + ':' + pc.player.slug : pc.player.slug;
+  }
 
-  /* Your NFL Player Card photos up, counting only teammates you still
-     hold a card of, as set_card_photo counts them. */
-  function nflPhotosUp() {
-    if (!state.photos || !EGE.nflCards) { return 0; }
-    var held = EGE.nflCards.holdings(state.owned);
-    return Object.keys(state.photos).filter(function (key) {
-      return key.indexOf('n:') === 0 && held[key.slice(2)];
-    }).length;
+  /* Your Season Card photos up, as set_card_photo counts them. */
+  function seasonPhotosUp() {
+    if (!state.photos) { return 0; }
+    return Object.keys(state.photos).filter(function (key) { return key.indexOf('s:') === 0; }).length;
   }
 
   function loadPhoto(file) {
@@ -5818,17 +6050,50 @@ EGE.cardsView = (function () {
     });
   }
 
-  /* The frame's part of the picture as a data URL, or null if over `max`. */
-  function cropToDataUrl(img, view, max) {
+  /* Whether any of a canvas is see-through. */
+  function seeThrough(canvas) {
+    try {
+      var data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+      for (var i = 3; i < data.length; i += 4) { if (data[i] < 250) { return true; } }
+    } catch (e) { /* unreadable: treat it as solid */ }
+    return false;
+  }
+
+  function drawCrop(img, view, w, h) {
     var canvas = document.createElement('canvas');
-    canvas.width = PHOTO_W;
-    canvas.height = PHOTO_H;
-    canvas.getContext('2d').drawImage(img, view.sx, view.sy, view.sw, view.sh, 0, 0, PHOTO_W, PHOTO_H);
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext('2d').drawImage(img, view.sx, view.sy, view.sw, view.sh, 0, 0, w, h);
+    return canvas;
+  }
+
+  /* The frame's part of the picture as a data URL, or null if over `max`.
+     WebP keeps see-through parts; a browser that cannot write WebP (Safari
+     hands back a PNG) gets a JPEG, unless the picture has see-through
+     parts, which a JPEG would fill black: then a PNG, made smaller until
+     it fits. */
+  function cropToDataUrl(img, view, max) {
+    var canvas = drawCrop(img, view, PHOTO_W, PHOTO_H);
     var out = '';
+    var webp = true;
     [0.82, 0.7, 0.55, 0.4, 0.3].some(function (quality) {
       out = canvas.toDataURL('image/webp', quality);
-      /* A browser that cannot write WebP hands back a PNG. */
-      if (out.indexOf('data:image/webp') !== 0) { out = canvas.toDataURL('image/jpeg', quality); }
+      if (out.indexOf('data:image/webp') !== 0) { webp = false; return true; }
+      return out.length <= max;
+    });
+    if (webp) { return out.length <= max ? out : null; }
+    if (seeThrough(canvas)) {
+      var fit = null;
+      [1, 0.8, 0.66, 0.5, 0.4].some(function (k) {
+        var png = (k === 1 ? canvas : drawCrop(img, view, Math.round(PHOTO_W * k), Math.round(PHOTO_H * k)))
+          .toDataURL('image/png');
+        if (png.length <= max) { fit = png; return true; }
+        return false;
+      });
+      if (fit) { return fit; }
+    }
+    [0.82, 0.7, 0.55, 0.4, 0.3].some(function (quality) {
+      out = canvas.toDataURL('image/jpeg', quality);
       return out.length <= max;
     });
     return out.length <= max ? out : null;
@@ -5881,7 +6146,12 @@ EGE.cardsView = (function () {
     slider.step = '0.01';
     zoomRow.appendChild(slider);
     stage.appendChild(zoomRow);
-    stage.appendChild(el('p', 'ege-rip__hint', round ? 'This circle is his face on the League page.'
+    /* The circle stands in on the League page for a career card's player,
+       and an NFL player's Season Card in its season; one of the six's
+       Season Cards keeps it to itself. */
+    var where = !pc.seasonCard ? 'This circle is his face on the League page.'
+      : pc.nfl ? 'This circle is his face on the League page in ' + pc.seasonCard.season + '.' : '';
+    stage.appendChild(el('p', 'ege-rip__hint', round ? where
       : 'Drag the picture to move it. Pinch, scroll or slide to zoom.'));
 
     /* The view in the picture's own pixels: the centre and the zoom, where
@@ -5978,7 +6248,7 @@ EGE.cardsView = (function () {
         previewPhoto(pc, opts.photo, loaded, opts.rectView, { draft: opts.draft, avatar: avatar, circleView: here });
         return;
       }
-      var photo = cropToDataUrl(img, rect(), pc.nfl ? NFL_PHOTO_MAX : PHOTO_MAX);
+      var photo = cropToDataUrl(img, rect(), pc.seasonCard ? SEASON_PHOTO_MAX : PHOTO_MAX);
       if (!photo) { say('That picture is too big. Try a smaller one.', true); return; }
       loaded.keep = true;
       closeRip();
@@ -6008,7 +6278,7 @@ EGE.cardsView = (function () {
     holder.appendChild(playerCardFace(pc, earnedFor(pc), photo, { nickname: draft.nickname }));
     if (more.avatar) {
       var ring = el('span', 'ege-editor__avatar ege-photoprev__avatar');
-      var team = (pc.nfl ? EGE.teams[player.site] : EGE.teamFor(player, EGE.currentSeason)) || {};
+      var team = cardTeam(pc);
       ring.style.setProperty('--ground', team.ground || '#2f4a2b');
       var face = el('img');
       face.src = more.avatar;
@@ -6116,33 +6386,33 @@ EGE.cardsView = (function () {
       }
       return;
     }
-    if (state.pcKind === 'nfl') {
-      /* The NFL teammates with a Player Card, best first. */
-      /* Then the Season Cards bought in the Shop, newest season first. */
-      var mates = EGE.nflCards && EGE.nflCards.loaded() ? EGE.nflCards.playerCards(owned) : null;
-      var seasons = seasonPcs(whose, owned, false);
-      if (!mates && !seasons.length) {
-        holder.appendChild(el('p', 'fb-meta', 'Loading\u2026'));
+    if (state.pcKind === 'season') {
+      /* Every Season Card, the six's and NFL players', best first. */
+      var seasons = seasonPcs(whose, owned);
+      if (!seasons.length) {
+        holder.appendChild(el('p', 'fb-meta', whose.mine ? 'No Season Cards yet. They are in the Shop.'
+          : whose.first + ' has no Season Cards yet.'));
         return;
       }
-      if (mates && !mates.length && !seasons.length) {
-        holder.appendChild(el('p', 'fb-meta', 'No NFL Player Cards yet. ' +
-          whole(EGE.nflCards.NFL_RANKS[0].points) + ' FPTS of one teammate makes one.'));
-        return;
-      }
-      renderCarousel(holder, (mates || []).concat(seasons).map(function (pc) { return playerCardEl(pc, whose); }), spot);
+      renderCarousel(holder, seasons.map(function (pc) { return playerCardEl(pc, whose); }), spot);
       return;
     }
-    /* The six's Player Cards, then their Season Cards. */
+    /* The six's career Player Cards, highest overall first (Sam). */
     renderCarousel(holder, EGE.players.map(function (player) {
       return EGE.cards.playerCard(player, owned);
-    }).concat(seasonPcs(whose, owned, true)).map(function (pc) { return playerCardEl(pc, whose); }), spot);
+    }).sort(function (a, b) {
+      return (EGE.overallFor(b.player) || 0) - (EGE.overallFor(a.player) || 0) ||
+        (a.player.name < b.player.name ? -1 : 1);
+    }).map(function (pc) { return playerCardEl(pc, whose); }), spot);
   }
 
-  /* The account's Season Cards of the six (ege) or of NFL players. */
-  function seasonPcs(whose, owned, ege) {
-    return (whose.seasonCards || []).filter(function (row) { return Boolean(row.ege) === ege; })
-      .map(function (row) { return seasonPc(row, whose, owned); }).filter(Boolean);
+  /* The account's Season Cards, highest rank first, then the bigger
+     season. */
+  function seasonPcs(whose, owned) {
+    return (whose.seasonCards || []).map(function (row) { return seasonPc(row, whose, owned); }).filter(Boolean)
+      .sort(function (a, b) {
+        return b.points - a.points || b.seasonCard.fpts - a.seasonCard.fpts || b.seasonCard.season - a.seasonCard.season;
+      });
   }
 
   /* The six's Player Cards, the NFL teammates' or the Team Cards, over the
@@ -6151,7 +6421,7 @@ EGE.cardsView = (function () {
     var holder = byId('playerCardsKind');
     if (!holder) { return; }
     holder.innerHTML = '';
-    [['ege', 'EGE'], ['nfl', 'NFL'], ['team', 'TEAM']].forEach(function (k) {
+    [['career', 'CAREER'], ['season', 'SEASON'], ['team', 'TEAM']].forEach(function (k) {
       var b = chip(k[1], state.pcKind === k[0], function () {
         if (state.pcKind === k[0]) { return; }
         state.pcKind = k[0];

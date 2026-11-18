@@ -3,18 +3,23 @@
 
    What the Player Card editor (js/cards-view.js, openCardEditor) saves for
    a card, card_styles in supabase/schema.sql, keyed like the card photos:
-   one of the six's slug ('andrew-parr') or 'n:{slug}' for an NFL player's
-   card (his NFL Player Card and his Season Cards share it).
+   one of the six's career Player Card by his slug ('andrew-parr'), or a
+   Season Card's 's:{season}:{slug}' (Sam, 2026-11-18: each Season Card its
+   own). NFL players have no career card any more ('n:' keys are left over
+   from them and ignored).
 
-     nickname  on the card for anybody who sees it; on the owner's own
-               browser it also stands in for the player's name across the
-               whole site, except where the name is somebody's account
-               (trades, the sign-in box, the admin pages) and on other
-               people's cards. Done here, on the page as drawn, so it never
-               reaches a Discord post, a tweet or anything saved.
+     nickname  on the card for anybody who sees it. On the owner's own
+               browser a career card's also stands in for the player's name
+               across the whole site, except where the name is somebody's
+               account (trades, the sign-in box, the admin pages) and on
+               other people's cards; an NFL player's Season Card's does on
+               the League page while it shows that season (leagueYear).
+               Done here, on the page as drawn, so it never reaches a
+               Discord post, a tweet or anything saved.
      avatar    the card photo cut to a circle: on the owner's own browser it
                takes the place of the player's face in the League page's
-               circles, and nowhere else.
+               circles, from the same cards as the nickname (the six's
+               career cards, never their Season Cards), and nowhere else.
 
    Where the name stays real: anything inside [data-realname] or the
    selectors in KEEP below.
@@ -68,40 +73,75 @@ EGE.cardLooks = (function () {
     'script', 'style', 'textarea', 'input', '[contenteditable]'
   ].join(',');
 
-  var pattern = null;      /* RegExp over every real name with a nickname */
+  var pattern = null;      /* RegExp over every real name with a nickname, anywhere */
   var nickOf = {};         /* lower-case real name: nickname */
+  var leaguePattern = null; /* the same with the League page's own (NFL Season Cards) */
+  var leagueNickOf = {};
   var touched = new Set(); /* text nodes changed, each with its real text kept on it */
   var observer = null;
 
   function escape(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
-  function realNameOf(key, style) {
-    if (key.indexOf('n:') === 0) { return style && style.name ? style.name : null; }
-    var p = EGE.playerBySlug ? EGE.playerBySlug(key) : null;
-    return p ? p.name : null;
+  /* The season the League page is showing: its Leaders of a year, or the
+     season being played. */
+  function leagueYear() {
+    var m = /^#league\/leaders\/(\d{4})/.exec(window.location.hash || '');
+    return m ? Number(m[1]) : EGE.currentSeason;
   }
 
+  /* What a key is: { career: one of the six } or { nfl: an NFL player's
+     Season Card of `season` }; null for anything else. */
+  function kindOf(key, style) {
+    var m = /^s:(\d{4}):(.+)$/.exec(key);
+    if (m) {
+      if (EGE.playerBySlug && EGE.playerBySlug(m[2])) { return null; }
+      return style && style.name ? { nfl: true, season: Number(m[1]), name: style.name } : null;
+    }
+    if (key.indexOf(':') !== -1) { return null; }
+    var p = EGE.playerBySlug ? EGE.playerBySlug(key) : null;
+    return p ? { career: true, name: p.name } : null;
+  }
+
+  function patternOver(map) {
+    var names = Object.keys(map).sort(function (a, b) { return b.length - a.length; });
+    return names.length ? new RegExp('(^|[^\\w])(' + names.map(escape).join('|') + ')(?=$|[^\\w])', 'gi') : null;
+  }
+
+  var builtFor = null;
+
   function rebuildNames() {
-    var next = {};
+    var everywhere = {};
+    var league = {};
+    var year = leagueYear();
+    builtFor = year;
     Object.keys(mine).forEach(function (key) {
       var style = mine[key];
-      var real = realNameOf(key, style);
-      if (style && style.nickname && real && style.nickname !== real) { next[real.toLowerCase()] = style.nickname; }
+      var kind = kindOf(key, style);
+      if (!kind || !style || !style.nickname || style.nickname === kind.name) { return; }
+      if (kind.career) { everywhere[kind.name.toLowerCase()] = style.nickname; }
+      if (kind.nfl && kind.season === year) { league[kind.name.toLowerCase()] = style.nickname; }
     });
-    nickOf = next;
-    var names = Object.keys(next).sort(function (a, b) { return b.length - a.length; });
-    pattern = names.length ? new RegExp('(^|[^\\w])(' + names.map(escape).join('|') + ')(?=$|[^\\w])', 'gi') : null;
+    nickOf = everywhere;
+    leagueNickOf = Object.assign({}, everywhere, league);
+    pattern = patternOver(everywhere);
+    leaguePattern = Object.keys(league).length ? patternOver(leagueNickOf) : pattern;
     restoreAll();
-    if (pattern) {
+    if (pattern || leaguePattern) {
       watch();
       swap(document.documentElement);
       if (observer) { observer.takeRecords(); }
     }
   }
 
-  function replaced(text) {
-    return text.replace(pattern, function (all, lead, name) {
-      var nick = nickOf[name.toLowerCase()] || name;
+  function inLeague(node) {
+    var parent = node.parentElement;
+    return Boolean(parent && parent.closest('#view-league'));
+  }
+
+  function replaced(text, re, map) {
+    re.lastIndex = 0;
+    return text.replace(re, function (all, lead, name) {
+      var nick = map[name.toLowerCase()] || name;
       return lead + (name === name.toUpperCase() && name !== name.toLowerCase() ? nick.toUpperCase() : nick);
     });
   }
@@ -112,14 +152,16 @@ EGE.cardLooks = (function () {
   }
 
   function swapText(node) {
-    if (!pattern) { return; }
+    var league = leaguePattern !== pattern && inLeague(node);
+    var re = league ? leaguePattern : pattern;
+    if (!re) { return; }
     var text = node.data;
-    pattern.lastIndex = 0;
-    if (!text || !pattern.test(text)) { return; }
-    pattern.lastIndex = 0;
+    re.lastIndex = 0;
+    if (!text || !re.test(text)) { return; }
+    re.lastIndex = 0;
     if (kept(node)) { return; }
     if (node.__egeReal === undefined) { node.__egeReal = text; }
-    var out = replaced(text);
+    var out = replaced(text, re, league ? leagueNickOf : nickOf);
     if (out !== text) {
       node.data = out;
       touched.add(node);
@@ -127,7 +169,7 @@ EGE.cardLooks = (function () {
   }
 
   function swap(root) {
-    if (!pattern || !root) { return; }
+    if ((!pattern && !leaguePattern) || !root) { return; }
     if (root.nodeType === 3) { swapText(root); return; }
     if (root.nodeType !== 1 && root.nodeType !== 9) { return; }
     var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -156,7 +198,7 @@ EGE.cardLooks = (function () {
   function watch() {
     if (observer || !window.MutationObserver) { return; }
     observer = new MutationObserver(function (records) {
-      if (!pattern) { return; }
+      if (!pattern && !leaguePattern) { return; }
       records.forEach(function (r) {
         if (r.type === 'characterData') {
           /* The page wrote this text itself: what it says now is real. */
@@ -181,6 +223,15 @@ EGE.cardLooks = (function () {
     return style && style.nickname ? style.nickname : real;
   }
 
+  /* The League page's season changing (Leaders of another year) changes
+     which NFL Season Cards it follows. */
+  window.addEventListener('hashchange', function () {
+    if (builtFor !== null && leagueYear() !== builtFor) {
+      rebuildNames();
+      rebuildFaces();
+    }
+  });
+
   /* --- avatars, on the League page ------------------------------------------ */
 
   var bySrc = {};          /* one of the six's headshot URL: avatar */
@@ -191,14 +242,16 @@ EGE.cardLooks = (function () {
   function rebuildFaces() {
     bySrc = {};
     byEspn = {};
+    var year = leagueYear();
     Object.keys(mine).forEach(function (key) {
       var style = mine[key];
-      if (!style || !style.avatar) { return; }
-      if (key.indexOf('n:') === 0) {
-        if (style.espn) { byEspn[style.espn] = style.avatar; }
+      var kind = kindOf(key, style);
+      if (!kind || !style.avatar) { return; }
+      if (kind.nfl) {
+        if (kind.season === year && style.espn) { byEspn[style.espn] = style.avatar; }
         return;
       }
-      var p = EGE.playerBySlug ? EGE.playerBySlug(key) : null;
+      var p = EGE.playerBySlug(key);
       if (p && p.headshot) { bySrc[p.headshot] = style.avatar; }
     });
     var league = document.getElementById('view-league');

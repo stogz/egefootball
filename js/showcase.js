@@ -2,8 +2,8 @@
    EGE Football — the showcase on a player page
    Up to twelve cards, two rows of six (Sam, 2026-11-06), a player picks
    out of their collection to show off on their own page; any of them can
-   be one of their Player Cards instead ('pc:{slug}' among the ids), or one
-   of their NFL Player Cards ('npc:{slug}', Sam 2026-11-06). Anybody can
+   be one of their Player Cards instead ('pc:{slug}' among the ids; NFL
+   Player Cards, 'npc:{slug}', were taken out on 2026-11-18). Anybody can
    see it, signed in or not; only the player can change it, and only with
    cards they own. A card traded away comes down on
    its own (supabase/schema.sql prunes it when the trade goes through).
@@ -57,24 +57,14 @@ EGE.showcase = (function () {
   /* A slot's Player Card: 'pc:{slug}' worked out from the cards of that
      player the owner holds (the editor's own collection once read, else
      what showcased_player_cards handed over), with what it has earned and
-     its photo. Null for a card id, or a player with no cards behind it.
-     An NFL teammate's ('npc:{slug}') once the NFL cards are read; what it
-     has earned is not kept apart, and its photo is under 'n:{slug}'. */
+     its photo. Null for a card id, or a player with no cards behind it. */
   function slotPlayerCard(id) {
     var saved = (cache[shown.email] || {}).players || {};
     var photos = editing && ownPhotos ? ownPhotos : saved.photos || {};
     /* Its nickname from the card editor (js/card-looks.js). */
     var styles = editing && EGE.cardLooks ? EGE.cardLooks.all() : saved.styles || {};
-    if (id.indexOf(NPC) === 0) {
-      var slug = id.slice(NPC.length);
-      if (!EGE.nflCards || !EGE.nflCards.loaded() || !EGE.nflCards.playerOf(slug)) { return null; }
-      var npc = EGE.nflCards.playerCard(slug, (editing && ownCards) || saved.cards || {});
-      if (!npc.copies) { return null; }
-      npc.earned = null;
-      npc.photo = photos['n:' + slug] || null;
-      npc.style = styles['n:' + slug] || null;
-      return npc;
-    }
+    /* An NFL teammate's career Player Card ('npc:{slug}') was taken out on
+       2026-11-18 (Sam): a slot that still holds one shows nothing. */
     if (id.indexOf(PC) !== 0) { return null; }
     var p = EGE.playerBySlug(id.slice(PC.length));
     if (!p) { return null; }
@@ -282,14 +272,11 @@ EGE.showcase = (function () {
         draw();
       }
 
-      /* Your Player Cards first, then your NFL Player Cards, then your
-         cards: any of them goes in the slot. */
+      /* Your Player Cards first, then your cards: any of them goes in the
+         slot. */
       var pcs = EGE.players.map(function (p) { return EGE.cards.playerCard(p, owned); })
         .filter(function (pc) { return pc.copies > 0 && editing.indexOf(PC + pc.player.slug) === -1; });
-      var npcs = EGE.nflCards && EGE.nflCards.loaded() ? EGE.nflCards.playerCards(owned).filter(function (pc) {
-        return editing.indexOf(NPC + pc.player.slug) === -1;
-      }) : [];
-      [[pcs, 'Player Cards', PC, ''], [npcs, 'NFL Player Cards', NPC, 'n:']].forEach(function (kind) {
+      [[pcs, 'Player Cards', PC, '']].forEach(function (kind) {
         if (!kind[0].length) { return; }
         body.appendChild(el('h4', 'ege-showcase__pickhead', kind[1]));
         var pgrid = el('div', 'ege-tradegrid ege-tradegrid--tall');
@@ -303,7 +290,7 @@ EGE.showcase = (function () {
         });
         body.appendChild(pgrid);
       });
-      if (pcs.length || npcs.length) { body.appendChild(el('h4', 'ege-showcase__pickhead', 'Cards')); }
+      if (pcs.length) { body.appendChild(el('h4', 'ege-showcase__pickhead', 'Cards')); }
 
       if (!cards.length) {
         body.appendChild(el('p', 'fb-meta', got
