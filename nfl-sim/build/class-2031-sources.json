@@ -1,0 +1,134 @@
+{
+  "about": "The 2031 class (build/class-2031.js): the 2030 class's way of making a class, except that each prospect goes by his own real name (Sam, 2026-11-23: \"use their real name but make up their position and skill. Also again make up their college\"). Each picture is a real ESPN college headshot of a 2026 college player that is nowhere else on the site, and the name is that player's. His position, skills, school and age are made up; his listed height and weight stay near the player's own. Lines are ESPN id|name|2026 roster position|height in inches|weight; names, positions and builds are cfbfastR's 2026 rosters (the 2030 leftovers keep the build the 2030 sources list). Every picture in photos was seen on ESPN: the 2030 class's leftovers then, the rest on the team's ESPN roster page (the offense, the part of the page that could be read whole) or on the player's own ESPN page. unchecked are the rest of Ohio's roster, read off a summary of the page that could not be checked line by line; one is used only when no checked picture fits.",
+  "photos": {
+    "checked": "2026-11-23",
+    "groups": [
+      {"school": "Kent State", "division": "FBS", "roster": "https://www.espn.com/college-football/team/roster/_/id/2309", "checked": "2026-11-14, the 2030 class (pictures it left unused)",
+       "players": [
+        "5119841|Dru DeShields|QB|74|195", "5388311|Cole Miller|QB|76|225", "5141625|Deante Ruffin|QB|73|215", "5388310|Ethan Thanthanavong|QB|72|205",
+        "5146972|Ayden Harris|RB|68|205", "5147053|Wayne Harris|WR|69|165", "5388316|Wyatt Januska|WR|74|185", "5263587|Matthew Maxey|WR|70|165",
+        "5388313|Javier Wills|WR|72|190", "5388318|Andrew Rickelman|TE|76|225", "5142743|Dakota Taylor|TE|76|240", "5085561|Hudson Chasko|OL|77|300",
+        "5388319|David Iannini|OL|73|295", "5302807|Eckley Bridges|DL|73|260", "5268612|Jacob Broach|DL|75|190", "5222598|Bryce Griffin|DL|74|235",
+        "5222397|Jaihien Roy|DL|74|245", "5302817|Dion'Dre Taylor|DL|72|280", "5215187|Trey Rubinstein|LB|75|225", "5215184|Rafael Terrero Jr.|LB|75|220",
+        "5302809|Tejuan Barbour|DB|75|170", "5165755|DJ Barnes|DB|68|170", "4877642|Tyler Bivens|DB|71|170", "5193532|Martell Buchanan|DB|73|175",
+        "5215186|BuddyRow Garrer|DB|69|150", "5388315|Jeremiah Johnson|DB|75|175", "5258331|Sean Leonard|PK|75|230", "5194691|Tommy Newcomb|PK|71|185",
+        "5304012|Eli Tucker|PK|71|205"
+       ]},
+      {"school": "UMass", "division": "FBS", "roster": "https://www.espn.com/college-football/team/roster/_/id/113", "checked": "2026-11-14, the 2030 class (pictures it left unused)",
+       "players": [
+        "5227849|Jordan Washington|RB|73|215", "4688904|Reece Adkins|TE|78|260", "5296586|John Condakes|TE|75|250", "5264802|Garrett Cooper|OL|78|315",
+        "5311060|Samu Suominen|OL|76|330", "5082641|Magnus Von Saldern|OL|76|280", "5264803|Gavin Wilson|OL|78|300", "5145222|William Depaepe|DL|78|260",
+        "5229240|Zakar Morris|DL|74|300", "4709810|Joshua Nobles|DL|76|270", "5087084|Colin Reynolds|DL|75|260", "5296581|Jerry Washington|DL|74|255",
+        "5227248|Kendric Council|LB|74|230", "5164566|Joshua Iseah|LB|74|240", "5296584|David Timson|LB|70|225", "5296582|JC Clark|CB|70|175",
+        "5290972|Corey Warner|CB|71|195", "5194665|Keith Sarkodieh|S|74|195", "5293287|Seamus McIntyre|PK|74|230"
+       ]},
+      {"school": "Bowling Green", "division": "FBS", "roster": "https://www.espn.com/college-football/team/roster/_/id/189", "checked": "2026-11-14, the 2030 class (pictures it left unused)",
+       "players": [
+        "5221234|Jarin Mock|QB|75|212", "5219017|Nakai Amachree|RB|70|195", "5281457|Carson Lovett|RB|73|220", "5326942|Maddox Hunstad|WR|77|197",
+        "5326882|Joseph Saffold|WR|73|185", "5219020|Ocean Brabbs|TE|75|213", "4879925|Blane Cleaver|TE|74|235", "5216845|Masyn Zahursky|G|76|305",
+        "5303938|Pete Pendergest|OL|77|285", "5265491|Quentin Lewis|DE|74|240", "5281468|Caden Carter|LB|73|215", "5219018|Henry Reifschneider|LB|72|212",
+        "5219019|Josira Andrews|CB|70|180", "5258471|Jahai Johnson|S|73|200", "5194662|Kal-El Pascal|S|72|190", "5385764|Carlos Guerra|PK|68|175",
+        "5177469|Travis Kenner|PK|70|178", "5385766|Drew Rosick|PK|73|180", "5083074|Ethan Warner|PK|69|192"
+       ]},
+      {"school": "Eastern Michigan", "division": "FBS", "roster": "https://www.espn.com/college-football/team/roster/_/id/2199", "checked": "2026-11-14, the 2030 class (pictures it left unused)",
+       "players": [
+        "5161955|Nick Kinsey|QB|74|198", "5222594|Amareon Blue|RB|66|195", "4917422|Quinn Fracassi|WR|71|162", "5230792|Jackson Holt|TE|77|248",
+        "5295532|Joshua Long|TE|77|242", "5289617|Nathan Piggott|TE|77|230", "5138702|Adham Abouraya|OL|77|306", "5302841|Andrew Trahin|OL|76|300",
+        "5154956|Peyton Christian|DL|71|300", "5257979|Milan Colvin|DL|72|306", "4612605|Carter Evans|DL|76|264", "5083935|Makhi Gilbert|DL|75|282",
+        "5216633|Hector Gonzalez|DL|77|245", "5103574|Alijah Lacey|DL|76|235", "5084768|Warren-Stevens Tayou|DL|73|290", "4838518|Kadin Bailey|LB|74|230",
+        "4965577|Rayquan Adkins|DB|71|178", "4837378|Caleb Coley|DB|72|162", "5295627|Horace Glenn III|DB|71|165", "4997580|Jaivian Norman|DB|69|185",
+        "5081130|Nathan Dibert|PK|70|216", "5220057|Rudy Kessinger|PK|74|185", "4907672|Adam Samaha|PK|71|175"
+       ]},
+      {"school": "Ohio", "division": "FBS", "roster": "https://www.espn.com/college-football/team/roster/_/id/195", "checked": "2026-11-23, the roster page; the last 11 on ESPN's athlete pages",
+       "players": [
+        "5244755|Levi Davis|QB|72|192", "5141472|Hype Grand|QB|72|185", "5228763|Matthew Papas|QB|71|192", "5228762|Nick Poulos|QB|78|243",
+        "5171031|Matt Vezza|QB|72|198", "5236380|Irving Brown|RB|71|220", "5167252|Duncan Brune|RB|71|218", "5315932|James Kelly|RB|72|205",
+        "4873234|Victor Rosa|RB|71|208", "5211768|Mike Taylor Jr.|RB|70|204", "5211691|Preston Bowman|WR|71|207", "4908401|Delaney Crawford|WR|74|202",
+        "5179076|Miles Cremascoli|WR|75|213", "5156079|Khamani Debrow|WR|75|206", "5193110|Dom Dorwart|WR|74|208", "5228768|Blake Guffey|WR|73|221",
+        "5302804|Zach Hackleman|WR|74|185", "5228764|Riley Neer|WR|71|190", "5281383|Kaden Page|WR|75|195", "5394401|Blake Parker|WR|74|180",
+        "5265567|Rashad Perry|WR|71|160", "4711434|Eian Pugh|WR|75|182", "5085129|Ian Ver Steeg|WR|70|184", "5394408|MC Walker II|WR|71|180",
+        "5295495|Tim Boals|TE|76|235", "5221306|Jake Furtney|TE|76|242", "5228772|Aiden Lowery|TE|75|238", "5031158|Andrew Metzger|TE|76|246",
+        "5228783|AJ Miller|TE|76|239", "5394411|Calvin Moody|TE|77|230", "5394410|Riley Palmeter|TE|76|230", "5155009|Seth Anstead|OL|76|300",
+        "5394406|Lance Blakely Jr.|OL|76|270", "5083191|Tigana Cisse|OL|75|305", "5279827|Colton Crosley|OL|75|290", "5225471|CJ Dawson II|OL|74|327",
+        "5320051|Danny Fortson|OL|77|265", "5394407|Cassius Hulbert|OL|75|310", "5170881|Joshua Johnson|OL|74|311", "5304960|Trumain Lawson|OL|77|278",
+        "5228776|Ben Maldonado|OL|76|291", "5225296|Sandro Malicevic|OL|77|332", "5302860|Job Mavrick|OL|74|291", "5309814|Mike Montgomery|OL|77|250",
+        "5327561|Will Odenthal|OL|77|300", "5146835|Bryce Parson|OL|74|296", "4910714|Jarian Shelby|OL|75|290", "5295501|Josh Waite|OL|75|301",
+        "5100519|Nehemiah Dukes|DL|73|288", "4689196|Tyler Gillison|DL|74|252", "5150503|Evan Herrmann|DL|77|245", "4868461|Isaiah Street|DL|75|236",
+        "5156080|RJ Keuchler|DT|75|255", "5327564|Drayden Pavey|DT|73|276", "5295500|Derek Reagans|DT|72|279", "5222587|Charlie Christopher|LB|72|227",
+        "5113973|Jack Fries|LB|74|222", "5178715|Jermaine Minnis|LB|74|204", "5221275|Cody Raymond|LB|75|231", "5394404|Colin Wooldridge|LB|72|200",
+        "5121687|Kendall Bannister|CB|71|187", "4613073|Ronald Jackson Jr.|CB|73|203"
+       ]},
+      {"school": "Miami (OH)", "division": "FBS", "roster": "https://www.espn.com/college-football/team/roster/_/id/193", "checked": "2026-11-23, the roster page (headshot or nophoto)",
+       "players": [
+        "5142146|Thomas Gotkowski|QB|72|189", "5141549|David McComb|QB|76|220", "5193270|D'Shawntae Jones|RB|70|248", "5153885|Rodney Nelson|RB|68|195",
+        "5214639|Lazaro Rogers|RB|70|200", "4869341|Cade Yacamelli|RB|72|219", "5085354|Lynel Billups-Williams|WR|69|177", "4876642|Maleek Huggins|WR|71|180",
+        "5150538|Devin Hyatt|WR|74|192", "5141795|Braylon Isom|WR|75|217", "5164357|Carl Jenkins|WR|74|177", "5017177|Keith Reynolds|WR|69|181",
+        "5081704|Leo Scheidler|WR|73|195", "5104821|Brady Simmons|WR|73|173", "5079772|Damarion Witten|WR|75|206", "4871003|Christian Ross|TE|76|225",
+        "5079306|Devontae Armstrong|OL|77|314", "5087142|Brian Beidatsch|OL|76|284", "5152923|Mitchell Butler|OL|76|290", "5082994|Brandon Lawhorn Moore|OL|78|311",
+        "5091884|Andrew Lowry|OL|80|310", "4879815|Evan Malcore|OL|78|305", "5193279|Kris Manu|OL|73|300", "5141028|Jacob Schorsch|OL|77|300",
+        "4875311|Eric Smith|OL|78|306"
+       ]},
+      {"school": "Central Michigan", "division": "FBS", "roster": "https://www.espn.com/college-football/team/roster/_/id/2117", "checked": "2026-11-23, the roster page (headshot or nophoto)",
+       "players": [
+        "5295480|Marcus Beamon|QB|72|210", "5084769|Angel Flores|QB|73|210", "5149056|Jadyn Glasser|QB|75|245", "5295481|Daniel Gomez|QB|73|215",
+        "5289266|Geno Seets|QB|75|215", "5122147|Vaughn Blue|RB|71|205", "5157391|Jayden Clerveaux|RB|71|215", "5387642|Jayel Harris|RB|71|190",
+        "5211741|Trav Moore|RB|71|205", "5146689|Brock Townsend|RB|72|235", "5150658|Rusty VanWetzinga IV|FB|73|235", "5327593|Da'Shon Febres|WR|72|195",
+        "5221139|Shawn Foster II|WR|72|185", "5295482|Kendall Jones|WR|74|180", "5219540|Camden Kruisenga|WR|74|185", "4869694|Langston Lewis|WR|72|195",
+        "4869497|Tommy McIntosh|WR|76|205", "5216575|Braylen Naves|WR|73|200", "5295489|Collin Payne|WR|74|210", "5302839|Avin Robinson|WR|71|180",
+        "5301046|Dontae Robinson|WR|76|220", "5295488|Justin Ruffin Jr.|WR|69|180", "5151494|Tayte Vanderleest|WR|76|220", "5193288|Nasir Williams|WR|73|205",
+        "4876695|Jaden Allen|TE|75|245", "5289265|Lucas Hoffmeyer|TE|75|235", "5387646|Myles Peters|TE|75|245", "5387647|Gavin Spillers|TE|75|260",
+        "5219544|Landon Swanson|TE|75|240", "5290262|Zack Wagner|TE|76|240", "5316895|Zander Barth|OL|78|245", "5120452|Jacob Booth|OL|77|295",
+        "5153454|Nic DiSanto|OL|77|320", "5302822|Wyatt Graffin|OL|76|290", "5323605|Landon Harper|OL|75|280", "5290892|Isaac Hutchinson|OL|76|310",
+        "4876510|John Iannuzzi|OL|76|320", "4832956|Martin Koivisto|OL|79|290", "5086169|Losini Maka|OL|74|310", "5323499|Charlie Mandabach|OL|78|260",
+        "5077108|Matthew Nehf|OL|75|300", "5311258|Jack Nolan|OL|76|260", "5236375|Triston Pierre|OL|76|265", "4716635|Brady Ploucha|OL|78|320",
+        "5157569|Jacob Russell|OL|76|295", "5148857|Dasan Smith|OL|78|295", "5236376|Talon Smith|OL|78|270", "5086168|Trevor Swan|OL|77|300",
+        "5302840|Jacob Timmer|OL|79|260", "5391316|John Williams|OL|77|280"
+       ]},
+      {"school": "Buffalo", "division": "FBS", "roster": "https://www.espn.com/college-football/team/roster/_/id/2084", "checked": "2026-11-23, the roster page (headshot or nophoto)",
+       "players": [
+        "5085066|Mason Cumbie|QB|73|205", "5387615|Jake Forburger|QB|72|215", "5328086|Elijah Holmes|QB|73|215", "5211776|Qur'An McNeill|QB|75|215",
+        "5222591|Jason Wright|QB|74|200", "5151369|Messiah Burch|RB|69|190", "5209377|Chase Enlow|RB|70|190", "5216690|Nino Hill|RB|70|217",
+        "5295438|Devare Mathis|RB|71|215", "5194659|James McNeil Jr.|RB|72|217", "5150003|Terrance Shelton Jr.|RB|71|213", "5387611|Jaylen Andrews|WR|74|185",
+        "5084704|Patrick Clacks III|WR|72|195", "5302819|Aaron Clark|WR|71|190", "5295436|Dwayne Early Jr.|WR|76|198", "5387624|Jack Eskridge|WR|66|150",
+        "5236366|Phillip Folmar|WR|69|185", "4710843|Jasaiah Gathings|WR|73|190", "5295437|Alvin Jones III|WR|71|185", "5194658|Bobby Mays|WR|77|190",
+        "4869601|Chance Morrow|WR|76|191", "5220041|Terrell Richards|WR|68|170", "5082941|Mark-Anthony Scott Jr.|WR|67|172", "5194667|Tyrell Simmons Jr.|WR|74|190",
+        "5193059|Jeremiah Watkins|WR|72|200", "5220027|Shey Williams|WR|72|181", "5236367|Michael Gelatko|TE|76|240", "5387625|Aiden Howard|TE|76|230",
+        "5220042|Nick Leonard|TE|75|255", "5387621|Stone Rozak|TE|73|225", "5302827|TJ Sabatucci|TE|74|235", "5387612|Clint Walker|TE|74|240",
+        "5095138|Trevor Wilson|TE|74|240", "4921423|Gabriel Arena|OL|76|293", "5209176|Thomas Barr|OL|75|292", "5184012|Jackson Bellamy|OL|77|341",
+        "5291791|Marco Cate|OL|76|295", "5193296|Paul Clark|OL|74|285", "4870678|Joe Crocker|OL|78|339", "5222630|Jackson Davenport|OL|77|270",
+        "5302820|Cam Davis|OL|77|280", "5194646|Tyrone Davis|OL|76|298", "5387623|Ben Foglia-Albrecht|OL|75|280", "5155865|Nino Francavilla|OL|74|300",
+        "5220039|Val Kondratenko|OL|77|290", "5334185|Jaden Maxey|OL|78|290", "5084951|Jacob Merritt|OL|78|304", "5083819|Nathan Natoli|OL|78|305",
+        "5194670|Ahmaan Thomas|OL|76|320", "5258336|Caleb Watts|OL|77|305", "5295441|Robbie Westmiller|OL|73|271", "5327597|Mike Whalen|OL|75|305"
+       ]},
+      {"school": "Temple", "division": "FBS", "roster": "https://www.espn.com/college-football/team/roster/_/id/218", "checked": "2026-11-23, the roster page (headshot or nophoto)",
+       "players": [
+        "5211736|Lamar Best|QB|72|175", "5216572|Camren Boykin|QB|74|190", "5290544|Brody Norman|QB|72|190", "5290553|Brady Palmer|QB|74|215",
+        "5078166|Ajani Sheppard|QB|74|230", "5077787|Jaxon Smolik|QB|73|205", "5290496|R.J. Blount|RB|71|205", "4685695|Sam Brown V|RB|73|215",
+        "5081241|Johnny Martin|RB|70|200", "5296364|Keveun Mason|RB|70|190", "5296363|Jordan Miller|RB|67|185", "5291131|Ameir Morrow|RB|71|210",
+        "4258419|Hunter Smith|RB|71|190", "5296362|De'Carlos Young|RB|71|210", "5296367|Zander Baptiste|WR|76|185", "4726152|JoJo Bermudez|WR|69|170",
+        "5141403|Kaegan Chambers|WR|71|170", "5089003|Colin Chase|WR|72|195", "5087747|Jayce Freeman|WR|76|225", "5388300|Demonte Greene|WR|73|180",
+        "5296370|Rameir Hardy|WR|74|185", "5291772|Coen Logan|WR|73|205", "5317966|Tylik Mitchell|WR|71|185", "5159173|Ash Roberts|WR|70|160",
+        "4875583|Reis Stocksdale|WR|70|185", "5221235|Kenedy Uzoma|WR|77|210", "5290513|Hunter Watson|WR|73|180", "5080547|Peter Clarke|TE|78|265",
+        "5219878|Daniel Evert|TE|77|250", "5290580|Liam Fuller|TE|78|230", "5151232|Patrick Keller|TE|76|205", "5222551|Ryder Kusch|TE|76|250",
+        "4898892|Joey Schlaffer|TE|77|250", "5227760|David Wise|TE|77|230", "4921396|Zach Aamland|OL|79|300", "5296369|Billy Brown|OL|76|315",
+        "5219874|Giakoby Hills|OL|77|290", "4921254|Eric King|OL|75|300", "5317030|Logan King|OL|75|295", "4705515|Grayson Mains|OL|77|300",
+        "5126571|Ransom McDermott|OL|80|315", "5326897|Khalif Mcnear|OL|74|290", "5219871|Mausa Palu|OL|76|335", "4832005|Jackson Pruitt|OL|77|315",
+        "5290193|Karon Spencer|OL|78|310", "4917625|John Stone|OL|74|300", "5291187|Jonah Tarpley|OL|77|300", "5077959|Kevin Terry|OL|77|280",
+        "4884103|C.J. Van Buren|OL|75|290", "5196487|Davray Venu|OL|77|295", "5159089|John Watkins|OL|77|300", "5079143|Luke Watson|OL|77|290",
+        "5326899|Aiden Zilker|OL|77|300", "4870278|Kaleb Artis|DL|76|315"
+       ]}
+    ]
+  },
+  "unchecked": {"school": "Ohio", "roster": "https://www.espn.com/college-football/team/roster/_/id/195",
+    "players": [
+        "5216546|Ty Neubert|DL|75|278", "5254876|Ike Ackerman|DE|76|249", "5084908|Owen DiFranco|DE|76|258", "5219115|Joseph Marsh|DE|75|232",
+        "5394413|Tyler Stearman|DE|76|210", "5394402|Troy Stiggers|DE|75|240", "5291872|Austin Adkins|DT|75|270", "5228778|Nathan Hale|DT|76|259",
+        "5258485|Brandon Weaver|DT|75|269", "5327554|Alex Brown|LB|74|220", "5394403|Mac Capen|LB|75|207", "5394400|William Marzolf|LB|73|220",
+        "5083312|Michael Molnar|LB|75|227", "5394405|Nolan Ogburn|LB|74|235", "5295503|Brady Wharton|LB|70|193", "5211474|Jay Brewer III|CB|74|190",
+        "5211738|Kindall Brown|CB|70|174", "5156218|Barry Dillon|DB|73|198", "5211760|Tyson Long|CB|72|184", "5265494|Bobby Miller|CB|76|177",
+        "5179394|DJ Morton|S|73|191", "5172094|KJ Sejour|DB|69|160", "5228773|Xavier Williams|CB|70|156", "5295496|Caleb Chamberlin|S|73|199",
+        "5086993|Cam Cope|CB|71|188", "5192394|JT Haskins|S|71|182", "5155789|Darren James-Hamilton|DB|70|187", "5311806|Brandon Jenkins|S|70|189",
+        "5147232|Tony Mathis|CB|71|176", "5270582|Ryan Miller|S|73|230", "5159101|Malachi Taylor|S|72|190", "5157398|Eli Thompson|DB|70|183",
+        "5228769|Andrew Vera|S|71|199", "5125829|DJ Walker|S|73|198"
+    ]}
+}

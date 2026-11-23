@@ -16,8 +16,10 @@
    class is 2026's best freshmen and recruits and the college stats, level
    with 2028, with 48 made-up prospects wearing small-school headshots
    (build/class-2029.js); the 2030 class is made up from top to bottom,
-   level with 2029, each prospect with his own skills (build/class-2030.js).
-   After 2030 the sim makes its own classes.
+   level with 2029, each prospect with his own skills (build/class-2030.js);
+   the 2031 class is made the same way, but every prospect goes by a real
+   college player's name, with his headshot (build/class-2031.js). After
+   2031 the sim makes its own classes.
 
    Each team's board is the prospect's grade, his position's worth, how
    badly the team needs the position and how well he fits its schemes, with
@@ -112,7 +114,7 @@ const FIXED_ROOM = 3;
 function fixedGrade(pr) { return typeof pr.ovr === 'number' ? Math.min(pr.grade, gradeFor(pr.ovr, pr.pos)) : pr.grade; }
 
 /* How a prospect's skills lean: the lean he was made with (`style`, the
-   made-up 2030 class), or else from his id alone. */
+   made-up 2030 and 2031 classes), or else from his id alone. */
 function styleOf(pr) {
   const own = seeded('style:' + pr.id);
   const z = {};
