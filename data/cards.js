@@ -220,6 +220,22 @@ EGE.cards = (function () {
     blurb: 'Four Air Raid cards of Andrew and Paxon, the last one Rare or better.'
   });
 
+  /* The DUOZ Pack, sold only while DUOZ is on (see DUOZ, further down):
+     30 diamonds, the dearest pack yet (Sam, 2026-11-23, so nobody opens
+     hundreds the first day), for five cards of the six's duos, the last
+     one Epic or better, on the other event packs' odds. No daily limit
+     (Sam, 2026-11-23): the price is what holds it back. */
+  PACKS.push({
+    key: 'duoz',
+    name: 'DUOZ Pack',
+    diamonds: 30,
+    size: 5,
+    floor: 'epic',
+    event: 'duoz',
+    odds: { common: 41.4, uncommon: 26, rare: 15, epic: 9, legendary: 7, mystic: 1.5, iconic: 0.1 },
+    blurb: 'Five DUOZ cards of the six’s duos, the last one Epic or better.'
+  });
+
   function pack(key) {
     return PACKS.filter(function (p) { return p.key === key; })[0] || null;
   }
@@ -258,7 +274,8 @@ EGE.cards = (function () {
   var EVENT_COVERS = {
     'gold-rush': { theme: 'goldrush' },
     'halloween': { theme: 'halloween', logo: 'icon/cards/halloween-pumpkin.webp' },
-    'air-raid':  { theme: 'airraid', wordmark: 'icon/cards/air-raid-logo.webp' }
+    'air-raid':  { theme: 'airraid', wordmark: 'icon/cards/air-raid-logo.webp' },
+    'duoz':      { theme: 'duoz', wordmark: 'icon/cards/duoz-logo.webp' }
   };
 
   /* The cover for a pack, or null. */
@@ -502,7 +519,57 @@ EGE.cards = (function () {
     holds: inAirRaid
   };
 
-  var EVENTS = [GOLD_RUSH, HALLOWEEN, AIR_RAID];
+  /* --- DUOZ ---------------------------------------------------------------------
+
+     The fourth limited-time event (Sam, 2026-11-23): the six's duos, in a
+     comic-book look in primary red, then yellow, then blue. Run like the
+     others -- an admin starts it on the admin page -- but for 14 days (Sam,
+     2026-11-23), since he wants this one to last; the Giants' sets only
+     fill as their 2031 games are played.
+
+     The duos (DUOS) are two of the six on one team at the same time:
+     Isaac and Paxon at Bloomington, Sam and Jaykeb at Ohio State, Isaac and
+     Andrew with the Jets and Cooper and Paxon with the Giants (2031 on).
+     The DUOZ Pack (30 diamonds for five) holds every card of either of a
+     duo from a week they were teammates (`holds`), each a DUOZ card -- the
+     card again with the DUOZ sticker, ':dz' on the end of its id -- that
+     never stacks with any other copy. Only DUOZ cards fill DUOZ's sets; in
+     the Library they count as the card they are.
+
+     Sam's card art (CARD_ART), a pair for each duo, both of a pair from the
+     same game: Ohio State at Michigan State, 2022 week 6, Bloomington's
+     2019 week 5 game, the Jets' 2030 week 4 game (one picture for both)
+     and the Giants' first 2031 game, which come into the pack once that
+     week is out. All eight are Mystics (Sam, 2026-11-23). A Mystic out of the pack is
+     card art `artShare` of the time.
+
+     The sets are three a duo and two across all four, and are meant to be
+     very hard: Sam's players hold 2,000 diamonds and more, and the sets ask
+     for exact, mostly common cards that take trading to find. The DUOZ
+     card needs every set. Sam's art for it is still being drawn, so the
+     page draws a stand-in with the DUOZ logo until `rewardImage` names it.
+
+     DUOZ cards trade on the other events' terms: a copy that changes
+     hands waits 48 hours before it can go again. */
+  var DUOZ = {
+    key: 'duoz',
+    name: 'DUOZ',
+    days: 14,
+    lockHours: 48,
+    pack: 'duoz',
+    tag: ':dz',
+    reward: 'r:duoz:dz',
+    rewardName: 'DUOZ card',
+    /* rewardImage: 'icon/cards/duoz-iconic.webp' once Sam's art is in. */
+    rewardSeason: 2031,
+    mark: 'icon/cards/duoz-logo.webp',
+    markIsName: true,
+    bonus: { diamonds: 500, booster: 'boost-2-5', boosters: 3 },
+    artPerPack: 0.015,
+    holds: inDuoz
+  };
+
+  var EVENTS = [GOLD_RUSH, HALLOWEEN, AIR_RAID, DUOZ];
 
   function eventOf(key) {
     return EVENTS.filter(function (e) { return e.key === key; })[0] || null;
@@ -533,12 +600,31 @@ EGE.cards = (function () {
     { id: 'a:2025:paxon-hatch:16:0:ar', of: 'h:2025:paxon-hatch:16:0', rarity: 'mystic', event: 'air-raid',
       photo: 'icon/cards/paxon-hatch-2025-wk16-0-cut.webp', rise: 10.10 },
     { id: 'a:2027:andrew-parr:17:0:ar', of: 'h:2027:andrew-parr:17:0', rarity: 'mystic', event: 'air-raid',
-      photo: 'icon/cards/andrew-parr-2027-wk17-0-cut.webp', rise: 7.83 }
+      photo: 'icon/cards/andrew-parr-2027-wk17-0-cut.webp', rise: 7.83 },
+    /* DUOZ (Sam, 2026-11-23): a pair for each duo. `duo` is whose. */
+    { id: 'a:2019:isaac-vitel:5:dz', of: 'p:2019:isaac-vitel:5', rarity: 'mystic', event: 'duoz', duo: 'bloomington',
+      photo: 'icon/cards/isaac-vitel-2019-wk5-duoz.webp', rise: 7.0 },
+    { id: 'a:2019:paxon-hatch:5:dz', of: 'p:2019:paxon-hatch:5', rarity: 'mystic', event: 'duoz', duo: 'bloomington',
+      photo: 'icon/cards/paxon-hatch-2019-wk5-duoz.webp', rise: 1.72 },
+    { id: 'a:2022:sam-stogsdill:6:dz', of: 'p:2022:sam-stogsdill:6', rarity: 'mystic', event: 'duoz', duo: 'ohio-state',
+      photo: 'icon/cards/sam-stogsdill-2022-wk6-duoz.webp', rise: 4.47 },
+    { id: 'a:2022:jaykeb-stewart:6:dz', of: 'p:2022:jaykeb-stewart:6', rarity: 'mystic', event: 'duoz', duo: 'ohio-state',
+      photo: 'icon/cards/jaykeb-stewart-2022-wk6-duoz.webp', rise: 3.78 },
+    { id: 'a:2030:isaac-vitel:4:dz', of: 'p:2030:isaac-vitel:4', rarity: 'mystic', event: 'duoz', duo: 'jets',
+      photo: 'icon/cards/jets-2030-wk4-duoz.webp', rise: 3.56 },
+    { id: 'a:2030:andrew-parr:4:dz', of: 'p:2030:andrew-parr:4', rarity: 'mystic', event: 'duoz', duo: 'jets',
+      photo: 'icon/cards/jets-2030-wk4-duoz.webp', rise: 3.56 },
+    /* Their first game for the Giants, 2031 week 1: in the pack once that
+       week is played and published. */
+    { id: 'a:2031:cooper-clark:1:dz', of: 'p:2031:cooper-clark:1', rarity: 'mystic', event: 'duoz', duo: 'giants',
+      photo: 'icon/cards/cooper-clark-2031-wk1-duoz.webp', rise: 2.41 },
+    { id: 'a:2031:paxon-hatch:1:dz', of: 'p:2031:paxon-hatch:1', rarity: 'mystic', event: 'duoz', duo: 'giants',
+      photo: 'icon/cards/paxon-hatch-2031-wk1-duoz.webp', rise: 4.01 }
   ];
 
-  /* An event's card, holo or not: Gold Rush, Halloween, a costume or Air
-     Raid. */
-  var EVENT_ID = /:(gr|hw|hc|ar)(:holo2?)?$/;
+  /* An event's card, holo or not: Gold Rush, Halloween, a costume, Air
+     Raid or DUOZ. */
+  var EVENT_ID = /:(gr|hw|hc|ar|dz)(:holo2?)?$/;
   function isEventId(id) { return EVENT_ID.test(String(id || '')); }
   function eventIdOf(id, key) { return baseIdOf(id) + (eventOf(key) || GOLD_RUSH).tag; }
 
@@ -602,6 +688,36 @@ EGE.cards = (function () {
   function inAirRaid(card) {
     return AIR_RAIDERS.indexOf(card.slug) !== -1 && (card.kind === 'performance' || isRecTd(card));
   }
+
+  /* DUOZ's four duos: two of the six on `team` (a key in EGE.teams) in the
+     same week. `name` is what a set's tile says the duo is. */
+  var DUOS = [
+    { key: 'bloomington', team: 'bloomington', pair: ['isaac-vitel', 'paxon-hatch'], name: 'Isaac & Paxon' },
+    { key: 'ohio-state', team: 'ohioState', pair: ['sam-stogsdill', 'jaykeb-stewart'], name: 'Sam & Jaykeb' },
+    { key: 'jets', team: 'newYorkJets', pair: ['isaac-vitel', 'andrew-parr'], name: 'Isaac & Andrew' },
+    { key: 'giants', team: 'newYorkGiants', pair: ['cooper-clark', 'paxon-hatch'], name: 'Cooper & Paxon' }
+  ];
+
+  /* The duo a card is a card of, by key, or null: his team that week is
+     the duo's, and so is his partner's. Worked out once a card (a trade
+     laid over a season after a load clears it, with rebuild()). */
+  var duoCache = {};
+  function duoOf(card) {
+    if (!card || !card.slug || card.nfl || card.reward) { return null; }
+    var at = card.season + ':' + card.week + ':' + card.slug;
+    if (duoCache[at] !== undefined) { return duoCache[at]; }
+    var found = null;
+    DUOS.forEach(function (duo) {
+      var i = duo.pair.indexOf(card.slug);
+      if (found || i === -1) { return; }
+      var mate = EGE.players.filter(function (p) { return p.slug === duo.pair[1 - i]; })[0];
+      if (EGE.teamKeyFor(card.player, card.season, card.week) === duo.team &&
+          EGE.teamKeyFor(mate, card.season, card.week) === duo.team) { found = duo.key; }
+    });
+    duoCache[at] = found;
+    return found;
+  }
+  function inDuoz(card) { return Boolean(duoOf(card)); }
 
   /* Whether the event is on, from its card_events row ({ starts_at,
      ends_at }). `at` is a time in ms, now if left out. */
@@ -858,7 +974,7 @@ EGE.cards = (function () {
     if (made[id] !== undefined) { return made[id]; }
     var card = null;
     var reward = EVENTS.filter(function (e) { return e.reward === id; })[0];
-    var tag = (String(id).match(/:(gr|hw|hc|ar)$/) || [''])[0];
+    var tag = (String(id).match(/:(gr|hw|hc|ar|dz)$/) || [''])[0];
     if (isHoloId(id)) {
       var one = byId(baseIdOf(id));
       var twice = holoLevelOf(id) === 2;
@@ -876,7 +992,7 @@ EGE.cards = (function () {
       var plain = catalogue[art ? art.of : String(id).slice(0, -tag.length)];
       if (plain && ev && (!art || art.event === ev.key)) {
         card = Object.assign({}, plain, { id: id, plainId: plain.id, gold: ev === GOLD_RUSH, eventKey: ev.key });
-        if (art) { card.art = { photo: art.photo, rise: art.rise }; card.rarity = art.rarity; }
+        if (art) { card.art = { photo: art.photo, rise: art.rise, duo: art.duo || null }; card.rarity = art.rarity; }
         if (tag === ev.costumeTag) {
           card.costume = (ev.costumes && ev.costumes[plain.slug]) || null;
           if (!card.costume) { card = null; }
@@ -1037,10 +1153,18 @@ EGE.cards = (function () {
     var cap = legendaryCap(p);
     var odds = packOdds(p);
     var ev = p.event ? eventOf(p.event) : null;
-    for (var i = 0; i < p.size; i += 1) {
+    /* A pack with `artPerPack` (DUOZ's) deals its card art apart from the
+       odds: that chance a pack holds one, any of them alike, and never
+       otherwise -- a Mystic rolled is one of the other Mystics. */
+    var arts = ev && ev.artPerPack ? pool.filter(function (c) { return c.art; }) : null;
+    if (arts) { pool = pool.filter(function (c) { return !c.art; }); }
+    var artCard = arts && arts.length && random() < ev.artPerPack
+      ? arts[Math.floor(random() * arts.length)] : null;
+    if (artCard) { out.push(artCard); big = true; legends += 1; }
+    for (var i = out.length; i < p.size; i += 1) {
       var last = i === p.size - 1;
       var ceiling = legends >= cap ? 'epic' : big ? PACK_CAP : null;
-      var card = drawOne(pool, random, last ? p.floor : null, ceiling, odds);
+      var card = drawOne(pool, random, last && !artCard ? p.floor : null, ceiling, odds);
       /* A Mystic out of a Halloween or Air Raid Pack is its card art
          `artShare` of the time, and out of a Halloween Pack a Legendary or
          better that isn't art, now and then in costume. */
@@ -1470,12 +1594,149 @@ EGE.cards = (function () {
     ].map(function (set) { set.event = AIR_RAID.key; return set; });
   }
 
+  /* DUOZ's fourteen sets (Sam, 2026-11-23: about three a duo "and more",
+     really hard, taking trading and obscure cards): three for each duo --
+     its card art and two more -- and two across all four. The DUOZ card
+     needs all fourteen.
+
+     Most of them ask for exact cards: every touchdown Isaac threw Paxon at
+     Bloomington, both their games against the two Normal schools, Sam's and
+     Jaykeb's games against Michigan, the Jets' 2030 playoff games, every
+     touchdown Andrew caught for the Jets in 2030. Most are Commons and
+     Uncommons, one card among some four hundred in the pack, so one player
+     alone takes a long time to find them and trading is the way through.
+     The Giants' sets only fill as their 2031 games go out.
+
+     The rewards are big, to match the 30-diamond pack (Sam): the longer a
+     set takes, the more it pays, and the DUOZ card pays the most of
+     anything. Held in card_events.rewards in supabase/schema.sql too;
+     change the two together. Simulated at five cards a pack, one player
+     alone, every week out, as packs to finish it (median, then nine
+     players in ten): the README's DUOZ table. The four Covers take 550 to
+     700 packs each alone and all fourteen over 3,000, so the DUOZ card is a
+     trading job. */
+  DUOZ.rewards = {
+    'crossover':         { floor: 'legendary', diamonds: 50, booster: 'boost-1-5' },
+    'big-blue':          { floor: 'legendary', diamonds: 60, booster: 'boost-1-5' },
+    'giant-plays':       { floor: 'legendary', diamonds: 60, booster: 'boost-1-5' },
+    'double-team':       { floor: 'legendary', diamonds: 75, booster: 'boost-2-0' },
+    'team-up':           { floor: 'legendary', diamonds: 80, booster: 'boost-2-0' },
+    'crosstown':         { floor: 'legendary', diamonds: 90, booster: 'boost-2-0' },
+    'the-game':          { floor: 'legendary', diamonds: 90, booster: 'boost-2-0' },
+    'playoff-push':      { floor: 'legendary', diamonds: 90, booster: 'boost-2-0' },
+    'the-connection':    { floor: 'mystic', diamonds: 100, booster: 'boost-2-0' },
+    'air-mail':          { floor: 'mystic', diamonds: 100, booster: 'boost-2-0' },
+    'bloomington-cover': { floor: 'mystic', diamonds: 150, booster: 'boost-2-5' },
+    'buckeye-cover':     { floor: 'mystic', diamonds: 150, booster: 'boost-2-5' },
+    'jets-cover':        { floor: 'mystic', diamonds: 150, booster: 'boost-2-5' },
+    'giants-cover':      { floor: 'mystic', diamonds: 150, booster: 'boost-2-5' }
+  };
+
+  function duozSets() {
+    var epic = rankOf('epic');
+    var legendary = rankOf('legendary');
+    function duo(key) { return DUOS.filter(function (d) { return d.key === key; })[0]; }
+    function first(slug) { return playerOf(slug).first; }
+    function plainOf(c) { return c.plainId || c.id; }
+    /* The cards of a duo that pass `test`, oldest first: a slot each, for
+       that card and no other. */
+    function exact(key, test, label) {
+      return all().filter(function (c) { return duoOf(c) === key && test(c); })
+        .sort(function (a, b) { return a.season - b.season || a.week - b.week || (a.id < b.id ? -1 : 1); })
+        .map(function (card) {
+          return slot(label(card), function (c) { return plainOf(c) === card.id; });
+        });
+    }
+    function perfLabel(c) { return c.player.first + ', ' + c.season + ' Wk ' + c.week; }
+    function isPerf(c) { return c.kind === 'performance'; }
+    function art(key) {
+      return CARD_ART.filter(function (a) { return a.event === DUOZ.key && a.duo === key; });
+    }
+    function artSlot(a) {
+      return slot(first(a.id.split(':')[2]) + '’s card art', function (c) { return Boolean(c.art) && c.id === a.id; });
+    }
+    function ofDuo(key, test) { return function (c) { return duoOf(c) === key && (!test || test(c)); }; }
+    function isTd(c) { return c.kind === 'play' && c.play && c.play.touchdown; }
+
+    var sets = [
+      /* Isaac & Paxon, Bloomington. */
+      { key: 'bloomington-cover', name: 'Bloomington Cover', duo: 'bloomington',
+        slots: art('bloomington').map(artSlot) },
+      { key: 'the-connection', name: 'The Connection', duo: 'bloomington',
+        slots: exact('bloomington', function (c) {
+          return c.slug === 'isaac-vitel' && c.kind === 'play' && /\(P\. Hatch\)/.test(c.text || '');
+        }, function (c) { return c.season + ' Wk ' + c.week + ', ' + c.play.yards + ' yd to Paxon'; }) },
+      { key: 'crosstown', name: 'Crosstown Rivals', duo: 'bloomington',
+        slots: exact('bloomington', function (c) {
+          return isPerf(c) && /^Normal /.test(c.opponent || '');
+        }, function (c) { return c.player.first + ' v. ' + c.opponent + ', ' + c.season; }) },
+
+      /* Sam & Jaykeb, Ohio State. */
+      { key: 'buckeye-cover', name: 'Buckeye Cover', duo: 'ohio-state',
+        slots: art('ohio-state').map(artSlot) },
+      { key: 'the-game', name: 'The Game', duo: 'ohio-state',
+        slots: exact('ohio-state', function (c) {
+          return c.opponent === 'Michigan' && (isPerf(c) || rankOf(c.rarity) >= legendary);
+        }, function (c) {
+          return isPerf(c) ? c.player.first + ' v. Michigan, ' + c.season + (c.playoff ? ' B1G' : '')
+            : c.player.first + '’s ' + c.play.yards + ' yd TD v. Michigan';
+        }) },
+      { key: 'double-team', name: 'Double Team', duo: 'ohio-state',
+        slots: duo('ohio-state').pair.map(function (slug) {
+          return slot(first(slug) + ' Epic+ holo', ofDuo('ohio-state', function (c) {
+            return c.holo && c.slug === slug && rankOf(c.rarity) >= epic;
+          }));
+        }) },
+
+      /* Isaac & Andrew, the Jets: their 2030 season. */
+      { key: 'jets-cover', name: 'Jets Cover', duo: 'jets',
+        slots: art('jets').map(artSlot) },
+      { key: 'playoff-push', name: 'Playoff Push', duo: 'jets',
+        slots: exact('jets', function (c) { return isPerf(c) && c.playoff && c.season === 2030; },
+          function (c) { return c.player.first + ', ' + c.season + ' playoffs Wk ' + c.week; }) },
+      { key: 'air-mail', name: 'Air Mail', duo: 'jets',
+        slots: exact('jets', function (c) {
+          return c.slug === 'andrew-parr' && c.season === 2030 && isTd(c) && c.play.kind === 'catch';
+        }, function (c) { return 'Andrew, Wk ' + c.week + ' ' + c.play.yards + ' yd TD'; }) },
+
+      /* Cooper & Paxon, the Giants: whatever weeks of 2031 are out. */
+      { key: 'giants-cover', name: 'Giants Cover', duo: 'giants',
+        slots: art('giants').map(artSlot) },
+      { key: 'big-blue', name: 'Big Blue', duo: 'giants',
+        slots: times(4, 'Cooper Giants performance', ofDuo('giants', function (c) {
+          return isPerf(c) && c.slug === 'cooper-clark';
+        })).concat(times(4, 'Paxon Giants performance', ofDuo('giants', function (c) {
+          return isPerf(c) && c.slug === 'paxon-hatch';
+        }))) },
+      { key: 'giant-plays', name: 'Giant Plays', duo: 'giants',
+        slots: [slot('Epic+ Giants TD play', ofDuo('giants', function (c) {
+          return isTd(c) && rankOf(c.rarity) >= epic;
+        }))].concat(times(5, 'Giants TD play', ofDuo('giants', isTd))) },
+
+      /* All four. */
+      { key: 'crossover', name: 'Crossover',
+        slots: [].concat.apply([], DUOS.map(function (d) {
+          return times(2, d.name + ' Legendary+', ofDuo(d.key, function (c) { return rankOf(c.rarity) >= legendary; }));
+        })) },
+      { key: 'team-up', name: 'Team-Up',
+        slots: DUOS.map(function (d) {
+          return slot(d.name + ' Epic+ holo', ofDuo(d.key, function (c) { return c.holo && rankOf(c.rarity) >= epic; }));
+        }) }
+    ];
+    return sets.map(function (set) {
+      set.event = DUOZ.key;
+      if (set.duo) { set.kicker = duo(set.duo).name; }
+      return set;
+    });
+  }
+
   /* An event's sets, each with its reward. */
   function eventSets(key) {
     var ev = eventOf(key || GOLD_RUSH.key);
     if (!ev) { return []; }
     if (eventSetsCache[ev.key]) { return eventSetsCache[ev.key]; }
-    var out = ev === GOLD_RUSH ? goldRushSets() : ev === HALLOWEEN ? halloweenSets() : airRaidSets();
+    var out = ev === GOLD_RUSH ? goldRushSets() : ev === HALLOWEEN ? halloweenSets()
+      : ev === DUOZ ? duozSets() : airRaidSets();
     out.forEach(function (set) { set.reward = ev.rewards[set.key]; });
     eventSetsCache[ev.key] = out;
     return out;
@@ -1931,6 +2192,9 @@ EGE.cards = (function () {
     GOLD_RUSH: GOLD_RUSH,
     HALLOWEEN: HALLOWEEN,
     AIR_RAID: AIR_RAID,
+    DUOZ: DUOZ,
+    DUOS: DUOS,
+    duoOf: duoOf,
     EVENTS: EVENTS,
     eventOf: eventOf,
     CARD_ART: CARD_ART,
@@ -1941,9 +2205,10 @@ EGE.cards = (function () {
     inGoldRush: inGoldRush,
     inHalloween: inHalloween,
     inAirRaid: inAirRaid,
+    inDuoz: inDuoz,
     eventLive: eventLive,
     eventSets: eventSets,
     finalSets: finalSets,
-    rebuild: function () { catalogue = null; made = {}; setsCache = null; eventSetsCache = {}; }
+    rebuild: function () { catalogue = null; made = {}; setsCache = null; eventSetsCache = {}; duoCache = {}; }
   };
 })();
