@@ -6701,4 +6701,32 @@ $$;
 revoke all on function public.pay_nfl_season_cards(integer, jsonb) from public, anon;
 grant execute on function public.pay_nfl_season_cards(integer, jsonb) to authenticated;
 
+-- DUOZ: the Bloomington card art moved from 2019 week 5 to week 7, the
+-- Normal Community game (Sam, 2026-11-23). Any copy pulled under the old
+-- ids (holos too) moves to the new ones. Does nothing once moved.
+update public.player_cards
+   set card_id = regexp_replace(card_id, '^a:2019:(isaac-vitel|paxon-hatch):5:dz', 'a:2019:\1:7:dz')
+ where card_id ~ '^a:2019:(isaac-vitel|paxon-hatch):5:dz';
+update public.card_trade_locks
+   set card_id = regexp_replace(card_id, '^a:2019:(isaac-vitel|paxon-hatch):5:dz', 'a:2019:\1:7:dz')
+ where card_id ~ '^a:2019:(isaac-vitel|paxon-hatch):5:dz';
+update public.card_listings
+   set card_id = regexp_replace(card_id, '^a:2019:(isaac-vitel|paxon-hatch):5:dz', 'a:2019:\1:7:dz')
+ where card_id ~ '^a:2019:(isaac-vitel|paxon-hatch):5:dz';
+update public.card_showcases
+   set cards = array(select regexp_replace(c, '^a:2019:(isaac-vitel|paxon-hatch):5:dz', 'a:2019:\1:7:dz')
+                       from unnest(cards) with ordinality as u(c, n) order by n)
+ where array_to_string(cards, ' ') ~ 'a:2019:(isaac-vitel|paxon-hatch):5:dz';
+update public.card_trades
+   set give = array(select regexp_replace(c, '^a:2019:(isaac-vitel|paxon-hatch):5:dz', 'a:2019:\1:7:dz')
+                      from unnest(give) with ordinality as u(c, n) order by n),
+       take = array(select regexp_replace(c, '^a:2019:(isaac-vitel|paxon-hatch):5:dz', 'a:2019:\1:7:dz')
+                      from unnest(take) with ordinality as u(c, n) order by n)
+ where status = 'open'
+   and array_to_string(give || take, ' ') ~ 'a:2019:(isaac-vitel|paxon-hatch):5:dz';
+update public.card_event_claims
+   set cards = array(select regexp_replace(c, '^a:2019:(isaac-vitel|paxon-hatch):5:dz', 'a:2019:\1:7:dz')
+                       from unnest(cards) with ordinality as u(c, n) order by n)
+ where array_to_string(cards, ' ') ~ 'a:2019:(isaac-vitel|paxon-hatch):5:dz';
+
 notify pgrst, 'reload schema';

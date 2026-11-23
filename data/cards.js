@@ -538,7 +538,7 @@ EGE.cards = (function () {
 
      Sam's card art (CARD_ART), a pair for each duo, both of a pair from the
      same game: Ohio State at Michigan State, 2022 week 6, Bloomington's
-     2019 week 5 game, the Jets' 2030 week 4 game (one picture for both)
+     2019 week 7 game (Normal Community), the Jets' 2030 week 4 game (one picture for both)
      and the Giants' first 2031 game, which come into the pack once that
      week is out. All eight are Mystics (Sam, 2026-11-23). They are dealt
      apart from the odds: a pack holds one `artPerPack` of the time, a flat
@@ -603,10 +603,10 @@ EGE.cards = (function () {
     { id: 'a:2027:andrew-parr:17:0:ar', of: 'h:2027:andrew-parr:17:0', rarity: 'mystic', event: 'air-raid',
       photo: 'icon/cards/andrew-parr-2027-wk17-0-cut.webp', rise: 7.83 },
     /* DUOZ (Sam, 2026-11-23): a pair for each duo. `duo` is whose. */
-    { id: 'a:2019:isaac-vitel:5:dz', of: 'p:2019:isaac-vitel:5', rarity: 'mystic', event: 'duoz', duo: 'bloomington',
-      photo: 'icon/cards/isaac-vitel-2019-wk5-duoz.webp', rise: 7.0 },
-    { id: 'a:2019:paxon-hatch:5:dz', of: 'p:2019:paxon-hatch:5', rarity: 'mystic', event: 'duoz', duo: 'bloomington',
-      photo: 'icon/cards/paxon-hatch-2019-wk5-duoz.webp', rise: 1.72 },
+    { id: 'a:2019:isaac-vitel:7:dz', of: 'p:2019:isaac-vitel:7', rarity: 'mystic', event: 'duoz', duo: 'bloomington',
+      photo: 'icon/cards/isaac-vitel-2019-wk7-duoz.webp', rise: 7.0 },
+    { id: 'a:2019:paxon-hatch:7:dz', of: 'p:2019:paxon-hatch:7', rarity: 'mystic', event: 'duoz', duo: 'bloomington',
+      photo: 'icon/cards/paxon-hatch-2019-wk7-duoz.webp', rise: 1.72 },
     { id: 'a:2022:sam-stogsdill:6:dz', of: 'p:2022:sam-stogsdill:6', rarity: 'mystic', event: 'duoz', duo: 'ohio-state',
       photo: 'icon/cards/sam-stogsdill-2022-wk6-duoz.webp', rise: 4.47 },
     { id: 'a:2022:jaykeb-stewart:6:dz', of: 'p:2022:jaykeb-stewart:6', rarity: 'mystic', event: 'duoz', duo: 'ohio-state',
