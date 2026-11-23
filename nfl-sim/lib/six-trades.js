@@ -130,12 +130,37 @@ function zoneOf(key) {
   return (team && team.zone) || 'America/New_York';
 }
 
+/* The regular season `season` is played to: the league's own schedule
+   while it is that season's, the games it played once it has moved past
+   it, and the one it will make from last season's places before it starts.
+   A season gone by is never made again from the places the league has now
+   (Sam, 2026-11-23): those are a later season's, so it came out a different
+   schedule, and every trade row synced after the rollover gave his old
+   season the wrong opponents. */
+function scheduleOf(league, season) {
+  /* Before the draft the schedule kept is last season's. */
+  if (league.season === season && league.schedule && league.phase !== 'draft') { return league.schedule; }
+  if (season < league.season) {
+    const name = 'games-' + season + '.json';
+    const log = league.world && io.has(league.world, name) ? io.read(league.world, name) : [];
+    const played = log.filter((g) => g.season === season && !g.playoff && g.home && g.away);
+    if (played.length) {
+      return played.map((g) => ({ week: g.week, home: g.home, away: g.away, neutral: g.neutral || undefined }));
+    }
+    const before = (league.history || []).filter((h) => h.season === season - 1)[0];
+    const places = {};
+    if (before && before.divisions) {
+      Object.keys(before.divisions).forEach((d) => before.divisions[d].forEach((k, i) => { places[k] = i + 1; }));
+    }
+    return scheduleFor(season, places);
+  }
+  return scheduleFor(season, lastPlaces(league));
+}
+
 /* `key`'s regular season from `week` on, as season file rows: each game,
    and the bye if it is still to come. */
 function rowsFor(league, season, key, week) {
-  /* Before the draft the schedule kept is last season's. */
-  const current = league.season === season && league.schedule && league.phase !== 'draft';
-  const schedule = current ? league.schedule : scheduleFor(season, lastPlaces(league));
+  const schedule = scheduleOf(league, season);
   const real = {};
   (io.data('schedules.json')[season] || []).forEach((g) => { real[g.week + '|' + g.home + '|' + g.away] = g; });
   const zone = zoneOf(key);
