@@ -2682,9 +2682,9 @@ logo in the middle.
 Eight **card-art cards**, all Mystic, a pair a duo from one game: Ohio State
 at Michigan State (2022 week 6), Bloomington's 2019 week 5 game, the Jets'
 2030 week 4 game (one picture for both) and the Giants' first 2031 game
-(in the pack once that week is out). A pack holds one **1.5%** of the time
-(`artPerPack`), any of the art alike, about one pack in 67; each art is
-about one in 530.
+(in the pack once that week is out). A pack holds one a flat **2.25%** of
+the time (`artPerPack`, Sam, 2026-11-23), any of the art alike, about one
+pack in 44; each art is about one in 356.
 
 Only DUOZ cards fill its fourteen sets, and a traded copy waits 48 hours.
 Sam asked for about three hard sets a duo and more, taking trading and
@@ -2703,8 +2703,8 @@ ten; the Giants' with the whole 2031 season out):
 | The Game | Sam & Jaykeb | their games against Michigan and Jaykeb's 80-yd TD there | 280 / 420 | Legendary+ · 90 diamonds · 2.0x |
 | The Connection | Isaac & Paxon | all ten of Isaac's TD passes to Paxon | 260 / 350 | Mystic+ · 100 diamonds · 2.0x |
 | Air Mail | Isaac & Andrew | all 13 of Andrew's 2030 Jets TD catches | 330 / 450 | Mystic+ · 100 diamonds · 2.0x |
-| Bloomington / Buckeye / Jets / Giants Cover | each | both of the duo's card art | 550–700 / 1,100–1,500 | Mystic+ · 150 diamonds · 2.5x |
-| DUOZ | | all fourteen | over 3,000 alone | the Iconic DUOZ card · 500 diamonds · three 2.5x Boosters |
+| Bloomington / Buckeye / Jets / Giants Cover | each | both of the duo's card art | 380–620 / 660–1,240 | Mystic+ · 150 diamonds · 2.5x |
+| DUOZ | | all fourteen | about 900 / 1,250 alone | the Iconic DUOZ card · 500 diamonds · three 2.5x Boosters |
 
 Every reward card is a DUOZ card, never card art. The DUOZ card's art is
 still being drawn: until `DUOZ.rewardImage` names it the page draws a
