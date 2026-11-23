@@ -286,13 +286,13 @@ function styleFor(pos, archetype, rng) {
 
 /* ---------------------------------------------------- earlier pictures -- */
 
-/* Every ESPN id the site already shows a picture for: the other draft
+/* Every ESPN id the site already shows a picture for: the earlier draft
    classes, the kickoff league, the college rosters and season files, and
-   every NFL player nflverse knows. (Not this class as last built, so a
-   rebuild deals the same pictures.) */
+   every NFL player nflverse knows. (Not this class as last built, nor a
+   later class, so a rebuild deals the same pictures and names.) */
 function onTheSite(all, nflPlayers) {
   const ids = new Set();
-  Object.keys(all.classes).filter((y) => Number(y) !== YEAR).forEach((y) => {
+  Object.keys(all.classes).filter((y) => Number(y) < YEAR).forEach((y) => {
     all.classes[y].forEach((pr) => { if (pr.espn) { ids.add(String(pr.espn)); } });
   });
   const files = [];
@@ -404,7 +404,8 @@ function main() {
     taken.add(c27.norm(p.display_name));
     if (p.first_name && p.last_name) { taken.add(c27.norm(p.first_name + ' ' + p.last_name)); }
   });
-  Object.keys(all.classes).forEach((y) => all.classes[y].forEach((pr) => taken.add(c27.norm(pr.name))));
+  Object.keys(all.classes).filter((y) => Number(y) < YEAR)
+    .forEach((y) => all.classes[y].forEach((pr) => taken.add(c27.norm(pr.name))));
   JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'league-2023.json'), 'utf8')).players
     .forEach((p) => taken.add(c27.norm(p.name)));
 
@@ -488,4 +489,5 @@ function main() {
 
 if (require.main === module) { main(); }
 
-module.exports = { fitsAs, archetypeOdds, LEANS };
+module.exports = { fitsAs, archetypeOdds, LEANS, styleFor, BUILD, FIRST_ROUND, KICKERS_FROM, ELITE, POWER, SMALL, D2, TIERS,
+  SCHOOL_MOST };

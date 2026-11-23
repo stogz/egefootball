@@ -643,7 +643,20 @@ free agency has signed:
    which `styleOf` in lib/draft.js takes over his id's) and a forty time for
    the skill that is speed, so the Mock Draft shows the archetype he is
    drafted with. `lift` puts the class level with 2029.
-   After 2030 the sim makes its own classes. Every prospect's ceiling is drawn for his
+   **The 2031 class** (Sam, 2026-11-23: "use their real name but make up
+   their position and skill. Also again make up their college") is made the
+   2030 class's way (`build/class-2031.js`, `build/class-2031-sources.json`),
+   except that each prospect goes by his own name: his picture is a real
+   2026 college player's ESPN headshot that is nowhere else on the site, and
+   the name is that player's. His position suits the build in the picture
+   and is another than the one he really plays whenever a picture is left
+   for that; his school is never his own, and the whole first round comes
+   from the top programs. The pictures are the 2030 class's leftovers and
+   the Ohio, Miami (OH), Central Michigan, Buffalo and Temple rosters. Each
+   class build reads only the classes before it, so rebuilding one deals
+   the same players (but would undo any hand edit made to its class in
+   prospects.json since). `lift` puts the class level with 2030.
+   After 2031 the sim makes its own classes. Every prospect's ceiling is drawn for his
    draft slot from what the players taken there in 2019–2022 became (a top-ten
    pick is an 88 on average, a seventh-rounder a 71, about 6.5 either way),
    leaning on how good he really became for the 2024 and 2025 classes. Teams
@@ -1124,6 +1137,8 @@ nfl-sim/
     class-2030.js        the 2030 class, made up from top to bottom: names, real schools,
                          positions and skills, with the unused ESPN headshots in
                          class-2030-sources.json
+    class-2031.js        the 2031 class: real players' names and headshots (class-
+                         2031-sources.json), made-up positions, skills and schools
     benchmarks.js        real 2023 league averages and games
     evidence.js          each player's seasons
     ratings.js           season scores and the overall curve
