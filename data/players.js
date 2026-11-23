@@ -439,7 +439,12 @@ EGE.players = [
     weight: 185,              // pounds
     email: 'isaacvitel2005@gmail.com',
     credits: 0,
-    headshot: 'headshot/vitel.png'
+    headshot: 'headshot/vitel.png',
+    trophies: [
+      { name: 'Most Valuable Player', season: 2030, scale: 1.45,
+        image: EGE.nflAwardTrophy,
+        about: '2030 NFL Most Valuable Player\nNew York Jets' }
+    ]
   },
   {
     slug: 'sam-stogsdill',
