@@ -5857,7 +5857,9 @@ notify pgrst, 'reload schema';
 --                   made from it and their headshot until they change it,
 --                   which makes its row (`own`); it is the only one of
 --                   theirs the page gives the blue check. Any other they
---                   make is unverified: only an admin can tick `verified`.
+--                   make is unverified: only an admin can tick `verified`,
+--                   and `org` with it for a brand's gold check and square
+--                   picture (Sam, 2026-11-23).
 --                   A player reads and changes their own rows and nobody
 --                   else's; twelve besides their own at most. The admins'
 --                   presets (NFL, ESPN, NBC Sports) are in data/media.js,
@@ -5895,6 +5897,8 @@ create table if not exists public.media_accounts (
   updated_at timestamptz not null default now()
 );
 
+alter table public.media_accounts add column if not exists org boolean not null default false;
+
 create unique index if not exists media_accounts_own on public.media_accounts (lower(email)) where own;
 create index if not exists media_accounts_email on public.media_accounts (lower(email));
 
@@ -5909,14 +5913,14 @@ drop policy if exists "media accounts made by their owner" on public.media_accou
 create policy "media accounts made by their owner"
   on public.media_accounts for insert to authenticated
   with check (lower(email) = lower(auth.jwt() ->> 'email')
-              and (not verified or public.is_admin()));
+              and ((not verified and not org) or public.is_admin()));
 
 drop policy if exists "media accounts changed by their owner" on public.media_accounts;
 create policy "media accounts changed by their owner"
   on public.media_accounts for update to authenticated
   using (lower(email) = lower(auth.jwt() ->> 'email'))
   with check (lower(email) = lower(auth.jwt() ->> 'email')
-              and (not verified or public.is_admin()));
+              and ((not verified and not org) or public.is_admin()));
 
 drop policy if exists "media accounts deleted by their owner" on public.media_accounts;
 create policy "media accounts deleted by their owner"
@@ -6078,7 +6082,7 @@ begin
 
   insert into public.media_posts (email, name, handle, body, image, face, picture, verified, org, parent, tag)
   values (v_email, left(coalesce(nullif(trim(p_name), ''), '?'), 50),
-          left(coalesce(nullif(trim(p_handle), ''), '?'), 15), left(p_text, 280), p_image,
+          left(coalesce(nullif(trim(p_handle), ''), '?'), 15), left(p_text, 1000), p_image,
           p_face, p_picture, coalesce(p_verified, false), coalesce(p_org, false) and v_admin, p_parent,
           case when v_admin then left(p_tag, 60) end)
   returning id into v_id;
