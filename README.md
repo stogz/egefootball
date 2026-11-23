@@ -2680,7 +2680,7 @@ blue ball and the logo, and the pack is red, yellow and blue foil with the
 logo in the middle.
 
 Eight **card-art cards**, all Mystic, a pair a duo from one game: Ohio State
-at Michigan State (2022 week 6), Bloomington's 2019 week 5 game, the Jets'
+at Michigan State (2022 week 6), Bloomington's 2019 week 7 game (Normal Community), the Jets'
 2030 week 4 game (one picture for both) and the Giants' first 2031 game
 (in the pack once that week is out). A pack holds one a flat **2.25%** of
 the time (`artPerPack`, Sam, 2026-11-23), any of the art alike, about one
