@@ -78,12 +78,10 @@ EGE.stats[2030] = {
     6: '2026-11-16T17:22:21.716Z',
     7: '2026-11-16T18:59:38.782Z',
     8: '2026-11-16T22:51:10.858Z',
-    9: '2026-11-17T02:39:18.921Z',
     10: '2026-11-17T21:52:20.443Z',
     11: '2026-11-17T23:59:33.599Z',
     12: '2026-11-18T04:09:43.364Z',
     13: '2026-11-18T08:48:50.639Z',
-    14: '2026-11-18T17:17:21.939Z',
     15: '2026-11-18T21:32:31.169Z',
     16: '2026-11-19T00:08:35.105Z',
     17: '2026-11-19T03:53:55.036Z',
@@ -111,7 +109,7 @@ EGE.stats[2030] = {
     /* Andrew Parr — New York Jets */
     'andrew-parr': [
       { week:  1, date: '2030-09-08', kickoff: null,
-        opponent: 'Cleveland Browns', home: true, conference: false,
+        opponent: 'Denver Broncos', home: false, conference: false,
         result: { teamScore: 24, opponentScore: 34 }, booster: 'boost-2-5',
         stats: {
           receptions: 4, receivingYards: 39, receivingYac: 5,
@@ -120,7 +118,7 @@ EGE.stats[2030] = {
           receivingAvg: 9.8, totalYards: 39, totalTd: 0
         } },
       { week:  2, date: '2030-09-15', kickoff: null,
-        opponent: 'Carolina Panthers', home: false, conference: false,
+        opponent: 'Buffalo Bills', home: false, conference: false, division: true,
         result: { teamScore: 40, opponentScore: 24 }, booster: 'wager-for', line: -7.5,
         stats: {
           receptions: 6, receivingYards: 99, receivingYac: 38,
@@ -129,7 +127,7 @@ EGE.stats[2030] = {
           receivingAvg: 16.5, totalYards: 99, totalTd: 0
         } },
       { week:  3, date: '2030-09-22', kickoff: null,
-        opponent: 'Kansas City Chiefs', home: true, conference: false,
+        opponent: 'New England Patriots', home: false, conference: false, division: true,
         result: { teamScore: 31, opponentScore: 3 }, booster: null,
         stats: {
           receptions: 6, receivingYards: 43, receivingYac: 10,
@@ -138,7 +136,7 @@ EGE.stats[2030] = {
           receivingAvg: 7.2, totalYards: 43, totalTd: 0
         } },
       { week:  4, date: '2030-09-29', kickoff: null,
-        opponent: 'Denver Broncos', home: true, conference: false, overtime: true,
+        opponent: 'Las Vegas Raiders', home: true, conference: false, overtime: true,
         result: { teamScore: 34, opponentScore: 37 }, booster: 'boost-2-0',
         stats: {
           receptions: 14, receivingYards: 152, receivingYac: 100,
@@ -151,7 +149,7 @@ EGE.stats[2030] = {
           '31 yard receiving touchdown'
         ] },
       { week:  5, date: '2030-10-06', kickoff: null,
-        opponent: 'Miami Dolphins', home: true, conference: false, division: true,
+        opponent: 'Cincinnati Bengals', home: false, conference: false,
         result: { teamScore: 20, opponentScore: 3 }, booster: 'boost-2-0',
         stats: {
           receptions: 7, receivingYards: 71, receivingYac: 28,
@@ -163,7 +161,7 @@ EGE.stats[2030] = {
           '3 yard receiving touchdown'
         ] },
       { week:  6, date: '2030-10-13', kickoff: null,
-        opponent: 'Los Angeles Chargers', home: false, conference: false,
+        opponent: 'New Orleans Saints', home: true, conference: false,
         result: { teamScore: 38, opponentScore: 20 }, booster: 'wager-for', line: -7.5,
         stats: {
           receptions: 3, receivingYards: 63, receivingYac: 2,
@@ -175,10 +173,10 @@ EGE.stats[2030] = {
           '8 yard receiving touchdown'
         ] },
       { week:  7, date: '2030-10-20', kickoff: null,
-        opponent: 'Tampa Bay Buccaneers', home: true, conference: false,
+        opponent: null, home: false, conference: false, bye: true,
         result: null, booster: null, stats: null },
       { week:  8, date: '2030-10-27', kickoff: null,
-        opponent: 'Miami Dolphins', home: false, conference: false, division: true,
+        opponent: 'Los Angeles Chargers', home: true, conference: false,
         result: { teamScore: 24, opponentScore: 29 }, booster: 'boost-2-0',
         stats: {
           receptions: 6, receivingYards: 32, receivingYac: 7,
@@ -191,10 +189,10 @@ EGE.stats[2030] = {
           '12 yard receiving touchdown'
         ] },
       { week:  9, date: '2030-11-03', kickoff: null,
-        opponent: null, home: false, conference: false, bye: true,
+        opponent: 'New England Patriots', home: true, conference: false, division: true,
         result: null, booster: null, stats: null },
       { week: 10, date: '2030-11-10', kickoff: null,
-        opponent: 'Buffalo Bills', home: true, conference: false, division: true,
+        opponent: 'Miami Dolphins', home: false, conference: false, division: true,
         result: { teamScore: 34, opponentScore: 16 }, booster: null,
         stats: {
           receptions: 6, receivingYards: 52, receivingYac: 26,
@@ -203,7 +201,7 @@ EGE.stats[2030] = {
           receivingAvg: 8.7, totalYards: 52, totalTd: 0
         } },
       { week: 11, date: '2030-11-17', kickoff: null,
-        opponent: 'Las Vegas Raiders', home: false, conference: false,
+        opponent: 'Buffalo Bills', home: true, conference: false, division: true,
         result: { teamScore: 35, opponentScore: 10 }, booster: null,
         stats: {
           receptions: 6, receivingYards: 34, receivingYac: 16,
@@ -215,7 +213,7 @@ EGE.stats[2030] = {
           '4 yard receiving touchdown'
         ] },
       { week: 12, date: '2030-11-24', kickoff: null,
-        opponent: 'Philadelphia Eagles', home: false, conference: false,
+        opponent: 'Atlanta Falcons', home: false, conference: false,
         result: { teamScore: 29, opponentScore: 6 }, booster: null,
         stats: {
           receptions: 2, receivingYards: 10, receivingYac: 6,
@@ -224,7 +222,7 @@ EGE.stats[2030] = {
           receivingAvg: 5, totalYards: 10, totalTd: 0
         } },
       { week: 13, date: '2030-12-01', kickoff: null,
-        opponent: 'Atlanta Falcons', home: true, conference: false,
+        opponent: 'Dallas Cowboys', home: false, conference: false,
         result: { teamScore: 26, opponentScore: 13 }, booster: null,
         stats: {
           receptions: 10, receivingYards: 75, receivingYac: 35,
@@ -236,7 +234,7 @@ EGE.stats[2030] = {
           '5 yard receiving touchdown'
         ] },
       { week: 14, date: '2030-12-08', kickoff: null,
-        opponent: 'Houston Texans', home: false, conference: false,
+        opponent: 'Kansas City Chiefs', home: false, conference: false,
         result: { teamScore: 33, opponentScore: 10 }, booster: null,
         stats: {
           receptions: 6, receivingYards: 75, receivingYac: 45,
@@ -245,7 +243,7 @@ EGE.stats[2030] = {
           receivingAvg: 12.5, totalYards: 75, totalTd: 0
         } },
       { week: 15, date: '2030-12-15', kickoff: null,
-        opponent: 'New England Patriots', home: true, conference: false, division: true,
+        opponent: 'Jacksonville Jaguars', home: true, conference: false,
         result: { teamScore: 38, opponentScore: 31 }, booster: 'boost-2-5',
         stats: {
           receptions: 5, receivingYards: 42, receivingYac: 25,
@@ -254,7 +252,7 @@ EGE.stats[2030] = {
           receivingAvg: 8.4, totalYards: 42, totalTd: 0
         } },
       { week: 16, date: '2030-12-22', kickoff: null,
-        opponent: 'Buffalo Bills', home: false, conference: false, division: true,
+        opponent: 'Tampa Bay Buccaneers', home: true, conference: false,
         result: { teamScore: 42, opponentScore: 17 }, booster: null,
         stats: {
           receptions: 6, receivingYards: 35, receivingYac: 6,
@@ -268,7 +266,7 @@ EGE.stats[2030] = {
           '2 yard receiving touchdown'
         ] },
       { week: 17, date: '2030-12-29', kickoff: null,
-        opponent: 'New Orleans Saints', home: false, conference: false,
+        opponent: 'Carolina Panthers', home: false, conference: false,
         result: { teamScore: 41, opponentScore: 27 }, booster: null,
         stats: {
           receptions: 8, receivingYards: 82, receivingYac: 18,
@@ -277,7 +275,7 @@ EGE.stats[2030] = {
           receivingAvg: 10.3, totalYards: 82, totalTd: 0
         } },
       { week: 18, date: '2031-01-05', kickoff: null,
-        opponent: 'New England Patriots', home: false, conference: false, division: true,
+        opponent: 'Miami Dolphins', home: true, conference: false, division: true,
         result: { teamScore: 32, opponentScore: 24 }, booster: null,
         stats: {
           receptions: 5, receivingYards: 59, receivingYac: 16,
@@ -991,7 +989,7 @@ EGE.stats[2030] = {
     /* Sam Stogsdill — Arizona Cardinals */
     'sam-stogsdill': [
       { week:  1, date: '2030-09-08', kickoff: null,
-        opponent: 'Seattle Seahawks', home: true, conference: false, division: true, overtime: true,
+        opponent: 'Baltimore Ravens', home: true, conference: false, overtime: true,
         result: { teamScore: 28, opponentScore: 34 }, booster: null,
         stats: {
           carries: 13, rushingYards: 69, rushingTd: 1, rushingLong: 21,
@@ -1003,7 +1001,7 @@ EGE.stats[2030] = {
           '2 yard rushing touchdown'
         ] },
       { week:  2, date: '2030-09-15', kickoff: null,
-        opponent: 'Los Angeles Rams', home: false, conference: false, division: true,
+        opponent: 'Dallas Cowboys', home: false, conference: false,
         result: { teamScore: 12, opponentScore: 30 }, booster: null,
         stats: {
           carries: 13, rushingYards: 53, rushingTd: 0, rushingLong: 14,
@@ -1015,7 +1013,7 @@ EGE.stats[2030] = {
           '22 yard receiving touchdown'
         ] },
       { week:  3, date: '2030-09-22', kickoff: null,
-        opponent: 'Detroit Lions', home: true, conference: false,
+        opponent: 'Cleveland Browns', home: false, conference: false,
         result: { teamScore: 20, opponentScore: 17 }, booster: 'boost-1-5',
         stats: {
           carries: 27, rushingYards: 92, rushingTd: 1, rushingLong: 15,
@@ -1027,7 +1025,7 @@ EGE.stats[2030] = {
           '3 yard rushing touchdown'
         ] },
       { week:  4, date: '2030-09-29', kickoff: null,
-        opponent: 'Carolina Panthers', home: false, conference: false,
+        opponent: 'Washington Commanders', home: false, conference: false,
         result: { teamScore: 13, opponentScore: 20 }, booster: null,
         stats: {
           carries: 22, rushingYards: 126, rushingTd: 0, rushingLong: 24,
@@ -1036,7 +1034,7 @@ EGE.stats[2030] = {
           rushingAvg: 5.7, receivingAvg: 6.3, totalYards: 145, totalTd: 0
         } },
       { week:  5, date: '2030-10-06', kickoff: null,
-        opponent: 'New York Giants', home: false, conference: false,
+        opponent: 'Detroit Lions', home: true, conference: false,
         result: { teamScore: 16, opponentScore: 32 }, booster: null,
         stats: {
           carries: 11, rushingYards: 51, rushingTd: 0, rushingLong: 13,
@@ -1045,7 +1043,7 @@ EGE.stats[2030] = {
           rushingAvg: 4.6, receivingAvg: 5.8, totalYards: 86, totalTd: 0
         } },
       { week:  6, date: '2030-10-13', kickoff: null,
-        opponent: 'Las Vegas Raiders', home: true, conference: false,
+        opponent: 'Tampa Bay Buccaneers', home: false, conference: false,
         result: { teamScore: 17, opponentScore: 23 }, booster: null,
         stats: {
           carries: 14, rushingYards: 54, rushingTd: 0, rushingLong: 17,
@@ -1054,7 +1052,7 @@ EGE.stats[2030] = {
           rushingAvg: 3.9, receivingAvg: 3.8, totalYards: 69, totalTd: 0
         } },
       { week:  7, date: '2030-10-20', kickoff: null,
-        opponent: 'Dallas Cowboys', home: true, conference: false,
+        opponent: 'San Francisco 49ers', home: false, conference: false, division: true,
         result: { teamScore: 46, opponentScore: 10 }, booster: null,
         stats: {
           carries: 24, rushingYards: 190, rushingTd: 2, rushingLong: 35,
@@ -1068,7 +1066,7 @@ EGE.stats[2030] = {
           '13 yard receiving touchdown'
         ] },
       { week:  8, date: '2030-10-27', kickoff: null,
-        opponent: 'Washington Commanders', home: false, conference: false, overtime: true,
+        opponent: 'New York Giants', home: true, conference: false, overtime: true,
         result: { teamScore: 44, opponentScore: 38 }, booster: 'boost-2-0',
         stats: {
           carries: 22, rushingYards: 181, rushingTd: 1, rushingLong: 62,
@@ -1080,7 +1078,7 @@ EGE.stats[2030] = {
           '62 yard rushing touchdown'
         ] },
       { week:  9, date: '2030-11-03', kickoff: null,
-        opponent: 'Pittsburgh Steelers', home: true, conference: false,
+        opponent: 'Los Angeles Chargers', home: true, conference: false,
         result: { teamScore: 20, opponentScore: 33 }, booster: null,
         stats: {
           carries: 11, rushingYards: 97, rushingTd: 1, rushingLong: 75,
@@ -1092,10 +1090,10 @@ EGE.stats[2030] = {
           '75 yard rushing touchdown'
         ] },
       { week: 10, date: '2030-11-10', kickoff: null,
-        opponent: 'Los Angeles Rams', home: true, conference: false, division: true,
+        opponent: null, home: false, conference: false, bye: true,
         result: null, booster: null, stats: null },
       { week: 11, date: '2030-11-17', kickoff: null,
-        opponent: 'San Francisco 49ers', home: true, conference: false, division: true,
+        opponent: 'Los Angeles Rams', home: false, conference: false, division: true,
         result: { teamScore: 48, opponentScore: 14 }, booster: 'boost-2-0',
         stats: {
           carries: 27, rushingYards: 186, rushingTd: 2, rushingLong: 37,
@@ -1109,7 +1107,7 @@ EGE.stats[2030] = {
           '7 yard receiving touchdown'
         ] },
       { week: 12, date: '2030-11-24', kickoff: null,
-        opponent: 'Cincinnati Bengals', home: false, conference: false,
+        opponent: 'Pittsburgh Steelers', home: true, conference: false,
         result: { teamScore: 13, opponentScore: 16 }, booster: null,
         stats: {
           carries: 17, rushingYards: 132, rushingTd: 1, rushingLong: 41,
@@ -1121,7 +1119,7 @@ EGE.stats[2030] = {
           '1 yard rushing touchdown'
         ] },
       { week: 13, date: '2030-12-01', kickoff: null,
-        opponent: 'San Francisco 49ers', home: false, conference: false, division: true,
+        opponent: 'Philadelphia Eagles', home: true, conference: false,
         result: { teamScore: 10, opponentScore: 30 }, booster: null,
         stats: {
           carries: 15, rushingYards: 73, rushingTd: 1, rushingLong: 19,
@@ -1133,10 +1131,10 @@ EGE.stats[2030] = {
           '6 yard rushing touchdown'
         ] },
       { week: 14, date: '2030-12-08', kickoff: null,
-        opponent: null, home: false, conference: false, bye: true,
+        opponent: 'Seattle Seahawks', home: false, conference: false, division: true,
         result: null, booster: null, stats: null },
       { week: 15, date: '2030-12-15', kickoff: null,
-        opponent: 'Baltimore Ravens', home: false, conference: false, overtime: true,
+        opponent: 'Seattle Seahawks', home: true, conference: false, division: true, overtime: true,
         result: { teamScore: 40, opponentScore: 34 }, booster: null,
         stats: {
           carries: 11, rushingYards: 58, rushingTd: 0, rushingLong: 19,
@@ -1149,7 +1147,7 @@ EGE.stats[2030] = {
           '2 yard receiving touchdown'
         ] },
       { week: 16, date: '2030-12-22', kickoff: null,
-        opponent: 'Cleveland Browns', home: true, conference: false,
+        opponent: 'Cincinnati Bengals', home: false, conference: false,
         result: { teamScore: 9, opponentScore: 19 }, booster: null,
         stats: {
           carries: 11, rushingYards: 43, rushingTd: 0, rushingLong: 6,
@@ -1158,7 +1156,7 @@ EGE.stats[2030] = {
           rushingAvg: 3.9, receivingAvg: 2.7, totalYards: 51, totalTd: 0
         } },
       { week: 17, date: '2030-12-29', kickoff: null,
-        opponent: 'Seattle Seahawks', home: false, conference: false, division: true,
+        opponent: 'Los Angeles Rams', home: true, conference: false, division: true,
         result: { teamScore: 34, opponentScore: 30 }, booster: 'boost-2-0',
         stats: {
           carries: 14, rushingYards: 102, rushingTd: 1, rushingLong: 22,
@@ -1170,7 +1168,7 @@ EGE.stats[2030] = {
           '22 yard rushing touchdown'
         ] },
       { week: 18, date: '2031-01-05', kickoff: null,
-        opponent: 'Philadelphia Eagles', home: true, conference: false,
+        opponent: 'San Francisco 49ers', home: true, conference: false, division: true,
         result: { teamScore: 27, opponentScore: 6 }, booster: 'boost-1-5',
         stats: {
           carries: 29, rushingYards: 147, rushingTd: 1, rushingLong: 29,

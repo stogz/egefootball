@@ -79,7 +79,6 @@ EGE.stats[2029] = {
     7: '2026-11-12T04:45:18.758Z',
     8: '2026-11-12T13:57:20.969Z',
     9: '2026-11-12T16:24:26.095Z',
-    10: '2026-11-12T22:55:30.950Z',
     11: '2026-11-12T23:47:20.717Z',
     12: '2026-11-13T02:50:05.573Z',
     13: '2026-11-13T04:18:32.449Z',
@@ -175,7 +174,7 @@ EGE.stats[2029] = {
           receivingAvg: 12.8, totalYards: 128, totalTd: 0
         } },
       { week:  7, date: '2029-10-21', kickoff: null,
-        opponent: 'Cincinnati Bengals', home: true, conference: false, division: true,
+        opponent: 'Los Angeles Chargers', home: true, conference: false,
         result: { teamScore: 17, opponentScore: 16 }, booster: 'wager-for', line: 6.5,
         stats: {
           receptions: 6, receivingYards: 81, receivingYac: 25,
@@ -187,7 +186,7 @@ EGE.stats[2029] = {
           '43 yard game-winning receiving touchdown'
         ] },
       { week:  8, date: '2029-10-28', kickoff: null,
-        opponent: 'Kansas City Chiefs', home: false, conference: false,
+        opponent: 'Atlanta Falcons', home: true, conference: false,
         result: { teamScore: 21, opponentScore: 3 }, booster: null,
         stats: {
           receptions: 5, receivingYards: 53, receivingYac: 33,
@@ -196,7 +195,7 @@ EGE.stats[2029] = {
           receivingAvg: 10.6, totalYards: 53, totalTd: 0
         } },
       { week:  9, date: '2029-11-04', kickoff: null,
-        opponent: 'Indianapolis Colts', home: false, conference: false,
+        opponent: 'Pittsburgh Steelers', home: true, conference: false, division: true,
         result: { teamScore: 31, opponentScore: 24 }, booster: 'boost-2-5',
         stats: {
           receptions: 7, receivingYards: 65, receivingYac: 15,
@@ -205,10 +204,10 @@ EGE.stats[2029] = {
           receivingAvg: 9.3, totalYards: 65, totalTd: 0
         } },
       { week: 10, date: '2029-11-11', kickoff: null,
-        opponent: null, home: false, conference: false, bye: true,
+        opponent: 'Carolina Panthers', home: false, conference: false,
         result: null, booster: null, stats: null },
       { week: 11, date: '2029-11-18', kickoff: null,
-        opponent: 'Miami Dolphins', home: true, conference: false,
+        opponent: 'Buffalo Bills', home: false, conference: false,
         result: { teamScore: 27, opponentScore: 13 }, booster: null,
         stats: {
           receptions: 9, receivingYards: 91, receivingYac: 24,
@@ -217,7 +216,7 @@ EGE.stats[2029] = {
           receivingAvg: 10.1, totalYards: 91, totalTd: 0
         } },
       { week: 12, date: '2029-11-25', kickoff: null,
-        opponent: 'Cleveland Browns', home: true, conference: false, division: true,
+        opponent: 'New Orleans Saints', home: false, conference: false,
         result: { teamScore: 33, opponentScore: 21 }, booster: null,
         stats: {
           receptions: 1, receivingYards: 19, receivingYac: 2,
@@ -226,7 +225,7 @@ EGE.stats[2029] = {
           receivingAvg: 19, totalYards: 19, totalTd: 0
         } },
       { week: 13, date: '2029-12-02', kickoff: null,
-        opponent: 'Cincinnati Bengals', home: false, conference: false, division: true,
+        opponent: 'Cincinnati Bengals', home: true, conference: false, division: true,
         result: { teamScore: 20, opponentScore: 15 }, booster: null,
         stats: {
           receptions: 5, receivingYards: 40, receivingYac: 17,
@@ -235,7 +234,7 @@ EGE.stats[2029] = {
           receivingAvg: 8, totalYards: 40, totalTd: 0
         } },
       { week: 14, date: '2029-12-09', kickoff: null,
-        opponent: 'Carolina Panthers', home: false, conference: false,
+        opponent: 'Jacksonville Jaguars', home: true, conference: false,
         result: { teamScore: 7, opponentScore: 33 }, booster: null,
         stats: {
           receptions: 9, receivingYards: 154, receivingYac: 48,
@@ -244,7 +243,7 @@ EGE.stats[2029] = {
           receivingAvg: 17.1, totalYards: 154, totalTd: 0
         } },
       { week: 15, date: '2029-12-16', kickoff: null,
-        opponent: 'Tampa Bay Buccaneers', home: true, conference: false,
+        opponent: 'Pittsburgh Steelers', home: false, conference: false, division: true,
         result: { teamScore: 17, opponentScore: 37 }, booster: null,
         stats: {
           receptions: 4, receivingYards: 45, receivingYac: 21,
@@ -253,7 +252,7 @@ EGE.stats[2029] = {
           receivingAvg: 11.3, totalYards: 45, totalTd: 0
         } },
       { week: 16, date: '2029-12-23', kickoff: null,
-        opponent: 'Cleveland Browns', home: false, conference: false, division: true,
+        opponent: 'Denver Broncos', home: false, conference: false,
         result: { teamScore: 31, opponentScore: 26 }, booster: null,
         stats: {
           receptions: 6, receivingYards: 79, receivingYac: 18,
@@ -265,7 +264,7 @@ EGE.stats[2029] = {
           '16 yard receiving touchdown'
         ] },
       { week: 17, date: '2029-12-30', kickoff: null,
-        opponent: 'New York Giants', home: true, conference: false,
+        opponent: 'Cincinnati Bengals', home: false, conference: false, division: true,
         result: { teamScore: 30, opponentScore: 35 }, booster: null,
         stats: {
           receptions: 7, receivingYards: 69, receivingYac: 39,
@@ -277,7 +276,7 @@ EGE.stats[2029] = {
           '2 yard receiving touchdown'
         ] },
       { week: 18, date: '2030-01-06', kickoff: null,
-        opponent: 'Atlanta Falcons', home: false, conference: false,
+        opponent: 'Las Vegas Raiders', home: false, conference: false,
         result: { teamScore: 19, opponentScore: 23 }, booster: null,
         stats: {
           receptions: 3, receivingYards: 38, receivingYac: 15,
@@ -815,7 +814,7 @@ EGE.stats[2029] = {
           '9 yard game-winning passing touchdown'
         ] },
       { week: 11, date: '2029-11-18', kickoff: null,
-        opponent: 'Indianapolis Colts', home: false, conference: false,
+        opponent: 'New England Patriots', home: false, conference: false, division: true,
         result: { teamScore: 33, opponentScore: 23 }, booster: null,
         stats: {
           completions: 32, attempts: 39, passingYards: 262,
@@ -828,7 +827,7 @@ EGE.stats[2029] = {
           '6 yard passing touchdown'
         ] },
       { week: 12, date: '2029-11-25', kickoff: null,
-        opponent: 'Tennessee Titans', home: true, conference: false,
+        opponent: 'Houston Texans', home: false, conference: false,
         result: { teamScore: 33, opponentScore: 15 }, booster: null,
         stats: {
           completions: 23, attempts: 33, passingYards: 214,
@@ -840,7 +839,7 @@ EGE.stats[2029] = {
           '12 yard passing touchdown'
         ] },
       { week: 13, date: '2029-12-02', kickoff: null,
-        opponent: 'New England Patriots', home: false, conference: false, division: true,
+        opponent: 'Tennessee Titans', home: false, conference: false,
         result: { teamScore: 21, opponentScore: 17 }, booster: null,
         stats: {
           completions: 23, attempts: 31, passingYards: 259,
@@ -854,7 +853,7 @@ EGE.stats[2029] = {
           '21 yard game-winning passing touchdown'
         ] },
       { week: 14, date: '2029-12-09', kickoff: null,
-        opponent: 'Los Angeles Rams', home: false, conference: false,
+        opponent: 'Buffalo Bills', home: true, conference: false, division: true,
         result: { teamScore: 43, opponentScore: 7 }, booster: 'boost-2-0',
         stats: {
           completions: 25, attempts: 36, passingYards: 372,
@@ -868,7 +867,7 @@ EGE.stats[2029] = {
           '9 yard passing touchdown'
         ] },
       { week: 15, date: '2029-12-16', kickoff: null,
-        opponent: 'Miami Dolphins', home: true, conference: false, division: true,
+        opponent: 'Miami Dolphins', home: false, conference: false, division: true,
         result: { teamScore: 31, opponentScore: 27 }, booster: 'boost-1-5',
         stats: {
           completions: 23, attempts: 41, passingYards: 361,
@@ -882,7 +881,7 @@ EGE.stats[2029] = {
           '3 yard game-winning passing touchdown'
         ] },
       { week: 16, date: '2029-12-23', kickoff: null,
-        opponent: 'Cincinnati Bengals', home: true, conference: false,
+        opponent: 'Detroit Lions', home: true, conference: false,
         result: { teamScore: 24, opponentScore: 27 }, booster: null,
         stats: {
           completions: 34, attempts: 45, passingYards: 431,
@@ -896,7 +895,7 @@ EGE.stats[2029] = {
           '3 yard passing touchdown'
         ] },
       { week: 17, date: '2029-12-30', kickoff: null,
-        opponent: 'Chicago Bears', home: true, conference: false,
+        opponent: 'Jacksonville Jaguars', home: true, conference: false,
         result: { teamScore: 27, opponentScore: 10 }, booster: 'boost-2-0',
         stats: {
           completions: 23, attempts: 33, passingYards: 280,
@@ -909,7 +908,7 @@ EGE.stats[2029] = {
           '2 yard passing touchdown'
         ] },
       { week: 18, date: '2030-01-06', kickoff: null,
-        opponent: 'Green Bay Packers', home: false, conference: false,
+        opponent: 'Miami Dolphins', home: true, conference: false, division: true,
         result: { teamScore: 33, opponentScore: 10 }, booster: 'boost-1-5',
         stats: {
           completions: 37, attempts: 42, passingYards: 396,
