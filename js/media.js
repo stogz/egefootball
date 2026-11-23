@@ -15,7 +15,8 @@
    Accounts: a player's own account -- their name, a handle made from it
    and their headshot until they change them -- is the only one of theirs
    with the blue check. Any other they make is unverified, unless an admin
-   made it and ticked Verified. Admins also get the presets in
+   made it and gave it a check: blue, or gold with a square picture for a
+   brand (Sam, 2026-11-23). Admins also get the presets in
    data/media.js (NFL, ESPN, NBC Sports and the personalities: Stephen A
    Smith, SleeperNFL, Skip Bayless, Ian Rapoport, Cam Newton, Pat McAfee,
    LeBron James, Shannon Sharpe, Chad Johnson, JJ Watt, Terrell Owens),
@@ -41,7 +42,8 @@ EGE.mediaView = (function () {
 
   var ACCOUNTS = 'media_accounts';
   var BUCKET = 'media';
-  var MAX_TEXT = 280;
+  /* A soft cap, not X's 280 (Sam, 2026-11-23): about a thousand. */
+  var MAX_TEXT = 1000;
   var MAX_ALTS = 12;
   var CHOSEN_KEY = 'ege.mediaAccount';
 
@@ -151,7 +153,8 @@ EGE.mediaView = (function () {
   function altAccounts() {
     return state.rows.filter(function (r) { return !r.own; }).map(function (r) {
       return { id: r.id, kind: 'alt', row: r, name: r.name, handle: r.handle,
-               photo: r.photo || null, verified: Boolean(r.verified) };
+               photo: r.photo || null, verified: Boolean(r.verified),
+               org: Boolean(r.verified && r.org) };
     });
   }
 
@@ -175,9 +178,15 @@ EGE.mediaView = (function () {
   function load(email) {
     var c = client();
     if (!c) { state.rows = []; return Promise.resolve(); }
-    return c.from(ACCOUNTS).select('id, own, name, handle, photo, verified, created_at')
-      .eq('email', email)
-      .order('created_at', { ascending: true })
+    function read(columns) {
+      return c.from(ACCOUNTS).select(columns).eq('email', email).order('created_at', { ascending: true });
+    }
+    /* Before the schema is run again there is no `org`: read without it. */
+    return read('id, own, name, handle, photo, verified, org, created_at')
+      .then(function (res) {
+        return res.error && /org/.test(res.error.message || '')
+          ? read('id, own, name, handle, photo, verified, created_at') : res;
+      })
       .then(function (res) {
         if (res.error) {
           say(/media_accounts/.test(res.error.message || '')
@@ -204,6 +213,9 @@ EGE.mediaView = (function () {
       verified: account && account.kind === 'own' ? false : Boolean(fields.verified && admin()),
       updated_at: new Date().toISOString()
     };
+    /* Gold (a brand) only where it is asked for, so an account saves
+       before the schema has the column. */
+    if (data.verified && fields.org) { data.org = true; } else if (account && account.org) { data.org = false; }
     var query;
     if (account && account.row) {
       query = c.from(ACCOUNTS).update(data).eq('id', account.row.id);
@@ -217,6 +229,7 @@ EGE.mediaView = (function () {
         var m = res.error.message || 'That did not save.';
         if (/media_accounts/.test(m) && /exist|relation/.test(m)) { m = 'Run supabase/schema.sql again first.'; }
         if (/row-level security/.test(m)) { m = 'Only an admin can make a verified account.'; }
+        if (/\borg\b/.test(m) && /column/.test(m)) { m = 'Run supabase/schema.sql again for gold checks.'; }
         return { ok: false, message: m };
       }
       return { ok: true, id: res.data && res.data.id };
@@ -738,7 +751,7 @@ EGE.mediaView = (function () {
 
     if (drawing) {
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, WIDTH, 4000);
+      ctx.fillRect(0, 0, WIDTH, 100000);
     }
     if (tweet.parent) { y = paintParent(ctx, tweet.parent, faces.parent, y, drawing); }
 
@@ -832,11 +845,15 @@ EGE.mediaView = (function () {
     ]).then(function (got) {
       var faces = { main: got[0], parent: got[1] };
       var height = paint(document.createElement('canvas').getContext('2d'), tweet, faces, false);
+      /* A long tweet stays in what a phone's canvas can hold (iOS: 16.7
+         million pixels, and keep a side under 16,000): it is drawn a
+         little smaller rather than not at all. */
+      var scale = Math.min(SCALE, 16000 / height, Math.sqrt(16000000 / (WIDTH * height)));
       var canvas = document.createElement('canvas');
-      canvas.width = WIDTH * SCALE;
-      canvas.height = height * SCALE;
+      canvas.width = Math.round(WIDTH * scale);
+      canvas.height = Math.round(height * scale);
       var ctx = canvas.getContext('2d');
-      ctx.scale(SCALE, SCALE);
+      ctx.scale(scale, scale);
       paint(ctx, tweet, faces, true);
       return canvas;
     });
@@ -1320,16 +1337,39 @@ EGE.mediaView = (function () {
     fields.appendChild(handleWrap);
     form.appendChild(fields);
 
-    var verified = null;
+    /* The check, for an admin: none, blue, or gold for a brand, which
+       also squares the picture as X does. */
+    var check = null;
     if (admin() && (!account || account.kind === 'alt')) {
-      var check = el('label', 'ege-acctedit__check');
-      verified = el('input');
-      verified.type = 'checkbox';
-      verified.checked = Boolean(account && account.verified);
-      check.appendChild(verified);
-      check.appendChild(document.createTextNode('Verified'));
-      form.appendChild(check);
+      check = account && account.verified ? (account.org ? 'gold' : 'blue') : 'none';
+      var checks = el('div', 'ege-acctedit__checks');
+      checks.setAttribute('role', 'radiogroup');
+      checks.setAttribute('aria-label', 'Check');
+      [['none', 'No check'], ['blue', 'Blue check'], ['gold', 'Gold check']].forEach(function (pair) {
+        var b = el('button', 'ege-acctedit__checkbtn');
+        b.type = 'button';
+        b.dataset.check = pair[0];
+        b.title = pair[1];
+        b.setAttribute('role', 'radio');
+        b.setAttribute('aria-label', pair[1]);
+        if (pair[0] === 'none') { b.textContent = 'None'; } else {
+          b.appendChild(svg('badge', 'ege-acct__badge' + (pair[0] === 'gold' ? ' is-org' : '')));
+        }
+        b.addEventListener('click', function () { check = pair[0]; showCheck(); });
+        checks.appendChild(b);
+      });
+      form.appendChild(checks);
     }
+    function showCheck() {
+      if (!check) { return; }
+      form.querySelectorAll('.ege-acctedit__checkbtn').forEach(function (b) {
+        var on = b.dataset.check === check;
+        b.classList.toggle('is-on', on);
+        b.setAttribute('aria-checked', String(on));
+      });
+      pfpLabel.classList.toggle('is-org', check === 'gold');
+    }
+    showCheck();
 
     var note = el('p', 'ege-note ege-note--error ege-acctedit__note');
     note.hidden = true;
@@ -1386,7 +1426,8 @@ EGE.mediaView = (function () {
       if (!/^[A-Za-z0-9_]{1,15}$/.test(h)) { fail('A handle is letters, numbers and _ only, 15 at most.'); handle.focus(); return; }
       save.disabled = true;
       fail('');
-      saveAccount(account, { name: n, handle: h, photo: photo, verified: verified && verified.checked })
+      saveAccount(account, { name: n, handle: h, photo: photo,
+                            verified: check === 'blue' || check === 'gold', org: check === 'gold' })
         .then(function (res) {
           save.disabled = false;
           if (!res.ok) { fail(res.message); return; }

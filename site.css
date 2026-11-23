@@ -13061,8 +13061,28 @@ button.ege-cast__draftpick:active:not(:disabled) .ege-cast__draftface { transfor
   pointer-events: none;
 }
 .ege-acctedit__handle .fb-input { padding-left: 28px; }
-.ege-acctedit__check { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: .875rem; cursor: pointer; }
-.ege-acctedit__check input { width: 18px; height: 18px; accent-color: var(--fb-accent); }
+/* An admin's check: none, blue, or gold for a brand (Sam, 2026-11-23),
+   which squares the picture as X does. */
+.ege-acctedit__checks { display: flex; gap: 6px; }
+.ege-acctedit__checkbtn {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  height: 36px;
+  border: 2px solid var(--fb-sand);
+  border-radius: 10px;
+  background: var(--fb-cream);
+  color: var(--fb-muted);
+  font: inherit;
+  font-weight: 700;
+  font-size: .875rem;
+  cursor: pointer;
+}
+.ege-acctedit__checkbtn .ege-acct__badge { width: 20px; height: 20px; }
+.ege-acctedit__checkbtn.is-on { border-color: var(--fb-ink); color: var(--fb-ink); background: var(--fb-surface); }
+@media (hover: hover) { .ege-acctedit__checkbtn:hover { border-color: var(--fb-ink); } }
+.ege-acctedit__pfp.is-org .ege-acctedit__img,
+.ege-acctedit__pfp.is-org .ege-acctedit__cam { clip-path: inset(0 round 10px); }
 .ege-acctedit__foot { display: flex; gap: 8px; justify-content: flex-end; }
 .ege-acctedit__delete { margin-right: auto; color: var(--fb-accent-deep); }
 
