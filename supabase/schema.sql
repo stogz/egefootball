@@ -1084,9 +1084,10 @@ $$;
 -- A limited-time event's card (the events, at the end of this file): a
 -- card's id with the event's tag on the end -- ':gr' for the Gold Rush,
 -- ':hw' for Halloween, ':hc' for a Halloween costume card, ':ar' for the
--- Air Raid -- one of Sam's card-art cards ('a:...:gr', 'a:...:hw',
--- 'a:...:ar'; a play's has its place in the game too), or an event's own
--- Iconic card ('r:gold-rush:gr', 'r:halloween:hw', 'r:air-raid:ar'). Only an event's pack and its rewards give these out;
+-- Air Raid, ':dz' for DUOZ -- one of Sam's card-art cards ('a:...:gr',
+-- 'a:...:hw', 'a:...:ar', 'a:...:dz'; a play's has its place in the game
+-- too), or an event's own Iconic card ('r:gold-rush:gr', 'r:halloween:hw',
+-- 'r:air-raid:ar', 'r:duoz:dz'). Only an event's pack and its rewards give these out;
 -- every standard way in keeps to is_card_id.
 create or replace function public.is_event_card_id(p_id text)
 returns boolean
@@ -1094,9 +1095,9 @@ language sql
 immutable
 as $$
   select coalesce(
-    p_id ~ '^(p:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}|h:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}:[0-9]{1,2}):(gr|hw|hc|ar)$'
-    or p_id ~ '^a:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}(:[0-9]{1,2})?:(gr|hw|ar)$'
-    or p_id in ('r:gold-rush:gr', 'r:halloween:hw', 'r:air-raid:ar'), false);
+    p_id ~ '^(p:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}|h:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}:[0-9]{1,2}):(gr|hw|hc|ar|dz)$'
+    or p_id ~ '^a:[0-9]{4}:[a-z]+(-[a-z]+)*:[0-9]{1,2}(:[0-9]{1,2})?:(gr|hw|ar|dz)$'
+    or p_id in ('r:gold-rush:gr', 'r:halloween:hw', 'r:air-raid:ar', 'r:duoz:dz'), false);
 $$;
 
 -- A holographic card: a card's id with ':holo' on the end. Only ever made
@@ -1297,6 +1298,17 @@ begin
     v_size := 4;
   end if;
 
+  -- The DUOZ Pack (Sam, 2026-11-23): 30 diamonds, five DUOZ cards of the
+  -- six's duos, and only while DUOZ is on. No daily limit (Sam). Never the
+  -- DUOZ card.
+  if p_pack = 'duoz' then
+    if not public.card_event_live('duoz') then
+      raise exception 'DUOZ is not on, so its packs are not for sale.';
+    end if;
+    v_price := 30;
+    v_size := 5;
+  end if;
+
   -- A past season's pack, year-{season}: 14 diamonds, three cards, every
   -- one of them from that season.
   if p_pack ~ '^year-[0-9]{4}$' then
@@ -1329,6 +1341,10 @@ begin
       if not public.is_event_card_id(v_card) or v_card like 'r:%' or v_card !~ ':ar$'
          or split_part(v_card, ':', 3) not in ('andrew-parr', 'paxon-hatch') then
         raise exception 'Not an Air Raid card: %', v_card;
+      end if;
+    elsif p_pack = 'duoz' then
+      if not public.is_event_card_id(v_card) or v_card like 'r:%' or v_card !~ ':dz$' then
+        raise exception 'Not a DUOZ card: %', v_card;
       end if;
     elsif not public.is_card_id(v_card) then
       raise exception 'Not a card: %', v_card;
@@ -3076,7 +3092,7 @@ begin
 
   -- Event copies still cooling down from a trade that went into it take
   -- their cooldown into the holo, so merging cannot skip one.
-  if p_card ~ ':(gr|hw|hc|ar)(:holo)?$' then
+  if p_card ~ ':(gr|hw|hc|ar|dz)(:holo)?$' then
     select count(*), max(locked_until) into v_locked, v_until
       from public.card_trade_locks
      where lower(email) = lower(v_email) and card_id = p_card and locked_until > now();
@@ -3415,6 +3431,11 @@ notify pgrst, 'reload schema';
 -- the base rate, and twelve very hard sets, all of which its Iconic AIR
 -- RAID card ('r:air-raid:ar') needs, paid with 150 diamonds and three 2.5x
 -- Boosters.
+--
+-- DUOZ (Sam, 2026-11-23) is the fourth: 30 diamonds for five DUOZ cards
+-- (':dz') of the six's duos, for 14 days, with fourteen very hard sets, all
+-- of which its Iconic DUOZ card ('r:duoz:dz') needs, paid with 500
+-- diamonds and three 2.5x Boosters.
 -- ===========================================================================
 
 create table if not exists public.card_events (
@@ -3522,6 +3543,40 @@ on conflict (key) do update
   set name = excluded.name, days = excluded.days, sets = excluded.sets, reward = excluded.reward,
       rewards = excluded.rewards, tags = excluded.tags, needs = excluded.needs, pulled = excluded.pulled;
 
+-- DUOZ: its fourteen sets (eventSets in data/cards.js), every one of which
+-- the DUOZ card needs, and what each pays (DUOZ.rewards and DUOZ.bonus
+-- there; change them together). None wants a card the player pulled
+-- themselves.
+insert into public.card_events (key, name, days, sets, reward, rewards, tags, needs, pulled)
+values ('duoz', 'DUOZ', 14,
+        array['bloomington-cover', 'the-connection', 'crosstown', 'buckeye-cover', 'the-game',
+              'double-team', 'jets-cover', 'playoff-push', 'air-mail', 'giants-cover', 'big-blue',
+              'giant-plays', 'crossover', 'team-up'],
+        'r:duoz:dz',
+        '{"crossover":         {"diamonds":  50, "booster": "boost-1-5"},
+          "big-blue":          {"diamonds":  60, "booster": "boost-1-5"},
+          "giant-plays":       {"diamonds":  60, "booster": "boost-1-5"},
+          "double-team":       {"diamonds":  75, "booster": "boost-2-0"},
+          "team-up":           {"diamonds":  80, "booster": "boost-2-0"},
+          "crosstown":         {"diamonds":  90, "booster": "boost-2-0"},
+          "the-game":          {"diamonds":  90, "booster": "boost-2-0"},
+          "playoff-push":      {"diamonds":  90, "booster": "boost-2-0"},
+          "the-connection":    {"diamonds": 100, "booster": "boost-2-0"},
+          "air-mail":          {"diamonds": 100, "booster": "boost-2-0"},
+          "bloomington-cover": {"diamonds": 150, "booster": "boost-2-5"},
+          "buckeye-cover":     {"diamonds": 150, "booster": "boost-2-5"},
+          "jets-cover":        {"diamonds": 150, "booster": "boost-2-5"},
+          "giants-cover":      {"diamonds": 150, "booster": "boost-2-5"},
+          "duoz":              {"diamonds": 500, "booster": "boost-2-5", "boosters": 3}}'::jsonb,
+        array['dz'],
+        array['bloomington-cover', 'the-connection', 'crosstown', 'buckeye-cover', 'the-game',
+              'double-team', 'jets-cover', 'playoff-push', 'air-mail', 'giants-cover', 'big-blue',
+              'giant-plays', 'crossover', 'team-up'],
+        array[]::text[])
+on conflict (key) do update
+  set name = excluded.name, days = excluded.days, sets = excluded.sets, reward = excluded.reward,
+      rewards = excluded.rewards, tags = excluded.tags, needs = excluded.needs, pulled = excluded.pulled;
+
 -- Whether an event is on right now.
 create or replace function public.card_event_live(p_key text)
 returns boolean
@@ -3616,7 +3671,7 @@ as $$
   delete from public.card_trade_locks where locked_until < now() - interval '1 day';
   insert into public.card_trade_locks (email, card_id, locked_until)
   select lower(p_email), p_card, now() + interval '48 hours'
-   where p_card ~ ':(gr|hw|hc|ar)(:holo2?)?$';
+   where p_card ~ ':(gr|hw|hc|ar|dz)(:holo2?)?$';
 $$;
 
 -- No more cooldowns on a card than copies of it left (a sale, a merge):
@@ -3843,7 +3898,7 @@ begin
     v_booster := null;
   end if;
   -- How many of it: "boosters" (two with the HALLOWEEN card, three with
-  -- the AIR RAID card), one if unset.
+  -- the AIR RAID and DUOZ cards), one if unset.
   v_boosters := least(greatest(coalesce((v_pay ->> 'boosters')::integer, 1), 1), 5);
 
   insert into public.card_event_claims (email, event_key, set_key, reward)

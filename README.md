@@ -2664,6 +2664,53 @@ alone (median / nine in ten):
 Every reward card is an Air Raid card, never card art. The AIR RAID card is
 Sam's art (`AIR_RAID.rewardImage`): a 2027 season Iconic of Paxon and Andrew.
 
+### DUOZ
+
+The fourth limited-time event (Sam, 2026-11-23): the six's duos as a comic
+book, in primary red, then yellow, then blue. An admin starts it on the
+admin page and it runs **14 days**. The duos (`DUOS` in data/cards.js) are
+two of the six on one team in the same week: Isaac and Paxon at Bloomington,
+Sam and Jaykeb at Ohio State, Isaac and Andrew with the Jets and Cooper and
+Paxon with the Giants (2031 on). The **DUOZ Pack** (5 cards for 30 diamonds,
+the dearest pack yet, the last one Epic or better, on the other event packs'
+odds, no daily limit) holds every card of either of a duo from a week they
+were teammates. A DUOZ card (`:dz`) wears Sam's DUOZ logo across a yellow
+halftone sunburst; its back is a red comic splash in a yellow frame with a
+blue ball and the logo, and the pack is red, yellow and blue foil with the
+logo in the middle.
+
+Eight **card-art cards**, all Mystic, a pair a duo from one game: Ohio State
+at Michigan State (2022 week 6), Bloomington's 2019 week 5 game, the Jets'
+2030 week 4 game (one picture for both) and the Giants' first 2031 game
+(in the pack once that week is out). A pack holds one **1.5%** of the time
+(`artPerPack`), any of the art alike, about one pack in 67; each art is
+about one in 530.
+
+Only DUOZ cards fill its fourteen sets, and a traded copy waits 48 hours.
+Sam asked for about three hard sets a duo and more, taking trading and
+obscure cards. Packs to finish each, one player alone (median / nine in
+ten; the Giants' with the whole 2031 season out):
+
+| Set | Duo | Needs | Packs | Reward |
+| --- | --- | --- | --- | --- |
+| Crossover | all | 2 Legendary-or-better cards of each duo | 30 / 40 | Legendary+ · 50 diamonds · 1.5x |
+| Giant Plays | Cooper & Paxon | an Epic+ Giants TD play and 5 more | 40 / 40 | Legendary+ · 60 diamonds · 1.5x |
+| Big Blue | Cooper & Paxon | 4 Cooper and 4 Paxon Giants performances | 60 / 60 | Legendary+ · 60 diamonds · 1.5x |
+| Double Team | Sam & Jaykeb | an Epic+ Ohio State holo of each | 60 / 90 | Legendary+ · 75 diamonds · 2.0x |
+| Team-Up | all | an Epic+ holo of each duo | 60 / 80 | Legendary+ · 80 diamonds · 2.0x |
+| Crosstown Rivals | Isaac & Paxon | both their games against Normal West and Normal Community, 2018 and 2019 | 190 / 300 | Legendary+ · 90 diamonds · 2.0x |
+| Playoff Push | Isaac & Andrew | both their 2030 playoff games | 250 / 340 | Legendary+ · 90 diamonds · 2.0x |
+| The Game | Sam & Jaykeb | their games against Michigan and Jaykeb's 80-yd TD there | 280 / 420 | Legendary+ · 90 diamonds · 2.0x |
+| The Connection | Isaac & Paxon | all ten of Isaac's TD passes to Paxon | 260 / 350 | Mystic+ · 100 diamonds · 2.0x |
+| Air Mail | Isaac & Andrew | all 13 of Andrew's 2030 Jets TD catches | 330 / 450 | Mystic+ · 100 diamonds · 2.0x |
+| Bloomington / Buckeye / Jets / Giants Cover | each | both of the duo's card art | 550–700 / 1,100–1,500 | Mystic+ · 150 diamonds · 2.5x |
+| DUOZ | | all fourteen | over 3,000 alone | the Iconic DUOZ card · 500 diamonds · three 2.5x Boosters |
+
+Every reward card is a DUOZ card, never card art. The DUOZ card's art is
+still being drawn: until `DUOZ.rewardImage` names it the page draws a
+stand-in with the DUOZ logo. The rewards live in `DUOZ.rewards` and the
+`card_events` row; change both together.
+
 ### Trades
 
 The Trades panel on the Cards tab. **Propose a trade** opens a builder: pick

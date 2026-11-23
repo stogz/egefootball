@@ -10039,6 +10039,152 @@ html.ege-noscroll body { overflow: hidden; }
 }
 .ege-set--ev-air-raid .ege-set__pip--event.is-filled { background: #3d8be0; }
 
+/* --- DUOZ ------------------------------------------------------------------
+
+   The fourth event (Sam, 2026-11-23): the six's duos as a comic book, in
+   primary red, then yellow, then blue, on heavy black ink with halftone
+   dots. Sam's DUOZ logo stands for the name everywhere it goes. */
+:root {
+  --duoz-red: #e4141b;
+  --duoz-yellow: #ffd400;
+  --duoz-blue: #1a5fd4;
+  --duoz-ink: #111111;
+  --duoz-dots: radial-gradient(circle, rgba(0, 0, 0, .2) 0 22%, transparent 25%);
+}
+
+/* The sticker: the sunburst in yellow with red halftone dots, the logo
+   across it. */
+.ege-sticker--comic .ege-sticker__face {
+  background:
+    radial-gradient(circle, rgba(228, 20, 27, .4) 0 22%, transparent 25%) 0 0 / 2.2cqw 2.2cqw,
+    radial-gradient(circle at 34% 30%, #fff6a8 0%, var(--duoz-yellow) 46%, #f2a900 100%);
+}
+.ege-sticker--comic .ege-sticker__face::before,
+.ege-sticker--comic .ege-sticker__face::after { content: none; }
+.ege-tcard__sticker--duoz .ege-tcard__airraid {
+  width: 136%;
+  transform: rotate(-6deg);
+  filter: drop-shadow(.3cqw .4cqw 0 var(--duoz-ink));
+}
+.ege-tcard--ev-duoz .ege-tcard__holo { top: 25cqw; }
+
+/* The DUOZ card while Sam's art for it is being drawn: the logo on a
+   comic splash, a yellow burst behind it on red dots, in the Iconic
+   frame. */
+.ege-tcard--ev-duoz .ege-tcard__standart {
+  background:
+    radial-gradient(circle at 50% 48%, var(--duoz-yellow) 0 22%, rgba(255, 212, 0, 0) 23%),
+    repeating-conic-gradient(from 0deg at 50% 48%, rgba(255, 212, 0, .55) 0 6deg, rgba(255, 212, 0, 0) 6deg 18deg),
+    radial-gradient(circle, rgba(0, 0, 0, .22) 0 22%, transparent 25%) 0 0 / 3cqw 3cqw,
+    var(--duoz-red);
+}
+.ege-tcard--ev-duoz .ege-tcard__standmark {
+  width: 80cqw;
+  filter: drop-shadow(.8cqw 1cqw 0 var(--duoz-ink));
+}
+
+/* A DUOZ card's back: a comic page. A yellow frame, red with halftone
+   dots and yellow speed rays, the ball in blue, the logo under it. */
+.ege-tcard--back.ege-tcard--backduoz { background: var(--duoz-yellow); }
+.ege-tcard--backduoz .ege-tcard__face {
+  gap: 6cqw;
+  background:
+    repeating-conic-gradient(from 0deg at 50% 40%, rgba(255, 212, 0, .4) 0 5deg, rgba(255, 212, 0, 0) 5deg 15deg),
+    radial-gradient(circle, rgba(0, 0, 0, .22) 0 22%, transparent 25%) 0 0 / 3cqw 3cqw,
+    var(--duoz-red);
+}
+.ege-tcard--backduoz .ege-tcard__backmark {
+  background: var(--duoz-blue);
+  border-color: var(--duoz-yellow);
+  box-shadow: 0 0 0 1cqw var(--duoz-ink);
+}
+.ege-tcard--backduoz .ege-tcard__backmark::after { background: var(--duoz-yellow); }
+.ege-tcard--backduoz .ege-tcard__backlogo { filter: drop-shadow(.8cqw 1cqw 0 var(--duoz-ink)); }
+
+/* The DUOZ Pack: red, yellow and blue foil, a halftone comic splash under
+   the prizm, the logo across the middle, a yellow line along the bars and
+   a red glow. */
+.ege-pack.ege-pack--duoz {
+  --foil: linear-gradient(135deg, #7a0a0e 0%, var(--duoz-red) 18%, var(--duoz-yellow) 34%, #ff5a3c 48%,
+                          var(--duoz-blue) 64%, var(--duoz-yellow) 80%, #7a0a0e 100%);
+  --pack-deep: var(--duoz-ink);
+  --pack-hi: var(--duoz-yellow);
+  filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 10px rgba(228, 20, 27, .7));
+  animation: ege-duoz-glow 3.2s ease-in-out var(--glow-phase, 0s) infinite;
+}
+@keyframes ege-duoz-glow {
+  0%, 100% { filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 8px rgba(228, 20, 27, .55)); }
+  50%      { filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 18px rgba(255, 212, 0, .95)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ege-pack.ege-pack--duoz { animation: none; }
+}
+.ege-pack--duoz .ege-pack__body::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 50%, var(--duoz-yellow) 0 18%, rgba(255, 212, 0, 0) 19%),
+    repeating-conic-gradient(from 0deg at 50% 50%, rgba(255, 212, 0, .6) 0 7deg, rgba(255, 212, 0, 0) 7deg 20deg),
+    radial-gradient(circle, rgba(0, 0, 0, .25) 0 22%, transparent 25%) 0 0 / 3.4cqw 3.4cqw,
+    var(--duoz-red);
+}
+.ege-pack--duoz .ege-pack__prizm { opacity: .45; }
+.ege-pack--duoz .ege-pack__wordmark { filter: drop-shadow(1cqw 1.2cqw 0 var(--duoz-ink)); }
+/* A strip of blue halftone above the foot band. */
+.ege-pack--duoz .ege-pack__foot::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + .9cqw);
+  height: 5cqw;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, .45) 0 24%, transparent 27%) 0 0 / 2.5cqw 2.5cqw,
+    var(--duoz-blue);
+  border-top: .5cqw solid var(--pack-hi);
+}
+.ege-packtile--duoz {
+  background: linear-gradient(180deg, #fff3c2, #fff 46%);
+  box-shadow: inset 0 6px 0 var(--duoz-red);
+}
+.ege-packtile--duoz .ege-packtile__ends { background: var(--duoz-yellow); }
+
+/* Its banner: a red comic splash with yellow rays and dots, the logo for
+   the name, a blue offset shadow. Its sets are edged red and glow yellow,
+   and each says whose duo it is over its name. */
+.ege-event--duoz {
+  background:
+    repeating-conic-gradient(from 0deg at 88% 0%, rgba(255, 212, 0, .3) 0 4deg, rgba(255, 212, 0, 0) 4deg 12deg),
+    radial-gradient(circle, rgba(0, 0, 0, .25) 0 22%, transparent 25%) 0 0 / 9px 9px,
+    var(--duoz-red);
+  box-shadow: 4px 4px 0 var(--duoz-blue);
+}
+.ege-event--duoz .ege-event__logo { filter: drop-shadow(2px 3px 0 var(--duoz-ink)); }
+.ege-event--duoz .ege-event__when {
+  border-color: var(--duoz-ink);
+  background: var(--duoz-yellow);
+  color: var(--duoz-ink);
+}
+.ege-set--ev-duoz { box-shadow: inset 0 4px 0 var(--duoz-red); }
+.ege-set--ev-duoz.is-complete {
+  border-color: var(--duoz-ink);
+  background: #fff7cc;
+  box-shadow: inset 0 4px 0 var(--duoz-red), 4px 4px 0 var(--duoz-blue);
+}
+.ege-set--ev-duoz .ege-set__pip--event.is-filled { background: var(--duoz-red); }
+.ege-set__kicker {
+  align-self: flex-start;
+  margin-bottom: -4px;
+  padding: 1px 7px;
+  background: var(--duoz-blue);
+  color: #fff;
+  font-size: var(--fb-label);
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
 /* The last set shows the card it pays beside the six it needs. */
 .ege-set__final {
   display: flex;

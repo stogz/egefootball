@@ -157,7 +157,7 @@ EGE.cardsView = (function () {
 
   /* --- the limited-time events --------------------------------------------
 
-     The Gold Rush, Halloween and the Air Raid (EGE.cards.EVENTS): each one's pack in the
+     The Gold Rush, Halloween, the Air Raid and DUOZ (EGE.cards.EVENTS): each one's pack in the
      shop, its box over the Library, and the 48 hours one of its cards waits
      after it is traded before it can go again. */
   var EVENTS = EGE.cards.EVENTS;
@@ -243,16 +243,21 @@ EGE.cardsView = (function () {
      event's name on it; Halloween's is the same sunburst in shiny purple
      with no dark edge round it, and Sam's pumpkin over the top (Sam,
      2026-10-26). The Air Raid's is the same sunburst in sky blue and
-     silver with Sam's AIR RAID logo across it (2026-11-06). */
+     silver with Sam's AIR RAID logo across it (2026-11-06). DUOZ's is the
+     sunburst in comic-book yellow with red halftone dots and Sam's DUOZ
+     logo across it (2026-11-23). */
   function stickerEl(card) {
-    if (card && card.eventKey === EGE.cards.AIR_RAID.key) {
-      var badge = el('span', 'ege-tcard__sticker ege-tcard__sticker--airraid');
+    var logoed = card && (card.eventKey === EGE.cards.AIR_RAID.key || card.eventKey === EGE.cards.DUOZ.key);
+    if (logoed) {
+      var comic = card.eventKey === EGE.cards.DUOZ.key;
+      var badge = el('span', 'ege-tcard__sticker ege-tcard__sticker--airraid' +
+        (comic ? ' ege-tcard__sticker--duoz' : ''));
       badge.setAttribute('aria-hidden', 'true');
-      var sky = el('span', 'ege-sticker ege-sticker--sky');
+      var sky = el('span', 'ege-sticker ' + (comic ? 'ege-sticker--comic' : 'ege-sticker--sky'));
       sky.appendChild(el('span', 'ege-sticker__face'));
       badge.appendChild(sky);
       var mark = el('img', 'ege-tcard__airraid');
-      mark.src = EGE.cards.AIR_RAID.mark;
+      mark.src = EGE.cards.eventOf(card.eventKey).mark;
       mark.alt = '';
       mark.decoding = 'async';
       mark.draggable = false;
@@ -547,17 +552,21 @@ EGE.cardsView = (function () {
      a Gold Rush card's is gold (Sam, 2026-10-16), a Halloween card's is
      purple and orange and says Trick or Treat (Sam, 2026-10-26), and an Air
      Raid card's is clouds on a blue sky in a silver frame, with Sam's AIR
-     RAID logo under the ball (Sam, 2026-11-06). */
+     RAID logo under the ball (Sam, 2026-11-06). A DUOZ card's is a comic
+     page: red with halftone dots in a yellow frame, a blue ball, and Sam's
+     DUOZ logo under it (Sam, 2026-11-23). */
   function backEl(card) {
     var spooky = Boolean(card && card.eventKey === EGE.cards.HALLOWEEN.key);
     var air = Boolean(card && card.eventKey === EGE.cards.AIR_RAID.key);
+    var duoz = Boolean(card && card.eventKey === EGE.cards.DUOZ.key);
     var node = el('div', 'ege-tcard ege-tcard--back' + (card && card.gold ? ' ege-tcard--backgold' : '') +
-      (spooky ? ' ege-tcard--backhalloween' : '') + (air ? ' ege-tcard--backairraid' : ''));
+      (spooky ? ' ege-tcard--backhalloween' : '') + (air ? ' ege-tcard--backairraid' : '') +
+      (duoz ? ' ege-tcard--backduoz' : ''));
     var face = el('div', 'ege-tcard__face');
     face.appendChild(el('span', 'ege-tcard__backmark'));
-    if (air) {
+    if (air || duoz) {
       var logo = el('img', 'ege-tcard__backlogo');
-      logo.src = EGE.cards.AIR_RAID.mark;
+      logo.src = EGE.cards.eventOf(card.eventKey).mark;
       logo.alt = '';
       logo.decoding = 'async';
       logo.draggable = false;
@@ -4383,7 +4392,7 @@ EGE.cardsView = (function () {
 
      The box over the Library while an event is on: the Gold Rush (Sam,
      2026-10-16), Halloween (Sam, 2026-10-26), the Air Raid (Sam,
-     2026-11-06). For each one, how long it has
+     2026-11-06), DUOZ (Sam, 2026-11-23). For each one, how long it has
      left, its sets, each locked in once it is put together out of the
      event's cards, and the last one, every set it needs locked in, which
      pays the event's Iconic card. Hidden before an admin starts it, and a
@@ -4401,6 +4410,8 @@ EGE.cardsView = (function () {
     'halloween': 'Only Halloween cards fill these sets. A traded one can\u2019t be traded again for ' +
       LOCK_HOURS + ' hours.',
     'air-raid': 'Only Air Raid cards fill these sets. A traded one can\u2019t be traded again for ' +
+      LOCK_HOURS + ' hours.',
+    'duoz': 'Only DUOZ cards fill these sets. A traded one can\u2019t be traded again for ' +
       LOCK_HOURS + ' hours.'
   };
 
@@ -4435,6 +4446,8 @@ EGE.cardsView = (function () {
     var tile = el('article', 'ege-set ege-set--event ege-set--ev-' + ev.key +
       (claim ? ' is-claimed' : ready ? ' is-complete' : ''));
 
+    /* A DUOZ set says whose duo it is over its name. */
+    if (set.kicker) { tile.appendChild(el('span', 'ege-set__kicker', set.kicker)); }
     var head = el('div', 'ege-set__head');
     head.appendChild(el('h4', 'ege-item__name', set.name));
     head.appendChild(el('span', 'fb-tag fb-tag--num' + (claim ? ' fb-tag--sage' : ready ? ' fb-tag--clay' : ''),
