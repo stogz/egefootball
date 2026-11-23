@@ -540,8 +540,9 @@ EGE.cards = (function () {
      same game: Ohio State at Michigan State, 2022 week 6, Bloomington's
      2019 week 5 game, the Jets' 2030 week 4 game (one picture for both)
      and the Giants' first 2031 game, which come into the pack once that
-     week is out. All eight are Mystics (Sam, 2026-11-23). A Mystic out of the pack is
-     card art `artShare` of the time.
+     week is out. All eight are Mystics (Sam, 2026-11-23). They are dealt
+     apart from the odds: a pack holds one `artPerPack` of the time, a flat
+     2.25% (Sam, 2026-11-23), any of the eight alike.
 
      The sets are three a duo and two across all four, and are meant to be
      very hard: Sam's players hold 2,000 diamonds and more, and the sets ask
@@ -565,7 +566,7 @@ EGE.cards = (function () {
     mark: 'icon/cards/duoz-logo.webp',
     markIsName: true,
     bonus: { diamonds: 500, booster: 'boost-2-5', boosters: 3 },
-    artPerPack: 0.015,
+    artPerPack: 0.0225,
     holds: inDuoz
   };
 
@@ -1612,9 +1613,9 @@ EGE.cards = (function () {
      anything. Held in card_events.rewards in supabase/schema.sql too;
      change the two together. Simulated at five cards a pack, one player
      alone, every week out, as packs to finish it (median, then nine
-     players in ten): the README's DUOZ table. The four Covers take 550 to
-     700 packs each alone and all fourteen over 3,000, so the DUOZ card is a
-     trading job. */
+     players in ten): the README's DUOZ table. At 2.25% art the four Covers
+     take about 380 to 620 packs each alone and all fourteen about 900, so
+     the DUOZ card is a trading job. */
   DUOZ.rewards = {
     'crossover':         { floor: 'legendary', diamonds: 50, booster: 'boost-1-5' },
     'big-blue':          { floor: 'legendary', diamonds: 60, booster: 'boost-1-5' },
