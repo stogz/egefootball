@@ -1663,6 +1663,14 @@
           First time? Set your password
         </button>
       </form>
+
+      <!-- Sticky or auto-hide, kept on this device (js/nav.js). The same
+           switch sits in the signed-in panel. -->
+      <label class="ege-viewer">
+        <span class="ege-viewer__words"><span class="ege-viewer__title">Auto-hide nav</span></span>
+        <input class="ege-viewer__input" type="checkbox" role="switch" data-nav-autohide>
+        <span class="ege-viewer__track" aria-hidden="true"></span>
+      </label>
     </div>
 
     <!-- ---------- signed in ------------------------------------------- -->
@@ -1684,6 +1692,11 @@
           <span class="fb-meta" id="viewerModeNote">See the site the way a player does.</span>
         </span>
         <input class="ege-viewer__input" id="viewerMode" type="checkbox" role="switch">
+        <span class="ege-viewer__track" aria-hidden="true"></span>
+      </label>
+      <label class="ege-viewer">
+        <span class="ege-viewer__words"><span class="ege-viewer__title">Auto-hide nav</span></span>
+        <input class="ege-viewer__input" type="checkbox" role="switch" data-nav-autohide>
         <span class="ege-viewer__track" aria-hidden="true"></span>
       </label>
       <button class="fb-btn fb-btn--block" id="logoutBtn" type="button">Log Out</button>
@@ -1747,6 +1760,7 @@
 <script src="js/media-news.js"></script>
 <script src="js/media-voices.js"></script>
 <script src="js/media.js"></script>
+<script src="js/nav.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
