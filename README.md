@@ -1538,7 +1538,8 @@ posting anywhere.
 A tab next to Players, at `#shop`, **visible only to a signed-in player**.
 Signed out, the tab isn't there and the page says to sign in. Signed in, the
 nav carries the player's credit balance beside their headshot, with their
-diamond balance (see *Cards → Diamonds*) beside it; on a phone the two stack.
+diamond balance (see *Cards → Diamonds*) beside it in the same chip; on a
+phone the two stack.
 Everyone starts on 0 and earns from there. The catalogue lives in `data/shop.js`.
 
 Items with a picture name it as `icon`. The originals are in `icon/shop` at
@@ -4295,6 +4296,11 @@ Each of the six gets an account and a private portal.
   (`EGE.wallet.viewerMode`; `EGE.wallet.admin()` answers no while it is on
   and `realAdmin()` still knows). It changes only what the page shows: the
   database still treats the account as an admin.
+- **Auto-hide nav** — a switch in the portal, signed in or out (Sam,
+  2026-11-24). Off (the default), the nav stays pinned to the top. On, it
+  slides away while the page scrolls down and comes back as soon as it
+  scrolls up, at the top of the page, or when it gets the keyboard or a
+  mouse at the top edge. Kept on that device (`localStorage` `ege.navMode`).
 - **Overalls** — a rating per attribute (speed, strength, catching, route
   running, etc. — final attribute list TBD) plus a single overall.
 - **Offseason workouts** — the progression mechanic. Between seasons a player
@@ -4408,6 +4414,14 @@ Built so far:
 - `sw.js` — a service worker that makes the browser check every one of the
   site's own files with the server on each load, so a push is on the site the
   next time it is opened rather than ten minutes later.
+- `js/nav.js` — the nav bar (Sam, 2026-11-24): the orange slider that moves
+  to whichever link app.js marks `is-active`, the ball's spin on a page
+  change, the shadow once the page has scrolled, the balances counting to a
+  new number (`EGE.nav.count`), and sticky versus auto-hide. It writes the
+  bar's height to `--nav-h`, and how much of the screen it covers right now
+  to `--nav-offset` (0 while tucked away), for whatever sticks under it.
+  On a phone the links are a tab row of their own that scrolls sideways if
+  it ever runs out of room.
 - `js/touch.js` — the phone's half of the site, loaded first in the head
   (Sam, 2026-11-10: "if you click on something twice it doesn't zoom"). On
   iOS it adds `maximum-scale=1` to the viewport, which stops Safari zooming

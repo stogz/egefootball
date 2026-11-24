@@ -83,7 +83,7 @@ h3 { font-size: 1.5625rem; }                      /* 25 */
 h4 { font-size: 1.25rem; }                        /* 20 */
 
 /* style.css */
-.fb-brand__word { font-size: 1.375rem; }          /* 22 */
+.fb-brand__word { font-size: 1.25rem; }           /* 20, the kit's 22 trimmed for the slimmer nav */
 .fb-navlink { font-size: .8125rem; }              /* 13 */
 .fb-btn { font-size: .75rem; }                    /* 12 */
 .fb-btn--primary { font-size: .875rem; }          /* 14 */
@@ -151,18 +151,268 @@ body::before {
   background: var(--fb-grass) url('icon/field.webp') center bottom / max(115vw, 115vh) no-repeat;
 }
 
-/* --- nav ---------------------------------------------------------------- */
+/* --- nav (Sam, 2026-11-24) ------------------------------------------------
 
-/* The kit's nav row does not wrap, so the log-in button runs off a phone
-   screen. Let it wrap and give the row some breathing room when it does. */
+   One slim bar: the ball and the wordmark, the pages, then one chip with
+   both balances and the face. js/nav.js draws an orange slider under the
+   page you are on and slides it to the next one, gives the ball a spin when
+   the page changes, lays a soft shadow under the bar once the page has
+   scrolled, and counts a balance to its new number.
+
+   Sticky is the default. "Auto-hide nav" in the portal (kept on the device)
+   sets html[data-nav='autohide']: the bar slides away while the page goes
+   down and back the moment it comes up. */
+
+.fb-nav {
+  border-bottom-width: 3px;
+  box-shadow: none;
+  transition:
+    transform .42s cubic-bezier(.2, .8, .2, 1),
+    box-shadow .3s ease,
+    background-color .3s ease;
+}
+.fb-nav.is-scrolled {
+  background-color: rgba(29, 36, 22, .9);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  backdrop-filter: blur(14px) saturate(1.3);
+  box-shadow: 0 12px 26px -14px rgba(0, 0, 0, .6);
+}
+/* Up and out of sight, all but the strip under the notch, so the clock and
+   the battery still sit on ink. */
+html[data-nav='autohide'] .fb-nav.is-tucked {
+  transform: translateY(calc(-100% - 1px + env(safe-area-inset-top, 0px)));
+  box-shadow: none;
+}
+
 .fb-nav__inner {
   flex-wrap: wrap;
-  gap: 14px 20px;
+  gap: 10px 22px;
   height: auto;
-  min-height: 68px;
-  padding-block: 10px;
+  min-height: 60px;
+  padding-block: 8px;
 }
-.fb-nav__links { flex: 1 1 auto; }
+
+/* -- the ball and the wordmark -- */
+.fb-brand { gap: 10px; margin-right: 4px; }
+.fb-brand__mark { width: 34px; height: 22px; }
+.fb-brand__mark::after { width: 14px; }
+.fb-brand__mark.is-spinning { animation: ege-nav-spiral .75s cubic-bezier(.25, .8, .3, 1); }
+@media (hover: hover) {
+  .fb-brand:hover .fb-brand__mark:not(.is-spinning) { animation: ege-nav-wobble .6s ease-in-out; }
+}
+@keyframes ege-nav-spiral {
+  0%   { transform: rotate(0) scale(1); }
+  45%  { transform: rotate(250deg) scale(1.18); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+@keyframes ege-nav-wobble {
+  0%, 100% { transform: rotate(0); }
+  30%      { transform: rotate(-16deg); }
+  65%      { transform: rotate(10deg); }
+}
+
+/* -- the pages -- */
+.fb-nav__links {
+  position: relative;
+  align-items: center;
+  gap: 2px;
+  flex: 1 1 auto;
+}
+.fb-navlink {
+  --pad: 12px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px var(--pad);
+  border-bottom: 0;
+  color: rgba(245, 234, 216, .56);
+  white-space: nowrap;
+  transition: color .2s ease, transform .2s cubic-bezier(.3, 1.4, .5, 1);
+}
+.fb-navlink.is-active { color: var(--fb-cream); }
+.fb-navlink:active { transform: scale(.92); }
+
+/* The slider. Until js/nav.js has put it up, the page you are on is still
+   underlined. */
+.fb-nav__ink {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 0;
+  background: var(--fb-accent);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform .5s cubic-bezier(.3, 1.3, .45, 1),
+    width .5s cubic-bezier(.3, 1.3, .45, 1),
+    opacity .2s ease;
+}
+.fb-nav__ink.is-on { opacity: 1; }
+.fb-nav__ink.is-still { transition: none; }
+.fb-nav__links:not(.has-ink) .fb-navlink.is-active { box-shadow: inset 0 -3px 0 var(--fb-accent); }
+
+/* Under a mouse: the link lights up and a faint line grows out from its
+   middle, where the slider would land. */
+.fb-navlink::after {
+  content: '';
+  position: absolute;
+  left: var(--pad);
+  right: var(--pad);
+  bottom: 0;
+  height: 3px;
+  background: rgba(245, 234, 216, .28);
+  transform: scaleX(0);
+  transition: transform .25s ease;
+}
+@media (hover: hover) {
+  .fb-navlink:hover { color: var(--fb-cream); }
+  .fb-navlink:not(.is-active):hover::after { transform: scaleX(1); }
+}
+
+/* The trade count on Cards pops in. */
+.ege-navbadge:not([hidden]) { animation: ege-nav-pop .4s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes ege-nav-pop { from { transform: scale(0); } }
+
+/* -- the balances: one chip, credits then diamonds. Holds nothing while
+   signed out, and then takes no room either. -- */
+.ege-balances {
+  display: inline-flex;
+  align-items: stretch;
+  flex: none;
+  border: var(--fb-border-thin) solid rgba(245, 234, 216, .16);
+  background: rgba(245, 234, 216, .05);
+}
+.ege-balances:not(:has(> :not([hidden]))) { display: none; }
+
+.ege-credits {
+  display: inline-flex;
+  /* Baseline, so the coin -- whose own baseline is the bottom of its box --
+     lands on the line the digits stand on. */
+  align-items: baseline;
+  gap: 5px;
+  flex: none;
+  padding: 7px 11px;
+  color: var(--fb-gold);
+  /* On the chip rather than on the number, so the coin beside it is sized in
+     em against the same thing the digits are. */
+  font-size: 1.0625rem;
+  transition: background-color .2s ease;
+}
+.ege-credits + .ege-credits { border-left: var(--fb-border-thin) solid rgba(245, 234, 216, .16); }
+.ege-credits__value {
+  display: inline-block;
+  font-family: var(--fb-font-display);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+/* The balance is set in the display face, whose digits are shorter. */
+.ege-credits__coin { --coin-height: .67em; }
+
+/* Diamonds in ice blue. It opens the diamonds page. */
+.ege-credits--diamonds {
+  color: var(--fb-diamond);
+  text-decoration: none;
+}
+@media (hover: hover) { .ege-credits--diamonds:hover { background: rgba(127, 220, 245, .12); } }
+
+/* A balance that changed gives a bump: up in green, down in red. */
+.ege-credits.is-up .ege-credits__value { animation: ege-balance-up .6s ease; }
+.ege-credits.is-down .ege-credits__value { animation: ege-balance-down .6s ease; }
+@keyframes ege-balance-up {
+  35% { transform: translateY(-3px) scale(1.14); color: #8fe28a; }
+}
+@keyframes ege-balance-down {
+  35% { transform: translateY(2px) scale(.92); color: #ff8a7a; }
+}
+
+/* -- the face, or Log In -- */
+.fb-nav .ege-avatarbtn {
+  width: 40px;
+  height: 40px;
+  transition: border-color .2s ease, transform .25s cubic-bezier(.3, 1.4, .5, 1);
+}
+@media (hover: hover) { .fb-nav .ege-avatarbtn:hover { transform: scale(1.07); } }
+.fb-nav .ege-avatarbtn:active { transform: scale(.92); }
+.fb-nav .fb-btn--inverse { padding: 8px 14px; border-width: var(--fb-border-thin); }
+
+/* -- coming in --
+   Once the loading screen lifts, the bar's pieces drop in one after the
+   other. It lifts again on a sign-in, and they come in again with the new
+   links. */
+.ege-loader.is-done ~ .fb-shell :is(.fb-brand, .fb-navlink, .ege-balances, #loginBtn) {
+  animation: ege-nav-in .55s cubic-bezier(.2, .8, .2, 1) backwards;
+}
+.ege-loader.is-done ~ .fb-shell .fb-navlink:nth-child(1) { animation-delay: .05s; }
+.ege-loader.is-done ~ .fb-shell .fb-navlink:nth-child(2) { animation-delay: .09s; }
+.ege-loader.is-done ~ .fb-shell .fb-navlink:nth-child(3) { animation-delay: .13s; }
+.ege-loader.is-done ~ .fb-shell .fb-navlink:nth-child(4) { animation-delay: .17s; }
+.ege-loader.is-done ~ .fb-shell .fb-navlink:nth-child(5) { animation-delay: .21s; }
+.ege-loader.is-done ~ .fb-shell .fb-navlink:nth-child(6) { animation-delay: .25s; }
+.ege-loader.is-done ~ .fb-shell .fb-navlink:nth-child(7) { animation-delay: .29s; }
+.ege-loader.is-done ~ .fb-shell .ege-balances { animation-delay: .25s; }
+.ege-loader.is-done ~ .fb-shell #loginBtn { animation-delay: .32s; }
+@keyframes ege-nav-in { from { opacity: 0; transform: translateY(-12px); } }
+
+/* -- on a phone --
+   Two rows: the ball, the balances and the face on top, and the pages under
+   them as a tab row across the whole width, each page sharing out the room.
+   If they ever need more than the screen (a narrow phone, signed in as an
+   admin) the row scrolls sideways rather than running off it. */
+@media (max-width: 620px) {
+  .fb-nav__inner {
+    padding-top: 6px;
+    padding-bottom: 0;
+    row-gap: 0;
+    column-gap: 10px;
+    min-height: 0;
+  }
+  .fb-brand { flex: 1 1 auto; margin-right: auto; }
+  .fb-brand__word { font-size: 1.1875rem; }      /* 19 */
+
+  .fb-nav__links {
+    order: 3;
+    flex: 1 1 100%;
+    gap: 0;
+    margin: 0 -10px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .fb-nav__links::-webkit-scrollbar { display: none; }
+  .fb-navlink { --pad: 6px; flex: 1 0 auto; font-size: .875rem; }
+
+  /* The two balances stack, the pair as tall as the face beside it. */
+  .ege-balances { flex-direction: column; }
+  .ege-credits {
+    justify-content: flex-end;
+    padding: 2px 8px;
+    font-size: .9375rem;
+  }
+  .ege-credits + .ege-credits {
+    border-left: 0;
+    border-top: var(--fb-border-thin) solid rgba(245, 234, 216, .16);
+  }
+  /* 44 and no smaller: it is the way into the portal, and Apple's floor. */
+  .fb-nav .ege-avatarbtn { width: 44px; height: 44px; }
+}
+
+/* An SE-sized phone: a smaller wordmark keeps the face on the top row, and
+   the pages tighten up so an admin's seven still fit. */
+@media (max-width: 374px) {
+  .fb-nav__inner { column-gap: 8px; }
+  .fb-brand { gap: 8px; }
+  .fb-brand__mark { width: 30px; height: 20px; }
+  .fb-brand__word { font-size: 1.0625rem; }      /* 17 */
+  .fb-navlink { --pad: 4px; letter-spacing: .06em; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fb-nav,
+  .fb-nav *,
+  .fb-nav *::after { transition: none !important; animation: none !important; }
+}
 
 /* --- the hero ---------------------------------------------------------------
 
@@ -818,48 +1068,6 @@ body::before {
   mask: url('icon/diamond.svg') center / contain no-repeat;
 }
 .ege-price .ege-gem { margin-left: .34em; }
-
-/* --- credits in the nav ------------------------------------------------- */
-
-/* Credits and diamonds, side by side. Holds nothing while signed out, and
-   then takes no room either. */
-.ege-balances {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  flex: none;
-}
-.ege-balances:not(:has(> :not([hidden]))) { display: none; }
-
-.ege-credits {
-  display: inline-flex;
-  /* Baseline, so the coin -- whose own baseline is the bottom of its box --
-     lands on the line the digits stand on. */
-  align-items: baseline;
-  gap: 5px;
-  flex: none;
-  padding: 6px 11px;
-  border: var(--fb-border-thin) solid var(--fb-gold);
-  color: var(--fb-gold);
-  /* On the chip rather than on the number, so the coin beside it is sized in
-     em against the same thing the digits are. */
-  font-size: 1.125rem;
-}
-.ege-credits__value {
-  font-family: var(--fb-font-display);
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-/* The balance is set in the display face, whose digits are shorter. */
-.ege-credits__coin { --coin-height: .67em; }
-
-/* The diamond balance beside it: the same chip in ice blue. */
-.ege-credits--diamonds {
-  border-color: var(--fb-diamond);
-  color: var(--fb-diamond);
-  text-decoration: none;               /* it opens the diamonds page */
-}
-@media (hover: hover) { .ege-credits--diamonds:hover { background: rgba(127, 220, 245, .12); } }
 
 /* --- signed-in avatar --------------------------------------------------- */
 
@@ -3803,9 +4011,9 @@ summary,
 /* The nav is pinned to the top of the screen, so anything scrolled into view
    for you -- a found row, a box the keyboard is opening for -- stops below
    it rather than under it. Two rows of nav on a phone. */
-html { scroll-padding-top: 88px; }
+html { scroll-padding-top: calc(var(--nav-h, 73px) + 15px); }
 @media (max-width: 620px) {
-  html { scroll-padding-top: calc(116px + env(safe-area-inset-top)); }
+  html { scroll-padding-top: calc(var(--nav-h, calc(100px + env(safe-area-inset-top))) + 15px); }
 }
 
 /* The field picture behind the page sat on a layer pinned to all four edges
@@ -3980,44 +4188,6 @@ html:has(.ege-pfpcrop) body { overflow: hidden; }
   .ege-awards .fb-meta { font-size: var(--fb-small); }
 
   .ege-gamelog__boost { font-size: var(--fb-label); }
-
-  /* The nav was taking 129px of an 844px screen — a sixth of it, before any
-     football. The brand shares the top line with the balance and the face,
-     and the links get the whole of the line under them: with Cards beside
-     Shop there are too many to share a line with anything. */
-  .fb-nav__inner {
-    padding-top: 6px;
-    padding-bottom: 6px;
-    row-gap: 2px;
-    column-gap: 10px;
-  }
-
-  .fb-brand {
-    font-size: 1.1875rem;
-    flex: 1 1 auto;
-    margin-right: auto;
-  }
-
-  .fb-nav__links { gap: 2px; order: 3; flex: 1 1 100%; margin: 0 0 0 -9px; }
-  .fb-navlink { padding-left: 9px; padding-right: 9px; font-size: .875rem; }
-
-  .ege-credits { padding: 4px 9px; }
-
-  /* Two balances side by side push the face onto a line of its own, so on a
-     phone they stack, the pair as tall as the face beside it. */
-  .ege-balances {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 3px;
-  }
-  .ege-balances .ege-credits {
-    justify-content: flex-end;
-    padding: 1px 7px;
-    font-size: .9375rem;
-  }
-  /* 44 and no smaller: it is the way into the portal, and Apple's floor. */
-  .ege-avatarbtn { width: 44px; height: 44px; }
-  .ege-avatarbtn .ege-avatar { width: 100%; height: 100%; }
 
   /* A hero sized for a laptop is most of the first screen on a phone. */
   .fb-hero { padding-top: 26px; padding-bottom: 20px; }
@@ -10731,8 +10901,11 @@ html.ege-noscroll body { overflow: hidden; }
 .ege-collection__head { border-bottom: 0; padding-bottom: 6px; }
 .ege-collection .ege-cardfilters {
   position: sticky;
-  top: 73px;
+  /* Under the nav, and up to the top while auto-hide has it tucked away
+     (js/nav.js). */
+  top: var(--nav-offset, 64px);
   z-index: 6;
+  transition: top .42s cubic-bezier(.2, .8, .2, 1);
   background: var(--fb-cream);
   border-bottom: var(--fb-border) solid var(--fb-ink);
 }

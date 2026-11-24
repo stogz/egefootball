@@ -7706,8 +7706,9 @@
     });
     leagueGames.appendChild(grid);
     if (opened && scroll) {
-      var nav = document.querySelector('.fb-nav');
-      var top = opened.getBoundingClientRect().top + window.pageYOffset - (nav ? nav.offsetHeight : 0) - 14;
+      /* Below the nav, unless it will have tucked itself away by then. */
+      var top = opened.getBoundingClientRect().top + window.pageYOffset - 14;
+      top -= EGE.nav.cover(top);
       window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
     }
   }
@@ -11830,8 +11831,10 @@
   /* The nav shows what is really in the account, once Supabase answers. */
   function updateNavCredits(credits) {
     var box = document.getElementById('navCredits');
-    var shown = credits === null || credits === undefined ? EGE.shop.startingCredits : credits;
-    document.getElementById('navCreditsValue').textContent = shown;
+    var real = credits !== null && credits !== undefined;
+    var shown = real ? credits : EGE.shop.startingCredits;
+    /* Counted to, once it is a real balance (js/nav.js). */
+    EGE.nav.count(document.getElementById('navCreditsValue'), shown, real);
     box.title = shown + ' credits to spend in the shop';
   }
 
@@ -11841,7 +11844,7 @@
   function updateNavDiamonds(diamonds) {
     var box = document.getElementById('navDiamonds');
     var known = typeof diamonds === 'number' && !isNaN(diamonds);
-    document.getElementById('navDiamondsValue').textContent = known ? diamonds : '\u2014';
+    EGE.nav.count(document.getElementById('navDiamondsValue'), known ? diamonds : '\u2014', known);
     box.title = known ? diamonds + ' diamonds: see where they came from' : 'Diamonds: see where they came from';
   }
 
