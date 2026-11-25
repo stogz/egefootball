@@ -89,6 +89,7 @@ EGE.cards = (function () {
     'h:2027:jaykeb-stewart:22:2',
     'p:2028:sam-stogsdill:3',
     'h:2028:jaykeb-stewart:22:2',
+    'p:2031:andrew-parr:9',
   ];
 
   /* A performance is graded on its fantasy points times the position's
