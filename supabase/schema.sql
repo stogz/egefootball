@@ -6730,3 +6730,67 @@ update public.card_event_claims
  where array_to_string(cards, ' ') ~ 'a:2019:(isaac-vitel|paxon-hatch):5:dz';
 
 notify pgrst, 'reload schema';
+
+-- ---------------------------------------------------------------------------
+-- The page's minute check, in one small answer
+--
+-- An open page checks every minute for a week gone out, a week stored or a
+-- rating bought, and a Cards page every twenty seconds for its trades, its
+-- diamonds and the events (js/app.js "staying current"). That was a
+-- handful of whole lists each time, tens of KB a minute for every open tab
+-- on the free plan's egress. site_pulse() hands back a fingerprint of each
+-- instead, read the way the page would read them (the same rows each
+-- table's policies let this visitor see), and the page reads a list again
+-- only when its fingerprint has moved. The signed-in player's own
+-- collection has one too, so the copy this browser keeps is read again
+-- only when it has changed. Nothing in it is anything but a hash, the
+-- visitor's own balances and the ids of their own unopened Game Packs.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.site_pulse()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with me as (
+    select nullif(auth.jwt() ->> 'email', '') as email, public.is_admin() as admin
+  )
+  select jsonb_build_object(
+    'published', (select md5(coalesce(string_agg(p.season || ':' || p.week, ',' order by p.season, p.week), ''))
+                    from public.published_weeks p),
+    'weeks', (select md5(coalesce(string_agg(w.season || ':' || w.week || ':' || w.part || ':' || w.saved_at::text, ','
+                                             order by w.season, w.week, w.part), ''))
+                from public.sim_weeks w, me
+               where me.admin
+                  or exists (select 1 from public.published_weeks p
+                              where p.season = w.season
+                                and p.week = case when w.part = 'fixtures' then w.week - 1 else w.week end)),
+    'trades', (select md5(coalesce(string_agg(t.season || ':' || t.slug || ':' || t.week || ':' || t.saved_at::text, ','
+                                              order by t.season, t.slug, t.week), ''))
+                 from public.sim_trades t),
+    'boosts', (select md5(coalesce(string_agg(concat_ws(':', i.email, i.item_key, i.quantity, i.effects::text, i.active, i.season), ','
+                                              order by i.id), ''))
+                 from public.player_inventory i, me
+                where i.effects <> '{}'::jsonb or i.email = me.email or me.admin),
+    'credits', (select c.credits from public.player_credits c, me where c.email = me.email),
+    'diamonds', (select d.diamonds from public.player_diamonds d, me where d.email = me.email),
+    'cardTrades', (select md5(coalesce(string_agg(concat_ws(':', x.id, x.status, x.seen_at), ',' order by x.id), ''))
+                     from public.card_trades x, me
+                    where lower(x.from_email) = lower(me.email) or lower(x.to_email) = lower(me.email)),
+    'events', (select md5(coalesce(string_agg(concat_ws(':', e.key, e.starts_at, e.ends_at, e.updated_at), ',' order by e.key), ''))
+                 from public.card_events e),
+    'packs', (select coalesce(string_agg(g.id::text, ',' order by g.id), '')
+                from public.game_packs g, me
+               where g.email = me.email and g.opened_at is null),
+    'cards', (select md5(coalesce(string_agg(concat_ws(':', pc.card_id, pc.quantity, pc.first_pulled_at), ',' order by pc.card_id), ''))
+                from public.player_cards pc, me
+               where pc.email = me.email)
+  );
+$$;
+
+revoke all on function public.site_pulse() from public;
+grant execute on function public.site_pulse() to anon, authenticated;
+
+notify pgrst, 'reload schema';

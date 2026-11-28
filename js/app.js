@@ -12145,22 +12145,39 @@
       (a.tagName === 'INPUT' && !/^(radio|checkbox|button|submit)$/.test(a.type))));
   }
 
+  /* What the last check found (EGE.wallet.pulse): a list is read again
+     only when its fingerprint has moved since, and all of them when there
+     is no fingerprint to go by. Asked first, the lists after, so a change
+     landing in between is read next time rather than missed. Somebody
+     signing in or out sees other rows, so that starts it over. */
+  var lastPulse = null;
+  EGE.auth.onChange(function () { lastPulse = null; });
+
   /* `background` is the minute's check, made while somebody may be reading:
      then a redraw waits until they are not in the middle of anything. */
   function refreshLive(background) {
     if (refreshing) { return; }
     refreshing = true;
     var before = liveState();
-    Promise.all([
-      EGE.wallet.loadPublishedWeeks(),
-      EGE.wallet.loadBoosts()
-    ]).then(function () {
-      var moved = liveState() !== before;
-      if (moved) { redrawOwed = true; }
+    var was = lastPulse;
+    var now = null;
+    var moved = function () { return true; };
+    var paid = false;
+    EGE.wallet.pulse().then(function (got) {
+      now = got;
+      moved = function (key) { return !now || !was || now[key] !== was[key]; };
+      return Promise.all([
+        moved('published') || moved('weeks') || moved('trades') ? EGE.wallet.loadPublishedWeeks() : null,
+        moved('boosts') ? EGE.wallet.loadBoosts() : null
+      ]);
+    }).then(function () {
+      var changed = liveState() !== before;
+      if (changed) { redrawOwed = true; }
       /* A week out since is credits and diamonds owed: paid now, before the
          balances below are read. */
       var player = EGE.auth.currentPlayer();
-      return moved && player ? payWhatIsOwed(player) : null;
+      paid = Boolean(changed && player);
+      return paid ? payWhatIsOwed(player) : null;
     }).then(function () {
       if (redrawOwed && !(background && pageBusy())) {
         redrawOwed = false;
@@ -12171,11 +12188,11 @@
         if (onCards()) { EGE.cardsView.poll(true); }
         if (window.location.hash === '#diamonds') { EGE.diamondsView.render(); }
       }
-      updateNavCreditsFromServer();
+      if (paid || moved('credits') || moved('diamonds')) { updateNavCreditsFromServer(); }
       /* An offer may have come in while the page was put away. On a Cards
          page the poll keeps the count itself. */
-      if (!onCards()) { EGE.cardsView.refreshBadge(); }
-    }).then(function () { refreshing = false; }, function () { refreshing = false; });
+      if (!onCards() && moved('cardTrades')) { EGE.cardsView.refreshBadge(); }
+    }).then(function () { lastPulse = now; refreshing = false; }, function () { refreshing = false; });
   }
 
   function tick() {

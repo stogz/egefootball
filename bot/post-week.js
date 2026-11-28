@@ -202,9 +202,19 @@ async function main() {
     weeks.push(row.week);
   });
 
+  const owed = args.week !== null
+    ? [{ season: args.season || EGE.currentSeason, week: args.week }]
+    : published.filter(function (row) { return !row.posted_at; });
+
+  if (!owed.length) {
+    console.log('Every published week has been posted. Nothing to do.');
+    return;
+  }
+
   /* And lay the weeks the NFL sim stored over the season files, as the
      browser does: a week published from the NFL Sim tab may be in no file
-     yet. */
+     yet. Only read once there is something to post: every stored week is
+     most of a MB, and most runs have nothing owed. */
   try {
     const trades = await storedTrades().catch(function (err) {
       console.log('(no stored trades: ' + err.message + ')');
@@ -213,15 +223,6 @@ async function main() {
     EGE.storedWeeks.apply(await storedWeeks(), trades);
   } catch (err) {
     console.log('(no stored weeks: ' + err.message + ')');
-  }
-
-  const owed = args.week !== null
-    ? [{ season: args.season || EGE.currentSeason, week: args.week }]
-    : published.filter(function (row) { return !row.posted_at; });
-
-  if (!owed.length) {
-    console.log('Every published week has been posted. Nothing to do.');
-    return;
   }
 
   const hooks = args.dryRun ? {} : await webhooks();

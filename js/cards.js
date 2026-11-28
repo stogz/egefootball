@@ -83,6 +83,29 @@ EGE.cardStore = (function () {
     var c = client();
     if (!c || !email) { return Promise.resolve(null); }
 
+    /* Your own collection is read on every load (your Player Cards are paid
+       from it) and is thousands of rows. This browser keeps it with the
+       fingerprint site_pulse() gives it (EGE.wallet.pulse, asked fresh so
+       a pack just opened counts), and it is read again only when that has
+       moved. Anybody else's is read as it is. */
+    var me = EGE.auth.currentPlayer();
+    var store = EGE.localCache;
+    var mine = Boolean(store && me && me.email && me.email.toLowerCase() === String(email).toLowerCase());
+    var key = 'cards:' + String(email).toLowerCase();
+    var check = mine ? Promise.all([EGE.wallet.pulse(true), store.get(key)]) : Promise.resolve([null, null]);
+
+    return check.then(function (got) {
+      var sig = got[0] && got[0].cards;
+      var kept = got[1];
+      if (sig && kept && kept.sig === sig && kept.owned && kept.first) { return { owned: kept.owned, first: kept.first }; }
+      return readCollection(c, email).then(function (value) {
+        if (value && sig) { store.set(key, { sig: sig, owned: value.owned, first: value.first }); }
+        return value;
+      });
+    }).catch(function () { return null; });
+  }
+
+  function readCollection(c, email) {
     return allRows(function () {
       return c.from(CARDS).select('card_id, quantity, first_pulled_at', { count: 'exact' }).eq('email', email);
     }, ['card_id'])
@@ -621,23 +644,52 @@ EGE.cardStore = (function () {
      week with those teams' lines and the scoring plays. What comes back is
      kept in this browser with each week's digest from sim_box_scores and
      the teams it was asked for, so a week is read once, and again only
-     when the NFL Sim tab rewrites it or one of the six changes teams. */
+     when the NFL Sim tab rewrites it or one of the six changes teams.
+
+     Kept in IndexedDB (js/local-cache.js): every season's weeks are a few
+     MB by now, past what localStorage holds on an iPhone, and a store that
+     would not take them meant reading every week again on every visit.
+     What localStorage had is moved across once. */
   var NFL_STORE = 'ege.nflCards.v1';
+  var NFL_KEPT = 'nfl-card-lines';
   var NFL_CHUNK = 8;
   var nflLoad = null;
   var nflAsked = '';
 
-  function nflStored() {
+  function nflOld() {
     try {
       var raw = window.localStorage.getItem(NFL_STORE);
       var got = raw ? JSON.parse(raw) : null;
-      return got && got.weeks ? got : { weeks: {} };
-    } catch (e) { return { weeks: {} }; }
+      return got && got.weeks ? got : null;
+    } catch (e) { return null; }
+  }
+
+  function nflStored() {
+    var store = EGE.localCache;
+    if (!store) { return Promise.resolve(nflOld() || { weeks: {} }); }
+    return store.get(NFL_KEPT).then(function (got) {
+      if (got && got.weeks) { return got; }
+      var old = nflOld();
+      if (old) {
+        store.set(NFL_KEPT, old).then(function (saved) {
+          if (saved) { try { window.localStorage.removeItem(NFL_STORE); } catch (e) { /* left */ } }
+        });
+      }
+      return old || { weeks: {} };
+    });
   }
 
   function nflStore(weeks) {
-    try { window.localStorage.setItem(NFL_STORE, JSON.stringify({ weeks: weeks })); }
-    catch (e) { /* full, or not allowed: read again next time */ }
+    var store = EGE.localCache;
+    var done = store ? store.set(NFL_KEPT, { weeks: weeks }) : Promise.resolve(false);
+    done.then(function (saved) {
+      if (saved) {
+        try { window.localStorage.removeItem(NFL_STORE); } catch (e) { /* left */ }
+        return;
+      }
+      try { window.localStorage.setItem(NFL_STORE, JSON.stringify({ weeks: weeks })); }
+      catch (e) { /* full, or not allowed: read again next time */ }
+    });
   }
 
   /* Reads what is not kept yet and hands every week to EGE.nflCards.
@@ -673,12 +725,13 @@ EGE.cardStore = (function () {
       return nflLoad;
     }
 
-    nflLoad = c.from('sim_box_scores').select('season, week, digest').gte('season', nfl.FROM)
-      .then(function (res) {
+    nflLoad = Promise.all([c.from('sim_box_scores').select('season, week, digest').gte('season', nfl.FROM), nflStored()])
+      .then(function (both) {
+        var res = both[0];
         if (res.error) { return false; }
         var digest = {};
         (res.data || []).forEach(function (row) { digest[row.season + ':' + row.week] = row.digest || ''; });
-        var kept = nflStored().weeks;
+        var kept = both[1].weeks;
         var have = {};
         var missing = [];
         want.forEach(function (w) {

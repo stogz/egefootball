@@ -49,13 +49,37 @@
     return file;
   }
 
+  /* A season's rosters are a couple of MB, and the same ones until the NFL
+     Sim tab publishes again. So the browser keeps the last ones it read
+     (js/local-cache.js) with their saved_at, and Supabase is asked for
+     saved_at alone: the rosters come down again only when it has moved. */
+  var kept = EGE.localCache;
+
+  function keyFor(season) { return 'nfl-rosters:' + season; }
+
   function fromSupabase(season) {
     var client = EGE.auth && EGE.auth.supabaseClient ? EGE.auth.supabaseClient() : null;
     if (!client) { return Promise.resolve(null); }
-    return client.from('nfl_sim_rosters').select('rosters').eq('season', season).maybeSingle()
-      .then(function (res) {
-        return res.error || !res.data ? null : res.data.rosters;
-      }, function () { return null; });
+    function whole() {
+      return client.from('nfl_sim_rosters').select('rosters, saved_at').eq('season', season).maybeSingle()
+        .then(function (res) {
+          if (res.error || !res.data) { return null; }
+          if (kept) { kept.set(keyFor(season), { at: res.data.saved_at, rosters: res.data.rosters }); }
+          return res.data.rosters;
+        }, function () { return null; });
+    }
+    if (!kept) { return whole(); }
+    return Promise.all([
+      client.from('nfl_sim_rosters').select('saved_at').eq('season', season).maybeSingle(),
+      kept.get(keyFor(season))
+    ]).then(function (got) {
+      var res = got[0];
+      var mine = got[1];
+      if (res.error) { return whole(); }
+      if (!res.data) { return null; }
+      if (mine && mine.rosters && kept.sameStamp(mine.at, res.data.saved_at)) { return mine.rosters; }
+      return whole();
+    }, whole);
   }
 
   function load(season) {
@@ -420,8 +444,12 @@
     playoffs: playoffs,
     loadPlayoffs: loadPlayoffs,
     get: function (season) { return cache[season]; },
-    /* The admin page, having just published a season's rosters. */
-    set: function (season, rosters) { cache[season] = rosters; },
+    /* The admin page, having just published a season's rosters: kept in
+       this browser too, under the saved_at they went up with. */
+    set: function (season, rosters) {
+      cache[season] = rosters;
+      if (kept && rosters && rosters.savedAt) { kept.set(keyFor(season), { at: rosters.savedAt, rosters: rosters }); }
+    },
     forget: function (season) { delete cache[season]; file = null; },
     defenseGrade: defenseGrade,
     facing: facing,
