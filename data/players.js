@@ -443,7 +443,10 @@ EGE.players = [
     trophies: [
       { name: 'Most Valuable Player', season: 2030, scale: 1.45,
         image: EGE.nflAwardTrophy,
-        about: '2030 NFL Most Valuable Player\nNew York Jets' }
+        about: '2030 NFL Most Valuable Player\nNew York Jets' },
+      { name: 'Most Valuable Player', season: 2031, scale: 1.45,
+        image: EGE.nflAwardTrophy,
+        about: '2031 NFL Most Valuable Player\nNew York Jets' }
     ]
   },
   {
@@ -468,7 +471,10 @@ EGE.players = [
         about: '2028 NFL Most Valuable Player\nPittsburgh Steelers' },
       { name: 'Most Valuable Player', season: 2029, scale: 1.45,
         image: EGE.nflAwardTrophy,
-        about: '2029 NFL Most Valuable Player\nPittsburgh Steelers' }
+        about: '2029 NFL Most Valuable Player\nPittsburgh Steelers' },
+      { name: 'Offensive Player of the Year', season: 2031, scale: 1.45,
+        image: EGE.nflAwardTrophy,
+        about: '2031 Offensive Player of the Year\nKansas City Chiefs' }
     ]
   },
   {
