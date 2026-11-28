@@ -748,24 +748,46 @@ EGE.wallet = (function () {
 
      Until this has loaded the site shows fixtures, never results, so a page
      that cannot reach Supabase is behind rather than wrong. */
+  /* One at a time, like the stored weeks below, so the second of two
+     asks at once can find the first's answer still good. */
+  var publishing = Promise.resolve();
+
   function loadPublishedWeeks() {
+    var next = publishing.then(readWeeksOut, readWeeksOut);
+    publishing = next.then(function () {}, function () {});
+    return next;
+  }
+
+  function readWeeksOut() {
     var c = client();
     if (!c) { EGE.publishedWeeks = {}; return Promise.resolve({}); }
 
     /* Then the weeks the NFL sim has stored, which nobody but an admin can
        read until a week is out: read after the list, so a week that has
-       just gone out is never on it without its games. */
-    return readPublished(c).then(function (weeks) {
-      return loadStoredWeeks().then(function () { return weeks; });
+       just gone out is never on it without its games.
+
+       Neither is read again when its fingerprint (pulse, asked now) is
+       the one it had when this page last read it: a page load asks twice
+       (the first draw, and signing in), and the minute's check asks when
+       anything at all has moved. */
+    return pulse(true).then(function (now) {
+      var same = now && publishedSeen !== null && now.published === publishedSeen;
+      return (same ? Promise.resolve(EGE.publishedWeeks) : readPublished(c, now)).then(function (weeks) {
+        return loadStoredWeeks(now).then(function () { return weeks; });
+      });
     });
   }
 
-  function readPublished(c) {
-    return c.from(PUBLISHED).select('season, week, posted_at')
+  /* The fingerprint the published list had when it was last read here. */
+  var publishedSeen = null;
+
+  function readPublished(c, now) {
+    return c.from(PUBLISHED).select('season, week')
       .then(function (res) {
         /* Same rule as the boosts: a failed request keeps what was already
            out, rather than taking every score off the page. */
         if (res.error) { return EGE.publishedWeeks || {}; }
+        publishedSeen = now ? now.published : null;
         var bySeason = {};
 
         (res.data || []).forEach(function (row) {
@@ -791,26 +813,195 @@ EGE.wallet = (function () {
   var STORED = 'sim_weeks';
   var SIM_TRADES = 'sim_trades';
 
-  function loadStoredWeeks() {
+  /* One at a time: a page load asks twice at once (the first draw, and
+     signing in), and the second should find the first's rows, not read
+     them all again beside it. */
+  var storing = Promise.resolve();
+
+  /* `now`: a pulse asked just before, or one is asked here. */
+  function loadStoredWeeks(now) {
+    var ask = now !== undefined ? Promise.resolve(now) : pulse(true);
+    var next = storing.then(function () { return ask; }).then(readStoredWeeks, function () { return readStoredWeeks(null); });
+    storing = next.then(function () {}, function () {});
+    return next;
+  }
+
+  /* The fingerprints the stored weeks and trades had when what is laid
+     over was last checked against Supabase. */
+  var storedSeen = null;
+
+  var WEEK_COLUMNS = 'season, week, part, games, scores, saved_at';
+  var TRADE_COLUMNS = 'season, slug, week, from_team, to_team, games, saved_at';
+
+  function readStoredWeeks(now) {
     var c = client();
     if (!c || !EGE.storedWeeks) { return Promise.resolve(false); }
+    if (now && storedSeen && now.weeks === storedSeen.weeks && now.trades === storedSeen.trades) {
+      return Promise.resolve(false);
+    }
+    var mark = function () { storedSeen = now ? { weeks: now.weeks, trades: now.trades } : null; };
     /* First which rows there are and when each was saved, a few bytes a
-       row: every page asks again every minute, and the whole rows (every
-       stored week of every season, games and scores) come down only when
-       something has been stored, undone or published since. */
+       row: every page asks again every minute, and whole rows (games and
+       scores) come down only for what has been stored, undone or
+       published since -- since this browser last read them, too
+       (keptWeeks), not just since this page did. */
     return Promise.all([
       c.from(STORED).select('season, week, part, saved_at'),
       c.from(SIM_TRADES).select('season, slug, week, saved_at')
     ]).then(function (res) {
-      if (!res[0].error && !res[1].error && EGE.storedWeeks.unchanged(res[0].data || [], res[1].data || [])) { return null; }
-      return Promise.all([
-        c.from(STORED).select('season, week, part, games, scores, saved_at'),
-        c.from(SIM_TRADES).select('season, slug, week, from_team, to_team, games, saved_at')
-      ]);
-    }).then(function (res) {
-      if (!res || res[0].error) { return false; }
-      return EGE.storedWeeks.apply(res[0].data || [], res[1].error ? undefined : res[1].data || []);
+      if (res[0].error || res[1].error) {
+        return Promise.all([c.from(STORED).select(WEEK_COLUMNS), c.from(SIM_TRADES).select(TRADE_COLUMNS)])
+          .then(function (whole) {
+            return whole[0].error ? null : { weeks: whole[0].data || [], trades: whole[1].error ? undefined : whole[1].data || [] };
+          });
+      }
+      if (EGE.storedWeeks.unchanged(res[0].data || [], res[1].data || [])) { mark(); return null; }
+      return storedRows(c, res[0].data || [], res[1].data || []).then(function (got) {
+        if (got && got.trades !== undefined) { mark(); }
+        return got;
+      });
+    }).then(function (got) {
+      if (!got) { return false; }
+      return EGE.storedWeeks.apply(got.weeks, got.trades);
     }).catch(function () { return false; });
+  }
+
+  /* --- what has moved ----------------------------------------------------
+
+     site_pulse() (supabase/schema.sql): a fingerprint of every list the
+     page checks in on -- the weeks out, the stored weeks and trades, what
+     has been bought, the trades on the Cards pages, the events and Game
+     Packs -- and this account's credits and diamonds, in one small answer,
+     so the minute's check reads a list again only when its fingerprint has
+     moved. Null when there is none to be had (the schema not run again
+     yet, or no connection), and the page reads every list as before. The
+     checks made in the same few seconds share one answer. */
+  var pulseAsk = null;
+  var pulseAt = 0;
+  var pulseWho = null;
+  var noPulse = false;
+
+  /* `fresh`: asked now, never an answer from before -- for what has to see
+     a change this page has only just made. */
+  function pulse(fresh) {
+    var c = client();
+    if (!c || noPulse) { return Promise.resolve(null); }
+    /* What a visitor may see depends on who they are signed in as. */
+    var player = EGE.auth.currentPlayer ? EGE.auth.currentPlayer() : null;
+    var who = player && player.email ? player.email.toLowerCase() : '';
+    if (!fresh && pulseAsk && pulseWho === who && Date.now() - pulseAt < 5000) { return pulseAsk; }
+    pulseAt = Date.now();
+    pulseWho = who;
+    pulseAsk = c.rpc('site_pulse').then(function (res) {
+      if (res.error) {
+        /* No such function yet: not asked again until the next load. */
+        if (res.error.code === 'PGRST202' || res.status === 404) { noPulse = true; }
+        return null;
+      }
+      return res.data && typeof res.data === 'object' ? res.data : null;
+    }, function () { return null; });
+    return pulseAsk;
+  }
+
+  /* --- the stored weeks this browser has read ---------------------------- */
+
+  var KEPT_WEEKS = 'sim-weeks';
+  var keptWeeks = null;
+
+  function weekKey(row) { return row.season + '|' + row.week + '|' + row.part; }
+  function tradeKey(row) { return row.season + '|' + row.slug + '|' + row.week; }
+
+  function keptRows() {
+    if (keptWeeks) { return Promise.resolve(keptWeeks); }
+    var store = EGE.localCache;
+    return (store ? store.get(KEPT_WEEKS) : Promise.resolve(undefined)).then(function (got) {
+      if (!keptWeeks) {
+        keptWeeks = got && got.weeks && got.trades ? got : { weeks: {}, trades: {} };
+      }
+      return keptWeeks;
+    });
+  }
+
+  /* Every row in the lists, each from what this browser has under the same
+     saved_at or read now: the weeks by season, only the ones missing, and
+     the trades (a handful of rows) all again if any one is. Null when a
+     read failed, so what is laid over already stays. */
+  function storedRows(c, weekList, tradeList) {
+    return keptRows().then(function (kept) {
+      var gone = {};
+      var missing = weekList.filter(function (row) {
+        var had = kept.weeks[weekKey(row)];
+        if (had && had.saved_at === row.saved_at) { return false; }
+        gone[weekKey(row)] = true;
+        return true;
+      });
+      var tradesMissing = tradeList.some(function (row) {
+        var had = kept.trades[tradeKey(row)];
+        return !had || had.saved_at !== row.saved_at;
+      });
+
+      var bySeason = {};
+      missing.forEach(function (row) {
+        var weeks = bySeason[row.season] || (bySeason[row.season] = []);
+        if (weeks.indexOf(row.week) === -1) { weeks.push(row.week); }
+      });
+      var seasons = Object.keys(bySeason);
+      /* Most of them missing (a first visit): one read of the lot. */
+      var reads = missing.length > weekList.length / 2
+        ? [c.from(STORED).select(WEEK_COLUMNS)]
+        : seasons.map(function (season) {
+          return c.from(STORED).select(WEEK_COLUMNS).eq('season', Number(season)).in('week', bySeason[season]);
+        });
+
+      return Promise.all([
+        Promise.all(reads),
+        tradesMissing ? c.from(SIM_TRADES).select(TRADE_COLUMNS) : null
+      ]).then(function (got) {
+        var fresh = {};
+        for (var i = 0; i < got[0].length; i += 1) {
+          if (got[0][i].error) { return null; }
+          (got[0][i].data || []).forEach(function (row) { fresh[weekKey(row)] = row; });
+        }
+        var weeks = {};
+        var rows = [];
+        weekList.forEach(function (row) {
+          var key = weekKey(row);
+          var had = fresh[key] || (gone[key] ? null : kept.weeks[key]);
+          if (!had) { return; }
+          weeks[key] = had;
+          rows.push(had);
+        });
+
+        var trades = {};
+        var tradeRows;
+        if (got[1] && got[1].error) {
+          /* As before: the trades already laid stay. */
+          tradeRows = undefined;
+          trades = kept.trades;
+        } else {
+          var source = {};
+          if (got[1]) {
+            (got[1].data || []).forEach(function (row) { source[tradeKey(row)] = row; });
+          } else {
+            source = kept.trades;
+          }
+          tradeRows = [];
+          tradeList.forEach(function (row) {
+            var had = source[tradeKey(row)];
+            if (!had) { return; }
+            trades[tradeKey(row)] = had;
+            tradeRows.push(had);
+          });
+        }
+
+        keptWeeks = { weeks: weeks, trades: trades };
+        if (EGE.localCache && (missing.length || tradesMissing ||
+            Object.keys(kept.weeks).length !== rows.length || Object.keys(kept.trades).length !== Object.keys(trades).length)) {
+          EGE.localCache.set(KEPT_WEEKS, keptWeeks);
+        }
+        return { weeks: rows, trades: tradeRows };
+      });
+    });
   }
 
   /* Every published week with when it went out and whether Discord has had
@@ -1563,6 +1754,7 @@ EGE.wallet = (function () {
   }
 
   return {
+    pulse: pulse,
     loadBoosts: loadBoosts,
     ownedCount: ownedCount,
     lapsed: lapsed,

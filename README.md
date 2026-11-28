@@ -3879,11 +3879,15 @@ then (credits, game diamonds and their Player Cards' share) and redraws, so
 nobody has to reload after a publish. The redraw waits while somebody is in
 the middle of something: the portal or a card open, a sticker picked up or its
 drawer out, a box being typed in, or a tap a moment ago. Nothing is asked while
-the page is put away. All told an open page asks Supabase for about five small
-things a minute, ten on a Cards page and under twenty on the Shop page. The
-NFL sim's stored weeks among them are asked for as a list first (which weeks,
-and when each was saved), and the weeks themselves come down only when that
-list has changed (`js/wallet.js loadStoredWeeks`).
+the page is put away. Each check is one small question first, `site_pulse()`
+in `supabase/schema.sql`: a fingerprint of each thing the page keeps up with
+(the weeks out, the stored weeks and trades, the ratings bought, card trades,
+events, Game Packs, your collection) and your two balances. Only what has a new
+fingerprint is read again, so a page with nothing new costs well under 1 KB a
+minute (`EGE.wallet.pulse`). Before the schema has the function, the page
+reads everything every minute as it used to. The NFL sim's stored weeks are
+asked for as a list first (which weeks, and when each was saved), and only the
+weeks that are new or saved again come down (`js/wallet.js loadStoredWeeks`).
 
 **Why `document.write`, of all things.** Because these have to be in place
 *before* `js/app.js` runs, exactly as they always were. `document.write` from
@@ -4326,6 +4330,9 @@ Built so far:
 - `js/app.js` — renders the six cards and routes `#{slug}` to a player view.
 - `data/players.js` — the six players and the season ladder. Source of truth.
 - `js/auth.js` — Supabase auth: sign in, the one-time password, session state.
+- `js/local-cache.js` — big Supabase reads kept in the browser (IndexedDB)
+  under the stamp they were saved with, so they are read again only when it
+  moves (see Connecting Supabase, **Egress**).
 - `js/wallet.js` — credits, diamonds and inventory: balances, buying, using,
   paying out a season, swapping credits for diamonds, and the admin's reach
   across every account (one balance or everybody's at once).
@@ -4525,6 +4532,17 @@ the root would point at `stogz.github.io` itself.
 
 Until those two values are filled in, the site runs normally and the portal
 reports that login isn't configured yet.
+
+**Egress.** The free plan allows 5 GB a month of what the database sends out,
+and nearly all of it is reads. So the big things are kept in the browser
+(`js/local-cache.js`, IndexedDB) with the stamp they were saved under, and
+Supabase is asked for the stamp before the thing itself: the NFL rosters
+(`saved_at`), the stored weeks and trades (`saved_at` a row), a week's box
+scores (`digest`), the NFL teammates' card lines (`digest`), your own card
+collection (its `site_pulse()` fingerprint) and, for an admin, the NFL sim's
+world files (`updated_at` a file). A second visit reads tens of KB instead of
+several MB. Anything new read from Supabase goes through the same check; a
+browser with no IndexedDB just reads everything, as before.
 
 **Worth knowing:** setting the first password doesn't prove who is setting it,
 so whoever gets to an unclaimed account first claims it. With six known players

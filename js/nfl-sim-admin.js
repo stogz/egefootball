@@ -165,12 +165,57 @@ EGE.nflSimAdmin = (function () {
     return message + (/nfl_sim_/.test(message) ? ' Run supabase/schema.sql again first.' : '');
   }
 
+  /* The world is several MB even packed, and this page used to read all of
+     it every time the tab or an NFL team page opened. This browser keeps
+     the files it last read or saved (js/local-cache.js), packed, with each
+     one's updated_at: Supabase is asked for the names and stamps, and only
+     the files whose stamp has moved come down. */
+  var KEPT_WORLD = 'nfl-sim-world';
+
+  function keptWorld() {
+    var store = EGE.localCache;
+    return (store ? store.get(KEPT_WORLD) : Promise.resolve(undefined)).then(function (got) {
+      return got && got.files ? got.files : {};
+    });
+  }
+
+  function keepWorld(files) {
+    if (EGE.localCache) { EGE.localCache.set(KEPT_WORLD, { files: files }); }
+  }
+
   function loadWorld() {
     var c = client();
     if (!c) { return Promise.reject(new Error('Not connected to Supabase.')); }
-    return c.from(FILES).select('name, body, updated_at').not('name', 'like', 'rewind-%').not('name', 'like', 'pbp-%').then(function (res) {
+    return Promise.all([
+      c.from(FILES).select('name, updated_at').not('name', 'like', 'rewind-%').not('name', 'like', 'pbp-%'),
+      keptWorld()
+    ]).then(function (got) {
+      var res = got[0];
+      var kept = got[1];
       if (res.error) { throw new Error(schemaHint(res.error.message)); }
-      return Promise.all((res.data || []).filter(function (row) { return !SAVE_POINT.test(row.name); }).map(function (row) {
+      var list = (res.data || []).filter(function (row) { return !SAVE_POINT.test(row.name); });
+      var need = list.filter(function (row) {
+        return !kept[row.name] || kept[row.name].at !== row.updated_at;
+      }).map(function (row) { return row.name; });
+      var read = need.length ? c.from(FILES).select('name, body, updated_at').in('name', need) : Promise.resolve({ data: [] });
+      return read.then(function (fresh) {
+        if (fresh.error) { throw new Error(schemaHint(fresh.error.message)); }
+        var byName = {};
+        (fresh.data || []).forEach(function (row) { byName[row.name] = row; });
+        var files = {};
+        var rows = [];
+        list.forEach(function (row) {
+          var had = byName[row.name] ? { at: byName[row.name].updated_at, body: byName[row.name].body }
+            : need.indexOf(row.name) === -1 ? kept[row.name] : null;
+          if (!had) { return; }
+          files[row.name] = had;
+          rows.push({ name: row.name, body: had.body, updated_at: had.at });
+        });
+        if (need.length || Object.keys(kept).length !== rows.length) { keepWorld(files); }
+        return rows;
+      });
+    }).then(function (rows) {
+      return Promise.all(rows.map(function (row) {
         return unpack(row.body).then(function (text) { return { name: row.name, text: text, at: row.updated_at }; });
       }));
     }).then(function (rows) {
@@ -198,6 +243,7 @@ EGE.nflSimAdmin = (function () {
     var points = kept.filter(function (name) { return SAVE_POINT.test(name); });
     var world = kept.filter(function (name) { return !SAVE_POINT.test(name); });
     var now = new Date().toISOString();
+    var packed = [];
     function row(name) {
       return pack(state.files[name]).then(function (body) { return { name: name, body: body, updated_at: now }; });
     }
@@ -219,6 +265,7 @@ EGE.nflSimAdmin = (function () {
     }).then(function () {
       return Promise.all(world.map(row));
     }).then(function (rows) {
+      packed = rows;
       return rows.length ? c.from(FILES).upsert(rows, { onConflict: 'name' }).select('name, updated_at') : { data: [] };
     }).then(function (res) {
       if (res.error) { throw new Error(schemaHint(res.error.message)); }
@@ -227,6 +274,15 @@ EGE.nflSimAdmin = (function () {
     }).then(function (res) {
       if (res.error) { throw new Error(schemaHint(res.error.message)); }
       gone.forEach(function (name) { delete state.stamps[name]; });
+      /* What went up is what this browser keeps, so the next open reads
+         none of it again. */
+      keptWorld().then(function (files) {
+        packed.forEach(function (r) {
+          if (state.stamps[r.name]) { files[r.name] = { at: state.stamps[r.name], body: r.body }; }
+        });
+        gone.forEach(function (name) { delete files[name]; });
+        keepWorld(files);
+      });
       Object.keys(state.files).forEach(function (name) { if (SAVE_POINT.test(name)) { delete state.files[name]; } });
       state.dirty = {};
       note('Saved ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + '.');
@@ -251,7 +307,9 @@ EGE.nflSimAdmin = (function () {
     var c = client();
     if (!c) { return Promise.reject(new Error('Not connected to Supabase.')); }
     return Promise.all([
-      c.from('game_boosters').select('email, season, week, item_key'),
+      /* Only this season's are used (nfl-sim/lib/boosts.js), and the one
+         before covers a world a season ahead of the site. */
+      c.from('game_boosters').select('email, season, week, item_key').gte('season', EGE.currentSeason - 1),
       c.from('player_inventory').select('email, item_key, item_name, target, quantity, active').eq('item_key', 'qb-connection')
     ]).then(function (got) {
       got.forEach(function (res) {

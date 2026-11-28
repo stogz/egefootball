@@ -7558,6 +7558,8 @@ EGE.cardsView = (function () {
   }
 
   var pollCount = 0;
+  var pulseFor = null;
+  var pulseSeen = {};
 
   /* When each event starts and ends, as one string. */
   function eventTimes(rows) {
@@ -7584,19 +7586,42 @@ EGE.cardsView = (function () {
     /* The Want Lists, and who has what yours is after, every third check
        on the Trades page: a card somebody just pulled turns up there. */
     var wants = state.tab === 'trades' && pollCount % 3 === 0;
+    var other = pollCount % 2 === 0;
     polling = true;
-    return Promise.all([
-      EGE.cardStore.tradeStates(player.email),
-      EGE.wallet.diamondsFor(player.email),
-      shop ? EGE.cardStore.shopToday() : null,
-      shop ? EGE.cardStore.market(player.email) : null,
-      shop ? EGE.cardStore.recentOpens(RECENT_MAX) : null,
-      /* Whether an admin has started or ended an event, every other check. */
-      pollCount % 2 === 0 ? EGE.cardStore.events() : null,
-      /* A Game Pack won on a game that just finished. */
-      pollCount % 2 === 0 ? EGE.cardStore.gamePacks(player.email) : null,
-      wants ? EGE.cardStore.wantLists() : null
-    ]).then(function (got) {
+    /* The trades, the balance, the events and the Game Packs are read only
+       when their fingerprint has moved since they were last read here
+       (EGE.wallet.pulse), and every time when there is none. */
+    if (pulseFor !== player.email) { pulseFor = player.email; pulseSeen = {}; }
+    return EGE.wallet.pulse().then(function (now) {
+      var asked = {};
+      function due(key, when) {
+        if (!when) { return false; }
+        if (!now || pulseSeen[key] === undefined || now[key] !== pulseSeen[key]) {
+          if (now) { pulseSeen[key] = now[key]; }
+          asked[key] = true;
+          return true;
+        }
+        return false;
+      }
+      return Promise.all([
+        due('cardTrades', true) ? EGE.cardStore.tradeStates(player.email) : null,
+        due('diamonds', true) ? EGE.wallet.diamondsFor(player.email) : null,
+        shop ? EGE.cardStore.shopToday() : null,
+        shop ? EGE.cardStore.market(player.email) : null,
+        shop ? EGE.cardStore.recentOpens(RECENT_MAX) : null,
+        /* Whether an admin has started or ended an event, every other check. */
+        due('events', other) ? EGE.cardStore.events() : null,
+        /* A Game Pack won on a game that just finished. */
+        due('packs', other) ? EGE.cardStore.gamePacks(player.email) : null,
+        wants ? EGE.cardStore.wantLists() : null
+      ]).then(function (got) {
+        /* A read that failed is read again next time. */
+        [['cardTrades', 0], ['diamonds', 1], ['events', 5], ['packs', 6]].forEach(function (k) {
+          if (asked[k[0]] && got[k[1]] == null) { delete pulseSeen[k[0]]; }
+        });
+        return got;
+      });
+    }).then(function (got) {
       polling = false;
       if (state.player !== player || busy()) { return; }
 

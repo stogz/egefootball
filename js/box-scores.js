@@ -53,21 +53,46 @@
     return index;
   }
 
+  function read(c, season, n, key) {
+    return c.from(TABLE).select('games, digest').eq('season', season).eq('week', n)
+      .maybeSingle().then(function (res) {
+        if (res.error || !res.data) {
+          delete games[key];
+          return null;
+        }
+        var list = res.data.games || [];
+        if (EGE.localCache && res.data.digest) {
+          EGE.localCache.set('box-scores:' + key, { digest: res.data.digest, games: list });
+        }
+        return list;
+      }, function () {
+        delete games[key];
+        return null;
+      });
+  }
+
+  /* A week's games are about 70 KB. The week's digest, which changes
+     whenever anything in its row does (nfl-sim/lib/site.js boxRows), is
+     asked first, and a week this browser has kept under the same digest
+     (js/local-cache.js) is not read again. */
   function week(season, n) {
     var key = season + ':' + n;
     if (!games[key]) {
       var c = client();
-      games[key] = !c ? Promise.resolve(null) : c.from(TABLE).select('games').eq('season', season).eq('week', n)
-        .maybeSingle().then(function (res) {
-          if (res.error || !res.data) {
-            delete games[key];
-            return null;
-          }
-          return res.data.games || [];
-        }, function () {
+      var store = EGE.localCache;
+      games[key] = !c ? Promise.resolve(null) : !store ? read(c, season, n, key) : Promise.all([
+        c.from(TABLE).select('digest').eq('season', season).eq('week', n).maybeSingle(),
+        store.get('box-scores:' + key)
+      ]).then(function (got) {
+        var res = got[0];
+        var mine = got[1];
+        if (!res.error && res.data && mine && mine.digest && mine.digest === res.data.digest) { return mine.games; }
+        if (!res.error && !res.data) {
           delete games[key];
           return null;
-        });
+        }
+        return read(c, season, n, key);
+      }, function () { return read(c, season, n, key); });
     }
     return games[key];
   }
